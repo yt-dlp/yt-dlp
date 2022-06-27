@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -11,18 +8,18 @@ from ..compat import (
 from ..utils import (
     determine_ext,
     ExtractorError,
+    filter_dict,
     find_xpath_attr,
     fix_xml_ampersands,
     GeoRestrictedError,
-    get_element_by_class,
     HEADRequest,
     int_or_none,
+    join_nonempty,
     parse_duration,
-    parse_list,
     remove_start,
     strip_or_none,
+    traverse_obj,
     try_get,
-    unescapeHTML,
     unified_strdate,
     unified_timestamp,
     update_url_query,
@@ -36,7 +33,7 @@ class RaiBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['IT']
     _GEO_BYPASS = False
 
-    def _extract_relinker_info(self, relinker_url, video_id):
+    def _extract_relinker_info(self, relinker_url, video_id, audio_only=False):
         if not re.match(r'https?://', relinker_url):
             return {'formats': [{'url': relinker_url}]}
 
@@ -79,7 +76,15 @@ class RaiBaseIE(InfoExtractor):
             if (ext == 'm3u8' and platform != 'mon') or (ext == 'f4m' and platform != 'flash'):
                 continue
 
-            if ext == 'm3u8' or 'format=m3u8' in media_url or platform == 'mon':
+            if ext == 'mp3':
+                formats.append({
+                    'url': media_url,
+                    'vcodec': 'none',
+                    'acodec': 'mp3',
+                    'format_id': 'http-mp3',
+                })
+                break
+            elif ext == 'm3u8' or 'format=m3u8' in media_url or platform == 'mon':
                 formats.extend(self._extract_m3u8_formats(
                     media_url, video_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False))
@@ -100,16 +105,17 @@ class RaiBaseIE(InfoExtractor):
         if not formats and geoprotection is True:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
-        formats.extend(self._create_http_urls(relinker_url, formats))
+        if not audio_only:
+            formats.extend(self._create_http_urls(relinker_url, formats))
 
-        return dict((k, v) for k, v in {
+        return filter_dict({
             'is_live': is_live,
             'duration': duration,
             'formats': formats,
-        }.items() if v is not None)
+        })
 
     def _create_http_urls(self, relinker_url, fmts):
-        _RELINKER_REG = r'https?://(?P<host>[^/]+?)/(?:i/)?(?P<extra>[^/]+?)/(?P<path>.+?)/(?P<id>\d+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4|/playlist\.m3u8).+?'
+        _RELINKER_REG = r'https?://(?P<host>[^/]+?)/(?:i/)?(?P<extra>[^/]+?)/(?P<path>.+?)/(?P<id>\w+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4|/playlist\.m3u8).+?'
         _MP4_TMPL = '%s&overrideUserAgentRule=mp4-%s'
         _QUALITY = {
             # tbr: w, h
@@ -137,6 +143,9 @@ class RaiBaseIE(InfoExtractor):
             if resp.code == 200:
                 return False if resp.url == url else resp.url
             return None
+
+        # filter out audio-only formats
+        fmts = [f for f in fmts if not f.get('vcodec') == 'none']
 
         def get_format_info(tbr):
             import math
@@ -229,7 +238,7 @@ class RaiPlayIE(RaiBaseIE):
             'id': 'cb27157f-9dd0-4aee-b788-b1f67643a391',
             'ext': 'mp4',
             'title': 'Report del 07/04/2014',
-            'alt_title': 'St 2013/14 - Espresso nel caffè - 07/04/2014',
+            'alt_title': 'St 2013/14 - Report - Espresso nel caffè - 07/04/2014',
             'description': 'md5:d730c168a58f4bb35600fc2f881ec04e',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Rai Gulp',
@@ -237,7 +246,7 @@ class RaiPlayIE(RaiBaseIE):
             'series': 'Report',
             'season': '2013/14',
             'subtitles': {
-                'it': 'count:2',
+                'it': 'count:4',
             },
         },
         'params': {
@@ -245,18 +254,18 @@ class RaiPlayIE(RaiBaseIE):
         },
     }, {
         # 1080p direct mp4 url
-        'url': 'https://www.raiplay.it/video/2021/03/Leonardo-S1E1-b5703b02-82ee-475a-85b6-c9e4a8adf642.html',
-        'md5': '2e501e8651d72f05ffe8f5d286ad560b',
+        'url': 'https://www.raiplay.it/video/2021/11/Blanca-S1E1-Senza-occhi-b1255a4a-8e72-4a2f-b9f3-fc1308e00736.html',
+        'md5': 'aeda7243115380b2dd5e881fd42d949a',
         'info_dict': {
-            'id': 'b5703b02-82ee-475a-85b6-c9e4a8adf642',
+            'id': 'b1255a4a-8e72-4a2f-b9f3-fc1308e00736',
             'ext': 'mp4',
-            'title': 'Leonardo - S1E1',
-            'alt_title': 'St 1 Ep 1 - Episodio 1',
-            'description': 'md5:f5360cd267d2de146e4e3879a5a47d31',
+            'title': 'Blanca - S1E1 - Senza occhi',
+            'alt_title': 'St 1 Ep 1 - Blanca - Senza occhi',
+            'description': 'md5:75f95d5c030ec8bac263b1212322e28c',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Rai 1',
-            'duration': 3229,
-            'series': 'Leonardo',
+            'duration': 6493,
+            'series': 'Blanca',
             'season': 'Season 1',
         },
     }, {
@@ -309,12 +318,13 @@ class RaiPlayIE(RaiBaseIE):
         program_info = media.get('program_info') or {}
         season = media.get('season')
 
+        alt_title = join_nonempty(media.get('subtitle'), media.get('toptitle'), delim=' - ')
+
         info = {
             'id': remove_start(media.get('id'), 'ContentItem-') or video_id,
             'display_id': video_id,
-            'title': self._live_title(title) if relinker_info.get(
-                'is_live') else title,
-            'alt_title': strip_or_none(media.get('subtitle')),
+            'title': title,
+            'alt_title': strip_or_none(alt_title),
             'description': media.get('description'),
             'uploader': strip_or_none(media.get('channel')),
             'creator': strip_or_none(media.get('editor') or None),
@@ -327,6 +337,7 @@ class RaiPlayIE(RaiBaseIE):
             'episode': media.get('episode_title'),
             'episode_number': int_or_none(media.get('episode')),
             'subtitles': subtitles,
+            'release_year': traverse_obj(media, ('track_info', 'edit_year')),
         }
 
         info.update(relinker_info)
@@ -354,26 +365,44 @@ class RaiPlayLiveIE(RaiPlayIE):
 
 
 class RaiPlayPlaylistIE(InfoExtractor):
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/programmi/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/programmi/(?P<id>[^/?#&]+))(?:/(?P<extra_id>[^?#&]+))?'
     _TESTS = [{
-        'url': 'http://www.raiplay.it/programmi/nondirloalmiocapo/',
+        'url': 'https://www.raiplay.it/programmi/nondirloalmiocapo/',
         'info_dict': {
             'id': 'nondirloalmiocapo',
             'title': 'Non dirlo al mio capo',
             'description': 'md5:98ab6b98f7f44c2843fd7d6f045f153b',
         },
         'playlist_mincount': 12,
+    }, {
+        'url': 'https://www.raiplay.it/programmi/nondirloalmiocapo/episodi/stagione-2/',
+        'info_dict': {
+            'id': 'nondirloalmiocapo',
+            'title': 'Non dirlo al mio capo - Stagione 2',
+            'description': 'md5:98ab6b98f7f44c2843fd7d6f045f153b',
+        },
+        'playlist_mincount': 12,
     }]
 
     def _real_extract(self, url):
-        base, playlist_id = self._match_valid_url(url).groups()
+        base, playlist_id, extra_id = self._match_valid_url(url).groups()
 
         program = self._download_json(
             base + '.json', playlist_id, 'Downloading program JSON')
 
+        if extra_id:
+            extra_id = extra_id.upper().rstrip('/')
+
+        playlist_title = program.get('name')
         entries = []
         for b in (program.get('blocks') or []):
             for s in (b.get('sets') or []):
+                if extra_id:
+                    if extra_id != join_nonempty(
+                            b.get('name'), s.get('name'), delim='/').replace(' ', '-').upper():
+                        continue
+                    playlist_title = join_nonempty(playlist_title, s.get('name'), delim=' - ')
+
                 s_id = s.get('id')
                 if not s_id:
                     continue
@@ -392,8 +421,126 @@ class RaiPlayPlaylistIE(InfoExtractor):
                         video_id=RaiPlayIE._match_id(video_url)))
 
         return self.playlist_result(
-            entries, playlist_id, program.get('name'),
+            entries, playlist_id, playlist_title,
             try_get(program, lambda x: x['program_info']['description']))
+
+
+class RaiPlaySoundIE(RaiBaseIE):
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/.+?-(?P<id>%s))\.(?:html|json)' % RaiBaseIE._UUID_RE
+    _TESTS = [{
+        'url': 'https://www.raiplaysound.it/audio/2021/12/IL-RUGGITO-DEL-CONIGLIO-1ebae2a7-7cdb-42bb-842e-fe0d193e9707.html',
+        'md5': '8970abf8caf8aef4696e7b1f2adfc696',
+        'info_dict': {
+            'id': '1ebae2a7-7cdb-42bb-842e-fe0d193e9707',
+            'ext': 'mp3',
+            'title': 'Il Ruggito del Coniglio del 10/12/2021',
+            'description': 'md5:2a17d2107e59a4a8faa0e18334139ee2',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'rai radio 2',
+            'duration': 5685,
+            'series': 'Il Ruggito del Coniglio',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+    def _real_extract(self, url):
+        base, audio_id = self._match_valid_url(url).group('base', 'id')
+        media = self._download_json(f'{base}.json', audio_id, 'Downloading audio JSON')
+        uid = try_get(media, lambda x: remove_start(remove_start(x['uniquename'], 'ContentItem-'), 'Page-'))
+
+        info = {}
+        formats = []
+        relinkers = set(traverse_obj(media, (('downloadable_audio', 'audio', ('live', 'cards', 0, 'audio')), 'url')))
+        for r in relinkers:
+            info = self._extract_relinker_info(r, audio_id, True)
+            formats.extend(info.get('formats'))
+
+        date_published = try_get(media, (lambda x: f'{x["create_date"]} {x.get("create_time") or ""}',
+                                         lambda x: x['live']['create_date']))
+
+        podcast_info = traverse_obj(media, 'podcast_info', ('live', 'cards', 0)) or {}
+        thumbnails = [{
+            'url': urljoin(url, thumb_url),
+        } for thumb_url in (podcast_info.get('images') or {}).values() if thumb_url]
+
+        return {
+            **info,
+            'id': uid or audio_id,
+            'display_id': audio_id,
+            'title': traverse_obj(media, 'title', 'episode_title'),
+            'alt_title': traverse_obj(media, ('track_info', 'media_name')),
+            'description': media.get('description'),
+            'uploader': traverse_obj(media, ('track_info', 'channel'), expected_type=strip_or_none),
+            'creator': traverse_obj(media, ('track_info', 'editor'), expected_type=strip_or_none),
+            'timestamp': unified_timestamp(date_published),
+            'thumbnails': thumbnails,
+            'series': podcast_info.get('title'),
+            'season_number': int_or_none(media.get('season')),
+            'episode': media.get('episode_title'),
+            'episode_number': int_or_none(media.get('episode')),
+            'formats': formats,
+        }
+
+
+class RaiPlaySoundLiveIE(RaiPlaySoundIE):
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?P<id>[^/?#&]+)$)'
+    _TESTS = [{
+        'url': 'https://www.raiplaysound.it/radio2',
+        'info_dict': {
+            'id': 'b00a50e6-f404-4af6-8f8c-ff3b9af73a44',
+            'display_id': 'radio2',
+            'ext': 'mp4',
+            'title': 'Rai Radio 2',
+            'uploader': 'rai radio 2',
+            'creator': 'raiplaysound',
+            'is_live': True,
+        },
+        'params': {
+            'skip_download': 'live',
+        },
+    }]
+
+
+class RaiPlaySoundPlaylistIE(InfoExtractor):
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?:programmi|playlist|audiolibri)/(?P<id>[^/?#&]+))(?:/(?P<extra_id>[^?#&]+))?'
+    _TESTS = [{
+        'url': 'https://www.raiplaysound.it/programmi/ilruggitodelconiglio',
+        'info_dict': {
+            'id': 'ilruggitodelconiglio',
+            'title': 'Il Ruggito del Coniglio',
+            'description': 'md5:1bbaf631245a7ab1ec4d9fbb3c7aa8f3',
+        },
+        'playlist_mincount': 65,
+    }, {
+        'url': 'https://www.raiplaysound.it/programmi/ilruggitodelconiglio/puntate/prima-stagione-1995',
+        'info_dict': {
+            'id': 'ilruggitodelconiglio_puntate_prima-stagione-1995',
+            'title': 'Prima Stagione 1995',
+        },
+        'playlist_count': 1,
+    }]
+
+    def _real_extract(self, url):
+        base, playlist_id, extra_id = self._match_valid_url(url).group('base', 'id', 'extra_id')
+        url = f'{base}.json'
+        program = self._download_json(url, playlist_id, 'Downloading program JSON')
+
+        if extra_id:
+            extra_id = extra_id.rstrip('/')
+            playlist_id += '_' + extra_id.replace('/', '_')
+            path = next(c['path_id'] for c in program.get('filters') or [] if extra_id in c.get('weblink'))
+            program = self._download_json(
+                urljoin('https://www.raiplaysound.it', path), playlist_id, 'Downloading program secondary JSON')
+
+        entries = [
+            self.url_result(urljoin(base, c['path_id']), ie=RaiPlaySoundIE.ie_key())
+            for c in traverse_obj(program, 'cards', ('block', 'cards')) or []
+            if c.get('path_id')]
+
+        return self.playlist_result(entries, playlist_id, program.get('title'),
+                                    traverse_obj(program, ('podcast_info', 'description')))
 
 
 class RaiIE(RaiBaseIE):
@@ -588,84 +735,3 @@ class RaiIE(RaiBaseIE):
         info.update(relinker_info)
 
         return info
-
-
-class RaiPlayRadioBaseIE(InfoExtractor):
-    _BASE = 'https://www.raiplayradio.it'
-
-    def get_playlist_iter(self, url, uid):
-        webpage = self._download_webpage(url, uid)
-        for attrs in parse_list(webpage):
-            title = attrs['data-title'].strip()
-            audio_url = urljoin(url, attrs['data-mediapolis'])
-            entry = {
-                'url': audio_url,
-                'id': attrs['data-uniquename'].lstrip('ContentItem-'),
-                'title': title,
-                'ext': 'mp3',
-                'language': 'it',
-            }
-            if 'data-image' in attrs:
-                entry['thumbnail'] = urljoin(url, attrs['data-image'])
-            yield entry
-
-
-class RaiPlayRadioIE(RaiPlayRadioBaseIE):
-    _VALID_URL = r'%s/audio/.+?-(?P<id>%s)\.html' % (
-        RaiPlayRadioBaseIE._BASE, RaiBaseIE._UUID_RE)
-    _TEST = {
-        'url': 'https://www.raiplayradio.it/audio/2019/07/RADIO3---LEZIONI-DI-MUSICA-36b099ff-4123-4443-9bf9-38e43ef5e025.html',
-        'info_dict': {
-            'id': '36b099ff-4123-4443-9bf9-38e43ef5e025',
-            'ext': 'mp3',
-            'title': 'Dal "Chiaro di luna" al  "Clair de lune", prima parte con Giovanni Bietti',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'language': 'it',
-        }
-    }
-
-    def _real_extract(self, url):
-        audio_id = self._match_id(url)
-        list_url = url.replace('.html', '-list.html')
-        return next(entry for entry in self.get_playlist_iter(list_url, audio_id) if entry['id'] == audio_id)
-
-
-class RaiPlayRadioPlaylistIE(RaiPlayRadioBaseIE):
-    _VALID_URL = r'%s/playlist/.+?-(?P<id>%s)\.html' % (
-        RaiPlayRadioBaseIE._BASE, RaiBaseIE._UUID_RE)
-    _TEST = {
-        'url': 'https://www.raiplayradio.it/playlist/2017/12/Alice-nel-paese-delle-meraviglie-72371d3c-d998-49f3-8860-d168cfdf4966.html',
-        'info_dict': {
-            'id': '72371d3c-d998-49f3-8860-d168cfdf4966',
-            'title': "Alice nel paese delle meraviglie",
-            'description': "di Lewis Carrol letto da Aldo Busi",
-        },
-        'playlist_count': 11,
-    }
-
-    def _real_extract(self, url):
-        playlist_id = self._match_id(url)
-        playlist_webpage = self._download_webpage(url, playlist_id)
-        playlist_title = unescapeHTML(self._html_search_regex(
-            r'data-playlist-title="(.+?)"', playlist_webpage, 'title'))
-        playlist_creator = self._html_search_meta(
-            'nomeProgramma', playlist_webpage)
-        playlist_description = get_element_by_class(
-            'textDescriptionProgramma', playlist_webpage)
-
-        player_href = self._html_search_regex(
-            r'data-player-href="(.+?)"', playlist_webpage, 'href')
-        list_url = urljoin(url, player_href)
-
-        entries = list(self.get_playlist_iter(list_url, playlist_id))
-        for index, entry in enumerate(entries, start=1):
-            entry.update({
-                'track': entry['title'],
-                'track_number': index,
-                'artist': playlist_creator,
-                'album': playlist_title
-            })
-
-        return self.playlist_result(
-            entries, playlist_id, playlist_title, playlist_description,
-            creator=playlist_creator)

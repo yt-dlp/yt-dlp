@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import try_get
@@ -180,7 +177,7 @@ class MxplayerIE(InfoExtractor):
 
 
 class MxplayerShowIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?mxplayer\.in/show/(?P<display_id>[-\w]+)-(?P<id>\w+)/?(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?mxplayer\.in/show/(?P<display_id>[-\w]+)-(?P<id>\w+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://www.mxplayer.in/show/watch-chakravartin-ashoka-samrat-series-online-a8f44e3cc0814b5601d17772cedf5417',
         'playlist_mincount': 440,

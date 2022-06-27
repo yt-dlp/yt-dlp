@@ -1,11 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    str_or_none,
     js_to_json,
     parse_filesize,
     urlencode_postdata,
@@ -23,7 +20,8 @@ class ZoomIE(InfoExtractor):
             'id': 'dUk_CNBETmZ5VA2BwEl-jjakPpJ3M1pcfVYAPRsoIbEByGsLjUZtaa4yCATQuOL3der8BlTwxQePl_j0.EImBkXzTIaPvdZO5',
             'ext': 'mp4',
             'title': 'China\'s "two sessions" and the new five-year plan',
-        }
+        },
+        'skip': 'Recording requires email authentication to access',
     }
 
     def _real_extract(self, url):
@@ -56,22 +54,46 @@ class ZoomIE(InfoExtractor):
             webpage, 'data'), play_id, js_to_json)
 
         subtitles = {}
-        for _type in ('transcript', 'cc'):
+        for _type in ('transcript', 'cc', 'chapter'):
             if data.get('%sUrl' % _type):
                 subtitles[_type] = [{
                     'url': urljoin(base_url, data['%sUrl' % _type]),
                     'ext': 'vtt',
                 }]
 
+        formats = []
+
+        if data.get('viewMp4Url'):
+            formats.append({
+                'format_note': 'Camera stream',
+                'url': str_or_none(data.get('viewMp4Url')),
+                'width': int_or_none(data.get('viewResolvtionsWidth')),
+                'height': int_or_none(data.get('viewResolvtionsHeight')),
+                'format_id': str_or_none(data.get('recordingId')),
+                'ext': 'mp4',
+                'filesize_approx': parse_filesize(data.get('fileSize')),
+                'preference': 0
+            })
+
+        if data.get('shareMp4Url'):
+            formats.append({
+                'format_note': 'Screen share stream',
+                'url': str_or_none(data.get('shareMp4Url')),
+                'width': int_or_none(data.get('shareResolvtionsWidth')),
+                'height': int_or_none(data.get('shareResolvtionsHeight')),
+                'format_id': str_or_none(data.get('shareVideoId')),
+                'ext': 'mp4',
+                'preference': -1
+            })
+
+        self._sort_formats(formats)
+
         return {
             'id': play_id,
-            'title': data['topic'],
-            'url': data['viewMp4Url'],
+            'title': data.get('topic'),
             'subtitles': subtitles,
-            'width': int_or_none(data.get('viewResolvtionsWidth')),
-            'height': int_or_none(data.get('viewResolvtionsHeight')),
+            'formats': formats,
             'http_headers': {
                 'Referer': base_url,
             },
-            'filesize_approx': parse_filesize(data.get('fileSize')),
         }

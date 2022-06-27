@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -80,7 +77,7 @@ class SendtoNewsIE(InfoExtractor):
                     'format_id': '%s-%d' % (determine_protocol(f), tbr),
                     'tbr': tbr,
                 })
-            # 'tbr' was explicitly set to be prefered over 'height' originally,
+            # 'tbr' was explicitly set to be preferred over 'height' originally,
             # So this is being kept unless someone can confirm this is unnecessary
             self._sort_formats(info_dict['formats'], ('tbr', 'res'))
 

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -77,7 +74,7 @@ class PicartoIE(InfoExtractor):
 
         return {
             'id': channel_id,
-            'title': self._live_title(title.strip()),
+            'title': title.strip(),
             'is_live': True,
             'channel': channel_id,
             'channel_id': metadata.get('id'),

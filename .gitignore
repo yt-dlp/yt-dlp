@@ -1,47 +1,57 @@
 # Config
 *.conf
-*.spec
 cookies
 *cookies.txt
 .netrc
 
 # Downloaded
-*.srt
-*.ttml
-*.sbv
-*.vtt
-*.flv
-*.mp4
-*.m4a
-*.m4v
-*.mp3
-*.3gp
-*.webm
-*.wav
-*.ape
-*.mkv
-*.flac
-*.avi
-*.swf
-*.part
-*.part-*
-*.ytdl
+*.annotations.xml
+*.aria2
+*.description
 *.dump
 *.frag
+*.frag.aria2
 *.frag.urls
-*.aria2
-*.swp
-*.ogg
-*.opus
 *.info.json
 *.live_chat.json
-*.jpg
-*.jpeg
-*.png
-*.webp
-*.annotations.xml
-*.description
+*.meta
+*.part*
+*.tmp
+*.temp
+*.unknown_video
+*.ytdl
 .cache/
+
+*.3gp
+*.ape
+*.ass
+*.avi
+*.desktop
+*.flac
+*.flv
+*.jpeg
+*.jpg
+*.m4a
+*.m4v
+*.mhtml
+*.mkv
+*.mov
+*.mp3
+*.mp4
+*.ogg
+*.opus
+*.png
+*.sbv
+*.srt
+*.swf
+*.swp
+*.ttml
+*.url
+*.vtt
+*.wav
+*.webloc
+*.webm
+*.webp
 
 # Allow config/media files in testdata
 !test/**
@@ -72,6 +82,7 @@ updates_key.pem
 *.egg-info
 .tox
 *.class
+*.isorted
 
 # Generated
 AUTHORS
@@ -80,11 +91,10 @@ README.txt
 *.1
 *.bash-completion
 *.fish
-*.exe
 *.tar.gz
 *.zsh
 *.spec
-test/testdata/player-*.js
+test/testdata/sigs/player-*.js
 
 # Binary
 /youtube-dl
@@ -98,6 +108,7 @@ yt-dlp.zip
 *.iml
 .vscode
 *.sublime-*
+*.code-workspace
 
 # Lazy extractors
 */extractor/lazy_extractors.py
@@ -106,3 +117,6 @@ yt-dlp.zip
 ytdlp_plugins/extractor/*
 !ytdlp_plugins/extractor/__init__.py
 !ytdlp_plugins/extractor/sample.py
+ytdlp_plugins/postprocessor/*
+!ytdlp_plugins/postprocessor/__init__.py
+!ytdlp_plugins/postprocessor/sample.py

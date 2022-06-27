@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     smuggle_url,
@@ -10,7 +7,14 @@ from ..utils import (
 
 class SBSIE(InfoExtractor):
     IE_DESC = 'sbs.com.au'
-    _VALID_URL = r'https?://(?:www\.)?sbs\.com\.au/(?:ondemand(?:/video/(?:single/)?|.*?\bplay=|/watch/)|news/(?:embeds/)?video/)(?P<id>[0-9]+)'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?sbs\.com\.au/(?:
+            ondemand(?:
+                /video/(?:single/)?|
+                /movie/[^/]+/|
+                .*?\bplay=|/watch/
+            )|news/(?:embeds/)?video/
+        )(?P<id>[0-9]+)'''
 
     _TESTS = [{
         # Original URL is handled by the generic IE which finds the iframe:
@@ -46,6 +50,13 @@ class SBSIE(InfoExtractor):
     }, {
         'url': 'https://www.sbs.com.au/ondemand/watch/1698704451971',
         'only_matching': True,
+    }, {
+        'url': 'https://www.sbs.com.au/ondemand/movie/coherence/1469404227931',
+        'only_matching': True,
+    }, {
+        'note': 'Live stream',
+        'url': 'https://www.sbs.com.au/ondemand/video/1726824003663/sbs-24x7-live-stream-nsw',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -75,4 +86,5 @@ class SBSIE(InfoExtractor):
             'ie_key': 'ThePlatform',
             'id': video_id,
             'url': smuggle_url(self._proto_relative_url(theplatform_url), {'force_smil_url': True}),
+            'is_live': player_params.get('streamType') == 'live',
         }

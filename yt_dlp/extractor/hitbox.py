@@ -1,16 +1,13 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
+from ..compat import compat_str
 from ..utils import (
     clean_html,
-    parse_iso8601,
+    determine_ext,
     float_or_none,
     int_or_none,
-    compat_str,
-    determine_ext,
+    parse_iso8601,
 )
 
 
@@ -209,6 +206,6 @@ class HitboxLiveIE(HitboxIE):
             'https://www.smashcast.tv/api/media/live', video_id)
         metadata['formats'] = formats
         metadata['is_live'] = True
-        metadata['title'] = self._live_title(metadata.get('title'))
+        metadata['title'] = metadata.get('title')
 
         return metadata

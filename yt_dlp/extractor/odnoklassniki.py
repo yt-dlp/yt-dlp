@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -12,6 +9,7 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    float_or_none,
     unified_strdate,
     int_or_none,
     qualities,
@@ -34,6 +32,38 @@ class OdnoklassnikiIE(InfoExtractor):
                     (?P<id>[\d-]+)
                 '''
     _TESTS = [{
+        'note': 'Coub embedded',
+        'url': 'http://ok.ru/video/1484130554189',
+        'info_dict': {
+            'id': '1keok9',
+            'ext': 'mp4',
+            'timestamp': 1545580896,
+            'view_count': int,
+            'thumbnail': 'https://coub-anubis-a.akamaized.net/coub_storage/coub/simple/cw_image/c5ac87553bd/608e806a1239c210ab692/1545580913_00026.jpg',
+            'title': 'Народная забава',
+            'uploader': 'Nevata',
+            'upload_date': '20181223',
+            'age_limit': 0,
+            'uploader_id': 'nevata.s',
+            'like_count': int,
+            'duration': 8.08,
+            'repost_count': int,
+        },
+    }, {
+        'note': 'vk.com embedded',
+        'url': 'https://ok.ru/video/3568183087575',
+        'info_dict': {
+            'id': '-165101755_456243749',
+            'ext': 'mp4',
+            'uploader_id': '-165101755',
+            'duration': 132,
+            'timestamp': 1642869935,
+            'upload_date': '20220122',
+            'thumbnail': str,
+            'title': str,
+            'uploader': str,
+        },
+    }, {
         # metadata in JSON
         'url': 'http://ok.ru/video/20079905452',
         'md5': '0b62089b479e06681abaaca9d204f152',
@@ -97,6 +127,14 @@ class OdnoklassnikiIE(InfoExtractor):
         },
         'skip': 'Video has not been found',
     }, {
+        'note': 'Only available in mobile webpage',
+        'url': 'https://m.ok.ru/video/2361249957145',
+        'info_dict': {
+            'id': '2361249957145',
+            'title': 'Быковское крещение',
+            'duration': 3038.181,
+        },
+    }, {
         'url': 'http://ok.ru/web-api/video/moviePlayer/20079905452',
         'only_matching': True,
     }, {
@@ -131,13 +169,24 @@ class OdnoklassnikiIE(InfoExtractor):
             return mobj.group('url')
 
     def _real_extract(self, url):
+        try:
+            return self._extract_desktop(url)
+        except ExtractorError as e:
+            try:
+                return self._extract_mobile(url)
+            except ExtractorError:
+                # error message of desktop webpage is in English
+                raise e
+
+    def _extract_desktop(self, url):
         start_time = int_or_none(compat_parse_qs(
             compat_urllib_parse_urlparse(url).query).get('fromTime', [None])[0])
 
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            'http://ok.ru/video/%s' % video_id, video_id)
+            'http://ok.ru/video/%s' % video_id, video_id,
+            note='Downloading desktop webpage')
 
         error = self._search_regex(
             r'[^>]+class="vp_video_stub_txt"[^>]*>([^<]+)<',
@@ -150,6 +199,10 @@ class OdnoklassnikiIE(InfoExtractor):
                 r'data-options=(?P<quote>["\'])(?P<player>{.+?%s.+?})(?P=quote)' % video_id,
                 webpage, 'player', group='player')),
             video_id)
+
+        # embedded external player
+        if player.get('isExternalPlayer') and player.get('url'):
+            return self.url_result(player['url'])
 
         flashvars = player['flashvars']
 
@@ -206,6 +259,14 @@ class OdnoklassnikiIE(InfoExtractor):
             'start_time': start_time,
         }
 
+        # pladform
+        if provider == 'OPEN_GRAPH':
+            info.update({
+                '_type': 'url_transparent',
+                'url': movie['contentId'],
+            })
+            return info
+
         if provider == 'USER_YOUTUBE':
             info.update({
                 '_type': 'url_transparent',
@@ -215,7 +276,7 @@ class OdnoklassnikiIE(InfoExtractor):
 
         assert title
         if provider == 'LIVE_TV_APP':
-            info['title'] = self._live_title(title)
+            info['title'] = title
 
         quality = qualities(('4', '0', '1', '2', '3', '5'))
 
@@ -265,3 +326,32 @@ class OdnoklassnikiIE(InfoExtractor):
 
         info['formats'] = formats
         return info
+
+    def _extract_mobile(self, url):
+        video_id = self._match_id(url)
+
+        webpage = self._download_webpage(
+            'http://m.ok.ru/video/%s' % video_id, video_id,
+            note='Downloading mobile webpage')
+
+        error = self._search_regex(
+            r'видео</a>\s*<div\s+class="empty">(.+?)</div>',
+            webpage, 'error', default=None)
+        if error:
+            raise ExtractorError(error, expected=True)
+
+        json_data = self._search_regex(
+            r'data-video="(.+?)"', webpage, 'json data')
+        json_data = self._parse_json(unescapeHTML(json_data), video_id) or {}
+
+        return {
+            'id': video_id,
+            'title': json_data.get('videoName'),
+            'duration': float_or_none(json_data.get('videoDuration'), scale=1000),
+            'thumbnail': json_data.get('videoPosterSrc'),
+            'formats': [{
+                'format_id': 'mobile',
+                'url': json_data.get('videoSrc'),
+                'ext': 'mp4',
+            }]
+        }

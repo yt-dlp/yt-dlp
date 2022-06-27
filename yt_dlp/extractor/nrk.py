@@ -1,21 +1,19 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import random
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
+from ..compat import compat_HTTPError, compat_str
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     parse_duration,
+    parse_iso8601,
     str_or_none,
     try_get,
-    urljoin,
     url_or_none,
+    urljoin,
 )
 
 
@@ -147,10 +145,14 @@ class NRKIE(NRKBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url).split('/')[-1]
 
-        path_templ = 'playback/%s/program/' + video_id
-
         def call_playback_api(item, query=None):
-            return self._call_api(path_templ % item, video_id, item, query=query)
+            try:
+                return self._call_api(f'playback/{item}/program/{video_id}', video_id, item, query=query)
+            except ExtractorError as e:
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+                    return self._call_api(f'playback/{item}/{video_id}', video_id, item, query=query)
+                raise
+
         # known values for preferredCdn: akamai, iponly, minicdn and telenor
         manifest = call_playback_api('manifest', {'preferredCdn': 'akamai'})
 
@@ -242,6 +244,7 @@ class NRKIE(NRKBaseIE):
             'age_limit': age_limit,
             'formats': formats,
             'subtitles': subtitles,
+            'timestamp': parse_iso8601(try_get(manifest, lambda x: x['availability']['onDemand']['from'], str))
         }
 
         if is_series:
@@ -792,7 +795,7 @@ class NRKPlaylistBaseIE(InfoExtractor):
             for video_id in re.findall(self._ITEM_RE, webpage)
         ]
 
-        playlist_title = self. _extract_title(webpage)
+        playlist_title = self._extract_title(webpage)
         playlist_description = self._extract_description(webpage)
 
         return self.playlist_result(

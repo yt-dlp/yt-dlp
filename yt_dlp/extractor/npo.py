@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -467,7 +465,7 @@ class NPOIE(NPOBaseIE):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': metadata.get('info'),
             'thumbnail': metadata.get('images', [{'url': None}])[-1]['url'],
             'upload_date': unified_strdate(metadata.get('gidsdatum')),
@@ -561,7 +559,7 @@ class NPORadioIE(InfoExtractor):
         return {
             'id': video_id,
             'url': stream['url'],
-            'title': self._live_title(title),
+            'title': title,
             'acodec': codec,
             'ext': codec,
             'is_live': True,

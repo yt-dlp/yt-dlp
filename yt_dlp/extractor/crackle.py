@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals, division
-
 import hashlib
 import hmac
 import re
@@ -23,32 +20,35 @@ from ..utils import (
 class CrackleIE(InfoExtractor):
     _VALID_URL = r'(?:crackle:|https?://(?:(?:www|m)\.)?(?:sony)?crackle\.com/(?:playlist/\d+/|(?:[^/]+/)+))(?P<id>\d+)'
     _TESTS = [{
-        # geo restricted to CA
-        'url': 'https://www.crackle.com/andromeda/2502343',
+        # Crackle is available in the United States and territories
+        'url': 'https://www.crackle.com/thanksgiving/2510064',
         'info_dict': {
-            'id': '2502343',
+            'id': '2510064',
             'ext': 'mp4',
-            'title': 'Under The Night',
-            'description': 'md5:d2b8ca816579ae8a7bf28bfff8cefc8a',
-            'duration': 2583,
+            'title': 'Touch Football',
+            'description': 'md5:cfbb513cf5de41e8b56d7ab756cff4df',
+            'duration': 1398,
             'view_count': int,
             'average_rating': 0,
-            'age_limit': 14,
-            'genre': 'Action, Sci-Fi',
-            'creator': 'Allan Kroeker',
-            'artist': 'Keith Hamilton Cobb, Kevin Sorbo, Lisa Ryder, Lexa Doig, Robert Hewitt Wolfe',
-            'release_year': 2000,
-            'series': 'Andromeda',
-            'episode': 'Under The Night',
+            'age_limit': 17,
+            'genre': 'Comedy',
+            'creator': 'Daniel Powell',
+            'artist': 'Chris Elliott, Amy Sedaris',
+            'release_year': 2016,
+            'series': 'Thanksgiving',
+            'episode': 'Touch Football',
             'season_number': 1,
             'episode_number': 1,
         },
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
+        'expected_warnings': [
+            'Trying with a list of known countries'
+        ],
     }, {
-        'url': 'https://www.sonycrackle.com/andromeda/2502343',
+        'url': 'https://www.sonycrackle.com/thanksgiving/2510064',
         'only_matching': True,
     }]
 
@@ -129,7 +129,6 @@ class CrackleIE(InfoExtractor):
                 break
 
         ignore_no_formats = self.get_param('ignore_no_formats_error')
-        allow_unplayable_formats = self.get_param('allow_unplayable_formats')
 
         if not media or (not media.get('MediaURLs') and not ignore_no_formats):
             raise ExtractorError(
@@ -143,9 +142,9 @@ class CrackleIE(InfoExtractor):
         for e in media.get('MediaURLs') or []:
             if e.get('UseDRM'):
                 has_drm = True
-                if not allow_unplayable_formats:
-                    continue
-            format_url = url_or_none(e.get('Path'))
+                format_url = url_or_none(e.get('DRMPath'))
+            else:
+                format_url = url_or_none(e.get('Path'))
             if not format_url:
                 continue
             ext = determine_ext(format_url)

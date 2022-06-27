@@ -1,25 +1,32 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     parse_duration,
     qualities,
+    try_get
 )
 
 
 class VeohIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?veoh\.com/(?:watch|embed|iphone/#_Watch)/(?P<id>(?:v|e|yapi-)[\da-zA-Z]+)'
+    _VALID_URL = r'https?://(?:www\.)?veoh\.com/(?:watch|videos|embed|iphone/#_Watch)/(?P<id>(?:v|e|yapi-)[\da-zA-Z]+)'
 
     _TESTS = [{
         'url': 'http://www.veoh.com/watch/v56314296nk7Zdmz3',
-        'md5': '9e7ecc0fd8bbee7a69fe38953aeebd30',
+        'md5': '620e68e6a3cff80086df3348426c9ca3',
         'info_dict': {
             'id': 'v56314296nk7Zdmz3',
             'ext': 'mp4',
             'title': 'Straight Backs Are Stronger',
+            'description': 'md5:203f976279939a6dc664d4001e13f5f4',
+            'thumbnail': 're:https://fcache\\.veoh\\.com/file/f/th56314296\\.jpg(\\?.*)?',
             'uploader': 'LUMOback',
-            'description': 'At LUMOback, we believe straight backs are stronger.  The LUMOback Posture & Movement Sensor:  It gently vibrates when you slouch, inspiring improved posture and mobility.  Use the app to track your data and improve your posture over time. ',
+            'duration': 46,
+            'view_count': int,
+            'average_rating': int,
+            'comment_count': int,
+            'age_limit': 0,
+            'categories': ['technology_and_gaming'],
+            'tags': ['posture', 'posture', 'sensor', 'back', 'pain', 'wearable', 'tech', 'lumo'],
         },
     }, {
         'url': 'http://www.veoh.com/embed/v56314296nk7Zdmz3',
@@ -51,30 +58,36 @@ class VeohIE(InfoExtractor):
     }, {
         'url': 'http://www.veoh.com/watch/e152215AJxZktGS',
         'only_matching': True,
-    }]
-
-    def _extract_video(self, source):
-        return {
-            'id': source.get('videoId'),
-            'title': source.get('title'),
-            'description': source.get('description'),
-            'thumbnail': source.get('highResImage') or source.get('medResImage'),
-            'uploader': source.get('username'),
-            'duration': int_or_none(source.get('length')),
-            'view_count': int_or_none(source.get('views')),
-            'age_limit': 18 if source.get('isMature') == 'true' or source.get('isSexy') == 'true' else 0,
-            'formats': self._extract_formats(source),
+    }, {
+        'url': 'https://www.veoh.com/videos/v16374379WA437rMH',
+        'md5': 'cceb73f3909063d64f4b93d4defca1b3',
+        'info_dict': {
+            'id': 'v16374379WA437rMH',
+            'ext': 'mp4',
+            'title': 'Phantasmagoria 2, pt. 1-3',
+            'description': 'Phantasmagoria: a Puzzle of Flesh',
+            'thumbnail': 're:https://fcache\\.veoh\\.com/file/f/th16374379\\.jpg(\\?.*)?',
+            'uploader': 'davidspackage',
+            'duration': 968,
+            'view_count': int,
+            'average_rating': int,
+            'comment_count': int,
+            'age_limit': 18,
+            'categories': ['technology_and_gaming', 'gaming'],
+            'tags': ['puzzle', 'of', 'flesh'],
         }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video = self._download_json(
+        metadata = self._download_json(
             'https://www.veoh.com/watch/getVideo/' + video_id,
-            video_id)['video']
+            video_id)
+        video = metadata['video']
         title = video['title']
 
         thumbnail_url = None
-        q = qualities(['HQ', 'Regular'])
+        q = qualities(['Regular', 'HQ'])
         formats = []
         for f_id, f_url in video.get('src', {}).items():
             if not f_url:
@@ -89,6 +102,12 @@ class VeohIE(InfoExtractor):
                 })
         self._sort_formats(formats)
 
+        categories = metadata.get('categoryPath')
+        if not categories:
+            category = try_get(video, lambda x: x['category'].strip().removeprefix('category_'))
+            categories = [category] if category else None
+        tags = video.get('tags')
+
         return {
             'id': video_id,
             'title': title,
@@ -100,4 +119,7 @@ class VeohIE(InfoExtractor):
             'formats': formats,
             'average_rating': int_or_none(video.get('rating')),
             'comment_count': int_or_none(video.get('numOfComments')),
+            'age_limit': 18 if video.get('contentRatingId') == 2 else 0,
+            'categories': categories,
+            'tags': tags.split(', ') if tags else None,
         }

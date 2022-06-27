@@ -1,10 +1,9 @@
-# coding: utf-8
 from .common import InfoExtractor
 from ..utils import int_or_none
 
 
 class AmazonStoreIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?amazon\.(?:[a-z]{2,3})(?:\.[a-z]{2})?/[^/]*/?(?:dp|gp/product)/(?P<id>[^/&#$?]+)'
+    _VALID_URL = r'https?://(?:www\.)?amazon\.(?:[a-z]{2,3})(?:\.[a-z]{2})?/(?:[^/]+/)?(?:dp|gp/product)/(?P<id>[^/&#$?]+)'
 
     _TESTS = [{
         'url': 'https://www.amazon.co.uk/dp/B098XNCHLD/',

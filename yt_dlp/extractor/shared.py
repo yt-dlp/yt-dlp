@@ -1,16 +1,13 @@
-from __future__ import unicode_literals
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_urllib_parse_unquote_plus,
-)
+from ..compat import compat_b64decode
 from ..utils import (
-    determine_ext,
+    KNOWN_EXTENSIONS,
     ExtractorError,
+    determine_ext,
     int_or_none,
     js_to_json,
-    KNOWN_EXTENSIONS,
     parse_filesize,
     rot47,
     url_or_none,
@@ -132,7 +129,7 @@ class VivoIE(SharedBaseIE):
             return stream_url
 
         def decode_url(encoded_url):
-            return rot47(compat_urllib_parse_unquote_plus(encoded_url))
+            return rot47(urllib.parse.unquote_plus(encoded_url))
 
         return decode_url(self._parse_json(
             self._search_regex(

@@ -3,17 +3,9 @@ import heapq
 import os
 
 from .common import PostProcessor
-from .ffmpeg import (
-    FFmpegPostProcessor,
-    FFmpegSubtitlesConvertorPP
-)
+from .ffmpeg import FFmpegPostProcessor, FFmpegSubtitlesConvertorPP
 from .sponsorblock import SponsorBlockPP
-from ..utils import (
-    orderedSet,
-    PostProcessingError,
-    prepend_extension,
-)
-
+from ..utils import PostProcessingError, orderedSet, prepend_extension
 
 _TINY_CHAPTER_DURATION = 1
 DEFAULT_SPONSORBLOCK_CHAPTER_TITLE = '[SponsorBlock]: %(category_names)l'
@@ -24,7 +16,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                  *, sponsorblock_chapter_title=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, force_keyframes=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._remove_chapters_patterns = set(remove_chapters_patterns or [])
-        self._remove_sponsor_segments = set(remove_sponsor_segments or [])
+        self._remove_sponsor_segments = set(remove_sponsor_segments or []) - set(SponsorBlockPP.POI_CATEGORIES.keys())
         self._ranges_to_remove = set(remove_ranges or [])
         self._sponsorblock_chapter_title = sponsorblock_chapter_title
         self._force_keyframes = force_keyframes
@@ -38,15 +30,15 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         if not chapters and not sponsor_chapters:
             return [], info
 
-        real_duration = self._get_real_video_duration(info)
+        real_duration = self._get_real_video_duration(info['filepath'])
         if not chapters:
-            chapters = [{'start_time': 0, 'end_time': real_duration, 'title': info['title']}]
+            chapters = [{'start_time': 0, 'end_time': info.get('duration') or real_duration, 'title': info['title']}]
 
         info['chapters'], cuts = self._remove_marked_arrange_sponsors(chapters + sponsor_chapters)
         if not cuts:
             return [], info
 
-        if self._duration_mismatch(real_duration, info.get('duration')):
+        if self._duration_mismatch(real_duration, info.get('duration'), 1):
             if not self._duration_mismatch(real_duration, info['chapters'][-1]['end_time']):
                 self.to_screen(f'Skipping {self.pp_key()} since the video appears to be already cut')
                 return [], info
@@ -57,6 +49,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 self.write_debug('Expected and actual durations mismatch')
 
         concat_opts = self._make_concat_opts(cuts, real_duration)
+        self.write_debug('Concat spec = %s' % ', '.join(f'{c.get("inpoint", 0.0)}-{c.get("outpoint", "inf")}' for c in concat_opts))
 
         def remove_chapters(file, is_sub):
             return file, self.remove_chapters(file, cuts, concat_opts, self._force_keyframes and not is_sub)
@@ -67,12 +60,13 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         # Renaming should only happen after all files are processed
         files_to_remove = []
         for in_file, out_file in in_out_files:
+            mtime = os.stat(in_file).st_mtime
             uncut_file = prepend_extension(in_file, 'uncut')
             os.replace(in_file, uncut_file)
             os.replace(out_file, in_file)
+            self.try_utime(in_file, mtime, mtime)
             files_to_remove.append(uncut_file)
 
-        info['_real_duration'] = info['chapters'][-1]['end_time']
         return files_to_remove, info
 
     def _mark_chapters_to_remove(self, chapters, sponsor_chapters):
@@ -303,7 +297,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                     'name': SponsorBlockPP.CATEGORIES[category],
                     'category_names': [SponsorBlockPP.CATEGORIES[c] for c in cats]
                 })
-                c['title'] = self._downloader.evaluate_outtmpl(self._sponsorblock_chapter_title, c)
+                c['title'] = self._downloader.evaluate_outtmpl(self._sponsorblock_chapter_title, c.copy())
                 # Merge identically named sponsors.
                 if (new_chapters and 'categories' in new_chapters[-1]
                         and new_chapters[-1]['title'] == c['title']):
@@ -320,7 +314,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         self.to_screen(f'Removing chapters from {filename}')
         self.concat_files([in_file] * len(concat_opts), out_file, concat_opts)
         if in_file != filename:
-            os.remove(in_file)
+            self._delete_downloaded_files(in_file, msg=None)
         return out_file
 
     @staticmethod
@@ -333,6 +327,6 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 continue
             opts[-1]['outpoint'] = f'{s["start_time"]:.6f}'
             # Do not create 0 duration chunk at the end.
-            if s['end_time'] != duration:
+            if s['end_time'] < duration:
                 opts.append({'inpoint': f'{s["end_time"]:.6f}'})
         return opts

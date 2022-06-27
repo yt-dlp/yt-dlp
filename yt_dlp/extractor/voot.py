@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -15,7 +12,7 @@ class VootIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     (?:
                         voot:|
-                        (?:https?://)(?:www\.)?voot\.com/?
+                        https?://(?:www\.)?voot\.com/?
                         (?:
                             movies/[^/]+/|
                             (?:shows|kids)/(?:[^/]+/){4}

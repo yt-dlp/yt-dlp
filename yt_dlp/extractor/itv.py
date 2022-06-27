@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -117,7 +114,7 @@ class ITVIE(InfoExtractor):
         # See: https://github.com/yt-dlp/yt-dlp/issues/986
         platform_tag_subs, featureset_subs = next(
             ((platform_tag, featureset)
-             for platform_tag, featuresets in reversed(variants.items()) for featureset in featuresets
+             for platform_tag, featuresets in reversed(list(variants.items())) for featureset in featuresets
              if try_get(featureset, lambda x: x[2]) == 'outband-webvtt'),
             (None, None))
 
@@ -146,8 +143,8 @@ class ITVIE(InfoExtractor):
         # See: https://github.com/yt-dlp/yt-dlp/issues/986
         platform_tag_video, featureset_video = next(
             ((platform_tag, featureset)
-             for platform_tag, featuresets in reversed(variants.items()) for featureset in featuresets
-             if try_get(featureset, lambda x: x[:2]) == ['hls', 'aes']),
+             for platform_tag, featuresets in reversed(list(variants.items())) for featureset in featuresets
+             if set(try_get(featureset, lambda x: x[:2]) or []) == {'aes', 'hls'}),
             (None, None))
         if not platform_tag_video or not featureset_video:
             raise ExtractorError('No downloads available', expected=True, video_id=video_id)
@@ -243,8 +240,8 @@ class ITVBTCCIE(InfoExtractor):
 
         webpage = self._download_webpage(url, playlist_id)
 
-        json_map = try_get(self._parse_json(self._html_search_regex(
-            '(?s)<script[^>]+id=[\'"]__NEXT_DATA__[^>]*>([^<]+)</script>', webpage, 'json_map'), playlist_id),
+        json_map = try_get(
+            self._search_nextjs_data(webpage, playlist_id),
             lambda x: x['props']['pageProps']['article']['body']['content']) or []
 
         entries = []

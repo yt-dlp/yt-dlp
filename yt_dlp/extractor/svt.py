@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -23,23 +20,27 @@ class SVTBaseIE(InfoExtractor):
         is_live = dict_get(video_info, ('live', 'simulcast'), default=False)
         m3u8_protocol = 'm3u8' if is_live else 'm3u8_native'
         formats = []
+        subtitles = {}
         for vr in video_info['videoReferences']:
             player_type = vr.get('playerType') or vr.get('format')
             vurl = vr['url']
             ext = determine_ext(vurl)
             if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     vurl, video_id,
                     ext='mp4', entry_protocol=m3u8_protocol,
-                    m3u8_id=player_type, fatal=False))
+                    m3u8_id=player_type, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             elif ext == 'f4m':
                 formats.extend(self._extract_f4m_formats(
                     vurl + '?hdcore=3.3.0', video_id,
                     f4m_id=player_type, fatal=False))
             elif ext == 'mpd':
-                if player_type == 'dashhbbtv':
-                    formats.extend(self._extract_mpd_formats(
-                        vurl, video_id, mpd_id=player_type, fatal=False))
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    vurl, video_id, mpd_id=player_type, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             else:
                 formats.append({
                     'format_id': player_type,
@@ -52,18 +53,19 @@ class SVTBaseIE(InfoExtractor):
                 countries=self._GEO_COUNTRIES, metadata_available=True)
         self._sort_formats(formats)
 
-        subtitles = {}
         subtitle_references = dict_get(video_info, ('subtitles', 'subtitleReferences'))
         if isinstance(subtitle_references, list):
             for sr in subtitle_references:
                 subtitle_url = sr.get('url')
                 subtitle_lang = sr.get('language', 'sv')
                 if subtitle_url:
+                    sub = {
+                        'url': subtitle_url,
+                    }
                     if determine_ext(subtitle_url) == 'm3u8':
-                        # TODO(yan12125): handle WebVTT in m3u8 manifests
-                        continue
-
-                    subtitles.setdefault(subtitle_lang, []).append({'url': subtitle_url})
+                        # XXX: no way of testing, is it ever hit?
+                        sub['ext'] = 'vtt'
+                    subtitles.setdefault(subtitle_lang, []).append(sub)
 
         title = video_info.get('title')
 
@@ -203,10 +205,6 @@ class SVTPlayIE(SVTPlayBaseIE):
         'only_matching': True,
     }]
 
-    def _adjust_title(self, info):
-        if info['is_live']:
-            info['title'] = self._live_title(info['title'])
-
     def _extract_by_video_id(self, video_id, webpage=None):
         data = self._download_json(
             'https://api.svt.se/videoplayer-api/video/%s' % video_id,
@@ -220,7 +218,6 @@ class SVTPlayIE(SVTPlayBaseIE):
             if not title:
                 title = video_id
             info_dict['title'] = title
-        self._adjust_title(info_dict)
         return info_dict
 
     def _real_extract(self, url):
@@ -251,7 +248,6 @@ class SVTPlayIE(SVTPlayBaseIE):
                     'title': data['context']['dispatcher']['stores']['MetaStore']['title'],
                     'thumbnail': thumbnail,
                 })
-                self._adjust_title(info_dict)
                 return info_dict
 
             svt_id = try_get(

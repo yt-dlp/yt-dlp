@@ -1,14 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
+import urllib.request
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_request,
-)
-from ..utils import (
-    ExtractorError,
-)
+from ..compat import compat_parse_qs
+from ..utils import ExtractorError
 
 
 class ScreencastIE(InfoExtractor):
@@ -78,7 +72,7 @@ class ScreencastIE(InfoExtractor):
                     flash_vars_s = flash_vars_s.replace(',', '&')
             if flash_vars_s:
                 flash_vars = compat_parse_qs(flash_vars_s)
-                video_url_raw = compat_urllib_request.quote(
+                video_url_raw = urllib.request.quote(
                     flash_vars['content'][0])
                 video_url = video_url_raw.replace('http%3A', 'http:')
 

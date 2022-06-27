@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import (
     compat_urllib_parse_urlencode,
@@ -75,7 +71,7 @@ class IvideonIE(InfoExtractor):
 
         return {
             'id': server_id,
-            'title': self._live_title(camera_name or server_id),
+            'title': camera_name or server_id,
             'description': description,
             'is_live': True,
             'formats': formats,

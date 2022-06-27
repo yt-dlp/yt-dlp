@@ -1,4 +1,3 @@
-# coding: utf-8
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
@@ -21,10 +20,7 @@ class RoosterTeethBaseIE(InfoExtractor):
     _API_BASE = 'https://svod-be.roosterteeth.com'
     _API_BASE_URL = f'{_API_BASE}/api/v1'
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
+    def _perform_login(self, username, password):
         if self._get_cookies(self._API_BASE_URL).get('rt_access_token'):
             return
 
@@ -46,9 +42,6 @@ class RoosterTeethBaseIE(InfoExtractor):
                     if error:
                         msg += ': ' + error
             self.report_warning(msg)
-
-    def _real_initialize(self):
-        self._login()
 
     def _extract_video_info(self, data):
         thumbnails = []
@@ -99,7 +92,7 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'series': 'Million Dollars, But...',
             'episode': 'Million Dollars, But... The Game Announcement',
         },
-        'skip_download': 'm3u8',
+        'params': {'skip_download': True},
     }, {
         'url': 'https://roosterteeth.com/watch/rwby-bonus-25',
         'info_dict': {
@@ -112,7 +105,7 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'thumbnail': r're:^https?://.*\.(png|jpe?g)$',
             'ext': 'mp4',
         },
-        'skip_download': 'm3u8',
+        'params': {'skip_download': True},
     }, {
         'url': 'http://achievementhunter.roosterteeth.com/episode/off-topic-the-achievement-hunter-podcast-2016-i-didn-t-think-it-would-pass-31',
         'only_matching': True,

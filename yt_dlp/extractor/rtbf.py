@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -85,8 +82,6 @@ class RTBFIE(InfoExtractor):
 
         title = data['title']
         is_live = data.get('isLive')
-        if is_live:
-            title = self._live_title(title)
         height_re = r'-(\d+)p\.'
         formats = []
 

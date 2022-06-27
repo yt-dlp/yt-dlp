@@ -1,4 +1,5 @@
 import random
+from urllib.parse import urlparse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -8,49 +9,18 @@ from ..utils import (
     try_get,
     unescapeHTML,
     url_or_none,
+    traverse_obj
 )
 
 
 class RedditIE(InfoExtractor):
-    _VALID_URL = r'https?://v\.redd\.it/(?P<id>[^/?#&]+)'
-    _TEST = {
-        # from https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/
-        'url': 'https://v.redd.it/zv89llsvexdz',
-        'md5': '0a070c53eba7ec4534d95a5a1259e253',
-        'info_dict': {
-            'id': 'zv89llsvexdz',
-            'ext': 'mp4',
-            'title': 'zv89llsvexdz',
-        },
-    }
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-
-        formats = self._extract_m3u8_formats(
-            'https://v.redd.it/%s/HLSPlaylist.m3u8' % video_id, video_id,
-            'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
-
-        formats.extend(self._extract_mpd_formats(
-            'https://v.redd.it/%s/DASHPlaylist.mpd' % video_id, video_id,
-            mpd_id='dash', fatal=False))
-
-        self._sort_formats(formats)
-
-        return {
-            'id': video_id,
-            'title': video_id,
-            'formats': formats,
-        }
-
-
-class RedditRIE(InfoExtractor):
     _VALID_URL = r'https?://(?P<subdomain>[^/]+\.)?reddit(?:media)?\.com/r/(?P<slug>[^/]+/comments/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
         'info_dict': {
             'id': 'zv89llsvexdz',
             'ext': 'mp4',
+            'display_id': '6rrwyj',
             'title': 'That small heart attack.',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'thumbnails': 'count:4',
@@ -147,19 +117,62 @@ class RedditRIE(InfoExtractor):
                 for resolution in resolutions:
                     add_thumbnail(resolution)
 
-        return {
-            '_type': 'url_transparent',
-            'url': video_url,
+        info = {
             'title': data.get('title'),
             'thumbnails': thumbnails,
             'timestamp': float_or_none(data.get('created_utc')),
             'uploader': data.get('author'),
-            'duration': int_or_none(try_get(
-                data,
-                (lambda x: x['media']['reddit_video']['duration'],
-                 lambda x: x['secure_media']['reddit_video']['duration']))),
             'like_count': int_or_none(data.get('ups')),
             'dislike_count': int_or_none(data.get('downs')),
             'comment_count': int_or_none(data.get('num_comments')),
             'age_limit': age_limit,
+        }
+
+        # Check if media is hosted on reddit:
+        reddit_video = traverse_obj(data, (('media', 'secure_media'), 'reddit_video'), get_all=False)
+        if reddit_video:
+            playlist_urls = [
+                try_get(reddit_video, lambda x: unescapeHTML(x[y]))
+                for y in ('dash_url', 'hls_url')
+            ]
+
+            # Update video_id
+            display_id = video_id
+            video_id = self._search_regex(
+                r'https?://v\.redd\.it/(?P<id>[^/?#&]+)', reddit_video['fallback_url'],
+                'video_id', default=display_id)
+
+            dash_playlist_url = playlist_urls[0] or f'https://v.redd.it/{video_id}/DASHPlaylist.mpd'
+            hls_playlist_url = playlist_urls[1] or f'https://v.redd.it/{video_id}/HLSPlaylist.m3u8'
+
+            formats = self._extract_m3u8_formats(
+                hls_playlist_url, display_id, 'mp4',
+                entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
+            formats.extend(self._extract_mpd_formats(
+                dash_playlist_url, display_id, mpd_id='dash', fatal=False))
+            self._sort_formats(formats)
+
+            return {
+                **info,
+                'id': video_id,
+                'display_id': display_id,
+                'formats': formats,
+                'duration': int_or_none(reddit_video.get('duration')),
+            }
+
+        parsed_url = urlparse(video_url)
+        if parsed_url.netloc == 'v.redd.it':
+            self.raise_no_formats('This video is processing', expected=True, video_id=video_id)
+            return {
+                **info,
+                'id': parsed_url.path.split('/')[1],
+                'display_id': video_id,
+            }
+
+        # Not hosted on reddit, must continue extraction
+        return {
+            **info,
+            'display_id': video_id,
+            '_type': 'url_transparent',
+            'url': video_url,
         }

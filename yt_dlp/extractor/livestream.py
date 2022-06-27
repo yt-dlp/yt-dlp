@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 import itertools
 
@@ -176,7 +174,7 @@ class LivestreamIE(InfoExtractor):
         return {
             'id': broadcast_id,
             'formats': formats,
-            'title': self._live_title(stream_info['stream_title']) if is_live else stream_info['stream_title'],
+            'title': stream_info['stream_title'],
             'thumbnail': stream_info.get('thumbnail_url'),
             'is_live': is_live,
         }
@@ -344,7 +342,7 @@ class LivestreamOriginalIE(InfoExtractor):
             is_live = video_data.get('isLive')
             info.update({
                 'id': content_id,
-                'title': self._live_title(info['title']) if is_live else info['title'],
+                'title': info['title'],
                 'formats': self._extract_video_formats(video_data, content_id),
                 'is_live': is_live,
             })

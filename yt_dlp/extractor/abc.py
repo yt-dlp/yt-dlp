@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import hashlib
 import hmac
 import re
@@ -8,6 +6,7 @@ import time
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    dict_get,
     ExtractorError,
     js_to_json,
     int_or_none,
@@ -212,7 +211,7 @@ class ABCIViewIE(InfoExtractor):
                 'hdnea': token,
             })
 
-        for sd in ('720', 'sd', 'sd-low'):
+        for sd in ('1080', '720', 'sd', 'sd-low'):
             sd_url = try_get(
                 stream, lambda x: x['streams']['hls'][sd], compat_str)
             if not sd_url:
@@ -233,8 +232,6 @@ class ABCIViewIE(InfoExtractor):
             }]
 
         is_live = video_params.get('livestream') == '1'
-        if is_live:
-            title = self._live_title(title)
 
         return {
             'id': video_id,
@@ -254,4 +251,66 @@ class ABCIViewIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'is_live': is_live,
+        }
+
+
+class ABCIViewShowSeriesIE(InfoExtractor):
+    IE_NAME = 'abc.net.au:iview:showseries'
+    _VALID_URL = r'https?://iview\.abc\.net\.au/show/(?P<id>[^/]+)(?:/series/\d+)?$'
+    _GEO_COUNTRIES = ['AU']
+
+    _TESTS = [{
+        'url': 'https://iview.abc.net.au/show/upper-middle-bogan',
+        'info_dict': {
+            'id': '124870-1',
+            'title': 'Series 1',
+            'description': 'md5:93119346c24a7c322d446d8eece430ff',
+            'series': 'Upper Middle Bogan',
+            'season': 'Series 1',
+            'thumbnail': r're:^https?://cdn\.iview\.abc\.net\.au/thumbs/.*\.jpg$'
+        },
+        'playlist_count': 8,
+    }, {
+        'url': 'https://iview.abc.net.au/show/upper-middle-bogan',
+        'info_dict': {
+            'id': 'CO1108V001S00',
+            'ext': 'mp4',
+            'title': 'Series 1 Ep 1 I\'m A Swan',
+            'description': 'md5:7b676758c1de11a30b79b4d301e8da93',
+            'series': 'Upper Middle Bogan',
+            'uploader_id': 'abc1',
+            'upload_date': '20210630',
+            'timestamp': 1625036400,
+        },
+        'params': {
+            'noplaylist': True,
+            'skip_download': 'm3u8',
+        },
+    }]
+
+    def _real_extract(self, url):
+        show_id = self._match_id(url)
+        webpage = self._download_webpage(url, show_id)
+        webpage_data = self._search_regex(
+            r'window\.__INITIAL_STATE__\s*=\s*[\'"](.+?)[\'"]\s*;',
+            webpage, 'initial state')
+        video_data = self._parse_json(
+            unescapeHTML(webpage_data).encode('utf-8').decode('unicode_escape'), show_id)
+        video_data = video_data['route']['pageData']['_embedded']
+
+        highlight = try_get(video_data, lambda x: x['highlightVideo']['shareUrl'])
+        if not self._yes_playlist(show_id, bool(highlight), video_label='highlight video'):
+            return self.url_result(highlight, ie=ABCIViewIE.ie_key())
+
+        series = video_data['selectedSeries']
+        return {
+            '_type': 'playlist',
+            'entries': [self.url_result(episode['shareUrl'])
+                        for episode in series['_embedded']['videoEpisodes']],
+            'id': series.get('id'),
+            'title': dict_get(series, ('title', 'displaySubtitle')),
+            'description': series.get('description'),
+            'series': dict_get(series, ('showTitle', 'displayTitle')),
+            'season': dict_get(series, ('title', 'displaySubtitle')),
+            'thumbnail': series.get('thumbnail'),
         }

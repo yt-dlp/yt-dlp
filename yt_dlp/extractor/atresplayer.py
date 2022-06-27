@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
@@ -37,9 +33,6 @@ class AtresPlayerIE(InfoExtractor):
     ]
     _API_BASE = 'https://api.atresplayer.com/'
 
-    def _real_initialize(self):
-        self._login()
-
     def _handle_error(self, e, code):
         if isinstance(e.cause, compat_HTTPError) and e.cause.code == code:
             error = self._parse_json(e.cause.read(), None)
@@ -48,11 +41,7 @@ class AtresPlayerIE(InfoExtractor):
             raise ExtractorError(error['error_description'], expected=True)
         raise
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         self._request_webpage(
             self._API_BASE + 'login', None, 'Downloading login page')
 
