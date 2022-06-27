@@ -19,6 +19,7 @@ from urllib.request import (
     HTTPDefaultErrorHandler,
     HTTPErrorProcessor,
     UnknownHandler,
+    HTTPCookieProcessor
 )
 
 from .common import Response, RequestHandler
@@ -265,17 +266,6 @@ def make_socks_conn_class(base_class, socks_proxy):
     return SocksConnection
 
 
-class YoutubeDLCookieProcessor(urllib.request.HTTPCookieProcessor):
-    def __init__(self, cookiejar=None):
-        urllib.request.HTTPCookieProcessor.__init__(self, cookiejar)
-
-    def http_response(self, request, response):
-        return urllib.request.HTTPCookieProcessor.http_response(self, request, response)
-
-    https_request = urllib.request.HTTPCookieProcessor.http_request
-    https_response = http_response
-
-
 class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
     """YoutubeDL redirect handler
 
@@ -458,7 +448,7 @@ class UrllibRH(RequestHandler):
         self._openers = {}
 
     def _create_opener(self, proxies=None, allow_redirects=True):
-        cookie_processor = YoutubeDLCookieProcessor(self.cookiejar)
+        cookie_processor = HTTPCookieProcessor(self.cookiejar)
         proxy_handler = YDLProxyHandler(proxies)
         debuglevel = int(bool(self.ydl.params.get('debug_printtraffic')))
 
