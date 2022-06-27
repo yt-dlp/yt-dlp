@@ -132,12 +132,6 @@ class Request:
             proxies=self.proxies.copy(), compression=self.compression, method=self.method,
             allow_redirects=self.allow_redirects)
 
-    def add_header(self, key, value):
-        self._headers[key] = value
-
-    def get_header(self, key, default=None):
-        return self._headers.get(key, default)
-
     @property
     def type(self):
         """URI scheme"""
@@ -169,6 +163,14 @@ class Request:
     def has_header(self, name):
         """Deprecated, use `name in Request.headers`"""
         return name in self.headers
+
+    def add_header(self, key, value):
+        """Deprecated, use Request.headers[key] = value"""
+        self._headers[key] = value
+
+    def get_header(self, key, default=None):
+        """Deprecated, use Request.headers.get(key, default)"""
+        return self._headers.get(key, default)
 
 
 class HEADRequest(Request):
