@@ -1,11 +1,9 @@
+import functools
 import re
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    ExtractorError,
-    urlencode_postdata,
-)
+from ..utils import ExtractorError, OnDemandPagedList, urlencode_postdata
 
 
 class VideocampusSachsenIE(InfoExtractor):
@@ -191,7 +189,8 @@ class VideocampusSachsenIE(InfoExtractor):
 class ViMPPlaylistIE(InfoExtractor):
     IE_NAME = 'ViMP:Playlist'
     _VALID_URL = r'''(?x)(?P<host>https?://(?:%s))/(?:
-        album/view/aid/(?P<album_id>[0-9]+)|(?P<c_mode>category|channel)/(?P<c_name>[\w-]+)/(?P<c_id>[0-9]+)
+        album/view/aid/(?P<album_id>[0-9]+)|
+        (?P<mode>category|channel)/(?P<name>[\w-]+)/(?P<id>[0-9]+)
         )''' % ('|'.join(map(re.escape, VideocampusSachsenIE._INSTANCES)))
 
     _TESTS = [{
@@ -216,51 +215,41 @@ class ViMPPlaylistIE(InfoExtractor):
         },
         'playlist_mincount': 7,
     }]
+    _PAGE_SIZE = 10
+
+    def _fetch_page(self, host, url_part, id, data, page):
+        webpage = self._download_webpage(
+            f'{host}/media/ajax/component/boxList/{url_part}', id,
+            query={'page': page, 'page_only': 1}, data=urlencode_postdata(data))
+        urls = re.findall(r'"([^"]+/video/[^"]+)"', webpage)
+
+        for url in urls:
+            yield self.url_result(host + url, VideocampusSachsenIE)
 
     def _real_extract(self, url):
-        host, album_id, c_mode, c_name, c_id = self._match_valid_url(url).group(
-            'host', 'album_id', 'c_mode', 'c_name', 'c_id')
+        host, album_id, mode, name, id = self._match_valid_url(url).group(
+            'host', 'album_id', 'mode', 'name', 'id')
 
-        webpage = self._download_webpage(url, album_id or c_id, fatal=False) or ''
+        webpage = self._download_webpage(url, album_id or id, fatal=False) or ''
         title = (self._html_search_meta('title', webpage, fatal=False)
                  or self._html_extract_title(webpage))
 
-        if album_id:
-            mode = 'album'
-            mode_id = '4'
-            content_id = album_id
-            url_part = f'aid/{album_id}'
-        else:
-            url_parts = ('category', 'category_id') if c_mode == 'category' else ('title', 'channel')
+        url_part = (f'aid/{album_id}' if album_id
+                    else f'category/{name}/category_id/{id}' if mode == 'category'
+                    else f'title/{name}/channel/{id}')
 
-            mode = c_mode
-            mode_id = '1' if c_mode == 'category' else '3'
-            content_id = c_id
-            url_part = f'{url_parts[0]}/{c_name}/{url_parts[1]}/{c_id}'
+        mode = mode or 'album'
 
         data = {
             'vars[mode]': mode,
-            f'vars[{mode}]': content_id,
-            'vars[context]': mode_id,
-            'vars[context_id]': content_id,
+            f'vars[{mode}]': album_id or id,
+            'vars[context]': '4' if album_id else '1' if mode == 'category' else '3',
+            'vars[context_id]': album_id or id,
             'vars[layout]': 'thumb',
-            'vars[per_page][thumb]': '10',
+            'vars[per_page][thumb]': str(self._PAGE_SIZE),
         }
 
-        urls, i = [], 1
-        while True:
-            current_page = self._download_webpage(
-                f'{host}/media/ajax/component/boxList/{url_part}?page={i}&page_only=1',
-                content_id, data=urlencode_postdata(data))
-            current_urls = re.findall(r'"(.+?/video/.+?)"', current_page)
-
-            # Request returns last n video URLs if existing pages have been "used up"
-            if urls[-1:] != current_urls[-1:]:
-                urls += current_urls
-                i += 1
-            else:
-                break
-
         return self.playlist_result(
-            (self.url_result(host + url, VideocampusSachsenIE) for url in urls),
-            playlist_title=title, id=f'{mode}-{content_id}')
+            OnDemandPagedList(functools.partial(
+                self._fetch_page, host, url_part, album_id or id, data), self._PAGE_SIZE),
+            playlist_title=title, id=f'{mode}-{album_id or id}')
