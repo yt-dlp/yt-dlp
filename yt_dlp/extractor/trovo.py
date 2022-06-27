@@ -110,6 +110,24 @@ class TrovoVodIE(TrovoBaseIE):
             'thumbnail': r're:^https?://.*\.jpg',
         },
     }, {
+        'url': 'https://trovo.live/s/SkenonSLive/549759191497?vid=ltv-100829718_100829718_387702301737980280',
+        'info_dict': {
+            'id': 'ltv-100829718_100829718_387702301737980280',
+            'ext': 'mp4',
+            'timestamp': 1654909624,
+            'thumbnail': 'http://vod.trovo.live/1f09baf0vodtransger1301120758/ef9ea3f0387702301737980280/coverBySnapshot/coverBySnapshot_10_0.jpg',
+            'uploader_id': '100829718',
+            'uploader': 'SkenonSLive',
+            'title': 'Trovo u secanju, uz par modova i muzike :)',
+            'uploader_url': 'https://trovo.live/SkenonSLive',
+            'duration': 10830,
+            'view_count': int,
+            'like_count': int,
+            'upload_date': '20220611',
+            'comment_count': int,
+            'categories': ['Minecraft'],
+        }
+    }, {
         'url': 'https://trovo.live/video/ltv-100095501_100095501_1609596043',
         'only_matching': True,
     }]
