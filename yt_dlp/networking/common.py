@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import io
-import itertools
 import ssl
 import typing
 import urllib.parse
 import urllib.request
 import urllib.response
+from collections.abc import Mapping
 from email.message import Message
 from http import HTTPStatus
 from typing import Union
@@ -108,10 +108,14 @@ class Request:
         return self._headers
 
     @headers.setter
-    def headers(self, new_headers: CaseInsensitiveDict):
-        if not isinstance(new_headers, CaseInsensitiveDict):
-            raise TypeError('headers must be a CaseInsensitiveDict')
-        self._headers = new_headers
+    def headers(self, new_headers: Mapping):
+        """Replaces headers of the request. If not a CaseInsensitiveDict, it will be converted to one."""
+        if isinstance(new_headers, CaseInsensitiveDict):
+            self._headers = new_headers
+        elif isinstance(new_headers, Mapping):
+            self._headers = CaseInsensitiveDict(new_headers)
+        else:
+            raise TypeError('headers must be a mapping')
 
     @property
     def method(self):
