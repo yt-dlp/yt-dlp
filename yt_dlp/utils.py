@@ -5140,8 +5140,8 @@ def YoutubeDLCookieProcessor(*args, **kwargs):
 
 # TODO: compat (moved to networking._urllib)
 def YoutubeDLRedirectHandler(*args, **kwargs):
-    from .networking._urllib import YoutubeDLRedirectHandler
-    return YoutubeDLRedirectHandler(*args, **kwargs)
+    from .networking._urllib import YDLRedirectHandler
+    return YDLRedirectHandler(*args, **kwargs)
 
 
 # TODO: compat (moved to networking._urllib)

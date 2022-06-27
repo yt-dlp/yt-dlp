@@ -267,7 +267,7 @@ def make_socks_conn_class(base_class, socks_proxy):
     return SocksConnection
 
 
-class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
+class YDLRedirectHandler(urllib.request.HTTPRedirectHandler):
     """YoutubeDL redirect handler
 
     The code is based on HTTPRedirectHandler implementation from CPython [1].
@@ -327,7 +327,7 @@ class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
             unverifiable=True, method=new_method, data=new_data)
 
 
-class YoutubeDLNoRedirectHandler(urllib.request.BaseHandler):
+class YDLNoRedirectHandler(urllib.request.BaseHandler):
 
     def http_error_302(self, req, fp, code, msg, headers):
         return fp
@@ -461,7 +461,7 @@ class UrllibRH(RequestHandler):
             HTTPDefaultErrorHandler(),
             FTPHandler(),
             HTTPErrorProcessor(),
-            YoutubeDLRedirectHandler() if allow_redirects else YoutubeDLNoRedirectHandler()]
+            YDLRedirectHandler() if allow_redirects else YDLNoRedirectHandler()]
 
         for handler in handlers:
             opener.add_handler(handler)
