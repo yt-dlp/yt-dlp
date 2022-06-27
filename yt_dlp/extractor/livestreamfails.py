@@ -25,13 +25,13 @@ class LivestreamfailsIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        api_response = json.loads(self._download_webpage('https://api.livestreamfails.com/clip/' + video_id, video_id))
+        api_response = self._download_json(f'https://api.livestreamfails.com/clip/{video_id}', video_id)
 
         return {
             'id': video_id,
             'display_id': api_response.get('sourceId'),
             'timestamp': unified_timestamp(api_response.get('createdAt')),
-            'url': 'https://livestreamfails-video-prod.b-cdn.net/video/' + api_response.get('videoId'),
+            'url': f'https://livestreamfails-video-prod.b-cdn.net/video/{api_response["videoId"]}',
             'title': api_response.get('label'),
             'creator': traverse_obj(api_response, ('streamer', 'label')),
             'thumbnail': 'https://livestreamfails-image-prod.b-cdn.net/image/' + api_response.get('imageId')
