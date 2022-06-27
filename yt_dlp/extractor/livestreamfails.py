@@ -1,8 +1,9 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj
+from ..utils import (
+    traverse_obj,
+    unified_timestamp,
+)
 import json
-import time
-import calendar
 
 
 class LivestreamfailsIE(InfoExtractor):
@@ -23,28 +24,15 @@ class LivestreamfailsIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        result = {}
-        result['id'] = self._match_id(url)
+        video_id = self._match_id(url)
+        api_response = json.loads(self._download_webpage('https://api.livestreamfails.com/clip/' + video_id, video_id))
 
-        # https://livestreamfails.com/clip/id uses https://api.livestreamfails.com/clip/ to fetch the video metadata
-        # Use the same endpoint here to avoid loading and parsing the provided page (which requires JS)
-        apiResponse = json.loads(self._download_webpage('https://api.livestreamfails.com/clip/' + result['id'], result['id']))
-
-        # Twitch ID of clip
-        result['display_id'] = apiResponse.get('sourceId')
-
-        # Get the input timestamp (test case gives 2022-06-26T19:29:45.515Z)
-        result['timestamp'] = apiResponse.get('createdAt')
-        if(result.get('timestamp')):
-            # Parse it into a struct_time
-            result['timestamp'] = time.strptime(result['timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ')
-            # Convert the struct_time to a UNIX timestamp while ignoring the local timezone attached by time.strptime()
-            result['timestamp'] = calendar.timegm(result['timestamp'])
-
-        # Other fields
-        result['url'] = 'https://livestreamfails-video-prod.b-cdn.net/video/' + apiResponse.get('videoId')
-        result['title'] = apiResponse.get('label')
-        result['creator'] = traverse_obj(apiResponse, ('streamer', 'label'))
-        result['thumbnail'] = 'https://livestreamfails-image-prod.b-cdn.net/image/' + apiResponse.get('imageId')
-
-        return result
+        return {
+            'id': video_id,
+            'display_id': api_response.get('sourceId'),
+            'timestamp': unified_timestamp(api_response.get('createdAt')),
+            'url': 'https://livestreamfails-video-prod.b-cdn.net/video/' + api_response.get('videoId'),
+            'title': api_response.get('label'),
+            'creator': traverse_obj(api_response, ('streamer', 'label')),
+            'thumbnail': 'https://livestreamfails-image-prod.b-cdn.net/image/' + api_response.get('imageId')
+        }
