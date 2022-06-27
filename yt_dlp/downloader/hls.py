@@ -61,12 +61,18 @@ class HlsFD(FragmentFD):
         s = urlh.read().decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
-        if can_download and not Cryptodome_AES and '#EXT-X-KEY:METHOD=AES-128' in s:
-            if FFmpegFD.available():
+        if can_download:
+            has_ffmpeg = FFmpegFD.available()
+            no_crypto = not Cryptodome_AES and '#EXT-X-KEY:METHOD=AES-128' in s
+            if no_crypto and has_ffmpeg:
                 can_download, message = False, 'The stream has AES-128 encryption and pycryptodomex is not available'
-            else:
+            elif no_crypto:
                 message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodomex are available; '
                            'Decryption will be performed natively, but will be extremely slow')
+            elif re.search(r'#EXT-X-MEDIA-SEQUENCE:(?!0$)', s):
+                install_ffmpeg = '' if has_ffmpeg else 'install ffmpeg and '
+                message = ('Live HLS streams are not supported by the native downloader. If this is a livestream, '
+                           f'please {install_ffmpeg}add "--downloader ffmpeg --hls-use-mpegts" to your command')
         if not can_download:
             has_drm = re.search('|'.join([
                 r'#EXT-X-FAXS-CM:',  # Adobe Flash Access

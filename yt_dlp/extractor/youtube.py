@@ -62,7 +62,7 @@ from ..utils import (
     variadic,
 )
 
-# any clients starting with _ cannot be explicity requested by the user
+# any clients starting with _ cannot be explicitly requested by the user
 INNERTUBE_CLIENTS = {
     'web': {
         'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
@@ -792,7 +792,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                             if yt_error:
                                 self._report_alerts([('ERROR', yt_error)], fatal=False)
                     # Downloading page may result in intermittent 5xx HTTP error
-                    # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
+                    # Sometimes a 404 is also received. See: https://github.com/ytdl-org/youtube-dl/issues/28289
                     # We also want to catch all other network exceptions since errors in later pages can be troublesome
                     # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
                     if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code not in (403, 429):
@@ -3504,7 +3504,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # See: https://github.com/yt-dlp/yt-dlp/issues/340
         # List of possible thumbnails - Ref: <https://stackoverflow.com/a/20542029>
         thumbnail_names = [
-            # While the *1,*2,*3 thumbnails are just below their correspnding "*default" variants
+            # While the *1,*2,*3 thumbnails are just below their corresponding "*default" variants
             # in resolution, these are not the custom thumbnail. So de-prioritize them
             'maxresdefault', 'hq720', 'sddefault', 'hqdefault', '0', 'mqdefault', 'default',
             'sd1', 'sd2', 'sd3', 'hq1', 'hq2', 'hq3', 'mq1', 'mq2', 'mq3', '1', '2', '3'

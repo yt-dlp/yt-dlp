@@ -586,7 +586,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
         filename = info['filepath']
 
-        # Disabled temporarily. There needs to be a way to overide this
+        # Disabled temporarily. There needs to be a way to override this
         # in case of duration actually mismatching in extractor
         # See: https://github.com/yt-dlp/yt-dlp/issues/1870, https://github.com/yt-dlp/yt-dlp/issues/1385
         '''
