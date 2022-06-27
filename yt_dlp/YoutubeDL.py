@@ -40,7 +40,7 @@ from .networking import (
     RequestDirector,
     UrllibRH,
 )
-from .networking.utils import get_cookie_header, make_std_headers
+from .networking.utils import make_std_headers
 from .postprocessor import _PLUGIN_CLASSES as plugin_postprocessors
 from .postprocessor import (
     EmbedThumbnailPP,
@@ -2249,7 +2249,7 @@ class YoutubeDL:
         return res
 
     def _calc_cookies(self, url):
-        return get_cookie_header(Request(url), self.cookiejar)
+        return self.cookiejar.get_cookie_header(Request(url).url)  # wrap in Request for sanitization
 
     def _sort_thumbnails(self, thumbnails):
         thumbnails.sort(key=lambda t: (

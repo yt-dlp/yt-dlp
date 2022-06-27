@@ -152,12 +152,6 @@ def make_std_headers():
     return CaseInsensitiveDict(_std_headers, std_headers)
 
 
-def get_cookie_header(req: Request, cookiejar: CookieJar):
-    cookie_req = urllib.request.Request(url=req.url)
-    cookiejar.add_cookie_header(cookie_req)
-    return cookie_req.get_header('Cookie')
-
-
 def get_redirect_method(method, status):
     """Unified redirect method handling"""
 

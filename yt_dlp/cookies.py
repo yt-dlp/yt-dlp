@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
@@ -1093,3 +1094,8 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
             if cookie.expires == 0:
                 cookie.expires = None
                 cookie.discard = True
+
+    def get_cookie_header(self, url):
+        cookie_req = urllib.request.Request(url)
+        self.add_cookie_header(cookie_req)
+        return cookie_req.get_header('Cookie')
