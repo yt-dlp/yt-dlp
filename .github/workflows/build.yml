@@ -220,7 +220,7 @@ jobs:
         MACOSX_DEPLOYMENT_TARGET: 10.9  # Used up by the Python build tools
       run: |
           brew install python@3.10
-          brew link python@3.10
+          brew link --overwrite python@3.10
           python3 --version
     - name: Install Requirements
       run: |
