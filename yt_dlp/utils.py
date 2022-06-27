@@ -2994,7 +2994,7 @@ def read_batch_urls(batch_fd):
         if not url or url.startswith(('#', ';', ']')):
             return False
         # "#" cannot be stripped out since it is part of the URI
-        # However, it can be safely stipped out if follwing a whitespace
+        # However, it can be safely stripped out if following a whitespace
         return re.split(r'\s#', url, 1)[0].rstrip()
 
     with contextlib.closing(batch_fd) as fd:

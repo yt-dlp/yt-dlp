@@ -44,7 +44,7 @@ def main():
 
 
 def parse_options():
-    # Compatability with older arguments
+    # Compatibility with older arguments
     opts = sys.argv[1:]
     if opts[0:1] in (['32'], ['64']):
         if ARCH != opts[0]:
