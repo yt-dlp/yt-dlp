@@ -218,10 +218,9 @@ jobs:
       env:
         PYTHON_VERSION: 3.10.5
         MACOSX_DEPLOYMENT_TARGET: 10.9  # Used up by the Python build tools
-      # Need to copy the pkg because the installer command removes it, breaking the cache
       run: |
-          curl https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg -o "python.pkg"
-          sudo installer -pkg python.pkg -target /
+          brew install python@3.10
+          python3 --version
     - name: Install Requirements
       run: |
           brew install coreutils
