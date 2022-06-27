@@ -7,7 +7,7 @@ import typing
 import urllib.parse
 import urllib.request
 import urllib.response
-from collections.abc import Mapping
+from collections.abc import Mapping, Iterable
 from email.message import Message
 from http import HTTPStatus
 from typing import Union
@@ -34,6 +34,8 @@ from .exceptions import UnsupportedRequest, RequestError
 if typing.TYPE_CHECKING:
     from ..YoutubeDL import YoutubeDL
 
+_REQ_DATA_TYPE = Union[bytes, typing.Iterable[bytes], typing.IO, None]
+
 
 class Request:
     """
@@ -41,7 +43,7 @@ class Request:
     Partially backwards-compatible with urllib.request.Request.
 
     @param url: url to send. Will be sanitized and auth will be extracted as basic auth if present.
-    @param data: payload data to send.
+    @param data: payload data to send. Must be bytes, iterable of bytes, a file-like object or None
     @param headers: headers to send.
     @param proxies: proxy dict mapping of proto:proxy to use for the request and any redirects.
     @param query: URL query parameters to update the url with.
@@ -54,7 +56,7 @@ class Request:
     def __init__(
             self,
             url: str,
-            data=None,
+            data: _REQ_DATA_TYPE = None,
             headers: typing.Mapping = None,
             proxies: dict = None,
             query: dict = None,
@@ -95,7 +97,11 @@ class Request:
         return self._data
 
     @data.setter
-    def data(self, data):
+    def data(self, data: _REQ_DATA_TYPE):
+        # Try catch some common mistakes
+        if data is not None and (not isinstance(data, (bytes, io.IOBase, Iterable)) or isinstance(data, (str, Mapping))):
+            raise TypeError('data must be bytes, iterable of bytes, or a file-like object')
+
         # https://docs.python.org/3/library/urllib.request.html#urllib.request.Request.data
         if data != self._data:
             self._data = data

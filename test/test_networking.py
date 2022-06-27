@@ -378,7 +378,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
     def test_content_type(self):
         with self.make_ydl(fake=False, params={'nocheckcertificate': True}) as ydl:
             # method should be auto-detected as POST
-            r = Request('https://localhost:%d/headers' % self.https_port, data=urlencode_postdata({'test': 'test'}), method='POST')
+            r = Request('https://localhost:%d/headers' % self.https_port, data=urlencode_postdata({'test': 'test'}))
 
             headers = ydl.urlopen(r).read().decode('utf-8')
             self.assertIn('Content-Type: application/x-www-form-urlencoded', headers)
