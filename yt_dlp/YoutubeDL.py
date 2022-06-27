@@ -486,7 +486,7 @@ class YoutubeDL:
     include_ads:       - Doesn't work
                        Download ads as well
     call_home:         - Not implemented
-                       Boolean, true iff we are allowed to contact the
+                       Boolean, true if we are allowed to contact the
                        yt-dlp servers for debugging.
     post_hooks:        - Register a custom postprocessor
                        A list of functions that get called as the final step
