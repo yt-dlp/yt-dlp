@@ -59,7 +59,7 @@ class HKETIE(InfoExtractor):
         id = self._match_id(url)
         url = url.split(r'\?')[0]
 
-        webpage = self._download_webpage(url, id, headers={'Host': 'video.hket.com'})
+        webpage = self._download_webpage(url, id)
 
         video_filename_with_extension = self.find_data_property('filename', webpage)
         video_filename = video_filename_with_extension.rsplit('.', maxsplit=1)[0]
