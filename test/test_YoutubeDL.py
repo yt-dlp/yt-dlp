@@ -21,10 +21,10 @@ from yt_dlp.utils import (
     ExtractorError,
     LazyList,
     OnDemandPagedList,
-    RequestError,
     int_or_none,
     match_filter_func,
 )
+from yt_dlp.networking.exceptions import RequestError
 
 TEST_URL = 'http://localhost/sample.mp4'
 

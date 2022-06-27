@@ -6,13 +6,12 @@ import time
 
 from ..networking import Request
 from ..utils import (
-    HTTPError,
     PostProcessingError,
     _configuration_args,
     encodeFilename,
-    network_exceptions,
     write_string,
 )
+from ..networking.exceptions import HTTPError, network_exceptions
 
 
 class PostProcessorMetaClass(type):

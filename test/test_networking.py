@@ -20,7 +20,8 @@ from http.cookiejar import Cookie
 from test.helper import FakeYDL, http_server_port
 from yt_dlp import YoutubeDL
 from yt_dlp.networking import Request, UrllibRH
-from yt_dlp.utils import HTTPError, IncompleteRead, SSLError, urlencode_postdata
+from yt_dlp.utils import urlencode_postdata
+from yt_dlp.networking.exceptions import HTTPError, IncompleteRead, SSLError
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 

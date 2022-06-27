@@ -3,12 +3,12 @@ import time
 
 from .fragment import FragmentFD
 from ..utils import (
-    HTTPError,
     RegexNotFoundError,
     dict_get,
     int_or_none,
     try_get,
 )
+from ..networking.exceptions import HTTPError
 
 
 class YoutubeLiveChatFD(FragmentFD):

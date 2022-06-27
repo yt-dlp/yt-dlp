@@ -8,7 +8,8 @@ import urllib.parse
 
 from .fragment import FragmentFD
 from ..compat import compat_etree_fromstring
-from ..utils import HTTPError, fix_xml_ampersands, xpath_text
+from ..utils import fix_xml_ampersands, xpath_text
+from ..networking.exceptions import HTTPError
 
 
 class DataTruncatedError(Exception):

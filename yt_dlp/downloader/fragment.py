@@ -13,12 +13,11 @@ from ..compat import compat_os_name
 from ..networking import Request
 from ..utils import (
     DownloadError,
-    HTTPError,
-    IncompleteRead,
     encodeFilename,
     error_to_compat_str,
     traverse_obj,
 )
+from ..networking.exceptions import HTTPError, IncompleteRead
 
 
 class HttpQuietDownloader(HttpFD):

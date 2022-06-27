@@ -36,7 +36,6 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     mimetype2ext,
-    network_exceptions,
     orderedSet,
     parse_codecs,
     parse_count,
@@ -61,6 +60,7 @@ from ..utils import (
     urljoin,
     variadic,
 )
+from ..networking.exceptions import network_exceptions
 
 # any clients starting with _ cannot be explicitly requested by the user
 INNERTUBE_CLIENTS = {

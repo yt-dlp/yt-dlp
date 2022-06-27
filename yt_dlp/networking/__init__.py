@@ -11,8 +11,6 @@ from .common import (
     RequestDirector,
     RequestHandler,
 )
-from ..utils import RequestError
-
 
 REQUEST_HANDLERS = [UrllibRH]
 

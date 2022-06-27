@@ -108,7 +108,6 @@ from .utils import (
     join_nonempty,
     locked_file,
     make_dir,
-    network_exceptions,
     number_of_digits,
     orderedSet,
     parse_filesize,
@@ -136,6 +135,7 @@ from .utils import (
     write_json_file,
     write_string,
 )
+from .networking.exceptions import network_exceptions
 from .version import RELEASE_GIT_HEAD, __version__
 
 if compat_os_name == 'nt':

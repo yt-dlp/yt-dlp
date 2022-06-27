@@ -35,17 +35,12 @@ from .utils import (
 from ..dependencies import brotli
 from ..socks import sockssocket
 from ..utils import (
-    HTTPError,
-    IncompleteRead,
-    ProxyError,
-    RequestError,
-    SSLError,
-    TransportError,
     escape_url,
     extract_basic_auth,
     sanitize_url,
     update_url_query,
 )
+from .exceptions import TransportError, HTTPError, IncompleteRead, SSLError, ProxyError, RequestError
 
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
 

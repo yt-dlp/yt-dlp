@@ -28,8 +28,6 @@ from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     GeoUtils,
-    HTTPError,
-    IncompleteRead,
     LenientJSONDecoder,
     RegexNotFoundError,
     UnsupportedError,
@@ -53,7 +51,6 @@ from ..utils import (
     join_nonempty,
     js_to_json,
     mimetype2ext,
-    network_exceptions,
     orderedSet,
     parse_bitrate,
     parse_codecs,
@@ -78,6 +75,7 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
+from ..networking.exceptions import HTTPError, IncompleteRead, network_exceptions
 
 
 class InfoExtractor:

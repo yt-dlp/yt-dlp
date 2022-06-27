@@ -26,11 +26,10 @@ from yt_dlp.extractor import get_info_extractor
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
-    HTTPError,
-    TransportError,
     UnavailableVideoError,
     format_bytes,
 )
+from yt_dlp.networking.exceptions import TransportError, HTTPError
 
 RETRIES = 3
 

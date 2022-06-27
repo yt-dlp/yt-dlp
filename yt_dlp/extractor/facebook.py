@@ -19,7 +19,6 @@ from ..utils import (
     int_or_none,
     js_to_json,
     merge_dicts,
-    network_exceptions,
     parse_count,
     parse_qs,
     qualities,
@@ -31,6 +30,7 @@ from ..utils import (
     urljoin,
     variadic,
 )
+from ..networking.exceptions import network_exceptions
 
 
 class FacebookIE(InfoExtractor):

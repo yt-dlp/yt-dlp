@@ -4,7 +4,7 @@ import struct
 import time
 
 from .fragment import FragmentFD
-from ..utils import HTTPError
+from ..networking.exceptions import HTTPError
 
 u8 = struct.Struct('>B')
 u88 = struct.Struct('>Bx')

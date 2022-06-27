@@ -21,9 +21,6 @@ except ImportError:
 
 from ..utils import (
     CaseInsensitiveDict,
-    RequestError,
-    SSLError,
-    UnsupportedRequest,
     YoutubeDLError,
     bug_reports_message,
     escape_url,
@@ -32,6 +29,7 @@ from ..utils import (
     sanitize_url,
     update_url_query,
 )
+from .exceptions import UnsupportedRequest, RequestError
 
 if typing.TYPE_CHECKING:
     from ..YoutubeDL import YoutubeDL
