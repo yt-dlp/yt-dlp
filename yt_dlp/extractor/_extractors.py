@@ -1511,6 +1511,7 @@ from .scte import (
     SCTEIE,
     SCTECourseIE,
 )
+from .scrolller import ScrolllerIE
 from .seeker import SeekerIE
 from .senategov import SenateISVPIE, SenateGovIE
 from .sendtonews import SendtoNewsIE
