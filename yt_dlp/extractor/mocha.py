@@ -30,15 +30,14 @@ class MochaVideoIE(InfoExtractor):
             'http://apivideo.mocha.com.vn:8081/onMediaBackendBiz/mochavideo/getVideoDetail',
             video_slug, query={'url': f'{url}', 'token': ''})
 
-        video_url = traverse_obj(json_data, ('data', 'videoDetail', 'list_resolution'))
-        video_url.append(traverse_obj(json_data, ('data', 'videoDetail', 'original_path')))
+        video_url = traverse_obj(json_data, ('data', 'videoDetail', ('list_resolution', 'original_path')))
 
         formats, subtitles = [], {}
         for video in video_url:
             if isinstance(video, str):
                 formats.extend([{'url': video, 'ext': 'mp4'}])
             else:
-                vid_url, subs = self._extract_m3u8_formats_and_subtitles(video['video_path'], video_slug, ext='mp4')
+                vid_url, subs = self._extract_m3u8_formats_and_subtitles(video[0]['video_path'], video_slug, ext='mp4')
                 formats.extend(vid_url)
             self._merge_subtitles(subs, target=subtitles)
 
