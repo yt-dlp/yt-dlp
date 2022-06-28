@@ -406,7 +406,8 @@ class RequestDirector:
             # compat
             request = Request(
                 request.get_full_url(), data=request.data, method=request.get_method(),
-                headers=CaseInsensitiveDict(request.headers, request.unredirected_hdrs))
+                headers=CaseInsensitiveDict(request.headers, request.unredirected_hdrs),
+                timeout=request.timeout if hasattr(request, 'timeout') else None)
 
         assert isinstance(request, Request)
 
