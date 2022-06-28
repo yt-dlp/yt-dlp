@@ -236,6 +236,52 @@ jobs:
         asset_content_type: application/zip
 
 
+  build_macos_legacy:
+    runs-on: macos-latest
+    needs: create_release
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Python
+      # We need the official Python, because the GA ones only support newer macOS versions
+      env:
+        PYTHON_VERSION: 3.10.5
+        MACOSX_DEPLOYMENT_TARGET: 10.9  # Used up by the Python build tools
+      run: |
+          # Hack to get the latest patch version. Uncomment if needed
+          #brew install python@3.10
+          #export PYTHON_VERSION=$( $(brew --prefix)/opt/python@3.10/bin/python3 --version | cut -d ' ' -f 2 )
+          curl https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg -o "python.pkg"
+          sudo installer -pkg python.pkg -target /
+          python3 --version
+    - name: Install Requirements
+      run: |
+          brew install coreutils
+          python3 -m pip install -U --user pip Pyinstaller -r requirements.txt
+
+    - name: Prepare
+      run: |
+          python3 devscripts/update-version.py ${{ needs.create_release.outputs.version_suffix }}
+          python3 devscripts/make_lazy_extractors.py
+    - name: Build
+      run: |
+          python3 pyinst.py
+    - name: Get SHA2-SUMS
+      id: get_sha
+      run: |
+          echo "::set-output name=sha256_macos_legacy::$(sha256sum dist/yt-dlp_macos | awk '{print $1}')"
+          echo "::set-output name=sha512_macos_legacy::$(sha512sum dist/yt-dlp_macos | awk '{print $1}')"
+
+    - name: Upload standalone binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: ./dist/yt-dlp_macos
+        asset_name: yt-dlp_macos_legacy
+        asset_content_type: application/octet-stream
+
+
   build_windows:
     runs-on: windows-latest
     needs: create_release
@@ -351,7 +397,7 @@ jobs:
 
   finish:
     runs-on: ubuntu-latest
-    needs: [create_release, build_unix, build_windows, build_windows32, build_macos]
+    needs: [create_release, build_unix, build_windows, build_windows32, build_macos, build_macos_legacy]
 
     steps:
     - name: Make SHA2-SUMS files
@@ -366,6 +412,7 @@ jobs:
         echo "${{ needs.build_windows.outputs.sha256_win_zip }}  yt-dlp_win.zip" >> SHA2-256SUMS
         echo "${{ needs.build_macos.outputs.sha256_macos }}  yt-dlp_macos" >> SHA2-256SUMS
         echo "${{ needs.build_macos.outputs.sha256_macos_zip }}  yt-dlp_macos.zip" >> SHA2-256SUMS
+        echo "${{ needs.build_macos_legacy.outputs.sha256_macos_legacy }}  yt-dlp_macos_legacy" >> SHA2-256SUMS
         echo "${{ needs.build_unix.outputs.sha512_bin }}  yt-dlp" >> SHA2-512SUMS
         echo "${{ needs.build_unix.outputs.sha512_tar }}  yt-dlp.tar.gz" >> SHA2-512SUMS
         echo "${{ needs.build_unix.outputs.sha512_linux }}  yt-dlp_linux" >> SHA2-512SUMS
@@ -376,6 +423,7 @@ jobs:
         echo "${{ needs.build_windows.outputs.sha512_win_zip }}  yt-dlp_win.zip" >> SHA2-512SUMS
         echo "${{ needs.build_macos.outputs.sha512_macos }}  yt-dlp_macos" >> SHA2-512SUMS
         echo "${{ needs.build_macos.outputs.sha512_macos_zip }}  yt-dlp_macos.zip" >> SHA2-512SUMS
+        echo "${{ needs.build_macos_legacy.outputs.sha512_macos_legacy }}  yt-dlp_macos_legacy" >> SHA2-512SUMS
 
     - name: Upload SHA2-256SUMS file
       uses: actions/upload-release-asset@v1
