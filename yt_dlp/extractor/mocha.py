@@ -39,8 +39,7 @@ class MochaVideoIE(InfoExtractor):
             formats.append(data)
         else:
             for video in video_url:
-                vid_url, subs = self._extract_m3u8_formats_and_subtitles(video['video_path'], video_slug)
-                vid_url = [{**vid, 'ext': 'mp4'} for vid in vid_url]
+                vid_url, subs = self._extract_m3u8_formats_and_subtitles(video['video_path'], video_slug, ext='mp4')
                 formats.extend(vid_url)
                 self._merge_subtitles(subs, target=subtitles)
 
@@ -62,7 +61,7 @@ class MochaVideoIE(InfoExtractor):
             'is_live': traverse_obj(json_data, ('data', 'videoDetail', 'isLive')),
             'channel': traverse_obj(json_data, ('data', 'videoDetail', 'channels', '0', 'name')),
             'channel_id': traverse_obj(json_data, ('data', 'videoDetail', 'channels', '0', 'id')),
-            'channel_follower': traverse_obj(json_data, ('data', 'videoDetail', 'channels', '0', 'numfollow')),
+            'channel_follower_count': traverse_obj(json_data, ('data', 'videoDetail', 'channels', '0', 'numfollow')),
             'categories': traverse_obj(json_data, ('data', 'videoDetail', 'categories', ..., 'categoryname')),
             'comment_count': traverse_obj(json_data, ('data', 'videoDetail', 'total_comment')),
         }
