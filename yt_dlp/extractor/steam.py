@@ -163,9 +163,6 @@ class SteamCommunityBroadcastIE(InfoExtractor):
             'https://steamcommunity.com/actions/ajaxresolveusers',
             video_id, query={'steamids': video_id})[0]
 
-        # TODO: get chat from 'view_url_template' in https://steamcommunity.com/broadcast/getchatinfo?steamid={video_id}
-        # the chat is using '0' as first chat id and then changed based on '47639818'
-        # the chat need requested regulary, i think https://github.com/yt-dlp/yt-dlp/pull/3048 can help
         self._sort_formats(formats)
         return {
             'id': video_id,
