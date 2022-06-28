@@ -3531,7 +3531,7 @@ class YoutubeDL:
                     'none', '' if f.get('vcodec') == 'none'
                             else self._format_out('video only', self.Styles.SUPPRESS)),
                 format_field(f, 'abr', '\t%dk'),
-                format_field(f, 'asr', '\t%dHz'),
+                format_field(f, 'asr', '\t%s', func=format_decimal_suffix),
                 join_nonempty(
                     self._format_out('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
                     format_field(f, 'language', '[%s]'),

@@ -234,7 +234,7 @@ DATE_FORMATS_MONTH_FIRST.extend([
 ])
 
 PACKED_CODES_RE = r"}\('(.+)',(\d+),(\d+),'([^']+)'\.split\('\|'\)"
-JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>(?P<json_ld>.+?)</script>'
+JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>\s*(?P<json_ld>{.+?})\s*</script>'
 
 NUMBER_RE = r'\d+(?:\.\d+)?'
 
@@ -673,8 +673,8 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
     s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)  # Handle timestamps
     result = ''.join(map(replace_insane, s))
     if is_id is NO_DEFAULT:
-        result = re.sub('(\0.)(?:(?=\\1)..)+', r'\1', result)  # Remove repeated substitute chars
-        STRIP_RE = '(?:\0.|[ _-])*'
+        result = re.sub(r'(\0.)(?:(?=\1)..)+', r'\1', result)  # Remove repeated substitute chars
+        STRIP_RE = r'(?:\0.|[ _-])*'
         result = re.sub(f'^\0.{STRIP_RE}|{STRIP_RE}\0.$', '', result)  # Remove substitute chars from start/end
     result = result.replace('\0', '') or '_'
 
@@ -2400,8 +2400,7 @@ def remove_quotes(s):
 
 
 def get_domain(url):
-    domain = re.match(r'(?:https?:\/\/)?(?:www\.)?(?P<domain>[^\n\/]+\.[^\n\/]+)(?:\/(.*))?', url)
-    return domain.group('domain') if domain else None
+    return '.'.join(urllib.parse.urlparse(url).netloc.rsplit('.', 2)[-2:])
 
 
 def url_basename(url):

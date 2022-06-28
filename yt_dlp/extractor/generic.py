@@ -2825,12 +2825,22 @@ class GenericIE(InfoExtractor):
                         new_url, {'force_videoid': force_videoid})
                 return self.url_result(new_url)
 
+        def request_webpage():
+            request = sanitized_Request(url)
+            # Some webservers may serve compressed content of rather big size (e.g. gzipped flac)
+            # making it impossible to download only chunk of the file (yet we need only 512kB to
+            # test whether it's HTML or not). According to yt-dlp default Accept-Encoding
+            # that will always result in downloading the whole file that is not desirable.
+            # Therefore for extraction pass we have to override Accept-Encoding to any in order
+            # to accept raw bytes and being able to download only a chunk.
+            # It may probably better to solve this by checking Content-Type for application/octet-stream
+            # after HEAD request finishes, but not sure if we can rely on this.
+            request.add_header('Accept-Encoding', '*')
+            return self._request_webpage(request, video_id)
+
         full_response = None
         if head_response is False:
-            request = sanitized_Request(url)
-            request.add_header('Accept-Encoding', '*')
-            full_response = self._request_webpage(request, video_id)
-            head_response = full_response
+            head_response = full_response = request_webpage()
 
         info_dict = {
             'id': video_id,
@@ -2868,19 +2878,7 @@ class GenericIE(InfoExtractor):
             self.report_warning(
                 '%s on generic information extractor.' % ('Forcing' if force else 'Falling back'))
 
-        if not full_response:
-            request = sanitized_Request(url)
-            # Some webservers may serve compressed content of rather big size (e.g. gzipped flac)
-            # making it impossible to download only chunk of the file (yet we need only 512kB to
-            # test whether it's HTML or not). According to yt-dlp default Accept-Encoding
-            # that will always result in downloading the whole file that is not desirable.
-            # Therefore for extraction pass we have to override Accept-Encoding to any in order
-            # to accept raw bytes and being able to download only a chunk.
-            # It may probably better to solve this by checking Content-Type for application/octet-stream
-            # after HEAD request finishes, but not sure if we can rely on this.
-            request.add_header('Accept-Encoding', '*')
-            full_response = self._request_webpage(request, video_id)
-
+        full_response = full_response or request_webpage()
         first_bytes = full_response.read(512)
 
         # Is it an M3U playlist?

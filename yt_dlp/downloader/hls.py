@@ -69,7 +69,7 @@ class HlsFD(FragmentFD):
             elif no_crypto:
                 message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodomex are available; '
                            'Decryption will be performed natively, but will be extremely slow')
-            elif re.search(r'#EXT-X-MEDIA-SEQUENCE:(?!0$)', s):
+            elif info_dict.get('extractor_key') == 'Generic' and re.search(r'(?m)#EXT-X-MEDIA-SEQUENCE:(?!0$)', s):
                 install_ffmpeg = '' if has_ffmpeg else 'install ffmpeg and '
                 message = ('Live HLS streams are not supported by the native downloader. If this is a livestream, '
                            f'please {install_ffmpeg}add "--downloader ffmpeg --hls-use-mpegts" to your command')
