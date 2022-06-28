@@ -149,19 +149,19 @@ class SteamCommunityBroadcastIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         json_data = self._download_json(
             'https://steamcommunity.com/broadcast/getbroadcastmpd/',
-            video_id, query={'steamid': f'{video_id}'}
-        )
+            video_id, query={'steamid': f'{video_id}'})
 
         formats, subs = self._extract_m3u8_formats_and_subtitles(json_data['hls_url'], video_id)
 
-        # uncomment below if there's no issue for live dash in ffmpeg
-        # mpd_formats, mpd_subs = self._extract_mpd_formats_and_subtitles(json_data['url'], video_id)
-        # formats.extend(mpd_formats)
-        # self._merge_subtitles(subtitles, target=subs)
+        ''' # We cannot download live dash atm
+        mpd_formats, mpd_subs = self._extract_mpd_formats_and_subtitles(json_data['url'], video_id)
+        formats.extend(mpd_formats)
+        self._merge_subtitles(mpd_subs, target=subs)
+        '''
 
         uploader_json = self._download_json(
             'https://steamcommunity.com/actions/ajaxresolveusers',
-            video_id, query={'steamids': f'{video_id}'})[0]  # assume the data only one
+            video_id, query={'steamids': f'{video_id}'})[0]
 
         # TODO: get chat from 'view_url_template' in https://steamcommunity.com/broadcast/getchatinfo?steamid={video_id}
         # the chat is using '0' as first chat id and then changed based on '47639818'
