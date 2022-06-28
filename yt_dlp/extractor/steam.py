@@ -161,7 +161,7 @@ class SteamCommunityBroadcastIE(InfoExtractor):
 
         uploader_json = self._download_json(
             'https://steamcommunity.com/actions/ajaxresolveusers',
-            video_id, query={'steamids': f'{video_id}'})[0]
+            video_id, query={'steamids': video_id})[0]
 
         # TODO: get chat from 'view_url_template' in https://steamcommunity.com/broadcast/getchatinfo?steamid={video_id}
         # the chat is using '0' as first chat id and then changed based on '47639818'
