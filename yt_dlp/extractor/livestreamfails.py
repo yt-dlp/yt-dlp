@@ -30,5 +30,5 @@ class LivestreamfailsIE(InfoExtractor):
             'url': f'https://livestreamfails-video-prod.b-cdn.net/video/{api_response["videoId"]}',
             'title': api_response.get('label'),
             'creator': traverse_obj(api_response, ('streamer', 'label')),
-            'thumbnail': format_field(api_response.get('imageId'), None, "https://livestreamfails-image-prod.b-cdn.net/image/%s")
+            'thumbnail': format_field(api_response, 'imageId', 'https://livestreamfails-image-prod.b-cdn.net/image/%s')
         }
