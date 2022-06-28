@@ -43,13 +43,26 @@ class TrovoBaseIE(InfoExtractor):
 
 
 class TrovoIE(TrovoBaseIE):
-    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:s/)?(?!(?:clip|video)/)(?P<id>(?!s/)[^/?&#]+(?![^?]+\?vid))'
+    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:s/)?(?!(?:clip|video)/)(?P<id>(?!s/)[^/?&#]+(?![^&]+[?&]vid=))'
     _TESTS = [{
         'url': 'https://trovo.live/Exsl',
         'only_matching': True,
     }, {
         'url': 'https://trovo.live/s/SkenonSLive/549759191497',
         'only_matching': True,
+    }, {
+        'url': 'https://trovo.live/s/zijo987/208251706',
+        'info_dict': {
+            'id': '104125853_104125853_1656439572',
+            'ext': 'flv',
+            'uploader_url': 'https://trovo.live/zijo987',
+            'uploader_id': '104125853',
+            'thumbnail': 'https://livecover.trovo.live/screenshot/73846_104125853_104125853-2022-06-29-04-00-22-852x480.jpg',
+            'uploader': 'zijo987',
+            'title': '💥IGRAMO IGRICE UPADAJTE💥2500/5000 2022-06-28 22:01',
+            'live_status': 'is_live',
+        },
+        'skip': 'May not be live'
     }]
 
     def _real_extract(self, url):
@@ -95,7 +108,7 @@ class TrovoIE(TrovoBaseIE):
 
 
 class TrovoVodIE(TrovoBaseIE):
-    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:clip|video|s)/(?:[^/]+/\d+\?vid=)?(?P<id>(?<!/s/)[^/?&#]+)'
+    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:clip|video|s)/(?:[^/]+/\d+[^&]*[?&]vid=)?(?P<id>(?<!/s/)[^/?&#]+)'
     _TESTS = [{
         'url': 'https://trovo.live/clip/lc-5285890818705062210?ltab=videos',
         'params': {'getcomments': True},
@@ -136,6 +149,9 @@ class TrovoVodIE(TrovoBaseIE):
         }
     }, {
         'url': 'https://trovo.live/video/ltv-100095501_100095501_1609596043',
+        'only_matching': True,
+    }, {
+        'url': 'https://trovo.live/s/SkenonSLive/549759191497?foo=bar&vid=ltv-100829718_100829718_387702301737980280',
         'only_matching': True,
     }]
 
