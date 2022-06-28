@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj, unified_timestamp
+from ..utils import format_field, traverse_obj, unified_timestamp
 
 
 class LivestreamfailsIE(InfoExtractor):
@@ -30,5 +30,5 @@ class LivestreamfailsIE(InfoExtractor):
             'url': f'https://livestreamfails-video-prod.b-cdn.net/video/{api_response["videoId"]}',
             'title': api_response.get('label'),
             'creator': traverse_obj(api_response, ('streamer', 'label')),
-            'thumbnail': 'https://livestreamfails-image-prod.b-cdn.net/image/' + api_response.get('imageId')
+            'thumbnail': format_field(api_response.get('imageId'), None, "https://livestreamfails-image-prod.b-cdn.net/image/%s")
         }
