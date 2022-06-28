@@ -25,10 +25,8 @@ def _get_variant_and_executable_path():
             return 'py2exe', path
         if sys._MEIPASS == os.path.dirname(path):
             return f'{sys.platform}_dir', path
-        if sys.platform == 'darwin':
-            release, _, _ = platform.mac_ver()
-            if release < '10.15':
-                return 'darwin_legacy_exe', path
+        if sys.platform == 'darwin' and version_tuple(platform.mac_ver()[0]) < (10, 15):
+            return 'darwin_legacy_exe', path
         return f'{sys.platform}_exe', path
 
     path = os.path.dirname(__file__)
