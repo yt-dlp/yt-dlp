@@ -1,5 +1,7 @@
+import base64
 import contextlib
 import ctypes
+import http.cookiejar
 import json
 import os
 import shutil
@@ -17,7 +19,6 @@ from .aes import (
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
-from .compat import compat_b64decode, compat_cookiejar_Cookie
 from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
     secretstorage,
@@ -142,7 +143,7 @@ def _extract_firefox_cookies(profile, logger):
                 total_cookie_count = len(table)
                 for i, (host, name, value, path, expiry, is_secure) in enumerate(table):
                     progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
-                    cookie = compat_cookiejar_Cookie(
+                    cookie = http.cookiejar.Cookie(
                         version=0, name=name, value=value, port=None, port_specified=False,
                         domain=host, domain_specified=bool(host), domain_initial_dot=host.startswith('.'),
                         path=path, path_specified=bool(path), secure=is_secure, expires=expiry, discard=False,
@@ -297,7 +298,7 @@ def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, pa
         if value is None:
             return is_encrypted, None
 
-    return is_encrypted, compat_cookiejar_Cookie(
+    return is_encrypted, http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
         domain=host_key, domain_specified=bool(host_key), domain_initial_dot=host_key.startswith('.'),
         path=path, path_specified=bool(path), secure=is_secure, expires=expires_utc, discard=False,
@@ -589,7 +590,7 @@ def _parse_safari_cookies_record(data, jar, logger):
 
     p.skip_to(record_size, 'space at the end of the record')
 
-    cookie = compat_cookiejar_Cookie(
+    cookie = http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
         domain=domain, domain_specified=bool(domain), domain_initial_dot=domain.startswith('.'),
         path=path, path_specified=bool(path), secure=is_secure, expires=expiration_date, discard=False,
@@ -709,21 +710,19 @@ def _get_kwallet_network_wallet(logger):
     """
     default_wallet = 'kdewallet'
     try:
-        proc = Popen([
+        stdout, _, returncode = Popen.run([
             'dbus-send', '--session', '--print-reply=literal',
             '--dest=org.kde.kwalletd5',
             '/modules/kwalletd5',
             'org.kde.KWallet.networkWallet'
-        ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        ], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
-        stdout, stderr = proc.communicate_or_kill()
-        if proc.returncode != 0:
+        if returncode:
             logger.warning('failed to read NetworkWallet')
             return default_wallet
         else:
-            network_wallet = stdout.decode().strip()
-            logger.debug(f'NetworkWallet = "{network_wallet}"')
-            return network_wallet
+            logger.debug(f'NetworkWallet = "{stdout.strip()}"')
+            return stdout.strip()
     except Exception as e:
         logger.warning(f'exception while obtaining NetworkWallet: {e}')
         return default_wallet
@@ -741,17 +740,16 @@ def _get_kwallet_password(browser_keyring_name, logger):
     network_wallet = _get_kwallet_network_wallet(logger)
 
     try:
-        proc = Popen([
+        stdout, _, returncode = Popen.run([
             'kwallet-query',
             '--read-password', f'{browser_keyring_name} Safe Storage',
             '--folder', f'{browser_keyring_name} Keys',
             network_wallet
         ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
-        stdout, stderr = proc.communicate_or_kill()
-        if proc.returncode != 0:
-            logger.error(f'kwallet-query failed with return code {proc.returncode}. Please consult '
-                         'the kwallet-query man page for details')
+        if returncode:
+            logger.error(f'kwallet-query failed with return code {returncode}. '
+                         'Please consult the kwallet-query man page for details')
             return b''
         else:
             if stdout.lower().startswith(b'failed to read'):
@@ -766,9 +764,7 @@ def _get_kwallet_password(browser_keyring_name, logger):
                 return b''
             else:
                 logger.debug('password found')
-                if stdout[-1:] == b'\n':
-                    stdout = stdout[:-1]
-                return stdout
+                return stdout.rstrip(b'\n')
     except Exception as e:
         logger.warning(f'exception running kwallet-query: {error_to_str(e)}')
         return b''
@@ -815,17 +811,13 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
 def _get_mac_keyring_password(browser_keyring_name, logger):
     logger.debug('using find-generic-password to obtain password from OSX keychain')
     try:
-        proc = Popen(
+        stdout, _, _ = Popen.run(
             ['security', 'find-generic-password',
              '-w',  # write password to stdout
              '-a', browser_keyring_name,  # match 'account'
              '-s', f'{browser_keyring_name} Safe Storage'],  # match 'service'
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-
-        stdout, stderr = proc.communicate_or_kill()
-        if stdout[-1:] == b'\n':
-            stdout = stdout[:-1]
-        return stdout
+        return stdout.rstrip(b'\n')
     except Exception as e:
         logger.warning(f'exception running find-generic-password: {error_to_str(e)}')
         return None
@@ -844,7 +836,7 @@ def _get_windows_v10_key(browser_root, logger):
     except KeyError:
         logger.error('no encrypted key in Local State')
         return None
-    encrypted_key = compat_b64decode(base64_key)
+    encrypted_key = base64.b64decode(base64_key)
     prefix = b'DPAPI'
     if not encrypted_key.startswith(prefix):
         logger.error('invalid key')

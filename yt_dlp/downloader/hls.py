@@ -1,12 +1,12 @@
 import binascii
 import io
 import re
+import urllib.parse
 
 from . import get_suitable_downloader
 from .external import FFmpegFD
 from .fragment import FragmentFD
 from .. import webvtt
-from ..compat import compat_urlparse
 from ..dependencies import Cryptodome_AES
 from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
 
@@ -140,7 +140,7 @@ class HlsFD(FragmentFD):
         extra_query = None
         extra_param_to_segment_url = info_dict.get('extra_param_to_segment_url')
         if extra_param_to_segment_url:
-            extra_query = compat_urlparse.parse_qs(extra_param_to_segment_url)
+            extra_query = urllib.parse.parse_qs(extra_param_to_segment_url)
         i = 0
         media_sequence = 0
         decrypt_info = {'METHOD': 'NONE'}
@@ -162,7 +162,7 @@ class HlsFD(FragmentFD):
                     frag_url = (
                         line
                         if re.match(r'^https?://', line)
-                        else compat_urlparse.urljoin(man_url, line))
+                        else urllib.parse.urljoin(man_url, line))
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
@@ -187,7 +187,7 @@ class HlsFD(FragmentFD):
                     frag_url = (
                         map_info.get('URI')
                         if re.match(r'^https?://', map_info.get('URI'))
-                        else compat_urlparse.urljoin(man_url, map_info.get('URI')))
+                        else urllib.parse.urljoin(man_url, map_info.get('URI')))
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
@@ -215,7 +215,7 @@ class HlsFD(FragmentFD):
                         if 'IV' in decrypt_info:
                             decrypt_info['IV'] = binascii.unhexlify(decrypt_info['IV'][2:].zfill(32))
                         if not re.match(r'^https?://', decrypt_info['URI']):
-                            decrypt_info['URI'] = compat_urlparse.urljoin(
+                            decrypt_info['URI'] = urllib.parse.urljoin(
                                 man_url, decrypt_info['URI'])
                         if extra_query:
                             decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)

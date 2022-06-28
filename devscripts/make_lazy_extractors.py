@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-import optparse
+
+# Allow direct execution
 import os
 import sys
-from inspect import getsource
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
+import optparse
+from inspect import getsource
 
 NO_ATTR = object()
 STATIC_CLASS_PROPERTIES = ['IE_NAME', 'IE_DESC', 'SEARCH_KEY', '_WORKING', '_NETRC_MACHINE', 'age_limit']
@@ -53,7 +56,7 @@ def get_all_ies():
     if os.path.exists(PLUGINS_DIRNAME):
         os.rename(PLUGINS_DIRNAME, BLOCKED_DIRNAME)
     try:
-        from yt_dlp.extractor import _ALL_CLASSES
+        from yt_dlp.extractor.extractors import _ALL_CLASSES
     finally:
         if os.path.exists(BLOCKED_DIRNAME):
             os.rename(BLOCKED_DIRNAME, PLUGINS_DIRNAME)

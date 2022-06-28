@@ -4,10 +4,11 @@ import optparse
 import os.path
 import re
 import shlex
+import shutil
 import string
 import sys
 
-from .compat import compat_expanduser, compat_get_terminal_size, compat_getenv
+from .compat import compat_expanduser
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
 from .postprocessor import (
@@ -39,7 +40,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 
     def _readUserConf(package_name, default=[]):
         # .config
-        xdg_config_home = compat_getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
+        xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
         userConfFile = os.path.join(xdg_config_home, package_name, 'config')
         if not os.path.isfile(userConfFile):
             userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
@@ -48,7 +49,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             return userConf, userConfFile
 
         # appdata
-        appdata_dir = compat_getenv('appdata')
+        appdata_dir = os.getenv('appdata')
         if appdata_dir:
             userConfFile = os.path.join(appdata_dir, package_name, 'config')
             userConf = Config.read_file(userConfFile, default=None)
@@ -96,12 +97,16 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 
     opts = optparse.Values({'verbose': True, 'print_help': False})
     try:
-        if overrideArguments:
-            root.append_config(overrideArguments, label='Override')
-        else:
-            root.append_config(sys.argv[1:], label='Command-line')
+        try:
+            if overrideArguments:
+                root.append_config(overrideArguments, label='Override')
+            else:
+                root.append_config(sys.argv[1:], label='Command-line')
+            loaded_all_configs = all(load_configs())
+        except ValueError as err:
+            raise root.parser.error(err)
 
-        if all(load_configs()):
+        if loaded_all_configs:
             # If ignoreconfig is found inside the system configuration file,
             # the user configuration is removed
             if root.parse_known_args()[0].ignoreconfig:
@@ -133,7 +138,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
     def __init__(self):
         # No need to wrap help messages if we're on a wide console
-        max_width = compat_get_terminal_size().columns or 80
+        max_width = shutil.get_terminal_size().columns or 80
         # The % is chosen to get a pretty output in README.md
         super().__init__(width=max_width, max_help_position=int(0.45 * max_width))
 
@@ -183,7 +188,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         return self.check_values(self.values, self.largs)
 
     def error(self, msg):
-        msg = f'{self.get_prog_name()}: error: {msg.strip()}\n'
+        msg = f'{self.get_prog_name()}: error: {str(msg).strip()}\n'
         raise optparse.OptParseError(f'{self.get_usage()}\n{msg}' if self.usage else msg)
 
     def _get_args(self, args):
@@ -500,15 +505,19 @@ def create_parser():
     selection.add_option(
         '--playlist-start',
         dest='playliststart', metavar='NUMBER', default=1, type=int,
-        help='Playlist video to start at (default is %default)')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--playlist-end',
         dest='playlistend', metavar='NUMBER', default=None, type=int,
-        help='Playlist video to end at (default is last)')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
-        '--playlist-items',
+        '-I', '--playlist-items',
         dest='playlist_items', metavar='ITEM_SPEC', default=None,
-        help='Playlist video items to download. Specify indices of the videos in the playlist separated by commas like: "--playlist-items 1,2,5,8" if you want to download videos indexed 1, 2, 5, 8 in the playlist. You can specify range: "--playlist-items 1-3,7,10-13", it will download the videos at index 1, 2, 3, 7, 10, 11, 12 and 13')
+        help=(
+            'Comma seperated playlist_index of the videos to download. '
+            'You can specify a range using "[START]:[STOP][:STEP]". For backward compatibility, START-STOP is also supported. '
+            'Use negative indices to count from the right and negative STEP to download in reverse order. '
+            'Eg: "-I 1:3,7,-5::2" used on a playlist of size 15 will download the videos at index 1,2,3,7,11,13,15'))
     selection.add_option(
         '--match-title',
         dest='matchtitle', metavar='REGEX',
@@ -884,16 +893,24 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--playlist-reverse',
-        action='store_true',
-        help='Download playlist videos in reverse order')
+        action='store_true', dest='playlist_reverse',
+        help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--no-playlist-reverse',
         action='store_false', dest='playlist_reverse',
-        help='Download playlist videos in default order (default)')
+        help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--playlist-random',
-        action='store_true',
+        action='store_true', dest='playlist_random',
         help='Download playlist videos in random order')
+    downloader.add_option(
+        '--lazy-playlist',
+        action='store_true', dest='lazy_playlist',
+        help='Process entries in the playlist as they are received. This disables n_entries, --playlist-random and --playlist-reverse')
+    downloader.add_option(
+        '--no-lazy-playlist',
+        action='store_false', dest='lazy_playlist',
+        help='Process videos in the playlist only after the entire playlist is parsed (default)')
     downloader.add_option(
         '--xattr-set-filesize',
         dest='xattr_set_filesize', action='store_true',

@@ -1,10 +1,10 @@
 import base64
 import json
 import re
-import urllib
+import urllib.parse
 
-from .common import InfoExtractor
 from .adobepass import AdobePassIE
+from .common import InfoExtractor
 from .once import OnceIE
 from ..utils import (
     determine_ext,
@@ -197,7 +197,7 @@ class ESPNArticleIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if (ESPNIE.suitable(url) or WatchESPNIE.suitable(url)) else super(ESPNArticleIE, cls).suitable(url)
+        return False if (ESPNIE.suitable(url) or WatchESPNIE.suitable(url)) else super().suitable(url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -322,7 +322,7 @@ class WatchESPNIE(AdobePassIE):
             video_id)['playbackState']
 
         # ESPN+ subscription required, through cookies
-        if video_data.get('sourceId') == 'ESPN_DTC':
+        if 'DTC' in video_data.get('sourceId'):
             cookie = self._get_cookies(url).get('ESPN-ONESITE.WEB-PROD.token')
             if not cookie:
                 self.raise_login_required(method='cookies')
@@ -365,6 +365,13 @@ class WatchESPNIE(AdobePassIE):
                     'Authorization': token
                 })
             m3u8_url, headers = playback['stream']['complete'][0]['url'], {'authorization': token}
+
+        # No login required
+        elif video_data.get('sourceId') == 'ESPN_FREE':
+            asset = self._download_json(
+                f'https://watch.auth.api.espn.com/video/auth/media/{video_id}/asset?apikey=uiqlbgzdwuru14v627vdusswb',
+                video_id)
+            m3u8_url, headers = asset['stream'], {}
 
         # TV Provider required
         else:
