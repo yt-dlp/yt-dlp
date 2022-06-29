@@ -13,8 +13,8 @@ class RTLLuBaseIE(InfoExtractor):
         
         return media_url
         
-class RTLLuIE(RTLLuBaseIE):
-    IE_NAME = 'rtl.lu'
+class RTLLuTeleVODIE(RTLLuBaseIE):
+    IE_NAME = 'rtl.lu:tele-vod'
     _VALID_URL = r'https?://(?:www.)?rtl\.lu/(tele/(?P<slug>[\w-]+)/v/|video/)(?P<id>\d+)(\.html)?'
     _TESTS = [{
         'url': 'https://www.rtl.lu/tele/de-journal-vun-der-tele/v/3266757.html',
