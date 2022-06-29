@@ -132,7 +132,8 @@ class RTLLuTeleLiveIE(RTLLuBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id = f'Tele:live{self._match_id(url)}'
+        slug = '' if self._match_id(url) is None else self._match_id(url)
+        video_id = f'Tele:live{slug}'
         webpage = self._download_webpage(url, video_id)
 
         # actually the live version has mpd version in <rtl-player ... dash=<mpd_link>,
