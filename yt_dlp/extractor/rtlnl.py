@@ -150,13 +150,11 @@ class RTLLuBaseIE(InfoExtractor):
     }
 
     def get_media_url(self, webpage, video_id, media_type):
-        media_url = self._search_regex(
+        return self._search_regex(
             self._MEDIA_REGEX[media_type], webpage, 'media_url', group=('media_url'),
             default=None, fatal=False)
 
-        return media_url
-
-    def get_format(self, webpage, video_id):
+    def get_formats_and_subtitles(self, webpage, video_id):
         video_url, audio_url = self.get_media_url(webpage, video_id, 'video'), self.get_media_url(webpage, video_id, 'audio')
 
         formats, subtitles = [], {}
@@ -196,7 +194,7 @@ class RTLLuTeleVODIE(RTLLuBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        formats, subtitles = self.get_format(webpage, video_id)
+        formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
         self._sort_formats(formats)
         return {
             'id': video_id,
@@ -239,7 +237,7 @@ class RTLLuArticleIE(RTLLuBaseIE):
 
         # TODO: extract comment from https://www.rtl.lu/comments?status=1&order=desc&context=news|article|<video_id>
         # we can context from <rtl-comments context=<context> in webpage
-        formats, subtitles = self.get_format(webpage, video_id)
+        formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
         self._sort_formats(formats)
 
         return {
@@ -253,11 +251,11 @@ class RTLLuArticleIE(RTLLuBaseIE):
 
 
 class RTLLuTeleLiveIE(RTLLuBaseIE):
-    _VALID_URL = r'https?://www\.rtl\.lu/tele/live(?P<id>-\d+)?'
+    _VALID_URL = r'https?://www\.rtl\.lu/tele/(?P<id>live(?:-\d+)?)'
     _TESTS = [{
         'url': 'https://www.rtl.lu/tele/live',
         'info_dict': {
-            'id': 'Tele:live',
+            'id': 'live',
             'ext': 'mp4',
             'live_status': 'is_live',
             'title': r're:RTL - Télé LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
@@ -266,7 +264,7 @@ class RTLLuTeleLiveIE(RTLLuBaseIE):
     }, {
         'url': 'https://www.rtl.lu/tele/live-2',
         'info_dict': {
-            'id': 'Tele:live-2',
+            'id': 'live-2',
             'ext': 'mp4',
             'live_status': 'is_live',
             'title': r're:RTL - Télé LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
@@ -274,13 +272,10 @@ class RTLLuTeleLiveIE(RTLLuBaseIE):
     }]
 
     def _real_extract(self, url):
-        slug = '' if self._match_id(url) is None else self._match_id(url)
-        video_id = f'Tele:live{slug}'
+        video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        # actually the live version has mpd version in <rtl-player ... dash=<mpd_link>,
-        # but ffmpeg have problem with live dash
-        formats, subtitles = self.get_format(webpage, video_id)
+        formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
         self._sort_formats(formats)
         return {
             'id': video_id,
@@ -306,7 +301,7 @@ class RTLLuRadioIE(RTLLuBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        formats, subtitles = self.get_format(webpage, video_id)
+        formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
 
         return {
             'id': video_id,
