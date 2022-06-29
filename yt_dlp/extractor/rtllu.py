@@ -70,6 +70,7 @@ class RTLLuArticleIE(RTLLuBaseIE):
     IE_NAME = 'rtl.lu:article'
     _VALID_URL = r'https?://www\.rtl\.lu/(?:\w+)/(?:\w+)/a/(?P<id>\d+)\.html'
     _TESTS = [{
+        # Audio-only 
         'url': 'https://www.rtl.lu/sport/news/a/1934360.html',
         'info_dict': {
             'id': '1934360',
@@ -77,6 +78,16 @@ class RTLLuArticleIE(RTLLuBaseIE):
             'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/06/28/19/e4b37d66ddf00bab4c45617b91a5bb9b.jpeg',
             'description': 'md5:5eab4a2a911c1fff7efc1682a38f9ef7',
             'title': 'md5:40aa85f135578fbd549d3c9370321f99',
+        }
+    }, {
+        # Video-only
+        'url': 'https://www.rtl.lu/kultur/news/a/1931683.html',
+        'info_dict': {
+            'id': '1931683',
+            'ext': 'mp4',
+            'description': 'md5:ad39b36e0039a109384b5996c373e835',
+            'title': 'Esch2022: Suessem ass déi nei "Gemeng vum Mount"',
+            'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/06/22/16/7f9d5141c40733ffd0054d1a4d01819e.jpeg',
         }
     }]
     
