@@ -64,7 +64,7 @@ from .utils import (
     POSTPROCESS_WHEN,
     STR_FORMAT_RE_TMPL,
     STR_FORMAT_TYPES,
-    CaseInsensitiveDict,
+    CaseInsensitiveChainMap,
     ContentTooShortError,
     DateRange,
     DownloadCancelled,
@@ -676,7 +676,7 @@ class YoutubeDL:
             else self.build_format_selector(self.params['format']))
 
         # Set http_headers defaults according to std_headers
-        self.params['http_headers'] = CaseInsensitiveDict(make_std_headers(), self.params.get('http_headers', {}))
+        self.params['http_headers'] = make_std_headers().new_child(self.params.get('http_headers', {}))
 
         hooks = {
             'post_hooks': self.add_post_hook,
@@ -2231,7 +2231,7 @@ class YoutubeDL:
         return _build_selector_function(parsed_selector)
 
     def _calc_headers(self, info_dict):
-        res = CaseInsensitiveDict(self.params['http_headers'], info_dict.get('http_headers') or {})
+        res = self.params['http_headers'].new_child(info_dict.get('http_headers') or {})
 
         cookies = self._calc_cookies(info_dict['url'])
         if cookies:
@@ -3293,7 +3293,7 @@ class YoutubeDL:
             reject = lambda k, v: False
 
         def filter_fn(obj):
-            if isinstance(obj, (dict, CaseInsensitiveDict)):
+            if isinstance(obj, (dict, CaseInsensitiveChainMap)):
                 return {k: filter_fn(v) for k, v in obj.items() if not reject(k, v)}
             elif isinstance(obj, (list, tuple, set, LazyList)):
                 return list(map(filter_fn, obj))

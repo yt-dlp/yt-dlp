@@ -28,6 +28,7 @@ from ..utils import (
     remove_start,
     sanitize_url,
     update_url_query,
+    CaseInsensitiveChainMap,
 )
 from .exceptions import UnsupportedRequest, RequestError
 
@@ -72,7 +73,7 @@ class Request:
         # rely on urllib Request's url parsing
         self.__request_store = urllib.request.Request(url)
         self.method = method
-        self._headers = CaseInsensitiveDict(headers)
+        self._headers = CaseInsensitiveChainMap(headers or {})
         self._data = None
         self.data = data
         self.timeout = timeout
@@ -109,16 +110,16 @@ class Request:
                 del self.headers['content-length']
 
     @property
-    def headers(self) -> CaseInsensitiveDict:
+    def headers(self) -> CaseInsensitiveChainMap:
         return self._headers
 
     @headers.setter
     def headers(self, new_headers: Mapping):
-        """Replaces headers of the request. If not a CaseInsensitiveDict, it will be converted to one."""
-        if isinstance(new_headers, CaseInsensitiveDict):
+        """Replaces headers of the request. If not a CaseInsensitiveChainMap, it will be converted to one."""
+        if isinstance(new_headers, CaseInsensitiveChainMap):
             self._headers = new_headers
         elif isinstance(new_headers, Mapping):
-            self._headers = CaseInsensitiveDict(new_headers)
+            self._headers = CaseInsensitiveChainMap(dict(new_headers))
         else:
             raise TypeError('headers must be a mapping')
 
@@ -316,7 +317,7 @@ class RequestHandler:
 
     def prepare_request(self, request: Request):
         self._check_scheme(request)
-        request.headers = CaseInsensitiveDict(self.ydl.params.get('http_headers', {}), request.headers)
+        request.headers = self.ydl.params.get('http_headers', {}).new_child(request.headers)
         if request.headers.get('Youtubedl-no-compression'):
             request.compression = False
             del request.headers['Youtubedl-no-compression']
