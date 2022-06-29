@@ -161,8 +161,7 @@ class RTLLuBaseIE(InfoExtractor):
         if video_url is not None:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id)
         if audio_url is not None:
-            audio_format = {'url': audio_url, 'ext': 'mp3'}
-            formats.append(audio_format)
+            formats.append({'url': audio_url, 'ext': 'mp3'})
 
         return formats, subtitles
 
