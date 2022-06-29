@@ -22,6 +22,7 @@ from .acast import (
     ACastIE,
     ACastChannelIE,
 )
+from .acfun import AcFunVideoIE, AcFunBangumiIE
 from .adn import ADNIE
 from .adobeconnect import AdobeConnectIE
 from .adobetv import (
