@@ -7,11 +7,15 @@ class RTLLuBaseIE(InfoExtractor):
         'audio': r'<rtl-audioplayer\s*src\s*=\s*\"(?P<media_url>[\w\.\:/-]+)\"',
     }
 
-    def get_media(self, media_type, webpage, video_id):
+    def get_media(self, webpage, video_id, media_type='all'):
+        #print(webpage)
         media_url = self._search_regex(
-            self._MEDIA_REGEX[media_type], webpage, 'media_url', group=('media_url'))
-
-        return media_url
+            self._MEDIA_REGEX[media_type], webpage, 'media_url', group=('media_url'), 
+            default=None, fatal=False)
+        if media_type == 'all':
+            audio_url = self.get_media(webpage, video_id, 'video')
+            
+        return media_url    
 
 
 class RTLLuTeleVODIE(RTLLuBaseIE):
@@ -41,7 +45,7 @@ class RTLLuTeleVODIE(RTLLuBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        hls_url = self.get_media('video', webpage, video_id)
+        hls_url = self.get_media(webpage, video_id, 'video')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls_url, video_id)
         self._sort_formats(formats)
         return {
@@ -52,3 +56,49 @@ class RTLLuTeleVODIE(RTLLuBaseIE):
             'subtitles': subtitles,
             'thumbnail': self._og_search_thumbnail(webpage),
         }
+
+
+class RTLLuArticleIE(RTLLuBaseIE):
+    IE_NAME = 'rtl.lu:article'
+    _VALID_URL = r'https?://www\.rtl\.lu/(?:\w+)/(?:\w+)/a/(?P<id>\d+)\.html'
+    _TESTS = [{
+        'url': 'https://www.rtl.lu/sport/news/a/1934360.html',
+        'info_dict': {
+            'id': '1934360',
+            'ext': 'mp3',
+            'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/06/28/19/e4b37d66ddf00bab4c45617b91a5bb9b.jpeg',
+            'description': 'md5:5eab4a2a911c1fff7efc1682a38f9ef7',
+            'title': 'md5:40aa85f135578fbd549d3c9370321f99',
+        }
+    }]
+    
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        
+        formats, subtitles = [], {}
+        hls_url = self.get_media(webpage, video_id, 'video')
+        if hls_url is not None:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls_url, video_id)
+        
+        audio_url = self.get_media(webpage, video_id, 'audio')
+        if audio_url is not None:
+            audio_format = {
+                'url': audio_url,
+                'ext': 'mp3',
+            }
+            formats.append(audio_format)
+            
+        #print(formats)
+        self._sort_formats(formats)
+        
+        return {
+            'id': video_id,
+            'title': self._og_search_title(webpage),
+            'description': self._og_search_description(webpage),
+            'formats': formats,
+            'subtitles': subtitles,
+            'thumbnail': self._og_search_thumbnail(webpage),
+        }
+        
+        
