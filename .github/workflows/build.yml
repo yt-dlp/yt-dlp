@@ -244,6 +244,10 @@ jobs:
   build_macos_legacy:
     runs-on: macos-latest
     needs: create_release
+    outputs:
+      sha256_macos_legacy: ${{ steps.get_sha.outputs.sha256_macos_legacy }}
+      sha512_macos_legacy: ${{ steps.get_sha.outputs.sha512_macos_legacy }}
+
     steps:
     - uses: actions/checkout@v2
     - name: Install Python
