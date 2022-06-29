@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from ..utils import determine_ext
 
 
 class RTLLuBaseIE(InfoExtractor):
@@ -7,16 +8,24 @@ class RTLLuBaseIE(InfoExtractor):
         'audio': r'<rtl-audioplayer\s*src\s*=\s*\"(?P<media_url>[\w\.\:/-]+)\"',
     }
 
-    def get_media(self, webpage, video_id, media_type='all'):
-        #print(webpage)
+    def get_media_url(self, webpage, video_id, media_type):
         media_url = self._search_regex(
             self._MEDIA_REGEX[media_type], webpage, 'media_url', group=('media_url'), 
             default=None, fatal=False)
-        if media_type == 'all':
-            audio_url = self.get_media(webpage, video_id, 'video')
             
-        return media_url    
-
+        return media_url
+    
+    def get_format(self, webpage, video_id):
+        video_url, audio_url = self.get_media_url(webpage, video_id, 'video'), self.get_media_url(webpage, video_id, 'audio')
+        
+        formats, subtitles = [], {}
+        if video_url is not None:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id)
+        if audio_url is not None:
+            audio_format = {'url': audio_url, 'ext': 'mp3'}
+            formats.append(audio_format)
+        
+        return formats, subtitles
 
 class RTLLuTeleVODIE(RTLLuBaseIE):
     IE_NAME = 'rtl.lu:tele-vod'
@@ -45,8 +54,7 @@ class RTLLuTeleVODIE(RTLLuBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        hls_url = self.get_media(webpage, video_id, 'video')
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls_url, video_id)
+        formats, subtitles = self.get_format(webpage, video_id)
         self._sort_formats(formats)
         return {
             'id': video_id,
@@ -76,19 +84,7 @@ class RTLLuArticleIE(RTLLuBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         
-        formats, subtitles = [], {}
-        hls_url = self.get_media(webpage, video_id, 'video')
-        if hls_url is not None:
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls_url, video_id)
-        
-        audio_url = self.get_media(webpage, video_id, 'audio')
-        if audio_url is not None:
-            audio_format = {
-                'url': audio_url,
-                'ext': 'mp3',
-            }
-            formats.append(audio_format)
-            
+        formats, subtitles = self.get_format(webpage, video_id)
         #print(formats)
         self._sort_formats(formats)
         
