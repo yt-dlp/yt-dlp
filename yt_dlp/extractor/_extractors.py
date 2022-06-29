@@ -1439,6 +1439,7 @@ from .rtllu import (
     RTLLuTeleVODIE, 
     RTLLuArticleIE,
     RTLLuTeleLiveIE,
+    RTLLuRadioIE,
 )
 from .rtl2 import (
     RTL2IE,

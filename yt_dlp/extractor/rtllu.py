@@ -111,7 +111,7 @@ class RTLLuArticleIE(RTLLuBaseIE):
 
 
 class RTLLuTeleLiveIE(RTLLuBaseIE):
-    _VALID_URL = 'https://www.rtl.lu/tele/(?P<id>[\w-]+)?'
+    _VALID_URL = r'https?://www\.rtl\.lu/tele/live(?P<id>-\d+)?'
     _TESTS = [{
         'url': 'https://www.rtl.lu/tele/live',
         'info_dict': {
@@ -132,18 +132,44 @@ class RTLLuTeleLiveIE(RTLLuBaseIE):
     }]
     
     def _real_extract(self, url):
-        video_id = f'Tele:{self._match_id(url)}'
+        video_id = f'Tele:live{self._match_id(url)}'
         webpage = self._download_webpage(url, video_id)
         
         # actually the live version has mpd version in <rtl-player ... dash=<mpd_link>,
         # but ffmpeg have problem with live dash
         formats, subtitles = self.get_format(webpage, video_id)
+        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': self._og_search_title(webpage),
             'formats': formats,
             'subtitles': subtitles,
             'live_status': 'is_live',
+        }
+
+
+class RTLLuRadioIE(RTLLuBaseIE):
+    _VALID_URL = r'https?://www\.rtl\.lu/radio/(?:[\w-]+)/s/(?P<id>\d+)(\.html)?'
+    _TESTS = [{
+        'url': 'https://www.rtl.lu/radio/5-vir-12/s/4033058.html',
+        'info_dict': {
+            'id': '4033058',
+            'ext': 'mp3',
+            'description': 'md5:f855a4f3e3235393ae47ed1db5d934b9',
+            'title': '5 vir 12 - Stau um Stau',
+        }
+    }]
+    
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        formats, subtitles = self.get_format(webpage, video_id)
+        
+        return {
+            'id': video_id,
+            'formats': formats,
+            'title': self._og_search_title(webpage),
+            'description': self._og_search_description(webpage),
         }
         
         
