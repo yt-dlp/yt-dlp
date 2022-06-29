@@ -9,7 +9,6 @@ import json
 import locale
 import operator
 import os
-import platform
 import random
 import re
 import shutil
@@ -111,7 +110,6 @@ from .utils import (
     number_of_digits,
     orderedSet,
     parse_filesize,
-    platform_name,
     preferredencoding,
     prepend_extension,
     remove_terminal_sequences,
@@ -124,6 +122,7 @@ from .utils import (
     strftime_or_none,
     subtitles_filename,
     supports_terminal_sequences,
+    system_identifier,
     timetuple_from_msec,
     to_high_limit_path,
     traverse_obj,
@@ -576,7 +575,9 @@ class YoutubeDL:
         MIN_SUPPORTED, MIN_RECOMMENDED = (3, 6), (3, 7)
         current_version = sys.version_info[:2]
         if current_version < MIN_RECOMMENDED:
-            msg = 'Support for Python version %d.%d has been deprecated and will break in future versions of yt-dlp'
+            msg = ('Support for Python version %d.%d has been deprecated. '
+                   'See  https://github.com/yt-dlp/yt-dlp/issues/3764  for more details. '
+                   'You will recieve only one more update on this version')
             if current_version < MIN_SUPPORTED:
                 msg = 'Python version %d.%d is no longer supported'
             self.deprecation_warning(
@@ -3538,7 +3539,7 @@ class YoutubeDL:
                     'none', '' if f.get('vcodec') == 'none'
                             else self._format_out('video only', self.Styles.SUPPRESS)),
                 format_field(f, 'abr', '\t%dk'),
-                format_field(f, 'asr', '\t%dHz'),
+                format_field(f, 'asr', '\t%s', func=format_decimal_suffix),
                 join_nonempty(
                     self._format_out('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
                     format_field(f, 'language', '[%s]'),
@@ -3660,17 +3661,7 @@ class YoutubeDL:
                 with contextlib.suppress(Exception):
                     sys.exc_clear()
 
-        def python_implementation():
-            impl_name = platform.python_implementation()
-            if impl_name == 'PyPy' and hasattr(sys, 'pypy_version_info'):
-                return impl_name + ' version %d.%d.%d' % sys.pypy_version_info[:3]
-            return impl_name
-
-        write_debug('Python version %s (%s %s) - %s' % (
-            platform.python_version(),
-            python_implementation(),
-            platform.architecture()[0],
-            platform_name()))
+        write_debug(system_identifier())
 
         exe_versions, ffmpeg_features = FFmpegPostProcessor.get_versions_and_features(self)
         ffmpeg_features = {key for key, val in ffmpeg_features.items() if val}

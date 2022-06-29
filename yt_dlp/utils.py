@@ -17,6 +17,7 @@ import hmac
 import html.entities
 import html.parser
 import importlib.util
+import inspect
 import itertools
 import json
 import locale
@@ -154,7 +155,7 @@ DATE_FORMATS_MONTH_FIRST.extend([
 ])
 
 PACKED_CODES_RE = r"}\('(.+)',(\d+),(\d+),'([^']+)'\.split\('\|'\)"
-JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>(?P<json_ld>.+?)</script>'
+JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>\s*(?P<json_ld>{.+?})\s*</script>'
 
 NUMBER_RE = r'\d+(?:\.\d+)?'
 
@@ -593,8 +594,8 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
     s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)  # Handle timestamps
     result = ''.join(map(replace_insane, s))
     if is_id is NO_DEFAULT:
-        result = re.sub('(\0.)(?:(?=\\1)..)+', r'\1', result)  # Remove repeated substitute chars
-        STRIP_RE = '(?:\0.|[ _-])*'
+        result = re.sub(r'(\0.)(?:(?=\1)..)+', r'\1', result)  # Remove repeated substitute chars
+        STRIP_RE = r'(?:\0.|[ _-])*'
         result = re.sub(f'^\0.{STRIP_RE}|{STRIP_RE}\0.$', '', result)  # Remove substitute chars from start/end
     result = result.replace('\0', '') or '_'
 
@@ -1294,12 +1295,23 @@ class DateRange:
 
 def platform_name():
     """ Returns the platform name as a str """
-    res = platform.platform()
-    if isinstance(res, bytes):
-        res = res.decode(preferredencoding())
+    write_string('DeprecationWarning: yt_dlp.utils.platform_name is deprecated, use platform.platform instead')
+    return platform.platform()
 
-    assert isinstance(res, str)
-    return res
+
+@functools.cache
+def system_identifier():
+    python_implementation = platform.python_implementation()
+    if python_implementation == 'PyPy' and hasattr(sys, 'pypy_version_info'):
+        python_implementation += ' version %d.%d.%d' % sys.pypy_version_info[:3]
+
+    return 'Python %s (%s %s) - %s %s' % (
+        platform.python_version(),
+        python_implementation,
+        platform.architecture()[0],
+        platform.platform(),
+        format_field(join_nonempty(*platform.libc_ver(), delim=' '), None, '(%s)'),
+    )
 
 
 @functools.cache
@@ -1773,8 +1785,7 @@ def remove_quotes(s):
 
 
 def get_domain(url):
-    domain = re.match(r'(?:https?:\/\/)?(?:www\.)?(?P<domain>[^\n\/]+\.[^\n\/]+)(?:\/(.*))?', url)
-    return domain.group('domain') if domain else None
+    return '.'.join(urllib.parse.urlparse(url).netloc.rsplit('.', 2)[-2:])
 
 
 def url_basename(url):
@@ -4867,8 +4878,27 @@ def merge_headers(*dicts):
     return {k.title(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}
 
 
+def cached_method(f):
+    """Cache a method"""
+    signature = inspect.signature(f)
+
+    @functools.wraps(f)
+    def wrapper(self, *args, **kwargs):
+        bound_args = signature.bind(self, *args, **kwargs)
+        bound_args.apply_defaults()
+        key = tuple(bound_args.arguments.values())
+
+        if not hasattr(self, '__cached_method__cache'):
+            self.__cached_method__cache = {}
+        cache = self.__cached_method__cache.setdefault(f.__name__, {})
+        if key not in cache:
+            cache[key] = f(self, *args, **kwargs)
+        return cache[key]
+    return wrapper
+
+
 class classproperty:
-    """classmethod(property(func)) that works in py < 3.9"""
+    """property access for class methods"""
 
     def __init__(self, func):
         functools.update_wrapper(self, func)

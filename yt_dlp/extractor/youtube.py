@@ -2467,6 +2467,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         func_id = f'js_{player_id}_{self._signature_cache_id(example_sig)}'
         assert os.path.basename(func_id) == func_id
 
+        self.write_debug(f'Extracting signature function {func_id}')
         cache_spec = self.cache.load('youtube-sigfuncs', func_id)
         if cache_spec is not None:
             return lambda s: ''.join(s[i] for i in cache_spec)
@@ -2714,10 +2715,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     @classmethod
     def extract_id(cls, url):
-        mobj = re.match(cls._VALID_URL, url, re.VERBOSE)
-        if mobj is None:
-            raise ExtractorError('Invalid URL: %s' % url)
-        return mobj.group('id')
+        video_id = cls.get_temp_id(url)
+        if not video_id:
+            raise ExtractorError(f'Invalid URL: {url}')
+        return video_id
 
     def _extract_chapters_from_json(self, data, duration):
         chapter_list = traverse_obj(
