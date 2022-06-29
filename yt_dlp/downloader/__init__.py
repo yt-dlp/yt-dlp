@@ -60,11 +60,12 @@ PROTOCOL_MAP = {
 
 def shorten_protocol_name(proto, simplify=False):
     short_protocol_names = {
-        'm3u8_native': 'm3u8_n',
-        'm3u8_native_generator': 'm3u8_g',
-        'rtmp_ffmpeg': 'rtmp_f',
+        'm3u8_native': 'm3u8',
+        'm3u8_native_generator': 'm3u8G',
+        'm3u8': 'm3u8F',
+        'rtmp_ffmpeg': 'rtmpF',
         'http_dash_segments': 'dash',
-        'http_dash_segments_generator': 'dash_g',
+        'http_dash_segments_generator': 'dashG',
         'niconico_dmc': 'dmc',
         'websocket_frag': 'WSfrag',
     }
@@ -72,6 +73,7 @@ def shorten_protocol_name(proto, simplify=False):
         short_protocol_names.update({
             'https': 'http',
             'ftps': 'ftp',
+            'm3u8': 'm3u8',  # Reverse above m3u8 mapping
             'm3u8_native': 'm3u8',
             'm3u8_native_generator': 'm3u8',
             'http_dash_segments_generator': 'dash',

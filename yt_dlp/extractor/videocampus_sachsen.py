@@ -1,8 +1,9 @@
+import functools
 import re
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import ExtractorError
+from ..utils import ExtractorError, OnDemandPagedList, urlencode_postdata
 
 
 class VideocampusSachsenIE(InfoExtractor):
@@ -183,3 +184,71 @@ class VideocampusSachsenIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         }
+
+
+class ViMPPlaylistIE(InfoExtractor):
+    IE_NAME = 'ViMP:Playlist'
+    _VALID_URL = r'''(?x)(?P<host>https?://(?:%s))/(?:
+        album/view/aid/(?P<album_id>[0-9]+)|
+        (?P<mode>category|channel)/(?P<name>[\w-]+)/(?P<id>[0-9]+)
+    )''' % '|'.join(map(re.escape, VideocampusSachsenIE._INSTANCES))
+
+    _TESTS = [{
+        'url': 'https://vimp.oth-regensburg.de/channel/Designtheorie-1-SoSe-2020/3',
+        'info_dict': {
+            'id': 'channel-3',
+            'title': 'Designtheorie 1 SoSe 2020 :: Channels :: ViMP OTH Regensburg',
+        },
+        'playlist_mincount': 9,
+    }, {
+        'url': 'https://www.fh-bielefeld.de/medienportal/album/view/aid/208',
+        'info_dict': {
+            'id': 'album-208',
+            'title': 'KG Praktikum ABT/MEC :: Playlists :: FH-Medienportal',
+        },
+        'playlist_mincount': 4,
+    }, {
+        'url': 'https://videocampus.sachsen.de/category/online-tutorials-onyx/91',
+        'info_dict': {
+            'id': 'category-91',
+            'title': 'Online-Seminare ONYX - BPS - Bildungseinrichtungen - VCS',
+        },
+        'playlist_mincount': 7,
+    }]
+    _PAGE_SIZE = 10
+
+    def _fetch_page(self, host, url_part, id, data, page):
+        webpage = self._download_webpage(
+            f'{host}/media/ajax/component/boxList/{url_part}', id,
+            query={'page': page, 'page_only': 1}, data=urlencode_postdata(data))
+        urls = re.findall(r'"([^"]+/video/[^"]+)"', webpage)
+
+        for url in urls:
+            yield self.url_result(host + url, VideocampusSachsenIE)
+
+    def _real_extract(self, url):
+        host, album_id, mode, name, id = self._match_valid_url(url).group(
+            'host', 'album_id', 'mode', 'name', 'id')
+
+        webpage = self._download_webpage(url, album_id or id, fatal=False) or ''
+        title = (self._html_search_meta('title', webpage, fatal=False)
+                 or self._html_extract_title(webpage))
+
+        url_part = (f'aid/{album_id}' if album_id
+                    else f'category/{name}/category_id/{id}' if mode == 'category'
+                    else f'title/{name}/channel/{id}')
+
+        mode = mode or 'album'
+        data = {
+            'vars[mode]': mode,
+            f'vars[{mode}]': album_id or id,
+            'vars[context]': '4' if album_id else '1' if mode == 'category' else '3',
+            'vars[context_id]': album_id or id,
+            'vars[layout]': 'thumb',
+            'vars[per_page][thumb]': str(self._PAGE_SIZE),
+        }
+
+        return self.playlist_result(
+            OnDemandPagedList(functools.partial(
+                self._fetch_page, host, url_part, album_id or id, data), self._PAGE_SIZE),
+            playlist_title=title, id=f'{mode}-{album_id or id}')

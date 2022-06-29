@@ -457,7 +457,7 @@ title = self._search_regex(  # incorrect
     webpage, 'title', group='title')
 ```
 
-Here the presence or absence of other attributes including `style` is irrelevent for the data we need, and so the regex must not depend on it
+Here the presence or absence of other attributes including `style` is irrelevant for the data we need, and so the regex must not depend on it
 
 
 #### Keep the regular expressions as simple as possible, but no simpler
@@ -501,7 +501,7 @@ There is a soft limit to keep lines of code under 100 characters long. This mean
 
 For example, you should **never** split long string literals like URLs or some other often copied entities over multiple lines to fit this limit:
 
-Conversely, don't unecessarily split small lines further. As a rule of thumb, if removing the line split keeps the code under 80 characters, it should be a single line.
+Conversely, don't unnecessarily split small lines further. As a rule of thumb, if removing the line split keeps the code under 80 characters, it should be a single line.
 
 ##### Examples
 

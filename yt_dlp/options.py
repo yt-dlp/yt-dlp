@@ -206,7 +206,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         return sys.argv[1:] if args is None else list(args)
 
     def _match_long_opt(self, opt):
-        """Improve ambigious argument resolution by comparing option objects instead of argument strings"""
+        """Improve ambiguous argument resolution by comparing option objects instead of argument strings"""
         try:
             return super()._match_long_opt(opt)
         except optparse.AmbiguousOptionError as e:
@@ -453,7 +453,7 @@ def create_parser():
             'Eg: --alias get-audio,-X "-S=aext:{0},abr -x --audio-format {0}" creates options '
             '"--get-audio" and "-X" that takes an argument (ARG0) and expands to '
             '"-S=aext:ARG0,abr -x --audio-format ARG0". All defined aliases are listed in the --help output. '
-            'Alias options can trigger more aliases; so be carefull to avoid defining recursive options. '
+            'Alias options can trigger more aliases; so be careful to avoid defining recursive options. '
             f'As a safety measure, each alias may be triggered a maximum of {_YoutubeDLOptionParser.ALIAS_TRIGGER_LIMIT} times. '
             'This option can be used multiple times'))
 
@@ -525,7 +525,7 @@ def create_parser():
         '-I', '--playlist-items',
         dest='playlist_items', metavar='ITEM_SPEC', default=None,
         help=(
-            'Comma seperated playlist_index of the videos to download. '
+            'Comma separated playlist_index of the videos to download. '
             'You can specify a range using "[START]:[STOP][:STEP]". For backward compatibility, START-STOP is also supported. '
             'Use negative indices to count from the right and negative STEP to download in reverse order. '
             'Eg: "-I 1:3,7,-5::2" used on a playlist of size 15 will download the videos at index 1,2,3,7,11,13,15'))
