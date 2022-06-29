@@ -25,6 +25,15 @@ class RTLLuIE(RTLLuBaseIE):
             'thumbnail': 'https://replay-assets.rtl.lu/2021/11/16/d3647fc4-470d-11ec-adc2-3a00abd6e90f_00008.jpg',
             'description': 'md5:b1db974408cc858c9fd241812e4a2a14',
         }
+    }, {
+        'url': 'https://www.rtl.lu/video/3295215',
+        'info_dict': {
+            'id': '3295215',
+            'title': 'Kulturassisen iwwer d\'Bestandsopnam vum Lëtzebuerger Konscht',
+            'ext': 'mp4',
+            'thumbnail': 'https://replay-assets.rtl.lu/2022/06/28/0000_3295215_0000.jpg',
+            'description': 'md5:85bcd4e0490aa6ec969d9bf16927437b',
+        }
     }]
     
     def _real_extract(self, url):
