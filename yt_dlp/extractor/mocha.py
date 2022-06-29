@@ -28,38 +28,39 @@ class MochaVideoIE(InfoExtractor):
         video_slug = self._match_valid_url(url).group('video_slug')
         json_data = self._download_json(
             'http://apivideo.mocha.com.vn:8081/onMediaBackendBiz/mochavideo/getVideoDetail',
-            video_slug, query={'url': f'{url}', 'token': ''})
-
-        video_url = traverse_obj(json_data, ('data', 'videoDetail', ('list_resolution', 'original_path')))
+            video_slug, query={'url': url, 'token': ''})['data']['videoDetail']
+        video_id = str(json_data['id'])
+        video_urls = traverse_obj(json_data, 'list_resolution', 'original_path') or []
 
         formats, subtitles = [], {}
-        for video in video_url:
+        for video in video_urls:
             if isinstance(video, str):
                 formats.extend([{'url': video, 'ext': 'mp4'}])
             else:
-                vid_url, subs = self._extract_m3u8_formats_and_subtitles(video[0]['video_path'], video_slug, ext='mp4')
-                formats.extend(vid_url)
-            self._merge_subtitles(subs, target=subtitles)
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    traverse_obj(video, 'video_path'), video_id, ext='mp4')
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
 
         self._sort_formats(formats)
 
         return {
-            'id': str(json_data['data']['videoDetail']['id']),
-            'display_id': traverse_obj(json_data, ('data', 'videoDetail', 'slug')),
-            'title': traverse_obj(json_data, ('data', 'videoDetail', 'name')),
+            'id': video_id,
+            'display_id': json_data.get('slug') or video_slug,
+            'title': json_data.get('name'),
             'formats': formats,
             'subtitles': subtitles,
-            'description': traverse_obj(json_data, ('data', 'videoDetail', 'description')),
-            'duration': traverse_obj(json_data, ('data', 'videoDetail', 'durationS')),
-            'view_count': traverse_obj(json_data, ('data', 'videoDetail', 'total_view')),
-            'like_count': traverse_obj(json_data, ('data', 'videoDetail', 'total_like')),
-            'dislike_count': traverse_obj(json_data, ('data', 'videoDetail', 'total_unlike')),
-            'thumbnail': traverse_obj(json_data, ('data', 'videoDetail', 'image_path_thumb')),
-            'timestamp': int_or_none(traverse_obj(json_data, ('data', 'videoDetail', 'publish_time')), scale=1000),
-            'is_live': traverse_obj(json_data, ('data', 'videoDetail', 'isLive')),
-            'channel': traverse_obj(json_data, ('data', 'videoDetail', 'channels', '0', 'name')),
-            'channel_id': traverse_obj(json_data, ('data', 'videoDetail', 'channels', '0', 'id')),
-            'channel_follower_count': traverse_obj(json_data, ('data', 'videoDetail', 'channels', '0', 'numfollow')),
-            'categories': traverse_obj(json_data, ('data', 'videoDetail', 'categories', ..., 'categoryname')),
-            'comment_count': traverse_obj(json_data, ('data', 'videoDetail', 'total_comment')),
+            'description': json_data.get('description'),
+            'duration': json_data.get('durationS'),
+            'view_count': json_data.get('total_view'),
+            'like_count': json_data.get('total_like'),
+            'dislike_count': json_data.get('total_unlike'),
+            'thumbnail': json_data.get('image_path_thumb'),
+            'timestamp': int_or_none(json_data.get('publish_time'), scale=1000),
+            'is_live': json_data.get('isLive'),
+            'channel': traverse_obj(json_data, ('channels', '0', 'name')),
+            'channel_id': traverse_obj(json_data, ('channels', '0', 'id')),
+            'channel_follower_count': traverse_obj(json_data, ('channels', '0', 'numfollow')),
+            'categories': traverse_obj(json_data, ('categories', ..., 'categoryname')),
+            'comment_count': json_data.get('total_comment'),
         }
