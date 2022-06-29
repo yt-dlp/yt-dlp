@@ -1848,6 +1848,8 @@ Line 1
         # ensure we prefer latter headers
         headers3 = CaseInsensitiveDict({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
         self.assertEqual(set(headers3.items()), {('Ytdl-Test', '2')})
+        del headers3['ytdl-tesT']
+        self.assertEqual(dict(headers3), {})
 
         headers4 = CaseInsensitiveDict({'ytdl-test': 'data;'})
         self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})

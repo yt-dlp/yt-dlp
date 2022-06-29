@@ -4921,11 +4921,9 @@ class Namespace(types.SimpleNamespace):
 
 class CaseInsensitiveDict(collections.UserDict):
     """
-    Store and get items case-insensitively.
-    All keys are assumed to be a string, and are converted to title case.
-    Latter headers are prioritized in constructor
+    Store and access keys case-insensitively.
+    The constructor can take multiple dicts, in which keys in the latter are prioritised.
     """
-
     def __init__(self, *args, **kwargs):
         super().__init__()
         for dct in args:
