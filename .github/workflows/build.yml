@@ -8,6 +8,7 @@ jobs:
       version_suffix: ${{ steps.version_suffix.outputs.version_suffix }}
       ytdlp_version: ${{ steps.bump_version.outputs.ytdlp_version }}
       upload_url: ${{ steps.create_release.outputs.upload_url }}
+      release_id: ${{ steps.create_release.outputs.id }}
     steps:
     - uses: actions/checkout@v2
       with:
@@ -58,15 +59,19 @@ jobs:
         tag_name: ${{ steps.bump_version.outputs.ytdlp_version }}
         release_name: yt-dlp ${{ steps.bump_version.outputs.ytdlp_version }}
         commitish: ${{ steps.push_release.outputs.head_sha }}
+        draft: true
+        prerelease: false
         body: |
           #### [A description of the various files]((https://github.com/yt-dlp/yt-dlp#release-files)) are in the README
 
           ---
+          <details open><summary><h3>Changelog</summary>
+          <p>
 
-          ### Changelog:
           ${{ env.changelog }}
-        draft: false
-        prerelease: false
+
+          </p>
+          </details>
 
 
   build_unix:
@@ -443,3 +448,11 @@ jobs:
         asset_path: ./SHA2-512SUMS
         asset_name: SHA2-512SUMS
         asset_content_type: text/plain
+
+    - name: Finalize release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh api -X PATCH -H "Accept: application/vnd.github.v3+json" \
+          /repos/${{ github.repository }}/releases/${{ needs.create_release.outputs.release_id }} \
+          -F draft=false
