@@ -4,7 +4,7 @@ from ..utils import determine_ext
 
 class RTLLuBaseIE(InfoExtractor):
     _MEDIA_REGEX = {
-        'video': r'<rtl-player\s*poster\s*=\s*\"(?P<thumbnail_url>[\"\w\.://-]+)\"\s*title\s*=\s*(?P<title>[\"\w\.-]+)\s*hls\s*=\s*\"(?P<media_url>[\w\.\:/-]+)\"',
+        'video': r'<rtl-player\s*poster\s*=\s*\"(?:[\"\w\.://-]+)\"\s*(title\s*=\s*(?:[\"\w\.-]+))?\s*(type\s*=\s*\"(?:\w+)\")?\s*(channelname\s*=\s*\"(?:\w+)\")?\s*hls\s*=\s*\"(?P<media_url>[\w\.\:/-]+)\"',
         'audio': r'<rtl-audioplayer\s*src\s*=\s*\"(?P<media_url>[\w\.\:/-]+)\"',
     }
 
@@ -95,8 +95,9 @@ class RTLLuArticleIE(RTLLuBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         
+        # TODO: extract comment from https://www.rtl.lu/comments?status=1&order=desc&context=news|article|<video_id>
+        # we can context from <rtl-comments context=<context> in webpage
         formats, subtitles = self.get_format(webpage, video_id)
-        #print(formats)
         self._sort_formats(formats)
         
         return {
@@ -106,6 +107,36 @@ class RTLLuArticleIE(RTLLuBaseIE):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': self._og_search_thumbnail(webpage),
+        }
+
+
+class RTLLuTeleLiveIE(RTLLuBaseIE):
+    _VALID_URL = 'https://www.rtl.lu/tele/live'
+    _TESTS = [{
+        'url': 'https://www.rtl.lu/tele/live',
+        'info_dict': {
+            'id': 'Tele:live',
+            'ext': 'mp4',
+            'live_status': 'is_live',
+            'title': 're:RTL - Télé LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            
+        }
+    }]
+    
+    def _real_extract(self, url):
+        # live video didn't have id
+        video_id = 'Tele:live'
+        webpage = self._download_webpage(url, video_id)
+        
+        # actually the live version has mpd version in <rtl-player ... dash=<mpd_link>,
+        # but ffmpeg have problem with live dash
+        formats, subtitles = self.get_format(webpage, video_id)
+        return {
+            'id': video_id,
+            'title': self._og_search_title(webpage),
+            'formats': formats,
+            'subtitles': subtitles,
+            'live_status': 'is_live',
         }
         
         

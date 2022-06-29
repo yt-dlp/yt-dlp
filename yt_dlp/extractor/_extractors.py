@@ -1435,7 +1435,11 @@ from .rozhlas import RozhlasIE
 from .rtbf import RTBFIE
 from .rte import RteIE, RteRadioIE
 from .rtlnl import RtlNlIE
-from .rtllu import RTLLuTeleVODIE, RTLLuArticleIE
+from .rtllu import (
+    RTLLuTeleVODIE, 
+    RTLLuArticleIE,
+    RTLLuTeleLiveIE,
+)
 from .rtl2 import (
     RTL2IE,
     RTL2YouIE,
