@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
-import contextlib
 import os
 import sys
 import unittest
@@ -8,19 +8,16 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-# Various small unit tests
+import contextlib
 import io
 import itertools
 import json
 import xml.etree.ElementTree
 
 from yt_dlp.compat import (
-    compat_chr,
     compat_etree_fromstring,
-    compat_getenv,
     compat_HTMLParseError,
     compat_os_name,
-    compat_setenv,
 )
 from yt_dlp.utils import (
     Config,
@@ -266,20 +263,20 @@ class TestUtil(unittest.TestCase):
         def env(var):
             return f'%{var}%' if sys.platform == 'win32' else f'${var}'
 
-        compat_setenv('yt_dlp_EXPATH_PATH', 'expanded')
+        os.environ['yt_dlp_EXPATH_PATH'] = 'expanded'
         self.assertEqual(expand_path(env('yt_dlp_EXPATH_PATH')), 'expanded')
 
         old_home = os.environ.get('HOME')
         test_str = R'C:\Documents and Settings\тест\Application Data'
         try:
-            compat_setenv('HOME', test_str)
-            self.assertEqual(expand_path(env('HOME')), compat_getenv('HOME'))
-            self.assertEqual(expand_path('~'), compat_getenv('HOME'))
+            os.environ['HOME'] = test_str
+            self.assertEqual(expand_path(env('HOME')), os.getenv('HOME'))
+            self.assertEqual(expand_path('~'), os.getenv('HOME'))
             self.assertEqual(
                 expand_path('~/%s' % env('yt_dlp_EXPATH_PATH')),
-                '%s/expanded' % compat_getenv('HOME'))
+                '%s/expanded' % os.getenv('HOME'))
         finally:
-            compat_setenv('HOME', old_home or '')
+            os.environ['HOME'] = old_home or ''
 
     def test_prepend_extension(self):
         self.assertEqual(prepend_extension('abc.ext', 'temp'), 'abc.temp.ext')
@@ -1128,7 +1125,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(extract_attributes('<e x="décompose&#769;">'), {'x': 'décompose\u0301'})
         # "Narrow" Python builds don't support unicode code points outside BMP.
         try:
-            compat_chr(0x10000)
+            chr(0x10000)
             supports_outside_bmp = True
         except ValueError:
             supports_outside_bmp = False

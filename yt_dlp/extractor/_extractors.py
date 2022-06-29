@@ -354,6 +354,10 @@ from .dailymotion import (
     DailymotionPlaylistIE,
     DailymotionUserIE,
 )
+from .dailywire import (
+    DailyWireIE,
+    DailyWirePodcastIE,
+)
 from .damtomo import (
     DamtomoRecordIE,
     DamtomoVideoIE,
@@ -559,6 +563,7 @@ from .funimation import (
 )
 from .funk import FunkIE
 from .fusion import FusionIE
+from .fuyintv import FuyinTVIE
 from .gab import (
     GabTVIE,
     GabIE,
@@ -700,12 +705,10 @@ from .iqiyi import (
     IqIE,
     IqAlbumIE
 )
-
 from .itprotv import (
     ITProTVIE,
     ITProTVCourseIE
 )
-
 from .itv import (
     ITVIE,
     ITVBTCCIE,
@@ -720,6 +723,7 @@ from .iwara import (
     IwaraPlaylistIE,
     IwaraUserIE,
 )
+from .ixigua import IxiguaIE
 from .izlesene import IzleseneIE
 from .jable import (
     JableIE,
@@ -744,11 +748,13 @@ from .khanacademy import (
     KhanAcademyIE,
     KhanAcademyUnitIE,
 )
+from .kicker import KickerIE
 from .kickstarter import KickStarterIE
 from .kinja import KinjaEmbedIE
 from .kinopoisk import KinoPoiskIE
 from .konserthusetplay import KonserthusetPlayIE
 from .koo import KooIE
+from .kth import KTHIE
 from .krasview import KrasViewIE
 from .ku6 import Ku6IE
 from .kusi import KUSIIE
@@ -918,6 +924,7 @@ from .mirrativ import (
     MirrativIE,
     MirrativUserIE,
 )
+from .mirrorcouk import MirrorCoUKIE
 from .mit import TechTVMITIE, OCWMITIE
 from .mitele import MiTeleIE
 from .mixch import (
@@ -1041,6 +1048,10 @@ from .neteasemusic import (
     NetEaseMusicMvIE,
     NetEaseMusicProgramIE,
     NetEaseMusicDjRadioIE,
+)
+from .netverse import (
+    NetverseIE,
+    NetversePlaylistIE,
 )
 from .newgrounds import (
     NewgroundsIE,
@@ -1319,6 +1330,7 @@ from .puhutv import (
     PuhuTVIE,
     PuhuTVSerieIE,
 )
+from .premiershiprugby import PremiershipRugbyIE
 from .presstv import PressTVIE
 from .projectveritas import ProjectVeritasIE
 from .prosiebensat1 import ProSiebenSat1IE
@@ -1499,6 +1511,7 @@ from .scte import (
     SCTEIE,
     SCTECourseIE,
 )
+from .scrolller import ScrolllerIE
 from .seeker import SeekerIE
 from .senategov import SenateISVPIE, SenateGovIE
 from .sendtonews import SendtoNewsIE
@@ -1620,7 +1633,10 @@ from .srgssr import (
 from .srmediathek import SRMediathekIE
 from .stanfordoc import StanfordOpenClassroomIE
 from .startv import StarTVIE
-from .steam import SteamIE
+from .steam import (
+    SteamIE,
+    SteamCommunityBroadcastIE,
+)
 from .storyfire import (
     StoryFireIE,
     StoryFireUserIE,
@@ -1635,6 +1651,7 @@ from .streetvoice import StreetVoiceIE
 from .stretchinternet import StretchInternetIE
 from .stripchat import StripchatIE
 from .stv import STVPlayerIE
+from .substack import SubstackIE
 from .sunporno import SunPornoIE
 from .sverigesradio import (
     SverigesRadioEpisodeIE,

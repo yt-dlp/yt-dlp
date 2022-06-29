@@ -1,11 +1,12 @@
+import http.client
 import os
 import random
 import socket
 import ssl
 import time
+import urllib.error
 
 from .common import FileDownloader
-from ..compat import compat_http_client, compat_urllib_error
 from ..utils import (
     ContentTooShortError,
     ThrottledDownload,
@@ -24,7 +25,7 @@ RESPONSE_READ_EXCEPTIONS = (
     socket.timeout,  # compat: py < 3.10
     ConnectionError,
     ssl.SSLError,
-    compat_http_client.HTTPException
+    http.client.HTTPException
 )
 
 
@@ -155,7 +156,7 @@ class HttpFD(FileDownloader):
                     ctx.resume_len = 0
                     ctx.open_mode = 'wb'
                 ctx.data_len = ctx.content_len = int_or_none(ctx.data.info().get('Content-length', None))
-            except compat_urllib_error.HTTPError as err:
+            except urllib.error.HTTPError as err:
                 if err.code == 416:
                     # Unable to resume (requested range not satisfiable)
                     try:
@@ -163,7 +164,7 @@ class HttpFD(FileDownloader):
                         ctx.data = self.ydl.urlopen(
                             sanitized_Request(url, request_data, headers))
                         content_length = ctx.data.info()['Content-Length']
-                    except compat_urllib_error.HTTPError as err:
+                    except urllib.error.HTTPError as err:
                         if err.code < 500 or err.code >= 600:
                             raise
                     else:
@@ -196,7 +197,7 @@ class HttpFD(FileDownloader):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
-            except compat_urllib_error.URLError as err:
+            except urllib.error.URLError as err:
                 if isinstance(err.reason, ssl.CertificateError):
                     raise
                 raise RetryDownload(err)

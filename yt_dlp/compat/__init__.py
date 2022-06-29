@@ -7,7 +7,6 @@ from . import re
 from ._deprecated import *  # noqa: F401, F403
 from .compat_utils import passthrough_module
 
-
 # XXX: Implement this the same way as other DeprecationWarnings without circular import
 try:
     passthrough_module(__name__, '._legacy', callback=lambda attr: warnings.warn(
@@ -55,7 +54,7 @@ if compat_os_name == 'nt' and sys.version_info < (3, 8):
     def compat_realpath(path):
         while os.path.islink(path):
             path = os.path.abspath(os.readlink(path))
-        return path
+        return os.path.realpath(path)
 else:
     compat_realpath = os.path.realpath
 

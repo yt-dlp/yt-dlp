@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
+
 import os
 import platform
 import sys
 
 from PyInstaller.__main__ import run as run_pyinstaller
-
 
 OS_NAME, ARCH = sys.platform, platform.architecture()[0][:2]
 
@@ -44,7 +44,7 @@ def main():
 
 
 def parse_options():
-    # Compatability with older arguments
+    # Compatibility with older arguments
     opts = sys.argv[1:]
     if opts[0:1] in (['32'], ['64']):
         if ARCH != opts[0]:
@@ -64,7 +64,7 @@ def exe(onedir):
     """@returns (name, path)"""
     name = '_'.join(filter(None, (
         'yt-dlp',
-        OS_NAME == 'darwin' and 'macos',
+        {'win32': '', 'darwin': 'macos'}.get(OS_NAME, OS_NAME),
         ARCH == '32' and 'x86'
     )))
     return name, ''.join(filter(None, (

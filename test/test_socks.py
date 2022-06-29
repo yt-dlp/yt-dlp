@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
@@ -6,11 +7,12 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
 import random
 import subprocess
-from test.helper import FakeYDL, get_params, is_download_test
+import urllib.request
 
-from yt_dlp.compat import compat_str, compat_urllib_request
+from test.helper import FakeYDL, get_params, is_download_test
 
 
 @is_download_test
@@ -51,7 +53,7 @@ class TestMultipleSocks(unittest.TestCase):
         if params is None:
             return
         ydl = FakeYDL()
-        req = compat_urllib_request.Request('http://yt-dl.org/ip')
+        req = urllib.request.Request('http://yt-dl.org/ip')
         req.add_header('Ytdl-request-proxy', params['secondary_proxy'])
         self.assertEqual(
             ydl.urlopen(req).read().decode(),
@@ -62,7 +64,7 @@ class TestMultipleSocks(unittest.TestCase):
         if params is None:
             return
         ydl = FakeYDL()
-        req = compat_urllib_request.Request('https://yt-dl.org/ip')
+        req = urllib.request.Request('https://yt-dl.org/ip')
         req.add_header('Ytdl-request-proxy', params['secondary_proxy'])
         self.assertEqual(
             ydl.urlopen(req).read().decode(),
@@ -99,13 +101,13 @@ class TestSocks(unittest.TestCase):
         return ydl.urlopen('http://yt-dl.org/ip').read().decode()
 
     def test_socks4(self):
-        self.assertTrue(isinstance(self._get_ip('socks4'), compat_str))
+        self.assertTrue(isinstance(self._get_ip('socks4'), str))
 
     def test_socks4a(self):
-        self.assertTrue(isinstance(self._get_ip('socks4a'), compat_str))
+        self.assertTrue(isinstance(self._get_ip('socks4a'), str))
 
     def test_socks5(self):
-        self.assertTrue(isinstance(self._get_ip('socks5'), compat_str))
+        self.assertTrue(isinstance(self._get_ip('socks5'), str))
 
 
 if __name__ == '__main__':
