@@ -191,7 +191,7 @@ class ViMPPlaylistIE(InfoExtractor):
     _VALID_URL = r'''(?x)(?P<host>https?://(?:%s))/(?:
         album/view/aid/(?P<album_id>[0-9]+)|
         (?P<mode>category|channel)/(?P<name>[\w-]+)/(?P<id>[0-9]+)
-        )''' % ('|'.join(map(re.escape, VideocampusSachsenIE._INSTANCES)))
+    )''' % '|'.join(map(re.escape, VideocampusSachsenIE._INSTANCES))
 
     _TESTS = [{
         'url': 'https://vimp.oth-regensburg.de/channel/Designtheorie-1-SoSe-2020/3',
@@ -239,7 +239,6 @@ class ViMPPlaylistIE(InfoExtractor):
                     else f'title/{name}/channel/{id}')
 
         mode = mode or 'album'
-
         data = {
             'vars[mode]': mode,
             f'vars[{mode}]': album_id or id,
