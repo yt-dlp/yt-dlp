@@ -123,7 +123,7 @@ from yt_dlp.utils import (
     xpath_attr,
     xpath_element,
     xpath_text,
-    xpath_with_ns, CaseInsensitiveChainMap,
+    xpath_with_ns,
 )
 
 
@@ -1825,67 +1825,32 @@ Line 1
                 os.remove(FILE)
 
     def test_case_insensitive_dict(self):
-        # TODO
         headers = CaseInsensitiveDict()
         headers['ytdl-test'] = 1
-        self.assertEqual(list(headers.items()), [('Ytdl-Test', 1)])
-        headers['Ytdl-test'] = 2
-        self.assertEqual(list(headers.items()), [('Ytdl-Test', 2)])
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
+        headers['Ytdl-test'] = '2'
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '2')])
         self.assertTrue('ytDl-Test' in headers)
         self.assertEqual(str(headers), str(dict(headers)))
         self.assertEqual(repr(headers), str(dict(headers)))
 
         headers.update({'X-dlp': 'data'})
-        self.assertEqual(set(headers.items()), {('Ytdl-Test', 2), ('X-Dlp', 'data')})
-        self.assertEqual(dict(headers), {'Ytdl-Test': 2, 'X-Dlp': 'data'})
+        self.assertEqual(set(headers.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data')})
+        self.assertEqual(dict(headers), {'Ytdl-Test': '2', 'X-Dlp': 'data'})
         self.assertEqual(len(headers), 2)
         self.assertEqual(headers.copy(), headers)
         headers2 = CaseInsensitiveDict({'X-dlp': 'data3'}, **headers, **{'X-dlp': 'data2'})
-        self.assertEqual(set(headers2.items()), {('Ytdl-Test', 2), ('X-Dlp', 'data2')})
+        self.assertEqual(set(headers2.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data2')})
         self.assertEqual(len(headers2), 2)
         headers2.clear()
         self.assertEqual(len(headers2), 0)
 
         # ensure we prefer latter headers
-        headers3 = CaseInsensitiveDict({**{'Ytdl-TeSt': 1}, **{'Ytdl-test': 2}})
-        self.assertEqual(set(headers3.items()), {('Ytdl-Test', 2)})
+        headers3 = CaseInsensitiveDict({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
+        self.assertEqual(set(headers3.items()), {('Ytdl-Test', '2')})
 
         headers4 = CaseInsensitiveDict({'ytdl-test': 'data;'})
         self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})
-
-    def test_case_insensitive_chain_map(self):
-        headers = CaseInsensitiveChainMap()
-        headers['ytdl-test'] = 1
-        self.assertEqual(list(headers.items()), [('Ytdl-Test', 1)])
-        headers['Ytdl-test'] = 2
-        self.assertEqual(dict(headers), {'Ytdl-Test': 2})
-
-        self.assertTrue('ytDl-Test' in headers)
-
-        headers.update({'X-dlp': 'data'})
-        self.assertEqual(set(headers.items()), {('Ytdl-Test', 2), ('X-Dlp', 'data')})
-        self.assertEqual(dict(headers), {'Ytdl-Test': 2, 'X-Dlp': 'data'})
-
-        self.assertEqual(len(headers), 2)
-        self.assertEqual(headers.copy(), headers)
-
-        cpy = headers.copy()
-        cpy.clear()
-        self.assertNotEqual(headers, {})
-        self.assertEqual(len(cpy), 0)
-
-        # ensure we prefer former header
-        headers3 = CaseInsensitiveChainMap({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
-        self.assertEqual(set(headers3.items()), {('Ytdl-Test', 1)})
-        self.assertEqual(dict(headers3.new_child({'ytdl-test': 3})), {'Ytdl-Test': 3})
-
-        headers4 = CaseInsensitiveChainMap({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
-        print(headers4)
-        del headers4['ytdl-tesT']
-        print(headers4)
-        print(dict(headers4))
-
-        #self.assertEqual(dict(headers3), {})
 
 
 if __name__ == '__main__':

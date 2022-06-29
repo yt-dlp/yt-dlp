@@ -10,7 +10,7 @@ import urllib.request
 
 from ..dependencies import certifi
 from ..socks import ProxyType
-from ..utils import CaseInsensitiveDict, std_headers, update_url_query, CaseInsensitiveChainMap
+from ..utils import CaseInsensitiveDict, std_headers, update_url_query
 
 if typing.TYPE_CHECKING:
     from http.cookiejar import CookieJar
@@ -64,7 +64,7 @@ def random_user_agent():
 
 
 # Use make_std_headers() to get a copy of these
-_std_headers = CaseInsensitiveChainMap({
+_std_headers = CaseInsensitiveDict({
     'User-Agent': random_user_agent(),
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'en-us,en;q=0.5',
@@ -147,8 +147,9 @@ def select_proxy(url, proxies):
 
 
 # Get a copy of std headers, while also retaining backwards compat with utils.std_headers
+# TODO: just make std_headers backwards compat with this
 def make_std_headers():
-    return _std_headers.new_child()
+    return CaseInsensitiveDict(_std_headers, std_headers)
 
 
 def get_redirect_method(method, status):
