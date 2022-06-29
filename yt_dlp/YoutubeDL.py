@@ -576,7 +576,9 @@ class YoutubeDL:
         MIN_SUPPORTED, MIN_RECOMMENDED = (3, 6), (3, 7)
         current_version = sys.version_info[:2]
         if current_version < MIN_RECOMMENDED:
-            msg = 'Support for Python version %d.%d has been deprecated and will break in future versions of yt-dlp'
+            msg = ('Support for Python version %d.%d has been deprecated. '
+                   'See  https://github.com/yt-dlp/yt-dlp/issues/3764  for more details. '
+                   'You will recieve only one more update on this version')
             if current_version < MIN_SUPPORTED:
                 msg = 'Python version %d.%d is no longer supported'
             self.deprecation_warning(

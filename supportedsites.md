@@ -418,6 +418,7 @@
  - **Funk**
  - **Fusion**
  - **Fux**
+ - **FuyinTV**
  - **Gab**
  - **GabTV**
  - **Gaia**: [<abbr title="netrc machine"><em>gaia</em></abbr>]
@@ -618,6 +619,7 @@
  - **LiveJournal**
  - **livestream**
  - **livestream:original**
+ - **Livestreamfails**
  - **Lnk**
  - **LnkGo**
  - **loc**: Library of Congress
@@ -982,6 +984,7 @@
  - **PornoVoisines**
  - **PornoXO**
  - **PornTube**
+ - **PremiershipRugby**
  - **PressTV**
  - **ProjectVeritas**
  - **prosiebensat1**: ProSiebenSat.1 Digital
@@ -1113,6 +1116,7 @@
  - **ScreencastOMatic**
  - **ScrippsNetworks**
  - **scrippsnetworks:watch**
+ - **Scrolller**
  - **SCTE**: [<abbr title="netrc machine"><em>scte</em></abbr>]
  - **SCTECourse**: [<abbr title="netrc machine"><em>scte</em></abbr>]
  - **Seeker**
@@ -1189,6 +1193,7 @@
  - **stanfordoc**: Stanford Open ClassRoom
  - **startv**
  - **Steam**
+ - **SteamCommunityBroadcast**
  - **Stitcher**
  - **StitcherShow**
  - **StoryFire**
@@ -1427,7 +1432,8 @@
  - **vimeo:watchlater**: [<abbr title="netrc machine"><em>vimeo</em></abbr>] Vimeo watch later list, ":vimeowatchlater" keyword (requires authentication)
  - **Vimm:recording**
  - **Vimm:stream**
- - **Vimp**
+ - **ViMP**
+ - **ViMP:Playlist**
  - **Vimple**: Vimple - one-click video hosting
  - **Vine**
  - **vine:user**
