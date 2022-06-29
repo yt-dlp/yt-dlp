@@ -4943,30 +4943,8 @@ class CaseInsensitiveDict(collections.UserDict):
     def __delitem__(self, key):
         super().__delitem__(key.title())
 
-    def __eq__(self, other):
-        return dict(self) == dict(self.__class__(other).data)
-
-    if sys.version_info > (3, 9):
-        def __or__(self, other):
-            return super().__or__(self.__class__(other).data)
-
-        def __ror__(self, other):
-            return super().__ror__(self.__class__(other).data)
-
-        def __ior__(self, other):
-            return super().__ior__(self.__class__(other).data)
-
     def __contains__(self, key):
         return super().__contains__(key.title() if isinstance(key, str) else key)
-
-    def copy(self):
-        return self.__class__(self)
-
-    def add(self, key, value):
-        if key in self:
-            self[key] = ', '.join((self[key], value))
-        else:
-            self[key] = value
 
 
 def infojson_decoder_hook(data):
