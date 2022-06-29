@@ -111,7 +111,7 @@ class RTLLuArticleIE(RTLLuBaseIE):
 
 
 class RTLLuTeleLiveIE(RTLLuBaseIE):
-    _VALID_URL = 'https://www.rtl.lu/tele/live'
+    _VALID_URL = 'https://www.rtl.lu/tele/(?P<id>[\w-]+)?'
     _TESTS = [{
         'url': 'https://www.rtl.lu/tele/live',
         'info_dict': {
@@ -121,11 +121,18 @@ class RTLLuTeleLiveIE(RTLLuBaseIE):
             'title': 're:RTL - Télé LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
             
         }
+    }, {
+        'url': 'https://www.rtl.lu/tele/live-2',
+        'info_dict': {
+            'id': 'Tele:live-2',
+            'ext': 'mp4',
+            'live_status': 'is_live',
+            'title': 're:RTL - Télé LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+        }
     }]
     
     def _real_extract(self, url):
-        # live video didn't have id
-        video_id = 'Tele:live'
+        video_id = f'Tele:{self._match_id(url)}'
         webpage = self._download_webpage(url, video_id)
         
         # actually the live version has mpd version in <rtl-player ... dash=<mpd_link>,
