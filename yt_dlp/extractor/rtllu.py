@@ -1,34 +1,44 @@
 from .common import InfoExtractor
 
 
-class RTLLuIE(InfoExtractor):
+class RTLLuBaseIE(InfoExtractor):
+    _MEDIA_REGEX = {
+        'video' : r'<rtl-player\s*poster\s*=\s*\"(?P<thumbnail_url>[\"\w\.://-]+)\"\s*title\s*=\s*(?P<title>[\"\w\.-]+)\s*hls\s*=\s*\"(?P<media_url>[\w\.\:/-]+)\"',
+        'audio' : r'<rtl-audioplayer\s*src\s*=\s*\"(?P<media_url>[\w\.\:/-]+)\"',
+    }
+    
+    def get_media(self, media_type, webpage, video_id):
+        media_url = self._search_regex(
+            self._MEDIA_REGEX[media_type], webpage, 'media_url', group=('media_url'))
+        
+        return media_url
+        
+class RTLLuIE(RTLLuBaseIE):
     IE_NAME = 'rtl.lu'
-    _VALID_URL = r'https?://www\.rtl\.lu/(?:tele)?/(?P<slug>[\w-]+)/v/(?P<id>\d+)\.html'
+    _VALID_URL = r'https?://(?:www.)?rtl\.lu/(tele/(?P<slug>[\w-]+)/v/|video/)(?P<id>\d+)(\.html)?'
     _TESTS = [{
         'url': 'https://www.rtl.lu/tele/de-journal-vun-der-tele/v/3266757.html',
         'info_dict': {
             'id': '3266757',
-            'title': '""',
+            'title': 'Informatiounsversammlung Héichwaasser',
             'ext': 'mp4',
-            'display_id': 'de-journal-vun-der-tele',
-            'thumbnail': '"https://replay-assets.rtl.lu/2021/11/16/d3647fc4-470d-11ec-adc2-3a00abd6e90f_00008.jpg"'
+            'thumbnail': 'https://replay-assets.rtl.lu/2021/11/16/d3647fc4-470d-11ec-adc2-3a00abd6e90f_00008.jpg',
+            'description': 'md5:b1db974408cc858c9fd241812e4a2a14',
         }
     }]
     
     def _real_extract(self, url):
-        video_slug, video_id = self._match_valid_url(url).group('slug', 'id')
-        webpage = self._download_webpage(url, video_slug)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         
-        thumbnail_url, title, hls_url = self._search_regex(
-            r'<rtl-player\s*poster\s*=\s*(?P<thumbnail_url>[\"\w\.://-]+)\s*title\s*=\s*(?P<title>[\"\w\.-]+)\s*hls\s*=\s*\"(?P<hls_url>[\w\.\:/-]+)\"',
-            webpage, 'required_data', group=('thumbnail_url', 'title', 'hls_url'))
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls_url, video_slug)
+        hls_url = self.get_media('video', webpage, video_id)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls_url, video_id)
         self._sort_formats(formats)
         return {
             'id': video_id,
-            'display_id': video_slug,
-            'title': title,
+            'title': self._og_search_title(webpage) or title,
+            'description': self._og_search_description(webpage),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': thumbnail_url,
+            'thumbnail': self._og_search_thumbnail(webpage) or thumbnail_url,
         }
