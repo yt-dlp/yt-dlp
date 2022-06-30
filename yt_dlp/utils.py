@@ -4755,7 +4755,7 @@ def _base_n_table(n, table):
         raise ValueError('Either table or n must be specified')
     table = (table or '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')[:n]
 
-    if n != len(table):
+    if n and n != len(table):
         raise ValueError(f'base {n} exceeds table length {len(table)}')
     return table
 
