@@ -1,4 +1,5 @@
 import collections
+import hashlib
 import re
 
 from .common import InfoExtractor
@@ -11,6 +12,7 @@ from ..utils import (
     orderedSet,
     str_or_none,
     str_to_int,
+    update_url_query,
     unescapeHTML,
     unified_timestamp,
     url_or_none,
@@ -25,6 +27,23 @@ from .youtube import YoutubeIE
 
 class VKBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'vk'
+    _WAF_URI = 'https://vk.com/429.html?'
+
+    def _download_webpage_handle(self, *args, **kwargs):
+        content, urlh = super(VKBaseIE, self)._download_webpage_handle(
+            *args, **kwargs)
+        challenge_url = urlh.geturl()
+        if challenge_url.startswith(self._WAF_URI):
+            cookie = self._get_cookies(challenge_url).get('hash429')
+            if cookie:
+                hash429 = hashlib.md5(cookie.value.encode('ascii')).hexdigest()
+                resolve_url = update_url_query(challenge_url, {'key': hash429})
+                self._request_webpage(
+                    resolve_url, None,
+                    note='Resolving WAF challenge for VK',
+                    errnote='Failed bypass WAF challenge for VK')
+                return self._download_webpage_handle(*args, **kwargs)
+        return (content, urlh)
 
     def _perform_login(self, username, password):
         login_page, url_handle = self._download_webpage_handle(
