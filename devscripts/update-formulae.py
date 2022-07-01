@@ -30,8 +30,8 @@ url = tarball_file['url']
 with open(filename) as r:
     formulae_text = r.read()
 
-formulae_text = re.sub(r'sha256 "[0-9a-f]*?"', 'sha256 "%s"' % sha256sum, formulae_text)
-formulae_text = re.sub(r'url "[^"]*?"', 'url "%s"' % url, formulae_text)
+formulae_text = re.sub(r'sha256 "[0-9a-f]*?"', 'sha256 "%s"' % sha256sum, formulae_text, count=1)
+formulae_text = re.sub(r'url "[^"]*?"', 'url "%s"' % url, formulae_text, count=1)
 
 with open(filename, 'w') as w:
     w.write(formulae_text)
