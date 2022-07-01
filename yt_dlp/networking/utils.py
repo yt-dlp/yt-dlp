@@ -10,7 +10,7 @@ import urllib.request
 
 from ..dependencies import certifi
 from ..socks import ProxyType
-from ..utils import CaseInsensitiveDict, std_headers, update_url_query
+from ..utils import CaseInsensitiveDict, std_headers, update_url_query, traverse_obj
 
 if typing.TYPE_CHECKING:
     from http.cookiejar import CookieJar
@@ -136,14 +136,12 @@ def socks_create_proxy_args(socks_proxy):
 
 def select_proxy(url, proxies):
     """Unified proxy selector for all backends"""
-    if proxies is None:
-        proxies = {}
     url_components = urllib.parse.urlparse(url)
     priority = [
         url_components.scheme or 'http',  # prioritise more specific mappings
         'all'
     ]
-    return next((proxies[key] for key in priority if key in proxies), None)
+    return traverse_obj(proxies, *priority)
 
 
 # Get a copy of std headers, while also retaining backwards compat with utils.std_headers
