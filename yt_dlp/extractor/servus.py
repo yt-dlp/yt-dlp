@@ -20,38 +20,23 @@ class ServusIE(InfoExtractor):
                         /(?P<id>[aA]{2}-?\w+|\d+-\d+)
                     '''
     _TESTS = [{
-        # new URL schema
-        'url': 'https://www.servustv.com/videos/aa-1t6vbu5pw1w12/',
-        'md5': '60474d4c21f3eb148838f215c37f02b9',
+        'url': 'https://www.servustv.com/natur/v/aa-28bycqnh92111/',
         'info_dict': {
-            'id': 'AA-1T6VBU5PW1W12',
+            'id': 'AA-28BYCQNH92111',
             'ext': 'mp4',
-            'title': 'Die Grünen aus Sicht des Volkes',
-            'alt_title': 'Talk im Hangar-7 Voxpops Gruene',
-            'description': 'md5:1247204d85783afe3682644398ff2ec4',
+            'title': 'Klettersteige in den Alpen',
+            'description': 'md5:bab622a45e44872fdaea7f90b56f0ce8',
             'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 62.442,
-            'timestamp': 1605193976,
-            'upload_date': '20201112',
-            'series': 'Talk im Hangar-7',
-            'season': 'Season 9',
-            'season_number': 9,
-            'episode': 'Episode 31 - September 14',
-            'episode_number': 31,
-        }
-    }, {
-        # old URL schema
-        'url': 'https://www.servus.com/de/p/Die-Gr%C3%BCnen-aus-Sicht-des-Volkes/AA-1T6VBU5PW1W12/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.servus.com/at/p/Wie-das-Leben-beginnt/1309984137314-381415152/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.servus.com/tv/videos/aa-1t6vbu5pw1w12/',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.servus.com/tv/videos/1380889096408-1235196658/',
-        'only_matching': True,
+            'duration': 2823,
+            'timestamp': 1655752333,
+            'upload_date': '20220620',
+            'series': 'Bergwelten',
+            'season': 'Season 11',
+            'season_number': 11,
+            'episode': 'Episode 8 - Vie Ferrate – Klettersteige in den Alpen',
+            'episode_number': 8,
+        },
+        'params': {'skip_download': 'm3u8'}
     }, {
         'url': 'https://www.pm-wissen.com/videos/aa-24mus4g2w2112/',
         'only_matching': True,
@@ -62,6 +47,7 @@ class ServusIE(InfoExtractor):
         'url': 'https://www.servustv.com/natur/v/aansszcx3yi9jmlmhdc1/',
         'only_matching': True,
     }]
+
 
     def _real_extract(self, url):
         video_id = self._match_id(url).upper()
