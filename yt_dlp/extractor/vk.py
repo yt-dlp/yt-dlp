@@ -134,12 +134,15 @@ class VKIE(VKBaseIE):
                 'duration': 9,
                 'timestamp': 1374364108,
                 'upload_date': '20130720',
+                'comment_count': int,
+                'like_count': int,
+                'thumbnail': r're:https?://.+\.jpg$',
             }
         },
         {
             'note': 'Embedded video',
             'url': 'https://vk.com/video_ext.php?oid=-77521&id=162222515&hash=87b046504ccd8bfa',
-            'md5': '7babad3b85ea2e91948005b1b8b0cb84',
+            'md5': 'bb22825c8ae7a50475a6673eeda0a957',
             'info_dict': {
                 'id': '-77521_162222515',
                 'ext': 'mp4',
@@ -148,7 +151,8 @@ class VKIE(VKBaseIE):
                 'duration': 195,
                 'upload_date': '20120212',
                 'timestamp': 1329049880,
-                'uploader_id': '-77521',
+                'uploader_id': '39545378',
+                'thumbnail': r're:https?://.+\.jpg$',
             },
         },
         {
@@ -203,8 +207,13 @@ class VKIE(VKBaseIE):
                 'ext': 'mp4',
                 'title': '8 серия (озвучка)',
                 'duration': 8383,
+                'comment_count': int,
+                'uploader': 'Dizi2021',
+                'like_count': int,
+                'timestamp': 1640162189,
                 'upload_date': '20211222',
-                'view_count': int,
+                'uploader_id': '-93049196',
+                'thumbnail': r're:https?://.+\.jpg$',
             },
         },
         {
@@ -231,10 +240,23 @@ class VKIE(VKBaseIE):
                 'title': "DSWD Awards 'Children's Joy Foundation, Inc.' Certificate of Registration and License to Operate",
                 'description': 'md5:bf9c26cfa4acdfb146362682edd3827a',
                 'duration': 178,
-                'upload_date': '20130116',
+                'upload_date': '20130117',
                 'uploader': "Children's Joy Foundation Inc.",
                 'uploader_id': 'thecjf',
                 'view_count': int,
+                'channel_id': 'UCgzCNQ11TmR9V97ECnhi3gw',
+                'availability': 'public',
+                'like_count': int,
+                'live_status': 'not_live',
+                'playable_in_embed': True,
+                'channel': 'Children\'s Joy Foundation Inc.',
+                'uploader_url': 'http://www.youtube.com/user/thecjf',
+                'thumbnail': r're:https?://.+\.jpg$',
+                'tags': 'count:27',
+                'start_time': 0.0,
+                'categories': ['Nonprofits & Activism'],
+                'channel_url': 'https://www.youtube.com/channel/UCgzCNQ11TmR9V97ECnhi3gw',
+                'age_limit': 0,
             },
         },
         {
@@ -250,9 +272,7 @@ class VKIE(VKBaseIE):
                 'uploader_id': 'x1p5vl5',
                 'timestamp': 1473877246,
             },
-            'params': {
-                'skip_download': True,
-            },
+            'skip': 'Removed'
         },
         {
             # video key is extra_data not url\d+
@@ -267,9 +287,7 @@ class VKIE(VKBaseIE):
                 'timestamp': 1454859345,
                 'upload_date': '20160207',
             },
-            'params': {
-                'skip_download': True,
-            },
+            'skip': 'Removed',
         },
         {
             # finished live stream, postlive_mp4
@@ -280,11 +298,12 @@ class VKIE(VKBaseIE):
                 'title': 'ИгроМир 2016 День 1 — Игромания Утром',
                 'uploader': 'Игромания',
                 'duration': 5239,
-                # TODO: use act=show to extract view_count
-                # 'view_count': int,
                 'upload_date': '20160929',
                 'uploader_id': '-387766',
                 'timestamp': 1475137527,
+                'thumbnail': r're:https?://.+\.jpg$',
+                'comment_count': int,
+                'like_count': int,
             },
             'params': {
                 'skip_download': True,
