@@ -376,7 +376,8 @@ class RequestDirector:
             handler.close()
 
     def add_handler(self, handler):
-        if handler not in self._handlers and isinstance(handler, RequestHandler):
+        assert isinstance(handler, RequestHandler)
+        if handler not in self._handlers:
             self._handlers.append(handler)
 
     def remove_handler(self, handler):
@@ -384,11 +385,12 @@ class RequestDirector:
         Remove a RequestHandler from the broker.
         If a class is provided, all handlers of that class type are removed.
         """
-        self._handlers = [h for h in self._handlers if not (isinstance(h, handler) or h is handler)]
+        self._handlers = [h for h in self._handlers if not (type(h) == handler or h is handler)]
 
     def get_handlers(self, handler=None):
         """Get all handlers for a particular class type"""
-        return [h for h in self._handlers if isinstance(h, handler or RequestHandler)]
+
+        return [h for h in self._handlers if (type(h) == handler or h is handler)]
 
     def replace_handler(self, handler):
         self.remove_handler(handler)
