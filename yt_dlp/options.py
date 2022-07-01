@@ -114,6 +114,11 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
                 if user_conf is not None:
                     root.configs.pop(user_conf)
 
+        try:
+            root.configs[0].load_configs()  # Resolve any aliases using --config-location
+        except ValueError as err:
+            raise root.parser.error(err)
+
         opts, args = root.parse_args()
     except optparse.OptParseError:
         with contextlib.suppress(optparse.OptParseError):

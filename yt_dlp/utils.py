@@ -5393,18 +5393,21 @@ class Config:
 
     def init(self, args=None, filename=None):
         assert not self.__initialized
+        self.own_args, self.filename = args, filename
+        return self.load_configs()
+
+    def load_configs(self):
         directory = ''
-        if filename:
-            location = os.path.realpath(filename)
+        if self.filename:
+            location = os.path.realpath(self.filename)
             directory = os.path.dirname(location)
             if location in self._loaded_paths:
                 return False
             self._loaded_paths.add(location)
 
-        self.own_args, self.__initialized = args, True
-        opts, _ = self.parser.parse_known_args(args)
-        self.parsed_args, self.filename = args, filename
-
+        self.__initialized = True
+        opts, _ = self.parser.parse_known_args(self.own_args)
+        self.parsed_args = self.own_args
         for location in opts.config_locations or []:
             if location == '-':
                 self.append_config(shlex.split(read_stdin('options'), comments=True), label='stdin')
