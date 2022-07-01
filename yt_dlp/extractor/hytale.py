@@ -15,7 +15,7 @@ class HytaleIE(InfoExtractor):
     }]
 
     _MD5_REGEX = r'<stream\s*class\s*=\s*"ql-video\s*cf-stream"\s*src\s*=\s*"([a-f0-9]{32})"'
-    _FINAL_BASE_URL = 'https://cloudflarestream.com/{}/manifest/video.mpd?parentOrigin=https%3A%2F%2Fhytale.com'
+    _VIDEO_BASE_URL = 'https://cloudflarestream.com/{}/manifest/video.mpd?parentOrigin=https%3A%2F%2Fhytale.com'
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
