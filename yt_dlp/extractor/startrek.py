@@ -15,8 +15,7 @@ class StarTrekIE(InfoExtractor):
             'timestamp': 1655388000,
             'upload_date': '20220616',
             'description': 'md5:1ffee884e3920afbdd6dd04e926a1221',
-            # Thumbnail seems to have some tracking parameters added, ignore those.
-            'thumbnail': r're:https://intl\.startrek\.com/sites/default/files/styles/video_1920x1080/public/images/2022-06/pp_14794_rr_thumb_107_yt_16x9.jpg(?:\?.+)?',
+            'thumbnail': r're:https://(?:intl|www)\.startrek\.com/sites/default/files/styles/video_1920x1080/public/images/2022-06/pp_14794_rr_thumb_107_yt_16x9\.jpg(?:\?.+)?',
         }
     }]
 
