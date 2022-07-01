@@ -43,7 +43,7 @@ class HKETIE(InfoExtractor):
 
         domain = 'd3okrhbhk6fs3y.cloudfront.net'
         source_dir = 'p1prod'
-        r = int(5e3 * (int(vid / 5e3) | 0))
+        r = int(5e3 * (vid // 5e3))
 
         return f'https://{domain}/{source_dir}/{r}/{vid}/{video_filename}.m3u8'
 
@@ -52,7 +52,7 @@ class HKETIE(InfoExtractor):
             return validation(self._search_regex(fr'data-{property}\s*=\s*"([^"]+)"', webpage, property, fatal=fatal))
         except Exception as e:
             if fatal:
-                return e
+                raise e
             return None
 
     def _real_extract(self, url):
