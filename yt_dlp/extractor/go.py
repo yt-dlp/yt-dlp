@@ -72,6 +72,13 @@ class GoIE(AdobePassIE):
         },
         'skip': 'This content is no longer available.',
     }, {
+        'url': 'https://disneynow.com/shows/big-hero-6-the-series',
+        'info_dict': {
+            'title': 'Doraemon',
+            'id': 'SH55574025',
+        },
+        'playlist_mincount': 51,
+    }, {
         'url': 'http://freeform.go.com/shows/shadowhunters/episodes/season-2/1-this-guilty-blood',
         'info_dict': {
             'id': 'VDKA3609139',
