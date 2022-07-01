@@ -22,8 +22,8 @@ class HytaleIE(InfoExtractor):
 
         webpage = self._download_webpage(url, playlist_id)
 
-        entries = [self.url_result(self._FINAL_BASE_URL.format(video_hash), ie='CloudflareStream')
-        for video_hash in re.findall(self._MD5_REGEX, webpage)]
+        entries = [self.url_result(self._VIDEO_BASE_URL.format(video_hash))
+                   for video_hash in re.findall(self._MD5_REGEX, webpage)]
 
         return {
             '_type': 'playlist',
