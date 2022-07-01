@@ -1,11 +1,8 @@
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     float_or_none,
     int_or_none,
     unified_timestamp,
-    urlencode_postdata,
-    url_or_none,
 )
 
 
@@ -55,9 +52,8 @@ class ServusIE(InfoExtractor):
         video = self._download_json(
             'https://api-player.redbull.com/stv/servus-tv?timeZone=Europe/Berlin&videoId=%s' % video_id,
             video_id, 'Downloading video JSON')
-        format_url = url_or_none(video.get('videoUrl'))
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            format_url, video_id, 'mp4', entry_protocol='m3u8_native',
+            video.get('videoUrl'), video_id, 'mp4', entry_protocol='m3u8_native',
             m3u8_id='hls', fatal=False)
         thumbnail = video.get("poster")
         self._sort_formats(formats)
