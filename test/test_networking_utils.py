@@ -41,16 +41,17 @@ class TestRequest(unittest.TestCase):
 
     def test_headers(self):
         req = Request('http://example.com', headers={'tesT': 'test'})
-        self.assertEqual(req.headers, {'test': 'test'})
+        self.assertEqual(req.headers, CaseInsensitiveDict({'test': 'test'}))
         req.update(headers={'teSt2': 'test2'})
-        self.assertEqual(req.headers, {'test': 'test', 'test2': 'test2'})
+        self.assertEqual(req.headers, CaseInsensitiveDict({'test': 'test', 'test2': 'test2'}))
 
         req.headers = new_headers = CaseInsensitiveDict({'test': 'test'})
-        self.assertEqual(req.headers, {'test': 'test'})
+        self.assertEqual(req.headers, CaseInsensitiveDict({'test': 'test'}))
         self.assertIs(req.headers, new_headers)
 
+        # test converts dict to case insensitive dict
         req.headers = new_headers = {'test2': 'test2'}
-        self.assertEqual(req.headers, {'test2': 'test2'})
+        self.assertIsInstance(req.headers, CaseInsensitiveDict)
         self.assertIsNot(req.headers, new_headers)
 
     def test_data_type(self):
