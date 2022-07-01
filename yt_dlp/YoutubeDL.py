@@ -25,6 +25,7 @@ from string import ascii_letters
 from .cache import Cache
 from .compat import HAS_LEGACY as compat_has_legacy
 from .compat import compat_os_name, compat_shlex_quote, functools
+from .compat.urllib.request import getproxies
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
@@ -3699,7 +3700,7 @@ class YoutubeDL:
     @functools.cached_property
     def proxies(self) -> dict:
         """Global proxy configuration"""
-        proxies = urllib.request.getproxies() or {}
+        proxies = getproxies() or {}
         # compat. Set HTTPS_PROXY to __noproxy__ to revert
         if 'http' in proxies and 'https' not in proxies:
             proxies['https'] = proxies['http']
