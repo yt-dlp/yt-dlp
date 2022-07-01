@@ -16,6 +16,27 @@ class StarTrekIE(InfoExtractor):
             'upload_date': '20220616',
             'description': 'md5:1ffee884e3920afbdd6dd04e926a1221',
             'thumbnail': r're:https://(?:intl|www)\.startrek\.com/sites/default/files/styles/video_1920x1080/public/images/2022-06/pp_14794_rr_thumb_107_yt_16x9\.jpg(?:\?.+)?',
+            'subtitles': {'en-US':[{
+                'url': r're:https://(?:intl|www)\.startrek\.com/sites/default/files/video/captions/2022-06/TRR_SNW_107_v4\.vtt',
+            },{
+                'url': 'https://media.startrek.com/2022/06/16/2043801155561/1069981_hls/trr_snw_107_v4-c4bfc25d/stream_vtt.m3u8',
+            }]},
+        }
+    }, {
+        'url': 'https://www.startrek.com/videos/watch-ethan-peck-and-gia-sandhu-beam-down-to-the-ready-room',
+        'md5': 'f5ad74fbb86e91e0882fc0a333178d1d',
+        'info_dict': {
+            'id': 'watch-ethan-peck-and-gia-sandhu-beam-down-to-the-ready-room',
+            'ext': 'mp4',
+            'title': 'WATCH: Ethan Peck and Gia Sandhu Beam Down to The Ready Room',
+            'duration': 1986,
+            'timestamp': 1654221600,
+            'upload_date': '20220603',
+            'description': 'md5:b3aa0edacfe119386567362dec8ed51b',
+            'thumbnail': r're:https://www\.startrek\.com/sites/default/files/styles/video_1920x1080/public/images/2022-06/pp_14792_rr_thumb_105_yt_16x9_1.jpg(?:\?.+)?',
+            'subtitles': {'en-US':[{
+                'url': r're:https://(?:intl|www)\.startrek\.com/sites/default/files/video/captions/2022-06/TRR_SNW_105_v5\.vtt',
+            }]},
         }
     }]
 
@@ -29,6 +50,16 @@ class StarTrekIE(InfoExtractor):
         hls = self._html_search_regex(r'\bdata-hls\s*=\s*"([^"]+)"', player, 'HLS URL')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls, video_id)
         self._sort_formats(formats)
+
+        # The player will usually have a subtitle attribute, too. If it does, prefer that one
+        # because it will be downloaded much faster than the HLS segmented one from the m3u8.
+        # Also, sometimes there are `data-` subtitles but not HLS ones.
+        captions = self._html_search_regex(
+            r'\bdata-captions-url\s*=\s*"([^"]+)"', player, 'captions URL', fatal=False)
+        if captions:
+            en_subs = subtitles.get('en-US', [])
+            en_subs.insert(0, {'url': urljoin(urlbase, captions)})
+            subtitles['en-US'] = en_subs
 
         json_ld = self._search_json_ld(webpage, video_id, fatal=False)
 
