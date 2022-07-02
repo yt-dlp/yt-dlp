@@ -207,7 +207,7 @@ class RTLLuTeleVODIE(RTLLuBaseIE):
 
 class RTLLuArticleIE(RTLLuBaseIE):
     IE_NAME = 'rtl.lu:article'
-    _VALID_URL = r'https?://(?:(www|5minutes)\.)rtl\.lu/(?:[\w-]+)/(?:[\w-]+)/a/(?P<id>\d+)\.html'
+    _VALID_URL = r'https?://(?:(www|5minutes|today)\.)rtl\.lu/(?:[\w-]+)/(?:[\w-]+)/a/(?P<id>\d+)\.html'
     _TESTS = [{
         # Audio-only
         'url': 'https://www.rtl.lu/sport/news/a/1934360.html',
@@ -237,6 +237,16 @@ class RTLLuArticleIE(RTLLuBaseIE):
             'description': 'md5:ac031da0740e997a5cf4633173634fee',
             'title': 'md5:87e17722ed21af0f24be3243f4ec0c46',
             'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/01/26/10/53b3f0ffe9b349d16d93b42902ecbc80.jpeg',
+        }
+    }, {
+        # today.lu
+        'url': 'https://today.rtl.lu/entertainment/news/a/1936203.html',
+        'info_dict': {
+            'id': '1936203',
+            'ext': 'mp4',
+            'title': 'Once Upon A Time...zu Letzebuerg: The Three Witches\' Tower',
+            'description': 'The witchy theme continues in the latest episode of Once Upon A Time...',
+            'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/07/02/12/2b671b0895fc72bfed53af31639fcaa5.png',
         }
     }]
 
