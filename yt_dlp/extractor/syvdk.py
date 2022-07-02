@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-import json
+from ..utils import try_get
 
 
 class SYVDKIE(InfoExtractor):
@@ -10,9 +10,10 @@ class SYVDKIE(InfoExtractor):
         'md5': '429ce5a423dd4b1e1d0bf3a569558089',
         'info_dict': {
             'id': '12215',
+            'display_id': 'isabella-arendt-stiller-op-for-de-konservative-2',
             'ext': 'mp3',
             'title': 'Isabella Arendt stiller op for De Konservative',
-            'description': 'Tidligere formand for Kristendemokraterne Isabella Arendt stiller op til folketingsvalget for Det Konservative Folkeparti. Men hvorfor netop de konservative? og hvordan harmonisere det med hendes ønske om en mere human udlændinge- og integrationspolitikken. Hun er med fra start og fortæller hvorfor. <br /><br />Vi har også LOKK - Landsorganisation af Kvindekrisecentre’s formand Karin Gaardsted i programmet. Vi får talt om handleplanen mod partnerdrab. Og om der behov for at ændre den generelle samtale om vold i nære relationer og kvindedrab.'
+            'description': 'Tidligere formand for Kristendemokraterne Isabella Arendt stiller op til folketingsvalget for Det Konservative Folkeparti. Men hvorfor netop de konservative? og hvordan harmonisere det med hendes ønske om en mere human udlændinge- og integrationspolitikken.  Hun er med fra start og fortæller hvorfor. <br /><br />Vi har også LOKK - Landsorganisation af Kvindekrisecentre’s formand Karin Gaardsted i programmet. Vi får talt om handleplanen mod partnerdrab. Og om der behov for at ændre den generelle samtale om vold i nære relationer og kvindedrab.'
         }
     }]
 
@@ -22,11 +23,11 @@ class SYVDKIE(InfoExtractor):
         info_data = self._search_nextjs_data(webpage, video_id)["props"]["pageProps"]["episodeDetails"][0]
 
         return {
-            'id': str(info['id']),
+            'id': str(info_data['id']),
             'display_id': video_id,
-            'title': try_get(info, lambda x: x['title']['rendered']),
-            'description': try_get(info, lambda x: x['details']['post_title']),
+            'title': try_get(info_data, lambda x: x['title']['rendered']),
+            'description': try_get(info_data, lambda x: x['details']['post_title']),
             'vcodec': 'none',
             'ext': 'mp3',
-            'url': info['details']['enclosure']
+            'url': info_data['details']['enclosure']
         }
