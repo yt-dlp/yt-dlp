@@ -168,7 +168,7 @@ class RTLLuBaseIE(InfoExtractor):
 
 class RTLLuTeleVODIE(RTLLuBaseIE):
     IE_NAME = 'rtl.lu:tele-vod'
-    _VALID_URL = r'https?://(?:www.)?rtl\.lu/(tele/(?P<slug>[\w-]+)/v/|video/)(?P<id>\d+)(\.html)?'
+    _VALID_URL = r'https?://(?:www\.)?rtl\.lu/(tele/(?P<slug>[\w-]+)/v/|video/)(?P<id>\d+)(\.html)?'
     _TESTS = [{
         'url': 'https://www.rtl.lu/tele/de-journal-vun-der-tele/v/3266757.html',
         'info_dict': {
@@ -207,7 +207,7 @@ class RTLLuTeleVODIE(RTLLuBaseIE):
 
 class RTLLuArticleIE(RTLLuBaseIE):
     IE_NAME = 'rtl.lu:article'
-    _VALID_URL = r'https?://www\.rtl\.lu/(?:\w+)/(?:\w+)/a/(?P<id>\d+)\.html'
+    _VALID_URL = r'https?://(?:(www|5minutes)\.)rtl\.lu/(?:[\w-]+)/(?:[\w-]+)/a/(?P<id>\d+)\.html'
     _TESTS = [{
         # Audio-only
         'url': 'https://www.rtl.lu/sport/news/a/1934360.html',
@@ -227,6 +227,16 @@ class RTLLuArticleIE(RTLLuBaseIE):
             'description': 'md5:ad39b36e0039a109384b5996c373e835',
             'title': 'Esch2022: Suessem ass déi nei "Gemeng vum Mount"',
             'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/06/22/16/7f9d5141c40733ffd0054d1a4d01819e.jpeg',
+        }
+    }, {
+        # 5minutes
+        'url': 'https://5minutes.rtl.lu/espace-frontaliers/frontaliers-en-questions/a/1853173.html',
+        'info_dict': {
+            'id': '1853173',
+            'ext': 'mp4',
+            'description': 'md5:ac031da0740e997a5cf4633173634fee',
+            'title': 'md5:87e17722ed21af0f24be3243f4ec0c46',
+            'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/01/26/10/53b3f0ffe9b349d16d93b42902ecbc80.jpeg',
         }
     }]
 
