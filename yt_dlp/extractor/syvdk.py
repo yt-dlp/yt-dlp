@@ -19,21 +19,14 @@ class SYVDKIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        _NEXT_DATA = self._html_search_regex(
-            r'<script id="__NEXT_DATA__" type="application\/json">(?P<meta_dict>{.+})<\/script>', webpage,
-            'audio URL', group='meta_dict')
-        info = json.loads(_NEXT_DATA)
-        audio_details = info["props"]["pageProps"]["episodeDetails"][0]["details"]
-        audio_url = audio_details["enclosure"]
-        description = audio_details.get("post_title")
-        title = info["props"]["pageProps"]["episodeDetails"][0]["title"]["rendered"]
-        _id = str(info["props"]["pageProps"]["episodeDetails"][0]["id"])
+        info_data = self._search_nextjs_data(webpage, video_id)["props"]["pageProps"]["episodeDetails"][0]
 
         return {
-            'id': _id,
-            'title': title,
-            'description': description,
+            'id': str(info['id']),
+            'display_id': video_id,
+            'title': try_get(info, lambda x: x['title']['rendered']),
+            'description': try_get(info, lambda x: x['details']['post_title']),
             'vcodec': 'none',
             'ext': 'mp3',
-            'url': audio_url
+            'url': info['details']['enclosure']
         }
