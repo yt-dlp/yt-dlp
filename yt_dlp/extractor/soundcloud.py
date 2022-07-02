@@ -67,7 +67,7 @@ class SoundcloudBaseIE(InfoExtractor):
     _HEADERS = {}
 
     def _store_client_id(self, client_id):
-        self._downloader.cache.store('soundcloud', 'client_id', client_id)
+        self.cache.store('soundcloud', 'client_id', client_id)
 
     def _update_client_id(self):
         webpage = self._download_webpage('https://soundcloud.com/', None)
@@ -104,7 +104,7 @@ class SoundcloudBaseIE(InfoExtractor):
                 raise
 
     def _initialize_pre_login(self):
-        self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
+        self._CLIENT_ID = self.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
 
     def _perform_login(self, username, password):
         if username != 'oauth':

@@ -131,7 +131,7 @@ class PhantomJSwrapper:
                 os.remove(self._TMP_FILES[name].name)
 
     def _save_cookies(self, url):
-        cookies = cookie_jar_to_list(self.extractor._downloader.cookiejar)
+        cookies = cookie_jar_to_list(self.extractor.cookiejar)
         for cookie in cookies:
             if 'path' not in cookie:
                 cookie['path'] = '/'

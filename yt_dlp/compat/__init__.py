@@ -7,7 +7,6 @@ from . import re
 from ._deprecated import *  # noqa: F401, F403
 from .compat_utils import passthrough_module
 
-
 # XXX: Implement this the same way as other DeprecationWarnings without circular import
 try:
     passthrough_module(__name__, '._legacy', callback=lambda attr: warnings.warn(

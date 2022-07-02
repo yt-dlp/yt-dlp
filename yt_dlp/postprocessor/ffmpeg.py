@@ -347,6 +347,7 @@ class FFmpegPostProcessor(PostProcessor):
         _, stderr, returncode = Popen.run(
             cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         if returncode not in variadic(expected_retcodes):
+            self.write_debug(stderr)
             raise FFmpegPostProcessorError(stderr.strip().splitlines()[-1])
         for out_path, _ in output_path_opts:
             if out_path:
@@ -585,7 +586,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
         filename = info['filepath']
 
-        # Disabled temporarily. There needs to be a way to overide this
+        # Disabled temporarily. There needs to be a way to override this
         # in case of duration actually mismatching in extractor
         # See: https://github.com/yt-dlp/yt-dlp/issues/1870, https://github.com/yt-dlp/yt-dlp/issues/1385
         '''

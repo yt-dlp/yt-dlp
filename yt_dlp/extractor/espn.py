@@ -1,10 +1,10 @@
 import base64
 import json
 import re
-import urllib
+import urllib.parse
 
-from .common import InfoExtractor
 from .adobepass import AdobePassIE
+from .common import InfoExtractor
 from .once import OnceIE
 from ..utils import (
     determine_ext,
@@ -197,7 +197,7 @@ class ESPNArticleIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if (ESPNIE.suitable(url) or WatchESPNIE.suitable(url)) else super(ESPNArticleIE, cls).suitable(url)
+        return False if (ESPNIE.suitable(url) or WatchESPNIE.suitable(url)) else super().suitable(url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

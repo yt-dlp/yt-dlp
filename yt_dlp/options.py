@@ -4,10 +4,11 @@ import optparse
 import os.path
 import re
 import shlex
+import shutil
 import string
 import sys
 
-from .compat import compat_expanduser, compat_get_terminal_size, compat_getenv
+from .compat import compat_expanduser
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
 from .postprocessor import (
@@ -39,7 +40,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 
     def _readUserConf(package_name, default=[]):
         # .config
-        xdg_config_home = compat_getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
+        xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
         userConfFile = os.path.join(xdg_config_home, package_name, 'config')
         if not os.path.isfile(userConfFile):
             userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
@@ -48,7 +49,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             return userConf, userConfFile
 
         # appdata
-        appdata_dir = compat_getenv('appdata')
+        appdata_dir = os.getenv('appdata')
         if appdata_dir:
             userConfFile = os.path.join(appdata_dir, package_name, 'config')
             userConf = Config.read_file(userConfFile, default=None)
@@ -113,6 +114,11 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
                 if user_conf is not None:
                     root.configs.pop(user_conf)
 
+        try:
+            root.configs[0].load_configs()  # Resolve any aliases using --config-location
+        except ValueError as err:
+            raise root.parser.error(err)
+
         opts, args = root.parse_args()
     except optparse.OptParseError:
         with contextlib.suppress(optparse.OptParseError):
@@ -137,7 +143,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
     def __init__(self):
         # No need to wrap help messages if we're on a wide console
-        max_width = compat_get_terminal_size().columns or 80
+        max_width = shutil.get_terminal_size().columns or 80
         # The % is chosen to get a pretty output in README.md
         super().__init__(width=max_width, max_help_position=int(0.45 * max_width))
 
@@ -175,8 +181,19 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         self.rargs, self.largs = self._get_args(args), []
         self.values = values or self.get_default_values()
         while self.rargs:
+            arg = self.rargs[0]
             try:
-                self._process_args(self.largs, self.rargs, self.values)
+                if arg == '--':
+                    del self.rargs[0]
+                    break
+                elif arg.startswith('--'):
+                    self._process_long_opt(self.rargs, self.values)
+                elif arg.startswith('-') and arg != '-':
+                    self._process_short_opts(self.rargs, self.values)
+                elif self.allow_interspersed_args:
+                    self.largs.append(self.rargs.pop(0))
+                else:
+                    break
             except optparse.OptParseError as err:
                 if isinstance(err, self._UNKNOWN_OPTION):
                     self.largs.append(err.opt_str)
@@ -194,7 +211,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         return sys.argv[1:] if args is None else list(args)
 
     def _match_long_opt(self, opt):
-        """Improve ambigious argument resolution by comparing option objects instead of argument strings"""
+        """Improve ambiguous argument resolution by comparing option objects instead of argument strings"""
         try:
             return super()._match_long_opt(opt)
         except optparse.AmbiguousOptionError as e:
@@ -441,7 +458,7 @@ def create_parser():
             'Eg: --alias get-audio,-X "-S=aext:{0},abr -x --audio-format {0}" creates options '
             '"--get-audio" and "-X" that takes an argument (ARG0) and expands to '
             '"-S=aext:ARG0,abr -x --audio-format ARG0". All defined aliases are listed in the --help output. '
-            'Alias options can trigger more aliases; so be carefull to avoid defining recursive options. '
+            'Alias options can trigger more aliases; so be careful to avoid defining recursive options. '
             f'As a safety measure, each alias may be triggered a maximum of {_YoutubeDLOptionParser.ALIAS_TRIGGER_LIMIT} times. '
             'This option can be used multiple times'))
 
@@ -513,7 +530,7 @@ def create_parser():
         '-I', '--playlist-items',
         dest='playlist_items', metavar='ITEM_SPEC', default=None,
         help=(
-            'Comma seperated playlist_index of the videos to download. '
+            'Comma separated playlist_index of the videos to download. '
             'You can specify a range using "[START]:[STOP][:STEP]". For backward compatibility, START-STOP is also supported. '
             'Use negative indices to count from the right and negative STEP to download in reverse order. '
             'Eg: "-I 1:3,7,-5::2" used on a playlist of size 15 will download the videos at index 1,2,3,7,11,13,15'))

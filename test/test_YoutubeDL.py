@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
@@ -6,17 +7,14 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
 import copy
 import json
-from test.helper import FakeYDL, assertRegexpMatches
+import urllib.error
 
+from test.helper import FakeYDL, assertRegexpMatches
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import (
-    compat_os_name,
-    compat_setenv,
-    compat_str,
-    compat_urllib_error,
-)
+from yt_dlp.compat import compat_os_name
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
@@ -841,14 +839,14 @@ class TestYoutubeDL(unittest.TestCase):
         # test('%(foo|)s', ('', '_'))  # fixme
 
         # Environment variable expansion for prepare_filename
-        compat_setenv('__yt_dlp_var', 'expanded')
+        os.environ['__yt_dlp_var'] = 'expanded'
         envvar = '%__yt_dlp_var%' if compat_os_name == 'nt' else '$__yt_dlp_var'
         test(envvar, (envvar, 'expanded'))
         if compat_os_name == 'nt':
             test('%s%', ('%s%', '%s%'))
-            compat_setenv('s', 'expanded')
+            os.environ['s'] = 'expanded'
             test('%s%', ('%s%', 'expanded'))  # %s% should be expanded before escaping %s
-            compat_setenv('(test)s', 'expanded')
+            os.environ['(test)s'] = 'expanded'
             test('%(test)s%', ('NA%', 'expanded'))  # Environment should take priority over template
 
         # Path expansion and escaping
@@ -1101,7 +1099,7 @@ class TestYoutubeDL(unittest.TestCase):
     def test_urlopen_no_file_protocol(self):
         # see https://github.com/ytdl-org/youtube-dl/issues/8227
         ydl = YDL()
-        self.assertRaises(compat_urllib_error.URLError, ydl.urlopen, 'file:///etc/passwd')
+        self.assertRaises(urllib.error.URLError, ydl.urlopen, 'file:///etc/passwd')
 
     def test_do_not_override_ie_key_in_url_transparent(self):
         ydl = YDL()
@@ -1187,7 +1185,7 @@ class TestYoutubeDL(unittest.TestCase):
 
             def _entries(self):
                 for n in range(3):
-                    video_id = compat_str(n)
+                    video_id = str(n)
                     yield {
                         '_type': 'url_transparent',
                         'ie_key': VideoIE.ie_key(),

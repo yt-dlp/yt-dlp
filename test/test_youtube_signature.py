@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
-import contextlib
 import os
 import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
+import contextlib
 import re
 import string
 import urllib.request
-from test.helper import FakeYDL, is_download_test
 
-from yt_dlp.compat import compat_str
+from test.helper import FakeYDL, is_download_test
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.jsinterp import JSInterpreter
 
@@ -157,7 +158,7 @@ def t_factory(name, sig_func, url_pattern):
 def signature(jscode, sig_input):
     func = YoutubeIE(FakeYDL())._parse_sig_js(jscode)
     src_sig = (
-        compat_str(string.printable[:sig_input])
+        str(string.printable[:sig_input])
         if isinstance(sig_input, int) else sig_input)
     return func(src_sig)
 

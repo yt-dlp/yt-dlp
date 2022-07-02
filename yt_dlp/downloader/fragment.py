@@ -4,12 +4,14 @@ import http.client
 import json
 import math
 import os
+import struct
 import time
+import urllib.error
 
 from .common import FileDownloader
 from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import compat_os_name, compat_struct_pack, compat_urllib_error
+from ..compat import compat_os_name
 from ..utils import (
     DownloadError,
     encodeFilename,
@@ -348,7 +350,7 @@ class FragmentFD(FileDownloader):
             decrypt_info = fragment.get('decrypt_info')
             if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
                 return frag_content
-            iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', fragment['media_sequence'])
+            iv = decrypt_info.get('IV') or struct.pack('>8xq', fragment['media_sequence'])
             decrypt_info['KEY'] = decrypt_info.get('KEY') or _get_key(info_dict.get('_decryption_key_url') or decrypt_info['URI'])
             # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
             # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
@@ -457,7 +459,7 @@ class FragmentFD(FileDownloader):
                     if self._download_fragment(ctx, fragment['url'], info_dict, headers):
                         break
                     return
-                except (compat_urllib_error.HTTPError, http.client.IncompleteRead) as err:
+                except (urllib.error.HTTPError, http.client.IncompleteRead) as err:
                     # Unavailable (possibly temporary) fragments may be served.
                     # First we try to retry then either skip or abort.
                     # See https://github.com/ytdl-org/youtube-dl/issues/10165,
