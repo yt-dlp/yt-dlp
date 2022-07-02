@@ -301,7 +301,7 @@ class RTLLuRadioIE(RTLLuBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
-
+        self._sort_formats(formats)
         return {
             'id': video_id,
             'formats': formats,
