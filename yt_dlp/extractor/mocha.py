@@ -30,7 +30,7 @@ class MochaVideoIE(InfoExtractor):
             'http://apivideo.mocha.com.vn:8081/onMediaBackendBiz/mochavideo/getVideoDetail',
             video_slug, query={'url': url, 'token': ''})['data']['videoDetail']
         video_id = str(json_data['id'])
-        video_urls = traverse_obj(json_data, 'list_resolution', 'original_path') or []
+        video_urls = (json_data.get('list_resolution') or []) + [json_data.get('original_path')]
 
         formats, subtitles = [], {}
         for video in video_urls:
