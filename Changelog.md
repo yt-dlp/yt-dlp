@@ -11,6 +11,45 @@
 -->
 
 
+### 2022.06.29
+
+* Fix `--downloader native`
+* Fix `section_end` of clips
+* Fix playlist error handling
+* Sanitize `chapters`
+* [extractor] Fix `_create_request` when headers is None
+* [extractor] Fix empty `BaseURL` in MPD
+* [ffmpeg] Write full output to debug on error
+* [hls] Warn user when trying to download live HLS
+* [options] Fix `parse_known_args` for `--`
+* [utils] Fix inconsistent default handling between HTTP and HTTPS requests by [coletdjnz](https://github.com/coletdjnz)
+* [build] Draft release until complete
+* [build] Fix release tag commit
+* [build] Standalone x64 builds for MacOS 10.9 by [StefanLobbenmeier](https://github.com/StefanLobbenmeier)
+* [update] Ability to set a maximum version for specific variants
+* [compat] Fix `compat.WINDOWS_VT_MODE`
+* [compat] Remove deprecated functions from core code
+* [compat] Remove more functions
+* [cleanup, extractor] Reduce direct use of `_downloader`
+* [cleanup] Consistent style for file heads
+* [cleanup] Fix some typos by [crazymoose77756](https://github.com/crazymoose77756)
+* [cleanup] Misc fixes and cleanup
+* [extractor/Scrolller] Add extractor by [LunarFang416](https://github.com/LunarFang416)
+* [extractor/ViMP] Add playlist extractor by [FestplattenSchnitzel](https://github.com/FestplattenSchnitzel)
+* [extractor/fuyin] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/livestreamfails] Add extractor by [nomevi](https://github.com/nomevi)
+* [extractor/premiershiprugby] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/steam] Add broadcast extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/youtube] Mark videos as fully watched by [Brett824](https://github.com/Brett824)
+* [extractor/CWTV] Extract thumbnail by [ischmidt20](https://github.com/ischmidt20)
+* [extractor/ViMP] Add thumbnail and support more sites by [FestplattenSchnitzel](https://github.com/FestplattenSchnitzel)
+* [extractor/dropout] Support cookies and login only as needed by [pingiun](https://github.com/pingiun), [pukkandan](https://github.com/pukkandan)
+* [extractor/ertflix] Improve `_VALID_URL`
+* [extractor/lbry] Use HEAD request for redirect URL by [flashdagger](https://github.com/flashdagger)
+* [extractor/mediaset] Improve `_VALID_URL`
+* [extractor/npr] Implement [e50c350](https://github.com/yt-dlp/yt-dlp/commit/e50c3500b43d80e4492569c4b4523c4379c6fbb2) differently
+* [extractor/tennistv] Rewrite extractor by [pukkandan](https://github.com/pukkandan), [zenerdi0de](https://github.com/zenerdi0de)
+
 ### 2022.06.22.1
 
 * [build] Fix updating homebrew formula
@@ -544,7 +583,7 @@
 * [downloader/ffmpeg] Handle unknown formats better
 * [outtmpl] Handle `-o ""` better
 * [outtmpl] Handle hard-coded file extension better
-* [extractor] Add convinience function `_yes_playlist`
+* [extractor] Add convenience function `_yes_playlist`
 * [extractor] Allow non-fatal `title` extraction
 * [extractor] Extract video inside `Article` json_ld
 * [generic] Allow further processing of json_ld URL
@@ -1678,7 +1717,7 @@
 * [utils] Generalize `traverse_dict` to `traverse_obj`
 * [downloader/ffmpeg] Hide FFmpeg banner unless in verbose mode by [fstirlitz](https://github.com/fstirlitz)
 * [build] Release `yt-dlp.tar.gz`
-* [build,update] Add GNU-style SHA512 and prepare updater for simlar SHA256 by [nihil-admirari](https://github.com/nihil-admirari)
+* [build,update] Add GNU-style SHA512 and prepare updater for similar SHA256 by [nihil-admirari](https://github.com/nihil-admirari)
 * [pyinst] Show Python version in exe metadata by [nihil-admirari](https://github.com/nihil-admirari)
 * [docs] Improve documentation of dependencies
 * [cleanup] Mark unused files

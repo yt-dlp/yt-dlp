@@ -273,7 +273,11 @@ def batch_generator(name, num_tests):
 
     def test_template(self):
         for i in range(num_tests):
-            getattr(self, f'test_{name}_{i}' if i else f'test_{name}')()
+            test_name = f'test_{name}_{i}' if i else f'test_{name}'
+            try:
+                getattr(self, test_name)()
+            except unittest.SkipTest:
+                print(f'Skipped {test_name}')
 
     return test_template
 

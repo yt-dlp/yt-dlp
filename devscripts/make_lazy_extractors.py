@@ -94,7 +94,7 @@ def sort_ies(ies, ignored_bases):
         for c in classes[:]:
             bases = set(c.__bases__) - {object, *ignored_bases}
             restart = False
-            for b in bases:
+            for b in sorted(bases, key=lambda x: x.__name__):
                 if b not in classes and b not in returned_classes:
                     assert b.__name__ != 'GenericIE', 'Cannot inherit from GenericIE'
                     classes.insert(0, b)
