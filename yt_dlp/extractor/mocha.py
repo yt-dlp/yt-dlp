@@ -38,7 +38,7 @@ class MochaVideoIE(InfoExtractor):
                 formats.extend([{'url': video, 'ext': 'mp4'}])
             else:
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    traverse_obj(video, 'video_path'), video_id, ext='mp4')
+                    video.get('video_path'), video_id, ext='mp4')
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
 
