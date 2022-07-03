@@ -13,7 +13,7 @@ class SYVDKIE(InfoExtractor):
             'display_id': 'isabella-arendt-stiller-op-for-de-konservative-2',
             'ext': 'mp3',
             'title': 'Isabella Arendt stiller op for De Konservative',
-            'description': 'Tidligere formand for Kristendemokraterne Isabella Arendt stiller op til folketingsvalget for Det Konservative Folkeparti. Men hvorfor netop de konservative? og hvordan harmonisere det med hendes ønske om en mere human udlændinge- og integrationspolitikken.  Hun er med fra start og fortæller hvorfor. <br /><br />Vi har også LOKK - Landsorganisation af Kvindekrisecentre’s formand Karin Gaardsted i programmet. Vi får talt om handleplanen mod partnerdrab. Og om der behov for at ændre den generelle samtale om vold i nære relationer og kvindedrab.'
+            'description': 'md5:f5fa6a431813bf37284f3412ad7c6c06'
         }
     }]
 
