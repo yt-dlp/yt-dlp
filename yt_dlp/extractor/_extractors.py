@@ -1633,6 +1633,7 @@ from .srgssr import (
 )
 from .srmediathek import SRMediathekIE
 from .stanfordoc import StanfordOpenClassroomIE
+from .stardeos import StardeosIE
 from .startv import StarTVIE
 from .steam import (
     SteamIE,
