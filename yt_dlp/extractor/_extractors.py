@@ -287,6 +287,7 @@ from .clipsyndicate import ClipsyndicateIE
 from .closertotruth import CloserToTruthIE
 from .cloudflarestream import CloudflareStreamIE
 from .cloudy import CloudyIE
+from .clubhouse import ClubhouseIE
 from .clubic import ClubicIE
 from .clyp import ClypIE
 from .cmt import CMTIE
