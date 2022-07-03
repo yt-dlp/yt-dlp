@@ -317,15 +317,14 @@ class RequestHandler:
     def prepare_request(self, request: Request):
         self._check_scheme(request)
         request.headers = CaseInsensitiveDict(self.ydl.params.get('http_headers', {}), request.headers)
-        if request.headers.get('Youtubedl-no-compression'):
-            request.compression = False
+        if 'Youtubedl-no-compression' in request.headers:
             del request.headers['Youtubedl-no-compression']
+            request.compression = False
 
         # Proxy preference: header req proxy > req proxies > ydl opt proxies > env proxies
-        request.proxies = {**(self.ydl.proxies or {}), **(request.proxies or {})}
-        req_proxy = request.headers.get('Ytdl-request-proxy')
+        request.proxies = {**self.ydl.proxies, **request.proxies}
+        req_proxy = request.headers.pop('Ytdl-request-proxy', None)
         if req_proxy:
-            del request.headers['Ytdl-request-proxy']
             request.proxies.update({'http': req_proxy, 'https': req_proxy})
         for proxy_key, proxy_url in request.proxies.items():
             if proxy_url == '__noproxy__':  # compat
