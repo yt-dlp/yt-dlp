@@ -493,12 +493,14 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     "Filtering formats". You can also simply
                                     specify a field to match if the field is
                                     present, use "!field" to check if the field
-                                    is not present, and "&" to check multiple
-                                    conditions. Use a "\" to escape "&" or
-                                    quotes if needed. If used multiple times,
-                                    the filter matches if atleast one of the
-                                    conditions are met. Eg: --match-filter
-                                    !is_live --match-filter "like_count>?100 &
+                                    is not present. Metadata fields must be 
+                                    specified with LHS order: 
+                                    `duration > 60` instead of `60 < duration` 
+                                    "&" can be used to boolean AND multiple conditions.
+                                    Multiple "--match-filter" arguments
+                                    will be applied as boolean OR.
+                                    Eg:
+                                    --match-filter !is_live --match-filter "like_count>?100 &
                                     description~='(?i)\bcats \& dogs\b'" matches
                                     only videos that are not live OR those that
                                     have a like count more than 100 (or the like
