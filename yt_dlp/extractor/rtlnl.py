@@ -161,7 +161,7 @@ class RTLLuBaseIE(InfoExtractor):
         if video_url is not None:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id)
         if audio_url is not None:
-            formats.append({'url': audio_url, 'ext': 'mp3'})
+            formats.append({'url': audio_url, 'ext': 'mp3', 'vcodec': 'none'})
 
         return formats, subtitles
 
@@ -219,7 +219,7 @@ class RTLLuArticleIE(RTLLuBaseIE):
             'title': 'md5:40aa85f135578fbd549d3c9370321f99',
         }
     }, {
-        # Video-only
+        # Video
         'url': 'https://www.rtl.lu/kultur/news/a/1931683.html',
         'info_dict': {
             'id': '1931683',
