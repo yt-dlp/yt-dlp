@@ -1,8 +1,6 @@
-import functools
-
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
-from ..utils import InAdvancePagedList, smuggle_url, traverse_obj
+from ..utils import smuggle_url, traverse_obj
 
 
 class NetverseBaseIE(InfoExtractor):
@@ -184,20 +182,18 @@ class NetversePlaylistIE(NetverseBaseIE):
         season_id_list = [season.get('id') for season in json_data.get('seasons')]
 
         for season in season_id_list:
-            # initial data
             _, playlist_json = self._call_api(
                 slug=slug_sample, custom_id=playlist_id, season=season,
                 endpoint='season')
 
             season_list = traverse_obj(playlist_json, ('response', 'season_list'))
-            number_video_per_page = season_list.get('to') - season_list.get('from') + 1
-            number_of_pages = season_list.get('last_page')
 
-            yield from InAdvancePagedList(
-                functools.partial(
-                    self.parse_single_season_playlist, slug=slug_sample, custom_id=playlist_id,
-                    season_id=season, endpoint='season'),
-                number_of_pages, number_video_per_page)
+            current_page = 0
+            while current_page < season_list.get('last_page'):
+                yield from self.parse_single_season_playlist(
+                    current_page, slug=slug_sample, custom_id=playlist_id, season_id=season,
+                    endpoint='season')
+                current_page = current_page + 1
 
     def _real_extract(self, url):
         playlist_id, playlist_data = self._call_api(url)
