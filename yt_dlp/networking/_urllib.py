@@ -173,17 +173,6 @@ class YoutubeDLHandler(urllib.request.AbstractHTTPHandler):
         if url != url_escaped:
             req = update_Request(req, url=url_escaped)
 
-        for h, v in self._params.get('http_headers', make_std_headers()).items():
-            # Capitalize is needed because of Python bug 2275: http://bugs.python.org/issue2275
-            # The dict keys are capitalized because of this bug by urllib
-            if h.capitalize() not in req.headers:
-                req.add_header(h, v)
-
-        if 'Accept-encoding' not in req.headers:
-            req.add_header('Accept-encoding', ', '.join(SUPPORTED_ENCODINGS))
-
-        req.headers = handle_youtubedl_headers(req.headers)
-
         return super().do_request_(req)
 
     def http_response(self, req, resp):
@@ -437,6 +426,7 @@ def handle_response_read_exceptions(e):
 
 class UrllibRH(RequestHandler):
     SUPPORTED_SCHEMES = ['http', 'https', 'data', 'ftp']
+    _SUPPORTED_ENCODINGS = SUPPORTED_ENCODINGS
     NAME = 'urllib'
 
     def __init__(self, ydl):
@@ -488,9 +478,6 @@ class UrllibRH(RequestHandler):
     def _real_handle(self, request):
         urllib_req = urllib.request.Request(
             url=request.url, data=request.data, headers=dict(request.headers), method=request.method)
-
-        if not request.compression:
-            urllib_req.add_header('Youtubedl-no-compression', '1')
 
         try:
             res = self.get_opener(request).open(urllib_req, timeout=request.timeout)

@@ -259,6 +259,9 @@ class RequestHandler:
 
     SUPPORTED_SCHEMES: list = None
 
+    # List of supported content encodings for Accept-Encoding header
+    _SUPPORTED_ENCODINGS: list = None
+
     def __init__(self, ydl: YoutubeDL):
         self._set_ydl(ydl)
         self.cookiejar = self.ydl.cookiejar
@@ -320,6 +323,12 @@ class RequestHandler:
         if 'Youtubedl-no-compression' in request.headers:
             del request.headers['Youtubedl-no-compression']
             request.compression = False
+
+        if self._SUPPORTED_ENCODINGS:
+            request.headers['Accept-Encoding'] = ', '.join(self._SUPPORTED_ENCODINGS)
+
+        if not request.compression:
+            request.headers.pop('Accept-Encoding', None)
 
         # Proxy preference: header req proxy > req proxies > ydl opt proxies > env proxies
         request.proxies = {**self.ydl.proxies, **request.proxies}
