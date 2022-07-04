@@ -39,7 +39,7 @@ from .networking import (
     RequestDirector,
     UrllibRH,
 )
-from .networking.utils import make_std_headers
+from .networking.utils import std_headers
 from .postprocessor import _PLUGIN_CLASSES as plugin_postprocessors
 from .postprocessor import (
     EmbedThumbnailPP,
@@ -677,7 +677,7 @@ class YoutubeDL:
             else self.build_format_selector(self.params['format']))
 
         # Set http_headers defaults according to std_headers
-        self.params['http_headers'] = CaseInsensitiveDict(make_std_headers(), self.params.get('http_headers', {}))
+        self.params['http_headers'] = CaseInsensitiveDict(std_headers, self.params.get('http_headers', {}))
 
         hooks = {
             'post_hooks': self.add_post_hook,

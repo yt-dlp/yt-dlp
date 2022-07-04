@@ -16,7 +16,7 @@ from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .extractor.common import InfoExtractor
-from .networking.utils import make_std_headers
+from .networking.utils import std_headers
 from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
@@ -873,7 +873,7 @@ def _real_main(argv=None):
 
     # Dump user agent
     if opts.dump_user_agent:
-        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=make_std_headers()['User-Agent'])
+        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
         write_string(f'{ua}\n', out=sys.stdout)
         return
 

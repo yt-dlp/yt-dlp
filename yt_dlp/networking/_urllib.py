@@ -26,10 +26,8 @@ from urllib.request import (
 from .common import Response, RequestHandler
 from .utils import (
     get_redirect_method,
-    handle_youtubedl_headers,
-    make_std_headers,
     select_proxy,
-    socks_create_proxy_args,
+    make_socks_proxy_opts,
     ssl_load_certs,
 )
 from ..dependencies import brotli
@@ -40,7 +38,13 @@ from ..utils import (
     sanitize_url,
     update_url_query,
 )
-from .exceptions import TransportError, HTTPError, IncompleteRead, SSLError, ProxyError, RequestError
+from .exceptions import (
+    TransportError,
+    HTTPError,
+    IncompleteRead,
+    SSLError,
+    ProxyError
+)
 
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
 
@@ -231,7 +235,7 @@ def make_socks_conn_class(base_class, socks_proxy):
     assert issubclass(base_class, (
         http.client.HTTPConnection, http.client.HTTPSConnection))
 
-    proxy_args = socks_create_proxy_args(socks_proxy)
+    proxy_args = make_socks_proxy_opts(socks_proxy)
 
     class SocksConnection(base_class):
         def connect(self):

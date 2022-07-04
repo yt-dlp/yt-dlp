@@ -4,18 +4,12 @@ import contextlib
 import random
 import ssl
 import sys
-import typing
 import urllib.parse
 import urllib.request
 
 from ..dependencies import certifi
 from ..socks import ProxyType
-from ..utils import CaseInsensitiveDict, std_headers, update_url_query, traverse_obj
-
-if typing.TYPE_CHECKING:
-    from http.cookiejar import CookieJar
-
-    from .common import Request
+from ..utils import CaseInsensitiveDict, traverse_obj
 
 
 def random_user_agent():
@@ -63,8 +57,7 @@ def random_user_agent():
     return _USER_AGENT_TPL % random.choice(_CHROME_VERSIONS)
 
 
-# Use make_std_headers() to get a copy of these
-_std_headers = CaseInsensitiveDict({
+std_headers = CaseInsensitiveDict({
     'User-Agent': random_user_agent(),
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'en-us,en;q=0.5',
@@ -72,6 +65,7 @@ _std_headers = CaseInsensitiveDict({
 })
 
 
+# XXX: do we need this still?
 def handle_youtubedl_headers(headers):
     filtered_headers = headers
 
@@ -111,7 +105,7 @@ def _ssl_load_windows_store_certs(ssl_context, storename):
             ssl_context.load_verify_locations(cadata=cert)
 
 
-def socks_create_proxy_args(socks_proxy):
+def make_socks_proxy_opts(socks_proxy):
     url_components = urllib.parse.urlparse(socks_proxy)
     if url_components.scheme.lower() == 'socks5':
         socks_type = ProxyType.SOCKS5
@@ -142,12 +136,6 @@ def select_proxy(url, proxies):
         'all'
     ]
     return traverse_obj(proxies, *priority)
-
-
-# Get a copy of std headers, while also retaining backwards compat with utils.std_headers
-# TODO: just make std_headers backwards compat with this
-def make_std_headers():
-    return CaseInsensitiveDict(_std_headers, std_headers)
 
 
 def get_redirect_method(method, status):

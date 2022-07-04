@@ -34,7 +34,7 @@ from .exceptions import UnsupportedRequest, RequestError
 if typing.TYPE_CHECKING:
     from ..YoutubeDL import YoutubeDL
 
-_REQ_DATA_TYPE = Union[bytes, typing.Iterable[bytes], typing.IO, None]
+_TYPE_REQ_DATA = Union[bytes, typing.Iterable[bytes], typing.IO, None]
 
 
 class Request:
@@ -56,7 +56,7 @@ class Request:
     def __init__(
             self,
             url: str,
-            data: _REQ_DATA_TYPE = None,
+            data: _TYPE_REQ_DATA = None,
             headers: typing.Mapping = None,
             proxies: dict = None,
             query: dict = None,
@@ -97,7 +97,7 @@ class Request:
         return self._data
 
     @data.setter
-    def data(self, data: _REQ_DATA_TYPE):
+    def data(self, data: _TYPE_REQ_DATA):
         # Try catch some common mistakes
         if data is not None and (not isinstance(data, (bytes, io.IOBase, Iterable)) or isinstance(data, (str, Mapping))):
             raise TypeError('data must be bytes, iterable of bytes, or a file-like object')
@@ -267,7 +267,7 @@ class RequestHandler:
         self.cookiejar = self.ydl.cookiejar
 
     def _set_ydl(self, ydl):
-        # TODO: this sucks
+        # FIXME: this is ugly
         self.ydl = ydl
 
         for func in (
@@ -397,7 +397,6 @@ class RequestDirector:
 
     def get_handlers(self, handler=None):
         """Get all handlers for a particular class type"""
-
         return [h for h in self._handlers if (type(h) == handler or h is handler)]
 
     def replace_handler(self, handler):

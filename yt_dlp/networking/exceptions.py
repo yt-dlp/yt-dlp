@@ -18,9 +18,6 @@ class RequestError(YoutubeDLError):
             msg = str(cause)
         super().__init__(msg)
 
-    def __str__(self):
-        return self.msg + (f' (caused by {self.cause.__class__.__name__})' if self.cause else '')
-
 
 class UnsupportedRequest(RequestError):
     """raised when a handler cannot handle a request"""
@@ -31,7 +28,7 @@ class TransportError(RequestError):
     """Network related errors"""
 
 
-# Backwards compatible with urllib.error.HTTPError
+# Backwards compat with urllib.error.HTTPError
 class HTTPError(urllib.error.HTTPError, RequestError):
     def __init__(self, response: Response, redirect_loop=False):
         self.response = response
