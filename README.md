@@ -496,17 +496,18 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     is not present. Metadata fields must be 
                                     specified with LHS order: 
                                     `duration > 60` instead of `60 < duration` 
-                                    "&" can be used to boolean AND multiple conditions.
-                                    Multiple "--match-filter" arguments
-                                    will be applied as boolean OR.
+                                    "&" can be used to boolean AND multiple 
+                                    conditions. Multiple "--match-filter" 
+                                    arguments will be applied as boolean OR.
                                     Eg:
-                                    --match-filter !is_live --match-filter "like_count>?100 &
-                                    description~='(?i)\bcats \& dogs\b'" matches
-                                    only videos that are not live OR those that
-                                    have a like count more than 100 (or the like
-                                    field is not available) and also has a
-                                    description that contains the phrase "cats &
-                                    dogs" (caseless). Use "--match-filter -" to
+                                    --match-filter !is_live --match-filter 
+                                    "like_count>?100 & description~='(?i)\bcats 
+                                    \& dogs\b'" matches only videos that are 
+                                    not live OR those that have a like count 
+                                    more than 100 (or the like field is not 
+                                    available) and also has a description that 
+                                    contains the phrase "cats & dogs" 
+                                    (caseless). Use "--match-filter -" to
                                     interactively ask whether to download each
                                     video
     --no-match-filter               Do not use generic video filter (default)
