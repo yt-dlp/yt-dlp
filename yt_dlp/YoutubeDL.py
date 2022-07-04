@@ -43,9 +43,11 @@ from .postprocessor import (
     FFmpegFixupTimestampPP,
     FFmpegMergerPP,
     FFmpegPostProcessor,
+    FFmpegVideoConvertorPP,
     MoveFilesAfterDownloadPP,
     get_postprocessor,
 )
+from .postprocessor.ffmpeg import resolve_mapping
 from .update import detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
@@ -3172,6 +3174,23 @@ class YoutubeDL:
                         else:
                             self.report_warning(f'{vid}: {msg}. Install ffmpeg to fix this automatically')
 
+                    def gets_converted(ext):
+                        """
+                        Returns True if the given ext is going to be converted to some other container than ext
+                        """
+
+                        if not ext:
+                            return False
+                        pps = self._pps['post_process']
+                        for p in pps:
+                            # Remux is covered here
+                            if not isinstance(p, FFmpegVideoConvertorPP):
+                                continue
+                            nex, _ = resolve_mapping(ext, p.mapping)
+                            if nex and nex != ext:
+                                return True
+                        return False
+
                     stretched_ratio = info_dict.get('stretched_ratio')
                     ffmpeg_fixup(
                         stretched_ratio not in (1, None),
@@ -3181,14 +3200,15 @@ class YoutubeDL:
                     ffmpeg_fixup(
                         (info_dict.get('requested_formats') is None
                          and info_dict.get('container') == 'm4a_dash'
-                         and info_dict.get('ext') == 'm4a'),
+                         and info_dict.get('ext') == 'm4a'
+                         and not gets_converted('m4a')),
                         'writing DASH m4a. Only some players support this container',
                         FFmpegFixupM4aPP)
 
                     downloader = get_suitable_downloader(info_dict, self.params) if 'protocol' in info_dict else None
                     downloader = downloader.FD_NAME if downloader else None
 
-                    if info_dict.get('requested_formats') is None:  # Not necessary if doing merger
+                    if info_dict.get('requested_formats') is None and not gets_converted(info_dict.get('ext')):  # Not necessary if doing merger
                         ffmpeg_fixup(downloader == 'hlsnative' and not self.params.get('hls_use_mpegts')
                                      or info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None,
                                      'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
