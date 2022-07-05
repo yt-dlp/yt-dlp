@@ -1,9 +1,8 @@
 import json
 import time
+import urllib.error
 
 from .fragment import FragmentFD
-from ..compat import compat_urllib_error
-from ..extractor.youtube import YoutubeBaseInfoExtractor as YT_BaseIE
 from ..utils import RegexNotFoundError, dict_get, int_or_none, try_get
 
 
@@ -26,7 +25,9 @@ class YoutubeLiveChatFD(FragmentFD):
             'total_frags': None,
         }
 
-        ie = YT_BaseIE(self.ydl)
+        from ..extractor.youtube import YoutubeBaseInfoExtractor
+
+        ie = YoutubeBaseInfoExtractor(self.ydl)
 
         start_time = int(time.time() * 1000)
 
@@ -127,7 +128,7 @@ class YoutubeLiveChatFD(FragmentFD):
                     elif info_dict['protocol'] == 'youtube_live_chat':
                         continuation_id, offset, click_tracking_params = parse_actions_live(live_chat_continuation)
                     return True, continuation_id, offset, click_tracking_params
-                except compat_urllib_error.HTTPError as err:
+                except urllib.error.HTTPError as err:
                     count += 1
                     if count <= fragment_retries:
                         self.report_retry_fragment(err, frag_index, count, fragment_retries)

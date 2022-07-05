@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-import contextlib
+
+# Allow direct execution
 import os
-import subprocess
 import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+import contextlib
+import subprocess
 
 from yt_dlp.utils import encodeArgument
 

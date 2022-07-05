@@ -2,9 +2,9 @@ import binascii
 import io
 import struct
 import time
+import urllib.error
 
 from .fragment import FragmentFD
-from ..compat import compat_urllib_error
 
 u8 = struct.Struct('>B')
 u88 = struct.Struct('>Bx')
@@ -268,7 +268,7 @@ class IsmFD(FragmentFD):
                         extra_state['ism_track_written'] = True
                     self._append_fragment(ctx, frag_content)
                     break
-                except compat_urllib_error.HTTPError as err:
+                except urllib.error.HTTPError as err:
                     count += 1
                     if count <= fragment_retries:
                         self.report_retry_fragment(err, frag_index, count, fragment_retries)

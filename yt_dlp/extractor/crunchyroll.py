@@ -1,19 +1,20 @@
 import base64
-import re
 import json
-import zlib
-
+import re
+import urllib.request
 import xml.etree.ElementTree
+import zlib
 from hashlib import sha1
-from math import pow, sqrt, floor
+from math import floor, pow, sqrt
+
 from .common import InfoExtractor
 from .vrv import VRVBaseIE
+from ..aes import aes_cbc_decrypt
 from ..compat import (
     compat_b64decode,
     compat_etree_fromstring,
     compat_str,
     compat_urllib_parse_urlencode,
-    compat_urllib_request,
     compat_urlparse,
 )
 from ..utils import (
@@ -22,8 +23,8 @@ from ..utils import (
     extract_attributes,
     float_or_none,
     format_field,
-    intlist_to_bytes,
     int_or_none,
+    intlist_to_bytes,
     join_nonempty,
     lowercase_escape,
     merge_dicts,
@@ -33,9 +34,6 @@ from ..utils import (
     traverse_obj,
     try_get,
     xpath_text,
-)
-from ..aes import (
-    aes_cbc_decrypt,
 )
 
 
@@ -259,7 +257,7 @@ class CrunchyrollIE(CrunchyrollBaseIE, VRVBaseIE):
     }
 
     def _download_webpage(self, url_or_request, *args, **kwargs):
-        request = (url_or_request if isinstance(url_or_request, compat_urllib_request.Request)
+        request = (url_or_request if isinstance(url_or_request, urllib.request.Request)
                    else sanitized_Request(url_or_request))
         # Accept-Language must be set explicitly to accept any language to avoid issues
         # similar to https://github.com/ytdl-org/youtube-dl/issues/6797.
@@ -728,11 +726,12 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
                 headers={
                     'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']
                 })
-            bucket = policy_response['cms']['bucket']
+            cms = traverse_obj(policy_response, 'cms_beta', 'cms')
+            bucket = cms['bucket']
             params = {
-                'Policy': policy_response['cms']['policy'],
-                'Signature': policy_response['cms']['signature'],
-                'Key-Pair-Id': policy_response['cms']['key_pair_id']
+                'Policy': cms['policy'],
+                'Signature': cms['signature'],
+                'Key-Pair-Id': cms['key_pair_id']
             }
             locale = traverse_obj(initial_state, ('localization', 'locale'))
             if locale:

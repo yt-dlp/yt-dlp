@@ -1,36 +1,34 @@
-import re
 import json
+import re
+import urllib.parse
+
 from .common import InfoExtractor
-from .youtube import YoutubeIE, YoutubeBaseInfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_unquote_plus,
-    compat_HTTPError
-)
+from .youtube import YoutubeBaseInfoExtractor, YoutubeIE
+from ..compat import compat_HTTPError, compat_urllib_parse_unquote
 from ..utils import (
+    KNOWN_EXTENSIONS,
+    ExtractorError,
+    HEADRequest,
     bug_reports_message,
     clean_html,
     dict_get,
     extract_attributes,
-    ExtractorError,
     get_element_by_id,
-    HEADRequest,
     int_or_none,
     join_nonempty,
-    KNOWN_EXTENSIONS,
     merge_dicts,
     mimetype2ext,
     orderedSet,
     parse_duration,
     parse_qs,
-    str_to_int,
     str_or_none,
+    str_to_int,
     traverse_obj,
     try_get,
     unified_strdate,
     unified_timestamp,
+    url_or_none,
     urlhandle_detect_ext,
-    url_or_none
 )
 
 
@@ -143,7 +141,7 @@ class ArchiveOrgIE(InfoExtractor):
         return json.loads(extract_attributes(element)['value'])
 
     def _real_extract(self, url):
-        video_id = compat_urllib_parse_unquote_plus(self._match_id(url))
+        video_id = urllib.parse.unquote_plus(self._match_id(url))
         identifier, entry_id = (video_id.split('/', 1) + [None])[:2]
 
         # Archive.org metadata API doesn't clearly demarcate playlist entries
@@ -442,9 +440,10 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'only_matching': True
         },
     ]
-    _YT_INITIAL_DATA_RE = r'(?:(?:(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;)|%s)' % YoutubeBaseInfoExtractor._YT_INITIAL_DATA_RE
-    _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s)' % YoutubeBaseInfoExtractor._YT_INITIAL_PLAYER_RESPONSE_RE
-    _YT_INITIAL_BOUNDARY_RE = r'(?:(?:var\s+meta|</script|\n)|%s)' % YoutubeBaseInfoExtractor._YT_INITIAL_BOUNDARY_RE
+    _YT_INITIAL_DATA_RE = YoutubeBaseInfoExtractor._YT_INITIAL_DATA_RE
+    _YT_INITIAL_PLAYER_RESPONSE_RE = fr'''(?x)
+        (?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*|
+        {YoutubeBaseInfoExtractor._YT_INITIAL_PLAYER_RESPONSE_RE}'''
 
     _YT_DEFAULT_THUMB_SERVERS = ['i.ytimg.com']  # thumbnails most likely archived on these servers
     _YT_ALL_THUMB_SERVERS = orderedSet(
@@ -474,11 +473,6 @@ class YoutubeWebArchiveIE(InfoExtractor):
         elif not isinstance(res, list) or len(res) != 0:
             self.report_warning('Error while parsing CDX API response' + bug_reports_message())
 
-    def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
-        return self._parse_json(self._search_regex(
-            (fr'{regex}\s*{self._YT_INITIAL_BOUNDARY_RE}',
-             regex), webpage, name, default='{}'), video_id, fatal=False)
-
     def _extract_webpage_title(self, webpage):
         page_title = self._html_extract_title(webpage, default='')
         # YouTube video pages appear to always have either 'YouTube -' as prefix or '- YouTube' as suffix.
@@ -488,10 +482,11 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
     def _extract_metadata(self, video_id, webpage):
         search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None)) if webpage else (lambda x: None))
-        player_response = self._extract_yt_initial_variable(
-            webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE, video_id, 'initial player response') or {}
-        initial_data = self._extract_yt_initial_variable(
-            webpage, self._YT_INITIAL_DATA_RE, video_id, 'initial player response') or {}
+        player_response = self._search_json(
+            self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response',
+            video_id, default={})
+        initial_data = self._search_json(
+            self._YT_INITIAL_DATA_RE, webpage, 'initial data', video_id, default={})
 
         initial_data_video = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'videoPrimaryInfoRenderer'),

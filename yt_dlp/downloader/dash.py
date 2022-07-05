@@ -1,7 +1,7 @@
 import time
 
+from . import get_suitable_downloader
 from .fragment import FragmentFD
-from ..downloader import get_suitable_downloader
 from ..utils import urljoin
 
 
@@ -73,6 +73,7 @@ class DashSegmentsFD(FragmentFD):
 
             yield {
                 'frag_index': frag_index,
+                'fragment_count': fragment.get('fragment_count'),
                 'index': i,
                 'url': fragment_url,
             }

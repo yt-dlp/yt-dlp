@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
@@ -6,10 +7,12 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import threading
-from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
 
-from yt_dlp.compat import compat_etree_fromstring, compat_http_server
+import http.server
+import threading
+
+from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
+from yt_dlp.compat import compat_etree_fromstring
 from yt_dlp.extractor import YoutubeIE, get_info_extractor
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import (
@@ -23,7 +26,7 @@ TEAPOT_RESPONSE_STATUS = 418
 TEAPOT_RESPONSE_BODY = "<h1>418 I'm a teapot</h1>"
 
 
-class InfoExtractorTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
+class InfoExtractorTestRequestHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
@@ -498,6 +501,24 @@ class TestInfoExtractor(unittest.TestCase):
             {
                 'formats': [{
                     'url': 'https://www.klarna.com/uk/wp-content/uploads/sites/11/2019/01/KL062_Smooth3_0_DogWalking_5s_920x080_.mp4',
+                    'ext': 'mp4',
+                }],
+            })
+
+        # from https://0000.studio/
+        # with type attribute but without extension in URL
+        expect_dict(
+            self,
+            self.ie._parse_html5_media_entries(
+                'https://0000.studio',
+                r'''
+                <video src="https://d1ggyt9m8pwf3g.cloudfront.net/protected/ap-northeast-1:1864af40-28d5-492b-b739-b32314b1a527/archive/clip/838db6a7-8973-4cd6-840d-8517e4093c92"
+                    controls="controls" type="video/mp4" preload="metadata" autoplay="autoplay" playsinline class="object-contain">
+                </video>
+                ''', None)[0],
+            {
+                'formats': [{
+                    'url': 'https://d1ggyt9m8pwf3g.cloudfront.net/protected/ap-northeast-1:1864af40-28d5-492b-b739-b32314b1a527/archive/clip/838db6a7-8973-4cd6-840d-8517e4093c92',
                     'ext': 'mp4',
                 }],
             })
@@ -1637,7 +1658,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         # or the underlying `_download_webpage_handle` returning no content
         # when a response matches `expected_status`.
 
-        httpd = compat_http_server.HTTPServer(
+        httpd = http.server.HTTPServer(
             ('127.0.0.1', 0), InfoExtractorTestRequestHandler)
         port = http_server_port(httpd)
         server_thread = threading.Thread(target=httpd.serve_forever)

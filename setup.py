@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import os.path
 import sys
 import warnings
@@ -36,7 +37,7 @@ REQUIREMENTS = read('requirements.txt').splitlines()
 
 
 if sys.argv[1:2] == ['py2exe']:
-    import py2exe
+    import py2exe  # noqa: F401
     warnings.warn(
         'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
         'The recommended way is to use "pyinst.py" to build using pyinstaller')
@@ -140,6 +141,9 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: Implementation',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',

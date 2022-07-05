@@ -4,12 +4,14 @@ import http.client
 import json
 import math
 import os
+import struct
 import time
+import urllib.error
 
 from .common import FileDownloader
 from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import compat_os_name, compat_struct_pack, compat_urllib_error
+from ..compat import compat_os_name
 from ..utils import (
     DownloadError,
     encodeFilename,
@@ -23,11 +25,7 @@ class HttpQuietDownloader(HttpFD):
     def to_screen(self, *args, **kargs):
         pass
 
-    console_title = to_screen
-
-    def report_retry(self, err, count, retries):
-        super().to_screen(
-            f'[download] Got server HTTP error: {err}. Retrying (attempt {count} of {self.format_retries(retries)}) ...')
+    to_console_title = to_screen
 
 
 class FragmentFD(FileDownloader):
@@ -70,6 +68,7 @@ class FragmentFD(FileDownloader):
         self.to_screen(
             '\r[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
             % (error_to_compat_str(err), frag_index, count, self.format_retries(retries)))
+        self.sleep_retry('fragment', count)
 
     def report_skip_fragment(self, frag_index, err=None):
         err = f' {err};' if err else ''
@@ -168,18 +167,11 @@ class FragmentFD(FileDownloader):
             total_frags_str = 'unknown (live)'
         self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
         self.report_destination(ctx['filename'])
-        dl = HttpQuietDownloader(
-            self.ydl,
-            {
-                'continuedl': self.params.get('continuedl', True),
-                'quiet': self.params.get('quiet'),
-                'noprogress': True,
-                'ratelimit': self.params.get('ratelimit'),
-                'retries': self.params.get('retries', 0),
-                'nopart': self.params.get('nopart', False),
-                'test': False,
-            }
-        )
+        dl = HttpQuietDownloader(self.ydl, {
+            **self.params,
+            'noprogress': True,
+            'test': False,
+        })
         tmpfilename = self.temp_name(ctx['filename'])
         open_mode = 'wb'
         resume_len = 0
@@ -251,6 +243,9 @@ class FragmentFD(FileDownloader):
         def frag_progress_hook(s):
             if s['status'] not in ('downloading', 'finished'):
                 return
+
+            if not total_frags and ctx.get('fragment_count'):
+                state['fragment_count'] = ctx['fragment_count']
 
             if ctx_id is not None and s.get('ctx_id') != ctx_id:
                 return
@@ -355,7 +350,7 @@ class FragmentFD(FileDownloader):
             decrypt_info = fragment.get('decrypt_info')
             if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
                 return frag_content
-            iv = decrypt_info.get('IV') or compat_struct_pack('>8xq', fragment['media_sequence'])
+            iv = decrypt_info.get('IV') or struct.pack('>8xq', fragment['media_sequence'])
             decrypt_info['KEY'] = decrypt_info.get('KEY') or _get_key(info_dict.get('_decryption_key_url') or decrypt_info['URI'])
             # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
             # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
@@ -460,10 +455,11 @@ class FragmentFD(FileDownloader):
             fatal, count = is_fatal(fragment.get('index') or (frag_index - 1)), 0
             while count <= fragment_retries:
                 try:
+                    ctx['fragment_count'] = fragment.get('fragment_count')
                     if self._download_fragment(ctx, fragment['url'], info_dict, headers):
                         break
                     return
-                except (compat_urllib_error.HTTPError, http.client.IncompleteRead) as err:
+                except (urllib.error.HTTPError, http.client.IncompleteRead) as err:
                     # Unavailable (possibly temporary) fragments may be served.
                     # First we try to retry then either skip or abort.
                     # See https://github.com/ytdl-org/youtube-dl/issues/10165,
@@ -506,12 +502,20 @@ class FragmentFD(FileDownloader):
 
             self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
             with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
-                for fragment, frag_index, frag_filename in pool.map(_download_fragment, fragments):
-                    ctx['fragment_filename_sanitized'] = frag_filename
-                    ctx['fragment_index'] = frag_index
-                    result = append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index, ctx)
-                    if not result:
-                        return False
+                try:
+                    for fragment, frag_index, frag_filename in pool.map(_download_fragment, fragments):
+                        ctx.update({
+                            'fragment_filename_sanitized': frag_filename,
+                            'fragment_index': frag_index,
+                        })
+                        if not append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index, ctx):
+                            return False
+                except KeyboardInterrupt:
+                    self._finish_multiline_status()
+                    self.report_error(
+                        'Interrupted by user. Waiting for all threads to shutdown...', is_error=False, tb=False)
+                    pool.shutdown(wait=False)
+                    raise
         else:
             for fragment in fragments:
                 if not interrupt_trigger[0]:

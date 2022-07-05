@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
+
+# Allow direct execution
 import os
-import optparse
 import sys
-from inspect import getsource
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
+import optparse
+from inspect import getsource
 
 NO_ATTR = object()
 STATIC_CLASS_PROPERTIES = ['IE_NAME', 'IE_DESC', 'SEARCH_KEY', '_WORKING', '_NETRC_MACHINE', 'age_limit']
@@ -53,7 +56,7 @@ def get_all_ies():
     if os.path.exists(PLUGINS_DIRNAME):
         os.rename(PLUGINS_DIRNAME, BLOCKED_DIRNAME)
     try:
-        from yt_dlp.extractor import _ALL_CLASSES
+        from yt_dlp.extractor.extractors import _ALL_CLASSES
     finally:
         if os.path.exists(BLOCKED_DIRNAME):
             os.rename(BLOCKED_DIRNAME, PLUGINS_DIRNAME)
@@ -91,7 +94,7 @@ def sort_ies(ies, ignored_bases):
         for c in classes[:]:
             bases = set(c.__bases__) - {object, *ignored_bases}
             restart = False
-            for b in bases:
+            for b in sorted(bases, key=lambda x: x.__name__):
                 if b not in classes and b not in returned_classes:
                     assert b.__name__ != 'GenericIE', 'Cannot inherit from GenericIE'
                     classes.insert(0, b)

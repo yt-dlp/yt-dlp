@@ -1,15 +1,15 @@
 import hashlib
 import itertools
 import re
+import urllib.parse
 
+from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse,
-)
+from .youtube import YoutubeIE
+from ..compat import compat_str
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     int_or_none,
     mimetype2ext,
     parse_iso8601,
@@ -17,9 +17,6 @@ from ..utils import (
     try_get,
     url_or_none,
 )
-
-from .brightcove import BrightcoveNewIE
-from .youtube import YoutubeIE
 
 
 class YahooIE(InfoExtractor):
@@ -333,7 +330,7 @@ class YahooSearchIE(SearchInfoExtractor):
 
     def _search_results(self, query):
         for pagenum in itertools.count(0):
-            result_url = 'http://video.search.yahoo.com/search/?p=%s&fr=screen&o=js&gs=0&b=%d' % (compat_urllib_parse.quote_plus(query), pagenum * 30)
+            result_url = 'http://video.search.yahoo.com/search/?p=%s&fr=screen&o=js&gs=0&b=%d' % (urllib.parse.quote_plus(query), pagenum * 30)
             info = self._download_json(result_url, query,
                                        note='Downloading results page ' + str(pagenum + 1))
             yield from (self.url_result(result['rurl']) for result in info['results'])
@@ -434,7 +431,7 @@ class YahooGyaOIE(InfoExtractor):
         page = 1
         while True:
             playlist = self._download_json(
-                f'https://gyao.yahoo.co.jp/api/programs/{program_id}/videos?page={page}', program_id,
+                f'https://gyao.yahoo.co.jp/api/programs/{program_id}/videos?page={page}&serviceId=gy', program_id,
                 note=f'Downloading JSON metadata page {page}')
             if not playlist:
                 break
