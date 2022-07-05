@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, str_or_none
+from ..utils import js_to_json, int_or_none, str_or_none
 
 
 class Detik20IE(InfoExtractor):
@@ -110,10 +110,16 @@ class Detik20IE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         json_ld_data = list(self._yield_json_ld(webpage, display_id))[0]
-
+        
+        embed_webpage = self._download_webpage(json_ld_data['embedUrl'], display_id)
+        json_webpage_data = self._search_json(
+            r'<script\s*src=["\w\.://?=]+>\s*', embed_webpage, 'json_webpage_data', 
+            display_id, transform_source=js_to_json)
+        self.write_debug(json_webpage_data)
         return {
+            '_type': 'url_transparent',
             'id': self._html_search_meta('video_id', webpage),
-            'url': json_ld_data['embedUrl'],
+            #'url': json_ld_data['embedUrl'],
             'ext': 'mp4',
             'title': json_ld_data.get('name') or self._og_search_title(webpage) or self._html_extract_title(webpage),
             'description': json_ld_data.get('description') or self._og_search_description(webpage) or self._html_search_meta('description', webpage),
