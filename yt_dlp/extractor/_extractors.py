@@ -376,6 +376,7 @@ from .deezer import (
     DeezerAlbumIE,
 )
 from .democracynow import DemocracynowIE
+from .detik import Detik20IE
 from .dfb import DFBIE
 from .dhm import DHMIE
 from .digg import DiggIE
