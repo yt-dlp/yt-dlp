@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import js_to_json, int_or_none, str_or_none
+from ..utils import int_or_none, str_or_none
 
 
 class Detik20IE(InfoExtractor):
@@ -108,19 +108,17 @@ class Detik20IE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-
         json_ld_data = list(self._yield_json_ld(webpage, display_id))[0]
-        
-        embed_webpage = self._download_webpage(json_ld_data['embedUrl'], display_id)
-        json_webpage_data = self._search_json(
-            r'<script\s*src=["\w\.://?=]+>\s*', embed_webpage, 'json_webpage_data', 
-            display_id, transform_source=js_to_json)
-        self.write_debug(json_webpage_data)
+
+        video_url = self._html_search_regex(
+            r'videoUrl\s*:\s*"(?P<video_url>[/\w+\.:]+)',
+            webpage, 'videoUrl')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id, ext='mp4')
+
         return {
-            '_type': 'url_transparent',
             'id': self._html_search_meta('video_id', webpage),
-            #'url': json_ld_data['embedUrl'],
-            'ext': 'mp4',
+            'formats': formats,
+            'subtitles': subtitles,
             'title': json_ld_data.get('name') or self._og_search_title(webpage) or self._html_extract_title(webpage),
             'description': json_ld_data.get('description') or self._og_search_description(webpage) or self._html_search_meta('description', webpage),
             'thumbnail': json_ld_data.get('thumbnailUrl') or self._og_search_thumbnail(webpage),
