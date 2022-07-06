@@ -111,8 +111,7 @@ class Detik20IE(InfoExtractor):
         json_ld_data = list(self._yield_json_ld(webpage, display_id))[0]
 
         video_url = self._html_search_regex(
-            r'videoUrl\s*:\s*"(?P<video_url>[/\w+\.:]+)',
-            webpage, 'videoUrl')
+            r'videoUrl\s*:\s*"(?P<video_url>[/\w+\.:]+)', webpage, 'videoUrl')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id, ext='mp4')
 
         return {
