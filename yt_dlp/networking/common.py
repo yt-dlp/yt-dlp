@@ -403,6 +403,16 @@ class RequestDirector:
         self.remove_handler(handler)
         self.add_handler(handler)
 
+    def is_supported(self, request: Request):
+        """Check if a request can be handled without making any requests"""
+        for handler in self._handlers:
+            try:
+                handler.prepare_request(request.copy())
+                return True
+            except UnsupportedRequest:
+                continue
+        return False
+
     def send(self, request: Union[Request, str, urllib.request.Request]) -> Response:
         """
         Passes a request onto a suitable RequestHandler
