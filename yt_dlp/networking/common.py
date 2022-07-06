@@ -311,7 +311,7 @@ class RequestHandler:
         raise NotImplementedError
 
     def _check_scheme(self, request: Request):
-        if self._SUPPORTED_ENCODINGS is None:
+        if self._SUPPORTED_SCHEMES is None:
             return
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
         if scheme == 'file':  # no other handler should handle this request
