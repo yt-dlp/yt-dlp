@@ -121,7 +121,7 @@ class Detik20IE(InfoExtractor):
             'title': json_ld_data.get('name') or self._og_search_title(webpage) or self._html_extract_title(webpage),
             'description': json_ld_data.get('description') or self._og_search_description(webpage) or self._html_search_meta('description', webpage),
             'thumbnail': json_ld_data.get('thumbnailUrl') or self._og_search_thumbnail(webpage),
-            'tags': str_or_none(json_ld_data.get('keywords') or self._html_search_meta(['keywords', 'keyword', 'dtk:keywords'], webpage)).split(','),
+            'tags': str_or_none(json_ld_data.get('keywords') or self._html_search_meta(['keywords', 'keyword', 'dtk:keywords'], webpage), '').split(','),
             'duration': int_or_none(self._html_search_meta('duration', webpage)),
             'timestamp': int_or_none(self._html_search_meta('dtk:publishdateunix', webpage), 1000)
         }
