@@ -257,7 +257,8 @@ class Response(io.IOBase):
 
 class RequestHandler:
 
-    SUPPORTED_SCHEMES: list = None
+    _SUPPORTED_SCHEMES: list = None
+    _SUPPORTED_PROXY_SCHEMES: list = None
 
     # List of supported content encodings for Accept-Encoding header
     _SUPPORTED_ENCODINGS: list = None
@@ -310,12 +311,24 @@ class RequestHandler:
         raise NotImplementedError
 
     def _check_scheme(self, request: Request):
+        if self._SUPPORTED_ENCODINGS is None:
+            return
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
         if scheme == 'file':  # no other handler should handle this request
             raise RequestError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
 
-        if scheme not in self.SUPPORTED_SCHEMES:
-            raise UnsupportedRequest(f'{scheme} scheme is not supported')
+        if scheme not in self._SUPPORTED_SCHEMES:
+            raise UnsupportedRequest(f'"unsupported scheme: "{scheme}"')
+
+    def _check_proxies(self, request: Request):
+        if self._SUPPORTED_PROXY_SCHEMES is None:
+            return
+        for proxy_key, proxy_url in request.proxies.items():
+            if proxy_url is None:
+                continue
+            scheme = urllib.parse.urlparse(proxy_url).scheme.lower()
+            if scheme not in self._SUPPORTED_PROXY_SCHEMES:
+                raise UnsupportedRequest(f'unsupported proxy type: "{scheme}"')
 
     def prepare_request(self, request: Request):
         self._check_scheme(request)
@@ -347,6 +360,7 @@ class RequestHandler:
                     request.proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
 
         request.timeout = float(request.timeout or self.ydl.params.get('socket_timeout') or 20)  # do not accept 0
+        self._check_proxies(request)
         return self._prepare_request(request)
 
     def _prepare_request(self, request: Request):
