@@ -2212,7 +2212,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'params': {'skip_download': True}
         }, {
             # Story. Requires specific player params to work.
-            # Note: stories get removed after some period of time
             'url': 'https://www.youtube.com/watch?v=vv8qTUWmulI',
             'info_dict': {
                 'id': 'vv8qTUWmulI',
@@ -2236,7 +2235,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'http://www.youtube.com/user/BlastfromthePast',
                 'channel_url': 'https://www.youtube.com/channel/UCzIZ8HrzDgc-pNQDUG6avBA',
             },
-            'skip': 'This video has been removed by the uploader',
+            'skip': 'stories get removed after some period of time',
         }, {
             'url': 'https://www.youtube.com/watch?v=tjjjtzRLHvA',
             'info_dict': {
@@ -5013,7 +5012,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': 'GgL890LIznQ',  # This will keep changing
+            'id': 'Wq15eF5vCbI',  # This will keep changing
             'ext': 'mp4',
             'title': str,
             'uploader': 'Sky News',
@@ -5790,13 +5789,11 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': '#cats',
             'title': '#cats',
-            'entries': [{
-                'url': r're:https://(www\.)?youtube\.com/hashtag/cats',
-                'title': '#cats',
-                'ie_key': 'YoutubeTab',
-                '_type': 'url',
-                '__x_forwarded_for_ip': None,
-            }],
+            # The test suite does not have support for nested playlists
+            # 'entries': [{
+            #     'url': r're:https://(www\.)?youtube\.com/hashtag/cats',
+            #     'title': '#cats',
+            # }],
         },
     }, {
         'url': 'https://www.youtube.com/results?q=test&sp=EgQIBBgB',
