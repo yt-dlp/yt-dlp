@@ -73,7 +73,7 @@ class AudiodraftCustomIE(AudiodraftBaseIE):
 
 class AudiodraftGenericIE(AudiodraftBaseIE):
     IE_NAME = 'Audiodraft:generic'
-    _VALID_URL = r'https?://www\.audiodraft\.com/contests/[^/#]+\#entries&eid=(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.audiodraft\.com/contests/[^/#]+#entries&eid=(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://www.audiodraft.com/contests/570-Score-A-Video-Surprise-Us#entries&eid=30138',
