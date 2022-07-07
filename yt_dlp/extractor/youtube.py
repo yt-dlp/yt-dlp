@@ -1074,6 +1074,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'age_limit': 0,
                 'start_time': 1,
                 'end_time': 9,
+                'comment_count': int,
                 'channel_follower_count': int
             }
         },
@@ -1118,6 +1119,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'thumbnail': 'https://i.ytimg.com/vi/BaW_jenozKc/maxresdefault.jpg',
                 'live_status': 'not_live',
                 'age_limit': 0,
+                'comment_count': int,
                 'channel_follower_count': int
             },
             'params': {
@@ -1260,6 +1262,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'categories': ['Entertainment'],
                 'duration': 106,
                 'channel_url': 'https://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
+                'comment_count': int,
                 'channel_follower_count': int
             },
         },
@@ -1347,7 +1350,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'upload_date': '20150827',
                 'uploader_id': 'olympic',
                 'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/olympic',
-                'description': 'HO09  - Women -  GER-AUS - Hockey - 31 July 2012 - London 2012 Olympic Games',
+                'description': 'md5:04bbbf3ccceb6795947572ca36f45904',
                 'uploader': 'Olympics',
                 'title': 'Hockey - Women -  GER-AUS - London 2012 Olympic Games',
                 'like_count': int,
@@ -1396,6 +1399,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'like_count': int,
                 'live_status': 'not_live',
                 'availability': 'unlisted',
+                'comment_count': int,
                 'channel_follower_count': int
             },
         },
@@ -1624,6 +1628,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'thumbnail': 'https://i.ytimg.com/vi_webp/M4gD1WSo5mA/maxresdefault.webp',
                 'live_status': 'not_live',
                 'playable_in_embed': True,
+                'comment_count': int,
                 'channel_follower_count': int
             },
             'params': {
@@ -1656,6 +1661,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'view_count': int,
                 'live_status': 'not_live',
                 'channel_url': 'https://www.youtube.com/channel/UCH1dpzjCEiGAt8CXkryhkZg',
+                'comment_count': int,
                 'channel_follower_count': int
             },
             'params': {
@@ -1920,6 +1926,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'view_count': int,
                 'duration': 522,
                 'channel': 'kudvenkat',
+                'comment_count': int,
                 'channel_follower_count': int
             },
             'params': {
@@ -2141,6 +2148,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'availability': 'public',
                 'channel': 'Leon Nguyen',
                 'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp',
+                'comment_count': int,
                 'channel_follower_count': int
             }
         }, {
@@ -2204,7 +2212,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'params': {'skip_download': True}
         }, {
             # Story. Requires specific player params to work.
-            # Note: stories get removed after some period of time
             'url': 'https://www.youtube.com/watch?v=vv8qTUWmulI',
             'info_dict': {
                 'id': 'vv8qTUWmulI',
@@ -2227,7 +2234,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'thumbnail': 'https://i.ytimg.com/vi_webp/vv8qTUWmulI/maxresdefault.webp',
                 'uploader_url': 'http://www.youtube.com/user/BlastfromthePast',
                 'channel_url': 'https://www.youtube.com/channel/UCzIZ8HrzDgc-pNQDUG6avBA',
-            }
+            },
+            'skip': 'stories get removed after some period of time',
         }, {
             'url': 'https://www.youtube.com/watch?v=tjjjtzRLHvA',
             'info_dict': {
@@ -5002,7 +5010,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     }, {
         'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
         'info_dict': {
-            'id': 'GgL890LIznQ',  # This will keep changing
+            'id': 'Wq15eF5vCbI',  # This will keep changing
             'ext': 'mp4',
             'title': str,
             'uploader': 'Sky News',
@@ -5122,7 +5130,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'NoCopyrightSounds',
             'description': 'Providing you with copyright free / safe music for gaming, live streaming, studying and more!',
             'uploader_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
-            'title': 'NCS Releases',
+            'title': 'NCS : All Releases 💿',
             'uploader_url': 'https://www.youtube.com/c/NoCopyrightSounds',
             'channel_url': 'https://www.youtube.com/c/NoCopyrightSounds',
             'modified_date': r're:\d{8}',
@@ -5191,7 +5199,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'yt-dlp unlisted playlist test',
             'availability': 'unlisted',
             'tags': [],
-            'modified_date': '20211208',
+            'modified_date': '20220418',
             'channel': 'colethedj',
             'view_count': int,
             'description': '',
@@ -5279,6 +5287,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': 'pukkandan',
             'description': 'Test for collaborative playlist',
             'title': 'yt-dlp test - collaborative playlist',
+            'view_count': int,
             'uploader_url': 'https://www.youtube.com/channel/UCKcqXmCcyqnhgpA5P0oHH_Q',
         },
         'playlist_mincount': 2
@@ -5486,7 +5495,7 @@ class YoutubePlaylistIE(InfoExtractor):
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
         'url': 'http://www.youtube.com/embed/_xDOZElKyNU?list=PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
-        'playlist_mincount': 654,
+        'playlist_mincount': 455,
         'info_dict': {
             'title': '2018 Chinese New Singles (11/6 updated)',
             'id': 'PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
@@ -5559,6 +5568,8 @@ class YoutubeYtBeIE(InfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCEfMCQ9bs3tjvjy1s451zaw',
             'availability': 'public',
             'duration': 59,
+            'comment_count': int,
+            'channel_follower_count': int
         },
         'params': {
             'noplaylist': True,
@@ -5776,10 +5787,11 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': '#cats',
             'title': '#cats',
-            'entries': [{
-                'url': r're:https://(www\.)?youtube\.com/hashtag/cats',
-                'title': '#cats',
-            }],
+            # The test suite does not have support for nested playlists
+            # 'entries': [{
+            #     'url': r're:https://(www\.)?youtube\.com/hashtag/cats',
+            #     'title': '#cats',
+            # }],
         },
     }, {
         'url': 'https://www.youtube.com/results?q=test&sp=EgQIBBgB',
@@ -5996,6 +6008,25 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'section_start': 29.0,
             'section_end': 39.7,
             'duration': 10.7,
+            'age_limit': 0,
+            'availability': 'public',
+            'categories': ['Gaming'],
+            'channel': 'Scott The Woz',
+            'channel_id': 'UC4rqhyiTs7XyuODcECvuiiQ',
+            'channel_url': 'https://www.youtube.com/channel/UC4rqhyiTs7XyuODcECvuiiQ',
+            'description': 'md5:7a4517a17ea9b4bd98996399d8bb36e7',
+            'like_count': int,
+            'playable_in_embed': True,
+            'tags': 'count:17',
+            'thumbnail': 'https://i.ytimg.com/vi_webp/ScPX26pdQik/maxresdefault.webp',
+            'title': 'Mobile Games on Console - Scott The Woz',
+            'upload_date': '20210920',
+            'uploader': 'Scott The Woz',
+            'uploader_id': 'scottthewoz',
+            'uploader_url': 'http://www.youtube.com/user/scottthewoz',
+            'view_count': int,
+            'live_status': 'not_live',
+            'channel_follower_count': int
         }
     }]
 
