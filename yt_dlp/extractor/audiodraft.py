@@ -27,7 +27,7 @@ class AudiodraftBaseIE(InfoExtractor):
 
 class AudiodraftCustomIE(AudiodraftBaseIE):
     IE_NAME = 'Audiodraft:custom'
-    _VALID_URL = r'https?://(?:[A-Za-z0-9\-]+)\.audiodraft\.com/entry/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[-\w]+)\.audiodraft\.com/entry/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'http://nokiatune.audiodraft.com/entry/5874',
