@@ -3776,25 +3776,6 @@ class GenericIE(InfoExtractor):
         elif embeds:
             return self.playlist_result(embeds, **info_dict)
 
-        # Look for HTML5 media
-        entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
-        if entries:
-            self.report_detected('HTML5 media')
-            if len(entries) == 1:
-                entries[0].update({
-                    'id': video_id,
-                    'title': video_title,
-                })
-            else:
-                for num, entry in enumerate(entries, start=1):
-                    entry.update({
-                        'id': f'{video_id}-{num}',
-                        'title': '%s (%d)' % (video_title, num),
-                    })
-            for entry in entries:
-                self._sort_formats(entry['formats'])
-            return self.playlist_result(entries, video_id, video_title)
-
         jwplayer_data = self._find_jwplayer_data(
             webpage, video_id, transform_source=js_to_json)
         if jwplayer_data:
