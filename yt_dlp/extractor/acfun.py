@@ -75,13 +75,13 @@ class AcFunVideoIE(InfoExtractor):
 
         video_info = json_all['currentVideoInfo']
         playjson = self._parse_json(video_info['ksPlayJson'], video_id)
-        video_inner_id = traverse_obj(json_all, ('currentVideoInfo', 'id'))
+        video_internal_id = traverse_obj(json_all, ('currentVideoInfo', 'id'))
 
         formats = self.parse_format_list(traverse_obj(playjson, ('adaptationSet', 0, 'representation')), video_id)
 
         video_list = json_all['videoList']
         p_idx, video_info = [(idx + 1, v) for (idx, v) in enumerate(video_list)
-                             if v['id'] == video_inner_id
+                             if v['id'] == video_internal_id
                              ][0]
 
         title = json_all['title']
