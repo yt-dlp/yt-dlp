@@ -2764,17 +2764,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not strict:
             chapter_list.sort(key=lambda c: c['start_time'] or 0)
 
-        chapters = [{'start_time': 0, 'title': '<Untitled>'}]
+        chapters = [{'start_time': 0}]
         for idx, chapter in enumerate(chapter_list):
-            if chapter['start_time'] is None or not chapter['title']:
+            if chapter['start_time'] is None:
                 self.report_warning(f'Incomplete chapter {idx}')
             elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
-                chapters[-1]['end_time'] = chapter['start_time']
                 chapters.append(chapter)
             else:
                 self.report_warning(f'Invalid start time for chapter "{chapter["title"]}"')
-        chapters[-1]['end_time'] = duration
-        return chapters if len(chapters) > 1 and chapters[1]['start_time'] else chapters[1:]
+        return chapters[1:]
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')

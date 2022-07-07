@@ -2377,13 +2377,18 @@ class YoutubeDL:
             self.report_warning('"duration" field is negative, there is an error in extractor')
 
         chapters = info_dict.get('chapters') or []
+        if chapters and chapters[0].get('start_time'):
+            chapters.insert(0, {'start_time': 0})
+
         dummy_chapter = {'end_time': 0, 'start_time': info_dict.get('duration')}
-        for prev, current, next_ in zip(
-                (dummy_chapter, *chapters), chapters, (*chapters[1:], dummy_chapter)):
+        for idx, (prev, current, next_) in enumerate(zip(
+                (dummy_chapter, *chapters), chapters, (*chapters[1:], dummy_chapter)), 1):
             if current.get('start_time') is None:
                 current['start_time'] = prev.get('end_time')
             if not current.get('end_time'):
                 current['end_time'] = next_.get('start_time')
+            if not current.get('title'):
+                current['title'] = f'<Untitled Chapter {idx}>'
 
         if 'playlist' not in info_dict:
             # It isn't part of a playlist
