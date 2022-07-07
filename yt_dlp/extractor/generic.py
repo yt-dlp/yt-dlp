@@ -933,30 +933,6 @@ class GenericIE(InfoExtractor):
                 'skip_download': True,
             }
         },
-        # Camtasia studio
-        {
-            'url': 'http://www.ll.mit.edu/workshops/education/videocourses/antennas/lecture1/video/',
-            'playlist': [{
-                'md5': '0c5e352edabf715d762b0ad4e6d9ee67',
-                'info_dict': {
-                    'id': 'Fenn-AA_PA_Radar_Course_Lecture_1c_Final',
-                    'title': 'Fenn-AA_PA_Radar_Course_Lecture_1c_Final - video1',
-                    'ext': 'flv',
-                    'duration': 2235.90,
-                }
-            }, {
-                'md5': '10e4bb3aaca9fd630e273ff92d9f3c63',
-                'info_dict': {
-                    'id': 'Fenn-AA_PA_Radar_Course_Lecture_1c_Final_PIP',
-                    'title': 'Fenn-AA_PA_Radar_Course_Lecture_1c_Final - pip',
-                    'ext': 'flv',
-                    'duration': 2235.93,
-                }
-            }],
-            'info_dict': {
-                'title': 'Fenn-AA_PA_Radar_Course_Lecture_1c_Final',
-            }
-        },
         # Flowplayer
         {
             'url': 'http://www.handjobhub.com/video/busty-blonde-siri-tit-fuck-while-wank-6313.html',
@@ -2680,43 +2656,6 @@ class GenericIE(InfoExtractor):
             'entries': entries,
         }
 
-    def _extract_camtasia(self, url, video_id, webpage):
-        """ Returns None if no camtasia video can be found. """
-
-        camtasia_cfg = self._search_regex(
-            r'fo\.addVariable\(\s*"csConfigFile",\s*"([^"]+)"\s*\);',
-            webpage, 'camtasia configuration file', default=None)
-        if camtasia_cfg is None:
-            return None
-
-        title = self._html_search_meta('DC.title', webpage, fatal=True)
-
-        camtasia_url = urllib.parse.urljoin(url, camtasia_cfg)
-        camtasia_cfg = self._download_xml(
-            camtasia_url, video_id,
-            note='Downloading camtasia configuration',
-            errnote='Failed to download camtasia configuration')
-        fileset_node = camtasia_cfg.find('./playlist/array/fileset')
-
-        entries = []
-        for n in fileset_node.getchildren():
-            url_n = n.find('./uri')
-            if url_n is None:
-                continue
-
-            entries.append({
-                'id': os.path.splitext(url_n.text.rpartition('/')[2])[0],
-                'title': f'{title} - {n.tag}',
-                'url': urllib.parse.urljoin(url, url_n.text),
-                'duration': float_or_none(n.find('./duration').text),
-            })
-
-        return {
-            '_type': 'playlist',
-            'entries': entries,
-            'title': title,
-        }
-
     def _kvs_getrealurl(self, video_url, license_code):
         if not video_url.startswith('function/0/'):
             return video_url  # not obfuscated
@@ -2919,12 +2858,6 @@ class GenericIE(InfoExtractor):
                 return info_dict
         except xml.etree.ElementTree.ParseError:
             pass
-
-        # Is it a Camtasia project?
-        camtasia_res = self._extract_camtasia(url, video_id, webpage)
-        if camtasia_res is not None:
-            self.report_detected('Camtasia video')
-            return camtasia_res
 
         info_dict.update({
             # it's tempting to parse this further, but you would
@@ -3842,25 +3775,6 @@ class GenericIE(InfoExtractor):
             return {**info_dict, **embeds[0]}
         elif embeds:
             return self.playlist_result(embeds, **info_dict)
-
-        # Look for HTML5 media
-        entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
-        if entries:
-            self.report_detected('HTML5 media')
-            if len(entries) == 1:
-                entries[0].update({
-                    'id': video_id,
-                    'title': video_title,
-                })
-            else:
-                for num, entry in enumerate(entries, start=1):
-                    entry.update({
-                        'id': f'{video_id}-{num}',
-                        'title': '%s (%d)' % (video_title, num),
-                    })
-            for entry in entries:
-                self._sort_formats(entry['formats'])
-            return self.playlist_result(entries, video_id, video_title)
 
         jwplayer_data = self._find_jwplayer_data(
             webpage, video_id, transform_source=js_to_json)
