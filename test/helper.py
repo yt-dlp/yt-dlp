@@ -128,7 +128,7 @@ def expect_value(self, got, expected, field):
             f'Expected type {expected!r} for field {field}, but got value {got!r} of type {type(got)!r}')
     elif isinstance(expected, dict) and isinstance(got, dict):
         expect_dict(self, got, expected)
-    elif isinstance(expected, list) and isinstance(got, list):
+    elif isinstance(expected, list) and isinstance(got, (list, tuple)):
         self.assertEqual(
             len(expected), len(got),
             'Expect a list of length %d, but got a list of length %d for field %s' % (
