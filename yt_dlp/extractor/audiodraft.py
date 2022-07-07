@@ -2,7 +2,7 @@ from .common import InfoExtractor
 from ..utils import int_or_none
 
 
-class AudiodraftIE(InfoExtractor):
+class AudiodraftBaseIE(InfoExtractor):
     def _audiodraft_extract_from_id(self, player_entry_id):
         data_json = self._download_json(
             'https://www.audiodraft.com/scripts/general/player/getPlayerInfoNew.php', player_entry_id,
@@ -25,7 +25,7 @@ class AudiodraftIE(InfoExtractor):
         }
 
 
-class AudiodraftCustomIE(AudiodraftIE):
+class AudiodraftCustomIE(AudiodraftBaseIE):
     IE_NAME = 'Audiodraft:custom'
     _VALID_URL = r'https?://(?:[A-Za-z0-9\-]+)\.audiodraft\.com/entry/(?P<id>\d+)'
 
@@ -71,7 +71,7 @@ class AudiodraftCustomIE(AudiodraftIE):
         return self._audiodraft_extract_from_id(player_entry_id)
 
 
-class AudiodraftGenericIE(AudiodraftIE):
+class AudiodraftGenericIE(AudiodraftBaseIE):
     IE_NAME = 'Audiodraft:generic'
     _VALID_URL = r'https?://www\.audiodraft\.com/contests/[^/#]+\#entries&eid=(?P<id>\d+)'
 
