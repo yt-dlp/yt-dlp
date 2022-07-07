@@ -441,6 +441,7 @@ class IqIE(InfoExtractor):
         '1': 'zh_CN',
         '2': 'zh_TW',
         '3': 'en',
+        '4': 'kor',
         '18': 'th',
         '21': 'my',
         '23': 'vi',

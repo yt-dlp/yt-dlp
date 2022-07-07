@@ -111,7 +111,6 @@ from ..compat import compat_etree_fromstring
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
-    HEADRequest,
     UnsupportedError,
     determine_ext,
     dict_get,
@@ -124,7 +123,6 @@ from ..utils import (
     orderedSet,
     parse_duration,
     parse_resolution,
-    sanitized_Request,
     smuggle_url,
     str_or_none,
     try_call,
@@ -2807,49 +2805,30 @@ class GenericIE(InfoExtractor):
         else:
             video_id = self._generic_id(url)
 
-        self.to_screen('%s: Requesting header' % video_id)
-
-        head_req = HEADRequest(url)
-        head_response = self._request_webpage(
-            head_req, video_id,
-            note=False, errnote='Could not send HEAD request to %s' % url,
-            fatal=False)
-
-        if head_response is not False:
-            # Check for redirect
-            new_url = head_response.geturl()
-            if url != new_url:
-                self.report_following_redirect(new_url)
-                if force_videoid:
-                    new_url = smuggle_url(
-                        new_url, {'force_videoid': force_videoid})
-                return self.url_result(new_url)
-
-        def request_webpage():
-            request = sanitized_Request(url)
-            # Some webservers may serve compressed content of rather big size (e.g. gzipped flac)
-            # making it impossible to download only chunk of the file (yet we need only 512kB to
-            # test whether it's HTML or not). According to yt-dlp default Accept-Encoding
-            # that will always result in downloading the whole file that is not desirable.
-            # Therefore for extraction pass we have to override Accept-Encoding to any in order
-            # to accept raw bytes and being able to download only a chunk.
-            # It may probably better to solve this by checking Content-Type for application/octet-stream
-            # after HEAD request finishes, but not sure if we can rely on this.
-            request.add_header('Accept-Encoding', '*')
-            return self._request_webpage(request, video_id)
-
-        full_response = None
-        if head_response is False:
-            head_response = full_response = request_webpage()
+        # Some webservers may serve compressed content of rather big size (e.g. gzipped flac)
+        # making it impossible to download only chunk of the file (yet we need only 512kB to
+        # test whether it's HTML or not). According to yt-dlp default Accept-Encoding
+        # that will always result in downloading the whole file that is not desirable.
+        # Therefore for extraction pass we have to override Accept-Encoding to any in order
+        # to accept raw bytes and being able to download only a chunk.
+        # It may probably better to solve this by checking Content-Type for application/octet-stream
+        # after a HEAD request, but not sure if we can rely on this.
+        full_response = self._request_webpage(url, video_id, headers={'Accept-Encoding': '*'})
+        new_url = full_response.geturl()
+        if url != new_url:
+            self.report_following_redirect(new_url)
+            if force_videoid:
+                new_url = smuggle_url(new_url, {'force_videoid': force_videoid})
+            return self.url_result(new_url)
 
         info_dict = {
             'id': video_id,
             'title': self._generic_title(url),
-            'timestamp': unified_timestamp(head_response.headers.get('Last-Modified'))
+            'timestamp': unified_timestamp(full_response.headers.get('Last-Modified'))
         }
 
         # Check for direct link to a video
-        content_type = head_response.headers.get('Content-Type', '').lower()
+        content_type = full_response.headers.get('Content-Type', '').lower()
         m = re.match(r'^(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
         if m:
             self.report_detected('direct video link')
@@ -2878,7 +2857,6 @@ class GenericIE(InfoExtractor):
             self.report_warning(
                 '%s on generic information extractor.' % ('Forcing' if force else 'Falling back'))
 
-        full_response = full_response or request_webpage()
         first_bytes = full_response.read(512)
 
         # Is it an M3U playlist?
@@ -4103,7 +4081,7 @@ class GenericIE(InfoExtractor):
                 webpage)
             if not found:
                 # Look also in Refresh HTTP header
-                refresh_header = head_response.headers.get('Refresh')
+                refresh_header = full_response.headers.get('Refresh')
                 if refresh_header:
                     found = re.search(REDIRECT_REGEX, refresh_header)
             if found:
