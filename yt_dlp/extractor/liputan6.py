@@ -17,11 +17,9 @@ class Liputan6IE(InfoExtractor):
         
         json_data = self._search_json(
         r'window.kmklabs.gtm\s*=\s*', webpage, 'json_data', display_id)
-        
-        m3u8_url = None
+       
         video_id = json_data['videos']['video_1']['video_id']
-        if json_data['videoSource'] == 'Vidio':
-            m3u8_url = f'https://www.vidio.com/videos/{video_id}/common_tokenized_playlist.m3u8'
+        m3u8_url = f'https://www.vidio.com/videos/{video_id}/common_tokenized_playlist.m3u8'
         
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
         
