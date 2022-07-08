@@ -55,10 +55,7 @@ class Liputan6IE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        
-        article_json_data = self._search_json(
-            r'window.kmklabs.article\s*=\s*', webpage, 'article_json_data', display_id)
-        
+ 
         json_data = self._search_json(
             r'window.kmklabs.gtm\s*=\s*', webpage, 'json_data', display_id) 
         video_id = json_data['videos']['video_1']['video_id']
