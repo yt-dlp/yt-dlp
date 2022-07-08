@@ -46,6 +46,7 @@ from .postprocessor import (
     MoveFilesAfterDownloadPP,
     get_postprocessor,
 )
+from .postprocessor.ffmpeg import EXT_TO_OUT_FORMATS
 from .update import detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
@@ -3003,7 +3004,9 @@ class YoutubeDL:
                     file = self.existing_file(itertools.chain(*zip(map(converted, filepaths), filepaths)),
                                               default_overwrite=False)
                     if file:
-                        info_dict['ext'] = os.path.splitext(file)[1][1:]
+                        existing_ext = os.path.splitext(file)[1][1:]
+                        if existing_ext in EXT_TO_OUT_FORMATS.keys():
+                            info_dict['ext'] = existing_ext
                     return file
 
                 fd, success = None, True
