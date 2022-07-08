@@ -1908,6 +1908,10 @@ class DateRange:
     def __str__(self):
         return f'{self.start.isoformat()} - {self.end.isoformat()}'
 
+    def __eq__(self, other):
+        return (isinstance(other, DateRange)
+                and self.start == other.start and self.end == other.end)
+
 
 def platform_name():
     """ Returns the platform name as a str """
@@ -2660,7 +2664,7 @@ class LazyList(collections.abc.Sequence):
 
     @staticmethod
     def _reverse_index(x):
-        return None if x is None else -(x + 1)
+        return None if x is None else ~x
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):
@@ -3662,21 +3666,26 @@ def match_filter_func(filters):
     return _match_func
 
 
-def download_range_func(chapters, ranges):
-    def inner(info_dict, ydl):
+class download_range_func:
+    def __init__(self, chapters, ranges):
+        self.chapters, self.ranges = chapters, ranges
+
+    def __call__(self, info_dict, ydl):
         warning = ('There are no chapters matching the regex' if info_dict.get('chapters')
                    else 'Cannot match chapters since chapter information is unavailable')
-        for regex in chapters or []:
+        for regex in self.chapters or []:
             for i, chapter in enumerate(info_dict.get('chapters') or []):
                 if re.search(regex, chapter['title']):
                     warning = None
                     yield {**chapter, 'index': i}
-        if chapters and warning:
+        if self.chapters and warning:
             ydl.to_screen(f'[info] {info_dict["id"]}: {warning}')
 
-        yield from ({'start_time': start, 'end_time': end} for start, end in ranges or [])
+        yield from ({'start_time': start, 'end_time': end} for start, end in self.ranges or [])
 
-    return inner
+    def __eq__(self, other):
+        return (isinstance(other, download_range_func)
+                and self.chapters == other.chapters and self.ranges == other.ranges)
 
 
 def parse_dfxp_time_expr(time_expr):
