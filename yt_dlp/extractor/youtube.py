@@ -2266,6 +2266,42 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
     ]
 
+    _WEBPAGE_TESTS = [
+        # YouTube <object> embed
+        {
+            'url': 'http://www.improbable.com/2017/04/03/untrained-modern-youths-and-ancient-masters-in-selfie-portraits/',
+            'md5': '873c81d308b979f0e23ee7e620b312a3',
+            'info_dict': {
+                'id': 'msN87y-iEx0',
+                'ext': 'mp4',
+                'title': 'Feynman: Mirrors FUN TO IMAGINE 6',
+                'upload_date': '20080526',
+                'description': 'md5:873c81d308b979f0e23ee7e620b312a3',
+                'uploader': 'Christopher Sykes',
+                'uploader_id': 'ChristopherJSykes',
+                'age_limit': 0,
+                'tags': ['feynman', 'mirror', 'science', 'physics', 'imagination', 'fun', 'cool', 'puzzle'],
+                'channel_id': 'UCCeo--lls1vna5YJABWAcVA',
+                'playable_in_embed': True,
+                'thumbnail': 'https://i.ytimg.com/vi/msN87y-iEx0/hqdefault.jpg',
+                'like_count': int,
+                'comment_count': int,
+                'channel': 'Christopher Sykes',
+                'live_status': 'not_live',
+                'channel_url': 'https://www.youtube.com/channel/UCCeo--lls1vna5YJABWAcVA',
+                'availability': 'public',
+                'duration': 195,
+                'view_count': int,
+                'categories': ['Science & Technology'],
+                'channel_follower_count': int,
+                'uploader_url': 'http://www.youtube.com/user/ChristopherJSykes',
+            },
+            'params': {
+                'skip_download': True,
+            }
+        },
+    ]
+
     @classmethod
     def suitable(cls, url):
         from ..utils import parse_qs
