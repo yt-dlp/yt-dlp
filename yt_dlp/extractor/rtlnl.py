@@ -269,9 +269,10 @@ class RTLLuArticleIE(RTLLuBaseIE):
         }
 
 
-class RTLLuTeleLiveIE(RTLLuBaseIE):
-    _VALID_URL = r'https?://www\.rtl\.lu/tele/(?P<id>live(?:-\d+)?)'
+class RTLLuLiveIE(RTLLuBaseIE):
+    _VALID_URL = r'https?://www\.rtl\.lu/(?:tele|radio)/(?P<id>live(?:-\d+)?|lauschteren)'
     _TESTS = [{
+        # Tele:live
         'url': 'https://www.rtl.lu/tele/live',
         'info_dict': {
             'id': 'live',
@@ -281,12 +282,22 @@ class RTLLuTeleLiveIE(RTLLuBaseIE):
 
         }
     }, {
+        # Tele:live-2
         'url': 'https://www.rtl.lu/tele/live-2',
         'info_dict': {
             'id': 'live-2',
             'ext': 'mp4',
             'live_status': 'is_live',
             'title': r're:RTL - Télé LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+        }
+    }, {
+        # Radio:lauschteren
+        'url': 'https://www.rtl.lu/radio/lauschteren',
+        'info_dict': {
+            'id': 'lauschteren',
+            'ext': 'mp4',
+            'live_status': 'is_live',
+            'title': r're:RTL - Radio LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
         }
     }]
 

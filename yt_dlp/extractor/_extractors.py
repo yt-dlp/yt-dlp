@@ -1438,7 +1438,7 @@ from .rtlnl import (
     RtlNlIE,
     RTLLuTeleVODIE, 
     RTLLuArticleIE,
-    RTLLuTeleLiveIE,
+    RTLLuLiveIE,
     RTLLuRadioIE,
 )
 from .rtl2 import (
