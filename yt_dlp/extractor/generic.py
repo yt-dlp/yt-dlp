@@ -933,21 +933,6 @@ class GenericIE(InfoExtractor):
                 'skip_download': True,
             }
         },
-        # YouTube <object> embed
-        {
-            'url': 'http://www.improbable.com/2017/04/03/untrained-modern-youths-and-ancient-masters-in-selfie-portraits/',
-            'md5': '516718101ec834f74318df76259fb3cc',
-            'info_dict': {
-                'id': 'msN87y-iEx0',
-                'ext': 'webm',
-                'title': 'Feynman: Mirrors FUN TO IMAGINE 6',
-                'upload_date': '20080526',
-                'description': 'md5:0ffc78ea3f01b2e2c247d5f8d1d3c18d',
-                'uploader': 'Christopher Sykes',
-                'uploader_id': 'ChristopherJSykes',
-            },
-            'add_ie': ['Youtube'],
-        },
         # Camtasia studio
         {
             'url': 'http://www.ll.mit.edu/workshops/education/videocourses/antennas/lecture1/video/',
