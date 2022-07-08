@@ -47,7 +47,7 @@ from .postprocessor import (
     MoveFilesAfterDownloadPP,
     get_postprocessor,
 )
-from .postprocessor.ffmpeg import resolve_mapping
+from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
 from .update import detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
@@ -3174,41 +3174,24 @@ class YoutubeDL:
                         else:
                             self.report_warning(f'{vid}: {msg}. Install ffmpeg to fix this automatically')
 
-                    def gets_converted(ext):
-                        """
-                        Returns True if the given ext is going to be converted to some other container than ext
-                        """
-
-                        if not ext:
-                            return False
-                        pps = self._pps['post_process']
-                        for p in pps:
-                            # Remux is covered here
-                            if not isinstance(p, FFmpegVideoConvertorPP):
-                                continue
-                            nex, _ = resolve_mapping(ext, p.mapping)
-                            if nex and nex != ext:
-                                return True
-                        return False
-
                     stretched_ratio = info_dict.get('stretched_ratio')
-                    ffmpeg_fixup(
-                        stretched_ratio not in (1, None),
-                        f'Non-uniform pixel ratio {stretched_ratio}',
-                        FFmpegFixupStretchedPP)
-
-                    ffmpeg_fixup(
-                        (info_dict.get('requested_formats') is None
-                         and info_dict.get('container') == 'm4a_dash'
-                         and info_dict.get('ext') == 'm4a'
-                         and not gets_converted('m4a')),
-                        'writing DASH m4a. Only some players support this container',
-                        FFmpegFixupM4aPP)
+                    ffmpeg_fixup(stretched_ratio not in (1, None),
+                                 f'Non-uniform pixel ratio {stretched_ratio}',
+                                 FFmpegFixupStretchedPP)
 
                     downloader = get_suitable_downloader(info_dict, self.params) if 'protocol' in info_dict else None
                     downloader = downloader.FD_NAME if downloader else None
 
-                    if info_dict.get('requested_formats') is None and not gets_converted(info_dict.get('ext')):  # Not necessary if doing merger
+                    ext = info_dict.get('ext')
+                    postprocessed_by_ffmpeg = info_dict.get('requested_formats') or any((
+                        isinstance(pp, FFmpegVideoConvertorPP)
+                        and resolve_recode_mapping(ext, pp.mapping)[0] not in (ext, None)
+                    ) for pp in self._pps['post_process'])
+
+                    if not postprocessed_by_ffmpeg:
+                        ffmpeg_fixup(ext == 'm4a' and info_dict.get('container') == 'm4a_dash',
+                                    'writing DASH m4a. Only some players support this container',
+                                    FFmpegFixupM4aPP)
                         ffmpeg_fixup(downloader == 'hlsnative' and not self.params.get('hls_use_mpegts')
                                      or info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None,
                                      'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
