@@ -92,10 +92,18 @@ class AcFunVideoIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'formats': formats,
+            'thumbnail': json_all.get('coverUrl'),
+            'description': json_all.get('description'),
+            'uploader': traverse_obj(json_all, ('user', 'name')),
+            'uploader_id': traverse_obj(json_all, ('user', 'href')),
+            'tags': [t['name'] for t in json_all.get('tagList', []) if 'name' in t],
+            'view_count': json_all.get('viewCount'),
+            'like_count': json_all.get('likeCountShow'),
+            'comment_count': json_all.get('commentCountShow'),
             'http_headers': {
                 'Referer': url,
             },
-            ** self.gen_other_video_info_map(video_info)
+            **self.gen_other_video_info_map(video_info)
         }
 
 
@@ -132,9 +140,14 @@ class AcFunBangumiIE(AcFunVideoIE):
         webpage = self._download_webpage(url, video_id)
         json_bangumi_data = self._search_json(r'window.bangumiData\s*=\s*', webpage, 'bangumiData', video_id)
 
+        other_info = {}
         if not has_ac_idx:
             video_info = json_bangumi_data['currentVideoInfo']
             title = json_bangumi_data['showTitle']
+            other_info.update({
+                'thumbnail': json_bangumi_data.get('image'),
+                'comment_count': json_bangumi_data.get('commentCount'),
+            })
         else:
             # if has ac_idx, this url is a proxy to other video which is at https://www.acfun.cn/v/ac
             # the normal video_id is not in json
@@ -151,5 +164,6 @@ class AcFunBangumiIE(AcFunVideoIE):
             'http_headers': {
                 'Referer': url,
             },
+            ** other_info,
             ** self.gen_other_video_info_map(video_info)
         }
