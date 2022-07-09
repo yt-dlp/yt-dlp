@@ -147,6 +147,7 @@ class RTLLuBaseIE(InfoExtractor):
     _MEDIA_REGEX = {
         'video': r'<rtl-player\s*poster\s*=\s*\"(?:[\"\w\.://-]+)\"\s*(title\s*=\s*(?:[\"\w\.-]+))?\s*(type\s*=\s*\"(?:\w+)\")?\s*(channelname\s*=\s*\"(?:\w+)\")?\s*hls\s*=\s*\"(?P<media_url>[\w\.\:/-]+)\"',
         'audio': r'<rtl-audioplayer\s*src\s*=\s*\"(?P<media_url>[\w\.\:/-]+)\"',
+        'thumbnail': r'<rtl-player\s*poster\s*=\s*\"(?P<media_url>[\"\w\.://-]+)\"\s*',
     }
 
     def get_media_url(self, webpage, video_id, media_type):
@@ -154,8 +155,9 @@ class RTLLuBaseIE(InfoExtractor):
             self._MEDIA_REGEX[media_type], webpage, 'media_url', group=('media_url'),
             default=None, fatal=False)
 
-    def get_formats_and_subtitles(self, webpage, video_id):
+    def get_thumbnail_formats_and_subtitles(self, webpage, video_id):
         video_url, audio_url = self.get_media_url(webpage, video_id, 'video'), self.get_media_url(webpage, video_id, 'audio')
+        thumbnail_url = self.get_media_url(webpage, video_id, 'thumbnail')
 
         formats, subtitles = [], {}
         if video_url is not None:
@@ -163,7 +165,7 @@ class RTLLuBaseIE(InfoExtractor):
         if audio_url is not None:
             formats.append({'url': audio_url, 'ext': 'mp3', 'vcodec': 'none'})
 
-        return formats, subtitles
+        return thumbnail_url, formats, subtitles
 
     def _real_extract(self, url):
         is_live = False
@@ -175,16 +177,16 @@ class RTLLuBaseIE(InfoExtractor):
         # we can context from <rtl-comments context=<context> in webpage
         webpage = self._download_webpage(url, video_id)
 
-        formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
+        thumbnail, formats, subtitles = self.get_thumbnail_formats_and_subtitles(webpage, video_id)
         self._sort_formats(formats)
 
         return {
             'id': video_id,
             'title': self._og_search_title(webpage),
-            'description': self._og_search_description(webpage),
+            'description': self._og_search_description(webpage, default=None),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': self._og_search_thumbnail(webpage),
+            'thumbnail': thumbnail or self._og_search_thumbnail(webpage, default=None),
             'is_live': is_live,
         }
 
@@ -234,7 +236,7 @@ class RTLLuArticleIE(RTLLuBaseIE):
             'ext': 'mp4',
             'description': 'md5:ac031da0740e997a5cf4633173634fee',
             'title': 'md5:87e17722ed21af0f24be3243f4ec0c46',
-            'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/01/26/10/53b3f0ffe9b349d16d93b42902ecbc80.jpeg',
+            'thumbnail': 'https://replay-assets.rtl.lu/2022/01/26/screenshot_20220126104933_3274749_12b249833469b0d6e4440a1dec83cdfa.jpg',
         }
     }, {
         # today.lu
@@ -244,7 +246,7 @@ class RTLLuArticleIE(RTLLuBaseIE):
             'ext': 'mp4',
             'title': 'Once Upon A Time...zu Lëtzebuerg: The Three Witches\' Tower',
             'description': 'The witchy theme continues in the latest episode of Once Upon A Time...',
-            'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/07/02/12/2b671b0895fc72bfed53af31639fcaa5.png',
+            'thumbnail': 'https://replay-assets.rtl.lu/2022/07/02/screenshot_20220702122859_3290019_412dc5185951b7f6545a4039c8be9235.jpg',
         }
     }]
 
@@ -259,7 +261,7 @@ class RTLLuLiveIE(RTLLuBaseIE):
             'ext': 'mp4',
             'live_status': 'is_live',
             'title': r're:RTL - Télé LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
-
+            'thumbnail': 'https://static.rtl.lu/livestream/channel1.jpg',
         }
     }, {
         # Tele:live-2
@@ -269,6 +271,7 @@ class RTLLuLiveIE(RTLLuBaseIE):
             'ext': 'mp4',
             'live_status': 'is_live',
             'title': r're:RTL - Télé LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'thumbnail': 'https://static.rtl.lu/livestream/channel2.jpg',
         }
     }, {
         # Radio:lauschteren
@@ -278,23 +281,9 @@ class RTLLuLiveIE(RTLLuBaseIE):
             'ext': 'mp4',
             'live_status': 'is_live',
             'title': r're:RTL - Radio LIVE \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'thumbnail': 'https://static.rtl.lu/livestream/rtlradiowebtv.jpg',
         }
     }]
-
-    def _real_extract(self, url):
-        # redefine because _og_search_* return 'OpenGraphql .. ' regex not found
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-
-        formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
-        self._sort_formats(formats)
-        return {
-            'id': video_id,
-            'title': self._og_search_title(webpage),
-            'formats': formats,
-            'subtitles': subtitles,
-            'live_status': 'is_live',
-        }
 
 
 class RTLLuRadioIE(RTLLuBaseIE):
