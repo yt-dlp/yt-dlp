@@ -165,6 +165,29 @@ class RTLLuBaseIE(InfoExtractor):
 
         return formats, subtitles
 
+    def _real_extract(self, url):
+        is_live = False
+        video_id = self._match_id(url)
+        if video_id.startswith('live') or video_id == 'lauschteren':
+            is_live = True
+
+        # TODO: extract comment from https://www.rtl.lu/comments?status=1&order=desc&context=news|article|<video_id>
+        # we can context from <rtl-comments context=<context> in webpage
+        webpage = self._download_webpage(url, video_id)
+
+        formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'title': self._og_search_title(webpage),
+            'description': self._og_search_description(webpage),
+            'formats': formats,
+            'subtitles': subtitles,
+            'thumbnail': self._og_search_thumbnail(webpage),
+            'is_live': is_live,
+        }
+
 
 class RTLLuTeleVODIE(RTLLuBaseIE):
     IE_NAME = 'rtl.lu:tele-vod'
@@ -189,21 +212,6 @@ class RTLLuTeleVODIE(RTLLuBaseIE):
         }
     }]
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-
-        formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
-        self._sort_formats(formats)
-        return {
-            'id': video_id,
-            'title': self._og_search_title(webpage),
-            'description': self._og_search_description(webpage),
-            'formats': formats,
-            'subtitles': subtitles,
-            'thumbnail': self._og_search_thumbnail(webpage),
-        }
-
 
 class RTLLuArticleIE(RTLLuBaseIE):
     IE_NAME = 'rtl.lu:article'
@@ -217,16 +225,6 @@ class RTLLuArticleIE(RTLLuBaseIE):
             'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/06/28/19/e4b37d66ddf00bab4c45617b91a5bb9b.jpeg',
             'description': 'md5:5eab4a2a911c1fff7efc1682a38f9ef7',
             'title': 'md5:40aa85f135578fbd549d3c9370321f99',
-        }
-    }, {
-        # Video
-        'url': 'https://www.rtl.lu/kultur/news/a/1931683.html',
-        'info_dict': {
-            'id': '1931683',
-            'ext': 'mp4',
-            'description': 'md5:ad39b36e0039a109384b5996c373e835',
-            'title': 'Esch2022: Suessem ass déi nei "Gemeng vum Mount"',
-            'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/06/22/16/7f9d5141c40733ffd0054d1a4d01819e.jpeg',
         }
     }, {
         # 5minutes
@@ -244,29 +242,11 @@ class RTLLuArticleIE(RTLLuBaseIE):
         'info_dict': {
             'id': '1936203',
             'ext': 'mp4',
-            'title': 'Once Upon A Time...zu Letzebuerg: The Three Witches\' Tower',
+            'title': 'Once Upon A Time...zu Lëtzebuerg: The Three Witches\' Tower',
             'description': 'The witchy theme continues in the latest episode of Once Upon A Time...',
             'thumbnail': 'https://static.rtl.lu/rtl2008.lu/nt/p/2022/07/02/12/2b671b0895fc72bfed53af31639fcaa5.png',
         }
     }]
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-
-        # TODO: extract comment from https://www.rtl.lu/comments?status=1&order=desc&context=news|article|<video_id>
-        # we can context from <rtl-comments context=<context> in webpage
-        formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
-        self._sort_formats(formats)
-
-        return {
-            'id': video_id,
-            'title': self._og_search_title(webpage),
-            'description': self._og_search_description(webpage),
-            'formats': formats,
-            'subtitles': subtitles,
-            'thumbnail': self._og_search_thumbnail(webpage),
-        }
 
 
 class RTLLuLiveIE(RTLLuBaseIE):
@@ -302,6 +282,7 @@ class RTLLuLiveIE(RTLLuBaseIE):
     }]
 
     def _real_extract(self, url):
+        # redefine because _og_search_* return 'OpenGraphql .. ' regex not found
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
@@ -325,17 +306,6 @@ class RTLLuRadioIE(RTLLuBaseIE):
             'ext': 'mp3',
             'description': 'md5:f855a4f3e3235393ae47ed1db5d934b9',
             'title': '5 vir 12 - Stau um Stau',
+            'thumbnail': 'https://static.rtl.lu/rtlg//2022/06/24/c9c19e5694a14be46a3647a3760e1f62.jpg',
         }
     }]
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
-        self._sort_formats(formats)
-        return {
-            'id': video_id,
-            'formats': formats,
-            'title': self._og_search_title(webpage),
-            'description': self._og_search_description(webpage),
-        }
