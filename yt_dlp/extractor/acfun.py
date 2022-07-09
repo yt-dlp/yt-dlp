@@ -144,9 +144,32 @@ class AcFunBangumiIE(AcFunVideoIE):
         if not has_ac_idx:
             video_info = json_bangumi_data['currentVideoInfo']
             title = json_bangumi_data['showTitle']
+            season_id = json_bangumi_data.get('bangumiId')
+            all_season_list = json_bangumi_data.get('relatedBangumis', [])
+
+            season_number = None
+            for e_idx, e in enumerate(all_season_list):
+                if e.get('id') == season_id:
+                    season_number = e_idx + 1
+                    break
+
+            json_bangumi_list = self._search_json(r'window.bangumiList\s*=\s*', webpage, 'bangumiList', video_id) or {}
+            video_internal_id = int_or_none(traverse_obj(json_bangumi_data, ('currentVideoInfo', 'id')))
+            episode_number = None
+            if video_internal_id:
+                for e_idx, e in enumerate(json_bangumi_list.get('items', [])):
+                    if e.get('videoId') == video_internal_id:
+                        episode_number = e_idx + 1
+                        break
+
             other_info.update({
                 'thumbnail': json_bangumi_data.get('image'),
                 'comment_count': int_or_none(json_bangumi_data.get('commentCount')),
+                'season': json_bangumi_data.get('bangumiTitle'),
+                'season_id': season_id,
+                'season_number': season_number,
+                'episode': json_bangumi_data.get('title'),
+                'episode_number': episode_number,
             })
         else:
             # if has ac_idx, this url is a proxy to other video which is at https://www.acfun.cn/v/ac
