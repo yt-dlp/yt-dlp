@@ -830,6 +830,7 @@ from .linkedin import (
     LinkedInLearningCourseIE,
 )
 from .linuxacademy import LinuxAcademyIE
+from .liputan6 import Liputan6IE
 from .litv import LiTVIE
 from .livejournal import LiveJournalIE
 from .livestream import (
