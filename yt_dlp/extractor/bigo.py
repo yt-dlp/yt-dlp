@@ -40,7 +40,7 @@ class BigoIE(InfoExtractor):
 
         if not info.get('alive'):
             raise ExtractorError('This user is offline.', expected=True)
-        
+
         formats, subs = self._extract_m3u8_formats_and_subtitles(
             info.get('hls_src'), user_id, 'mp4', 'm3u8')
 
