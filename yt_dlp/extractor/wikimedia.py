@@ -37,7 +37,6 @@ class WikimediaIE(InfoExtractor):
                                                   'url': 're:https?://commons.wikimedia.org/w/api.php'}]}}
     }
 
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         ext = determine_ext(url, None)
