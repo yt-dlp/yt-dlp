@@ -97,9 +97,9 @@ class AcFunVideoIE(InfoExtractor):
             'uploader': traverse_obj(json_all, ('user', 'name')),
             'uploader_id': traverse_obj(json_all, ('user', 'href')),
             'tags': [t['name'] for t in json_all.get('tagList', []) if 'name' in t],
-            'view_count': json_all.get('viewCount'),
-            'like_count': json_all.get('likeCountShow'),
-            'comment_count': json_all.get('commentCountShow'),
+            'view_count': int_or_none(json_all.get('viewCount')),
+            'like_count': int_or_none(json_all.get('likeCountShow')),
+            'comment_count': int_or_none(json_all.get('commentCountShow')),
             'http_headers': {
                 'Referer': url,
             },
@@ -146,7 +146,7 @@ class AcFunBangumiIE(AcFunVideoIE):
             title = json_bangumi_data['showTitle']
             other_info.update({
                 'thumbnail': json_bangumi_data.get('image'),
-                'comment_count': json_bangumi_data.get('commentCount'),
+                'comment_count': int_or_none(json_bangumi_data.get('commentCount')),
             })
         else:
             # if has ac_idx, this url is a proxy to other video which is at https://www.acfun.cn/v/ac
