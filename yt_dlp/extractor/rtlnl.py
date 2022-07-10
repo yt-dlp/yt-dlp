@@ -158,7 +158,7 @@ class RTLLuBaseIE(InfoExtractor):
     def get_thumbnail_formats_and_subtitles(self, webpage, video_id):
         video_url, audio_url = self.get_media_url(webpage, video_id, 'video'), self.get_media_url(webpage, video_id, 'audio')
         thumbnail_url = self.get_media_url(webpage, video_id, 'thumbnail')
-        
+
         formats, subtitles = [], {}
         if video_url is not None:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id)
