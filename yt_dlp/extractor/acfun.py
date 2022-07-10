@@ -68,8 +68,6 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         webpage = self._download_webpage(url, video_id)
         json_all = self._search_json(r'window.videoInfo\s*=\s*', webpage, 'videoInfo', video_id)
 
-        if 'currentVideoInfo' not in json_all:
-            raise ExtractorError(f'Unknown webpage json schema{bug_reports_message()}')
         video_info = json_all['currentVideoInfo']
 
         title = json_all.get('title', '')
@@ -133,8 +131,6 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
 
         info = {}
         if not ac_idx:
-            if 'currentVideoInfo' not in json_bangumi_data:
-                raise ExtractorError(f'Unknown webpage json schema{bug_reports_message()}')
             video_info = json_bangumi_data['currentVideoInfo']
             title = json_bangumi_data.get('showTitle', '')
             season_id = json_bangumi_data.get('bangumiId')
@@ -165,8 +161,6 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
         else:
             # if has ac_idx, this url is a proxy to other video which is at https://www.acfun.cn/v/ac
             # the normal video_id is not in json
-            if 'hlVideoInfo' not in json_bangumi_data:
-                raise ExtractorError(f'Unknown webpage json schema{bug_reports_message()}')
             video_info = json_bangumi_data['hlVideoInfo']
             title = video_info.get('title', '')
 
