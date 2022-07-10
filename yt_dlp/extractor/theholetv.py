@@ -2,7 +2,7 @@ from .common import InfoExtractor
 from ..utils import extract_attributes, remove_end
 
 
-class TheHoleTvExtractorIE(InfoExtractor):
+class TheHoleTvIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?the-hole\.tv/episodes/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://the-hole.tv/episodes/gromkii-vopros-sergey-orlov',
