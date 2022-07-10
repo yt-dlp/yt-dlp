@@ -59,8 +59,10 @@ class ServusIE(InfoExtractor):
             m3u8_id='hls')
         self._sort_formats(formats)
 
+        season = video.get('season'),
         season_number = int_or_none(self._search_regex(
             r'Season (\d+)', season or '', 'season number', default=None))
+        episode = video.get('chapter'),
         episode_number = int_or_none(self._search_regex(
             r'Episode (\d+)', episode or '', 'episode number', default=None))
 
@@ -71,13 +73,15 @@ class ServusIE(InfoExtractor):
             'thumbnail': video.get('poster'),
             'duration': float_or_none(video.get('duration')),
             'timestamp': unified_timestamp(video.get('currentSunrise')),
-            'series': video.get('label'),
+            'series': season,
             'season': video.get('season'),
             'season_number': season_number,
-            'episode': video.get('chapter'),
+            'episode': episode,
             'episode_number': episode_number,
             'formats': formats,
             'subtitles': subtitles,
+        }
+
 
     def _get_description(self, video, video_id):
         info = self._download_json("https://backend.servustv.com/wp-json/rbmh/v2/media_asset/aa_id/%s?fieldset=page" % video_id,
