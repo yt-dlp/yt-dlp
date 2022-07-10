@@ -1,4 +1,3 @@
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -134,9 +133,10 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        id, ac_idx = self._search_regex(r'(?P<id>aa[_\d]+)(?:\?ac=(?P<ac_idx>\d+))?', video_id,
-                                        'ac_idx_parse', group=['id', 'ac_idx'])
-        video_id = f'{id}{format_field(ac_idx, template="_%s")}'
+        base_id, ac_idx = self._search_regex(r'(?P<id>aa[_\d]+)(?:\?ac=(?P<ac_idx>\d+))?', video_id,
+                                             'ac_idx_parse', group=['id', 'ac_idx']) or (None, None)
+        if base_id is not None:
+            video_id = f'{base_id}{format_field(ac_idx, template="_%s")}'
 
         webpage = self._download_webpage(url, video_id)
         json_bangumi_data = self._search_json(r'window.bangumiData\s*=\s*', webpage, 'bangumiData', video_id)
