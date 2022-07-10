@@ -3523,6 +3523,19 @@ class YoutubeDL:
                 ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
             return render_table(['format code', 'extension', 'resolution', 'note'], table, extra_gap=1)
 
+        def simplified_codec(f, field):
+            assert field in ('acodec', 'vcodec')
+            codec = f.get(field, 'unknown')
+            if codec != 'none':
+                return '.'.join(codec.split('.')[:4])
+
+            if field == 'vcodec' and f.get('acodec') == 'none':
+                return 'images'
+            elif field == 'acodec' and f.get('vcodec') == 'none':
+                return ''
+            return self._format_out('audio only' if field == 'vcodec' else 'video only',
+                                    self.Styles.SUPPRESS)
+
         delim = self._format_out('\u2502', self.Styles.DELIM, '|', test_encoding=True)
         table = [
             [
@@ -3536,13 +3549,9 @@ class YoutubeDL:
                 format_field(f, 'tbr', '\t%dk'),
                 shorten_protocol_name(f.get('protocol', '')),
                 delim,
-                format_field(f, 'vcodec', default='unknown').replace(
-                    'none', 'images' if f.get('acodec') == 'none'
-                            else self._format_out('audio only', self.Styles.SUPPRESS)),
+                simplified_codec(f, 'vcodec'),
                 format_field(f, 'vbr', '\t%dk'),
-                format_field(f, 'acodec', default='unknown').replace(
-                    'none', '' if f.get('vcodec') == 'none'
-                            else self._format_out('video only', self.Styles.SUPPRESS)),
+                simplified_codec(f, 'acodec'),
                 format_field(f, 'abr', '\t%dk'),
                 format_field(f, 'asr', '\t%s', func=format_decimal_suffix),
                 join_nonempty(
