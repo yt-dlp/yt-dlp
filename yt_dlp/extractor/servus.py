@@ -57,14 +57,8 @@ class ServusIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             video['videoUrl'], video_id, 'mp4', entry_protocol='m3u8_native',
             m3u8_id='hls')
-        thumbnail = video.get('poster')
         self._sort_formats(formats)
 
-        title = video.get('title') or video_id
-        series = video.get('label')
-        season = video.get('season')
-        episode = video.get('chapter')
-        duration = float_or_none(video.get('duration'))
         season_number = int_or_none(self._search_regex(
             r'Season (\d+)', season or '', 'season number', default=None))
         episode_number = int_or_none(self._search_regex(
@@ -72,19 +66,18 @@ class ServusIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
+            'title': video.get('title'),
             'description': self._get_description(video, video_id),
-            'thumbnail': thumbnail,
-            'duration': duration,
+            'thumbnail': video.get('poster'),
+            'duration': float_or_none(video.get('duration')),
             'timestamp': unified_timestamp(video.get('currentSunrise')),
-            'series': series,
-            'season': season,
+            'series': video.get('label'),
+            'season': video.get('season'),
             'season_number': season_number,
-            'episode': episode,
+            'episode': video.get('chapter'),
             'episode_number': episode_number,
             'formats': formats,
             'subtitles': subtitles,
-        }
 
     def _get_description(self, video, video_id):
         info = self._download_json("https://backend.servustv.com/wp-json/rbmh/v2/media_asset/aa_id/%s?fieldset=page" % video_id,
