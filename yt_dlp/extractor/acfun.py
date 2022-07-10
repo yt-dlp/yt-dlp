@@ -1,6 +1,6 @@
+
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     float_or_none,
     format_field,
     int_or_none,
@@ -12,8 +12,6 @@ from ..utils import (
 
 class AcFunVideoBaseIE(InfoExtractor):
     def parse_format_and_subtitle(self, video_id, video_info):
-        if 'ksPlayJson' not in video_info:
-            raise ExtractorError(f'Unknown webpage json schema{bug_reports_message()}')
         playjson = self._parse_json(video_info['ksPlayJson'], video_id)
 
         formats, subtitles = [], {}
@@ -41,7 +39,7 @@ class AcFunVideoBaseIE(InfoExtractor):
 
 
 class AcFunVideoIE(AcFunVideoBaseIE):
-    _VALID_URL = r'(?x)https?://(?:www\.acfun\.cn/v/)ac(?P<id>[_\d]+)'
+    _VALID_URL = r'https?://(?:www\.acfun\.cn/v/)ac(?P<id>[_\d]+)'
 
     _TESTS = [{
         'url': 'https://www.acfun.cn/v/ac35457073',
@@ -136,7 +134,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             season_id = json_bangumi_data.get('bangumiId')
 
             season_number = season_id and next((
-                    idx + 1 for (idx, v) in enumerate(json_bangumi_data.get('relatedBangumis', []))
+                    idx + 1 for (idx, v) in enumerate(json_bangumi_data.get('relatedBangumis') or [])
                     if v.get('id') == season_id), 1)
 
             json_bangumi_list = self._search_json(r'window.bangumiList\s*=\s*', webpage, 'bangumiList', video_id) or {}
