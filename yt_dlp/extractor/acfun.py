@@ -8,6 +8,7 @@ from ..utils import (
     int_or_none,
     traverse_obj,
     parse_codecs,
+    parse_qs,
 )
 
 
@@ -24,8 +25,8 @@ class AcFunVideoBaseIE(InfoExtractor):
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
             for f in fmts:
-                fmts.update({
-                    'fps': int_or_none(video.get('frameRate')),
+                f.update({
+                    'fps': float_or_none(video.get('frameRate')),
                     'width': int_or_none(video.get('width')),
                     'height': int_or_none(video.get('height')),
                     'tbr': float_or_none(video.get('avgBitrate')),
@@ -50,14 +51,9 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         'info_dict': {
             'id': '35457073',
             'title': '1 8 岁 现 状',
-            'thumbnail': 'https://tx-free-imgs.acfun.cn/newUpload/51246077_82bcf86c32c54c4d80cbd624ba4cc38c.jpeg?imageslim',
             'description': '“赶紧回去！班主任查班了！”',
             'uploader': '锤子game',
             'uploader_id': '51246077',
-            'tags': ['电子竞技', 'LOL', 'CF', '搞笑', '真人'],
-            'view_count': int,
-            'like_count': int,
-            'comment_count': int,
             'duration': 174.208,
             'timestamp': 1656403967
         },
@@ -128,11 +124,9 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        ac_idx = parse_qs(url).get('ac', [None])[-1]
 
-        base_id, ac_idx = self._search_regex(r'(?P<id>aa[_\d]+)(?:\?ac=(?P<ac_idx>\d+))?', video_id,
-                                             'ac_idx_parse', group=['id', 'ac_idx']) or (None, None)
-        if base_id is not None:
-            video_id = f'{base_id}{format_field(ac_idx, template="_%s")}'
+        video_id = f'{video_id}{format_field(ac_idx, template="__%s")}'
 
         webpage = self._download_webpage(url, video_id)
         json_bangumi_data = self._search_json(r'window.bangumiData\s*=\s*', webpage, 'bangumiData', video_id)
