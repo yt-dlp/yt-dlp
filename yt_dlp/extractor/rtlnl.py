@@ -145,7 +145,7 @@ class RtlNlIE(InfoExtractor):
 
 class RTLLuBaseIE(InfoExtractor):
     _MEDIA_REGEX = {
-        'video': r'<rtl-player\s*poster\s*=\s*\"(?:[\"\w\.://-]+)\"\s*(title\s*=\s*(?:[\"\w\.-]+))?\s*(type\s*=\s*\"(?:\w+)\")?\s*(channelname\s*=\s*\"(?:\w+)\")?\s*hls\s*=\s*\"(?P<media_url>[\w\.\:/-]+)\"',
+        'video': r'<rtl-player\s*poster\s*=\s*\"(?:[^"]+)\"\s*(title\s*=\s*(?:[\"\w\.-]+))?\s*(type\s*=\s*\"(?:\w+)\")?\s*(channelname\s*=\s*\"(?:\w+)\")?\s*hls\s*=\s*\"(?P<media_url>[^"]+)\"',
         'audio': r'<rtl-audioplayer\s*src\s*=\s*\"(?P<media_url>[\w\.\:/-]+)\"',
         'thumbnail': r'<rtl-player\s*poster\s*=\s*\"(?P<media_url>[\"\w\.://-]+)\"\s*',
     }
