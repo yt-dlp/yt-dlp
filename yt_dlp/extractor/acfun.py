@@ -90,7 +90,7 @@ class AcFunVideoIE(AcFunVideoBaseIE):
                 if v['id'] == video_internal_id)
 
             if len(video_list) > 1:
-                title = f"{title} P{p_idx:02d} {p_video_info['title']}"
+                title = f'{title} P{p_idx:02d} {p_video_info["title"]}'
 
         return {
             'id': video_id,
