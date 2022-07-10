@@ -157,7 +157,6 @@ class RTLLuBaseIE(InfoExtractor):
 
     def get_thumbnail_formats_and_subtitles(self, webpage, video_id):
         video_url, audio_url = self.get_media_url(webpage, video_id, 'video'), self.get_media_url(webpage, video_id, 'audio')
-        thumbnail_url = self.get_media_url(webpage, video_id, 'thumbnail')
 
         formats, subtitles = [], {}
         if video_url is not None:
@@ -165,11 +164,11 @@ class RTLLuBaseIE(InfoExtractor):
         if audio_url is not None:
             formats.append({'url': audio_url, 'ext': 'mp3', 'vcodec': 'none'})
 
-        return thumbnail_url, formats, subtitles
+        return self.get_media_url(webpage, video_id, 'thumbnail'), formats, subtitles
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        is_live = video_id.startswith('live') or video_id == 'lauschteren'
+        is_live = video_id in ('live', 'live-2', 'lauschteren')
 
         # TODO: extract comment from https://www.rtl.lu/comments?status=1&order=desc&context=news|article|<video_id>
         # we can context from <rtl-comments context=<context> in webpage
