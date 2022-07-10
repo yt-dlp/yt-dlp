@@ -149,23 +149,20 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             video_info = json_bangumi_data['currentVideoInfo']
             title = json_bangumi_data.get('showTitle', '')
             season_id = json_bangumi_data.get('bangumiId')
-            all_season_list = json_bangumi_data.get('relatedBangumis', [])
 
             season_number = None
-            for e_idx, e in enumerate(all_season_list):
-                if e.get('id') == season_id:
-                    season_number = e_idx + 1
-                    break
+            if season_id:
+                season_number = next((
+                    idx + 1 for (idx, v) in enumerate(json_bangumi_data.get('relatedBangumis', []))
+                    if v.get('id') == season_id), 1)
 
             json_bangumi_list = self._search_json(r'window.bangumiList\s*=\s*', webpage, 'bangumiList', video_id) or {}
             video_internal_id = int_or_none(traverse_obj(json_bangumi_data, ('currentVideoInfo', 'id')))
             episode_number = None
             if video_internal_id:
-                # TODO
-                for e_idx, e in enumerate(json_bangumi_list.get('items', [])):
-                    if e.get('videoId') == video_internal_id:
-                        episode_number = e_idx + 1
-                        break
+                episode_number = next(
+                    idx + 1 for (idx, v) in enumerate(json_bangumi_list.get('items', []))
+                    if v.get('videoId') == video_internal_id)
 
             info.update({
                 'thumbnail': json_bangumi_data.get('image'),
