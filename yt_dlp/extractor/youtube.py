@@ -3455,7 +3455,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if get_first(video_details, 'isPostLiveDvr'):
             self.write_debug('Video is in Post-Live Manifestless mode')
-            if duration or 0 > 4 * 3600:
+            if (duration or 0) > 4 * 3600:
                 self.report_warning(
                     'The livestream has not finished processing. Only 4 hours of the video can be currently downloaded. '
                     'This is a known issue and patches are welcome')
