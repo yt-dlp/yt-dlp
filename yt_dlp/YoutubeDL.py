@@ -86,6 +86,7 @@ from .utils import (
     YoutubeDLRedirectHandler,
     age_restricted,
     args_to_str,
+    bug_reports_message,
     date_from_str,
     determine_ext,
     determine_protocol,
@@ -1494,6 +1495,7 @@ class YoutubeDL:
     def __extract_info(self, url, ie, download, extra_info, process):
         ie_result = ie.extract(url)
         if ie_result is None:  # Finished already (backwards compatibility; listformats and friends should be moved here)
+            self.report_warning(f'Extractor {ie.IE_NAME} returned nothing{bug_reports_message()}')
             return
         if isinstance(ie_result, list):
             # Backwards compatibility: old IE result format
