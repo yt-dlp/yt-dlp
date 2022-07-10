@@ -57,12 +57,12 @@ class ServusIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             video.get('videoUrl'), video_id, 'mp4', entry_protocol='m3u8_native',
             m3u8_id='hls', fatal=False)
-        thumbnail = video.get("poster")
+        thumbnail = video.get('poster')
         self._sort_formats(formats)
 
-        title = video.get("title") or video_id
+        title = video.get('title') or video_id
         description = video.get('description')
-        series = video.get("label")
+        series = video.get('label')
         season = video.get('season')
         episode = video.get('chapter')
         duration = float_or_none(video.get('duration'))
