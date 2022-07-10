@@ -14,7 +14,7 @@ class ServusIE(InfoExtractor):
                             servus\.com/(?:(?:at|de)/p/[^/]+|tv/videos)|
                             (?:servustv|pm-wissen)\.com/(?:[^/]+/)?v(?:ideos)?
                         )
-                        /(?P<id>[aA]{2}-?\w+|\d+-\d+)
+                        /(?P<id>((AA|aa)-[A-Za-z0-9]{13})|([0-9]+-[0-9]+)|([A-Za-z]{2}[0-9A-Za-z]{18}))
                     '''
     _TESTS = [{
         'url': 'https://www.servustv.com/natur/v/aa-28bycqnh92111/',
