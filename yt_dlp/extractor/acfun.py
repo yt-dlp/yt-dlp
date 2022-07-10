@@ -5,6 +5,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     traverse_obj,
+    parse_codecs,
 )
 
 
@@ -14,51 +15,46 @@ class AcFunVideoIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.acfun.cn/v/ac35457073',
         'info_dict': {
-            'id': '35283657',
-            'title': '【十五周年庆】文章区UP主祝AcFun生日快乐！',
-            'duration': 455.21,
-            'timestamp': 1655289827,
+            'id': '35457073',
+            'title': '1 8 岁 现 状',
+            'thumbnail': 'https://tx-free-imgs.acfun.cn/newUpload/51246077_82bcf86c32c54c4d80cbd624ba4cc38c.jpeg?imageslim',
+            'description': '“赶紧回去！班主任查班了！”',
+            'uploader': '锤子game',
+            'uploader_id': '51246077',
+            'tags': ['电子竞技', 'LOL', 'CF', '搞笑', '真人'],
+            'view_count': 31917,
+            'like_count': 1850,
+            'comment_count': 288,
+            'duration': 174.208,
+            'timestamp': 1656403967
         },
         'params': {
             'skip_download': 'm3u8',
         },
-        'skip': 'Geo-restricted to China',
     }]
-
-    def parse_format(self, info, video_id):
-        vcodec, acodec = None, None
-
-        codec_str = info.get('codecs') or ''
-        m = re.match('(?P<vc>[^,]+),(?P<ac>[^,]+)', codec_str)
-        if m:
-            vcodec = m.group("vc")
-            acodec = m.group("ac")
-
-        formats, _ = self._extract_m3u8_formats_and_subtitles(
-            info['url'], video_id)
-
-        # it seems AcFun do not have subtitles
-
-        return {
-            **formats[0],
-            'fps': int_or_none(info.get('frameRate')),
-            'width': int_or_none(info.get('width')),
-            'height': int_or_none(info.get('height')),
-            'vcodec': vcodec,
-            'acodec': acodec,
-            'tbr': float_or_none(info.get('avgBitrate')),
-            'ext': 'mp4'
-        }
 
     def parse_format_list(self, jobj, video_id):
         formats = []
+        subtitles = []
         for video in jobj:
-            fmt = self.parse_format(video, video_id)
-            formats.append(fmt)
+            format_list, subtitle_list = self._extract_m3u8_formats_and_subtitles(video['url'], video_id)
+
+            formats += [{
+                **fmt,
+                'fps': int_or_none(video.get('frameRate')),
+                'width': int_or_none(video.get('width')),
+                'height': int_or_none(video.get('height')),
+                'tbr': float_or_none(video.get('avgBitrate')),
+                'ext': 'mp4',
+                'subtitles': subtitle_list,  # it seems AcFun do not have subtitles
+                **parse_codecs(video.get('codecs', ''))
+            } for fmt in format_list]
+
+            subtitles += subtitle_list
 
         self._sort_formats(formats)
 
-        return formats
+        return formats, subtitles
 
     def gen_other_video_info_map(self, video_info):
         return {
@@ -76,10 +72,11 @@ class AcFunVideoIE(InfoExtractor):
         playjson = self._parse_json(video_info['ksPlayJson'], video_id)
         video_internal_id = traverse_obj(json_all, ('currentVideoInfo', 'id'))
 
-        formats = self.parse_format_list(traverse_obj(playjson, ('adaptationSet', 0, 'representation')), video_id)
+        formats, subtitles = self.parse_format_list(traverse_obj(playjson, ('adaptationSet', 0, 'representation')), video_id)
 
+        video_list = json_all['videoList']
         p_idx, video_info = next(
-            (idx + 1, v) for (idx, v) in enumerate(json_all['videoList'])
+            (idx + 1, v) for (idx, v) in enumerate(video_list)
             if v['id'] == video_internal_id)
 
         title = json_all['title']
@@ -94,10 +91,11 @@ class AcFunVideoIE(InfoExtractor):
             'description': json_all.get('description'),
             'uploader': traverse_obj(json_all, ('user', 'name')),
             'uploader_id': traverse_obj(json_all, ('user', 'href')),
-            'tags': traverse_obj(json_all, ('tag_list', ..., 'name')),
+            'tags': traverse_obj(json_all, ('tagList', ..., 'name')),
             'view_count': int_or_none(json_all.get('viewCount')),
             'like_count': int_or_none(json_all.get('likeCountShow')),
             'comment_count': int_or_none(json_all.get('commentCountShow')),
+            'subtitles': subtitles,
             'http_headers': {
                 'Referer': url,
             },
@@ -176,12 +174,13 @@ class AcFunBangumiIE(AcFunVideoIE):
             title = video_info['title']
 
         playlist = self._parse_json(video_info['ksPlayJson'], video_id)
-        formats = self.parse_format_list(traverse_obj(playlist, ('adaptationSet', 0, 'representation')), video_id)
+        formats, subtitles = self.parse_format_list(traverse_obj(playlist, ('adaptationSet', 0, 'representation')), video_id)
 
         return {
             'id': video_id,
             'title': title,
             'formats': formats,
+            'subtitles': subtitles,
             'http_headers': {
                 'Referer': url,
             },
