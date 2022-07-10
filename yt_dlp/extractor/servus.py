@@ -55,8 +55,8 @@ class ServusIE(InfoExtractor):
             self._report_errors(video)
             return None
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            video.get('videoUrl'), video_id, 'mp4', entry_protocol='m3u8_native',
-            m3u8_id='hls', fatal=False)
+            video['videoUrl'], video_id, 'mp4', entry_protocol='m3u8_native',
+            m3u8_id='hls')
         thumbnail = video.get('poster')
         self._sort_formats(formats)
 
