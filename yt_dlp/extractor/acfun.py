@@ -106,7 +106,7 @@ class AcFunVideoIE(AcFunVideoBaseIE):
 
 
 class AcFunBangumiIE(AcFunVideoBaseIE):
-    _VALID_URL = r'(?x)https?://(?:www\.acfun\.cn/bangumi/)(?P<id>aa[_\d]+(?:\?ac=\d+)?)'
+    _VALID_URL = r'https?://www\.acfun\.cn/bangumi/(?P<id>aa[_\d]+)'
 
     _TESTS = [{
         'url': 'https://www.acfun.cn/bangumi/aa6002917',
