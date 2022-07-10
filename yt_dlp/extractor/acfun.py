@@ -144,7 +144,7 @@ class AcFunBangumiIE(AcFunVideoIE):
         webpage = self._download_webpage(url, video_id)
         json_bangumi_data = self._search_json(r'window.bangumiData\s*=\s*', webpage, 'bangumiData', video_id)
 
-        other_info = {}
+        info = {}
         if not has_ac_idx:
             if 'currentVideoInfo' not in json_bangumi_data:
                 raise ExtractorError(f'Unknown webpage json schema{bug_reports_message()}')
@@ -168,7 +168,7 @@ class AcFunBangumiIE(AcFunVideoIE):
                         episode_number = e_idx + 1
                         break
 
-            other_info.update({
+            info.update({
                 'thumbnail': json_bangumi_data.get('image'),
                 'comment_count': int_or_none(json_bangumi_data.get('commentCount')),
                 'season': json_bangumi_data.get('bangumiTitle'),
@@ -198,6 +198,6 @@ class AcFunBangumiIE(AcFunVideoIE):
             'http_headers': {
                 'Referer': url,
             },
-            ** other_info,
+            ** info,
             ** self.gen_other_video_info_map(video_info)
         }
