@@ -20,8 +20,7 @@ class AcFunVideoIE(InfoExtractor):
             'timestamp': 1655289827,
         },
         'params': {
-            # m3u8 download
-            'skip_download': True,
+            'skip_download': 'm3u8',
         },
         'skip': 'Geo-restricted to China',
     }]
@@ -79,10 +78,9 @@ class AcFunVideoIE(InfoExtractor):
 
         formats = self.parse_format_list(traverse_obj(playjson, ('adaptationSet', 0, 'representation')), video_id)
 
-        video_list = json_all['videoList']
-        p_idx, video_info = [(idx + 1, v) for (idx, v) in enumerate(video_list)
-                             if v['id'] == video_internal_id
-                             ][0]
+        p_idx, video_info = next(
+            (idx + 1, v) for (idx, v) in enumerate(json_all['videoList'])
+            if v['id'] == video_internal_id)
 
         title = json_all['title']
         if len(video_list) > 1:
@@ -96,7 +94,7 @@ class AcFunVideoIE(InfoExtractor):
             'description': json_all.get('description'),
             'uploader': traverse_obj(json_all, ('user', 'name')),
             'uploader_id': traverse_obj(json_all, ('user', 'href')),
-            'tags': [t['name'] for t in json_all.get('tagList', []) if 'name' in t],
+            'tags': traverse_obj(json_all, ('tag_list', ..., 'name')),
             'view_count': int_or_none(json_all.get('viewCount')),
             'like_count': int_or_none(json_all.get('likeCountShow')),
             'comment_count': int_or_none(json_all.get('commentCountShow')),
@@ -135,7 +133,7 @@ class AcFunBangumiIE(AcFunVideoIE):
         mobj = re.match(r'(?P<id>aa[_\d]+)(?:\?ac=(?P<ac_idx>\d+))?', video_id)
         if mobj.group('ac_idx'):
             has_ac_idx = True
-            video_id = f"{mobj.group('id')}_ac={mobj.group('ac_idx')}"
+            video_id = f"{mobj.group('id')}_{mobj.group('ac_idx')}"
 
         webpage = self._download_webpage(url, video_id)
         json_bangumi_data = self._search_json(r'window.bangumiData\s*=\s*', webpage, 'bangumiData', video_id)
