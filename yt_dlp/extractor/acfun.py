@@ -1,7 +1,5 @@
-
 from .common import InfoExtractor
 from ..utils import (
-    bug_reports_message,
     ExtractorError,
     float_or_none,
     format_field,
@@ -73,7 +71,7 @@ class AcFunVideoIE(AcFunVideoBaseIE):
 
         video_info = json_all['currentVideoInfo']
 
-        title = json_all.get('title', '')
+        title = json_all.get('title')
         video_internal_id = traverse_obj(json_all, ('currentVideoInfo', 'id'))
         if 'videoList' in json_all and video_internal_id is not None:
             video_list = json_all['videoList']
@@ -170,6 +168,6 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             'http_headers': {
                 'Referer': url,
             },
-            ** info,
+            **info,
             **self.parse_format_and_subtitle(video_id, video_info)
         }
