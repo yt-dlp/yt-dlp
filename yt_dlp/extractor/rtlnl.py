@@ -155,7 +155,7 @@ class RTLLuBaseIE(InfoExtractor):
             self._MEDIA_REGEX[media_type], webpage, 'media_url', group=('media_url'),
             default=None, fatal=False)
 
-    def get_thumbnail_formats_and_subtitles(self, webpage, video_id):
+    def get_formats_and_subtitles(self, webpage, video_id):
         video_url, audio_url = self.get_media_url(webpage, video_id, 'video'), self.get_media_url(webpage, video_id, 'audio')
 
         formats, subtitles = [], {}
@@ -164,7 +164,7 @@ class RTLLuBaseIE(InfoExtractor):
         if audio_url is not None:
             formats.append({'url': audio_url, 'ext': 'mp3', 'vcodec': 'none'})
 
-        return self.get_media_url(webpage, video_id, 'thumbnail'), formats, subtitles
+        return formats, subtitles
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -174,7 +174,7 @@ class RTLLuBaseIE(InfoExtractor):
         # we can context from <rtl-comments context=<context> in webpage
         webpage = self._download_webpage(url, video_id)
 
-        thumbnail, formats, subtitles = self.get_thumbnail_formats_and_subtitles(webpage, video_id)
+        formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
         self._sort_formats(formats)
 
         return {
@@ -183,7 +183,7 @@ class RTLLuBaseIE(InfoExtractor):
             'description': self._og_search_description(webpage, default=None),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': thumbnail or self._og_search_thumbnail(webpage, default=None),
+            'thumbnail': self.get_media_url(webpage, video_id, 'thumbnail') or self._og_search_thumbnail(webpage, default=None),
             'is_live': is_live,
         }
 
