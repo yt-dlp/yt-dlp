@@ -45,13 +45,15 @@ class ServusIE(InfoExtractor):
         'only_matching': True,
     }]
 
-
     def _real_extract(self, url):
         video_id = self._match_id(url).upper()
 
         video = self._download_json(
             'https://api-player.redbull.com/stv/servus-tv?timeZone=Europe/Berlin&videoId=%s' % video_id,
             video_id, 'Downloading video JSON')
+        if not 'videoUrl' in video:
+            self._report_errors(video)
+            return None
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             video.get('videoUrl'), video_id, 'mp4', entry_protocol='m3u8_native',
             m3u8_id='hls', fatal=False)
@@ -84,3 +86,19 @@ class ServusIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         }
+
+    def _report_errors(self, video):
+        if not 'playabilityErrors' in video:
+            self.report_warning('No videoUrl, and also no information about errors')
+        for error in video.get('playabilityErrors'):
+            if error == 'FSK_BLOCKED':
+                details = video['playabilityErrorDetails']['FSK_BLOCKED']
+                if 'minEveningHour' in details:
+                    self.report_warning('Only playable from '
+                            + f'{details["minEveningHour"]}:00 to '
+                            + f'{details["maxMorningHour"]}:00')
+            elif error == 'NOT_YET_AVAILABLE':
+                self.report_warning('Only available after '
+                        + video.get('currentSunrise'))
+            else:
+                self.report_warning(f'Not playable: {error}')
