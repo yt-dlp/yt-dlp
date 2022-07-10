@@ -5,6 +5,7 @@ from ..utils import (
     bug_reports_message,
     ExtractorError,
     float_or_none,
+    format_field,
     int_or_none,
     traverse_obj,
     parse_codecs,
@@ -122,7 +123,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
         },
         'params': {
             # m3u8 download
-            'skip_download': True,
+            'skip_download': 'm3u8',
         },
         'skip': 'Geo-restricted to China',
     }, {
@@ -133,17 +134,15 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        has_ac_idx = False
-        mobj = re.match(r'(?P<id>aa[_\d]+)(?:\?ac=(?P<ac_idx>\d+))?', video_id)
-        if mobj.group('ac_idx'):
-            has_ac_idx = True
-            video_id = f"{mobj.group('id')}_{mobj.group('ac_idx')}"
+        id, ac_idx = self._search_regex(r'(?P<id>aa[_\d]+)(?:\?ac=(?P<ac_idx>\d+))?', video_id,
+                                        'ac_idx_parse', group=['id', 'ac_idx'])
+        video_id = f'{id}{format_field(ac_idx, template="_%s")}'
 
         webpage = self._download_webpage(url, video_id)
         json_bangumi_data = self._search_json(r'window.bangumiData\s*=\s*', webpage, 'bangumiData', video_id)
 
         info = {}
-        if not has_ac_idx:
+        if not ac_idx:
             if 'currentVideoInfo' not in json_bangumi_data:
                 raise ExtractorError(f'Unknown webpage json schema{bug_reports_message()}')
             video_info = json_bangumi_data['currentVideoInfo']
