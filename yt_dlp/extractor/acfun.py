@@ -2,6 +2,8 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    bug_reports_message,
+    ExtractorError,
     float_or_none,
     int_or_none,
     traverse_obj,
@@ -68,20 +70,26 @@ class AcFunVideoIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         json_all = self._search_json(r'window.videoInfo\s*=\s*', webpage, 'videoInfo', video_id)
 
+        if 'currentVideoInfo' not in json_all:
+            raise ExtractorError(f'Unknown webpage json schema{bug_reports_message()}')
         video_info = json_all['currentVideoInfo']
+
+        if 'ksPlayJson' not in video_info:
+            raise ExtractorError(f'Unknown webpage json schema{bug_reports_message()}')
         playjson = self._parse_json(video_info['ksPlayJson'], video_id)
         video_internal_id = traverse_obj(json_all, ('currentVideoInfo', 'id'))
 
         formats, subtitles = self.parse_format_list(traverse_obj(playjson, ('adaptationSet', 0, 'representation')), video_id)
 
-        video_list = json_all['videoList']
-        p_idx, video_info = next(
-            (idx + 1, v) for (idx, v) in enumerate(video_list)
-            if v['id'] == video_internal_id)
+        title = json_all.get('title', '')
+        if 'videoList' in json_all:
+            video_list = json_all['videoList']
+            p_idx, video_info = next(
+                (idx + 1, v) for (idx, v) in enumerate(video_list)
+                if v['id'] == video_internal_id)
 
-        title = json_all['title']
-        if len(video_list) > 1:
-            title = f"{title} P{p_idx:02d} {video_info['title']}"
+            if len(video_list) > 1:
+                title = f"{title} P{p_idx:02d} {video_info['title']}"
 
         return {
             'id': video_id,
@@ -138,8 +146,10 @@ class AcFunBangumiIE(AcFunVideoIE):
 
         other_info = {}
         if not has_ac_idx:
+            if 'currentVideoInfo' not in json_bangumi_data:
+                raise ExtractorError(f'Unknown webpage json schema{bug_reports_message()}')
             video_info = json_bangumi_data['currentVideoInfo']
-            title = json_bangumi_data['showTitle']
+            title = json_bangumi_data.get('showTitle', '')
             season_id = json_bangumi_data.get('bangumiId')
             all_season_list = json_bangumi_data.get('relatedBangumis', [])
 
@@ -170,9 +180,13 @@ class AcFunBangumiIE(AcFunVideoIE):
         else:
             # if has ac_idx, this url is a proxy to other video which is at https://www.acfun.cn/v/ac
             # the normal video_id is not in json
+            if 'hlVideoInfo' not in json_bangumi_data:
+                raise ExtractorError(f'Unknown webpage json schema{bug_reports_message()}')
             video_info = json_bangumi_data['hlVideoInfo']
-            title = video_info['title']
+            title = video_info.get('title', '')
 
+        if 'ksPlayJson' not in video_info:
+            raise ExtractorError(f'Unknown webpage json schema{bug_reports_message()}')
         playlist = self._parse_json(video_info['ksPlayJson'], video_id)
         formats, subtitles = self.parse_format_list(traverse_obj(playlist, ('adaptationSet', 0, 'representation')), video_id)
 
