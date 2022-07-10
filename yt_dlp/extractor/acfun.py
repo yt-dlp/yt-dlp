@@ -18,9 +18,8 @@ class AcFunVideoBaseIE(InfoExtractor):
             raise ExtractorError(f'Unknown webpage json schema{bug_reports_message()}')
         playjson = self._parse_json(video_info['ksPlayJson'], video_id)
 
-        fmt_jobj = traverse_obj(playjson, ('adaptationSet', 0, 'representation'))
         formats, subtitles = [], {}
-        for video in fmt_jobj:
+        for video in traverse_obj(playjson, ('adaptationSet', 0, 'representation')):
             fmts, subs = self._extract_m3u8_formats_and_subtitles(video['url'], video_id, 'mp4', fatal=False)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
@@ -60,6 +59,10 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
+    },{
+        # example for len(video_list) > 1
+        'url': 'https://www.acfun.cn/v/ac35468952_2',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -74,12 +77,12 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         video_internal_id = traverse_obj(json_all, ('currentVideoInfo', 'id'))
         if 'videoList' in json_all and video_internal_id is not None:
             video_list = json_all['videoList']
-            p_idx, p_video_info = next(
+            part_idx, part_video_info = next(
                 (idx + 1, v) for (idx, v) in enumerate(video_list)
                 if v['id'] == video_internal_id)
 
             if len(video_list) > 1:
-                title = f'{title} P{p_idx:02d} {p_video_info["title"]}'
+                title = f'{title} P{part_idx:02d} {part_video_info["title"]}'
 
         return {
             'id': video_id,
@@ -111,7 +114,6 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             'timestamp': 1594432800,
         },
         'params': {
-            # m3u8 download
             'skip_download': 'm3u8',
         },
         'skip': 'Geo-restricted to China',
@@ -135,9 +137,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             title = json_bangumi_data.get('showTitle')
             season_id = json_bangumi_data.get('bangumiId')
 
-            season_number = None
-            if season_id:
-                season_number = next((
+            season_number = season_id and next((
                     idx + 1 for (idx, v) in enumerate(json_bangumi_data.get('relatedBangumis', []))
                     if v.get('id') == season_id), 1)
 
