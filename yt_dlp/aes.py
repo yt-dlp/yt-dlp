@@ -137,9 +137,9 @@ def aes_cbc_decrypt(data, key, iv):
     return decrypted_data
 
 
-def aes_cbc_encrypt(data, key, iv):
+def aes_cbc_encrypt(data, key, iv, padding_mode='pkcs7'):
     """
-    Encrypt with aes in CBC mode. Using PKCS#7 padding
+    Encrypt with aes in CBC mode. Using PKCS#7 as default padding mode
 
     @param {int[]} data        cleartext
     @param {int[]} key         16/24/32-Byte cipher key
@@ -153,8 +153,8 @@ def aes_cbc_encrypt(data, key, iv):
     previous_cipher_block = iv
     for i in range(block_count):
         block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
-        remaining_length = BLOCK_SIZE_BYTES - len(block)
-        block += [remaining_length] * remaining_length
+        block = pad_block(block, padding_mode)
+
         mixed_block = xor(block, previous_cipher_block)
 
         encrypted_block = aes_encrypt(mixed_block, expanded_key)
@@ -499,6 +499,32 @@ def ghash(subkey, data):
         last_y = block_product(xor(last_y, block), subkey)
 
     return last_y
+
+
+def pad_block(block, padding_mode):
+    padding_size = BLOCK_SIZE_BYTES - len(block)
+    if padding_size < 0:
+        raise Exception('Block size exceeded')
+
+    if padding_size == 0:
+        return block
+
+    # Pads with the same value as the number of padding bytes.
+    if padding_mode == 'pkcs7':
+        padding = [padding_size] * padding_size
+    # Pads with 0x80 followed by NULL (0) bytes.
+    elif padding_mode == 'iso7816':
+        padding = [0x80] + ([0] * (padding_size - 1)) if padding_size > 1 else []
+    # Pads with spaces (32). This is only used with ASCII text.
+    elif padding_mode == 'whitespace':
+        padding = [32] * padding_size
+    # Pads with NULL (0) bytes. This is only used with ASCII text.
+    elif padding_mode == 'zero':
+        padding = [0] * padding_size
+    else:
+        raise Exception('Unimplemented padding mode')
+
+    return block + padding
 
 
 __all__ = [
