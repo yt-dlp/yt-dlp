@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class AcFunVideoBaseIE(InfoExtractor):
-    def parse_format_and_subtitle(self, video_id, video_info):
+    def _extract_metadata(self, video_id, video_info):
         playjson = self._parse_json(video_info['ksPlayJson'], video_id)
 
         formats, subtitles = [], {}
@@ -28,17 +28,18 @@ class AcFunVideoBaseIE(InfoExtractor):
                 })
 
         self._sort_formats(formats)
-
         return {
+            'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
             'duration': float_or_none(video_info.get('durationMillis'), 1000),
             'timestamp': int_or_none(video_info.get('uploadTime'), 1000),
+            'http_headers': {'Referer': 'https://www.acfun.cn/'},
         }
 
 
 class AcFunVideoIE(AcFunVideoBaseIE):
-    _VALID_URL = r'https?://(?:www\.acfun\.cn/v/)ac(?P<id>[_\d]+)'
+    _VALID_URL = r'https?://www\.acfun\.cn/v/ac(?P<id>[_\d]+)'
 
     _TESTS = [{
         'url': 'https://www.acfun.cn/v/ac35457073',
@@ -66,21 +67,17 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         webpage = self._download_webpage(url, video_id)
         json_all = self._search_json(r'window.videoInfo\s*=\s*', webpage, 'videoInfo', video_id)
 
-        video_info = json_all['currentVideoInfo']
-
         title = json_all.get('title')
+        video_list = json_all.get('videoList') or []
         video_internal_id = traverse_obj(json_all, ('currentVideoInfo', 'id'))
-        if 'videoList' in json_all and video_internal_id is not None:
-            video_list = json_all['videoList']
+        if video_internal_id and len(video_list) > 1:
             part_idx, part_video_info = next(
                 (idx + 1, v) for (idx, v) in enumerate(video_list)
                 if v['id'] == video_internal_id)
-
-            if len(video_list) > 1:
-                title = f'{title} P{part_idx:02d} {part_video_info["title"]}'
+            title = f'{title} P{part_idx:02d} {part_video_info["title"]}'
 
         return {
-            'id': video_id,
+            **self._extract_metadata(video_id, json_all['currentVideoInfo']),
             'title': title,
             'thumbnail': json_all.get('coverUrl'),
             'description': json_all.get('description'),
@@ -90,10 +87,6 @@ class AcFunVideoIE(AcFunVideoBaseIE):
             'view_count': int_or_none(json_all.get('viewCount')),
             'like_count': int_or_none(json_all.get('likeCountShow')),
             'comment_count': int_or_none(json_all.get('commentCountShow')),
-            'http_headers': {
-                'Referer': url,
-            },
-            **self.parse_format_and_subtitle(video_id, video_info)
         }
 
 
@@ -120,51 +113,40 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         ac_idx = parse_qs(url).get('ac', [None])[-1]
-
         video_id = f'{video_id}{format_field(ac_idx, template="__%s")}'
 
         webpage = self._download_webpage(url, video_id)
         json_bangumi_data = self._search_json(r'window.bangumiData\s*=\s*', webpage, 'bangumiData', video_id)
 
-        info = {}
-        if not ac_idx:
-            video_info = json_bangumi_data['currentVideoInfo']
-            title = json_bangumi_data.get('showTitle')
-            season_id = json_bangumi_data.get('bangumiId')
-
-            season_number = season_id and next(
-                (idx + 1 for (idx, v) in enumerate(json_bangumi_data.get('relatedBangumis') or [])
-                 if v.get('id') == season_id), 1)
-
-            json_bangumi_list = self._search_json(r'window.bangumiList\s*=\s*', webpage, 'bangumiList', video_id) or {}
-            video_internal_id = int_or_none(traverse_obj(json_bangumi_data, ('currentVideoInfo', 'id')))
-            episode_number = None
-            if video_internal_id:
-                episode_number = next(
-                    idx + 1 for (idx, v) in enumerate(json_bangumi_list.get('items', []))
-                    if v.get('videoId') == video_internal_id)
-
-            info.update({
-                'thumbnail': json_bangumi_data.get('image'),
-                'comment_count': int_or_none(json_bangumi_data.get('commentCount')),
-                'season': json_bangumi_data.get('bangumiTitle'),
-                'season_id': season_id,
-                'season_number': season_number,
-                'episode': json_bangumi_data.get('title'),
-                'episode_number': episode_number,
-            })
-        else:
-            # if has ac_idx, this url is a proxy to other video which is at https://www.acfun.cn/v/ac
-            # the normal video_id is not in json
+        if ac_idx:
             video_info = json_bangumi_data['hlVideoInfo']
-            title = video_info.get('title')
+            return {
+                **self._extract_metadata(video_id, video_info),
+                'title': video_info.get('title'),
+            }
+
+        video_info = json_bangumi_data['currentVideoInfo']
+
+        season_id = json_bangumi_data.get('bangumiId')
+        season_number = season_id and next((
+            idx for idx, v in enumerate(json_bangumi_data.get('relatedBangumis') or [], 1)
+            if v.get('id') == season_id), 1)
+
+        json_bangumi_list = self._search_json(
+            r'window.bangumiList\s*=\s*', webpage, 'bangumiList', video_id, fatal=False)
+        video_internal_id = int_or_none(traverse_obj(json_bangumi_data, ('currentVideoInfo', 'id')))
+        episode_number = video_internal_id and next((
+            idx for idx, v in enumerate(json_bangumi_list.get('items') or [], 1)
+            if v.get('videoId') == video_internal_id), None)
 
         return {
-            'id': video_id,
-            'title': title,
-            'http_headers': {
-                'Referer': url,
-            },
-            **info,
-            **self.parse_format_and_subtitle(video_id, video_info)
+            **self._extract_metadata(video_id, video_info),
+            'title': json_bangumi_data.get('showTitle'),
+            'thumbnail': json_bangumi_data.get('image'),
+            'season': json_bangumi_data.get('bangumiTitle'),
+            'season_id': season_id,
+            'season_number': season_number,
+            'episode': json_bangumi_data.get('title'),
+            'episode_number': episode_number,
+            'comment_count': int_or_none(json_bangumi_data.get('commentCount')),
         }
