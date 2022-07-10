@@ -132,7 +132,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
         info = {}
         if not ac_idx:
             video_info = json_bangumi_data['currentVideoInfo']
-            title = json_bangumi_data.get('showTitle', '')
+            title = json_bangumi_data.get('showTitle')
             season_id = json_bangumi_data.get('bangumiId')
 
             season_number = None
@@ -162,7 +162,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             # if has ac_idx, this url is a proxy to other video which is at https://www.acfun.cn/v/ac
             # the normal video_id is not in json
             video_info = json_bangumi_data['hlVideoInfo']
-            title = video_info.get('title', '')
+            title = video_info.get('title')
 
         return {
             'id': video_id,
