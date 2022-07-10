@@ -1,11 +1,11 @@
 from .common import InfoExtractor
-from ..utils import extract_attributes
+from ..utils import extract_attributes, remove_end
 
 
 class TheHoleTvExtractorIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?the-hole\.tv/episodes/(?P<id>[a-z0-9\-]+)'
+    _VALID_URL = r'https?://(?:www\.)?the-hole\.tv/episodes/(?P<id>[\w-]+)'
     _TESTS = [{
-        'url': "https://the-hole.tv/episodes/gromkii-vopros-sergey-orlov",
+        'url': 'https://the-hole.tv/episodes/gromkii-vopros-sergey-orlov',
         'md5': 'fea6682f47786f3ae5a6cbd635ec4bf9',
         'info_dict': {
             'id': 'gromkii-vopros-sergey-orlov',
@@ -20,20 +20,15 @@ class TheHoleTvExtractorIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_extract_title(webpage).removesuffix(' — The Hole')
-        description = self._og_search_description(webpage)
-
-        player_div = self._search_regex(r'(<div[^>]*data-controller="player">)', webpage, 'video player div')
-        player_attrs = extract_attributes(player_div)
-
-        thumbnail = player_attrs['data-player-poster-value']
-        formats = self._extract_m3u8_formats(player_attrs['data-player-source-value'], video_id)
+        player_attrs = extract_attributes(self._search_regex(r'(<div[^>]*data-controller="player">)', webpage, 'video player div'))
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(player_attrs['data-player-source-value'], video_id)
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
+            'title': remove_end(self._html_extract_title(webpage), ' — The Hole'),
+            'description': self._og_search_description(webpage),
+            'thumbnail': player_attrs.get('data-player-poster-value'),
             'formats': formats,
+            'subtitles': subtitles
         }
