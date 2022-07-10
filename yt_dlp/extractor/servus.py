@@ -59,10 +59,10 @@ class ServusIE(InfoExtractor):
             m3u8_id='hls')
         self._sort_formats(formats)
 
-        season = video.get('season'),
+        season = video.get('season')
         season_number = int_or_none(self._search_regex(
             r'Season (\d+)', season or '', 'season number', default=None))
-        episode = video.get('chapter'),
+        episode = video.get('chapter')
         episode_number = int_or_none(self._search_regex(
             r'Episode (\d+)', episode or '', 'episode number', default=None))
 
