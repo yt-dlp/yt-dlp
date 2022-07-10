@@ -1685,6 +1685,8 @@ class YoutubeDL:
 
     def __process_playlist(self, ie_result, download):
         """Process each entry in the playlist"""
+        assert ie_result['_type'] in ('playlist', 'multi_video')
+
         title = ie_result.get('title') or ie_result.get('id') or '<Untitled>'
         self.to_screen(f'[download] Downloading playlist: {title}')
 
@@ -3540,7 +3542,9 @@ class YoutubeDL:
         def simplified_codec(f, field):
             assert field in ('acodec', 'vcodec')
             codec = f.get(field, 'unknown')
-            if codec != 'none':
+            if not codec:
+                return 'unknown'
+            elif codec != 'none':
                 return '.'.join(codec.split('.')[:4])
 
             if field == 'vcodec' and f.get('acodec') == 'none':
