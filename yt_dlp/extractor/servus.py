@@ -82,7 +82,6 @@ class ServusIE(InfoExtractor):
             'subtitles': subtitles,
         }
 
-
     def _get_description(self, video, video_id):
         info = self._download_json("https://backend.servustv.com/wp-json/rbmh/v2/media_asset/aa_id/%s?fieldset=page" % video_id,
                                    video_id, fatal=False)
