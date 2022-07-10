@@ -18,23 +18,19 @@ class AcFunVideoBaseIE(InfoExtractor):
         playjson = self._parse_json(video_info['ksPlayJson'], video_id)
 
         fmt_jobj = traverse_obj(playjson, ('adaptationSet', 0, 'representation'))
-        formats = []
-        subtitles = []
+        formats, subtitles = [], {}
         for video in fmt_jobj:
-            format_list, subtitle_list = self._extract_m3u8_formats_and_subtitles(video['url'], video_id)
-
-            formats += [{
-                **fmt,
-                'fps': int_or_none(video.get('frameRate')),
-                'width': int_or_none(video.get('width')),
-                'height': int_or_none(video.get('height')),
-                'tbr': float_or_none(video.get('avgBitrate')),
-                'ext': 'mp4',
-                'subtitles': subtitle_list,  # it seems AcFun do not have subtitles
-                **parse_codecs(video.get('codecs', ''))
-            } for fmt in format_list]
-
-            subtitles += subtitle_list
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(video['url'], video_id, 'mp4', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+            for f in fmts:
+                fmts.update({
+                    'fps': int_or_none(video.get('frameRate')),
+                    'width': int_or_none(video.get('width')),
+                    'height': int_or_none(video.get('height')),
+                    'tbr': float_or_none(video.get('avgBitrate')),
+                    **parse_codecs(video.get('codecs', ''))
+                })
 
         self._sort_formats(formats)
 
@@ -59,9 +55,9 @@ class AcFunVideoIE(AcFunVideoBaseIE):
             'uploader': '锤子game',
             'uploader_id': '51246077',
             'tags': ['电子竞技', 'LOL', 'CF', '搞笑', '真人'],
-            'view_count': 31917,
-            'like_count': 1850,
-            'comment_count': 288,
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
             'duration': 174.208,
             'timestamp': 1656403967
         },
