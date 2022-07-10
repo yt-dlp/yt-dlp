@@ -61,7 +61,6 @@ class ServusIE(InfoExtractor):
         self._sort_formats(formats)
 
         title = video.get('title') or video_id
-        description = video.get('description')
         series = video.get('label')
         season = video.get('season')
         episode = video.get('chapter')
@@ -74,7 +73,7 @@ class ServusIE(InfoExtractor):
         return {
             'id': video_id,
             'title': title,
-            'description': description,
+            'description': self._get_description(video, video_id),
             'thumbnail': thumbnail,
             'duration': duration,
             'timestamp': unified_timestamp(video.get('currentSunrise')),
@@ -86,6 +85,16 @@ class ServusIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         }
+
+    def _get_description(self, video, video_id):
+        info = self._download_json("https://backend.servustv.com/wp-json/rbmh/v2/media_asset/aa_id/%s?fieldset=page" % video_id,
+                                   video_id, fatal=False)
+        if not info:
+            return video.get('description')
+        description = info.get('stv_long_description') \
+            or info.get("stv_short_description") \
+            or video.get('description')
+        return description
 
     def _report_errors(self, video):
         if 'playabilityErrors' not in video:
