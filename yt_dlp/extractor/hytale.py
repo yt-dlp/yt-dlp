@@ -14,7 +14,7 @@ class HytaleIE(InfoExtractor):
         'playlist_count': 4,
     }]
 
-    _MD5_REGEX = r'<stream\s*class\s*=\s*"ql-video\s*cf-stream"\s*src\s*=\s*"([a-f0-9]{32})"'
+    _MD5_REGEX = r'<stream\s+class\s*=\s*"ql-video\s+cf-stream"\s+src\s*=\s*"([a-f0-9]{32})"'
     _VIDEO_BASE_URL = 'https://cloudflarestream.com/{}/manifest/video.mpd?parentOrigin=https%3A%2F%2Fhytale.com'
 
     def _real_extract(self, url):
@@ -22,7 +22,7 @@ class HytaleIE(InfoExtractor):
 
         webpage = self._download_webpage(url, playlist_id)
 
-        entries = [self.url_result(self._VIDEO_BASE_URL.format(video_hash))
+        entries = [self.url_result(self._VIDEO_BASE_URL.format(video_hash), video_title=f'Hytale video #{video_hash}')
                    for video_hash in re.findall(self._MD5_REGEX, webpage)]
 
         return {
