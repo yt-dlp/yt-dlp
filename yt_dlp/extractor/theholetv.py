@@ -20,8 +20,10 @@ class TheHoleTvExtractorIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        player_attrs = extract_attributes(self._search_regex(r'(<div[^>]*\bdata-controller="player"[^>]*>)', webpage, 'video player'))
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(player_attrs['data-player-source-value'], video_id)
+        player_attrs = extract_attributes(self._search_regex(
+            r'(<div[^>]*\bdata-controller="player"[^>]*>)', webpage, 'video player'))
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            player_attrs['data-player-source-value'], video_id, 'mp4')
         self._sort_formats(formats)
 
         return {
