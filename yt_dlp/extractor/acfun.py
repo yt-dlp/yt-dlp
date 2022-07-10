@@ -1,4 +1,3 @@
-
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
@@ -55,7 +54,7 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
-    },{
+    }, {
         # example for len(video_list) > 1
         'url': 'https://www.acfun.cn/v/ac35468952_2',
         'only_matching': True,
@@ -133,9 +132,9 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             title = json_bangumi_data.get('showTitle')
             season_id = json_bangumi_data.get('bangumiId')
 
-            season_number = season_id and next((
-                    idx + 1 for (idx, v) in enumerate(json_bangumi_data.get('relatedBangumis') or [])
-                    if v.get('id') == season_id), 1)
+            season_number = season_id and next(
+                (idx + 1 for (idx, v) in enumerate(json_bangumi_data.get('relatedBangumis') or [])
+                 if v.get('id') == season_id), 1)
 
             json_bangumi_list = self._search_json(r'window.bangumiList\s*=\s*', webpage, 'bangumiList', video_id) or {}
             video_internal_id = int_or_none(traverse_obj(json_bangumi_data, ('currentVideoInfo', 'id')))
