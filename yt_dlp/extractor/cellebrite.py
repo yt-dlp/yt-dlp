@@ -3,7 +3,7 @@ from ..utils import traverse_obj
 
 
 class CellebriteIE(InfoExtractor):
-    _VALID_URL = r'https?://cellebrite\.com/(?:en)?/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://cellebrite\.com/(?:\w+)?/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://cellebrite.com/en/collect-data-from-android-devices-with-cellebrite-ufed/',
         'info_dict': {
