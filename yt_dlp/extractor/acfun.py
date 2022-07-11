@@ -58,7 +58,16 @@ class AcFunVideoIE(AcFunVideoBaseIE):
     }, {
         # example for len(video_list) > 1
         'url': 'https://www.acfun.cn/v/ac35468952_2',
-        'only_matching': True,
+        'info_dict': {
+            'id': '35468952_2',
+            'duration': 90.459,
+            'title': '【动画剧集】Rocket & Groot Season 1（2022）/火箭浣熊与格鲁特第1季 P02 S01E02 十拿九穩',
+            'uploader': '比令',
+            'uploader_id': '37259967'
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
     }]
 
     def _real_extract(self, url):
@@ -124,6 +133,22 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
+    }, {
+        'url': 'https://www.acfun.cn/bangumi/aa6004596_36188_1759741',
+        'info_dict': {
+            'id': 'aa6004596_36188_1759741',
+            'duration': 1420.04,
+            'title': '摇曳露营△ 第二季 第2话 岁末的单人露营女孩',
+            'season': '摇曳露营△ 第二季',
+            'season_id': 6004596,
+            'season_number': 2,
+            'episode': '岁末的单人露营女孩',
+            'episode_number': 2
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+        'skip': 'Geo-restricted to China',
     }]
 
     def _real_extract(self, url):
