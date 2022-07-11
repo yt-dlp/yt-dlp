@@ -45,15 +45,22 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         'url': 'https://www.acfun.cn/v/ac35457073',
         'info_dict': {
             'id': '35457073',
+            'duration': 174.208,
+            'timestamp': 1656403967,
             'title': '1 8 岁 现 状',
             'description': '“赶紧回去！班主任查班了！”',
             'uploader': '锤子game',
             'uploader_id': '51246077',
-            'duration': 174.208,
-            'timestamp': 1656403967
+            'thumbnail': str,
+            'upload_date': '20220628',
+            'like_count': int,
+            'view_count': int,
+            'tags': ['电子竞技', 'LOL', 'CF', '搞笑', '真人'],
+            'comment_count': int,
         },
         'params': {
             'skip_download': 'm3u8',
+            'ignore_no_formats_error': True
         },
     }, {
         # example for len(video_list) > 1
@@ -67,6 +74,7 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         },
         'params': {
             'skip_download': 'm3u8',
+            'ignore_no_formats_error': True,
         },
     }]
 
@@ -112,6 +120,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
         },
         'params': {
             'skip_download': 'm3u8',
+            'ignore_no_formats_error': True,
         },
         'skip': 'Geo-restricted to China',
     }, {
@@ -132,6 +141,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
         },
         'params': {
             'skip_download': 'm3u8',
+            'ignore_no_formats_error': True,
         },
     }, {
         'url': 'https://www.acfun.cn/bangumi/aa6004596_36188_1759741',
@@ -147,6 +157,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
         },
         'params': {
             'skip_download': 'm3u8',
+            'ignore_no_formats_error': True,
         },
         'skip': 'Geo-restricted to China',
     }]
