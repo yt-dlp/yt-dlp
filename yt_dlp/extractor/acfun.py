@@ -126,36 +126,36 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
         'url': 'https://www.acfun.cn/bangumi/aa5023171_36188_1750645',
         'info_dict': {
             'id': 'aa5023171_36188_1750645',
-            'title': '红孩儿之趴趴蛙寻石记 第5话 ',
             'ext': 'mp4',
+            'title': '红孩儿之趴趴蛙寻石记 第5话 ',
             'duration': 760.0,
-            'timestamp': 1545552185,
             'season': '红孩儿之趴趴蛙寻石记',
             'season_id': 5023171,
             'season_number': 1,  # series has only 1 season
             'episode': 'Episode 5',
             'episode_number': 5,
+            'upload_date': '20181223',
+            'timestamp': 1545552185,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)',
             'comment_count': int,
-            'upload_date': '20181223',
         },
     }, {
-        'url': 'https://www.acfun.cn/bangumi/aa6004596_36188_1759741',
+        'url': 'https://www.acfun.cn/bangumi/aa6065485_36188_1885061',
         'info_dict': {
-            'id': 'aa6004596_36188_1759741',
-            'duration': 1420.04,
-            'title': '摇曳露营△ 第二季 第2话 岁末的单人露营女孩',
-            'season': '摇曳露营△ 第二季',
-            'season_id': 6004596,
+            'id': 'aa6065485_36188_1885061',
+            'ext': 'mp4',
+            'title': '叽歪老表（第二季） 第5话 坚不可摧',
+            'season': '叽歪老表（第二季）',
             'season_number': 2,
-            'episode': '岁末的单人露营女孩',
-            'episode_number': 2
+            'season_id': 6065485,
+            'episode': '坚不可摧',
+            'episode_number': 5,
+            'upload_date': '20220324',
+            'timestamp': 1648082786,
+            'duration': 105.002,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)',
+            'comment_count': int,
         },
-        'params': {
-            'skip_download': 'm3u8',
-            'ignore_no_formats_error': True,
-        },
-        'skip': 'Geo-restricted to China',
     }]
 
     def _real_extract(self, url):
