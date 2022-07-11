@@ -180,9 +180,9 @@ class WeTvEpisodeIE(WeTvBaseIE):
         return {
             'id': video_id,
             'title': (self._og_search_title(webpage)
-                    or traverse_obj(webpage_metadata, ('coverInfo', 'description'))),
+                      or traverse_obj(webpage_metadata, ('coverInfo', 'description'))),
             'description': (self._og_search_description(webpage)
-                    or traverse_obj(webpage_metadata, ('coverInfo', 'description'))),
+                            or traverse_obj(webpage_metadata, ('coverInfo', 'description'))),
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': self._og_search_thumbnail(webpage),
@@ -220,7 +220,7 @@ class WeTvSeriesIE(WeTvBaseIE):
 
         parsed_url = urllib.parse.urlparse(url)
         episode_paths = (re.findall(r'<a[^>]+class="play-video__link"[^>]+href="(?P<path>[^"]+)', webpage)
-                        or [f"/{series_id}/{episode['vid']}" for episode in webpage_metadata.get('videoList')])
+                         or [f"/{series_id}/{episode['vid']}" for episode in webpage_metadata.get('videoList')])
 
         return self.playlist_result(
             [self.url_result(parsed_url._replace(path=path).geturl(), WeTvEpisodeIE) for path in episode_paths],
