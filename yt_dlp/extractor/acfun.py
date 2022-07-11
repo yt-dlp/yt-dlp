@@ -51,7 +51,7 @@ class AcFunVideoIE(AcFunVideoBaseIE):
             'description': '“赶紧回去！班主任查班了！”',
             'uploader': '锤子game',
             'uploader_id': '51246077',
-            'thumbnail': str,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg)',
             'upload_date': '20220628',
             'like_count': int,
             'view_count': int,
@@ -74,7 +74,6 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         },
         'params': {
             'skip_download': 'm3u8',
-            'ignore_no_formats_error': True,
         },
     }]
 
