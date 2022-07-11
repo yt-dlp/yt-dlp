@@ -428,9 +428,9 @@ def create_parser():
         action='store_false', dest='mark_watched',
         help='Do not mark videos watched (default)')
     general.add_option(
-        '--no-colors',
+        '--no-colors', '--no-colours',
         action='store_true', dest='no_color', default=False,
-        help='Do not emit color codes in output')
+        help='Do not emit color codes in output (Alias: --no-colours)')
     general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',

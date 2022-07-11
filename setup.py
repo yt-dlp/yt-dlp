@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os.path
+import subprocess
 import sys
 import warnings
 
@@ -10,7 +11,6 @@ try:
 except ImportError:
     from distutils.core import Command, setup
     setuptools_available = False
-from distutils.spawn import spawn
 
 
 def read(fname):
@@ -36,12 +36,24 @@ LONG_DESCRIPTION = '\n\n'.join((
 REQUIREMENTS = read('requirements.txt').splitlines()
 
 
-if sys.argv[1:2] == ['py2exe']:
+def packages():
+    if setuptools_available:
+        return find_packages(exclude=('youtube_dl', 'youtube_dlc', 'test', 'ytdlp_plugins'))
+
+    return [
+        'yt_dlp', 'yt_dlp.extractor', 'yt_dlp.downloader', 'yt_dlp.postprocessor', 'yt_dlp.compat',
+        'yt_dlp.extractor.anvato_token_generator',
+    ]
+
+
+def py2exe_params():
     import py2exe  # noqa: F401
+
     warnings.warn(
         'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
         'The recommended way is to use "pyinst.py" to build using pyinstaller')
-    params = {
+
+    return {
         'console': [{
             'script': './yt_dlp/__main__.py',
             'dest_base': 'yt-dlp',
@@ -50,6 +62,7 @@ if sys.argv[1:2] == ['py2exe']:
             'comments': LONG_DESCRIPTION.split('\n')[0],
             'product_name': 'yt-dlp',
             'product_version': VERSION,
+            'icon_resources': [(1, 'devscripts/logo.ico')],
         }],
         'options': {
             'py2exe': {
@@ -66,7 +79,8 @@ if sys.argv[1:2] == ['py2exe']:
         'zipfile': None
     }
 
-else:
+
+def build_params():
     files_spec = [
         ('share/bash-completion/completions', ['completions/bash/yt-dlp']),
         ('share/zsh/site-functions', ['completions/zsh/_yt-dlp']),
@@ -74,25 +88,23 @@ else:
         ('share/doc/yt_dlp', ['README.txt']),
         ('share/man/man1', ['yt-dlp.1'])
     ]
-    root = os.path.dirname(os.path.abspath(__file__))
     data_files = []
     for dirname, files in files_spec:
         resfiles = []
         for fn in files:
             if not os.path.exists(fn):
-                warnings.warn('Skipping file %s since it is not present. Try running `make pypi-files` first' % fn)
+                warnings.warn(f'Skipping file {fn} since it is not present. Try running " make pypi-files " first')
             else:
                 resfiles.append(fn)
         data_files.append((dirname, resfiles))
 
-    params = {
-        'data_files': data_files,
-    }
+    params = {'data_files': data_files}
 
     if setuptools_available:
         params['entry_points'] = {'console_scripts': ['yt-dlp = yt_dlp:main']}
     else:
         params['scripts'] = ['yt-dlp']
+    return params
 
 
 class build_lazy_extractors(Command):
@@ -106,16 +118,13 @@ class build_lazy_extractors(Command):
         pass
 
     def run(self):
-        spawn([sys.executable, 'devscripts/make_lazy_extractors.py', 'yt_dlp/extractor/lazy_extractors.py'],
-              dry_run=self.dry_run)
+        if self.dry_run:
+            print('Skipping build of lazy extractors in dry run mode')
+            return
+        subprocess.run([sys.executable, 'devscripts/make_lazy_extractors.py', 'yt_dlp/extractor/lazy_extractors.py'])
 
 
-if setuptools_available:
-    packages = find_packages(exclude=('youtube_dl', 'youtube_dlc', 'test', 'ytdlp_plugins'))
-else:
-    packages = ['yt_dlp', 'yt_dlp.downloader', 'yt_dlp.extractor', 'yt_dlp.postprocessor']
-
-
+params = py2exe_params() if sys.argv[1:2] == ['py2exe'] else build_params()
 setup(
     name='yt-dlp',
     version=VERSION,
@@ -125,8 +134,9 @@ setup(
     long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
     url='https://github.com/yt-dlp/yt-dlp',
-    packages=packages,
+    packages=packages(),
     install_requires=REQUIREMENTS,
+    python_requires='>=3.6',
     project_urls={
         'Documentation': 'https://github.com/yt-dlp/yt-dlp#readme',
         'Source': 'https://github.com/yt-dlp/yt-dlp',
@@ -150,8 +160,6 @@ setup(
         'License :: Public Domain',
         'Operating System :: OS Independent',
     ],
-    python_requires='>=3.6',
-
     cmdclass={'build_lazy_extractors': build_lazy_extractors},
     **params
 )
