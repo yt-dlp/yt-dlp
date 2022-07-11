@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, merge_dicts, str_or_none
+from ..utils import merge_dicts, str_or_none
 
 
 class Detik20IE(InfoExtractor):
@@ -109,7 +109,7 @@ class Detik20IE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         json_ld_data = self._search_json_ld(webpage, display_id)
-        
+
         video_url = self._html_search_regex(
             r'videoUrl\s*:\s*"(?P<video_url>[^"]+)', webpage, 'videoUrl')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id, ext='mp4')
