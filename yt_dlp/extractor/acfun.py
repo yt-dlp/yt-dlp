@@ -108,6 +108,22 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
     }, {
         'url': 'https://www.acfun.cn/bangumi/aa6002917_36188_1745457?ac=2',
         'only_matching': True,
+    }, {
+        'url': 'https://www.acfun.cn/bangumi/aa5023171_36188_1750645',
+        'info_dict': {
+            'id': 'aa5023171_36188_1750645',
+            'duration': 760.0,
+            'timestamp': 1545552185,
+            'title': '红孩儿之趴趴蛙寻石记 第5话 ',
+            'season': '红孩儿之趴趴蛙寻石记',
+            'season_id': 5023171,
+            'season_number': 1,  # series has only 1 season
+            'episode': '',
+            'episode_number': 5
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
     }]
 
     def _real_extract(self, url):
