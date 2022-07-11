@@ -2,10 +2,10 @@ import re
 import time
 import urllib.parse
 
-from yt_dlp import InfoExtractor
-from yt_dlp.aes import aes_cbc_encrypt
-from yt_dlp.compat import compat_ord, compat_str
-from yt_dlp.utils import bytes_to_intlist, random_user_agent
+from .common import InfoExtractor
+from ..aes import aes_cbc_encrypt
+from ..compat import compat_ord
+from ..utils import bytes_to_intlist, random_user_agent
 
 
 class WeTvBaseIE(InfoExtractor):
@@ -16,7 +16,7 @@ class WeTvBaseIE(InfoExtractor):
             checksum = 0
             for char in payload:
                 checksum += compat_ord(char)
-            return compat_str(checksum)
+            return str(checksum)
 
         payload_components = [
             '',
@@ -165,7 +165,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
 
 
 class WeTvSeriesIE(WeTvBaseIE):
-    _VALID_URL = WeTvBaseIE._VALID_URL_BASE + r'/(?P<series_id>\w+)(?:-[^?#]+)?'
+    _VALID_URL = WeTvBaseIE._VALID_URL_BASE + r'/(?P<id>\w+)(?:-[^?#]+)?'
 
     _TESTS = [{
         'url': 'https://wetv.vip/play/air11ooo2rdsdi3-Cute-Programmer',
@@ -186,7 +186,7 @@ class WeTvSeriesIE(WeTvBaseIE):
     }]
 
     def _real_extract(self, url):
-        series_id = self._match_valid_url(url).group('series_id')
+        series_id = self._match_id(url)
         webpage = self._download_webpage(url, series_id)
 
         parsed_url = urllib.parse.urlparse(url)
