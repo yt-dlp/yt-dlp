@@ -45,6 +45,7 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         'url': 'https://www.acfun.cn/v/ac35457073',
         'info_dict': {
             'id': '35457073',
+            'ext': 'mp4',
             'duration': 174.208,
             'timestamp': 1656403967,
             'title': '1 8 岁 现 状',
@@ -55,35 +56,28 @@ class AcFunVideoIE(AcFunVideoBaseIE):
             'upload_date': '20220628',
             'like_count': int,
             'view_count': int,
-            'tags': ['电子竞技', 'LOL', 'CF', '搞笑', '真人'],
             'comment_count': int,
-        },
-        'params': {
-            'skip_download': 'm3u8',
-            'ignore_no_formats_error': True
+            'tags': list,
         },
     }, {
         # example for len(video_list) > 1
         'url': 'https://www.acfun.cn/v/ac35468952_2',
         'info_dict': {
             'id': '35468952_2',
-            'duration': 90.459,
+            'ext': 'mp4',
             'title': '【动画剧集】Rocket & Groot Season 1（2022）/火箭浣熊与格鲁特第1季 P02 S01E02 十拿九穩',
+            'duration': 90.459,
             'uploader': '比令',
             'uploader_id': '37259967',
-            'tags': ['喜剧', '星际', '树人', '浣熊', '飞船', '科幻'],
+            'upload_date': '20220629',
+            'timestamp': 1656479962,
+            'tags': list,
             'like_count': int,
             'view_count': int,
-            'timestamp': 1656479962,
             'comment_count': int,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg)',
-            'upload_date': '20220629',
             'description': 'md5:67583aaf3a0f933bd606bc8a2d3ebb17',
-        },
-        'params': {
-            'skip_download': 'm3u8',
-            'ignore_no_formats_error': True
-        },
+        }
     }]
 
     def _real_extract(self, url):
@@ -119,28 +113,23 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
     _VALID_URL = r'https?://www\.acfun\.cn/bangumi/(?P<id>aa[_\d]+)'
 
     _TESTS = [{
-        'url': 'https://www.acfun.cn/bangumi/aa6002917',
-        'info_dict': {
-            'id': 'aa6002917',
-            'title': '租借女友 第1话 租借女友',
-            'duration': 1467,
-            'timestamp': 1594432800,
-        },
-        'params': {
-            'skip_download': 'm3u8',
-            'ignore_no_formats_error': True,
-        },
-        'skip': 'Geo-restricted to China',
-    }, {
         'url': 'https://www.acfun.cn/bangumi/aa6002917_36188_1745457?ac=2',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'aa6002917_36188_1745457__2',
+            'ext': 'mp4',
+            'title': '【7月】租借女友 水原千鹤角色曲『DATE』特别PV',
+            'upload_date': '20200916',
+            'timestamp': 1600243813,
+            'duration': 92.091,
+        },
     }, {
         'url': 'https://www.acfun.cn/bangumi/aa5023171_36188_1750645',
         'info_dict': {
             'id': 'aa5023171_36188_1750645',
+            'title': '红孩儿之趴趴蛙寻石记 第5话 ',
+            'ext': 'mp4',
             'duration': 760.0,
             'timestamp': 1545552185,
-            'title': '红孩儿之趴趴蛙寻石记 第5话 ',
             'season': '红孩儿之趴趴蛙寻石记',
             'season_id': 5023171,
             'season_number': 1,  # series has only 1 season
@@ -149,10 +138,6 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)',
             'comment_count': int,
             'upload_date': '20181223',
-        },
-        'params': {
-            'skip_download': 'm3u8',
-            'ignore_no_formats_error': True,
         },
     }, {
         'url': 'https://www.acfun.cn/bangumi/aa6004596_36188_1759741',
