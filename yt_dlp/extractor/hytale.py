@@ -1,6 +1,8 @@
 from re import findall
+from json import loads
 
 from .common import InfoExtractor
+from ..utils import traverse_obj
 
 
 class HytaleIE(InfoExtractor):
@@ -24,15 +26,33 @@ class HytaleIE(InfoExtractor):
     _MD5_REGEX = r'<stream\s+class\s*=\s*"ql-video\s+cf-stream"\s+src\s*=\s*"([a-f0-9]{32})"'
     _VIDEO_BASE_URL = 'https://cloudflarestream.com/{}/manifest/video.mpd?parentOrigin=https%3A%2F%2Fhytale.com'
 
+    _MEDIA_PAGE_URL = 'https://hytale.com/media'
+    _MEDIA_JSON_REGEX = r'window\.__INITIAL_COMPONENTS_STATE__\s*=\s*(?P<json>\[.+\])'
+
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
         webpage = self._download_webpage(url, playlist_id)
 
-        entries = [self.url_result(self._VIDEO_BASE_URL.format(video_hash),
-                                   video_title=f'Hytale video #{video_hash}',
-                                   url_transparent=True)
-                   for video_hash in findall(self._MD5_REGEX, webpage)]
+        videos_ids_and_titles = {}
+
+        media_webpage = self._download_webpage(self._MEDIA_PAGE_URL, 'media', fatal=False)
+        if media_webpage:
+            clips_json = traverse_obj(
+                loads(self._search_regex(self._MEDIA_JSON_REGEX, media_webpage,
+                                         'clips json', group='json'))[0],
+                ('media', 'clips'))
+            videos_ids_and_titles = {clip.get('src'): clip.get('caption') for clip in clips_json}
+
+        entries = []
+        for video_hash in findall(self._MD5_REGEX, webpage):
+            if video_hash in videos_ids_and_titles:
+                video_title = videos_ids_and_titles[video_hash]
+            else:
+                video_title = f'Hytale video #{video_hash}'
+            entries.append(self.url_result(self._VIDEO_BASE_URL.format(video_hash),
+                                           video_title=video_title,
+                                           url_transparent=True))
 
         return {
             '_type': 'playlist',
