@@ -88,6 +88,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'ext': 'mp4',
             'title': 'EP1: Cute Programmer',
             'description': 'md5:e87beab3bf9f392d6b9e541a63286343',
+            'thumbnail': 'http://puui.wetvinfo.com/vcover_hz_pic/0/air11ooo2rdsdi31630998533838/0',
         },
     }, {
         'url': 'https://wetv.vip/en/play/u37kgfnfzs73kiu/p0039b9nvik',
@@ -97,6 +98,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'ext': 'mp4',
             'title': 'EP1: You Are My Glory',
             'description': 'md5:831363a4c3b4d7615e1f3854be3a123b',
+            'thumbnail': 'http://puui.wetvinfo.com/vcover_hz_pic/0/u37kgfnfzs73kiu1626940017413/0',
         },
     }, {
         'url': 'https://wetv.vip/en/play/lcxgwod5hapghvw-WeTV-PICK-A-BOO/i0042y00lxp-Zhao-Lusi-Describes-The-First-Experiences-She-Had-In-Who-Rules-The-World-%7C-WeTV-PICK-A-BOO',
@@ -106,6 +108,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'ext': 'mp4',
             'title': 'md5:f7a0857dbe5fbbe2e7ad630b92b54e6a',
             'description': 'md5:76260cb9cdc0ef76826d7ca9d92fadfa',
+            'thumbnail': 'http://puui.wetvinfo.com/vcover_hz_pic/0/lcxgwod5hapghvw1631668972721/0',
         },
     }]
 
@@ -161,6 +164,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'description': self._og_search_description(webpage),
             'formats': formats,
             'subtitles': subtitles,
+            'thumbnail': self._og_search_thumbnail(webpage),
         }
 
 
