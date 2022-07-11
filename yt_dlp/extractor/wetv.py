@@ -193,7 +193,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
 
 
 class WeTvSeriesIE(WeTvBaseIE):
-    _VALID_URL = WeTvBaseIE._VALID_URL_BASE + r'/(?P<id>\w+)(?:-[^?#]+)?/?(?:[?#]|$)'
+    _VALID_URL = WeTvBaseIE._VALID_URL_BASE + r'/(?P<id>\w+)(?:-[^/?#]+)?/?(?:[?#]|$)'
 
     _TESTS = [{
         'url': 'https://wetv.vip/play/air11ooo2rdsdi3-Cute-Programmer',
