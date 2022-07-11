@@ -70,10 +70,19 @@ class AcFunVideoIE(AcFunVideoBaseIE):
             'duration': 90.459,
             'title': '【动画剧集】Rocket & Groot Season 1（2022）/火箭浣熊与格鲁特第1季 P02 S01E02 十拿九穩',
             'uploader': '比令',
-            'uploader_id': '37259967'
+            'uploader_id': '37259967',
+            'tags': ['喜剧', '星际', '树人', '浣熊', '飞船', '科幻'],
+            'like_count': int,
+            'view_count': int,
+            'timestamp': 1656479962,
+            'comment_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg)',
+            'upload_date': '20220629',
+            'description': 'md5:67583aaf3a0f933bd606bc8a2d3ebb17',
         },
         'params': {
             'skip_download': 'm3u8',
+            'ignore_no_formats_error': True
         },
     }]
 
@@ -135,8 +144,11 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             'season': '红孩儿之趴趴蛙寻石记',
             'season_id': 5023171,
             'season_number': 1,  # series has only 1 season
-            'episode': '',
-            'episode_number': 5
+            'episode': 'Episode 5',
+            'episode_number': 5,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)',
+            'comment_count': int,
+            'upload_date': '20181223',
         },
         'params': {
             'skip_download': 'm3u8',
