@@ -5,7 +5,7 @@ import urllib.parse
 from .common import InfoExtractor
 from ..aes import aes_cbc_encrypt
 from ..compat import compat_ord
-from ..utils import bytes_to_intlist, random_user_agent
+from ..utils import bytes_to_intlist, int_or_none, random_user_agent, traverse_obj
 
 
 class WeTvBaseIE(InfoExtractor):
@@ -75,6 +75,11 @@ class WeTvBaseIE(InfoExtractor):
             'https://play.wetv.vip/getvinfo', video_id,
             query=query).replace('QZOutputJson=', '').replace(';', ''), video_id)
 
+    def _get_webpage_metadata(self, webpage, video_id):
+        return self._parse_json(
+            traverse_obj(self._search_nextjs_data(webpage, video_id), ('props', 'pageProps', 'data')),
+            video_id, fatal=False)
+
 
 class WeTvEpisodeIE(WeTvBaseIE):
     IE_NAME = 'wetv:episode'
@@ -89,6 +94,10 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'title': 'EP1: Cute Programmer',
             'description': 'md5:e87beab3bf9f392d6b9e541a63286343',
             'thumbnail': 'http://puui.wetvinfo.com/vcover_hz_pic/0/air11ooo2rdsdi31630998533838/0',
+            'series': 'Cute Programmer',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'duration': 2835,
         },
     }, {
         'url': 'https://wetv.vip/en/play/u37kgfnfzs73kiu/p0039b9nvik',
@@ -99,6 +108,10 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'title': 'EP1: You Are My Glory',
             'description': 'md5:831363a4c3b4d7615e1f3854be3a123b',
             'thumbnail': 'http://puui.wetvinfo.com/vcover_hz_pic/0/u37kgfnfzs73kiu1626940017413/0',
+            'series': 'You Are My Glory',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'duration': 2454,
         },
     }, {
         'url': 'https://wetv.vip/en/play/lcxgwod5hapghvw-WeTV-PICK-A-BOO/i0042y00lxp-Zhao-Lusi-Describes-The-First-Experiences-She-Had-In-Who-Rules-The-World-%7C-WeTV-PICK-A-BOO',
@@ -109,6 +122,10 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'title': 'md5:f7a0857dbe5fbbe2e7ad630b92b54e6a',
             'description': 'md5:76260cb9cdc0ef76826d7ca9d92fadfa',
             'thumbnail': 'http://puui.wetvinfo.com/vcover_hz_pic/0/lcxgwod5hapghvw1631668972721/0',
+            'series': 'WeTV PICK-A-BOO',
+            'episode': 'Episode 0',
+            'episode_number': 0,
+            'duration': 442,
         },
     }]
 
@@ -158,13 +175,20 @@ class WeTvEpisodeIE(WeTvBaseIE):
             formats.extend(fmts)
             self._merge_subtitles(native_subtitles, target=subtitles)
 
+        webpage_metadata = self._get_webpage_metadata(webpage, video_id)
+
         return {
             'id': video_id,
-            'title': self._og_search_title(webpage),
-            'description': self._og_search_description(webpage),
+            'title': (self._og_search_title(webpage)
+                    or traverse_obj(webpage_metadata, ('coverInfo', 'description'))),
+            'description': (self._og_search_description(webpage)
+                    or traverse_obj(webpage_metadata, ('coverInfo', 'description'))),
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': self._og_search_thumbnail(webpage),
+            'duration': int_or_none(traverse_obj(webpage_metadata, ('videoInfo', 'duration'))),
+            'series': traverse_obj(webpage_metadata, ('coverInfo', 'title')),
+            'episode_number': int_or_none(traverse_obj(webpage_metadata, ('videoInfo', 'episode'))),
         }
 
 
@@ -192,10 +216,13 @@ class WeTvSeriesIE(WeTvBaseIE):
     def _real_extract(self, url):
         series_id = self._match_id(url)
         webpage = self._download_webpage(url, series_id)
+        webpage_metadata = self._get_webpage_metadata(webpage, series_id)
 
         parsed_url = urllib.parse.urlparse(url)
+        episode_paths = (re.findall(r'<a[^>]+class="play-video__link"[^>]+href="(?P<path>[^"]+)', webpage)
+                        or [f"/{series_id}/{episode['vid']}" for episode in webpage_metadata.get('videoList')])
 
         return self.playlist_result(
-            [self.url_result(parsed_url._replace(path=path).geturl(), WeTvEpisodeIE)
-             for path in re.findall(r'<a[^>]+class="play-video__link"[^>]+href="(?P<path>[^"]+)', webpage)],
-            series_id, self._og_search_title(webpage), self._og_search_description(webpage))
+            [self.url_result(parsed_url._replace(path=path).geturl(), WeTvEpisodeIE) for path in episode_paths],
+            series_id, traverse_obj(webpage_metadata, ('coverInfo', 'title')) or self._og_search_title(webpage),
+            traverse_obj(webpage_metadata, ('coverInfo', 'description')) or self._og_search_description(webpage))
