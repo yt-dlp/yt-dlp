@@ -113,10 +113,10 @@ class Detik20IE(InfoExtractor):
         video_url = self._html_search_regex(
             r'videoUrl\s*:\s*"(?P<video_url>[^"]+)', webpage, 'videoUrl')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id, ext='mp4')
-
+        
         return merge_dicts(json_ld_data, {
             'id': self._html_search_meta('video_id', webpage),
             'formats': formats,
             'subtitles': subtitles,
-            'tags': str_or_none(json_ld_data.get('keywords') or self._html_search_meta(['keywords', 'keyword', 'dtk:keywords'], webpage), '').split(','),
+            'tags': str_or_none(self._html_search_meta(['keywords', 'keyword', 'dtk:keywords'], webpage), '').split(','),
         })
