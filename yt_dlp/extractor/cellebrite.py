@@ -3,7 +3,7 @@ from ..utils import traverse_obj
 
 
 class CellebriteIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?cellebrite\.com/(?:en)?/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://cellebrite\.com/(?:en)?/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://cellebrite.com/en/collect-data-from-android-devices-with-cellebrite-ufed/',
         'info_dict': {
@@ -14,6 +14,17 @@ class CellebriteIE(InfoExtractor):
             'title': 'Ask the Expert: Chat Capture - Collect Data from Android Devices in Cellebrite UFED',
             'duration': 455,
             'tags': [],
+        }
+    }, {
+        'url': 'https://cellebrite.com/en/how-to-lawfully-collect-the-maximum-amount-of-data-from-android-devices/',
+        'info_dict': {
+            'id': '29018255',
+            'ext': 'mp4',
+            'duration': 134,
+            'tags': [],
+            'description': 'md5:e9a3d124c7287b0b07bad2547061cacf',
+            'thumbnail': 'https://cellebrite.com/wp-content/uploads/2022/07/How-to-Lawfully-Collect-the-Maximum-Amount-of-Data-From-Android-Devices.png',
+            'title': 'Android Extractions Explained',
         }
     }]
 
