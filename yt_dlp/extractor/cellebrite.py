@@ -41,7 +41,6 @@ class CellebriteIE(InfoExtractor):
         player_uuid = self._search_regex(
             r'<img\s*(?:style\s*="[^"]+")?\s*(?:class\s*="[^"]+")?\s*(?:src\s*=\s*"[^"]+")?\s*data-uuid\s*=\s*"(?P<player_uuid>[^"\?]+)',
             webpage, 'player_uuid', group='player_uuid')
-        self.write_debug(f'json_url: https://play.vidyard.com/player/{player_uuid}.json')
         json_data = self._download_json(
             f'https://play.vidyard.com/player/{player_uuid}.json', display_id)['payload']['chapters'][0]
 
