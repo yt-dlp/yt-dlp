@@ -142,8 +142,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
         return subtitles
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        series_id = self._match_valid_url(url).group('series_id')
+        video_id, series_id = self._match_valid_url(url).group('id', 'series_id')
         webpage = self._download_webpage(url, video_id)
 
         formats, subtitles = [], {}
