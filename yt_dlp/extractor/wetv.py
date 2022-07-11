@@ -119,7 +119,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
         for video_format in video_response['ul']['ui']:
             if video_format.get('hls'):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    video_format['url'] + video_format['hls']['pname'], video_id, 'mp4')
+                    video_format['url'] + video_format['hls']['pname'], video_id, 'mp4', fatal=False)
 
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
