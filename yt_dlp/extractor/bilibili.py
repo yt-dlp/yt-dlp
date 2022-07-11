@@ -677,6 +677,11 @@ class BilibiliAudioIE(BilibiliAudioBaseIE):
             'vcodec': 'none'
         }]
 
+        for a_format in formats:
+            a_format.setdefault('http_headers', {}).update({
+                'Referer': url,
+            })
+
         song = self._call_api('song/info', au_id)
         title = song['title']
         statistic = song.get('statistic') or {}
@@ -784,7 +789,8 @@ class BiliIntlBaseIE(InfoExtractor):
     def json2srt(self, json):
         data = '\n\n'.join(
             f'{i + 1}\n{srt_subtitles_timecode(line["from"])} --> {srt_subtitles_timecode(line["to"])}\n{line["content"]}'
-            for i, line in enumerate(json['body']) if line.get('content'))
+            for i, line in enumerate(traverse_obj(json, (
+                'body', lambda _, l: l['content'] and l['from'] and l['to']))))
         return data
 
     def _get_subtitles(self, *, ep_id=None, aid=None):
@@ -947,12 +953,11 @@ class BiliIntlIE(BiliIntlBaseIE):
         video_id = ep_id or aid
         webpage = self._download_webpage(url, video_id)
         # Bstation layout
-        initial_data = self._parse_json(self._search_regex(
-            r'window\.__INITIAL_(?:DATA|STATE)__\s*=\s*({.+?});', webpage,
-            'preload state', default='{}'), video_id, fatal=False) or {}
-        video_data = (
-            traverse_obj(initial_data, ('OgvVideo', 'epDetail'), expected_type=dict)
-            or traverse_obj(initial_data, ('UgcVideo', 'videoData'), expected_type=dict) or {})
+        initial_data = (
+            self._search_json(r'window\.__INITIAL_(?:DATA|STATE)__\s*=', webpage, 'preload state', video_id, default={})
+            or self._search_nuxt_data(webpage, video_id, '__initialState', fatal=False, traverse=None))
+        video_data = traverse_obj(
+            initial_data, ('OgvVideo', 'epDetail'), ('UgcVideo', 'videoData'), ('ugc', 'archive'), expected_type=dict)
 
         if season_id and not video_data:
             # Non-Bstation layout, read through episode list
@@ -960,7 +965,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             video_data = traverse_obj(season_json,
                                       ('sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == ep_id),
                                       expected_type=dict, get_all=False)
-        return self._extract_video_info(video_data, ep_id=ep_id, aid=aid)
+        return self._extract_video_info(video_data or {}, ep_id=ep_id, aid=aid)
 
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):

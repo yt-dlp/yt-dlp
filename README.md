@@ -71,7 +71,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 # NEW FEATURES
 
-* Based on **youtube-dl 2021.12.17 [commit/6508688](https://github.com/ytdl-org/youtube-dl/commit/6508688e88c83bb811653083db9351702cd39a6a)** ([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21)) and **youtube-dlc 2020.11.11-3 [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
+* Merged with **youtube-dl v2021.12.17+ [commit/a03b977](https://github.com/ytdl-org/youtube-dl/commit/a03b9775d544b06a5b4f2aa630214c7c22fc2229)**<!--([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))--> and **youtube-dlc v2020.11.11-3+ [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
 
 * **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
@@ -79,17 +79,13 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that the NicoNico livestreams are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
-* **Youtube improvements**:
-    * All Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`, `:ytnotif`) and private playlists supports downloading multiple pages of content
-    * Search (`ytsearch:`, `ytsearchdate:`), search URLs and in-channel search works
-    * Mixes supports downloading multiple pages of content
-    * Some (but not all) age-gated content can be downloaded without cookies
-    * Fix for [n-sig based throttling](https://github.com/ytdl-org/youtube-dl/issues/29326)
+* **YouTube improvements**:
+    * Supports Clips, Stories (`ytstories:<channel UCID>`), Search (including filters)**\***, YouTube Music Search, Channel-specific search, Search prefixes (`ytsearch:`, `ytsearchdate:`)**\***, Mixes, YouTube Music Albums/Channels ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723)), and Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`, `:ytnotif`)
+    * Fix for [n-sig based throttling](https://github.com/ytdl-org/youtube-dl/issues/29326) **\***
+    * Supports some (but not all) age-gated content without cookies
+    * Download livestreams from the start using `--live-from-start` (*experimental*)
+    * `255kbps` audio is extracted (if available) from YouTube Music when premium cookies are given
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
-    * `255kbps` audio is extracted (if available) from youtube music when premium cookies are given
-    * Youtube music Albums, channels etc can be downloaded ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723))
-    * Download livestreams from the start using `--live-from-start` (experimental)
-    * Support for downloading stories (`ytstories:<channel UCID>`) 
 
 * **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE]`
 
@@ -123,6 +119,8 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/commits) for the full list of changes
 
+Features marked with a **\*** have been back-ported to youtube-dl
+
 ### Differences in default behavior
 
 Some of yt-dlp's default options are different from that of youtube-dl and youtube-dlc:
@@ -148,8 +146,8 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * Thumbnail embedding in `mp4` is done with mutagen if possible. Use `--compat-options embed-thumbnail-atomicparsley` to force the use of AtomicParsley instead
 * Some private fields such as filenames are removed by default from the infojson. Use `--no-clean-infojson` or `--compat-options no-clean-infojson` to revert this
 * When `--embed-subs` and `--write-subs` are used together, the subtitles are written to disk and also embedded in the media file. You can use just `--embed-subs` to embed the subs and automatically delete the separate file. See [#630 (comment)](https://github.com/yt-dlp/yt-dlp/issues/630#issuecomment-893659460) for more info. `--compat-options no-keep-subs` can be used to revert this
-* `certifi` will be used for SSL root certificates, if installed. If you want to use only system certificates, use `--compat-options no-certifi`
-* youtube-dl tries to remove some superfluous punctuations from filenames. While this can sometimes be helpfull, it is often undesirable. So yt-dlp tries to keep the fields in the filenames as close to their original values as possible. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
+* `certifi` will be used for SSL root certificates, if installed. If you want to use system certificates (e.g. self-signed), use `--compat-options no-certifi`
+* youtube-dl tries to remove some superfluous punctuations from filenames. While this can sometimes be helpful, it is often undesirable. So yt-dlp tries to keep the fields in the filenames as close to their original values as possible. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
 
 For ease of use, a few more compat options are available:
 
@@ -213,7 +211,7 @@ If you want to be on the cutting edge, you can also install the master branch wi
 python3 -m pip install --force-reinstall https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz
 ```
 
-Note that on some systems, you may need to use `py` or `python` instead of `python3`
+On some systems, you may need to use `py` or `python` instead of `python3`
 
 <!-- TODO: Add to Wiki, Remove Taps -->
 ### With [Homebrew](https://brew.sh)
@@ -238,18 +236,21 @@ If you [installed using Homebrew](#with-homebrew), run `brew upgrade yt-dlp/taps
 
 File|Description
 :---|:---
-[yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)|Platform-independant binary. Needs Python (recommended for **Linux/BSD**)
+[yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)|Platform-independent [zipimport](https://docs.python.org/3/library/zipimport.html) binary. Needs Python (recommended for **Linux/BSD**)
 [yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)|Windows (Win7 SP1+) standalone x64 binary (recommended for **Windows**)
-[yt-dlp_macos](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)|MacOS (10.15+) standalone executable (recommended for **MacOS**)
+[yt-dlp_macos](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)|Universal MacOS (10.15+) standalone executable (recommended for **MacOS**)
 
 #### Alternatives
 
 File|Description
 :---|:---
 [yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows (Vista SP2+) standalone x86 (32-bit) binary
-[yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_min.exe)|Windows (Win7 SP1+) standalone x64 binary built with `py2exe`.<br/> Does not contain `pycryptodomex`/`certifi`, needs VC++14
+[yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_min.exe)|Windows (Win7 SP1+) standalone x64 binary built with `py2exe`<br/> ([Not recommended](#standalone-py2exe-builds-windows))
+[yt-dlp_linux](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux)|Linux standalone x64 binary
+[yt-dlp_linux.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux.zip)|Unpackaged Linux executable (no auto-update)
 [yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged Windows executable (no auto-update)
 [yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS (10.15+) executable (no auto-update)
+[yt-dlp_macos_legacy](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos_legacy)|MacOS (10.9+) standalone x64 executable
 
 #### Misc
 
@@ -261,7 +262,7 @@ File|Description
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 ## DEPENDENCIES
-Python versions 3.6+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
+Python versions 3.7+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
 
 <!-- Python 3.5+ uses VC++14 and it is already embedded in the binary created
 <!x-- https://www.microsoft.com/en-us/download/details.aspx?id=26999 --x>
@@ -270,47 +271,83 @@ On windows, [Microsoft Visual C++ 2010 SP1 Redistributable Package (x86)](https:
 
 While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly recommended
 
+### Strongly recommended
+
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging separate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. License [depends on the build](https://www.ffmpeg.org/legal.html)
-* [**mutagen**](https://github.com/quodlibet/mutagen)\* - For embedding thumbnail in certain formats. Licensed under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
-* [**pycryptodomex**](https://github.com/Legrandin/pycryptodome)\* - For decrypting AES-128 HLS streams and various other data. Licensed under [BSD-2-Clause](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
-* [**websockets**](https://github.com/aaugustin/websockets)\* - For downloading over websocket. Licensed under [BSD-3-Clause](https://github.com/aaugustin/websockets/blob/main/LICENSE)
-* [**secretstorage**](https://github.com/mitya57/secretstorage) - For accessing the Gnome keyring while decrypting cookies of Chromium-based browsers on Linux. Licensed under [BSD-3-Clause](https://github.com/mitya57/secretstorage/blob/master/LICENSE)
-* [**brotli**](https://github.com/google/brotli)\* or [**brotlicffi**](https://github.com/python-hyper/brotlicffi) - [Brotli](https://en.wikipedia.org/wiki/Brotli) content encoding support. Both licensed under MIT <sup>[1](https://github.com/google/brotli/blob/master/LICENSE) [2](https://github.com/python-hyper/brotlicffi/blob/master/LICENSE) </sup>
+
+    <!-- TODO: ffmpeg has merged this patch. Remove this note once there is new release -->
+    **Note**: There are some regressions in newer ffmpeg versions that causes various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
+
+### Networking
 * [**certifi**](https://github.com/certifi/python-certifi)\* - Provides Mozilla's root certificate bundle. Licensed under [MPLv2](https://github.com/certifi/python-certifi/blob/master/LICENSE)
-* [**xattr**](https://github.com/xattr/xattr), [**pyxattr**](https://github.com/iustin/pyxattr) or [**setfattr**](http://savannah.nongnu.org/projects/attr) - For writing xattr metadata on Linux. Licensed under [MIT](https://github.com/xattr/xattr/blob/master/LICENSE.txt), [LGPL2.1](https://github.com/iustin/pyxattr/blob/master/COPYING) and [GPLv2+](http://git.savannah.nongnu.org/cgit/attr.git/tree/doc/COPYING) respectively
-* [**AtomicParsley**](https://github.com/wez/atomicparsley) - For embedding thumbnail in mp4/m4a if mutagen/ffmpeg cannot. Licensed under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
-* [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg will be used as a fallback. Licensed under [GPLv2+](http://rtmpdump.mplayerhq.hu)
-* [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp` streams. ffmpeg will be used as a fallback. Licensed under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
+* [**brotli**](https://github.com/google/brotli)\* or [**brotlicffi**](https://github.com/python-hyper/brotlicffi) - [Brotli](https://en.wikipedia.org/wiki/Brotli) content encoding support. Both licensed under MIT <sup>[1](https://github.com/google/brotli/blob/master/LICENSE) [2](https://github.com/python-hyper/brotlicffi/blob/master/LICENSE) </sup>
+* [**websockets**](https://github.com/aaugustin/websockets)\* - For downloading over websocket. Licensed under [BSD-3-Clause](https://github.com/aaugustin/websockets/blob/main/LICENSE)
+
+### Metadata
+
+* [**mutagen**](https://github.com/quodlibet/mutagen)\* - For `--embed-thumbnail` in certain formats. Licensed under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
+* [**AtomicParsley**](https://github.com/wez/atomicparsley) - For `--embed-thumbnail` in `mp4`/`m4a` files when `mutagen`/`ffmpeg` cannot. Licensed under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
+* [**xattr**](https://github.com/xattr/xattr), [**pyxattr**](https://github.com/iustin/pyxattr) or [**setfattr**](http://savannah.nongnu.org/projects/attr) - For writing xattr metadata (`--xattr`) on **Linux**. Licensed under [MIT](https://github.com/xattr/xattr/blob/master/LICENSE.txt), [LGPL2.1](https://github.com/iustin/pyxattr/blob/master/COPYING) and [GPLv2+](http://git.savannah.nongnu.org/cgit/attr.git/tree/doc/COPYING) respectively
+
+### Misc
+
+* [**pycryptodomex**](https://github.com/Legrandin/pycryptodome)\* - For decrypting AES-128 HLS streams and various other data. Licensed under [BSD-2-Clause](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
 * [**phantomjs**](https://github.com/ariya/phantomjs) - Used in extractors where javascript needs to be run. Licensed under [BSD-3-Clause](https://github.com/ariya/phantomjs/blob/master/LICENSE.BSD)
-* [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the now **deprecated** [sponskrub options](#sponskrub-options). Licensed under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
+* [**secretstorage**](https://github.com/mitya57/secretstorage) - For `--cookies-from-browser` to access the **Gnome** keyring while decrypting cookies of **Chromium**-based browsers on **Linux**. Licensed under [BSD-3-Clause](https://github.com/mitya57/secretstorage/blob/master/LICENSE)
 * Any external downloader that you want to use with `--downloader`
+
+#### Deprecated
+
+* [**avconv** and **avprobe**](https://www.libav.org) - Now **deprecated** alternative to ffmpeg. License [depends on the build](https://libav.org/legal)
+* [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the now **deprecated** [sponskrub options](#sponskrub-options). Licensed under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
+* [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg can be used instead with `--downloader ffmpeg`. Licensed under [GPLv2+](http://rtmpdump.mplayerhq.hu)
+* [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp`/`mms` streams. ffmpeg can be used instead with `--downloader ffmpeg`. Licensed under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
 
 To use or redistribute the dependencies, you must agree to their respective licensing terms.
 
-The Windows and MacOS standalone release binaries are built with the Python interpreter and the packages marked with \* included.
+The standalone release binaries are built with the Python interpreter and the packages marked with **\*** included.
 
-<!-- TODO: ffmpeg has merged this patch. Remove this note once there is new release -->
-**Note**: There are some regressions in newer ffmpeg versions that causes various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
+If you do not have the necessary dependencies for a task you are attempting, yt-dlp will warn you. All the currently available dependencies are visible at the top of the `--verbose` output
 
 
 ## COMPILE
 
-**For Windows**:
-To build the Windows executable, you must have pyinstaller (and any of yt-dlp's optional dependencies if needed). Once you have all the necessary dependencies installed, (optionally) build lazy extractors using `devscripts/make_lazy_extractors.py`, and then just run `pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
+### Standalone PyInstaller Builds
+To build the Windows/MacOS executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). Once you have all the necessary dependencies installed, simply run `pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the Python used.
 
-    py -m pip install -U pyinstaller -r requirements.txt
+    python3 -m pip install -U pyinstaller -r requirements.txt
+    python3 devscripts/make_lazy_extractors.py
+    python3 pyinst.py
+
+On some systems, you may need to use `py` or `python` instead of `python3`.
+
+Note that pyinstaller [does not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment.
+
+**Important**: Running `pyinstaller` directly **without** using `pyinst.py` is **not** officially supported. This may or may not work correctly.
+
+### Platform-independent Binary (UNIX)
+You will need the build tools `python` (3.6+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
+
+After installing these, simply run `make`.
+
+You can also run `make yt-dlp` instead to compile only the binary without updating any of the additional files. (The dependencies marked with **\*** are not needed for this)
+
+### Standalone Py2Exe Builds (Windows)
+
+While we provide the option to build with [py2exe](https://www.py2exe.org), it is recommended to build [using PyInstaller](#standalone-pyinstaller-builds) instead since the py2exe builds **cannot contain `pycryptodomex`/`certifi` and needs VC++14** on the target computer to run.
+
+If you wish to build it anyway, install Python and py2exe, and then simply run `setup.py py2exe`
+
+    py -m pip install -U py2exe -r requirements.txt
     py devscripts/make_lazy_extractors.py
-    py pyinst.py
+    py setup.py py2exe
 
-Note that pyinstaller [does not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment
+### Related scripts
 
-**For Unix**:
-You will need the required build tools: `python`, `make` (GNU), `pandoc`, `zip`, `pytest`  
-Then simply run `make`. You can also run `make yt-dlp` instead to compile only the binary without updating any of the additional files
+* **`devscripts/update-version.py`** - Update the version number based on current timestamp
+* **`devscripts/make_lazy_extractors.py`** - Create lazy extractors. Running this before building the binaries (any variant) will improve their startup performance. Set the environment variable `YTDLP_NO_LAZY_EXTRACTORS=1` if you wish to forcefully disable lazy extractor loading.
 
-**Note**: In either platform, `devscripts/update-version.py` can be used to automatically update the version number
-
-You can also fork the project on github and run your fork's [build workflow](.github/workflows/build.yml) to automatically build a release
+You can also fork the project on github and run your fork's [build workflow](.github/workflows/build.yml) to automatically build a full release
 
 # USAGE AND OPTIONS
 
@@ -377,7 +414,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --no-wait-for-video             Do not wait for scheduled streams (default)
     --mark-watched                  Mark videos watched (even with --simulate)
     --no-mark-watched               Do not mark videos watched (default)
-    --no-colors                     Do not emit color codes in output
+    --no-colors                     Do not emit color codes in output (Alias:
+                                    --no-colours)
     --compat-options OPTS           Options that can help keep compatibility
                                     with youtube-dl or youtube-dlc
                                     configurations by reverting some of the
@@ -394,7 +432,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     "-S=aext:ARG0,abr -x --audio-format ARG0".
                                     All defined aliases are listed in the --help
                                     output. Alias options can trigger more
-                                    aliases; so be carefull to avoid defining
+                                    aliases; so be careful to avoid defining
                                     recursive options. As a safety measure, each
                                     alias may be triggered a maximum of 100
                                     times. This option can be used multiple times
@@ -427,7 +465,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     explicitly provided IP block in CIDR notation
 
 ## Video Selection:
-    -I, --playlist-items ITEM_SPEC  Comma seperated playlist_index of the videos
+    -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the videos
                                     to download. You can specify a range using
                                     "[START]:[STOP][:STEP]". For backward
                                     compatibility, START-STOP is also supported.
@@ -1169,7 +1207,7 @@ The field names themselves (the part inside the parenthesis) can also have some 
 
 1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-template`. Eg: `%(uploader|Unknown)s`
 
-1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `B`, `j`, `l`, `q`, `D`, `S` can be used for converting to **B**ytes, **j**son (flag `#` for pretty-printing), a comma separated **l**ist (flag `#` for `\n` newline-separated), a string **q**uoted for the terminal (flag `#` to split a list into different arguments), to add **D**ecimal suffixes (Eg: 10M) (flag `#` to use 1024 as factor), and to **S**anitize as filename (flag `#` for restricted), respectively
+1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing), `h` = HTML escaping, `l` = a comma separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (Eg: 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
 
 1. **Unicode normalization**: The format type `U` can be used for NFC [unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. Eg: `%(title)+.100U` is NFKC
 
@@ -1233,6 +1271,7 @@ The available fields are:
  - `vbr` (numeric): Average video bitrate in KBit/s
  - `fps` (numeric): Frame rate
  - `dynamic_range` (string): The dynamic range of the video
+ - `stretched_ratio` (float): `width:height` of the video's pixels, if not square
  - `vcodec` (string): Name of the video codec in use
  - `container` (string): Name of the container format
  - `filesize` (numeric): The number of bytes, if known in advance
@@ -1686,6 +1725,9 @@ $ yt-dlp --parse-metadata "%(uploader|)s:%(meta_artist)s" --add-metadata
 # handling multiple lines correctly
 $ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --add-metadata
 
+# Do not set any "synopsis" in the video metadata
+$ yt-dlp --parse-metadata ":(?P<meta_synopsis>)"
+
 # Remove "formats" field from the infojson by setting it to an empty string
 $ yt-dlp --parse-metadata ":(?P<formats>)" -j
 
@@ -1701,7 +1743,7 @@ Some extractors accept additional arguments which can be passed using `--extract
 The following extractors use this feature:
 
 #### youtube
-* `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and auto-translated subtitles respectively
+* `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
 * `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (Eg: `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
 * `include_live_dash`: Include live dash formats even without `--live-from-start` (These formats don't download properly)
@@ -1923,7 +1965,8 @@ class MyCustomPP(yt_dlp.postprocessor.PostProcessor):
 
 
 with yt_dlp.YoutubeDL() as ydl:
-    ydl.add_post_processor(MyCustomPP())
+    # ℹ️ "when" can take any value in yt_dlp.utils.POSTPROCESS_WHEN
+    ydl.add_post_processor(MyCustomPP(), when='pre_process')
     ydl.download(URLS)
 ```
 

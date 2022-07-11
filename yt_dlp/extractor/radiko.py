@@ -43,7 +43,7 @@ class RadikoBaseIE(InfoExtractor):
             }).split(',')[0]
 
         auth_data = (auth_token, area_id)
-        self._downloader.cache.store('radiko', 'auth_data', auth_data)
+        self.cache.store('radiko', 'auth_data', auth_data)
         return auth_data
 
     def _extract_full_key(self):
@@ -150,7 +150,7 @@ class RadikoIE(RadikoBaseIE):
         vid_int = unified_timestamp(video_id, False)
         prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, vid_int)
 
-        auth_cache = self._downloader.cache.load('radiko', 'auth_data')
+        auth_cache = self.cache.load('radiko', 'auth_data')
         for attempt in range(2):
             auth_token, area_id = (not attempt and auth_cache) or self._auth_client()
             formats = self._extract_formats(

@@ -1,6 +1,7 @@
+import base64
 from math import ceil
 
-from .compat import compat_b64decode, compat_ord
+from .compat import compat_ord
 from .dependencies import Cryptodome_AES
 from .utils import bytes_to_intlist, intlist_to_bytes
 
@@ -264,7 +265,7 @@ def aes_decrypt_text(data, password, key_size_bytes):
     """
     NONCE_LENGTH_BYTES = 8
 
-    data = bytes_to_intlist(compat_b64decode(data))
+    data = bytes_to_intlist(base64.b64decode(data))
     password = bytes_to_intlist(password.encode())
 
     key = password[:key_size_bytes] + [0] * (key_size_bytes - len(password))

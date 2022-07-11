@@ -110,7 +110,7 @@ class RokfinIE(InfoExtractor):
                 self.raise_login_required('This video is only available to premium users', True, method='cookies')
             elif scheduled:
                 self.raise_no_formats(
-                    f'Stream is offline; sheduled for {datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
+                    f'Stream is offline; scheduled for {datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
                     video_id=video_id, expected=True)
         self._sort_formats(formats)
 
@@ -146,7 +146,7 @@ class RokfinIE(InfoExtractor):
         for page_n in itertools.count():
             raw_comments = self._download_json(
                 f'{_API_BASE_URL}comment?postId={video_id[5:]}&page={page_n}&size=50',
-                video_id, note=f'Downloading viewer comments page {page_n + 1}{format_field(pages_total, template=" of %s")}',
+                video_id, note=f'Downloading viewer comments page {page_n + 1}{format_field(pages_total, None, " of %s")}',
                 fatal=False) or {}
 
             for comment in raw_comments.get('content') or []:
@@ -318,7 +318,7 @@ class RokfinChannelIE(RokfinPlaylistBaseIE):
                 data_url = f'{_API_BASE_URL}post/search/{tab}?page={page_n}&size=50&creator={channel_id}'
             metadata = self._download_json(
                 data_url, channel_name,
-                note=f'Downloading video metadata page {page_n + 1}{format_field(pages_total, template=" of %s")}')
+                note=f'Downloading video metadata page {page_n + 1}{format_field(pages_total, None, " of %s")}')
 
             yield from self._get_video_data(metadata)
             pages_total = int_or_none(metadata.get('totalPages')) or None
@@ -360,7 +360,7 @@ class RokfinSearchIE(SearchInfoExtractor):
     _db_access_key = None
 
     def _real_initialize(self):
-        self._db_url, self._db_access_key = self._downloader.cache.load(self.ie_key(), 'auth', default=(None, None))
+        self._db_url, self._db_access_key = self.cache.load(self.ie_key(), 'auth', default=(None, None))
         if not self._db_url:
             self._get_db_access_credentials()
 
@@ -369,7 +369,7 @@ class RokfinSearchIE(SearchInfoExtractor):
         for page_number in itertools.count(1):
             search_results = self._run_search_query(
                 query, data={'query': query, 'page': {'size': 100, 'current': page_number}},
-                note=f'Downloading page {page_number}{format_field(total_pages, template=" of ~%s")}')
+                note=f'Downloading page {page_number}{format_field(total_pages, None, " of ~%s")}')
             total_pages = traverse_obj(search_results, ('meta', 'page', 'total_pages'), expected_type=int_or_none)
 
             for result in search_results.get('results') or []:
@@ -405,6 +405,6 @@ class RokfinSearchIE(SearchInfoExtractor):
 
             self._db_url = url_or_none(f'{auth_data["ENDPOINT_BASE"]}/api/as/v1/engines/rokfin-search/search.json')
             self._db_access_key = f'Bearer {auth_data["SEARCH_KEY"]}'
-            self._downloader.cache.store(self.ie_key(), 'auth', (self._db_url, self._db_access_key))
+            self.cache.store(self.ie_key(), 'auth', (self._db_url, self._db_access_key))
             return
         raise ExtractorError('Unable to extract access credentials')

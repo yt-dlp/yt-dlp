@@ -1,11 +1,10 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_chr
 from ..utils import (
+    ExtractorError,
     decode_packed_codes,
     determine_ext,
-    ExtractorError,
     int_or_none,
     js_to_json,
     urlencode_postdata,
@@ -32,11 +31,11 @@ def aa_decode(aa_code):
         aa_char = aa_char.replace('+ ', '')
         m = re.match(r'^\d+', aa_char)
         if m:
-            ret += compat_chr(int(m.group(0), 8))
+            ret += chr(int(m.group(0), 8))
         else:
             m = re.match(r'^u([\da-f]+)', aa_char)
             if m:
-                ret += compat_chr(int(m.group(1), 16))
+                ret += chr(int(m.group(1), 16))
     return ret
 
 

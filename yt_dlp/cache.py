@@ -6,7 +6,6 @@ import re
 import shutil
 import traceback
 
-from .compat import compat_getenv
 from .utils import expand_path, write_json_file
 
 
@@ -17,7 +16,7 @@ class Cache:
     def _get_root_dir(self):
         res = self._ydl.params.get('cachedir')
         if res is None:
-            cache_root = compat_getenv('XDG_CACHE_HOME', '~/.cache')
+            cache_root = os.getenv('XDG_CACHE_HOME', '~/.cache')
             res = os.path.join(cache_root, 'yt-dlp')
         return expand_path(res)
 

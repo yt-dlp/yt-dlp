@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
-import hashlib
-import json
 import os
-import socket
 import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+import hashlib
+import http.client
+import json
+import socket
+import urllib.error
 
 from test.helper import (
     assertGreaterEqual,
@@ -20,12 +25,7 @@ from test.helper import (
     try_rm,
 )
 
-import yt_dlp.YoutubeDL
-from yt_dlp.compat import (
-    compat_http_client,
-    compat_HTTPError,
-    compat_urllib_error,
-)
+import yt_dlp.YoutubeDL  # isort: split
 from yt_dlp.extractor import get_info_extractor
 from yt_dlp.utils import (
     DownloadError,
@@ -43,7 +43,7 @@ class YoutubeDL(yt_dlp.YoutubeDL):
         self.processed_info_dicts = []
         super().__init__(*args, **kwargs)
 
-    def report_warning(self, message):
+    def report_warning(self, message, *args, **kwargs):
         # Don't accept warnings during tests
         raise ExtractorError(message)
 
@@ -102,9 +102,10 @@ def generator(test_case, tname):
 
         def print_skipping(reason):
             print('Skipping %s: %s' % (test_case['name'], reason))
+            self.skipTest(reason)
+
         if not ie.working():
             print_skipping('IE marked as not _WORKING')
-            return
 
         for tc in test_cases:
             info_dict = tc.get('info_dict', {})
@@ -118,11 +119,10 @@ def generator(test_case, tname):
 
         if 'skip' in test_case:
             print_skipping(test_case['skip'])
-            return
+
         for other_ie in other_ies:
             if not other_ie.working():
                 print_skipping('test depends on %sIE, marked as not WORKING' % other_ie.ie_key())
-                return
 
         params = get_params(test_case.get('params', {}))
         params['outtmpl'] = tname + '_' + params['outtmpl']
@@ -167,7 +167,7 @@ def generator(test_case, tname):
                         force_generic_extractor=params.get('force_generic_extractor', False))
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
-                    if not err.exc_info[0] in (compat_urllib_error.URLError, socket.timeout, UnavailableVideoError, compat_http_client.BadStatusLine) or (err.exc_info[0] == compat_HTTPError and err.exc_info[1].code == 503):
+                    if not err.exc_info[0] in (urllib.error.URLError, socket.timeout, UnavailableVideoError, http.client.BadStatusLine) or (err.exc_info[0] == urllib.error.HTTPError and err.exc_info[1].code == 503):
                         raise
 
                     if try_num == RETRIES:
@@ -273,7 +273,11 @@ def batch_generator(name, num_tests):
 
     def test_template(self):
         for i in range(num_tests):
-            getattr(self, f'test_{name}_{i}' if i else f'test_{name}')()
+            test_name = f'test_{name}_{i}' if i else f'test_{name}'
+            try:
+                getattr(self, test_name)()
+            except unittest.SkipTest:
+                print(f'Skipped {test_name}')
 
     return test_template
 

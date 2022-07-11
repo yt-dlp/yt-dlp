@@ -7,16 +7,17 @@ import json
 import re
 import struct
 import time
+import urllib.parse
+import urllib.request
 import urllib.response
 import uuid
 
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
-from ..compat import compat_urllib_parse_urlparse, compat_urllib_request
 from ..utils import (
     ExtractorError,
     bytes_to_intlist,
-    decode_base,
+    decode_base_n,
     int_or_none,
     intlist_to_bytes,
     request_to_url,
@@ -33,7 +34,7 @@ def add_opener(ydl, handler):
     ''' Add a handler for opening URLs, like _download_webpage '''
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    assert isinstance(ydl._opener, compat_urllib_request.OpenerDirector)
+    assert isinstance(ydl._opener, urllib.request.OpenerDirector)
     ydl._opener.add_handler(handler)
 
 
@@ -46,7 +47,7 @@ def remove_opener(ydl, handler):
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
     opener = ydl._opener
-    assert isinstance(ydl._opener, compat_urllib_request.OpenerDirector)
+    assert isinstance(ydl._opener, urllib.request.OpenerDirector)
     if isinstance(handler, (type, tuple)):
         find_cp = lambda x: isinstance(x, handler)
     else:
@@ -96,20 +97,20 @@ def remove_opener(ydl, handler):
         opener.handlers[:] = [x for x in opener.handlers if not find_cp(x)]
 
 
-class AbemaLicenseHandler(compat_urllib_request.BaseHandler):
+class AbemaLicenseHandler(urllib.request.BaseHandler):
     handler_order = 499
     STRTABLE = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     HKEY = b'3AF0298C219469522A313570E8583005A642E73EDD58E3EA2FB7339D3DF1597E'
 
     def __init__(self, ie: 'AbemaTVIE'):
-        # the protcol that this should really handle is 'abematv-license://'
+        # the protocol that this should really handle is 'abematv-license://'
         # abematv_license_open is just a placeholder for development purposes
         # ref. https://github.com/python/cpython/blob/f4c03484da59049eb62a9bf7777b963e2267d187/Lib/urllib/request.py#L510
         setattr(self, 'abematv-license_open', getattr(self, 'abematv_license_open'))
         self.ie = ie
 
     def _get_videokey_from_ticket(self, ticket):
-        to_show = self.ie._downloader.params.get('verbose', False)
+        to_show = self.ie.get_param('verbose', False)
         media_token = self.ie._get_media_token(to_show=to_show)
 
         license_response = self.ie._download_json(
@@ -123,7 +124,7 @@ class AbemaLicenseHandler(compat_urllib_request.BaseHandler):
                 'Content-Type': 'application/json',
             })
 
-        res = decode_base(license_response['k'], self.STRTABLE)
+        res = decode_base_n(license_response['k'], table=self.STRTABLE)
         encvideokey = bytes_to_intlist(struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff))
 
         h = hmac.new(
@@ -136,7 +137,7 @@ class AbemaLicenseHandler(compat_urllib_request.BaseHandler):
 
     def abematv_license_open(self, url):
         url = request_to_url(url)
-        ticket = compat_urllib_parse_urlparse(url).netloc
+        ticket = urllib.parse.urlparse(url).netloc
         response_data = self._get_videokey_from_ticket(ticket)
         return urllib.response.addinfourl(io.BytesIO(response_data), headers={
             'Content-Length': len(response_data),
@@ -311,7 +312,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
     def _real_extract(self, url):
         # starting download using infojson from this extractor is undefined behavior,
-        # and never be fixed in the future; you must trigger downloads by directly specifing URL.
+        # and never be fixed in the future; you must trigger downloads by directly specifying URL.
         # (unless there's a way to hook before downloading by extractor)
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
         headers = {
