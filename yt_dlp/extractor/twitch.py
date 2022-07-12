@@ -28,6 +28,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urljoin,
+    base_url,
 )
 
 
@@ -52,6 +53,7 @@ class TwitchBaseIE(InfoExtractor):
         'VideoPreviewOverlay': '3006e77e51b128d838fa4e835723ca4dc9a05c5efd4466c1085215c6e437e65c',
         'VideoMetadata': '226edb3e692509f727fd56821f5653c05740242c82b0388883e0c0e75dcbf687',
         'VideoPlayer_ChapterSelectButtonVideo': '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
+        'VideoPlayer_VODSeekbarPreviewVideo': '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
     }
 
     def _perform_login(self, username, password):
@@ -290,11 +292,18 @@ class TwitchVodIE(TwitchBaseIE):
                     'includePrivate': False,
                     'videoID': item_id,
                 },
+            }, {
+                'operationName': 'VideoPlayer_VODSeekbarPreviewVideo',
+                'variables': {
+                    'includePrivate': False,
+                    'videoID': item_id,
+                },
             }],
             'Downloading stream metadata GraphQL')
 
         video = traverse_obj(data, (0, 'data', 'video'))
         video['moments'] = traverse_obj(data, (1, 'data', 'video', 'moments', 'edges', ..., 'node'))
+        video['storyboard'] = traverse_obj(data, (2, 'data', 'video', 'seekPreviewsURL'), expected_type=url_or_none)
 
         if video is None:
             raise ExtractorError(
@@ -381,7 +390,38 @@ class TwitchVodIE(TwitchBaseIE):
             'chapters': list(self._extract_moments(info, item_id)),
             'is_live': is_live,
             'was_live': True,
+            'storyboard': info.get('storyboard'),
         }
+
+    def _extract_storyboard(self, item_id, storyboard_json_url, duration):
+        spec = self._download_json(storyboard_json_url, item_id, "Downloading storyboard metadata JSON", expected_type=list) or []
+        # sort from highest quality to lowest
+        spec.sort(key=lambda x: int_or_none(x.get('width')), reverse=True)
+        base = base_url(storyboard_json_url)
+        for i, s in enumerate(spec):
+            count = int_or_none(s.get('count'))
+            images = list(s.get('images') or [])
+            if len(images) == 0 or count is None:
+                continue
+            fragment_duration = duration / len(images)
+            yield {
+                'format_id': f'sb{i}',
+                'format_note': 'storyboard',
+                'ext': 'mhtml',
+                'protocol': 'mhtml',
+                'acodec': 'none',
+                'vcodec': 'none',
+                'url': urljoin(base, images[0]),
+                'width': int_or_none(s.get('width')),
+                'height': int_or_none(s.get('height')),
+                'fps': count / duration,
+                'rows': int_or_none(s.get('rows')),
+                'columns': int_or_none(s.get('cols')),
+                'fragments': [{
+                    'url': urljoin(base, path),
+                    'duration': fragment_duration,
+                } for path in images],
+            }
 
     def _real_extract(self, url):
         vod_id = self._match_id(url)
@@ -402,6 +442,9 @@ class TwitchVodIE(TwitchBaseIE):
                     'nauthsig': access_token['signature'],
                 })),
             vod_id, 'mp4', entry_protocol='m3u8_native')
+
+        if info.get('duration') is not None and info.get('storyboard') is not None:
+            formats.extend(self._extract_storyboard(vod_id, info['storyboard'], info['duration']))
 
         self._prefer_source(formats)
         info['formats'] = formats
