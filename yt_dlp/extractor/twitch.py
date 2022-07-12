@@ -442,6 +442,7 @@ class TwitchVodIE(TwitchBaseIE):
             return
         spec = self._download_json(storyboard_json_url, item_id, 'Downloading storyboard metadata JSON', fatal=False) or []
         # sort from highest quality to lowest
+        # This makes sb0 the highest-quality format, sb1 - lower, etc which is consistent with youtube sb ordering
         spec.sort(key=lambda x: int_or_none(x.get('width')) or 0, reverse=True)
         base = base_url(storyboard_json_url)
         for i, s in enumerate(spec):
