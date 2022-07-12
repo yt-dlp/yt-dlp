@@ -383,6 +383,10 @@ class InfoExtractor:
     section_start:  Start time of the section in seconds
     section_end:    End time of the section in seconds
 
+    The following fields should only be set for storyboards:
+    rows:           Number of rows in each storyboard fragment, as an integer
+    columns:        Number of columns in each storyboard fragment, as an integer
+
     Unless mentioned otherwise, the fields should be Unicode strings.
 
     Unless mentioned otherwise, None is equivalent to absence of information.
