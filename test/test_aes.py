@@ -24,8 +24,8 @@ from yt_dlp.aes import (
     aes_encrypt,
     aes_gcm_decrypt_and_verify,
     aes_gcm_decrypt_and_verify_bytes,
-    pad_block,
     key_expansion,
+    pad_block,
 )
 from yt_dlp.dependencies import Cryptodome_AES
 from yt_dlp.utils import bytes_to_intlist, intlist_to_bytes
@@ -115,7 +115,7 @@ class TestAES(unittest.TestCase):
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_key_expansion(self):
-        key = "4f6bdaa39e2f8cb07f5e722d9edef314"
+        key = '4f6bdaa39e2f8cb07f5e722d9edef314'
 
         self.assertEqual(key_expansion(bytes_to_intlist(bytearray.fromhex(key))), [
             0x4F, 0x6B, 0xDA, 0xA3, 0x9E, 0x2F, 0x8C, 0xB0, 0x7F, 0x5E, 0x72, 0x2D, 0x9E, 0xDE, 0xF3, 0x14,
