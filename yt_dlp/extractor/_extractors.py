@@ -948,6 +948,7 @@ from .mlb import (
 )
 from .mlssoccer import MLSSoccerIE
 from .mnet import MnetIE
+from .mocha import MochaVideoIE
 from .moevideo import MoeVideoIE
 from .mofosex import (
     MofosexIE,
@@ -1670,6 +1671,7 @@ from .svt import (
     SVTSeriesIE,
 )
 from .swrmediathek import SWRMediathekIE
+from .syvdk import SYVDKIE
 from .syfy import SyfyIE
 from .sztvhu import SztvHuIE
 from .tagesschau import TagesschauIE
@@ -1716,6 +1718,7 @@ from .tenplay import TenPlayIE
 from .testurl import TestURLIE
 from .tf1 import TF1IE
 from .tfo import TFOIE
+from .theholetv import TheHoleTvIE
 from .theintercept import TheInterceptIE
 from .theplatform import (
     ThePlatformIE,

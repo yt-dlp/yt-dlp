@@ -895,7 +895,7 @@ class TestUtil(unittest.TestCase):
             'dynamic_range': 'HDR10',
         })
         self.assertEqual(parse_codecs('av01.0.12M.10.0.110.09.16.09.0'), {
-            'vcodec': 'av01.0.12M.10',
+            'vcodec': 'av01.0.12M.10.0.110.09.16.09.0',
             'acodec': 'none',
             'dynamic_range': 'HDR10',
         })

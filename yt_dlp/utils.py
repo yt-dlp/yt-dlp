@@ -3419,24 +3419,23 @@ def parse_codecs(codecs_str):
         str.strip, codecs_str.strip().strip(',').split(','))))
     vcodec, acodec, scodec, hdr = None, None, None, None
     for full_codec in split_codecs:
-        parts = full_codec.split('.')
-        codec = parts[0].replace('0', '')
-        if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2',
-                     'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'):
-            if not vcodec:
-                vcodec = '.'.join(parts[:4]) if codec in ('vp9', 'av1', 'hvc1') else full_codec
-                if codec in ('dvh1', 'dvhe'):
-                    hdr = 'DV'
-                elif codec == 'av1' and len(parts) > 3 and parts[3] == '10':
-                    hdr = 'HDR10'
-                elif full_codec.replace('0', '').startswith('vp9.2'):
-                    hdr = 'HDR10'
-        elif codec in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
-            if not acodec:
-                acodec = full_codec
-        elif codec in ('stpp', 'wvtt',):
-            if not scodec:
-                scodec = full_codec
+        parts = re.sub(r'0+(?=\d)', '', full_codec).split('.')
+        if parts[0] in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2',
+                        'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'):
+            if vcodec:
+                continue
+            vcodec = full_codec
+            if parts[0] in ('dvh1', 'dvhe'):
+                hdr = 'DV'
+            elif parts[0] == 'av1' and traverse_obj(parts, 3) == '10':
+                hdr = 'HDR10'
+            elif parts[:2] == ['vp9', '2']:
+                hdr = 'HDR10'
+        elif parts[0] in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac',
+                          'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
+            acodec = acodec or full_codec
+        elif parts[0] in ('stpp', 'wvtt'):
+            scodec = scodec or full_codec
         else:
             write_string(f'WARNING: Unknown codec {full_codec}\n')
     if vcodec or acodec or scodec:
