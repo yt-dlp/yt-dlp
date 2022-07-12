@@ -88,6 +88,10 @@ class Updater:
 
     @functools.cached_property
     def _tag(self):
+        latest = self._get_version_info('latest')['tag_name']
+        if version_tuple(__version__) >= version_tuple(latest):
+            return 'latest'
+
         identifier = f'{detect_variant()} {system_identifier()}'
         for line in self._download('_update_spec', 'latest').decode().splitlines():
             if not line.startswith('lock '):

@@ -450,8 +450,7 @@ class FileDownloader:
         raise NotImplementedError('This method must be implemented by subclasses')
 
     def _hook_progress(self, status, info_dict):
-        if not self._progress_hooks:
-            return
+        # Ideally we want to make a copy of the dict, but that is too slow
         status['info_dict'] = info_dict
         # youtube-dl passes the same status object to all the hooks.
         # Some third party scripts seems to be relying on this.

@@ -114,6 +114,11 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
                 if user_conf is not None:
                     root.configs.pop(user_conf)
 
+        try:
+            root.configs[0].load_configs()  # Resolve any aliases using --config-location
+        except ValueError as err:
+            raise root.parser.error(err)
+
         opts, args = root.parse_args()
     except optparse.OptParseError:
         with contextlib.suppress(optparse.OptParseError):
@@ -423,9 +428,9 @@ def create_parser():
         action='store_false', dest='mark_watched',
         help='Do not mark videos watched (default)')
     general.add_option(
-        '--no-colors',
+        '--no-colors', '--no-colours',
         action='store_true', dest='no_color', default=False,
-        help='Do not emit color codes in output')
+        help='Do not emit color codes in output (Alias: --no-colours)')
     general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',
