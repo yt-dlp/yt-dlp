@@ -438,14 +438,14 @@ class TwitchVodIE(TwitchBaseIE):
         }
 
     def _extract_storyboard(self, item_id, storyboard_json_url, duration):
-        spec = list(self._download_json(storyboard_json_url, item_id, "Downloading storyboard metadata JSON") or [])
+        spec = self._download_json(storyboard_json_url, item_id, 'Downloading storyboard metadata JSON', fatal=False) or []
         # sort from highest quality to lowest
         spec.sort(key=lambda x: int_or_none(x.get('width')) or 0, reverse=True)
         base = base_url(storyboard_json_url)
         for i, s in enumerate(spec):
             count = int_or_none(s.get('count'))
-            images = list(s.get('images') or [])
-            if len(images) == 0 or count is None:
+            images = s.get('images')
+            if not (images and count):
                 continue
             fragment_duration = duration / len(images)
             yield {
@@ -488,8 +488,7 @@ class TwitchVodIE(TwitchBaseIE):
                 })),
             vod_id, 'mp4', entry_protocol='m3u8_native')
 
-        # extract storyboard
-        if video.get('storyboard') is not None and info.get('duration') is not None:
+        if video.get('storyboard') and info.get('duration'):
             formats.extend(self._extract_storyboard(vod_id, video['storyboard'], info['duration']))
 
         self._prefer_source(formats)
