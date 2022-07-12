@@ -204,6 +204,8 @@ class TwitchVodIE(TwitchBaseIE):
             'uploader_id': 'riotgames',
             'view_count': int,
             'start_time': 310,
+            'chapters': [],
+            'live_status': 'was_live',
         },
         'params': {
             # m3u8 download
@@ -272,6 +274,9 @@ class TwitchVodIE(TwitchBaseIE):
                     'title': 'Art'
                 }
             ],
+            'live_status': 'was_live',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'view_count': int,
         },
         'params': {
             'skip_download': True
@@ -393,7 +398,7 @@ class TwitchVodIE(TwitchBaseIE):
         }
 
     def _extract_storyboard(self, item_id, storyboard_json_url, duration):
-        spec = self._download_json(storyboard_json_url, item_id, "Downloading storyboard metadata JSON", expected_type=list) or []
+        spec = list(self._download_json(storyboard_json_url, item_id, "Downloading storyboard metadata JSON") or [])
         # sort from highest quality to lowest
         spec.sort(key=lambda x: int_or_none(x.get('width')) or 0, reverse=True)
         base = base_url(storyboard_json_url)
