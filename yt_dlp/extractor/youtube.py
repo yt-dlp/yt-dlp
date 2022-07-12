@@ -3340,6 +3340,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'url': url,
                 'width': width,
                 'height': height,
+                'fps': frame_count / duration,
+                'rows': rows,
+                'columns': cols,
                 'fragments': [{
                     'url': url.replace('$M', str(j)),
                     'duration': min(fragment_duration, duration - (j * fragment_duration)),
