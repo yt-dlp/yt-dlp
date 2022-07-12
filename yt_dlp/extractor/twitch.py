@@ -12,6 +12,7 @@ from ..compat import (
     compat_urllib_parse_urlparse,
 )
 from ..utils import (
+    base_url,
     clean_html,
     dict_get,
     ExtractorError,
@@ -28,7 +29,6 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urljoin,
-    base_url,
 )
 
 
