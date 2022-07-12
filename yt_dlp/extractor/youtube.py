@@ -3340,6 +3340,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'url': url,
                 'width': width,
                 'height': height,
+                'fps': frame_count / duration,
+                'rows': rows,
+                'columns': cols,
                 'fragments': [{
                     'url': url.replace('$M', str(j)),
                     'duration': min(fragment_duration, duration - (j * fragment_duration)),
@@ -3455,7 +3458,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         if get_first(video_details, 'isPostLiveDvr'):
             self.write_debug('Video is in Post-Live Manifestless mode')
-            if duration or 0 > 4 * 3600:
+            if (duration or 0) > 4 * 3600:
                 self.report_warning(
                     'The livestream has not finished processing. Only 4 hours of the video can be currently downloaded. '
                     'This is a known issue and patches are welcome')

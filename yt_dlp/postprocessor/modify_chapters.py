@@ -38,8 +38,9 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         if not cuts:
             return [], info
 
-        if self._duration_mismatch(real_duration, info.get('duration'), 1):
-            if not self._duration_mismatch(real_duration, info['chapters'][-1]['end_time']):
+        original_duration, info['duration'] = info.get('duration'), info['chapters'][-1]['end_time']
+        if self._duration_mismatch(real_duration, original_duration, 1):
+            if not self._duration_mismatch(real_duration, info['duration']):
                 self.to_screen(f'Skipping {self.pp_key()} since the video appears to be already cut')
                 return [], info
             if not info.get('__real_download'):
