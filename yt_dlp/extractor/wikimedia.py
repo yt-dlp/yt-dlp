@@ -18,7 +18,7 @@ class WikimediaIE(InfoExtractor):
     _TEST = {
         'url': 'https://commons.wikimedia.org/wiki/File:Die_Temperaturkurve_der_Erde_(ZDF,_Terra_X)_720p_HD_50FPS.webm',
         'info_dict': {
-            'url': 'https://upload.wikimedia.org/wikipedia/commons/transcoded/d/d7/Die_Temperaturkurve_der_Erde_%28ZDF%2C_Terra_X%29_720p_HD_50FPS.webm/Die_Temperaturkurve_der_Erde_%28ZDF%2C_Terra_X%29_720p_HD_50FPS.webm.480p.vp9.webm',
+            'url': 're:https?://upload.wikimedia.org/wikipedia',
             'description': 'Deutsch:  Beschreibung auf der Seite: "Im Verlauf der Erdgeschichte glich das Klima einer Achterbahnfahrt. Die „Fieberkurve“ unseres Planeten zeigt die globalen Temperaturschwankungen bis heute – rekonstruiert anhand von historischen Klimadaten."\nZu Wikimedia Commons hochgeladen von: PantheraLeo1359531.\nHinweise zur Weiterverwendung: https://www.zdf.de/dokumentation/terra-x/terra-x-creative-commons-cc-100.html.\nVereinfachender Verlauf in der Geschichte der Erde, für die Zukunft spätestens ab dem Jahr 2050 mit spekulativem Verlauf in der Prognose (ausgeprägtes Global-warming-Szenario ist dargestellt).English:  Climate change, Temperature in history of Earth, Video of Terra X.',
             'ext': 'webm',
             'id': 'Die_Temperaturkurve_der_Erde_(ZDF,_Terra_X)_720p_HD_50FPS',
@@ -28,19 +28,19 @@ class WikimediaIE(InfoExtractor):
             'subtitles': {
                 'de': [{
                     'ext': 'vtt',
-                    'url': 'https://commons.wikimedia.org/w/api.php?action=timedtext&title=File%3ADie_Temperaturkurve_der_Erde_%28ZDF%2C_Terra_X%29_720p_HD_50FPS.webm&lang=de&trackformat=vtt'
+                    'url': 're:https?://commons.wikimedia.org/w/api.php'
                 }],
                 'en-gb': [{
                     'ext': 'vtt',
-                    'url': 'https://commons.wikimedia.org/w/api.php?action=timedtext&title=File%3ADie_Temperaturkurve_der_Erde_%28ZDF%2C_Terra_X%29_720p_HD_50FPS.webm&lang=en-gb&trackformat=vtt'
+                    'url': 're:https?://commons.wikimedia.org/w/api.php'
                 }],
                 'nl': [{
                     'ext': 'vtt',
-                    'url': 'https://commons.wikimedia.org/w/api.php?action=timedtext&title=File%3ADie_Temperaturkurve_der_Erde_%28ZDF%2C_Terra_X%29_720p_HD_50FPS.webm&lang=nl&trackformat=vtt'
+                    'url': 're:https?://commons.wikimedia.org/w/api.php'
                 }],
                 'en': [{
                     'ext': 'vtt',
-                    'url': 'https://commons.wikimedia.org/w/api.php?action=timedtext&title=File%3ADie_Temperaturkurve_der_Erde_%28ZDF%2C_Terra_X%29_720p_HD_50FPS_-_redub_NL.webm&lang=en&trackformat=vtt'
+                    'url': 're:https?://commons.wikimedia.org/w/api.php'
                 }]
             }}}
 
