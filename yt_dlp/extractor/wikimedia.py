@@ -59,8 +59,8 @@ class WikimediaIE(InfoExtractor):
         video_id = video_id.replace('.' + ext, '')
 
         subtitles = {}
-        for sub in re.findall(r'''\bsrc\s*=\s*[\"\'](\/w\/api(.*?)[\s\"])\b''', webpage):
-            sub = sub[0].replace('"', '''''')
+        for sub in re.findall(r"\bsrc\s*=\s*[\"\'](\/w\/api(.*?)[\s\"])\b", webpage):
+            sub = sub[0].replace('"', '')
             sub = urljoin('https://commons.wikimedia.org', sub).replace('amp;', '').strip()
             qs = parse_qs(sub)
             lang = qs.get('lang', [None])[-1]
