@@ -145,6 +145,10 @@ class TestAES(unittest.TestCase):
         self.assertEqual(pad_block(block, 'zero'),
                          block + [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
 
+        block = list(range(16))
+        for mode in ('pkcs7', 'iso7816', 'whitespace', 'zero'):
+            self.assertEqual(pad_block(block, mode), block, mode)
+
 
 if __name__ == '__main__':
     unittest.main()
