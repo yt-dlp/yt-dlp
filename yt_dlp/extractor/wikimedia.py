@@ -16,7 +16,7 @@ class WikimediaIE(InfoExtractor):
     _API_BASE_URL = 'https://commons.wikimedia.org/'
     _VALID_URL = 'https://commons.wikimedia.org/wiki/File:(?P<id>[^/]+)'
     _TEST = {
-        'url': 'https://upload.wikimedia.org/wikipedia/commons/transcoded/d/d7/Die_Temperaturkurve_der_Erde_%28ZDF%2C_Terra_X%29_720p_HD_50FPS.webm/Die_Temperaturkurve_der_Erde_%28ZDF%2C_Terra_X%29_720p_HD_50FPS.webm.480p.vp9.webm',
+        'url': 'https://commons.m.wikimedia.org/wiki/File:Die_Temperaturkurve_der_Erde_(ZDF,_Terra_X)_720p_HD_50FPS.webm',
         'description': 'Deutsch:  Beschreibung auf der Seite: "Im Verlauf der Erdgeschichte glich das Klima einer Achterbahnfahrt. Die „Fieberkurve“ unseres Planeten zeigt die globalen Temperaturschwankungen bis heute – rekonstruiert anhand von historischen Klimadaten."\nZu Wikimedia Commons hochgeladen von: PantheraLeo1359531.\nHinweise zur Weiterverwendung: https://www.zdf.de/dokumentation/terra-x/terra-x-creative-commons-cc-100.html.\nVereinfachender Verlauf in der Geschichte der Erde, für die Zukunft spätestens ab dem Jahr 2050 mit spekulativem Verlauf in der Prognose (ausgeprägtes Global-warming-Szenario ist dargestellt).English:  Climate change, Temperature in history of Earth, Video of Terra X.',
         'ext': 'webm',
         'id': 'Die_Temperaturkurve_der_Erde_(ZDF,_Terra_X)_720p_HD_50FPS',
