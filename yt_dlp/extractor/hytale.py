@@ -1,5 +1,4 @@
 from re import findall
-from json import loads
 
 from .common import InfoExtractor
 from ..utils import traverse_obj
@@ -27,7 +26,7 @@ class HytaleIE(InfoExtractor):
     _VIDEO_BASE_URL = 'https://cloudflarestream.com/{}/manifest/video.mpd?parentOrigin=https%3A%2F%2Fhytale.com'
 
     _MEDIA_PAGE_URL = 'https://hytale.com/media'
-    _MEDIA_JSON_REGEX = r'window\.__INITIAL_COMPONENTS_STATE__\s*=\s*(?P<json>\[.+\])'
+    _MEDIA_START_PATTERN = r'window\.__INITIAL_COMPONENTS_STATE__\s*=\s*\['
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -39,8 +38,8 @@ class HytaleIE(InfoExtractor):
         media_webpage = self._download_webpage(self._MEDIA_PAGE_URL, 'media', fatal=False)
         if media_webpage:
             clips_json = traverse_obj(
-                loads(self._search_regex(self._MEDIA_JSON_REGEX, media_webpage,
-                                         'clips json', group='json'))[0],
+                self._search_json(self._MEDIA_START_PATTERN, media_webpage,
+                                  'clips json', 'media'),
                 ('media', 'clips'))
             videos_ids_and_titles = {clip.get('src'): clip.get('caption') for clip in clips_json}
 
