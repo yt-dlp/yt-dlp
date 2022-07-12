@@ -29,15 +29,10 @@ class CellebriteIE(InfoExtractor):
     }]
 
     def _get_formats_and_subtitles(self, json_data, display_id):
-        formats, subtitles = [], {}
-
-        mp4_url = traverse_obj(json_data, ('mp4', ..., 'url'))
-        hls_url = traverse_obj(json_data, ('hls', ..., 'url'))
-
-        for url_ in mp4_url or []:
-            formats.append({'url': url_, 'http_headers': {'Referer': 'https://play.vidyard.com/'}})
-
-        for url in hls_url or []:
+        formats = [{'url': url} for url in traverse_obj(json_data, ('mp4', ..., 'url')) or []] 
+        subtitles = {}
+        
+        for url in traverse_obj(json_data, ('hls', ..., 'url')) or []:
             fmt, sub = self._extract_m3u8_formats_and_subtitles(
                 url, display_id, ext='mp4', headers={'Referer': 'https://play.vidyard.com/'})
             formats.extend(fmt)
@@ -50,8 +45,7 @@ class CellebriteIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         player_uuid = self._search_regex(
-            r'<img\s*(?:style\s*="[^"]+")?\s*(?:class\s*="[^"]+")?\s*(?:src\s*=\s*"[^"]+")?\s*data-uuid\s*=\s*"(?P<player_uuid>[^"\?]+)',
-            webpage, 'player_uuid', group='player_uuid')
+            r'<img\s[^>]*\bdata-uuid\s*=\s*"([^"\?]+)', webpage, 'player UUID')
         json_data = self._download_json(
             f'https://play.vidyard.com/player/{player_uuid}.json', display_id)['payload']['chapters'][0]
 
