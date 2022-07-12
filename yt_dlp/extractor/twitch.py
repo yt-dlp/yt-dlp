@@ -308,7 +308,7 @@ class TwitchVodIE(TwitchBaseIE):
         if video is None:
             raise ExtractorError(
                 'Video %s does not exist' % item_id, expected=True)
-        return self._extract_info_gql(video, item_id)
+        return video
 
     def _extract_info(self, info):
         status = info.get('status')
@@ -390,13 +390,12 @@ class TwitchVodIE(TwitchBaseIE):
             'chapters': list(self._extract_moments(info, item_id)),
             'is_live': is_live,
             'was_live': True,
-            'storyboard': info.get('storyboard'),
         }
 
     def _extract_storyboard(self, item_id, storyboard_json_url, duration):
         spec = self._download_json(storyboard_json_url, item_id, "Downloading storyboard metadata JSON", expected_type=list) or []
         # sort from highest quality to lowest
-        spec.sort(key=lambda x: int_or_none(x.get('width')), reverse=True)
+        spec.sort(key=lambda x: int_or_none(x.get('width')) or 0, reverse=True)
         base = base_url(storyboard_json_url)
         for i, s in enumerate(spec):
             count = int_or_none(s.get('count'))
@@ -426,7 +425,8 @@ class TwitchVodIE(TwitchBaseIE):
     def _real_extract(self, url):
         vod_id = self._match_id(url)
 
-        info = self._download_info(vod_id)
+        video = self._download_info(vod_id)
+        info = self._extract_info_gql(video, vod_id)
         access_token = self._download_access_token(vod_id, 'video', 'id')
 
         formats = self._extract_m3u8_formats(
@@ -443,8 +443,9 @@ class TwitchVodIE(TwitchBaseIE):
                 })),
             vod_id, 'mp4', entry_protocol='m3u8_native')
 
-        if info.get('duration') is not None and info.get('storyboard') is not None:
-            formats.extend(self._extract_storyboard(vod_id, info['storyboard'], info['duration']))
+        # extract storyboard
+        if video.get('storyboard') is not None and info.get('duration') is not None:
+            formats.extend(self._extract_storyboard(vod_id, video['storyboard'], info['duration']))
 
         self._prefer_source(formats)
         info['formats'] = formats
