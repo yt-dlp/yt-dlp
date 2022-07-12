@@ -11,7 +11,6 @@ class XimalayaIE(XimalayaBaseIE):
     IE_NAME = 'ximalaya'
     IE_DESC = '喜马拉雅FM'
     _VALID_URL = r'https?://(?:www\.|m\.)?ximalaya\.com/sound/(?P<id>[0-9]+)'
-    _USER_URL_FORMAT = '%s://www.ximalaya.com/zhubo/%i/'
     _TESTS = [
         {
             'url': 'http://www.ximalaya.com/sound/47740352/',
@@ -36,7 +35,7 @@ class XimalayaIE(XimalayaBaseIE):
                         'height': 180
                     }
                 ],
-                'categories': list,
+                'category': '人文',
                 'duration': 93,
                 'view_count': int,
                 'like_count': int,
@@ -65,7 +64,7 @@ class XimalayaIE(XimalayaBaseIE):
                         'height': 180
                     }
                 ],
-                'categories': list,
+                'category': '人文',
                 'duration': 93,
                 'view_count': int,
                 'like_count': int,
@@ -104,18 +103,18 @@ class XimalayaIE(XimalayaBaseIE):
         audio_uploader_id = audio_info.get('uid')
 
         audio_description = audio_info.get('intro')
-        audio_description = audio_description.replace('\r\n\r\n\r\n ', '\r\n')
-        audio_description = audio_description.replace('\r\n', '\n')
+        if audio_description:
+            audio_description = audio_description.replace('\r\n\r\n\r\n ', '\r\n').replace('\r\n', '\n')
 
         return {
             'id': audio_id,
             'uploader': audio_info.get('nickname'),
             'uploader_id': audio_uploader_id,
-            'uploader_url': self._USER_URL_FORMAT % (scheme, audio_uploader_id) if audio_uploader_id else None,
+            'uploader_url': f'{scheme}://www.ximalaya.com/zhubo/{audio_uploader_id}/' if audio_uploader_id else None,
             'title': audio_info['title'],
             'thumbnails': thumbnails,
             'description': audio_description,
-            'categories': list(filter(None, (audio_info.get('category_name'), audio_info.get('category_title')))),
+            'category': audio_info.get('category_name'),
             'duration': audio_info.get('duration'),
             'view_count': audio_info.get('play_count'),
             'like_count': audio_info.get('favorites_count'),
