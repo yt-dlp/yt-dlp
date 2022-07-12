@@ -430,13 +430,15 @@ class YoutubeDL:
     retry_sleep_functions: Dictionary of functions that takes the number of attempts
                        as argument and returns the time to sleep in seconds.
                        Allowed keys are 'http', 'fragment', 'file_access'
-    download_ranges:   A function that gets called for every video with the signature
-                       (info_dict, *, ydl) -> Iterable[Section].
-                       Only the returned sections will be downloaded. Each Section contains:
+    download_ranges:   A callback function that gets called for every video with
+                       the signature (info_dict, ydl) -> Iterable[Section].
+                       Only the returned sections will be downloaded.
+                       Each Section is a dict with the following keys:
                        * start_time: Start time of the section in seconds
                        * end_time: End time of the section in seconds
                        * title: Section title (Optional)
                        * index: Section number (Optional)
+    force_keyframes_at_cuts: Re-encode the video when downloading ranges to get precise cuts
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
