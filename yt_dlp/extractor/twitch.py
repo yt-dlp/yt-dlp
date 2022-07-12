@@ -280,6 +280,46 @@ class TwitchVodIE(TwitchBaseIE):
         },
         'params': {
             'skip_download': True
+        },
+    }, {
+        'note': 'Storyboards',
+        'url': 'https://www.twitch.tv/videos/635475444',
+        'info_dict': {
+            'id': 'v635475444',
+            'format_id': 'sb0',
+            'ext': 'mhtml',
+            'title': 'Riot Games',
+            'duration': 11643,
+            'uploader': 'Riot Games',
+            'uploader_id': 'riotgames',
+            'timestamp': 1590770569,
+            'upload_date': '20200529',
+            'chapters': [
+                {
+                    'start_time': 0,
+                    'end_time': 573,
+                    'title': 'League of Legends'
+                },
+                {
+                    'start_time': 573,
+                    'end_time': 3922,
+                    'title': 'Legends of Runeterra'
+                },
+                {
+                    'start_time': 3922,
+                    'end_time': 11643,
+                    'title': 'Art'
+                }
+            ],
+            'live_status': 'was_live',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'view_count': int,
+            'columns': int,
+            'rows': int,
+        },
+        'params': {
+            'format': 'mhtml',
+            'skip_download': True
         }
     }]
 
