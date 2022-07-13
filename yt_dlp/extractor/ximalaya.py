@@ -82,16 +82,12 @@ class XimalayaIE(XimalayaBaseIE):
                                          'Downloading info json %s' % audio_info_file,
                                          'Unable to download info file')
 
-        formats = []
-        for bps, k in ((24, 'play_path_32'), (64, 'play_path_64')):
-            if audio_info.get(k):
-                formats.append({
-                    'format_id': f'{bps}K',
-                    'url': audio_info[k],
-                    'abr': bps,
-                    'quality': bps,
-                    'vcodec': 'none'
-                })
+        formats = [{
+            'format_id': f'{bps}k',
+            'url': audio_info[k],
+            'abr': bps,
+            'vcodec': 'none'
+        } for bps, k in ((24, 'play_path_32'), (64, 'play_path_64')) if audio_info.get(k)]
 
         thumbnails = []
         for k in audio_info.keys():
