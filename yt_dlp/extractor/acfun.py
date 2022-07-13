@@ -181,7 +181,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             if v.get('id') == season_id), 1)
 
         json_bangumi_list = self._search_json(
-            r'window.bangumiList\s*=\s*', webpage, 'bangumiList', video_id, fatal=False)
+            r'window\.bangumiList\s*=\s*', webpage, 'bangumiList', video_id, fatal=False)
         video_internal_id = int_or_none(traverse_obj(json_bangumi_data, ('currentVideoInfo', 'id')))
         episode_number = video_internal_id and next((
             idx for idx, v in enumerate(json_bangumi_list.get('items') or [], 1)
