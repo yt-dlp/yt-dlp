@@ -29,10 +29,10 @@ class VKBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'vk'
 
     def _download_webpage_handle(self, *args, **kwargs):
-        try:
-            content, urlh = super()._download_webpage_handle(*args, **kwargs)
-        except TypeError:
-            return False
+        response = super()._download_webpage_handle(*args, **kwargs)
+        if not response:
+            return response
+        content, urlh = response
         challenge_url = urlh.geturl()
         if challenge_url.startswith('https://vk.com/429.html?'):
             cookie = self._get_cookies(challenge_url).get('hash429')
