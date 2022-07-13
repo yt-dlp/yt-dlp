@@ -2405,7 +2405,11 @@ def remove_quotes(s):
 
 
 def get_domain(url):
-    return '.'.join(urllib.parse.urlparse(url).netloc.rsplit('.', 2)[-2:])
+    """
+    This implementation is inconsistent, but is kept for compatibility.
+    Use this only for "webpage_url_domain"
+    """
+    return remove_start(urllib.parse.urlparse(url).netloc, 'www.') or None
 
 
 def url_basename(url):
