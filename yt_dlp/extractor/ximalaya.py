@@ -134,10 +134,8 @@ class XimalayaAlbumIE(XimalayaBaseIE):
     }]
 
     def _real_extract(self, url):
-        self.scheme = scheme = 'https' if url.startswith('https') else 'http'
-
         mobj = self._match_valid_url(url)
-        uid, playlist_id = mobj.group('uid'), mobj.group('id')
+        playlist_id = mobj.group('id')
 
         first_page = self._fetch_page(playlist_id, 1)
         page_count = math.ceil(first_page['trackTotalCount'] / first_page['pageSize'])
