@@ -162,7 +162,7 @@ class XimalayaAlbumIE(XimalayaBaseIE):
                                   XimalayaIE.ie_key(), e['trackId'], e['title'])
 
     def _entries(self, playlist_id):
-        first_page = self._fetch_page(playlist_id, 1)
+        first_page = self._fetch_page(playlist_id, 0)
 
         return OnDemandPagedList(functools.partial(self._fetch_page_entries, playlist_id),
                                  first_page['pageSize'])
