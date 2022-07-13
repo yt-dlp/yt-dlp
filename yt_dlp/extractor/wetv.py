@@ -23,7 +23,7 @@ class WeTvBaseIE(InfoExtractor):
 
         return intlist_to_bytes(ciphertext_int_bytes).hex()
 
-    def _get_video_api_response(self, video_url, video_id, series_id, subtitle_format, video_format):
+    def _get_video_api_response(self, video_url, video_id, series_id, subtitle_format, video_format, video_quality):
         app_version = '3.5.57'
         platform = '4830201'
 
@@ -35,7 +35,7 @@ class WeTvBaseIE(InfoExtractor):
             'encryptVer': '8.1',
             'spcaptiontype': '1' if subtitle_format == 'vtt' else '0',  # 0 - SRT, 1 - VTT
             'sphls': '1' if video_format == 'hls' else '0',  # 0 - MP4, 1 - HLS
-            'defn': 'shd',  # Video quality, '': 480p, 'shd': 720p
+            'defn': video_quality,  # '': 480p, 'shd': 720p, 'fhd': 1080p
             'spsrt': '1',  # Enable subtitles
             'sphttps': '1',  # Enable HTTPS
             'otype': 'json',  # Response format: xml, json,
@@ -105,14 +105,14 @@ class WeTvEpisodeIE(WeTvBaseIE):
         },
     }]
 
-    def _extract_video_formats_and_subtitles(self, video_id, api_response):
+    def _extract_video_formats_and_subtitles(self, api_response, video_id, video_quality):
         video_response = api_response['vl']['vi'][0]
 
         formats, subtitles = [], {}
         for video_format in video_response['ul']['ui']:
             if video_format.get('hls'):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    video_format['url'] + video_format['hls']['pname'], video_id, 'mp4', fatal=False)
+                    video_format.get('url') + traverse_obj(video_format, ('hls', 'pname')), video_id, 'mp4', fatal=False)
 
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
@@ -128,7 +128,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
 
     def _extract_video_subtitles(self, api_response, subtitles_format):
         subtitles = {}
-        for subtitle in api_response['sfl']['fi']:
+        for subtitle in traverse_obj(api_response, ('sfl', 'fi')):
             subtitles[subtitle['lang'].lower()] = [{
                 'url': subtitle['url'],
                 'ext': subtitles_format,
@@ -142,13 +142,14 @@ class WeTvEpisodeIE(WeTvBaseIE):
         webpage = self._download_webpage(url, video_id)
 
         formats, subtitles = [], {}
-        for video_format, subtitle_format in (('mp4', 'srt'), ('hls', 'vtt')):
-            api_response = self._get_video_api_response(url, video_id, series_id, subtitle_format, video_format)
+        for video_format, subtitle_format, video_quality in (('mp4', 'srt', ''), ('hls', 'vtt', 'shd'), ('hls', 'vtt', 'fhd')):
+            api_response = self._get_video_api_response(url, video_id, series_id, subtitle_format, video_format, video_quality)
 
-            fmts, subs = self._extract_video_formats_and_subtitles(video_id, api_response)
+            fmts, subs = self._extract_video_formats_and_subtitles(api_response, video_id, video_quality)
             native_subtitles = self._extract_video_subtitles(api_response, subtitle_format)
 
             formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
             self._merge_subtitles(native_subtitles, target=subtitles)
 
         webpage_metadata = self._get_webpage_metadata(webpage, video_id)
