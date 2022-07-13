@@ -1,6 +1,7 @@
 import math
 
 from .common import InfoExtractor
+from ..utils import try_call
 
 
 class XimalayaBaseIE(InfoExtractor):
@@ -10,7 +11,7 @@ class XimalayaBaseIE(InfoExtractor):
 class XimalayaIE(XimalayaBaseIE):
     IE_NAME = 'ximalaya'
     IE_DESC = '喜马拉雅FM'
-    _VALID_URL = r'https?://(?:www\.|m\.)?ximalaya\.com/sound/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?ximalaya\.com/(:?(?P<uid>\d+)/)?sound/(?P<id>[0-9]+)'
     _TESTS = [
         {
             'url': 'http://www.ximalaya.com/sound/47740352/',
@@ -42,7 +43,7 @@ class XimalayaIE(XimalayaBaseIE):
             }
         },
         {
-            'url': 'http://m.ximalaya.com/sound/47740352/',
+            'url': 'http://m.ximalaya.com/61425525/sound/47740352/',
             'info_dict': {
                 'id': '47740352',
                 'ext': 'm4a',
