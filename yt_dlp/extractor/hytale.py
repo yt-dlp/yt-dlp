@@ -13,6 +13,15 @@ class HytaleIE(InfoExtractor):
             'title': 'Summer 2021 Development Update',
         },
         'playlist_count': 4,
+        'playlist': [{
+            'md5': '0854ebe347d233ee19b86ab7b2ead610',
+            'info_dict': {
+                'id': 'ed51a2609d21bad6e14145c37c334999',
+                'ext': 'mp4',
+                'title': 'Avatar Personalization',
+                'thumbnail': r're:https://videodelivery\.net/\w+/thumbnails/thumbnail\.jpg',
+            }
+        }]
     }, {
         'url': 'https://www.hytale.com/news/2019/11/hytale-graphics-update',
         'info_dict': {
@@ -22,42 +31,28 @@ class HytaleIE(InfoExtractor):
         'playlist_count': 2,
     }]
 
-    _VIDEO_BASE_URL = 'https://cloudflarestream.com/{}/manifest/video.mpd?parentOrigin=https%3A%2F%2Fhytale.com'
-
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-
         webpage = self._download_webpage(url, playlist_id)
-        title = self._og_search_title(webpage)
+        entries = [
+            self.url_result(
+                f'https://cloudflarestream.com/{video_hash}/manifest/video.mpd?parentOrigin=https%3A%2F%2Fhytale.com',
+                title=self._titles.get(video_hash), url_transparent=True)
+            for video_hash in re.findall(
+                r'<stream\s+class\s*=\s*"ql-video\s+cf-stream"\s+src\s*=\s*"([a-f0-9]{32})"',
+                webpage)
+        ]
 
-        return {
-            '_type': 'playlist',
-            'id': playlist_id,
-            'title': title,
-            'entries': [
-                self.url_result(self._VIDEO_BASE_URL.format(video_hash),
-                                video_title=self.videos_ids_and_titles[video_hash],
-                                url_transparent=True)
-                if video_hash in self.videos_ids_and_titles
-                else self.url_result(self._VIDEO_BASE_URL.format(video_hash),
-                                     video_title=title,
-                                     url_transparent=True)
-                for video_hash in re.findall(
-                    r'<stream\s+class\s*=\s*"ql-video\s+cf-stream"\s+src\s*=\s*"([a-f0-9]{32})"',
-                    webpage)
-
-            ]
-        }
+        return self.playlist_result(entries, playlist_id, self._og_search_title(webpage))
 
     def _real_initialize(self):
-        self.videos_ids_and_titles = {}
+        media_webpage = self._download_webpage(
+            'https://hytale.com/media', None, note='Downloading list of media', fatal=False) or ''
 
-        media_webpage = self._download_webpage('https://hytale.com/media',
-                                               'media', fatal=False)
-        if media_webpage:
-            clips_json = traverse_obj(
-                self._search_json(
-                    r'window\.__INITIAL_COMPONENTS_STATE__\s*=\s*\[',
-                    media_webpage, 'clips json', 'media'),
-                ('media', 'clips'))
-            self.videos_ids_and_titles = {clip.get('src'): clip.get('caption') for clip in clips_json}
+        clips_json = traverse_obj(
+            self._search_json(
+                r'window\.__INITIAL_COMPONENTS_STATE__\s*=\s*\[',
+                media_webpage, 'clips json', None),
+            ('media', 'clips')) or []
+
+        self._titles = {clip.get('src'): clip.get('caption') for clip in clips_json}
