@@ -123,7 +123,7 @@ class XimalayaIE(XimalayaBaseIE):
 class XimalayaAlbumIE(XimalayaBaseIE):
     IE_NAME = 'ximalaya:album'
     IE_DESC = '喜马拉雅FM 专辑'
-    _VALID_URL = r'https?://(?:www\.|m\.)?ximalaya\.com/(?P<uid>[0-9]+)/album/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?ximalaya\.com/\d+/album/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'http://www.ximalaya.com/61425525/album/5534601/',
         'info_dict': {
@@ -134,8 +134,7 @@ class XimalayaAlbumIE(XimalayaBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        playlist_id = mobj.group('id')
+        playlist_id = self._match_id(url)
 
         first_page = self._fetch_page(playlist_id, 1)
         page_count = math.ceil(first_page['trackTotalCount'] / first_page['pageSize'])
