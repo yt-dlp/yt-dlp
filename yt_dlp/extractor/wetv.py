@@ -4,47 +4,25 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_encrypt
-from ..compat import compat_ord
-from ..utils import bytes_to_intlist, int_or_none, random_user_agent, traverse_obj
+from ..utils import bytes_to_intlist, intlist_to_bytes, int_or_none, traverse_obj
 
 
 class WeTvBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.)?wetv\.vip/(?:[^?#]+/)?play'
 
     def _get_ckey(self, video_id, url, app_version, platform):
-        def get_payload_checksum(payload):
-            checksum = 0
-            for char in payload:
-                checksum += compat_ord(char)
-            return str(checksum)
+        ua = self.get_param('http_headers')['User-Agent']
 
-        payload_components = [
-            '',
-            video_id,
-            str(int(time.time())),
-            'mg3c3b04ba',
-            app_version,
-            '0000000000000000',  # guid
-            platform,
-            url[:48],
-            random_user_agent().lower()[:48],  # user_agent
-            ''[:48],  # referer
-            'Mozilla',  # nav_code_name
-            'Netscape',  # nav_name
-            'Win32',  # nav_platform
-            '00',
-            ''
-        ]
+        payload = (f'{video_id}|{int(time.time())}|mg3c3b04ba|{app_version}|0000000000000000|'
+                   f'{platform}|{url[:48]}|{ua.lower()[:48]}||Mozilla|Netscape|Win32|00|')
 
-        payload_components.insert(1, get_payload_checksum('|'.join(payload_components)))
-
-        ciphertext_bytes = aes_cbc_encrypt(
-            bytes_to_intlist(bytes_to_intlist(bytes('|'.join(payload_components), 'utf-8'))),
-            bytes_to_intlist(bytearray.fromhex('4f6bdaa39e2f8cb07f5e722d9edef314')),
-            bytes_to_intlist(bytearray.fromhex('01504af356e619cf2e42bba68c3f70f9')),
+        ciphertext_int_bytes = aes_cbc_encrypt(
+            bytes_to_intlist(bytes(f'|{sum(map(ord, payload))}|{payload}', 'utf-8')),
+            bytes_to_intlist(b'Ok\xda\xa3\x9e/\x8c\xb0\x7f^r-\x9e\xde\xf3\x14'),
+            bytes_to_intlist(b'\x01PJ\xf3V\xe6\x19\xcf.B\xbb\xa6\x8c?p\xf9'),
             'whitespace')
 
-        return ''.join('{:02x}'.format(x) for x in ciphertext_bytes)
+        return intlist_to_bytes(ciphertext_int_bytes).hex()
 
     def _get_video_api_response(self, video_url, video_id, series_id, subtitle_format, video_format):
         app_version = '3.5.57'
