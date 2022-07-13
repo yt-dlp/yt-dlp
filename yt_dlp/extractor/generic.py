@@ -2247,10 +2247,10 @@ class GenericIE(InfoExtractor):
             # Panopto embeds
             'url': 'https://www.monash.edu/learning-teaching/teachhq/learning-technologies/panopto/how-to/insert-a-quiz-into-a-panopto-video',
             'info_dict': {
-                'ext': 'mp4',
-                'id': '0bd3f16c-824a-436a-8486-ac5900693aef',
-                'title': 'Quizzes in Panopto',
+                'title': 'Insert a quiz into a Panopto video',
+                'id': 'insert-a-quiz-into-a-panopto-video'
             },
+            'playlist_count': 1
         },
         {
             # Ruutu embed
@@ -2335,17 +2335,24 @@ class GenericIE(InfoExtractor):
         },
         {
             'url': 'https://www.skimag.com/video/ski-people-1980/',
-            'md5': '022a7e31c70620ebec18deeab376ee03',
             'info_dict': {
-                'id': 'YTmgRiNU',
-                'ext': 'mp4',
-                'title': '1980 Ski People',
-                'timestamp': 1610407738,
-                'description': 'md5:cf9c3d101452c91e141f292b19fe4843',
-                'thumbnail': 'https://cdn.jwplayer.com/v2/media/YTmgRiNU/poster.jpg?width=720',
-                'duration': 5688.0,
-                'upload_date': '20210111',
-            }
+                'id': 'ski-people-1980',
+                'title': 'Ski People (1980)',
+            },
+            'playlist_count': 1,
+            'playlist': [{
+                'md5': '022a7e31c70620ebec18deeab376ee03',
+                'info_dict': {
+                    'id': 'YTmgRiNU',
+                    'ext': 'mp4',
+                    'title': '1980 Ski People',
+                    'timestamp': 1610407738,
+                    'description': 'md5:cf9c3d101452c91e141f292b19fe4843',
+                    'thumbnail': 'https://cdn.jwplayer.com/v2/media/YTmgRiNU/poster.jpg?width=720',
+                    'duration': 5688.0,
+                    'upload_date': '20210111',
+                }
+            }]
         },
         {
             'note': 'Rumble embed',
@@ -2690,9 +2697,7 @@ class GenericIE(InfoExtractor):
                 embeds.extend(current_embeds)
 
         del current_embeds
-        if len(embeds) == 1:
-            return {**info_dict, **embeds[0]}
-        elif embeds:
+        if embeds:
             return self.playlist_result(embeds, **info_dict)
 
         jwplayer_data = self._find_jwplayer_data(
