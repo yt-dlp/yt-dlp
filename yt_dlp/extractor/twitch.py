@@ -1162,8 +1162,11 @@ class TwitchClipsIE(TwitchBaseIE):
                 })
             thumbnails.append(thumb)
 
+        old_id = self._search_regex(r'%7C(\d+)(?:-\d+)?.mp4', formats[-1]['url'], 'old id', default=None)
+
         return {
             'id': clip.get('id') or video_id,
+            '_old_archive_ids': [f'{self.ie_key()} {old_id}'] if old_id else None,
             'display_id': video_id,
             'title': clip.get('title') or video_id,
             'formats': formats,

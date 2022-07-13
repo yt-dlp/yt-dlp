@@ -22,6 +22,9 @@ class HTML5MediaEmbedIE(InfoExtractor):
             entry.update({
                 'id': f'{video_id}-{num}',
                 'title': f'{title} ({num})',
+                '_old_archive_ids': [
+                    f'Generic {f"{video_id}-{num}" if len(entries) > 1 else video_id}',
+                ],
             })
             self._sort_formats(entry['formats'])
             yield entry
