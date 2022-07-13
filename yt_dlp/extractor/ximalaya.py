@@ -1,4 +1,3 @@
-import functools
 import math
 
 from .common import InfoExtractor
