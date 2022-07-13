@@ -43,7 +43,7 @@ class TrovoBaseIE(InfoExtractor):
 
 
 class TrovoIE(TrovoBaseIE):
-    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:s/)?(?!(?:clip|video)/)(?P<id>(?!s/)[^/?&#]+(?![^&]+[?&]vid=))'
+    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:s/)?(?!(?:clip|video)/)(?P<id>(?!s/)[^/?&#]+(?![^#]+[?&]vid=))'
     _TESTS = [{
         'url': 'https://trovo.live/Exsl',
         'only_matching': True,
@@ -108,7 +108,7 @@ class TrovoIE(TrovoBaseIE):
 
 
 class TrovoVodIE(TrovoBaseIE):
-    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:clip|video|s)/(?:[^/]+/\d+[^&]*[?&]vid=)?(?P<id>(?<!/s/)[^/?&#]+)'
+    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:clip|video|s)/(?:[^/]+/\d+[^#]*[?&]vid=)?(?P<id>(?<!/s/)[^/?&#]+)'
     _TESTS = [{
         'url': 'https://trovo.live/clip/lc-5285890818705062210?ltab=videos',
         'params': {'getcomments': True},
