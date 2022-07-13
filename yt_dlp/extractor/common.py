@@ -334,6 +334,7 @@ class InfoExtractor:
                     'private', 'premium_only', 'subscriber_only', 'needs_auth',
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
                     to set it
+    _old_archive_ids: A list of old archive ids needed for backward compatibility
     __post_extractor: A function to be called just before the metadata is
                     written to either disk, logger or console. The function
                     must return a dict which will be added to the info_dict.
