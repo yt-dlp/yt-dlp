@@ -40,5 +40,19 @@ class PlexWatchIE(InfoExtractor):
         print(selected_media)
         
         formats, subtitles = [], {}
+        for media in selected_media:
+            if determine_ext(media) == 'm3u8':
+                fmt, subs = self._extract_m3u8_formats_and_subtitles(
+                    f'{media}?X-PLEX-TOKEN={plex_token}', display_id)
+                formats.extend(fmt)
+                self._merge_subtitles(subs, target=subtitles)
+                
+            elif determine_ext(media) == 'mpd':
+                fmt, subs = self._extract_mpd_formats_and_subtitles(
+                    f'{media}?X-PLEX-TOKEN={plex_token}', display_id)
+                formats.extend(fmt)
+                self._merge_subtitles(subs, target=subtitles)
+        
+        self._sort_formats(formats)
         
         
