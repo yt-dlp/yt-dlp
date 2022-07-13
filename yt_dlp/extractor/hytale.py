@@ -1,11 +1,11 @@
-from re import findall
+import re
 
 from .common import InfoExtractor
 from ..utils import traverse_obj
 
 
 class HytaleIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?hytale\.com/news/20\d\d/(?:0?[1-9]|1[0-2])/(?P<id>[a-z0-9-]+)'
+    _VALID_URL = r'https?://(?:www\.)?hytale\.com/news/\d+/\d+/(?P<id>[a-z0-9-]+)'
     _TESTS = [{
         'url': 'https://hytale.com/news/2021/07/summer-2021-development-update',
         'info_dict': {
@@ -22,41 +22,42 @@ class HytaleIE(InfoExtractor):
         'playlist_count': 2,
     }]
 
-    _MD5_REGEX = r'<stream\s+class\s*=\s*"ql-video\s+cf-stream"\s+src\s*=\s*"([a-f0-9]{32})"'
     _VIDEO_BASE_URL = 'https://cloudflarestream.com/{}/manifest/video.mpd?parentOrigin=https%3A%2F%2Fhytale.com'
-
-    _MEDIA_PAGE_URL = 'https://hytale.com/media'
-    _MEDIA_START_PATTERN = r'window\.__INITIAL_COMPONENTS_STATE__\s*=\s*\['
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
         webpage = self._download_webpage(url, playlist_id)
-
-        videos_ids_and_titles = {}
-
-        media_webpage = self._download_webpage(self._MEDIA_PAGE_URL, 'media', fatal=False)
-        if media_webpage:
-            clips_json = traverse_obj(
-                self._search_json(self._MEDIA_START_PATTERN, media_webpage,
-                                  'clips json', 'media'),
-                ('media', 'clips'))
-            videos_ids_and_titles = {clip.get('src'): clip.get('caption') for clip in clips_json}
-
-        entries = []
-        for video_hash in findall(self._MD5_REGEX, webpage):
-            if video_hash in videos_ids_and_titles:
-                video_title = videos_ids_and_titles[video_hash]
-            else:
-                video_title = f'Hytale video #{video_hash}'
-            entries.append(self.url_result(self._VIDEO_BASE_URL.format(video_hash),
-                                           video_title=video_title,
-                                           url_transparent=True))
+        title = self._og_search_title(webpage)
 
         return {
             '_type': 'playlist',
             'id': playlist_id,
-            'title': self._og_search_title(webpage),
-            'playlist_count': len(entries),
-            'entries': entries,
+            'title': title,
+            'entries': [
+                self.url_result(self._VIDEO_BASE_URL.format(video_hash),
+                                video_title=self.videos_ids_and_titles[video_hash],
+                                url_transparent=True)
+                if video_hash in self.videos_ids_and_titles
+                else self.url_result(self._VIDEO_BASE_URL.format(video_hash),
+                                     video_title=title,
+                                     url_transparent=True)
+                for video_hash in re.findall(
+                    r'<stream\s+class\s*=\s*"ql-video\s+cf-stream"\s+src\s*=\s*"([a-f0-9]{32})"',
+                    webpage)
+
+            ]
         }
+
+    def _real_initialize(self):
+        self.videos_ids_and_titles = {}
+
+        media_webpage = self._download_webpage('https://hytale.com/media',
+                                               'media', fatal=False)
+        if media_webpage:
+            clips_json = traverse_obj(
+                self._search_json(
+                    r'window\.__INITIAL_COMPONENTS_STATE__\s*=\s*\[',
+                    media_webpage, 'clips json', 'media'),
+                ('media', 'clips'))
+            self.videos_ids_and_titles = {clip.get('src'): clip.get('caption') for clip in clips_json}
