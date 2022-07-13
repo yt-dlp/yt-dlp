@@ -1,7 +1,7 @@
-import math
+import functools
 
 from .common import InfoExtractor
-from ..utils import try_call
+from ..utils import try_call, OnDemandPagedList
 
 
 class XimalayaBaseIE(InfoExtractor):
@@ -151,22 +151,18 @@ class XimalayaAlbumIE(XimalayaBaseIE):
 
         return self.playlist_result(self._entries(playlist_id), playlist_id, title)
 
+    def _fetch_page(self, playlist_id, page_idx):
+        url = f'https://www.ximalaya.com/revision/album/v1/getTracksList?albumId={playlist_id}&pageNum={page_idx}&sort=1'
+        data = self._download_json(url, playlist_id, note=f'get tracksList page {page_idx}')['data']
+        return data
+
+    def _fetch_page_entries(self, playlist_id, page_idx):
+        for e in self._fetch_page(playlist_id, page_idx)['tracks']:
+            yield self.url_result('%s://www.ximalaya.com%s' % (self.scheme, e['url']),
+                                  XimalayaIE.ie_key(), e['trackId'], e['title'])
+
     def _entries(self, playlist_id):
-        first_page = self._process_page(playlist_id, 1)
+        first_page = self._fetch_page(playlist_id, 1)
 
-        entries = first_page['tracks']
-
-        max_page_num = math.ceil(first_page['trackTotalCount'] / first_page['pageSize'])
-        for idx in range(2, max_page_num + 1):
-            json = self._process_page(playlist_id, idx)
-            entries += json['tracks']
-
-        return [self.url_result('%s://www.ximalaya.com%s' % (self.scheme, e['url']),
-                XimalayaIE.ie_key(),
-                e['trackId'],
-                e['title'])
-                for e in entries]
-
-    def _process_page(self, playlist_id, page_num):
-        url = f'https://www.ximalaya.com/revision/album/v1/getTracksList?albumId={playlist_id}&pageNum={page_num}&sort=1'
-        return self._download_json(url, playlist_id, note=f'get tracksList page {page_num}')['data']
+        return OnDemandPagedList(functools.partial(self._fetch_page_entries, playlist_id),
+                                 first_page['pageSize'])
