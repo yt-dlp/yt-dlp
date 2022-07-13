@@ -114,8 +114,11 @@ class WeTvEpisodeIE(WeTvBaseIE):
         for video_format in video_response['ul']['ui']:
             if video_format.get('hls'):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    video_format.get('url') + traverse_obj(video_format, ('hls', 'pname')), video_id, 'mp4',
-                    quality=video_width, fatal=False)
+                    video_format.get('url') + traverse_obj(video_format, ('hls', 'pname')), video_id, 'mp4', fatal=False)
+
+                for f in fmts:
+                    f['width'] = video_width
+                    f['height'] = video_height
 
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
@@ -155,7 +158,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             self._merge_subtitles(subs, target=subtitles)
             self._merge_subtitles(native_subtitles, target=subtitles)
 
-        self._sort_formats(formats, ['quality'])
+        self._sort_formats(formats)
         webpage_metadata = self._get_webpage_metadata(webpage, video_id)
 
         return {
