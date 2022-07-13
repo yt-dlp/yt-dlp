@@ -49,9 +49,8 @@ class WeTvBaseIE(InfoExtractor):
             'platform': platform,
         }
 
-        return self._parse_json(self._download_webpage(
-            'https://play.wetv.vip/getvinfo', video_id,
-            query=query).replace('QZOutputJson=', '').replace(';', ''), video_id)
+        return self._search_json(r'QZOutputJson=', self._download_webpage('https://play.wetv.vip/getvinfo', video_id,
+                                 query=query), 'api_response', video_id)
 
     def _get_webpage_metadata(self, webpage, video_id):
         return self._parse_json(
