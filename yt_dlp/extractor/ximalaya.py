@@ -151,24 +151,23 @@ class XimalayaAlbumIE(XimalayaBaseIE):
         title = self._html_search_regex(r'<h1 class="title dC_">([^<]+)</h1>',
                                         webpage, 'title', fatal=False)
 
-        first_page = self._fetch_page(playlist_id, 0)
+        first_page = self._fetch_page(playlist_id, 1)
         page_count = math.ceil(first_page['trackTotalCount'] / first_page['pageSize'])
 
-        entries = (self._get_entries(first_page)
-                   + list(InAdvancePagedList(
-                          lambda idx: self._get_entries(self._fetch_page(playlist_id, idx + 1)),
-                          page_count - 1, first_page['pageSize']))
-                   )
+        entries = InAdvancePagedList(
+            lambda idx: self._get_entries(self._fetch_page(playlist_id, idx + 1) if idx else first_page),
+            page_count, first_page['pageSize'])
 
         return self.playlist_result(entries, playlist_id, title)
 
     def _fetch_page(self, playlist_id, page_idx):
-        # page_idx in url should start from 1
-        url = f'https://www.ximalaya.com/revision/album/v1/getTracksList?albumId={playlist_id}&pageNum={page_idx + 1}&sort=1'
-        data = self._download_json(url, playlist_id, note=f'get tracksList page {page_idx}')['data']
-        return data
+        return self._download_json(
+            'https://www.ximalaya.com/revision/album/v1/getTracksList',
+            playlist_id, note=f'Downloading tracks list page {page_idx}',
+            query={'albumId': playlist_id, 'pageNum': page_idx, 'sort': 1})['data']
 
     def _get_entries(self, page_data):
-        return [self.url_result('%s://www.ximalaya.com%s' % (self.scheme, e['url']),
-                                XimalayaIE.ie_key(), e['trackId'], e['title'])
-                for e in page_data['tracks']]
+        for e in page_data['tracks']:
+            yield self.url_result(
+                self._proto_relative_url(f'//www.ximalaya.com{e["url"]}'),
+                XimalayaIE, e.get('trackId'), e.get('title'))
