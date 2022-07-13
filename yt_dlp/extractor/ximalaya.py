@@ -155,9 +155,9 @@ class XimalayaAlbumIE(XimalayaBaseIE):
         first_page = self._fetch_page(playlist_id, 0)
         page_count = math.ceil(first_page['trackTotalCount'] / first_page['pageSize'])
 
-        entries = ([self._parse_entry(e) for e in first_page['tracks']]
+        entries = (self._get_entries(first_page)
                    + list(InAdvancePagedList(
-                          functools.partial(self._fetch_page_entries, playlist_id, 1),
+                          lambda idx: self._get_entries(self._fetch_page(playlist_id, idx + 1)),
                           page_count, first_page['pageSize']))
                    )
 
@@ -169,10 +169,7 @@ class XimalayaAlbumIE(XimalayaBaseIE):
         data = self._download_json(url, playlist_id, note=f'get tracksList page {page_idx}')['data']
         return data
 
-    def _parse_entry(self, e):
-        return self.url_result('%s://www.ximalaya.com%s' % (self.scheme, e['url']),
-                               XimalayaIE.ie_key(), e['trackId'], e['title'])
-
-    def _fetch_page_entries(self, playlist_id, page_idx, page_idx_offset=0):
-        for e in self._fetch_page(playlist_id, page_idx + page_idx_offset)['tracks']:
-            yield self._parse_entry(e)
+    def _get_entries(self, page_data):
+        return [self.url_result('%s://www.ximalaya.com%s' % (self.scheme, e['url']),
+                                XimalayaIE.ie_key(), e['trackId'], e['title'])
+                for e in page_data['tracks']]
