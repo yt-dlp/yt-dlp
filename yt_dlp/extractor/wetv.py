@@ -177,6 +177,7 @@ class WeTvSeriesIE(WeTvBaseIE):
         'info_dict': {
             'id': 'air11ooo2rdsdi3',
             'title': 'Cute Programmer',
+            'description': 'md5:e87beab3bf9f392d6b9e541a63286343',
         },
         'playlist_count': 30,
     }, {
@@ -184,6 +185,7 @@ class WeTvSeriesIE(WeTvBaseIE):
         'info_dict': {
             'id': 'u37kgfnfzs73kiu',
             'title': 'You Are My Glory',
+            'description': 'md5:831363a4c3b4d7615e1f3854be3a123b',
         },
         'playlist_count': 32,
     }]
@@ -196,5 +198,7 @@ class WeTvSeriesIE(WeTvBaseIE):
         episode_paths = (re.findall(r'<a[^>]+class="play-video__link"[^>]+href="(?P<path>[^"]+)', webpage)
                          or [f"/{series_id}/{episode['vid']}" for episode in webpage_metadata.get('videoList')])
 
-        return self.playlist_from_matches(episode_paths, series_id, (traverse_obj(webpage_metadata, ('coverInfo', 'title'))
-                                          or self._og_search_title(webpage)), ie=WeTvEpisodeIE)
+        return self.playlist_from_matches(
+            episode_paths, series_id, traverse_obj(webpage_metadata, ('coverInfo', 'title')) or self._og_search_title(webpage),
+            description=traverse_obj(webpage_metadata, ('coverInfo', 'description')) or self._og_search_description(webpage),
+            ie=WeTvEpisodeIE)
