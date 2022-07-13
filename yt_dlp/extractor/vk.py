@@ -27,7 +27,6 @@ from .youtube import YoutubeIE
 
 class VKBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'vk'
-    _WAF_URI = 'https://vk.com/429.html?'
 
     def _download_webpage_handle(self, *args, **kwargs):
         try:
@@ -35,7 +34,7 @@ class VKBaseIE(InfoExtractor):
         except TypeError:
             return False
         challenge_url = urlh.geturl()
-        if challenge_url.startswith(self._WAF_URI):
+        if challenge_url.startswith('https://vk.com/429.html?'):
             cookie = self._get_cookies(challenge_url).get('hash429')
             if cookie:
                 hash429 = hashlib.md5(cookie.value.encode('ascii')).hexdigest()
