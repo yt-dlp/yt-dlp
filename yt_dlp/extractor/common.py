@@ -1506,7 +1506,7 @@ class InfoExtractor:
                 'url': url_or_none(e.get('contentUrl')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
-                'thumbnails': [{'url': url}
+                'thumbnails': [{'url': unescapeHTML(url)}
                                for url in variadic(traverse_obj(e, 'thumbnailUrl', 'thumbnailURL'))
                                if url_or_none(url)],
                 'duration': parse_duration(e.get('duration')),
