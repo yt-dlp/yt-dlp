@@ -107,20 +107,23 @@ class WeTvEpisodeIE(WeTvBaseIE):
 
     def _extract_video_formats_and_subtitles(self, api_response, video_id, video_quality):
         video_response = api_response['vl']['vi'][0]
+        video_width = video_response.get('vw')
+        video_height = video_response.get('vh')
 
         formats, subtitles = [], {}
         for video_format in video_response['ul']['ui']:
             if video_format.get('hls'):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    video_format.get('url') + traverse_obj(video_format, ('hls', 'pname')), video_id, 'mp4', fatal=False)
+                    video_format.get('url') + traverse_obj(video_format, ('hls', 'pname')), video_id, 'mp4',
+                    quality=video_width, fatal=False)
 
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             else:
                 formats.append({
                     'url': f"{video_format['url']}{video_response['fn']}?vkey={video_response['fvkey']}",
-                    'width': video_response.get('vw'),
-                    'height': video_response.get('vh'),
+                    'width': video_width,
+                    'height': video_height,
                     'ext': 'mp4',
                 })
 
@@ -152,6 +155,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             self._merge_subtitles(subs, target=subtitles)
             self._merge_subtitles(native_subtitles, target=subtitles)
 
+        self._sort_formats(formats, ['quality'])
         webpage_metadata = self._get_webpage_metadata(webpage, video_id)
 
         return {
