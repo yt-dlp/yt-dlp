@@ -1834,6 +1834,7 @@ from .tvc import (
 )
 from .tver import TVerIE
 from .tvigle import TvigleIE
+from .tviplayer import TVIPlayerIE
 from .tvland import TVLandIE
 from .tvn24 import TVN24IE
 from .tvnet import TVNetIE
