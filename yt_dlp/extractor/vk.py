@@ -30,8 +30,10 @@ class VKBaseIE(InfoExtractor):
     _WAF_URI = 'https://vk.com/429.html?'
 
     def _download_webpage_handle(self, *args, **kwargs):
-        content, urlh = super(VKBaseIE, self)._download_webpage_handle(
-            *args, **kwargs)
+        try:
+            content, urlh = super()._download_webpage_handle(*args, **kwargs)
+        except TypeError:
+            return False
         challenge_url = urlh.geturl()
         if challenge_url.startswith(self._WAF_URI):
             cookie = self._get_cookies(challenge_url).get('hash429')
