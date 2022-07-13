@@ -1,7 +1,7 @@
 import math
 
 from .common import InfoExtractor
-from ..utils import try_call, InAdvancePagedList
+from ..utils import traverse_obj, try_call, InAdvancePagedList
 
 
 class XimalayaBaseIE(InfoExtractor):
@@ -124,7 +124,6 @@ class XimalayaAlbumIE(XimalayaBaseIE):
     IE_NAME = 'ximalaya:album'
     IE_DESC = '喜马拉雅FM 专辑'
     _VALID_URL = r'https?://(?:www\.|m\.)?ximalaya\.com/(?P<uid>[0-9]+)/album/(?P<id>[0-9]+)'
-    _TEMPLATE_URL = '%s://www.ximalaya.com/%s/album/%s/'
     _TESTS = [{
         'url': 'http://www.ximalaya.com/61425525/album/5534601/',
         'info_dict': {
@@ -140,19 +139,14 @@ class XimalayaAlbumIE(XimalayaBaseIE):
         mobj = self._match_valid_url(url)
         uid, playlist_id = mobj.group('uid'), mobj.group('id')
 
-        webpage = self._download_webpage(self._TEMPLATE_URL % (scheme, uid, playlist_id), playlist_id,
-                                         note='Download album page for %s' % playlist_id,
-                                         errnote='Unable to get album info')
-
-        title = self._html_search_regex(r'<h1 class="title dC_">([^<]+)</h1>',
-                                        webpage, 'title', fatal=False)
-
         first_page = self._fetch_page(playlist_id, 1)
         page_count = math.ceil(first_page['trackTotalCount'] / first_page['pageSize'])
 
         entries = InAdvancePagedList(
             lambda idx: self._get_entries(self._fetch_page(playlist_id, idx + 1) if idx else first_page),
             page_count, first_page['pageSize'])
+
+        title = traverse_obj(first_page, ('tracks', 0, 'albumTitle'), expected_type=str)
 
         return self.playlist_result(entries, playlist_id, title)
 
