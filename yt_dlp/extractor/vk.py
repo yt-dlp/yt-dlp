@@ -43,7 +43,7 @@ class VKBaseIE(InfoExtractor):
                     resolve_url, None,
                     note='Resolving WAF challenge for VK',
                     errnote='Failed bypass WAF challenge for VK')
-                return self._download_webpage_handle(*args, **kwargs)
+                return super()._download_webpage_handle(*args, **kwargs)
         return (content, urlh)
 
     def _perform_login(self, username, password):
