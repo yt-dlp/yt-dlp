@@ -40,9 +40,9 @@ class VKBaseIE(InfoExtractor):
                 hash429 = hashlib.md5(cookie.value.encode('ascii')).hexdigest()
                 resolve_url = update_url_query(challenge_url, {'key': hash429})
                 self._request_webpage(
-                    note='Resolving WAF challenge for VK',
-                    errnote='Failed bypass WAF challenge for VK')
                     resolve_url, None, fatal=kwargs.get('fatal'),
+                    note='Resolving WAF challenge',
+                    errnote='Failed bypass WAF challenge')
                 return super()._download_webpage_handle(*args, **kwargs)
         return (content, urlh)
 
