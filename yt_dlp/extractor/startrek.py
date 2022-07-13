@@ -56,6 +56,7 @@ class StarTrekIE(InfoExtractor):
         if captions:
             subtitles.setdefault('en-US', [])[:0] = [{'url': urljoin(urlbase, captions)}]
 
+        # NB: Most of the data in the json_ld is undesirable
         json_ld = self._search_json_ld(webpage, video_id, fatal=False)
 
         return {
