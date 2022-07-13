@@ -1,38 +1,34 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, determine_ext, traverse_obj
+from ..utils import ExtractorError, determine_ext, int_or_none, traverse_obj
 
 
 class PlexWatchIE(InfoExtractor):
-    _VALID_URL = r'https?://watch\.plex\.tv/movie/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?:\w+)/(?P<id>[\w-]+)[^?/#&]+'
     _TESTS = [{
         'url': 'https://watch.plex.tv/movie/bowery-at-midnight',
         'info_dict': {
-            'id': 'fixme',
+            'id': '627585f7408eb57249d905d5',
+            'display_id': 'bowery-at-midnight',
             'ext': 'mp4',
+            'title': 'Bowery at Midnight',
+            'description': 'md5:7ebaa1b530d98f042295e18d6f4f8c21',
+            'duration': 3660,
+            'thumbnail': 'https://image.tmdb.org/t/p/original/lDWHvIotQkogG77wHVuMT8mF8P.jpg',
         }
     }]
     
-    def get_plex_token(self, client_id, display_id):
-        # check token on the server, return hardcoded token if the api return error (typically HTTP 429) 
-        required_token = self._download_json(
-                'https://plex.tv/api/v2/users/anonymous', display_id, data=''.encode(), 
-                headers={'X-Plex-Client-Identifier': client_id, 'Content-Type': 'application/json', 'Cookie': ''},
-                note='Trying to get AuthToken', expected_status=429, fatal=False)
-                
-        return required_token.get('authToken') or 'NytaXzMexGQ9-xW9yDjy'
-        
+    _PLEX_TOKEN = 'NytaXzMexGQ9-xW9yDjy' # change this if not work
+    
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']
         
-        plex_token = self.get_plex_token(self._get_cookies(url).get("clientIdentifier").value, display_id)
-        
         media_json = self._download_json(
             f'https://play.provider.plex.tv/playQueues', display_id, 
             query={'uri': nextjs_json['metadataItem']['playableKey']}, data=''.encode(),
-            headers={'X-PLEX-TOKEN': plex_token, 'Accept': 'application/json', 'Cookie': ''})
+            headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
         
         selected_media = []
         for media in media_json['MediaContainer']['Metadata']:
@@ -43,7 +39,7 @@ class PlexWatchIE(InfoExtractor):
         for media in selected_media:
             if determine_ext(media) == 'm3u8':
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
-                    f'https://vod.provider.plex.tv{media}?X-PLEX-TOKEN={plex_token}', display_id)
+                    f'https://vod.provider.plex.tv{media}?X-PLEX-TOKEN={self._PLEX_TOKEN}', display_id)
                 formats.extend(fmt)
                 self._merge_subtitles(subs, target=subtitles)
                 
@@ -62,6 +58,7 @@ class PlexWatchIE(InfoExtractor):
             'title': traverse_obj(nextjs_json, ('metadataItem', 'title')),
             'description': traverse_obj(nextjs_json, ('metadataItem', 'summary')),
             'thumbnail': traverse_obj(nextjs_json, ('metadataItem', 'thumb')),
+            'duration': int_or_none(traverse_obj(nextjs_json, ('metadataItem', 'duration')), 1000),
             
         }
         
