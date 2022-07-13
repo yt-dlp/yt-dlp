@@ -13,7 +13,7 @@ from ..utils import (
 
 class WikimediaIE(InfoExtractor):
     IE_NAME = 'wikimedia.org'
-    _VALID_URL = r'https://commons.wikimedia.org/wiki/File:(?P<id>[^/]+)\.\w+'
+    _VALID_URL = r'https?://commons\.wikimedia\.org/wiki/File:(?P<id>[^/#?]+)\.webm'
     _TESTS = [{
         'url': 'https://commons.wikimedia.org/wiki/File:Die_Temperaturkurve_der_Erde_(ZDF,_Terra_X)_720p_HD_50FPS.webm',
         'info_dict': {
