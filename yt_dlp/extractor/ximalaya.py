@@ -36,7 +36,7 @@ class XimalayaIE(XimalayaBaseIE):
                         'height': 180
                     }
                 ],
-                'category': '人文',
+                'categories': ['人文'],
                 'duration': 93,
                 'view_count': int,
                 'like_count': int,
@@ -65,7 +65,7 @@ class XimalayaIE(XimalayaBaseIE):
                         'height': 180
                     }
                 ],
-                'category': '人文',
+                'categories': ['人文'],
                 'duration': 93,
                 'view_count': int,
                 'like_count': int,
@@ -114,7 +114,7 @@ class XimalayaIE(XimalayaBaseIE):
             'title': audio_info['title'],
             'thumbnails': thumbnails,
             'description': audio_description,
-            'category': audio_info.get('category_name'),
+            'categories': list(filter(None, [audio_info.get('category_name')])),
             'duration': audio_info.get('duration'),
             'view_count': audio_info.get('play_count'),
             'like_count': audio_info.get('favorites_count'),
