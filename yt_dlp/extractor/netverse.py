@@ -19,7 +19,7 @@ class NetverseBaseIE(InfoExtractor):
         if url is not None:
             sites_type, display_id = self._match_valid_url(url).group('type', 'display_id')
         else:
-            sites_type, display_id = (endpoint, slug)
+            sites_type, display_id = endpoint, slug
 
         json_data = self._download_json(
             f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[sites_type]}/{display_id}/{season}',
@@ -172,28 +172,21 @@ class NetversePlaylistIE(NetverseBaseIE):
                                      endpoint=None):
 
         _, playlist_json = self._call_api(
-            url=url, slug=slug, query={'page': page_num + 1}, season=season_id, custom_id=custom_id,
-            endpoint=endpoint)
+            url=url, slug=slug, query={'page': page_num + 1},
+            season=season_id, custom_id=custom_id, endpoint=endpoint)
         for slug in traverse_obj(playlist_json, ('response', ..., 'data', ..., 'slug')):
             yield self.url_result(f'https://www.netverse.id/video/{slug}', NetverseIE)
 
     def parse_playlist(self, url, json_data, playlist_id):
         slug_sample = traverse_obj(json_data, ('related', 'data', ..., 'slug'))[0]
-        season_id_list = [season.get('id') for season in json_data.get('seasons')]
-
-        for season in season_id_list:
+        for season in traverse_obj(json_data, ('seasons', ..., 'id')):
             _, playlist_json = self._call_api(
-                slug=slug_sample, custom_id=playlist_id, season=season,
-                endpoint='season')
+                slug=slug_sample, custom_id=playlist_id, season=season, endpoint='season')
 
-            season_list = traverse_obj(playlist_json, ('response', 'season_list'))
-
-            current_page = 0
-            while current_page < season_list.get('last_page'):
+            for current_page in range(playlist_json['response']['season_list']['last_page']):
                 yield from self.parse_single_season_playlist(
-                    current_page, slug=slug_sample, custom_id=playlist_id, season_id=season,
-                    endpoint='season')
-                current_page = current_page + 1
+                    current_page, slug=slug_sample,
+                    custom_id=playlist_id, season_id=season, endpoint='season')
 
     def _real_extract(self, url):
         playlist_id, playlist_data = self._call_api(url)
