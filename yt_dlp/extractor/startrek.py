@@ -48,18 +48,13 @@ class StarTrekIE(InfoExtractor):
             r'(<\s*div\s+id\s*=\s*"cvp-player-[^<]+<\s*/div\s*>)', webpage, 'player')
 
         hls = self._html_search_regex(r'\bdata-hls\s*=\s*"([^"]+)"', player, 'HLS URL')
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls, video_id)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls, video_id, 'mp4')
         self._sort_formats(formats)
 
-        # The player will usually have a subtitle attribute, too. If it does, prefer that one
-        # because it will be downloaded much faster than the HLS segmented one from the m3u8.
-        # Also, sometimes there are `data-` subtitles but not HLS ones.
         captions = self._html_search_regex(
             r'\bdata-captions-url\s*=\s*"([^"]+)"', player, 'captions URL', fatal=False)
         if captions:
-            en_subs = subtitles.get('en-US', [])
-            en_subs.insert(0, {'url': urljoin(urlbase, captions)})
-            subtitles['en-US'] = en_subs
+            subtitles.setdefault('en-US', [])[:0] = [{'url': urljoin(urlbase, captions)}]
 
         json_ld = self._search_json_ld(webpage, video_id, fatal=False)
 
@@ -74,8 +69,7 @@ class StarTrekIE(InfoExtractor):
                 r'\bdata-duration\s*=\s*"(\d+)"', player, 'duration', fatal=False)),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': urljoin(
-                urlbase,
-                self._html_search_regex(r'\bdata-poster-url\s*=\s*"([^"]+)"', player, 'thumbnail', fatal=False)),
+            'thumbnail': urljoin(urlbase, self._html_search_regex(
+                r'\bdata-poster-url\s*=\s*"([^"]+)"', player, 'thumbnail', fatal=False)),
             'timestamp': json_ld.get('timestamp'),
         }
