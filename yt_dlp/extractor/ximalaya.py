@@ -102,9 +102,8 @@ class XimalayaIE(XimalayaBaseIE):
 
         audio_uploader_id = audio_info.get('uid')
 
-        audio_description = audio_info.get('intro')
-        if audio_description:
-            audio_description = audio_description.replace('\r\n\r\n\r\n ', '\r\n').replace('\r\n', '\n')
+        audio_description = try_call(
+            lambda: audio_info['intro'].replace('\r\n\r\n\r\n ', '\n').replace('\r\n', '\n'))
 
         return {
             'id': audio_id,
