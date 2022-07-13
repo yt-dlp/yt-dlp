@@ -158,7 +158,7 @@ class XimalayaAlbumIE(XimalayaBaseIE):
         entries = (self._get_entries(first_page)
                    + list(InAdvancePagedList(
                           lambda idx: self._get_entries(self._fetch_page(playlist_id, idx + 1)),
-                          page_count, first_page['pageSize']))
+                          page_count - 1, first_page['pageSize']))
                    )
 
         return self.playlist_result(entries, playlist_id, title)
