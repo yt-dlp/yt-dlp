@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import io
+
+import contextlib
 import re
 import string
+import urllib.request
 
 from test.helper import FakeYDL, is_download_test
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.jsinterp import JSInterpreter
-from yt_dlp.compat import compat_str, compat_urlretrieve
 
 _SIG_TESTS = [
     (
@@ -86,6 +86,14 @@ _NSIG_TESTS = [
         'https://www.youtube.com/s/player/8040e515/player_ias.vflset/en_US/base.js',
         'wvOFaY-yjgDuIEg5', 'HkfBFDHmgw4rsw',
     ),
+    (
+        'https://www.youtube.com/s/player/e06dea74/player_ias.vflset/en_US/base.js',
+        'AiuodmaDDYw8d3y4bf', 'ankd8eza2T6Qmw',
+    ),
+    (
+        'https://www.youtube.com/s/player/5dd88d1d/player-plasma-ias-phone-en_US.vflset/base.js',
+        'kSxKFLeqzv_ZyHSAt', 'n8gS8oRlHOxPFA',
+    ),
 ]
 
 
@@ -116,9 +124,14 @@ class TestPlayerInfo(unittest.TestCase):
 class TestSignature(unittest.TestCase):
     def setUp(self):
         TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-        self.TESTDATA_DIR = os.path.join(TEST_DIR, 'testdata')
+        self.TESTDATA_DIR = os.path.join(TEST_DIR, 'testdata/sigs')
         if not os.path.exists(self.TESTDATA_DIR):
             os.mkdir(self.TESTDATA_DIR)
+
+    def tearDown(self):
+        with contextlib.suppress(OSError):
+            for f in os.listdir(self.TESTDATA_DIR):
+                os.remove(f)
 
 
 def t_factory(name, sig_func, url_pattern):
@@ -132,8 +145,8 @@ def t_factory(name, sig_func, url_pattern):
             fn = os.path.join(self.TESTDATA_DIR, basename)
 
             if not os.path.exists(fn):
-                compat_urlretrieve(url, fn)
-            with io.open(fn, encoding='utf-8') as testf:
+                urllib.request.urlretrieve(url, fn)
+            with open(fn, encoding='utf-8') as testf:
                 jscode = testf.read()
             self.assertEqual(sig_func(jscode, sig_input), expected_sig)
 
@@ -145,7 +158,7 @@ def t_factory(name, sig_func, url_pattern):
 def signature(jscode, sig_input):
     func = YoutubeIE(FakeYDL())._parse_sig_js(jscode)
     src_sig = (
-        compat_str(string.printable[:sig_input])
+        str(string.printable[:sig_input])
         if isinstance(sig_input, int) else sig_input)
     return func(src_sig)
 

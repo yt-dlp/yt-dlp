@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import base64
 import json
 import re
@@ -581,7 +579,7 @@ class NBCOlympicsStreamIE(AdobePassIE):
         for f in formats:
             # -http_seekable requires ffmpeg 4.3+ but it doesnt seem possible to
             # download with ffmpeg without this option
-            f['_ffmpeg_args'] = ['-seekable', '0', '-http_seekable', '0', '-icy', '0']
+            f['downloader_options'] = {'ffmpeg_args': ['-seekable', '0', '-http_seekable', '0', '-icy', '0']}
         self._sort_formats(formats)
 
         return {

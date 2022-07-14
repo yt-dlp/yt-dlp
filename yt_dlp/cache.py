@@ -1,28 +1,22 @@
-from __future__ import unicode_literals
-
+import contextlib
 import errno
-import io
 import json
 import os
 import re
 import shutil
 import traceback
 
-from .compat import compat_getenv
-from .utils import (
-    expand_path,
-    write_json_file,
-)
+from .utils import expand_path, write_json_file
 
 
-class Cache(object):
+class Cache:
     def __init__(self, ydl):
         self._ydl = ydl
 
     def _get_root_dir(self):
         res = self._ydl.params.get('cachedir')
         if res is None:
-            cache_root = compat_getenv('XDG_CACHE_HOME', '~/.cache')
+            cache_root = os.getenv('XDG_CACHE_HOME', '~/.cache')
             res = os.path.join(cache_root, 'yt-dlp')
         return expand_path(res)
 
@@ -31,7 +25,7 @@ class Cache(object):
             'invalid section %r' % section
         assert re.match(r'^[a-zA-Z0-9_.-]+$', key), 'invalid key %r' % key
         return os.path.join(
-            self._get_root_dir(), section, '%s.%s' % (key, dtype))
+            self._get_root_dir(), section, f'{key}.{dtype}')
 
     @property
     def enabled(self):
@@ -54,8 +48,7 @@ class Cache(object):
             write_json_file(data, fn)
         except Exception:
             tb = traceback.format_exc()
-            self._ydl.report_warning(
-                'Writing cache to %r failed: %s' % (fn, tb))
+            self._ydl.report_warning(f'Writing cache to {fn!r} failed: {tb}')
 
     def load(self, section, key, dtype='json', default=None):
         assert dtype in ('json',)
@@ -64,20 +57,17 @@ class Cache(object):
             return default
 
         cache_fn = self._get_cache_fn(section, key, dtype)
-        try:
+        with contextlib.suppress(OSError):
             try:
-                with io.open(cache_fn, 'r', encoding='utf-8') as cachef:
+                with open(cache_fn, encoding='utf-8') as cachef:
                     self._ydl.write_debug(f'Loading {section}.{key} from cache')
                     return json.load(cachef)
             except ValueError:
                 try:
                     file_size = os.path.getsize(cache_fn)
-                except (OSError, IOError) as oe:
+                except OSError as oe:
                     file_size = str(oe)
-                self._ydl.report_warning(
-                    'Cache retrieval from %s failed (%s)' % (cache_fn, file_size))
-        except IOError:
-            pass  # No cache available
+                self._ydl.report_warning(f'Cache retrieval from {cache_fn} failed ({file_size})')
 
         return default
 

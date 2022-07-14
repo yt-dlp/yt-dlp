@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .theplatform import ThePlatformFeedIE
 from ..utils import (
     dict_get,

@@ -1,4 +1,3 @@
-# coding: utf-8
 import json
 
 from .common import InfoExtractor
@@ -22,6 +21,20 @@ class StreamCZIE(InfoExtractor):
             'title': 'Bůh',
             'display_id': 'buh',
             'description': 'md5:8f5f09b9b7bc67df910486cdd88f7165',
+            'duration': 1369.6,
+            'view_count': int,
+        }
+    }, {
+        'url': 'https://www.stream.cz/kdo-to-mluvi/kdo-to-mluvi-velke-odhaleni-prinasi-novy-porad-uz-od-25-srpna-64087937',
+        'md5': '41fd358000086a1ccdb068c77809b158',
+        'info_dict': {
+            'id': '64087937',
+            'ext': 'mp4',
+            'title': 'Kdo to mluví? Velké odhalení přináší nový pořad už od 25. srpna',
+            'display_id': 'kdo-to-mluvi-velke-odhaleni-prinasi-novy-porad-uz-od-25-srpna',
+            'description': 'md5:97a811000a6460266029d6c1c2ebcd59',
+            'duration': 50.2,
+            'view_count': int,
         }
     }, {
         'url': 'https://www.stream.cz/tajemno/znicehonic-jim-skrz-strechu-prolitnul-zahadny-predmet-badatele-vse-objasnili-64147267',
@@ -31,14 +44,16 @@ class StreamCZIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Zničehonic jim skrz střechu prolítnul záhadný předmět. Badatelé vše objasnili',
             'display_id': 'znicehonic-jim-skrz-strechu-prolitnul-zahadny-predmet-badatele-vse-objasnili',
-            'description': 'md5:1dcb5e010eb697dedc5942f76c5b3744',
+            'description': 'md5:4b8ada6718d34bb011c4e04ca4bc19bf',
+            'duration': 442.84,
+            'view_count': int,
         }
     }]
 
     def _extract_formats(self, spl_url, video):
         for ext, pref, streams in (
-                ('ts', -1, traverse_obj(video, ('http_stream', 'qualities'))),
-                ('mp4', 1, video.get('mp4'))):
+                ('ts', -1, traverse_obj(video, ('http_stream', 'qualities')) or {}),
+                ('mp4', 1, video.get('mp4') or {})):
             for format_id, stream in streams.items():
                 if not stream.get('url'):
                     continue

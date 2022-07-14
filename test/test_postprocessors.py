@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_shlex_quote
@@ -16,7 +15,7 @@ from yt_dlp.postprocessor import (
     FFmpegThumbnailsConvertorPP,
     MetadataFromFieldPP,
     MetadataParserPP,
-    ModifyChaptersPP
+    ModifyChaptersPP,
 )
 
 

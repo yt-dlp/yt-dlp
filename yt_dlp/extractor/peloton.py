@@ -1,14 +1,9 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_urllib_parse,
-)
+from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -128,7 +123,7 @@ class PelotonIE(InfoExtractor):
 
         is_live = False
         if ride_data.get('content_format') == 'audio':
-            url = self._MANIFEST_URL_TEMPLATE % (ride_data.get('vod_stream_url'), compat_urllib_parse.quote(token))
+            url = self._MANIFEST_URL_TEMPLATE % (ride_data.get('vod_stream_url'), urllib.parse.quote(token))
             formats = [{
                 'url': url,
                 'ext': 'm4a',
@@ -141,9 +136,9 @@ class PelotonIE(InfoExtractor):
                 url = 'https://members.onepeloton.com/.netlify/functions/m3u8-proxy?displayLanguage=en&acceptedSubtitles=%s&url=%s?hdnea=%s' % (
                     ','.join([re.sub('^([a-z]+)-([A-Z]+)$', r'\1', caption) for caption in ride_data['captions']]),
                     ride_data['vod_stream_url'],
-                    compat_urllib_parse.quote(compat_urllib_parse.quote(token)))
+                    urllib.parse.quote(urllib.parse.quote(token)))
             elif ride_data.get('live_stream_url'):
-                url = self._MANIFEST_URL_TEMPLATE % (ride_data.get('live_stream_url'), compat_urllib_parse.quote(token))
+                url = self._MANIFEST_URL_TEMPLATE % (ride_data.get('live_stream_url'), urllib.parse.quote(token))
                 is_live = True
             else:
                 raise ExtractorError('Missing video URL')

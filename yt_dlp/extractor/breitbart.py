@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 
 
@@ -29,9 +27,8 @@ class BreitBartIE(InfoExtractor):
         self._sort_formats(formats)
         return {
             'id': video_id,
-            'title': self._og_search_title(
-                webpage, default=None) or self._html_search_regex(
-                r'(?s)<title>(.*?)</title>', webpage, 'video title'),
+            'title': (self._og_search_title(webpage, default=None)
+                      or self._html_extract_title(webpage, 'video title')),
             'description': self._og_search_description(webpage),
             'thumbnail': self._og_search_thumbnail(webpage),
             'age_limit': self._rta_search(webpage),

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -70,7 +68,7 @@ class KeezMoviesIE(InfoExtractor):
                     video_url, title, 32).decode('utf-8')
             formats.append({
                 'url': format_url,
-                'format_id': format_field(height, template='%dp'),
+                'format_id': format_field(height, None, '%dp'),
                 'height': height,
                 'tbr': tbr,
             })

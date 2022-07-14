@@ -6,24 +6,24 @@ from yt_dlp.cookies import (
     LinuxChromeCookieDecryptor,
     MacChromeCookieDecryptor,
     WindowsChromeCookieDecryptor,
-    parse_safari_cookies,
-    pbkdf2_sha1,
     _get_linux_desktop_environment,
     _LinuxDesktopEnvironment,
+    parse_safari_cookies,
+    pbkdf2_sha1,
 )
 
 
 class Logger:
-    def debug(self, message):
+    def debug(self, message, *args, **kwargs):
         print(f'[verbose] {message}')
 
-    def info(self, message):
+    def info(self, message, *args, **kwargs):
         print(message)
 
-    def warning(self, message, only_once=False):
+    def warning(self, message, *args, **kwargs):
         self.error(message)
 
-    def error(self, message):
+    def error(self, message, *args, **kwargs):
         raise Exception(message)
 
 

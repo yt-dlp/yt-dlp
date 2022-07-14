@@ -1,14 +1,7 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_chr
-from ..utils import (
-    decode_packed_codes,
-    ExtractorError,
-)
+from ..utils import ExtractorError, decode_packed_codes
 
 
 class VShareIE(InfoExtractor):
@@ -40,7 +33,7 @@ class VShareIE(InfoExtractor):
         digits = [int(digit) for digit in digits.split(',')]
         key_digit = self._search_regex(
             r'fromCharCode\(.+?(\d+)\)}', unpacked, 'key digit')
-        chars = [compat_chr(d - int(key_digit)) for d in digits]
+        chars = [chr(d - int(key_digit)) for d in digits]
         return ''.join(chars)
 
     def _real_extract(self, url):
@@ -50,8 +43,7 @@ class VShareIE(InfoExtractor):
             'https://vshare.io/v/%s/width-650/height-430/1' % video_id,
             video_id, headers={'Referer': url})
 
-        title = self._html_search_regex(
-            r'<title>([^<]+)</title>', webpage, 'title')
+        title = self._html_extract_title(webpage)
         title = title.split(' - ')[0]
 
         error = self._html_search_regex(

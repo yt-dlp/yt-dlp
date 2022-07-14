@@ -1,15 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    urlencode_postdata,
-    compat_str,
-    ExtractorError,
-)
+from ..compat import compat_str
+from ..utils import ExtractorError, int_or_none, urlencode_postdata
 
 
 class CuriosityStreamBaseIE(InfoExtractor):
@@ -26,6 +19,11 @@ class CuriosityStreamBaseIE(InfoExtractor):
 
     def _call_api(self, path, video_id, query=None):
         headers = {}
+        if not self._auth_token:
+            auth_cookie = self._get_cookies('https://curiositystream.com').get('auth_token')
+            if auth_cookie:
+                self.write_debug('Obtained auth_token cookie')
+                self._auth_token = auth_cookie.value
         if self._auth_token:
             headers['X-Auth-Token'] = self._auth_token
         result = self._download_json(
@@ -33,14 +31,11 @@ class CuriosityStreamBaseIE(InfoExtractor):
         self._handle_errors(result)
         return result['data']
 
-    def _real_initialize(self):
-        email, password = self._get_login_info()
-        if email is None:
-            return
+    def _perform_login(self, username, password):
         result = self._download_json(
             'https://api.curiositystream.com/v1/login', None,
             note='Logging in', data=urlencode_postdata({
-                'email': email,
+                'email': username,
                 'password': password,
             }))
         self._handle_errors(result)
@@ -51,7 +46,7 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
     IE_NAME = 'curiositystream'
     _VALID_URL = r'https?://(?:app\.)?curiositystream\.com/video/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://app.curiositystream.com/video/2',
+        'url': 'http://app.curiositystream.com/video/2',
         'info_dict': {
             'id': '2',
             'ext': 'mp4',

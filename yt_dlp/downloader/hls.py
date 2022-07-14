@@ -1,23 +1,14 @@
-from __future__ import unicode_literals
-
-import re
-import io
 import binascii
+import io
+import re
+import urllib.parse
 
-from ..downloader import get_suitable_downloader
-from .fragment import FragmentFD
+from . import get_suitable_downloader
 from .external import FFmpegFD
-
-from ..compat import (
-    compat_pycrypto_AES,
-    compat_urlparse,
-)
-from ..utils import (
-    parse_m3u8_attributes,
-    update_url_query,
-    bug_reports_message,
-)
+from .fragment import FragmentFD
 from .. import webvtt
+from ..dependencies import Cryptodome_AES
+from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
 
 
 class HlsFD(FragmentFD):
@@ -70,12 +61,18 @@ class HlsFD(FragmentFD):
         s = urlh.read().decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
-        if can_download and not compat_pycrypto_AES and '#EXT-X-KEY:METHOD=AES-128' in s:
-            if FFmpegFD.available():
+        if can_download:
+            has_ffmpeg = FFmpegFD.available()
+            no_crypto = not Cryptodome_AES and '#EXT-X-KEY:METHOD=AES-128' in s
+            if no_crypto and has_ffmpeg:
                 can_download, message = False, 'The stream has AES-128 encryption and pycryptodomex is not available'
-            else:
+            elif no_crypto:
                 message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodomex are available; '
                            'Decryption will be performed natively, but will be extremely slow')
+            elif info_dict.get('extractor_key') == 'Generic' and re.search(r'(?m)#EXT-X-MEDIA-SEQUENCE:(?!0$)', s):
+                install_ffmpeg = '' if has_ffmpeg else 'install ffmpeg and '
+                message = ('Live HLS streams are not supported by the native downloader. If this is a livestream, '
+                           f'please {install_ffmpeg}add "--downloader ffmpeg --hls-use-mpegts" to your command')
         if not can_download:
             has_drm = re.search('|'.join([
                 r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
@@ -102,8 +99,7 @@ class HlsFD(FragmentFD):
         if real_downloader and not real_downloader.supports_manifest(s):
             real_downloader = None
         if real_downloader:
-            self.to_screen(
-                '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
+            self.to_screen(f'[{self.FD_NAME}] Fragment downloads will be delegated to {real_downloader.get_basename()}')
 
         def is_ad_fragment_start(s):
             return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s
@@ -150,7 +146,7 @@ class HlsFD(FragmentFD):
         extra_query = None
         extra_param_to_segment_url = info_dict.get('extra_param_to_segment_url')
         if extra_param_to_segment_url:
-            extra_query = compat_urlparse.parse_qs(extra_param_to_segment_url)
+            extra_query = urllib.parse.parse_qs(extra_param_to_segment_url)
         i = 0
         media_sequence = 0
         decrypt_info = {'METHOD': 'NONE'}
@@ -172,7 +168,7 @@ class HlsFD(FragmentFD):
                     frag_url = (
                         line
                         if re.match(r'^https?://', line)
-                        else compat_urlparse.urljoin(man_url, line))
+                        else urllib.parse.urljoin(man_url, line))
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
@@ -197,9 +193,17 @@ class HlsFD(FragmentFD):
                     frag_url = (
                         map_info.get('URI')
                         if re.match(r'^https?://', map_info.get('URI'))
-                        else compat_urlparse.urljoin(man_url, map_info.get('URI')))
+                        else urllib.parse.urljoin(man_url, map_info.get('URI')))
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
+
+                    if map_info.get('BYTERANGE'):
+                        splitted_byte_range = map_info.get('BYTERANGE').split('@')
+                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
+                        byte_range = {
+                            'start': sub_range_start,
+                            'end': sub_range_start + int(splitted_byte_range[0]),
+                        }
 
                     fragments.append({
                         'frag_index': frag_index,
@@ -210,14 +214,6 @@ class HlsFD(FragmentFD):
                     })
                     media_sequence += 1
 
-                    if map_info.get('BYTERANGE'):
-                        splitted_byte_range = map_info.get('BYTERANGE').split('@')
-                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
-                        byte_range = {
-                            'start': sub_range_start,
-                            'end': sub_range_start + int(splitted_byte_range[0]),
-                        }
-
                 elif line.startswith('#EXT-X-KEY'):
                     decrypt_url = decrypt_info.get('URI')
                     decrypt_info = parse_m3u8_attributes(line[11:])
@@ -225,7 +221,7 @@ class HlsFD(FragmentFD):
                         if 'IV' in decrypt_info:
                             decrypt_info['IV'] = binascii.unhexlify(decrypt_info['IV'][2:].zfill(32))
                         if not re.match(r'^https?://', decrypt_info['URI']):
-                            decrypt_info['URI'] = compat_urlparse.urljoin(
+                            decrypt_info['URI'] = urllib.parse.urljoin(
                                 man_url, decrypt_info['URI'])
                         if extra_query:
                             decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
@@ -339,7 +335,7 @@ class HlsFD(FragmentFD):
                             continue
                     block.write_into(output)
 
-                return output.getvalue().encode('utf-8')
+                return output.getvalue().encode()
 
             def fin_fragments():
                 dedup_window = extra_state.get('webvtt_dedup_window')
@@ -350,7 +346,7 @@ class HlsFD(FragmentFD):
                 for cue in dedup_window:
                     webvtt.CueBlock.from_json(cue).write_into(output)
 
-                return output.getvalue().encode('utf-8')
+                return output.getvalue().encode()
 
             self.download_and_append_fragments(
                 ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)

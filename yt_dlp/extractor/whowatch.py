@@ -1,10 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     qualities,
+    try_call,
     try_get,
     ExtractorError,
 )
@@ -26,10 +24,10 @@ class WhoWatchIE(InfoExtractor):
         metadata = self._download_json('https://api.whowatch.tv/lives/%s' % video_id, video_id)
         live_data = self._download_json('https://api.whowatch.tv/lives/%s/play' % video_id, video_id)
 
-        title = try_get(None, (
-            lambda x: live_data['share_info']['live_title'][1:-1],
-            lambda x: metadata['live']['title'],
-        ), compat_str)
+        title = try_call(
+            lambda: live_data['share_info']['live_title'][1:-1],
+            lambda: metadata['live']['title'],
+            expected_type=str)
 
         hls_url = live_data.get('hls_url')
         if not hls_url:

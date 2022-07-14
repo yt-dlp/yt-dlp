@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -57,7 +54,7 @@ class WatIE(InfoExtractor):
         #     'http://www.wat.tv/interface/contentv4s/' + video_id, video_id)
         video_data = self._download_json(
             'https://mediainfo.tf1.fr/mediainfocombo/' + video_id,
-            video_id, query={'context': 'MYTF1'})
+            video_id, query={'context': 'MYTF1', 'pver': '4020003'})
         video_info = video_data['media']
 
         error_desc = video_info.get('error_desc')

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import hashlib
 import hmac
 import re
@@ -213,7 +211,7 @@ class ABCIViewIE(InfoExtractor):
                 'hdnea': token,
             })
 
-        for sd in ('720', 'sd', 'sd-low'):
+        for sd in ('1080', '720', 'sd', 'sd-low'):
             sd_url = try_get(
                 stream, lambda x: x['streams']['hls'][sd], compat_str)
             if not sd_url:

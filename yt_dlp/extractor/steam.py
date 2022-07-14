@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -129,3 +127,50 @@ class SteamIE(InfoExtractor):
             raise ExtractorError('Could not find any videos')
 
         return self.playlist_result(entries, playlist_id, playlist_title)
+
+
+class SteamCommunityBroadcastIE(InfoExtractor):
+    _VALID_URL = r'https?://steamcommunity\.(?:com)/broadcast/watch/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://steamcommunity.com/broadcast/watch/76561199073851486',
+        'info_dict': {
+            'id': '76561199073851486',
+            'title': r're:Steam Community :: pepperm!nt :: Broadcast 2022-06-26 \d{2}:\d{2}',
+            'ext': 'mp4',
+            'uploader_id': 1113585758,
+            'uploader': 'pepperm!nt',
+            'live_status': 'is_live',
+        },
+        'skip': 'Stream has ended',
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        json_data = self._download_json(
+            'https://steamcommunity.com/broadcast/getbroadcastmpd/',
+            video_id, query={'steamid': f'{video_id}'})
+
+        formats, subs = self._extract_m3u8_formats_and_subtitles(json_data['hls_url'], video_id)
+
+        ''' # We cannot download live dash atm
+        mpd_formats, mpd_subs = self._extract_mpd_formats_and_subtitles(json_data['url'], video_id)
+        formats.extend(mpd_formats)
+        self._merge_subtitles(mpd_subs, target=subs)
+        '''
+
+        uploader_json = self._download_json(
+            'https://steamcommunity.com/actions/ajaxresolveusers',
+            video_id, query={'steamids': video_id})[0]
+
+        self._sort_formats(formats)
+        return {
+            'id': video_id,
+            'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
+            'formats': formats,
+            'live_status': 'is_live',
+            'view_count': json_data.get('num_view'),
+            'uploader': uploader_json.get('persona_name'),
+            'uploader_id': uploader_json.get('accountid'),
+            'subtitles': subs,
+        }

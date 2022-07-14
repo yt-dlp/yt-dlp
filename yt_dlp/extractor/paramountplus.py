@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+import itertools
 
 from .common import InfoExtractor
 from .cbs import CBSBaseIE
@@ -13,12 +13,12 @@ class ParamountPlusIE(CBSBaseIE):
         (?:
             paramountplus:|
             https?://(?:www\.)?(?:
-                paramountplus\.com/(?:shows/[^/]+/video|movies/[^/]+)/
+                paramountplus\.com/(?:shows|movies)/(?:video|[^/]+/video|[^/]+)/
         )(?P<id>[\w-]+))'''
 
     # All tests are blocked outside US
     _TESTS = [{
-        'url': 'https://www.paramountplus.com/shows/catdog/video/Oe44g5_NrlgiZE3aQVONleD6vXc8kP0k/catdog-climb-every-catdog-the-canine-mutiny/',
+        'url': 'https://www.paramountplus.com/shows/video/Oe44g5_NrlgiZE3aQVONleD6vXc8kP0k/',
         'info_dict': {
             'id': 'Oe44g5_NrlgiZE3aQVONleD6vXc8kP0k',
             'ext': 'mp4',
@@ -33,7 +33,7 @@ class ParamountPlusIE(CBSBaseIE):
             'skip_download': 'm3u8',
         },
     }, {
-        'url': 'https://www.paramountplus.com/shows/tooning-out-the-news/video/6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd/7-23-21-week-in-review-rep-jahana-hayes-howard-fineman-sen-michael-bennet-sheera-frenkel-cecilia-kang-/',
+        'url': 'https://www.paramountplus.com/shows/video/6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd/',
         'info_dict': {
             'id': '6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd',
             'ext': 'mp4',
@@ -48,7 +48,7 @@ class ParamountPlusIE(CBSBaseIE):
             'skip_download': 'm3u8',
         },
     }, {
-        'url': 'https://www.paramountplus.com/movies/daddys-home/vM2vm0kE6vsS2U41VhMRKTOVHyQAr6pC',
+        'url': 'https://www.paramountplus.com/movies/video/vM2vm0kE6vsS2U41VhMRKTOVHyQAr6pC/',
         'info_dict': {
             'id': 'vM2vm0kE6vsS2U41VhMRKTOVHyQAr6pC',
             'ext': 'mp4',
@@ -63,7 +63,7 @@ class ParamountPlusIE(CBSBaseIE):
         },
         'expected_warnings': ['Ignoring subtitle tracks'],  # TODO: Investigate this
     }, {
-        'url': 'https://www.paramountplus.com/movies/sonic-the-hedgehog/5EKDXPOzdVf9voUqW6oRuocyAEeJGbEc',
+        'url': 'https://www.paramountplus.com/movies/video/5EKDXPOzdVf9voUqW6oRuocyAEeJGbEc/',
         'info_dict': {
             'id': '5EKDXPOzdVf9voUqW6oRuocyAEeJGbEc',
             'ext': 'mp4',
@@ -78,10 +78,16 @@ class ParamountPlusIE(CBSBaseIE):
         },
         'expected_warnings': ['Ignoring subtitle tracks'],
     }, {
-        'url': 'https://www.paramountplus.com/shows/all-rise/video/QmR1WhNkh1a_IrdHZrbcRklm176X_rVc/all-rise-space/',
+        'url': 'https://www.paramountplus.com/shows/the-real-world/video/mOVeHeL9ub9yWdyzSZFYz8Uj4ZBkVzQg/the-real-world-reunion/',
         'only_matching': True,
     }, {
-        'url': 'https://www.paramountplus.com/movies/million-dollar-american-princesses-meghan-and-harry/C0LpgNwXYeB8txxycdWdR9TjxpJOsdCq',
+        'url': 'https://www.paramountplus.com/shows/video/mOVeHeL9ub9yWdyzSZFYz8Uj4ZBkVzQg/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.paramountplus.com/movies/video/W0VyStQqUnqKzJkrpSAIARuCc9YuYGNy/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.paramountplus.com/movies/paw-patrol-the-movie/W0VyStQqUnqKzJkrpSAIARuCc9YuYGNy/',
         'only_matching': True,
     }]
 
@@ -128,11 +134,13 @@ class ParamountPlusSeriesIE(InfoExtractor):
             'id': 'spongebob-squarepants',
         }
     }]
-    _API_URL = 'https://www.paramountplus.com/shows/{}/xhr/episodes/page/0/size/100000/xs/0/season/0/'
 
     def _entries(self, show_name):
-        show_json = self._download_json(self._API_URL.format(show_name), video_id=show_name)
-        if show_json.get('success'):
+        for page in itertools.count():
+            show_json = self._download_json(
+                f'https://www.paramountplus.com/shows/{show_name}/xhr/episodes/page/{page}/size/50/xs/0/season/0', show_name)
+            if not show_json.get('success'):
+                return
             for episode in show_json['result']['data']:
                 yield self.url_result(
                     'https://www.paramountplus.com%s' % episode['url'],

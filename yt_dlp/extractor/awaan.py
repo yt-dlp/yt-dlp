@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 
 from .common import InfoExtractor
@@ -44,7 +41,7 @@ class AWAANBaseIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'description': video_data.get('description_en') or video_data.get('description_ar'),
-            'thumbnail': format_field(img, template='http://admin.mangomolo.com/analytics/%s'),
+            'thumbnail': format_field(img, None, 'http://admin.mangomolo.com/analytics/%s'),
             'duration': int_or_none(video_data.get('duration')),
             'timestamp': parse_iso8601(video_data.get('create_time'), ' '),
             'is_live': is_live,

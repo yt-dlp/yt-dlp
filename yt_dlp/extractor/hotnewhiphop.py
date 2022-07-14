@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_b64decode
 from ..utils import (

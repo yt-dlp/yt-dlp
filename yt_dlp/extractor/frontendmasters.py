@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -28,14 +25,7 @@ class FrontendMastersBaseIE(InfoExtractor):
         'high': {'width': 1920, 'height': 1080}
     }
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        (username, password) = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login page')
 
@@ -252,9 +242,9 @@ class FrontendMastersCourseIE(FrontendMastersPageBaseIE):
         entries = []
         for lesson in lessons:
             lesson_name = lesson.get('slug')
-            if not lesson_name:
-                continue
             lesson_id = lesson.get('hash') or lesson.get('statsId')
+            if not lesson_id or not lesson_name:
+                continue
             entries.append(self._extract_lesson(chapters, lesson_id, lesson))
 
         title = course.get('title')

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 
 from ..compat import compat_str
@@ -49,30 +46,26 @@ class FancodeVodIE(InfoExtractor):
         'referer': 'https://fancode.com',
     }
 
-    def _login(self):
+    def _perform_login(self, username, password):
         # Access tokens are shortlived, so get them using the refresh token.
-        username, password = self._get_login_info()
-        if username == 'refresh' and password is not None:
-            self.report_login()
-            data = '''{
-                "query":"mutation RefreshToken($refreshToken: String\\u0021) { refreshToken(refreshToken: $refreshToken) { accessToken }}",
-                "variables":{
-                    "refreshToken":"%s"
-                },
-                "operationName":"RefreshToken"
-            }''' % password
-
-            token_json = self.download_gql('refresh token', data, "Getting the Access token")
-            self._ACCESS_TOKEN = try_get(token_json, lambda x: x['data']['refreshToken']['accessToken'])
-            if self._ACCESS_TOKEN is None:
-                self.report_warning('Failed to get Access token')
-            else:
-                self.headers.update({'Authorization': 'Bearer %s' % self._ACCESS_TOKEN})
-        elif username is not None:
+        if username != 'refresh':
             self.report_warning(f'Login using username and password is not currently supported. {self._LOGIN_HINT}')
 
-    def _real_initialize(self):
-        self._login()
+        self.report_login()
+        data = '''{
+            "query":"mutation RefreshToken($refreshToken: String\\u0021) { refreshToken(refreshToken: $refreshToken) { accessToken }}",
+            "variables":{
+                "refreshToken":"%s"
+            },
+            "operationName":"RefreshToken"
+        }''' % password
+
+        token_json = self.download_gql('refresh token', data, "Getting the Access token")
+        self._ACCESS_TOKEN = try_get(token_json, lambda x: x['data']['refreshToken']['accessToken'])
+        if self._ACCESS_TOKEN is None:
+            self.report_warning('Failed to get Access token')
+        else:
+            self.headers.update({'Authorization': 'Bearer %s' % self._ACCESS_TOKEN})
 
     def _check_login_required(self, is_available, is_premium):
         msg = None
