@@ -1444,7 +1444,13 @@ from .rottentomatoes import RottenTomatoesIE
 from .rozhlas import RozhlasIE
 from .rtbf import RTBFIE
 from .rte import RteIE, RteRadioIE
-from .rtlnl import RtlNlIE
+from .rtlnl import (
+    RtlNlIE,
+    RTLLuTeleVODIE, 
+    RTLLuArticleIE,
+    RTLLuLiveIE,
+    RTLLuRadioIE,
+)
 from .rtl2 import (
     RTL2IE,
     RTL2YouIE,
