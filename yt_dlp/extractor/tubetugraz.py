@@ -17,7 +17,7 @@ class TubeTuGrazBaseIE(InfoExtractor):
     def _perform_login(self, username, password):
         urlh = self._request_webpage(
             'https://tube.tugraz.at/Shibboleth.sso/Login?target=/paella/ui/index.html',
-            None, fatal=False, note='downloading login page', errnote='unable to fetch login page') or (None, None)
+            None, fatal=False, note='downloading login page', errnote='unable to fetch login page')
         if not urlh:
             return
 
