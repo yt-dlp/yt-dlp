@@ -145,15 +145,13 @@ class RtlNlIE(InfoExtractor):
 
 class RTLLuBaseIE(InfoExtractor):
     _MEDIA_REGEX = {
-        'video': r'<rtl-player\s*[^>]*\bhls\s*=\s*\"(?P<media_url>[^"]+)\"',
-        'audio': r'<rtl-audioplayer\s*src\s*=\s*\"(?P<media_url>[\w\.\:/-]+)\"',
-        'thumbnail': r'<rtl-player\s*poster\s*=\s*\"(?P<media_url>[\"\w\.://-]+)\"\s*',
+        'video': r'<rtl-player\s[^>]*\bhls\s*=\s*"([^"]+)',
+        'audio': r'<rtl-audioplayer\s[^>]*\bsrc\s*=\s*"([^"]+)',
+        'thumbnail': r'<rtl-player\s[^>]*\bposter\s*=\s*"([^"]+)',
     }
 
     def get_media_url(self, webpage, video_id, media_type):
-        return self._search_regex(
-            self._MEDIA_REGEX[media_type], webpage, 'media_url', group=('media_url'),
-            default=None, fatal=False)
+        return self._search_regex(self._MEDIA_REGEX[media_type], webpage, f'{media_type} url', default=None)
 
     def get_formats_and_subtitles(self, webpage, video_id):
         video_url, audio_url = self.get_media_url(webpage, video_id, 'video'), self.get_media_url(webpage, video_id, 'audio')
