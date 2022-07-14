@@ -1,21 +1,12 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-from hashlib import md5
+import itertools
+import re
 from base64 import b64encode
 from datetime import datetime
-import re
+from hashlib import md5
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlencode,
-    compat_str,
-    compat_itertools_count,
-)
-from ..utils import (
-    sanitized_Request,
-    float_or_none,
-)
+from ..compat import compat_str, compat_urllib_parse_urlencode
+from ..utils import float_or_none, sanitized_Request
 
 
 class NetEaseMusicBaseIE(InfoExtractor):
@@ -405,17 +396,12 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
         name = info['name']
         description = info['description']
 
-        if not info['songs'] or self.get_param('noplaylist'):
-            if info['songs']:
-                self.to_screen(
-                    'Downloading just the main audio %s because of --no-playlist'
-                    % info['mainSong']['id'])
-
+        if not self._yes_playlist(info['songs'] and program_id, info['mainSong']['id']):
             formats = self.extract_formats(info['mainSong'])
             self._sort_formats(formats)
 
             return {
-                'id': program_id,
+                'id': info['mainSong']['id'],
                 'title': name,
                 'description': description,
                 'creator': info['dj']['brand'],
@@ -424,10 +410,6 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
                 'duration': self.convert_milliseconds(info.get('duration', 0)),
                 'formats': formats,
             }
-
-        self.to_screen(
-            'Downloading playlist %s - add --no-playlist to just download the main audio %s'
-            % (program_id, info['mainSong']['id']))
 
         song_ids = [info['mainSong']['id']]
         song_ids.extend([song['id'] for song in info['songs']])
@@ -461,7 +443,7 @@ class NetEaseMusicDjRadioIE(NetEaseMusicBaseIE):
         name = None
         desc = None
         entries = []
-        for offset in compat_itertools_count(start=0, step=self._PAGE_SIZE):
+        for offset in itertools.count(start=0, step=self._PAGE_SIZE):
             info = self.query_api(
                 'dj/program/byradio?asc=false&limit=%d&radioId=%s&offset=%d'
                 % (self._PAGE_SIZE, dj_id, offset),

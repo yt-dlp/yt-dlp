@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import hashlib
 import random
 
@@ -31,10 +28,11 @@ class JamendoIE(InfoExtractor):
             'ext': 'flac',
             # 'title': 'Maya Filipič - Stories from Emona I',
             'title': 'Stories from Emona I',
-            # 'artist': 'Maya Filipič',
+            'artist': 'Maya Filipič',
+            'album': 'Between two worlds',
             'track': 'Stories from Emona I',
             'duration': 210,
-            'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnail': 'https://usercontent.jamendo.com?type=album&id=29279&width=300&trackid=196219',
             'timestamp': 1217438117,
             'upload_date': '20080730',
             'license': 'by-nc-nd',
@@ -48,11 +46,11 @@ class JamendoIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _call_api(self, resource, resource_id):
+    def _call_api(self, resource, resource_id, fatal=True):
         path = '/api/%ss' % resource
         rand = compat_str(random.random())
         return self._download_json(
-            'https://www.jamendo.com' + path, resource_id, query={
+            'https://www.jamendo.com' + path, resource_id, fatal=fatal, query={
                 'id[]': resource_id,
             }, headers={
                 'X-Jam-Call': '$%s*%s~' % (hashlib.sha1((path + rand).encode()).hexdigest(), rand)
@@ -74,6 +72,8 @@ class JamendoIE(InfoExtractor):
         # if artist_name:
         #     title = '%s - %s' % (artist_name, title)
         # album = get_model('album')
+        artist = self._call_api("artist", track.get('artistId'), fatal=False)
+        album = self._call_api("album", track.get('albumId'), fatal=False)
 
         formats = [{
             'url': 'https://%s.jamendo.com/?trackid=%s&format=%s&from=app-97dab294'
@@ -121,9 +121,9 @@ class JamendoIE(InfoExtractor):
             'title': title,
             'description': track.get('description'),
             'duration': int_or_none(track.get('duration')),
-            # 'artist': artist_name,
+            'artist': artist.get('name'),
             'track': track_name,
-            # 'album': album.get('name'),
+            'album': album.get('name'),
             'formats': formats,
             'license': '-'.join(license) if license else None,
             'timestamp': int_or_none(track.get('dateCreated')),
@@ -148,22 +148,38 @@ class JamendoAlbumIE(JamendoIE):
             'info_dict': {
                 'id': '1032333',
                 'ext': 'flac',
-                'title': 'Shearer - Warmachine',
+                'title': 'Warmachine',
                 'artist': 'Shearer',
                 'track': 'Warmachine',
                 'timestamp': 1368089771,
                 'upload_date': '20130509',
+                'view_count': int,
+                'thumbnail': 'https://usercontent.jamendo.com?type=album&id=121486&width=300&trackid=1032333',
+                'duration': 190,
+                'license': 'by',
+                'album': 'Duck On Cover',
+                'average_rating': 4,
+                'tags': ['rock', 'drums', 'bass', 'world', 'punk', 'neutral'],
+                'like_count': int,
             }
         }, {
             'md5': '1f358d7b2f98edfe90fd55dac0799d50',
             'info_dict': {
                 'id': '1032330',
                 'ext': 'flac',
-                'title': 'Shearer - Without Your Ghost',
+                'title': 'Without Your Ghost',
                 'artist': 'Shearer',
                 'track': 'Without Your Ghost',
                 'timestamp': 1368089771,
                 'upload_date': '20130509',
+                'duration': 192,
+                'tags': ['rock', 'drums', 'bass', 'world', 'punk'],
+                'album': 'Duck On Cover',
+                'thumbnail': 'https://usercontent.jamendo.com?type=album&id=121486&width=300&trackid=1032330',
+                'view_count': int,
+                'average_rating': 4,
+                'license': 'by',
+                'like_count': int,
             }
         }],
         'params': {

@@ -1,5 +1,3 @@
-# coding: utf-8
-
 # ⚠ Don't use relative imports
 from yt_dlp.extractor.common import InfoExtractor
 
@@ -13,4 +11,4 @@ class SamplePluginIE(InfoExtractor):
     _VALID_URL = r'^sampleplugin:'
 
     def _real_extract(self, url):
-        self.to_screen('URL "%s" sucessfully captured' % url)
+        self.to_screen('URL "%s" successfully captured' % url)

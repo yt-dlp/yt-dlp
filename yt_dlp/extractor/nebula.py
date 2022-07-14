@@ -1,17 +1,11 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import json
 import time
-import urllib
+import urllib.error
+import urllib.parse
 
-from ..utils import (
-    ExtractorError,
-    parse_iso8601,
-    try_get,
-)
 from .common import InfoExtractor
+from ..utils import ExtractorError, parse_iso8601, try_get
 
 
 class NebulaBaseIE(InfoExtractor):
@@ -21,9 +15,8 @@ class NebulaBaseIE(InfoExtractor):
     _nebula_bearer_token = None
     _zype_access_token = None
 
-    def _perform_nebula_auth(self):
-        username, password = self._get_login_info()
-        if not (username and password):
+    def _perform_nebula_auth(self, username, password):
+        if not username or not password:
             self.raise_login_required()
 
         data = json.dumps({'email': username, 'password': password}).encode('utf8')
@@ -54,7 +47,7 @@ class NebulaBaseIE(InfoExtractor):
 
         return response['key']
 
-    def _retrieve_nebula_api_token(self):
+    def _retrieve_nebula_api_token(self, username=None, password=None):
         """
         Check cookie jar for valid token. Try to authenticate using credentials if no valid token
         can be found in the cookie jar.
@@ -68,7 +61,7 @@ class NebulaBaseIE(InfoExtractor):
             if nebula_api_token:
                 return nebula_api_token
 
-        return self._perform_nebula_auth()
+        return self._perform_nebula_auth(username, password)
 
     def _call_nebula_api(self, url, video_id=None, method='GET', auth_type='api', note=''):
         assert method in ('GET', 'POST',)
@@ -86,7 +79,7 @@ class NebulaBaseIE(InfoExtractor):
             # if 401 or 403, attempt credential re-auth and retry
             if exc.cause and isinstance(exc.cause, urllib.error.HTTPError) and exc.cause.code in (401, 403):
                 self.to_screen(f'Reauthenticating to Nebula and retrying, because last {auth_type} call resulted in error {exc.cause.code}')
-                self._login()
+                self._perform_login()
                 return inner_call()
             else:
                 raise
@@ -148,13 +141,10 @@ class NebulaBaseIE(InfoExtractor):
             'creator': episode['channel_title'],
         }
 
-    def _login(self):
-        self._nebula_api_token = self._retrieve_nebula_api_token()
+    def _perform_login(self, username=None, password=None):
+        self._nebula_api_token = self._retrieve_nebula_api_token(username, password)
         self._nebula_bearer_token = self._fetch_nebula_bearer_token()
         self._zype_access_token = self._fetch_zype_access_token()
-
-    def _real_initialize(self):
-        self._login()
 
 
 class NebulaIE(NebulaBaseIE):
@@ -162,7 +152,7 @@ class NebulaIE(NebulaBaseIE):
     _TESTS = [
         {
             'url': 'https://nebula.app/videos/that-time-disney-remade-beauty-and-the-beast',
-            'md5': 'fe79c4df8b3aa2fea98a93d027465c7e',
+            'md5': '14944cfee8c7beeea106320c47560efc',
             'info_dict': {
                 'id': '5c271b40b13fd613090034fd',
                 'ext': 'mp4',
@@ -174,14 +164,21 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'lindsayellis',
                 'uploader': 'Lindsay Ellis',
                 'uploader_id': 'lindsayellis',
-            },
-            'params': {
-                'usenetrc': True,
+                'timestamp': 1533009600,
+                'uploader_url': 'https://nebula.app/lindsayellis',
+                'series': 'Lindsay Ellis',
+                'average_rating': int,
+                'display_id': 'that-time-disney-remade-beauty-and-the-beast',
+                'channel_url': 'https://nebula.app/lindsayellis',
+                'creator': 'Lindsay Ellis',
+                'duration': 2212,
+                'view_count': int,
+                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
             },
         },
         {
             'url': 'https://nebula.app/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
-            'md5': '6d4edd14ce65720fa63aba5c583fb328',
+            'md5': 'd05739cf6c38c09322422f696b569c23',
             'info_dict': {
                 'id': '5e7e78171aaf320001fbd6be',
                 'ext': 'mp4',
@@ -193,14 +190,20 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'realengineering',
                 'uploader': 'Real Engineering',
                 'uploader_id': 'realengineering',
-            },
-            'params': {
-                'usenetrc': True,
+                'view_count': int,
+                'series': 'Real Engineering',
+                'average_rating': int,
+                'display_id': 'the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
+                'creator': 'Real Engineering',
+                'duration': 841,
+                'channel_url': 'https://nebula.app/realengineering',
+                'uploader_url': 'https://nebula.app/realengineering',
+                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
             },
         },
         {
             'url': 'https://nebula.app/videos/money-episode-1-the-draw',
-            'md5': '8c7d272910eea320f6f8e6d3084eecf5',
+            'md5': 'ebe28a7ad822b9ee172387d860487868',
             'info_dict': {
                 'id': '5e779ebdd157bc0001d1c75a',
                 'ext': 'mp4',
@@ -212,9 +215,15 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'tom-scott-presents-money',
                 'uploader': 'Tom Scott Presents: Money',
                 'uploader_id': 'tom-scott-presents-money',
-            },
-            'params': {
-                'usenetrc': True,
+                'uploader_url': 'https://nebula.app/tom-scott-presents-money',
+                'duration': 825,
+                'channel_url': 'https://nebula.app/tom-scott-presents-money',
+                'view_count': int,
+                'series': 'Tom Scott Presents: Money',
+                'display_id': 'money-episode-1-the-draw',
+                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
+                'average_rating': int,
+                'creator': 'Tom Scott Presents: Money',
             },
         },
         {
@@ -235,9 +244,37 @@ class NebulaIE(NebulaBaseIE):
         return self._build_video_info(video)
 
 
-class NebulaCollectionIE(NebulaBaseIE):
-    IE_NAME = 'nebula:collection'
-    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/(?!videos/)(?P<id>[-\w]+)'
+class NebulaSubscriptionsIE(NebulaBaseIE):
+    IE_NAME = 'nebula:subscriptions'
+    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/myshows'
+    _TESTS = [
+        {
+            'url': 'https://nebula.app/myshows',
+            'playlist_mincount': 1,
+            'info_dict': {
+                'id': 'myshows',
+            },
+        },
+    ]
+
+    def _generate_playlist_entries(self):
+        next_url = 'https://content.watchnebula.com/library/video/?page_size=100'
+        page_num = 1
+        while next_url:
+            channel = self._call_nebula_api(next_url, 'myshows', auth_type='bearer',
+                                            note=f'Retrieving subscriptions page {page_num}')
+            for episode in channel['results']:
+                yield self._build_video_info(episode)
+            next_url = channel['next']
+            page_num += 1
+
+    def _real_extract(self, url):
+        return self.playlist_result(self._generate_playlist_entries(), 'myshows')
+
+
+class NebulaChannelIE(NebulaBaseIE):
+    IE_NAME = 'nebula:channel'
+    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/(?!myshows|videos/)(?P<id>[-\w]+)'
     _TESTS = [
         {
             'url': 'https://nebula.app/tom-scott-presents-money',
@@ -247,9 +284,6 @@ class NebulaCollectionIE(NebulaBaseIE):
                 'description': 'Tom Scott hosts a series all about trust, negotiation and money.',
             },
             'playlist_count': 5,
-            'params': {
-                'usenetrc': True,
-            },
         }, {
             'url': 'https://nebula.app/lindsayellis',
             'info_dict': {
@@ -258,9 +292,6 @@ class NebulaCollectionIE(NebulaBaseIE):
                 'description': 'Enjoy these hottest of takes on Disney, Transformers, and Musicals.',
             },
             'playlist_mincount': 100,
-            'params': {
-                'usenetrc': True,
-            },
         },
     ]
 

@@ -1,9 +1,8 @@
-# coding: utf-8
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     get_element_by_class,
     get_element_by_id,
     get_elements_by_class,
@@ -97,11 +96,12 @@ class DropoutIE(InfoExtractor):
 
     def _login(self, display_id):
         username, password = self._get_login_info()
-        if not (username and password):
-            self.raise_login_required(method='password')
+        if not username:
+            return True
 
         response = self._download_webpage(
-            self._LOGIN_URL, display_id, note='Logging in', data=urlencode_postdata({
+            self._LOGIN_URL, display_id, note='Logging in', fatal=False,
+            data=urlencode_postdata({
                 'email': username,
                 'password': password,
                 'authenticity_token': self._get_authenticity_token(display_id),
@@ -111,19 +111,25 @@ class DropoutIE(InfoExtractor):
         user_has_subscription = self._search_regex(
             r'user_has_subscription:\s*["\'](.+?)["\']', response, 'subscription status', default='none')
         if user_has_subscription.lower() == 'true':
-            return response
+            return
         elif user_has_subscription.lower() == 'false':
-            raise ExtractorError('Account is not subscribed')
+            return 'Account is not subscribed'
         else:
-            raise ExtractorError('Incorrect username/password')
+            return 'Incorrect username/password'
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        try:
-            self._login(display_id)
-            webpage = self._download_webpage(url, display_id, note='Downloading video webpage')
-        finally:
-            self._download_webpage('https://www.dropout.tv/logout', display_id, note='Logging out')
+
+        webpage = None
+        if self._get_cookies('https://www.dropout.tv').get('_session'):
+            webpage = self._download_webpage(url, display_id)
+        if not webpage or '<div id="watch-unauthorized"' in webpage:
+            login_err = self._login(display_id)
+            webpage = self._download_webpage(url, display_id)
+            if login_err and '<div id="watch-unauthorized"' in webpage:
+                if login_err is True:
+                    self.raise_login_required(method='any')
+                raise ExtractorError(login_err, expected=True)
 
         embed_url = self._search_regex(r'embed_url:\s*["\'](.+?)["\']', webpage, 'embed url')
         thumbnail = self._og_search_thumbnail(webpage)
@@ -138,8 +144,8 @@ class DropoutIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'ie_key': VHXEmbedIE.ie_key(),
-            'url': embed_url,
-            'id': self._search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id'),
+            'url': VHXEmbedIE._smuggle_referrer(embed_url, 'https://www.dropout.tv'),
+            'id': self._search_regex(r'embed\.vhx\.tv/videos/(.+?)\?', embed_url, 'id'),
             'display_id': display_id,
             'title': title,
             'description': self._html_search_meta('description', webpage, fatal=False),

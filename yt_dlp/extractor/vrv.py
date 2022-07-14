@@ -1,20 +1,14 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
-import json
 import hashlib
 import hmac
+import json
 import random
 import string
 import time
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_urllib_parse_urlencode,
-    compat_urllib_parse,
-)
+from ..compat import compat_HTTPError, compat_urllib_parse_urlencode
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -49,12 +43,12 @@ class VRVBaseIE(InfoExtractor):
             headers['Content-Type'] = 'application/json'
         base_string = '&'.join([
             'POST' if data else 'GET',
-            compat_urllib_parse.quote(base_url, ''),
-            compat_urllib_parse.quote(encoded_query, '')])
+            urllib.parse.quote(base_url, ''),
+            urllib.parse.quote(encoded_query, '')])
         oauth_signature = base64.b64encode(hmac.new(
             (self._API_PARAMS['oAuthSecret'] + '&' + self._TOKEN_SECRET).encode('ascii'),
             base_string.encode(), hashlib.sha1).digest()).decode()
-        encoded_query += '&oauth_signature=' + compat_urllib_parse.quote(oauth_signature, '')
+        encoded_query += '&oauth_signature=' + urllib.parse.quote(oauth_signature, '')
         try:
             return self._download_json(
                 '?'.join([base_url, encoded_query]), video_id,
@@ -85,7 +79,30 @@ class VRVBaseIE(InfoExtractor):
                 'resource_key': resource_key,
             })['__links__']['cms_resource']['href']
 
-    def _real_initialize(self):
+    def _extract_vrv_formats(self, url, video_id, stream_format, audio_lang, hardsub_lang):
+        if not url or stream_format not in ('hls', 'dash', 'adaptive_hls'):
+            return []
+        format_id = join_nonempty(
+            stream_format,
+            audio_lang and 'audio-%s' % audio_lang,
+            hardsub_lang and 'hardsub-%s' % hardsub_lang)
+        if 'hls' in stream_format:
+            adaptive_formats = self._extract_m3u8_formats(
+                url, video_id, 'mp4', m3u8_id=format_id,
+                note='Downloading %s information' % format_id,
+                fatal=False)
+        elif stream_format == 'dash':
+            adaptive_formats = self._extract_mpd_formats(
+                url, video_id, mpd_id=format_id,
+                note='Downloading %s information' % format_id,
+                fatal=False)
+        if audio_lang:
+            for f in adaptive_formats:
+                if f.get('acodec') != 'none':
+                    f['language'] = audio_lang
+        return adaptive_formats
+
+    def _set_api_params(self):
         webpage = self._download_webpage(
             'https://vrv.co/', None, headers=self.geo_verification_headers())
         self._API_PARAMS = self._parse_json(self._search_regex(
@@ -124,43 +141,17 @@ class VRVIE(VRVBaseIE):
     }]
     _NETRC_MACHINE = 'vrv'
 
-    def _real_initialize(self):
-        super(VRVIE, self)._real_initialize()
-
-        email, password = self._get_login_info()
-        if email is None:
-            return
-
+    def _perform_login(self, username, password):
         token_credentials = self._call_api(
             'authenticate/by:credentials', None, 'Token Credentials', data={
-                'email': email,
+                'email': username,
                 'password': password,
             })
         self._TOKEN = token_credentials['oauth_token']
         self._TOKEN_SECRET = token_credentials['oauth_token_secret']
 
-    def _extract_vrv_formats(self, url, video_id, stream_format, audio_lang, hardsub_lang):
-        if not url or stream_format not in ('hls', 'dash', 'adaptive_hls'):
-            return []
-        format_id = join_nonempty(
-            stream_format,
-            audio_lang and 'audio-%s' % audio_lang,
-            hardsub_lang and 'hardsub-%s' % hardsub_lang)
-        if 'hls' in stream_format:
-            adaptive_formats = self._extract_m3u8_formats(
-                url, video_id, 'mp4', m3u8_id=format_id,
-                note='Downloading %s information' % format_id,
-                fatal=False)
-        elif stream_format == 'dash':
-            adaptive_formats = self._extract_mpd_formats(
-                url, video_id, mpd_id=format_id,
-                note='Downloading %s information' % format_id,
-                fatal=False)
-        if audio_lang:
-            for f in adaptive_formats:
-                if f.get('acodec') != 'none':
-                    f['language'] = audio_lang
-        return adaptive_formats
+    def _initialize_pre_login(self):
+        return self._set_api_params()
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -254,6 +245,9 @@ class VRVSeriesIE(VRVBaseIE):
         },
         'playlist_mincount': 11,
     }
+
+    def _initialize_pre_login(self):
+        return self._set_api_params()
 
     def _real_extract(self, url):
         series_id = self._match_id(url)

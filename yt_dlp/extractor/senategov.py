@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -112,7 +109,7 @@ class SenateISVPIE(InfoExtractor):
         if smuggled_data.get('force_title'):
             title = smuggled_data['force_title']
         else:
-            title = self._html_search_regex(r'<title>([^<]+)</title>', webpage, video_id)
+            title = self._html_extract_title(webpage)
         poster = qs.get('poster')
         thumbnail = poster[0] if poster else None
 

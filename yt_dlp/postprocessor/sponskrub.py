@@ -1,19 +1,18 @@
-from __future__ import unicode_literals
 import os
+import shlex
 import subprocess
 
 from .common import PostProcessor
-from ..compat import compat_shlex_split
 from ..utils import (
+    Popen,
+    PostProcessingError,
     check_executable,
     cli_option,
     encodeArgument,
     encodeFilename,
+    prepend_extension,
     shell_quote,
     str_or_none,
-    Popen,
-    PostProcessingError,
-    prepend_extension,
 )
 
 
@@ -79,23 +78,21 @@ class SponSkrubPP(PostProcessor):
         if not self.cutout:
             cmd += ['-chapter']
         cmd += cli_option(self._downloader.params, '-proxy', 'proxy')
-        cmd += compat_shlex_split(self.args)  # For backward compatibility
+        cmd += shlex.split(self.args)  # For backward compatibility
         cmd += self._configuration_args(self._exe_name, use_compat=False)
         cmd += ['--', information['id'], filename, temp_filename]
         cmd = [encodeArgument(i) for i in cmd]
 
         self.write_debug('sponskrub command line: %s' % shell_quote(cmd))
-        pipe = None if self.get_param('verbose') else subprocess.PIPE
-        p = Popen(cmd, stdout=pipe)
-        stdout = p.communicate_or_kill()[0]
+        stdout, _, returncode = Popen.run(cmd, text=True, stdout=None if self.get_param('verbose') else subprocess.PIPE)
 
-        if p.returncode == 0:
+        if not returncode:
             os.replace(temp_filename, filename)
             self.to_screen('Sponsor sections have been %s' % ('removed' if self.cutout else 'marked'))
-        elif p.returncode == 3:
+        elif returncode == 3:
             self.to_screen('No segments in the SponsorBlock database')
         else:
-            msg = stdout.decode('utf-8', 'replace').strip() if stdout else ''
-            msg = msg.split('\n')[0 if msg.lower().startswith('unrecognised') else -1]
-            raise PostProcessingError(msg if msg else 'sponskrub failed with error code %s' % p.returncode)
+            raise PostProcessingError(
+                stdout.strip().splitlines()[0 if stdout.strip().lower().startswith('unrecognised') else -1]
+                or f'sponskrub failed with error code {returncode}')
         return [], information

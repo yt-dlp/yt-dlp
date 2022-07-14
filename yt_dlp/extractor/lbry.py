@@ -1,21 +1,17 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import json
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
+from ..compat import compat_str, compat_urllib_parse_unquote
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    HEADRequest,
+    OnDemandPagedList,
+    UnsupportedError,
+    determine_ext,
     int_or_none,
     mimetype2ext,
     parse_qs,
-    OnDemandPagedList,
     try_get,
     urljoin,
 )
@@ -93,7 +89,7 @@ class LBRYIE(LBRYBaseIE):
     _TESTS = [{
         # Video
         'url': 'https://lbry.tv/@Mantega:1/First-day-LBRY:1',
-        'md5': '65bd7ec1f6744ada55da8e4c48a2edf9',
+        'md5': 'fffd15d76062e9a985c22c7c7f2f4805',
         'info_dict': {
             'id': '17f983b61f53091fb8ea58a9c56804e4ff8cff4d',
             'ext': 'mp4',
@@ -105,6 +101,19 @@ class LBRYIE(LBRYBaseIE):
             'release_date': '20200721',
             'width': 1280,
             'height': 720,
+            'thumbnail': 'https://spee.ch/7/67f2d809c263288c.png',
+            'license': 'None',
+            'duration': 346,
+            'channel': 'LBRY/Odysee rats united!!!',
+            'channel_id': '1c8ad6a2ab4e889a71146ae4deeb23bb92dab627',
+            'channel_url': 'https://lbry.tv/@Mantega:1c8ad6a2ab4e889a71146ae4deeb23bb92dab627',
+            'tags': [
+                'first day in lbry',
+                'lbc',
+                'lbry',
+                'start',
+                'tutorial'
+            ],
         }
     }, {
         # Audio
@@ -125,11 +134,13 @@ class LBRYIE(LBRYBaseIE):
             'channel_id': '0ed629d2b9c601300cacf7eabe9da0be79010212',
             'channel_url': 'https://lbry.tv/@LBRYFoundation:0ed629d2b9c601300cacf7eabe9da0be79010212',
             'vcodec': 'none',
+            'thumbnail': 'https://spee.ch/d/0bc63b0e6bf1492d.png',
+            'license': 'None',
         }
     }, {
         # HLS
         'url': 'https://odysee.com/@gardeningincanada:b/plants-i-will-never-grow-again.-the:e',
-        'md5': 'fc82f45ea54915b1495dd7cb5cc1289f',
+        'md5': '25049011f3c8bc2f8b60ad88a031837e',
         'info_dict': {
             'id': 'e51671357333fe22ae88aad320bde2f6f96b1410',
             'ext': 'mp4',
@@ -145,12 +156,14 @@ class LBRYIE(LBRYBaseIE):
             'channel_id': 'b8be0e93b423dad221abe29545fbe8ec36e806bc',
             'channel_url': 'https://odysee.com/@gardeningincanada:b8be0e93b423dad221abe29545fbe8ec36e806bc',
             'formats': 'mincount:3',
+            'thumbnail': 'https://thumbnails.lbry.com/AgHSc_HzrrE',
+            'license': 'Copyrighted (contact publisher)',
         }
     }, {
         'url': 'https://odysee.com/@BrodieRobertson:5/apple-is-tracking-everything-you-do-on:e',
         'only_matching': True,
     }, {
-        'url': "https://odysee.com/@ScammerRevolts:b0/I-SYSKEY'D-THE-SAME-SCAMMERS-3-TIMES!:b",
+        'url': 'https://odysee.com/@ScammerRevolts:b0/I-SYSKEY\'D-THE-SAME-SCAMMERS-3-TIMES!:b',
         'only_matching': True,
     }, {
         'url': 'https://lbry.tv/Episode-1:e7d93d772bd87e2b62d5ab993c1c3ced86ebb396',
@@ -185,22 +198,24 @@ class LBRYIE(LBRYBaseIE):
         uri = 'lbry://' + display_id
         result = self._resolve_url(uri, display_id, 'stream')
         if result['value'].get('stream_type') in self._SUPPORTED_STREAM_TYPES:
-            claim_id, is_live, headers = result['claim_id'], False, None
+            claim_id, is_live, headers = result['claim_id'], False, {}
             streaming_url = self._call_api_proxy(
                 'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
             final_url = self._request_webpage(
-                streaming_url, display_id, note='Downloading streaming redirect url info').geturl()
+                HEADRequest(streaming_url), display_id,
+                note='Downloading streaming redirect url info').geturl()
         elif result.get('value_type') == 'stream':
             claim_id, is_live = result['signing_channel']['claim_id'], True
             headers = {'referer': 'https://player.odysee.live/'}
             live_data = self._download_json(
-                f'https://api.live.odysee.com/v1/odysee/live/{claim_id}', claim_id,
+                'https://api.odysee.live/livestream/is_live', claim_id,
+                query={'channel_claim_id': claim_id},
                 note='Downloading livestream JSON metadata')['data']
-            if not live_data['live']:
-                raise ExtractorError('This stream is not live', expected=True)
-            streaming_url = final_url = live_data['url']
+            streaming_url = final_url = live_data.get('VideoURL')
+            if not final_url and not live_data.get('Live'):
+                self.raise_no_formats('This stream is not live', True, claim_id)
         else:
-            raise ExtractorError('Unsupported URL', expected=True)
+            raise UnsupportedError(url)
 
         info = self._parse_stream(result, url)
         if determine_ext(final_url) == 'm3u8':
@@ -228,7 +243,7 @@ class LBRYChannelIE(LBRYBaseIE):
             'title': 'The LBRY Foundation',
             'description': 'Channel for the LBRY Foundation. Follow for updates and news.',
         },
-        'playlist_count': 29,
+        'playlist_mincount': 29,
     }, {
         'url': 'https://lbry.tv/@LBRYFoundation',
         'only_matching': True,

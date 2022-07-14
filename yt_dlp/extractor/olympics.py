@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -56,7 +53,7 @@ class OlympicsReplayIE(InfoExtractor):
             })
         m3u8_url = self._download_json(
             f'https://olympics.com/tokenGenerator?url={m3u8_url}', uuid, note='Downloading m3u8 url')
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, uuid, m3u8_id='hls')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, uuid, 'mp4', m3u8_id='hls')
         self._sort_formats(formats)
 
         return {

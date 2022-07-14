@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -14,7 +12,7 @@ from ..utils import (
 
 class WistiaBaseIE(InfoExtractor):
     _VALID_ID_REGEX = r'(?P<id>[a-z0-9]{10})'
-    _VALID_URL_BASE = r'https?://(?:fast\.)?wistia\.(?:net|com)/embed/'
+    _VALID_URL_BASE = r'https?://(?:\w+\.)?wistia\.(?:net|com)/(?:embed/)?'
     _EMBED_BASE_URL = 'http://fast.wistia.com/embed/'
 
     def _download_embed_config(self, config_type, config_id, referer):
@@ -175,7 +173,7 @@ class WistiaIE(WistiaBaseIE):
 
 
 class WistiaPlaylistIE(WistiaBaseIE):
-    _VALID_URL = r'%splaylists/%s' % (WistiaIE._VALID_URL_BASE, WistiaIE._VALID_ID_REGEX)
+    _VALID_URL = r'%splaylists/%s' % (WistiaBaseIE._VALID_URL_BASE, WistiaBaseIE._VALID_ID_REGEX)
 
     _TEST = {
         'url': 'https://fast.wistia.net/embed/playlists/aodt9etokc',
