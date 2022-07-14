@@ -397,6 +397,23 @@ class NBCNewsIE(ThePlatformIE):
         },
     ]
 
+    _WEBPAGE_TESTS = [
+        # NBC News embed
+        {
+            'url': 'http://www.vulture.com/2016/06/letterman-couldnt-care-less-about-late-night.html',
+            'info_dict': {
+                'id': '701714499682',
+                'ext': 'mp4',
+                'title': 'David Letterman: A Preview',
+                'description': 'A preview of Tom Brokaw\'s interview with David Letterman as part of the On Assignment series powered by Dateline. Airs Sunday June 12 at 7/6c.',
+                'upload_date': '20160608',
+                'timestamp': 1465425637,
+                'thumbnail': 'https://media-cldnry.s-nbcnews.com/image/upload/MSNBC/Components/Video/201606/Letterman_PR.jpg',
+                'duration': 61.0,
+            },
+        },
+    ]
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)

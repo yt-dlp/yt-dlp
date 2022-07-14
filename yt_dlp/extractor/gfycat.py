@@ -81,6 +81,49 @@ class GfycatIE(InfoExtractor):
         'only_matching': True
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            # Multiple gfycat iframe embeds
+            'url': 'https://www.gezip.net/bbs/board.php?bo_table=entertaine&wr_id=613422',
+            'info_dict': {
+                'title': '재이, 윤, 세은 황금 드레스를 입고 빛난다',
+                'id': 'board',
+                'age_limit': 0,
+                'description': '재이, 윤, 세은 황금 드레스를 입고 빛난다',
+                'upload_date': '20220714',
+                'timestamp': int,
+
+            },
+            'playlist_count': 8,
+        },
+        {
+            # Multiple gfycat gifs (direct links)
+            'url': 'https://www.gezip.net/bbs/board.php?bo_table=entertaine&wr_id=612199',
+            'info_dict': {
+                'title': '옳게 된 크롭 니트 스테이씨 아이사',
+                'id': 'board',
+                'age_limit': 0,
+                'description': '옳게 된 크롭 니트 스테이씨 아이사',
+                'upload_date': '20220714',
+                'timestamp': int,  # current timestamp
+            },
+            'playlist_count': 6,
+            'params': {'playlist_items': '1-6'}  # FIXME
+        }, {
+            # Multiple gfycat embeds, with uppercase "IFR" in urls
+            'url': 'https://kkzz.kr/?vid=2295',
+            'info_dict': {
+                'title': '지방시 앰버서더 에스파 카리나 움짤',
+                'id': '?vid=2295',
+                'description': ' kkzz.kr / 꽁짤.com',
+                'thumbnail': 'https://kkzz.kr/wp-content/uploads/mangboard/2021/02/14/F2319_7.jpg',
+                'age_limit': 0,
+
+            },
+            'playlist_count': 9
+        },
+    ]
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 

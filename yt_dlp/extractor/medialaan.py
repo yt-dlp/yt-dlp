@@ -69,6 +69,23 @@ class MedialaanIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            # MyChannels SDK embed
+            # https://www.24kitchen.nl/populair/deskundige-dit-waarom-sommigen-gevoelig-zijn-voor-voedselallergieen
+            'url': 'https://www.demorgen.be/nieuws/burgemeester-rotterdam-richt-zich-in-videoboodschap-tot-relschoppers-voelt-het-goed~b0bcfd741/',
+            'info_dict': {
+                'id': '194165',
+                'ext': 'mp4',
+                'title': 'Burgemeester Aboutaleb spreekt relschoppers toe',
+                'timestamp': 1611740340,
+                'upload_date': '20210127',
+                'duration': 159,
+                'thumbnail': 'https://imgix.mychannels.video/imgix/28b35ed9-a97e-4b57-a1df-e9f12ffa1a4b/50c20720-9497-451d-9c24-5fe598623e55.0000004.jpg.jpg?dpr=1&h=383&w=680&fit=cover&auto=format%2Ccompress&fm=jpg&q=75&crop=focalpoint&fp-x=0.5&fp-y=0.5',
+            },
+        },
+    ]
+
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         entries = []

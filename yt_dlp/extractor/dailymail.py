@@ -25,6 +25,22 @@ class DailyMailIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            'url': 'http://www.bumm.sk/krimi/2017/07/05/biztonsagi-kamera-buktatta-le-az-agg-ferfit-utlegelo-apolot',
+            'info_dict': {
+                'id': '1495629',
+                'ext': 'mp4',
+                'title': 'Care worker punches elderly dementia patient in head 11 times',
+                'description': 'md5:3a743dee84e57e48ec68bf67113199a5',
+                'thumbnail': 'https://i.dailymail.co.uk/i/pix/2017/07/05/03/4209EA4A00000578-0-image-a-20_1499220250098.jpg'
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+    ]
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)

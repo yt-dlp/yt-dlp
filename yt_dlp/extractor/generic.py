@@ -762,20 +762,6 @@ class GenericIE(InfoExtractor):
             },
             'add_ie': ['Dailymotion'],
         },
-        # DailyMail embed
-        {
-            'url': 'http://www.bumm.sk/krimi/2017/07/05/biztonsagi-kamera-buktatta-le-az-agg-ferfit-utlegelo-apolot',
-            'info_dict': {
-                'id': '1495629',
-                'ext': 'mp4',
-                'title': 'Care worker punches elderly dementia patient in head 11 times',
-                'description': 'md5:3a743dee84e57e48ec68bf67113199a5',
-            },
-            'add_ie': ['DailyMail'],
-            'params': {
-                'skip_download': True,
-            },
-        },
         # YouTube embed
         {
             'url': 'http://www.badzine.de/ansicht/datum/2014/06/09/so-funktioniert-die-neue-englische-badminton-liga.html',
@@ -792,19 +778,6 @@ class GenericIE(InfoExtractor):
             'params': {
                 'skip_download': True,
             }
-        },
-        # MTVServices embed
-        {
-            'url': 'http://www.vulture.com/2016/06/new-key-peele-sketches-released.html',
-            'md5': 'ca1aef97695ef2c1d6973256a57e5252',
-            'info_dict': {
-                'id': '769f7ec0-0692-4d62-9b45-0d88074bffc1',
-                'ext': 'mp4',
-                'title': 'Key and Peele|October 10, 2012|2|203|Liam Neesons - Uncensored',
-                'description': 'Two valets share their love for movie star Liam Neesons.',
-                'timestamp': 1349922600,
-                'upload_date': '20121011',
-            },
         },
         # YouTube embed via <data-embed-url="">
         {
@@ -863,22 +836,6 @@ class GenericIE(InfoExtractor):
                 'thumbnail': r're:^https?://.*\.jpg$',
             },
         },
-        # Wistia embed
-        {
-            'url': 'http://study.com/academy/lesson/north-american-exploration-failed-colonies-of-spain-france-england.html#lesson',
-            'md5': '1953f3a698ab51cfc948ed3992a0b7ff',
-            'info_dict': {
-                'id': '6e2wtrbdaf',
-                'ext': 'mov',
-                'title': 'paywall_north-american-exploration-failed-colonies-of-spain-france-england',
-                'description': 'a Paywall Videos video from Remilon',
-                'duration': 644.072,
-                'uploader': 'study.com',
-                'timestamp': 1459678540,
-                'upload_date': '20160403',
-                'filesize': 24687186,
-            },
-        },
         # Wistia standard embed (async)
         {
             'url': 'https://www.getdrip.com/university/brennan-dunn-drip-workshop/',
@@ -893,18 +850,6 @@ class GenericIE(InfoExtractor):
             },
             'params': {
                 'skip_download': True,
-            }
-        },
-        # Soundcloud embed
-        {
-            'url': 'http://nakedsecurity.sophos.com/2014/10/29/sscc-171-are-you-sure-that-1234-is-a-bad-password-podcast/',
-            'info_dict': {
-                'id': '174391317',
-                'ext': 'mp3',
-                'description': 'md5:ff867d6b555488ad3c52572bb33d432c',
-                'uploader': 'Sophos Security',
-                'title': 'Chet Chat 171 - Oct 29, 2014',
-                'upload_date': '20141029',
             }
         },
         # Soundcloud multiple embeds
@@ -963,16 +908,6 @@ class GenericIE(InfoExtractor):
             },
             'playlist_mincount': 1,
             'add_ie': ['Youtube'],
-        },
-        # Cinchcast embed
-        {
-            'url': 'http://undergroundwellness.com/podcasts/306-5-steps-to-permanent-gut-healing/',
-            'info_dict': {
-                'id': '7141703',
-                'ext': 'mp3',
-                'upload_date': '20141126',
-                'title': 'Jack Tips: 5 Steps to Permanent Gut Healing',
-            }
         },
         # Cinerama player
         {
@@ -1102,15 +1037,6 @@ class GenericIE(InfoExtractor):
                 'title': 'Aanslagen Kopenhagen',
             }
         },
-        # Zapiks embed
-        {
-            'url': 'http://www.skipass.com/news/116090-bon-appetit-s5ep3-baqueira-mi-cor.html',
-            'info_dict': {
-                'id': '118046',
-                'ext': 'mp4',
-                'title': 'EP3S5 - Bon Appétit - Baqueira Mi Corazon !',
-            }
-        },
         # Kaltura embed (different embed code)
         {
             'url': 'http://www.premierchristianradio.com/Shows/Saturday/Unbelievable/Conference-Videos/Os-Guinness-Is-It-Fools-Talk-Unbelievable-Conference-2014',
@@ -1123,66 +1049,6 @@ class GenericIE(InfoExtractor):
                 'title': 'Os Guinness // Is It Fools Talk? // Unbelievable? Conference 2014',
             },
         },
-        # Kaltura embed with single quotes
-        {
-            'url': 'http://fod.infobase.com/p_ViewPlaylist.aspx?AssignmentID=NUN8ZY',
-            'info_dict': {
-                'id': '0_izeg5utt',
-                'ext': 'mp4',
-                'title': '35871',
-                'timestamp': 1355743100,
-                'upload_date': '20121217',
-                'uploader_id': 'cplapp@learn360.com',
-            },
-            'add_ie': ['Kaltura'],
-        },
-        {
-            # Kaltura embedded via quoted entry_id
-            'url': 'https://www.oreilly.com/ideas/my-cloud-makes-pretty-pictures',
-            'info_dict': {
-                'id': '0_utuok90b',
-                'ext': 'mp4',
-                'title': '06_matthew_brender_raj_dutt',
-                'timestamp': 1466638791,
-                'upload_date': '20160622',
-            },
-            'add_ie': ['Kaltura'],
-            'expected_warnings': [
-                'Could not send HEAD request'
-            ],
-            'params': {
-                'skip_download': True,
-            }
-        },
-        {
-            # Kaltura embedded, some fileExt broken (#11480)
-            'url': 'http://www.cornell.edu/video/nima-arkani-hamed-standard-models-of-particle-physics',
-            'info_dict': {
-                'id': '1_sgtvehim',
-                'ext': 'mp4',
-                'title': 'Our "Standard Models" of particle physics and cosmology',
-                'description': 'md5:67ea74807b8c4fea92a6f38d6d323861',
-                'timestamp': 1321158993,
-                'upload_date': '20111113',
-                'uploader_id': 'kps1',
-            },
-            'add_ie': ['Kaltura'],
-        },
-        {
-            # Kaltura iframe embed
-            'url': 'http://www.gsd.harvard.edu/event/i-m-pei-a-centennial-celebration/',
-            'md5': 'ae5ace8eb09dc1a35d03b579a9c2cc44',
-            'info_dict': {
-                'id': '0_f2cfbpwy',
-                'ext': 'mp4',
-                'title': 'I. M. Pei: A Centennial Celebration',
-                'description': 'md5:1db8f40c69edc46ca180ba30c567f37c',
-                'upload_date': '20170403',
-                'uploader_id': 'batchUser',
-                'timestamp': 1491232186,
-            },
-            'add_ie': ['Kaltura'],
-        },
         {
             # Kaltura iframe embed, more sophisticated
             'url': 'http://www.cns.nyu.edu/~eero/math-tools/Videos/lecture-05sep2017.html',
@@ -1194,22 +1060,6 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20170913',
                 'uploader_id': 'eps2',
                 'timestamp': 1505340777,
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'add_ie': ['Kaltura'],
-        },
-        {
-            # meta twitter:player
-            'url': 'http://thechive.com/2017/12/08/all-i-want-for-christmas-is-more-twerk/',
-            'info_dict': {
-                'id': '0_01b42zps',
-                'ext': 'mp4',
-                'title': 'Main Twerk (Video)',
-                'upload_date': '20171208',
-                'uploader_id': 'sebastian.salinas@thechive.com',
-                'timestamp': 1512713057,
             },
             'params': {
                 'skip_download': True,
@@ -1313,20 +1163,6 @@ class GenericIE(InfoExtractor):
             },
             'skip': 'Invalid Page URL',
         },
-        # NBC News embed
-        {
-            'url': 'http://www.vulture.com/2016/06/letterman-couldnt-care-less-about-late-night.html',
-            'md5': '1aa589c675898ae6d37a17913cf68d66',
-            'info_dict': {
-                'id': 'x_dtl_oa_LettermanliftPR_160608',
-                'ext': 'mp4',
-                'title': 'David Letterman: A Preview',
-                'description': 'A preview of Tom Brokaw\'s interview with David Letterman as part of the On Assignment series powered by Dateline. Airs Sunday June 12 at 7/6c.',
-                'upload_date': '20160609',
-                'timestamp': 1465431544,
-                'uploader': 'NBCU-NEWS',
-            },
-        },
         # UDN embed
         {
             'url': 'https://video.udn.com/news/300346',
@@ -1380,18 +1216,6 @@ class GenericIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': '#whilewewatch',
             }
-        },
-        # AdobeTVVideo embed
-        {
-            'url': 'https://helpx.adobe.com/acrobat/how-to/new-experience-acrobat-dc.html?set=acrobat--get-started--essential-beginners',
-            'md5': '43662b577c018ad707a63766462b1e87',
-            'info_dict': {
-                'id': '2456',
-                'ext': 'mp4',
-                'title': 'New experience with Acrobat DC',
-                'description': 'New experience with Acrobat DC',
-                'duration': 248.667,
-            },
         },
         # BrightcoveInPageEmbed embed
         {
@@ -1452,6 +1276,7 @@ class GenericIE(InfoExtractor):
             },
         },
         # Duplicated embedded video URLs
+        # JSON LD -> twitter:player -> Open Graph
         {
             'url': 'http://www.hudl.com/athlete/2538180/highlights/149298443',
             'info_dict': {
@@ -1491,16 +1316,7 @@ class GenericIE(InfoExtractor):
             },
             'add_ie': ['BrightcoveLegacy'],
         },
-        # Facebook <iframe> embed
-        {
-            'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
-            'md5': 'fbcde74f534176ecb015849146dd3aee',
-            'info_dict': {
-                'id': '599637780109885',
-                'ext': 'mp4',
-                'title': 'Facebook video #599637780109885',
-            },
-        },
+
         # Facebook <iframe> embed, plugin video
         {
             'url': 'http://5pillarsuk.com/2017/06/07/tariq-ramadan-disagrees-with-pr-exercise-by-imams-refusing-funeral-prayers-for-london-attackers/',
@@ -1564,21 +1380,6 @@ class GenericIE(InfoExtractor):
             'playlist_count': 8,
         },
         {
-            # Non-standard Vimeo embed
-            'url': 'https://openclassrooms.com/courses/understanding-the-web',
-            'md5': '64d86f1c7d369afd9a78b38cbb88d80a',
-            'info_dict': {
-                'id': '148867247',
-                'ext': 'mp4',
-                'title': 'Understanding the web - Teaser',
-                'description': 'This is "Understanding the web - Teaser" by openclassrooms on Vimeo, the home for high quality videos and the people who love them.',
-                'upload_date': '20151214',
-                'uploader': 'OpenClassrooms',
-                'uploader_id': 'openclassrooms',
-            },
-            'add_ie': ['Vimeo'],
-        },
-        {
             # generic vimeo embed that requires original URL passed as Referer
             'url': 'http://racing4everyone.eu/2016/07/30/formula-1-2016-round12-germany/',
             'only_matching': True,
@@ -1599,18 +1400,6 @@ class GenericIE(InfoExtractor):
                 'skip_download': True,
             },
             'add_ie': ['Arkena'],
-        },
-        {
-            'url': 'http://nova.bg/news/view/2016/08/16/156543/%D0%BD%D0%B0-%D0%BA%D0%BE%D1%81%D1%8A%D0%BC-%D0%BE%D1%82-%D0%B2%D0%B7%D1%80%D0%B8%D0%B2-%D0%BE%D1%82%D1%86%D0%B5%D0%BF%D0%B8%D1%85%D0%B0-%D1%86%D1%8F%D0%BB-%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B0%D0%BB-%D0%B7%D0%B0%D1%80%D0%B0%D0%B4%D0%B8-%D0%B8%D0%B7%D1%82%D0%B8%D1%87%D0%B0%D0%BD%D0%B5-%D0%BD%D0%B0-%D0%B3%D0%B0%D0%B7-%D0%B2-%D0%BF%D0%BB%D0%BE%D0%B2%D0%B4%D0%B8%D0%B2/',
-            'info_dict': {
-                'id': '1c7141f46c',
-                'ext': 'mp4',
-                'title': 'НА КОСЪМ ОТ ВЗРИВ: Изтичане на газ на бензиностанция в Пловдив',
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'add_ie': ['Vbox7'],
         },
         {
             # DBTV embeds
@@ -1645,21 +1434,6 @@ class GenericIE(InfoExtractor):
             'add_ie': ['TwentyMinuten'],
         },
         {
-            # VideoPress embed
-            'url': 'https://en.support.wordpress.com/videopress/',
-            'info_dict': {
-                'id': 'OcobLTqC',
-                'ext': 'm4v',
-                'title': 'IMG_5786',
-                'timestamp': 1435711927,
-                'upload_date': '20150701',
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'add_ie': ['VideoPress'],
-        },
-        {
             # Rutube embed
             'url': 'http://magazzino.friday.ru/videos/vipuski/kazan-2',
             'info_dict': {
@@ -1677,76 +1451,9 @@ class GenericIE(InfoExtractor):
             'add_ie': ['Rutube'],
         },
         {
-            # glomex:embed
-            'url': 'https://www.skai.gr/news/world/iatrikos-syllogos-tourkias-to-turkovac-aplo-dialyma-erntogan-eiste-apateones-kai-pseytes',
-            'info_dict': {
-                'id': 'v-ch2nkhcirwc9-sf',
-                'ext': 'mp4',
-                'title': 'md5:786e1e24e06c55993cee965ef853a0c1',
-                'description': 'md5:8b517a61d577efe7e36fde72fd535995',
-                'timestamp': 1641885019,
-                'upload_date': '20220111',
-                'duration': 460000,
-                'thumbnail': 'https://i3thumbs.glomex.com/dC1idjJwdndiMjRzeGwvMjAyMi8wMS8xMS8wNy8xMF8zNV82MWRkMmQ2YmU5ZTgyLmpwZw==/profile:player-960x540',
-            },
-        },
-        {
-            # megatvcom:embed
-            'url': 'https://www.in.gr/2021/12/18/greece/apokalypsi-mega-poios-parelave-tin-ereyna-tsiodra-ek-merous-tis-kyvernisis-o-prothypourgos-telika-gnorize/',
-            'info_dict': {
-                'id': 'apokalypsi-mega-poios-parelave-tin-ereyna-tsiodra-ek-merous-tis-kyvernisis-o-prothypourgos-telika-gnorize',
-                'title': 'md5:5e569cf996ec111057c2764ec272848f',
-            },
-            'playlist': [{
-                'md5': '1afa26064ff00ccb91617957dbc73dc1',
-                'info_dict': {
-                    'ext': 'mp4',
-                    'id': '564916',
-                    'display_id': 'md5:6cdf22d3a2e7bacb274b7295089a1770',
-                    'title': 'md5:33b9dd39584685b62873043670eb52a6',
-                    'description': 'md5:c1db7310f390518ac36dd69d947ef1a1',
-                    'timestamp': 1639753145,
-                    'upload_date': '20211217',
-                    'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/12/prezerakos-1024x597.jpg',
-                },
-            }, {
-                'md5': '4a1c220695f1ef865a8b7966a53e2474',
-                'info_dict': {
-                    'ext': 'mp4',
-                    'id': '564905',
-                    'display_id': 'md5:ead15695e485e649aed2b81ebd699b88',
-                    'title': 'md5:2b71fd54249a3ca34609fe39ae31c47b',
-                    'description': 'md5:c42e12f638d0a97d6de4508e2c4df982',
-                    'timestamp': 1639753047,
-                    'upload_date': '20211217',
-                    'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/12/tsiodras-mitsotakis-1024x545.jpg',
-                },
-            }]
-        },
-        {
-            'url': 'https://www.ertnews.gr/video/manolis-goyalles-o-anthropos-piso-apo-ti-diadiktyaki-vasilopita/',
-            'info_dict': {
-                'id': '2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
-                'ext': 'mp4',
-                'title': 'md5:df64f5b61c06d0e9556c0cdd5cf14464',
-                'thumbnail': 'https://www.ert.gr/themata/photos/2021/20220114-apotis6-gouales-pita.jpg',
-            },
-        },
-        {
             # ThePlatform embedded with whitespaces in URLs
             'url': 'http://www.golfchannel.com/topics/shows/golftalkcentral.htm',
             'only_matching': True,
-        },
-        {
-            # Senate ISVP iframe https
-            'url': 'https://www.hsgac.senate.gov/hearings/canadas-fast-track-refugee-plan-unanswered-questions-and-implications-for-us-national-security',
-            'md5': 'fb8c70b0b515e5037981a2492099aab8',
-            'info_dict': {
-                'id': 'govtaff020316',
-                'ext': 'mp4',
-                'title': 'Integrated Senate Video Player',
-            },
-            'add_ie': ['SenateISVP'],
         },
         {
             # Limelight embeds (1 channel embed + 4 media embeds)
@@ -1809,16 +1516,6 @@ class GenericIE(InfoExtractor):
             'add_ie': ['Mediaset'],
         },
         {
-            # JOJ.sk embeds
-            'url': 'https://www.noviny.sk/slovensko/238543-slovenskom-sa-prehnala-vlna-silnych-burok',
-            'info_dict': {
-                'id': '238543-slovenskom-sa-prehnala-vlna-silnych-burok',
-                'title': 'Slovenskom sa prehnala vlna silných búrok',
-            },
-            'playlist_mincount': 5,
-            'add_ie': ['Joj'],
-        },
-        {
             # AMP embed (see https://www.ampproject.org/docs/reference/components/amp-video)
             'url': 'https://tvrain.ru/amp/418921/',
             'md5': 'cc00413936695987e8de148b67d14f1d',
@@ -1846,16 +1543,6 @@ class GenericIE(InfoExtractor):
                 'title': 'Rescue Kit 14 Free Edition - Getting started',
             },
             'playlist_count': 4,
-        },
-        {
-            # vshare embed
-            'url': 'https://youtube-dl-demo.neocities.org/vshare.html',
-            'md5': '17b39f55b5497ae8b59f5fbce8e35886',
-            'info_dict': {
-                'id': '0f64ce6',
-                'title': 'vl14062007715967',
-                'ext': 'mp4',
-            }
         },
         {
             'url': 'http://www.heidelberg-laureate-forum.org/blog/video/lecture-friday-september-23-2016-sir-c-antony-r-hoare/',
@@ -1937,23 +1624,6 @@ class GenericIE(InfoExtractor):
             },
         },
         {
-            # APA embed via JWPlatform embed
-            'url': 'http://www.vol.at/blue-man-group/5593454',
-            'info_dict': {
-                'id': 'jjv85FdZ',
-                'ext': 'mp4',
-                'title': '"Blau ist mysteriös": Die Blue Man Group im Interview',
-                'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
-                'thumbnail': r're:^https?://.*\.jpg$',
-                'duration': 254,
-                'timestamp': 1519211149,
-                'upload_date': '20180221',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
             'url': 'http://share-videos.se/auto/video/83645793?uid=13',
             'md5': 'b68d276de422ab07ee1d49388103f457',
             'info_dict': {
@@ -1962,15 +1632,6 @@ class GenericIE(InfoExtractor):
                 'ext': 'mp4'
             },
             'skip': 'TODO: fix nested playlists processing in tests',
-        },
-        {
-            # Viqeo embeds
-            'url': 'https://viqeo.tv/',
-            'info_dict': {
-                'id': 'viqeo',
-                'title': 'All-new video platform',
-            },
-            'playlist_count': 6,
         },
         {
             # Squarespace video embed, 2019-08-28
@@ -2037,33 +1698,6 @@ class GenericIE(InfoExtractor):
                 'skip_download': True,
             },
         },
-        {
-            # tvopengr:embed
-            'url': 'https://www.ethnos.gr/World/article/190604/hparosiaxekinoynoisynomiliessthgeneyhmethskiatoypolemoypanoapothnoykrania',
-            'md5': 'eb0c3995d0a6f18f6538c8e057865d7d',
-            'info_dict': {
-                'id': '101119',
-                'ext': 'mp4',
-                'display_id': 'oikarpoitondiapragmateyseonhparosias',
-                'title': 'md5:b979f4d640c568617d6547035528a149',
-                'description': 'md5:e54fc1977c7159b01cc11cd7d9d85550',
-                'timestamp': 1641772800,
-                'upload_date': '20220110',
-                'thumbnail': 'https://opentv-static.siliconweb.com/imgHandler/1920/70bc39fa-895b-4918-a364-c39d2135fc6d.jpg',
-
-            }
-        },
-        {
-            # blogger embed
-            'url': 'https://blog.tomeuvizoso.net/2019/01/a-panfrost-milestone.html',
-            'md5': 'f1bc19b6ea1b0fd1d81e84ca9ec467ac',
-            'info_dict': {
-                'id': 'BLOGGER-video-3c740e3a49197e16-796',
-                'ext': 'mp4',
-                'title': 'Blogger',
-                'thumbnail': r're:^https?://.*',
-            },
-        },
         # {
         #     # TODO: find another test
         #     # http://schema.org/VideoObject
@@ -2081,17 +1715,7 @@ class GenericIE(InfoExtractor):
         #         'force_generic_extractor': True,
         #     },
         # },
-        {
-            # VHX Embed
-            'url': 'https://demo.vhx.tv/category-c/videos/file-example-mp4-480-1-5mg-copy',
-            'info_dict': {
-                'id': '858208',
-                'ext': 'mp4',
-                'title': 'Untitled',
-                'uploader_id': 'user80538407',
-                'uploader': 'OTT Videos',
-            },
-        },
+
         {
             # ArcPublishing PoWa video player
             'url': 'https://www.adn.com/politics/2020/11/02/video-senate-candidates-campaign-in-anchorage-on-eve-of-election-day/',
@@ -2107,40 +1731,9 @@ class GenericIE(InfoExtractor):
             },
         },
         {
-            # MyChannels SDK embed
-            # https://www.24kitchen.nl/populair/deskundige-dit-waarom-sommigen-gevoelig-zijn-voor-voedselallergieen
-            'url': 'https://www.demorgen.be/nieuws/burgemeester-rotterdam-richt-zich-in-videoboodschap-tot-relschoppers-voelt-het-goed~b0bcfd741/',
-            'md5': '90c0699c37006ef18e198c032d81739c',
-            'info_dict': {
-                'id': '194165',
-                'ext': 'mp4',
-                'title': 'Burgemeester Aboutaleb spreekt relschoppers toe',
-                'timestamp': 1611740340,
-                'upload_date': '20210127',
-                'duration': 159,
-            },
-        },
-        {
-            # Simplecast player embed
-            'url': 'https://www.bio.org/podcast',
-            'info_dict': {
-                'id': 'podcast',
-                'title': 'I AM BIO Podcast | BIO',
-            },
-            'playlist_mincount': 52,
-        },
-        {
             # Sibnet embed (https://help.sibnet.ru/?sibnet_video_embed)
             'url': 'https://phpbb3.x-tk.ru/bbcode-video-sibnet-t24.html',
             'only_matching': True,
-        }, {
-            # WimTv embed player
-            'url': 'http://www.msmotor.tv/wearefmi-pt-2-2021/',
-            'info_dict': {
-                'id': 'wearefmi-pt-2-2021',
-                'title': '#WEAREFMI – PT.2 – 2021 – MsMotorTV',
-            },
-            'playlist_count': 1,
         },
         {
             # Reddit-hosted video that will redirect and be processed by RedditIE
@@ -2170,95 +1763,6 @@ class GenericIE(InfoExtractor):
             }
         },
         {
-            # MainStreaming player
-            'url': 'https://www.lactv.it/2021/10/03/lac-news24-la-settimana-03-10-2021/',
-            'info_dict': {
-                'id': 'EUlZfGWkGpOd',
-                'title': 'La Settimana ',
-                'description': '03 Ottobre ore 02:00',
-                'ext': 'mp4',
-                'live_status': 'not_live',
-                'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
-                'duration': 1512
-            }
-        },
-        {
-            # Multiple gfycat iframe embeds
-            'url': 'https://www.gezip.net/bbs/board.php?bo_table=entertaine&wr_id=613422',
-            'info_dict': {
-                'title': '재이, 윤, 세은 황금 드레스를 입고 빛난다',
-                'id': 'board'
-            },
-            'playlist_count': 8,
-        },
-        {
-            # Multiple gfycat gifs (direct links)
-            'url': 'https://www.gezip.net/bbs/board.php?bo_table=entertaine&wr_id=612199',
-            'info_dict': {
-                'title': '옳게 된 크롭 니트 스테이씨 아이사',
-                'id': 'board'
-            },
-            'playlist_count': 6
-        },
-        {
-            # Multiple gfycat embeds, with uppercase "IFR" in urls
-            'url': 'https://kkzz.kr/?vid=2295',
-            'info_dict': {
-                'title': '지방시 앰버서더 에스파 카리나 움짤',
-                'id': '?vid=2295'
-            },
-            'playlist_count': 9
-        },
-        {
-            # Panopto embeds
-            'url': 'https://www.monash.edu/learning-teaching/teachhq/learning-technologies/panopto/how-to/insert-a-quiz-into-a-panopto-video',
-            'info_dict': {
-                'title': 'Insert a quiz into a Panopto video',
-                'id': 'insert-a-quiz-into-a-panopto-video'
-            },
-            'playlist_count': 1
-        },
-        {
-            # Ruutu embed
-            'url': 'https://www.nelonen.fi/ohjelmat/madventures-suomi/2160731-riku-ja-tunna-lahtevat-peurajahtiin-tv-sta-tutun-biologin-kanssa---metsastysreissu-huipentuu-kasvissyojan-painajaiseen',
-            'md5': 'a2513a98d3496099e6eced40f7e6a14b',
-            'info_dict': {
-                'id': '4044426',
-                'ext': 'mp4',
-                'title': 'Riku ja Tunna lähtevät peurajahtiin tv:stä tutun biologin kanssa – metsästysreissu huipentuu kasvissyöjän painajaiseen!',
-                'thumbnail': r're:^https?://.+\.jpg$',
-                'duration': 108,
-                'series': 'Madventures Suomi',
-                'description': 'md5:aa55b44bd06a1e337a6f1d0b46507381',
-                'categories': ['Matkailu', 'Elämäntyyli'],
-                'age_limit': 0,
-                'upload_date': '20220308',
-            },
-        },
-        {
-            # Multiple Ruutu embeds
-            'url': 'https://www.hs.fi/kotimaa/art-2000008762560.html',
-            'info_dict': {
-                'title': 'Koronavirus | Epidemiahuippu voi olla Suomessa ohi, mutta koronaviruksen poistamista yleisvaarallisten tautien joukosta harkitaan vasta syksyllä',
-                'id': 'art-2000008762560'
-            },
-            'playlist_count': 3
-        },
-        {
-            # Ruutu embed in hs.fi with a single video
-            'url': 'https://www.hs.fi/kotimaa/art-2000008793421.html',
-            'md5': 'f8964e65d8fada6e8a562389bf366bb4',
-            'info_dict': {
-                'id': '4081841',
-                'ext': 'mp4',
-                'title': 'Puolustusvoimat siirsi panssariajoneuvoja harjoituksiin Niinisaloon 2.5.2022',
-                'thumbnail': r're:^https?://.+\.jpg$',
-                'duration': 138,
-                'age_limit': 0,
-                'upload_date': '20220504',
-            },
-        },
-        {
             # Webpage contains double BOM
             'url': 'https://www.filmarkivet.se/movies/paris-d-moll/',
             'md5': 'df02cadc719dcc63d43288366f037754',
@@ -2271,66 +1775,6 @@ class GenericIE(InfoExtractor):
                 'thumbnail': 'https://www.filmarkivet.se/wp-content/uploads/parisdmoll2.jpg',
                 'timestamp': 1652833414,
                 'age_limit': 0,
-            }
-        },
-        {
-            'url': 'https://www.mollymovieclub.com/p/interstellar?s=r#details',
-            'md5': '198bde8bed23d0b23c70725c83c9b6d9',
-            'info_dict': {
-                'id': '53602801',
-                'ext': 'mpga',
-                'title': 'Interstellar',
-                'description': 'Listen now | Episode One',
-                'thumbnail': 'md5:c30d9c83f738e16d8551d7219d321538',
-                'uploader': 'Molly Movie Club',
-                'uploader_id': '839621',
-            },
-        },
-        {
-            'url': 'https://www.blockedandreported.org/p/episode-117-lets-talk-about-depp?s=r',
-            'md5': 'c0cc44ee7415daeed13c26e5b56d6aa0',
-            'info_dict': {
-                'id': '57962052',
-                'ext': 'mpga',
-                'title': 'md5:855b2756f0ee10f6723fa00b16266f8d',
-                'description': 'md5:fe512a5e94136ad260c80bde00ea4eef',
-                'thumbnail': 'md5:2218f27dfe517bb5ac16c47d0aebac59',
-                'uploader': 'Blocked and Reported',
-                'uploader_id': '500230',
-            },
-        },
-        {
-            'note': 'Rumble embed',
-            'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html',
-            'md5': '53af34098a7f92c4e51cf0bd1c33f009',
-            'info_dict': {
-                'id': 'vb0ofn',
-                'ext': 'mp4',
-                'timestamp': 1612662578,
-                'uploader': 'LovingMontana',
-                'channel': 'LovingMontana',
-                'upload_date': '20210207',
-                'title': 'Winter-loving dog helps girls dig a snow fort ',
-                'channel_url': 'https://rumble.com/c/c-546523',
-                'thumbnail': 'https://sp.rmbl.ws/s8/1/5/f/x/x/5fxxb.OvCc.1-small-Moose-The-Dog-Helps-Girls-D.jpg',
-                'duration': 103,
-            }
-        },
-        {
-            'note': 'Rumble JS embed',
-            'url': 'https://therightscoop.com/what-does-9-plus-1-plus-1-equal-listen-to-this-audio-of-attempted-kavanaugh-assassins-call-and-youll-get-it',
-            'md5': '4701209ac99095592e73dbba21889690',
-            'info_dict': {
-                'id': 'v15eqxl',
-                'ext': 'mp4',
-                'channel': 'Mr Producer Media',
-                'duration': 92,
-                'title': '911 Audio From The Man Who Wanted To Kill Supreme Court Justice Kavanaugh',
-                'channel_url': 'https://rumble.com/c/RichSementa',
-                'thumbnail': 'https://sp.rmbl.ws/s8/1/P/j/f/A/PjfAe.OvCc-small-911-Audio-From-The-Man-Who-.jpg',
-                'timestamp': 1654892716,
-                'uploader': 'Mr Producer Media',
-                'upload_date': '20220610',
             }
         },
         {

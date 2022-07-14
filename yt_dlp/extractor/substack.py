@@ -45,6 +45,38 @@ class SubstackIE(InfoExtractor):
         }
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            'url': 'https://www.mollymovieclub.com/p/interstellar?s=r#details',
+            'md5': '198bde8bed23d0b23c70725c83c9b6d9',
+            'info_dict': {
+                'id': '53602801',
+                'ext': 'mpga',
+                'title': 'Interstellar',
+                'description': 'Listen now | Episode One',
+                'thumbnail': 'md5:c30d9c83f738e16d8551d7219d321538',
+                'uploader': 'Molly Movie Club',
+                'uploader_id': '839621',
+            },
+            'params': {'playlist_items': '2'}  # FIXME
+        },
+        {
+            'url': 'https://www.blockedandreported.org/p/episode-117-lets-talk-about-depp?s=r',
+            'md5': 'c0cc44ee7415daeed13c26e5b56d6aa0',
+            'info_dict': {
+                'id': '57962052',
+                'ext': 'mpga',
+                'title': 'md5:855b2756f0ee10f6723fa00b16266f8d',
+                'description': 'md5:fe512a5e94136ad260c80bde00ea4eef',
+                'thumbnail': 'md5:2218f27dfe517bb5ac16c47d0aebac59',
+                'uploader': 'Blocked and Reported',
+                'uploader_id': '500230',
+            },
+            'params': {'playlist_items': '2'}  # FIXME
+        },
+
+    ]
+
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         if not re.search(r'<script[^>]+src=["\']https://substackcdn.com/[^"\']+\.js', webpage):

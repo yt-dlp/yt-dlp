@@ -37,6 +37,20 @@ class LibsynIE(InfoExtractor):
         }
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            'url': 'http://undergroundwellness.com/podcasts/306-5-steps-to-permanent-gut-healing/',
+            'info_dict': {
+                'id': '3793998',
+                'ext': 'mp3',
+                'upload_date': '20141126',
+                'title': 'Underground Wellness Radio - Jack Tips: 5 Steps to Permanent Gut Healing',
+                'duration': 3989.0,
+                'thumbnail': 'https://assets.libsyn.com/secure/item/3793998/?height=90&width=90',
+            }
+        },
+    ]
+
     def _real_extract(self, url):
         url, video_id = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, video_id)

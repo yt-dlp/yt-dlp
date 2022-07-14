@@ -24,6 +24,21 @@ class BloggerIE(InfoExtractor):
         }
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            # blogger embed
+            'url': 'https://blog.tomeuvizoso.net/2019/01/a-panfrost-milestone.html',
+            'md5': 'f1bc19b6ea1b0fd1d81e84ca9ec467ac',
+            'info_dict': {
+                'id': 'BLOGGER-video-3c740e3a49197e16-8977',
+                'ext': 'mp4',
+                'title': 'BLOGGER-video-3c740e3a49197e16-8977',
+                'thumbnail': r're:^https?://.*',
+                'duration': 76.068,
+            },
+        },
+    ]
+
     def _real_extract(self, url):
         token_id = self._match_id(url)
         webpage = self._download_webpage(url, token_id)

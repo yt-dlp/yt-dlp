@@ -37,6 +37,21 @@ class JojIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            # JOJ.sk embeds
+            'url': 'https://www.noviny.sk/slovensko/238543-slovenskom-sa-prehnala-vlna-silnych-burok',
+            'info_dict': {
+                'id': '238543-slovenskom-sa-prehnala-vlna-silnych-burok',
+                'title': 'Slovenskom sa prehnala vlna silných búrok',
+                'age_limit': 0,
+                'thumbnail': 'https://img.joj.sk/r1200x/1ba974eb6f3e7432d117b18fbf2ac4cc',
+                'description': 'md5:71dba283340cbded18fb5ad1f05a593e',
+            },
+            'playlist_mincount': 5,
+        },
+    ]
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 

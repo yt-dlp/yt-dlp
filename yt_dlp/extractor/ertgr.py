@@ -287,6 +287,18 @@ class ERTWebtvEmbedIE(InfoExtractor):
         },
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            'url': 'https://www.ertnews.gr/video/manolis-goyalles-o-anthropos-piso-apo-ti-diadiktyaki-vasilopita/',
+            'info_dict': {
+                'id': '2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
+                'ext': 'mp4',
+                'title': 'VOD - 2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
+                'thumbnail': 'https://www.ert.gr/themata/photos/2021/20220114-apotis6-gouales-pita.jpg',
+            },
+        },
+    ]
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         formats, subs = self._extract_m3u8_formats_and_subtitles(

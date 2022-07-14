@@ -40,6 +40,32 @@ class SoundcloudEmbedIE(InfoExtractor):
         'only_matching': True,
     }
 
+    _WEBPAGE_TESTS = [
+        # Soundcloud embed
+        {
+            'url': 'http://nakedsecurity.sophos.com/2014/10/29/sscc-171-are-you-sure-that-1234-is-a-bad-password-podcast/',
+            'info_dict': {
+                    'id': '174391317',
+                    'ext': 'mp3',
+                    'description': 'md5:ff867d6b555488ad3c52572bb33d432c',
+                    'uploader': 'Naked Security',
+                    'title': 'Chet Chat 171 - Oct 29, 2014',
+                    'upload_date': '20141029',
+                    'genre': 'Technology',
+                    'view_count': int,
+                    'license': 'all-rights-reserved',
+                    'comment_count': int,
+                    'uploader_url': 'https://soundcloud.com/sophossecurity',
+                    'thumbnail': 'https://i1.sndcdn.com/artworks-000095486999-ipelec-original.jpg',
+                    'uploader_id': '61390843',
+                    'like_count': int,
+                    'timestamp': 1414591408,
+                    'duration': 880.617,
+                    'repost_count': int,
+                }
+        },
+    ]
+
     def _real_extract(self, url):
         query = parse_qs(url)
         api_url = query['url'][0]

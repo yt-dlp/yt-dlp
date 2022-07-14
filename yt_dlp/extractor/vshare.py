@@ -18,6 +18,19 @@ class VShareIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            # vshare embed
+            'url': 'https://youtube-dl-demo.neocities.org/vshare.html',
+            'md5': '17b39f55b5497ae8b59f5fbce8e35886',
+            'info_dict': {
+                'id': '0f64ce6',
+                'title': 'vl14062007715967',
+                'ext': 'mp4',
+            }
+        },
+    ]
+
     def _extract_packed(self, webpage):
         packed = self._search_regex(
             r'(eval\(function.+)', webpage, 'packed code')

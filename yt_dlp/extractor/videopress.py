@@ -37,6 +37,26 @@ class VideoPressIE(InfoExtractor):
         'url': 'https://video.wordpress.com/embed/kUJmAcSf',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [
+        {
+            # VideoPress embed
+            'url': 'https://en.support.wordpress.com/videopress/',
+            'info_dict': {
+                'id': 'OcobLTqC',
+                'ext': 'm4v',
+                'title': 'IMG_5786',
+                'timestamp': 1435711927,
+                'upload_date': '20150701',
+                'description': '',
+                'age_limit': 0,
+                'duration': 33.0,
+                'thumbnail': 'https://videos.files.wordpress.com/OcobLTqC/img_5786_hd.original.jpg',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

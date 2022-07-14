@@ -244,8 +244,25 @@ class AdobeTVVideoIE(AdobeTVBaseIE):
             'title': 'New experience with Acrobat DC',
             'description': 'New experience with Acrobat DC',
             'duration': 248.667,
+            'thumbnail': 'http://images-tv.adobe.com/avp/vr/25623d75-d8c5-400f-abcc-2605e97589c4/503a5579-a181-41d0-b526-46a06824d67c/32ac08db_960x540.jpg',
         },
     }
+
+    _WEBPAGE_TESTS = [
+        # AdobeTVVideo embed
+        {
+            'url': 'https://helpx.adobe.com/acrobat/how-to/new-experience-acrobat-dc.html?set=acrobat--get-started--essential-beginners',
+            'md5': 'df9d6f1db543d90aa21f21d541f6c8c8',
+            'info_dict': {
+                'id': '23590',
+                'ext': 'mp4',
+                'title': '4892_new-experience-acrobat-dc_video.mp4',
+                'description': '4892_new-experience-acrobat-dc_video.mp4',
+                'duration': 20.48,
+                'thumbnail': 'http://images-tv.adobe.com/avp/vr/b758b4c4-2a74-41f4-8e67-e2f2eab83c6a/76fc97a9-d9b3-41c8-a6f0-014b7a0d49a3/ee0fe359_960x540.jpg',
+            },
+        },
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

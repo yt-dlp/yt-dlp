@@ -233,6 +233,18 @@ class PanoptoIE(PanoptoBaseIE):
             'only_matching': True
         },
     ]
+    _WEBPAGE_TESTS = [
+        {
+            # Panopto embeds
+            'url': 'https://www.monash.edu/learning-teaching/teachhq/learning-technologies/panopto/how-to/insert-a-quiz-into-a-panopto-video',
+            'info_dict': {
+                'title': 'Insert a quiz into a Panopto video',
+                'id': 'insert-a-quiz-into-a-panopto-video',
+                'age_limit': 0
+            },
+            'playlist_count': 1
+        },
+    ]
 
     @classmethod
     def suitable(cls, url):

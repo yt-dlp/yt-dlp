@@ -112,6 +112,24 @@ class TVOpenGrEmbedIE(TVOpenGrBaseIE):
         },
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            # tvopengr:embed
+            'url': 'https://www.ethnos.gr/World/article/190604/hparosiaxekinoynoisynomiliessthgeneyhmethskiatoypolemoypanoapothnoykrania',
+            'info_dict': {
+                'id': '101119',
+                'ext': 'mp4',
+                'display_id': 'oikarpoitondiapragmateyseonhparosias',
+                'title': 'md5:b979f4d640c568617d6547035528a149',
+                'description': 'md5:e54fc1977c7159b01cc11cd7d9d85550',
+                'timestamp': 1641772800,
+                'upload_date': '20220110',
+                'thumbnail': 'https://opentv-static.siliconweb.com/imgHandler/1920/70bc39fa-895b-4918-a364-c39d2135fc6d.jpg',
+                'duration': 421.0,
+            }
+        },
+    ]
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         return self._return_canonical_url(url, video_id)

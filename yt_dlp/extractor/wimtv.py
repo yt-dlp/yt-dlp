@@ -53,6 +53,18 @@ class WimTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            # WimTv embed player
+            'url': 'http://www.msmotor.tv/wearefmi-pt-2-2021/',
+            'info_dict': {
+                'id': 'wearefmi-pt-2-2021',
+                'title': '#WEAREFMI – PT.2 – 2021 – MsMotorTV',
+            },
+            'playlist_count': 1,
+        },
+    ]
+
     def _real_initialize(self):
         if not self._player:
             self._get_player_data()

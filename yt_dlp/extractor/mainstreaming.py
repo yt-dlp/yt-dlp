@@ -103,6 +103,23 @@ class MainStreamingIE(InfoExtractor):
         }
     ]
 
+    _WEBPAGE_TESTS = [
+        {
+            # MainStreaming player
+            'url': 'https://www.lactv.it/2021/10/03/lac-news24-la-settimana-03-10-2021/',
+            'info_dict': {
+                'id': 'EUlZfGWkGpOd',
+                'title': 'La Settimana ',
+                'description': '03 Ottobre ore 02:00',
+                'ext': 'mp4',
+                'live_status': 'not_live',
+                'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
+                'duration': 1512
+            },
+            'params': {'playlist_items': '5'},  # FIXME
+        },
+    ]
+
     def _playlist_entries(self, host, playlist_content):
         for entry in playlist_content:
             content_id = entry.get('contentID')

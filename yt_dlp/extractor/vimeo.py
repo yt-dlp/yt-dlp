@@ -735,6 +735,30 @@ class VimeoIE(VimeoBaseInfoExtractor):
         # https://gettingthingsdone.com/workflowmap/
         # vimeo embed with check-password page protected by Referer header
     ]
+    _WEBPAGE_TESTS = [
+        {
+            # Non-standard Vimeo embed
+            'url': 'https://openclassrooms.com/courses/understanding-the-web',
+            'info_dict': {
+                'id': '274704977',
+                'ext': 'mp4',
+                'title': 'EN_3314571_CRS_understanding-the-web_0-0_0-0_TLK',
+                'description': 'md5:7585fcc74b376b5a92b412f5a52619aa',
+                'upload_date': '20180612',
+                'uploader': 'OpenClassrooms',
+                'uploader_id': 'openclassrooms',
+                'timestamp': 1528800995,
+                'uploader_url': 'https://vimeo.com/openclassrooms',
+                'duration': 44,
+                'thumbnail': 'https://i.vimeocdn.com/video/784360853-7767b5f682557ad8f6638c8ebfd270a88c2103395113e59848deaf9e37966ef3-d_1280',
+                'license': 'by-nc-sa',
+
+            },
+            'params': {
+                'playlist_items': '2'  # FIXME temporary workaround for having another embed in playlist
+            },
+        }
+    ]
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -1375,6 +1399,22 @@ class VHXEmbedIE(VimeoBaseInfoExtractor):
     IE_NAME = 'vhx:embed'
     _VALID_URL = r'https?://embed\.vhx\.tv/videos/(?P<id>\d+)'
     _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://embed\.vhx\.tv/videos/\d+[^"]*)"']
+    _WEBPAGE_TESTS = [
+        {
+            # VHX Embed
+            'url': 'https://demo.vhx.tv/category-c/videos/file-example-mp4-480-1-5mg-copy',
+            'info_dict': {
+                'id': '858208',
+                'ext': 'mp4',
+                'title': 'Untitled',
+                'uploader_id': 'user80538407',
+                'uploader': 'OTT Videos',
+                'duration': 30,
+                'uploader_url': 'https://vimeo.com/user80538407',
+                'thumbnail': 'https://i.vimeocdn.com/video/914532489-bba9f828e592d7f5631cb521cc14a7e43f420f050e16f83549392736273b306a-d_960',
+            },
+        },
+    ]
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):

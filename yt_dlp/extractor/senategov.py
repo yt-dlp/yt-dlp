@@ -88,6 +88,19 @@ class SenateISVPIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            # Senate ISVP iframe https
+            'url': 'https://www.hsgac.senate.gov/hearings/canadas-fast-track-refugee-plan-unanswered-questions-and-implications-for-us-national-security',
+            'md5': 'fb8c70b0b515e5037981a2492099aab8',
+            'info_dict': {
+                'id': 'govtaff020316',
+                'ext': 'mp4',
+                'title': 'Integrated Senate Video Player',
+            },
+        },
+    ]
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 

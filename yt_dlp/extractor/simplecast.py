@@ -97,6 +97,21 @@ class SimplecastIE(SimplecastBaseIE):
         'only_matching': True,
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            # Simplecast player embed
+            'url': 'https://www.bio.org/podcast',
+            'info_dict': {
+                'id': 'podcast',
+                'title': 'I am BIO Podcast | BIO',
+                'description': 'md5:f6f8ebc0abf176a19d3d1224ff54e58e',
+                'age_limit': 0,
+                'thumbnail': 'https://www.bio.org/sites/default/files/styles/bio_social_image_style/public/2022-04/BIO_PodcastCover_169%20%281%29.png?itok=TVqRgIZh',
+            },
+            'playlist_mincount': 52,
+        },
+    ]
+
     def _real_extract(self, url):
         episode_id = self._match_id(url)
         episode = self._call_api('episodes/%s', episode_id)

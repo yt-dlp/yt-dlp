@@ -145,6 +145,25 @@ class WistiaIE(WistiaBaseIE):
         'only_matching': True,
     }]
 
+    _WEBPAGE_TESTS = [
+        # Wistia embed
+        {
+            'url': 'http://study.com/academy/lesson/north-american-exploration-failed-colonies-of-spain-france-england.html#lesson',
+            'md5': '1953f3a698ab51cfc948ed3992a0b7ff',
+            'info_dict': {
+                'id': '6e2wtrbdaf',
+                'ext': 'mov',
+                'title': 'paywall_north-american-exploration-failed-colonies-of-spain-france-england',
+                'description': 'a Paywall Videos video',
+                'duration': 644.011,
+                'uploader': 'study.com',
+                'timestamp': 1459678540,
+                'upload_date': '20160403',
+                'filesize': 24687186,
+                'thumbnail': 'https://embed-ssl.wistia.com/deliveries/2cc9b50a6cd14eddb743c51f8e528004341ee6ab.bin'
+            },
+        },
+    ]
     # https://wistia.com/support/embed-and-share/video-on-your-website
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
