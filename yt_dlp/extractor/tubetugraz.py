@@ -137,8 +137,9 @@ class TubeTuGrazIE(TubeTuGrazBaseIE):
         episode_data = self._download_json(
             self._API_EPISODE, video_id, query={'id': video_id, 'limit': 1}, note='Downloading episode metadata')
 
-        episode_info = traverse_obj(episode_data, ('search-results', 'result'), default={ "id": video_id })
+        episode_info = traverse_obj(episode_data, ('search-results', 'result'), default={"id": video_id})
         return self._extract_episode(episode_info)
+
 
 class TubeTuGrazSeriesIE(TubeTuGrazBaseIE):
     _VALID_URL = r'''(?x)
