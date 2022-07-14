@@ -168,6 +168,15 @@ class InstagramBaseIE(InfoExtractor):
         if isinstance(product_info, list):
             product_info = product_info[0]
 
+        comment_data = traverse_obj(product_info, ('edge_media_to_parent_comment', 'edges'))
+        comments = [{
+            'author': traverse_obj(comment_dict, ('node', 'owner', 'username')),
+            'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id')),
+            'id': traverse_obj(comment_dict, ('node', 'id')),
+            'text': traverse_obj(comment_dict, ('node', 'text')),
+            'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), expected_type=int_or_none),
+        } for comment_dict in comment_data] if comment_data else None
+
         user_info = product_info.get('user') or {}
         info_dict = {
             'id': product_info.get('code') or product_info.get('id'),
@@ -180,18 +189,13 @@ class InstagramBaseIE(InfoExtractor):
             'view_count': int_or_none(product_info.get('view_count')),
             'like_count': int_or_none(product_info.get('like_count')),
             'comment_count': int_or_none(product_info.get('comment_count')),
+            'comments': comments,
             'http_headers': {
                 'Referer': 'https://www.instagram.com/',
             }
         }
         carousel_media = product_info.get('carousel_media')
         if carousel_media:
-            if self.get_param('noplaylist'):
-                self.to_screen('Downloading only one video due to --no-playlist')
-                return {
-                    **info_dict,
-                    **self._extract_product_media(carousel_media[0])
-                }
             return {
                 '_type': 'playlist',
                 **info_dict,
@@ -362,10 +366,21 @@ class InstagramIE(InstagramBaseIE):
 
     def _real_extract(self, url):
         video_id, url = self._match_valid_url(url).group('id', 'url')
-        webpage = self._download_webpage(
-            f'https://www.instagram.com/p/{video_id}/embed/',
-            video_id, note='Downloading embed webpage',
-            errnote='Requested content was not found, the content might be private')
+        general_info = self._download_json(
+            f'https://www.instagram.com/graphql/query/?query_hash=9f8827793ef34641b2fb195d4d41151c'
+            f'&variables=%7B"shortcode":"{video_id}",'
+            '"parent_comment_count":10,"has_threaded_comments":true}', video_id, fatal=False,
+            headers={
+                'Accept': '*',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
+                'Authority': 'www.instagram.com',
+                'Referer': 'https://www.instagram.com',
+                'x-ig-app-id': '936619743392459',
+            })
+        general_info = traverse_obj(general_info, ('data', 'shortcode_media'))
+        if not general_info:
+            general_info = {}
+            self.report_warning('General metadata extraction failed.', video_id)
 
         info = self._download_json(
             f'https://i.instagram.com/api/v1/media/{_id_to_pk(video_id)}/info/', video_id, fatal=False,
@@ -377,34 +392,28 @@ class InstagramIE(InstagramBaseIE):
                 'x-ig-app-id': '936619743392459',
             })
         if info:
-            return self._extract_product(info['items'][0])
+            general_info.update(info['items'][0])
+            return self._extract_product(general_info)
 
         self.report_warning('The API is locked behind login (Using data from embed).', video_id)
 
-        shared_data = self._parse_json(
+        webpage = self._download_webpage(
+            f'https://www.instagram.com/p/{video_id}/embed/',
+            video_id, note='Downloading embed webpage',
+            errnote='Requested content was not found, the content might be private')
+
+        additional_data = self._parse_json(
             self._search_regex(
-                r'window\._sharedData\s*=\s*({.+?});',
-                webpage, 'shared data', default='{}'),
+                r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*({.+?})\s*\);',
+                webpage, 'additional data', default='{}'),
             video_id, fatal=False)
-        media = traverse_obj(
-            shared_data,
-            ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
-            ('entry_data', 'PostPage', 0, 'media'),
-            expected_type=dict)
+        product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
+        if product_item:
+            product_item.update(general_info)
+            return self._extract_product(product_item)
+        media = traverse_obj(additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {}
 
-        if not media:
-            additional_data = self._parse_json(
-                self._search_regex(
-                    r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*({.+?})\s*\);',
-                    webpage, 'additional data', default='{}'),
-                video_id, fatal=False)
-            product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
-            if product_item:
-                return self._extract_product(product_item)
-            media = traverse_obj(additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {}
-
-        if not media:
-            self.raise_login_required('You need to log in to access this content')
+        media.update(general_info)
 
         username = traverse_obj(media, ('owner', 'username')) or self._search_regex(
             r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'username', fatal=False)
@@ -671,15 +680,6 @@ class InstagramStoryIE(InstagramBaseIE):
         for highlight in highlights:
             highlight_data = self._extract_product(highlight)
             if highlight_data.get('formats'):
-                if self.get_param('noplaylist'):
-                    self.to_screen('Downloading only one video due to --no-playlist')
-                    return {
-                        **highlight_data,
-                        'id': story_id,
-                        'title': story_title,
-                        'uploader': full_name,
-                        'uploader_id': user_id,
-                    }
                 info_data.append({
                     **highlight_data,
                     'uploader': full_name,
