@@ -14,44 +14,13 @@ class NetverseBaseIE(InfoExtractor):
     def _get_slug(self, url=None, slug=None):
         assert (url is None and slug) or (slug is None and url)
         display_id = slug or self._match_valid_url(url).group('display_id')
-        if display_id is None:
-            raise ValueError
-        else:
-            return display_id
+        assert (display_id is not None)
+        return display_id
     
-    def _call_api_from_slug(self, slug, endpoint, query={}, season_id='', display_id=None):
+    def _call_api(self, slug, endpoint, query={}, season_id='', display_id=None):
         json_data = self._download_json(
             f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[endpoint]}/{slug}/{season_id}',
             display_id or slug, query=query)
-        #return slug, json_data
-        return json_data
-    
-    def _call_api_from_url(self, url, query={}, season_id='', display_id=None, endpoint=None):
-        slug = self._match_valid_url(url).group('display_id')
-        sites_type = self._match_valid_url(url).group('type')
-        json_data = self._download_json(
-            f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[endpoint or sites_type]}/{slug}/{season_id}',
-            display_id or slug, query=query)
-        return json_data
-    
-    def _call_api(self, url=None, slug=None, query={}, season='', display_id=None, endpoint=None):
-
-        assert (url is None and slug) or (slug is None and url)
-        if url is None:
-            return self._call_api_from_slug(slug, endpoint, query=query, season_id=season, display_id=display_id)
-        else:
-            return self._call_api_from_url(url, query, season_id=season, display_id=display_id)
-        # #slug = self._get_slug(url=url, slug=slug)
-        # self.write_debug(f'url or slug: {slug or url}')
-        
-        # sites_type = endpoint or self._match_valid_url(url).group("type")
-        # self.write_debug(f'endpoint: {sites_type}')
-        
-        # self.write_debug(f'json url: https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[sites_type]}/{slug or self._match_valid_url(url).group("display_id")}/{season}')
-        # json_data = self._download_json(
-            # f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[sites_type]}/{slug}/{season}',
-            # display_id or slug, query=query)
-        #return slug, json_data
         return json_data
 
 
@@ -155,7 +124,8 @@ class NetverseIE(NetverseBaseIE):
     }]
 
     def _real_extract(self, url):
-        program_json = self._call_api(url)
+        display_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
+        program_json = self._call_api(display_id, sites_type)
         videos = program_json['response']['videos']
 
         return {
@@ -191,11 +161,11 @@ class NetversePlaylistIE(NetverseBaseIE):
         'playlist_count': 203,
     }]
 
-    def parse_single_season_playlist(self, page_num, slug=None, display_id=None, season_id='',
-                                     endpoint=None):
+    def parse_single_season_playlist(self, page_num, slug, endpoint, display_id=None, 
+                                    season_id=''):
 
         playlist_json = self._call_api(
-            slug=slug, query={'page': page_num + 1}, season=season_id, display_id=display_id ,endpoint=endpoint)
+            slug, endpoint, query={'page': page_num + 1}, season_id=season_id, display_id=display_id)
         for slug in traverse_obj(playlist_json, ('response', ..., 'data', ..., 'slug')):
             yield self.url_result(f'https://www.netverse.id/video/{slug}', NetverseIE)
 
@@ -203,16 +173,17 @@ class NetversePlaylistIE(NetverseBaseIE):
         slug_sample = traverse_obj(json_data, ('related', 'data', ..., 'slug'))[0]
         for season in traverse_obj(json_data, ('seasons', ..., 'id')):
             playlist_json = self._call_api(
-                slug=slug_sample, display_id=playlist_id, season=season, endpoint='season')
+                slug_sample, 'season', display_id=playlist_id, season_id=season)
 
             for current_page in range(playlist_json['response']['season_list']['last_page']):
                 yield from self.parse_single_season_playlist(
-                    current_page, slug=slug_sample,
-                    display_id=playlist_id, season_id=season, endpoint='season')
+                    current_page, slug_sample, 'season',
+                    display_id=playlist_id, season_id=season)
 
     def _real_extract(self, url):
-        playlist_data = self._call_api(url)
-        playlist_id = self._get_slug(url)
+        playlist_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
+        playlist_data = self._call_api(playlist_id, sites_type)
+        
         return self.playlist_result(
             self.parse_playlist(playlist_data['response'], playlist_id),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'slug')),
