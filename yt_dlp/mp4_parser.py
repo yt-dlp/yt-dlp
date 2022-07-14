@@ -104,14 +104,14 @@ def parse_mp4_boxes(r: RawIOBase):
 
     Example:            Path:
     ('test', b'123456') /test
-    ('box1', b'')       /box1           (start of container box)
-    ('helo', b'abcdef') /box1/helo
-    ('1984', b'1q84')   /box1/1984
-    ('http', b'')       /box1/http      (start of container box)
-    ('keys', b'2022')   /box1/http/keys
-    (None  , 'http')    /box1/http      (end of container box)
-    ('topp', b'1991')   /box1/topp
-    (None  , 'box1')    /box1           (end of container box)
+    ('moov', b'')       /moov           (start of container box)
+    ('helo', b'abcdef') /moov/helo
+    ('1984', b'1q84')   /moov/1984
+    ('trak', b'')       /moov/trak      (start of container box)
+    ('keys', b'2022')   /moov/trak/keys
+    (None  , 'trak')    /moov/trak      (end of container box)
+    ('topp', b'1991')   /moov/topp
+    (None  , 'moov')    /moov           (end of container box)
     """
 
     while True:
