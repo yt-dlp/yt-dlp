@@ -9,7 +9,7 @@ from ..compat import asyncio
 from ..dependencies import websockets
 
 
-class AsyncSinkFD(FileDownloader):
+class _WebSocketFD(FileDownloader):
     async def connect(self, stdin, info_dict):
         try:
             await self.real_connection(stdin, info_dict)
@@ -21,11 +21,15 @@ class AsyncSinkFD(FileDownloader):
                 stdin.close()
 
     async def real_connection(self, sink, info_dict):
-        """ Override this in subclasses """
-        raise NotImplementedError('This method must be implemented by subclasses')
+        async with websockets.connect(info_dict['url'], extra_headers=info_dict.get('http_headers', {})) as ws:
+            while True:
+                recv = await ws.recv()
+                if isinstance(recv, str):
+                    recv = recv.encode('utf8')
+                sink.write(recv)
 
 
-class FFmpegSinkFD(AsyncSinkFD):
+class WebSocketFragmentFD(_WebSocketFD):
     """ A sink to ffmpeg for downloading fragments in any form """
 
     def real_download(self, filename, info_dict):
@@ -45,7 +49,7 @@ class FFmpegSinkFD(AsyncSinkFD):
         return FFmpegStdinFD(self.ydl, self.params or {}).download(filename, info_copy)
 
 
-class FileSinkFD(AsyncSinkFD):
+class WebSocketToFileFD(_WebSocketFD):
     """ A sink to a file for downloading fragments in any form """
     def real_download(self, filename, info_dict):
         tempname = self.temp_name(filename)
@@ -87,21 +91,3 @@ class FileSinkFD(AsyncSinkFD):
         finally:
             os.replace(tempname, filename)
         return True
-
-
-class _WebSocketFD(AsyncSinkFD):
-    async def real_connection(self, sink, info_dict):
-        async with websockets.connect(info_dict['url'], extra_headers=info_dict.get('http_headers', {})) as ws:
-            while True:
-                recv = await ws.recv()
-                if isinstance(recv, str):
-                    recv = recv.encode('utf8')
-                sink.write(recv)
-
-
-class WebSocketFragmentFD(_WebSocketFD, FFmpegSinkFD):
-    pass
-
-
-class WebSocketToFileFD(_WebSocketFD, FileSinkFD):
-    pass
