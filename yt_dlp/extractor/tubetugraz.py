@@ -45,7 +45,7 @@ class TubeTuGrazBaseIE(InfoExtractor):
             episode_info, ('mediapackage', 'creators', 'creator'), 'dcCreator', default='')))
         return {
             'id': id,
-            'title': title,
+            'title': title or id,
             'creator': creator or None,
             'duration': traverse_obj(episode_info, ('mediapackage', 'duration'), 'dcExtent'),
             'series': series_title,
@@ -117,20 +117,35 @@ class TubeTuGrazIE(TubeTuGrazBaseIE):
         https?://tube\.tugraz\.at/paella/ui/watch.html\?id=
         (?P<id>[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})
     '''
-    _TESTS = [{
-        'url': 'https://tube.tugraz.at/paella/ui/watch.html?id=f2634392-e40e-4ac7-9ddc-47764aa23d40',
-        'md5': 'a23a3d5c9aaca2b84932fdba66e17145',
-        'info_dict': {
-            'id': 'f2634392-e40e-4ac7-9ddc-47764aa23d40',
-            'ext': 'mp4',
-            'title': '#6 (23.11.2017)',
-            'episode': '#6 (23.11.2017)',
-            'series': '[INB03001UF] Einführung in die strukturierte Programmierung',
-            'creator': 'Safran C',
-            'duration': 3295818,
-            'series_id': 'b1192fff-2aa7-4bf0-a5cf-7b15c3bd3b34',
+    _TESTS = [
+        {
+            'url': 'https://tube.tugraz.at/paella/ui/watch.html?id=f2634392-e40e-4ac7-9ddc-47764aa23d40',
+            'md5': 'a23a3d5c9aaca2b84932fdba66e17145',
+            'info_dict': {
+                'id': 'f2634392-e40e-4ac7-9ddc-47764aa23d40',
+                'ext': 'mp4',
+                'title': '#6 (23.11.2017)',
+                'episode': '#6 (23.11.2017)',
+                'series': '[INB03001UF] Einführung in die strukturierte Programmierung',
+                'creator': 'Safran C',
+                'duration': 3295818,
+                'series_id': 'b1192fff-2aa7-4bf0-a5cf-7b15c3bd3b34',
+            }
+        }, {
+            'url': 'https://tube.tugraz.at/paella/ui/watch.html?id=2df6d787-e56a-428d-8ef4-d57f07eef238',
+            'md5': 'de0d854a56bf7318d2b693fe1adb89a5',
+            'info_dict': {
+                'id': '2df6d787-e56a-428d-8ef4-d57f07eef238',
+                'ext': 'mp4',
+                'title': '2df6d787-e56a-428d-8ef4-d57f07eef238',
+                'episode': None,
+                'series': None,
+                'creator': None,
+                'duration': None,
+                'series_id': None,
+            }
         }
-    }]
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
