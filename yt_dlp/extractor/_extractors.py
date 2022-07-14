@@ -747,7 +747,10 @@ from .jamendo import (
 from .jeuxvideo import JeuxVideoIE
 from .jove import JoveIE
 from .joj import JojIE
-from .jwplatform import JWPlatformIE
+from .jwplatform import (
+    JWPlatformIE,
+    JWPlayerEmbedIE
+)
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
 from .karaoketv import KaraoketvIE

@@ -1019,19 +1019,6 @@ class GenericIE(InfoExtractor):
             },
             'skip': 'All The Daily Show URLs now redirect to http://www.cc.com/shows/',
         },
-        # jwplayer YouTube
-        {
-            'url': 'http://media.nationalarchives.gov.uk/index.php/webinar-using-discovery-national-archives-online-catalogue/',
-            'info_dict': {
-                'id': 'Mrj4DVp2zeA',
-                'ext': 'mp4',
-                'upload_date': '20150212',
-                'uploader': 'The National Archives UK',
-                'description': 'md5:8078af856dca76edc42910b61273dbbf',
-                'uploader_id': 'NationalArchives08',
-                'title': 'Webinar: Using Discovery, The National Archives’ online catalogue',
-            },
-        },
         # jwplayer rtmp
         {
             'url': 'http://www.suffolk.edu/sjc/live.php',
@@ -1062,6 +1049,7 @@ class GenericIE(InfoExtractor):
             },
         },
         # Complex jwplayer
+        # XXX: this is now an HTML embed
         {
             'url': 'http://www.indiedb.com/games/king-machine/videos',
             'info_dict': {
@@ -1085,18 +1073,6 @@ class GenericIE(InfoExtractor):
             'params': {
                 'skip_download': True,
             }
-        },
-        {
-            # JWPlatform iframe
-            'url': 'https://www.covermagazine.co.uk/feature/2465255/business-protection-involved',
-            'info_dict': {
-                'id': 'AG26UQXM',
-                'ext': 'mp4',
-                'upload_date': '20160719',
-                'timestamp': 468923808,
-                'title': '2016_05_18 Cover L&G Business Protection V1 FINAL.mp4',
-            },
-            'add_ie': ['JWPlatform'],
         },
         {
             # Video.js embed, multiple formats
@@ -2334,27 +2310,6 @@ class GenericIE(InfoExtractor):
             },
         },
         {
-            'url': 'https://www.skimag.com/video/ski-people-1980/',
-            'info_dict': {
-                'id': 'ski-people-1980',
-                'title': 'Ski People (1980)',
-            },
-            'playlist_count': 1,
-            'playlist': [{
-                'md5': '022a7e31c70620ebec18deeab376ee03',
-                'info_dict': {
-                    'id': 'YTmgRiNU',
-                    'ext': 'mp4',
-                    'title': '1980 Ski People',
-                    'timestamp': 1610407738,
-                    'description': 'md5:cf9c3d101452c91e141f292b19fe4843',
-                    'thumbnail': 'https://cdn.jwplayer.com/v2/media/YTmgRiNU/poster.jpg?width=720',
-                    'duration': 5688.0,
-                    'upload_date': '20210111',
-                }
-            }]
-        },
-        {
             'note': 'Rumble embed',
             'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html',
             'md5': '53af34098a7f92c4e51cf0bd1c33f009',
@@ -2699,26 +2654,6 @@ class GenericIE(InfoExtractor):
         del current_embeds
         if embeds:
             return self.playlist_result(embeds, **info_dict)
-
-        jwplayer_data = self._find_jwplayer_data(
-            webpage, video_id, transform_source=js_to_json)
-        if jwplayer_data:
-            if isinstance(jwplayer_data.get('playlist'), str):
-                self.report_detected('JW Player playlist')
-                return {
-                    **info_dict,
-                    '_type': 'url',
-                    'ie_key': 'JWPlatform',
-                    'url': jwplayer_data['playlist'],
-                }
-            try:
-                info = self._parse_jwplayer_data(
-                    jwplayer_data, video_id, require_title=False, base_url=url)
-                self.report_detected('JW Player data')
-                return merge_dicts(info, info_dict)
-            except ExtractorError:
-                # See https://github.com/ytdl-org/youtube-dl/pull/16735
-                pass
 
         # Video.js embed
         mobj = re.search(
