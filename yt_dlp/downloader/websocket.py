@@ -1,4 +1,5 @@
 import contextlib
+import os
 import threading
 import time
 
@@ -84,7 +85,7 @@ class FileSinkFD(AsyncSinkFD):
         except KeyboardInterrupt:
             pass
         finally:
-            self.ydl.replace(tempname, filename)
+            os.replace(tempname, filename)
         return True
 
 

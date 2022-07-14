@@ -1,3 +1,5 @@
+import os
+
 from math import inf
 
 from .common import PostProcessor
@@ -61,61 +63,49 @@ class MP4FixupTimestampPP(PostProcessor):
 
         return smallest_bmdt, sdur_cutoff
 
+    @staticmethod
+    def transform(r, bmdt_offset, sdur_cutoff):
+        for btype, content in r:
+            if btype == 'tfdt':
+                version, _ = unpack_ver_flags(content[0:4])
+                if version == 0:
+                    bmdt = unpack_be32(content[4:8])
+                else:
+                    bmdt = unpack_be64(content[4:12])
+                if bmdt == 0:
+                    yield (btype, content)
+                    continue
+                # calculate new baseMediaDecodeTime
+                bmdt = max(0, bmdt - bmdt_offset)
+                # pack everything again and insert as a new box
+                if version == 0:
+                    bmdt_b = pack_be32(bmdt)
+                else:
+                    bmdt_b = pack_be64(bmdt)
+                yield ('tfdt', content[0:4] + bmdt_b + content[8 + version * 4:])
+                continue
+            elif btype == 'tfhd':
+                version, flags = unpack_ver_flags(content[0:4])
+                if not flags & 0x08:
+                    yield (btype, content)
+                    continue
+                sdur_start = 8
+                if flags & 0x01:
+                    sdur_start += 8
+                if flags & 0x02:
+                    sdur_start += 4
+                sample_dur = unpack_be32(content[sdur_start:sdur_start + 4])
+                if sample_dur > sdur_cutoff:
+                    sample_dur = 0
+                sd_b = pack_be32(sample_dur)
+                yield ('tfhd', content[:sdur_start] + sd_b + content[sdur_start + 4:])
+                continue
+            yield (btype, content)
+
+
     def modify_mp4(self, src, dst, bmdt_offset, sdur_cutoff):
         with open(src, 'rb') as r, open(dst, 'wb') as w:
-            def converter():
-                moov_over, in_secondary_moov = False, False
-                for btype, content in parse_mp4_boxes(r):
-                    # skip duplicate MOOV boxes
-                    if btype == 'moov':
-                        if moov_over:
-                            in_secondary_moov = True
-                            continue
-                    elif btype is None and content == 'moov':
-                        in_secondary_moov = False
-
-                        if moov_over:
-                            continue
-                        moov_over = True
-                    elif in_secondary_moov:
-                        continue
-                    if btype == 'tfdt':
-                        version, _ = unpack_ver_flags(content[0:4])
-                        if version == 0:
-                            bmdt = unpack_be32(content[4:8])
-                        else:
-                            bmdt = unpack_be64(content[4:12])
-                        if bmdt == 0:
-                            yield (btype, content)
-                            continue
-                        # calculate new baseMediaDecodeTime
-                        bmdt = max(0, bmdt - bmdt_offset)
-                        # pack everything again and insert as a new box
-                        if version == 0:
-                            bmdt_b = pack_be32(bmdt)
-                        else:
-                            bmdt_b = pack_be64(bmdt)
-                        yield ('tfdt', content[0:4] + bmdt_b + content[8 + version * 4:])
-                        continue
-                    elif btype == 'tfhd':
-                        version, flags = unpack_ver_flags(content[0:4])
-                        if not flags & 0x08:
-                            yield (btype, content)
-                            continue
-                        sdur_start = 8
-                        if flags & 0x01:
-                            sdur_start += 8
-                        if flags & 0x02:
-                            sdur_start += 4
-                        sample_dur = unpack_be32(content[sdur_start:sdur_start + 4])
-                        if sample_dur > sdur_cutoff:
-                            sample_dur = 0
-                        sd_b = pack_be32(sample_dur)
-                        yield ('tfhd', content[:sdur_start] + sd_b + content[sdur_start + 4:])
-                        continue
-                    yield (btype, content)
-
-            write_mp4_boxes(w, converter())
+            write_mp4_boxes(w, self.transform(parse_mp4_boxes(r)))
 
     def run(self, information):
         filename = information['filepath']
@@ -137,6 +127,6 @@ class MP4FixupTimestampPP(PostProcessor):
         else:
             self.report_warning(f'Failed to fix duration of the file. (baseMediaDecodeTime offset = {bmdt_offset}, sample duration cutoff = {sdur_cutoff})')
 
-        self._downloader.replace(temp_filename, filename)
+        os.replace(temp_filename, filename)
 
         return [], information
