@@ -6,7 +6,7 @@ import sys
 
 from PyInstaller.__main__ import run as run_pyinstaller
 
-OS_NAME, ARCH = sys.platform, platform.architecture()[0][:2]
+OS_NAME, ARCH, MACHINE = sys.platform, platform.architecture()[0][:2], platform.machine()
 
 
 def main():
@@ -65,7 +65,7 @@ def exe(onedir):
     name = '_'.join(filter(None, (
         'yt-dlp',
         {'win32': '', 'darwin': 'macos'}.get(OS_NAME, OS_NAME),
-        ARCH == '32' and 'x86'
+        MACHINE == 'AMD64' and 'x86_64' or MACHINE
     )))
     return name, ''.join(filter(None, (
         'dist/',
