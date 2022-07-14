@@ -1777,22 +1777,6 @@ class GenericIE(InfoExtractor):
                 'age_limit': 0,
             }
         },
-        {
-            'note': 'JSON LD with multiple @type',
-            'url': 'https://www.nu.nl/280161/video/hoe-een-bladvlo-dit-verwoestende-japanse-onkruid-moet-vernietigen.html',
-            'md5': 'c7949f34f57273013fb7ccb1156393db',
-            'info_dict': {
-                'id': 'ipy2AcGL',
-                'ext': 'mp4',
-                'description': 'md5:6a9d644bab0dc2dc06849c2505d8383d',
-                'thumbnail': r're:https://media\.nu\.nl/m/.+\.jpg',
-                'title': 'Hoe een bladvlo dit verwoestende Japanse onkruid moet vernietigen',
-                'timestamp': 1586577474,
-                'upload_date': '20200411',
-                'age_limit': 0,
-                'duration': 111.0,
-            }
-        },
     ]
 
     def report_following_redirect(self, new_url):
@@ -2154,15 +2138,6 @@ class GenericIE(InfoExtractor):
                 info_dict['formats'] = formats
                 info_dict['subtitles'] = subtitles
                 return info_dict
-
-        # Looking for http://schema.org/VideoObject
-        json_ld = self._search_json_ld(webpage, video_id, default={})
-        if json_ld.get('url') not in (url, None):
-            self.report_detected('JSON LD')
-            return merge_dicts({
-                '_type': 'url_transparent',
-                'url': smuggle_url(json_ld['url'], {'force_videoid': video_id, 'to_generic': True}),
-            }, json_ld, info_dict)
 
         def check_video(vurl):
             if YoutubeIE.suitable(vurl):
