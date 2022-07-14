@@ -5,6 +5,10 @@ from io import BytesIO, RawIOBase
 
 
 class LengthLimiter(RawIOBase):
+    """
+    A bytes IO to limit length to be read.
+    """
+
     def __init__(self, r: RawIOBase, size: int):
         self.r = r
         self.remaining = size
@@ -33,6 +37,13 @@ class LengthLimiter(RawIOBase):
 
 
 def read_harder(r, size):
+    """
+    Try to read from the stream.
+
+    @params r    byte stream to read
+    @params size Number of bytes to read in total
+    """
+
     retry = 0
     buf = b''
     while len(buf) < size and retry < 3:
@@ -47,29 +58,38 @@ def read_harder(r, size):
 
 
 def pack_be32(value: int) -> bytes:
+    """ Pack value to 4-byte-long bytes in the big-endian byte order """
     return struct.pack('>I', value)
 
 
 def pack_be64(value: int) -> bytes:
+    """ Pack value to 8-byte-long bytes in the big-endian byte order """
     return struct.pack('>L', value)
 
 
 def unpack_be32(value: bytes) -> int:
+    """ Convert 4-byte-long bytes in the big-endian byte order, to an integer value """
     return struct.unpack('>I', value)[0]
 
 
+def unpack_be64(value: bytes) -> int:
+    """ Convert 8-byte-long bytes in the big-endian byte order, to an integer value """
+    return struct.unpack('>L', value)[0]
+
+
 def unpack_ver_flags(value: bytes) -> Tuple[int, int]:
+    """
+    Unpack 4-byte-long value into version and flags.
+    @returns (version, flags)
+    """
+
     ver, up_flag, down_flag = struct.unpack('>BBH', value)
     return ver, (up_flag << 16 | down_flag)
 
 
-def unpack_be64(value: bytes) -> int:
-    return struct.unpack('>L', value)[0]
-
-
 # https://github.com/gpac/mp4box.js/blob/4e1bc23724d2603754971abc00c2bd5aede7be60/src/box.js#L13-L40
 MP4_CONTAINER_BOXES = ('moov', 'trak', 'edts', 'mdia', 'minf', 'dinf', 'stbl', 'mvex', 'moof', 'traf', 'vttc', 'tref', 'iref', 'mfra', 'meco', 'hnti', 'hinf', 'strk', 'strd', 'sinf', 'rinf', 'schi', 'trgr', 'udta', 'iprp', 'ipco')
-
+""" List of boxes that nests the other boxes """
 
 def parse_mp4_boxes(r: RawIOBase):
     """
