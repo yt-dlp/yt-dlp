@@ -48,8 +48,8 @@ class WeTvBaseIE(InfoExtractor):
             'platform': platform,
         }
 
-        return self._search_json(r'QZOutputJson=', self._download_webpage('https://play.wetv.vip/getvinfo', video_id,
-                                 query=query), 'api_response', video_id)
+        return self._search_json(r'QZOutputJson=', self._download_webpage(
+            'https://play.wetv.vip/getvinfo', video_id, query=query), 'api_response', video_id)
 
     def _get_webpage_metadata(self, webpage, video_id):
         return self._parse_json(
@@ -124,7 +124,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
                 self._merge_subtitles(subs, target=subtitles)
             else:
                 formats.append({
-                    'url': f"{video_format['url']}{video_response['fn']}?vkey={video_response['fvkey']}",
+                    'url': f'{video_format["url"]}{video_response["fn"]}?vkey={video_response["fvkey"]}',
                     'width': video_width,
                     'height': video_height,
                     'ext': 'mp4',
@@ -135,11 +135,11 @@ class WeTvEpisodeIE(WeTvBaseIE):
     def _extract_video_subtitles(self, api_response, subtitles_format):
         subtitles = {}
         for subtitle in traverse_obj(api_response, ('sfl', 'fi')):
-            subtitles[subtitle['lang'].lower()] = [{
+            subtitles.setdefault(subtitle['lang'].lower(), []).append({
                 'url': subtitle['url'],
                 'ext': subtitles_format,
                 'protocol': 'm3u8_native' if subtitles_format == 'vtt' else 'http'
-            }]
+            })
 
         return subtitles
 
@@ -155,8 +155,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             native_subtitles = self._extract_video_subtitles(api_response, subtitle_format)
 
             formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
-            self._merge_subtitles(native_subtitles, target=subtitles)
+            self._merge_subtitles(subs, native_subtitles, target=subtitles)
 
         self._sort_formats(formats)
         webpage_metadata = self._get_webpage_metadata(webpage, video_id)
@@ -203,7 +202,7 @@ class WeTvSeriesIE(WeTvBaseIE):
         webpage_metadata = self._get_webpage_metadata(webpage, series_id)
 
         episode_paths = (re.findall(r'<a[^>]+class="play-video__link"[^>]+href="(?P<path>[^"]+)', webpage)
-                         or [f"/{series_id}/{episode['vid']}" for episode in webpage_metadata.get('videoList')])
+                         or [f'/{series_id}/{episode["vid"]}' for episode in webpage_metadata.get('videoList')])
 
         return self.playlist_from_matches(
             episode_paths, series_id, traverse_obj(webpage_metadata, ('coverInfo', 'title')) or self._og_search_title(webpage),
