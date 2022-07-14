@@ -337,16 +337,6 @@ class GenericIE(InfoExtractor):
                 'skip_download': False,
             },
         },
-        {
-            'url': 'http://www.hodiho.fr/2013/02/regis-plante-sa-jeep.html',
-            'md5': '85b90ccc9d73b4acd9138d3af4c27f89',
-            'info_dict': {
-                'id': '13601338388002',
-                'ext': 'mp4',
-                'uploader': 'www.hodiho.fr',
-                'title': 'R\u00e9gis plante sa Jeep',
-            }
-        },
         # bandcamp page with custom domain
         {
             'add_ie': ['Bandcamp'],

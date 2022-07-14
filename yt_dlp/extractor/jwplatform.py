@@ -128,6 +128,19 @@ class JWPlayerEmbedIE(InfoExtractor):
                 'channel_id': 'UCUuzebc1yADDJEnOLA5P9xw',
             },
         },
+        {
+            # no title in jw player data
+            # XXX: FIXME, why is this failing?!?
+            'url': 'http://www.hodiho.fr/2013/02/regis-plante-sa-jeep.html',
+            'md5': '85b90ccc9d73b4acd9138d3af4c27f89',
+            'info_dict': {
+                'id': 'regis-plante-sa-jeep',
+                'ext': 'mp4',
+                'thumbnail': 'http://www.hodiho.fr/wp-content/files_flutter/1360133825image.jpg',
+                'title': 'hodiho » Blog Archive » Régis plante sa Jeep',
+
+            }
+        },
     ]
 
     def _extract_from_webpage(self, url, webpage):
@@ -150,6 +163,11 @@ class JWPlayerEmbedIE(InfoExtractor):
         try:
             info = self._parse_jwplayer_data(
                 jwplayer_data, video_id, require_title=False, base_url=url)
+            if not info.get('title'):
+                info['title'] = (
+                    self._og_search_title(webpage, default=None)
+                    or self._html_extract_title(webpage, 'video title', default=None)
+                    or self._generic_title(url))
             yield info
         except ExtractorError:
             # See https://github.com/ytdl-org/youtube-dl/pull/16735
