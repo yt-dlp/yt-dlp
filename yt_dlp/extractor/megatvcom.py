@@ -167,8 +167,7 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
                     'upload_date': '20211217',
                     'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/12/tsiodras-mitsotakis-1024x545.jpg',
                 },
-            }],
-            'params': {'playlist_items': '2-3'},  # FIXME
+            }]
         },
     ]
 

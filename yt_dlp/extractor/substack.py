@@ -58,7 +58,6 @@ class SubstackIE(InfoExtractor):
                 'uploader': 'Molly Movie Club',
                 'uploader_id': '839621',
             },
-            'params': {'playlist_items': '2'}  # FIXME
         },
         {
             'url': 'https://www.blockedandreported.org/p/episode-117-lets-talk-about-depp?s=r',
@@ -72,9 +71,7 @@ class SubstackIE(InfoExtractor):
                 'uploader': 'Blocked and Reported',
                 'uploader_id': '500230',
             },
-            'params': {'playlist_items': '2'}  # FIXME
         },
-
     ]
 
     @classmethod

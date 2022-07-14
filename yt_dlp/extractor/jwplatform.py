@@ -100,7 +100,6 @@ class JWPlayerEmbedIE(InfoExtractor):
 
     _WEBPAGE_TESTS = [
         # jwplayer YouTube
-        # FIXME: do not redirect to youtube
         {
             'url': 'http://media.nationalarchives.gov.uk/index.php/webinar-using-discovery-national-archives-online-catalogue/',
             'info_dict': {
@@ -130,7 +129,7 @@ class JWPlayerEmbedIE(InfoExtractor):
         },
         {
             # no title in jw player data
-            # XXX: FIXME, why is this failing?!?
+            # FIXME, why is this failing?!?
             'url': 'http://www.hodiho.fr/2013/02/regis-plante-sa-jeep.html',
             'md5': '85b90ccc9d73b4acd9138d3af4c27f89',
             'info_dict': {

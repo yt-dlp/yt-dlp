@@ -88,7 +88,7 @@ def generator(test_case, tname):
         if self.COMPLETED_TESTS.get(tname):
             return
         self.COMPLETED_TESTS[tname] = True
-        ie = yt_dlp.extractor.get_info_extractor(test_case['name'])()
+        ie = get_info_extractor(test_case['name'])()
         other_ies = [get_info_extractor(ie_key)() for ie_key in test_case.get('add_ie', [])]
         is_playlist = any(k.startswith('playlist') for k in test_case)
         test_cases = test_case.get(
@@ -127,6 +127,18 @@ def generator(test_case, tname):
 
         ydl = YoutubeDL(params, auto_init=False)
         ydl.add_default_info_extractors()
+
+        if '_webpage' in tname:
+            # HACK: limit extractors used for generic webpage extraction
+            # FIXME: when support for limiting extractors is added officially
+            import yt_dlp.extractor.generic
+
+            def _gen_extractors_override():
+                yield ie
+                yield from (get_info_extractor(ie_key) for ie_key in test_case.get('add_webpage_ie', []))
+
+            yt_dlp.extractor.generic.gen_extractor_classes = _gen_extractors_override
+
         finished_hook_called = set()
 
         def _hook(status):

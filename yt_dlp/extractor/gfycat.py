@@ -107,8 +107,7 @@ class GfycatIE(InfoExtractor):
                 'upload_date': '20220714',
                 'timestamp': int,  # current timestamp
             },
-            'playlist_count': 6,
-            'params': {'playlist_items': '1-6'}  # FIXME
+            'playlist_count': 6
         }, {
             # Multiple gfycat embeds, with uppercase "IFR" in urls
             'url': 'https://kkzz.kr/?vid=2295',

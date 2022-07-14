@@ -735,6 +735,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         # https://gettingthingsdone.com/workflowmap/
         # vimeo embed with check-password page protected by Referer header
     ]
+    # FIXME: webpage tests inheritance with _EMBED_REGEX is cooked
     _WEBPAGE_TESTS = [
         {
             # Non-standard Vimeo embed
@@ -752,11 +753,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'duration': 44,
                 'thumbnail': 'https://i.vimeocdn.com/video/784360853-7767b5f682557ad8f6638c8ebfd270a88c2103395113e59848deaf9e37966ef3-d_1280',
                 'license': 'by-nc-sa',
-
-            },
-            'params': {
-                'playlist_items': '2'  # FIXME temporary workaround for having another embed in playlist
-            },
+            }
         }
     ]
 

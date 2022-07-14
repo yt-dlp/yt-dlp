@@ -116,7 +116,6 @@ class MainStreamingIE(InfoExtractor):
                 'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
                 'duration': 1512
             },
-            'params': {'playlist_items': '5'},  # FIXME
         },
     ]
 
