@@ -3,7 +3,7 @@ import time
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_encrypt
-from ..utils import bytes_to_intlist, intlist_to_bytes, int_or_none, traverse_obj
+from ..utils import bytes_to_intlist, determine_ext, intlist_to_bytes, int_or_none, traverse_obj
 
 
 class WeTvBaseIE(InfoExtractor):
@@ -138,7 +138,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             subtitles.setdefault(subtitle['lang'].lower(), []).append({
                 'url': subtitle['url'],
                 'ext': subtitles_format,
-                'protocol': 'm3u8_native' if subtitles_format == 'vtt' else 'http'
+                'protocol': 'm3u8_native' if determine_ext(subtitle['url']) == 'm3u8' else 'http',
             })
 
         return subtitles
