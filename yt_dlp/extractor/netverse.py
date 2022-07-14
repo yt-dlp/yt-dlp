@@ -11,12 +11,6 @@ class NetverseBaseIE(InfoExtractor):
         'season': 'webseason_videos',
     }
 
-    def _get_slug(self, url=None, slug=None):
-        assert (url is None and slug) or (slug is None and url)
-        display_id = slug or self._match_valid_url(url).group('display_id')
-        assert (display_id is not None)
-        return display_id
-
     def _call_api(self, slug, endpoint, query={}, season_id='', display_id=None):
         json_data = self._download_json(
             f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[endpoint]}/{slug}/{season_id}',
@@ -132,7 +126,7 @@ class NetverseIE(NetverseBaseIE):
             '_type': 'url_transparent',
             'ie_key': DailymotionIE.ie_key(),
             'url': smuggle_url(videos['dailymotion_url'], {'query': {'embedder': 'https://www.netverse.id'}}),
-            'display_id': self._get_slug(url),
+            'display_id': display_id,
             'title': videos.get('title'),
             'season': videos.get('season_name'),
             'thumbnail': traverse_obj(videos, ('program_detail', 'thumbnail_image')),
