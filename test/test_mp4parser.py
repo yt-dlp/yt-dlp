@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import io
 
-from yt_dlp.mp4_parser import (
+from yt_dlp.postprocessor.mp4direct import (
     parse_mp4_boxes,
     write_mp4_boxes,
 )
