@@ -13,8 +13,7 @@ from ..utils import (
 
 class WikimediaIE(InfoExtractor):
     IE_NAME = 'wikimedia.org'
-    _API_BASE_URL = 'https://commons.wikimedia.org/'
-    _VALID_URL = r'https://commons.wikimedia.org/wiki/File:(?P<id>[^/]+)\.\w+'
+    _VALID_URL = r'https?://commons\.wikimedia\.org/wiki/File:(?P<id>[^/#?]+)\.\w+'
     _TESTS = [{
         'url': 'https://commons.wikimedia.org/wiki/File:Die_Temperaturkurve_der_Erde_(ZDF,_Terra_X)_720p_HD_50FPS.webm',
         'info_dict': {
@@ -49,7 +48,7 @@ class WikimediaIE(InfoExtractor):
             'title': remove_start(self._og_search_title(webpage), 'File:'),
             'license': self._html_search_regex(
                 r'licensed under(?: the)? (.+?) license',
-                get_element_by_class('licensetpl', webpage), 'license', fatal=False, default=None),
+                get_element_by_class('licensetpl', webpage), 'license', default=None),
             'uploader': self._html_search_regex(
                 r'>\s*Author\s*</td>\s*<td\b[^>]*>\s*([^<]+)\s*</td>', webpage, 'video author', default=None),
             'subtitles': subtitles,
