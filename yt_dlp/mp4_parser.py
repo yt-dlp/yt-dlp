@@ -91,6 +91,7 @@ def unpack_ver_flags(value: bytes) -> Tuple[int, int]:
 MP4_CONTAINER_BOXES = ('moov', 'trak', 'edts', 'mdia', 'minf', 'dinf', 'stbl', 'mvex', 'moof', 'traf', 'vttc', 'tref', 'iref', 'mfra', 'meco', 'hnti', 'hinf', 'strk', 'strd', 'sinf', 'rinf', 'schi', 'trgr', 'udta', 'iprp', 'ipco')
 """ List of boxes that nests the other boxes """
 
+
 def parse_mp4_boxes(r: RawIOBase):
     """
     Parses an ISO BMFF (which MP4 follows) and yields its boxes as a sequence.

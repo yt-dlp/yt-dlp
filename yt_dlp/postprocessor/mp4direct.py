@@ -102,7 +102,6 @@ class MP4FixupTimestampPP(PostProcessor):
                 continue
             yield (btype, content)
 
-
     def modify_mp4(self, src, dst, bmdt_offset, sdur_cutoff):
         with open(src, 'rb') as r, open(dst, 'wb') as w:
             write_mp4_boxes(w, self.transform(parse_mp4_boxes(r)))
