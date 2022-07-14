@@ -45,7 +45,7 @@ class TubeTuGrazBaseIE(InfoExtractor):
             episode_info, ('mediapackage', 'creators', 'creator'), 'dcCreator', default='')))
         return {
             'id': id,
-            'title': title or id,
+            'title': title,
             'creator': creator or None,
             'duration': traverse_obj(episode_info, ('mediapackage', 'duration'), 'dcExtent'),
             'series': series_title,
@@ -136,14 +136,10 @@ class TubeTuGrazIE(TubeTuGrazBaseIE):
             'md5': 'de0d854a56bf7318d2b693fe1adb89a5',
             'info_dict': {
                 'id': '2df6d787-e56a-428d-8ef4-d57f07eef238',
+                'title': 'TubeTuGraz video #2df6d787-e56a-428d-8ef4-d57f07eef238',
                 'ext': 'mp4',
-                'title': '2df6d787-e56a-428d-8ef4-d57f07eef238',
-                'episode': None,
-                'series': None,
-                'creator': None,
-                'duration': None,
-                'series_id': None,
-            }
+            },
+            'expected_warnings': ['Extractor failed to obtain "title"'],
         }
     ]
 
