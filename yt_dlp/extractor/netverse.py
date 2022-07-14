@@ -10,13 +10,13 @@ class NetverseBaseIE(InfoExtractor):
         'webseries': 'webseries',
         'season': 'webseason_videos',
     }
-    
+
     def _get_slug(self, url=None, slug=None):
         assert (url is None and slug) or (slug is None and url)
         display_id = slug or self._match_valid_url(url).group('display_id')
         assert (display_id is not None)
         return display_id
-    
+
     def _call_api(self, slug, endpoint, query={}, season_id='', display_id=None):
         json_data = self._download_json(
             f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[endpoint]}/{slug}/{season_id}',
@@ -161,8 +161,8 @@ class NetversePlaylistIE(NetverseBaseIE):
         'playlist_count': 203,
     }]
 
-    def parse_single_season_playlist(self, page_num, slug, endpoint, display_id=None, 
-                                    season_id=''):
+    def parse_single_season_playlist(self, page_num, slug, endpoint, display_id=None,
+                                     season_id=''):
 
         playlist_json = self._call_api(
             slug, endpoint, query={'page': page_num + 1}, season_id=season_id, display_id=display_id)
@@ -183,7 +183,7 @@ class NetversePlaylistIE(NetverseBaseIE):
     def _real_extract(self, url):
         playlist_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
         playlist_data = self._call_api(playlist_id, sites_type)
-        
+
         return self.playlist_result(
             self.parse_playlist(playlist_data['response'], playlist_id),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'slug')),
