@@ -41,11 +41,12 @@ class TubeTuGrazBaseIE(InfoExtractor):
 
         title = traverse_obj(episode_info, ('mediapackage', 'title'), 'dcTitle')
         series_title = traverse_obj(episode_info, ('mediapackage', 'seriestitle'))
+        creator = ', '.join(variadic(traverse_obj(
+            episode_info, ('mediapackage', 'creators', 'creator'), 'dcCreator', default='')))
         return {
             'id': id,
             'title': title,
-            'creator': ', '.join(variadic(
-                traverse_obj(episode_info, ('mediapackage', 'creators', 'creator'), 'dcCreator'))),
+            'creator': creator or None,
             'duration': traverse_obj(episode_info, ('mediapackage', 'duration'), 'dcExtent'),
             'series': series_title,
             'series_id': traverse_obj(episode_info, ('mediapackage', 'series'), 'dcIsPartOf'),
@@ -136,8 +137,8 @@ class TubeTuGrazIE(TubeTuGrazBaseIE):
         episode_data = self._download_json(
             self._API_EPISODE, video_id, query={'id': video_id, 'limit': 1}, note='Downloading episode metadata')
 
-        return self._extract_episode(episode_data['search-results']['result'])
-
+        episode_info = traverse_obj(episode_data, ('search-results', 'result'), default={ "id": video_id })
+        return self._extract_episode(episode_info)
 
 class TubeTuGrazSeriesIE(TubeTuGrazBaseIE):
     _VALID_URL = r'''(?x)
