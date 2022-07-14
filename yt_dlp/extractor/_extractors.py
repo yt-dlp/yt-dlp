@@ -1976,6 +1976,7 @@ from .videocampus_sachsen import (
 )
 from .videodetective import VideoDetectiveIE
 from .videofyme import VideofyMeIE
+from .videojs import VideoJSEmbedIE
 from .videomore import (
     VideomoreIE,
     VideomoreVideoIE,
