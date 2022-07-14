@@ -362,6 +362,11 @@ class InstagramIE(InstagramBaseIE):
 
     def _real_extract(self, url):
         video_id, url = self._match_valid_url(url).group('id', 'url')
+        webpage = self._download_webpage(
+            f'https://www.instagram.com/p/{video_id}/embed/',
+            video_id, note='Downloading embed webpage',
+            errnote='Requested content was not found, the content might be private')
+
         info = self._download_json(
             f'https://i.instagram.com/api/v1/media/{_id_to_pk(video_id)}/info/', video_id, fatal=False,
             headers={
@@ -374,17 +379,7 @@ class InstagramIE(InstagramBaseIE):
         if info:
             return self._extract_product(info['items'][0])
 
-        self.report_warning('The API is locked behind login. '
-                            'Trying with webpage (Some metadata might be missing)', video_id)
-        webpage, urlh = self._download_webpage_handle(url, video_id, errnote='Requested content was not found')
-
-        if 'www.instagram.com/accounts/login' in urlh.geturl():
-            self.report_warning('Main webpage is locked behind the login page. '
-                                'Trying with embed webpage (Some metadata might be missing)', video_id)
-            webpage = self._download_webpage(
-                f'https://www.instagram.com/p/{video_id}/embed/',
-                video_id, note='Downloading embed webpage',
-                errnote='Requested content was not found, the content might be private')
+        self.report_warning('The API is locked behind login (Using data from embed).', video_id)
 
         shared_data = self._parse_json(
             self._search_regex(
@@ -652,8 +647,8 @@ class InstagramStoryIE(InstagramBaseIE):
         story_info, wh = self._download_webpage_handle(url, story_id, errnote='Can\'t fetch content (Note that some metadata might be missing)')
         if 'www.instagram.com/accounts/login' in wh.geturl():
             self.raise_login_required('You need to log in to access this content')
-        user_info = self._parse_json(
-            self._search_regex(r'"user":\s*({.+?}),', story_info, 'user info', fatal=False),
+        user_info = self._search_json(
+            r'"user":', story_info, 'user info',
             story_id, fatal=False)
         if not user_info:
             self.raise_login_required('This content is unreachable')
