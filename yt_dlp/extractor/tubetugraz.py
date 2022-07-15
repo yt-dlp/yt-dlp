@@ -157,7 +157,65 @@ class TubeTuGrazSeriesIE(TubeTuGrazBaseIE):
         https?://tube\.tugraz\.at/paella/ui/browse\.html\?series=
         (?P<id>[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})
     '''
-    _TESTS = []  # TODO: Add tests
+    _TESTS = [{
+        'url': 'https://tube.tugraz.at/paella/ui/browse.html?series=0e6351b7-c372-491e-8a49-2c9b7e21c5a6',
+        'id': '0e6351b7-c372-491e-8a49-2c9b7e21c5a6',
+        'info_dict': {
+            'id': '0e6351b7-c372-491e-8a49-2c9b7e21c5a6',
+            'title': '[209351] Strassenwesen',
+        },
+        'playlist': [
+            {
+                'info_dict': {
+                    'id': 'ee17ce5d-34e2-48b7-a76a-fed148614e11',
+                    'series_id': '0e6351b7-c372-491e-8a49-2c9b7e21c5a6',
+                    'ext': 'mp4',
+                    'title': '#4 Detailprojekt',
+                    'episode': '#4 Detailprojekt',
+                    'series': '[209351] Strassenwesen',
+                    'creator': 'Neuhold R',
+                    'duration': 6127024,
+                }
+            },
+            {
+                'info_dict': {
+                    'id': '87350498-799a-44d3-863f-d1518a98b114',
+                    'series_id': '0e6351b7-c372-491e-8a49-2c9b7e21c5a6',
+                    'ext': 'mp4',
+                    'title': '#3 Generelles Projekt',
+                    'episode': '#3 Generelles Projekt',
+                    'series': '[209351] Strassenwesen',
+                    'creator': 'Neuhold R',
+                    'duration': 5374422,
+                }
+            },
+            {
+                'info_dict': {
+                    'id': '778599ea-489e-4189-9e05-3b4888e19bcd',
+                    'series_id': '0e6351b7-c372-491e-8a49-2c9b7e21c5a6',
+                    'ext': 'mp4',
+                    'title': '#2 Vorprojekt',
+                    'episode': '#2 Vorprojekt',
+                    'series': '[209351] Strassenwesen',
+                    'creator': 'Neuhold R',
+                    'duration': 5566404,
+                }
+            },
+            {
+                'info_dict': {
+                    'id': '75e4c71c-d99d-4e56-b0e6-4f2bcdf11f29',
+                    'series_id': '0e6351b7-c372-491e-8a49-2c9b7e21c5a6',
+                    'ext': 'mp4',
+                    'title': '#1 Variantenstudium',
+                    'episode': '#1 Variantenstudium',
+                    'series': '[209351] Strassenwesen',
+                    'creator': 'Neuhold R',
+                    'duration': 5420200,
+                }
+            }
+        ],
+        'min_playlist_count': 4
+    }]
 
     def _real_extract(self, url):
         id = self._match_id(url)
