@@ -5410,6 +5410,10 @@ def determine_file_encoding(data):
         if data.startswith(bom):
             return enc, len(bom)
 
+    # strip off all null bytes to match even when UTF-16 or UTF-32 is used
+    # endians don't matter
+    data = data.replace(b'\0', b'')
+
     PREAMBLES = [
         # "# -*- coding: utf-8 -*-"
         # "# coding: utf-8"
