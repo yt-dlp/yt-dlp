@@ -27,12 +27,12 @@ _ENCODING_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345678
 
 def _pk_to_id(id):
     """Source: https://stackoverflow.com/questions/24437823/getting-instagram-post-url-from-media-id"""
-    return encode_base_n(int(id.split('_')[0]), n=len(_ENCODING_CHARS), table=_ENCODING_CHARS)
+    return encode_base_n(int(id.split('_')[0]), table=_ENCODING_CHARS)
 
 
 def _id_to_pk(shortcode):
     """Covert a shortcode to a numeric value"""
-    return decode_base_n(shortcode[:11], n=len(_ENCODING_CHARS), table=_ENCODING_CHARS)
+    return decode_base_n(shortcode[:11], table=_ENCODING_CHARS)
 
 
 class InstagramBaseIE(InfoExtractor):
@@ -398,13 +398,10 @@ class InstagramIE(InstagramBaseIE):
             f'https://www.instagram.com/p/{video_id}/embed/', video_id,
             note='Downloading embed webpage', fatal=False)
         if not webpage:
-            raise ExtractorError('Requested content was not found, the content might be private', expected=True)
+            self.raise_login_required('Requested content was not found, the content might be private')
 
-        additional_data = self._parse_json(
-            self._search_regex(
-                r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*({.+?})\s*\);',
-                webpage, 'additional data', default='{}'),
-            video_id, fatal=False)
+        additional_data = self._search_json(
+            r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
         product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
         if product_item:
             product_item.update(general_info)
@@ -651,12 +648,10 @@ class InstagramStoryIE(InstagramBaseIE):
     def _real_extract(self, url):
         username, story_id = self._match_valid_url(url).groups()
 
-        story_info, wh = self._download_webpage_handle(url, story_id, errnote='Can\'t fetch content (Note that some metadata might be missing)')
+        story_info, wh = self._download_webpage_handle(url, story_id)
         if 'www.instagram.com/accounts/login' in wh.geturl():
             self.raise_login_required('You need to log in to access this content')
-        user_info = self._search_json(
-            r'"user":', story_info, 'user info',
-            story_id, fatal=False)
+        user_info = self._search_json(r'"user":', story_info, 'user info', story_id, fatal=False)
         if not user_info:
             self.raise_login_required('This content is unreachable')
         user_id = user_info.get('id')
