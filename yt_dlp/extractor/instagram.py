@@ -654,15 +654,16 @@ class InstagramStoryIE(InstagramBaseIE):
         user_id = user_info.get('id')
 
         story_info_url = user_id if username != 'highlights' else f'highlight:{story_id}'
-        video_data = self._download_json(f'https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={story_info_url}', story_id, headers={
-            'X-IG-App-ID': 936619743392459,
-            'X-ASBD-ID': 198387,
-            'X-IG-WWW-Claim': 0,
-        }, errnote=False, fatal=False)
-        if not video_data:
+        videos = traverse_obj(self._download_json(
+            f'https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={story_info_url}',
+            story_id, errnote=False, fatal=False, headers={
+                'X-IG-App-ID': 936619743392459,
+                'X-ASBD-ID': 198387,
+                'X-IG-WWW-Claim': 0,
+            }), 'reels')
+        if not videos:
             self.raise_login_required('You need to log in to access this content')
 
-        videos = video_data.get('reels')
         full_name = traverse_obj(videos, (f'highlight:{story_id}', 'user', 'full_name'), (str(user_id), 'user', 'full_name'))
         story_title = traverse_obj(videos, (f'highlight:{story_id}', 'title'))
         if not story_title:
