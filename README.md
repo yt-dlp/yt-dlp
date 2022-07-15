@@ -1161,6 +1161,19 @@ Note that options in configuration file are just the same options aka switches u
 
 You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of home, user, and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
 
+### Specifying encoding of config files
+
+By default, config files are read by UTF-8.
+If you saved your config file in a different encoding than that, you may write any of these to the first line of the file:
+
+1. `# -*- coding: ENCODING -*-` (e.g. `# -*- coding: gbk -*-`)
+1. `# coding: ENCODING` (e.g. `# coding: shift-jis`)
+1. `# vi: set fileencoding=ENCODING` (e.g. `# vi: set fileencoding=euc-kr`)
+
+There must not be any characters before that, including spaces.
+
+To use UTF-32 and UTF-16, save your file with BOM enabled. The method above cannot be used in this case.
+
 ### Authentication with `.netrc` file
 
 You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every yt-dlp execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per extractor basis. For that you will need to create a `.netrc` file in `--netrc-location` and restrict permissions to read/write by only you:
