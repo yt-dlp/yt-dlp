@@ -1172,7 +1172,7 @@ If you saved your config file in a different encoding than that, you may write a
 
 There must not be any characters before that, including spaces.
 
-To use UTF-32 and UTF-16, save your file with BOM enabled. The method above cannot be used in this case.
+If you have BOM enabled, it will be used instead.
 
 ### Authentication with `.netrc` file
 
