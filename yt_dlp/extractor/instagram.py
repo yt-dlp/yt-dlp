@@ -377,8 +377,8 @@ class InstagramIE(InstagramBaseIE):
                 'Referer': 'https://www.instagram.com',
                 'x-ig-app-id': '936619743392459',
             })
-        general_info = traverse_obj(general_info, ('data', 'shortcode_media')) or {}
-        if not general_info:
+        media = traverse_obj(general_info, ('data', 'shortcode_media')) or {}
+        if not media:
             self.report_warning('General metadata extraction failed', video_id)
 
         info = self._download_json(
@@ -391,8 +391,8 @@ class InstagramIE(InstagramBaseIE):
                 'x-ig-app-id': '936619743392459',
             })
         if info:
-            general_info.update(info['items'][0])
-            return self._extract_product(general_info)
+            media.update(info['items'][0])
+            return self._extract_product(media)
 
         webpage = self._download_webpage(
             f'https://www.instagram.com/p/{video_id}/embed/', video_id,
@@ -404,12 +404,11 @@ class InstagramIE(InstagramBaseIE):
             r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
         product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
         if product_item:
-            general_info.update(product_item)
-            return self._extract_product(general_info)
+            media.update(product_item)
+            return self._extract_product(media)
 
-        media = traverse_obj(additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {}
-        general_info.update(media)
-        media = general_info
+        media.update(traverse_obj(
+            additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {})
 
         username = traverse_obj(media, ('owner', 'username')) or self._search_regex(
             r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'username', fatal=False)
