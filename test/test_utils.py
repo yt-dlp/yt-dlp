@@ -1850,5 +1850,6 @@ Line 1
             b'#\0 \0c\0o\0d\0i\0n\0g\0:\0 \0u\0t\0f\0-\x001\x006\0-\0l\0e\0'),
             ('utf-16-le', 0))
 
+
 if __name__ == '__main__':
     unittest.main()
