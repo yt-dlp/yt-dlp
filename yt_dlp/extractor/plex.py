@@ -3,7 +3,7 @@ from ..utils import ExtractorError, determine_ext, int_or_none, traverse_obj
 
 
 class PlexWatchIE(InfoExtractor):
-    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?:\w+)/(?P<id>[\w-]+)[^?/#&]+'
+    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?:\w+)/(?P<id>[\w-]+)[?/#&]?'
     _TESTS = [{
         'url': 'https://watch.plex.tv/movie/bowery-at-midnight',
         'info_dict': {
