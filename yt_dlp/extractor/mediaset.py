@@ -20,10 +20,10 @@ class MediasetIE(ThePlatformBaseIE):
                     (?:
                         mediaset:|
                         https?://
-                            (?:(?:www|static3)\.)?mediasetplay\.mediaset\.it/
+                            (?:\w+\.)+mediaset\.it/
                             (?:
                                 (?:video|on-demand|movie)/(?:[^/]+/)+[^/]+_|
-                                player/index\.html\?.*?\bprogramGuid=
+                                player/(?:v\d+/)?index\.html\?.*?\bprogramGuid=
                             )
                     )(?P<id>[0-9A-Z]{16,})
                     '''
@@ -159,6 +159,12 @@ class MediasetIE(ThePlatformBaseIE):
     }, {
         'url': 'https://www.mediasetplay.mediaset.it/movie/herculeslaleggendahainizio/hercules-la-leggenda-ha-inizio_F305927501000102',
         'only_matching': True,
+    }, {
+        'url': 'https://mediasetinfinity.mediaset.it/video/braveandbeautiful/episodio-113_F310948005000402',
+        'only_matching': True,
+    }, {
+        'url': 'https://static3.mediasetplay.mediaset.it/player/v2/index.html?partnerId=wittytv&configId=&programGuid=FD00000000153323',
+        'only_matching': True,
     }]
 
     @staticmethod
@@ -286,7 +292,7 @@ class MediasetShowIE(MediasetIE):
     _VALID_URL = r'''(?x)
                     (?:
                         https?://
-                            (?:(?:www|static3)\.)?mediasetplay\.mediaset\.it/
+                            (\w+\.)+mediaset\.it/
                             (?:
                                 (?:fiction|programmi-tv|serie-tv|kids)/(?:.+?/)?
                                     (?:[a-z-]+)_SE(?P<id>\d{12})

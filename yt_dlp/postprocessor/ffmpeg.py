@@ -347,6 +347,7 @@ class FFmpegPostProcessor(PostProcessor):
         _, stderr, returncode = Popen.run(
             cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         if returncode not in variadic(expected_retcodes):
+            self.write_debug(stderr)
             raise FFmpegPostProcessorError(stderr.strip().splitlines()[-1])
         for out_path, _ in output_path_opts:
             if out_path:
@@ -585,7 +586,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
         filename = info['filepath']
 
-        # Disabled temporarily. There needs to be a way to overide this
+        # Disabled temporarily. There needs to be a way to override this
         # in case of duration actually mismatching in extractor
         # See: https://github.com/yt-dlp/yt-dlp/issues/1870, https://github.com/yt-dlp/yt-dlp/issues/1385
         '''
@@ -724,11 +725,10 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 value = value.replace('\0', '')  # nul character cannot be passed in command line
                 metadata['common'].update({meta_f: value for meta_f in variadic(meta_list)})
 
-        # See [1-4] for some info on media metadata/metadata supported
-        # by ffmpeg.
-        # 1. https://kdenlive.org/en/project/adding-meta-data-to-mp4-video/
-        # 2. https://wiki.multimedia.cx/index.php/FFmpeg_Metadata
-        # 3. https://kodi.wiki/view/Video_file_tagging
+        # Info on media metadata/metadata supported by ffmpeg:
+        # https://wiki.multimedia.cx/index.php/FFmpeg_Metadata
+        # https://kdenlive.org/en/project/adding-meta-data-to-mp4-video/
+        # https://kodi.wiki/view/Video_file_tagging
 
         add('title', ('track', 'title'))
         add('date', 'upload_date')

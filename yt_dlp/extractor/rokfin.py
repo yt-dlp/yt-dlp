@@ -110,7 +110,7 @@ class RokfinIE(InfoExtractor):
                 self.raise_login_required('This video is only available to premium users', True, method='cookies')
             elif scheduled:
                 self.raise_no_formats(
-                    f'Stream is offline; sheduled for {datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
+                    f'Stream is offline; scheduled for {datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
                     video_id=video_id, expected=True)
         self._sort_formats(formats)
 
@@ -360,7 +360,7 @@ class RokfinSearchIE(SearchInfoExtractor):
     _db_access_key = None
 
     def _real_initialize(self):
-        self._db_url, self._db_access_key = self._downloader.cache.load(self.ie_key(), 'auth', default=(None, None))
+        self._db_url, self._db_access_key = self.cache.load(self.ie_key(), 'auth', default=(None, None))
         if not self._db_url:
             self._get_db_access_credentials()
 
@@ -405,6 +405,6 @@ class RokfinSearchIE(SearchInfoExtractor):
 
             self._db_url = url_or_none(f'{auth_data["ENDPOINT_BASE"]}/api/as/v1/engines/rokfin-search/search.json')
             self._db_access_key = f'Bearer {auth_data["SEARCH_KEY"]}'
-            self._downloader.cache.store(self.ie_key(), 'auth', (self._db_url, self._db_access_key))
+            self.cache.store(self.ie_key(), 'auth', (self._db_url, self._db_access_key))
             return
         raise ExtractorError('Unable to extract access credentials')

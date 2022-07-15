@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import optparse
 import os.path
 import re
@@ -23,7 +24,7 @@ yt\-dlp \- A youtube-dl fork with additional features and patches
 
 def main():
     parser = optparse.OptionParser(usage='%prog OUTFILE.md')
-    options, args = parser.parse_args()
+    _, args = parser.parse_args()
     if len(args) != 1:
         parser.error('Expected an output filename')
 
