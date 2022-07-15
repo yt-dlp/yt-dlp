@@ -39,6 +39,7 @@ from yt_dlp.utils import (
     datetime_from_str,
     detect_exe_version,
     determine_ext,
+    determine_file_encoding,
     dfxp2srt,
     dict_get,
     encode_base_n,
@@ -1821,6 +1822,33 @@ Line 1
         finally:
             with contextlib.suppress(OSError):
                 os.remove(FILE)
+
+    def test_determine_file_encoding(self):
+        self.assertEqual(determine_file_encoding(b''), (None, 0))
+        self.assertEqual(determine_file_encoding(b'--verbose -x --audio-format mkv\n'), (None, 0))
+
+        self.assertEqual(determine_file_encoding(b'\xef\xbb\xbf'), ('utf-8', 3))
+        self.assertEqual(determine_file_encoding(b'\x00\x00\xfe\xff'), ('utf-32-be', 4))
+        self.assertEqual(determine_file_encoding(b'\xff\xfe'), ('utf-16-le', 2))
+
+        self.assertEqual(determine_file_encoding(b'# -*- coding: cp932 -*-'), ('cp932', 0))
+        self.assertEqual(determine_file_encoding(b'# -*- coding: cp932 -*-\n'), ('cp932', 0))
+        self.assertEqual(determine_file_encoding(b'# -*- coding: cp932 -*-\r\n'), ('cp932', 0))
+
+        self.assertEqual(determine_file_encoding(b'# coding: utf-8\n--verbose'), ('utf-8', 0))
+        self.assertEqual(determine_file_encoding(b'# coding: someencodinghere-12345\n--verbose'), ('someencodinghere-12345', 0))
+
+        self.assertEqual(determine_file_encoding(b'# vi: set fileencoding=cp932'), ('cp932', 0))
+        self.assertEqual(determine_file_encoding(b'# vi: set fileencoding=cp932\n'), ('cp932', 0))
+        self.assertEqual(determine_file_encoding(b'# vi: set fileencoding=cp932\r\n'), ('cp932', 0))
+        self.assertEqual(determine_file_encoding(b'# vi: set fileencoding=cp932,euc-jp\r\n'), ('cp932', 0))
+
+        self.assertEqual(determine_file_encoding(
+            b'\0\0\0#\0\0\0 \0\0\0c\0\0\0o\0\0\0d\0\0\0i\0\0\0n\0\0\0g\0\0\0:\0\0\0 \0\0\0u\0\0\0t\0\0\0f\0\0\0-\0\0\x003\0\0\x002\0\0\0-\0\0\0b\0\0\0e'),
+            ('utf-32-be', 0))
+        self.assertEqual(determine_file_encoding(
+            b'#\0 \0c\0o\0d\0i\0n\0g\0:\0 \0u\0t\0f\0-\x001\x006\0-\0l\0e\0'),
+            ('utf-16-le', 0))
 
 
 if __name__ == '__main__':
