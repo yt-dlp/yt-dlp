@@ -1163,7 +1163,7 @@ You can use `--ignore-config` if you want to disable all configuration files for
 
 ### Specifying encoding of config files
 
-By default, config files are read by UTF-8.
+By default, config files are read in the encoding from system locale.
 If you saved your config file in a different encoding than that, you may write any of these to the first line of the file:
 
 1. `# -*- coding: ENCODING -*-` (e.g. `# -*- coding: gbk -*-`)
