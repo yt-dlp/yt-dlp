@@ -369,7 +369,7 @@ class InstagramIE(InstagramBaseIE):
         general_info = self._download_json(
             f'https://www.instagram.com/graphql/query/?query_hash=9f8827793ef34641b2fb195d4d41151c'
             f'&variables=%7B"shortcode":"{video_id}",'
-            '"parent_comment_count":10,"has_threaded_comments":true}', video_id, fatal=False,
+            '"parent_comment_count":10,"has_threaded_comments":true}', video_id, fatal=False, errnote=False,
             headers={
                 'Accept': '*',
                 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
@@ -377,14 +377,13 @@ class InstagramIE(InstagramBaseIE):
                 'Referer': 'https://www.instagram.com',
                 'x-ig-app-id': '936619743392459',
             })
-        general_info = traverse_obj(general_info, ('data', 'shortcode_media'))
+        general_info = traverse_obj(general_info, ('data', 'shortcode_media')) or {}
         if not general_info:
-            general_info = {}
-            self.report_warning('General metadata extraction failed.', video_id)
+            self.report_warning('General metadata extraction failed', video_id)
 
         info = self._download_json(
-            f'https://i.instagram.com/api/v1/media/{_id_to_pk(video_id)}/info/', video_id, fatal=False,
-            headers={
+            f'https://i.instagram.com/api/v1/media/{_id_to_pk(video_id)}/info/', video_id,
+            fatal=False, note='Downloading video info', errnote=False, headers={
                 'Accept': '*',
                 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
                 'Authority': 'www.instagram.com',
@@ -395,12 +394,11 @@ class InstagramIE(InstagramBaseIE):
             general_info.update(info['items'][0])
             return self._extract_product(general_info)
 
-        self.report_warning('The API is locked behind login (Using data from embed).', video_id)
-
         webpage = self._download_webpage(
-            f'https://www.instagram.com/p/{video_id}/embed/',
-            video_id, note='Downloading embed webpage',
-            errnote='Requested content was not found, the content might be private')
+            f'https://www.instagram.com/p/{video_id}/embed/', video_id,
+            note='Downloading embed webpage', fatal=False)
+        if not webpage:
+            raise ExtractorError('Requested content was not found, the content might be private', expected=True)
 
         additional_data = self._parse_json(
             self._search_regex(
