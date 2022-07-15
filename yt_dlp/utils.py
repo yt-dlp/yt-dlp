@@ -5423,7 +5423,7 @@ def determine_file_encoding(data):
             continue
         # preambles aren't skipped since they're just ignored when reading as config
         return mobj.group('encoding').decode(), 0
-    
+
     return None, 0
 
 
