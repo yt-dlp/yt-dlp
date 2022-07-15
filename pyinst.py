@@ -65,7 +65,7 @@ def exe(onedir):
     name = '_'.join(filter(None, (
         'yt-dlp',
         {'win32': '', 'darwin': 'macos'}.get(OS_NAME, OS_NAME),
-        MACHINE == 'AMD64' and 'x86_64' or MACHINE
+        ('i' in MACHINE and '86' in MACHINE and 'x86') or (MACHINE != 'x86_64' and MACHINE != 'amd64' and MACHINE)
     )))
     return name, ''.join(filter(None, (
         'dist/',
