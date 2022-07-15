@@ -3485,6 +3485,7 @@ def age_restricted(content_limit, age_limit):
     return age_limit < content_limit
 
 
+# List of known byte-order-marks (BOM)
 BOMS = [
     (b'\xef\xbb\xbf', 'utf-8'),
     (b'\x00\x00\xfe\xff', 'utf-32-be'),
@@ -3492,7 +3493,6 @@ BOMS = [
     (b'\xff\xfe', 'utf-16-le'),
     (b'\xfe\xff', 'utf-16-be'),
 ]
-""" List of known byte-order-marks (BOM) """
 
 
 def is_html(first_bytes):
@@ -5398,37 +5398,20 @@ def read_stdin(what):
 
 def determine_file_encoding(data):
     """
-    From the first 512 bytes of a given file,
-    it tries to detect the encoding to be used to read as text.
-
+    Detect the text encoding used
     @returns (encoding, bytes to skip)
     """
 
+    # BOM marks are given priority over declarations
     for bom, enc in BOMS:
-        # matching BOM beats any declaration
-        # BOMs are skipped to prevent any errors
         if data.startswith(bom):
             return enc, len(bom)
 
-    # strip off all null bytes to match even when UTF-16 or UTF-32 is used
-    # endians don't matter
+    # Strip off all null bytes to match even when UTF-16 or UTF-32 is used.
+    # We ignore the endianness to get a good enough match
     data = data.replace(b'\0', b'')
-
-    PREAMBLES = [
-        # "# -*- coding: utf-8 -*-"
-        # "# coding: utf-8"
-        rb'(?m)^#(?:\s+-\*-)?\s*coding\s*:\s*(?P<encoding>\S+)(?:\s+-\*-)?\s*$',
-        # "# vi: set fileencoding=utf-8"
-        rb'^#\s+vi\s*:\s+set\s+fileencoding=(?P<encoding>[^\s,]+)'
-    ]
-    for pb in PREAMBLES:
-        mobj = re.match(pb, data)
-        if not mobj:
-            continue
-        # preambles aren't skipped since they're just ignored when reading as config
-        return mobj.group('encoding').decode(), 0
-
-    return None, 0
+    mobj = re.match(rb'(?m)^#\s*coding\s*:\s*(\S+)\s*$', data)
+    return mobj.group(1).decode() if mobj else None, 0
 
 
 class Config:

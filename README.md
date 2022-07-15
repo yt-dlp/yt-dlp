@@ -1161,14 +1161,11 @@ Note that options in configuration file are just the same options aka switches u
 
 You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of home, user, and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
 
-### Specifying encoding of config files
+### Config file encoding
 
-By default, config files are read in the encoding from system locale.
-If you saved your config file in a different encoding than that, you may write `# coding: ENCODING` to the beginning of the file. (e.g. `# coding: shift-jis`)
+The config files are decoded according to the UTF BOM if present, and in the encoding from system locale otherwise.
 
-There must not be any characters before that, including spaces.
-
-If you have BOM enabled, it will be used instead.
+If you want your file to be decoded differently, add `# coding: ENCODING` to the beginning of the file (e.g. `# coding: shift-jis`). There must be no characters before that, even spaces or BOM.
 
 ### Authentication with `.netrc` file
 
