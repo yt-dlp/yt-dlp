@@ -404,11 +404,12 @@ class InstagramIE(InstagramBaseIE):
             r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
         product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
         if product_item:
-            product_item.update(general_info)
-            return self._extract_product(product_item)
-        media = traverse_obj(additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {}
+            general_info.update(product_item)
+            return self._extract_product(general_info)
 
-        media.update(general_info)
+        media = traverse_obj(additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {}
+        general_info.update(media)
+        media = general_info
 
         username = traverse_obj(media, ('owner', 'username')) or self._search_regex(
             r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'username', fatal=False)
@@ -647,22 +648,22 @@ class InstagramStoryIE(InstagramBaseIE):
 
     def _real_extract(self, url):
         username, story_id = self._match_valid_url(url).groups()
-
-        story_info, wh = self._download_webpage_handle(url, story_id)
-        if 'www.instagram.com/accounts/login' in wh.geturl():
-            self.raise_login_required('You need to log in to access this content')
+        story_info = self._download_webpage(url, story_id)
         user_info = self._search_json(r'"user":', story_info, 'user info', story_id, fatal=False)
         if not user_info:
             self.raise_login_required('This content is unreachable')
         user_id = user_info.get('id')
 
         story_info_url = user_id if username != 'highlights' else f'highlight:{story_id}'
-        videos = self._download_json(f'https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={story_info_url}', story_id, headers={
+        video_data = self._download_json(f'https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={story_info_url}', story_id, headers={
             'X-IG-App-ID': 936619743392459,
             'X-ASBD-ID': 198387,
             'X-IG-WWW-Claim': 0,
-        })['reels']
+        }, errnote=False, fatal=False)
+        if not video_data:
+            self.raise_login_required('You need to log in to access this content')
 
+        videos = video_data.get('reels')
         full_name = traverse_obj(videos, (f'highlight:{story_id}', 'user', 'full_name'), (str(user_id), 'user', 'full_name'))
         story_title = traverse_obj(videos, (f'highlight:{story_id}', 'title'))
         if not story_title:
