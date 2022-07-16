@@ -6,7 +6,11 @@ import sys
 
 from PyInstaller.__main__ import run as run_pyinstaller
 
-OS_NAME, ARCH = sys.platform, platform.architecture()[0][:2]
+OS_NAME, MACHINE = sys.platform, platform.machine()
+if MACHINE in ('x86_64', 'amd64'):
+    MACHINE = ''
+elif 'i' in MACHINE and '86' in MACHINE:
+    MACHINE = 'x86'
 
 
 def main():
@@ -18,7 +22,7 @@ def main():
         opts.append('--onefile')
 
     name, final_file = exe(onedir)
-    print(f'Building yt-dlp v{version} {ARCH}bit for {OS_NAME} with options {opts}')
+    print(f'Building yt-dlp v{version} for {OS_NAME} {platform.machine()} with options {opts}')
     print('Remember to update the version using  "devscripts/update-version.py"')
     if not os.path.isfile('yt_dlp/extractor/lazy_extractors.py'):
         print('WARNING: Building without lazy_extractors. Run  '
@@ -47,6 +51,7 @@ def parse_options():
     # Compatibility with older arguments
     opts = sys.argv[1:]
     if opts[0:1] in (['32'], ['64']):
+        ARCH = platform.architecture()[0][:2]
         if ARCH != opts[0]:
             raise Exception(f'{opts[0]}bit executable cannot be built on a {ARCH}bit system')
         opts = opts[1:]
@@ -65,7 +70,7 @@ def exe(onedir):
     name = '_'.join(filter(None, (
         'yt-dlp',
         {'win32': '', 'darwin': 'macos'}.get(OS_NAME, OS_NAME),
-        ARCH == '32' and 'x86'
+        MACHINE
     )))
     return name, ''.join(filter(None, (
         'dist/',
@@ -122,7 +127,7 @@ def windows_set_version(exe, version):
     )
 
     version_list = version_to_list(version)
-    suffix = '_x86' if ARCH == '32' else ''
+    suffix = MACHINE and f'_{MACHINE}'
     SetVersion(exe, VSVersionInfo(
         ffi=FixedFileInfo(
             filevers=version_list,
@@ -136,9 +141,9 @@ def windows_set_version(exe, version):
         ),
         kids=[
             StringFileInfo([StringTable('040904B0', [
-                StringStruct('Comments', 'yt-dlp%s Command Line Interface.' % suffix),
+                StringStruct('Comments', 'yt-dlp%s Command Line Interface' % suffix),
                 StringStruct('CompanyName', 'https://github.com/yt-dlp'),
-                StringStruct('FileDescription', 'yt-dlp%s' % (' (32 Bit)' if ARCH == '32' else '')),
+                StringStruct('FileDescription', 'yt-dlp%s' % (MACHINE and f' ({MACHINE})')),
                 StringStruct('FileVersion', version),
                 StringStruct('InternalName', f'yt-dlp{suffix}'),
                 StringStruct('LegalCopyright', 'pukkandan.ytdlp@gmail.com | UNLICENSE'),
