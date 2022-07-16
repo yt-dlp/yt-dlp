@@ -1292,7 +1292,7 @@ from .playsuisse import PlaySuisseIE
 from .playtvak import PlaytvakIE
 from .playvid import PlayvidIE
 from .playwire import PlaywireIE
-from .plex import PlexWatchIE
+from .plex import PlexWatchIE, PlexWatchEpisodeIE
 from .plutotv import PlutoTVIE
 from .pluralsight import (
     PluralsightIE,

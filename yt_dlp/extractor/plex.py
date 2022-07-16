@@ -7,6 +7,7 @@ class PlexWatchBaseIE(InfoExtractor):
         'movie': 'https://vod.provider.plex.tv',
         'live': 'https://epg.provider.plex.tv/channels/' # add /tune at the  end 
     }
+    _PLEX_TOKEN = 'NytaXzMexGQ9-xW9yDjy' # change this if not work
     
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type):
         formats, subtitles = [], {}
@@ -41,8 +42,6 @@ class PlexWatchIE(PlexWatchBaseIE):
         }
     }]
     
-    _PLEX_TOKEN = 'NytaXzMexGQ9-xW9yDjy' # change this if not work
-    
     def _real_extract(self, url):
         sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
         webpage = self._download_webpage(url, display_id)
@@ -69,7 +68,59 @@ class PlexWatchIE(PlexWatchBaseIE):
             'title': traverse_obj(nextjs_json, ('metadataItem', 'title')),
             'description': traverse_obj(nextjs_json, ('metadataItem', 'summary')),
             'thumbnail': traverse_obj(nextjs_json, ('metadataItem', 'thumb')),
-            'duration': int_or_none(traverse_obj(nextjs_json, ('metadataItem', 'duration')), 1000),
-            
+            'duration': int_or_none(traverse_obj(nextjs_json, ('metadataItem', 'duration')), 1000),   
+        }
+        
+        
+class PlexWatchEpisodeIE(PlexWatchBaseIE):
+    IE_NAME = 'PlexWatch:episode'
+    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?P<sites_type>movie|show)/(?P<id>[\w-]+)/season/\d+/episode/\d+'
+    _TESTS = [{
+        'url': 'https://watch.plex.tv/show/popeye-the-sailor/season/1/episode/1',
+        'info_dict': {
+            'id': '5ebdfbd4808e8b0040551a4c',
+            'ext': 'mp4',
+            'display_id': 'popeye-the-sailor',
+            'description': 'md5:d3fcad5bd678b43428f93944b66c2752',
+            'thumbnail': 'https://image.tmdb.org/t/p/original/r3SwiK3IANuAAvb1a0oShu8HKcV.jpg',
+            'title': 'Barbecue for Two',
+        }
+    }, {
+        'url': 'https://watch.plex.tv/show/a-cooks-tour-2/season/1/episode/3',
+        'info_dict': {
+            'id': '624c6c71d8d423a47b4fa7a7',
+            'ext': 'mp4',
+            'description': 'md5:54aec1794285c7e977e87d726439b01f',
+            'display_id': 'a-cooks-tour-2',
+            'title': 'Cobra Heart, Food That Makes You Manly',
+            'thumbnail': 'https://metadata-static.plex.tv/b/gracenote/b4452f949f600db816b3e6a51ce0674a.jpg',
+        }
+    }]
+    def _real_extract(self, url):
+        sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
+        webpage = self._download_webpage(url, display_id)
+        
+        nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']
+        
+        media_json = self._download_json(
+            f'https://play.provider.plex.tv/playQueues', display_id, 
+            query={'uri': nextjs_json['metadataItem']['playableKey']}, data=''.encode(),
+            headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
+        #print(media_json)    
+        selected_media = []
+        for media in media_json['MediaContainer']['Metadata']:
+            selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
+        #print(selected_media)
+        formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id, 'movie')
+        
+        return {
+            'id': nextjs_json['metadataItem']['playableID'],
+            'display_id': display_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            'title': traverse_obj(nextjs_json, ('metadataItem', 'title')),
+            'description': traverse_obj(nextjs_json, ('metadataItem', 'summary')),
+            'thumbnail': traverse_obj(nextjs_json, ('metadataItem', 'thumb')),
+            'duration': int_or_none(traverse_obj(nextjs_json, ('metadataItem', 'duration')), 1000),   
         }
 
