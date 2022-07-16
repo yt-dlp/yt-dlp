@@ -121,6 +121,11 @@ class InstagramBaseIE(InfoExtractor):
 
             yield {
                 **info,
+                'formats': [{
+                    'url': node.get('video_url'),
+                    'width': self._get_dimension('width', node),
+                    'height': self._get_dimension('height', node),
+                }],
                 'title': node.get('title') or (f'Video {idx}' if is_direct else None),
                 'description': traverse_obj(
                     node, ('edge_media_to_caption', 'edges', 0, 'node', 'text'), expected_type=str),
@@ -196,6 +201,12 @@ class InstagramBaseIE(InfoExtractor):
         }
         carousel_media = product_info.get('carousel_media')
         if carousel_media:
+            if self.get_param('noplaylist'):
+                self.to_screen('Downloading only one video due to --no-playlist')
+                return {
+                    **info_dict,
+                    **self._extract_product_media(carousel_media[0])
+                }
             return {
                 '_type': 'playlist',
                 **info_dict,
@@ -422,10 +433,46 @@ class InstagramIE(InstagramBaseIE):
             if description is not None:
                 description = lowercase_escape(description)
 
+        comment_data = traverse_obj(media, ('edge_media_to_parent_comment', 'edges'))
+        comments = [{
+            'author': traverse_obj(comment_dict, ('node', 'owner', 'username')),
+            'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id')),
+            'id': traverse_obj(comment_dict, ('node', 'id')),
+            'text': traverse_obj(comment_dict, ('node', 'text')),
+            'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), expected_type=int_or_none),
+        } for comment_dict in comment_data] if comment_data else None
+
         video_url = media.get('video_url')
         if not video_url:
             nodes = traverse_obj(media, ('edge_sidecar_to_children', 'edges', ..., 'node'), expected_type=dict) or []
             if nodes:
+                if self.get_param('noplaylist'):
+                    self.to_screen('Downloading only one video due to --no-playlist')
+                    node = nodes[1]
+                    return {
+                        'id': video_id or node['id'],
+                        'url': node.get('video_url'),
+                        'width': self._get_dimension('width', node),
+                        'height': self._get_dimension('height', node),
+                        'formats': [{
+                            'url': node.get('video_url'),
+                            'width': self._get_dimension('width', node),
+                            'height': self._get_dimension('height', node),
+                        }],
+                        'http_headers': {
+                            'Referer': 'https://www.instagram.com/',
+                        },
+                        'title': node.get('title') or 'Video by %s' % username,
+                        'description': description,
+                        'thumbnail': traverse_obj(
+                            node, 'display_url', 'thumbnail_src', 'display_src', expected_type=url_or_none),
+                        'duration': float_or_none(node.get('video_duration')),
+                        'timestamp': int_or_none(node.get('taken_at_timestamp')),
+                        'view_count': int_or_none(node.get('video_view_count')),
+                        'comment_count': self._get_count(node, 'comments', 'preview_comment', 'to_comment', 'to_parent_comment'),
+                        'comments': comments,
+                        'like_count': self._get_count(node, 'likes', 'preview_like'),
+                    }
                 return self.playlist_result(
                     self._extract_nodes(nodes, True), video_id,
                     format_field(username, None, 'Post by %s'), description)
@@ -441,15 +488,6 @@ class InstagramIE(InstagramBaseIE):
         if dash:
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash, video_id), mpd_id='dash'))
         self._sort_formats(formats)
-
-        comment_data = traverse_obj(media, ('edge_media_to_parent_comment', 'edges'))
-        comments = [{
-            'author': traverse_obj(comment_dict, ('node', 'owner', 'username')),
-            'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id')),
-            'id': traverse_obj(comment_dict, ('node', 'id')),
-            'text': traverse_obj(comment_dict, ('node', 'text')),
-            'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), expected_type=int_or_none),
-        } for comment_dict in comment_data] if comment_data else None
 
         display_resources = (
             media.get('display_resources')
@@ -674,6 +712,15 @@ class InstagramStoryIE(InstagramBaseIE):
         for highlight in highlights:
             highlight_data = self._extract_product(highlight)
             if highlight_data.get('formats'):
+                if self.get_param('noplaylist'):
+                    self.to_screen('Downloading only one video due to --no-playlist')
+                    return {
+                        **highlight_data,
+                        'id': story_id,
+                        'title': story_title,
+                        'uploader': full_name,
+                        'uploader_id': user_id,
+                    }
                 info_data.append({
                     **highlight_data,
                     'uploader': full_name,
