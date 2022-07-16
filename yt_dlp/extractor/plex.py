@@ -2,8 +2,32 @@ from .common import InfoExtractor
 from ..utils import ExtractorError, determine_ext, int_or_none, traverse_obj
 
 
-class PlexWatchIE(InfoExtractor):
-    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?:\w+)/(?P<id>[\w-]+)[?/#&]?'
+class PlexWatchBaseIE(InfoExtractor):
+    _CDN_ENDPOINT = {
+        'movie': 'https://vod.provider.plex.tv',
+        'live': 'https://epg.provider.plex.tv/channels/' # add /tune at the  end 
+    }
+    
+    def _get_formats_and_subtitles(self, selected_media, display_id, sites_type):
+        formats, subtitles = [], {}
+        for media in selected_media:
+            if determine_ext(media) == 'm3u8':
+                fmt, subs = self._extract_m3u8_formats_and_subtitles(
+                    f'{self._CDN_ENDPOINT[sites_type]}{media}?X-PLEX-TOKEN={self._PLEX_TOKEN}', display_id)
+                formats.extend(fmt)
+                self._merge_subtitles(subs, target=subtitles)
+                
+            # elif determine_ext(media) == 'mpd':
+                # fmt, subs = self._extract_mpd_formats_and_subtitles(
+                    # f'https://vod.provider.plex.tv/{media}?X-PLEX-TOKEN={plex_token}', display_id)
+                # formats.extend(fmt)
+                # self._merge_subtitles(subs, target=subtitles)
+        
+        self._sort_formats(formats)
+        return formats, subtitles
+
+class PlexWatchIE(PlexWatchBaseIE):
+    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?P<sites_type>movie)/(?P<id>[\w-]+)[?/#&]?'
     _TESTS = [{
         'url': 'https://watch.plex.tv/movie/bowery-at-midnight',
         'info_dict': {
@@ -20,7 +44,7 @@ class PlexWatchIE(InfoExtractor):
     _PLEX_TOKEN = 'NytaXzMexGQ9-xW9yDjy' # change this if not work
     
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
         webpage = self._download_webpage(url, display_id)
         
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']
@@ -29,27 +53,14 @@ class PlexWatchIE(InfoExtractor):
             f'https://play.provider.plex.tv/playQueues', display_id, 
             query={'uri': nextjs_json['metadataItem']['playableKey']}, data=''.encode(),
             headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
-        
+            
         selected_media = []
         for media in media_json['MediaContainer']['Metadata']:
             if media.get('slug') == display_id:
                 selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
         
-        formats, subtitles = [], {}
-        for media in selected_media:
-            if determine_ext(media) == 'm3u8':
-                fmt, subs = self._extract_m3u8_formats_and_subtitles(
-                    f'https://vod.provider.plex.tv{media}?X-PLEX-TOKEN={self._PLEX_TOKEN}', display_id)
-                formats.extend(fmt)
-                self._merge_subtitles(subs, target=subtitles)
-                
-            # elif determine_ext(media) == 'mpd':
-                # fmt, subs = self._extract_mpd_formats_and_subtitles(
-                    # f'https://vod.provider.plex.tv/{media}?X-PLEX-TOKEN={plex_token}', display_id)
-                # formats.extend(fmt)
-                # self._merge_subtitles(subs, target=subtitles)
+        formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id, sites_type)
         
-        self._sort_formats(formats)
         return {
             'id': nextjs_json['metadataItem']['playableID'],
             'display_id': display_id,
@@ -61,5 +72,4 @@ class PlexWatchIE(InfoExtractor):
             'duration': int_or_none(traverse_obj(nextjs_json, ('metadataItem', 'duration')), 1000),
             
         }
-        
-        
+
