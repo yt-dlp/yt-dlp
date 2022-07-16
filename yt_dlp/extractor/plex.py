@@ -4,12 +4,12 @@ from ..utils import ExtractorError, determine_ext, int_or_none, traverse_obj
 
 class PlexWatchBaseIE(InfoExtractor):
     _CDN_ENDPOINT = {
-        'movie': 'https://vod.provider.plex.tv',
+        'vod': 'https://vod.provider.plex.tv',
         'live': 'https://epg.provider.plex.tv/channels/' # add /tune at the  end 
     }
     _PLEX_TOKEN = 'NytaXzMexGQ9-xW9yDjy' # change this if not work
     
-    def _get_formats_and_subtitles(self, selected_media, display_id, sites_type):
+    def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod'):
         formats, subtitles = [], {}
         for media in selected_media:
             if determine_ext(media) == 'm3u8':
@@ -24,7 +24,6 @@ class PlexWatchBaseIE(InfoExtractor):
                 # formats.extend(fmt)
                 # self._merge_subtitles(subs, target=subtitles)
         
-        self._sort_formats(formats)
         return formats, subtitles
 
 class PlexWatchIE(PlexWatchBaseIE):
@@ -59,6 +58,7 @@ class PlexWatchIE(PlexWatchBaseIE):
                 selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
         
         formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id, sites_type)
+        self._sort_formats(formats)
         
         return {
             'id': nextjs_json['metadataItem']['playableID'],
@@ -112,6 +112,7 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
         #print(selected_media)
         formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id, 'movie')
+        self._sort_formats(formats)
         
         return {
             'id': nextjs_json['metadataItem']['playableID'],
@@ -124,3 +125,43 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'duration': int_or_none(traverse_obj(nextjs_json, ('metadataItem', 'duration')), 1000),   
         }
 
+
+class PlexWatchSeasonIE(PlexWatchBaseIE):
+    _VALID_URL = r'https?://watch\.plex\.tv/show/(?P<season>[\w-]+)(/season/)?(?P<season_num>\d+)?'
+    _TESTS =[{
+        'url': 'https://watch.plex.tv/show/a-cooks-tour-2/season/1',
+        'info_dict': {
+            'id': '624c6b291e79c48d83a2b04e',
+            'title': 'A Cook\'s Tour',
+        },
+        'playlist_count': 22,
+    }, {
+        'url': 'https://watch.plex.tv/show/ice-pilots-nwt',
+        'info_dict': {
+            'id': 'fixme',
+            'title': 'fixme',
+        },
+        'playlist_count': 100,
+    }]
+    def _get_episode_result(self, episode_list, season_name, season_list_index):
+        for season_index in season_list_index:
+            for episode in episode_list:
+                yield self.url_result(
+                    f'https://watch.plex.tv/show/{season_name}/season/{season_index}/episode/{episode}',
+                    ie=PlexWatchEpisodeIE, video_id=season_name) 
+        
+    def _real_extract(self, url):
+        season_name, season_num = self._match_valid_url(url).group('season', 'season_num')
+        
+        webpage = self._download_webpage(url, season_name)
+        nextjs_json = self._search_nextjs_data(webpage, season_name)['props']['pageProps']
+        
+        # ERROR: TypeError: 'NoneType' object is not iterable
+        season_list_index = [season for season in traverse_obj(nextjs_json, ('season', ..., 'index'))] if season_num is None else [season_num]
+        episode_list = traverse_obj(nextjs_json, ('episodes', ..., 'index'))
+        return self.playlist_result(
+            self._get_episode_result(episode_list, season_name, season_num),
+            traverse_obj(nextjs_json, ('metadataItem', 'playableID')),
+            traverse_obj(nextjs_json, ('metadataItem', 'parentTitle')),
+            traverse_obj(nextjs_json, ('metadataItem', 'summary')))
+        
