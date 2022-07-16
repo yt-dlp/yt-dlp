@@ -6,7 +6,9 @@ import sys
 
 from PyInstaller.__main__ import run as run_pyinstaller
 
-OS_NAME, ARCH, MACHINE = sys.platform, platform.architecture()[0][:2], platform.machine()
+OS_NAME, ARCH = sys.platform, platform.architecture()[0][:2]
+MACHINE = platform.machine()
+MACHINE = '' if MACHINE in ('x86_64', 'amd64') else 'x86' if ('i' in MACHINE and '86' in MACHINE) else MACHINE
 
 
 def main():
@@ -65,7 +67,7 @@ def exe(onedir):
     name = '_'.join(filter(None, (
         'yt-dlp',
         {'win32': '', 'darwin': 'macos'}.get(OS_NAME, OS_NAME),
-        '' if MACHINE in ('x86_64', 'amd64') else 'x86' if ('i' in MACHINE and '86' in MACHINE) else MACHINE
+        MACHINE
     )))
     return name, ''.join(filter(None, (
         'dist/',
@@ -122,7 +124,7 @@ def windows_set_version(exe, version):
     )
 
     version_list = version_to_list(version)
-    suffix = '_x86' if ARCH == '32' else ''
+    suffix = f'_{MACHINE}' if MACHINE else ''
     SetVersion(exe, VSVersionInfo(
         ffi=FixedFileInfo(
             filevers=version_list,
