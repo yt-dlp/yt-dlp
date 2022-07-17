@@ -17,13 +17,19 @@ class PlexWatchBaseIE(InfoExtractor):
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod'):
         formats, subtitles = [], {}
         for media in selected_media:
-            # the mpd link have different endpoint with m3u8
             if determine_ext(media) == 'm3u8':
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}?X-PLEX-TOKEN={self._PLEX_TOKEN}',
                     display_id)
-                formats.extend(fmt)
-                self._merge_subtitles(subs, target=subtitles)
+
+            elif determine_ext(media) == 'mpd':
+                fmt, subs = self._extract_mpd_formats_and_subtitles(
+                    f'{self._CDN_ENDPOINT[sites_type]}{media}?X-PLEX-TOKEN={self._PLEX_TOKEN}',
+                    display_id)
+
+            formats.extend(fmt)
+            self._merge_subtitles(subs, target=subtitles)
+
         return formats, subtitles
 
     def _real_extract(self, url):
