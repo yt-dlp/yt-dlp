@@ -12,10 +12,9 @@ class NetverseBaseIE(InfoExtractor):
     }
 
     def _call_api(self, slug, endpoint, query={}, season_id='', display_id=None):
-        json_data = self._download_json(
+        return self._download_json(
             f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[endpoint]}/{slug}/{season_id}',
             display_id or slug, query=query)
-        return json_data
 
 
 class NetverseIE(NetverseBaseIE):
@@ -155,14 +154,6 @@ class NetversePlaylistIE(NetverseBaseIE):
         'playlist_count': 203,
     }]
 
-    def parse_single_season_playlist(self, page_num, slug, endpoint, display_id=None,
-                                     season_id=''):
-
-        playlist_json = self._call_api(
-            slug, endpoint, query={'page': page_num + 1}, season_id=season_id, display_id=display_id)
-        for slug in traverse_obj(playlist_json, ('response', ..., 'data', ..., 'slug')):
-            yield self.url_result(f'https://www.netverse.id/video/{slug}', NetverseIE)
-
     def parse_playlist(self, json_data, playlist_id):
         slug_sample = traverse_obj(json_data, ('related', 'data', ..., 'slug'))[0]
         for season in traverse_obj(json_data, ('seasons', ..., 'id')):
@@ -170,9 +161,10 @@ class NetversePlaylistIE(NetverseBaseIE):
                 slug_sample, 'season', display_id=playlist_id, season_id=season)
 
             for current_page in range(playlist_json['response']['season_list']['last_page']):
-                yield from self.parse_single_season_playlist(
-                    current_page, slug_sample, 'season',
-                    display_id=playlist_id, season_id=season)
+                playlist_json = self._call_api(slug_sample, 'season', query={'page': current_page + 1},
+                                               season_id=season, display_id=playlist_id)
+                for slug in traverse_obj(playlist_json, ('response', ..., 'data', ..., 'slug')):
+                    yield self.url_result(f'https://www.netverse.id/video/{slug}', NetverseIE)
 
     def _real_extract(self, url):
         playlist_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
