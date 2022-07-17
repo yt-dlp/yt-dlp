@@ -2088,6 +2088,7 @@ from .weibo import (
     WeiboMobileIE
 )
 from .weiqitv import WeiqiTVIE
+from .wetv import WeTvEpisodeIE, WeTvSeriesIE
 from .wikimedia import WikimediaIE
 from .willow import WillowIE
 from .wimtv import WimTVIE
