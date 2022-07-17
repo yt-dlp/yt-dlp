@@ -8,7 +8,7 @@ from ..utils import (
 
 
 class PlexWatchBaseIE(InfoExtractor):
-    # provider url is in https://plex.tv/media/providers?X-Plex-Token=<plex_token> 
+    # provider url is in https://plex.tv/media/providers?X-Plex-Token=<plex_token>
     # nb: need Accept: application/json, otherwise return xml
     _CDN_ENDPOINT = {
         'vod': 'https://vod.provider.plex.tv',
@@ -27,7 +27,7 @@ class PlexWatchBaseIE(InfoExtractor):
             elif determine_ext(media) == 'mpd':
                 fmt, subs = self._extract_mpd_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
-                    display_id, query={'X-PLEX-TOKEN' : self._PLEX_TOKEN},)
+                    display_id, query={'X-PLEX-TOKEN': self._PLEX_TOKEN},)
 
             formats.extend(fmt)
             self._merge_subtitles(subs, target=subtitles)
