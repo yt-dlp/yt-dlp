@@ -10,13 +10,10 @@ class PlexWatchBaseIE(InfoExtractor):
     _PLEX_TOKEN = 'NytaXzMexGQ9-xW9yDjy' # change this if not work
     
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod'):
-        #print(selected_media)
-        #is_live = (sites_type == 'live')
         formats, subtitles = [], {}
         for media in selected_media:
             # the mpd link have different endpoint with m3u8
             if determine_ext(media) == 'm3u8':
-                # Error: urllib.error.HTTPError: HTTP Error 401: Unauthorized
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}?X-PLEX-TOKEN={self._PLEX_TOKEN}',
                     display_id)
@@ -145,19 +142,17 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
         
         nextjs_json = self._search_nextjs_data(
             self._download_webpage(url, display_id), display_id)['props']['pageProps']['channel']
-        channel_id = nextjs_json['id']
-        
         media_json = self._download_json(
-            f'https://epg.provider.plex.tv/channels/{channel_id}/tune',
+            f'https://epg.provider.plex.tv/channels/{nextjs_json["id"]}/tune',
             display_id, data=''.encode(),headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
-        #print(media_json)
+            
         formats, subtitles = self._get_formats_and_subtitles(
-            traverse_obj(
-                media_json, ('MediaContainer', 'MediaSubscription', ..., 'MediaGrabOperation', ..., 'Metadata', ..., 'Media', ..., 'Part', ..., 'key')),
+            traverse_obj(media_json, (
+                'MediaContainer', 'MediaSubscription', ..., 'MediaGrabOperation', ..., 'Metadata', ..., 'Media', ..., 'Part', ..., 'key')),
             display_id, 'live')
-        #print(formats, subtitles)
+        
         return {
-            'id': channel_id,
+            'id': nextjs_json["id"],
             'display_id': display_id,
             'title': traverse_obj(media_json, ('MediaContainer', 'MediaSubscription', 0, 'title')),
             'formats': formats,
@@ -165,5 +160,3 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
             'live_status': 'is_live',
         }
             
-        
-        
