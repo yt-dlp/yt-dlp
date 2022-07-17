@@ -3621,6 +3621,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'name': sub_name,
                     })
 
+            # NB: Constructing the full subtitle dictionary is slow
+            get_translated_subs = 'translated_subs' not in self._configuration_arg('skip') and (
+                self.get_param('writeautomaticsub', False) or self.get_param('listsubtitles'))
             subtitles, automatic_captions = {}, {}
             for lang_code, caption_track in captions.items():
                 base_url = caption_track.get('baseUrl')
@@ -3640,7 +3643,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     orig_trans_code = trans_code
                     if caption_track.get('kind') != 'asr':
-                        if 'translated_subs' in self._configuration_arg('skip'):
+                        if not get_translated_subs:
                             continue
                         trans_code += f'-{lang_code}'
                         trans_name += format_field(lang_name, None, ' from %s')
