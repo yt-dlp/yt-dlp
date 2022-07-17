@@ -1,5 +1,10 @@
 from .common import InfoExtractor
-from ..utils import determine_ext, int_or_none, traverse_obj
+from ..utils import (
+    determine_ext,
+    int_or_none,
+    parse_age_limit,
+    traverse_obj,
+)
 
 
 class PlexWatchBaseIE(InfoExtractor):
@@ -49,6 +54,8 @@ class PlexWatchBaseIE(InfoExtractor):
             'description': nextjs_json.get('summary'),
             'thumbnail': nextjs_json.get('thumb'),
             'duration': int_or_none(nextjs_json.get('duration'), 1000),
+            'cast': traverse_obj(nextjs_json, ('Role', ..., 'tag')),
+            'rating': parse_age_limit(nextjs_json.get('contentRating')),
         }
 
 
@@ -64,6 +71,7 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
             'description': 'md5:7ebaa1b530d98f042295e18d6f4f8c21',
             'duration': 3660,
             'thumbnail': 'https://image.tmdb.org/t/p/original/lDWHvIotQkogG77wHVuMT8mF8P.jpg',
+            'cast': 'count:22',
         }
     }]
 
@@ -100,6 +108,8 @@ class PlexWatchSeasonIE(PlexWatchBaseIE):
         'info_dict': {
             'id': '624c6b291e79c48d83a2b04e',
             'title': 'A Cook\'s Tour',
+            'season': 'A Cook\'s Tour',
+            'season_number': '1',
         },
         'playlist_count': 22,
     }]
@@ -121,7 +131,9 @@ class PlexWatchSeasonIE(PlexWatchBaseIE):
                 traverse_obj(nextjs_json, ('episodes', ..., 'index')), season_name, season_num),
             traverse_obj(nextjs_json, ('metadataItem', 'playableID')),
             traverse_obj(nextjs_json, ('metadataItem', 'parentTitle')),
-            traverse_obj(nextjs_json, ('metadataItem', 'summary')))
+            traverse_obj(nextjs_json, ('metadataItem', 'summary')),
+            season=traverse_obj(nextjs_json, ('metadataItem', 'parentTitle')),
+            season_number=season_num)
 
 
 class PlexWatchLiveIE(PlexWatchBaseIE):
