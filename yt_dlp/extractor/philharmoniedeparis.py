@@ -11,8 +11,7 @@ class PhilharmonieDeParisIE(InfoExtractor):
                             live\.philharmoniedeparis\.fr/(?:[Cc]oncert/|embed(?:app)?/|misc/Playlist\.ashx\?id=)|
                             pad\.philharmoniedeparis\.fr/(?:doc/CIMU/|player\.aspx\?id=)|
                             philharmoniedeparis\.fr/fr/live/concert/|
-                            otoplayer\.philharmoniedeparis\.fr/fr/embed/|
-
+                            otoplayer\.philharmoniedeparis\.fr/fr/embed/
                         )
                         (?P<id>\d+)
                     '''
