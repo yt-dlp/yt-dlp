@@ -11,6 +11,73 @@
 -->
 
 
+### 2022.07.18
+
+* Allow users to specify encoding in each config files by [Lesmiscore](https://github.com/Lesmiscore)
+* Discard infodict from memory if no longer needed
+* Do not allow extractors to return `None`
+* Do not load system certificates when `certifi` is used
+* Fix rounding of integers in format table
+* Improve chapter sanitization
+* Skip some fixup if remux/recode is needed by [Lesmiscore](https://github.com/Lesmiscore)
+* Support `--no-progress` for `--wait-for-video`
+* Fix bug in [612f2be](https://github.com/yt-dlp/yt-dlp/commit/612f2be5d3924540158dfbe5f25d841f04cff8c6)
+* [outtmpl] Add alternate form `h` for HTML escaping
+* [aes] Add multiple padding modes in CBC by [elyse0](https://github.com/elyse0)
+* [extractor/common] Passthrough `errnote=False` to parsers
+* [extractor/generic] Remove HEAD request
+* [http] Ensure the file handle is always closed
+* [ModifyChapters] Modify duration in infodict
+* [options] Fix aliases to `--config-location`
+* [utils] Fix `get_domain`
+* [build] Consistent order for lazy extractors by [lamby](https://github.com/lamby)
+* [build] Fix architecture suffix of executables by [odo2063](https://github.com/odo2063)
+* [build] Improve `setup.py`
+* [update] Do not check `_update_spec` when up to date
+* [update] Prepare to remove Python 3.6 support
+* [compat] Let PyInstaller detect _legacy module
+* [devscripts/update-formulae] Do not change dependency section
+* [test] Split download tests so they can be more easily run in CI
+* [docs] Improve docstring of `download_ranges` by [FirefoxMetzger](https://github.com/FirefoxMetzger)
+* [docs] Improve issue templates
+* [build] Fix bug in [6d916fe](https://github.com/yt-dlp/yt-dlp/commit/6d916fe709a38e8c4c69b73843acf170b5165931)
+* [cleanup, utils] Refactor parse_codecs
+* [cleanup] Misc fixes and cleanup
+* [extractor/acfun] Add extractors by [lockmatrix](https://github.com/lockmatrix)
+* [extractor/Audiodraft] Add extractors by [Ashish0804](https://github.com/Ashish0804), [fstirlitz](https://github.com/fstirlitz)
+* [extractor/cellebrite] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/detik] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/hytale] Add extractor by [llamasblade](https://github.com/llamasblade), [pukkandan](https://github.com/pukkandan)
+* [extractor/liputan6] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/mocha] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/rtl.lu] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/rtvsl] Add extractor by [iw0nderhow](https://github.com/iw0nderhow), [pukkandan](https://github.com/pukkandan)
+* [extractor/StarTrek] Add extractor by [scy](https://github.com/scy)
+* [extractor/syvdk] Add extractor by [misaelaguayo](https://github.com/misaelaguayo)
+* [extractor/theholetv] Add extractor by [dosy4ev](https://github.com/dosy4ev)
+* [extractor/TubeTuGraz] Add extractor by [Ferdi265](https://github.com/Ferdi265), [pukkandan](https://github.com/pukkandan)
+* [extractor/tviplayer] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/wetv] Add extractors by [elyse0](https://github.com/elyse0)
+* [extractor/wikimedia] Add extractor by [EhtishamSabir](https://github.com/EhtishamSabir), [pukkandan](https://github.com/pukkandan)
+* [extractor/youtube] Fix duration check for post-live manifestless mode
+* [extractor/youtube] More metadata for storyboards by [ftk](https://github.com/ftk)
+* [extractor/bigo] Fix extractor by [Lesmiscore](https://github.com/Lesmiscore)
+* [extractor/BiliIntl] Fix subtitle extraction by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [extractor/crunchyroll] Improve `_VALID_URL`
+* [extractor/fifa] Fix extractor by [ischmidt20](https://github.com/ischmidt20)
+* [extractor/instagram] Fix post/story extractors by [pritam20ps05](https://github.com/pritam20ps05), [pukkandan](https://github.com/pukkandan)
+* [extractor/iq] Set language correctly for Korean subtitles
+* [extractor/MangoTV] Fix subtitle languages
+* [extractor/Netverse] Improve playlist extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/philharmoniedeparis] Fix extractor by [sqrtNOT](https://github.com/sqrtNOT)
+* [extractor/Trovo] Fix extractor by [u-spec-png](https://github.com/u-spec-png)
+* [extractor/twitch] Support storyboards for VODs by [ftk](https://github.com/ftk)
+* [extractor/WatchESPN] Improve `_VALID_URL` by [IONECarter](https://github.com/IONECarter), [dirkf](https://github.com/dirkf)
+* [extractor/WSJArticle] Fix video id extraction by [sqrtNOT](https://github.com/sqrtNOT)
+* [extractor/Ximalaya] Fix extractors by [lockmatrix](https://github.com/lockmatrix)
+* [cleanup, extractor/youtube] Fix tests by [sheerluck](https://github.com/sheerluck)
+
+
 ### 2022.06.29
 
 * Fix `--downloader native`
