@@ -5,16 +5,20 @@ from ..utils import ExtractorError, determine_ext, int_or_none, traverse_obj
 class PlexWatchBaseIE(InfoExtractor):
     _CDN_ENDPOINT = {
         'vod': 'https://vod.provider.plex.tv',
-        'live': 'https://epg.provider.plex.tv/channels/' # add /tune at the  end 
+        'live': 'https://epg.provider.plex.tv/channels' # add /tune at the  end 
     }
     _PLEX_TOKEN = 'NytaXzMexGQ9-xW9yDjy' # change this if not work
     
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod'):
+        print(selected_media)
+        is_live = (sites_type == 'live')
         formats, subtitles = [], {}
         for media in selected_media:
             if determine_ext(media) == 'm3u8':
+                # Error: urllib.error.HTTPError: HTTP Error 401: Unauthorized
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
-                    f'{self._CDN_ENDPOINT[sites_type]}{media}?X-PLEX-TOKEN={self._PLEX_TOKEN}', display_id)
+                    f'{self._CDN_ENDPOINT[sites_type]}{media}?X-PLEX-TOKEN={self._PLEX_TOKEN}{"/tune" if is_live else ""}',
+                    display_id)
                 formats.extend(fmt)
                 self._merge_subtitles(subs, target=subtitles)
                 
@@ -26,8 +30,8 @@ class PlexWatchBaseIE(InfoExtractor):
         
         return formats, subtitles
 
-class PlexWatchIE(PlexWatchBaseIE):
-    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?P<sites_type>movie)/(?P<id>[\w-]+)[?/#&]?'
+class PlexWatchMovieIE(PlexWatchBaseIE):
+    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?movie/(?P<id>[\w-]+)[?/#&]?'
     _TESTS = [{
         'url': 'https://watch.plex.tv/movie/bowery-at-midnight',
         'info_dict': {
@@ -42,14 +46,14 @@ class PlexWatchIE(PlexWatchBaseIE):
     }]
     
     def _real_extract(self, url):
-        sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
-        webpage = self._download_webpage(url, display_id)
+        display_id = self._match_id(url)
         
-        nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']
+        nextjs_json = self._search_nextjs_data(
+            self._download_webpage(url, display_id), display_id)['props']['pageProps']['metadataItem']
         
         media_json = self._download_json(
             f'https://play.provider.plex.tv/playQueues', display_id, 
-            query={'uri': nextjs_json['metadataItem']['playableKey']}, data=''.encode(),
+            query={'uri': nextjs_json['playableKey']}, data=''.encode(),
             headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
             
         selected_media = []
@@ -57,23 +61,22 @@ class PlexWatchIE(PlexWatchBaseIE):
             if media.get('slug') == display_id:
                 selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
         
-        formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id, sites_type)
+        formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id)
         self._sort_formats(formats)
         
         return {
-            'id': nextjs_json['metadataItem']['playableID'],
+            'id': nextjs_json['playableID'],
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            'title': traverse_obj(nextjs_json, ('metadataItem', 'title')),
-            'description': traverse_obj(nextjs_json, ('metadataItem', 'summary')),
-            'thumbnail': traverse_obj(nextjs_json, ('metadataItem', 'thumb')),
-            'duration': int_or_none(traverse_obj(nextjs_json, ('metadataItem', 'duration')), 1000),   
+            'title': nextjs_json.get('title'),
+            'description': nextjs_json.get('summary'),
+            'thumbnail': nextjs_json.get('thumb'),
+            'duration': int_or_none(nextjs_json.get('duration'), 1000),   
         }
         
         
 class PlexWatchEpisodeIE(PlexWatchBaseIE):
-    IE_NAME = 'PlexWatch:episode'
     _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?P<sites_type>movie|show)/(?P<id>[\w-]+)/season/\d+/episode/\d+'
     _TESTS = [{
         'url': 'https://watch.plex.tv/show/popeye-the-sailor/season/1/episode/1',
@@ -98,33 +101,34 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
     }]
     def _real_extract(self, url):
         sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
-        webpage = self._download_webpage(url, display_id)
         
-        nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']
+        nextjs_json = self._search_nextjs_data(
+            self._download_webpage(url, display_id), display_id)['props']['pageProps']['metadataItem']
         
         media_json = self._download_json(
             f'https://play.provider.plex.tv/playQueues', display_id, 
-            query={'uri': nextjs_json['metadataItem']['playableKey']}, data=''.encode(),
+            query={'uri': nextjs_json['playableKey']}, data=''.encode(),
             headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
-        #print(media_json)    
+        
+        
         selected_media = []
         for media in media_json['MediaContainer']['Metadata']:
             selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
-        #print(selected_media)
+        
         formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id, 'vod')
         self._sort_formats(formats)
         
         return {
-            'id': nextjs_json['metadataItem']['playableID'],
+            'id': nextjs_json['playableID'],
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            'title': traverse_obj(nextjs_json, ('metadataItem', 'title')),
-            'description': traverse_obj(nextjs_json, ('metadataItem', 'summary')),
-            'thumbnail': traverse_obj(nextjs_json, ('metadataItem', 'thumb')),
-            'duration': int_or_none(traverse_obj(nextjs_json, ('metadataItem', 'duration')), 1000),   
+            'title': nextjs_json.get('title'),
+            'description': nextjs_json.get('summary'),
+            'thumbnail': nextjs_json.get('thumb'),
+            'duration': int_or_none(nextjs_json.get('duration'), 1000),   
         }
-
+        
 
 class PlexWatchSeasonIE(PlexWatchBaseIE):
     _VALID_URL = r'https?://watch\.plex\.tv/show/(?P<season>[\w-]+)/season/(?P<season_num>\d+)'
@@ -146,16 +150,49 @@ class PlexWatchSeasonIE(PlexWatchBaseIE):
     def _real_extract(self, url):
         season_name, season_num = self._match_valid_url(url).group('season', 'season_num')
         
-        webpage = self._download_webpage(url, season_name)
-        nextjs_json = self._search_nextjs_data(webpage, season_name)['props']['pageProps']
+        nextjs_json = self._search_nextjs_data(
+            self._download_webpage(url, season_name), season_name)['props']['pageProps']
         
-        episode_list = traverse_obj(nextjs_json, ('episodes', ..., 'index'))
         return self.playlist_result(
-            self._get_episode_result(episode_list, season_name, season_num),
+            self._get_episode_result(
+                traverse_obj(nextjs_json, ('episodes', ..., 'index')), season_name, season_num),
             traverse_obj(nextjs_json, ('metadataItem', 'playableID')),
             traverse_obj(nextjs_json, ('metadataItem', 'parentTitle')),
             traverse_obj(nextjs_json, ('metadataItem', 'summary')))
  
-class PlexWatchLive(PlexWatchBaseIE):
+class PlexWatchLiveIE(PlexWatchBaseIE):
     _VALID_URL = r'https?://watch\.plex\.tv/live-tv/channel/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://watch.plex.tv/live-tv/channel/euronews',
+        'info_dict': {
+            'id': 'fixme',
+            'ext': 'mp4',
+            'title': 'hello'
+        }
+    }]
+    
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        
+        nextjs_json = self._search_nextjs_data(
+            self._download_webpage(url, display_id), display_id)['props']['pageProps']['channel']
+        channel_id = nextjs_json['id']
+        
+        media_json = self._download_json(
+            f'https://epg.provider.plex.tv/channels/{channel_id}/tune',
+            display_id, data=''.encode(),headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
+        #print(media_json)
+        formats, subtitles = self._get_formats_and_subtitles(
+            traverse_obj(media_json, ('MediaContainer', 'MediaSubscription', ..., 'MediaGrabOperation', ..., 'Metadata', ..., 'Media', ..., 'Part', ..., 'key')),
+            display_id, 'live')
+        #print(formats, subtitles)
+        return {
+            'id': channel_id,
+            'display_id': display_id,
+            'formats': formats,
+            'subtitles': subtitles,
             
+        }
+            
+        
+        
