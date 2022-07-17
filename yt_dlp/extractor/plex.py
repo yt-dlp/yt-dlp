@@ -83,7 +83,7 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
             'cast': 'count:22',
         }
     }]
-    
+
     def _real_extract(self, url):
         return self._extract_data(url)
 
@@ -119,7 +119,7 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'season': 'Season 1',
         }
     }]
-    
+
     def _real_extract(self, url):
         return self._extract_data(
             url, episode_number=int_or_none(self._match_valid_url(url).group('episode_num')),
