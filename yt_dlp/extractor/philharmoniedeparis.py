@@ -76,11 +76,10 @@ class PhilharmonieDeParisIE(InfoExtractor):
             if not formats and not self.get_param('ignore_no_formats'):
                 return
             self._sort_formats(formats)
-            thumbnail = files.get('thumbnail')
             return {
                 'title': title,
                 'formats': formats,
-                'thumbnail': thumbnail,
+                'thumbnail': files.get('thumbnail'),
             }
         info = extract_entry(config)
         if info:
