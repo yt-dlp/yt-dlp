@@ -1,9 +1,10 @@
+import functools
 import re
 import time
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_encrypt
-from ..utils import bytes_to_intlist, determine_ext, intlist_to_bytes, int_or_none, traverse_obj
+from ..utils import bytes_to_intlist, determine_ext, intlist_to_bytes, int_or_none, traverse_obj, urljoin
 
 
 class WeTvBaseIE(InfoExtractor):
@@ -204,6 +205,6 @@ class WeTvSeriesIE(WeTvBaseIE):
                          or [f'/{series_id}/{episode["vid"]}' for episode in webpage_metadata.get('videoList')])
 
         return self.playlist_from_matches(
-            episode_paths, series_id, ie=WeTvEpisodeIE,
+            episode_paths, series_id, ie=WeTvEpisodeIE, getter=functools.partial(urljoin, url),
             title=traverse_obj(webpage_metadata, ('coverInfo', 'title')) or self._og_search_title(webpage),
             description=traverse_obj(webpage_metadata, ('coverInfo', 'description')) or self._og_search_description(webpage))
