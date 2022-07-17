@@ -12,7 +12,7 @@ class PhilharmonieDeParisIE(InfoExtractor):
                     https?://
                         (?:
                             live\.philharmoniedeparis\.fr/(?:[Cc]oncert/|embed(?:app)?/|misc/Playlist\.ashx\?id=)|
-                            pad\.philharmoniedeparis\.fr/doc/CIMU/|
+                            pad\.philharmoniedeparis\.fr/(?:doc/CIMU/|player\.aspx\?id=)|
                             philharmoniedeparis\.fr/fr/live/concert/|
                             otoplayer\.philharmoniedeparis\.fr/fr/embed/|
 
@@ -100,6 +100,8 @@ class PhilharmonieDeParisIE(InfoExtractor):
         entries = []
         for num, chapter in enumerate(config['chapters'], start=1):
             entry = extract_entry(chapter)
+            if entry is None:
+                continue
             entry['id'] = '%s-%d' % (video_id, num)
             entries.append(entry)
 
