@@ -28,14 +28,14 @@ class PhilharmonieDeParisIE(InfoExtractor):
             'title': 'Jazz à la Villette : Knower',
         },
     }, {
-        'url': 'http://live.philharmoniedeparis.fr/concert/1032066.html',
+        'url': 'https://philharmoniedeparis.fr/fr/live/concert/1032066-akademie-fur-alte-musik-berlin-rias-kammerchor-rene-jacobs-passion-selon-saint-jean-de-johann',
         'info_dict': {
             'id': '1032066',
             'title': 'md5:0a031b81807b3593cffa3c9a87a167a0',
         },
         'playlist_mincount': 2,
     }, {
-        'url': 'http://live.philharmoniedeparis.fr/Concert/1030324.html',
+        'url': 'https://philharmoniedeparis.fr/fr/live/concert/1030324-orchestre-philharmonique-de-radio-france-myung-whun-chung-renaud-capucon-pascal-dusapin-johannes',
         'only_matching': True,
     }, {
         'url': 'http://live.philharmoniedeparis.fr/misc/Playlist.ashx?id=1030324&track=&lang=fr',
@@ -44,7 +44,7 @@ class PhilharmonieDeParisIE(InfoExtractor):
         'url': 'https://live.philharmoniedeparis.fr/embedapp/1098406/berlioz-fantastique-lelio-les-siecles-national-youth-choir-of.html?lang=fr-FR',
         'only_matching': True,
     }, {
-        'url': 'https://live.philharmoniedeparis.fr/embed/1098406/berlioz-fantastique-lelio-les-siecles-national-youth-choir-of.html?lang=fr-FR',
+        'url': 'https://otoplayer.philharmoniedeparis.fr/fr/embed/1098406?lang=fr-FR',
         'only_matching': True,
     }]
     _LIVE_URL = 'https://live.philharmoniedeparis.fr'
