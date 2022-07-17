@@ -40,7 +40,7 @@ class PlexWatchBaseIE(InfoExtractor):
 
         media_json = self._download_json(
             'https://play.provider.plex.tv/playQueues', display_id,
-            query={'uri': nextjs_json['playableKey']}, data=''.encode(),
+            query={'uri': nextjs_json['playableKey']}, data=b'',
             headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
 
         selected_media = []
