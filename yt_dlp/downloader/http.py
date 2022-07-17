@@ -206,6 +206,12 @@ class HttpFD(FileDownloader):
             except RESPONSE_READ_EXCEPTIONS as err:
                 raise RetryDownload(err)
 
+        def close_stream():
+            if ctx.stream is not None:
+                if not ctx.tmpfilename == '-':
+                    ctx.stream.close()
+                ctx.stream = None
+
         def download():
             data_len = ctx.data.info().get('Content-length', None)
 
@@ -239,12 +245,9 @@ class HttpFD(FileDownloader):
             before = start  # start measuring
 
             def retry(e):
-                to_stdout = ctx.tmpfilename == '-'
-                if ctx.stream is not None:
-                    if not to_stdout:
-                        ctx.stream.close()
-                    ctx.stream = None
-                ctx.resume_len = byte_counter if to_stdout else os.path.getsize(encodeFilename(ctx.tmpfilename))
+                close_stream()
+                ctx.resume_len = (byte_counter if ctx.tmpfilename == '-'
+                                  else os.path.getsize(encodeFilename(ctx.tmpfilename)))
                 raise RetryDownload(e)
 
             while True:
@@ -382,6 +385,9 @@ class HttpFD(FileDownloader):
                 continue
             except SucceedDownload:
                 return True
+            except:  # noqa: E722
+                close_stream()
+                raise
 
         self.report_error('giving up after %s retries' % retries)
         return False

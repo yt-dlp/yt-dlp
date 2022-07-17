@@ -31,6 +31,33 @@ def unpad_pkcs7(data):
 BLOCK_SIZE_BYTES = 16
 
 
+def pad_block(block, padding_mode):
+    """
+    Pad a block with the given padding mode
+    @param {int[]} block        block to pad
+    @param padding_mode         padding mode
+    """
+    padding_size = BLOCK_SIZE_BYTES - len(block)
+
+    PADDING_BYTE = {
+        'pkcs7': padding_size,
+        'iso7816': 0x0,
+        'whitespace': 0x20,
+        'zero': 0x0,
+    }
+
+    if padding_size < 0:
+        raise ValueError('Block size exceeded')
+    elif padding_mode not in PADDING_BYTE:
+        raise NotImplementedError(f'Padding mode {padding_mode} is not implemented')
+
+    if padding_mode == 'iso7816' and padding_size:
+        block = block + [0x80]  # NB: += mutates list
+        padding_size -= 1
+
+    return block + [PADDING_BYTE[padding_mode]] * padding_size
+
+
 def aes_ecb_encrypt(data, key, iv=None):
     """
     Encrypt with aes in ECB mode
@@ -137,13 +164,14 @@ def aes_cbc_decrypt(data, key, iv):
     return decrypted_data
 
 
-def aes_cbc_encrypt(data, key, iv):
+def aes_cbc_encrypt(data, key, iv, padding_mode='pkcs7'):
     """
-    Encrypt with aes in CBC mode. Using PKCS#7 padding
+    Encrypt with aes in CBC mode
 
     @param {int[]} data        cleartext
     @param {int[]} key         16/24/32-Byte cipher key
     @param {int[]} iv          16-Byte IV
+    @param padding_mode        Padding mode to use
     @returns {int[]}           encrypted data
     """
     expanded_key = key_expansion(key)
@@ -153,8 +181,8 @@ def aes_cbc_encrypt(data, key, iv):
     previous_cipher_block = iv
     for i in range(block_count):
         block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
-        remaining_length = BLOCK_SIZE_BYTES - len(block)
-        block += [remaining_length] * remaining_length
+        block = pad_block(block, padding_mode)
+
         mixed_block = xor(block, previous_cipher_block)
 
         encrypted_block = aes_encrypt(mixed_block, expanded_key)
@@ -510,5 +538,6 @@ __all__ = [
     'aes_gcm_decrypt_and_verify',
     'aes_gcm_decrypt_and_verify_bytes',
     'key_expansion',
+    'pad_block',
     'unpad_pkcs7',
 ]

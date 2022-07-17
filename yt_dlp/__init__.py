@@ -2,6 +2,7 @@ f'You are using an unsupported version of Python. Only Python versions 3.6 and a
 
 __license__ = 'Public Domain'
 
+import collections
 import getpass
 import itertools
 import optparse
@@ -516,7 +517,7 @@ def validate_options(opts):
         # Do not unnecessarily download audio
         opts.format = 'bestaudio/best'
 
-    if opts.getcomments and opts.writeinfojson is None:
+    if opts.getcomments and opts.writeinfojson is None and not opts.embed_infojson:
         # If JSON is not printed anywhere, but comments are requested, save it to file
         if not opts.dumpjson or opts.print_json or opts.dump_single_json:
             opts.writeinfojson = True
@@ -665,8 +666,11 @@ def get_postprocessors(opts):
         }
 
 
+ParsedOptions = collections.namedtuple('ParsedOptions', ('parser', 'options', 'urls', 'ydl_opts'))
+
+
 def parse_options(argv=None):
-    """ @returns (parser, opts, urls, ydl_opts) """
+    """@returns ParsedOptions(parser, opts, urls, ydl_opts)"""
     parser, opts, urls = parseOpts(argv)
     urls = get_urls(urls, opts.batchfile, opts.verbose)
 
@@ -684,13 +688,28 @@ def parse_options(argv=None):
         'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
     ))
 
+    playlist_pps = [pp for pp in postprocessors if pp.get('when') == 'playlist']
+    write_playlist_infojson = (opts.writeinfojson and not opts.clean_infojson
+                               and opts.allow_playlist_files and opts.outtmpl.get('pl_infojson') != '')
+    if not any((
+        opts.extract_flat,
+        opts.dump_single_json,
+        opts.forceprint.get('playlist'),
+        opts.print_to_file.get('playlist'),
+        write_playlist_infojson,
+    )):
+        if not playlist_pps:
+            opts.extract_flat = 'discard'
+        elif playlist_pps == [{'key': 'FFmpegConcat', 'only_multi_video': True, 'when': 'playlist'}]:
+            opts.extract_flat = 'discard_in_playlist'
+
     final_ext = (
         opts.recodevideo if opts.recodevideo in FFmpegVideoConvertorPP.SUPPORTED_EXTS
         else opts.remuxvideo if opts.remuxvideo in FFmpegVideoRemuxerPP.SUPPORTED_EXTS
         else opts.audioformat if (opts.extractaudio and opts.audioformat in FFmpegExtractAudioPP.SUPPORTED_EXTS)
         else None)
 
-    return parser, opts, urls, {
+    return ParsedOptions(parser, opts, urls, {
         'usenetrc': opts.usenetrc,
         'netrc_location': opts.netrc_location,
         'username': opts.username,
@@ -863,7 +882,7 @@ def parse_options(argv=None):
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
-    }
+    })
 
 
 def _real_main(argv=None):

@@ -950,17 +950,18 @@ def make_HTTPS_handler(params, **kwargs):
     if opts_check_certificate:
         if has_certifi and 'no-certifi' not in params.get('compat_opts', []):
             context.load_verify_locations(cafile=certifi.where())
-        try:
-            context.load_default_certs()
-        # Work around the issue in load_default_certs when there are bad certificates. See:
-        # https://github.com/yt-dlp/yt-dlp/issues/1060,
-        # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
-        except ssl.SSLError:
-            # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
-            if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
-                for storename in ('CA', 'ROOT'):
-                    _ssl_load_windows_store_certs(context, storename)
-            context.set_default_verify_paths()
+        else:
+            try:
+                context.load_default_certs()
+                # Work around the issue in load_default_certs when there are bad certificates. See:
+                # https://github.com/yt-dlp/yt-dlp/issues/1060,
+                # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
+            except ssl.SSLError:
+                # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
+                if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
+                    for storename in ('CA', 'ROOT'):
+                        _ssl_load_windows_store_certs(context, storename)
+                context.set_default_verify_paths()
 
     client_certfile = params.get('client_certificate')
     if client_certfile:
@@ -1907,6 +1908,10 @@ class DateRange:
     def __str__(self):
         return f'{self.start.isoformat()} - {self.end.isoformat()}'
 
+    def __eq__(self, other):
+        return (isinstance(other, DateRange)
+                and self.start == other.start and self.end == other.end)
+
 
 def platform_name():
     """ Returns the platform name as a str """
@@ -2400,7 +2405,11 @@ def remove_quotes(s):
 
 
 def get_domain(url):
-    return '.'.join(urllib.parse.urlparse(url).netloc.rsplit('.', 2)[-2:])
+    """
+    This implementation is inconsistent, but is kept for compatibility.
+    Use this only for "webpage_url_domain"
+    """
+    return remove_start(urllib.parse.urlparse(url).netloc, 'www.') or None
 
 
 def url_basename(url):
@@ -2659,7 +2668,7 @@ class LazyList(collections.abc.Sequence):
 
     @staticmethod
     def _reverse_index(x):
-        return None if x is None else -(x + 1)
+        return None if x is None else ~x
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):
@@ -3414,24 +3423,23 @@ def parse_codecs(codecs_str):
         str.strip, codecs_str.strip().strip(',').split(','))))
     vcodec, acodec, scodec, hdr = None, None, None, None
     for full_codec in split_codecs:
-        parts = full_codec.split('.')
-        codec = parts[0].replace('0', '')
-        if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2',
-                     'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'):
-            if not vcodec:
-                vcodec = '.'.join(parts[:4]) if codec in ('vp9', 'av1', 'hvc1') else full_codec
-                if codec in ('dvh1', 'dvhe'):
-                    hdr = 'DV'
-                elif codec == 'av1' and len(parts) > 3 and parts[3] == '10':
-                    hdr = 'HDR10'
-                elif full_codec.replace('0', '').startswith('vp9.2'):
-                    hdr = 'HDR10'
-        elif codec in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
-            if not acodec:
-                acodec = full_codec
-        elif codec in ('stpp', 'wvtt',):
-            if not scodec:
-                scodec = full_codec
+        parts = re.sub(r'0+(?=\d)', '', full_codec).split('.')
+        if parts[0] in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2',
+                        'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'):
+            if vcodec:
+                continue
+            vcodec = full_codec
+            if parts[0] in ('dvh1', 'dvhe'):
+                hdr = 'DV'
+            elif parts[0] == 'av1' and traverse_obj(parts, 3) == '10':
+                hdr = 'HDR10'
+            elif parts[:2] == ['vp9', '2']:
+                hdr = 'HDR10'
+        elif parts[0] in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac',
+                          'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
+            acodec = acodec or full_codec
+        elif parts[0] in ('stpp', 'wvtt'):
+            scodec = scodec or full_codec
         else:
             write_string(f'WARNING: Unknown codec {full_codec}\n')
     if vcodec or acodec or scodec:
@@ -3477,16 +3485,18 @@ def age_restricted(content_limit, age_limit):
     return age_limit < content_limit
 
 
+# List of known byte-order-marks (BOM)
+BOMS = [
+    (b'\xef\xbb\xbf', 'utf-8'),
+    (b'\x00\x00\xfe\xff', 'utf-32-be'),
+    (b'\xff\xfe\x00\x00', 'utf-32-le'),
+    (b'\xff\xfe', 'utf-16-le'),
+    (b'\xfe\xff', 'utf-16-be'),
+]
+
+
 def is_html(first_bytes):
     """ Detect whether a file contains HTML by examining its first bytes. """
-
-    BOMS = [
-        (b'\xef\xbb\xbf', 'utf-8'),
-        (b'\x00\x00\xfe\xff', 'utf-32-be'),
-        (b'\xff\xfe\x00\x00', 'utf-32-le'),
-        (b'\xff\xfe', 'utf-16-le'),
-        (b'\xfe\xff', 'utf-16-be'),
-    ]
 
     encoding = 'utf-8'
     for bom, enc in BOMS:
@@ -3661,21 +3671,26 @@ def match_filter_func(filters):
     return _match_func
 
 
-def download_range_func(chapters, ranges):
-    def inner(info_dict, ydl):
+class download_range_func:
+    def __init__(self, chapters, ranges):
+        self.chapters, self.ranges = chapters, ranges
+
+    def __call__(self, info_dict, ydl):
         warning = ('There are no chapters matching the regex' if info_dict.get('chapters')
                    else 'Cannot match chapters since chapter information is unavailable')
-        for regex in chapters or []:
+        for regex in self.chapters or []:
             for i, chapter in enumerate(info_dict.get('chapters') or []):
                 if re.search(regex, chapter['title']):
                     warning = None
                     yield {**chapter, 'index': i}
-        if chapters and warning:
+        if self.chapters and warning:
             ydl.to_screen(f'[info] {info_dict["id"]}: {warning}')
 
-        yield from ({'start_time': start, 'end_time': end} for start, end in ranges or [])
+        yield from ({'start_time': start, 'end_time': end} for start, end in self.ranges or [])
 
-    return inner
+    def __eq__(self, other):
+        return (isinstance(other, download_range_func)
+                and self.chapters == other.chapters and self.ranges == other.ranges)
 
 
 def parse_dfxp_time_expr(time_expr):
@@ -5381,6 +5396,24 @@ def read_stdin(what):
     return sys.stdin
 
 
+def determine_file_encoding(data):
+    """
+    Detect the text encoding used
+    @returns (encoding, bytes to skip)
+    """
+
+    # BOM marks are given priority over declarations
+    for bom, enc in BOMS:
+        if data.startswith(bom):
+            return enc, len(bom)
+
+    # Strip off all null bytes to match even when UTF-16 or UTF-32 is used.
+    # We ignore the endianness to get a good enough match
+    data = data.replace(b'\0', b'')
+    mobj = re.match(rb'(?m)^#\s*coding\s*:\s*(\S+)\s*$', data)
+    return mobj.group(1).decode() if mobj else None, 0
+
+
 class Config:
     own_args = None
     parsed_args = None
@@ -5432,12 +5465,17 @@ class Config:
     @staticmethod
     def read_file(filename, default=[]):
         try:
-            optionf = open(filename)
+            optionf = open(filename, 'rb')
         except OSError:
             return default  # silently skip if file is not present
         try:
+            enc, skip = determine_file_encoding(optionf.read(512))
+            optionf.seek(skip, io.SEEK_SET)
+        except OSError:
+            enc = None  # silently skip read errors
+        try:
             # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
-            contents = optionf.read()
+            contents = optionf.read().decode(enc or preferredencoding())
             res = shlex.split(contents, comments=True)
         except Exception as err:
             raise ValueError(f'Unable to parse "{filename}": {err}')
