@@ -34,9 +34,7 @@ class PlexWatchBaseIE(InfoExtractor):
 
         selected_media = []
         for media in media_json['MediaContainer']['Metadata']:
-            if media.get('slug') == display_id and sites_type == 'movie':
-                selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
-            elif sites_type == 'show':
+            if media.get('slug') == display_id or sites_type == 'show':
                 selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
 
         formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id)
@@ -133,7 +131,7 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
         'info_dict': {
             'id': '5e20b730f2f8d5003d739db7-60089d90f682a3002c348299',
             'ext': 'mp4',
-            'title': r're:Global Week-End\s*[\d-]+\s*[\d+:]+',
+            'title': r're:[\w\s-]+[\d-]+\s*[\d+:]+',
             'display_id': 'euronews',
             'live_status': 'is_live',
         }
