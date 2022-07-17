@@ -14,6 +14,7 @@ class PlexWatchBaseIE(InfoExtractor):
         is_live = (sites_type == 'live')
         formats, subtitles = [], {}
         for media in selected_media:
+            # the mpd link have different endpoint with m3u8
             if determine_ext(media) == 'm3u8':
                 # Error: urllib.error.HTTPError: HTTP Error 401: Unauthorized
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
@@ -21,13 +22,6 @@ class PlexWatchBaseIE(InfoExtractor):
                     display_id)
                 formats.extend(fmt)
                 self._merge_subtitles(subs, target=subtitles)
-                
-            # elif determine_ext(media) == 'mpd':
-                # fmt, subs = self._extract_mpd_formats_and_subtitles(
-                    # f'https://vod.provider.plex.tv/{media}?X-PLEX-TOKEN={plex_token}', display_id)
-                # formats.extend(fmt)
-                # self._merge_subtitles(subs, target=subtitles)
-        
         return formats, subtitles
 
 class PlexWatchMovieIE(PlexWatchBaseIE):
@@ -77,7 +71,7 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
         
         
 class PlexWatchEpisodeIE(PlexWatchBaseIE):
-    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?P<sites_type>movie|show)/(?P<id>[\w-]+)/season/\d+/episode/\d+'
+    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?show/(?P<id>[\w-]+)/season/\d+/episode/\d+'
     _TESTS = [{
         'url': 'https://watch.plex.tv/show/popeye-the-sailor/season/1/episode/1',
         'info_dict': {
@@ -100,7 +94,7 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
         }
     }]
     def _real_extract(self, url):
-        sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
+        display_id = self._match_id(url)
         
         nextjs_json = self._search_nextjs_data(
             self._download_webpage(url, display_id), display_id)['props']['pageProps']['metadataItem']
