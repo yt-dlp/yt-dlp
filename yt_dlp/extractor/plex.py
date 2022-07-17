@@ -66,7 +66,7 @@ class PlexWatchBaseIE(InfoExtractor):
 
 
 class PlexWatchMovieIE(PlexWatchBaseIE):
-    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?P<sites_type>movie)/(?P<id>[\w-]+)[?/#&]?'
+    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?P<sites_type>movie)/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://watch.plex.tv/movie/bowery-at-midnight',
         'info_dict': {
@@ -170,7 +170,7 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
             display_id, 'live')
 
         return {
-            'id': nextjs_json["id"],
+            'id': nextjs_json['id'],
             'display_id': display_id,
             'title': traverse_obj(media_json, ('MediaContainer', 'MediaSubscription', 0, 'title')),
             'formats': formats,
