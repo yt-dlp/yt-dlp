@@ -47,7 +47,6 @@ class PhilharmonieDeParisIE(InfoExtractor):
         'url': 'https://otoplayer.philharmoniedeparis.fr/fr/embed/1098406?lang=fr-FR',
         'only_matching': True,
     }]
-    _LIVE_URL = 'https://live.philharmoniedeparis.fr'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -75,9 +74,8 @@ class PhilharmonieDeParisIE(InfoExtractor):
                 if not format_url or format_url in format_urls:
                     continue
                 format_urls.add(format_url)
-                m3u8_url = urljoin(self._LIVE_URL, format_url)
                 formats.extend(self._extract_m3u8_formats(
-                    m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                    format_url, video_id, 'mp4', entry_protocol='m3u8_native',
                     m3u8_id='hls', fatal=False))
             if not formats and not self.get_param('ignore_no_formats'):
                 return
