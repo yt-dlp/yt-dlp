@@ -57,6 +57,7 @@ class PhilharmonieDeParisIE(InfoExtractor):
                 'id': video_id,
                 'lang': 'fr-FR',
             })
+
         def extract_entry(source):
             if not isinstance(source, dict):
                 return
