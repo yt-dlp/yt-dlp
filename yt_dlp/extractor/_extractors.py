@@ -22,6 +22,7 @@ from .acast import (
     ACastIE,
     ACastChannelIE,
 )
+from .acfun import AcFunVideoIE, AcFunBangumiIE
 from .adn import ADNIE
 from .adobeconnect import AdobeConnectIE
 from .adobetv import (
@@ -262,6 +263,7 @@ from .ccc import (
 from .ccma import CCMAIE
 from .cctv import CCTVIE
 from .cda import CDAIE
+from .cellebrite import CellebriteIE
 from .ceskatelevize import CeskaTelevizeIE
 from .cgtn import CGTNIE
 from .channel9 import Channel9IE
@@ -380,6 +382,7 @@ from .deezer import (
     DeezerAlbumIE,
 )
 from .democracynow import DemocracynowIE
+from .detik import Detik20IE
 from .dfb import DFBIE
 from .dhm import DHMIE
 from .digg import DiggIE
@@ -664,6 +667,7 @@ from .hungama import (
     HungamaAlbumPlaylistIE,
 )
 from .hypem import HypemIE
+from .hytale import HytaleIE
 from .icareus import IcareusIE
 from .ichinanalive import (
     IchinanaLiveIE,
@@ -1440,7 +1444,13 @@ from .rottentomatoes import RottenTomatoesIE
 from .rozhlas import RozhlasIE
 from .rtbf import RTBFIE
 from .rte import RteIE, RteRadioIE
-from .rtlnl import RtlNlIE
+from .rtlnl import (
+    RtlNlIE,
+    RTLLuTeleVODIE, 
+    RTLLuArticleIE,
+    RTLLuLiveIE,
+    RTLLuRadioIE,
+)
 from .rtl2 import (
     RTL2IE,
     RTL2YouIE,
@@ -1614,6 +1624,7 @@ from .spike import (
     BellatorIE,
     ParamountNetworkIE,
 )
+from .startrek import StarTrekIE
 from .stitcher import (
     StitcherIE,
     StitcherShowIE,
@@ -1783,6 +1794,7 @@ from .trueid import TrueIDIE
 from .trunews import TruNewsIE
 from .trutv import TruTVIE
 from .tube8 import Tube8IE
+from .tubetugraz import TubeTuGrazIE, TubeTuGrazSeriesIE
 from .tubitv import (
     TubiTvIE,
     TubiTvShowIE,
@@ -1831,6 +1843,7 @@ from .tvc import (
 )
 from .tver import TVerIE
 from .tvigle import TvigleIE
+from .tviplayer import TVIPlayerIE
 from .tvland import TVLandIE
 from .tvn24 import TVN24IE
 from .tvnet import TVNetIE

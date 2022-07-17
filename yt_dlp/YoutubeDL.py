@@ -430,19 +430,22 @@ class YoutubeDL:
     retry_sleep_functions: Dictionary of functions that takes the number of attempts
                        as argument and returns the time to sleep in seconds.
                        Allowed keys are 'http', 'fragment', 'file_access'
-    download_ranges:   A function that gets called for every video with the signature
-                       (info_dict, *, ydl) -> Iterable[Section].
-                       Only the returned sections will be downloaded. Each Section contains:
+    download_ranges:   A callback function that gets called for every video with
+                       the signature (info_dict, ydl) -> Iterable[Section].
+                       Only the returned sections will be downloaded.
+                       Each Section is a dict with the following keys:
                        * start_time: Start time of the section in seconds
                        * end_time: End time of the section in seconds
                        * title: Section title (Optional)
                        * index: Section number (Optional)
+    force_keyframes_at_cuts: Re-encode the video when downloading ranges to get precise cuts
+    noprogress:        Do not print the progress bar
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
     nopart, updatetime, buffersize, ratelimit, throttledratelimit, min_filesize,
     max_filesize, test, noresizebuffer, retries, file_access_retries, fragment_retries,
-    continuedl, noprogress, xattr_set_filesize, hls_use_mpegts, http_chunk_size,
+    continuedl, xattr_set_filesize, hls_use_mpegts, http_chunk_size,
     external_downloader_args, concurrent_fragment_downloads.
 
     The following options are used by the post processors:
@@ -1466,7 +1469,12 @@ class YoutubeDL:
 
         def progress(msg):
             nonlocal last_msg
-            self.to_screen(msg + ' ' * (len(last_msg) - len(msg)) + '\r', skip_eol=True)
+            full_msg = f'{msg}\n'
+            if not self.params.get('noprogress'):
+                full_msg = msg + ' ' * (len(last_msg) - len(msg)) + '\r'
+            elif last_msg:
+                return
+            self.to_screen(full_msg, skip_eol=True)
             last_msg = msg
 
         min_wait, max_wait = self.params.get('wait_for_video')

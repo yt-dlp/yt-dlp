@@ -2405,7 +2405,11 @@ def remove_quotes(s):
 
 
 def get_domain(url):
-    return '.'.join(urllib.parse.urlparse(url).netloc.rsplit('.', 2)[-2:])
+    """
+    This implementation is inconsistent, but is kept for compatibility.
+    Use this only for "webpage_url_domain"
+    """
+    return remove_start(urllib.parse.urlparse(url).netloc, 'www.') or None
 
 
 def url_basename(url):
@@ -3481,16 +3485,18 @@ def age_restricted(content_limit, age_limit):
     return age_limit < content_limit
 
 
+# List of known byte-order-marks (BOM)
+BOMS = [
+    (b'\xef\xbb\xbf', 'utf-8'),
+    (b'\x00\x00\xfe\xff', 'utf-32-be'),
+    (b'\xff\xfe\x00\x00', 'utf-32-le'),
+    (b'\xff\xfe', 'utf-16-le'),
+    (b'\xfe\xff', 'utf-16-be'),
+]
+
+
 def is_html(first_bytes):
     """ Detect whether a file contains HTML by examining its first bytes. """
-
-    BOMS = [
-        (b'\xef\xbb\xbf', 'utf-8'),
-        (b'\x00\x00\xfe\xff', 'utf-32-be'),
-        (b'\xff\xfe\x00\x00', 'utf-32-le'),
-        (b'\xff\xfe', 'utf-16-le'),
-        (b'\xfe\xff', 'utf-16-be'),
-    ]
 
     encoding = 'utf-8'
     for bom, enc in BOMS:
@@ -5390,6 +5396,24 @@ def read_stdin(what):
     return sys.stdin
 
 
+def determine_file_encoding(data):
+    """
+    Detect the text encoding used
+    @returns (encoding, bytes to skip)
+    """
+
+    # BOM marks are given priority over declarations
+    for bom, enc in BOMS:
+        if data.startswith(bom):
+            return enc, len(bom)
+
+    # Strip off all null bytes to match even when UTF-16 or UTF-32 is used.
+    # We ignore the endianness to get a good enough match
+    data = data.replace(b'\0', b'')
+    mobj = re.match(rb'(?m)^#\s*coding\s*:\s*(\S+)\s*$', data)
+    return mobj.group(1).decode() if mobj else None, 0
+
+
 class Config:
     own_args = None
     parsed_args = None
@@ -5441,12 +5465,17 @@ class Config:
     @staticmethod
     def read_file(filename, default=[]):
         try:
-            optionf = open(filename)
+            optionf = open(filename, 'rb')
         except OSError:
             return default  # silently skip if file is not present
         try:
+            enc, skip = determine_file_encoding(optionf.read(512))
+            optionf.seek(skip, io.SEEK_SET)
+        except OSError:
+            enc = None  # silently skip read errors
+        try:
             # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
-            contents = optionf.read()
+            contents = optionf.read().decode(enc or preferredencoding())
             res = shlex.split(contents, comments=True)
         except Exception as err:
             raise ValueError(f'Unable to parse "{filename}": {err}')
