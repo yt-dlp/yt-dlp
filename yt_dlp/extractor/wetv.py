@@ -1,5 +1,6 @@
 import re
 import time
+import urllib.parse
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_encrypt
@@ -200,10 +201,12 @@ class WeTvSeriesIE(WeTvBaseIE):
         webpage = self._download_webpage(url, series_id)
         webpage_metadata = self._get_webpage_metadata(webpage, series_id)
 
-        episode_paths = (re.findall(r'<a[^>]+class="play-video__link"[^>]+href="(?P<path>[^"]+)', webpage)
-                         or [f'/{series_id}/{episode["vid"]}' for episode in webpage_metadata.get('videoList')])
+        parsed_url = urllib.parse.urlparse(url)
+        episode_urls = [parsed_url._replace(path=path).geturl() for path in
+                        (re.findall(r'<a[^>]+class="play-video__link"[^>]+href="(?P<path>[^"]+)', webpage)
+                        or [f'/{series_id}/{episode["vid"]}' for episode in webpage_metadata.get('videoList')])]
 
         return self.playlist_from_matches(
-            episode_paths, series_id, ie=WeTvEpisodeIE,
+            episode_urls, series_id, ie=WeTvEpisodeIE,
             title=traverse_obj(webpage_metadata, ('coverInfo', 'title')) or self._og_search_title(webpage),
             description=traverse_obj(webpage_metadata, ('coverInfo', 'description')) or self._og_search_description(webpage))
