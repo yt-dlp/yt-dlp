@@ -110,7 +110,7 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
 
 
 class PlexWatchSeasonIE(PlexWatchBaseIE):
-    _VALID_URL = r'https?://watch\.plex\.tv/show/(?P<season>[\w-]+)/season/(?P<season_num>\d+)$'
+    _VALID_URL = r'https?://watch\.plex\.tv/show/(?P<season>[\w-]+)/season/(?P<season_num>\d+)/?(?:$|[#?])'
     _TESTS = [{
         'url': 'https://watch.plex.tv/show/a-cooks-tour-2/season/1',
         'info_dict': {
