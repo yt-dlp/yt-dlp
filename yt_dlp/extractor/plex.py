@@ -49,6 +49,7 @@ class PlexWatchBaseIE(InfoExtractor):
         for media in media_json['MediaContainer']['Metadata']:
             if media.get('slug') == display_id or sites_type == 'show':
                 selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
+                break
 
         formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id)
         self._sort_formats(formats)
