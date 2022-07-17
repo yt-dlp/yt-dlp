@@ -114,8 +114,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
         for video_format in video_response['ul']['ui']:
             if video_format.get('hls'):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    video_format.get('url') + traverse_obj(video_format, ('hls', 'pname')), video_id, 'mp4', fatal=False)
-
+                    video_format['url'] + video_format['hls']['pname'], video_id, 'mp4', fatal=False)
                 for f in fmts:
                     f['width'] = video_width
                     f['height'] = video_height
@@ -205,6 +204,6 @@ class WeTvSeriesIE(WeTvBaseIE):
                          or [f'/{series_id}/{episode["vid"]}' for episode in webpage_metadata.get('videoList')])
 
         return self.playlist_from_matches(
-            episode_paths, series_id, traverse_obj(webpage_metadata, ('coverInfo', 'title')) or self._og_search_title(webpage),
-            description=traverse_obj(webpage_metadata, ('coverInfo', 'description')) or self._og_search_description(webpage),
-            ie=WeTvEpisodeIE)
+            episode_paths, series_id, ie=WeTvEpisodeIE,
+            title=traverse_obj(webpage_metadata, ('coverInfo', 'title')) or self._og_search_title(webpage),
+            description=traverse_obj(webpage_metadata, ('coverInfo', 'description')) or self._og_search_description(webpage))
