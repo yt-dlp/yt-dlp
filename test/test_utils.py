@@ -39,6 +39,7 @@ from yt_dlp.utils import (
     datetime_from_str,
     detect_exe_version,
     determine_ext,
+    determine_file_encoding,
     dfxp2srt,
     dict_get,
     encode_base_n,
@@ -1821,6 +1822,25 @@ Line 1
         finally:
             with contextlib.suppress(OSError):
                 os.remove(FILE)
+
+    def test_determine_file_encoding(self):
+        self.assertEqual(determine_file_encoding(b''), (None, 0))
+        self.assertEqual(determine_file_encoding(b'--verbose -x --audio-format mkv\n'), (None, 0))
+
+        self.assertEqual(determine_file_encoding(b'\xef\xbb\xbf'), ('utf-8', 3))
+        self.assertEqual(determine_file_encoding(b'\x00\x00\xfe\xff'), ('utf-32-be', 4))
+        self.assertEqual(determine_file_encoding(b'\xff\xfe'), ('utf-16-le', 2))
+
+        self.assertEqual(determine_file_encoding(b'\xff\xfe# coding: utf-8\n--verbose'), ('utf-16-le', 2))
+
+        self.assertEqual(determine_file_encoding(b'# coding: utf-8\n--verbose'), ('utf-8', 0))
+        self.assertEqual(determine_file_encoding(b'# coding: someencodinghere-12345\n--verbose'), ('someencodinghere-12345', 0))
+
+        self.assertEqual(determine_file_encoding(b'#coding:utf-8\n--verbose'), ('utf-8', 0))
+        self.assertEqual(determine_file_encoding(b'#  coding:   utf-8   \r\n--verbose'), ('utf-8', 0))
+
+        self.assertEqual(determine_file_encoding('# coding: utf-32-be'.encode('utf-32-be')), ('utf-32-be', 0))
+        self.assertEqual(determine_file_encoding('# coding: utf-16-le'.encode('utf-16-le')), ('utf-16-le', 0))
 
 
 if __name__ == '__main__':
