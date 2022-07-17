@@ -1446,7 +1446,7 @@ from .rtbf import RTBFIE
 from .rte import RteIE, RteRadioIE
 from .rtlnl import (
     RtlNlIE,
-    RTLLuTeleVODIE, 
+    RTLLuTeleVODIE,
     RTLLuArticleIE,
     RTLLuLiveIE,
     RTLLuRadioIE,

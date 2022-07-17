@@ -1,7 +1,10 @@
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError, traverse_obj, parse_duration, unified_timestamp,
-    url_or_none
+    ExtractorError,
+    parse_duration,
+    traverse_obj,
+    unified_timestamp,
+    url_or_none,
 )
 
 

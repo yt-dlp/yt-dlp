@@ -306,7 +306,7 @@ class YoutubeDL:
     client_certificate_password:  Password for client certificate private key, if encrypted.
                         If not provided and the key is encrypted, yt-dlp will ask interactively
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
-                       At the moment, this is only supported by YouTube.
+                       (Only supported by some extractors)
     http_headers:      A dictionary of custom headers to be used for all requests
     proxy:             URL of the proxy server to use
     geo_verification_proxy:  URL of the proxy to use for IP address verification
@@ -589,7 +589,7 @@ class YoutubeDL:
         if current_version < MIN_RECOMMENDED:
             msg = ('Support for Python version %d.%d has been deprecated. '
                    'See  https://github.com/yt-dlp/yt-dlp/issues/3764  for more details.'
-                   '\n                    You will no longer recieve updates on this version')
+                   '\n                    You will no longer receive updates on this version')
             if current_version < MIN_SUPPORTED:
                 msg = 'Python version %d.%d is no longer supported'
             self.deprecation_warning(
@@ -1693,7 +1693,7 @@ class YoutubeDL:
         assert ie_result['_type'] in ('playlist', 'multi_video')
 
         title = ie_result.get('title') or ie_result.get('id') or '<Untitled>'
-        self.to_screen(f'[download] Downloading playlist: {title}')
+        self.to_screen(f'[download] Downloading {ie_result["_type"]}: {title}')
 
         all_entries = PlaylistEntries(self, ie_result)
         entries = orderedSet(all_entries.get_requested_items(), lazy=True)

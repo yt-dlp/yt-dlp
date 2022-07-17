@@ -3,8 +3,8 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..aes import aes_cbc_encrypt
-from ..utils import bytes_to_intlist, determine_ext, intlist_to_bytes, int_or_none, traverse_obj, urljoin
+from ..aes import aes_cbc_encrypt_bytes
+from ..utils import determine_ext, int_or_none, traverse_obj, urljoin
 
 
 class WeTvBaseIE(InfoExtractor):
@@ -16,13 +16,11 @@ class WeTvBaseIE(InfoExtractor):
         payload = (f'{video_id}|{int(time.time())}|mg3c3b04ba|{app_version}|0000000000000000|'
                    f'{platform}|{url[:48]}|{ua.lower()[:48]}||Mozilla|Netscape|Win32|00|')
 
-        ciphertext_int_bytes = aes_cbc_encrypt(
-            bytes_to_intlist(bytes(f'|{sum(map(ord, payload))}|{payload}', 'utf-8')),
-            bytes_to_intlist(b'Ok\xda\xa3\x9e/\x8c\xb0\x7f^r-\x9e\xde\xf3\x14'),
-            bytes_to_intlist(b'\x01PJ\xf3V\xe6\x19\xcf.B\xbb\xa6\x8c?p\xf9'),
-            'whitespace')
-
-        return intlist_to_bytes(ciphertext_int_bytes).hex()
+        return aes_cbc_encrypt_bytes(
+            bytes(f'|{sum(map(ord, payload))}|{payload}', 'utf-8'),
+            b'Ok\xda\xa3\x9e/\x8c\xb0\x7f^r-\x9e\xde\xf3\x14',
+            b'\x01PJ\xf3V\xe6\x19\xcf.B\xbb\xa6\x8c?p\xf9',
+            padding_mode='whitespace').hex()
 
     def _get_video_api_response(self, video_url, video_id, series_id, subtitle_format, video_format, video_quality):
         app_version = '3.5.57'
