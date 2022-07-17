@@ -53,11 +53,10 @@ class PhilharmonieDeParisIE(InfoExtractor):
         video_id = self._match_id(url)
 
         config = self._download_json(
-            '%s/otoPlayer/config.ashx' % self._LIVE_URL, video_id, query={
+            'https://otoplayer.philharmoniedeparis.fr/fr/config/%s.json' % video_id, video_id, query={
                 'id': video_id,
                 'lang': 'fr-FR',
             })
-
         def extract_entry(source):
             if not isinstance(source, dict):
                 return
@@ -82,21 +81,18 @@ class PhilharmonieDeParisIE(InfoExtractor):
             if not formats and not self.get_param('ignore_no_formats'):
                 return
             self._sort_formats(formats)
+            thumbnail = files.get('thumbnail')
             return {
                 'title': title,
                 'formats': formats,
+                'thumbnail': thumbnail,
             }
-
-        thumbnail = urljoin(self._LIVE_URL, config.get('image'))
-
         info = extract_entry(config)
         if info:
             info.update({
                 'id': video_id,
-                'thumbnail': thumbnail,
             })
             return info
-
         entries = []
         for num, chapter in enumerate(config['chapters'], start=1):
             entry = extract_entry(chapter)
