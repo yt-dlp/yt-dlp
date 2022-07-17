@@ -20,18 +20,18 @@ class PhilharmonieDeParisIE(InfoExtractor):
                         (?P<id>\d+)
                     '''
     _TESTS = [{
-        'url': 'http://pad.philharmoniedeparis.fr/doc/CIMU/1086697/jazz-a-la-villette-knower',
-        'md5': 'a0a4b195f544645073631cbec166a2c2',
+        'url': 'https://philharmoniedeparis.fr/fr/live/concert/1129666-danses-symphoniques',
+        'md5': '24bdb7e86c200c107680e1f7770330ae',
         'info_dict': {
-            'id': '1086697',
+            'id': '1129666',
             'ext': 'mp4',
-            'title': 'Jazz à la Villette : Knower',
+            'title': 'Danses symphoniques. Orchestre symphonique Divertimento - Zahia Ziouani. Bizet, de Falla, Stravinski, Moussorgski, Saint-Saëns',
         },
     }, {
         'url': 'https://philharmoniedeparis.fr/fr/live/concert/1032066-akademie-fur-alte-musik-berlin-rias-kammerchor-rene-jacobs-passion-selon-saint-jean-de-johann',
         'info_dict': {
             'id': '1032066',
-            'title': 'md5:0a031b81807b3593cffa3c9a87a167a0',
+            'title': 'Akademie für alte Musik Berlin, Rias Kammerchor, René Jacobs : Passion selon saint Jean de Johann Sebastian Bach',
         },
         'playlist_mincount': 2,
     }, {
