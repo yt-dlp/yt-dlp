@@ -1,14 +1,14 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, determine_ext, int_or_none, traverse_obj
+from ..utils import determine_ext, int_or_none, traverse_obj
 
 
 class PlexWatchBaseIE(InfoExtractor):
     _CDN_ENDPOINT = {
         'vod': 'https://vod.provider.plex.tv',
-        'live': 'https://epg.provider.plex.tv' # add /tune at the  end 
+        'live': 'https://epg.provider.plex.tv'
     }
-    _PLEX_TOKEN = 'NytaXzMexGQ9-xW9yDjy' # change this if not work
-    
+    _PLEX_TOKEN = 'NytaXzMexGQ9-xW9yDjy'  # change this if not work
+
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod'):
         formats, subtitles = [], {}
         for media in selected_media:
@@ -20,28 +20,28 @@ class PlexWatchBaseIE(InfoExtractor):
                 formats.extend(fmt)
                 self._merge_subtitles(subs, target=subtitles)
         return formats, subtitles
-    
+
     def _real_extract(self, url):
         sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
-        
+
         nextjs_json = self._search_nextjs_data(
             self._download_webpage(url, display_id), display_id)['props']['pageProps']['metadataItem']
-        
+
         media_json = self._download_json(
-            f'https://play.provider.plex.tv/playQueues', display_id, 
+            'https://play.provider.plex.tv/playQueues', display_id,
             query={'uri': nextjs_json['playableKey']}, data=''.encode(),
             headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
-            
+
         selected_media = []
         for media in media_json['MediaContainer']['Metadata']:
             if media.get('slug') == display_id and sites_type == 'movie':
                 selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
             elif sites_type == 'show':
                 selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
-            
+
         formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id)
         self._sort_formats(formats)
-        
+
         return {
             'id': nextjs_json['playableID'],
             'display_id': display_id,
@@ -50,9 +50,10 @@ class PlexWatchBaseIE(InfoExtractor):
             'title': nextjs_json.get('title'),
             'description': nextjs_json.get('summary'),
             'thumbnail': nextjs_json.get('thumb'),
-            'duration': int_or_none(nextjs_json.get('duration'), 1000),   
+            'duration': int_or_none(nextjs_json.get('duration'), 1000),
         }
-        
+
+
 class PlexWatchMovieIE(PlexWatchBaseIE):
     _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?P<sites_type>movie)/(?P<id>[\w-]+)[?/#&]?'
     _TESTS = [{
@@ -67,8 +68,8 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
             'thumbnail': 'https://image.tmdb.org/t/p/original/lDWHvIotQkogG77wHVuMT8mF8P.jpg',
         }
     }]
-    
-    
+
+
 class PlexWatchEpisodeIE(PlexWatchBaseIE):
     _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?P<sites_type>show)/(?P<id>[\w-]+)/season/\d+/episode/\d+'
     _TESTS = [{
@@ -92,11 +93,11 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'thumbnail': 'https://metadata-static.plex.tv/b/gracenote/b4452f949f600db816b3e6a51ce0674a.jpg',
         }
     }]
-    
+
 
 class PlexWatchSeasonIE(PlexWatchBaseIE):
     _VALID_URL = r'https?://watch\.plex\.tv/show/(?P<season>[\w-]+)/season/(?P<season_num>\d+)'
-    _TESTS =[{
+    _TESTS = [{
         'url': 'https://watch.plex.tv/show/a-cooks-tour-2/season/1',
         'info_dict': {
             'id': '624c6b291e79c48d83a2b04e',
@@ -104,26 +105,27 @@ class PlexWatchSeasonIE(PlexWatchBaseIE):
         },
         'playlist_count': 22,
     }]
-    
+
     def _get_episode_result(self, episode_list, season_name, season_index):
         for episode in episode_list:
             yield self.url_result(
                 f'https://watch.plex.tv/show/{season_name}/season/{season_index}/episode/{episode}',
-                ie=PlexWatchEpisodeIE) 
-    
+                ie=PlexWatchEpisodeIE)
+
     def _real_extract(self, url):
         season_name, season_num = self._match_valid_url(url).group('season', 'season_num')
-        
+
         nextjs_json = self._search_nextjs_data(
             self._download_webpage(url, season_name), season_name)['props']['pageProps']
-        
+
         return self.playlist_result(
             self._get_episode_result(
                 traverse_obj(nextjs_json, ('episodes', ..., 'index')), season_name, season_num),
             traverse_obj(nextjs_json, ('metadataItem', 'playableID')),
             traverse_obj(nextjs_json, ('metadataItem', 'parentTitle')),
             traverse_obj(nextjs_json, ('metadataItem', 'summary')))
- 
+
+
 class PlexWatchLiveIE(PlexWatchBaseIE):
     _VALID_URL = r'https?://watch\.plex\.tv/live-tv/channel/(?P<id>[\w-]+)'
     _TESTS = [{
@@ -136,21 +138,21 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
             'live_status': 'is_live',
         }
     }]
-    
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        
+
         nextjs_json = self._search_nextjs_data(
             self._download_webpage(url, display_id), display_id)['props']['pageProps']['channel']
         media_json = self._download_json(
             f'https://epg.provider.plex.tv/channels/{nextjs_json["id"]}/tune',
-            display_id, data=''.encode(),headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
-            
+            display_id, data=''.encode(), headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
+
         formats, subtitles = self._get_formats_and_subtitles(
             traverse_obj(media_json, (
                 'MediaContainer', 'MediaSubscription', ..., 'MediaGrabOperation', ..., 'Metadata', ..., 'Media', ..., 'Part', ..., 'key')),
             display_id, 'live')
-        
+
         return {
             'id': nextjs_json["id"],
             'display_id': display_id,
@@ -159,4 +161,3 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
             'subtitles': subtitles,
             'live_status': 'is_live',
         }
-            
