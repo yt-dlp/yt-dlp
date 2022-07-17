@@ -8,6 +8,8 @@ from ..utils import (
 
 
 class PlexWatchBaseIE(InfoExtractor):
+    # provider url is in https://plex.tv/media/providers?X-Plex-Token=<plex_token> 
+    # nb: need Accept: application/json, otherwise return xml
     _CDN_ENDPOINT = {
         'vod': 'https://vod.provider.plex.tv',
         'live': 'https://epg.provider.plex.tv'
@@ -19,13 +21,13 @@ class PlexWatchBaseIE(InfoExtractor):
         for media in selected_media:
             if determine_ext(media) == 'm3u8':
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
-                    f'{self._CDN_ENDPOINT[sites_type]}{media}?X-PLEX-TOKEN={self._PLEX_TOKEN}',
-                    display_id)
+                    f'{self._CDN_ENDPOINT[sites_type]}{media}',
+                    display_id, query={'X-PLEX-TOKEN': self._PLEX_TOKEN})
 
             elif determine_ext(media) == 'mpd':
                 fmt, subs = self._extract_mpd_formats_and_subtitles(
-                    f'{self._CDN_ENDPOINT[sites_type]}{media}?X-PLEX-TOKEN={self._PLEX_TOKEN}',
-                    display_id)
+                    f'{self._CDN_ENDPOINT[sites_type]}{media}',
+                    display_id, query={'X-PLEX-TOKEN' : self._PLEX_TOKEN},)
 
             formats.extend(fmt)
             self._merge_subtitles(subs, target=subtitles)
@@ -177,3 +179,5 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
             'subtitles': subtitles,
             'live_status': 'is_live',
         }
+
+# example url from app.plex: https://app.plex.tv/desktop/#!/provider/tv.plex.provider.vod/details?key=%2Flibrary%2Fmetadata%2F5e0c0cda7440fc0020ab9ff5&context=library%3Ahub.movies.documentary~16~7
