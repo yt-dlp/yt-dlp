@@ -34,7 +34,7 @@ class PlexWatchBaseIE(InfoExtractor):
 
         return formats, subtitles
 
-    def _real_extract(self, url):
+    def _extract_data(self, url, **kwargs):
         sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
 
         nextjs_json = self._search_nextjs_data(
@@ -54,6 +54,7 @@ class PlexWatchBaseIE(InfoExtractor):
         self._sort_formats(formats)
 
         return {
+            **kwargs,
             'id': nextjs_json['playableID'],
             'display_id': display_id,
             'formats': formats,
@@ -82,10 +83,13 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
             'cast': 'count:22',
         }
     }]
+    
+    def _real_extract(self, url):
+        return self._extract_data(url)
 
 
 class PlexWatchEpisodeIE(PlexWatchBaseIE):
-    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?P<sites_type>show)/(?P<id>[\w-]+)/season/\d+/episode/\d+'
+    _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?P<sites_type>show)/(?P<id>[\w-]+)/season/(?P<season_num>\d+)/episode/(?P<episode_num>\d+)'
     _TESTS = [{
         'url': 'https://watch.plex.tv/show/popeye-the-sailor/season/1/episode/1',
         'info_dict': {
@@ -95,6 +99,10 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'description': 'md5:d3fcad5bd678b43428f93944b66c2752',
             'thumbnail': 'https://image.tmdb.org/t/p/original/r3SwiK3IANuAAvb1a0oShu8HKcV.jpg',
             'title': 'Barbecue for Two',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'season': 'Season 1',
+            'season_number': 1,
         }
     }, {
         'url': 'https://watch.plex.tv/show/a-cooks-tour-2/season/1/episode/3',
@@ -105,8 +113,17 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'display_id': 'a-cooks-tour-2',
             'title': 'Cobra Heart, Food That Makes You Manly',
             'thumbnail': 'https://metadata-static.plex.tv/b/gracenote/b4452f949f600db816b3e6a51ce0674a.jpg',
+            'episode': 'Episode 3',
+            'episode_number': 3,
+            'season_number': 1,
+            'season': 'Season 1',
         }
     }]
+    
+    def _real_extract(self, url):
+        return self._extract_data(
+            url, episode_number=int_or_none(self._match_valid_url(url).group('episode_num')),
+            season_number=int_or_none(self._match_valid_url(url).group('season_num')))
 
 
 class PlexWatchSeasonIE(PlexWatchBaseIE):
