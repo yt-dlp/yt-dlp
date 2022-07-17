@@ -33,9 +33,6 @@ def main():
         '--icon=devscripts/logo.ico',
         '--upx-exclude=vcruntime140.dll',
         '--noconfirm',
-        # NB: Modules that are only imported dynamically must be added here.
-        # --collect-submodules may not work correctly if user has a yt-dlp installed via PIP
-        '--hidden-import=yt_dlp.compat._legacy',
         *dependency_options(),
         *opts,
         'yt_dlp/__main__.py',

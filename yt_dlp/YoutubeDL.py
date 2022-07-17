@@ -24,7 +24,6 @@ import urllib.request
 from string import ascii_letters
 
 from .cache import Cache
-from .compat import HAS_LEGACY as compat_has_legacy
 from .compat import compat_os_name, compat_shlex_quote
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
@@ -623,8 +622,6 @@ class YoutubeDL:
             self.deprecation_warning(msg)
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
-        if not compat_has_legacy:
-            self.params['compat_opts'].add('no-compat-legacy')
         if 'list-formats' in self.params['compat_opts']:
             self.params['listformats_table'] = False
 
