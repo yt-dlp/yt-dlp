@@ -130,6 +130,13 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'season_number': 1,
             'season': 'Season 1',
         }
+    }, {
+        'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.vod/details?key=%2Flibrary%2Fmetadata%2F62a8b77b93fc109a6d020761&context=library%3Ahub.movies.reality-tv~8~9',
+        'info_dict': {
+            'id': 'fixme',
+            'title': 'fixthis',
+        },
+        'playlist_count': 100,
     }]
 
     def _real_extract(self, url):
@@ -213,6 +220,7 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
 class PlexAppIE(PlexWatchBaseIE):
     _VALID_URL = r'https://app\.plex\.tv/\w+/#!/provider/(?P<provider>[\w\.]+)/details\?key\s*=\s*(?P<key>%2Flibrary%2Fmetadata%2F(?P<id>[a-f0-9]+))'
     _TESTS = [{
+        # movie
         'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.vod/details?key=%2Flibrary%2Fmetadata%2F5e0c0cda7440fc0020ab9ff5&context=library%3Ahub.movies.documentary~16~7',
         'info_dict': {
             'id': '5e0c0cda7440fc0020ab9ff5',
@@ -227,29 +235,48 @@ class PlexAppIE(PlexWatchBaseIE):
         'params': {
             'skip_download': True
         },
+    }, {
+        'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.vod/details?key=%2Flibrary%2Fmetadata%2F62b0fbd90776e5797e7d92fe&context=library%3Ahub.movies.reality-tv~8~9',
+        'info_dict': {
+            'id': '62b0fbd90776e5797e7d92fe',
+            'ext': 'mp4',
+            'thumbnail': 'https://cf-images.us-east-1.prod.boltdns.net/v1/jit/6058083015001/d958c52a-3e73-4902-8623-adfe2f36ea3f/main/1280x720/11m15s61ms/match/image.jpg',
+            'duration': 1350,
+            'description': 'Gorilla makes funny gestures and postures; horse makes funny faces; duck honking a horn.',
+            'view_count': int,
+            'title': 'If you\'re happy and you know it',
+        },
+        'params': {
+            'skip_download': True,
+        }
     }]
-
+    
+        
     def _real_extract(self, url):
         provider, key, display_id = self._match_valid_url(url).group('provider', 'key', 'id')
         key = urllib.parse.unquote(key)
         media_json = self._download_json(
             f'{self._CDN_ENDPOINT[provider]}{key}', display_id, query={'uri': f'provider://{provider}{key}', 'X-Plex-Token': self._PLEX_TOKEN},
             headers={'Accept': 'application/json'})['MediaContainer']['Metadata'][0]
+        
+        if media_json['type'] in ('episode', 'movie'): 
+            selected_media = traverse_obj(
+                media_json, ('Media', ..., 'Part', ..., 'key'))
 
-        selected_media = traverse_obj(
-            media_json, ('Media', ..., 'Part', ..., 'key'))
-
-        formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id, provider)
-        return {
-            'id': display_id,
-            'ext': 'mp4',
-            'title': media_json.get('title'),
-            'description': media_json.get('summary'),
-            'formats': formats,
-            'subtitles': subtitles,
-            'thumbnail': media_json.get('thumb'),
-            'duration': int_or_none(media_json.get('duration'), 1000),
-            'cast': traverse_obj(media_json, ('Role', ..., 'tag')),
-            'rating': parse_age_limit(media_json.get('contentRating')),
-            'view_count': media_json.get('viewCount')
-        }
+            formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id, provider)
+            return {
+                'id': display_id,
+               'ext': 'mp4',
+                 'title': media_json.get('title'),
+                'description': media_json.get('summary'),
+                'formats': formats,
+                'subtitles': subtitles,
+                'thumbnail': media_json.get('thumb'),
+                'duration': int_or_none(media_json.get('duration'), 1000),
+                'cast': traverse_obj(media_json, ('Role', ..., 'tag')),
+                'rating': parse_age_limit(media_json.get('contentRating')),
+                'view_count': media_json.get('viewCount')
+            }
+        
+        elif media_json['type'] == 'season':
+            pass 
