@@ -1293,10 +1293,11 @@ from .playtvak import PlaytvakIE
 from .playvid import PlayvidIE
 from .playwire import PlaywireIE
 from .plex import (
-    PlexWatchMovieIE, 
-    PlexWatchEpisodeIE, 
-    PlexWatchSeasonIE,
+    PlexAppIE,
+    PlexWatchEpisodeIE,
     PlexWatchLiveIE,
+    PlexWatchMovieIE,
+    PlexWatchSeasonIE,
 )
 from .plutotv import PlutoTVIE
 from .pluralsight import (

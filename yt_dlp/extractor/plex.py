@@ -1,3 +1,5 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -12,7 +14,16 @@ class PlexWatchBaseIE(InfoExtractor):
     # nb: need Accept: application/json, otherwise return xml
     _CDN_ENDPOINT = {
         'vod': 'https://vod.provider.plex.tv',
-        'live': 'https://epg.provider.plex.tv'
+        'live': 'https://epg.provider.plex.tv',
+        # from api ( identifier : baseUrl)
+        'tv.plex.provider.epg': 'https://epg.provider.plex.tv',
+        'tv.plex.provider.vod': 'https://vod.provider.plex.tv',
+
+        # not used yet, but will be supported
+        'tv.plex.provider.discover': 'https://discover.provider.plex.tv',
+        'tv.plex.provider.music': 'https://music.provider.plex.tv',
+        'tv.plex.provider.metadata': 'https://metadata.provider.plex.tv',
+
     }
     _PLEX_TOKEN = 'NytaXzMexGQ9-xW9yDjy'  # change this if not work
 
@@ -198,4 +209,44 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
             'live_status': 'is_live',
         }
 
-# example url from app.plex: https://app.plex.tv/desktop/#!/provider/tv.plex.provider.vod/details?key=%2Flibrary%2Fmetadata%2F5e0c0cda7440fc0020ab9ff5&context=library%3Ahub.movies.documentary~16~7
+
+class PlexAppIE(PlexWatchBaseIE):
+    _VALID_URL = r'https://app\.plex\.tv/\w+/#!/provider/(?P<provider>[\w\.]+)/details\?key\s*=\s*(?P<key>%2Flibrary%2Fmetadata%2F(?P<id>[a-f0-9]+))'
+    _TESTS = [{
+        'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.vod/details?key=%2Flibrary%2Fmetadata%2F5e0c0cda7440fc0020ab9ff5&context=library%3Ahub.movies.documentary~16~7',
+        'info_dict': {
+            'id': '5e0c0cda7440fc0020ab9ff5',
+            'ext': 'mp4',
+            'title': 'Nazi Concentration and Prison Camps',
+            'thumbnail': 'https://image.tmdb.org/t/p/original/uNxkPkR2GGG71JSyh2Lqptnwcwm.jpg',
+            'cast': ['Dwight D. Eisenhower', 'Jack Taylor'],
+            'duration': 3517,
+            'description': 'md5:cc021d47035520acf2e027b8b4d244c2',
+            'view_count': int,
+        }
+    }]
+
+    def _real_extract(self, url):
+        provider, key, display_id = self._match_valid_url(url).group('provider', 'key', 'id')
+        key = urllib.parse.unquote(key)
+        media_json = self._download_json(
+            f'{self._CDN_ENDPOINT[provider]}{key}', display_id, query={'uri': f'provider://{provider}{key}', 'X-Plex-Token': self._PLEX_TOKEN},
+            headers={'Accept': 'application/json'})['MediaContainer']['Metadata'][0]
+
+        selected_media = traverse_obj(
+            media_json, ('Media', ..., 'Part', ..., 'key'))
+
+        formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id, provider)
+        return {
+            'id': display_id,
+            'ext': 'mp4',
+            'title': media_json.get('title'),
+            'description': media_json.get('summary'),
+            'formats': formats,
+            'subtitles': subtitles,
+            'thumbnail': media_json.get('thumb'),
+            'duration': int_or_none(media_json.get('duration'), 1000),
+            'cast': traverse_obj(media_json, ('Role', ..., 'tag')),
+            'rating': parse_age_limit(media_json.get('contentRating')),
+            'view_count': media_json.get('viewCount')
+        }
