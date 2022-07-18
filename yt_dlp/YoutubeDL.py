@@ -23,7 +23,6 @@ import urllib.request
 from string import ascii_letters
 
 from .cache import Cache
-from .compat import HAS_LEGACY as compat_has_legacy
 from .compat import compat_os_name, compat_shlex_quote, functools
 from .compat.urllib.request import getproxies
 from .cookies import load_cookies
@@ -51,9 +50,11 @@ from .postprocessor import (
     FFmpegFixupTimestampPP,
     FFmpegMergerPP,
     FFmpegPostProcessor,
+    FFmpegVideoConvertorPP,
     MoveFilesAfterDownloadPP,
     get_postprocessor,
 )
+from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
 from .update import detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
@@ -88,12 +89,14 @@ from .utils import (
     UnavailableVideoError,
     age_restricted,
     args_to_str,
+    bug_reports_message,
     date_from_str,
     determine_ext,
     determine_protocol,
     encode_compat_str,
     encodeFilename,
     error_to_compat_str,
+    escapeHTML,
     expand_path,
     filter_dict,
     float_or_none,
@@ -303,7 +306,7 @@ class YoutubeDL:
     client_certificate_password:  Password for client certificate private key, if encrypted.
                         If not provided and the key is encrypted, yt-dlp will ask interactively
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
-                       At the moment, this is only supported by YouTube.
+                       (Only supported by some extractors)
     http_headers:      A dictionary of custom headers to be used for all requests
     proxy:             URL of the proxy server to use
     geo_verification_proxy:  URL of the proxy to use for IP address verification
@@ -315,9 +318,14 @@ class YoutubeDL:
     default_search:    Prepend this string if an input url is not valid.
                        'auto' for elaborate guessing
     encoding:          Use this encoding instead of the system-specified.
-    extract_flat:      Do not resolve URLs, return the immediate result.
-                       Pass in 'in_playlist' to only show this behavior for
-                       playlist items.
+    extract_flat:      Whether to resolve and process url_results further
+                       * False:     Always process (default)
+                       * True:      Never process
+                       * 'in_playlist': Do not process inside playlist/multi_video
+                       * 'discard': Always process, but don't return the result
+                                    from inside playlist/multi_video
+                       * 'discard_in_playlist': Same as "discard", but only for
+                                    playlists (not multi_video)
     wait_for_video:    If given, wait for scheduled streams to become available.
                        The value should be a tuple containing the range
                        (min_secs, max_secs) to wait between retries
@@ -421,19 +429,22 @@ class YoutubeDL:
     retry_sleep_functions: Dictionary of functions that takes the number of attempts
                        as argument and returns the time to sleep in seconds.
                        Allowed keys are 'http', 'fragment', 'file_access'
-    download_ranges:   A function that gets called for every video with the signature
-                       (info_dict, *, ydl) -> Iterable[Section].
-                       Only the returned sections will be downloaded. Each Section contains:
+    download_ranges:   A callback function that gets called for every video with
+                       the signature (info_dict, ydl) -> Iterable[Section].
+                       Only the returned sections will be downloaded.
+                       Each Section is a dict with the following keys:
                        * start_time: Start time of the section in seconds
                        * end_time: End time of the section in seconds
                        * title: Section title (Optional)
                        * index: Section number (Optional)
+    force_keyframes_at_cuts: Re-encode the video when downloading ranges to get precise cuts
+    noprogress:        Do not print the progress bar
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
     nopart, updatetime, buffersize, ratelimit, throttledratelimit, min_filesize,
     max_filesize, test, noresizebuffer, retries, file_access_retries, fragment_retries,
-    continuedl, noprogress, xattr_set_filesize, hls_use_mpegts, http_chunk_size,
+    continuedl, xattr_set_filesize, hls_use_mpegts, http_chunk_size,
     external_downloader_args, concurrent_fragment_downloads.
 
     The following options are used by the post processors:
@@ -573,12 +584,13 @@ class YoutubeDL:
             for type_, stream in self._out_files.items_ if type_ != 'console'
         })
 
-        MIN_SUPPORTED, MIN_RECOMMENDED = (3, 6), (3, 7)
+        # The code is left like this to be reused for future deprecations
+        MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
         current_version = sys.version_info[:2]
         if current_version < MIN_RECOMMENDED:
             msg = ('Support for Python version %d.%d has been deprecated. '
-                   'See  https://github.com/yt-dlp/yt-dlp/issues/3764  for more details. '
-                   'You will recieve only one more update on this version')
+                   'See  https://github.com/yt-dlp/yt-dlp/issues/3764  for more details.'
+                   '\n                    You will no longer receive updates on this version')
             if current_version < MIN_SUPPORTED:
                 msg = 'Python version %d.%d is no longer supported'
             self.deprecation_warning(
@@ -611,8 +623,6 @@ class YoutubeDL:
             self.deprecation_warning(msg)
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
-        if not compat_has_legacy:
-            self.params['compat_opts'].add('no-compat-legacy')
         if 'list-formats' in self.params['compat_opts']:
             self.params['listformats_table'] = False
 
@@ -1055,7 +1065,7 @@ class YoutubeDL:
     def validate_outtmpl(cls, outtmpl):
         ''' @return None or Exception object '''
         outtmpl = re.sub(
-            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljqBUDS]'),
+            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljhqBUDS]'),
             lambda mobj: f'{mobj.group(0)[:-1]}s',
             cls._outtmpl_expandpath(outtmpl))
         try:
@@ -1098,7 +1108,7 @@ class YoutubeDL:
         }
 
         TMPL_DICT = {}
-        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljqBUDS]'))
+        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljhqBUDS]'))
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
@@ -1207,6 +1217,8 @@ class YoutubeDL:
                 value, fmt = delim.join(map(str, variadic(value, allowed_types=(str, bytes)))), str_fmt
             elif fmt[-1] == 'j':  # json
                 value, fmt = json.dumps(value, default=_dumpjson_default, indent=4 if '#' in flags else None), str_fmt
+            elif fmt[-1] == 'h':  # html
+                value, fmt = escapeHTML(value), str_fmt
             elif fmt[-1] == 'q':  # quoted
                 value = map(str, variadic(value) if '#' in flags else [value])
                 value, fmt = ' '.join(map(compat_shlex_quote, value)), str_fmt
@@ -1464,7 +1476,12 @@ class YoutubeDL:
 
         def progress(msg):
             nonlocal last_msg
-            self.to_screen(msg + ' ' * (len(last_msg) - len(msg)) + '\r', skip_eol=True)
+            full_msg = f'{msg}\n'
+            if not self.params.get('noprogress'):
+                full_msg = msg + ' ' * (len(last_msg) - len(msg)) + '\r'
+            elif last_msg:
+                return
+            self.to_screen(full_msg, skip_eol=True)
             last_msg = msg
 
         min_wait, max_wait = self.params.get('wait_for_video')
@@ -1498,6 +1515,7 @@ class YoutubeDL:
     def __extract_info(self, url, ie, download, extra_info, process):
         ie_result = ie.extract(url)
         if ie_result is None:  # Finished already (backwards compatibility; listformats and friends should be moved here)
+            self.report_warning(f'Extractor {ie.IE_NAME} returned nothing{bug_reports_message()}')
             return
         if isinstance(ie_result, list):
             # Backwards compatibility: old IE result format
@@ -1682,8 +1700,10 @@ class YoutubeDL:
 
     def __process_playlist(self, ie_result, download):
         """Process each entry in the playlist"""
+        assert ie_result['_type'] in ('playlist', 'multi_video')
+
         title = ie_result.get('title') or ie_result.get('id') or '<Untitled>'
-        self.to_screen(f'[download] Downloading playlist: {title}')
+        self.to_screen(f'[download] Downloading {ie_result["_type"]}: {title}')
 
         all_entries = PlaylistEntries(self, ie_result)
         entries = orderedSet(all_entries.get_requested_items(), lazy=True)
@@ -1727,6 +1747,12 @@ class YoutubeDL:
         self.to_screen(f'[{ie_result["extractor"]}] Playlist {title}: Downloading {n_entries} videos'
                        f'{format_field(ie_result, "playlist_count", " of %s")}')
 
+        keep_resolved_entries = self.params.get('extract_flat') != 'discard'
+        if self.params.get('extract_flat') == 'discard_in_playlist':
+            keep_resolved_entries = ie_result['_type'] != 'playlist'
+        if keep_resolved_entries:
+            self.write_debug('The information of all playlist entries will be held in memory')
+
         failures = 0
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, (playlist_index, entry) in enumerate(entries):
@@ -1767,7 +1793,8 @@ class YoutubeDL:
                 self.report_error(
                     f'Skipping the remaining entries in playlist "{title}" since {failures} items failed extraction')
                 break
-            resolved_entries[i] = (playlist_index, entry_result)
+            if keep_resolved_entries:
+                resolved_entries[i] = (playlist_index, entry_result)
 
         # Update with processed data
         ie_result['requested_entries'], ie_result['entries'] = tuple(zip(*resolved_entries)) or ([], [])
@@ -3185,22 +3212,23 @@ class YoutubeDL:
                             self.report_warning(f'{vid}: {msg}. Install ffmpeg to fix this automatically')
 
                     stretched_ratio = info_dict.get('stretched_ratio')
-                    ffmpeg_fixup(
-                        stretched_ratio not in (1, None),
-                        f'Non-uniform pixel ratio {stretched_ratio}',
-                        FFmpegFixupStretchedPP)
-
-                    ffmpeg_fixup(
-                        (info_dict.get('requested_formats') is None
-                         and info_dict.get('container') == 'm4a_dash'
-                         and info_dict.get('ext') == 'm4a'),
-                        'writing DASH m4a. Only some players support this container',
-                        FFmpegFixupM4aPP)
+                    ffmpeg_fixup(stretched_ratio not in (1, None),
+                                 f'Non-uniform pixel ratio {stretched_ratio}',
+                                 FFmpegFixupStretchedPP)
 
                     downloader = get_suitable_downloader(info_dict, self.params) if 'protocol' in info_dict else None
                     downloader = downloader.FD_NAME if downloader else None
 
-                    if info_dict.get('requested_formats') is None:  # Not necessary if doing merger
+                    ext = info_dict.get('ext')
+                    postprocessed_by_ffmpeg = info_dict.get('requested_formats') or any((
+                        isinstance(pp, FFmpegVideoConvertorPP)
+                        and resolve_recode_mapping(ext, pp.mapping)[0] not in (ext, None)
+                    ) for pp in self._pps['post_process'])
+
+                    if not postprocessed_by_ffmpeg:
+                        ffmpeg_fixup(ext == 'm4a' and info_dict.get('container') == 'm4a_dash',
+                                     'writing DASH m4a. Only some players support this container',
+                                     FFmpegFixupM4aPP)
                         ffmpeg_fixup(downloader == 'hlsnative' and not self.params.get('hls_use_mpegts')
                                      or info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None,
                                      'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
@@ -3524,27 +3552,38 @@ class YoutubeDL:
                 ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
             return render_table(['format code', 'extension', 'resolution', 'note'], table, extra_gap=1)
 
+        def simplified_codec(f, field):
+            assert field in ('acodec', 'vcodec')
+            codec = f.get(field, 'unknown')
+            if not codec:
+                return 'unknown'
+            elif codec != 'none':
+                return '.'.join(codec.split('.')[:4])
+
+            if field == 'vcodec' and f.get('acodec') == 'none':
+                return 'images'
+            elif field == 'acodec' and f.get('vcodec') == 'none':
+                return ''
+            return self._format_out('audio only' if field == 'vcodec' else 'video only',
+                                    self.Styles.SUPPRESS)
+
         delim = self._format_out('\u2502', self.Styles.DELIM, '|', test_encoding=True)
         table = [
             [
                 self._format_out(format_field(f, 'format_id'), self.Styles.ID),
                 format_field(f, 'ext'),
                 format_field(f, func=self.format_resolution, ignore=('audio only', 'images')),
-                format_field(f, 'fps', '\t%d'),
+                format_field(f, 'fps', '\t%d', func=round),
                 format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
                 delim,
                 format_field(f, 'filesize', ' \t%s', func=format_bytes) + format_field(f, 'filesize_approx', '~\t%s', func=format_bytes),
-                format_field(f, 'tbr', '\t%dk'),
+                format_field(f, 'tbr', '\t%dk', func=round),
                 shorten_protocol_name(f.get('protocol', '')),
                 delim,
-                format_field(f, 'vcodec', default='unknown').replace(
-                    'none', 'images' if f.get('acodec') == 'none'
-                            else self._format_out('audio only', self.Styles.SUPPRESS)),
-                format_field(f, 'vbr', '\t%dk'),
-                format_field(f, 'acodec', default='unknown').replace(
-                    'none', '' if f.get('vcodec') == 'none'
-                            else self._format_out('video only', self.Styles.SUPPRESS)),
-                format_field(f, 'abr', '\t%dk'),
+                simplified_codec(f, 'vcodec'),
+                format_field(f, 'vbr', '\t%dk', func=round),
+                simplified_codec(f, 'acodec'),
+                format_field(f, 'abr', '\t%dk', func=round),
                 format_field(f, 'asr', '\t%s', func=format_decimal_suffix),
                 join_nonempty(
                     self._format_out('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,

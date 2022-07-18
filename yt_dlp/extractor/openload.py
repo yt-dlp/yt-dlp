@@ -104,9 +104,8 @@ class PhantomJSwrapper:
 
         self.exe = check_executable('phantomjs', ['-v'])
         if not self.exe:
-            raise ExtractorError('PhantomJS executable not found in PATH, '
-                                 'download it from http://phantomjs.org',
-                                 expected=True)
+            raise ExtractorError(
+                'PhantomJS not found, Please download it from https://phantomjs.org/download.html', expected=True)
 
         self.extractor = extractor
 

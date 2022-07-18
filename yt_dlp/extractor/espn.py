@@ -281,7 +281,7 @@ class ESPNCricInfoIE(InfoExtractor):
 
 
 class WatchESPNIE(AdobePassIE):
-    _VALID_URL = r'https://www.espn.com/watch/player/_/id/(?P<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'
+    _VALID_URL = r'https?://(?:www\.)?espn\.com/(?:watch|espnplus)/player/_/id/(?P<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'
     _TESTS = [{
         'url': 'https://www.espn.com/watch/player/_/id/ba7d17da-453b-4697-bf92-76a99f61642b',
         'info_dict': {
@@ -300,6 +300,17 @@ class WatchESPNIE(AdobePassIE):
             'ext': 'mp4',
             'title': 'Real Madrid vs. Real Betis (LaLiga)',
             'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/bd1f3d12-0654-47d9-852e-71b85ea695c7/16x9.jpg?timestamp=202201112217&showBadge=true&cb=12&package=ESPN_PLUS',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.espn.com/espnplus/player/_/id/317f5fd1-c78a-4ebe-824a-129e0d348421',
+        'info_dict': {
+            'id': '317f5fd1-c78a-4ebe-824a-129e0d348421',
+            'ext': 'mp4',
+            'title': 'The Wheel - Episode 10',
+            'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/317f5fd1-c78a-4ebe-824a-129e0d348421/16x9.jpg?timestamp=202205031523&showBadge=true&cb=12&package=ESPN_PLUS',
         },
         'params': {
             'skip_download': True,

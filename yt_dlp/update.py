@@ -88,8 +88,7 @@ class Updater:
 
     @functools.cached_property
     def _tag(self):
-        latest = self._get_version_info('latest')['tag_name']
-        if version_tuple(__version__) >= version_tuple(latest):
+        if version_tuple(__version__) >= version_tuple(self.latest_version):
             return 'latest'
 
         identifier = f'{detect_variant()} {system_identifier()}'
@@ -113,8 +112,15 @@ class Updater:
 
     @property
     def new_version(self):
-        """Version of the latest release"""
+        """Version of the latest release we can update to"""
+        if self._tag.startswith('tags/'):
+            return self._tag[5:]
         return self._get_version_info(self._tag)['tag_name']
+
+    @property
+    def latest_version(self):
+        """Version of the latest release"""
+        return self._get_version_info('latest')['tag_name']
 
     @property
     def has_update(self):
@@ -161,12 +167,14 @@ class Updater:
         """Report whether there is an update available"""
         try:
             self.ydl.to_screen(
-                f'Latest version: {self.new_version}, Current version: {self.current_version}')
+                f'Latest version: {self.latest_version}, Current version: {self.current_version}')
+            if not self.has_update:
+                if self._tag == 'latest':
+                    return self.ydl.to_screen(f'yt-dlp is up to date ({__version__})')
+                return self.ydl.report_warning(
+                    'yt-dlp cannot be updated any further since you are on an older Python version')
         except Exception:
             return self._report_network_error('obtain version info', delim='; Please try again later or')
-
-        if not self.has_update:
-            return self.ydl.to_screen(f'yt-dlp is up to date ({__version__})')
 
         if not is_non_updateable():
             self.ydl.to_screen(f'Current Build Hash {_sha256_file(self.filename)}')

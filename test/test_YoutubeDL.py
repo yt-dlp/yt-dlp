@@ -1053,6 +1053,7 @@ class TestYoutubeDL(unittest.TestCase):
                            for v in get_downloaded_info_dicts(params, entries)]
                 self.assertEqual(results, list(enumerate(zip(expected_ids, expected_ids))), f'Entries of {name} for {params}')
                 self.assertEqual(sorted(evaluated), expected_eval, f'Evaluation of {name} for {params}')
+
         test_selection({}, INDICES)
         test_selection({'playlistend': 20}, INDICES, True)
         test_selection({'playlistend': 2}, INDICES[:2])
