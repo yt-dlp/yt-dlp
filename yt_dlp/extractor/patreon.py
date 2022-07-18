@@ -17,7 +17,31 @@ from ..utils import (
 )
 
 
-class PatreonIE(InfoExtractor):
+class PatreonBaseIE(InfoExtractor):
+    # FIXME: user-supplied user agent should override request user-agents
+    USER_AGENT = 'Patreon/7.6.28'  # should we add a random generation for this?
+
+    def _download_webpage(self, *args, nocookie=False, **kwargs):
+        kwargs.setdefault('headers', {})['User-agent'] = self.USER_AGENT
+        if nocookie:
+            kwargs['headers']['Cookie'] = '.'
+        return super()._download_webpage(*args, **kwargs)
+
+    def _call_api(self, ep, item_id, query=None, headers=None, fatal=True, note=None, nocookie=False):
+        if headers is None:
+            headers = {}
+        if nocookie:
+            headers['Cookie'] = '.'
+        if 'User-Agent' not in headers:
+            headers['User-Agent'] = self.USER_AGENT
+
+        return self._download_json(
+            f'https://www.patreon.com/api/{ep}',
+            item_id, note='Downloading API JSON' if not note else note,
+            query=query, fatal=fatal, headers=headers)
+
+
+class PatreonIE(PatreonBaseIE):
     _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?:creation\?hid=|posts/(?:[\w-]+-)?)(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://www.patreon.com/creation?hid=743933',
@@ -105,8 +129,7 @@ class PatreonIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        post = self._download_json(
-            'https://www.patreon.com/api/posts/' + video_id, video_id, query={
+        post = self._call_api(f'posts/{video_id}', video_id, query={
                 'fields[media]': 'download_url,mimetype,size_bytes',
                 'fields[post]': 'comment_count,content,embed,image,like_count,post_file,published_at,title',
                 'fields[user]': 'full_name,url',
@@ -180,7 +203,7 @@ class PatreonIE(InfoExtractor):
         return info
 
 
-class PatreonUserIE(InfoExtractor):
+class PatreonUserIE(PatreonBaseIE):
 
     _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?!rss)(?P<id>[-\w]+)'
 
@@ -215,7 +238,7 @@ class PatreonUserIE(InfoExtractor):
         for page in itertools.count(1):
 
             params.update({'page[cursor]': cursor} if cursor else {})
-            posts_json = self._download_json('https://www.patreon.com/api/posts', user_id, note='Downloading posts page %d' % page, query=params, headers={'Cookie': '.'})
+            posts_json = self._call_api(f'posts', user_id, query=params, note='Downloading posts page %d' % page, nocookie=True)
 
             cursor = try_get(posts_json, lambda x: x['meta']['pagination']['cursors']['next'])
 
@@ -228,6 +251,6 @@ class PatreonUserIE(InfoExtractor):
     def _real_extract(self, url):
 
         user_id = self._match_id(url)
-        webpage = self._download_webpage(url, user_id, headers={'Cookie': '.'})
+        webpage = self._download_webpage(url, user_id, nocookie=True)
         campaign_id = self._search_regex(r'https://www.patreon.com/api/campaigns/(\d+)/?', webpage, 'Campaign ID')
         return self.playlist_result(self._entries(campaign_id, user_id), playlist_title=user_id)

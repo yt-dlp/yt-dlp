@@ -785,6 +785,11 @@ class InfoExtractor:
                     # introduced in Python 3.4.1.
                     err.fp._error = err
                     return err.fp
+                elif 'cloudflare' in err.headers.get('Server'):
+                    res = err.read().decode('utf-8')
+                    print(res)
+                    if err.code == 403 and 'window._cf_chl_opt' in res:
+                        raise ExtractorError('Unable to download video due to cloudflare captcha')
 
             if errnote is False:
                 return False
