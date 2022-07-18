@@ -152,8 +152,8 @@ class AbemaTVBaseIE(InfoExtractor):
 
     _SECRETKEY = b'v+Gjs=25Aw5erR!J8ZuvRrCx*rGswhB&qdHd_SYerEWdU&a?3DzN9BRbp5KwY4hEmcj5#fykMjJ=AuWz5GSMY-d@H7DMEh3M@9n2G552Us$$k9cD=3TxwWe86!x#Zyhe'
 
-    @staticmethod
-    def _generate_aks(deviceid):
+    @classmethod
+    def _generate_aks(cls, deviceid):
         deviceid = deviceid.encode('utf-8')
         # add 1 hour and then drop minute and secs
         ts_1hour = int((time_seconds(hours=9) // 3600 + 1) * 3600)
@@ -164,7 +164,7 @@ class AbemaTVBaseIE(InfoExtractor):
 
         def mix_once(nonce):
             nonlocal tmp
-            h = hmac.new(AbemaTVBaseIE._SECRETKEY, digestmod=hashlib.sha256)
+            h = hmac.new(cls._SECRETKEY, digestmod=hashlib.sha256)
             h.update(nonce)
             tmp = h.digest()
 
@@ -177,7 +177,7 @@ class AbemaTVBaseIE(InfoExtractor):
             nonlocal tmp
             mix_once(base64.urlsafe_b64encode(tmp).rstrip(b'=') + nonce)
 
-        mix_once(AbemaTVBaseIE._SECRETKEY)
+        mix_once(cls._SECRETKEY)
         mix_tmp(time_struct.tm_mon)
         mix_twist(deviceid)
         mix_tmp(time_struct.tm_mday % 5)
@@ -187,15 +187,15 @@ class AbemaTVBaseIE(InfoExtractor):
         return base64.urlsafe_b64encode(tmp).rstrip(b'=').decode('utf-8')
 
     def _get_device_token(self):
-        if AbemaTVBaseIE._USERTOKEN:
-            return AbemaTVBaseIE._USERTOKEN
+        if self._USERTOKEN:
+            return self._USERTOKEN
 
         AbemaTVBaseIE._DEVICE_ID = str(uuid.uuid4())
-        aks = self._generate_aks(AbemaTVBaseIE._DEVICE_ID)
+        aks = self._generate_aks(self._DEVICE_ID)
         user_data = self._download_json(
             'https://api.abema.io/v1/users', None, note='Authorizing',
             data=json.dumps({
-                'deviceId': AbemaTVBaseIE._DEVICE_ID,
+                'deviceId': self._DEVICE_ID,
                 'applicationKeySecret': aks,
             }).encode('utf-8'),
             headers={
@@ -207,11 +207,11 @@ class AbemaTVBaseIE(InfoExtractor):
         remove_opener(self._downloader, AbemaLicenseHandler)
         add_opener(self._downloader, AbemaLicenseHandler(self))
 
-        return AbemaTVBaseIE._USERTOKEN
+        return self._USERTOKEN
 
     def _get_media_token(self, invalidate=False, to_show=True):
-        if not invalidate and AbemaTVBaseIE._MEDIATOKEN:
-            return AbemaTVBaseIE._MEDIATOKEN
+        if not invalidate and self._MEDIATOKEN:
+            return self._MEDIATOKEN
 
         AbemaTVBaseIE._MEDIATOKEN = self._download_json(
             'https://api.abema.io/v1/media/token', None, note='Fetching media token' if to_show else False,
@@ -226,7 +226,7 @@ class AbemaTVBaseIE(InfoExtractor):
                 'Authorization': f'bearer {self._get_device_token()}',
             })['token']
 
-        return AbemaTVBaseIE._MEDIATOKEN
+        return self._MEDIATOKEN
 
     def _call_api(self, endpoint, video_id, query=None, note='Downloading JSON metadata'):
         return self._download_json(
