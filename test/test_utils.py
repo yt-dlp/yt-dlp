@@ -1873,5 +1873,7 @@ Line 1
 
         headers4 = CaseInsensitiveDict({'ytdl-test': 'data;'})
         self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})
+
+
 if __name__ == '__main__':
     unittest.main()
