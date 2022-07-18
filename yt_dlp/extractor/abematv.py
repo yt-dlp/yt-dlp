@@ -481,7 +481,9 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
 
     def _fetch_page(self, playlist_id, series_version, page):
         programs = self._call_api(
-            f'v1/video/series/{playlist_id}/programs', playlist_id, query={
+            f'v1/video/series/{playlist_id}/programs', playlist_id,
+            note=f'Downloading page {page + 1}',
+            query={
                 'seriesVersion': series_version,
                 'offset': str(page * self._PAGE_SIZE),
                 'order': 'seq',
