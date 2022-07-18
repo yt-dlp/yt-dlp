@@ -6,6 +6,7 @@ from ..compat import (
     compat_urlparse,
 )
 from ..utils import (
+    clean_html,
     determine_ext,
     ExtractorError,
     filter_dict,
@@ -152,7 +153,7 @@ class RaiBaseIE(InfoExtractor):
             br = int_or_none(tbr)
             if len(fmts) == 1 and not br:
                 br = fmts[0].get('tbr')
-            if br > 300:
+            if br or 0 > 300:
                 tbr = compat_str(math.floor(br / 100) * 100)
             else:
                 tbr = '250'
@@ -326,7 +327,7 @@ class RaiPlayIE(RaiBaseIE):
             'title': title,
             'alt_title': strip_or_none(alt_title),
             'description': media.get('description'),
-            'uploader': strip_or_none(media.get('channel')),
+            'uploader': strip_or_none(media.get('channel') or None),
             'creator': strip_or_none(media.get('editor') or None),
             'duration': parse_duration(video.get('duration')),
             'timestamp': unified_timestamp(date_published),
@@ -544,11 +545,11 @@ class RaiPlaySoundPlaylistIE(InfoExtractor):
 
 
 class RaiIE(RaiBaseIE):
-    _VALID_URL = r'https?://[^/]+\.(?:rai\.(?:it|tv)|rainews\.it)/.+?-(?P<id>%s)(?:-.+?)?\.html' % RaiBaseIE._UUID_RE
+    _VALID_URL = r'https?://[^/]+\.(?:rai\.(?:it|tv))/.+?-(?P<id>%s)(?:-.+?)?\.html' % RaiBaseIE._UUID_RE
     _TESTS = [{
         # var uniquename = "ContentItem-..."
         # data-id="ContentItem-..."
-        'url': 'http://www.raisport.rai.it/dl/raiSport/media/rassegna-stampa-04a9f4bd-b563-40cf-82a6-aad3529cb4a9.html',
+        'url': 'https://www.raisport.rai.it/dl/raiSport/media/rassegna-stampa-04a9f4bd-b563-40cf-82a6-aad3529cb4a9.html',
         'info_dict': {
             'id': '04a9f4bd-b563-40cf-82a6-aad3529cb4a9',
             'ext': 'mp4',
@@ -559,20 +560,8 @@ class RaiIE(RaiBaseIE):
         },
         'skip': 'This content is available only in Italy',
     }, {
-        # with ContentItem in many metas
-        'url': 'http://www.rainews.it/dl/rainews/media/Weekend-al-cinema-da-Hollywood-arriva-il-thriller-di-Tate-Taylor-La-ragazza-del-treno-1632c009-c843-4836-bb65-80c33084a64b.html',
-        'info_dict': {
-            'id': '1632c009-c843-4836-bb65-80c33084a64b',
-            'ext': 'mp4',
-            'title': 'Weekend al cinema, da Hollywood arriva il thriller di Tate Taylor "La ragazza del treno"',
-            'description': 'I film in uscita questa settimana.',
-            'thumbnail': r're:^https?://.*\.png$',
-            'duration': 833,
-            'upload_date': '20161103',
-        }
-    }, {
         # with ContentItem in og:url
-        'url': 'http://www.rai.it/dl/RaiTV/programmi/media/ContentItem-efb17665-691c-45d5-a60c-5301333cbb0c.html',
+        'url': 'https://www.rai.it/dl/RaiTV/programmi/media/ContentItem-efb17665-691c-45d5-a60c-5301333cbb0c.html',
         'md5': '06345bd97c932f19ffb129973d07a020',
         'info_dict': {
             'id': 'efb17665-691c-45d5-a60c-5301333cbb0c',
@@ -581,42 +570,17 @@ class RaiIE(RaiBaseIE):
             'description': 'TG1 edizione integrale ore 20:00 del giorno 03/11/2016',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 2214,
-            'upload_date': '20161103',
+            'upload_date': '20161103'
         }
-    }, {
-        # initEdizione('ContentItem-...'
-        'url': 'http://www.tg1.rai.it/dl/tg1/2010/edizioni/ContentSet-9b6e0cba-4bef-4aef-8cf0-9f7f665b7dfb-tg1.html?item=undefined',
-        'info_dict': {
-            'id': 'c2187016-8484-4e3a-8ac8-35e475b07303',
-            'ext': 'mp4',
-            'title': r're:TG1 ore \d{2}:\d{2} del \d{2}/\d{2}/\d{4}',
-            'duration': 2274,
-            'upload_date': '20170401',
-        },
-        'skip': 'Changes daily',
-    }, {
-        # HLS live stream with ContentItem in og:url
-        'url': 'http://www.rainews.it/dl/rainews/live/ContentItem-3156f2f2-dc70-4953-8e2f-70d7489d4ce9.html',
-        'info_dict': {
-            'id': '3156f2f2-dc70-4953-8e2f-70d7489d4ce9',
-            'ext': 'mp4',
-            'title': 'La diretta di Rainews24',
-        },
-        'params': {
-            'skip_download': True,
-        },
     }, {
         # Direct MMS URL
         'url': 'http://www.rai.it/dl/RaiTV/programmi/media/ContentItem-b63a4089-ac28-48cf-bca5-9f5b5bc46df5.html',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.rainews.it/tgr/marche/notiziari/video/2019/02/ContentItem-6ba945a2-889c-4a80-bdeb-8489c70a8db9.html',
         'only_matching': True,
     }]
 
     def _extract_from_content_id(self, content_id, url):
         media = self._download_json(
-            'http://www.rai.tv/dl/RaiTV/programmi/media/ContentItem-%s.html?json' % content_id,
+            'https://www.rai.tv/dl/RaiTV/programmi/media/ContentItem-%s.html?json' % content_id,
             content_id, 'Downloading video JSON')
 
         title = media['name'].strip()
@@ -652,7 +616,7 @@ class RaiIE(RaiBaseIE):
             'title': title,
             'description': strip_or_none(media.get('desc')),
             'thumbnails': thumbnails,
-            'uploader': media.get('author'),
+            'uploader': strip_or_none(media.get('author') or None),
             'upload_date': unified_strdate(media.get('date')),
             'duration': parse_duration(media.get('length')),
             'subtitles': subtitles,
@@ -730,6 +694,70 @@ class RaiIE(RaiBaseIE):
         info = {
             'id': video_id,
             'title': title,
+        }
+
+        info.update(relinker_info)
+
+        return info
+
+
+class RaiNewsIE(RaiIE):
+    _VALID_URL = r'https?://(www\.)?rainews\.it/.+?-(?P<id>%s)(?:-.+?)?\.html' % RaiBaseIE._UUID_RE
+    _TESTS = [{
+        # new rainews player (#3911)
+        'url': 'https://www.rainews.it/rubriche/24mm/video/2022/05/24mm-del-29052022-12cf645d-1ffd-4220-b27c-07c226dbdecf.html',
+        'info_dict': {
+            'id': '12cf645d-1ffd-4220-b27c-07c226dbdecf',
+            'ext': 'mp4',
+            'title': 'Puntata del 29/05/2022',
+            'duration': 1589,
+            'upload_date': '20220529',
+            'uploader': 'rainews',
+        }
+    }, {
+        # old content with fallback method to extract media urls
+        'url': 'https://www.rainews.it/dl/rainews/media/Weekend-al-cinema-da-Hollywood-arriva-il-thriller-di-Tate-Taylor-La-ragazza-del-treno-1632c009-c843-4836-bb65-80c33084a64b.html',
+        'info_dict': {
+            'id': '1632c009-c843-4836-bb65-80c33084a64b',
+            'ext': 'mp4',
+            'title': 'Weekend al cinema, da Hollywood arriva il thriller di Tate Taylor "La ragazza del treno"',
+            'description': 'I film in uscita questa settimana.',
+            'thumbnail': r're:^https?://.*\.png$',
+            'duration': 833,
+            'upload_date': '20161103'
+        },
+        'expected_warnings': ['unable to extract player_data'],
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, video_id)
+
+        player_data = self._search_json(
+            r'<rainews-player\s*data=\'', webpage, 'player_data', video_id,
+            transform_source=clean_html, fatal=False)
+        track_info = player_data.get('track_info')
+        relinker_url = player_data.get('mediapolis') or player_data.get('content_url') or None
+
+        if not relinker_url:
+            # fallback on old implementation for some old content
+            try:
+                return self._extract_from_content_id(video_id, url)
+            except GeoRestrictedError:
+                raise
+            except ExtractorError:
+                raise ExtractorError('Relinker URL not found')
+
+        relinker_info = self._extract_relinker_info(
+            urljoin(url, relinker_url), video_id)
+        self._sort_formats(relinker_info['formats'])
+
+        info = {
+            'id': video_id,
+            'title': track_info.get('title') or self._og_search_title(webpage),
+            'upload_date': unified_strdate(track_info.get('date')),
+            'uploader': strip_or_none(track_info.get('editor') or None),
         }
 
         info.update(relinker_info)
