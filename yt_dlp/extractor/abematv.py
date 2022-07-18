@@ -485,7 +485,7 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
                 'seriesVersion': series_version,
                 'offset': str(page * self._PAGE_SIZE),
                 'order': 'seq',
-                'limit': self._PAGE_SIZE,
+                'limit': str(self._PAGE_SIZE),
             })
         yield from (
             self.url_result(f'https://abema.tv/video/episode/{x}')
