@@ -229,27 +229,6 @@ class AbemaTVBaseIE(InfoExtractor):
 
         return AbemaTVBaseIE._MEDIATOKEN
 
-    def _perform_login(self, username, password):
-        if '@' in username:  # don't strictly check if it's email address or not
-            ep, method = 'user/email', 'email'
-        else:
-            ep, method = 'oneTimePassword', 'userId'
-
-        login_response = self._download_json(
-            f'https://api.abema.io/v1/auth/{ep}', None, note='Logging in',
-            data=json.dumps({
-                method: username,
-                'password': password
-            }).encode('utf-8'), headers={
-                'Authorization': f'bearer {self._get_device_token()}',
-                'Origin': 'https://abema.tv',
-                'Referer': 'https://abema.tv/',
-                'Content-Type': 'application/json',
-            })
-
-        AbemaTVBaseIE._USERTOKEN = login_response['token']
-        self._get_media_token(True)
-
     def _call_api(self, endpoint, video_id, query=None, note='Downloading JSON metadata'):
         return self._download_json(
             f'https://api.abema.io/{endpoint}', video_id, query=query or {},
@@ -321,6 +300,27 @@ class AbemaTVIE(AbemaTVBaseIE):
         'skip': 'Not supported until yt-dlp implements native live downloader OR AbemaTV can start a local HTTP server',
     }]
     _TIMETABLE = None
+
+    def _perform_login(self, username, password):
+        if '@' in username:  # don't strictly check if it's email address or not
+            ep, method = 'user/email', 'email'
+        else:
+            ep, method = 'oneTimePassword', 'userId'
+
+        login_response = self._download_json(
+            f'https://api.abema.io/v1/auth/{ep}', None, note='Logging in',
+            data=json.dumps({
+                method: username,
+                'password': password
+            }).encode('utf-8'), headers={
+                'Authorization': f'bearer {self._get_device_token()}',
+                'Origin': 'https://abema.tv',
+                'Referer': 'https://abema.tv/',
+                'Content-Type': 'application/json',
+            })
+
+        AbemaTVBaseIE._USERTOKEN = login_response['token']
+        self._get_media_token(True)
 
     def _real_extract(self, url):
         # starting download using infojson from this extractor is undefined behavior,
