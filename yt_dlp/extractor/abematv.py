@@ -26,7 +26,6 @@ from ..utils import (
     time_seconds,
     traverse_obj,
     update_url_query,
-    urljoin,
 )
 
 # NOTE: network handler related code is temporary thing until network stack overhaul PRs are merged (#2861/#2862)
@@ -503,6 +502,6 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
         series_info = self._call_api(f'v1/video/series/{playlist_id}', playlist_id)
 
         return self.playlist_result(
-            self._entries(playlist_id, series_info['version']), playlist_id=playlist_id, 
+            self._entries(playlist_id, series_info['version']), playlist_id=playlist_id,
             playlist_title=series_info.get('title'),
             playlist_description=series_info.get('content'))
