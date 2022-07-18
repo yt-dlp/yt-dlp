@@ -243,9 +243,9 @@ class AbemaTVBaseIE(InfoExtractor):
             jsonld = self._parse_json(jld.group('json_ld'), video_id, fatal=False)
             if traverse_obj(jsonld, '@type') != 'BreadcrumbList':
                 continue
-            trav = traverse_obj(jsonld, ('itemListElement', ..., 'name'))
-            if trav:
-                return trav
+            items = traverse_obj(jsonld, ('itemListElement', ..., 'name'))
+            if items:
+                return items
         return []
 
 
