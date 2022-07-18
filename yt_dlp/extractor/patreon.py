@@ -13,7 +13,7 @@ from ..utils import (
     parse_iso8601,
     str_or_none,
     try_get,
-    url_or_none,
+    url_or_none, traverse_obj, merge_dicts,
 )
 
 
@@ -21,17 +21,9 @@ class PatreonBaseIE(InfoExtractor):
     # FIXME: user-supplied user agent should override request user-agents
     USER_AGENT = 'Patreon/7.6.28'  # should we add a random generation for this?
 
-    def _download_webpage(self, *args, nocookie=False, **kwargs):
-        kwargs.setdefault('headers', {})['User-agent'] = self.USER_AGENT
-        if nocookie:
-            kwargs['headers']['Cookie'] = '.'
-        return super()._download_webpage(*args, **kwargs)
-
-    def _call_api(self, ep, item_id, query=None, headers=None, fatal=True, note=None, nocookie=False):
+    def _call_api(self, ep, item_id, query=None, headers=None, fatal=True, note=None):
         if headers is None:
             headers = {}
-        if nocookie:
-            headers['Cookie'] = '.'
         if 'User-Agent' not in headers:
             headers['User-Agent'] = self.USER_AGENT
 
@@ -131,7 +123,7 @@ class PatreonIE(PatreonBaseIE):
         video_id = self._match_id(url)
         post = self._call_api(f'posts/{video_id}', video_id, query={
                 'fields[media]': 'download_url,mimetype,size_bytes',
-                'fields[post]': 'comment_count,content,embed,image,like_count,post_file,published_at,title',
+                'fields[post]': 'comment_count,content,embed,image,like_count,post_file,published_at,title,current_user_can_view',
                 'fields[user]': 'full_name,url',
                 'json-api-use-default-includes': 'false',
                 'include': 'media,user',
@@ -156,11 +148,11 @@ class PatreonIE(PatreonBaseIE):
                 download_url = media_attributes.get('download_url')
                 ext = mimetype2ext(media_attributes.get('mimetype'))
                 if download_url and ext in KNOWN_EXTENSIONS:
-                    info.update({
+                    return merge_dicts({
                         'ext': ext,
                         'filesize': int_or_none(media_attributes.get('size_bytes')),
                         'url': download_url,
-                    })
+                    }, info)
             elif i_type == 'user':
                 user_attributes = i.get('attributes')
                 if user_attributes:
@@ -170,36 +162,38 @@ class PatreonIE(PatreonBaseIE):
                         'uploader_url': user_attributes.get('url'),
                     })
 
-        if not info.get('url'):
-            # handle Vimeo embeds
-            if try_get(attributes, lambda x: x['embed']['provider']) == 'Vimeo':
-                embed_html = try_get(attributes, lambda x: x['embed']['html'])
-                v_url = url_or_none(compat_urllib_parse_unquote(
-                    self._search_regex(r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)', embed_html, 'vimeo url', fatal=False)))
-                if v_url:
-                    info.update({
-                        '_type': 'url_transparent',
-                        'url': VimeoIE._smuggle_referrer(v_url, 'https://patreon.com'),
-                        'ie_key': 'Vimeo',
-                    })
+        # handle Vimeo embeds
+        if try_get(attributes, lambda x: x['embed']['provider']) == 'Vimeo':
+            embed_html = try_get(attributes, lambda x: x['embed']['html'])
+            v_url = url_or_none(compat_urllib_parse_unquote(
+                self._search_regex(r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)', embed_html, 'vimeo url', fatal=False)))
+            if v_url:
+                return merge_dicts({
+                    '_type': 'url_transparent',
+                    'url': VimeoIE._smuggle_referrer(v_url, 'https://patreon.com'),
+                    'ie_key': 'Vimeo',
+                }, info)
 
-        if not info.get('url'):
-            embed_url = try_get(attributes, lambda x: x['embed']['url'])
-            if embed_url:
-                info.update({
-                    '_type': 'url',
-                    'url': embed_url,
-                })
+        embed_url = try_get(attributes, lambda x: x['embed']['url'])
+        if embed_url:
+            return merge_dicts({
+                '_type': 'url',
+                'url': embed_url,
+            }, info)
 
-        if not info.get('url'):
-            post_file = attributes['post_file']
+        post_file = traverse_obj(attributes, 'post_file')
+        if post_file:
             ext = determine_ext(post_file.get('name'))
             if ext in KNOWN_EXTENSIONS:
-                info.update({
+                return merge_dicts({
                     'ext': ext,
                     'url': post_file['url'],
-                })
+                }, info)
 
+        if traverse_obj(attributes, 'current_user_can_view') is False:
+            self.raise_no_formats('You do not have access to this post', video_id)
+        else:
+            self.raise_no_formats('post has no supported media', video_id)
         return info
 
 
@@ -238,7 +232,7 @@ class PatreonUserIE(PatreonBaseIE):
         for page in itertools.count(1):
 
             params.update({'page[cursor]': cursor} if cursor else {})
-            posts_json = self._call_api(f'posts', user_id, query=params, note='Downloading posts page %d' % page, nocookie=True)
+            posts_json = self._call_api(f'posts', user_id, query=params, note='Downloading posts page %d' % page)
 
             cursor = try_get(posts_json, lambda x: x['meta']['pagination']['cursors']['next'])
 
@@ -251,6 +245,6 @@ class PatreonUserIE(PatreonBaseIE):
     def _real_extract(self, url):
 
         user_id = self._match_id(url)
-        webpage = self._download_webpage(url, user_id, nocookie=True)
+        webpage = self._download_webpage(url, user_id, headers={'User-Agent': self.USER_AGENT})
         campaign_id = self._search_regex(r'https://www.patreon.com/api/campaigns/(\d+)/?', webpage, 'Campaign ID')
         return self.playlist_result(self._entries(campaign_id, user_id), playlist_title=user_id)
