@@ -11,13 +11,14 @@ import math
 import netrc
 import os
 import random
+import re
 import sys
 import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
-from ..compat import functools, re  # isort: split
+from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media

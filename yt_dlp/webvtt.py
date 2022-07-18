@@ -9,8 +9,8 @@ in RFC 8216 §3.5 <https://tools.ietf.org/html/rfc8216#section-3.5>.
 """
 
 import io
+import re
 
-from .compat import re
 from .utils import int_or_none, timetuple_from_msec
 
 
