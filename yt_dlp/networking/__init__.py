@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import itertools
-import urllib.parse
-
 from ._urllib import UrllibRH
 from .common import (
     HEADRequest,

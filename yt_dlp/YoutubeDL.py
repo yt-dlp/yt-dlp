@@ -19,7 +19,6 @@ import time
 import tokenize
 import traceback
 import unicodedata
-import urllib.request
 from string import ascii_letters
 
 from .cache import Cache

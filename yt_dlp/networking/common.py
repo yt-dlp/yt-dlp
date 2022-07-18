@@ -488,6 +488,6 @@ class RequestDirector:
 
         err_str = 'Unable to handle request'
         if reasons:
-            err_str += f', possible reason(s): ' + ', '.join(reasons)
+            err_str += ', possible reason(s): ' + ', '.join(reasons)
 
         raise RequestError(err_str)

@@ -43,6 +43,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 import zlib
+import io
 
 from .compat import functools  # isort: split
 from .compat import (
@@ -5156,6 +5157,7 @@ def register_socks_protocols():
     for scheme in ('socks', 'socks4', 'socks4a', 'socks5'):
         if scheme not in urllib.parse.uses_netloc:
             urllib.parse.uses_netloc.append(scheme)
+
 
 # TODO: remove
 def request_to_url(req):

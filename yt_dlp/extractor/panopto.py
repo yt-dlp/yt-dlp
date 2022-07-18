@@ -446,7 +446,7 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
                 'id': 'f3b39fcf-882f-4849-93d6-a9f401236d36',
                 'description': '',
             },
-            'playlist_mincount': 36
+            'playlist_mincount': 35
         },
         {
             'url': 'https://utsa.hosted.panopto.com/Panopto/Pages/Viewer.aspx?pid=e2900555-3ad4-4bdb-854d-ad2401686190',
