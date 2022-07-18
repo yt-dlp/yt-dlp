@@ -223,7 +223,10 @@ class PlexAppIE(PlexWatchBaseIE):
             'duration': 3517,
             'description': 'md5:cc021d47035520acf2e027b8b4d244c2',
             'view_count': int,
-        }
+        },
+        'params': {
+            'skip_download': True
+        },
     }]
 
     def _real_extract(self, url):
