@@ -203,7 +203,7 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
             self._download_webpage(url, display_id), display_id)['props']['pageProps']['channel']
         media_json = self._download_json(
             f'https://epg.provider.plex.tv/channels/{nextjs_json["id"]}/tune',
-            display_id, data=''.encode(), headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
+            display_id, data=b'', headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
 
         formats, subtitles = self._get_formats_and_subtitles(
             traverse_obj(media_json, (
