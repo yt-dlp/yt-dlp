@@ -647,10 +647,10 @@ class InfoExtractor:
                         return None
                     if self._x_forwarded_for_ip:
                         ie_result['__x_forwarded_for_ip'] = self._x_forwarded_for_ip
-                    subtitles = ie_result.get('subtitles')
-                    if (subtitles and 'live_chat' in subtitles
-                            and 'no-live-chat' in self.get_param('compat_opts', [])):
-                        del subtitles['live_chat']
+                    subtitles = ie_result.get('subtitles') or {}
+                    if 'no-live-chat' in self.get_param('compat_opts'):
+                        for lang in ('live_chat', 'comments', 'danmaku'):
+                            subtitles.pop(lang, None)
                     return ie_result
                 except GeoRestrictedError as e:
                     if self.__maybe_fake_ip_and_retry(e.countries):
