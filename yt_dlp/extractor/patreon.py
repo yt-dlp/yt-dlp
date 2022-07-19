@@ -36,15 +36,10 @@ class PatreonBaseIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError):
                 if e.cause.code == 403:
-                    error_response = e.cause.read().decode('utf-8')
-                    error_json = self._parse_json(error_response, item_id, fatal=False)
-                    if error_json:
-                        message = traverse_obj(error_json, ('errors', ..., 'detail'), get_all=False)
-                        if message:
-                            raise ExtractorError(f'Patreon said: {message}', expected=True)
-
-                    elif 'cloudflare' in e.cause.headers.get('Server') and 'window._cf_chl_opt' in error_response:
-                        raise ExtractorError('Unable to download video due to cloudflare captcha')
+                    err_json = self._parse_json(self._webpage_read_content(e.cause, None, item_id), item_id, fatal=False)
+                    err_message = traverse_obj(err_json, ('errors', ..., 'detail'), get_all=False)
+                    if err_message:
+                        raise ExtractorError(f'Patreon said: {err_message}', expected=True)
             raise
 
 
@@ -132,7 +127,8 @@ class PatreonIE(PatreonBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        post = self._call_api(f'posts/{video_id}', video_id, query={
+        post = self._call_api(
+            f'posts/{video_id}', video_id, query={
                 'fields[media]': 'download_url,mimetype,size_bytes',
                 'fields[post]': 'comment_count,content,embed,image,like_count,post_file,published_at,title,current_user_can_view',
                 'fields[user]': 'full_name,url',
@@ -216,15 +212,15 @@ class PatreonIE(PatreonBaseIE):
         if can_view_post is False:
             self.raise_no_formats('You do not have access to this post', video_id)
         else:
-            self.raise_no_formats('post has no supported media', video_id)
+            self.raise_no_formats('No supported media found in this post', video_id)
         return info
 
     def _get_comments(self, post_id):
+        # Currently replies are grabbed in the same request as the parent comments.
+        # When this breaks, we will need to add support for getting replies in a seperate request.
+
         cursor = None
         count = 0
-        # Replies are grabbed in the same request.
-        # When this breaks, need to add support for comments/post_id/replies ep
-
         params = {
             'page[count]': 50,
             'include': 'parent.commenter.campaign,parent.post.user,parent.post.campaign.creator,parent.replies.parent,parent.replies.commenter.campaign,parent.replies.post.user,parent.replies.post.campaign.creator,commenter.campaign,post.user,post.campaign.creator,replies.parent,replies.commenter.campaign,replies.post.user,replies.post.campaign.creator,on_behalf_of_campaign',
@@ -239,7 +235,9 @@ class PatreonIE(PatreonBaseIE):
         for page in itertools.count(1):
 
             params.update({'page[cursor]': cursor} if cursor else {})
-            response = self._call_api(f'posts/{post_id}/comments', post_id, query=params, note='Downloading comments page %d' % page)
+            response = self._call_api(
+                f'posts/{post_id}/comments', post_id, query=params, note='Downloading comments page %d' % page)
+
             cursor = None
             for comment in traverse_obj(response, (('data', ('included', lambda _, v: v['type'] == 'comment')), ...), default=[]):
                 count += 1
@@ -249,8 +247,9 @@ class PatreonIE(PatreonBaseIE):
                     continue
                 author_id = traverse_obj(comment, ('relationships', 'commenter', 'data', 'id'))
                 author_info = traverse_obj(
-                        response, ('included', lambda k, v: v['id'] == author_id and v['type'] == 'user', 'attributes'),
-                        get_all=False, expected_type=dict, default={})
+                    response, ('included', lambda k, v: v['id'] == author_id and v['type'] == 'user', 'attributes'),
+                    get_all=False, expected_type=dict, default={})
+
                 yield {
                     'id': comment_id,
                     'text': attributes.get('body'),
