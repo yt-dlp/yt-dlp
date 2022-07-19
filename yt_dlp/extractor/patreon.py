@@ -110,6 +110,23 @@ class PatreonIE(PatreonBaseIE):
             'uploader_id': '14936315',
         },
         'skip': 'Patron-only content'
+    }, {
+        # m3u8 video (https://github.com/yt-dlp/yt-dlp/issues/2277)
+        'url': 'https://www.patreon.com/posts/video-sketchbook-32452882',
+        'info_dict': {
+            'id': '32452882',
+            'ext': 'mp4',
+            'comment_count': int,
+            'uploader_id': '4301314',
+            'like_count': int,
+            'timestamp': 1576696962,
+            'upload_date': '20191218',
+            'thumbnail': r're:^https?://.*$',
+            'uploader_url': 'https://www.patreon.com/loish',
+            'description': 'md5:e2693e97ee299c8ece47ffdb67e7d9d2',
+            'title': 'VIDEO // sketchbook flipthrough',
+            'uploader': 'Loish ',
+        }
     }]
 
     # Currently Patreon exposes download URL via hidden CSS, so login is not
@@ -155,7 +172,7 @@ class PatreonIE(PatreonBaseIE):
             'comment_count': int_or_none(attributes.get('comment_count')),
         }
         can_view_post = traverse_obj(attributes, 'current_user_can_view')
-        if can_view_post:
+        if can_view_post and info['comment_count']:
             info['__post_extractor'] = self.extract_comments(video_id)
 
         for i in post.get('included', []):
@@ -200,12 +217,21 @@ class PatreonIE(PatreonBaseIE):
 
         post_file = traverse_obj(attributes, 'post_file')
         if post_file:
-            ext = determine_ext(post_file.get('name'))
+            name = post_file.get('name')
+            ext = determine_ext(name)
             if ext in KNOWN_EXTENSIONS:
                 return merge_dicts({
                     'ext': ext,
                     'url': post_file['url'],
                 }, info)
+            elif name == 'video':
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(post_file['url'], video_id)
+                return merge_dicts(
+                    {
+                        'formats': formats,
+                        'subtitles': subtitles,
+                    }, info
+                )
 
         if can_view_post is False:
             self.raise_no_formats('You do not have access to this post', video_id)
@@ -235,7 +261,7 @@ class PatreonIE(PatreonBaseIE):
             params.update({'page[cursor]': cursor} if cursor else {})
             response = self._call_api(f'posts/{post_id}/comments', post_id, query=params, note='Downloading comments page %d' % page)
             cursor = None
-            for comment in traverse_obj(response, (('data', ('included', lambda _, v: v['type'] == 'comment')), ...)):
+            for comment in traverse_obj(response, (('data', ('included', lambda _, v: v['type'] == 'comment')), ...), default=[]):
                 count += 1
                 comment_id = comment.get('id')
                 attributes = comment.get('attributes') or {}
