@@ -25,10 +25,9 @@ class PlexWatchBaseIE(InfoExtractor):
         'tv.plex.provider.metadata': 'https://metadata.provider.plex.tv',
 
     }
-    _PLEX_TOKEN = 'D_kwxxtUkA6NjcTQ5ep5' # change this if not work
-     
-    
-    def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}):        
+    _PLEX_TOKEN = 'D_kwxxtUkA6NjcTQ5ep5'  # change this if not work
+
+    def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}):
         formats, subtitles = [], {}
         fmt, subs = [], {}
         if isinstance(selected_media, str):
@@ -38,19 +37,19 @@ class PlexWatchBaseIE(InfoExtractor):
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
                     display_id, query={'X-PLEX-TOKEN': self._PLEX_TOKEN})
-                
+
             elif determine_ext(media) == 'mpd':
                 fmt, subs = self._extract_mpd_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
                     display_id, query={'X-PLEX-TOKEN': self._PLEX_TOKEN},)
-                
+
             else:
                 formats.append({
                     'url': f'{self._CDN_ENDPOINT[sites_type]}{media}?X-Plex-Token={self._PLEX_TOKEN}',
                     'ext': 'mp4',
                     **metadata_field
                 })
-                
+
             formats.extend(fmt)
             self._merge_subtitles(subs, target=subtitles)
 
@@ -273,32 +272,31 @@ class PlexAppIE(PlexWatchBaseIE):
         },
         'playlist_count': 12,
     }]
-    
+
     def _get_tracks_formats(self, album_info, display_id):
         formats, fmt = [], []
         for media_item in traverse_obj(album_info, ...):
             for media in traverse_obj(media_item, ('Media', ..., 'Part', ..., 'key')):
                 fmt, sub = self._get_formats_and_subtitles(
-                    media, display_id, 'tv.plex.provider.music', 
+                    media, display_id, 'tv.plex.provider.music',
                     metadata_field={
-                        'id': media_item['ratingKey'], 
+                        'id': media_item['ratingKey'],
                         'title': media_item.get('title'),
                         'vcodec': 'none',
                         'ext': 'm4a',
                     })
                 formats.extend(fmt)
-        
+
         return formats
-                
-    
+
     def _real_extract(self, url):
         provider, key, display_id = self._match_valid_url(url).group('provider', 'key', 'id')
         key = urllib.parse.unquote(key)
         media_json = self._download_json(
             f'{self._CDN_ENDPOINT[provider]}{key}', display_id, query={'uri': f'provider://{provider}{key}', 'X-Plex-Token': self._PLEX_TOKEN},
             headers={'Accept': 'application/json'})['MediaContainer']['Metadata'][0]
-        
-        if media_json.get('type') in ('episode', 'movie'): 
+
+        if media_json.get('type') in ('episode', 'movie'):
             selected_media = traverse_obj(
                 media_json, ('Media', ..., 'Part', ..., 'key'))
 
@@ -316,13 +314,13 @@ class PlexAppIE(PlexWatchBaseIE):
                 'rating': parse_age_limit(media_json.get('contentRating')),
                 'view_count': media_json.get('viewCount')
             }
-        
+
         elif media_json.get('type') == 'season':
             # TODO: extract with other method
             if media_json.get('publicPagesURL'):
                 return self.url_result(
                     media_json.get('publicPagesURL'), ie=PlexWatchSeasonIE)
-       
+
         elif media_json.get('type') == 'album':
             album_info = self._download_json(
                 f'{self._CDN_ENDPOINT[provider]}{media_json.get("key")}', display_id, query={'X-Plex-Token': self._PLEX_TOKEN},
