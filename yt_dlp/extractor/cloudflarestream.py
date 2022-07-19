@@ -52,7 +52,7 @@ class CloudflareStreamIE(InfoExtractor):
         base_url = 'https://%s/%s/' % (domain, video_id)
         if '.' in video_id:
             video_id = self._parse_json(base64.urlsafe_b64decode(
-                video_id.split('.')[1].ljust(math.ceil(len(video_id.split('.')[1])/4)*4, '=')), video_id)['sub']
+                video_id.split('.')[1].ljust(math.ceil(len(video_id.split('.')[1]) / 4) * 4, '=')), video_id)['sub']
         manifest_base_url = base_url + 'manifest/video.'
 
         formats = self._extract_m3u8_formats(
