@@ -325,10 +325,6 @@ class PlexAppIE(PlexWatchBaseIE):
             album_info = self._download_json(
                 f'{self._CDN_ENDPOINT[provider]}{media_json.get("key")}', display_id, query={'X-Plex-Token': self._PLEX_TOKEN},
                 headers={'Accept': 'application/json'})['MediaContainer']['Metadata']
-            formats = self._get_tracks_formats(album_info, display_id)
-            return {
-                '_type': 'playlist',
-                'entries': formats,
-                'id': display_id,
-                'title': media_json.get('title'),
-            }
+            
+            return self.playlist_result(
+                self._get_tracks_formats(album_info, display_id), display_id, media_json.get('title'))
