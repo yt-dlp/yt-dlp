@@ -130,27 +130,6 @@ class PatreonIE(PatreonBaseIE):
         }
     }]
 
-    # Currently Patreon exposes download URL via hidden CSS, so login is not
-    # needed. Keeping this commented for when this inevitably changes.
-    '''
-    def _perform_login(self, username, password):
-        login_form = {
-            'redirectUrl': 'http://www.patreon.com/',
-            'email': username,
-            'password': password,
-        }
-
-        request = sanitized_Request(
-            'https://www.patreon.com/processLogin',
-            compat_urllib_parse_urlencode(login_form).encode('utf-8')
-        )
-        login_page = self._download_webpage(request, None, note='Logging in')
-
-        if re.search(r'onLoginFailed', login_page):
-            raise ExtractorError('Unable to login, incorrect username and/or password', expected=True)
-
-    '''
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         post = self._call_api(f'posts/{video_id}', video_id, query={
@@ -380,7 +359,7 @@ class PatreonCampaignIE(PatreonBaseIE):
         campaign_info = campaign_response.get('data') or {}
         channel_name = traverse_obj(campaign_info, ('attributes', 'name'))
         user_info = traverse_obj(
-            campaign_response, ('included', lambda _, k: k['type'] == 'user'),
+            campaign_response, ('included', lambda _, v: v['type'] == 'user'),
             default={}, expected_type=dict, get_all=False)
 
         return {
