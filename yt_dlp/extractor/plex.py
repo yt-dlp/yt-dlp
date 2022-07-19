@@ -2,6 +2,7 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     determine_ext,
     int_or_none,
     parse_age_limit,
@@ -10,6 +11,7 @@ from ..utils import (
 
 
 class PlexWatchBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'plex'
     # provider url is in https://plex.tv/media/providers?X-Plex-Token=<plex_token>
     # nb: need Accept: application/json, otherwise return xml
     _CDN_ENDPOINT = {
@@ -18,14 +20,26 @@ class PlexWatchBaseIE(InfoExtractor):
         # from api ( identifier : baseUrl)
         'tv.plex.provider.epg': 'https://epg.provider.plex.tv',
         'tv.plex.provider.vod': 'https://vod.provider.plex.tv',
-
+        'tv.plex.provider.music': 'https://music.provider.plex.tv',
         # not used yet, but will be supported
         'tv.plex.provider.discover': 'https://discover.provider.plex.tv',
-        'tv.plex.provider.music': 'https://music.provider.plex.tv',
         'tv.plex.provider.metadata': 'https://metadata.provider.plex.tv',
 
     }
-    _PLEX_TOKEN = 'D_kwxxtUkA6NjcTQ5ep5'  # change this if not work
+
+    _TOKEN = 'D_kwxxtUkA6NjcTQ5ep5'  # hardcoded to prevent error 429 to non-login user
+    _CLIENT_IDENTIFIER = '26275d8b-63b3-49f9-05a3-6c8659c00413'  # can get in cookie
+
+    def _perform_login(self, username, password):
+        try:
+            resp_api = self._download_json(
+                'https://plex.tv/api/v2/users/signin', 'Auth', query={'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER},
+                data=f'login={username}&password={password}&rememberMe=true'.encode(),
+                headers={'Accept': 'application/json'}, expected_status=429,
+                note='Downloading JSON Auth Info')
+            self._TOKEN = resp_api.get('authToken') or self._TOKEN
+        except ExtractorError as e:
+            self.write_debug(f'There\'s error on login : {e}, trying to use non-login method')
 
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}):
         formats, subtitles = [], {}
@@ -36,16 +50,16 @@ class PlexWatchBaseIE(InfoExtractor):
             if determine_ext(media) == 'm3u8':
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
-                    display_id, query={'X-PLEX-TOKEN': self._PLEX_TOKEN})
+                    display_id, query={'X-PLEX-TOKEN': self._TOKEN})
 
             elif determine_ext(media) == 'mpd':
                 fmt, subs = self._extract_mpd_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
-                    display_id, query={'X-PLEX-TOKEN': self._PLEX_TOKEN},)
+                    display_id, query={'X-PLEX-TOKEN': self._TOKEN},)
 
             else:
                 formats.append({
-                    'url': f'{self._CDN_ENDPOINT[sites_type]}{media}?X-Plex-Token={self._PLEX_TOKEN}',
+                    'url': f'{self._CDN_ENDPOINT[sites_type]}{media}?X-Plex-Token={self._TOKEN}',
                     'ext': 'mp4',
                     **metadata_field
                 })
@@ -64,7 +78,7 @@ class PlexWatchBaseIE(InfoExtractor):
         media_json = self._download_json(
             'https://play.provider.plex.tv/playQueues', display_id,
             query={'uri': nextjs_json['playableKey']}, data=b'',
-            headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
+            headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
 
         selected_media = []
         for media in media_json['MediaContainer']['Metadata']:
@@ -179,8 +193,7 @@ class PlexWatchSeasonIE(PlexWatchBaseIE):
             traverse_obj(nextjs_json, ('metadataItem', 'playableID')),
             traverse_obj(nextjs_json, ('metadataItem', 'parentTitle')),
             traverse_obj(nextjs_json, ('metadataItem', 'summary')),
-            season=traverse_obj(nextjs_json, ('metadataItem', 'parentTitle')),
-            season_number=season_num)
+            season=traverse_obj(nextjs_json, ('metadataItem', 'parentTitle')), season_number=season_num)
 
 
 class PlexWatchLiveIE(PlexWatchBaseIE):
@@ -203,7 +216,7 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
             self._download_webpage(url, display_id), display_id)['props']['pageProps']['channel']
         media_json = self._download_json(
             f'https://epg.provider.plex.tv/channels/{nextjs_json["id"]}/tune',
-            display_id, data=b'', headers={'X-PLEX-TOKEN': self._PLEX_TOKEN, 'Accept': 'application/json', 'Cookie': ''})
+            display_id, data=b'', headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
 
         formats, subtitles = self._get_formats_and_subtitles(
             traverse_obj(media_json, (
@@ -293,7 +306,7 @@ class PlexAppIE(PlexWatchBaseIE):
         provider, key, display_id = self._match_valid_url(url).group('provider', 'key', 'id')
         key = urllib.parse.unquote(key)
         media_json = self._download_json(
-            f'{self._CDN_ENDPOINT[provider]}{key}', display_id, query={'uri': f'provider://{provider}{key}', 'X-Plex-Token': self._PLEX_TOKEN},
+            f'{self._CDN_ENDPOINT[provider]}{key}', display_id, query={'uri': f'provider://{provider}{key}', 'X-Plex-Token': self._TOKEN},
             headers={'Accept': 'application/json'})['MediaContainer']['Metadata'][0]
 
         if media_json.get('type') in ('episode', 'movie'):
@@ -323,8 +336,8 @@ class PlexAppIE(PlexWatchBaseIE):
 
         elif media_json.get('type') == 'album':
             album_info = self._download_json(
-                f'{self._CDN_ENDPOINT[provider]}{media_json.get("key")}', display_id, query={'X-Plex-Token': self._PLEX_TOKEN},
+                f'{self._CDN_ENDPOINT[provider]}{media_json.get("key")}', display_id, query={'X-Plex-Token': self._TOKEN},
                 headers={'Accept': 'application/json'})['MediaContainer']['Metadata']
-            
+
             return self.playlist_result(
                 self._get_tracks_formats(album_info, display_id), display_id, media_json.get('title'))
