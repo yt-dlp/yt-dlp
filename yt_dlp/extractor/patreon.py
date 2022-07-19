@@ -37,7 +37,7 @@ class PatreonBaseIE(InfoExtractor):
             if isinstance(e.cause, HTTPError):
                 if e.cause.code == 403:
                     error_response = e.cause.read().decode('utf-8')
-                    error_json = self._parse_json(error_response, None, fatal=False)
+                    error_json = self._parse_json(error_response, item_id, fatal=False)
                     if error_json:
                         message = traverse_obj(error_json, ('errors', ..., 'detail'), get_all=False)
                         if message:
@@ -45,6 +45,7 @@ class PatreonBaseIE(InfoExtractor):
 
                     elif 'cloudflare' in e.cause.headers.get('Server') and 'window._cf_chl_opt' in error_response:
                         raise ExtractorError('Unable to download video due to cloudflare captcha')
+            raise
 
 
 class PatreonIE(PatreonBaseIE):
@@ -289,27 +290,57 @@ class PatreonIE(PatreonBaseIE):
                 break
 
 
-class PatreonUserIE(PatreonBaseIE):
+class PatreonCampaignIE(PatreonBaseIE):
 
-    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?!rss)(?P<id>[-\w]+)'
+    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?!rss)(?:(?:m/(?P<campaign_id>\d+))|(?P<vanity>[-\w]+))'
 
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
         'info_dict': {
-            'title': 'dissonancepod',
+            'title': 'Cognitive Dissonance Podcast',
+            'channel_url': 'https://www.patreon.com/dissonancepod',
+            'id': '80642',
+            'description': 'md5:eb2fa8b83da7ab887adeac34da6b7af7',
+            'channel_id': '80642',
+            'channel': 'Cognitive Dissonance Podcast',
+            'age_limit': 0,
+            'channel_follower_count': int,
+            'uploader_id': '87145',
+            'uploader_url': 'https://www.patreon.com/dissonancepod',
+            'uploader': 'Cognitive Dissonance Podcast',
+
         },
         'playlist_mincount': 68,
-        'expected_warnings': 'Post not viewable by current user! Skipping!',
+    }, {
+        'url': 'https://www.patreon.com/m/4767637/posts',
+        'info_dict': {
+            'title': 'Not Just Bikes',
+            'channel_follower_count': int,
+            'id': '4767637',
+            'channel_id': '4767637',
+            'channel_url': 'https://www.patreon.com/notjustbikes',
+            'description': 'md5:595c6e7dca76ae615b1d38c298a287a1',
+            'age_limit': 0,
+            'channel': 'Not Just Bikes',
+            'uploader_url': 'https://www.patreon.com/notjustbikes',
+            'uploader': 'Not Just Bikes',
+            'uploader_id': '37306634',
+        },
+        'playlist_mincount': 71
+
     }, {
         'url': 'https://www.patreon.com/dissonancepod/posts',
         'only_matching': True
-    }, ]
+    }, {
+        'url': 'https://www.patreon.com/m/5932659',
+        'only_matching': True
+    }]
 
     @classmethod
     def suitable(cls, url):
-        return False if PatreonIE.suitable(url) else super(PatreonUserIE, cls).suitable(url)
+        return False if PatreonIE.suitable(url) else super(PatreonCampaignIE, cls).suitable(url)
 
-    def _entries(self, campaign_id, user_id):
+    def _entries(self, campaign_id):
         cursor = None
         params = {
             'fields[campaign]': 'show_audio_post_download_links,name,url',
@@ -324,7 +355,7 @@ class PatreonUserIE(PatreonBaseIE):
         for page in itertools.count(1):
 
             params.update({'page[cursor]': cursor} if cursor else {})
-            posts_json = self._call_api(f'posts', user_id, query=params, note='Downloading posts page %d' % page)
+            posts_json = self._call_api('posts', campaign_id, query=params, note='Downloading posts page %d' % page)
 
             cursor = try_get(posts_json, lambda x: x['meta']['pagination']['cursors']['next'])
 
@@ -336,7 +367,36 @@ class PatreonUserIE(PatreonBaseIE):
 
     def _real_extract(self, url):
 
-        user_id = self._match_id(url)
-        webpage = self._download_webpage(url, user_id, headers={'User-Agent': self.USER_AGENT})
-        campaign_id = self._search_regex(r'https://www.patreon.com/api/campaigns/(\d+)/?', webpage, 'Campaign ID')
-        return self.playlist_result(self._entries(campaign_id, user_id), playlist_title=user_id, playlist_id=user_id)
+        campaign_id, vanity = self._match_valid_url(url).groups()
+        if campaign_id is None:
+            webpage = self._download_webpage(url, vanity, headers={'User-Agent': self.USER_AGENT})
+            campaign_id = self._search_regex(r'https://www.patreon.com/api/campaigns/(\d+)/?', webpage, 'Campaign ID')
+
+        campaign_response = self._call_api(
+            f'campaigns/{campaign_id}', campaign_id,
+            note='Downloading campaign info', fatal=False,
+            query={'fields[user]': 'image_url,full_name,url'}) or {}
+
+        campaign_info = campaign_response.get('data') or {}
+        channel_name = traverse_obj(campaign_info, ('attributes', 'name'))
+        user_info = traverse_obj(
+            campaign_response, ('included', lambda _, k: k['type'] == 'user'),
+            default={}, expected_type=dict, get_all=False)
+
+        return {
+            '_type': 'playlist',
+            'id': campaign_id,
+            'title': channel_name,
+            'entries': self._entries(campaign_id),
+            'description': clean_html(traverse_obj(campaign_info, ('attributes', 'summary'))),
+            'channel_url': traverse_obj(campaign_info, ('attributes', 'url')),
+            'channel_follower_count': traverse_obj(campaign_info, ('attributes', 'patron_count')),
+            'channel_id': campaign_id,
+            'channel': channel_name,
+            'uploader_url': traverse_obj(user_info, ('attributes', 'url')),
+            'uploader_id': str_or_none(user_info.get('id')),
+            'uploader': traverse_obj(user_info, ('attributes', 'full_name')),
+            'playlist_count': traverse_obj(campaign_info, ('attributes', 'creation_count')),
+            'age_limit': 18 if traverse_obj(campaign_info, ('attributes', 'is_nsfw')) else 0,
+            'thumbnail': url_or_none(traverse_obj(campaign_info, ('attributes', 'avatar_image_url'))),
+        }
