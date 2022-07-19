@@ -339,4 +339,4 @@ class PatreonUserIE(PatreonBaseIE):
         user_id = self._match_id(url)
         webpage = self._download_webpage(url, user_id, headers={'User-Agent': self.USER_AGENT})
         campaign_id = self._search_regex(r'https://www.patreon.com/api/campaigns/(\d+)/?', webpage, 'Campaign ID')
-        return self.playlist_result(self._entries(campaign_id, user_id), playlist_title=user_id)
+        return self.playlist_result(self._entries(campaign_id, user_id), playlist_title=user_id, playlist_id=user_id)
