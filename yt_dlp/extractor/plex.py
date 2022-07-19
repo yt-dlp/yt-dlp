@@ -25,21 +25,32 @@ class PlexWatchBaseIE(InfoExtractor):
         'tv.plex.provider.metadata': 'https://metadata.provider.plex.tv',
 
     }
-    _PLEX_TOKEN = 'NytaXzMexGQ9-xW9yDjy'  # change this if not work
-
-    def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod'):
+    _PLEX_TOKEN = 'D_kwxxtUkA6NjcTQ5ep5' # change this if not work
+     
+    
+    def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}):        
         formats, subtitles = [], {}
+        fmt, subs = [], {}
+        if isinstance(selected_media, str):
+            selected_media = [selected_media]
         for media in selected_media:
             if determine_ext(media) == 'm3u8':
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
                     display_id, query={'X-PLEX-TOKEN': self._PLEX_TOKEN})
-
+                
             elif determine_ext(media) == 'mpd':
                 fmt, subs = self._extract_mpd_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
                     display_id, query={'X-PLEX-TOKEN': self._PLEX_TOKEN},)
-
+                
+            else:
+                formats.append({
+                    'url': f'{self._CDN_ENDPOINT[sites_type]}{media}?X-Plex-Token={self._PLEX_TOKEN}',
+                    'ext': 'mp4',
+                    **metadata_field
+                })
+                
             formats.extend(fmt)
             self._merge_subtitles(subs, target=subtitles)
 
@@ -130,13 +141,6 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'season_number': 1,
             'season': 'Season 1',
         }
-    }, {
-        'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.vod/details?key=%2Flibrary%2Fmetadata%2F62a8b77b93fc109a6d020761&context=library%3Ahub.movies.reality-tv~8~9',
-        'info_dict': {
-            'id': 'fixme',
-            'title': 'fixthis',
-        },
-        'playlist_count': 100,
     }]
 
     def _real_extract(self, url):
@@ -236,6 +240,7 @@ class PlexAppIE(PlexWatchBaseIE):
             'skip_download': True
         },
     }, {
+        # episode
         'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.vod/details?key=%2Flibrary%2Fmetadata%2F62b0fbd90776e5797e7d92fe&context=library%3Ahub.movies.reality-tv~8~9',
         'info_dict': {
             'id': '62b0fbd90776e5797e7d92fe',
@@ -249,9 +254,43 @@ class PlexAppIE(PlexWatchBaseIE):
         'params': {
             'skip_download': True,
         }
+    }, {
+        # season
+        'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.vod/details?key=%2Flibrary%2Fmetadata%2F62a8b77b93fc109a6d020761&context=library%3Ahub.movies.reality-tv~8~9',
+        'info_dict': {
+            'id': '62a8b77b93fc109a6d020761',
+            'title': 'Funniest Pets & People',
+            'season': 'Funniest Pets & People',
+            'season_number': '1',
+        },
+        'playlist_count': 15,
+    }, {
+        # album
+        'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.music/details?key=%2Flibrary%2Fmetadata%2F62ca68f172b359f3b8375767&context=library%3Ahub.tidal.newAlbums~1~0',
+        'info_dict': {
+            'id': '62ca68f172b359f3b8375767',
+            'title': 'Special'
+        },
+        'playlist_count': 12,
     }]
     
+    def _get_tracks_formats(self, album_info, display_id):
+        formats, fmt = [], []
+        for media_item in traverse_obj(album_info, ...):
+            for media in traverse_obj(media_item, ('Media', ..., 'Part', ..., 'key')):
+                fmt, sub = self._get_formats_and_subtitles(
+                    media, display_id, 'tv.plex.provider.music', 
+                    metadata_field={
+                        'id': media_item['ratingKey'], 
+                        'title': media_item.get('title'),
+                        'vcodec': 'none',
+                        'ext': 'm4a',
+                    })
+                formats.extend(fmt)
         
+        return formats
+                
+    
     def _real_extract(self, url):
         provider, key, display_id = self._match_valid_url(url).group('provider', 'key', 'id')
         key = urllib.parse.unquote(key)
@@ -259,15 +298,15 @@ class PlexAppIE(PlexWatchBaseIE):
             f'{self._CDN_ENDPOINT[provider]}{key}', display_id, query={'uri': f'provider://{provider}{key}', 'X-Plex-Token': self._PLEX_TOKEN},
             headers={'Accept': 'application/json'})['MediaContainer']['Metadata'][0]
         
-        if media_json['type'] in ('episode', 'movie'): 
+        if media_json.get('type') in ('episode', 'movie'): 
             selected_media = traverse_obj(
                 media_json, ('Media', ..., 'Part', ..., 'key'))
 
             formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id, provider)
             return {
                 'id': display_id,
-               'ext': 'mp4',
-                 'title': media_json.get('title'),
+                'ext': 'mp4',
+                'title': media_json.get('title'),
                 'description': media_json.get('summary'),
                 'formats': formats,
                 'subtitles': subtitles,
@@ -278,5 +317,20 @@ class PlexAppIE(PlexWatchBaseIE):
                 'view_count': media_json.get('viewCount')
             }
         
-        elif media_json['type'] == 'season':
-            pass 
+        elif media_json.get('type') == 'season':
+            # TODO: extract with other method
+            if media_json.get('publicPagesURL'):
+                return self.url_result(
+                    media_json.get('publicPagesURL'), ie=PlexWatchSeasonIE)
+       
+        elif media_json.get('type') == 'album':
+            album_info = self._download_json(
+                f'{self._CDN_ENDPOINT[provider]}{media_json.get("key")}', display_id, query={'X-Plex-Token': self._PLEX_TOKEN},
+                headers={'Accept': 'application/json'})['MediaContainer']['Metadata']
+            formats = self._get_tracks_formats(album_info, display_id)
+            return {
+                '_type': 'playlist',
+                'entries': formats,
+                'id': display_id,
+                'title': media_json.get('title'),
+            }
