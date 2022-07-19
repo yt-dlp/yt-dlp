@@ -1,4 +1,5 @@
 import itertools
+from urllib.error import HTTPError
 
 from .common import InfoExtractor
 from .vimeo import VimeoIE
@@ -13,7 +14,7 @@ from ..utils import (
     parse_iso8601,
     str_or_none,
     try_get,
-    url_or_none, traverse_obj, merge_dicts,
+    url_or_none, traverse_obj, merge_dicts, ExtractorError,
 )
 
 
@@ -27,10 +28,23 @@ class PatreonBaseIE(InfoExtractor):
         if 'User-Agent' not in headers:
             headers['User-Agent'] = self.USER_AGENT
 
-        return self._download_json(
-            f'https://www.patreon.com/api/{ep}',
-            item_id, note='Downloading API JSON' if not note else note,
-            query=query, fatal=fatal, headers=headers)
+        try:
+            return self._download_json(
+                f'https://www.patreon.com/api/{ep}',
+                item_id, note='Downloading API JSON' if not note else note,
+                query=query, fatal=fatal, headers=headers)
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError):
+                if e.cause.code == 403:
+                    error_response = e.cause.read().decode('utf-8')
+                    error_json = self._parse_json(error_response, None, fatal=False)
+                    if error_json:
+                        message = traverse_obj(error_json, ('errors', ..., 'detail'), get_all=False)
+                        if message:
+                            raise ExtractorError(f'Patreon said: {message}', expected=True)
+
+                    elif 'cloudflare' in e.cause.headers.get('Server') and 'window._cf_chl_opt' in error_response:
+                        raise ExtractorError('Unable to download video due to cloudflare captcha')
 
 
 class PatreonIE(PatreonBaseIE):
@@ -140,6 +154,9 @@ class PatreonIE(PatreonBaseIE):
             'like_count': int_or_none(attributes.get('like_count')),
             'comment_count': int_or_none(attributes.get('comment_count')),
         }
+        can_view_post = traverse_obj(attributes, 'current_user_can_view')
+        if can_view_post:
+            info['__post_extractor'] = self.extract_comments(video_id)
 
         for i in post.get('included', []):
             i_type = i.get('type')
@@ -190,11 +207,60 @@ class PatreonIE(PatreonBaseIE):
                     'url': post_file['url'],
                 }, info)
 
-        if traverse_obj(attributes, 'current_user_can_view') is False:
+        if can_view_post is False:
             self.raise_no_formats('You do not have access to this post', video_id)
         else:
             self.raise_no_formats('post has no supported media', video_id)
         return info
+
+    def _get_comments(self, post_id):
+        cursor = None
+        count = 0
+        # Replies are grabbed in the same request.
+        # When this breaks, need to add support for comments/post_id/replies ep
+
+        params = {
+            'page[count]': 50,
+            'include': 'parent.commenter.campaign,parent.post.user,parent.post.campaign.creator,parent.replies.parent,parent.replies.commenter.campaign,parent.replies.post.user,parent.replies.post.campaign.creator,commenter.campaign,post.user,post.campaign.creator,replies.parent,replies.commenter.campaign,replies.post.user,replies.post.campaign.creator,on_behalf_of_campaign',
+            'fields[comment]': 'body,created,deleted_at,is_by_patron,is_by_creator,vote_sum,current_user_vote,reply_count',
+            'fields[user]': 'image_url,full_name,url',
+            'filter[flair]': 'image_tiny_url,name',
+            'sort': '-created',
+            'json-api-version': 1.0,
+            'json-api-use-default-includes': 'false',
+        }
+
+        for page in itertools.count(1):
+
+            params.update({'page[cursor]': cursor} if cursor else {})
+            response = self._call_api(f'posts/{post_id}/comments', post_id, query=params, note='Downloading comments page %d' % page)
+            cursor = None
+            for comment in traverse_obj(response, (('data', ('included', lambda _, v: v['type'] == 'comment')), ...)):
+                count += 1
+                comment_id = comment.get('id')
+                attributes = comment.get('attributes') or {}
+                if comment_id is None:
+                    continue
+                author_id = traverse_obj(comment, ('relationships', 'commenter', 'data', 'id'))
+                author_info = traverse_obj(
+                        response, ('included', lambda k, v: v['id'] == author_id and v['type'] == 'user', 'attributes'),
+                        get_all=False, expected_type=dict, default={})
+                yield {
+                    'id': comment_id,
+                    'text': attributes.get('body'),
+                    'timestamp': parse_iso8601(attributes.get('created')),
+                    'parent': traverse_obj(comment, ('relationships', 'parent', 'data', 'id'), default='root'),
+                    'author_is_uploader': attributes.get('is_by_creator'),
+                    'author_id': author_id,
+                    'author': author_info.get('full_name'),
+                    'author_thumbnail': author_info.get('image_url'),
+                }
+
+            if count < traverse_obj(response, ('meta', 'count')):
+                cursor = traverse_obj(response, ('data', -1, 'id'))
+
+            if cursor is None:
+                break
 
 
 class PatreonUserIE(PatreonBaseIE):
