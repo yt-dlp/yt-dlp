@@ -22,8 +22,8 @@ from ..utils import (
 
 
 class PatreonBaseIE(InfoExtractor):
-    # FIXME: user-supplied user agent should override request user-agents
-    USER_AGENT = 'Patreon/7.6.28'  # should we add a random generation for this?
+    # XXX: should user-supplied user agent should override request user-agents?
+    USER_AGENT = 'Patreon/7.6.28'
 
     def _call_api(self, ep, item_id, query=None, headers=None, fatal=True, note=None):
         if headers is None:
@@ -241,7 +241,7 @@ class PatreonIE(PatreonBaseIE):
 
     def _get_comments(self, post_id):
         # Currently replies are grabbed in the same request as the parent comments.
-        # When this breaks, we will need to add support for getting replies in a seperate request.
+        # When this breaks, we will need to add support for getting replies in a separate request.
 
         cursor = None
         count = 0
