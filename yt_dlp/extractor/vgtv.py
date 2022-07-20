@@ -14,6 +14,7 @@ class VGTVIE(XstreamIE):
     _GEO_BYPASS = False
 
     _HOST_TO_APPNAME = {
+        'tv.vg.no': 'vgtv',
         'vgtv.no': 'vgtv',
         'bt.no/tv': 'bttv',
         'aftenbladet.no/tv': 'satv',
