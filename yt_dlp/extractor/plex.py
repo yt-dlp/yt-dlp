@@ -31,6 +31,7 @@ class PlexWatchBaseIE(InfoExtractor):
     _CLIENT_IDENTIFIER = '26275d8b-63b3-49f9-05a3-6c8659c00413'  # can get in cookie
 
     def _perform_login(self, username, password):
+        self.write_debug('Trying to login')
         try:
             resp_api = self._download_json(
                 'https://plex.tv/api/v2/users/signin', 'Auth', query={'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER},
@@ -38,8 +39,9 @@ class PlexWatchBaseIE(InfoExtractor):
                 headers={'Accept': 'application/json'}, expected_status=429,
                 note='Downloading JSON Auth Info')
             self._TOKEN = resp_api.get('authToken') or self._TOKEN
+            self.write_debug('login successfully')
         except ExtractorError as e:
-            self.write_debug(f'There\'s error on login : {e}, trying to use non-login method')
+            self.write_debug(f'There\'s error on login : {e.cause}, trying to use non-login method')
 
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}):
         formats, subtitles = [], {}
@@ -47,7 +49,7 @@ class PlexWatchBaseIE(InfoExtractor):
         if isinstance(selected_media, str):
             selected_media = [selected_media]
         for media in selected_media:
-            if determine_ext(media) == 'm3u8':
+            if determine_ext(media) == 'm3u8' or media.endswith('hls'):
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
                     display_id, query={'X-PLEX-TOKEN': self._TOKEN})
@@ -68,40 +70,64 @@ class PlexWatchBaseIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
 
         return formats, subtitles
-
+    
+    def _get_clips(self,nextjs_json, display_id):
+        entries = []
+        self.write_debug('Trying to download Extras/trailer')
+        
+        media_json = self._download_json(
+            'https://play.provider.plex.tv/playQueues', display_id,
+            query={'uri': f'provider://tv.plex.provider.vod{nextjs_json["Extras"]["key"]}'}, data=b'',
+            headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
+        
+        for media in media_json['MediaContainer']['Metadata']:
+            for media_ in traverse_obj(media, ('Media', ..., 'Part', ..., 'key')):
+                fmt, sub = self._get_formats_and_subtitles(media_, display_id)
+                new_fmt = []
+                for fmt_ in fmt:
+                    fmt_.update({'id': media['ratingKey'], 'title': media.get('title')})
+                entries.extend(fmt)
+                
+        return entries
+          
     def _extract_data(self, url, **kwargs):
         sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
 
         nextjs_json = self._search_nextjs_data(
             self._download_webpage(url, display_id), display_id)['props']['pageProps']['metadataItem']
+        if nextjs_json.get('playableKey'):
+            media_json = self._download_json(
+                'https://play.provider.plex.tv/playQueues', display_id,
+                query={'uri': nextjs_json['playableKey']}, data=b'',
+                headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
+            
+            selected_media = []
+            for media in media_json['MediaContainer']['Metadata']:
+                if media.get('slug') == display_id or sites_type == 'show':
+                    selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
+                    break
+            
+            formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id)
+            self._sort_formats(formats)
 
-        media_json = self._download_json(
-            'https://play.provider.plex.tv/playQueues', display_id,
-            query={'uri': nextjs_json['playableKey']}, data=b'',
-            headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
+            return {
+                **kwargs,
+                'id': nextjs_json.get('playableID') or nextjs_json['ratingKey'],
+                'display_id': display_id,
+                'formats': formats,
+                'subtitles': subtitles,
+                'title': nextjs_json.get('title'),
+                'description': nextjs_json.get('summary'),
+                'thumbnail': nextjs_json.get('thumb'),
+                'duration': int_or_none(nextjs_json.get('duration'), 1000),
+                'cast': traverse_obj(nextjs_json, ('Role', ..., 'tag')),
+                'rating': parse_age_limit(nextjs_json.get('contentRating')),
+            }
 
-        selected_media = []
-        for media in media_json['MediaContainer']['Metadata']:
-            if media.get('slug') == display_id or sites_type == 'show':
-                selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
-                break
-
-        formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id)
-        self._sort_formats(formats)
-
-        return {
-            **kwargs,
-            'id': nextjs_json['playableID'],
-            'display_id': display_id,
-            'formats': formats,
-            'subtitles': subtitles,
-            'title': nextjs_json.get('title'),
-            'description': nextjs_json.get('summary'),
-            'thumbnail': nextjs_json.get('thumb'),
-            'duration': int_or_none(nextjs_json.get('duration'), 1000),
-            'cast': traverse_obj(nextjs_json, ('Role', ..., 'tag')),
-            'rating': parse_age_limit(nextjs_json.get('contentRating')),
-        }
+        if nextjs_json.get('Extras'):
+            return self.playlist_result(
+                self._get_clips(nextjs_json, display_id), nextjs_json['ratingKey'], nextjs_json.get('title'))
+        
 
 
 class PlexWatchMovieIE(PlexWatchBaseIE):
@@ -118,6 +144,16 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
             'thumbnail': 'https://image.tmdb.org/t/p/original/lDWHvIotQkogG77wHVuMT8mF8P.jpg',
             'cast': 'count:22',
         }
+    }, {
+        # trailer
+        'url': 'https://watch.plex.tv/movie/the-sea-beast-2',
+        'info_dict': {
+            'id': '5d77709a6afb3d002061df55',
+            'title': 'The Sea Beast'
+        },
+        # expected 3, the extractor extract all url of m3u8 file 
+        # and think that url is a single video
+        'playlist_count': 27,  
     }]
 
     def _real_extract(self, url):
@@ -284,6 +320,13 @@ class PlexAppIE(PlexWatchBaseIE):
             'title': 'Special'
         },
         'playlist_count': 12,
+    }, {
+        # Extras
+        'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.metadata/details?key=%2Flibrary%2Fmetadata%2F5ef5ee0d1ce3fd004039976a&context=library%3Ahub.home.top_watchlisted~4~1',
+        'info_dict': {
+            'id': 'fixme',
+            'title': 'fixme',
+        }
     }]
 
     def _get_tracks_formats(self, album_info, display_id):
@@ -341,3 +384,6 @@ class PlexAppIE(PlexWatchBaseIE):
 
             return self.playlist_result(
                 self._get_tracks_formats(album_info, display_id), display_id, media_json.get('title'))
+        
+        if traverse_obj(media_json, ('Extras', 'size')) >= 1:
+            pass
