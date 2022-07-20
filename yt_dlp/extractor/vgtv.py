@@ -128,6 +128,10 @@ class VGTVIE(XstreamIE):
             },
         },
         {
+            'url': 'https://tv.vg.no/video/241779/politiets-ekstremkjoering',
+            'only_matching': True,
+        },
+        {
             'url': 'http://www.bt.no/tv/#!/video/100250/norling-dette-er-forskjellen-paa-1-divisjon-og-eliteserien',
             'only_matching': True,
         },
