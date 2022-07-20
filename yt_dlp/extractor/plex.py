@@ -86,7 +86,8 @@ class PlexWatchBaseIE(InfoExtractor):
                 new_fmt = []
                 for fmt_ in fmt:
                     fmt_.update({'id': media['ratingKey'], 'title': media.get('title')})
-                entries.extend(fmt)
+                    new_fmt.append(fmt_)
+                entries.extend(new_fmt)
                 
         return entries
           
