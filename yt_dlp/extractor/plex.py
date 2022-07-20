@@ -70,16 +70,16 @@ class PlexWatchBaseIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
 
         return formats, subtitles
-    
-    def _get_clips(self,nextjs_json, display_id):
+
+    def _get_clips(self, nextjs_json, display_id):
         entries = []
         self.write_debug('Trying to download Extras/trailer')
-        
+
         media_json = self._download_json(
             'https://play.provider.plex.tv/playQueues', display_id,
             query={'uri': f'provider://tv.plex.provider.vod{nextjs_json["Extras"]["key"]}'}, data=b'',
             headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
-        
+
         for media in media_json['MediaContainer']['Metadata']:
             for media_ in traverse_obj(media, ('Media', ..., 'Part', ..., 'key')):
                 fmt, sub = self._get_formats_and_subtitles(media_, display_id)
@@ -88,9 +88,9 @@ class PlexWatchBaseIE(InfoExtractor):
                     fmt_.update({'id': media['ratingKey'], 'title': media.get('title')})
                     new_fmt.append(fmt_)
                 entries.extend(new_fmt)
-                
+
         return entries
-          
+
     def _extract_data(self, url, **kwargs):
         sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
 
@@ -101,13 +101,13 @@ class PlexWatchBaseIE(InfoExtractor):
                 'https://play.provider.plex.tv/playQueues', display_id,
                 query={'uri': nextjs_json['playableKey']}, data=b'',
                 headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
-            
+
             selected_media = []
             for media in media_json['MediaContainer']['Metadata']:
                 if media.get('slug') == display_id or sites_type == 'show':
                     selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
                     break
-            
+
             formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id)
             self._sort_formats(formats)
 
@@ -128,7 +128,6 @@ class PlexWatchBaseIE(InfoExtractor):
         if nextjs_json.get('Extras'):
             return self.playlist_result(
                 self._get_clips(nextjs_json, display_id), nextjs_json['ratingKey'], nextjs_json.get('title'))
-        
 
 
 class PlexWatchMovieIE(PlexWatchBaseIE):
@@ -152,9 +151,9 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
             'id': '5d77709a6afb3d002061df55',
             'title': 'The Sea Beast'
         },
-        # expected 3, the extractor extract all url of m3u8 file 
+        # expected 3, the extractor extract all url of m3u8 file
         # and think that url is a single video
-        'playlist_count': 27,  
+        'playlist_count': 27,
     }]
 
     def _real_extract(self, url):
@@ -385,6 +384,7 @@ class PlexAppIE(PlexWatchBaseIE):
 
             return self.playlist_result(
                 self._get_tracks_formats(album_info, display_id), display_id, media_json.get('title'))
-        
+
+        # TO DO: extract 'extras'/trailer video
         if traverse_obj(media_json, ('Extras', 'size')) >= 1:
             pass
