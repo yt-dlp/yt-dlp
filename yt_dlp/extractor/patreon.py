@@ -11,7 +11,6 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     KNOWN_EXTENSIONS,
-    merge_dicts,
     mimetype2ext,
     parse_iso8601,
     str_or_none,
@@ -182,11 +181,12 @@ class PatreonIE(PatreonBaseIE):
                 download_url = media_attributes.get('download_url')
                 ext = mimetype2ext(media_attributes.get('mimetype'))
                 if download_url and ext in KNOWN_EXTENSIONS:
-                    return merge_dicts({
+                    return {
+                        **info,
                         'ext': ext,
                         'filesize': int_or_none(media_attributes.get('size_bytes')),
                         'url': download_url,
-                    }, info)
+                    }
             elif i_type == 'user':
                 user_attributes = i.get('attributes')
                 if user_attributes:
@@ -202,36 +202,38 @@ class PatreonIE(PatreonBaseIE):
             v_url = url_or_none(compat_urllib_parse_unquote(
                 self._search_regex(r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)', embed_html, 'vimeo url', fatal=False)))
             if v_url:
-                return merge_dicts({
+                return {
+                    **info,
                     '_type': 'url_transparent',
                     'url': VimeoIE._smuggle_referrer(v_url, 'https://patreon.com'),
                     'ie_key': 'Vimeo',
-                }, info)
+                }
 
         embed_url = try_get(attributes, lambda x: x['embed']['url'])
         if embed_url:
-            return merge_dicts({
+            return {
+                **info,
                 '_type': 'url',
                 'url': embed_url,
-            }, info)
+            }
 
         post_file = traverse_obj(attributes, 'post_file')
         if post_file:
             name = post_file.get('name')
             ext = determine_ext(name)
             if ext in KNOWN_EXTENSIONS:
-                return merge_dicts({
+                return {
+                    **info,
                     'ext': ext,
                     'url': post_file['url'],
-                }, info)
+                }
             elif name == 'video':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(post_file['url'], video_id)
-                return merge_dicts(
-                    {
-                        'formats': formats,
-                        'subtitles': subtitles,
-                    }, info
-                )
+                return {
+                    **info,
+                    'formats': formats,
+                    'subtitles': subtitles,
+                }
 
         if can_view_post is False:
             self.raise_no_formats('You do not have access to this post', video_id)
