@@ -273,7 +273,7 @@ class PatreonIE(PatreonBaseIE):
                     continue
                 author_id = traverse_obj(comment, ('relationships', 'commenter', 'data', 'id'))
                 author_info = traverse_obj(
-                    response, ('included', lambda k, v: v['id'] == author_id and v['type'] == 'user', 'attributes'),
+                    response, ('included', lambda _, v: v['id'] == author_id and v['type'] == 'user', 'attributes'),
                     get_all=False, expected_type=dict, default={})
 
                 yield {
