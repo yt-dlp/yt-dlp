@@ -1,5 +1,6 @@
 import urllib.parse
 import urllib
+import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -28,38 +29,52 @@ class PlexWatchBaseIE(InfoExtractor):
 
     }
 
-    _TOKEN = 'D_kwxxtUkA6NjcTQ5ep5'  # hardcoded to prevent error 429 to non-login user
-    _CLIENT_IDENTIFIER = '26275d8b-63b3-49f9-05a3-6c8659c00413'  # can get in cookie
-
+    _TOKEN = None #'sxifo1hTePz5zu6oq81c'  # hardcoded to prevent error 429 to non-login user
+    _CLIENT_IDENTIFIER = None #str(uuid.uuid4()) # can get in cookie
+    
+    def _initialize_pre_login(self):
+        # TO DO: find better method to get cookie
+        # request to random page in plex.tv to get clientIdentifier in cookie
+        client_id = self._request_webpage('https://watch.plex.tv/movie/the-sea-beast-2', 'client_id')
+        self.write_debug('trying to get clientIdentifier')
+        
+        # extract cookie from webpage
+        # X-Plex-Client-Identifier from here
+        client_id = client_id.headers.get('Set-Cookie')
+        #print(client_id)
+        client_id = re.match(r'clientIdentifier\s*=\s*(?P<client_id>[\w-]+);', client_id).group('client_id')
+        #print(client_id)
+        self._CLIENT_IDENTIFIER = client_id
+    
     def _perform_login(self, username, password):
         self.write_debug('Trying to login')
+        
         try:
             resp_api = self._download_json(
                 'https://plex.tv/api/v2/users/signin', 'Auth', query={'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER},
                 data=f'login={username}&password={password}&rememberMe=true'.encode(),
                 headers={'Accept': 'application/json'}, expected_status=429,
-                note='Downloading JSON Auth Info', fatal=False)            
+                note='Downloading JSON Auth Info')            
             self.write_debug('login successfully')
             self._TOKEN = resp_api.get('authToken')
         except ExtractorError as e:
+            # TODO: parse json error message 
+            print(type(e.cause))
             self.write_debug(f'There\'s error on login : {e.cause}, trying to use non-login method')
             
         
     def _real_initialize(self):
         if not self._TOKEN:
-            if True:
-                resp_api = self._download_json(
+            self.write_debug('using non-login method (login as anonymous)')
+            # FIXME: fix return 404 error
+            resp_api = self._download_json(
                 'https://plex.tv/api/v2/users/anonymous', 'Auth', data=b'', 
-                headers={'Accept': 'application/json'}, expected_status=429,
+                headers={'Accept': 'application/json', 'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER.encode()},
                 note='Downloading JSON Auth Info (as anonymous)')
             
-                self._TOKEN = resp_api['authToken']
+            self._TOKEN = resp_api['authToken']
             # TODO : get json error data
            
-        else: 
-            self.write_debug(self._TOKEN)
-            
-
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}):
         formats, subtitles = [], {}
         fmt, subs = [], {}
