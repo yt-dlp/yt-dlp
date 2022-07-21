@@ -29,52 +29,58 @@ class PlexWatchBaseIE(InfoExtractor):
 
     }
 
-    _TOKEN = None #'sxifo1hTePz5zu6oq81c'  # hardcoded to prevent error 429 to non-login user
-    _CLIENT_IDENTIFIER = None #str(uuid.uuid4()) # can get in cookie
-    
+    _TOKEN = None
+    _CLIENT_IDENTIFIER = None
+
     def _initialize_pre_login(self):
-        # TO DO: find better method to get cookie
+        # TO DO: find better way to get cookie
         # request to random page in plex.tv to get clientIdentifier in cookie
-        client_id = self._request_webpage('https://watch.plex.tv/movie/the-sea-beast-2', 'client_id')
+        client_id = self._request_webpage(
+            'https://watch.plex.tv/movie/the-sea-beast-2', 'client_id',
+            note='Downloading html page to get clientIdentifier')
         self.write_debug('trying to get clientIdentifier')
-        
-        # extract cookie from webpage
-        # X-Plex-Client-Identifier from here
+
+        # extract cookie from webpage, X-Plex-Client-Identifier value from here
         client_id = client_id.headers.get('Set-Cookie')
-        #print(client_id)
         client_id = re.match(r'clientIdentifier\s*=\s*(?P<client_id>[\w-]+);', client_id).group('client_id')
-        #print(client_id)
+
         self._CLIENT_IDENTIFIER = client_id
-    
+
     def _perform_login(self, username, password):
         self.write_debug('Trying to login')
-        
         try:
             resp_api = self._download_json(
                 'https://plex.tv/api/v2/users/signin', 'Auth', query={'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER},
                 data=f'login={username}&password={password}&rememberMe=true'.encode(),
                 headers={'Accept': 'application/json'}, expected_status=429,
-                note='Downloading JSON Auth Info')            
+                note='Downloading JSON Auth Info')
             self.write_debug('login successfully')
             self._TOKEN = resp_api.get('authToken')
         except ExtractorError as e:
-            # TODO: parse json error message 
-            print(type(e.cause))
-            self.write_debug(f'There\'s error on login : {e.cause}, trying to use non-login method')
-            
-        
+            # Default to non-login error when there's any problem in login
+            error = self._parse_json(e.cause.read(), 'login error')
+            self.write_debug(f'There\'s error on login : {error["errors"][0]["message"]}, '
+                             f'trying to use non-login method caused by {e.cause}')
+
     def _real_initialize(self):
         if not self._TOKEN:
-            self.write_debug('using non-login method (login as anonymous)')
-            # FIXME: fix return 404 error
-            resp_api = self._download_json(
-                'https://plex.tv/api/v2/users/anonymous', 'Auth', data=b'', 
-                headers={'Accept': 'application/json', 'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER.encode()},
-                note='Downloading JSON Auth Info (as anonymous)')
-            
+            try:
+                self.write_debug('using non-login method (login as anonymous)')
+                resp_api = self._download_json(
+                    'https://plex.tv/api/v2/users/anonymous', 'Auth', data=b'',
+                    headers={
+                        'X-Plex-Provider-Version': '6.2.0',
+                        'Accept': 'application/json',
+                        'X-Plex-Product': 'Plex Mediaverse',
+                        'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER.encode()
+                    },
+                    note='Downloading JSON Auth Info (as anonymous)')
+            except ExtractorError as e:
+                error = self._parse_json(e.cause.read(), 'login error')
+                raise ExtractorError(error['errors'][0]['message'], cause=e.cause)
+
             self._TOKEN = resp_api['authToken']
-            # TODO : get json error data
-           
+
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}):
         formats, subtitles = [], {}
         fmt, subs = [], {}
@@ -110,7 +116,7 @@ class PlexWatchBaseIE(InfoExtractor):
             'https://play.provider.plex.tv/playQueues', display_id,
             query={'uri': f'provider://tv.plex.provider.vod{nextjs_json["Extras"]["key"]}'}, data=b'',
             headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
-        
+
         for media in media_json['MediaContainer']['Metadata']:
             for media_ in traverse_obj(media, ('Media', ..., 'Part', ..., 'key')):
                 fmt, sub = self._get_formats_and_subtitles(media_, display_id)
@@ -120,7 +126,7 @@ class PlexWatchBaseIE(InfoExtractor):
                     'formats': fmt,
                     'subtitles': sub,
                 }
-                    
+
     def _extract_data(self, url, **kwargs):
         sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
 
@@ -379,13 +385,13 @@ class PlexAppIE(PlexWatchBaseIE):
         media_json = self._download_json(
             f'{self._CDN_ENDPOINT[provider]}{key}', display_id, query={'uri': f'provider://{provider}{key}', 'X-Plex-Token': self._TOKEN},
             headers={'Accept': 'application/json'})['MediaContainer']['Metadata'][0]
-        
+
         # check if publicPagesURL, if exists redirect to PlexWatch*IE, else handle manually
         if media_json.get('publicPagesURL'):
             self.write_debug('got publicPagesURL, redirect to PlexWatch*IE')
             return self.url_result(media_json.get('publicPagesURL'))
-            
-        else :
+
+        else:
             if media_json.get('type') in ('episode', 'movie'):
                 selected_media = traverse_obj(
                     media_json, ('Media', ..., 'Part', ..., 'key'))
