@@ -1,4 +1,5 @@
 import urllib.parse
+import urllib
 
 from .common import InfoExtractor
 from ..utils import (
@@ -37,11 +38,27 @@ class PlexWatchBaseIE(InfoExtractor):
                 'https://plex.tv/api/v2/users/signin', 'Auth', query={'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER},
                 data=f'login={username}&password={password}&rememberMe=true'.encode(),
                 headers={'Accept': 'application/json'}, expected_status=429,
-                note='Downloading JSON Auth Info')
-            self._TOKEN = resp_api.get('authToken') or self._TOKEN
+                note='Downloading JSON Auth Info', fatal=False)            
             self.write_debug('login successfully')
+            self._TOKEN = resp_api.get('authToken')
         except ExtractorError as e:
             self.write_debug(f'There\'s error on login : {e.cause}, trying to use non-login method')
+            
+        
+    def _real_initialize(self):
+        if not self._TOKEN:
+            if True:
+                resp_api = self._download_json(
+                'https://plex.tv/api/v2/users/anonymous', 'Auth', data=b'', 
+                headers={'Accept': 'application/json'}, expected_status=429,
+                note='Downloading JSON Auth Info (as anonymous)')
+            
+                self._TOKEN = resp_api['authToken']
+            # TODO : get json error data
+           
+        else: 
+            self.write_debug(self._TOKEN)
+            
 
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}):
         formats, subtitles = [], {}
@@ -72,25 +89,23 @@ class PlexWatchBaseIE(InfoExtractor):
         return formats, subtitles
 
     def _get_clips(self, nextjs_json, display_id):
-        entries = []
         self.write_debug('Trying to download Extras/trailer')
 
         media_json = self._download_json(
             'https://play.provider.plex.tv/playQueues', display_id,
             query={'uri': f'provider://tv.plex.provider.vod{nextjs_json["Extras"]["key"]}'}, data=b'',
             headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
-
+        
         for media in media_json['MediaContainer']['Metadata']:
             for media_ in traverse_obj(media, ('Media', ..., 'Part', ..., 'key')):
                 fmt, sub = self._get_formats_and_subtitles(media_, display_id)
-                new_fmt = []
-                for fmt_ in fmt:
-                    fmt_.update({'id': media['ratingKey'], 'title': media.get('title')})
-                    new_fmt.append(fmt_)
-                entries.extend(new_fmt)
-
-        return entries
-
+                yield {
+                    'id': media['ratingKey'],
+                    'title': media['title'],
+                    'formats': fmt,
+                    'subtitles': sub,
+                }
+                    
     def _extract_data(self, url, **kwargs):
         sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
 
@@ -151,9 +166,7 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
             'id': '5d77709a6afb3d002061df55',
             'title': 'The Sea Beast'
         },
-        # expected 3, the extractor extract all url of m3u8 file
-        # and think that url is a single video
-        'playlist_count': 27,
+        'playlist_count': 4,
     }]
 
     def _real_extract(self, url):
@@ -351,40 +364,46 @@ class PlexAppIE(PlexWatchBaseIE):
         media_json = self._download_json(
             f'{self._CDN_ENDPOINT[provider]}{key}', display_id, query={'uri': f'provider://{provider}{key}', 'X-Plex-Token': self._TOKEN},
             headers={'Accept': 'application/json'})['MediaContainer']['Metadata'][0]
+        
+        # check if publicPagesURL, if exists redirect to PlexWatch*IE, else handle manually
+        if media_json.get('publicPagesURL'):
+            self.write_debug('got publicPagesURL, redirect to PlexWatch*IE')
+            return self.url_result(media_json.get('publicPagesURL'))
+            
+        else :
+            if media_json.get('type') in ('episode', 'movie'):
+                selected_media = traverse_obj(
+                    media_json, ('Media', ..., 'Part', ..., 'key'))
 
-        if media_json.get('type') in ('episode', 'movie'):
-            selected_media = traverse_obj(
-                media_json, ('Media', ..., 'Part', ..., 'key'))
+                formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id, provider)
+                return {
+                    'id': display_id,
+                    'ext': 'mp4',
+                    'title': media_json.get('title'),
+                    'description': media_json.get('summary'),
+                    'formats': formats,
+                    'subtitles': subtitles,
+                    'thumbnail': media_json.get('thumb'),
+                    'duration': int_or_none(media_json.get('duration'), 1000),
+                    'cast': traverse_obj(media_json, ('Role', ..., 'tag')),
+                    'rating': parse_age_limit(media_json.get('contentRating')),
+                    'view_count': media_json.get('viewCount')
+                }
 
-            formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id, provider)
-            return {
-                'id': display_id,
-                'ext': 'mp4',
-                'title': media_json.get('title'),
-                'description': media_json.get('summary'),
-                'formats': formats,
-                'subtitles': subtitles,
-                'thumbnail': media_json.get('thumb'),
-                'duration': int_or_none(media_json.get('duration'), 1000),
-                'cast': traverse_obj(media_json, ('Role', ..., 'tag')),
-                'rating': parse_age_limit(media_json.get('contentRating')),
-                'view_count': media_json.get('viewCount')
-            }
+            elif media_json.get('type') == 'season':
+                # TODO: extract with other method
+                if media_json.get('publicPagesURL'):
+                    return self.url_result(
+                        media_json.get('publicPagesURL'), ie=PlexWatchSeasonIE)
 
-        elif media_json.get('type') == 'season':
-            # TODO: extract with other method
-            if media_json.get('publicPagesURL'):
-                return self.url_result(
-                    media_json.get('publicPagesURL'), ie=PlexWatchSeasonIE)
+            elif media_json.get('type') == 'album':
+                album_info = self._download_json(
+                    f'{self._CDN_ENDPOINT[provider]}{media_json.get("key")}', display_id, query={'X-Plex-Token': self._TOKEN},
+                    headers={'Accept': 'application/json'})['MediaContainer']['Metadata']
 
-        elif media_json.get('type') == 'album':
-            album_info = self._download_json(
-                f'{self._CDN_ENDPOINT[provider]}{media_json.get("key")}', display_id, query={'X-Plex-Token': self._TOKEN},
-                headers={'Accept': 'application/json'})['MediaContainer']['Metadata']
-
-            return self.playlist_result(
-                self._get_tracks_formats(album_info, display_id), display_id, media_json.get('title'))
+                return self.playlist_result(
+                    self._get_tracks_formats(album_info, display_id), display_id, media_json.get('title'))
 
         # TO DO: extract 'extras'/trailer video
-        if traverse_obj(media_json, ('Extras', 'size')) >= 1:
+        if media_json.get('Extras'):
             pass
