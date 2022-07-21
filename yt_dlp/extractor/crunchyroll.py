@@ -822,7 +822,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
             note='Retrieving stream info')
 
         thumbnails = []
-        for thumbnails_data in traverse_obj(episode_response, ('images', 'thumbnail')):
+        for thumbnails_data in traverse_obj(episode_response, ('images', 'thumbnail', ...)) or []:
             for thumbnail_data in thumbnails_data:
                 thumbnails.append({
                     'url': thumbnail_data.get('source'),
