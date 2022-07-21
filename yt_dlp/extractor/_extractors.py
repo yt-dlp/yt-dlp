@@ -1446,7 +1446,7 @@ from .rtbf import RTBFIE
 from .rte import RteIE, RteRadioIE
 from .rtlnl import (
     RtlNlIE,
-    RTLLuTeleVODIE, 
+    RTLLuTeleVODIE,
     RTLLuArticleIE,
     RTLLuLiveIE,
     RTLLuRadioIE,
@@ -1474,6 +1474,7 @@ from .rtve import (
 )
 from .rtvnh import RTVNHIE
 from .rtvs import RTVSIE
+from .rtvslo import RTVSLOIE
 from .ruhd import RUHDIE
 from .rule34video import Rule34VideoIE
 from .rumble import (
@@ -2087,6 +2088,8 @@ from .weibo import (
     WeiboMobileIE
 )
 from .weiqitv import WeiqiTVIE
+from .wetv import WeTvEpisodeIE, WeTvSeriesIE
+from .wikimedia import WikimediaIE
 from .willow import WillowIE
 from .wimtv import WimTVIE
 from .whowatch import WhoWatchIE

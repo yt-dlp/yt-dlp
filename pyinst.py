@@ -6,11 +6,10 @@ import sys
 
 from PyInstaller.__main__ import run as run_pyinstaller
 
-OS_NAME, MACHINE = sys.platform, platform.machine()
-if MACHINE in ('x86_64', 'amd64'):
-    MACHINE = ''
-elif 'i' in MACHINE and '86' in MACHINE:
-    MACHINE = 'x86'
+OS_NAME, MACHINE, ARCH = sys.platform, platform.machine(), platform.architecture()[0][:2]
+if MACHINE in ('x86_64', 'AMD64') or ('i' in MACHINE and '86' in MACHINE):
+    # NB: Windows x86 has MACHINE = AMD64 irrespective of bitness
+    MACHINE = 'x86' if ARCH == '32' else ''
 
 
 def main():
@@ -34,9 +33,6 @@ def main():
         '--icon=devscripts/logo.ico',
         '--upx-exclude=vcruntime140.dll',
         '--noconfirm',
-        # NB: Modules that are only imported dynamically must be added here.
-        # --collect-submodules may not work correctly if user has a yt-dlp installed via PIP
-        '--hidden-import=yt_dlp.compat._legacy',
         *dependency_options(),
         *opts,
         'yt_dlp/__main__.py',
@@ -51,7 +47,6 @@ def parse_options():
     # Compatibility with older arguments
     opts = sys.argv[1:]
     if opts[0:1] in (['32'], ['64']):
-        ARCH = platform.architecture()[0][:2]
         if ARCH != opts[0]:
             raise Exception(f'{opts[0]}bit executable cannot be built on a {ARCH}bit system')
         opts = opts[1:]

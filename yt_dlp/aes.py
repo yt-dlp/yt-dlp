@@ -24,6 +24,10 @@ else:
         return intlist_to_bytes(aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (data, key, tag, nonce))))
 
 
+def aes_cbc_encrypt_bytes(data, key, iv, **kwargs):
+    return intlist_to_bytes(aes_cbc_encrypt(*map(bytes_to_intlist, (data, key, iv)), **kwargs))
+
+
 def unpad_pkcs7(data):
     return data[:-compat_ord(data[-1])]
 
@@ -164,7 +168,7 @@ def aes_cbc_decrypt(data, key, iv):
     return decrypted_data
 
 
-def aes_cbc_encrypt(data, key, iv, padding_mode='pkcs7'):
+def aes_cbc_encrypt(data, key, iv, *, padding_mode='pkcs7'):
     """
     Encrypt with aes in CBC mode
 
@@ -530,13 +534,21 @@ def ghash(subkey, data):
 
 
 __all__ = [
-    'aes_ctr_decrypt',
     'aes_cbc_decrypt',
     'aes_cbc_decrypt_bytes',
+    'aes_ctr_decrypt',
     'aes_decrypt_text',
-    'aes_encrypt',
+    'aes_decrypt',
+    'aes_ecb_decrypt',
     'aes_gcm_decrypt_and_verify',
     'aes_gcm_decrypt_and_verify_bytes',
+
+    'aes_cbc_encrypt',
+    'aes_cbc_encrypt_bytes',
+    'aes_ctr_encrypt',
+    'aes_ecb_encrypt',
+    'aes_encrypt',
+
     'key_expansion',
     'pad_block',
     'unpad_pkcs7',

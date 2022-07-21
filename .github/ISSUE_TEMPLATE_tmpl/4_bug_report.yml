@@ -29,4 +29,4 @@ body:
       placeholder: Provide any additional information, any suggested solutions, and as much context and examples as possible
     validations:
       required: true
-    %(verbose)s
+  %(verbose)s
