@@ -59,8 +59,8 @@ class PlexWatchBaseIE(InfoExtractor):
         except ExtractorError as e:
             # Default to non-login error when there's any problem in login
             error = self._parse_json(e.cause.read(), 'login error')
-            self.write_debug(f'There\'s error on login : {error["errors"][0]["message"]}, '
-                             f'trying to use non-login method caused by {e.cause}')
+            self.write_debug(f'There\'s error on login : {error["errors"][0]["message"]}, caused by {e.cause} '
+                             f'trying to use non-login method')
 
     def _real_initialize(self):
         if not self._TOKEN:
