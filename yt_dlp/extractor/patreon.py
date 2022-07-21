@@ -312,7 +312,6 @@ class PatreonCampaignIE(PatreonBaseIE):
             'uploader_id': '87145',
             'uploader_url': 'https://www.patreon.com/dissonancepod',
             'uploader': 'Cognitive Dissonance Podcast',
-
         },
         'playlist_mincount': 68,
     }, {
@@ -331,7 +330,6 @@ class PatreonCampaignIE(PatreonBaseIE):
             'uploader_id': '37306634',
         },
         'playlist_mincount': 71
-
     }, {
         'url': 'https://www.patreon.com/dissonancepod/posts',
         'only_matching': True
