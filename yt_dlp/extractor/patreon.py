@@ -369,7 +369,7 @@ class PatreonCampaignIE(PatreonBaseIE):
 
     def _real_extract(self, url):
 
-        campaign_id, vanity = self._match_valid_url(url).groups()
+        campaign_id, vanity = self._match_valid_url(url).group('campaign_id', 'vanity')
         if campaign_id is None:
             webpage = self._download_webpage(url, vanity, headers={'User-Agent': self.USER_AGENT})
             campaign_id = self._search_regex(r'https://www.patreon.com/api/campaigns/(\d+)/?', webpage, 'Campaign ID')
