@@ -236,9 +236,9 @@ class PatreonIE(PatreonBaseIE):
                 }
 
         if can_view_post is False:
-            self.raise_no_formats('You do not have access to this post', video_id)
+            self.raise_no_formats('You do not have access to this post', video_id=video_id, expected=True)
         else:
-            self.raise_no_formats('No supported media found in this post', video_id)
+            self.raise_no_formats('No supported media found in this post', video_id=video_id, expected=True)
         return info
 
     def _get_comments(self, post_id):
