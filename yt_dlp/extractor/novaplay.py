@@ -1,5 +1,6 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, parse_duration, parse_iso8601
+import urllib.request
+from ..utils import int_or_none, parse_duration, parse_iso8601, sanitized_Request
 
 
 class NovaPlayIE(InfoExtractor):
@@ -37,13 +38,23 @@ class NovaPlayIE(InfoExtractor):
         }
     ]
 
+    def _get_access_token(self):
+        req = sanitized_Request('https://play.nova.bg/')
+        cookie = '; '.join(urllib.request.urlopen(req).info().get_all('Set-Cookie'))
+        return self._download_json('https://play.nova.bg/api/client', None, headers={
+            'cookie': cookie
+        })['accessToken']
+
     def _real_extract(self, url):
+        access_token = self._get_access_token()
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         video_props = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['video']
         m3u8_url = self._download_json(
             f'https://nbg-api.fite.tv/api/v2/videos/{video_id}/streams',
-            video_id, headers={'x-flipps-user-agent': 'Flipps/75/9.7'})[0]['url']
+            video_id, headers={'x-flipps-user-agent': 'Flipps/75/9.7',
+                               'x-flipps-version': '2022-05-17',
+                               'authorization': 'Bearer ' + access_token})[0]['links']['play']['href']
         formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', m3u8_id='hls')
         self._sort_formats(formats)
 
