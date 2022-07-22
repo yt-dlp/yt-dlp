@@ -144,6 +144,7 @@ class PatreonIE(PatreonBaseIE):
             'description': 'md5:e2693e97ee299c8ece47ffdb67e7d9d2',
             'title': 'VIDEO // sketchbook flipthrough',
             'uploader': 'Loish ',
+            'tags': ['sketchbook', 'video'],
         }
     }]
 
@@ -154,8 +155,9 @@ class PatreonIE(PatreonBaseIE):
                 'fields[media]': 'download_url,mimetype,size_bytes',
                 'fields[post]': 'comment_count,content,embed,image,like_count,post_file,published_at,title,current_user_can_view',
                 'fields[user]': 'full_name,url',
+                'fields[post_tag]': 'value',
                 'json-api-use-default-includes': 'false',
-                'include': 'media,user',
+                'include': 'media,user,user_defined_tags',
             })
         attributes = post['data']['attributes']
         title = attributes['title'].strip()
@@ -195,6 +197,8 @@ class PatreonIE(PatreonBaseIE):
                         'uploader_url': user_attributes.get('url'),
                     })
 
+            elif i_type == 'post_tag':
+                info.setdefault('tags', []).append(traverse_obj(i, ('attributes', 'value')))
         # handle Vimeo embeds
         if try_get(attributes, lambda x: x['embed']['provider']) == 'Vimeo':
             embed_html = try_get(attributes, lambda x: x['embed']['html'])
