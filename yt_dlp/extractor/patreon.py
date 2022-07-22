@@ -36,12 +36,12 @@ class PatreonBaseIE(InfoExtractor):
                 item_id, note='Downloading API JSON' if not note else note,
                 query=query, fatal=fatal, headers=headers)
         except ExtractorError as e:
-            if isinstance(e.cause, HTTPError):
-                if e.cause.code == 403:  # TODO: catch and test for other error codes too
-                    err_json = self._parse_json(self._webpage_read_content(e.cause, None, item_id), item_id, fatal=False)
-                    err_message = traverse_obj(err_json, ('errors', ..., 'detail'), get_all=False)
-                    if err_message:
-                        raise ExtractorError(f'Patreon said: {err_message}', expected=True)
+            if not isinstance(e.cause, HTTPError) or e.cause.code != 403:
+                raise
+            err_json = self._parse_json(self._webpage_read_content(e.cause, None, item_id), item_id, fatal=False)
+            err_message = traverse_obj(err_json, ('errors', ..., 'detail'), get_all=False)
+            if err_message:
+                raise ExtractorError(f'Patreon said: {err_message}', expected=True)
             raise
 
 
