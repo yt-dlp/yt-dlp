@@ -1,6 +1,4 @@
 import urllib.parse
-import urllib
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -35,14 +33,15 @@ class PlexWatchBaseIE(InfoExtractor):
     def _initialize_pre_login(self):
         # TO DO: find better way to get cookie
         # request to random page in plex.tv to get clientIdentifier in cookie
+
         client_id = self._request_webpage(
             'https://watch.plex.tv/movie/the-sea-beast-2', 'client_id',
             note='Downloading html page to get clientIdentifier')
         self.write_debug('trying to get clientIdentifier')
 
-        # extract cookie from webpage, X-Plex-Client-Identifier value from here
-        client_id = client_id.headers.get('Set-Cookie')
-        client_id = re.match(r'clientIdentifier\s*=\s*(?P<client_id>[\w-]+);', client_id).group('client_id')
+        # get cookie from cookiejar
+        cookie_ = {cookie.name: cookie.value for cookie in self.cookiejar}
+        client_id = cookie_.get('clientIdentifier')
 
         self._CLIENT_IDENTIFIER = client_id
 
@@ -358,9 +357,10 @@ class PlexAppIE(PlexWatchBaseIE):
         # Extras
         'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.metadata/details?key=%2Flibrary%2Fmetadata%2F5ef5ee0d1ce3fd004039976a&context=library%3Ahub.home.top_watchlisted~4~1',
         'info_dict': {
-            'id': 'fixme',
-            'title': 'fixme',
-        }
+            'id': '5ef5ee0d1ce3fd004039976a',
+            'title': 'Lightyear',
+        },
+        'playlist_count': 20,  # expected 22
     }]
 
     def _get_tracks_formats(self, album_info, display_id):
@@ -424,7 +424,3 @@ class PlexAppIE(PlexWatchBaseIE):
 
                 return self.playlist_result(
                     self._get_tracks_formats(album_info, display_id), display_id, media_json.get('title'))
-
-        # TO DO: extract 'extras'/trailer video
-        if media_json.get('Extras'):
-            pass
