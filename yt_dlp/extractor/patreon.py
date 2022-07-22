@@ -268,7 +268,7 @@ class PatreonIE(PatreonBaseIE):
         params = {
             'page[count]': 50,
             'include': 'parent.commenter.campaign,parent.post.user,parent.post.campaign.creator,parent.replies.parent,parent.replies.commenter.campaign,parent.replies.post.user,parent.replies.post.campaign.creator,commenter.campaign,post.user,post.campaign.creator,replies.parent,replies.commenter.campaign,replies.post.user,replies.post.campaign.creator,on_behalf_of_campaign',
-            'fields[comment]': 'body,created,deleted_at,is_by_patron,is_by_creator,vote_sum,current_user_vote,reply_count',
+            'fields[comment]': 'body,created,is_by_creator',
             'fields[user]': 'image_url,full_name,url',
             'filter[flair]': 'image_tiny_url,name',
             'sort': '-created',
@@ -315,7 +315,6 @@ class PatreonIE(PatreonBaseIE):
 class PatreonCampaignIE(PatreonBaseIE):
 
     _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?!rss)(?:(?:m/(?P<campaign_id>\d+))|(?P<vanity>[-\w]+))'
-
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',
         'info_dict': {
