@@ -1,12 +1,6 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    try_get,
-    urljoin,
-)
+from ..utils import try_get
 
 
 class PhilharmonieDeParisIE(InfoExtractor):
@@ -15,27 +9,29 @@ class PhilharmonieDeParisIE(InfoExtractor):
                     https?://
                         (?:
                             live\.philharmoniedeparis\.fr/(?:[Cc]oncert/|embed(?:app)?/|misc/Playlist\.ashx\?id=)|
-                            pad\.philharmoniedeparis\.fr/doc/CIMU/
+                            pad\.philharmoniedeparis\.fr/(?:doc/CIMU/|player\.aspx\?id=)|
+                            philharmoniedeparis\.fr/fr/live/concert/|
+                            otoplayer\.philharmoniedeparis\.fr/fr/embed/
                         )
                         (?P<id>\d+)
                     '''
     _TESTS = [{
-        'url': 'http://pad.philharmoniedeparis.fr/doc/CIMU/1086697/jazz-a-la-villette-knower',
-        'md5': 'a0a4b195f544645073631cbec166a2c2',
+        'url': 'https://philharmoniedeparis.fr/fr/live/concert/1129666-danses-symphoniques',
+        'md5': '24bdb7e86c200c107680e1f7770330ae',
         'info_dict': {
-            'id': '1086697',
+            'id': '1129666',
             'ext': 'mp4',
-            'title': 'Jazz à la Villette : Knower',
+            'title': 'Danses symphoniques. Orchestre symphonique Divertimento - Zahia Ziouani. Bizet, de Falla, Stravinski, Moussorgski, Saint-Saëns',
         },
     }, {
-        'url': 'http://live.philharmoniedeparis.fr/concert/1032066.html',
+        'url': 'https://philharmoniedeparis.fr/fr/live/concert/1032066-akademie-fur-alte-musik-berlin-rias-kammerchor-rene-jacobs-passion-selon-saint-jean-de-johann',
         'info_dict': {
             'id': '1032066',
-            'title': 'md5:0a031b81807b3593cffa3c9a87a167a0',
+            'title': 'Akademie für alte Musik Berlin, Rias Kammerchor, René Jacobs : Passion selon saint Jean de Johann Sebastian Bach',
         },
         'playlist_mincount': 2,
     }, {
-        'url': 'http://live.philharmoniedeparis.fr/Concert/1030324.html',
+        'url': 'https://philharmoniedeparis.fr/fr/live/concert/1030324-orchestre-philharmonique-de-radio-france-myung-whun-chung-renaud-capucon-pascal-dusapin-johannes',
         'only_matching': True,
     }, {
         'url': 'http://live.philharmoniedeparis.fr/misc/Playlist.ashx?id=1030324&track=&lang=fr',
@@ -44,16 +40,15 @@ class PhilharmonieDeParisIE(InfoExtractor):
         'url': 'https://live.philharmoniedeparis.fr/embedapp/1098406/berlioz-fantastique-lelio-les-siecles-national-youth-choir-of.html?lang=fr-FR',
         'only_matching': True,
     }, {
-        'url': 'https://live.philharmoniedeparis.fr/embed/1098406/berlioz-fantastique-lelio-les-siecles-national-youth-choir-of.html?lang=fr-FR',
+        'url': 'https://otoplayer.philharmoniedeparis.fr/fr/embed/1098406?lang=fr-FR',
         'only_matching': True,
     }]
-    _LIVE_URL = 'https://live.philharmoniedeparis.fr'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         config = self._download_json(
-            '%s/otoPlayer/config.ashx' % self._LIVE_URL, video_id, query={
+            'https://otoplayer.philharmoniedeparis.fr/fr/config/%s.json' % video_id, video_id, query={
                 'id': video_id,
                 'lang': 'fr-FR',
             })
@@ -75,9 +70,8 @@ class PhilharmonieDeParisIE(InfoExtractor):
                 if not format_url or format_url in format_urls:
                     continue
                 format_urls.add(format_url)
-                m3u8_url = urljoin(self._LIVE_URL, format_url)
                 formats.extend(self._extract_m3u8_formats(
-                    m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                    format_url, video_id, 'mp4', entry_protocol='m3u8_native',
                     m3u8_id='hls', fatal=False))
             if not formats and not self.get_param('ignore_no_formats'):
                 return
@@ -85,21 +79,19 @@ class PhilharmonieDeParisIE(InfoExtractor):
             return {
                 'title': title,
                 'formats': formats,
+                'thumbnail': files.get('thumbnail'),
             }
-
-        thumbnail = urljoin(self._LIVE_URL, config.get('image'))
-
         info = extract_entry(config)
         if info:
             info.update({
                 'id': video_id,
-                'thumbnail': thumbnail,
             })
             return info
-
         entries = []
         for num, chapter in enumerate(config['chapters'], start=1):
             entry = extract_entry(chapter)
+            if entry is None:
+                continue
             entry['id'] = '%s-%d' % (video_id, num)
             entries.append(entry)
 

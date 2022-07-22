@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -30,7 +26,6 @@ class WatchBoxIE(InfoExtractor):
             'release_year': 2009,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
         'expected_warnings': ['Failed to download m3u8 information'],
@@ -52,7 +47,6 @@ class WatchBoxIE(InfoExtractor):
             'episode_number': 1,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
         'expected_warnings': ['Failed to download m3u8 information'],

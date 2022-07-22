@@ -1,12 +1,10 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     parse_duration,
     parse_filesize,
     extract_attributes,
     int_or_none,
+    js_to_json
 )
 
 
@@ -27,9 +25,12 @@ class VuploadIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
-        video_e = self._html_search_regex(r'\|([a-z0-9]{60})\|', webpage, 'video')
-        video_url = f'https://wurize.megaupload.to/{video_e}/v.mp4'
+        title = self._html_extract_title(webpage)
+        video_json = self._parse_json(self._html_search_regex(r'sources:\s*(.+?]),', webpage, 'video'), video_id, transform_source=js_to_json)
+        formats = []
+        for source in video_json:
+            if source['src'].endswith('.m3u8'):
+                formats.extend(self._extract_m3u8_formats(source['src'], video_id, m3u8_id='hls'))
         duration = parse_duration(self._html_search_regex(
             r'<i\s*class=["\']fad\s*fa-clock["\']></i>\s*([\d:]+)\s*</div>', webpage, 'duration', fatal=False))
         filesize_approx = parse_filesize(self._html_search_regex(
@@ -40,7 +41,7 @@ class VuploadIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'url': video_url,
+            'formats': formats,
             'duration': duration,
             'filesize_approx': filesize_approx,
             'width': int_or_none(extra_video_info.get('width')),

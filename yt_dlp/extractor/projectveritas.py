@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -10,7 +7,7 @@ from ..utils import (
 
 
 class ProjectVeritasIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?projectveritas\.com/(?P<type>news|video)/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?projectveritas\.com/(?P<type>news|video)/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.projectveritas.com/news/exclusive-inside-the-new-york-and-new-jersey-hospitals-battling-coronavirus/',
         'info_dict': {

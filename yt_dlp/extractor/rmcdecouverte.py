@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from .brightcove import BrightcoveLegacyIE
 from ..compat import (
@@ -26,7 +22,6 @@ class RMCDecouverteIE(InfoExtractor):
             'upload_date': '20210428',
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {

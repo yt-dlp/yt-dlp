@@ -1,6 +1,3 @@
-# coding=utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     try_get,
@@ -34,8 +31,7 @@ class TelemundoIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        metadata = self._parse_json(
-            self._search_regex(r'<[^>]+id="__NEXT_DATA__"[^>]+>([^<]+)', webpage, 'JSON metadata'), video_id)
+        metadata = self._search_nextjs_data(webpage, video_id)
         redirect_url = try_get(
             metadata,
             lambda x: x['props']['initialState']['video']['associatedPlaylists'][0]['videos'][0]['videoAssets'][0]['publicUrl'])

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import binascii
 import json
@@ -8,13 +5,13 @@ import os
 import random
 
 from .common import InfoExtractor
-from ..aes import aes_cbc_decrypt
+from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import (
     compat_HTTPError,
     compat_b64decode,
-    compat_ord,
 )
 from ..utils import (
+    ass_subtitles_timecode,
     bytes_to_intlist,
     bytes_to_long,
     ExtractorError,
@@ -68,10 +65,6 @@ class ADNIE(InfoExtractor):
         'end': 4,
     }
 
-    @staticmethod
-    def _ass_subtitles_timecode(seconds):
-        return '%01d:%02d:%02d.%02d' % (seconds / 3600, (seconds % 3600) / 60, seconds % 60, (seconds % 1) * 100)
-
     def _get_subtitles(self, sub_url, video_id):
         if not sub_url:
             return None
@@ -87,14 +80,11 @@ class ADNIE(InfoExtractor):
             return None
 
         # http://animedigitalnetwork.fr/components/com_vodvideo/videojs/adn-vjs.min.js
-        dec_subtitles = intlist_to_bytes(aes_cbc_decrypt(
-            bytes_to_intlist(compat_b64decode(enc_subtitles[24:])),
-            bytes_to_intlist(binascii.unhexlify(self._K + 'ab9f52f5baae7c72')),
-            bytes_to_intlist(compat_b64decode(enc_subtitles[:24]))
-        ))
-        subtitles_json = self._parse_json(
-            dec_subtitles[:-compat_ord(dec_subtitles[-1])].decode(),
-            None, fatal=False)
+        dec_subtitles = unpad_pkcs7(aes_cbc_decrypt_bytes(
+            compat_b64decode(enc_subtitles[24:]),
+            binascii.unhexlify(self._K + '7fac1178830cfe0c'),
+            compat_b64decode(enc_subtitles[:24])))
+        subtitles_json = self._parse_json(dec_subtitles.decode(), None, fatal=False)
         if not subtitles_json:
             return None
 
@@ -117,8 +107,8 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                     continue
                 alignment = self._POS_ALIGN_MAP.get(position_align, 2) + self._LINE_ALIGN_MAP.get(line_align, 0)
                 ssa += os.linesep + 'Dialogue: Marked=0,%s,%s,Default,,0,0,0,,%s%s' % (
-                    self._ass_subtitles_timecode(start),
-                    self._ass_subtitles_timecode(end),
+                    ass_subtitles_timecode(start),
+                    ass_subtitles_timecode(end),
                     '{\\a%d}' % alignment if alignment != 2 else '',
                     text.replace('\n', '\\N').replace('<i>', '{\\i1}').replace('</i>', '{\\i0}'))
 
@@ -133,10 +123,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             }])
         return subtitles
 
-    def _real_initialize(self):
-        username, password = self._get_login_info()
-        if not username:
-            return
+    def _perform_login(self, username, password):
         try:
             access_token = (self._download_json(
                 self._API_BASE_URL + 'authentication/login', None,

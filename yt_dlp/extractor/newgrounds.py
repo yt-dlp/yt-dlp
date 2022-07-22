@@ -1,12 +1,11 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import re
 
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
     extract_attributes,
+    get_element_by_id,
     int_or_none,
     parse_count,
     parse_duration,
@@ -29,7 +28,8 @@ class NewgroundsIE(InfoExtractor):
             'timestamp': 1378878540,
             'upload_date': '20130911',
             'duration': 143,
-            'description': 'md5:6d885138814015dfd656c2ddb00dacfc',
+            'view_count': int,
+            'description': 'md5:b8b3c2958875189f07d8e313462e8c4f',
         },
     }, {
         'url': 'https://www.newgrounds.com/portal/view/1',
@@ -41,6 +41,7 @@ class NewgroundsIE(InfoExtractor):
             'uploader': 'Brian-Beaton',
             'timestamp': 955064100,
             'upload_date': '20000406',
+            'view_count': int,
             'description': 'Scrotum plays "catch."',
             'age_limit': 17,
         },
@@ -54,7 +55,8 @@ class NewgroundsIE(InfoExtractor):
             'uploader': 'ZONE-SAMA',
             'timestamp': 1487965140,
             'upload_date': '20170224',
-            'description': 'ZTV News Episode 8 (February 2017)',
+            'view_count': int,
+            'description': 'md5:aff9b330ec2e78ed93b1ad6d017accc6',
             'age_limit': 17,
         },
         'params': {
@@ -70,7 +72,8 @@ class NewgroundsIE(InfoExtractor):
             'uploader': 'Egoraptor',
             'timestamp': 1140663240,
             'upload_date': '20060223',
-            'description': 'Metal Gear is awesome is so is this movie.',
+            'view_count': int,
+            'description': 'md5:9246c181614e23754571995104da92e0',
             'age_limit': 13,
         }
     }, {
@@ -80,7 +83,7 @@ class NewgroundsIE(InfoExtractor):
             'id': '297383',
             'ext': 'swf',
             'title': 'Metal Gear Awesome',
-            'description': 'Metal Gear is awesome is so is this movie.',
+            'description': 'Metal Gear Awesome',
             'uploader': 'Egoraptor',
             'upload_date': '20060223',
             'timestamp': 1140663240,
@@ -100,8 +103,7 @@ class NewgroundsIE(InfoExtractor):
         uploader = None
         webpage = self._download_webpage(url, media_id)
 
-        title = self._html_search_regex(
-            r'<title>(.+?)</title>', webpage, 'title')
+        title = self._html_extract_title(webpage)
 
         media_url_string = self._search_regex(
             r'"url"\s*:\s*("[^"]+"),', webpage, 'media url', default=None)
@@ -145,9 +147,12 @@ class NewgroundsIE(InfoExtractor):
             (r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+</dd>\s*<dd>[^<]+)',
              r'<dt>\s*Uploaded\s*</dt>\s*<dd>([^<]+)'), webpage, 'timestamp',
             default=None))
+
         duration = parse_duration(self._html_search_regex(
             r'"duration"\s*:\s*["\']?(\d+)["\']?', webpage,
             'duration', default=None))
+
+        description = clean_html(get_element_by_id('author_comments', webpage)) or self._og_search_description(webpage)
 
         view_count = parse_count(self._html_search_regex(
             r'(?s)<dt>\s*(?:Views|Listens)\s*</dt>\s*<dd>([\d\.,]+)</dd>', webpage,
@@ -177,7 +182,7 @@ class NewgroundsIE(InfoExtractor):
             'duration': duration,
             'formats': formats,
             'thumbnail': self._og_search_thumbnail(webpage),
-            'description': self._og_search_description(webpage),
+            'description': description,
             'age_limit': age_limit,
             'view_count': view_count,
         }
@@ -210,8 +215,7 @@ class NewgroundsPlaylistIE(InfoExtractor):
 
         webpage = self._download_webpage(url, playlist_id)
 
-        title = self._search_regex(
-            r'<title>([^>]+)</title>', webpage, 'title', default=None)
+        title = self._html_extract_title(webpage, default=None)
 
         # cut left menu
         webpage = self._search_regex(

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import uuid
 
@@ -24,9 +21,6 @@ class ParliamentLiveUKIE(InfoExtractor):
             'title': 'Home Affairs Committee',
             'timestamp': 1395153872,
             'upload_date': '20140318',
-        },
-        'params': {
-            'format': 'bestvideo',
         },
     }, {
         'url': 'http://parliamentlive.tv/event/index/3f24936f-130f-40bf-9a5d-b3d6479da6a4',

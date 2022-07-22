@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -124,8 +121,7 @@ class ArcPublishingIE(InfoExtractor):
                 formats.extend(smil_formats)
             elif stream_type in ('ts', 'hls'):
                 m3u8_formats = self._extract_m3u8_formats(
-                    s_url, uuid, 'mp4', 'm3u8' if is_live else 'm3u8_native',
-                    m3u8_id='hls', fatal=False)
+                    s_url, uuid, 'mp4', live=is_live, m3u8_id='hls', fatal=False)
                 if all([f.get('acodec') == 'none' for f in m3u8_formats]):
                     continue
                 for f in m3u8_formats:
@@ -158,7 +154,7 @@ class ArcPublishingIE(InfoExtractor):
 
         return {
             'id': uuid,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'thumbnail': try_get(video, lambda x: x['promo_image']['url']),
             'description': try_get(video, lambda x: x['subheadlines']['basic']),
             'formats': formats,

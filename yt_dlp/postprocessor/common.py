@@ -1,14 +1,17 @@
-from __future__ import unicode_literals
-
-import copy
 import functools
+import itertools
+import json
 import os
+import time
+import urllib.error
 
-from ..compat import compat_str
 from ..utils import (
+    PostProcessingError,
     _configuration_args,
     encodeFilename,
-    PostProcessingError,
+    network_exceptions,
+    sanitized_Request,
+    write_string,
 )
 
 
@@ -17,11 +20,12 @@ class PostProcessorMetaClass(type):
     def run_wrapper(func):
         @functools.wraps(func)
         def run(self, info, *args, **kwargs):
-            self._hook_progress({'status': 'started'}, info)
+            info_copy = self._copy_infodict(info)
+            self._hook_progress({'status': 'started'}, info_copy)
             ret = func(self, info, *args, **kwargs)
             if ret is not None:
                 _, info = ret
-            self._hook_progress({'status': 'finished'}, info)
+            self._hook_progress({'status': 'finished'}, info_copy)
             return ret
         return run
 
@@ -41,9 +45,6 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
     an initial argument and then with the returned value of the previous
     PostProcessor.
 
-    The chain will be stopped if one of them ever returns None or the end
-    of the chain is reached.
-
     PostProcessor objects follow a "mutual registration" process similar
     to InfoExtractor objects.
 
@@ -62,25 +63,37 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
     @classmethod
     def pp_key(cls):
         name = cls.__name__[:-2]
-        return compat_str(name[6:]) if name[:6].lower() == 'ffmpeg' else name
+        return name[6:] if name[:6].lower() == 'ffmpeg' else name
 
     def to_screen(self, text, prefix=True, *args, **kwargs):
-        tag = '[%s] ' % self.PP_NAME if prefix else ''
         if self._downloader:
-            return self._downloader.to_screen('%s%s' % (tag, text), *args, **kwargs)
+            tag = '[%s] ' % self.PP_NAME if prefix else ''
+            return self._downloader.to_screen(f'{tag}{text}', *args, **kwargs)
 
     def report_warning(self, text, *args, **kwargs):
         if self._downloader:
             return self._downloader.report_warning(text, *args, **kwargs)
 
+    def deprecation_warning(self, text):
+        if self._downloader:
+            return self._downloader.deprecation_warning(text)
+        write_string(f'DeprecationWarning: {text}')
+
     def report_error(self, text, *args, **kwargs):
-        # Exists only for compatibility. Do not use
+        self.deprecation_warning('"yt_dlp.postprocessor.PostProcessor.report_error" is deprecated. '
+                                 'raise "yt_dlp.utils.PostProcessingError" instead')
         if self._downloader:
             return self._downloader.report_error(text, *args, **kwargs)
 
     def write_debug(self, text, *args, **kwargs):
         if self._downloader:
             return self._downloader.write_debug(text, *args, **kwargs)
+
+    def _delete_downloaded_files(self, *files_to_delete, **kwargs):
+        if self._downloader:
+            return self._downloader._delete_downloaded_files(*files_to_delete, **kwargs)
+        for filename in set(filter(None, files_to_delete)):
+            os.remove(filename)
 
     def get_param(self, name, default=None, *args, **kwargs):
         if self._downloader:
@@ -90,18 +103,21 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
     def set_downloader(self, downloader):
         """Sets the downloader for this PP."""
         self._downloader = downloader
-        if not downloader:
-            return
-        for ph in downloader._postprocessor_hooks:
+        for ph in getattr(downloader, '_postprocessor_hooks', []):
             self.add_progress_hook(ph)
 
+    def _copy_infodict(self, info_dict):
+        return getattr(self._downloader, '_copy_infodict', dict)(info_dict)
+
     @staticmethod
-    def _restrict_to(*, video=True, audio=True, images=True):
+    def _restrict_to(*, video=True, audio=True, images=True, simulated=True):
         allowed = {'video': video, 'audio': audio, 'images': images}
 
         def decorator(func):
             @functools.wraps(func)
             def wrapper(self, info):
+                if not simulated and (self.get_param('simulate') or self.get_param('skip_download')):
+                    return [], info
                 format_type = (
                     'video' if info.get('vcodec') != 'none'
                     else 'audio' if info.get('acodec') != 'none'
@@ -144,11 +160,8 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
     def _hook_progress(self, status, info_dict):
         if not self._progress_hooks:
             return
-        info_dict = dict(info_dict)
-        for key in ('__original_infodict', '__postprocessors'):
-            info_dict.pop(key, None)
         status.update({
-            'info_dict': copy.deepcopy(info_dict),
+            'info_dict': info_dict,
             'postprocessor': self.pp_key(),
         })
         for ph in self._progress_hooks:
@@ -160,6 +173,8 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
 
     def report_progress(self, s):
         s['_default_template'] = '%(postprocessor)s %(status)s' % s
+        if not self._downloader:
+            return
 
         progress_dict = s.copy()
         progress_dict.pop('info_dict')
@@ -168,12 +183,35 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         progress_template = self.get_param('progress_template', {})
         tmpl = progress_template.get('postprocess')
         if tmpl:
-            self._downloader.to_stdout(self._downloader.evaluate_outtmpl(tmpl, progress_dict))
+            self._downloader.to_screen(
+                self._downloader.evaluate_outtmpl(tmpl, progress_dict), skip_eol=True, quiet=False)
 
         self._downloader.to_console_title(self._downloader.evaluate_outtmpl(
             progress_template.get('postprocess-title') or 'yt-dlp %(progress._default_template)s',
             progress_dict))
 
+    def _download_json(self, url, *, expected_http_errors=(404,)):
+        # While this is not an extractor, it behaves similar to one and
+        # so obey extractor_retries and sleep_interval_requests
+        max_retries = self.get_param('extractor_retries', 3)
+        sleep_interval = self.get_param('sleep_interval_requests') or 0
 
-class AudioConversionError(PostProcessingError):
+        self.write_debug(f'{self.PP_NAME} query: {url}')
+        for retries in itertools.count():
+            try:
+                rsp = self._downloader.urlopen(sanitized_Request(url))
+                return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))
+            except network_exceptions as e:
+                if isinstance(e, urllib.error.HTTPError) and e.code in expected_http_errors:
+                    return None
+                if retries < max_retries:
+                    self.report_warning(f'{e}. Retrying...')
+                    if sleep_interval > 0:
+                        self.to_screen(f'Sleeping {sleep_interval} seconds ...')
+                        time.sleep(sleep_interval)
+                    continue
+                raise PostProcessingError(f'Unable to communicate with {self.PP_NAME} API: {e}')
+
+
+class AudioConversionError(PostProcessingError):  # Deprecated
     pass

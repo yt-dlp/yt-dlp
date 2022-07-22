@@ -1,25 +1,29 @@
+import hashlib
 import json
 import re
-from hashlib import sha256
+import urllib.parse
 
 from .ffmpeg import FFmpegPostProcessor
-from ..compat import compat_urllib_parse_urlencode, compat_HTTPError
-from ..utils import PostProcessingError, network_exceptions, sanitized_Request
 
 
 class SponsorBlockPP(FFmpegPostProcessor):
-
+    # https://wiki.sponsor.ajay.app/w/Types
     EXTRACTORS = {
         'Youtube': 'YouTube',
+    }
+    POI_CATEGORIES = {
+        'poi_highlight': 'Highlight',
     }
     CATEGORIES = {
         'sponsor': 'Sponsor',
         'intro': 'Intermission/Intro Animation',
         'outro': 'Endcards/Credits',
         'selfpromo': 'Unpaid/Self Promotion',
-        'interaction': 'Interaction Reminder',
         'preview': 'Preview/Recap',
-        'music_offtopic': 'Non-Music Section'
+        'filler': 'Filler Tangent',
+        'interaction': 'Interaction Reminder',
+        'music_offtopic': 'Non-Music Section',
+        **POI_CATEGORIES,
     }
 
     def __init__(self, downloader, categories=None, api='https://sponsor.ajay.app'):
@@ -33,7 +37,8 @@ class SponsorBlockPP(FFmpegPostProcessor):
             self.to_screen(f'SponsorBlock is not supported for {extractor}')
             return [], info
 
-        info['sponsorblock_chapters'] = self._get_sponsor_chapters(info, info['duration'])
+        self.to_screen('Fetching SponsorBlock segments')
+        info['sponsorblock_chapters'] = self._get_sponsor_chapters(info, info.get('duration'))
         return [], info
 
     def _get_sponsor_chapters(self, info, duration):
@@ -41,9 +46,15 @@ class SponsorBlockPP(FFmpegPostProcessor):
 
         def duration_filter(s):
             start_end = s['segment']
+            # Ignore entire video segments (https://wiki.sponsor.ajay.app/w/Types).
+            if start_end == (0, 0):
+                return False
             # Ignore milliseconds difference at the start.
             if start_end[0] <= 1:
                 start_end[0] = 0
+            # Make POI chapters 1 sec so that we can properly mark them
+            if s['category'] in self.POI_CATEGORIES.keys():
+                start_end[1] += 1
             # Ignore milliseconds difference at the end.
             # Never allow the segment to exceed the video.
             if duration and duration - start_end[1] <= 1:
@@ -73,24 +84,14 @@ class SponsorBlockPP(FFmpegPostProcessor):
         return sponsor_chapters
 
     def _get_sponsor_segments(self, video_id, service):
-        hash = sha256(video_id.encode('ascii')).hexdigest()
+        hash = hashlib.sha256(video_id.encode('ascii')).hexdigest()
         # SponsorBlock API recommends using first 4 hash characters.
-        url = f'{self._API_URL}/api/skipSegments/{hash[:4]}?' + compat_urllib_parse_urlencode({
+        url = f'{self._API_URL}/api/skipSegments/{hash[:4]}?' + urllib.parse.urlencode({
             'service': service,
             'categories': json.dumps(self._categories),
+            'actionTypes': json.dumps(['skip', 'poi'])
         })
-        for d in self._get_json(url):
+        for d in self._download_json(url) or []:
             if d['videoID'] == video_id:
                 return d['segments']
         return []
-
-    def _get_json(self, url):
-        self.write_debug(f'SponsorBlock query: {url}')
-        try:
-            rsp = self._downloader.urlopen(sanitized_Request(url))
-        except network_exceptions as e:
-            if isinstance(e, compat_HTTPError) and e.code == 404:
-                return []
-            raise PostProcessingError(f'Unable to communicate with SponsorBlock API - {e}')
-
-        return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))

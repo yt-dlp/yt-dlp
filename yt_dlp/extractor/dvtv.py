@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -8,6 +5,7 @@ from ..utils import (
     determine_ext,
     ExtractorError,
     int_or_none,
+    join_nonempty,
     js_to_json,
     mimetype2ext,
     try_get,
@@ -139,13 +137,9 @@ class DVTVIE(InfoExtractor):
                     label = video.get('label')
                     height = self._search_regex(
                         r'^(\d+)[pP]', label or '', 'height', default=None)
-                    format_id = ['http']
-                    for f in (ext, label):
-                        if f:
-                            format_id.append(f)
                     formats.append({
                         'url': video_url,
-                        'format_id': '-'.join(format_id),
+                        'format_id': join_nonempty('http', ext, label),
                         'height': int_or_none(height),
                     })
         self._sort_formats(formats)

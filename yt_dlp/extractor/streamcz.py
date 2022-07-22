@@ -1,105 +1,123 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import hashlib
-import time
+import json
 
 from .common import InfoExtractor
 from ..utils import (
+    float_or_none,
     int_or_none,
-    sanitized_Request,
+    parse_codecs,
+    traverse_obj,
+    urljoin,
 )
 
 
-def _get_api_key(api_path):
-    if api_path.endswith('?'):
-        api_path = api_path[:-1]
-
-    api_key = 'fb5f58a820353bd7095de526253c14fd'
-    a = '{0:}{1:}{2:}'.format(api_key, api_path, int(round(time.time() / 24 / 3600)))
-    return hashlib.md5(a.encode('ascii')).hexdigest()
-
-
 class StreamCZIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?stream\.cz/.+/(?P<id>[0-9]+)'
-    _API_URL = 'http://www.stream.cz/API'
-
+    _VALID_URL = r'https?://(?:www\.)?(?:stream|televizeseznam)\.cz/[^?#]+/(?P<display_id>[^?#]+)-(?P<id>[0-9]+)'
     _TESTS = [{
-        'url': 'http://www.stream.cz/peklonataliri/765767-ecka-pro-deti',
-        'md5': '934bb6a6d220d99c010783c9719960d5',
+        'url': 'https://www.televizeseznam.cz/video/lajna/buh-57953890',
+        'md5': '40c41ade1464a390a0b447e333df4239',
         'info_dict': {
-            'id': '765767',
+            'id': '57953890',
             'ext': 'mp4',
-            'title': 'Peklo na talíři: Éčka pro děti',
-            'description': 'Taška s grónskou pomazánkou a další pekelnosti ZDE',
-            'thumbnail': 're:^http://im.stream.cz/episode/52961d7e19d423f8f06f0100',
-            'duration': 256,
-        },
+            'title': 'Bůh',
+            'display_id': 'buh',
+            'description': 'md5:8f5f09b9b7bc67df910486cdd88f7165',
+            'duration': 1369.6,
+            'view_count': int,
+        }
     }, {
-        'url': 'http://www.stream.cz/blanik/10002447-tri-roky-pro-mazanka',
-        'md5': '849a88c1e1ca47d41403c2ba5e59e261',
+        'url': 'https://www.stream.cz/kdo-to-mluvi/kdo-to-mluvi-velke-odhaleni-prinasi-novy-porad-uz-od-25-srpna-64087937',
+        'md5': '41fd358000086a1ccdb068c77809b158',
         'info_dict': {
-            'id': '10002447',
+            'id': '64087937',
             'ext': 'mp4',
-            'title': 'Kancelář Blaník: Tři roky pro Mazánka',
-            'description': 'md5:3862a00ba7bf0b3e44806b544032c859',
-            'thumbnail': 're:^http://im.stream.cz/episode/537f838c50c11f8d21320000',
-            'duration': 368,
-        },
+            'title': 'Kdo to mluví? Velké odhalení přináší nový pořad už od 25. srpna',
+            'display_id': 'kdo-to-mluvi-velke-odhaleni-prinasi-novy-porad-uz-od-25-srpna',
+            'description': 'md5:97a811000a6460266029d6c1c2ebcd59',
+            'duration': 50.2,
+            'view_count': int,
+        }
+    }, {
+        'url': 'https://www.stream.cz/tajemno/znicehonic-jim-skrz-strechu-prolitnul-zahadny-predmet-badatele-vse-objasnili-64147267',
+        'md5': '3ee4d0be040e8f4a543e67e509d55e3f',
+        'info_dict': {
+            'id': '64147267',
+            'ext': 'mp4',
+            'title': 'Zničehonic jim skrz střechu prolítnul záhadný předmět. Badatelé vše objasnili',
+            'display_id': 'znicehonic-jim-skrz-strechu-prolitnul-zahadny-predmet-badatele-vse-objasnili',
+            'description': 'md5:4b8ada6718d34bb011c4e04ca4bc19bf',
+            'duration': 442.84,
+            'view_count': int,
+        }
     }]
 
+    def _extract_formats(self, spl_url, video):
+        for ext, pref, streams in (
+                ('ts', -1, traverse_obj(video, ('http_stream', 'qualities')) or {}),
+                ('mp4', 1, video.get('mp4') or {})):
+            for format_id, stream in streams.items():
+                if not stream.get('url'):
+                    continue
+                yield {
+                    'format_id': f'{format_id}-{ext}',
+                    'ext': ext,
+                    'source_preference': pref,
+                    'url': urljoin(spl_url, stream['url']),
+                    'tbr': float_or_none(stream.get('bandwidth'), scale=1000),
+                    'duration': float_or_none(stream.get('duration'), scale=1000),
+                    'width': traverse_obj(stream, ('resolution', 0)),
+                    'height': traverse_obj(stream, ('resolution', 1)) or int_or_none(format_id.replace('p', '')),
+                    **parse_codecs(stream.get('codec')),
+                }
+
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        api_path = '/episode/%s' % video_id
+        display_id, video_id = self._match_valid_url(url).groups()
 
-        req = sanitized_Request(self._API_URL + api_path)
-        req.add_header('Api-Password', _get_api_key(api_path))
-        data = self._download_json(req, video_id)
+        data = self._download_json(
+            'https://www.televizeseznam.cz/api/graphql', video_id, 'Downloading GraphQL result',
+            data=json.dumps({
+                'variables': {'urlName': video_id},
+                'query': '''
+                    query LoadEpisode($urlName : String){ episode(urlName: $urlName){ ...VideoDetailFragmentOnEpisode } }
+                    fragment VideoDetailFragmentOnEpisode on Episode {
+                        id
+                        spl
+                        urlName
+                        name
+                        perex
+                        duration
+                        views
+                    }'''
+            }).encode('utf-8'),
+            headers={'Content-Type': 'application/json;charset=UTF-8'}
+        )['data']['episode']
 
-        formats = []
-        for quality, video in enumerate(data['video_qualities']):
-            for f in video['formats']:
-                typ = f['type'].partition('/')[2]
-                qlabel = video.get('quality_label')
-                formats.append({
-                    'format_note': '%s-%s' % (qlabel, typ) if qlabel else typ,
-                    'format_id': '%s-%s' % (typ, f['quality']),
-                    'url': f['source'],
-                    'height': int_or_none(f['quality'].rstrip('p')),
-                    'quality': quality,
-                })
-        self._sort_formats(formats)
-
-        image = data.get('image')
-        if image:
-            thumbnail = self._proto_relative_url(
-                image.replace('{width}', '1240').replace('{height}', '697'),
-                scheme='http:',
-            )
-        else:
-            thumbnail = None
-
-        stream = data.get('_embedded', {}).get('stream:show', {}).get('name')
-        if stream:
-            title = '%s: %s' % (stream, data['name'])
-        else:
-            title = data['name']
+        spl_url = data['spl'] + 'spl2,3'
+        metadata = self._download_json(spl_url, video_id, 'Downloading playlist')
+        if 'Location' in metadata and 'data' not in metadata:
+            spl_url = metadata['Location']
+            metadata = self._download_json(spl_url, video_id, 'Downloading redirected playlist')
+        video = metadata['data']
 
         subtitles = {}
-        srt_url = data.get('subtitles_srt')
-        if srt_url:
-            subtitles['cs'] = [{
-                'ext': 'srt',
-                'url': srt_url,
-            }]
+        for subs in video.get('subtitles', {}).values():
+            if not subs.get('language'):
+                continue
+            for ext, sub_url in subs.get('urls').items():
+                subtitles.setdefault(subs['language'], []).append({
+                    'ext': ext,
+                    'url': urljoin(spl_url, sub_url)
+                })
+
+        formats = list(self._extract_formats(spl_url, video))
+        self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'title': title,
-            'thumbnail': thumbnail,
-            'formats': formats,
-            'description': data.get('web_site_text'),
-            'duration': int_or_none(data.get('duration')),
+            'display_id': display_id,
+            'title': data.get('name'),
+            'description': data.get('perex'),
+            'duration': float_or_none(data.get('duration')),
             'view_count': int_or_none(data.get('views')),
+            'formats': formats,
             'subtitles': subtitles,
         }

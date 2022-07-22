@@ -1,17 +1,71 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    get_first,
+    int_or_none,
     traverse_obj,
     try_get,
-    unified_strdate
+    unified_strdate,
+    unified_timestamp,
 )
 from ..compat import compat_str
 
 
-class OpenRecIE(InfoExtractor):
+class OpenRecBaseIE(InfoExtractor):
+    def _extract_pagestore(self, webpage, video_id):
+        return self._parse_json(
+            self._search_regex(r'(?m)window\.pageStore\s*=\s*(\{.+?\});$', webpage, 'window.pageStore'), video_id)
+
+    def _expand_media(self, video_id, media):
+        for name, m3u8_url in (media or {}).items():
+            if not m3u8_url:
+                continue
+            yield from self._extract_m3u8_formats(
+                m3u8_url, video_id, ext='mp4', m3u8_id=name)
+
+    def _extract_movie(self, webpage, video_id, name, is_live):
+        window_stores = self._extract_pagestore(webpage, video_id)
+        movie_stores = [
+            # extract all three important data (most of data are duplicated each other, but slightly different!)
+            traverse_obj(window_stores, ('v8', 'state', 'movie'), expected_type=dict),
+            traverse_obj(window_stores, ('v8', 'movie'), expected_type=dict),
+            traverse_obj(window_stores, 'movieStore', expected_type=dict),
+        ]
+        if not any(movie_stores):
+            raise ExtractorError(f'Failed to extract {name} info')
+
+        formats = list(self._expand_media(video_id, get_first(movie_stores, 'media')))
+        if not formats:
+            # archived livestreams or subscriber-only videos
+            cookies = self._get_cookies('https://www.openrec.tv/')
+            detail = self._download_json(
+                f'https://apiv5.openrec.tv/api/v5/movies/{video_id}/detail', video_id,
+                headers={
+                    'Origin': 'https://www.openrec.tv',
+                    'Referer': 'https://www.openrec.tv/',
+                    'access-token': try_get(cookies, lambda x: x.get('access_token').value),
+                    'uuid': try_get(cookies, lambda x: x.get('uuid').value),
+                })
+            new_media = traverse_obj(detail, ('data', 'items', ..., 'media'), get_all=False)
+            formats = list(self._expand_media(video_id, new_media))
+            is_live = False
+
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'title': get_first(movie_stores, 'title'),
+            'description': get_first(movie_stores, 'introduction'),
+            'thumbnail': get_first(movie_stores, 'thumbnailUrl'),
+            'formats': formats,
+            'uploader': get_first(movie_stores, ('channel', 'user', 'name')),
+            'uploader_id': get_first(movie_stores, ('channel', 'user', 'id')),
+            'timestamp': int_or_none(get_first(movie_stores, ['publishedAt', 'time']), scale=1000) or unified_timestamp(get_first(movie_stores, 'publishedAt')),
+            'is_live': is_live,
+        }
+
+
+class OpenRecIE(OpenRecBaseIE):
     IE_NAME = 'openrec'
     _VALID_URL = r'https?://(?:www\.)?openrec\.tv/live/(?P<id>[^/]+)'
     _TESTS = [{
@@ -24,53 +78,12 @@ class OpenRecIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage('https://www.openrec.tv/live/%s' % video_id, video_id)
+        webpage = self._download_webpage(f'https://www.openrec.tv/live/{video_id}', video_id)
 
-        window_stores = self._parse_json(
-            self._search_regex(r'(?m)window\.pageStore\s*=\s*(\{.+?\});$', webpage, 'window.pageStore'), video_id)
-        movie_store = traverse_obj(
-            window_stores,
-            ('v8', 'state', 'movie'),
-            ('v8', 'movie'),
-            expected_type=dict)
-        if not movie_store:
-            raise ExtractorError('Failed to extract live info')
-
-        title = movie_store.get('title')
-        description = movie_store.get('introduction')
-        thumbnail = movie_store.get('thumbnailUrl')
-
-        channel_user = movie_store.get('channel', {}).get('user')
-        uploader = try_get(channel_user, lambda x: x['name'], compat_str)
-        uploader_id = try_get(channel_user, lambda x: x['id'], compat_str)
-
-        timestamp = traverse_obj(movie_store, ('startedAt', 'time'), expected_type=int)
-
-        m3u8_playlists = movie_store.get('media')
-        formats = []
-        for (name, m3u8_url) in m3u8_playlists.items():
-            if not m3u8_url:
-                continue
-            formats.extend(self._extract_m3u8_formats(
-                m3u8_url, video_id, ext='mp4', entry_protocol='m3u8',
-                m3u8_id='hls-%s' % name, live=True))
-
-        self._sort_formats(formats)
-
-        return {
-            'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'formats': formats,
-            'uploader': uploader,
-            'uploader_id': uploader_id,
-            'timestamp': timestamp,
-            'is_live': True,
-        }
+        return self._extract_movie(webpage, video_id, 'live', True)
 
 
-class OpenRecCaptureIE(InfoExtractor):
+class OpenRecCaptureIE(OpenRecBaseIE):
     IE_NAME = 'openrec:capture'
     _VALID_URL = r'https?://(?:www\.)?openrec\.tv/capture/(?P<id>[^/]+)'
     _TESTS = [{
@@ -89,38 +102,49 @@ class OpenRecCaptureIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage('https://www.openrec.tv/capture/%s' % video_id, video_id)
+        webpage = self._download_webpage(f'https://www.openrec.tv/capture/{video_id}', video_id)
 
-        window_stores = self._parse_json(
-            self._search_regex(r'(?m)window\.pageStore\s*=\s*(\{.+?\});$', webpage, 'window.pageStore'), video_id)
+        window_stores = self._extract_pagestore(webpage, video_id)
         movie_store = window_stores.get('movie')
 
         capture_data = window_stores.get('capture')
         if not capture_data:
             raise ExtractorError('Cannot extract title')
-        title = capture_data.get('title')
-        thumbnail = capture_data.get('thumbnailUrl')
-        upload_date = unified_strdate(capture_data.get('createdAt'))
 
-        channel_info = movie_store.get('channel') or {}
-        uploader = channel_info.get('name')
-        uploader_id = channel_info.get('id')
-
-        m3u8_url = capture_data.get('source')
-        if not m3u8_url:
-            raise ExtractorError('Cannot extract m3u8 url')
         formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, ext='mp4', entry_protocol='m3u8_native',
-            m3u8_id='hls')
-
+            capture_data.get('source'), video_id, ext='mp4')
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'title': title,
-            'thumbnail': thumbnail,
+            'title': capture_data.get('title'),
+            'thumbnail': capture_data.get('thumbnailUrl'),
             'formats': formats,
-            'uploader': uploader,
-            'uploader_id': uploader_id,
-            'upload_date': upload_date,
+            'timestamp': unified_timestamp(traverse_obj(movie_store, 'createdAt', expected_type=compat_str)),
+            'uploader': traverse_obj(movie_store, ('channel', 'name'), expected_type=compat_str),
+            'uploader_id': traverse_obj(movie_store, ('channel', 'id'), expected_type=compat_str),
+            'upload_date': unified_strdate(capture_data.get('createdAt')),
         }
+
+
+class OpenRecMovieIE(OpenRecBaseIE):
+    IE_NAME = 'openrec:movie'
+    _VALID_URL = r'https?://(?:www\.)?openrec\.tv/movie/(?P<id>[^/]+)'
+    _TESTS = [{
+        'url': 'https://www.openrec.tv/movie/nqz5xl5km8v',
+        'info_dict': {
+            'id': 'nqz5xl5km8v',
+            'title': '限定コミュニティ(Discord)参加方法ご説明動画',
+            'description': 'md5:ebd563e5f5b060cda2f02bf26b14d87f',
+            'thumbnail': r're:https://.+',
+            'uploader': 'タイキとカズヒロ',
+            'uploader_id': 'taiki_to_kazuhiro',
+            'timestamp': 1638856800,
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(f'https://www.openrec.tv/movie/{video_id}', video_id)
+
+        return self._extract_movie(webpage, video_id, 'movie', False)

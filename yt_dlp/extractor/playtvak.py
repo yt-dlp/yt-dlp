@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import (
     compat_urlparse,
@@ -167,8 +164,6 @@ class PlaytvakIE(InfoExtractor):
 
         title = item['title']
         is_live = item['type'] == 'stream'
-        if is_live:
-            title = self._live_title(title)
         description = self._og_search_description(webpage, default=None) or self._html_search_meta(
             'description', webpage, 'description', default=None)
         timestamp = None

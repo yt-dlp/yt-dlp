@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     bool_or_none,
@@ -34,9 +31,6 @@ class SlidesLiveIE(InfoExtractor):
             'id': 'RMraDYN5ozA_',
             'ext': 'mp4',
             'title': 'Offline Reinforcement Learning: From Algorithms to Practical Challenges',
-        },
-        'params': {
-            'format': 'bestvideo',
         },
     }, {
         # video_service_name = youtube

@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+import hashlib
+import http.client
+import json
+import socket
+import urllib.error
 
 from test.helper import (
     assertGreaterEqual,
@@ -19,25 +25,14 @@ from test.helper import (
     try_rm,
 )
 
-
-import hashlib
-import io
-import json
-import socket
-
-import yt_dlp.YoutubeDL
-from yt_dlp.compat import (
-    compat_http_client,
-    compat_urllib_error,
-    compat_HTTPError,
-)
+import yt_dlp.YoutubeDL  # isort: split
+from yt_dlp.extractor import get_info_extractor
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
-    format_bytes,
     UnavailableVideoError,
+    format_bytes,
 )
-from yt_dlp.extractor import get_info_extractor
 
 RETRIES = 3
 
@@ -46,15 +41,15 @@ class YoutubeDL(yt_dlp.YoutubeDL):
     def __init__(self, *args, **kwargs):
         self.to_stderr = self.to_screen
         self.processed_info_dicts = []
-        super(YoutubeDL, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-    def report_warning(self, message):
+    def report_warning(self, message, *args, **kwargs):
         # Don't accept warnings during tests
         raise ExtractorError(message)
 
     def process_info(self, info_dict):
-        self.processed_info_dicts.append(info_dict)
-        return super(YoutubeDL, self).process_info(info_dict)
+        self.processed_info_dicts.append(info_dict.copy())
+        return super().process_info(info_dict)
 
 
 def _file_md5(fn):
@@ -80,7 +75,7 @@ class TestDownload(unittest.TestCase):
 
         def strclass(cls):
             """From 2.7's unittest; 2.6 had _strclass so we can't import it."""
-            return '%s.%s' % (cls.__module__, cls.__name__)
+            return f'{cls.__module__}.{cls.__name__}'
 
         add_ie = getattr(self, self._testMethodName).add_ie
         return '%s (%s)%s:' % (self._testMethodName,
@@ -107,9 +102,10 @@ def generator(test_case, tname):
 
         def print_skipping(reason):
             print('Skipping %s: %s' % (test_case['name'], reason))
+            self.skipTest(reason)
+
         if not ie.working():
             print_skipping('IE marked as not _WORKING')
-            return
 
         for tc in test_cases:
             info_dict = tc.get('info_dict', {})
@@ -123,11 +119,10 @@ def generator(test_case, tname):
 
         if 'skip' in test_case:
             print_skipping(test_case['skip'])
-            return
+
         for other_ie in other_ies:
             if not other_ie.working():
                 print_skipping('test depends on %sIE, marked as not WORKING' % other_ie.ie_key())
-                return
 
         params = get_params(test_case.get('params', {}))
         params['outtmpl'] = tname + '_' + params['outtmpl']
@@ -172,14 +167,14 @@ def generator(test_case, tname):
                         force_generic_extractor=params.get('force_generic_extractor', False))
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
-                    if not err.exc_info[0] in (compat_urllib_error.URLError, socket.timeout, UnavailableVideoError, compat_http_client.BadStatusLine) or (err.exc_info[0] == compat_HTTPError and err.exc_info[1].code == 503):
+                    if not err.exc_info[0] in (urllib.error.URLError, socket.timeout, UnavailableVideoError, http.client.BadStatusLine) or (err.exc_info[0] == urllib.error.HTTPError and err.exc_info[1].code == 503):
                         raise
 
                     if try_num == RETRIES:
                         report_warning('%s failed due to network errors, skipping...' % tname)
                         return
 
-                    print('Retrying: {0} failed tries\n\n##########\n\n'.format(try_num))
+                    print(f'Retrying: {try_num} failed tries\n\n##########\n\n')
 
                     try_num += 1
                 else:
@@ -245,7 +240,7 @@ def generator(test_case, tname):
                 self.assertTrue(
                     os.path.exists(info_json_fn),
                     'Missing info file %s' % info_json_fn)
-                with io.open(info_json_fn, encoding='utf-8') as infof:
+                with open(info_json_fn, encoding='utf-8') as infof:
                     info_dict = json.load(infof)
                 expect_info_dict(self, info_dict, tc.get('info_dict', {}))
         finally:
@@ -278,7 +273,11 @@ def batch_generator(name, num_tests):
 
     def test_template(self):
         for i in range(num_tests):
-            getattr(self, f'test_{name}_{i}' if i else f'test_{name}')()
+            test_name = f'test_{name}_{i}' if i else f'test_{name}'
+            try:
+                getattr(self, test_name)()
+            except unittest.SkipTest:
+                print(f'Skipped {test_name}')
 
     return test_template
 

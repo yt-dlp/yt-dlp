@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -9,6 +7,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
 )
 
@@ -110,8 +109,7 @@ class ThreeQSDNIE(InfoExtractor):
                 subtitles = self._merge_subtitles(subtitles, subs)
             elif source_type == 'hls':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    source, video_id, 'mp4', 'm3u8' if live else 'm3u8_native',
-                    m3u8_id='hls', fatal=False)
+                    source, video_id, 'mp4', live=live, m3u8_id='hls', fatal=False)
                 formats.extend(fmts)
                 subtitles = self._merge_subtitles(subtitles, subs)
             elif source_type == 'progressive':
@@ -119,24 +117,16 @@ class ThreeQSDNIE(InfoExtractor):
                     src = s.get('src')
                     if not (src and self._is_valid_url(src, video_id)):
                         continue
-                    width = None
-                    format_id = ['http']
                     ext = determine_ext(src)
-                    if ext:
-                        format_id.append(ext)
                     height = int_or_none(s.get('height'))
-                    if height:
-                        format_id.append('%dp' % height)
-                        if aspect:
-                            width = int(height * aspect)
                     formats.append({
                         'ext': ext,
-                        'format_id': '-'.join(format_id),
+                        'format_id': join_nonempty('http', ext, height and '%dp' % height),
                         'height': height,
                         'source_preference': 0,
                         'url': src,
                         'vcodec': 'none' if height == 0 else None,
-                        'width': width,
+                        'width': int(height * aspect) if height and aspect else None,
                     })
         # It seems like this would be correctly handled by default
         # However, unless someone can confirm this, the old
@@ -155,7 +145,7 @@ class ThreeQSDNIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if live else title,
+            'title': title,
             'thumbnail': config.get('poster') or None,
             'description': config.get('description') or None,
             'timestamp': parse_iso8601(config.get('upload_date')),

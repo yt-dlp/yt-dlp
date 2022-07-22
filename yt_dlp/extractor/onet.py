@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -182,14 +179,9 @@ class OnetChannelIE(OnetBaseIE):
         video_id = remove_start(current_clip_info['ckmId'], 'mvp:')
         video_name = url_basename(current_clip_info['url'])
 
-        if self.get_param('noplaylist'):
-            self.to_screen(
-                'Downloading just video %s because of --no-playlist' % video_name)
+        if not self._yes_playlist(channel_id, video_name, playlist_label='channel'):
             return self._extract_from_id(video_id, webpage)
 
-        self.to_screen(
-            'Downloading channel %s - add --no-playlist to just download video %s' % (
-                channel_id, video_name))
         matches = re.findall(
             r'<a[^>]+href=[\'"](%s[a-z]+/[0-9a-z-]+/[0-9a-z]+)' % self._URL_BASE_RE,
             webpage)

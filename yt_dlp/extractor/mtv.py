@@ -1,13 +1,7 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_xpath,
-)
+from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     find_xpath_attr,
@@ -15,6 +9,7 @@ from ..utils import (
     float_or_none,
     HEADRequest,
     int_or_none,
+    join_nonempty,
     RegexNotFoundError,
     sanitized_Request,
     strip_or_none,
@@ -99,9 +94,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
                     formats.extend([{
                         'ext': 'flv' if rtmp_video_url.startswith('rtmp') else ext,
                         'url': rtmp_video_url,
-                        'format_id': '-'.join(filter(None, [
+                        'format_id': join_nonempty(
                             'rtmp' if rtmp_video_url.startswith('rtmp') else None,
-                            rendition.get('bitrate')])),
+                            rendition.get('bitrate')),
                         'width': int(rendition.get('width')),
                         'height': int(rendition.get('height')),
                     }])
@@ -166,9 +161,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
                 itemdoc, './/{http://search.yahoo.com/mrss/}category',
                 'scheme', 'urn:mtvn:video_title')
         if title_el is None:
-            title_el = itemdoc.find(compat_xpath('.//{http://search.yahoo.com/mrss/}title'))
+            title_el = itemdoc.find('.//{http://search.yahoo.com/mrss/}title')
         if title_el is None:
-            title_el = itemdoc.find(compat_xpath('.//title'))
+            title_el = itemdoc.find('.//title')
             if title_el.text is None:
                 title_el = None
 
@@ -311,11 +306,17 @@ class MTVServicesInfoExtractor(InfoExtractor):
             main_container = self._extract_child_with_type(data, 'MainContainer')
             ab_testing = self._extract_child_with_type(main_container, 'ABTesting')
             video_player = self._extract_child_with_type(ab_testing or main_container, 'VideoPlayer')
-            mgid = video_player['props']['media']['video']['config']['uri']
+            if video_player:
+                mgid = try_get(video_player, lambda x: x['props']['media']['video']['config']['uri'])
+            else:
+                flex_wrapper = self._extract_child_with_type(ab_testing or main_container, 'FlexWrapper')
+                auth_suite_wrapper = self._extract_child_with_type(flex_wrapper, 'AuthSuiteWrapper')
+                player = self._extract_child_with_type(auth_suite_wrapper or flex_wrapper, 'Player')
+                if player:
+                    mgid = try_get(player, lambda x: x['props']['videoDetail']['mgid'])
 
         if not mgid:
-            mgid = self._search_regex(
-                r'"media":{"video":{"config":{"uri":"(mgid:.*?)"', webpage, 'mgid', default=None)
+            raise ExtractorError('Could not extract mgid')
 
         return mgid
 
