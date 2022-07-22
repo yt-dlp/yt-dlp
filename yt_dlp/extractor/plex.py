@@ -64,6 +64,7 @@ class PlexWatchBaseIE(InfoExtractor):
     def _real_initialize(self):
         if not self._TOKEN:
             try:
+                # WARNING: This API request is rate-limited
                 self.write_debug('using non-login method (login as anonymous)')
                 resp_api = self._download_json(
                     'https://plex.tv/api/v2/users/anonymous', 'Auth', data=b'',
@@ -313,7 +314,7 @@ class PlexAppIE(PlexWatchBaseIE):
             'title': 'Nazi Concentration and Prison Camps',
             'thumbnail': 'https://image.tmdb.org/t/p/original/uNxkPkR2GGG71JSyh2Lqptnwcwm.jpg',
             'cast': ['Dwight D. Eisenhower', 'Jack Taylor'],
-            'duration': 3517,
+            'duration': 3540,
             'description': 'md5:cc021d47035520acf2e027b8b4d244c2',
             'view_count': int,
         },
@@ -389,7 +390,7 @@ class PlexAppIE(PlexWatchBaseIE):
         # check if publicPagesURL, if exists redirect to PlexWatch*IE, else handle manually
         if media_json.get('publicPagesURL'):
             self.write_debug('got publicPagesURL, redirect to PlexWatch*IE')
-            return self.url_result(media_json.get('publicPagesURL'))
+            return self.url_result(media_json.get('publicPagesURL'), url_transparent=True)
 
         else:
             if media_json.get('type') in ('episode', 'movie'):
