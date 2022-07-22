@@ -28,6 +28,8 @@ class PatreonBaseIE(InfoExtractor):
             headers = {}
         if 'User-Agent' not in headers:
             headers['User-Agent'] = self.USER_AGENT
+        if query:
+            query.update({'json-api-version': 1.0})
 
         try:
             return self._download_json(
@@ -328,6 +330,7 @@ class PatreonCampaignIE(PatreonBaseIE):
             'uploader_id': '87145',
             'uploader_url': 'https://www.patreon.com/dissonancepod',
             'uploader': 'Cognitive Dissonance Podcast',
+            'thumbnail': r're:^https?://.*$',
         },
         'playlist_mincount': 68,
     }, {
@@ -344,6 +347,7 @@ class PatreonCampaignIE(PatreonBaseIE):
             'uploader_url': 'https://www.patreon.com/notjustbikes',
             'uploader': 'Not Just Bikes',
             'uploader_id': '37306634',
+            'thumbnail': r're:^https?://.*$',
         },
         'playlist_mincount': 71
     }, {
@@ -361,12 +365,10 @@ class PatreonCampaignIE(PatreonBaseIE):
     def _entries(self, campaign_id):
         cursor = None
         params = {
-            'fields[campaign]': 'show_audio_post_download_links,name,url',
-            'fields[post]': 'current_user_can_view,embed,image,is_paid,post_file,published_at,patreon_url,url,post_type,thumbnail_url,title',
+            'fields[post]': 'patreon_url,url',
             'filter[campaign_id]': campaign_id,
             'filter[is_draft]': 'false',
             'sort': '-published_at',
-            'json-api-version': 1.0,
             'json-api-use-default-includes': 'false',
         }
 
@@ -375,10 +377,9 @@ class PatreonCampaignIE(PatreonBaseIE):
             params.update({'page[cursor]': cursor} if cursor else {})
             posts_json = self._call_api('posts', campaign_id, query=params, note='Downloading posts page %d' % page)
 
-            cursor = try_get(posts_json, lambda x: x['meta']['pagination']['cursors']['next'])
-
+            cursor = traverse_obj(posts_json, ('meta', 'pagination', 'cursors', 'next'))
             for post in posts_json.get('data') or []:
-                yield self.url_result(url_or_none(try_get(post, lambda x: x['attributes']['patreon_url'])), 'Patreon')
+                yield self.url_result(url_or_none(traverse_obj(post, ('attributes', 'patreon_url'))), 'Patreon')
 
             if cursor is None:
                 break
@@ -390,10 +391,17 @@ class PatreonCampaignIE(PatreonBaseIE):
             webpage = self._download_webpage(url, vanity, headers={'User-Agent': self.USER_AGENT})
             campaign_id = self._search_regex(r'https://www.patreon.com/api/campaigns/(\d+)/?', webpage, 'Campaign ID')
 
+        params = {
+            'json-api-use-default-includes': 'false',
+            'fields[user]': 'full_name,url',
+            'fields[campaign]': 'name,summary,url,patron_count,creation_count,is_nsfw,avatar_photo_url',
+            'include': 'creator'
+        }
+
         campaign_response = self._call_api(
             f'campaigns/{campaign_id}', campaign_id,
             note='Downloading campaign info', fatal=False,
-            query={'fields[user]': 'image_url,full_name,url'}) or {}
+            query=params) or {}
 
         campaign_info = campaign_response.get('data') or {}
         channel_name = traverse_obj(campaign_info, ('attributes', 'name'))
@@ -416,5 +424,5 @@ class PatreonCampaignIE(PatreonBaseIE):
             'uploader': traverse_obj(user_info, ('attributes', 'full_name')),
             'playlist_count': traverse_obj(campaign_info, ('attributes', 'creation_count')),
             'age_limit': 18 if traverse_obj(campaign_info, ('attributes', 'is_nsfw')) else 0,
-            'thumbnail': url_or_none(traverse_obj(campaign_info, ('attributes', 'avatar_image_url'))),
+            'thumbnail': url_or_none(traverse_obj(campaign_info, ('attributes', 'avatar_photo_url'))),
         }
