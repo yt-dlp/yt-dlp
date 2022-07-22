@@ -21,8 +21,7 @@ from ..utils import (
 
 
 class PatreonBaseIE(InfoExtractor):
-    # XXX: should user-supplied user agent should override request user-agents?
-    USER_AGENT = 'Patreon/7.6.28'
+    USER_AGENT = 'Patreon/7.6.28 (Android; Android 11; Scale/2.10)'
 
     def _call_api(self, ep, item_id, query=None, headers=None, fatal=True, note=None):
         if headers is None:
@@ -36,7 +35,7 @@ class PatreonBaseIE(InfoExtractor):
                 item_id, note='Downloading API JSON' if not note else note,
                 query=query, fatal=fatal, headers=headers)
         except ExtractorError as e:
-            if not isinstance(e.cause, HTTPError) or e.cause.code != 403:
+            if not isinstance(e.cause, HTTPError) or mimetype2ext(e.cause.headers.get('Content-Type')) != 'json':
                 raise
             err_json = self._parse_json(self._webpage_read_content(e.cause, None, item_id), item_id, fatal=False)
             err_message = traverse_obj(err_json, ('errors', ..., 'detail'), get_all=False)
@@ -242,9 +241,6 @@ class PatreonIE(PatreonBaseIE):
         return info
 
     def _get_comments(self, post_id):
-        # Currently replies are grabbed in the same request as the parent comments.
-        # When this breaks, we will need to add support for getting replies in a separate request.
-
         cursor = None
         count = 0
         params = {
