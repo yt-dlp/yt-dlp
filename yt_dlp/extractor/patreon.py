@@ -62,6 +62,9 @@ class PatreonIE(PatreonBaseIE):
             'like_count': int,
             'comment_count': int,
             'uploader_url': 'https://www.patreon.com/dissonancepod',
+            'channel_id': '80642',
+            'channel_url': 'https://www.patreon.com/dissonancepod',
+            'channel_follower_count': int,
         },
     }, {
         'url': 'http://www.patreon.com/creation?hid=754133',
@@ -145,6 +148,9 @@ class PatreonIE(PatreonBaseIE):
             'title': 'VIDEO // sketchbook flipthrough',
             'uploader': 'Loish ',
             'tags': ['sketchbook', 'video'],
+            'channel_id': '1641751',
+            'channel_url': 'https://www.patreon.com/loish',
+            'channel_follower_count': int,
         }
     }]
 
@@ -156,8 +162,9 @@ class PatreonIE(PatreonBaseIE):
                 'fields[post]': 'comment_count,content,embed,image,like_count,post_file,published_at,title,current_user_can_view',
                 'fields[user]': 'full_name,url',
                 'fields[post_tag]': 'value',
+                'fields[campaign]': 'url,name,patron_count',
                 'json-api-use-default-includes': 'false',
-                'include': 'media,user,user_defined_tags',
+                'include': 'media,user,user_defined_tags,campaign',
             })
         attributes = post['data']['attributes']
         title = attributes['title'].strip()
@@ -199,6 +206,15 @@ class PatreonIE(PatreonBaseIE):
 
             elif i_type == 'post_tag':
                 info.setdefault('tags', []).append(traverse_obj(i, ('attributes', 'value')))
+
+            elif i_type == 'campaign':
+                info.update({
+                    'channel': traverse_obj(i, ('attributes', 'title')),
+                    'channel_id': str_or_none(i.get('id')),
+                    'channel_url': traverse_obj(i, ('attributes', 'url')),
+                    'channel_follower_count': int_or_none(traverse_obj(i, ('attributes', 'patron_count'))),
+                })
+
         # handle Vimeo embeds
         if try_get(attributes, lambda x: x['embed']['provider']) == 'Vimeo':
             embed_html = try_get(attributes, lambda x: x['embed']['html'])
@@ -392,7 +408,7 @@ class PatreonCampaignIE(PatreonBaseIE):
             'entries': self._entries(campaign_id),
             'description': clean_html(traverse_obj(campaign_info, ('attributes', 'summary'))),
             'channel_url': traverse_obj(campaign_info, ('attributes', 'url')),
-            'channel_follower_count': traverse_obj(campaign_info, ('attributes', 'patron_count')),
+            'channel_follower_count': int_or_none(traverse_obj(campaign_info, ('attributes', 'patron_count'))),
             'channel_id': campaign_id,
             'channel': channel_name,
             'uploader_url': traverse_obj(user_info, ('attributes', 'url')),
