@@ -78,7 +78,7 @@ class PlexWatchBaseIE(InfoExtractor):
                 raise ExtractorError(error['errors'][0]['message'], cause=e.cause)
 
             self._TOKEN = resp_api['authToken']
-
+            
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}, format_field={}):
         formats, subtitles = [], {}
         fmts, subs = [], {}
@@ -170,9 +170,9 @@ class PlexWatchBaseIE(InfoExtractor):
             self._download_webpage(url, display_id), display_id)['props']['pageProps']['metadataItem']
 
         movie_entry = [self._extract_movie(nextjs_json, display_id, sites_type, **kwargs)] if nextjs_json.get('playableKey') else []
-        trailer_entry = list(self._get_clips(nextjs_json, display_id)) if nextjs_json.get('Extras') else []
-
+        
         if self._yes_playlist(nextjs_json['ratingKey'], 'Movie'):
+            trailer_entry = list(self._get_clips(nextjs_json, display_id)) if nextjs_json.get('Extras') else []
             movie_entry.extend(trailer_entry)
             return self.playlist_result(movie_entry, nextjs_json['ratingKey'], nextjs_json.get('title'))
         else:
