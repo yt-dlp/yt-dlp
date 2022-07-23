@@ -136,7 +136,7 @@ class PlexWatchBaseIE(InfoExtractor):
     def _extract_movie(self, webpage, display_id, sites_type, **kwargs):
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['metadataItem']
         json_ld_json = self._search_json_ld(webpage, display_id)
-        print(json_ld_json)
+
         media_json = self._download_json(
             'https://play.provider.plex.tv/playQueues', display_id,
             query={'uri': nextjs_json['playableKey']}, data=b'',
