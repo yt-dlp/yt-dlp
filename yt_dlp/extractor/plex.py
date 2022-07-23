@@ -159,6 +159,7 @@ class PlexWatchBaseIE(InfoExtractor):
                 'duration': int_or_none(nextjs_json.get('duration'), 1000),
                 'cast': traverse_obj(nextjs_json, ('Role', ..., 'tag')),
                 'rating': parse_age_limit(nextjs_json.get('contentRating')),
+                'categories': traverse_obj(nextjs_json, ('Genre', ..., 'tag')),
             }
 
         if nextjs_json.get('Extras'):
@@ -179,6 +180,7 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
             'duration': 3660,
             'thumbnail': 'https://image.tmdb.org/t/p/original/lDWHvIotQkogG77wHVuMT8mF8P.jpg',
             'cast': 'count:22',
+            'categories': ['Horror', 'Action', 'Comedy', 'Crime', 'Thriller'],
         }
     }, {
         # trailer
@@ -318,6 +320,7 @@ class PlexAppIE(PlexWatchBaseIE):
             'duration': 3517,
             'description': 'md5:cc021d47035520acf2e027b8b4d244c2',
             'view_count': int,
+            'categories': ['Documentary', 'History'],
         },
         'params': {
             'skip_download': True
