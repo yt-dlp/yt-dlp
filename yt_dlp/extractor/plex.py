@@ -3,7 +3,6 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    UnsupportedError,
     determine_ext,
     int_or_none,
     parse_age_limit,
@@ -111,12 +110,14 @@ class PlexWatchBaseIE(InfoExtractor):
     def _get_clips(self, nextjs_json, display_id):
         self.write_debug('Trying to download Extras/trailer')
 
-        media_json = self._download_json(
-            'https://play.provider.plex.tv/playQueues', display_id,
-            query={'uri': f'provider://tv.plex.provider.vod{nextjs_json["Extras"]["key"]}'}, data=b'',
-            headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
+        media_json_list = []
+        for _media in traverse_obj(nextjs_json, ('Extras', 'Metadata', ..., 'key')):
+            media_json_list.append(self._download_json(
+                'https://play.provider.plex.tv/playQueues', display_id,
+                query={'uri': f'provider://tv.plex.provider.vod{_media}'}, data=b'',
+                headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'}))
 
-        for media in media_json['MediaContainer']['Metadata']:
+        for media in traverse_obj(media_json_list, (..., 'MediaContainer', 'Metadata', ...)) or []:
             for media_ in traverse_obj(media, ('Media', ..., 'Part', ..., 'key')):
                 fmt, sub = self._get_formats_and_subtitles(media_, display_id)
                 yield {
@@ -303,7 +304,7 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
 
 
 class PlexAppIE(PlexWatchBaseIE):
-    _VALID_URL = r'https://app\.plex\.tv/\w+/#!/provider/(?P<provider>[\w\.]+)/details\?key\s*=\s*(?P<key>%2Flibrary%2Fmetadata%2F(?P<id>[a-f0-9]+))'
+    _VALID_URL = r'https://app\.plex\.tv/\w+/#!/provider/(?P<provider>(tv\.plex\.provider\.((?!music)\w+)))/details\?key\s*=\s*(?P<key>%2Flibrary%2Fmetadata%2F(?P<id>[a-f0-9]+))'
     _TESTS = [{
         # movie
         'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.vod/details?key=%2Flibrary%2Fmetadata%2F5e0c0cda7440fc0020ab9ff5&context=library%3Ahub.movies.documentary~16~7',
@@ -353,43 +354,18 @@ class PlexAppIE(PlexWatchBaseIE):
         },
         'playlist_count': 15,
     }, {
-        # album
-        'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.music/details?key=%2Flibrary%2Fmetadata%2F62ca68f172b359f3b8375767&context=library%3Ahub.tidal.newAlbums~1~0',
-        'info_dict': {
-            'id': '62ca68f172b359f3b8375767',
-            'title': 'Special'
-        },
-        'playlist_count': 12,
-        'skip': 'This url needs different token'
-    }, {
         # Extras
         'url': 'https://app.plex.tv/desktop/#!/provider/tv.plex.provider.metadata/details?key=%2Flibrary%2Fmetadata%2F5ef5ee0d1ce3fd004039976a&context=library%3Ahub.home.top_watchlisted~4~1',
         'info_dict': {
             'id': '5ef5ee0d1ce3fd004039976a',
             'title': 'Lightyear',
             'cast': 'count:34',
-            'thumbnail': 'https://image.tmdb.org/t/p/original/4sBbVik86fOuyRY4kFGbn2sooQk.jpg',
+            'thumbnail': r're:https://image\.tmdb\.org/t/p/original/\w+\.jpg',
             'duration': 6000,
             'rating': 10,
         },
-        'playlist_count': 20,  # expected 22
+        'playlist_count': 22,
     }]
-
-    def _get_tracks_formats(self, album_info, display_id):
-        formats, fmt = [], []
-        for media_item in traverse_obj(album_info, ...):
-            for media in traverse_obj(media_item, ('Media', ..., 'Part', ..., 'key')):
-                fmt, sub = self._get_formats_and_subtitles(
-                    media, display_id, 'tv.plex.provider.music',
-                    metadata_field={
-                        'id': media_item['ratingKey'],
-                        'title': media_item.get('title'),
-                        'vcodec': 'none',
-                        'ext': 'm4a',
-                    })
-                formats.extend(fmt)
-
-        return formats
 
     def _real_extract(self, url):
         provider, key, display_id = self._match_valid_url(url).group('provider', 'key', 'id')
@@ -430,15 +406,3 @@ class PlexAppIE(PlexWatchBaseIE):
                     'rating': parse_age_limit(media_json.get('contentRating')),
                     'view_count': media_json.get('viewCount')
                 }
-
-            elif media_json.get('type') == 'album':
-                '''
-                # Require diffferent token
-                album_info = self._download_json(
-                    f'{self._CDN_ENDPOINT[provider]}{media_json.get("key")}', display_id, query={'X-Plex-Token': self._TOKEN},
-                    headers={'Accept': 'application/json'})['MediaContainer']['Metadata']
-
-                return self.playlist_result(
-                    self._get_tracks_formats(album_info, display_id), display_id, media_json.get('title'))
-                '''
-                raise UnsupportedError(url)
