@@ -79,9 +79,9 @@ class PlexWatchBaseIE(InfoExtractor):
 
             self._TOKEN = resp_api['authToken']
 
-    def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}):
+    def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}, format_field={}):
         formats, subtitles = [], {}
-        fmt, subs = [], {}
+        fmts, subs = [], {}
         if isinstance(selected_media, str):
             selected_media = [selected_media]
         for media in selected_media or []:
@@ -89,12 +89,18 @@ class PlexWatchBaseIE(InfoExtractor):
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
                     display_id, query={'X-PLEX-TOKEN': self._TOKEN})
+                for fmt_ in fmt:
+                    fmt_.update(**format_field)
+                    fmts.append(fmt_)
 
             elif determine_ext(media) == 'mpd':
+
                 fmt, subs = self._extract_mpd_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
-                    display_id, query={'X-PLEX-TOKEN': self._TOKEN},)
-
+                    display_id, query={'X-PLEX-TOKEN': self._TOKEN})
+                for fmt_ in fmt:
+                    fmt_.update(**format_field)
+                    fmts.append(fmt_)
             else:
                 formats.append({
                     'url': f'{self._CDN_ENDPOINT[sites_type]}{media}?X-Plex-Token={self._TOKEN}',
@@ -102,9 +108,8 @@ class PlexWatchBaseIE(InfoExtractor):
                     **metadata_field
                 })
 
-            formats.extend(fmt)
+            formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
-
         return formats, subtitles
 
     def _get_clips(self, nextjs_json, display_id):
@@ -119,7 +124,7 @@ class PlexWatchBaseIE(InfoExtractor):
 
         for media in traverse_obj(media_json_list, (..., 'MediaContainer', 'Metadata', ...)) or []:
             for media_ in traverse_obj(media, ('Media', ..., 'Part', ..., 'key')):
-                fmt, sub = self._get_formats_and_subtitles(media_, display_id)
+                fmt, sub = self._get_formats_and_subtitles(media_, display_id, format_field={'format_note': 'Extras video'})
                 yield {
                     'id': media['ratingKey'],
                     'title': media['title'],
@@ -127,49 +132,61 @@ class PlexWatchBaseIE(InfoExtractor):
                     'subtitles': sub,
                 }
 
+    def _extract_movie(self, nextjs_json, display_id, sites_type, **kwargs):
+        media_json = self._download_json(
+            'https://play.provider.plex.tv/playQueues', display_id,
+            query={'uri': nextjs_json['playableKey']}, data=b'',
+            headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
+
+        selected_media = []
+        for media in media_json['MediaContainer']['Metadata']:
+            if media.get('slug') == display_id or sites_type == 'show':
+                selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
+                break
+
+        formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id)
+        self._sort_formats(formats)
+
+        return {
+            'id': nextjs_json.get('playableID') or nextjs_json['ratingKey'],
+            'display_id': display_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            'title': nextjs_json.get('title'),
+            'alt_title': nextjs_json.get('originalTitle'),
+            'description': nextjs_json.get('summary'),
+            'thumbnail': nextjs_json.get('thumb'),
+            'duration': int_or_none(nextjs_json.get('duration'), 1000),
+            'cast': traverse_obj(nextjs_json, ('Role', ..., 'tag')),
+            'rating': parse_age_limit(nextjs_json.get('contentRating')),
+            'categories': traverse_obj(nextjs_json, ('Genre', ..., 'tag')),
+            **kwargs,
+        }
+
     def _extract_data(self, url, **kwargs):
         sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
 
         nextjs_json = self._search_nextjs_data(
             self._download_webpage(url, display_id), display_id)['props']['pageProps']['metadataItem']
+
+        movie_entry, trailer_entry = [], []
         if nextjs_json.get('playableKey'):
-            media_json = self._download_json(
-                'https://play.provider.plex.tv/playQueues', display_id,
-                query={'uri': nextjs_json['playableKey']}, data=b'',
-                headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
-
-            selected_media = []
-            for media in media_json['MediaContainer']['Metadata']:
-                if media.get('slug') == display_id or sites_type == 'show':
-                    selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
-                    break
-
-            formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id)
-            self._sort_formats(formats)
-
-            return {
-                **kwargs,
-                'id': nextjs_json.get('playableID') or nextjs_json['ratingKey'],
-                'display_id': display_id,
-                'formats': formats,
-                'subtitles': subtitles,
-                'title': nextjs_json.get('title'),
-                'description': nextjs_json.get('summary'),
-                'thumbnail': nextjs_json.get('thumb'),
-                'duration': int_or_none(nextjs_json.get('duration'), 1000),
-                'cast': traverse_obj(nextjs_json, ('Role', ..., 'tag')),
-                'rating': parse_age_limit(nextjs_json.get('contentRating')),
-                'categories': traverse_obj(nextjs_json, ('Genre', ..., 'tag')),
-            }
+            movie_entry = [self._extract_movie(nextjs_json, display_id, sites_type, **kwargs)]
 
         if nextjs_json.get('Extras'):
-            return self.playlist_result(
-                self._get_clips(nextjs_json, display_id), nextjs_json['ratingKey'], nextjs_json.get('title'))
+            trailer_entry = list(self._get_clips(nextjs_json, display_id))
+
+        movie_entry.extend(trailer_entry)
+        if self._yes_playlist(nextjs_json['ratingKey'], 'Movie'):
+            return self.playlist_result(movie_entry, nextjs_json['ratingKey'], nextjs_json.get('title'))
+        else:
+            return movie_entry[0]
 
 
 class PlexWatchMovieIE(PlexWatchBaseIE):
     _VALID_URL = r'https?://watch\.plex\.tv/(?:\w+/)?(?:country/\w+/)?(?P<sites_type>movie)/(?P<id>[\w-]+)'
     _TESTS = [{
+        # movie only
         'url': 'https://watch.plex.tv/movie/bowery-at-midnight',
         'info_dict': {
             'id': '627585f7408eb57249d905d5',
@@ -183,13 +200,21 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
             'categories': ['Horror', 'Action', 'Comedy', 'Crime', 'Thriller'],
         }
     }, {
-        # trailer
+        # trailer only
         'url': 'https://watch.plex.tv/movie/the-sea-beast-2',
         'info_dict': {
             'id': '5d77709a6afb3d002061df55',
             'title': 'The Sea Beast'
         },
         'playlist_count': 4,
+    }, {
+        # movie and trailer
+        'url': 'https://watch.plex.tv/movie/wheels-on-meals',
+        'info_dict': {
+            'id': '5d776d10594b2b001e700571',
+            'title': 'Wheels on Meals',
+        },
+        'playlist_count': 2,
     }]
 
     def _real_extract(self, url):
@@ -317,7 +342,7 @@ class PlexAppIE(PlexWatchBaseIE):
             'title': 'Nazi Concentration and Prison Camps',
             'thumbnail': 'https://image.tmdb.org/t/p/original/uNxkPkR2GGG71JSyh2Lqptnwcwm.jpg',
             'cast': ['Dwight D. Eisenhower', 'Jack Taylor'],
-            'duration': 3517,
+            'duration': 3540,
             'description': 'md5:cc021d47035520acf2e027b8b4d244c2',
             'view_count': int,
             'categories': ['Documentary', 'History'],
@@ -388,6 +413,7 @@ class PlexAppIE(PlexWatchBaseIE):
                 'cast': traverse_obj(media_json, ('Role', ..., 'tag')),
                 'rating': parse_age_limit(media_json.get('contentRating')),
             }
+
             return self.url_result(media_json.get('publicPagesURL'), url_transparent=True, **additional_info)
 
         else:
