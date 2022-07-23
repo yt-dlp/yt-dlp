@@ -169,18 +169,17 @@ class PlexWatchBaseIE(InfoExtractor):
         nextjs_json = self._search_nextjs_data(
             self._download_webpage(url, display_id), display_id)['props']['pageProps']['metadataItem']
 
-        movie_entry, trailer_entry = [], []
-        if nextjs_json.get('playableKey'):
-            movie_entry = [self._extract_movie(nextjs_json, display_id, sites_type, **kwargs)]
+        movie_entry = [self._extract_movie(nextjs_json, display_id, sites_type, **kwargs)] if nextjs_json.get('playableKey') else []
+        trailer_entry = list(self._get_clips(nextjs_json, display_id)) if nextjs_json.get('Extras') else []
 
-        if nextjs_json.get('Extras'):
-            trailer_entry = list(self._get_clips(nextjs_json, display_id))
-
-        movie_entry.extend(trailer_entry)
         if self._yes_playlist(nextjs_json['ratingKey'], 'Movie'):
+            movie_entry.extend(trailer_entry)
             return self.playlist_result(movie_entry, nextjs_json['ratingKey'], nextjs_json.get('title'))
         else:
-            return movie_entry[0]
+            if len(movie_entry) == 0:
+                raise ExtractorError('No movie/episode video found')
+            else:
+                return movie_entry[0]
 
 
 class PlexWatchMovieIE(PlexWatchBaseIE):
