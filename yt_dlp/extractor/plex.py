@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     determine_ext,
+    float_or_none,
     int_or_none,
     parse_age_limit,
     traverse_obj,
@@ -132,7 +133,10 @@ class PlexWatchBaseIE(InfoExtractor):
                     'subtitles': sub,
                 }
 
-    def _extract_movie(self, nextjs_json, display_id, sites_type, **kwargs):
+    def _extract_movie(self, webpage, display_id, sites_type, **kwargs):
+        nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['metadataItem']
+        json_ld_json = self._search_json_ld(webpage, display_id)
+        print(json_ld_json)
         media_json = self._download_json(
             'https://play.provider.plex.tv/playQueues', display_id,
             query={'uri': nextjs_json['playableKey']}, data=b'',
@@ -152,24 +156,27 @@ class PlexWatchBaseIE(InfoExtractor):
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            'title': nextjs_json.get('title'),
+            'title': nextjs_json.get('title') or self._og_search_title(webpage) or json_ld_json.get('title'),
             'alt_title': nextjs_json.get('originalTitle'),
-            'description': nextjs_json.get('summary'),
-            'thumbnail': nextjs_json.get('thumb'),
-            'duration': int_or_none(nextjs_json.get('duration'), 1000),
+            'description': nextjs_json.get('summary') or self._og_search_description(webpage) or json_ld_json.get('description'),
+            'thumbnail': nextjs_json.get('thumb') or self._og_search_thumbnail(webpage),
+            'duration': int_or_none(nextjs_json.get('duration') or json_ld_json.get('duration'), 1000),
             'cast': traverse_obj(nextjs_json, ('Role', ..., 'tag')),
             'rating': parse_age_limit(nextjs_json.get('contentRating')),
             'categories': traverse_obj(nextjs_json, ('Genre', ..., 'tag')),
+            'release_date': self._html_search_meta('video:release_date', webpage),
+            'average_rating': float_or_none(json_ld_json.get('average_rating')),
+            'series': json_ld_json.get('series'),
+            'episode': json_ld_json.get('episode'),
             **kwargs,
         }
 
     def _extract_data(self, url, **kwargs):
         sites_type, display_id = self._match_valid_url(url).group('sites_type', 'id')
+        webpage = self._download_webpage(url, display_id)
+        nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['metadataItem']
 
-        nextjs_json = self._search_nextjs_data(
-            self._download_webpage(url, display_id), display_id)['props']['pageProps']['metadataItem']
-
-        movie_entry = [self._extract_movie(nextjs_json, display_id, sites_type, **kwargs)] if nextjs_json.get('playableKey') else []
+        movie_entry = [self._extract_movie(webpage, display_id, sites_type, **kwargs)] if nextjs_json.get('playableKey') else []
 
         if self._yes_playlist(nextjs_json['ratingKey'], 'Movie'):
             trailer_entry = list(self._get_clips(nextjs_json, display_id)) if nextjs_json.get('Extras') else []
@@ -197,6 +204,7 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
             'thumbnail': 'https://image.tmdb.org/t/p/original/lDWHvIotQkogG77wHVuMT8mF8P.jpg',
             'cast': 'count:22',
             'categories': ['Horror', 'Action', 'Comedy', 'Crime', 'Thriller'],
+            'release_date': '1942-10-30',
         }
     }, {
         # trailer only
@@ -232,9 +240,11 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'thumbnail': 'https://image.tmdb.org/t/p/original/r3SwiK3IANuAAvb1a0oShu8HKcV.jpg',
             'title': 'Barbecue for Two',
             'episode_number': 1,
-            'episode': 'Episode 1',
+            'episode': 'Barbecue for Two',
             'season': 'Season 1',
             'season_number': 1,
+            'release_date': '1960-06-10',
+            'series': 'Popeye the Sailor',
         }
     }, {
         'url': 'https://watch.plex.tv/show/a-cooks-tour-2/season/1/episode/3',
@@ -245,10 +255,13 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'display_id': 'a-cooks-tour-2',
             'title': 'Cobra Heart, Food That Makes You Manly',
             'thumbnail': 'https://metadata-static.plex.tv/b/gracenote/b4452f949f600db816b3e6a51ce0674a.jpg',
-            'episode': 'Episode 3',
+            'episode': 'Cobra Heart, Food That Makes You Manly',
             'episode_number': 3,
             'season_number': 1,
             'season': 'Season 1',
+            'release_date': '2002-03-19',
+            'series': 'A Cook\'s Tour',
+            'average_rating': 10.0,
         }
     }]
 
@@ -343,8 +356,9 @@ class PlexAppIE(PlexWatchBaseIE):
             'cast': ['Dwight D. Eisenhower', 'Jack Taylor'],
             'duration': 3540,
             'description': 'md5:cc021d47035520acf2e027b8b4d244c2',
-            'view_count': int,
             'categories': ['Documentary', 'History'],
+            'release_date': '2017-04-22',
+            'average_rating': 8.3,
         },
         'params': {
             'skip_download': True
@@ -390,6 +404,7 @@ class PlexAppIE(PlexWatchBaseIE):
             'thumbnail': r're:https://image\.tmdb\.org/t/p/original/\w+\.jpg',
             'duration': 6000,
             'rating': 10,
+            'average_rating': 7.5,
         },
         'playlist_count': 22,
     }]
@@ -411,8 +426,8 @@ class PlexAppIE(PlexWatchBaseIE):
                 'duration': int_or_none(media_json.get('duration'), 1000),
                 'cast': traverse_obj(media_json, ('Role', ..., 'tag')),
                 'rating': parse_age_limit(media_json.get('contentRating')),
+                'average_rating': float_or_none(media_json.get('rating')),
             }
-
             return self.url_result(media_json.get('publicPagesURL'), url_transparent=True, **additional_info)
 
         else:
