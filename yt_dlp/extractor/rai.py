@@ -46,7 +46,7 @@ class RaiBaseIE(InfoExtractor):
         for platform in ('mon', 'flash', 'native'):
             relinker = self._download_xml(
                 relinker_url, video_id,
-                note='Downloading XML metadata for platform %s' % platform,
+                note=f'Downloading XML metadata for platform {platform}',
                 transform_source=fix_xml_ampersands,
                 query={'output': 45, 'pl': platform},
                 headers=self.geo_verification_headers())
@@ -100,7 +100,7 @@ class RaiBaseIE(InfoExtractor):
                 formats.append({
                     'url': media_url,
                     'tbr': bitrate if bitrate > 0 else None,
-                    'format_id': 'http-%d' % bitrate if bitrate > 0 else 'http',
+                    'format_id': f'http-{bitrate if bitrate > 0 else "http"}',
                 })
 
         if not formats and geoprotection is True:
@@ -172,11 +172,11 @@ class RaiBaseIE(InfoExtractor):
                 'vcodec': format_copy.get('vcodec'),
                 'acodec': format_copy.get('acodec'),
                 'fps': format_copy.get('fps'),
-                'format_id': 'https-%s' % tbr,
+                'format_id': f'https-{tbr}',
             } if format_copy else {
                 'width': _QUALITY[tbr][0],
                 'height': _QUALITY[tbr][1],
-                'format_id': 'https-%s' % tbr,
+                'format_id': f'https-{tbr}',
                 'tbr': int(tbr),
             }
 
@@ -231,7 +231,7 @@ class RaiBaseIE(InfoExtractor):
 
 
 class RaiPlayIE(RaiBaseIE):
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/.+?-(?P<id>%s))\.(?:html|json)' % RaiBaseIE._UUID_RE
+    _VALID_URL = rf'(?P<base>https?://(?:www\.)?raiplay\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)'
     _TESTS = [{
         'url': 'http://www.raiplay.it/video/2014/04/Report-del-07042014-cb27157f-9dd0-4aee-b788-b1f67643a391.html',
         'md5': '8970abf8caf8aef4696e7b1f2adfc696',
@@ -321,6 +321,8 @@ class RaiPlayIE(RaiBaseIE):
 
         alt_title = join_nonempty(media.get('subtitle'), media.get('toptitle'), delim=' - ')
 
+        print(media)
+
         info = {
             'id': remove_start(media.get('id'), 'ContentItem-') or video_id,
             'display_id': video_id,
@@ -338,7 +340,7 @@ class RaiPlayIE(RaiBaseIE):
             'episode': media.get('episode_title'),
             'episode_number': int_or_none(media.get('episode')),
             'subtitles': subtitles,
-            'release_year': traverse_obj(media, ('track_info', 'edit_year')),
+            'release_year': int_or_none(traverse_obj(media, ('track_info', 'edit_year'))),
         }
 
         info.update(relinker_info)
@@ -408,7 +410,7 @@ class RaiPlayPlaylistIE(InfoExtractor):
                 if not s_id:
                     continue
                 medias = self._download_json(
-                    '%s/%s.json' % (base, s_id), s_id,
+                    f'{base}/{s_id}.json', s_id,
                     'Downloading content set JSON', fatal=False)
                 if not medias:
                     continue
@@ -427,7 +429,7 @@ class RaiPlayPlaylistIE(InfoExtractor):
 
 
 class RaiPlaySoundIE(RaiBaseIE):
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/.+?-(?P<id>%s))\.(?:html|json)' % RaiBaseIE._UUID_RE
+    _VALID_URL = rf'(?P<base>https?://(?:www\.)?raiplaysound\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)'
     _TESTS = [{
         'url': 'https://www.raiplaysound.it/audio/2021/12/IL-RUGGITO-DEL-CONIGLIO-1ebae2a7-7cdb-42bb-842e-fe0d193e9707.html',
         'md5': '8970abf8caf8aef4696e7b1f2adfc696',
@@ -545,7 +547,7 @@ class RaiPlaySoundPlaylistIE(InfoExtractor):
 
 
 class RaiIE(RaiBaseIE):
-    _VALID_URL = r'https?://[^/]+\.(?:rai\.(?:it|tv))/.+?-(?P<id>%s)(?:-.+?)?\.html' % RaiBaseIE._UUID_RE
+    _VALID_URL = rf'https?://[^/]+\.(?:rai\.(?:it|tv))/.+?-(?P<id>{RaiBaseIE._UUID_RE})(?:-.+?)?\.html'
     _TESTS = [{
         # var uniquename = "ContentItem-..."
         # data-id="ContentItem-..."
@@ -580,7 +582,7 @@ class RaiIE(RaiBaseIE):
 
     def _extract_from_content_id(self, content_id, url):
         media = self._download_json(
-            'https://www.rai.tv/dl/RaiTV/programmi/media/ContentItem-%s.html?json' % content_id,
+            f'https://www.rai.tv/dl/RaiTV/programmi/media/ContentItem-{content_id}.html?json',
             content_id, 'Downloading video JSON')
 
         title = media['name'].strip()
@@ -638,20 +640,20 @@ class RaiIE(RaiBaseIE):
              'twitter:player', 'jsonlink'), webpage, default=None)
         if content_item_url:
             content_item_id = self._search_regex(
-                r'ContentItem-(%s)' % self._UUID_RE, content_item_url,
+                rf'ContentItem-({self._UUID_RE})', content_item_url,
                 'content item id', default=None)
 
         if not content_item_id:
             content_item_id = self._search_regex(
-                r'''(?x)
+                rf'''(?x)
                     (?:
                         (?:initEdizione|drawMediaRaiTV)\(|
                         <(?:[^>]+\bdata-id|var\s+uniquename)=|
                         <iframe[^>]+\bsrc=
                     )
                     (["\'])
-                    (?:(?!\1).)*\bContentItem-(?P<id>%s)
-                ''' % self._UUID_RE,
+                    (?:(?!\1).)*\bContentItem-(?P<id>{self._UUID_RE})
+                ''',
                 webpage, 'content item id', default=None, group='id')
 
         content_item_ids = set()
