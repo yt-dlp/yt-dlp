@@ -199,8 +199,8 @@ class RaiBaseIE(InfoExtractor):
                 'url': _MP4_TMPL % (relinker_url, q),
                 'protocol': 'https',
                 'ext': 'mp4',
+                **get_format_info(q)
             }
-            fmt.update(get_format_info(q))
             formats.append(fmt)
         return formats
 
@@ -327,7 +327,7 @@ class RaiPlayIE(RaiBaseIE):
 
         alt_title = join_nonempty(media.get('subtitle'), media.get('toptitle'), delim=' - ')
 
-        info = {
+        return {
             'id': remove_start(media.get('id'), 'ContentItem-') or video_id,
             'display_id': video_id,
             'title': title,
@@ -345,10 +345,8 @@ class RaiPlayIE(RaiBaseIE):
             'episode_number': int_or_none(media.get('episode')),
             'subtitles': subtitles,
             'release_year': int_or_none(traverse_obj(media, ('track_info', 'edit_year'))),
+            **relinker_info
         }
-
-        info.update(relinker_info)
-        return info
 
 
 class RaiPlayLiveIE(RaiPlayIE):
@@ -624,7 +622,7 @@ class RaiIE(RaiBaseIE):
 
         subtitles = self._extract_subtitles(url, media)
 
-        info = {
+        return {
             'id': content_id,
             'title': title,
             'description': strip_or_none(media.get('desc') or None),
@@ -633,11 +631,8 @@ class RaiIE(RaiBaseIE):
             'upload_date': unified_strdate(media.get('date')),
             'duration': parse_duration(media.get('length')),
             'subtitles': subtitles,
+            **relinker_info
         }
-
-        info.update(relinker_info)
-
-        return info
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -704,14 +699,11 @@ class RaiIE(RaiBaseIE):
             webpage, 'title', group='title',
             default=None) or self._og_search_title(webpage)
 
-        info = {
+        return {
             'id': video_id,
             'title': title,
+            **relinker_info
         }
-
-        info.update(relinker_info)
-
-        return info
 
 
 class RaiNewsIE(RaiIE):
