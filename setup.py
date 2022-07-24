@@ -136,7 +136,7 @@ setup(
     url='https://github.com/yt-dlp/yt-dlp',
     packages=packages(),
     install_requires=REQUIREMENTS,
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     project_urls={
         'Documentation': 'https://github.com/yt-dlp/yt-dlp#readme',
         'Source': 'https://github.com/yt-dlp/yt-dlp',
@@ -148,7 +148,6 @@ setup(
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',

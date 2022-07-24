@@ -6,7 +6,10 @@ import sys
 
 from PyInstaller.__main__ import run as run_pyinstaller
 
-OS_NAME, ARCH = sys.platform, platform.architecture()[0][:2]
+OS_NAME, MACHINE, ARCH = sys.platform, platform.machine(), platform.architecture()[0][:2]
+if MACHINE in ('x86_64', 'AMD64') or ('i' in MACHINE and '86' in MACHINE):
+    # NB: Windows x86 has MACHINE = AMD64 irrespective of bitness
+    MACHINE = 'x86' if ARCH == '32' else ''
 
 
 def main():
@@ -18,7 +21,7 @@ def main():
         opts.append('--onefile')
 
     name, final_file = exe(onedir)
-    print(f'Building yt-dlp v{version} {ARCH}bit for {OS_NAME} with options {opts}')
+    print(f'Building yt-dlp v{version} for {OS_NAME} {platform.machine()} with options {opts}')
     print('Remember to update the version using  "devscripts/update-version.py"')
     if not os.path.isfile('yt_dlp/extractor/lazy_extractors.py'):
         print('WARNING: Building without lazy_extractors. Run  '
@@ -30,9 +33,6 @@ def main():
         '--icon=devscripts/logo.ico',
         '--upx-exclude=vcruntime140.dll',
         '--noconfirm',
-        # NB: Modules that are only imported dynamically must be added here.
-        # --collect-submodules may not work correctly if user has a yt-dlp installed via PIP
-        '--hidden-import=yt_dlp.compat._legacy',
         *dependency_options(),
         *opts,
         'yt_dlp/__main__.py',
@@ -65,7 +65,7 @@ def exe(onedir):
     name = '_'.join(filter(None, (
         'yt-dlp',
         {'win32': '', 'darwin': 'macos'}.get(OS_NAME, OS_NAME),
-        ARCH == '32' and 'x86'
+        MACHINE
     )))
     return name, ''.join(filter(None, (
         'dist/',
@@ -122,7 +122,7 @@ def windows_set_version(exe, version):
     )
 
     version_list = version_to_list(version)
-    suffix = '_x86' if ARCH == '32' else ''
+    suffix = MACHINE and f'_{MACHINE}'
     SetVersion(exe, VSVersionInfo(
         ffi=FixedFileInfo(
             filevers=version_list,
@@ -136,9 +136,9 @@ def windows_set_version(exe, version):
         ),
         kids=[
             StringFileInfo([StringTable('040904B0', [
-                StringStruct('Comments', 'yt-dlp%s Command Line Interface.' % suffix),
+                StringStruct('Comments', 'yt-dlp%s Command Line Interface' % suffix),
                 StringStruct('CompanyName', 'https://github.com/yt-dlp'),
-                StringStruct('FileDescription', 'yt-dlp%s' % (' (32 Bit)' if ARCH == '32' else '')),
+                StringStruct('FileDescription', 'yt-dlp%s' % (MACHINE and f' ({MACHINE})')),
                 StringStruct('FileVersion', version),
                 StringStruct('InternalName', f'yt-dlp{suffix}'),
                 StringStruct('LegalCopyright', 'pukkandan.ytdlp@gmail.com | UNLICENSE'),

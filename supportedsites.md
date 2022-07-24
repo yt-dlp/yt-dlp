@@ -4,6 +4,7 @@
  - **17live**
  - **17live:clip**
  - **1tv**: Первый канал
+ - **20.detik.com**
  - **20min**
  - **23video**
  - **247sports**
@@ -31,6 +32,8 @@
  - **AcademicEarth:Course**
  - **acast**
  - **acast:channel**
+ - **AcFunBangumi**
+ - **AcFunVideo**
  - **ADN**: [<abbr title="netrc machine"><em>animedigitalnetwork</em></abbr>] Anime Digital Network
  - **AdobeConnect**
  - **adobetv**
@@ -94,6 +97,8 @@
  - **ATVAt**
  - **AudiMedia**
  - **AudioBoom**
+ - **Audiodraft:custom**
+ - **Audiodraft:generic**
  - **audiomack**
  - **audiomack:album**
  - **Audius**: Audius.co
@@ -205,6 +210,7 @@
  - **CCMA**
  - **CCTV**: 央视网
  - **CDA**
+ - **Cellebrite**
  - **CeskaTelevize**
  - **CGTN**
  - **channel9**: Channel 9
@@ -503,6 +509,7 @@
  - **HungamaSong**
  - **huya:live**: huya.com
  - **Hypem**
+ - **Hytale**
  - **Icareus**
  - **ign.com**
  - **IGNArticle**
@@ -615,6 +622,7 @@
  - **linkedin:learning**: [<abbr title="netrc machine"><em>linkedin</em></abbr>]
  - **linkedin:learning:course**: [<abbr title="netrc machine"><em>linkedin</em></abbr>]
  - **LinuxAcademy**: [<abbr title="netrc machine"><em>linuxacademy</em></abbr>]
+ - **Liputan6**
  - **LiTV**
  - **LiveJournal**
  - **livestream**
@@ -698,6 +706,7 @@
  - **MLSSoccer**
  - **Mnet**
  - **MNetTV**: [<abbr title="netrc machine"><em>mnettv</em></abbr>]
+ - **MochaVideo**
  - **MoeVideo**: LetitBit video services: moevideo.net, playreplay.net and videochart.net
  - **Mofosex**
  - **MofosexEmbed**
@@ -1068,10 +1077,14 @@
  - **RTDocumentryPlaylist**
  - **rte**: Raidió Teilifís Éireann TV
  - **rte:radio**: Raidió Teilifís Éireann radio
+ - **rtl.lu:article**
+ - **rtl.lu:tele-vod**
  - **rtl.nl**: rtl.nl and rtlxl.nl
  - **rtl2**
  - **rtl2:you**
  - **rtl2:you:series**
+ - **RTLLuLive**
+ - **RTLLuRadio**
  - **RTNews**
  - **RTP**
  - **RTRFM**
@@ -1083,6 +1096,7 @@
  - **rtve.es:television**
  - **RTVNH**
  - **RTVS**
+ - **rtvslo.si**
  - **RUHD**
  - **Rule34Video**
  - **RumbleChannel**
@@ -1191,6 +1205,7 @@
  - **SRGSSR**
  - **SRGSSRPlay**: srf.ch, rts.ch, rsi.ch, rtr.ch and swissinfo.ch play sites
  - **stanfordoc**: Stanford Open ClassRoom
+ - **StarTrek**
  - **startv**
  - **Steam**
  - **SteamCommunityBroadcast**
@@ -1218,6 +1233,7 @@
  - **SVTSeries**
  - **SWRMediathek**
  - **Syfy**
+ - **SYVDK**
  - **SztvHu**
  - **t-online.de**
  - **Tagesschau**
@@ -1256,6 +1272,7 @@
  - **TenPlay**: [<abbr title="netrc machine"><em>10play</em></abbr>]
  - **TF1**
  - **TFO**
+ - **TheHoleTv**
  - **TheIntercept**
  - **ThePlatform**
  - **ThePlatformFeed**
@@ -1298,6 +1315,8 @@
  - **TruNews**
  - **TruTV**
  - **Tube8**
+ - **TubeTuGraz**: [<abbr title="netrc machine"><em>tubetugraz</em></abbr>] tube.tugraz.at
+ - **TubeTuGrazSeries**: [<abbr title="netrc machine"><em>tubetugraz</em></abbr>]
  - **TubiTv**: [<abbr title="netrc machine"><em>tubitv</em></abbr>]
  - **TubiTvShow**
  - **Tumblr**: [<abbr title="netrc machine"><em>tumblr</em></abbr>]
@@ -1326,6 +1345,7 @@
  - **TVCArticle**
  - **TVer**
  - **tvigle**: Интернет-телевидение Tvigle.ru
+ - **TVIPlayer**
  - **tvland.com**
  - **TVN24**
  - **TVNet**
@@ -1498,7 +1518,10 @@
  - **Weibo**
  - **WeiboMobile**
  - **WeiqiTV**: WQTV
+ - **wetv:episode**
+ - **WeTvSeries**
  - **whowatch**
+ - **wikimedia.org**
  - **Willow**
  - **WimTV**
  - **Wistia**

@@ -11,13 +11,14 @@ import math
 import netrc
 import os
 import random
+import re
 import sys
 import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
-from ..compat import functools, re  # isort: split
+from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media
@@ -383,6 +384,10 @@ class InfoExtractor:
     section_start:  Start time of the section in seconds
     section_end:    End time of the section in seconds
 
+    The following fields should only be set for storyboards:
+    rows:           Number of rows in each storyboard fragment, as an integer
+    columns:        Number of columns in each storyboard fragment, as an integer
+
     Unless mentioned otherwise, the fields should be Unicode strings.
 
     Unless mentioned otherwise, None is equivalent to absence of information.
@@ -642,10 +647,10 @@ class InfoExtractor:
                         return None
                     if self._x_forwarded_for_ip:
                         ie_result['__x_forwarded_for_ip'] = self._x_forwarded_for_ip
-                    subtitles = ie_result.get('subtitles')
-                    if (subtitles and 'live_chat' in subtitles
-                            and 'no-live-chat' in self.get_param('compat_opts', [])):
-                        del subtitles['live_chat']
+                    subtitles = ie_result.get('subtitles') or {}
+                    if 'no-live-chat' in self.get_param('compat_opts'):
+                        for lang in ('live_chat', 'comments', 'danmaku'):
+                            subtitles.pop(lang, None)
                     return ie_result
                 except GeoRestrictedError as e:
                     if self.__maybe_fake_ip_and_retry(e.countries):
@@ -925,39 +930,37 @@ class InfoExtractor:
 
         return content
 
-    def _parse_xml(self, xml_string, video_id, transform_source=None, fatal=True):
+    def __print_error(self, errnote, fatal, video_id, err):
+        if fatal:
+            raise ExtractorError(f'{video_id}: {errnote}', cause=err)
+        elif errnote:
+            self.report_warning(f'{video_id}: {errnote}: {err}')
+
+    def _parse_xml(self, xml_string, video_id, transform_source=None, fatal=True, errnote=None):
         if transform_source:
             xml_string = transform_source(xml_string)
         try:
             return compat_etree_fromstring(xml_string.encode('utf-8'))
         except xml.etree.ElementTree.ParseError as ve:
-            errmsg = '%s: Failed to parse XML ' % video_id
-            if fatal:
-                raise ExtractorError(errmsg, cause=ve)
-            else:
-                self.report_warning(errmsg + str(ve))
+            self.__print_error('Failed to parse XML' if errnote is None else errnote, fatal, video_id, ve)
 
-    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True, **parser_kwargs):
+    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True, errnote=None, **parser_kwargs):
         try:
             return json.loads(
                 json_string, cls=LenientJSONDecoder, strict=False, transform_source=transform_source, **parser_kwargs)
         except ValueError as ve:
-            errmsg = f'{video_id}: Failed to parse JSON'
-            if fatal:
-                raise ExtractorError(errmsg, cause=ve)
-            else:
-                self.report_warning(f'{errmsg}: {ve}')
+            self.__print_error('Failed to parse JSON' if errnote is None else errnote, fatal, video_id, ve)
 
-    def _parse_socket_response_as_json(self, data, video_id, transform_source=None, fatal=True):
-        return self._parse_json(
-            data[data.find('{'):data.rfind('}') + 1],
-            video_id, transform_source, fatal)
+    def _parse_socket_response_as_json(self, data, *args, **kwargs):
+        return self._parse_json(data[data.find('{'):data.rfind('}') + 1], *args, **kwargs)
 
     def __create_download_methods(name, parser, note, errnote, return_value):
 
-        def parse(ie, content, *args, **kwargs):
+        def parse(ie, content, *args, errnote=errnote, **kwargs):
             if parser is None:
                 return content
+            if errnote is False:
+                kwargs['errnote'] = errnote
             # parser is fetched by name so subclasses can override it
             return getattr(ie, parser)(content, *args, **kwargs)
 
@@ -969,7 +972,7 @@ class InfoExtractor:
             if res is False:
                 return res
             content, urlh = res
-            return parse(self, content, video_id, transform_source=transform_source, fatal=fatal), urlh
+            return parse(self, content, video_id, transform_source=transform_source, fatal=fatal, errnote=errnote), urlh
 
         def download_content(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
                              fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
@@ -984,7 +987,7 @@ class InfoExtractor:
                     self.report_warning(f'Unable to load request from disk: {e}')
                 else:
                     content = self.__decode_webpage(webpage_bytes, encoding, url_or_request.headers)
-                    return parse(self, content, video_id, transform_source, fatal)
+                    return parse(self, content, video_id, transform_source=transform_source, fatal=fatal, errnote=errnote)
             kwargs = {
                 'note': note,
                 'errnote': errnote,
@@ -1502,7 +1505,7 @@ class InfoExtractor:
                 'url': url_or_none(e.get('contentUrl')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
-                'thumbnails': [{'url': url}
+                'thumbnails': [{'url': unescapeHTML(url)}
                                for url in variadic(traverse_obj(e, 'thumbnailUrl', 'thumbnailURL'))
                                if url_or_none(url)],
                 'duration': parse_duration(e.get('duration')),

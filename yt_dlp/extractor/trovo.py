@@ -43,7 +43,27 @@ class TrovoBaseIE(InfoExtractor):
 
 
 class TrovoIE(TrovoBaseIE):
-    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?!(?:clip|video)/)(?P<id>[^/?&#]+)'
+    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:s/)?(?!(?:clip|video)/)(?P<id>(?!s/)[^/?&#]+(?![^#]+[?&]vid=))'
+    _TESTS = [{
+        'url': 'https://trovo.live/Exsl',
+        'only_matching': True,
+    }, {
+        'url': 'https://trovo.live/s/SkenonSLive/549759191497',
+        'only_matching': True,
+    }, {
+        'url': 'https://trovo.live/s/zijo987/208251706',
+        'info_dict': {
+            'id': '104125853_104125853_1656439572',
+            'ext': 'flv',
+            'uploader_url': 'https://trovo.live/zijo987',
+            'uploader_id': '104125853',
+            'thumbnail': 'https://livecover.trovo.live/screenshot/73846_104125853_104125853-2022-06-29-04-00-22-852x480.jpg',
+            'uploader': 'zijo987',
+            'title': '💥IGRAMO IGRICE UPADAJTE💥2500/5000 2022-06-28 22:01',
+            'live_status': 'is_live',
+        },
+        'skip': 'May not be live'
+    }]
 
     def _real_extract(self, url):
         username = self._match_id(url)
@@ -71,6 +91,7 @@ class TrovoIE(TrovoBaseIE):
                 'format_id': format_id,
                 'height': int_or_none(format_id[:-1]) if format_id else None,
                 'url': play_url,
+                'tbr': stream_info.get('bitrate'),
                 'http_headers': self._HEADERS,
             })
         self._sort_formats(formats)
@@ -87,7 +108,7 @@ class TrovoIE(TrovoBaseIE):
 
 
 class TrovoVodIE(TrovoBaseIE):
-    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:clip|video)/(?P<id>[^/?&#]+)'
+    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:clip|video|s)/(?:[^/]+/\d+[^#]*[?&]vid=)?(?P<id>(?<!/s/)[^/?&#]+)'
     _TESTS = [{
         'url': 'https://trovo.live/clip/lc-5285890818705062210?ltab=videos',
         'params': {'getcomments': True},
@@ -109,7 +130,28 @@ class TrovoVodIE(TrovoBaseIE):
             'thumbnail': r're:^https?://.*\.jpg',
         },
     }, {
+        'url': 'https://trovo.live/s/SkenonSLive/549759191497?vid=ltv-100829718_100829718_387702301737980280',
+        'info_dict': {
+            'id': 'ltv-100829718_100829718_387702301737980280',
+            'ext': 'mp4',
+            'timestamp': 1654909624,
+            'thumbnail': 'http://vod.trovo.live/1f09baf0vodtransger1301120758/ef9ea3f0387702301737980280/coverBySnapshot/coverBySnapshot_10_0.jpg',
+            'uploader_id': '100829718',
+            'uploader': 'SkenonSLive',
+            'title': 'Trovo u secanju, uz par modova i muzike :)',
+            'uploader_url': 'https://trovo.live/SkenonSLive',
+            'duration': 10830,
+            'view_count': int,
+            'like_count': int,
+            'upload_date': '20220611',
+            'comment_count': int,
+            'categories': ['Minecraft'],
+        }
+    }, {
         'url': 'https://trovo.live/video/ltv-100095501_100095501_1609596043',
+        'only_matching': True,
+    }, {
+        'url': 'https://trovo.live/s/SkenonSLive/549759191497?foo=bar&vid=ltv-100829718_100829718_387702301737980280',
         'only_matching': True,
     }]
 
