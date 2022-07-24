@@ -249,6 +249,8 @@ class RaiPlayIE(RaiBaseIE):
             'subtitles': {
                 'it': 'count:4',
             },
+            'release_year': 2022,
+            'episode': 'Espresso nel caffè - 07/04/2014',
         },
         'params': {
             'skip_download': True,
@@ -268,6 +270,10 @@ class RaiPlayIE(RaiBaseIE):
             'duration': 6493,
             'series': 'Blanca',
             'season': 'Season 1',
+            'episode_number': 1,
+            'release_year': 2021,
+            'season_number': 1,
+            'episode': 'Senza occhi',
         },
     }, {
         'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
@@ -321,13 +327,11 @@ class RaiPlayIE(RaiBaseIE):
 
         alt_title = join_nonempty(media.get('subtitle'), media.get('toptitle'), delim=' - ')
 
-        print(media)
-
         info = {
             'id': remove_start(media.get('id'), 'ContentItem-') or video_id,
             'display_id': video_id,
             'title': title,
-            'alt_title': strip_or_none(alt_title),
+            'alt_title': strip_or_none(alt_title or None),
             'description': media.get('description'),
             'uploader': strip_or_none(media.get('channel') or None),
             'creator': strip_or_none(media.get('editor') or None),
@@ -360,6 +364,7 @@ class RaiPlayLiveIE(RaiPlayIE):
             'uploader': 'Rai News 24',
             'creator': 'Rai News 24',
             'is_live': True,
+            'live_status': 'is_live',
         },
         'params': {
             'skip_download': True,
@@ -437,11 +442,14 @@ class RaiPlaySoundIE(RaiBaseIE):
             'id': '1ebae2a7-7cdb-42bb-842e-fe0d193e9707',
             'ext': 'mp3',
             'title': 'Il Ruggito del Coniglio del 10/12/2021',
+            'alt_title': 'md5:0e6476cd57858bb0f3fcc835d305b455',
             'description': 'md5:2a17d2107e59a4a8faa0e18334139ee2',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'rai radio 2',
             'duration': 5685,
             'series': 'Il Ruggito del Coniglio',
+            'episode': 'Il Ruggito del Coniglio del 10/12/2021',
+            'creator': 'rai radio 2',
         },
         'params': {
             'skip_download': True,
@@ -473,7 +481,7 @@ class RaiPlaySoundIE(RaiBaseIE):
             'id': uid or audio_id,
             'display_id': audio_id,
             'title': traverse_obj(media, 'title', 'episode_title'),
-            'alt_title': traverse_obj(media, ('track_info', 'media_name')),
+            'alt_title': traverse_obj(media, ('track_info', 'media_name'), expected_type=strip_or_none),
             'description': media.get('description'),
             'uploader': traverse_obj(media, ('track_info', 'channel'), expected_type=strip_or_none),
             'creator': traverse_obj(media, ('track_info', 'editor'), expected_type=strip_or_none),
@@ -495,10 +503,13 @@ class RaiPlaySoundLiveIE(RaiPlaySoundIE):
             'id': 'b00a50e6-f404-4af6-8f8c-ff3b9af73a44',
             'display_id': 'radio2',
             'ext': 'mp4',
-            'title': 'Rai Radio 2',
+            'title': r're:Rai Radio 2 \d+-\d+-\d+ \d+:\d+',
+            'thumbnail': r're:https://www.raiplaysound.it/dl/img/.+?png',
             'uploader': 'rai radio 2',
+            'series': 'Rai Radio 2',
             'creator': 'raiplaysound',
             'is_live': True,
+            'live_status': 'is_live',
         },
         'params': {
             'skip_download': 'live',
@@ -616,7 +627,7 @@ class RaiIE(RaiBaseIE):
         info = {
             'id': content_id,
             'title': title,
-            'description': strip_or_none(media.get('desc')),
+            'description': strip_or_none(media.get('desc') or None),
             'thumbnails': thumbnails,
             'uploader': strip_or_none(media.get('author') or None),
             'upload_date': unified_strdate(media.get('date')),
