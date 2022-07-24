@@ -143,7 +143,7 @@ class PlexWatchBaseIE(InfoExtractor):
             headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})['MediaContainer']['Metadata']
 
         selected_media = []
-        
+
         media_index = 0
         for media in media_json:
             if media.get('slug') == display_id or sites_type == 'show':
@@ -153,7 +153,7 @@ class PlexWatchBaseIE(InfoExtractor):
 
         formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id)
         self._sort_formats(formats)
-        
+
         return {
             'id': nextjs_json.get('playableID') or nextjs_json['ratingKey'],
             'display_id': display_id,
@@ -164,15 +164,16 @@ class PlexWatchBaseIE(InfoExtractor):
             'description': nextjs_json.get('summary') or self._og_search_description(webpage) or json_ld_json.get('description'),
             'thumbnail': traverse_obj(media_json, (media_index, 'thumb')) or nextjs_json.get('thumb') or self._og_search_thumbnail(webpage),
             'duration': int_or_none(traverse_obj(media_json, (media_index, 'duration')) or nextjs_json.get('duration') or json_ld_json.get('duration'), 1000),
-            'cast':  traverse_obj(nextjs_json, ('Role', ..., 'tag')) or traverse_obj(media_json, (media_index, 'Role', ..., 'tag')),
+            'cast': traverse_obj(nextjs_json, ('Role', ..., 'tag')) or traverse_obj(media_json, (media_index, 'Role', ..., 'tag')),
             'rating': parse_age_limit(traverse_obj(media_json, (media_index, 'contentRating')) or nextjs_json.get('contentRating')),
             'categories': traverse_obj(nextjs_json, ('Genre', ..., 'tag')),
             'release_date': self._html_search_meta('video:release_date', webpage),
-            'average_rating': float_or_none(json_ld_json.get('average_rating')),
+            'average_rating': float_or_none(traverse_obj(media_json, (media_index, 'rating')) or json_ld_json.get('average_rating')),
             'series': json_ld_json.get('series'),
             'episode': json_ld_json.get('episode'),
             'view_count': int_or_none(traverse_obj(media_json, (media_index, 'viewCount'))),
-            'average_rating': float_or_none(traverse_obj(media_json, (media_index, 'rating'))),
+            'comments': [{'author': review.get('tag'), 'text': review.get('text')} for review in nextjs_json.get('Review') or {}] or None,
+            'comment_count': int_or_none(len(nextjs_json.get('review') or [])),
             **kwargs,
         }
 
@@ -211,7 +212,8 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
             'categories': ['Horror', 'Action', 'Comedy', 'Crime', 'Thriller'],
             'release_date': '1942-10-30',
             'view_count': int,
-            
+            'comment_count': int,
+
         }
     }, {
         # trailer only
@@ -254,6 +256,7 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'series': 'Popeye the Sailor',
             'duration': 1376,
             'view_count': int,
+            'comment_count': int,
         }
     }, {
         'url': 'https://watch.plex.tv/show/a-cooks-tour-2/season/1/episode/3',
@@ -273,6 +276,7 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'average_rating': 10.0,
             'view_count': int,
             'duration': 1287,
+            'comment_count': int,
         }
     }]
 
@@ -371,6 +375,7 @@ class PlexAppIE(PlexWatchBaseIE):
             'release_date': '2017-04-22',
             'average_rating': 8.3,
             'view_count': int,
+            'comment_count': int,
         },
         'params': {
             'skip_download': True
@@ -393,6 +398,7 @@ class PlexAppIE(PlexWatchBaseIE):
             'season': 'Season 1',
             'series': 'Funniest Pets & People',
             'release_date': '2006-10-03',
+            'comment_count': int,
         },
         'params': {
             'skip_download': True,
