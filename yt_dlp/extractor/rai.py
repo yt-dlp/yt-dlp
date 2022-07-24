@@ -702,7 +702,7 @@ class RaiIE(RaiBaseIE):
 
 
 class RaiNewsIE(RaiIE):
-    _VALID_URL = r'https?://(www\.)?rainews\.it/.+?-(?P<id>%s)(?:-.+?)?\.html' % RaiBaseIE._UUID_RE
+    _VALID_URL = rf'https?://(www\.)?rainews\.it/[^?#]+-(?P<id>{RaiBaseIE._UUID_RE})(?:-[^/?#]+)?\.html'
     _TESTS = [{
         # new rainews player (#3911)
         'url': 'https://www.rainews.it/rubriche/24mm/video/2022/05/24mm-del-29052022-12cf645d-1ffd-4220-b27c-07c226dbdecf.html',
@@ -738,7 +738,7 @@ class RaiNewsIE(RaiIE):
             r'<rainews-player\s*data=\'', webpage, 'player_data', video_id,
             transform_source=clean_html, fatal=False)
         track_info = player_data.get('track_info')
-        relinker_url = player_data.get('mediapolis') or player_data.get('content_url') or None
+        relinker_url = traverse_obj(player_data, 'mediapolis', 'content_url')
 
         if not relinker_url:
             # fallback on old implementation for some old content
@@ -746,20 +746,16 @@ class RaiNewsIE(RaiIE):
                 return self._extract_from_content_id(video_id, url)
             except GeoRestrictedError:
                 raise
-            except ExtractorError:
-                raise ExtractorError('Relinker URL not found')
+            except ExtractorError as e:
+                raise ExtractorError('Relinker URL not found', cause=e)
 
-        relinker_info = self._extract_relinker_info(
-            urljoin(url, relinker_url), video_id)
+        relinker_info = self._extract_relinker_info(urljoin(url, relinker_url), video_id)
         self._sort_formats(relinker_info['formats'])
 
-        info = {
+        return {
             'id': video_id,
             'title': track_info.get('title') or self._og_search_title(webpage),
             'upload_date': unified_strdate(track_info.get('date')),
             'uploader': strip_or_none(track_info.get('editor') or None),
+            **relinker_info
         }
-
-        info.update(relinker_info)
-
-        return info
