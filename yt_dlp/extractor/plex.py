@@ -140,17 +140,20 @@ class PlexWatchBaseIE(InfoExtractor):
         media_json = self._download_json(
             'https://play.provider.plex.tv/playQueues', display_id,
             query={'uri': nextjs_json['playableKey']}, data=b'',
-            headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
+            headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})['MediaContainer']['Metadata']
 
         selected_media = []
-        for media in media_json['MediaContainer']['Metadata']:
+        
+        media_index = 0
+        for media in media_json:
             if media.get('slug') == display_id or sites_type == 'show':
+                media_index = media_json.index(media)
                 selected_media = traverse_obj(media, ('Media', ..., 'Part', ..., 'key'))
                 break
 
         formats, subtitles = self._get_formats_and_subtitles(selected_media, display_id)
         self._sort_formats(formats)
-
+        
         return {
             'id': nextjs_json.get('playableID') or nextjs_json['ratingKey'],
             'display_id': display_id,
@@ -159,15 +162,17 @@ class PlexWatchBaseIE(InfoExtractor):
             'title': nextjs_json.get('title') or self._og_search_title(webpage) or json_ld_json.get('title'),
             'alt_title': nextjs_json.get('originalTitle'),
             'description': nextjs_json.get('summary') or self._og_search_description(webpage) or json_ld_json.get('description'),
-            'thumbnail': nextjs_json.get('thumb') or self._og_search_thumbnail(webpage),
-            'duration': int_or_none(nextjs_json.get('duration') or json_ld_json.get('duration'), 1000),
-            'cast': traverse_obj(nextjs_json, ('Role', ..., 'tag')),
-            'rating': parse_age_limit(nextjs_json.get('contentRating')),
+            'thumbnail': traverse_obj(media_json, (media_index, 'thumb')) or nextjs_json.get('thumb') or self._og_search_thumbnail(webpage),
+            'duration': int_or_none(traverse_obj(media_json, (media_index, 'duration')) or nextjs_json.get('duration') or json_ld_json.get('duration'), 1000),
+            'cast':  traverse_obj(nextjs_json, ('Role', ..., 'tag')) or traverse_obj(media_json, (media_index, 'Role', ..., 'tag')),
+            'rating': parse_age_limit(traverse_obj(media_json, (media_index, 'contentRating')) or nextjs_json.get('contentRating')),
             'categories': traverse_obj(nextjs_json, ('Genre', ..., 'tag')),
             'release_date': self._html_search_meta('video:release_date', webpage),
             'average_rating': float_or_none(json_ld_json.get('average_rating')),
             'series': json_ld_json.get('series'),
             'episode': json_ld_json.get('episode'),
+            'view_count': int_or_none(traverse_obj(media_json, (media_index, 'viewCount'))),
+            'average_rating': float_or_none(traverse_obj(media_json, (media_index, 'rating'))),
             **kwargs,
         }
 
@@ -200,11 +205,13 @@ class PlexWatchMovieIE(PlexWatchBaseIE):
             'ext': 'mp4',
             'title': 'Bowery at Midnight',
             'description': 'md5:7ebaa1b530d98f042295e18d6f4f8c21',
-            'duration': 3660,
+            'duration': 3723,
             'thumbnail': 'https://image.tmdb.org/t/p/original/lDWHvIotQkogG77wHVuMT8mF8P.jpg',
             'cast': 'count:22',
             'categories': ['Horror', 'Action', 'Comedy', 'Crime', 'Thriller'],
             'release_date': '1942-10-30',
+            'view_count': int,
+            
         }
     }, {
         # trailer only
@@ -245,6 +252,8 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'season_number': 1,
             'release_date': '1960-06-10',
             'series': 'Popeye the Sailor',
+            'duration': 1376,
+            'view_count': int,
         }
     }, {
         'url': 'https://watch.plex.tv/show/a-cooks-tour-2/season/1/episode/3',
@@ -262,6 +271,8 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
             'release_date': '2002-03-19',
             'series': 'A Cook\'s Tour',
             'average_rating': 10.0,
+            'view_count': int,
+            'duration': 1287,
         }
     }]
 
@@ -354,11 +365,12 @@ class PlexAppIE(PlexWatchBaseIE):
             'title': 'Nazi Concentration and Prison Camps',
             'thumbnail': 'https://image.tmdb.org/t/p/original/uNxkPkR2GGG71JSyh2Lqptnwcwm.jpg',
             'cast': ['Dwight D. Eisenhower', 'Jack Taylor'],
-            'duration': 3540,
+            'duration': 3517,
             'description': 'md5:cc021d47035520acf2e027b8b4d244c2',
             'categories': ['Documentary', 'History'],
             'release_date': '2017-04-22',
             'average_rating': 8.3,
+            'view_count': int,
         },
         'params': {
             'skip_download': True
@@ -375,10 +387,12 @@ class PlexAppIE(PlexWatchBaseIE):
             'title': 'If you\'re happy and you know it',
             'episode_number': 1,
             'season_number': 1,
-            'episode': 'Episode 1',
+            'episode': 'If you\'re happy and you know it',
             'display_id': 'funniest-pets-and-people',
             'thumbnail': 'https://cf-images.us-east-1.prod.boltdns.net/v1/jit/6058083015001/d958c52a-3e73-4902-8623-adfe2f36ea3f/main/1280x720/11m15s61ms/match/image.jpg',
             'season': 'Season 1',
+            'series': 'Funniest Pets & People',
+            'release_date': '2006-10-03',
         },
         'params': {
             'skip_download': True,
