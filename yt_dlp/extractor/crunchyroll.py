@@ -870,10 +870,10 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
                 'height': thumb.get('height'),
             } for thumb in traverse_obj(episode_response, ('images', 'thumbnail', ..., ...)) or []],
             'subtitles': {
-                lang: {
+                lang: [{
                     'url': subtitle_data.get('url'),
                     'ext': subtitle_data.get('format')
-                } for lang, subtitle_data in get_streams('subtitles')
+                }] for lang, subtitle_data in get_streams('subtitles')
             },
         }
 
