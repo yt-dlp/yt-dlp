@@ -29,7 +29,7 @@ body:
       placeholder: Provide any additional information, any suggested solutions, and as much context and examples as possible
     validations:
       required: true
-    - type: checkboxes
+  - type: checkboxes
     id: verbose
     attributes:
       label: Provide verbose output that clearly demonstrates the problem
