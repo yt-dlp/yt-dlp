@@ -36,8 +36,7 @@ class HolodexIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_url = f'https://www.youtube.com/watch?v={video_id}'
-        return self.url_result(video_url, ie=YoutubeIE.ie_key())
+        return self.url_result(f'https://www.youtube.com/watch?v={video_id}', ie=YoutubeIE.ie_key())
 
 
 class HolodexPlaylistIE(InfoExtractor):
@@ -53,12 +52,10 @@ class HolodexPlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        apiurl = f"https://holodex.net/api/v2/playlist/{playlist_id}"
-        data = self._download_json(apiurl, playlist_id)
-        title = data.get('name')
+        data = self._download_json(f"https://holodex.net/api/v2/playlist/{playlist_id}", playlist_id)
         entries = []
         for video in data.get('videos'):
-            video_url = f"https://www.youtube.com/watch?v={video.get('id')}"
-            entries.append(self.url_result(video_id=video.get('id'), ie=YoutubeIE.ie_key(), url=video_url))
+            entries.append(self.url_result(video_id=video.get('id'), ie=YoutubeIE.ie_key(),
+                url=f"https://www.youtube.com/watch?v={video.get('id')}"))
 
-        return self.playlist_result(entries, playlist_id, title)
+        return self.playlist_result(entries, playlist_id, data.get('name'))
