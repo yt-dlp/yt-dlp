@@ -3222,7 +3222,7 @@ class YoutubeDL:
                         ffmpeg_fixup(ext == 'm4a' and info_dict.get('container') == 'm4a_dash',
                                      'writing DASH m4a. Only some players support this container',
                                      FFmpegFixupM4aPP)
-                        ffmpeg_fixup(downloader == 'hlsnative' and not self.params.get('hls_use_mpegts')
+                        ffmpeg_fixup(downloader in ('hlsnative', 'hlsnative_fake_header') and not self.params.get('hls_use_mpegts')
                                      or info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None,
                                      'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
                                      FFmpegFixupM3u8PP)

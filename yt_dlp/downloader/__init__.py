@@ -27,6 +27,7 @@ from .external import FFmpegFD, get_external_downloader
 from .f4m import F4mFD
 from .fc2 import FC2LiveFD
 from .hls import HlsFD
+from .hls_fake_header import HlsFakeHeaderFD
 from .http import HttpFD
 from .ism import IsmFD
 from .mhtml import MhtmlFD
@@ -42,6 +43,7 @@ PROTOCOL_MAP = {
     'rtmp_ffmpeg': FFmpegFD,
     'm3u8_native': HlsFD,
     'm3u8': FFmpegFD,
+    'm3u8_fake_header': HlsFakeHeaderFD,
     'mms': RtspFD,
     'rtsp': RtspFD,
     'f4m': F4mFD,
@@ -106,6 +108,9 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
     if protocol == 'http_dash_segments':
         if info_dict.get('is_live') and (external_downloader or '').lower() != 'native':
             return FFmpegFD
+
+    if protocol == 'm3u8_fake_header':
+        return HlsFakeHeaderFD
 
     if protocol in ('m3u8', 'm3u8_native'):
         if info_dict.get('is_live'):
