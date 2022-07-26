@@ -126,6 +126,55 @@ class ArchiveOrgIE(InfoExtractor):
             'description': 'md5:012b2d668ae753be36896f343d12a236',
             'upload_date': '20190928',
         },
+    }, {
+        # Original formats are private
+        'url': 'https://archive.org/details/irelandthemakingofarepublic',
+        'info_dict': {
+            'id': 'irelandthemakingofarepublic',
+            'title': 'Ireland: The Making of a Republic',
+            'upload_date': '20160610',
+            'description': 'md5:f70956a156645a658a0dc9513d9e78b7',
+            'uploader': 'dimitrios@archive.org',
+            'creator': ['British Broadcasting Corporation', 'Time-Life Films'],
+            'timestamp': 1465594947,
+
+        },
+        'playlist': [
+            {
+                'md5': '0b211261b26590d49df968f71b90690d',
+                'info_dict': {
+                    'id': 'irelandthemakingofarepublic/irelandthemakingofarepublicreel1_01.mov',
+                    'ext': 'mp4',
+                    'title': 'irelandthemakingofarepublicreel1_01.mov',
+                    'duration': 130.46,
+                    'track': 'irelandthemakingofarepublicreel1 01',
+                    'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel1_01_000117.jpg',
+                    'display_id': 'irelandthemakingofarepublicreel1_01.mov',
+                },
+            }, {
+                'md5': '67335ee3b23a0da930841981c1e79b02',
+                'info_dict': {
+                    'id': 'irelandthemakingofarepublic/irelandthemakingofarepublicreel1_02.mov',
+                    'ext': 'mp4',
+                    'duration': 1395.13,
+                    'title': 'irelandthemakingofarepublicreel1_02.mov',
+                    'track': 'irelandthemakingofarepublicreel1 02',
+                    'display_id': 'irelandthemakingofarepublicreel1_02.mov',
+                    'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel1_02_001374.jpg',
+                },
+            }, {
+                'md5': 'e470e86787893603f4a341a16c281eb5',
+                'info_dict': {
+                    'id': 'irelandthemakingofarepublic/irelandthemakingofarepublicreel2.mov',
+                    'ext': 'mp4',
+                    'track': 'irelandthemakingofarepublicreel2',
+                    'duration': 1602.67,
+                    'title': 'irelandthemakingofarepublicreel2.mov',
+                    'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel2_001554.jpg',
+                    'display_id': 'irelandthemakingofarepublicreel2.mov',
+                },
+            }
+        ]
     }]
 
     @staticmethod
@@ -216,7 +265,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'filesize': int_or_none(f.get('size'))})
 
             extension = (f['name'].rsplit('.', 1) + [None])[1]
-            if extension in KNOWN_EXTENSIONS:
+            if extension in KNOWN_EXTENSIONS and not f.get('private'):
                 entry['formats'].append({
                     'url': 'https://archive.org/download/' + identifier + '/' + f['name'],
                     'format': f.get('format'),
