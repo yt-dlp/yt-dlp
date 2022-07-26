@@ -1,6 +1,3 @@
-import json
-import uuid
-
 from .common import InfoExtractor
 from ..utils import (
     unified_timestamp,
@@ -21,56 +18,30 @@ class ParliamentLiveUKIE(InfoExtractor):
             'title': 'Home Affairs Committee',
             'timestamp': 1395153872,
             'upload_date': '20140318',
+            'thumbnail': r're:https?://[^?#]+c1e9d44d-fd6c-4263-b50f-97ed26cc998b[^/]*/thumbnail',
         },
     }, {
         'url': 'http://parliamentlive.tv/event/index/3f24936f-130f-40bf-9a5d-b3d6479da6a4',
         'only_matching': True,
+    }, {
+        'url': 'https://parliamentlive.tv/Event/Index/27cf25e4-e77b-42a3-93c5-c815cd6d7377',
+        'info_dict': {
+            'id': '27cf25e4-e77b-42a3-93c5-c815cd6d7377',
+            'ext': 'mp4',
+            'title': 'House of Commons',
+            'timestamp': 1658392447,
+            'upload_date': '20220721',
+            'thumbnail': r're:https?://[^?#]+27cf25e4-e77b-42a3-93c5-c815cd6d7377[^/]*/thumbnail',
+        },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_info = self._download_json(f'https://www.parliamentlive.tv/Event/GetShareVideo/{video_id}', video_id)
-        _DEVICE_ID = str(uuid.uuid4())
-        auth = 'Bearer ' + self._download_json(
-            'https://exposure.api.redbee.live/v2/customer/UKParliament/businessunit/ParliamentLive/auth/anonymous',
-            video_id, headers={
-                'Origin': 'https://videoplayback.parliamentlive.tv',
-                'Accept': 'application/json, text/plain, */*',
-                'Content-Type': 'application/json;charset=utf-8'
-            }, data=json.dumps({
-                'deviceId': _DEVICE_ID,
-                'device': {
-                    'deviceId': _DEVICE_ID,
-                    'width': 653,
-                    'height': 368,
-                    'type': 'WEB',
-                    'name': ' Mozilla Firefox 91'
-                }
-            }).encode('utf-8'))['sessionToken']
-
-        video_urls = self._download_json(
-            f'https://exposure.api.redbee.live/v2/customer/UKParliament/businessunit/ParliamentLive/entitlement/{video_id}/play',
-            video_id, headers={'Authorization': auth, 'Accept': 'application/json, text/plain, */*'})['formats']
-
-        formats = []
-        for format in video_urls:
-            if not format.get('mediaLocator'):
-                continue
-            if format.get('format') == 'DASH':
-                formats.extend(self._extract_mpd_formats(
-                    format['mediaLocator'], video_id, mpd_id='dash', fatal=False))
-            elif format.get('format') == 'SMOOTHSTREAMING':
-                formats.extend(self._extract_ism_formats(
-                    format['mediaLocator'], video_id, ism_id='ism', fatal=False))
-            elif format.get('format') == 'HLS':
-                formats.extend(self._extract_m3u8_formats(
-                    format['mediaLocator'], video_id, m3u8_id='hls', fatal=False))
-
-        self._sort_formats(formats)
 
         return {
-            'id': video_id,
-            'formats': formats,
+            '_type': 'url_transparent',
+            'url': f'redbee:UKParliament:ParliamentLive:{video_id}',
             'title': video_info['event']['title'],
             'timestamp': unified_timestamp(try_get(video_info, lambda x: x['event']['publishedStartTime'])),
             'thumbnail': video_info.get('thumbnailUrl'),

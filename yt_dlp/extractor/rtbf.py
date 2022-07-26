@@ -1,6 +1,6 @@
 import re
 
-from .common import InfoExtractor
+from ..extractor.redbee import RedBeeIE
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -9,7 +9,7 @@ from ..utils import (
 )
 
 
-class RTBFIE(InfoExtractor):
+class RTBFIE(RedBeeIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?rtbf\.be/
         (?:
@@ -28,7 +28,8 @@ class RTBFIE(InfoExtractor):
             'duration': 3099.54,
             'upload_date': '20140425',
             'timestamp': 1398456300,
-        }
+        },
+        'skip': 'No longer available',
     }, {
         # geo restricted
         'url': 'http://www.rtbf.be/ouftivi/heros/detail_scooby-doo-mysteres-associes?id=1097&videoId=2057442',
@@ -63,6 +64,33 @@ class RTBFIE(InfoExtractor):
         ('web', 'MD'),
         ('high', 'HD'),
     ]
+    _REDBEE_CUSTOMER = 'RTBF'
+    _REDBEE_BUSINESS_UNIT = 'Auvio'
+
+    def _get_redbee_formats_and_subtitles(self, url, media_id):
+        api_key = (self._search_regex(r'<div[^>]+gigya\.js\?apikey=(?P<api_key>[^"&]+)',
+                                      self._download_webpage(url, media_id), 'api_key', fatal=False)
+                   or '3_kWKuPgcdAybqnqxq_MvHVk0-6PN8Zk8pIIkJM_yXOu-qLPDDsGOtIDFfpGivtbeO')
+
+        login_token = self._get_cookies(url).get(f'glt_{api_key}')
+        if not login_token:
+            self.raise_login_required()
+
+        session_jwt = self._download_json(
+            "https://login.rtbf.be/accounts.getJWT", media_id, query={
+                'login_token': login_token.value,
+                'APIKey': api_key,
+                'sdk': 'js_latest',
+                'authMode': 'cookie',
+                'pageURL': url,
+                'sdkBuild': '13273',
+                'format': 'json',
+            })['id_token']
+
+        return self._get_entitlement_formats_and_subtitles(
+            media_id, self._REDBEE_CUSTOMER, self._REDBEE_BUSINESS_UNIT,
+            self._get_bearer_token(
+                media_id, self._REDBEE_CUSTOMER, self._REDBEE_BUSINESS_UNIT, 'gigyaLogin', jwt=session_jwt))
 
     def _real_extract(self, url):
         live, media_id = self._match_valid_url(url).groups()
@@ -141,6 +169,11 @@ class RTBFIE(InfoExtractor):
             subtitles.setdefault(track.get('lang') or 'fr', []).append({
                 'url': sub_url,
             })
+
+        if not formats:
+            fmts, subs = self._get_redbee_formats_and_subtitles(url, media_id)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
         return {
             'id': media_id,
