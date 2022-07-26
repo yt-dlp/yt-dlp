@@ -204,7 +204,13 @@ class TwitchVodIE(TwitchBaseIE):
             'uploader_id': 'riotgames',
             'view_count': int,
             'start_time': 310,
-            'chapters': [],
+            'chapters': [
+                {
+                    'start_time': 0,
+                    'end_time': 17208,
+                    'title': 'League of Legends'
+                }
+            ],
             'live_status': 'was_live',
         },
         'params': {
@@ -321,6 +327,32 @@ class TwitchVodIE(TwitchBaseIE):
             'format': 'mhtml',
             'skip_download': True
         }
+    }, {
+        'note': 'VOD with single chapter',
+        'url': 'https://www.twitch.tv/videos/1536751224',
+        'info_dict': {
+            'id': 'v1536751224',
+            'ext': 'mp4',
+            'title': 'Porter Robinson Star Guardian Stream Tour with LilyPichu',
+            'duration': 8353,
+            'uploader': 'Riot Games',
+            'uploader_id': 'riotgames',
+            'timestamp': 1658267731,
+            'upload_date': '20220719',
+            'chapters': [
+                {
+                    'start_time': 0,
+                    'end_time': 8353,
+                    'title': 'League of Legends'
+                }
+            ],
+            'live_status': 'was_live',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'view_count': int,
+        },
+        'params': {
+            'skip_download': True
+        },
     }]
 
     def _download_info(self, item_id):
