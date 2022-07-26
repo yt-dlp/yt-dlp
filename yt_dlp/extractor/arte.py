@@ -1,18 +1,14 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
-    GeoRestrictedError,
     ExtractorError,
+    GeoRestrictedError,
     int_or_none,
     parse_iso8601,
     parse_qs,
     strip_or_none,
     traverse_obj,
-    try_get,
     url_or_none,
 )
 
@@ -93,7 +89,7 @@ class ArteTVIE(ArteTVBaseIE):
     ''')
 
     # all obtained by exhaustive testing
-    _GEO_COUNTRIES = {
+    _COUNTRIES_MAP = {
         'DE_FR': {
             'BL', 'DE', 'FR', 'GF', 'GP', 'MF', 'MQ', 'NC',
             'PF', 'PM', 'RE', 'WF', 'YT',
@@ -125,7 +121,7 @@ class ArteTVIE(ArteTVBaseIE):
         geoblocking = traverse_obj(config, ('data', 'attributes', 'restriction', 'geoblocking')) or {}
         if geoblocking.get('restrictedArea'):
             raise GeoRestrictedError(f'Video restricted to {geoblocking["code"]!r}',
-                                     countries=self._GEO_COUNTRIES.get(geoblocking['code'], ('DE', 'FR')))
+                                     countries=self._COUNTRIES_MAP.get(geoblocking['code'], ('DE', 'FR')))
 
         if not traverse_obj(config, ('data', 'attributes', 'rights')):
             # Eg: https://www.arte.tv/de/videos/097407-215-A/28-minuten
