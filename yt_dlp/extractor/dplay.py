@@ -718,6 +718,33 @@ class TLCIE(DiscoveryPlusBaseIE):
     }
 
 
+class MotorTrendIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:watch\.)?motortrend\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://watch.motortrend.com/video/car-issues-motortrend-atve-us/double-dakotas',
+        'info_dict': {
+            'id': '"4859182"',
+            'display_id': 'double-dakotas',
+            'ext': 'mp4',
+            'title': 'Double Dakotas',
+            'description': 'Tylers buy-one-get-one Dakota deal has the Wizard pulling double duty.',
+            'season_number': 2,
+            'episode_number': 3,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.motortrend.com/video/car-issues-motortrend-atve-us/double-dakotas',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'vel'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.watch.motortrend.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
 class DiscoveryPlusIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:\w{2}/)?video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
