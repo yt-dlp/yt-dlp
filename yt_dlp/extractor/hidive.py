@@ -39,8 +39,7 @@ class HiDiveIE(InfoExtractor):
         form = self._search_regex(
             r'(?s)<form[^>]+action="/account/login"[^>]*>(.+?)</form>',
             webpage, 'login form', default=None)
-        if not form:
-            # assumed logged in
+        if not form:  # logged in
             return
         data = self._hidden_inputs(form)
         data.update({
