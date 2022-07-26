@@ -3666,7 +3666,7 @@ def match_filter_func(filters):
         if not filters or any(match_str(f, info_dict, incomplete) for f in filters):
             return NO_DEFAULT if interactive and not incomplete else None
         else:
-            video_title = info_dict.get('title') or info_dict.get('id') or 'video'
+            video_title = info_dict.get('title') or info_dict.get('id') or 'entry'
             filter_str = ') | ('.join(map(str.strip, filters))
             return f'{video_title} does not pass filter ({filter_str}), skipping ..'
     return _match_func

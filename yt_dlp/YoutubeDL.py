@@ -1309,7 +1309,7 @@ class YoutubeDL:
     def _match_entry(self, info_dict, incomplete=False, silent=False):
         """ Returns None if the file should be downloaded """
 
-        video_title = info_dict.get('title', info_dict.get('id', 'video'))
+        video_title = info_dict.get('title', info_dict.get('id', 'entry'))
 
         def check_filter():
             if 'title' in info_dict:
@@ -1677,23 +1677,37 @@ class YoutubeDL:
         return make_dir(path, self.report_error)
 
     @staticmethod
-    def _playlist_infodict(ie_result, **kwargs):
-        return {
-            **ie_result,
+    def _playlist_infodict(ie_result, strict=False, **kwargs):
+        info = {
+            'playlist_count': ie_result.get('playlist_count'),
             'playlist': ie_result.get('title') or ie_result.get('id'),
             'playlist_id': ie_result.get('id'),
             'playlist_title': ie_result.get('title'),
             'playlist_uploader': ie_result.get('uploader'),
             'playlist_uploader_id': ie_result.get('uploader_id'),
-            'playlist_index': 0,
             **kwargs,
+        }
+        if strict:
+            return info
+        return {
+            **info,
+            'playlist_index': 0,
+            '__last_playlist_index': max(ie_result['requested_entries'] or (0, 0)),
+            'extractor': ie_result['extractor'],
+            'webpage_url': ie_result['webpage_url'],
+            'webpage_url_basename': url_basename(ie_result['webpage_url']),
+            'webpage_url_domain': get_domain(ie_result['webpage_url']),
+            'extractor_key': ie_result['extractor_key'],
         }
 
     def __process_playlist(self, ie_result, download):
         """Process each entry in the playlist"""
         assert ie_result['_type'] in ('playlist', 'multi_video')
 
-        title = ie_result.get('title') or ie_result.get('id') or '<Untitled>'
+        common_info = self._playlist_infodict(ie_result, strict=True)
+        title = common_info.get('title') or '<Untitled>'
+        if self._match_entry(common_info, incomplete=True) is not None:
+            return
         self.to_screen(f'[download] Downloading {ie_result["_type"]}: {title}')
 
         all_entries = PlaylistEntries(self, ie_result)
@@ -1711,12 +1725,14 @@ class YoutubeDL:
             # Better to do this after potentially exhausting entries
             ie_result['playlist_count'] = all_entries.get_full_count()
 
+        common_info = self._playlist_infodict(ie_result, n_entries=int_or_none(n_entries))
+        ie_copy = collections.ChainMap(ie_result, common_info)
+
         _infojson_written = False
         write_playlist_files = self.params.get('allow_playlist_files', True)
         if write_playlist_files and self.params.get('list_thumbnails'):
             self.list_thumbnails(ie_result)
         if write_playlist_files and not self.params.get('simulate'):
-            ie_copy = self._playlist_infodict(ie_result, n_entries=int_or_none(n_entries))
             _infojson_written = self._write_info_json(
                 'playlist', ie_result, self.prepare_filename(ie_copy, 'pl_infojson'))
             if _infojson_written is None:
@@ -1725,7 +1741,7 @@ class YoutubeDL:
                                        self.prepare_filename(ie_copy, 'pl_description')) is None:
                 return
             # TODO: This should be passed to ThumbnailsConvertor if necessary
-            self._write_thumbnails('playlist', ie_copy, self.prepare_filename(ie_copy, 'pl_thumbnail'))
+            self._write_thumbnails('playlist', ie_result, self.prepare_filename(ie_copy, 'pl_thumbnail'))
 
         if lazy:
             if self.params.get('playlistreverse') or self.params.get('playlistrandom'):
@@ -1749,35 +1765,26 @@ class YoutubeDL:
         for i, (playlist_index, entry) in enumerate(entries):
             if lazy:
                 resolved_entries.append((playlist_index, entry))
-
-            # TODO: Add auto-generated fields
-            if not entry or self._match_entry(entry, incomplete=True) is not None:
+            if not entry:
                 continue
-
-            self.to_screen('[download] Downloading video %s of %s' % (
-                self._format_screen(i + 1, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
 
             entry['__x_forwarded_for_ip'] = ie_result.get('__x_forwarded_for_ip')
             if not lazy and 'playlist-index' in self.params.get('compat_opts', []):
                 playlist_index = ie_result['requested_entries'][i]
 
-            entry_result = self.__process_iterable_entry(entry, download, {
-                'n_entries': int_or_none(n_entries),
-                '__last_playlist_index': max(ie_result['requested_entries'] or (0, 0)),
-                'playlist_count': ie_result.get('playlist_count'),
+            extra = {
+                **common_info,
                 'playlist_index': playlist_index,
                 'playlist_autonumber': i + 1,
-                'playlist': title,
-                'playlist_id': ie_result.get('id'),
-                'playlist_title': ie_result.get('title'),
-                'playlist_uploader': ie_result.get('uploader'),
-                'playlist_uploader_id': ie_result.get('uploader_id'),
-                'extractor': ie_result['extractor'],
-                'webpage_url': ie_result['webpage_url'],
-                'webpage_url_basename': url_basename(ie_result['webpage_url']),
-                'webpage_url_domain': get_domain(ie_result['webpage_url']),
-                'extractor_key': ie_result['extractor_key'],
-            })
+            }
+
+            if self._match_entry(collections.ChainMap(entry, extra), incomplete=True) is not None:
+                continue
+
+            self.to_screen('[download] Downloading video %s of %s' % (
+                self._format_screen(i + 1, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
+
+            entry_result = self.__process_iterable_entry(entry, download, extra)
             if not entry_result:
                 failures += 1
             if failures >= max_failures:
