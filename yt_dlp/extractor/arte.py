@@ -175,7 +175,7 @@ class ArteTVIE(ArteTVBaseIE):
                 self.report_warning(f'Skipping stream with unknown protocol {stream["protocol"]}')
 
             # TODO: chapters from stream['segments']?
-            # The JS also apparently looks for chapters in config['data']['attributes']['chapters'],
+            # The JS also looks for chapters in config['data']['attributes']['chapters'],
             # but I am yet to find a video having those
 
         self._sort_formats(formats)
@@ -205,7 +205,13 @@ class ArteTVEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?arte\.tv/player/v\d+/index\.php\?.*?\bjson_url=.+'
     _TESTS = [{
         'url': 'https://www.arte.tv/player/v5/index.php?json_url=https%3A%2F%2Fapi.arte.tv%2Fapi%2Fplayer%2Fv2%2Fconfig%2Fde%2F100605-013-A&lang=de&autoplay=true&mute=0100605-013-A',
-        'only_matching': True,
+        'info_dict': {
+            'id': '100605-013-A',
+            'ext': 'mp4',
+            'title': 'United we Stream November Lockdown Edition #13',
+            'description': 'md5:be40b667f45189632b78c1425c7c2ce1',
+            'upload_date': '20201116',
+        },
     }, {
         'url': 'https://www.arte.tv/player/v3/index.php?json_url=https://api.arte.tv/api/player/v2/config/de/100605-013-A',
         'only_matching': True,
@@ -229,7 +235,12 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
     _VALID_URL = r'https?://(?:www\.)?arte\.tv/(?P<lang>%s)/videos/(?P<id>RC-\d{6})' % ArteTVBaseIE._ARTE_LANGUAGES
     _TESTS = [{
         'url': 'https://www.arte.tv/en/videos/RC-016954/earn-a-living/',
-        'only_matching': True,
+        'info_dict': {
+            'id': 'RC-016954',
+            'title': 'Earn a Living',
+            'description': 'md5:d322c55011514b3a7241f7fb80d494c2',
+        },
+        'playlist_mincount': 6,
     }, {
         'url': 'https://www.arte.tv/pl/videos/RC-014123/arte-reportage/',
         'playlist_mincount': 100,
