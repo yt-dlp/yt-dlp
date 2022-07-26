@@ -49,18 +49,28 @@ class ArchiveOrgIE(InfoExtractor):
             'upload_date': '20100315',
             'creator': 'SRI International',
             'uploader': 'laura@archive.org',
+            'thumbnail': r're:https://archive\.org/download/.*\.jpg',
+            'release_year': 1968,
+            'display_id': 'XD300-23_68HighlightsAResearchCntAugHumanIntellect.cdr',
+            'track': 'XD300-23 68HighlightsAResearchCntAugHumanIntellect',
+
         },
     }, {
         'url': 'https://archive.org/details/Cops1922',
-        'md5': '0869000b4ce265e8ca62738b336b268a',
+        'md5': '34f1704b1b69e0fd99d8f42ddbbcded0',
         'info_dict': {
             'id': 'Cops1922',
             'ext': 'mp4',
             'title': 'Buster Keaton\'s "Cops" (1922)',
-            'description': 'md5:43a603fd6c5b4b90d12a96b921212b9c',
+            'description': 'md5:cd6f9910c35aedd5fc237dbc3957e2ca',
             'uploader': 'yorkmba99@hotmail.com',
             'timestamp': 1387699629,
             'upload_date': '20131222',
+            'display_id': 'Cops-v2.mp4',
+            'track': 'Cops-v2',
+            'thumbnail': r're:https://archive\.org/download/.*\.jpg',
+            'duration': 1091.96,
+
         },
     }, {
         'url': 'http://archive.org/embed/XD300-23_68HighlightsAResearchCntAugHumanIntellect',
@@ -72,6 +82,10 @@ class ArchiveOrgIE(InfoExtractor):
             'id': 'Election_Ads/Commercial-JFK1960ElectionAdCampaignJingle.mpg',
             'title': 'Commercial-JFK1960ElectionAdCampaignJingle.mpg',
             'ext': 'mp4',
+            'thumbnail': r're:https://archive\.org/download/.*\.jpg',
+            'track': 'Commercial-JFK1960ElectionAdCampaignJingle',
+            'duration': 59.77,
+            'display_id': 'Commercial-JFK1960ElectionAdCampaignJingle.mpg',
         },
     }, {
         'url': 'https://archive.org/details/Election_Ads/Commercial-Nixon1960ElectionAdToughonDefense.mpg',
@@ -79,11 +93,17 @@ class ArchiveOrgIE(InfoExtractor):
         'info_dict': {
             'id': 'Election_Ads/Commercial-Nixon1960ElectionAdToughonDefense.mpg',
             'title': 'Commercial-Nixon1960ElectionAdToughonDefense.mpg',
-            'ext': 'mp4',
+            'ext': 'mpg',
             'timestamp': 1205588045,
             'uploader': 'mikedavisstripmaster@yahoo.com',
             'description': '1960 Presidential Campaign Election Commercials John F Kennedy, Richard M Nixon',
             'upload_date': '20080315',
+            'display_id': 'Commercial-Nixon1960ElectionAdToughonDefense.mpg',
+            'duration': 59.51,
+            'license': 'http://creativecommons.org/licenses/publicdomain/',
+            'track': 'Commercial-Nixon1960ElectionAdToughonDefense',
+            'thumbnail': r're:https://archive\.org/download/.*\.jpg',
+
         },
     }, {
         'url': 'https://archive.org/details/gd1977-05-08.shure57.stevenson.29303.flac16',
@@ -92,6 +112,12 @@ class ArchiveOrgIE(InfoExtractor):
             'id': 'gd1977-05-08.shure57.stevenson.29303.flac16/gd1977-05-08d01t01.flac',
             'title': 'Turning',
             'ext': 'flac',
+            'track': 'Turning',
+            'creator': 'Grateful Dead',
+            'display_id': 'gd1977-05-08d01t01.flac',
+            'track_number': 1,
+            'album': '1977-05-08 - Barton Hall - Cornell University',
+            'duration': 39.8,
         },
     }, {
         'url': 'https://archive.org/details/gd1977-05-08.shure57.stevenson.29303.flac16/gd1977-05-08d01t07.flac',
@@ -102,11 +128,20 @@ class ArchiveOrgIE(InfoExtractor):
             'ext': 'flac',
             'timestamp': 1205895624,
             'uploader': 'mvernon54@yahoo.com',
-            'description': 'md5:6a31f1996db0aa0fc9da6d6e708a1bb0',
+            'description': 'md5:6c921464414814720c6593810a5c7e3d',
             'upload_date': '20080319',
             'location': 'Barton Hall - Cornell University',
+            'duration': 438.68,
+            'track': 'Deal',
+            'creator': 'Grateful Dead',
+            'album': '1977-05-08 - Barton Hall - Cornell University',
+            'release_date': '19770508',
+            'display_id': 'gd1977-05-08d01t07.flac',
+            'release_year': 1977,
+            'track_number': 7,
         },
     }, {
+        # FIXME: gives an IndexError when all formats are restricted?
         'url': 'https://archive.org/details/lp_the-music-of-russia_various-artists-a-askaryan-alexander-melik',
         'md5': '7cb019baa9b332e82ea7c10403acd180',
         'info_dict': {
@@ -114,6 +149,7 @@ class ArchiveOrgIE(InfoExtractor):
             'title': 'Bells Of Rostov',
             'ext': 'mp3',
         },
+        'skip': 'restricted'
     }, {
         'url': 'https://archive.org/details/lp_the-music-of-russia_various-artists-a-askaryan-alexander-melik/disc1/02.02.+Song+And+Chorus+In+The+Polovetsian+Camp+From+%22Prince+Igor%22+(Act+2%2C+Scene+1).mp3',
         'md5': '1d0aabe03edca83ca58d9ed3b493a3c3',
@@ -126,6 +162,7 @@ class ArchiveOrgIE(InfoExtractor):
             'description': 'md5:012b2d668ae753be36896f343d12a236',
             'upload_date': '20190928',
         },
+        'skip': 'restricted'
     }, {
         # Original formats are private
         'url': 'https://archive.org/details/irelandthemakingofarepublic',
@@ -272,7 +309,9 @@ class ArchiveOrgIE(InfoExtractor):
                     'width': int_or_none(f.get('width')),
                     'height': int_or_none(f.get('height')),
                     'filesize': int_or_none(f.get('size')),
-                    'protocol': 'https'})
+                    'protocol': 'https',
+                    'source_preference': 0 if f.get('source') == 'original' else -1,  # FIXME: this isn't properly prioritising original format
+                    'format_note': f.get('source')})
 
         for entry in entries.values():
             self._sort_formats(entry['formats'])
