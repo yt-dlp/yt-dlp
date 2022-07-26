@@ -252,31 +252,24 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
     }]
 
     def _real_extract(self, url):
-        lang, playlist_id = self._match_valid_url(url).groups()
+        lang, playlist_id = self._match_valid_url(url).group('lang', 'id')
         playlist = self._download_json(
-            f'{self._API_BASE}/playlist/{lang}/{playlist_id}', playlist_id)
-        metadata = playlist['data']['attributes']['metadata']
-        entries = []
-        for video in playlist['data']['attributes']['items']:
-            if not isinstance(video, dict):
-                continue
-            video_url = video['config']['url']
-            if not video_url:
-                continue
-            video_id = video.get('providerId')
-            entries.append({
-                '_type': 'url_transparent',
-                'url': video_url,
-                'id': video_id,
-                'title': video.get('title'),
-                'alt_title': video.get('subtitle'),
-                'thumbnail': url_or_none(try_get(video, lambda x: x['mainImage']['url'], compat_str)),
-                'duration': int_or_none(video.get('duration', {}).get('seconds')),
-                'ie_key': ArteTVIE.ie_key(),
-            })
-        title = metadata.get('title')
-        description = metadata.get('description')
-        return self.playlist_result(entries, playlist_id, title, description)
+            f'{self._API_BASE}/playlist/{lang}/{playlist_id}', playlist_id)['data']['attributes']
+
+        entries = [{
+            '_type': 'url_transparent',
+            'url': video['config']['url'],
+            'ie_key': ArteTVIE.ie_key(),
+            'id': video.get('providerId'),
+            'title': video.get('title'),
+            'alt_title': video.get('subtitle'),
+            'thumbnail': url_or_none(traverse_obj(video, ('mainImage', 'url'))),
+            'duration': int_or_none(traverse_obj(video, ('duration', 'seconds'))),
+        } for video in traverse_obj(playlist, ('items', lambda _, v: v['config']['url']))]
+
+        return self.playlist_result(entries, playlist_id,
+                                    traverse_obj(playlist, ('metadata', 'title')),
+                                    traverse_obj(playlist, ('metadata', 'description')))
 
 
 class ArteTVCategoryIE(ArteTVBaseIE):
