@@ -1072,6 +1072,14 @@ class GeoRestrictedError(ExtractorError):
         self.countries = countries
 
 
+class UserNotLive(ExtractorError):
+    """Error when a channel/user is not live"""
+
+    def __init__(self, msg=None, **kwargs):
+        kwargs['expected'] = True
+        super().__init__(msg or 'The channel is not currently live', **kwargs)
+
+
 class DownloadError(YoutubeDLError):
     """Download Error exception.
 

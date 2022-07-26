@@ -80,6 +80,7 @@ from .utils import (
     RejectedVideoReached,
     SameFileError,
     UnavailableVideoError,
+    UserNotLive,
     YoutubeDLCookieProcessor,
     YoutubeDLHandler,
     YoutubeDLRedirectHandler,
@@ -1456,7 +1457,7 @@ class YoutubeDL:
                 break
         return wrapper
 
-    def _wait_for_video(self, ie_result):
+    def _wait_for_video(self, ie_result={}):
         if (not self.params.get('wait_for_video')
                 or ie_result.get('_type', 'video') != 'video'
                 or ie_result.get('formats') or ie_result.get('url')):
@@ -1480,7 +1481,7 @@ class YoutubeDL:
         if diff is None and ie_result.get('live_status') == 'is_upcoming':
             diff = round(random.uniform(min_wait, max_wait) if (max_wait and min_wait) else (max_wait or min_wait), 0)
             self.report_warning('Release time of video is not known')
-        elif (diff or 0) <= 0:
+        elif ie_result and (diff or 0) <= 0:
             self.report_warning('Video should already be available according to extracted info')
         diff = min(max(diff or 0, min_wait or 0), max_wait or float('inf'))
         self.to_screen(f'[wait] Waiting for {format_dur(diff)} - Press Ctrl+C to try now')
@@ -1504,7 +1505,14 @@ class YoutubeDL:
 
     @_handle_extraction_exceptions
     def __extract_info(self, url, ie, download, extra_info, process):
-        ie_result = ie.extract(url)
+        try:
+            ie_result = ie.extract(url)
+        except UserNotLive as e:
+            if process:
+                if self.params.get('wait_for_video'):
+                    self.report_warning(e)
+                self._wait_for_video()
+            raise
         if ie_result is None:  # Finished already (backwards compatibility; listformats and friends should be moved here)
             self.report_warning(f'Extractor {ie.IE_NAME} returned nothing{bug_reports_message()}')
             return

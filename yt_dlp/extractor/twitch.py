@@ -12,10 +12,11 @@ from ..compat import (
     compat_urllib_parse_urlparse,
 )
 from ..utils import (
+    ExtractorError,
+    UserNotLive,
     base_url,
     clean_html,
     dict_get,
-    ExtractorError,
     float_or_none,
     int_or_none,
     parse_duration,
@@ -940,7 +941,7 @@ class TwitchStreamIE(TwitchBaseIE):
         stream = user['stream']
 
         if not stream:
-            raise ExtractorError('%s is offline' % channel_name, expected=True)
+            raise UserNotLive(video_id=channel_name)
 
         access_token = self._download_access_token(
             channel_name, 'stream', 'channelName')
