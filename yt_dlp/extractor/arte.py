@@ -11,6 +11,7 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     strip_or_none,
+    traverse_obj,
     try_get,
     url_or_none,
 )
@@ -67,130 +68,101 @@ class ArteTVIE(ArteTVBaseIE):
 
     _GEO_BYPASS = True
 
-    # Reference formerly available at: section 6.8 of
-    # <https://www.arte.tv/sites/en/corporate/files/complete-technical-guidelines-arte-geie-v1-07-1.pdf>
-
-    __LANG_MAP = {       # the RHS are not ISO codes, but French abbreviations
-        'fr': 'F',       # françois
-        'de': 'A',       # allemand
-        'en': 'E[ANG]',  # européen(?) [anglais]
-        'es': 'E[ESP]',  # européen(?) [espagnol]
-        'it': 'E[ITA]',  # européen(?) [italien]
-        'pl': 'E[POL]',  # européen(?) [polonais]
-
+    _LANG_MAP = {       # the RHS are not ISO codes, but French abbreviations
+        'fr': 'F',
+        'de': 'A',
+        'en': 'E[ANG]',
+        'es': 'E[ESP]',
+        'it': 'E[ITA]',
+        'pl': 'E[POL]',
         # XXX: probably means mixed; <https://www.arte.tv/en/videos/107710-029-A/dispatches-from-ukraine-local-journalists-report/>
         # uses this code for audio that happens to be in Ukrainian, but the manifest uses the ISO code 'mul' (mixed)
         'mul': 'EU',
     }
 
-    __VERSION_CODE_RE = re.compile(r'''(?x)
+    _VERSION_CODE_RE = re.compile(r'''(?x)
         V
-        (?P<vo>O?)                           # original voice track
-        (?P<vlang>[FA]|E\[[A-Z]+\]|EU)?      # language of voice track
-        (?P<vaud>AUD|)                       # audio description
+        (?P<original_voice>O?)
+        (?P<vlang>[FA]|E\[[A-Z]+\]|EU)?
+        (?P<audio_desc>AUD|)
         (?:
-            (?P<st>-ST)                      # subtitles
-            (?P<stm>M?)                      # subtitles for the hard of hearing
-            (?P<stlang>[FA]|E\[[A-Z]+\]|EU)  # subtitle language
+            (?P<has_sub>-ST)
+            (?P<sdh_sub>M?)
+            (?P<sub_lang>[FA]|E\[[A-Z]+\]|EU)
         )?
     ''')
 
     # all obtained by exhaustive testing
-    __GEO_COUNTRIES = {
-        'DE_FR': frozenset((
+    _GEO_COUNTRIES = {
+        'DE_FR': {
             'BL', 'DE', 'FR', 'GF', 'GP', 'MF', 'MQ', 'NC',
             'PF', 'PM', 'RE', 'WF', 'YT',
-        )),
+        },
         # with both of the below 'BE' sometimes works, sometimes doesn't
-        'EUR_DE_FR': frozenset((
+        'EUR_DE_FR': {
             'AT', 'BL', 'CH', 'DE', 'FR', 'GF', 'GP', 'LI',
             'MC', 'MF', 'MQ', 'NC', 'PF', 'PM', 'RE', 'WF',
             'YT',
-        )),
-        'SAT': frozenset((
+        },
+        'SAT': {
             'AD', 'AT', 'AX', 'BG', 'BL', 'CH', 'CY', 'CZ',
             'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'GF',
             'GR', 'HR', 'HU', 'IE', 'IS', 'IT', 'KN', 'LI',
             'LT', 'LU', 'LV', 'MC', 'MF', 'MQ', 'MT', 'NC',
             'NL', 'NO', 'PF', 'PL', 'PM', 'PT', 'RE', 'RO',
             'SE', 'SI', 'SK', 'SM', 'VA', 'WF', 'YT',
-        )),
+        },
     }
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         lang = mobj.group('lang') or mobj.group('lang_2')
+        langauge_code = self._LANG_MAP.get(lang)
 
-        config = self._download_json(
-            f'{self._API_BASE}/config/{lang}/{video_id}', video_id)
+        config = self._download_json(f'{self._API_BASE}/config/{lang}/{video_id}', video_id)
 
-        # XXX: config['data']['attributes']['restriction']
-        # is sometimes null for videos that are not available
-        # at all (any more?)
-
-        restriction = config['data']['attributes']['restriction'] or {}
-        geoblocking = restriction.get('geoblocking') or {}
+        geoblocking = traverse_obj(config, ('data', 'attributes', 'restriction', 'geoblocking')) or {}
         if geoblocking.get('restrictedArea'):
-            raise GeoRestrictedError(
-                f'Video restricted to {geoblocking["code"]!r}',
-                countries=self.__GEO_COUNTRIES.get(geoblocking['code'], ('DE', 'FR')))
+            raise GeoRestrictedError(f'Video restricted to {geoblocking["code"]!r}',
+                                     countries=self._GEO_COUNTRIES.get(geoblocking['code'], ('DE', 'FR')))
 
-        rights = config['data']['attributes']['rights']
+        if not traverse_obj(config, ('data', 'attributes', 'rights')):
+            # Eg: https://www.arte.tv/de/videos/097407-215-A/28-minuten
+            # Eg: https://www.arte.tv/es/videos/104351-002-A/serviteur-du-peuple-1-23
+            raise ExtractorError(
+                'Video is not available in this language edition of Arte or broadcast rights expired', expected=True)
 
-        # e.g. <https://www.arte.tv/de/videos/097407-215-A/28-minuten/>
-        # e.g. <https://www.arte.tv/es/videos/104351-002-A/serviteur-du-peuple-1-23/>
-        # (videos that are completely nonexistent return HTTP 404)
-
-        if rights is None:
-            raise ExtractorError('Video is not available in this language edition of Arte or broadcast rights expired', expected=True)
-
-        metadata = config['data']['attributes']['metadata']
-
-        formats = []
-        subtitles = {}
-
+        formats, subtitles = [], {}
         for stream in config['data']['attributes']['streams']:
-            # official player contains code like `e.get("versions")[0].eStat.ml5`,
-            # which blindly assumes this structure, so I feel emboldened to do as well
+            # official player contains code like `e.get("versions")[0].eStat.ml5`
             stream_version = stream['versions'][0]
             stream_version_code = stream_version['eStat']['ml5']
 
             lang_pref = -1
-            m = self.__VERSION_CODE_RE.match(stream_version_code)
+            m = self._VERSION_CODE_RE.match(stream_version_code)
             if m:
-                lc = self.__LANG_MAP.get(lang)
-                lang_pref = sum(
-                    pref << i
-                    for i, pref in enumerate(reversed((
-                        m.group('vlang') == lc,   # we prefer voice in the requested language
-                        not m.group('vaud'),      # and not the audio description version
-                        bool(m.group('vo')),      # but if voice is not in the requested language, at least choose the original voice
-                        m.group('stlang') == lc,  # if subtitles are present, we prefer them in the requested language
-                        not m.group('st'),        # but we prefer no subtitles otherwise
-                        not m.group('stm'),       # and we prefer not the hard-of-hearing subtitles if there are subtitles
-                    )))
-                )
-
-            # XXX: probably not worth warning about if no match
+                lang_pref = int(''.join('01'[x] for x in (
+                    m.group('vlang') == langauge_code,      # we prefer voice in the requested language
+                    not m.group('audio_desc'),              # and not the audio description version
+                    bool(m.group('original_voice')),        # but if voice is not in the requested language, at least choose the original voice
+                    m.group('sub_lang') == langauge_code,   # if subtitles are present, we prefer them in the requested language
+                    not m.group('has_sub'),                 # but we prefer no subtitles otherwise
+                    not m.group('sdh_sub'),                 # and we prefer not the hard-of-hearing subtitles if there are subtitles
+                )))
 
             if stream['protocol'].startswith('HLS'):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    stream['url'], video_id=video_id, ext='mp4',
-                    m3u8_id=stream_version_code, fatal=False,
-                )
-
+                    stream['url'], video_id=video_id, ext='mp4', m3u8_id=stream_version_code, fatal=False)
                 for fmt in fmts:
                     fmt.update({
                         'format_note': f'{stream_version.get("label", "unknown")} [{stream_version.get("shortLabel", "?")}]',
                         'language_preference': lang_pref,
                     })
-
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
-                continue
 
-            if stream['protocol'] in ('HTTPS', 'RTMP'):
+            elif stream['protocol'] in ('HTTPS', 'RTMP'):
                 formats.append({
                     'format_id': f'{stream["protocol"]}-{stream_version_code}',
                     'url': stream['url'],
@@ -198,39 +170,34 @@ class ArteTVIE(ArteTVBaseIE):
                     'language_preference': lang_pref,
                     # 'ext': 'mp4',  # XXX: may or may not be necessary, at least for HTTPS
                 })
-                continue
 
-            self.report_warning(
-                f'Skipping stream with unknown protocol {stream["protocol"]}')
+            else:
+                self.report_warning(f'Skipping stream with unknown protocol {stream["protocol"]}')
 
-            # XXX: chapters from stream['segments']?
-            # the JS also apparently looks for chapters in
-            # config['data']['attributes']['chapters'], but
-            # I am yet to find a video having those
+            # TODO: chapters from stream['segments']?
+            # The JS also apparently looks for chapters in config['data']['attributes']['chapters'],
+            # but I am yet to find a video having those
 
         self._sort_formats(formats)
 
-        thumbnails = []
-        for image in metadata['images']:
-            thumbnails.append({
-                'url': image['url'],
-                'description': image['caption'],
-            })
+        metadata = config['data']['attributes']['metadata']
 
         return {
             'id': metadata['providerId'],
-            'webpage_url': metadata.get('link', {}).get('url'),
-            'title': metadata['title'],
+            'webpage_url': traverse_obj(metadata, ('link', 'url')),
+            'title': metadata.get('title'),
             'alt_title': metadata.get('subtitle'),
             'description': metadata.get('description'),
-            'duration': metadata.get('duration', {}).get('seconds'),
+            'duration': traverse_obj(metadata, ('duration', 'seconds')),
             'language': metadata.get('language'),
-            # XXX: nominally different, but seems to contain the information we want
-            'timestamp': parse_iso8601(rights.get('begin')),
-            'thumbnails': thumbnails,
+            'timestamp': traverse_obj(config, ('data', 'attributes', 'rights', 'begin'), expected_type=parse_iso8601),
+            'is_live': config['data']['attributes'].get('live', False),
             'formats': formats,
             'subtitles': subtitles,
-            'is_live': config['data']['attributes'].get('live', False),
+            'thumbnails': [
+                {'url': image['url'], 'id': image.get('caption')}
+                for image in metadata.get('images') or [] if url_or_none(image.get('url'))
+            ],
         }
 
 
