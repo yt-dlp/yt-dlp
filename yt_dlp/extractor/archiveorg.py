@@ -302,7 +302,12 @@ class ArchiveOrgIE(InfoExtractor):
                     'filesize': int_or_none(f.get('size'))})
 
             extension = (f['name'].rsplit('.', 1) + [None])[1]
-            if extension in KNOWN_EXTENSIONS and not f.get('private'):
+
+            # We don't want to skip private formats if the user has access to them,
+            # however without access to an account with such privileges we can't implement/test this.
+            # For now to be safe, we will only skip them if there is no user logged in.
+            is_logged_in = bool(self._get_cookies('https://archive.org').get('logged-in-sig'))
+            if extension in KNOWN_EXTENSIONS and (not f.get('private') or is_logged_in):
                 entry['formats'].append({
                     'url': 'https://archive.org/download/' + identifier + '/' + f['name'],
                     'format': f.get('format'),
