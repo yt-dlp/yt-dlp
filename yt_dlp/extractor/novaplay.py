@@ -1,6 +1,5 @@
 from .common import InfoExtractor
-import urllib.request
-from ..utils import int_or_none, parse_duration, parse_iso8601, sanitized_Request
+from ..utils import int_or_none, parse_duration, parse_iso8601
 
 
 class NovaPlayIE(InfoExtractor):
@@ -40,17 +39,10 @@ class NovaPlayIE(InfoExtractor):
         }
     ]
 
-    def _get_access_token(self):
-        req = sanitized_Request('https://play.nova.bg/')
-        cookie = '; '.join(urllib.request.urlopen(req).info().get_all('Set-Cookie'))
-        return self._download_json('https://play.nova.bg/api/client', None, headers={
-            'cookie': cookie
-        })['accessToken']
-
     def _real_extract(self, url):
-        access_token = self._get_access_token()
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
+        access_token = self._download_json('https://play.nova.bg/api/client', None)['accessToken']
         video_props = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['video']
         m3u8_url = self._download_json(
             f'https://nbg-api.fite.tv/api/v2/videos/{video_id}/streams',
