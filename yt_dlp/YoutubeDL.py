@@ -1713,7 +1713,7 @@ class YoutubeDL:
         assert ie_result['_type'] in ('playlist', 'multi_video')
 
         common_info = self._playlist_infodict(ie_result, strict=True)
-        title = common_info.get('title') or '<Untitled>'
+        title = common_info.get('playlist') or '<Untitled>'
         if self._match_entry(common_info, incomplete=True) is not None:
             return
         self.to_screen(f'[download] Downloading {ie_result["_type"]}: {title}')
@@ -1733,8 +1733,8 @@ class YoutubeDL:
             # Better to do this after potentially exhausting entries
             ie_result['playlist_count'] = all_entries.get_full_count()
 
-        common_info = self._playlist_infodict(ie_result, n_entries=int_or_none(n_entries))
-        ie_copy = collections.ChainMap(ie_result, common_info)
+        ie_copy = collections.ChainMap(
+            ie_result, self._playlist_infodict(ie_result, n_entries=int_or_none(n_entries)))
 
         _infojson_written = False
         write_playlist_files = self.params.get('allow_playlist_files', True)
@@ -1782,6 +1782,7 @@ class YoutubeDL:
 
             extra = {
                 **common_info,
+                'n_entries': int_or_none(n_entries),
                 'playlist_index': playlist_index,
                 'playlist_autonumber': i + 1,
             }
