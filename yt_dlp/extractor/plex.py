@@ -41,14 +41,12 @@ class PlexWatchBaseIE(InfoExtractor):
             self._CLIENT_IDENTIFIER = cookie_.get('clientIdentifier')
 
     def _perform_login(self, username, password):
-        self.write_debug('Trying to login')
         try:
             resp_api = self._download_json(
-                'https://plex.tv/api/v2/users/signin', 'Auth', query={'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER},
+                'https://plex.tv/api/v2/users/signin', None, note='Logging in',
+                query={'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER},
                 data=f'login={username}&password={password}&rememberMe=true'.encode(),
-                headers={'Accept': 'application/json'}, expected_status=429,
-                note='Downloading JSON Auth Info')
-            self.write_debug('login successfully')
+                headers={'Accept': 'application/json'}, expected_status=429)
             self._TOKEN = resp_api.get('authToken')
 
         except ExtractorError as e:
