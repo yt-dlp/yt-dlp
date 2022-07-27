@@ -140,7 +140,7 @@ class ArchiveOrgIE(InfoExtractor):
             'track_number': 7,
         },
     }, {
-        # FIXME: gives an IndexError when all formats are restricted?
+        # FIXME: give a better error message than just IndexError when all available formats are restricted
         'url': 'https://archive.org/details/lp_the-music-of-russia_various-artists-a-askaryan-alexander-melik',
         'md5': '7cb019baa9b332e82ea7c10403acd180',
         'info_dict': {
@@ -314,7 +314,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'height': int_or_none(f.get('height')),
                     'filesize': int_or_none(f.get('size')),
                     'protocol': 'https',
-                    'source_preference': 0 if f.get('source') == 'original' else -1,  # FIXME: this isn't properly prioritising original format
+                    'source_preference': 0 if f.get('source') == 'original' else -1,
                     'format_note': f.get('source')})
 
         for entry in entries.values():
