@@ -1727,6 +1727,7 @@ from .telequebec import (
 )
 from .teletask import TeleTaskIE
 from .telewebion import TelewebionIE
+from .tempo import TempoIE
 from .tennistv import TennisTVIE
 from .tenplay import TenPlayIE
 from .testurl import TestURLIE
