@@ -3,48 +3,44 @@ import hashlib
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    get_element_by_class,
-    int_or_none,
-    orderedSet,
-    str_or_none,
-    str_to_int,
-    update_url_query,
-    unescapeHTML,
-    unified_timestamp,
-    url_or_none,
-    urlencode_postdata,
-)
 from .dailymotion import DailymotionIE
 from .odnoklassniki import OdnoklassnikiIE
 from .pladform import PladformIE
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
+from ..compat import compat_urlparse
+from ..utils import (
+    ExtractorError,
+    clean_html,
+    get_element_by_class,
+    int_or_none,
+    orderedSet,
+    str_or_none,
+    str_to_int,
+    unescapeHTML,
+    unified_timestamp,
+    update_url_query,
+    url_or_none,
+    urlencode_postdata,
+)
 
 
 class VKBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'vk'
 
-    def _download_webpage_handle(self, *args, **kwargs):
-        response = super()._download_webpage_handle(*args, **kwargs)
-        if not response:
-            return response
-        content, urlh = response
-        challenge_url = urlh.geturl()
+    def _download_webpage_handle(self, url_or_request, video_id, *args, fatal=True, **kwargs):
+        response = super()._download_webpage_handle(url_or_request, video_id, *args, fatal=fatal, **kwargs)
+        challenge_url, cookie = response[1].geturl() if response else '', None
         if challenge_url.startswith('https://vk.com/429.html?'):
             cookie = self._get_cookies(challenge_url).get('hash429')
-            if cookie:
-                hash429 = hashlib.md5(cookie.value.encode('ascii')).hexdigest()
-                resolve_url = update_url_query(challenge_url, {'key': hash429})
-                self._request_webpage(
-                    resolve_url, None, fatal=kwargs.get('fatal'),
-                    note='Resolving WAF challenge',
-                    errnote='Failed bypass WAF challenge')
-                return super()._download_webpage_handle(*args, **kwargs)
-        return (content, urlh)
+        if not cookie:
+            return response
+
+        hash429 = hashlib.md5(cookie.value.encode('ascii')).hexdigest()
+        self._request_webpage(
+            update_url_query(challenge_url, {'key': hash429}), video_id, fatal=fatal,
+            note='Resolving WAF challenge', errnote='Failed to bypass WAF challenge')
+        return super()._download_webpage_handle(url_or_request, video_id, *args, fatal=True, **kwargs)
 
     def _perform_login(self, username, password):
         login_page, url_handle = self._download_webpage_handle(
@@ -74,8 +70,7 @@ class VKBaseIE(InfoExtractor):
         endpoint = f'https://vk.com/{path}.php'
         data['al'] = 1
         code, payload = self._download_json(
-            endpoint, video_id,
-            data=urlencode_postdata(data), fatal=fatal,
+            endpoint, video_id, data=urlencode_postdata(data), fatal=fatal,
             headers={
                 'Referer': endpoint,
                 'X-Requested-With': 'XMLHttpRequest',
@@ -108,7 +103,6 @@ class VKIE(VKBaseIE):
     _TESTS = [
         {
             'url': 'http://vk.com/videos-77521?z=video-77521_162222515%2Fclub77521',
-            'md5': 'bb22825c8ae7a50475a6673eeda0a957',
             'info_dict': {
                 'id': '-77521_162222515',
                 'ext': 'mp4',
@@ -122,6 +116,7 @@ class VKIE(VKBaseIE):
                 'like_count': int,
                 'thumbnail': r're:https?://.+\.jpg$',
             },
+            'params': {'skip_download': 'm3u8'},
         },
         {
             'url': 'http://vk.com/video205387401_165548505',
@@ -142,7 +137,6 @@ class VKIE(VKBaseIE):
         {
             'note': 'Embedded video',
             'url': 'https://vk.com/video_ext.php?oid=-77521&id=162222515&hash=87b046504ccd8bfa',
-            'md5': 'bb22825c8ae7a50475a6673eeda0a957',
             'info_dict': {
                 'id': '-77521_162222515',
                 'ext': 'mp4',
@@ -154,6 +148,7 @@ class VKIE(VKBaseIE):
                 'uploader_id': '39545378',
                 'thumbnail': r're:https?://.+\.jpg$',
             },
+            'params': {'skip_download': 'm3u8'},
         },
         {
             # VIDEO NOW REMOVED
