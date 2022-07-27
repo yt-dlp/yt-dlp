@@ -7,6 +7,7 @@ from ..utils import (
     js_to_json,
     sanitized_Request,
     urlencode_postdata,
+    traverse_obj,
 )
 
 
@@ -135,6 +136,8 @@ class TubiTvShowIE(InfoExtractor):
             show_webpage, 'data'), show_name, transform_source=js_to_json)['video']
 
         for episode_id in show_json['fullContentById'].keys():
+            if traverse_obj(show_json, ('byId', episode_id, 'type')) == 's':
+                continue
             yield self.url_result(
                 'tubitv:%s' % episode_id,
                 ie=TubiTvIE.ie_key(), video_id=episode_id)

@@ -408,6 +408,7 @@ from .dplay import (
     DiscoveryLifeIE,
     AnimalPlanetIE,
     TLCIE,
+    MotorTrendIE,
     DiscoveryPlusIndiaIE,
     DiscoveryNetworksDeIE,
     DiscoveryPlusItalyIE,
@@ -1244,7 +1245,7 @@ from .parliamentliveuk import ParliamentLiveUKIE
 from .parlview import ParlviewIE
 from .patreon import (
     PatreonIE,
-    PatreonUserIE
+    PatreonCampaignIE
 )
 from .pbs import PBSIE
 from .pearvideo import PearVideoIE
@@ -1391,6 +1392,7 @@ from .rai import (
     RaiPlaySoundIE,
     RaiPlaySoundLiveIE,
     RaiPlaySoundPlaylistIE,
+    RaiNewsIE,
     RaiIE,
 )
 from .raywenderlich import (

@@ -22,6 +22,7 @@ from ..jsinterp import JSInterpreter
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
+    UserNotLive,
     bug_reports_message,
     classproperty,
     clean_html,
@@ -5383,9 +5384,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 selected_tab_name = 'featured'
             requested_tab_name = mobj['tab'][1:]
             if 'no-youtube-channel-redirect' not in compat_opts:
-                if requested_tab_name == 'live':
-                    # Live tab should have redirected to the video
-                    raise ExtractorError('The channel is not currently live', expected=True)
+                if requested_tab_name == 'live':  # Live tab should have redirected to the video
+                    raise UserNotLive(video_id=mobj['id'])
                 if requested_tab_name not in ('', selected_tab_name):
                     redirect_warning = f'The channel does not have a {requested_tab_name} tab'
                     if not original_tab_name:
