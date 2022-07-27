@@ -57,7 +57,7 @@ class ArchiveOrgIE(InfoExtractor):
         },
     }, {
         'url': 'https://archive.org/details/Cops1922',
-        'md5': '34f1704b1b69e0fd99d8f42ddbbcded0',
+        'md5': '0869000b4ce265e8ca62738b336b268a',
         'info_dict': {
             'id': 'Cops1922',
             'ext': 'mp4',
@@ -70,18 +70,17 @@ class ArchiveOrgIE(InfoExtractor):
             'track': 'Cops-v2',
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
             'duration': 1091.96,
-
         },
     }, {
         'url': 'http://archive.org/embed/XD300-23_68HighlightsAResearchCntAugHumanIntellect',
         'only_matching': True,
     }, {
         'url': 'https://archive.org/details/Election_Ads',
-        'md5': '284180e857160cf866358700bab668a3',
+        'md5': 'eec5cddebd4793c6a653b69c3b11f2e6',
         'info_dict': {
             'id': 'Election_Ads/Commercial-JFK1960ElectionAdCampaignJingle.mpg',
             'title': 'Commercial-JFK1960ElectionAdCampaignJingle.mpg',
-            'ext': 'mp4',
+            'ext': 'mpg',
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
             'track': 'Commercial-JFK1960ElectionAdCampaignJingle',
             'duration': 59.77,
@@ -89,7 +88,7 @@ class ArchiveOrgIE(InfoExtractor):
         },
     }, {
         'url': 'https://archive.org/details/Election_Ads/Commercial-Nixon1960ElectionAdToughonDefense.mpg',
-        'md5': '7915213ef02559b5501fe630e1a53f59',
+        'md5': 'ea1eed8234e7d4165f38c8c769edef38',
         'info_dict': {
             'id': 'Election_Ads/Commercial-Nixon1960ElectionAdToughonDefense.mpg',
             'title': 'Commercial-Nixon1960ElectionAdToughonDefense.mpg',
@@ -319,7 +318,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'format_note': f.get('source')})
 
         for entry in entries.values():
-            self._sort_formats(entry['formats'])
+            self._sort_formats(entry['formats'], ('source', ))
 
         if len(entries) == 1:
             # If there's only one item, use it as the main info dict
