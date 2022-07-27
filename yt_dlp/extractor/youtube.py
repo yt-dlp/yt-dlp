@@ -354,6 +354,31 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?piped\.privacy\.com\.de',
     )
 
+    _SUPPORTED_LANGS = [
+        'af', 'az', 'id', 'ms', 'bs', 'ca', 'cs', 'da', 'de', 'et', 'en-IN', 'en-GB', 'en', 'es',
+        'es-419', 'es-US', 'eu', 'fil', 'fr', 'fr-CA', 'gl', 'hr', 'zu', 'is', 'it', 'sw', 'lv',
+        'lt', 'hu', 'nl', 'no', 'uz', 'pl', 'pt-PT', 'pt', 'ro', 'sq', 'sk', 'sl', 'sr-Latn', 'fi',
+        'sv', 'vi', 'tr', 'be', 'bg', 'ky', 'kk', 'mk', 'mn', 'ru', 'sr', 'uk', 'el', 'hy', 'iw',
+        'ur', 'ar', 'fa', 'ne', 'mr', 'hi', 'as', 'bn', 'pa', 'gu', 'or', 'ta', 'te', 'kn', 'ml',
+        'si', 'th', 'lo', 'my', 'ka', 'am', 'km', 'zh-CN', 'zh-TW', 'zh-HK', 'ja', 'ko'
+    ]
+
+    @functools.cached_property
+    def _preferred_lang(self):
+        """
+        Returns a language code supported by YouTube for the user preferred language.
+        Returns None if no preferred language set.
+        """
+        preferred_lang = self._configuration_arg('lang', ie_key='Youtube', casesense=True, default=[''])[0]
+        if not preferred_lang:
+            return
+        if preferred_lang not in self._SUPPORTED_LANGS:
+            raise ExtractorError(f'Unsupported language code: {preferred_lang}')
+        elif preferred_lang != 'en':
+            self.report_warning(
+                f'Preferring \'{preferred_lang}\' translated fields. Note that some metadata may fail to extract.')
+        return preferred_lang
+
     def _initialize_consent(self):
         cookies = self._get_cookies('https://www.youtube.com/')
         if cookies.get('__Secure-3PSID'):
@@ -378,7 +403,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 pref = dict(urllib.parse.parse_qsl(pref_cookie.value))
             except ValueError:
                 self.report_warning('Failed to parse user PREF cookie' + bug_reports_message())
-        pref.update({'hl': 'en', 'tz': 'UTC'})
+        pref.update({'hl': self._preferred_lang or 'en', 'tz': 'UTC'})
         self._set_cookie('.youtube.com', name='PREF', value=urllib.parse.urlencode(pref))
 
     def _real_initialize(self):
@@ -426,7 +451,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             (ytcfg, self._get_default_ytcfg(default_client)), 'INNERTUBE_CONTEXT', expected_type=dict)
         # Enforce language and tz for extraction
         client_context = traverse_obj(context, 'client', expected_type=dict, default={})
-        client_context.update({'hl': 'en', 'timeZone': 'UTC', 'utcOffsetMinutes': 0})
+        client_context.update({'hl': self._preferred_lang or 'en', 'timeZone': 'UTC', 'utcOffsetMinutes': 0})
         return context
 
     _SAPISID = None
@@ -756,7 +781,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                         (r'([a-z]+\s*\d{1,2},?\s*20\d{2})', r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*(?:on|for))?\s*(.+\d)'),
                         text.lower(), 'time text', default=None)))
 
-        if text and timestamp is None:
+        if text and timestamp is None and self._preferred_lang in (None, 'en'):
             self.report_warning(f"Cannot parse localized time text '{text}'" + bug_reports_message(), only_once=True)
         return timestamp, text
 
@@ -3403,11 +3428,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         microformats = traverse_obj(
             player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
             expected_type=dict, default=[])
-        video_title = (
-            get_first(video_details, 'title')
-            or self._get_text(microformats, (..., 'title'))
-            or search_meta(['og:title', 'twitter:title', 'title']))
-        video_description = get_first(video_details, 'shortDescription')
+
+        original_title = get_first(video_details, 'title')
+        original_description = get_first(video_details, 'shortDescription')
+        translated_title = self._get_text(microformats, (..., 'title'))
+        translated_description = self._get_text(microformats, (..., 'description'))
+        video_title = search_meta(['og:title', 'twitter:title', 'title'])
+        if self._preferred_lang is not None:
+            video_title = translated_title or original_title or video_title
+            video_description = translated_description or original_description
+        else:
+            video_title = original_title or translated_title or video_title
+            video_description = original_description or translated_description
 
         multifeed_metadata_list = get_first(
             player_responses,
@@ -5379,10 +5411,15 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         tabs = traverse_obj(data, ('contents', 'twoColumnBrowseResultsRenderer', 'tabs'), expected_type=list)
         if tabs:
             selected_tab = self._extract_selected_tab(tabs)
-            selected_tab_name = selected_tab.get('title', '').lower()
+            selected_tab_url = urljoin(
+                url, traverse_obj(selected_tab, ('endpoint', 'commandMetadata', 'webCommandMetadata', 'url')))
+
+            selected_tab_name = get_mobj(selected_tab_url or '')['tab'][1:] or selected_tab.get('title', '').lower()
+
             if selected_tab_name == 'home':
                 selected_tab_name = 'featured'
             requested_tab_name = mobj['tab'][1:]
+
             if 'no-youtube-channel-redirect' not in compat_opts:
                 if requested_tab_name == 'live':  # Live tab should have redirected to the video
                     raise UserNotLive(video_id=mobj['id'])

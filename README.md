@@ -1760,6 +1760,8 @@ The following extractors use this feature:
   * e.g. `studio.youtube.com`, `youtubei.googleapis.com`
   * Note: Cookies exported from `www.youtube.com` will not work with hosts other than `*.youtube.com`
 * `innertube_key`: Innertube API key to use for all API requests
+* `lang`: Supported language code by YouTube to prefer translated fields of this language, if available (case-sensitive).
+  * See youtube.py for list of supported codes.
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
 * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
