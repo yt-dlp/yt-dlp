@@ -328,7 +328,7 @@ class NaverNowIE(NaverBaseIE):
         }, self._extract_video_info(replay_id, vod_info['video_id'], in_key))
 
     def _extract_show_replays(self, show_id):
-        page_size = 15  # page_size is now a fixed unchangeable value
+        page_size = 15
         page = 1
         while True:
             show_vod_info = self._download_json(
@@ -344,7 +344,7 @@ class NaverNowIE(NaverBaseIE):
             page += 1
 
     def _extract_show_highlights(self, show_id, highlight_id=None):
-        page_size = 10  # page_size is now a fixed unchangeable value
+        page_size = 10
         page = 1
         while True:
             highlights_videos = self._download_json(
