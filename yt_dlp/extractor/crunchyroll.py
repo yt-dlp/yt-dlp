@@ -801,6 +801,9 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
     }, {
         'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/',
         'only_matching': True,
+    }, {
+        'url': 'https://beta.crunchyroll.com/pt-br/watch/G8WUN8VKP/the-ruler-of-conspiracy',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -897,9 +900,6 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
         'playlist_mincount': 10,
     }, {
         'url': 'https://beta.crunchyroll.com/it/series/GY19NQ2QR/Girl-Friend-BETA',
-        'only_matching': True,
-    }, {
-        'url': 'https://beta.crunchyroll.com/pt-br/watch/G8WUN8VKP/the-ruler-of-conspiracy',
         'only_matching': True,
     }]
 
