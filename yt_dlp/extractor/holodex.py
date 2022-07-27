@@ -1,11 +1,11 @@
 from .common import InfoExtractor
 from .youtube import YoutubeIE
+from ..utils import traverse_obj
 
 
 class HolodexIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.|staging\.)?holodex\.net/watch/(?P<id>\w+)'
     _TESTS = [{
-        # Youtube
         'url': 'https://holodex.net/watch/9kQ2GtvDV3s',
         'md5': 'be5ffce2f0feae8ba4c01553abc0f175',
         'info_dict': {
@@ -35,11 +35,11 @@ class HolodexIE(InfoExtractor):
     }, ]
 
     def _real_extract(self, url):
-        return self.url_result(f'https://www.youtube.com/watch?v={self._match_id(url)}', ie=YoutubeIE.ie_key())
+        return self.url_result(f'https://www.youtube.com/watch?v={self._match_id(url)}', YoutubeIE)
 
 
 class HolodexPlaylistIE(InfoExtractor):
-    _VALID_URL = r"https?://(?:www\.|staging\.)?holodex\.net/(?:watch/[^\?]\?playlist=|api/v2/playlist/)(?P<id>\d+)"
+    _VALID_URL = r'https?://(?:www\.|staging\.)?holodex\.net/(?:watch/[^\?]\?playlist=|api/v2/playlist/)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://holodex.net/api/v2/playlist/239',
         'info_dict': {
@@ -51,10 +51,6 @@ class HolodexPlaylistIE(InfoExtractor):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        data = self._download_json(f"https://holodex.net/api/v2/playlist/{playlist_id}", playlist_id)
-        entries = []
-        for video in data.get('videos'):
-            entries.append(self.url_result(video_id=video.get('id'), ie=YoutubeIE.ie_key(),
-                           url=f"https://www.youtube.com/watch?v={video.get('id')}"))
-
-        return self.playlist_result(entries, playlist_id, data.get('name'))
+        data = self._download_json(f'https://holodex.net/api/v2/playlist/{playlist_id}', playlist_id)
+        return self.playlist_from_matches(
+            traverse_obj(data, ('videos', ..., 'id')), playlist_id, data.get('name'), ie=YoutubeIE)
