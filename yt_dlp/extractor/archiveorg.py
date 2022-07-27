@@ -53,7 +53,6 @@ class ArchiveOrgIE(InfoExtractor):
             'release_year': 1968,
             'display_id': 'XD300-23_68HighlightsAResearchCntAugHumanIntellect.cdr',
             'track': 'XD300-23 68HighlightsAResearchCntAugHumanIntellect',
-
         },
     }, {
         'url': 'https://archive.org/details/Cops1922',
@@ -102,7 +101,6 @@ class ArchiveOrgIE(InfoExtractor):
             'license': 'http://creativecommons.org/licenses/publicdomain/',
             'track': 'Commercial-Nixon1960ElectionAdToughonDefense',
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
-
         },
     }, {
         'url': 'https://archive.org/details/gd1977-05-08.shure57.stevenson.29303.flac16',
@@ -173,7 +171,6 @@ class ArchiveOrgIE(InfoExtractor):
             'uploader': 'dimitrios@archive.org',
             'creator': ['British Broadcasting Corporation', 'Time-Life Films'],
             'timestamp': 1465594947,
-
         },
         'playlist': [
             {
@@ -315,7 +312,8 @@ class ArchiveOrgIE(InfoExtractor):
                     'filesize': int_or_none(f.get('size')),
                     'protocol': 'https',
                     'source_preference': 0 if f.get('source') == 'original' else -1,
-                    'format_note': f.get('source')})
+                    'format_note': f.get('source')
+                })
 
         for entry in entries.values():
             self._sort_formats(entry['formats'], ('source', ))
