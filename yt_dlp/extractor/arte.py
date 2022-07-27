@@ -30,17 +30,7 @@ class ArteTVIE(ArteTVBaseIE):
                     ''' % {'langs': ArteTVBaseIE._ARTE_LANGUAGES}
     _TESTS = [{
         'url': 'https://www.arte.tv/en/videos/088501-000-A/mexico-stealing-petrol-to-survive/',
-        'info_dict': {
-            'id': '088501-000-A',
-            'title': 'Mexico: Stealing Petrol to Survive',
-            'alt_title': 'ARTE Reportage',
-            'description': 'md5:35ec9baaa8ad0b2456447c7972ba3ca0',
-            'duration': 1428,
-            'thumbnail': 'https://api-cdn.arte.tv/api/mami/v1/program/en/088501-000-A/940x530?ts=1626083168',
-            'upload_date': '20190628',
-            'timestamp': 1561759200,
-            'ext': 'mp4',
-        },
+        'only_matching': True,
     }, {
         'url': 'https://www.arte.tv/pl/videos/100103-000-A/usa-dyskryminacja-na-porodowce/',
         'info_dict': {
@@ -50,10 +40,11 @@ class ArteTVIE(ArteTVBaseIE):
             'alt_title': 'ARTE Reportage',
             'upload_date': '20201103',
             'duration': 554,
-            'thumbnail': 'https://api-cdn.arte.tv/api/mami/v1/program/pl/100103-000-A/940x530?ts=1625425425',
+            'thumbnail': r're:https://api-cdn\.arte\.tv/.+940x530',
             'timestamp': 1604417980,
             'ext': 'mp4',
         },
+        'params': {'skip_download': 'm3u8'}
     }, {
         'url': 'https://api.arte.tv/api/player/v2/config/de/100605-013-A',
         'only_matching': True,
@@ -64,7 +55,7 @@ class ArteTVIE(ArteTVBaseIE):
 
     _GEO_BYPASS = True
 
-    _LANG_MAP = {       # the RHS are not ISO codes, but French abbreviations
+    _LANG_MAP = {  # ISO639 -> French abbreviations
         'fr': 'F',
         'de': 'A',
         'en': 'E[ANG]',
@@ -181,8 +172,8 @@ class ArteTVIE(ArteTVBaseIE):
         return {
             'id': metadata['providerId'],
             'webpage_url': traverse_obj(metadata, ('link', 'url')),
-            'title': metadata.get('title'),
-            'alt_title': metadata.get('subtitle'),
+            'title': metadata.get('subtitle'),
+            'alt_title': metadata.get('title'),
             'description': metadata.get('description'),
             'duration': traverse_obj(metadata, ('duration', 'seconds')),
             'language': metadata.get('language'),
@@ -208,6 +199,7 @@ class ArteTVEmbedIE(InfoExtractor):
             'description': 'md5:be40b667f45189632b78c1425c7c2ce1',
             'upload_date': '20201116',
         },
+        'skip': 'No video available'
     }, {
         'url': 'https://www.arte.tv/player/v3/index.php?json_url=https://api.arte.tv/api/player/v2/config/de/100605-013-A',
         'only_matching': True,
@@ -231,12 +223,7 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
     _VALID_URL = r'https?://(?:www\.)?arte\.tv/(?P<lang>%s)/videos/(?P<id>RC-\d{6})' % ArteTVBaseIE._ARTE_LANGUAGES
     _TESTS = [{
         'url': 'https://www.arte.tv/en/videos/RC-016954/earn-a-living/',
-        'info_dict': {
-            'id': 'RC-016954',
-            'title': 'Earn a Living',
-            'description': 'md5:d322c55011514b3a7241f7fb80d494c2',
-        },
-        'playlist_mincount': 6,
+        'only_matching': True,
     }, {
         'url': 'https://www.arte.tv/pl/videos/RC-014123/arte-reportage/',
         'playlist_mincount': 100,
@@ -284,7 +271,7 @@ class ArteTVCategoryIE(ArteTVBaseIE):
     def suitable(cls, url):
         return (
             not any(ie.suitable(url) for ie in (ArteTVIE, ArteTVPlaylistIE, ))
-            and super(ArteTVCategoryIE, cls).suitable(url))
+            and super().suitable(url))
 
     def _real_extract(self, url):
         lang, playlist_id = self._match_valid_url(url).groups()
