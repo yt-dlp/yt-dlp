@@ -48,12 +48,11 @@ class PlexWatchBaseIE(InfoExtractor):
                 data=f'login={username}&password={password}&rememberMe=true'.encode(),
                 headers={'Accept': 'application/json'}, expected_status=429)
             self._TOKEN = resp_api.get('authToken')
-
         except ExtractorError as e:
             # Default to non-login error when there's any problem in login
             error = self._parse_json(e.cause.read(), 'login error')
-            self.write_debug(f'There\'s error on login : {error["errors"][0]["message"]}, caused by {e.cause} '
-                             f'trying to use non-login method')
+            self.report_warning(f'There\'s error on login : {error["errors"][0]["message"]}, caused by {e.cause} '
+                                'trying to use non-login method')
 
     def _real_initialize(self):
         if not self._TOKEN:
@@ -74,7 +73,7 @@ class PlexWatchBaseIE(InfoExtractor):
                 raise ExtractorError(error['errors'][0]['message'], cause=e.cause)
 
             self._TOKEN = resp_api['authToken']
-
+            
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}, format_field={}):
         formats, subtitles = [], {}
         fmts, subs = [], {}
