@@ -57,17 +57,16 @@ class PlexWatchBaseIE(InfoExtractor):
     def _real_initialize(self):
         if not self._TOKEN:
             try:
-                # WARNING: This API request is rate-limited
                 self.write_debug('using non-login method (login as anonymous)')
                 resp_api = self._download_json(
-                    'https://plex.tv/api/v2/users/anonymous', 'Auth', data=b'',
+                    'https://plex.tv/api/v2/users/anonymous', None, data=b'',
+                    note='Logging in anonymously (Note: rate limited)'
                     headers={
                         'X-Plex-Provider-Version': '6.2.0',
                         'Accept': 'application/json',
                         'X-Plex-Product': 'Plex Mediaverse',
                         'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER.encode()
-                    },
-                    note='Downloading JSON Auth Info (as anonymous)')
+                    })
             except ExtractorError as e:
                 error = self._parse_json(e.cause.read(), 'login error')
                 raise ExtractorError(error['errors'][0]['message'], cause=e.cause)
@@ -89,7 +88,6 @@ class PlexWatchBaseIE(InfoExtractor):
                     fmts.append(fmt_)
 
             elif determine_ext(media) == 'mpd':
-
                 fmt, subs = self._extract_mpd_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
                     display_id, query={'X-PLEX-TOKEN': self._TOKEN})
