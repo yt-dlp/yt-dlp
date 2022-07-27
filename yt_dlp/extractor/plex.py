@@ -13,8 +13,8 @@ from ..utils import (
 
 class PlexWatchBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'plex'
-    # provider url is in https://plex.tv/media/providers?X-Plex-Token=<plex_token>
-    # nb: need Accept: application/json, otherwise return xml
+
+    # Obtained from https://plex.tv/media/providers?X-Plex-Token=<plex_token>
     _CDN_ENDPOINT = {
         'vod': 'https://vod.provider.plex.tv',
         'live': 'https://epg.provider.plex.tv',
@@ -37,9 +37,6 @@ class PlexWatchBaseIE(InfoExtractor):
         if self._TOKEN is None:
             client_id = self._request_webpage(  # noqa: F841
                 'https://watch.plex.tv/', 'client_id', note='Downloading html page to get clientIdentifier')
-            self.write_debug('trying to get clientIdentifier')
-
-            # get cookie from cookiejar
             cookie_ = {cookie.name: cookie.value for cookie in self.cookiejar}
             self._CLIENT_IDENTIFIER = cookie_.get('clientIdentifier')
 
@@ -281,9 +278,8 @@ class PlexWatchEpisodeIE(PlexWatchBaseIE):
     }]
 
     def _real_extract(self, url):
-        return self._extract_data(
-            url, episode_number=int_or_none(self._match_valid_url(url).group('episode_num')),
-            season_number=int_or_none(self._match_valid_url(url).group('season_num')))
+        episode, season = self._match_valid_url(url).group('episode_num', 'season_num')
+        return self._extract_data(url, episode_number=int(episode), season_number=int(season))
 
 
 class PlexWatchSeasonIE(PlexWatchBaseIE):
