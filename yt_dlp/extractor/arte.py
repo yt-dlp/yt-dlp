@@ -46,6 +46,20 @@ class ArteTVIE(ArteTVBaseIE):
         },
         'params': {'skip_download': 'm3u8'}
     }, {
+        'note': 'No alt_title',
+        'url': 'https://www.arte.tv/fr/videos/110371-000-A/la-chaleur-supplice-des-arbres-de-rue/',
+        'info_dict': {
+            'id': '110371-000-A',
+            'ext': 'mp4',
+            'upload_date': '20220718',
+            'duration': 154,
+            'timestamp': 1658162460,
+            'description': 'md5:5890f36fe7dccfadb8b7c0891de54786',
+            'title': 'La chaleur, supplice des arbres de rue',
+            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/CPE2sQDtD8GLQgt8DuYHLf/940x530',
+        },
+        'params': {'skip_download': 'm3u8'}
+    }, {
         'url': 'https://api.arte.tv/api/player/v2/config/de/100605-013-A',
         'only_matching': True,
     }, {
@@ -172,8 +186,8 @@ class ArteTVIE(ArteTVBaseIE):
         return {
             'id': metadata['providerId'],
             'webpage_url': traverse_obj(metadata, ('link', 'url')),
-            'title': metadata.get('subtitle'),
-            'alt_title': metadata.get('title'),
+            'title': traverse_obj(metadata, 'subtitle', 'title'),
+            'alt_title': metadata.get('subtitle') and metadata.get('title'),
             'description': metadata.get('description'),
             'duration': traverse_obj(metadata, ('duration', 'seconds')),
             'language': metadata.get('language'),
