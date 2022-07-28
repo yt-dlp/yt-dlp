@@ -1214,7 +1214,6 @@ class BBCIE(BBCCoUkIE):
                         'timestamp': item_time,
                         'description': strip_or_none(item_desc),
                     })
-
             for resp in (initial_data.get('data') or {}).values():
                 name = resp.get('name')
                 if name == 'media-experience':
