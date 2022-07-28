@@ -42,7 +42,7 @@ class HolodexIE(InfoExtractor):
 
 
 class HolodexPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.|staging\.)?holodex\.net/(?:watch/[^?]+?\?playlist=|api/v2/playlist/)(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.|staging\.)?holodex\.net/(?:watch/.*?playlist=|api/v2/playlist/)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://holodex.net/api/v2/playlist/239',
         'info_dict': {
