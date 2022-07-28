@@ -839,7 +839,7 @@ class BBCIE(BBCCoUkIE):
             'thumbnail': r're:https?://.+/p07c9dsr.jpg',
             'upload_date': '20190604',
             'categories': ['Psychology'],
-        }
+        },
     }, {
         # Morph-based video-block embed
         'url': 'https://www.bbc.co.uk/teach/school-radio/assemblies-the-good-samaritan-modern-setting-ks2/zjsx2v4',
@@ -848,7 +848,7 @@ class BBCIE(BBCCoUkIE):
             'ext': 'mp4',
             'title': 'The Good Samaritan',
             'duration': 322,
-        }
+        },
     }]
 
     @classmethod
