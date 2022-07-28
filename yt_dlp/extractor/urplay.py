@@ -14,12 +14,13 @@ class URPlayIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ur(?:play|skola)\.se/(?:program|Produkter)/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://urplay.se/program/203704-ur-samtiden-livet-universum-och-rymdens-markliga-musik-om-vetenskap-kritiskt-tankande-och-motstand',
-        'md5': 'ff5b0c89928f8083c74bbd5099c9292d',
+        'md5': '5ba36643c77cc3d34ffeadad89937d1e',
         'info_dict': {
             'id': '203704',
             'ext': 'mp4',
             'title': 'UR Samtiden - Livet, universum och rymdens märkliga musik : Om vetenskap, kritiskt tänkande och motstånd',
             'description': 'md5:5344508a52aa78c1ced6c1b8b9e44e9a',
+            'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1513292400,
             'upload_date': '20171214',
             'series': 'UR Samtiden - Livet, universum och rymdens märkliga musik',
@@ -36,12 +37,17 @@ class URPlayIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Tripp, Trapp, Träd : Sovkudde',
             'description': 'md5:b86bffdae04a7e9379d1d7e5947df1d1',
+            'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1440086400,
             'upload_date': '20150820',
             'series': 'Tripp, Trapp, Träd',
             'duration': 865,
+            'age_limit': 1,
+            'episode_number': 1,
+            'categories': [],
             'tags': ['Sova'],
             'episode': 'Sovkudde',
+            'season': 'Säsong 1',
         },
     }, {
         'url': 'http://urskola.se/Produkter/155794-Smasagor-meankieli-Grodan-i-vida-varlden',
