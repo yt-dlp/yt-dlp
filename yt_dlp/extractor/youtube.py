@@ -354,6 +354,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?piped\.privacy\.com\.de',
     )
 
+    # extracted from account/account_menu ep
     _SUPPORTED_LANGS = [
         'af', 'az', 'id', 'ms', 'bs', 'ca', 'cs', 'da', 'de', 'et', 'en-IN', 'en-GB', 'en', 'es',
         'es-419', 'es-US', 'eu', 'fil', 'fr', 'fr-CA', 'gl', 'hr', 'zu', 'is', 'it', 'sw', 'lv',
@@ -373,10 +374,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if not preferred_lang:
             return
         if preferred_lang not in self._SUPPORTED_LANGS:
-            raise ExtractorError(f'Unsupported language code: {preferred_lang}')
+            raise ExtractorError(f'Unsupported language code: {preferred_lang}', expected=True)
         elif preferred_lang != 'en':
             self.report_warning(
-                f'Preferring \'{preferred_lang}\' translated fields. Note that some metadata may fail to extract.')
+                f'Preferring \'{preferred_lang}\' translated fields. Note that some metadata extraction may fail or be incorrect.')
         return preferred_lang
 
     def _initialize_consent(self):
@@ -766,9 +767,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             except ValueError:
                 return None
 
-    def _extract_time_text(self, renderer, *path_list):
-        """@returns (timestamp, time_text)"""
-        text = self._get_text(renderer, *path_list) or ''
+    def _parse_time_text(self, text):
         dt = self.extract_relative_time(text)
         timestamp = None
         if isinstance(dt, datetime.datetime):
@@ -777,12 +776,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if timestamp is None:
             timestamp = (
                 unified_timestamp(text) or unified_timestamp(
-                    self._search_regex(
-                        (r'([a-z]+\s*\d{1,2},?\s*20\d{2})', r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*(?:on|for))?\s*(.+\d)'),
-                        text.lower(), 'time text', default=None)))
+                self._search_regex(
+                    (
+                    r'([a-z]+\s*\d{1,2},?\s*20\d{2})', r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*(?:on|for))?\s*(.+\d)'),
+                    text.lower(), 'time text', default=None)))
 
         if text and timestamp is None and self._preferred_lang in (None, 'en'):
-            self.report_warning(f"Cannot parse localized time text '{text}'" + bug_reports_message(), only_once=True)
+            self.report_warning(
+                f"Cannot parse localized time text '{text}'", only_once=True)
+        return timestamp
+
+    def _extract_time_text(self, renderer, *path_list):
+        """@returns (timestamp, time_text)"""
+        text = self._get_text(renderer, *path_list) or ''
+        timestamp = self._parse_time_text(text)
         return timestamp, text
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
@@ -879,7 +886,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         channel_id = traverse_obj(
             renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'),
             expected_type=str, get_all=False)
-        timestamp, time_text = self._extract_time_text(renderer, 'publishedTimeText')
+        time_text = self._get_text(renderer, 'publishedTimeText')
         scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
@@ -905,7 +912,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'uploader': uploader,
             'channel_id': channel_id,
             'thumbnails': thumbnails,
-            'upload_date': (strftime_or_none(timestamp, '%Y%m%d')
+            'upload_date': (strftime_or_none(self._parse_time_text(time_text), '%Y%m%d')
                             if self._configuration_arg('approximate_date', ie_key='youtubetab')
                             else None),
             'live_status': ('is_upcoming' if scheduled_timestamp is not None
