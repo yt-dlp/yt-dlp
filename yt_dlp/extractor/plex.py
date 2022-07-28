@@ -20,9 +20,10 @@ class PlexWatchBaseIE(InfoExtractor):
         'live': 'https://epg.provider.plex.tv',
         'tv.plex.provider.epg': 'https://epg.provider.plex.tv',
         'tv.plex.provider.vod': 'https://vod.provider.plex.tv',
+        'tv.plex.provider.metadata': 'https://metadata.provider.plex.tv',
     }
 
-    _TOKEN = None #ckDa_ivRs5fdCVwzNjzs
+    _TOKEN = None
     _CLIENT_IDENTIFIER = None
     
     def _handle_login_error(self, error, error_message='', fatal=True):
@@ -55,11 +56,7 @@ class PlexWatchBaseIE(InfoExtractor):
             self._TOKEN = resp_api.get('authToken')
         except ExtractorError as e:
             self._handle_login_error(e, fatal=False)
-            # # Default to non-login error when there's any problem in login
-            # error = self._parse_json(e.cause.read(), 'login error')
-            # self.report_warning(f'There\'s error on login : {error["errors"][0]["message"]}, caused by {e.cause} '
-                                # 'trying to use non-login method')
-
+            
     def _real_initialize(self):
         if not self._TOKEN:
             try:
@@ -75,9 +72,7 @@ class PlexWatchBaseIE(InfoExtractor):
                     })
             except ExtractorError as e:
                 self._handle_login_error(e)
-                # error = self._parse_json(e.cause.read(), 'login error')
-                # raise ExtractorError(error['errors'][0]['message'], cause=e.cause)
-
+                
             self._TOKEN = resp_api['authToken']
             
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}, format_field={}):
