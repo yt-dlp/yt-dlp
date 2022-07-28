@@ -1231,7 +1231,7 @@ class BBCIE(BBCCoUkIE):
                                           (lambda x: x['data']['blocks'],
                                            lambda x: x['data']['content']['model']['blocks'],),
                                           list) or []):
-                        if block.get('type') != 'media':
+                        if block.get('type') not in ['media', 'video']:
                             continue
                         parse_media(block.get('model'))
             return self.playlist_result(
