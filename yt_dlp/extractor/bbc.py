@@ -1067,7 +1067,7 @@ class BBCIE(BBCCoUkIE):
         # There are several setPayload calls which may be present
         # The video is not always related to the first one
         for morph_payload in extract_all(r'Morph\.setPayload\([^,]+,\s*({.+?})\);'):
-            article = try_get(morph_payload, (lambda x: x['body']['content']['article'],),) or {}
+            article = try_get(morph_payload, (lambda x: x['body']['content']['article'],), ) or {}
             if not article:
                 continue
             body = self._parse_json(article.get('body') or '{}', playlist_id)
@@ -1359,7 +1359,7 @@ class BBCCoUkPlaylistBaseIE(InfoExtractor):
             compat_urlparse.urlparse(url).query)
         for page_num in itertools.count(2):
             for video_id in re.findall(
-                self._VIDEO_ID_TEMPLATE % BBCCoUkIE._ID_REGEX, webpage):
+                    self._VIDEO_ID_TEMPLATE % BBCCoUkIE._ID_REGEX, webpage):
                 yield self.url_result(
                     self._URL_TEMPLATE % video_id, BBCCoUkIE.ie_key())
             if single_page:
