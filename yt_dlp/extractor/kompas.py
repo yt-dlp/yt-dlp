@@ -4,11 +4,13 @@ from ..utils import (
     float_or_none,
     str_or_none,
     traverse_obj,
+    unescapeHTML,
 )
 
+# Video from www.kompas.tv and video.kompas.com seems use jixie player
 
 class KompasVideoIE(InfoExtractor):
-    _VALID_URL = r'https?://video\.kompas\.com/watch/(?P<id>\d+)/(?P<slug>[\w-]+)'
+    _VALID_URL = r'https?://video\.kompas\.com/\w+/(?P<id>\d+)/(?P<slug>[\w-]+)'
     _TESTS = [{
         'url': 'https://video.kompas.com/watch/164474/kim-jong-un-siap-kirim-nuklir-lawan-as-dan-korsel',
         'info_dict': {
@@ -64,3 +66,52 @@ class KompasVideoIE(InfoExtractor):
             'categories': str_or_none(traverse_obj(json_data, ('metadata', 'categories')), '').split(',') or None,
             'uploader_id': json_data.get('owner_id'),
         }
+
+
+class KompasTVIE(InfoExtractor):
+    _VALID_URL = r'https?://www\.kompas\.tv/\w+/(?P<id>\d+)/(?P<slug>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://www.kompas.tv/article/313808/cegah-pmk-dengan-booster-dinas-pertanian-suntik-ratusan-sapi-di-pekanbaru',
+        'info_dict': {
+            'id': 'fixme',
+            'ext': 'mp4',
+        }
+    }]
+    
+    def _real_extract(self, url):
+        video_id, display_id = self._match_valid_url(url).group('id', 'slug')
+        webpage = self._download_webpage(url, display_id)
+        
+        # the urls can found in json_ld(embedUrl) and iframe(src attr)
+        urls = []
+        # extracting from json_ld
+        json_ld_data = list(self._yield_json_ld(webpage, display_id))
+        for json_ld in json_ld_data:
+            if json_ld.get('embedUrl'):
+                urls.append(unescapeHTML(json_ld.get('embedUrl')))
+        print(urls)
+        
+        # extracting from iframe
+        # TODO: better regex
+        url = self._search_regex(
+            r'<iframe[^>]\s*[\w="\s]+\bsrc=\'(?P<iframe_src>[^\']+)',
+            webpage, 'iframe_url', fatal=False, group=('iframe_src'))
+        urls.append(url)
+        print(urls)
+        
+        formats = []
+        
+        for url in urls:
+            formats.append(self.url_result(url))
+            
+        # TODO: add more metadata fallback: json_ld, window.jixie_p.push
+        # FIXME: this code return error as __type is not Video
+        return {
+            '_type': 'url_transparent',
+            'id': video_id,
+            'url': urls[1],
+            'title': self._html_search_meta(['og:title', 'twitter:title'], webpage),
+            'description': self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
+            'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage),
+            'tags': str_or_none(self._html_search_meta(['keywords', 'content_tag'], webpage), '').split(',') or None,   
+        }        
