@@ -649,7 +649,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
     IE_NAME = 'crunchyroll:playlist'
-    _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.com/(?:\w{1,2}/)?(?!(?:news|anime-news|library|forum|launchcalendar|lineup|store|comics|freetrial|login|media-\d+))(?P<id>[\w\-]+))/?(?:\?|$)'
+    _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.com/(?:\w{2}(?:-\w{2})?/)?(?!(?:news|anime-news|library|forum|launchcalendar|lineup|store|comics|freetrial|login|media-\d+))(?P<id>[\w\-]+))/?(?:\?|$)'
 
     _TESTS = [{
         'url': 'https://www.crunchyroll.com/a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
@@ -757,7 +757,7 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
 
 class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
     IE_NAME = 'crunchyroll:beta'
-    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{1,2}/)?)watch/(?P<id>\w+)/(?P<display_id>[\w\-]*)/?(?:\?|$)'
+    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{2}(?:-\w{2})?/)?)watch/(?P<id>\w+)/(?P<display_id>[\w\-]*)/?(?:\?|$)'
     _TESTS = [{
         'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/to-the-future',
         'info_dict': {
@@ -800,6 +800,9 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
         'expected_warnings': ['Unable to download XML']
     }, {
         'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/',
+        'only_matching': True,
+    }, {
+        'url': 'https://beta.crunchyroll.com/pt-br/watch/G8WUN8VKP/the-ruler-of-conspiracy',
         'only_matching': True,
     }]
 
@@ -880,7 +883,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
 
 class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
     IE_NAME = 'crunchyroll:playlist:beta'
-    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{1,2}/)?)series/(?P<id>\w+)/(?P<display_id>[\w\-]*)/?(?:\?|$)'
+    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{2}(?:-\w{2})?/)?)series/(?P<id>\w+)/(?P<display_id>[\w\-]*)/?(?:\?|$)'
     _TESTS = [{
         'url': 'https://beta.crunchyroll.com/series/GY19NQ2QR/Girl-Friend-BETA',
         'info_dict': {
