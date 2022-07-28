@@ -2,8 +2,8 @@ import base64
 import hashlib
 import itertools
 import functools
-import re
 import math
+import re
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
@@ -14,22 +14,23 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     filter_dict,
-    int_or_none,
     float_or_none,
+    int_or_none,
+    InAdvancePagedList,
     mimetype2ext,
+    OnDemandPagedList,
+    parse_count,
     parse_iso8601,
     qualities,
-    traverse_obj,
-    parse_count,
     smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
     strip_jsonp,
+    traverse_obj,
     unified_timestamp,
     unsmuggle_url,
     urlencode_postdata,
     url_or_none,
-    OnDemandPagedList
 )
 
 
@@ -502,39 +503,146 @@ class BiliBiliBangumiIE(InfoExtractor):
             season_info.get('bangumi_title'), season_info.get('evaluate'))
 
 
-class BilibiliChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://space.bilibili\.com/(?P<id>\d+)'
-    _API_URL = "https://api.bilibili.com/x/space/arc/search?mid=%s&pn=%d&jsonp=jsonp"
-    _TESTS = [{
-        'url': 'https://space.bilibili.com/3985676/video',
-        'info_dict': {},
-        'playlist_mincount': 112,
-    }]
-
-    def _entries(self, list_id):
-        count, max_count = 0, None
-
-        for page_num in itertools.count(1):
-            data = self._download_json(
-                self._API_URL % (list_id, page_num), list_id, note=f'Downloading page {page_num}')['data']
-
-            max_count = max_count or traverse_obj(data, ('page', 'count'))
-
-            entries = traverse_obj(data, ('list', 'vlist'))
-            if not entries:
-                return
-            for entry in entries:
-                yield self.url_result(
-                    'https://www.bilibili.com/video/%s' % entry['bvid'],
-                    BiliBiliIE.ie_key(), entry['bvid'])
-
-            count += len(entries)
-            if max_count and count >= max_count:
-                return
+class BilibiliSpaceBaseIE(InfoExtractor):
+    def __init__(self, downloader=None):
+        InfoExtractor.__init__(self, downloader)
+        self.page_idx_start = 1
 
     def _real_extract(self, url):
-        list_id = self._match_id(url)
-        return self.playlist_result(self._entries(list_id), list_id)
+        playlist_id = self._match_id(url)
+
+        metadata, pagedlist = self._extract_internal(playlist_id)
+
+        return self.playlist_result(pagedlist, playlist_id, metadata['title'])
+
+    def _extract_internal(self, playlist_id, **kwargs):
+        first_page = self._fetch_page(playlist_id, self.page_idx_start, **kwargs)
+        metadata = self._get_metadata(first_page, **kwargs)
+
+        pagedlist = InAdvancePagedList(
+            lambda idx: self._get_entries(self._fetch_page(playlist_id, idx, **kwargs) if idx else first_page, **kwargs),
+            metadata['page_count'], metadata['page_size'])
+        return metadata, pagedlist
+
+    def _fetch_page(self, playlist_id, page_idx, **kwargs):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
+    def _get_metadata(self, page_data, **kwargs):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
+    def _get_entries(self, page_data, **kwargs):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
+
+class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)(?P<video>/video)?$'
+    _TESTS = [{
+        'url': 'https://space.bilibili.com/3985676/video',
+        'info_dict': {
+            'id': '3985676',
+        },
+        'playlist_mincount': 178,
+    }]
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        if not mobj.group('video'):
+            self.to_screen(f'{url} may have multiple media types. This run will only download videos.\n'
+                           + f'For example, use {url}/audio for audios.')
+
+        return BilibiliSpaceBaseIE._real_extract(self, url)
+
+    def _fetch_page(self, playlist_id, page_idx, **kwargs):
+        return self._download_json('https://api.bilibili.com/x/space/arc/search', playlist_id,
+                                   note=f'Downloading page {page_idx}',
+                                   query={'mid': playlist_id, 'pn': page_idx, 'jsonp': 'jsonp'})['data']
+
+    def _get_metadata(self, page_data, **kwargs):
+        page_size = page_data['page']['ps']
+        entry_count = page_data['page']['count']
+        return {
+            'page_count': math.ceil(entry_count / page_size),
+            'page_size': page_size,
+            'entry_count': entry_count,
+            'title': None
+        }
+
+    def _get_entries(self, page_data, **kwargs):
+        for entry in traverse_obj(page_data, ('list', 'vlist')) or []:
+            yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
+                                  BiliBiliIE.ie_key(), entry['bvid'])
+
+
+class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)/audio'
+    _TESTS = [{
+        'url': 'https://space.bilibili.com/3985676/audio',
+        'info_dict': {
+            'id': '3985676',
+        },
+        'playlist_mincount': 1,
+    }]
+
+    def _fetch_page(self, playlist_id, page_idx, **kwargs):
+        return self._download_json('https://api.bilibili.com/audio/music-service/web/song/upper', playlist_id,
+                                   note=f'Downloading page {page_idx}',
+                                   query={'uid': playlist_id, 'pn': page_idx, 'ps': 30, 'order': 1, 'jsonp': 'jsonp'})['data']
+
+    def _get_metadata(self, page_data, **kwargs):
+        return {
+            'page_count': page_data['pageCount'],
+            'page_size': page_data['pageSize'],
+            'entry_count': page_data['totalSize'],
+            'title': None
+        }
+
+    def _get_entries(self, page_data, **kwargs):
+        for entry in page_data.get('data', []):
+            yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}',
+                                  BilibiliAudioIE.ie_key(), entry['id'])
+
+
+class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
+    _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail\?sid=(?P<sid>\d+)'
+    _TESTS = [{
+        'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
+        'info_dict': {
+            'id': '2142762_57445',
+            'title': '《底特律 变人》'
+        },
+        'playlist_mincount': 31,
+    }]
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        mid, sid = mobj.group('mid'), mobj.group('sid')
+        id = f'{mid}_{sid}'
+
+        metadata, pagedlist = self._extract_internal(id, mid=mid, sid=sid)
+
+        return self.playlist_result(pagedlist, id, metadata['title'])
+
+    def _fetch_page(self, playlist_id, page_idx, **kwargs):
+        mid, sid = kwargs['mid'], kwargs['sid']
+        return self._download_json('https://api.bilibili.com/x/polymer/space/seasons_archives_list',
+                                   playlist_id, note=f'Downloading page {page_idx}',
+                                   query={'mid': mid, 'season_id': sid, 'page_num': page_idx, 'page_size': 30}
+                                   )['data']
+
+    def _get_metadata(self, page_data, **kwargs):
+        page_size = page_data['page']['page_size']
+        entry_count = page_data['page']['total']
+        return {
+            'page_count': math.ceil(entry_count / page_size),
+            'page_size': page_size,
+            'entry_count': entry_count,
+            'title': traverse_obj(page_data, ('meta', 'name'))
+        }
+
+    def _get_entries(self, page_data, **kwargs):
+        for entry in page_data.get('archives', []):
+            yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
+                                  BiliBiliIE.ie_key(), entry['bvid'])
 
 
 class BilibiliCategoryIE(InfoExtractor):
@@ -754,14 +862,34 @@ class BiliBiliPlayerIE(InfoExtractor):
     _VALID_URL = r'https?://player\.bilibili\.com/player\.html\?.*?\baid=(?P<id>\d+)'
     _TEST = {
         'url': 'http://player.bilibili.com/player.html?aid=92494333&cid=157926707&page=1',
-        'only_matching': True,
+        'info_dict': {
+            'id': '92494333_part1',
+            'ext': 'm4s',
+            'uploader': '骨头゛',
+            'uploader_id': '165511',
+            'timestamp': 1583222426,
+            'title': '大学路上的绊脚石',
+            'upload_date': '20200303',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'duration': 12.167,
+            'cid': '157926707',
+            'bv_id': 'BV1xE411H755',
+            'tags': list,
+            'description': 'md5:3c7b36418519dd8358c0aa00ab778257',
+        },
+        'params': {
+            'skip_download': True,
+        },
     }
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        return self.url_result(
-            'http://www.bilibili.tv/video/av%s/' % video_id,
-            ie=BiliBiliIE.ie_key(), video_id=video_id)
+        aid = self._match_id(url)
+
+        bv_id = traverse_obj(
+            self._download_json(f'https://api.bilibili.com/x/web-interface/view?aid={aid}', aid),
+            ('data', 'bvid'))
+        return self.url_result(f'http://www.bilibili.com/video/{bv_id}/',
+                               ie=BiliBiliIE.ie_key(), video_id=bv_id)
 
 
 class BiliIntlBaseIE(InfoExtractor):
