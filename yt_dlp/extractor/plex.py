@@ -25,7 +25,7 @@ class PlexWatchBaseIE(InfoExtractor):
 
     _TOKEN = None
     _CLIENT_IDENTIFIER = None
-    
+
     def _handle_login_error(self, error, error_message='', fatal=True):
         error_json_message = self._parse_json(error.cause.read(), 'login_error')['errors'][0]['message']
         if error.cause.code == 429:
@@ -36,7 +36,7 @@ class PlexWatchBaseIE(InfoExtractor):
                 self.report_warning(f'There\'s error on login : {error_json_message}, caused by {error.cause} {error_message}')
         else:
             raise ExtractorError(f'{error_json_message} {error_message}', cause=error.cause)
-    
+
     def _initialize_pre_login(self):
         # TO DO: find better way to get cookie
         # request to random page in plex.tv to get clientIdentifier in cookie
@@ -56,7 +56,7 @@ class PlexWatchBaseIE(InfoExtractor):
             self._TOKEN = resp_api.get('authToken')
         except ExtractorError as e:
             self._handle_login_error(e, fatal=False)
-            
+
     def _real_initialize(self):
         if not self._TOKEN:
             try:
@@ -71,9 +71,9 @@ class PlexWatchBaseIE(InfoExtractor):
                     })
             except ExtractorError as e:
                 self._handle_login_error(e)
-                
+
             self._TOKEN = resp_api['authToken']
-            
+
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}, format_field={}):
         formats, subtitles = [], {}
         fmts, subs = [], {}
