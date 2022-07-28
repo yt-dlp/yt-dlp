@@ -10,6 +10,10 @@ from ..utils import (
     traverse_obj,
 )
 
+# the token moved outside to prevent recalling token for
+# every redirect, reducing api rate-limit
+_TOKEN = None
+
 
 class PlexWatchBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'plex'
@@ -23,9 +27,8 @@ class PlexWatchBaseIE(InfoExtractor):
         'tv.plex.provider.metadata': 'https://metadata.provider.plex.tv',
     }
 
-    _TOKEN = None
     _CLIENT_IDENTIFIER = None
-    
+
     def _handle_login_error(self, error, error_message='', fatal=True):
         error_json_message = self._parse_json(error.cause.read(), 'login_error')['errors'][0]['message']
         if error.cause.code == 429:
@@ -36,11 +39,11 @@ class PlexWatchBaseIE(InfoExtractor):
                 self.report_warning(f'There\'s error on login : {error_json_message}, caused by {error.cause} {error_message}')
         else:
             raise ExtractorError(f'{error_json_message} {error_message}', cause=error.cause)
-    
+
     def _initialize_pre_login(self):
         # TO DO: find better way to get cookie
         # request to random page in plex.tv to get clientIdentifier in cookie
-        if self._TOKEN is None:
+        if _TOKEN is None:
             client_id = self._request_webpage(  # noqa: F841
                 'https://watch.plex.tv/', 'client_id', note='Downloading html page to get clientIdentifier')
             cookie_ = {cookie.name: cookie.value for cookie in self.cookiejar}
@@ -53,12 +56,13 @@ class PlexWatchBaseIE(InfoExtractor):
                 query={'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER},
                 data=f'login={username}&password={password}&rememberMe=true'.encode(),
                 headers={'Accept': 'application/json'}, expected_status=429)
-            self._TOKEN = resp_api.get('authToken')
+
+            globals()['_TOKEN'] = resp_api.get('authToken')
         except ExtractorError as e:
             self._handle_login_error(e, fatal=False)
-            
+
     def _real_initialize(self):
-        if not self._TOKEN:
+        if not _TOKEN:
             try:
                 self.write_debug('using non-login method (login as anonymous)')
                 resp_api = self._download_json(
@@ -72,9 +76,9 @@ class PlexWatchBaseIE(InfoExtractor):
                     })
             except ExtractorError as e:
                 self._handle_login_error(e)
-                
-            self._TOKEN = resp_api['authToken']
-            
+
+            globals()['_TOKEN'] = resp_api['authToken']
+
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}, format_field={}):
         formats, subtitles = [], {}
         fmts, subs = [], {}
@@ -84,7 +88,7 @@ class PlexWatchBaseIE(InfoExtractor):
             if determine_ext(media) == 'm3u8' or media.endswith('hls'):
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
-                    display_id, query={'X-PLEX-TOKEN': self._TOKEN})
+                    display_id, query={'X-PLEX-TOKEN': _TOKEN})
                 for fmt_ in fmt:
                     fmt_.update(**format_field)
                     fmts.append(fmt_)
@@ -92,13 +96,13 @@ class PlexWatchBaseIE(InfoExtractor):
             elif determine_ext(media) == 'mpd':
                 fmt, subs = self._extract_mpd_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
-                    display_id, query={'X-PLEX-TOKEN': self._TOKEN})
+                    display_id, query={'X-PLEX-TOKEN': _TOKEN})
                 for fmt_ in fmt:
                     fmt_.update(**format_field)
                     fmts.append(fmt_)
             else:
                 formats.append({
-                    'url': f'{self._CDN_ENDPOINT[sites_type]}{media}?X-Plex-Token={self._TOKEN}',
+                    'url': f'{self._CDN_ENDPOINT[sites_type]}{media}?X-Plex-Token={_TOKEN}',
                     'ext': 'mp4',
                     **metadata_field
                 })
@@ -115,7 +119,7 @@ class PlexWatchBaseIE(InfoExtractor):
             media_json_list.append(self._download_json(
                 'https://play.provider.plex.tv/playQueues', display_id,
                 query={'uri': f'provider://tv.plex.provider.vod{_media}'}, data=b'',
-                headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'}))
+                headers={'X-PLEX-TOKEN': _TOKEN, 'Accept': 'application/json'}))
 
         for media in traverse_obj(media_json_list, (..., 'MediaContainer', 'Metadata', ...)) or []:
             for media_ in traverse_obj(media, ('Media', ..., 'Part', ..., 'key')):
@@ -134,7 +138,7 @@ class PlexWatchBaseIE(InfoExtractor):
         media_json = self._download_json(
             'https://play.provider.plex.tv/playQueues', display_id,
             query={'uri': nextjs_json['playableKey']}, data=b'',
-            headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})['MediaContainer']['Metadata']
+            headers={'X-PLEX-TOKEN': _TOKEN, 'Accept': 'application/json'})['MediaContainer']['Metadata']
 
         selected_media = []
 
@@ -333,7 +337,7 @@ class PlexWatchLiveIE(PlexWatchBaseIE):
             self._download_webpage(url, display_id), display_id)['props']['pageProps']['channel']
         media_json = self._download_json(
             f'https://epg.provider.plex.tv/channels/{nextjs_json["id"]}/tune',
-            display_id, data=b'', headers={'X-PLEX-TOKEN': self._TOKEN, 'Accept': 'application/json'})
+            display_id, data=b'', headers={'X-PLEX-TOKEN': _TOKEN, 'Accept': 'application/json'})
 
         formats, subtitles = self._get_formats_and_subtitles(
             traverse_obj(media_json, (
@@ -426,7 +430,7 @@ class PlexAppIE(PlexWatchBaseIE):
         provider, key, display_id = self._match_valid_url(url).group('provider', 'key', 'id')
         key = urllib.parse.unquote(key)
         media_json = self._download_json(
-            f'{self._CDN_ENDPOINT[provider]}{key}', display_id, query={'uri': f'provider://{provider}{key}', 'X-Plex-Token': self._TOKEN},
+            f'{self._CDN_ENDPOINT[provider]}{key}', display_id, query={'uri': f'provider://{provider}{key}', 'X-Plex-Token': _TOKEN},
             headers={'Accept': 'application/json'})['MediaContainer']['Metadata'][0]
 
         # check if publicPagesURL, if exists redirect to PlexWatch*IE, else handle manually
