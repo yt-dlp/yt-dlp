@@ -18,14 +18,8 @@ class PlexWatchBaseIE(InfoExtractor):
     _CDN_ENDPOINT = {
         'vod': 'https://vod.provider.plex.tv',
         'live': 'https://epg.provider.plex.tv',
-        # from api ( identifier : baseUrl)
         'tv.plex.provider.epg': 'https://epg.provider.plex.tv',
         'tv.plex.provider.vod': 'https://vod.provider.plex.tv',
-        'tv.plex.provider.music': 'https://music.provider.plex.tv',
-        # not used yet, but will be supported
-        'tv.plex.provider.discover': 'https://discover.provider.plex.tv',
-        'tv.plex.provider.metadata': 'https://metadata.provider.plex.tv',
-
     }
 
     _TOKEN = None
