@@ -180,7 +180,8 @@ class PlexWatchBaseIE(InfoExtractor):
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['metadataItem']
 
         movie_entry = [self._extract_movie(webpage, display_id, sites_type, **kwargs)] if nextjs_json.get('playableKey') else []
-
+        
+        # TODO: change 'Movie' to actual movie id
         if self._yes_playlist(nextjs_json['ratingKey'], 'Movie'):
             trailer_entry = list(self._get_clips(nextjs_json, display_id)) if nextjs_json.get('Extras') else []
             movie_entry.extend(trailer_entry)
