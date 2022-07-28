@@ -886,7 +886,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         channel_id = traverse_obj(
             renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'),
             expected_type=str, get_all=False)
-        time_text = self._get_text(renderer, 'publishedTimeText')
+        time_text = self._get_text(renderer, 'publishedTimeText') or ''
         scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
@@ -5421,7 +5421,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             selected_tab_url = urljoin(
                 url, traverse_obj(selected_tab, ('endpoint', 'commandMetadata', 'webCommandMetadata', 'url')))
 
-            selected_tab_name = get_mobj(selected_tab_url or '')['tab'][1:] or selected_tab.get('title', '').lower()
+            selected_tab_name = selected_tab.get('title', '').lower()
+
+            # Prefer tab name from tab url as it is always in en
+            if selected_tab_url:
+                selected_tab_name = get_mobj(selected_tab_url)['tab'][1:] or selected_tab_name
 
             if selected_tab_name == 'home':
                 selected_tab_name = 'featured'
