@@ -22,9 +22,20 @@ class PlexWatchBaseIE(InfoExtractor):
         'tv.plex.provider.vod': 'https://vod.provider.plex.tv',
     }
 
-    _TOKEN = None
+    _TOKEN = None #ckDa_ivRs5fdCVwzNjzs
     _CLIENT_IDENTIFIER = None
-
+    
+    def _handle_login_error(self, error, error_message='', fatal=True):
+        error_json_message = self._parse_json(error.cause.read(), 'login_error')['errors'][0]['message']
+        if error.cause.code == 429:
+            # only non-fatal at error 429
+            if fatal:
+                raise ExtractorError(f'{error_json_message} {error_message}', cause=error.cause)
+            else:
+                self.report_warning(f'There\'s error on login : {error_json_message}, caused by {error.cause} {error_message}')
+        else:
+            raise ExtractorError(f'{error_json_message} {error_message}', cause=error.cause)
+    
     def _initialize_pre_login(self):
         # TO DO: find better way to get cookie
         # request to random page in plex.tv to get clientIdentifier in cookie
@@ -43,10 +54,11 @@ class PlexWatchBaseIE(InfoExtractor):
                 headers={'Accept': 'application/json'}, expected_status=429)
             self._TOKEN = resp_api.get('authToken')
         except ExtractorError as e:
-            # Default to non-login error when there's any problem in login
-            error = self._parse_json(e.cause.read(), 'login error')
-            self.report_warning(f'There\'s error on login : {error["errors"][0]["message"]}, caused by {e.cause} '
-                                'trying to use non-login method')
+            self._handle_login_error(e, fatal=False)
+            # # Default to non-login error when there's any problem in login
+            # error = self._parse_json(e.cause.read(), 'login error')
+            # self.report_warning(f'There\'s error on login : {error["errors"][0]["message"]}, caused by {e.cause} '
+                                # 'trying to use non-login method')
 
     def _real_initialize(self):
         if not self._TOKEN:
@@ -54,7 +66,7 @@ class PlexWatchBaseIE(InfoExtractor):
                 self.write_debug('using non-login method (login as anonymous)')
                 resp_api = self._download_json(
                     'https://plex.tv/api/v2/users/anonymous', None, data=b'',
-                    note='Logging in anonymously (Note: rate limited)'
+                    note='Logging in anonymously (Note: rate limited)',
                     headers={
                         'X-Plex-Provider-Version': '6.2.0',
                         'Accept': 'application/json',
@@ -62,8 +74,9 @@ class PlexWatchBaseIE(InfoExtractor):
                         'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER.encode()
                     })
             except ExtractorError as e:
-                error = self._parse_json(e.cause.read(), 'login error')
-                raise ExtractorError(error['errors'][0]['message'], cause=e.cause)
+                self._handle_login_error(e)
+                # error = self._parse_json(e.cause.read(), 'login error')
+                # raise ExtractorError(error['errors'][0]['message'], cause=e.cause)
 
             self._TOKEN = resp_api['authToken']
             
