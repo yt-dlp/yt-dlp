@@ -64,7 +64,6 @@ class PlexWatchBaseIE(InfoExtractor):
     def _real_initialize(self):
         if not _TOKEN:
             try:
-                self.write_debug('using non-login method (login as anonymous)')
                 resp_api = self._download_json(
                     'https://plex.tv/api/v2/users/anonymous', None, data=b'',
                     note='Logging in anonymously (Note: rate limited)',
