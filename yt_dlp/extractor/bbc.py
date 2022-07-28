@@ -839,7 +839,16 @@ class BBCIE(BBCCoUkIE):
             'thumbnail': r're:https?://.+/p07c9dsr.jpg',
             'upload_date': '20190604',
             'categories': ['Psychology'],
-        },
+        }
+    }, {
+        # Morph-based video-block embed
+        'url': 'https://www.bbc.co.uk/teach/school-radio/assemblies-the-good-samaritan-modern-setting-ks2/zjsx2v4',
+        'info_dict': {
+            'id': 'p065hw19',
+            'ext': 'mp4',
+            'title': 'The Good Samaritan',
+            'duration': 322,
+        }
     }]
 
     @classmethod
@@ -1066,31 +1075,47 @@ class BBCIE(BBCCoUkIE):
         # There are several setPayload calls which may be present
         # The video is not always related to the first one
         for morph_payload in extract_all(r'Morph\.setPayload\([^,]+,\s*({.+?})\);'):
-            article = try_get(morph_payload, (lambda x: x['body']['content']['article'],), ) or {}
-            if not article:
-                continue
-            body = self._parse_json(article.get('body') or '{}', playlist_id)
-            if not body:
-                continue
-            entries = []
-            for component in body:
-                if component.get('name') != 'video':
-                    continue
-                video_data = component.get('videoData')
-                if not video_data:
-                    continue
-                programme_id = video_data.get('vpid')
+            # Morph video-block
+            video = try_get(morph_payload, (lambda x: x['body']['video'],), ) or {}
+            if video:
+                programme_id = video.get('vpid')
                 formats, subtitles = self._download_media_selector(programme_id)
                 self._sort_formats(formats)
-                entries.append({
+                return {
                     'id': programme_id,
-                    'title': video_data.get('title') or self._og_search_title(webpage),
-                    'description': video_data.get('summary') or video_data.get('caption'),
-                    'duration': parse_duration(video_data.get('duration')),
+                    'title': video.get('title') or self._og_search_title(webpage),
+                    'description': video.get('summary') or video.get('caption'),
+                    'duration': parse_duration(video.get('duration')),
                     'formats': formats,
                     'subtitles': subtitles,
-                })
-            return self.playlist_result(entries, playlist_id, playlist_title, playlist_description)
+                }
+            else:
+                # Morph article
+                article = try_get(morph_payload, (lambda x: x['body']['content']['article'],), ) or {}
+                if not article:
+                    continue
+                body = self._parse_json(article.get('body') or '{}', playlist_id)
+                if not body:
+                    continue
+                entries = []
+                for component in body:
+                    if component.get('name') != 'video':
+                        continue
+                    video_data = component.get('videoData')
+                    if not video_data:
+                        continue
+                    programme_id = video_data.get('vpid')
+                    formats, subtitles = self._download_media_selector(programme_id)
+                    self._sort_formats(formats)
+                    entries.append({
+                        'id': programme_id,
+                        'title': video_data.get('title') or self._og_search_title(webpage),
+                        'description': video_data.get('summary') or video_data.get('caption'),
+                        'duration': parse_duration(video_data.get('duration')),
+                        'formats': formats,
+                        'subtitles': subtitles,
+                    })
+                return self.playlist_result(entries, playlist_id, playlist_title, playlist_description)
 
         preload_state = self._parse_json(self._search_regex(
             r'window\.__PRELOADED_STATE__\s*=\s*({.+?});', webpage,
