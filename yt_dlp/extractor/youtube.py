@@ -2297,7 +2297,62 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'tags': [],
                 'uploader_url': 'http://www.youtube.com/user/nao20010128nao',
             }
-        }
+        }, {
+            # Prefer primary title+description language metadata by default
+            'url': 'https://www.youtube.com/watch?v=gHKT4uU8Zng',
+            'info_dict': {
+                'id': 'gHKT4uU8Zng',
+                'ext': 'mp4',
+                'title': 'dlp test video title primary (en-GB)',
+                'description': 'dlp test video description primary (en-GB)',
+                'tags': [],
+                'uploader': 'cole-dlp-test-acc',
+                'live_status': 'not_live',
+                'channel': 'cole-dlp-test-acc',
+                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/gHKT4uU8Zng/maxresdefault.webp',
+                'uploader_url': 'http://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'age_limit': 0,
+                'playable_in_embed': True,
+                'categories': ['People & Blogs'],
+                'view_count': int,
+                'like_count': int,
+                'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'upload_date': '20220729',
+                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'duration': 5,
+                'availability': 'public',
+            },
+            'params': {'skip_download': True}
+        }, {
+            # Extractor argument: prefer translated title+description
+            'url': 'https://www.youtube.com/watch?v=gHKT4uU8Zng',
+            'info_dict': {
+                'id': 'gHKT4uU8Zng',
+                'ext': 'mp4',
+                'channel': 'cole-dlp-test-acc',
+                'tags': [],
+                'duration': 5,
+                'live_status': 'not_live',
+                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'upload_date': '20220728',
+                'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'view_count': int,
+                'categories': ['People & Blogs'],
+                'thumbnail': 'https://i.ytimg.com/vi_webp/gHKT4uU8Zng/maxresdefault.webp',
+                'title': 'dlp test video title translated (fr)',
+                'availability': 'public',
+                'uploader': 'cole-dlp-test-acc',
+                'age_limit': 0,
+                'description': 'dlp test video description translated (fr)',
+                'playable_in_embed': True,
+                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'uploader_url': 'http://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            },
+            'params': {'skip_download': True, 'extractor_args': {'youtube': {'lang': ['fr']}}},
+            'expected_warnings': [r'Preferring \'fr\' translated fields'],
+        },
+
     ]
 
     @classmethod
