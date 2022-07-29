@@ -1,6 +1,5 @@
 import hashlib
 import itertools
-import re
 import urllib.parse
 
 from .brightcove import BrightcoveNewIE
@@ -510,16 +509,16 @@ class YahooJapanNewsIE(InfoExtractor):
         preloaded_state = self._search_json(r'__PRELOADED_STATE__\s*=', webpage, 'preloaded state', video_id)
 
         title = traverse_obj(
-                preloaded_state, ('articleDetail', 'headline'), ('pageData', 'pageParam', 'title'),
-                expected_type=str) or \
+            preloaded_state, ('articleDetail', 'headline'), ('pageData', 'pageParam', 'title'),
+            expected_type=str) or \
             self._html_search_meta(
-                ['og:title', 'twitter:title'], webpage, 'title', default=None
-            ) or self._html_extract_title(webpage)
+                ['og:title', 'twitter:title'], webpage, 'title', default=None) or \
+            self._html_extract_title(webpage)
 
         # Article page
         description = traverse_obj(
-                preloaded_state, ('pageData', 'description'),
-                expected_type=str) or \
+            preloaded_state, ('pageData', 'description'),
+            expected_type=str) or \
             self._html_search_meta(
                 ['og:description', 'description', 'twitter:description'],
                 webpage, 'description', default=None)
