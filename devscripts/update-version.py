@@ -43,6 +43,10 @@ VERSION_FILE = f'''\
 __version__ = {VERSION!r}
 
 RELEASE_GIT_HEAD = {GIT_HEAD!r}
+
+VARIANT = None
+
+UPDATE_HINT = None
 '''
 
 write_file('yt_dlp/version.py', VERSION_FILE)

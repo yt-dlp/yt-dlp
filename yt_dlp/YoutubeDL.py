@@ -144,7 +144,7 @@ from .utils import (
     write_json_file,
     write_string,
 )
-from .version import RELEASE_GIT_HEAD, __version__
+from .version import RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':
     import ctypes
@@ -3676,6 +3676,8 @@ class YoutubeDL:
             write_debug = lambda msg: self._write_string(f'[debug] {msg}\n')
 
         source = detect_variant()
+        if VARIANT not in (None, 'pip'):
+            source += '*'
         write_debug(join_nonempty(
             'yt-dlp version', __version__,
             f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',

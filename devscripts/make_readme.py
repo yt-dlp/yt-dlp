@@ -45,6 +45,10 @@ switch_col_width = len(re.search(r'(?m)^\s{5,}', options).group())
 delim = f'\n{" " * switch_col_width}'
 
 PATCHES = (
+    (   # Standardize update message
+        r'(?m)^(    -U, --update\s+).+(\n    \s.+)*$',
+        r'\1Update this program to the latest version',
+    ),
     (  # Headings
         r'(?m)^  (\w.+\n)(    (?=\w))?',
         r'## \1'

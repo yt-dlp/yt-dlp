@@ -20,12 +20,13 @@ from .postprocessor import (
     SponsorBlockPP,
 )
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
-from .update import detect_variant
+from .update import detect_variant, is_non_updateable
 from .utils import (
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
     Config,
     expand_path,
+    format_field,
     get_executable_path,
     join_nonempty,
     remove_end,
@@ -333,11 +334,13 @@ def create_parser():
     general.add_option(
         '-U', '--update',
         action='store_true', dest='update_self',
-        help='Update this program to latest version')
+        help=format_field(
+            is_non_updateable(), None, 'Check if updates are available. %s',
+            default='Update this program to the latest version'))
     general.add_option(
         '--no-update',
         action='store_false', dest='update_self',
-        help='Do not update (default)')
+        help='Do not check for updates (default)')
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
