@@ -1241,7 +1241,6 @@ from .paramountplus import (
     ParamountPlusIE,
     ParamountPlusSeriesIE,
 )
-from .parliamentliveuk import ParliamentLiveUKIE
 from .parlview import ParlviewIE
 from .patreon import (
     PatreonIE,
@@ -1411,7 +1410,7 @@ from .rcti import (
     RCTIPlusTVIE,
 )
 from .rds import RDSIE
-from .redbee import RedBeeIE
+from .redbee import RedBeeIE, ParliamentLiveUKIE, RTBFIE
 from .redbulltv import (
     RedBullTVIE,
     RedBullEmbedIE,
@@ -1445,7 +1444,6 @@ from .rokfin import (
 from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE
 from .rozhlas import RozhlasIE
-from .rtbf import RTBFIE
 from .rte import RteIE, RteRadioIE
 from .rtlnl import (
     RtlNlIE,
