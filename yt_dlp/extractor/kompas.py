@@ -8,6 +8,8 @@ from ..utils import (
 )
 
 # Video from www.kompas.tv and video.kompas.com seems use jixie player
+# see [1] https://jixie.atlassian.net/servicedesk/customer/portal/2/article/1339654214?src=-1456335525,
+# [2] https://scripts.jixie.media/jxvideo.3.1.min.js for more info
 
 class KompasVideoIE(InfoExtractor):
     _VALID_URL = r'https?://video\.kompas\.com/\w+/(?P<id>\d+)/(?P<slug>[\w-]+)'
@@ -105,13 +107,31 @@ class KompasTVIE(InfoExtractor):
             formats.append(self.url_result(url))
             
         # TODO: add more metadata fallback: json_ld, window.jixie_p.push
-        # FIXME: this code return error as __type is not Video
+        # FIXME: return error
         return {
             '_type': 'url_transparent',
             'id': video_id,
-            'url': urls[1],
+            'url': urls[1], # the other url need #4307 merged
             'title': self._html_search_meta(['og:title', 'twitter:title'], webpage),
             'description': self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
             'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage),
             'tags': str_or_none(self._html_search_meta(['keywords', 'content_tag'], webpage), '').split(',') or None,   
         }        
+
+
+class KompasIdIE(InfoExtractor):
+    _VALID_URL = r'https?://www\.kompas\.id/\w+/\w+/\d+/\d+/\d+/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://www.kompas.id/baca/video/2022/07/28/dua-tahun-berhenti-keraton-surakarta-gelar-kirab-malam-satu-suro',
+        'info_dict': {
+            'id': 'fixme',
+            'ext': 'mp4',
+        }
+    }]
+    
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        
+        nuxtjs_json = self._search_nuxt_data(webpage, display_id)
+        print(nuxtjs_json)
