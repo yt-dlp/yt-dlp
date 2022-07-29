@@ -52,7 +52,6 @@ class ArchiveOrgIE(InfoExtractor):
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
             'release_year': 1968,
             'display_id': 'XD300-23_68HighlightsAResearchCntAugHumanIntellect.cdr',
-            'track': 'XD300-23 68HighlightsAResearchCntAugHumanIntellect',
 
         },
     }, {
@@ -67,7 +66,6 @@ class ArchiveOrgIE(InfoExtractor):
             'timestamp': 1387699629,
             'upload_date': '20131222',
             'display_id': 'Cops-v2.mp4',
-            'track': 'Cops-v2',
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
             'duration': 1091.96,
         },
@@ -82,7 +80,6 @@ class ArchiveOrgIE(InfoExtractor):
             'title': 'Commercial-JFK1960ElectionAdCampaignJingle.mpg',
             'ext': 'mpg',
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
-            'track': 'Commercial-JFK1960ElectionAdCampaignJingle',
             'duration': 59.77,
             'display_id': 'Commercial-JFK1960ElectionAdCampaignJingle.mpg',
         },
@@ -100,7 +97,6 @@ class ArchiveOrgIE(InfoExtractor):
             'display_id': 'Commercial-Nixon1960ElectionAdToughonDefense.mpg',
             'duration': 59.51,
             'license': 'http://creativecommons.org/licenses/publicdomain/',
-            'track': 'Commercial-Nixon1960ElectionAdToughonDefense',
             'thumbnail': r're:https://archive\.org/download/.*\.jpg',
 
         },
@@ -183,7 +179,6 @@ class ArchiveOrgIE(InfoExtractor):
                     'ext': 'mp4',
                     'title': 'irelandthemakingofarepublicreel1_01.mov',
                     'duration': 130.46,
-                    'track': 'irelandthemakingofarepublicreel1 01',
                     'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel1_01_000117.jpg',
                     'display_id': 'irelandthemakingofarepublicreel1_01.mov',
                 },
@@ -194,7 +189,6 @@ class ArchiveOrgIE(InfoExtractor):
                     'ext': 'mp4',
                     'duration': 1395.13,
                     'title': 'irelandthemakingofarepublicreel1_02.mov',
-                    'track': 'irelandthemakingofarepublicreel1 02',
                     'display_id': 'irelandthemakingofarepublicreel1_02.mov',
                     'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel1_02_001374.jpg',
                 },
@@ -203,7 +197,6 @@ class ArchiveOrgIE(InfoExtractor):
                 'info_dict': {
                     'id': 'irelandthemakingofarepublic/irelandthemakingofarepublicreel2.mov',
                     'ext': 'mp4',
-                    'track': 'irelandthemakingofarepublicreel2',
                     'duration': 1602.67,
                     'title': 'irelandthemakingofarepublicreel2.mov',
                     'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel2_001554.jpg',
