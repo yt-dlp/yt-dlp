@@ -3436,17 +3436,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
             expected_type=dict, default=[])
 
-        original_title = get_first(video_details, 'title')
-        original_description = get_first(video_details, 'shortDescription')
+        primary_title = get_first(video_details, 'title')
+        primary_description = get_first(video_details, 'shortDescription')
         translated_title = self._get_text(microformats, (..., 'title'))
         translated_description = self._get_text(microformats, (..., 'description'))
         video_title = search_meta(['og:title', 'twitter:title', 'title'])
         if self._preferred_lang is not None:
-            video_title = translated_title or original_title or video_title
-            video_description = translated_description or original_description
+            video_title = translated_title or primary_title or video_title
+            video_description = translated_description or primary_description
         else:
-            video_title = original_title or translated_title or video_title
-            video_description = original_description or translated_description
+            video_title = primary_title or translated_title or video_title
+            video_description = primary_description or translated_description
 
         multifeed_metadata_list = get_first(
             player_responses,
