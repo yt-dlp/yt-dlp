@@ -1,9 +1,11 @@
+# coding: utf-8
+from __future__ import unicode_literals
+
 import re
 
 from .adobepass import AdobePassIE
 from ..compat import compat_str
 from ..utils import (
-    fix_xml_ampersands,
     xpath_text,
     int_or_none,
     determine_ext,
@@ -47,33 +49,26 @@ class TurnerBaseIE(AdobePassIE):
             self._AKAMAI_SPE_TOKEN_CACHE[secure_path] = token
         return video_url + '?hdnea=' + token
 
-    def _extract_cvp_info(self, data_src, video_id, path_data={}, ap_data={}, fatal=False):
-        video_data = self._download_xml(
-            data_src, video_id,
-            transform_source=lambda s: fix_xml_ampersands(s).strip(),
-            fatal=fatal)
-        if not video_data:
-            return {}
+    def _extract_cvp_info(self, data_src, video_id, path_data={}, ap_data={}):
+        video_data = self._download_xml(data_src, video_id)
         video_id = video_data.attrib['id']
         title = xpath_text(video_data, 'headline', fatal=True)
         content_id = xpath_text(video_data, 'contentId') or video_id
         # rtmp_src = xpath_text(video_data, 'akamai/src')
         # if rtmp_src:
-        #     split_rtmp_src = rtmp_src.split(',')
-        #     if len(split_rtmp_src) == 2:
-        #         rtmp_src = split_rtmp_src[1]
+        #     splited_rtmp_src = rtmp_src.split(',')
+        #     if len(splited_rtmp_src) == 2:
+        #         rtmp_src = splited_rtmp_src[1]
         # aifp = xpath_text(video_data, 'akamai/aifp', default='')
 
         urls = []
         formats = []
-        thumbnails = []
-        subtitles = {}
         rex = re.compile(
             r'(?P<width>[0-9]+)x(?P<height>[0-9]+)(?:_(?P<bitrate>[0-9]+))?')
         # Possible formats locations: files/file, files/groupFiles/files
         # and maybe others
         for video_file in video_data.findall('.//file'):
-            video_url = url_or_none(video_file.text.strip())
+            video_url = video_file.text.strip()
             if not video_url:
                 continue
             ext = determine_ext(video_url)
@@ -113,35 +108,16 @@ class TurnerBaseIE(AdobePassIE):
                 continue
             urls.append(video_url)
             format_id = video_file.get('bitrate')
-            if ext in ('scc', 'srt', 'vtt'):
-                subtitles.setdefault('en', []).append({
-                    'ext': ext,
-                    'url': video_url,
-                })
-            elif ext == 'png':
-                thumbnails.append({
-                    'id': format_id,
-                    'url': video_url,
-                })
-            elif ext == 'smil':
+            if ext == 'smil':
                 formats.extend(self._extract_smil_formats(
                     video_url, video_id, fatal=False))
-            elif re.match(r'https?://[^/]+\.akamaihd\.net/[iz]/', video_url):
-                formats.extend(self._extract_akamai_formats(
-                    video_url, video_id, {
-                        'hds': path_data.get('f4m', {}).get('host'),
-                        # nba.cdn.turner.com, ht.cdn.turner.com, ht2.cdn.turner.com
-                        # ht3.cdn.turner.com, i.cdn.turner.com, s.cdn.turner.com
-                        # ssl.cdn.turner.com
-                        'http': 'pmd.cdn.turner.com',
-                    }))
             elif ext == 'm3u8':
                 m3u8_formats = self._extract_m3u8_formats(
                     video_url, video_id, 'mp4',
                     m3u8_id=format_id or 'hls', fatal=False)
                 if '/secure/' in video_url and '?hdnea=' in video_url:
                     for f in m3u8_formats:
-                        f['downloader_options'] = {'ffmpeg_args': ['-seekable', '0']}
+                        f['_seekable'] = False
                 formats.extend(m3u8_formats)
             elif ext == 'f4m':
                 formats.extend(self._extract_f4m_formats(
@@ -153,7 +129,7 @@ class TurnerBaseIE(AdobePassIE):
                     'url': video_url,
                     'ext': ext,
                 }
-                mobj = rex.search(video_url)
+                mobj = rex.search(format_id + video_url)
                 if mobj:
                     f.update({
                         'width': int(mobj.group('width')),
@@ -176,6 +152,7 @@ class TurnerBaseIE(AdobePassIE):
                 formats.append(f)
         self._sort_formats(formats)
 
+        subtitles = {}
         for source in video_data.findall('closedCaptions/source'):
             for track in source.findall('track'):
                 track_url = url_or_none(track.get('url'))
@@ -191,18 +168,18 @@ class TurnerBaseIE(AdobePassIE):
                     }.get(source.get('format'))
                 })
 
-        thumbnails.extend({
-            'id': image.get('cut') or image.get('name'),
+        thumbnails = [{
+            'id': image.get('cut'),
             'url': image.text,
             'width': int_or_none(image.get('width')),
             'height': int_or_none(image.get('height')),
-        } for image in video_data.findall('images/image'))
+        } for image in video_data.findall('images/image')]
 
         is_live = xpath_text(video_data, 'isLive') == 'true'
 
         return {
             'id': video_id,
-            'title': title,
+            'title': self._live_title(title) if is_live else title,
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': thumbnails,
@@ -218,10 +195,9 @@ class TurnerBaseIE(AdobePassIE):
         }
 
     def _extract_ngtv_info(self, media_id, tokenizer_query, ap_data=None):
-        is_live = ap_data.get('is_live')
         streams_data = self._download_json(
-            'http://medium.ngtv.io/media/%s/tv' % media_id,
-            media_id)['media']['tv']
+            'http://medium.ngtv.io/media/%s/desktop' % media_id,
+            media_id)['media']['desktop']
         duration = None
         chapters = []
         formats = []
@@ -235,11 +211,11 @@ class TurnerBaseIE(AdobePassIE):
                     'http://token.ngtv.io/token/token_spe',
                     m3u8_url, media_id, ap_data or {}, tokenizer_query)
             formats.extend(self._extract_m3u8_formats(
-                m3u8_url, media_id, 'mp4', m3u8_id='hls', live=is_live, fatal=False))
+                m3u8_url, media_id, 'mp4', m3u8_id='hls', fatal=False))
 
             duration = float_or_none(stream_data.get('totalRuntime'))
 
-            if not chapters and not is_live:
+            if not chapters:
                 for chapter in stream_data.get('contentSegments', []):
                     start_time = float_or_none(chapter.get('start'))
                     chapter_duration = float_or_none(chapter.get('duration'))
