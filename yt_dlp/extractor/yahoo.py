@@ -1,4 +1,6 @@
+import hashlib
 import itertools
+import re
 import urllib.parse
 
 from .brightcove import BrightcoveNewIE
@@ -531,16 +533,21 @@ class YahooJapanNewsIE(InfoExtractor):
             preloaded_state,
             ('articleDetail', 'paragraphs', ..., 'objectItems', ..., 'video', 'vid'),
             get_all=False, expected_type=int))
+        space_id = traverse_obj(
+            preloaded_state, ('pageData', 'spaceId'),
+            expected_type=str)
         if content_id is None:
             raise ExtractorError('This article does not contain video.', expected=True)
 
+        host = 'news.yahoo.co.jp'
         json_data = self._download_json(
             f'https://feapi-yvpub.yahooapis.jp/v1/content/{content_id}',
             video_id,
             query={
                 'appid': 'dj0zaiZpPVZMTVFJR0FwZWpiMyZzPWNvbnN1bWVyc2VjcmV0Jng9YjU-',
                 'output': 'json',
-                'domain': 'news.yahoo.co.jp',
+                'domain': host,
+                'ak': hashlib.md5('_'.join((space_id, host)).encode()).hexdigest() if space_id else '',
                 'device_type': '1100',
             })
         formats = self._extract_formats(json_data, video_id)
