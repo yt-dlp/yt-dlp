@@ -1,8 +1,10 @@
 import json
 import uuid
 import re
+import time
 
 from .common import InfoExtractor
+from ..compat import compat_urllib_parse_urlencode
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -139,6 +141,7 @@ class RTBFIE(RedBeeIE):
             ouftivi/(?:[^/]+/)*[^?]+\?.*\bvideoId=|
             auvio/[^/]+\?.*\b(?P<live>l)?id=
         )(?P<id>\d+)'''
+    _NETRC_MACHINE = 'rtbf'
     _TESTS = [{
         'url': 'https://www.rtbf.be/video/detail_les-diables-au-coeur-episode-2?id=1921274',
         'md5': '8c876a1cceeb6cf31b476461ade72384',
@@ -174,6 +177,34 @@ class RTBFIE(RedBeeIE):
         # With Subtitle
         'url': 'https://www.rtbf.be/auvio/detail_les-carnets-du-bourlingueur?id=2361588',
         'only_matching': True,
+    }, {
+        'url': 'https://www.rtbf.be/auvio/detail_investigation?id=2921926',
+        'md5': 'd5d11bb62169fef38d7ce7ac531e034f',
+        'info_dict': {
+            'id': '2921926',
+            'ext': 'mp4',
+            'title': 'Le handicap un confinement perpétuel - Maladie de Lyme',
+            'description': 'md5:dcbd5dcf6015488c9069b057c15ccc52',
+            'duration': 5258.8,
+            'upload_date': '20220727',
+            'timestamp': 1658934000,
+            'series': '#Investigation',
+            'thumbnail': r're:^https?://[^?&]+\.jpg$',
+        },
+    }, {
+        'url': 'https://www.rtbf.be/auvio/detail_la-belgique-criminelle?id=2920492',
+        'md5': '054f9f143bc79c89647c35e5a7d35fa8',
+        'info_dict': {
+            'id': '2920492',
+            'ext': 'mp4',
+            'title': '04 - Le crime de la rue Royale',
+            'description': 'md5:0c3da1efab286df83f2ab3f8f96bd7a6',
+            'duration': 1574.6,
+            'upload_date': '20220723',
+            'timestamp': 1658596887,
+            'series': 'La Belgique criminelle - TV',
+            'thumbnail': r're:^https?://[^?&]+\.jpg$',
+        },
     }]
     _IMAGE_HOST = 'http://ds1.ds.static.rtbf.be'
     _PROVIDERS = {
@@ -186,22 +217,46 @@ class RTBFIE(RedBeeIE):
         ('web', 'MD'),
         ('high', 'HD'),
     ]
+    _LOGIN_URL = 'https://login.rtbf.be/accounts.login'
+    _GIGYA_API_KEY = '3_kWKuPgcdAybqnqxq_MvHVk0-6PN8Zk8pIIkJM_yXOu-qLPDDsGOtIDFfpGivtbeO'
+    _LOGIN_COOKIE_ID = f'glt_{_GIGYA_API_KEY}'
     _REDBEE_CUSTOMER = 'RTBF'
     _REDBEE_BUSINESS_UNIT = 'Auvio'
 
-    def _get_redbee_formats_and_subtitles(self, url, media_id):
-        api_key = (self._search_regex(r'<div[^>]+gigya\.js\?apikey=(?P<api_key>[^"&]+)',
-                                      self._download_webpage(url, media_id), 'api_key', fatal=False)
-                   or '3_kWKuPgcdAybqnqxq_MvHVk0-6PN8Zk8pIIkJM_yXOu-qLPDDsGOtIDFfpGivtbeO')
+    def _perform_login(self, username, password):
+        if self._get_cookies(self._LOGIN_URL).get(self._LOGIN_COOKIE_ID):
+            return
 
-        login_token = self._get_cookies(url).get(f'glt_{api_key}')
+        self._set_cookie('.rtbf.be', 'gmid', 'gmid.ver4', secure=True, expire_time=time.time() + 3600)
+
+        login_response = self._download_json(
+            'https://login.rtbf.be/accounts.login', None, data=compat_urllib_parse_urlencode({
+                'loginID': username,
+                'password': password,
+                'APIKey': self._GIGYA_API_KEY,
+                'targetEnv': 'jssdk',
+                'sessionExpiration': '-2',
+            }).encode('utf-8'), headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+            })
+
+        if login_response['statusCode'] != 200:
+            raise ExtractorError('Login failed. Server message: %s' % login_response['errorMessage'], expected=True)
+
+        self._set_cookie('.rtbf.be', self._LOGIN_COOKIE_ID, login_response['sessionInfo']['login_token'],
+                         secure=True, expire_time=time.time() + 3600)
+        if not self._get_cookies(self._LOGIN_URL).get(self._LOGIN_COOKIE_ID):
+            raise ExtractorError(f'Login succeeded but did not set {self._LOGIN_COOKIE_ID} cookie')
+
+    def _get_redbee_formats_and_subtitles(self, url, media_id):
+        login_token = self._get_cookies(url).get(self._LOGIN_COOKIE_ID)
         if not login_token:
             self.raise_login_required()
 
         session_jwt = self._download_json(
             "https://login.rtbf.be/accounts.getJWT", media_id, query={
                 'login_token': login_token.value,
-                'APIKey': api_key,
+                'APIKey': self._GIGYA_API_KEY,
                 'sdk': 'js_latest',
                 'authMode': 'cookie',
                 'pageURL': url,
@@ -230,7 +285,7 @@ class RTBFIE(RedBeeIE):
         if provider in self._PROVIDERS:
             return self.url_result(data['url'], self._PROVIDERS[provider])
 
-        title = data['title']
+        title = data['subtitle']
         is_live = data.get('isLive')
         height_re = r'-(\d+)p\.'
         formats = []
