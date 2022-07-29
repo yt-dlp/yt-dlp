@@ -355,7 +355,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     )
 
     # extracted from account/account_menu ep
-    _SUPPORTED_LANGS = [
+    # XXX: These are the supported YouTube UI and API languages,
+    # which is slightly different from languages supported for translation in YouTube studio
+    _SUPPORTED_LANG_CODES = [
         'af', 'az', 'id', 'ms', 'bs', 'ca', 'cs', 'da', 'de', 'et', 'en-IN', 'en-GB', 'en', 'es',
         'es-419', 'es-US', 'eu', 'fil', 'fr', 'fr-CA', 'gl', 'hr', 'zu', 'is', 'it', 'sw', 'lv',
         'lt', 'hu', 'nl', 'no', 'uz', 'pl', 'pt-PT', 'pt', 'ro', 'sq', 'sk', 'sl', 'sr-Latn', 'fi',
@@ -373,7 +375,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         preferred_lang = self._configuration_arg('lang', ie_key='Youtube', casesense=True, default=[''])[0]
         if not preferred_lang:
             return
-        if preferred_lang not in self._SUPPORTED_LANGS:
+        if preferred_lang not in self._SUPPORTED_LANG_CODES:
             raise ExtractorError(f'Unsupported language code: {preferred_lang}', expected=True)
         elif preferred_lang != 'en':
             self.report_warning(
@@ -3436,17 +3438,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
             expected_type=dict, default=[])
 
-        primary_title = get_first(video_details, 'title')
-        primary_description = get_first(video_details, 'shortDescription')
         translated_title = self._get_text(microformats, (..., 'title'))
+        video_title = (self._preferred_lang and translated_title
+                       or get_first(video_details, 'title')  # primary
+                       or translated_title
+                       or search_meta(['og:title', 'twitter:title', 'title']))
         translated_description = self._get_text(microformats, (..., 'description'))
-        video_title = search_meta(['og:title', 'twitter:title', 'title'])
-        if self._preferred_lang is not None:
-            video_title = translated_title or primary_title or video_title
-            video_description = translated_description or primary_description
-        else:
-            video_title = primary_title or translated_title or video_title
-            video_description = primary_description or translated_description
+        video_description = (self._preferred_lang and translated_description
+                             or get_first(video_details, 'shortDescription')  # primary
+                             or translated_description)
 
         multifeed_metadata_list = get_first(
             player_responses,
