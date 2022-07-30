@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class StripchatIE(InfoExtractor):
-    _VALID_URL = r'https?://stripchat\.com/(?P<id>[0-9A-Za-z-_]+)'
+    _VALID_URL = r'https?://stripchat\.com/(?P<id>[0-9A-Za-z-_@]+)'
     _TESTS = [{
         'url': 'https://stripchat.com/feel_me',
         'info_dict': {
