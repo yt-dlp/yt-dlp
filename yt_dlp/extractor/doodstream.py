@@ -6,7 +6,7 @@ from .common import InfoExtractor
 
 
 class DoodStreamIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?dood\.(?:to|watch)/[ed]/(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?dood\.(?:to|watch|so|pm)/[ed]/(?P<id>[a-z0-9]+)'
     _TESTS = [{
         'url': 'http://dood.to/e/5s1wmbdacezb',
         'md5': '4568b83b31e13242b3f1ff96c55f0595',
@@ -45,6 +45,8 @@ class DoodStreamIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         title = self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None)
+        if title is None:
+            title = self._html_extract_title(webpage)
         thumb = self._html_search_meta(['og:image', 'twitter:image'], webpage, default=None)
         token = self._html_search_regex(r'[?&]token=([a-z0-9]+)[&\']', webpage, 'token')
         description = self._html_search_meta(
