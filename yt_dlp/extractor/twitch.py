@@ -432,7 +432,7 @@ class TwitchVodIE(TwitchBaseIE):
                 yield {'title': game}
             return
 
-        for moment in info.get('moments') or []:
+        for moment in info['moments']:
             start_time = int_or_none(moment.get('positionMilliseconds'), 1000)
             duration = int_or_none(moment.get('durationMilliseconds'), 1000)
             name = str_or_none(moment.get('description'))
