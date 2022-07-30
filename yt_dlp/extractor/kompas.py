@@ -73,6 +73,7 @@ class KompasVideoIE(InfoExtractor):
 class KompasTVIE(InfoExtractor):
     _VALID_URL = r'https?://www\.kompas\.tv/\w+/(?P<id>\d+)/(?P<slug>[\w-]+)'
     _TESTS = [{
+        # works with generic too
         'url': 'https://www.kompas.tv/article/313808/cegah-pmk-dengan-booster-dinas-pertanian-suntik-ratusan-sapi-di-pekanbaru',
         'info_dict': {
             'id': 'WoDysbXmYrw',
@@ -98,6 +99,34 @@ class KompasTVIE(InfoExtractor):
             'channel_id': 'UC5BMIWZe9isJXLZZWPWvBlg',
             'live_status': 'not_live',
             'uploader_url': 'http://www.youtube.com/user/KompasTVNews'
+        }
+    }, {
+        # generic extractor take wrong url (content_url instead embedUrl)
+        'url': 'https://www.youtube.com/embed/3N9tV6WFVag?autoplay=0&amp;fs=1&amp;rel=0&amp;showinfo=1&amp;modestbranding=1',
+        'info_dict': {
+            'id': '3N9tV6WFVag',
+            'ext': 'mp4',
+            'tags': ['jakarta', 'kunjungan presiden', 'kunjungan presiden ke asia', 'moeldoko', 'staf kepresidenan moeldoko'],
+            'categories': ['News & Politics'],
+            'thumbnail': 'https://i.ytimg.com/vi/3N9tV6WFVag/hqdefault.jpg',
+            'live_status': 'not_live',
+            'age_limit': 0,
+            'channel_url': 'https://www.youtube.com/channel/UC5BMIWZe9isJXLZZWPWvBlg',
+            'channel': 'KOMPASTV',
+            'playable_in_embed': True,
+            'comment_count': int,
+            'uploader_id': 'KompasTVNews',
+            'view_count': int,
+            'duration': 49,
+            'availability': 'public',
+            'title': 'Hasil Kunjungan Presiden ke 3 Negara Asia, Moeldoko: Sangat berdampak Baik Bagi Petani Sawit',
+            'uploader': 'KOMPASTV',
+            'channel_follower_count': int,
+            'like_count': int,
+            'upload_date': '20220730',
+            'description': 'md5:626ccb6110dd77a6213e8c44b4255599',
+            'channel_id': 'UC5BMIWZe9isJXLZZWPWvBlg',
+            'uploader_url': 'http://www.youtube.com/user/KompasTVNews',
         }
     }]
     
