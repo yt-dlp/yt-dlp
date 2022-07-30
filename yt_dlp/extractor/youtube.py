@@ -3562,8 +3562,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 
-        # Source is given priority since formats that throttle are given lower source_preference
-        # When throttling issue is fully fixed, remove this
+        # source_preference is lower for throttled/potentially damaged formats
         self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source', 'codec:vp9.2', 'lang', 'proto'))
 
         info = {
