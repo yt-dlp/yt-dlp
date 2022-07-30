@@ -19,6 +19,7 @@ from .extractor.adobepass import MSO_INFO
 from .extractor.common import InfoExtractor
 from .options import parseOpts
 from .postprocessor import (
+    FFmpegPostProcessor,
     FFmpegExtractAudioPP,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
@@ -898,6 +899,11 @@ def _real_main(argv=None):
 
     if print_extractor_information(opts, all_urls):
         return
+
+    # We may need ffmpeg_location without having access to the YoutubeDL instance
+    # See https://github.com/yt-dlp/yt-dlp/issues/2191
+    if opts.ffmpeg_location:
+        FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir
