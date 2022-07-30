@@ -2,6 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     float_or_none,
+    int_or_none,
     str_or_none,
     traverse_obj,
     unescapeHTML,
@@ -70,7 +71,32 @@ class KompasVideoIE(InfoExtractor):
         }
 
 
-class KompasTVIE(InfoExtractor):
+class KompasTVBaseIE(InfoExtractor):
+    def _extract_formats_from_dailymotion_id(self, webpage, video_id, slug):
+        metadata_json = self._download_json(f'https://www.dailymotion.com/player/metadata/video/{video_id}', slug)
+        video_urls = traverse_obj(metadata_json, ('qualities', 'auto', ..., 'url'))
+        
+        formats, subtitles = [], {}
+        for url in video_urls:
+            fmt, subs = self._extract_m3u8_formats_and_subtitles(url, slug)
+            formats.extend(fmt)
+            self._merge_subtitles(subs, target=subtitles)
+        
+        self._sort_formats(formats)
+        
+        return {
+            'id': video_id,
+            'title': self._html_search_meta(['og:title', 'twitter:title'], webpage),
+            'formats': formats,
+            'subtitles': subtitles,
+            'description': self._html_search_meta(['og:description', 'twitter:description'], webpage),
+            'uploader': traverse_obj(metadata_json, ('owner', 'screenname')),
+            'uploader_url': traverse_obj(metadata_json, ('owner', 'url')),
+            'uploader_id': metadata_json.get('owner.id') or traverse_obj(metadata_json, ('owner', 'id')),
+            'timestamp': int_or_none(metadata_json.get('created_time')),
+        }
+
+class KompasTVIE(KompasTVBaseIE):
     _VALID_URL = r'https?://www\.kompas\.tv/\w+/(?P<id>\d+)/(?P<slug>[\w-]+)'
     _TESTS = [{
         # works with generic too
@@ -128,9 +154,36 @@ class KompasTVIE(InfoExtractor):
             'channel_id': 'UC5BMIWZe9isJXLZZWPWvBlg',
             'uploader_url': 'http://www.youtube.com/user/KompasTVNews',
         }
+    }, {
+        # dailymotion video id only
+        'url': 'https://www.kompas.tv/rehat/262882/star-of-the-week-oh-my-v33nus-good-gamer?source=rehat&program=good-gamer',
+        'info_dict': {
+            'id': 'x880bsp',
+            'ext': 'mp4',
+            'thumbnail': 'https://s2.dmcdn.net/v/TecEv1YTYIT-DEPKN/x1080',
+            'description': 'md5:072b8f77fbdf9db5faa5fad0b4176f1f',
+            'uploader': 'KompasTV',
+            'tags': ['senz huston', 'founder dan ceo revival tv', 'my v33nus', 'game baru', 'game mobile', 'good gamer'],
+            'like_count': int,
+            'upload_date': '20220218',
+            'duration': 108,
+            'view_count': int,
+            'title': 'Star Of The Week: Oh My V33nus - GOOD GAMER',
+            'timestamp': 1645184491,
+            'age_limit': 0,
+            'uploader_id': 'x1vv20s',
+        }
+    }, {
+        # FIXME: wrong youtube embed, get actual dailymotion video_id
+        'url': 'https://www.kompas.tv/article/314017/komnas-ham-bandingkan-waktu-cctv-dengan-keterangan-pengacara-keluarga-brigadir-j',
+        'info_dict': {
+            'id': 'fixme',
+            'ext': 'mp4',
+        }
     }]
     
     def _real_extract(self, url):
+        # TODO: consistent id
         video_id, display_id = self._match_valid_url(url).group('id', 'slug')
         webpage = self._download_webpage(url, display_id)
         
@@ -138,21 +191,63 @@ class KompasTVIE(InfoExtractor):
         urls = []
         # extracting from json_ld
         json_ld_data = list(self._yield_json_ld(webpage, display_id))
+        print(json_ld_data)
         for json_ld in json_ld_data:
             if json_ld.get('embedUrl'):
                 urls.append(unescapeHTML(json_ld.get('embedUrl')))
         
         # extracting from iframe
         # TODO: better regex
-        url = self._search_regex(
+        iframe_url = self._search_regex(
             r'<iframe[^>]\s*[\w="\s]+\bsrc=\'(?P<iframe_src>[^\']+)',
-            webpage, 'iframe_url', fatal=False, group=('iframe_src'))
-        urls.append(url)
+            webpage, 'iframe_url', default=None, fatal=False, group=('iframe_src'))
         
-        # TODO: return from iframe ( not implemented until 4307 merged)
-        return self.url_result(urls[0], video_id=video_id, video_title=self._html_search_meta(['og:title', 'twitter:title'], webpage),
+        if iframe_url:
+            urls.append(iframe_url)
+        
+        # extract dailymotion video id and then redirect to DailymotionIE
+        dmplayer_video_id = self._search_regex(
+            r'videoId\s*=\s*"(?P<id>[^"]+)', webpage, 'dmplayer_video_id', default=None, 
+            fatal=False, group=('id'))
+        
+        # TODO: return from iframe (not implemented until 4307 merged)
+        video_url = urls[0] if len(urls) >= 1 else f'https://www.dailymotion.com/video/{dmplayer_video_id}'
+        return self.url_result(video_url, video_id=video_id, video_title=self._html_search_meta(['og:title', 'twitter:title'], webpage),
             description=self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
             thumbnail=self._html_search_meta(['og:image', 'twitter:image'], webpage),
             tags=str_or_none(self._html_search_meta(['keywords', 'content_tag'], webpage), '').split(',') or None,
         )
+        
+
+class KompasTVLiveIE(KompasTVBaseIE):
+    _VALID_URL = r'https?://www\.kompas\.tv/(?P<id>live(\d+|report)?|breakingnews)'
+    _TESTS = [{
+        'url': 'https://www.kompas.tv/live',
+        'info_dict': {
+            'id': 'kD9l8sWXqRfBh0rvk82',
+            'ext': 'mp4',
+            'uploader': 'KompasTV',
+            'uploader_url': 'https://www.dailymotion.com/kompastv',
+            'title': r're:Live Streaming - Kompas TV \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'description': 'md5:e87a1f75bc75a10a93599f556ed5e319',
+            'live_status': 'is_live',
+            'uploader_id': 'x1vv20s',
+            'timestamp': 1532416221,
+            'upload_date': '20180724',
+        }
+    }]
+    
+    def _real_extract(self, url):
+        slug = self._match_id(url)
+        webpage = self._download_webpage(url, slug)
+        
+        video_id = self._search_regex(
+            r'privateVideoId\s*=\s*"(?P<id>[^"]+)',webpage, 'privateVideoId')
+        
+        video_metadata = self._extract_formats_from_dailymotion_id(webpage, video_id, slug)
+        
+        return {
+            **video_metadata,
+            'live_status': 'is_live',
+        }
         

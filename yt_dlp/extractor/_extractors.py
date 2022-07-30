@@ -761,7 +761,7 @@ from .kicker import KickerIE
 from .kickstarter import KickStarterIE
 from .kinja import KinjaEmbedIE
 from .kinopoisk import KinoPoiskIE
-from .kompas import KompasVideoIE, KompasTVIE
+from .kompas import KompasVideoIE, KompasTVIE, KompasTVLiveIE
 from .konserthusetplay import KonserthusetPlayIE
 from .koo import KooIE
 from .kth import KTHIE
