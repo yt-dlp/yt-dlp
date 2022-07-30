@@ -22,7 +22,12 @@ class StripchatIE(InfoExtractor):
             'age_limit': 18,
         },
         'skip': 'Room is offline',
-    }]
+    },
+        {
+        'url': 'https://stripchat.com/Rakhijaan@xh',
+        'only_matching': True,
+        }
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
