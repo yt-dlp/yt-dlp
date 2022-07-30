@@ -308,13 +308,13 @@ class WatchESPNIE(AdobePassIE):
             'skip_download': True,
         },
     }, {
-        'url': 'https://www.espn.com/watch/player/_/id/47950544-b39f-4e47-a982-b2132d20c8d1',
+        'url': 'https://www.espn.com/espnplus/player/_/id/317f5fd1-c78a-4ebe-824a-129e0d348421',
         'info_dict': {
-            'id': '47950544-b39f-4e47-a982-b2132d20c8d1',
+            'id': '317f5fd1-c78a-4ebe-824a-129e0d348421',
             'ext': 'mp4',
-            'title': 'Debatable',
-            'duration': 3600,
-            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/47950544-b39f-4e47-a982-b2132d20c8d1/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
+            'title': 'The Wheel - Episode 10',
+            'duration': 3352,
+            'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/317f5fd1-c78a-4ebe-824a-129e0d348421/16x9.jpg?timestamp=202205031523&showBadge=true&cb=12&package=ESPN_PLUS',
         },
         'params': {
             'skip_download': True,
