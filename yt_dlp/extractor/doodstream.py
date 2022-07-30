@@ -44,9 +44,8 @@ class DoodStreamIE(InfoExtractor):
         url = f'https://dood.to/e/{video_id}'
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None)
-        if title is None:
-            title = self._html_extract_title(webpage)
+        title = self._html_search_meta(
+            ('og:title', 'twitter:title'), webpage, default=None) or self._html_extract_title(webpage)
         thumb = self._html_search_meta(['og:image', 'twitter:image'], webpage, default=None)
         token = self._html_search_regex(r'[?&]token=([a-z0-9]+)[&\']', webpage, 'token')
         description = self._html_search_meta(
