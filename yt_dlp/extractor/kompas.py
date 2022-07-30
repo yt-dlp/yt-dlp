@@ -75,8 +75,29 @@ class KompasTVIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.kompas.tv/article/313808/cegah-pmk-dengan-booster-dinas-pertanian-suntik-ratusan-sapi-di-pekanbaru',
         'info_dict': {
-            'id': 'fixme',
+            'id': 'WoDysbXmYrw',
             'ext': 'mp4',
+            'comment_count': int,
+            'like_count': int,
+            'categories': ['News & Politics'],
+            'playable_in_embed': True,
+            'tags': ['luwak', 'noads', 'pmk', 'sapi pmk', 'vaksin pmk', 'vaksin sapi pmk'],
+            'thumbnail': 'https://i.ytimg.com/vi/WoDysbXmYrw/hqdefault.jpg',
+            'uploader_id': 'KompasTVNews',
+            'upload_date': '20220728',
+            'title': 'Cegah PMK dengan Booster, Dinas Pertanian Suntik Ratusan Sapi di Pekanbaru',
+            'uploader': 'KOMPASTV',
+            'channel': 'KOMPASTV',
+            'channel_url': 'https://www.youtube.com/channel/UC5BMIWZe9isJXLZZWPWvBlg',
+            'age_limit': 0,
+            'channel_follower_count': int,
+            'availability': 'public',
+            'duration': 110,
+            'view_count': int,
+            'description': 'md5:9adf1e13cdc6a3fdb0fca19445db0062',
+            'channel_id': 'UC5BMIWZe9isJXLZZWPWvBlg',
+            'live_status': 'not_live',
+            'uploader_url': 'http://www.youtube.com/user/KompasTVNews'
         }
     }]
     
@@ -91,7 +112,6 @@ class KompasTVIE(InfoExtractor):
         for json_ld in json_ld_data:
             if json_ld.get('embedUrl'):
                 urls.append(unescapeHTML(json_ld.get('embedUrl')))
-        print(urls)
         
         # extracting from iframe
         # TODO: better regex
@@ -99,25 +119,14 @@ class KompasTVIE(InfoExtractor):
             r'<iframe[^>]\s*[\w="\s]+\bsrc=\'(?P<iframe_src>[^\']+)',
             webpage, 'iframe_url', fatal=False, group=('iframe_src'))
         urls.append(url)
-        print(urls)
         
-        formats = []
+        # TODO: return from iframe ( not implemented until 4307 merged)
+        return self.url_result(urls[0], video_id=video_id, video_title=self._html_search_meta(['og:title', 'twitter:title'], webpage),
+            description=self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
+            thumbnail=self._html_search_meta(['og:image', 'twitter:image'], webpage),
+            tags=str_or_none(self._html_search_meta(['keywords', 'content_tag'], webpage), '').split(',') or None,
+        )
         
-        for url in urls:
-            formats.append(self.url_result(url))
-            
-        # TODO: add more metadata fallback: json_ld, window.jixie_p.push
-        # FIXME: return error
-        return {
-            '_type': 'url_transparent',
-            'id': video_id,
-            'url': urls[1], # the other url need #4307 merged
-            'title': self._html_search_meta(['og:title', 'twitter:title'], webpage),
-            'description': self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
-            'thumbnail': self._html_search_meta(['og:image', 'twitter:image'], webpage),
-            'tags': str_or_none(self._html_search_meta(['keywords', 'content_tag'], webpage), '').split(',') or None,   
-        }        
-
 
 class KompasIdIE(InfoExtractor):
     _VALID_URL = r'https?://www\.kompas\.id/\w+/\w+/\d+/\d+/\d+/(?P<id>[\w-]+)'
