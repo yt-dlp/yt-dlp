@@ -230,7 +230,7 @@ class RTBFIE(RedBeeIE):
         self._set_cookie('.rtbf.be', 'gmid', 'gmid.ver4', secure=True, expire_time=time.time() + 3600)
 
         login_response = self._download_json(
-            'https://login.rtbf.be/accounts.login', None, data=compat_urllib_parse_urlencode({
+            self._LOGIN_URL, None, data=compat_urllib_parse_urlencode({
                 'loginID': username,
                 'password': password,
                 'APIKey': self._GIGYA_API_KEY,
