@@ -353,6 +353,7 @@ class TwitchVodIE(TwitchBaseIE):
         'params': {
             'skip_download': True
         },
+        'expected_warnings': ['Unable to download JSON metadata: HTTP Error 403: Forbidden']
     }]
 
     def _download_info(self, item_id):
@@ -424,10 +425,13 @@ class TwitchVodIE(TwitchBaseIE):
             'was_live': True,
         }
 
-    # Twitch definition of chapters
-    #   chapters appear where the stream category was changed, and also at the beginning
-    #   if the category wasn't changed during the stream, then no chapters are provided
-    def _extract_moments(self, info, item_id):
+    def _extract_chapters(self, info, item_id):
+        if not info.get('moments'):
+            game = traverse_obj(info, ('game', 'displayName'))
+            if game:
+                yield {'title': game}
+            return
+
         for moment in info.get('moments') or []:
             start_time = int_or_none(moment.get('positionMilliseconds'), 1000)
             duration = int_or_none(moment.get('durationMilliseconds'), 1000)
@@ -441,20 +445,6 @@ class TwitchVodIE(TwitchBaseIE):
                 'end_time': start_time + duration,
                 'title': name,
             }
-
-    # Logical chapters
-    #   if category didn't change, the only chapter is the category, spanning the whole stream
-    def _extract_chapters(self, info, item_id):
-        chapters = list(self._extract_moments(info, item_id))
-
-        if len(chapters) == 0:
-            chapters.append({
-                'start_time': 0,
-                'end_time': info.get('lengthSeconds'),
-                'title': traverse_obj(info, ('game', 'displayName'))
-            })
-
-        return chapters
 
     def _extract_info_gql(self, info, item_id):
         vod_id = info.get('id') or item_id
@@ -481,7 +471,7 @@ class TwitchVodIE(TwitchBaseIE):
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
             'view_count': int_or_none(info.get('viewCount')),
-            'chapters': self._extract_chapters(info, item_id),
+            'chapters': list(self._extract_chapters(info, item_id)),
             'is_live': is_live,
             'was_live': True,
         }
