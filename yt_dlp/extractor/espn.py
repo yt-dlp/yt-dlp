@@ -335,8 +335,6 @@ class WatchESPNIE(AdobePassIE):
         cdn_data = self._download_json(
             f'https://watch-cdn.product.api.espn.com/api/product/v3/watchespn/web/playback/event?id={video_id}',
             video_id)
-
-        duration = traverse_obj(cdn_data, ('tracking', 'duration'))
         video_data = cdn_data['playbackState']
 
         # ESPN+ subscription required, through cookies
@@ -406,7 +404,7 @@ class WatchESPNIE(AdobePassIE):
 
         return {
             'id': video_id,
-            'duration': duration,
+            'duration': traverse_obj(cdn_data, ('tracking', 'duration')),
             'title': video_data.get('name'),
             'formats': formats,
             'subtitles': subtitles,
