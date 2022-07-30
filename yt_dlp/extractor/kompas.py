@@ -127,20 +127,3 @@ class KompasTVIE(InfoExtractor):
             tags=str_or_none(self._html_search_meta(['keywords', 'content_tag'], webpage), '').split(',') or None,
         )
         
-
-class KompasIdIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.kompas\.id/\w+/\w+/\d+/\d+/\d+/(?P<id>[\w-]+)'
-    _TESTS = [{
-        'url': 'https://www.kompas.id/baca/video/2022/07/28/dua-tahun-berhenti-keraton-surakarta-gelar-kirab-malam-satu-suro',
-        'info_dict': {
-            'id': 'fixme',
-            'ext': 'mp4',
-        }
-    }]
-    
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        
-        nuxtjs_json = self._search_nuxt_data(webpage, display_id)
-        print(nuxtjs_json)
