@@ -1162,6 +1162,9 @@ class YoutubeDL:
             if mdict['strf_format']:
                 value = strftime_or_none(value, mdict['strf_format'].replace('\\,', ','))
 
+            # XXX: Workaround for https://github.com/yt-dlp/yt-dlp/issues/4485
+            if sanitize and value == '':
+                value = None
             return value
 
         na = self.params.get('outtmpl_na_placeholder', 'NA')
