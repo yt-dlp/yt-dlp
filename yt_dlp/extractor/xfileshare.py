@@ -179,6 +179,7 @@ class XFileShareIE(InfoExtractor):
                 else:
                     formats.append({
                         'url': video_url,
+                        'http_headers': {"Referer": url},
                         'format_id': 'sd',
                     })
         self._sort_formats(formats)
