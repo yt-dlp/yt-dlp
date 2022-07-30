@@ -1,6 +1,5 @@
 import base64
 import re
-import math
 
 from .common import InfoExtractor
 
