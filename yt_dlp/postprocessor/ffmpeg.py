@@ -10,6 +10,7 @@ import time
 from .common import PostProcessor
 from ..compat import functools, imghdr
 from ..utils import (
+    MEDIA_EXTENSIONS,
     ISO639Utils,
     Popen,
     PostProcessingError,
@@ -424,7 +425,7 @@ class FFmpegPostProcessor(PostProcessor):
 
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
-    COMMON_AUDIO_EXTS = ('wav', 'flac', 'm4a', 'aiff', 'mp3', 'ogg', 'mka', 'opus', 'wma')
+    COMMON_AUDIO_EXTS = MEDIA_EXTENSIONS.common_audio + ('wma', )
     SUPPORTED_EXTS = tuple(ACODECS.keys())
     FORMAT_RE = create_mapping_re(('best', *SUPPORTED_EXTS))
 
@@ -531,7 +532,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
 
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mka', 'ogg', *FFmpegExtractAudioPP.SUPPORTED_EXTS)
+    SUPPORTED_EXTS = (*MEDIA_EXTENSIONS.common_video, *sorted(MEDIA_EXTENSIONS.common_audio + ('aac', 'vorbis')))
     FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
     _ACTION = 'converting'
 
@@ -924,7 +925,7 @@ class FFmpegFixupDuplicateMoovPP(FFmpegCopyStreamPP):
 
 
 class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('srt', 'vtt', 'ass', 'lrc')
+    SUPPORTED_EXTS = MEDIA_EXTENSIONS.subtitles
 
     def __init__(self, downloader=None, format=None):
         super().__init__(downloader)
@@ -1046,7 +1047,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
 
 class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('jpg', 'png', 'webp')
+    SUPPORTED_EXTS = MEDIA_EXTENSIONS.thumbnails
     FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
 
     def __init__(self, downloader=None, format=None):

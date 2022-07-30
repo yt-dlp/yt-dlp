@@ -52,6 +52,7 @@ from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
     LINK_TEMPLATES,
+    MEDIA_EXTENSIONS,
     NO_DEFAULT,
     NUMBER_RE,
     OUTTMPL_TYPES,
@@ -543,9 +544,9 @@ class YoutubeDL:
         'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
     }
     _format_selection_exts = {
-        'audio': {'m4a', 'mp3', 'ogg', 'aac'},
-        'video': {'mp4', 'flv', 'webm', '3gp'},
-        'storyboards': {'mhtml'},
+        'audio': set(MEDIA_EXTENSIONS.common_audio),
+        'video': set(MEDIA_EXTENSIONS.common_video + ('3gp', )),
+        'storyboards': set(MEDIA_EXTENSIONS.storyboards),
     }
 
     def __init__(self, params=None, auto_init=True):

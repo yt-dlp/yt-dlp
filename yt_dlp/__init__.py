@@ -19,8 +19,8 @@ from .extractor.adobepass import MSO_INFO
 from .extractor.common import InfoExtractor
 from .options import parseOpts
 from .postprocessor import (
-    FFmpegPostProcessor,
     FFmpegExtractAudioPP,
+    FFmpegPostProcessor,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoConvertorPP,
