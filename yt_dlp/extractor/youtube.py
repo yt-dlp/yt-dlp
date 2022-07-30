@@ -3592,6 +3592,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                          else None if is_live is None or is_upcoming is None
                          else live_content),
             'live_status': 'is_upcoming' if is_upcoming else None,  # rest will be set by YoutubeDL
+            'is_post_live_dvr': 'is_post_live_dvr' if get_first(video_details, 'isPostLiveDvr') else None,
             'release_timestamp': live_start_time,
         }
 
