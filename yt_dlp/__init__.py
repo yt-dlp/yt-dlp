@@ -20,6 +20,7 @@ from .extractor.common import InfoExtractor
 from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
+    FFmpegMergerPP,
     FFmpegPostProcessor,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
@@ -223,6 +224,7 @@ def validate_options(opts):
         validate_regex('format sorting', f, InfoExtractor.FormatSort.regex)
 
     # Postprocessor formats
+    validate_in('merge output format', opts.merge_output_format, FFmpegMergerPP.SUPPORTED_EXTS)
     validate_regex('audio format', opts.audioformat, FFmpegExtractAudioPP.FORMAT_RE)
     validate_in('subtitle format', opts.convertsubtitles, FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)
     validate_regex('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP.FORMAT_RE)

@@ -13,6 +13,7 @@ from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
 from .postprocessor import (
     FFmpegExtractAudioPP,
+    FFmpegMergerPP,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoRemuxerPP,
@@ -781,9 +782,8 @@ def create_parser():
         '--merge-output-format',
         action='store', dest='merge_output_format', metavar='FORMAT', default=None,
         help=(
-            'If a merge is required (e.g. bestvideo+bestaudio), '
-            'output to given container format. One of mkv, mp4, ogg, webm, flv. '
-            'Ignored if no merge is required'))
+            'Container to use when merging formats (e.g. bestvideo+bestaudio). Ignored if no merge is required. '
+            f'(currently supported: {", ".join(sorted(FFmpegMergerPP.SUPPORTED_EXTS))})'))
     video_format.add_option(
         '--allow-unplayable-formats',
         action='store_true', dest='allow_unplayable_formats', default=False,

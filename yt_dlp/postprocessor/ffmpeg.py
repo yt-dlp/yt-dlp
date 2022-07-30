@@ -801,6 +801,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
 
 class FFmpegMergerPP(FFmpegPostProcessor):
+    SUPPORTED_EXTS = MEDIA_EXTENSIONS.common_video
+
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         filename = info['filepath']
