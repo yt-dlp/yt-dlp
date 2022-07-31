@@ -13,6 +13,7 @@ class SbdmIE(InfoExtractor):
         'info_dict': {
             'id': '7025-0-11',
             'ext': 'mp4',
+            'season': '迷途貓 OVERRUN',
             'title': '迷途貓 OVERRUN 第12集BD版',
         },
     }]
@@ -32,7 +33,6 @@ class SbdmIE(InfoExtractor):
 
         title_pattern = r'title="(?P<title>[^"]+)"\s+href="' + season_url_path.replace('?', r'\?')
         title = self._search_regex(title_pattern, season_page, 'title')
-        title = f'{season_title} {title}'
 
         video_page, _ = phantom.get(url, video_id=video_id, note='Downloading video page')
         iframe_url = unescapeHTML(self._search_regex(r'<iframe[^<]+?src="(?P<url>[^"]+)"', video_page, 'iframe url'))
@@ -40,7 +40,8 @@ class SbdmIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
+            'season': season_title,
+            'title': f'{season_title} {title}',
             'formats': [{
                 'url': m3u8_url,
                 'protocol': 'm3u8_fake_header',
