@@ -60,6 +60,7 @@ from .americastestkitchen import (
     AmericasTestKitchenIE,
     AmericasTestKitchenSeasonIE,
 )
+from .angel import AngelIE
 from .animeondemand import AnimeOnDemandIE
 from .anvato import AnvatoIE
 from .aol import AolIE
