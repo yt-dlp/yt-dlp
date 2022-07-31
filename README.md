@@ -859,10 +859,10 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     downloadable
     -F, --list-formats              List available formats of each video.
                                     Simulate unless --no-simulate is used
-    --merge-output-format FORMAT    If a merge is required (e.g.
-                                    bestvideo+bestaudio), output to given
-                                    container format. One of mkv, mp4, ogg,
-                                    webm, flv. Ignored if no merge is required
+    --merge-output-format FORMAT    Container to use when merging formats (e.g.
+                                    bestvideo+bestaudio). Ignored if no merge is
+                                    required. (currently supported: avi, flv,
+                                    mkv, mov, mp4, webm)
 
 ## Subtitle Options:
     --write-subs                    Write subtitle file
@@ -916,7 +916,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     (requires ffmpeg and ffprobe)
     --audio-format FORMAT           Format to convert the audio to when -x is
                                     used. (currently supported: best (default),
-                                    mp3, aac, m4a, opus, vorbis, flac, alac,
+                                    aac, alac, flac, m4a, mp3, opus, vorbis,
                                     wav). You can specify multiple rules using
                                     similar syntax as --remux-video
     --audio-quality QUALITY         Specify ffmpeg audio quality to use when
@@ -924,9 +924,9 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     between 0 (best) and 10 (worst) for VBR or a
                                     specific bitrate like 128K (default 5)
     --remux-video FORMAT            Remux the video into another container if
-                                    necessary (currently supported: mp4, mkv,
-                                    flv, webm, mov, avi, mka, ogg, mp3, aac,
-                                    m4a, opus, vorbis, flac, alac, wav). If
+                                    necessary (currently supported: avi, flv,
+                                    mkv, mov, mp4, webm, aac, aiff, alac, flac,
+                                    m4a, mka, mp3, ogg, opus, vorbis, wav). If
                                     target container does not support the
                                     video/audio codec, remuxing will fail. You
                                     can specify multiple rules; Eg.
@@ -1025,7 +1025,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     be used multiple times
     --no-exec                       Remove any previously defined --exec
     --convert-subs FORMAT           Convert the subtitles to another format
-                                    (currently supported: srt, vtt, ass, lrc)
+                                    (currently supported: ass, lrc, srt, vtt)
                                     (Alias: --convert-subtitles)
     --convert-thumbnails FORMAT     Convert the thumbnails to another format
                                     (currently supported: jpg, png, webp). You

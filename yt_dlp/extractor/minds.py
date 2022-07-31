@@ -76,7 +76,7 @@ class MindsIE(MindsBaseIE):
             else:
                 return self.url_result(entity['perma_url'])
         else:
-            assert(entity['subtype'] == 'video')
+            assert entity['subtype'] == 'video'
             video_id = entity_id
         # 1080p and webm formats available only on the sources array
         video = self._call_api(
