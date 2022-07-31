@@ -1519,7 +1519,7 @@ from .saitosan import SaitosanIE
 from .samplefocus import SampleFocusIE
 from .sapo import SapoIE
 from .savefrom import SaveFromIE
-from .sbdm import SbdmIE
+from .kudm import SbdmIE, GqdmIE
 from .sbs import SBSIE
 from .screencast import ScreencastIE
 from .screencastomatic import ScreencastOMaticIE
