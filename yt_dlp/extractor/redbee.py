@@ -1,27 +1,32 @@
 import json
-import uuid
 import re
 import time
+import urllib.parse
+import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_urlencode
 from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
     strip_or_none,
-    try_get,
+    traverse_obj,
     unified_timestamp,
 )
 
 
-class RedBeeIE(InfoExtractor):
-    _VALID_URL = r'redbee:(?P<customer>[\w_-]+):(?P<business_unit>[\w_-]+):(?P<asset_id>[\w_-]+)'
+class RedBeeBaseIE(InfoExtractor):
     _DEVICE_ID = str(uuid.uuid4())
-    # https://apidocs.emp.ebsd.ericsson.net
-    _SERVICE_URL = 'https://exposure.api.redbee.live'
 
-    def _get_bearer_token(self, asset_id, customer, business_unit, auth_type='anonymous', **args):
+    @property
+    def _API_URL(self):
+        """
+        Ref: https://apidocs.emp.ebsd.ericsson.net
+        Subclasses must set _REDBEE_CUSTOMER, _REDBEE_BUSINESS_UNIT
+        """
+        return f'https://exposure.api.redbee.live/v2/customer/{self._REDBEE_CUSTOMER}/businessunit/{self._REDBEE_BUSINESS_UNIT}'
+
+    def _get_bearer_token(self, asset_id, jwt=None):
         request = {
             'deviceId': self._DEVICE_ID,
             'device': {
@@ -30,18 +35,19 @@ class RedBeeIE(InfoExtractor):
                 'type': 'WEB',
             },
         }
-        if auth_type == 'gigyaLogin':
-            request['jwt'] = args['jwt']
+        if jwt:
+            request['jwt'] = jwt
 
         return self._download_json(
-            f'{self._SERVICE_URL}/v2/customer/{customer}/businessunit/{business_unit}/auth/{auth_type}',
+            f'{self._API_URL}/auth/{"gigyaLogin" if jwt else "anonymous"}',
             asset_id, data=json.dumps(request).encode('utf-8'), headers={
                 'Content-Type': 'application/json;charset=utf-8'
             })['sessionToken']
 
-    def _get_entitlement_formats_and_subtitles(self, asset_id, customer, business_unit, bearer_token):
+    def _get_formats_and_subtitles(self, asset_id, **kwargs):
+        bearer_token = self._get_bearer_token(asset_id, **kwargs)
         api_response = self._download_json(
-            f'{self._SERVICE_URL}/v2/customer/{customer}/businessunit/{business_unit}/entitlement/{asset_id}/play',
+            f'{self._API_URL}/entitlement/{asset_id}/play',
             asset_id, headers={
                 'Authorization': f'Bearer {bearer_token}',
                 'Accept': 'application/json, text/plain, */*'
@@ -66,26 +72,16 @@ class RedBeeIE(InfoExtractor):
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
-        self._sort_formats(formats)
         return formats, subtitles
 
-    def _real_extract(self, url):
-        customer, business_unit, asset_id = self._match_valid_url(url).group('customer', 'business_unit', 'asset_id')
 
-        formats, subtitles = self._get_entitlement_formats_and_subtitles(
-            asset_id, customer, business_unit, self._get_bearer_token(asset_id, customer, business_unit))
-
-        return {
-            'id': asset_id,
-            'formats': formats,
-            'subtitles': subtitles,
-        }
-
-
-class ParliamentLiveUKIE(RedBeeIE):
+class ParliamentLiveUKIE(RedBeeBaseIE):
     IE_NAME = 'parliamentlive.tv'
     IE_DESC = 'UK parliament videos'
     _VALID_URL = r'(?i)https?://(?:www\.)?parliamentlive\.tv/Event/Index/(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
+
+    _REDBEE_CUSTOMER = 'UKParliament'
+    _REDBEE_BUSINESS_UNIT = 'ParliamentLive'
 
     _TESTS = [{
         'url': 'http://parliamentlive.tv/Event/Index/c1e9d44d-fd6c-4263-b50f-97ed26cc998b',
@@ -112,28 +108,27 @@ class ParliamentLiveUKIE(RedBeeIE):
         },
     }]
 
-    _REDBEE_CUSTOMER = 'UKParliament'
-    _REDBEE_BUSINESS_UNIT = 'ParliamentLive'
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._download_json(f'https://www.parliamentlive.tv/Event/GetShareVideo/{video_id}', video_id)
 
-        formats, subtitles = self._get_entitlement_formats_and_subtitles(
-            video_id, self._REDBEE_CUSTOMER, self._REDBEE_BUSINESS_UNIT,
-            self._get_bearer_token(video_id, self._REDBEE_CUSTOMER, self._REDBEE_BUSINESS_UNIT))
+        formats, subtitles = self._get_formats_and_subtitles(video_id)
+        self._sort_formats(formats)
+
+        video_info = self._download_json(
+            f'https://www.parliamentlive.tv/Event/GetShareVideo/{video_id}', video_id, fatal=False)
 
         return {
             'id': video_id,
-            'title': video_info['event']['title'],
             'formats': formats,
             'subtitles': subtitles,
-            'timestamp': unified_timestamp(try_get(video_info, lambda x: x['event']['publishedStartTime'])),
-            'thumbnail': video_info.get('thumbnailUrl'),
+            'title': traverse_obj(video_info, ('event', 'title')),
+            'thumbnail': traverse_obj(video_info, 'thumbnailUrl'),
+            'timestamp': traverse_obj(
+                video_info, ('event', 'publishedStartTime'), expected_type=unified_timestamp),
         }
 
 
-class RTBFIE(RedBeeIE):
+class RTBFIE(RedBeeBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?rtbf\.be/
         (?:
@@ -142,6 +137,10 @@ class RTBFIE(RedBeeIE):
             auvio/[^/]+\?.*\b(?P<live>l)?id=
         )(?P<id>\d+)'''
     _NETRC_MACHINE = 'rtbf'
+
+    _REDBEE_CUSTOMER = 'RTBF'
+    _REDBEE_BUSINESS_UNIT = 'Auvio'
+
     _TESTS = [{
         'url': 'https://www.rtbf.be/video/detail_les-diables-au-coeur-episode-2?id=1921274',
         'md5': '8c876a1cceeb6cf31b476461ade72384',
@@ -206,6 +205,7 @@ class RTBFIE(RedBeeIE):
             'thumbnail': r're:^https?://[^?&]+\.jpg$',
         },
     }]
+
     _IMAGE_HOST = 'http://ds1.ds.static.rtbf.be'
     _PROVIDERS = {
         'YOUTUBE': 'Youtube',
@@ -220,8 +220,6 @@ class RTBFIE(RedBeeIE):
     _LOGIN_URL = 'https://login.rtbf.be/accounts.login'
     _GIGYA_API_KEY = '3_kWKuPgcdAybqnqxq_MvHVk0-6PN8Zk8pIIkJM_yXOu-qLPDDsGOtIDFfpGivtbeO'
     _LOGIN_COOKIE_ID = f'glt_{_GIGYA_API_KEY}'
-    _REDBEE_CUSTOMER = 'RTBF'
-    _REDBEE_BUSINESS_UNIT = 'Auvio'
 
     def _perform_login(self, username, password):
         if self._get_cookies(self._LOGIN_URL).get(self._LOGIN_COOKIE_ID):
@@ -230,7 +228,7 @@ class RTBFIE(RedBeeIE):
         self._set_cookie('.rtbf.be', 'gmid', 'gmid.ver4', secure=True, expire_time=time.time() + 3600)
 
         login_response = self._download_json(
-            self._LOGIN_URL, None, data=compat_urllib_parse_urlencode({
+            self._LOGIN_URL, None, data=urllib.parse.urlencode({
                 'loginID': username,
                 'password': password,
                 'APIKey': self._GIGYA_API_KEY,
@@ -245,16 +243,14 @@ class RTBFIE(RedBeeIE):
 
         self._set_cookie('.rtbf.be', self._LOGIN_COOKIE_ID, login_response['sessionInfo']['login_token'],
                          secure=True, expire_time=time.time() + 3600)
-        if not self._get_cookies(self._LOGIN_URL).get(self._LOGIN_COOKIE_ID):
-            raise ExtractorError(f'Login succeeded but did not set {self._LOGIN_COOKIE_ID} cookie')
 
-    def _get_redbee_formats_and_subtitles(self, url, media_id):
+    def _get_formats_and_subtitles(self, url, media_id):
         login_token = self._get_cookies(url).get(self._LOGIN_COOKIE_ID)
         if not login_token:
             self.raise_login_required()
 
         session_jwt = self._download_json(
-            "https://login.rtbf.be/accounts.getJWT", media_id, query={
+            'https://login.rtbf.be/accounts.getJWT', media_id, query={
                 'login_token': login_token.value,
                 'APIKey': self._GIGYA_API_KEY,
                 'sdk': 'js_latest',
@@ -264,10 +260,7 @@ class RTBFIE(RedBeeIE):
                 'format': 'json',
             })['id_token']
 
-        return self._get_entitlement_formats_and_subtitles(
-            media_id, self._REDBEE_CUSTOMER, self._REDBEE_BUSINESS_UNIT,
-            self._get_bearer_token(
-                media_id, self._REDBEE_CUSTOMER, self._REDBEE_BUSINESS_UNIT, 'gigyaLogin', jwt=session_jwt))
+        return super()._get_formats_and_subtitles(media_id, jwt=session_jwt)
 
     def _real_extract(self, url):
         live, media_id = self._match_valid_url(url).groups()
@@ -336,7 +329,6 @@ class RTBFIE(RedBeeIE):
                 'url': audio_url,
                 'vcodec': 'none',
             })
-        self._sort_formats(formats)
 
         subtitles = {}
         for track in (data.get('tracks') or {}).values():
@@ -348,10 +340,11 @@ class RTBFIE(RedBeeIE):
             })
 
         if not formats:
-            fmts, subs = self._get_redbee_formats_and_subtitles(url, media_id)
+            fmts, subs = self._get_formats_and_subtitles(url, media_id)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
+        self._sort_formats(formats)
         return {
             'id': media_id,
             'formats': formats,

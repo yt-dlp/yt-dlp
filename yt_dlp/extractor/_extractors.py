@@ -1410,7 +1410,7 @@ from .rcti import (
     RCTIPlusTVIE,
 )
 from .rds import RDSIE
-from .redbee import RedBeeIE, ParliamentLiveUKIE, RTBFIE
+from .redbee import ParliamentLiveUKIE, RTBFIE
 from .redbulltv import (
     RedBullTVIE,
     RedBullEmbedIE,
