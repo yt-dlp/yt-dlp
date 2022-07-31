@@ -3463,13 +3463,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or get_first(microformats, 'lengthSeconds')
             or parse_duration(search_meta('duration'))) or None
 
-        if get_first(video_details, 'isPostLiveDvr'):
-            self.write_debug('Video is in Post-Live Manifestless mode')
-            if (duration or 0) > 4 * 3600:
-                self.report_warning(
-                    'The livestream has not finished processing. Only 4 hours of the video can be currently downloaded. '
-                    'This is a known issue and patches are welcome')
-
         live_broadcast_details, is_live, streaming_data, formats, automatic_captions = \
             self._list_formats(video_id, microformats, video_details, player_responses, player_url)
 
@@ -3599,6 +3592,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'live_status': 'is_upcoming' if is_upcoming else None,  # rest will be set by YoutubeDL
             'release_timestamp': live_start_time,
         }
+
+        if get_first(video_details, 'isPostLiveDvr'):
+            self.write_debug('Video is in Post-Live Manifestless mode')
+            info['live_status'] = 'post_live'
+            if (duration or 0) > 4 * 3600:
+                self.report_warning(
+                    'The livestream has not finished processing. Only 4 hours of the video can be currently downloaded. '
+                    'This is a known issue and patches are welcome')
 
         subtitles = {}
         pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
