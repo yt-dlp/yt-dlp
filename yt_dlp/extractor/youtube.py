@@ -3592,6 +3592,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'live_status': 'is_upcoming' if is_upcoming else None,  # rest will be set by YoutubeDL
             'release_timestamp': live_start_time,
         }
+
         if get_first(video_details, 'isPostLiveDvr'):
             self.write_debug('Video is in Post-Live Manifestless mode')
             info['live_status'] = 'post_live'
