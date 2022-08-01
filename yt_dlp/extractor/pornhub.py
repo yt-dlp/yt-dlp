@@ -128,6 +128,7 @@ class PornHubIE(PornHubBaseIE):
                         )
                         (?P<id>[\da-z]+)
                     ''' % PornHubBaseIE._PORNHUB_HOST_RE
+    _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?pornhub(?:premium)?\.(?:com|net|org)/embed/[\da-z]+)']
     _TESTS = [{
         'url': 'http://www.pornhub.com/view_video.php?viewkey=648719015',
         'md5': 'a6391306d050e4547f62b3f485dd9ba9',
@@ -256,12 +257,6 @@ class PornHubIE(PornHubBaseIE):
         'url': 'http://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/view_video.php?viewkey=ph5a9813bfa7156',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?pornhub(?:premium)?\.(?:com|net|org)/embed/[\da-z]+)',
-            webpage)
 
     def _extract_count(self, pattern, webpage, name):
         return str_to_int(self._search_regex(pattern, webpage, '%s count' % name, default=None))
