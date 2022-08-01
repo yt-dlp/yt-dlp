@@ -61,6 +61,7 @@ class XFileShareIE(InfoExtractor):
     IE_DESC = 'XFileShare based sites: %s' % ', '.join(list(zip(*_SITES))[1])
     _VALID_URL = (r'https?://(?:www\.)?(?P<host>%s)/(?:embed-)?(?P<id>[0-9a-zA-Z]+)'
                   % '|'.join(site for site in list(zip(*_SITES))[0]))
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:%s)/embed-[0-9a-zA-Z]+.*?)\1' % '|'.join(site for site in list(zip(*_SITES))[0])]
 
     _FILE_NOT_FOUND_REGEXES = (
         r'>(?:404 - )?File Not Found<',
@@ -83,15 +84,6 @@ class XFileShareIE(InfoExtractor):
         'url': 'https://wolfstream.tv/nthme29v9u2x',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:%s)/embed-[0-9a-zA-Z]+.*?)\1'
-                % '|'.join(site for site in list(zip(*XFileShareIE._SITES))[0]),
-                webpage)]
 
     def _real_extract(self, url):
         host, video_id = self._match_valid_url(url).groups()

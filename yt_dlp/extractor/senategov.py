@@ -49,6 +49,7 @@ _COMMITTEES = {
 class SenateISVPIE(InfoExtractor):
     _IE_NAME = 'senate.gov:isvp'
     _VALID_URL = r'https?://(?:www\.)?senate\.gov/isvp/?\?(?P<qs>.+)'
+    _EMBED_REGEX = [r"<iframe[^>]+src=['\"](?P<url>https?://www\.senate\.gov/isvp/?\?[^'\"]+)['\"]"]
 
     _TESTS = [{
         'url': 'http://www.senate.gov/isvp/?comm=judiciary&type=live&stt=&filename=judiciary031715&auto_play=false&wmode=transparent&poster=http%3A%2F%2Fwww.judiciary.senate.gov%2Fthemes%2Fjudiciary%2Fimages%2Fvideo-poster-flash-fit.png',
@@ -87,13 +88,18 @@ class SenateISVPIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _search_iframe_url(webpage):
-        mobj = re.search(
-            r"<iframe[^>]+src=['\"](?P<url>https?://www\.senate\.gov/isvp/?\?[^'\"]+)['\"]",
-            webpage)
-        if mobj:
-            return mobj.group('url')
+    _WEBPAGE_TESTS = [
+        {
+            # Senate ISVP iframe https
+            'url': 'https://www.hsgac.senate.gov/hearings/canadas-fast-track-refugee-plan-unanswered-questions-and-implications-for-us-national-security',
+            'md5': 'fb8c70b0b515e5037981a2492099aab8',
+            'info_dict': {
+                'id': 'govtaff020316',
+                'ext': 'mp4',
+                'title': 'Integrated Senate Video Player',
+            },
+        },
+    ]
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})

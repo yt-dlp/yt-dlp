@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import ExtractorError
 
@@ -17,6 +15,7 @@ class Vbox7IE(InfoExtractor):
                         )
                         (?P<id>[\da-fA-F]+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+src=(?P<q>["\'])(?P<url>(?:https?:)?//vbox7\.com/emb/external\.php.+?)(?P=q)']
     _GEO_COUNTRIES = ['BG']
     _TESTS = [{
         'url': 'http://vbox7.com/play:0946fff23c',
@@ -51,13 +50,19 @@ class Vbox7IE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+src=(?P<q>["\'])(?P<url>(?:https?:)?//vbox7\.com/emb/external\.php.+?)(?P=q)',
-            webpage)
-        if mobj:
-            return mobj.group('url')
+    _WEBPAGE_TESTS = [
+        {
+            'url': 'http://nova.bg/news/view/2016/08/16/156543/%D0%BD%D0%B0-%D0%BA%D0%BE%D1%81%D1%8A%D0%BC-%D0%BE%D1%82-%D0%B2%D0%B7%D1%80%D0%B8%D0%B2-%D0%BE%D1%82%D1%86%D0%B5%D0%BF%D0%B8%D1%85%D0%B0-%D1%86%D1%8F%D0%BB-%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B0%D0%BB-%D0%B7%D0%B0%D1%80%D0%B0%D0%B4%D0%B8-%D0%B8%D0%B7%D1%82%D0%B8%D1%87%D0%B0%D0%BD%D0%B5-%D0%BD%D0%B0-%D0%B3%D0%B0%D0%B7-%D0%B2-%D0%BF%D0%BB%D0%BE%D0%B2%D0%B4%D0%B8%D0%B2/',
+            'info_dict': {
+                'id': '1c7141f46c',
+                'ext': 'mp4',
+                'title': 'НА КОСЪМ ОТ ВЗРИВ: Изтичане на газ на бензиностанция в Пловдив',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -18,6 +16,7 @@ class JojIE(InfoExtractor):
                     )
                     (?P<id>[^/?#^]+)
                 '''
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//media\.joj\.sk/embed/(?:(?!\1).)+)\1']
     _TESTS = [{
         'url': 'https://media.joj.sk/embed/a388ec4c-6019-4a4a-9312-b1bee194e932',
         'info_dict': {
@@ -38,13 +37,20 @@ class JojIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//media\.joj\.sk/embed/(?:(?!\1).)+)\1',
-                webpage)]
+    _WEBPAGE_TESTS = [
+        {
+            # JOJ.sk embeds
+            'url': 'https://www.noviny.sk/slovensko/238543-slovenskom-sa-prehnala-vlna-silnych-burok',
+            'info_dict': {
+                'id': '238543-slovenskom-sa-prehnala-vlna-silnych-burok',
+                'title': 'Slovenskom sa prehnala vlna silných búrok',
+                'age_limit': 0,
+                'thumbnail': 'https://img.joj.sk/r1200x/1ba974eb6f3e7432d117b18fbf2ac4cc',
+                'description': 'md5:71dba283340cbded18fb5ad1f05a593e',
+            },
+            'playlist_mincount': 5,
+        },
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

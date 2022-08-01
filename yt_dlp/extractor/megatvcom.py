@@ -104,7 +104,7 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
     IE_NAME = 'megatvcom:embed'
     IE_DESC = 'megatv.com embedded videos'
     _VALID_URL = r'(?:https?:)?//(?:www\.)?megatv\.com/embed/?\?p=(?P<id>\d+)'
-    _EMBED_RE = re.compile(rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''')
+    _EMBED_REGEX = [rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''']
 
     _TESTS = [{
         'url': 'https://www.megatv.com/embed/?p=2020520979',
@@ -134,10 +134,42 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
         },
     }]
 
-    @classmethod
-    def _extract_urls(cls, webpage):
-        for mobj in cls._EMBED_RE.finditer(webpage):
-            yield unescapeHTML(mobj.group('url'))
+    _WEBPAGE_TESTS = [
+        {
+            # megatvcom:embed
+            'url': 'https://www.in.gr/2021/12/18/greece/apokalypsi-mega-poios-parelave-tin-ereyna-tsiodra-ek-merous-tis-kyvernisis-o-prothypourgos-telika-gnorize/',
+            'info_dict': {
+                'id': 'apokalypsi-mega-poios-parelave-tin-ereyna-tsiodra-ek-merous-tis-kyvernisis-o-prothypourgos-telika-gnorize',
+                'title': 'md5:5e569cf996ec111057c2764ec272848f',
+                'thumbnail': 'https://www.in.gr/wp-content/uploads/2021/12/2021-12-15T212911Z_216756500_RC20FR9M4OJ0_RTRMADP_5_HEALTH-CORONAVIRUS-FRANCE-ICU-1.jpg',
+                'description': 'md5:a3fa945851393c7d58985cd9cf38ccf6',
+                'age_limit': 0,
+            },
+            'playlist': [{
+                'info_dict': {
+                    'ext': 'mp4',
+                    'id': '564916',
+                    'display_id': 'md5:6cdf22d3a2e7bacb274b7295089a1770',
+                    'title': 'md5:33b9dd39584685b62873043670eb52a6',
+                    'description': 'md5:c1db7310f390518ac36dd69d947ef1a1',
+                    'timestamp': 1639753145,
+                    'upload_date': '20211217',
+                    'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/12/prezerakos-1024x597.jpg',
+                },
+            }, {
+                'info_dict': {
+                    'ext': 'mp4',
+                    'id': '564905',
+                    'display_id': 'md5:ead15695e485e649aed2b81ebd699b88',
+                    'title': 'md5:2b71fd54249a3ca34609fe39ae31c47b',
+                    'description': 'md5:c42e12f638d0a97d6de4508e2c4df982',
+                    'timestamp': 1639753047,
+                    'upload_date': '20211217',
+                    'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/12/tsiodras-mitsotakis-1024x545.jpg',
+                },
+            }]
+        },
+    ]
 
     def _match_canonical_url(self, webpage):
         LINK_RE = r'''(?x)

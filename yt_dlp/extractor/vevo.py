@@ -36,6 +36,7 @@ class VevoIE(VevoBaseIE):
            https?://tv\.vevo\.com/watch/artist/(?:[^/]+)/|
            vevo:)
         (?P<id>[^&?#]+)'''
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:cache\.)?vevo\.com/.+?)\1']
 
     _TESTS = [{
         'url': 'http://www.vevo.com/watch/hurts/somebody-to-die-for/GB1101300280',

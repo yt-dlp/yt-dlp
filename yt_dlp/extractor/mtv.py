@@ -331,6 +331,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
 class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
     IE_NAME = 'mtvservices:embedded'
     _VALID_URL = r'https?://media\.mtvnservices\.com/embed/(?P<mgid>.+?)(\?|/|$)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1']
 
     _TEST = {
         # From http://www.thewrap.com/peter-dinklage-sums-up-game-of-thrones-in-45-seconds-video/
@@ -346,12 +347,21 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
         },
     }
 
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1', webpage)
-        if mobj:
-            return mobj.group('url')
+    _WEBPAGE_TESTS = [
+        # MTVServices embed
+        {
+            'url': 'http://www.vulture.com/2016/06/new-key-peele-sketches-released.html',
+            'md5': 'ca1aef97695ef2c1d6973256a57e5252',
+            'info_dict': {
+                'id': '769f7ec0-0692-4d62-9b45-0d88074bffc1',
+                'ext': 'mp4',
+                'title': 'Key and Peele|October 10, 2012|2|203|Liam Neesons - Uncensored',
+                'description': 'Two valets share their love for movie star Liam Neesons.',
+                'timestamp': 1349922600,
+                'upload_date': '20121011',
+            },
+        },
+    ]
 
     def _get_feed_url(self, uri, url=None):
         video_id = self._id_from_uri(uri)

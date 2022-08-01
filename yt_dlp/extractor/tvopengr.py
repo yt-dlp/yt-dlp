@@ -1,11 +1,8 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     get_elements_text_and_html_by_attribute,
     scale_thumbnails_to_max_format_width,
-    unescapeHTML,
 )
 
 
@@ -98,7 +95,7 @@ class TVOpenGrEmbedIE(TVOpenGrBaseIE):
     IE_NAME = 'tvopengr:embed'
     IE_DESC = 'tvopen.gr embedded videos'
     _VALID_URL = r'(?:https?:)?//(?:www\.|cdn\.|)(?:tvopen|ethnos).gr/embed/(?P<id>\d+)'
-    _EMBED_RE = re.compile(rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''')
+    _EMBED_REGEX = [rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''']
 
     _TESTS = [{
         'url': 'https://cdn.ethnos.gr/embed/100963',
@@ -115,10 +112,23 @@ class TVOpenGrEmbedIE(TVOpenGrBaseIE):
         },
     }]
 
-    @classmethod
-    def _extract_urls(cls, webpage):
-        for mobj in cls._EMBED_RE.finditer(webpage):
-            yield unescapeHTML(mobj.group('url'))
+    _WEBPAGE_TESTS = [
+        {
+            # tvopengr:embed
+            'url': 'https://www.ethnos.gr/World/article/190604/hparosiaxekinoynoisynomiliessthgeneyhmethskiatoypolemoypanoapothnoykrania',
+            'info_dict': {
+                'id': '101119',
+                'ext': 'mp4',
+                'display_id': 'oikarpoitondiapragmateyseonhparosias',
+                'title': 'md5:b979f4d640c568617d6547035528a149',
+                'description': 'md5:e54fc1977c7159b01cc11cd7d9d85550',
+                'timestamp': 1641772800,
+                'upload_date': '20220110',
+                'thumbnail': 'https://opentv-static.siliconweb.com/imgHandler/1920/70bc39fa-895b-4918-a364-c39d2135fc6d.jpg',
+                'duration': 421.0,
+            }
+        },
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

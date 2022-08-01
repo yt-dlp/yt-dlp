@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -20,6 +18,7 @@ class WimTVIE(InfoExtractor):
         )
         (?P<type>vod|live|cast)[=/]
         (?P<id>%s).*?)''' % _UUID_RE
+    _EMBED_REGEX = [rf'<iframe[^>]+src=["\'](?P<url>{_VALID_URL})']
     _TESTS = [{
         # vod stream
         'url': 'https://platform.wim.tv/embed/?vod=db29fb32-bade-47b6-a3a6-cb69fe80267a',
@@ -54,13 +53,17 @@ class WimTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<iframe[^>]+src=["\'](?P<url>%s)' % WimTVIE._VALID_URL,
-                webpage)]
+    _WEBPAGE_TESTS = [
+        {
+            # WimTv embed player
+            'url': 'http://www.msmotor.tv/wearefmi-pt-2-2021/',
+            'info_dict': {
+                'id': 'wearefmi-pt-2-2021',
+                'title': '#WEAREFMI – PT.2 – 2021 – MsMotorTV',
+            },
+            'playlist_count': 1,
+        },
+    ]
 
     def _real_initialize(self):
         if not self._player:

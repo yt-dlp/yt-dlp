@@ -111,13 +111,94 @@ class KalturaIE(InfoExtractor):
         }
     ]
 
-    @staticmethod
-    def _extract_url(webpage):
-        urls = KalturaIE._extract_urls(webpage)
-        return urls[0] if urls else None
+    _WEBPAGE_TESTS = [
+        # Kaltura embed with single quotes
+        {
+            'url': 'http://fod.infobase.com/p_ViewPlaylist.aspx?AssignmentID=NUN8ZY',
+            'info_dict': {
+                'id': '0_izeg5utt',
+                'ext': 'f4v',
+                'title': '35871',
+                'timestamp': 1355743100,
+                'upload_date': '20121217',
+                'uploader_id': 'cplapp@learn360.com',
+                'thumbnail': 'http://cfvod.kaltura.com/p/1067292/sp/106729200/thumbnail/entry_id/0_izeg5utt/version/100001',
+                'duration': 3403,
+                'view_count': int,
+            },
+        },
+        {
+            # Kaltura embedded via quoted entry_id
+            'url': 'https://www.oreilly.com/ideas/my-cloud-makes-pretty-pictures',
+            'info_dict': {
+                'id': '0_utuok90b',
+                'ext': 'mp4',
+                'title': '06_matthew_brender_raj_dutt',
+                'timestamp': 1466638791,
+                'upload_date': '20160622',
+                'thumbnail': 'https://cfvod.kaltura.com/p/1681692/sp/168169200/thumbnail/entry_id/0_utuok90b/version/100002',
+                'uploader_id': '',
+                'duration': 331,
+                'view_count': int,
+            },
+            'params': {
+                'skip_download': True,
+            }
+        },
+        {
+            # Kaltura embedded, some fileExt broken (#11480)
+            'url': 'http://www.cornell.edu/video/nima-arkani-hamed-standard-models-of-particle-physics',
+            'info_dict': {
+                'id': '1_sgtvehim',
+                'ext': 'mov',
+                'title': 'Our "Standard Models" of particle physics and cosmology',
+                'timestamp': 1321158993,
+                'upload_date': '20111113',
+                'uploader_id': 'kps1',
+                'duration': 5420,
+                'thumbnail': 'http://cdnsecakmi.kaltura.com/p/537811/sp/53781100/thumbnail/entry_id/1_sgtvehim/version/100011',
+                'view_count': int,
 
-    @staticmethod
-    def _extract_urls(webpage):
+            },
+        },
+        {
+            # Kaltura iframe embed
+            'url': 'http://www.gsd.harvard.edu/event/i-m-pei-a-centennial-celebration/',
+            'md5': 'ae5ace8eb09dc1a35d03b579a9c2cc44',
+            'info_dict': {
+                'id': '0_f2cfbpwy',
+                'ext': 'mp4',
+                'title': 'I. M. Pei: A Centennial Celebration',
+                'upload_date': '20170403',
+                'uploader_id': 'batchUser',
+                'timestamp': 1491232186,
+                'thumbnail': 'http://cfvod.kaltura.com/p/1487951/sp/148795100/thumbnail/entry_id/0_f2cfbpwy/version/100021',
+                'view_count': int,
+                'duration': 6073,
+            },
+        },
+        {
+            # meta twitter:player
+            'url': 'http://thechive.com/2017/12/08/all-i-want-for-christmas-is-more-twerk/',
+            'info_dict': {
+                'id': '0_01b42zps',
+                'ext': 'mp4',
+                'title': 'Main Twerk (Video)',
+                'upload_date': '20171208',
+                'uploader_id': 'sebastian.salinas@thechive.com',
+                'timestamp': 1512713057,
+                'view_count': int,
+                'thumbnail': 'http://cfvod.kaltura.com/p/1289861/sp/128986100/thumbnail/entry_id/0_01b42zps/version/100012',
+                'duration': 269,
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+    ]
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
         # Embed codes: https://knowledge.kaltura.com/embedding-kaltura-media-players-your-site
         finditer = (
             list(re.finditer(
@@ -159,14 +240,14 @@ class KalturaIE(InfoExtractor):
             for k, v in embed_info.items():
                 if v:
                     embed_info[k] = v.strip()
-            url = 'kaltura:%(partner_id)s:%(id)s' % embed_info
+            embed_url = 'kaltura:%(partner_id)s:%(id)s' % embed_info
             escaped_pid = re.escape(embed_info['partner_id'])
             service_mobj = re.search(
                 r'<script[^>]+src=(["\'])(?P<id>(?:https?:)?//(?:(?!\1).)+)/p/%s/sp/%s00/embedIframeJs' % (escaped_pid, escaped_pid),
                 webpage)
             if service_mobj:
-                url = smuggle_url(url, {'service_url': service_mobj.group('id')})
-            urls.append(url)
+                embed_url = smuggle_url(embed_url, {'service_url': service_mobj.group('id')})
+            urls.append(embed_url)
         return urls
 
     def _kaltura_api_call(self, video_id, actions, service_url=None, *args, **kwargs):

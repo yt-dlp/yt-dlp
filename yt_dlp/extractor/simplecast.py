@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     clean_podcast_url,
@@ -68,6 +66,11 @@ class SimplecastBaseIE(InfoExtractor):
 class SimplecastIE(SimplecastBaseIE):
     IE_NAME = 'simplecast'
     _VALID_URL = r'https?://(?:api\.simplecast\.com/episodes|player\.simplecast\.com)/(?P<id>%s)' % SimplecastBaseIE._UUID_REGEX
+    _EMBED_REGEX = [rf'''(?x)<iframe[^>]+src=["\']
+        (?P<url>https?://(?:
+            embed\.simplecast\.com/[0-9a-f]{8}|
+            player\.simplecast\.com/{SimplecastBaseIE._UUID_REGEX}
+        ))''']
     _COMMON_TEST_INFO = {
         'display_id': 'errant-signal-chris-franklin-new-wave-video-essays',
         'id': 'b6dc49a2-9404-4853-9aa9-9cfc097be876',
@@ -94,14 +97,20 @@ class SimplecastIE(SimplecastBaseIE):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'''(?x)<iframe[^>]+src=["\']
-                (
-                    https?://(?:embed\.simplecast\.com/[0-9a-f]{8}|
-                    player\.simplecast\.com/%s
-                ))''' % SimplecastBaseIE._UUID_REGEX, webpage)
+    _WEBPAGE_TESTS = [
+        {
+            # Simplecast player embed
+            'url': 'https://www.bio.org/podcast',
+            'info_dict': {
+                'id': 'podcast',
+                'title': 'I am BIO Podcast | BIO',
+                'description': 'md5:f6f8ebc0abf176a19d3d1224ff54e58e',
+                'age_limit': 0,
+                'thumbnail': 'https://www.bio.org/sites/default/files/styles/bio_social_image_style/public/2022-04/BIO_PodcastCover_169%20%281%29.png?itok=TVqRgIZh',
+            },
+            'playlist_mincount': 52,
+        },
+    ]
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)

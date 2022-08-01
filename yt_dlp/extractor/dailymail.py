@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -12,6 +10,7 @@ from ..utils import (
 
 class DailyMailIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?dailymail\.co\.uk/(?:video/[^/]+/video-|embed/video/)(?P<id>[0-9]+)'
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:www\.)?dailymail\.co\.uk/embed/video/\d+\.html)']
     _TESTS = [{
         'url': 'http://www.dailymail.co.uk/video/tvshowbiz/video-1295863/The-Mountain-appears-sparkling-water-ad-Heavy-Bubbles.html',
         'md5': 'f6129624562251f628296c3a9ffde124',
@@ -26,11 +25,21 @@ class DailyMailIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe\b[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:www\.)?dailymail\.co\.uk/embed/video/\d+\.html)',
-            webpage)
+    _WEBPAGE_TESTS = [
+        {
+            'url': 'http://www.bumm.sk/krimi/2017/07/05/biztonsagi-kamera-buktatta-le-az-agg-ferfit-utlegelo-apolot',
+            'info_dict': {
+                'id': '1495629',
+                'ext': 'mp4',
+                'title': 'Care worker punches elderly dementia patient in head 11 times',
+                'description': 'md5:3a743dee84e57e48ec68bf67113199a5',
+                'thumbnail': 'https://i.dailymail.co.uk/i/pix/2017/07/05/03/4209EA4A00000578-0-image-a-20_1499220250098.jpg'
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

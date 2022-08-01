@@ -10,6 +10,7 @@ from ..utils import (
 
 class LibsynIE(InfoExtractor):
     _VALID_URL = r'(?P<mainurl>https?://html5-player\.libsyn\.com/embed/episode/id/(?P<id>[0-9]+))'
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//html5-player\.libsyn\.com/embed/.+?)\1']
 
     _TESTS = [{
         'url': 'http://html5-player.libsyn.com/embed/episode/id/6385796/',
@@ -35,6 +36,20 @@ class LibsynIE(InfoExtractor):
             'thumbnail': 're:^https?://.*',
         }
     }]
+
+    _WEBPAGE_TESTS = [
+        {
+            'url': 'http://undergroundwellness.com/podcasts/306-5-steps-to-permanent-gut-healing/',
+            'info_dict': {
+                'id': '3793998',
+                'ext': 'mp3',
+                'upload_date': '20141126',
+                'title': 'Underground Wellness Radio - Jack Tips: 5 Steps to Permanent Gut Healing',
+                'duration': 3989.0,
+                'thumbnail': 'https://assets.libsyn.com/secure/item/3793998/?height=90&width=90',
+            }
+        },
+    ]
 
     def _real_extract(self, url):
         url, video_id = self._match_valid_url(url).groups()

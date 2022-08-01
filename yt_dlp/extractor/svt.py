@@ -101,6 +101,7 @@ class SVTBaseIE(InfoExtractor):
 
 class SVTIE(SVTBaseIE):
     _VALID_URL = r'https?://(?:www\.)?svt\.se/wd\?(?:.*?&)?widgetId=(?P<widget_id>\d+)&.*?\barticleId=(?P<id>\d+)'
+    _EMBED_REGEX = [r'(?:<iframe src|href)="(?P<url>%s[^"]*)"' % _VALID_URL]
     _TEST = {
         'url': 'http://www.svt.se/wd?widgetId=23991&sectionId=541&articleId=2900353&type=embed&contextSectionId=123&autostart=false',
         'md5': '33e9a5d8f646523ce0868ecfb0eed77d',
@@ -112,13 +113,6 @@ class SVTIE(SVTBaseIE):
             'age_limit': 0,
         },
     }
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'(?:<iframe src|href)="(?P<url>%s[^"]*)"' % SVTIE._VALID_URL, webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

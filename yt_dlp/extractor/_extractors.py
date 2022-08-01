@@ -219,6 +219,7 @@ from .camdemy import (
     CamdemyFolderIE
 )
 from .cammodels import CamModelsIE
+from .camtasia import CamtasiaEmbedIE
 from .camwithher import CamWithHerIE
 from .canalalpha import CanalAlphaIE
 from .canalplus import CanalplusIE
@@ -445,7 +446,7 @@ from .dw import (
     DWIE,
     DWArticleIE,
 )
-from .eagleplatform import EaglePlatformIE
+from .eagleplatform import EaglePlatformIE, ClipYouEmbedIE
 from .ebaumsworld import EbaumsWorldIE
 from .echomsk import EchoMskIE
 from .egghead import (
@@ -661,6 +662,10 @@ from .hse import (
     HSEShowIE,
     HSEProductIE,
 )
+from .genericembeds import (
+    HTML5MediaEmbedIE,
+    JSONLDEmbedIE,
+)
 from .huajiao import HuajiaoIE
 from .huya import HuyaLiveIE
 from .huffpost import HuffPostIE
@@ -747,7 +752,10 @@ from .jamendo import (
 from .jeuxvideo import JeuxVideoIE
 from .jove import JoveIE
 from .joj import JojIE
-from .jwplatform import JWPlatformIE
+from .jwplatform import (
+    JWPlatformIE,
+    JWPlayerEmbedIE
+)
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
 from .karaoketv import KaraoketvIE
@@ -777,6 +785,7 @@ from .kuwo import (
     KuwoCategoryIE,
     KuwoMvIE,
 )
+from .kvs import KVSPlayerEmbedIE
 from .la7 import (
     LA7IE,
     LA7PodcastEpisodeIE,
@@ -1553,6 +1562,7 @@ from .shared import (
     SharedIE,
     VivoIE,
 )
+from .sharevideos import ShareVideosEmbedIE
 from .shemaroome import ShemarooMeIE
 from .showroomlive import ShowRoomLiveIE
 from .simplecast import (
@@ -1969,6 +1979,7 @@ from .videocampus_sachsen import (
 )
 from .videodetective import VideoDetectiveIE
 from .videofyme import VideofyMeIE
+from .videojs import VideoJSEmbedIE
 from .videomore import (
     VideomoreIE,
     VideomoreVideoIE,

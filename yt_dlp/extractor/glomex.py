@@ -165,6 +165,23 @@ class GlomexEmbedIE(GlomexBaseIE):
         'playlist_mincount': 2,
     }]
 
+    _WEBPAGE_TESTS = [
+        {
+            # glomex:embed
+            'url': 'https://www.skai.gr/news/world/iatrikos-syllogos-tourkias-to-turkovac-aplo-dialyma-erntogan-eiste-apateones-kai-pseytes',
+            'info_dict': {
+                'id': 'v-ch2nkhcirwc9-sf',
+                'ext': 'mp4',
+                'title': 'md5:786e1e24e06c55993cee965ef853a0c1',
+                'description': 'md5:8b517a61d577efe7e36fde72fd535995',
+                'timestamp': 1641885019,
+                'upload_date': '20220111',
+                'duration': 460000,
+                'thumbnail': 'https://i3thumbs.glomex.com/dC1idjJwdndiMjRzeGwvMjAyMi8wMS8xMS8wNy8xMF8zNV82MWRkMmQ2YmU5ZTgyLmpwZw==/profile:player-960x540',
+            },
+        },
+    ]
+
     @classmethod
     def build_player_url(cls, video_id, integration, origin_url=None):
         query_string = urllib.parse.urlencode({
@@ -174,7 +191,7 @@ class GlomexEmbedIE(GlomexBaseIE):
         return cls._smuggle_origin_url(f'https:{cls._BASE_PLAYER_URL}?{query_string}', origin_url)
 
     @classmethod
-    def _extract_urls(cls, webpage, origin_url):
+    def _extract_embed_urls(cls, url, webpage):
         # https://docs.glomex.com/publisher/video-player-integration/javascript-api/
         quot_re = r'["\']'
 
@@ -183,9 +200,9 @@ class GlomexEmbedIE(GlomexBaseIE):
                 (?:https?:)?{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=q)).)+
             )(?P=q)'''
         for mobj in re.finditer(regex, webpage):
-            url = unescapeHTML(mobj.group('url'))
-            if cls.suitable(url):
-                yield cls._smuggle_origin_url(url, origin_url)
+            embed_url = unescapeHTML(mobj.group('url'))
+            if cls.suitable(embed_url):
+                yield cls._smuggle_origin_url(embed_url, url)
 
         regex = fr'''(?x)
             <glomex-player [^>]+?>|
@@ -193,7 +210,7 @@ class GlomexEmbedIE(GlomexBaseIE):
         for mobj in re.finditer(regex, webpage):
             attrs = extract_attributes(mobj.group(0))
             if attrs.get('data-integration-id') and attrs.get('data-playlist-id'):
-                yield cls.build_player_url(attrs['data-playlist-id'], attrs['data-integration-id'], origin_url)
+                yield cls.build_player_url(attrs['data-playlist-id'], attrs['data-integration-id'], url)
 
         # naive parsing of inline scripts for hard-coded integration parameters
         regex = fr'''(?x)
@@ -206,7 +223,7 @@ class GlomexEmbedIE(GlomexBaseIE):
                 continue
             playlist_id = re.search(regex % 'playlistId', script)
             if playlist_id:
-                yield cls.build_player_url(playlist_id, integration_id, origin_url)
+                yield cls.build_player_url(playlist_id, integration_id, url)
 
     def _real_extract(self, url):
         url, origin_url = self._unsmuggle_origin_url(url)

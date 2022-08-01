@@ -15,7 +15,6 @@ from ..utils import (
     parse_iso8601,
     str_or_none,
     try_get,
-    unescapeHTML,
     url_or_none,
     variadic,
 )
@@ -275,6 +274,7 @@ class ERTWebtvEmbedIE(InfoExtractor):
     IE_DESC = 'ert.gr webtv embedded videos'
     _BASE_PLAYER_URL_RE = re.escape('//www.ert.gr/webtv/live-uni/vod/dt-uni-vod.php')
     _VALID_URL = rf'https?:{_BASE_PLAYER_URL_RE}\?([^#]+&)?f=(?P<id>[^#&]+)'
+    _EMBED_REGEX = [rf'<iframe[^>]+?src=(?P<_q1>["\'])(?P<url>(?:https?:)?{_BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+)(?P=_q1)']
 
     _TESTS = [{
         'url': 'https://www.ert.gr/webtv/live-uni/vod/dt-uni-vod.php?f=trailers/E2251_TO_DIKTYO_E09_16-01_1900.mp4&bgimg=/photos/2022/1/to_diktio_ep09_i_istoria_tou_diadiktiou_stin_Ellada_1021x576.jpg',
@@ -287,16 +287,17 @@ class ERTWebtvEmbedIE(InfoExtractor):
         },
     }]
 
-    @classmethod
-    def _extract_urls(cls, webpage):
-        EMBED_URL_RE = rf'(?:https?:)?{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
-        EMBED_RE = rf'<iframe[^>]+?src=(?P<_q1>["\'])(?P<url>{EMBED_URL_RE})(?P=_q1)'
-
-        for mobj in re.finditer(EMBED_RE, webpage):
-            url = unescapeHTML(mobj.group('url'))
-            if not cls.suitable(url):
-                continue
-            yield url
+    _WEBPAGE_TESTS = [
+        {
+            'url': 'https://www.ertnews.gr/video/manolis-goyalles-o-anthropos-piso-apo-ti-diadiktyaki-vasilopita/',
+            'info_dict': {
+                'id': '2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
+                'ext': 'mp4',
+                'title': 'VOD - 2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
+                'thumbnail': 'https://www.ert.gr/themata/photos/2021/20220114-apotis6-gouales-pita.jpg',
+            },
+        },
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

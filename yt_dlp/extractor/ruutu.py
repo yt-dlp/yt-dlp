@@ -132,10 +132,52 @@ class RuutuIE(InfoExtractor):
             'only_matching': True,
         },
     ]
+    _WEBPAGE_TESTS = [
+        {
+            # Ruutu embed
+            'url': 'https://www.nelonen.fi/ohjelmat/madventures-suomi/2160731-riku-ja-tunna-lahtevat-peurajahtiin-tv-sta-tutun-biologin-kanssa---metsastysreissu-huipentuu-kasvissyojan-painajaiseen',
+            'md5': 'a2513a98d3496099e6eced40f7e6a14b',
+            'info_dict': {
+                'id': '4044426',
+                'ext': 'mp4',
+                'title': 'Riku ja Tunna lähtevät peurajahtiin tv:stä tutun biologin kanssa – metsästysreissu huipentuu kasvissyöjän painajaiseen!',
+                'thumbnail': r're:^https?://.+\.jpg$',
+                'duration': 108,
+                'series': 'Madventures Suomi',
+                'description': 'md5:aa55b44bd06a1e337a6f1d0b46507381',
+                'categories': ['Matkailu', 'Elämäntyyli'],
+                'age_limit': 0,
+                'upload_date': '20220308',
+            },
+        },
+        {
+            # Multiple Ruutu embeds
+            'url': 'https://www.hs.fi/kotimaa/art-2000008762560.html',
+            'info_dict': {
+                'title': 'Koronavirus | Epidemiahuippu voi olla Suomessa ohi, mutta koronaviruksen poistamista yleisvaarallisten tautien joukosta harkitaan vasta syksyllä',
+                'id': 'art-2000008762560'
+            },
+            'playlist_count': 3
+        },
+        {
+            # Ruutu embed in hs.fi with a single video
+            'url': 'https://www.hs.fi/kotimaa/art-2000008793421.html',
+            'md5': 'f8964e65d8fada6e8a562389bf366bb4',
+            'info_dict': {
+                'id': '4081841',
+                'ext': 'mp4',
+                'title': 'Puolustusvoimat siirsi panssariajoneuvoja harjoituksiin Niinisaloon 2.5.2022',
+                'thumbnail': r're:^https?://.+\.jpg$',
+                'duration': 138,
+                'age_limit': 0,
+                'upload_date': '20220504',
+            },
+        },
+    ]
     _API_BASE = 'https://gatling.nelonenmedia.fi'
 
     @classmethod
-    def _extract_urls(cls, webpage):
+    def _extract_embed_urls(cls, url, webpage):
         # nelonen.fi
         settings = try_call(
             lambda: json.loads(re.search(

@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -17,6 +15,7 @@ class ViqeoIE(InfoExtractor):
                         )
                         (?P<id>[\da-f]+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//cdn\.viqeo\.tv/embed/*\?.*?\bvid=[\da-f]+.*?)\1']
     _TESTS = [{
         'url': 'https://cdn.viqeo.tv/embed/?vid=cde96f09d25f39bee837',
         'md5': 'a169dd1a6426b350dca4296226f21e76',
@@ -35,13 +34,22 @@ class ViqeoIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//cdn\.viqeo\.tv/embed/*\?.*?\bvid=[\da-f]+.*?)\1',
-                webpage)]
+    _WEBPAGE_TESTS = [
+        {
+            # Viqeo embeds
+            'url': 'https://viqeo.tv/',
+            'info_dict': {
+                'id': 'viqeo',
+                'title': 'Viqeo video platform',
+                'timestamp': 1655733821,
+                'age_limit': 0,
+                'upload_date': '20220620',
+                'thumbnail': 'https://static.tildacdn.com/tild6564-3962-4437-a633-626565373265/Viqeo_gif_logo_-6.png',
+                'description': 'md5:e8e06e20df92ed66febeaef2533a0d5d',
+            },
+            'playlist_count': 3,
+        },
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

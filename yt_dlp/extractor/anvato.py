@@ -340,30 +340,16 @@ class AnvatoIE(InfoExtractor):
             'subtitles': subtitles,
         }
 
-    @staticmethod
-    def _extract_urls(ie, webpage, video_id):
-        entries = []
-        for mobj in re.finditer(AnvatoIE._ANVP_RE, webpage):
-            anvplayer_data = ie._parse_json(
-                mobj.group('anvp'), video_id, transform_source=unescapeHTML,
-                fatal=False)
-            if not anvplayer_data:
-                continue
-            video = anvplayer_data.get('video')
-            if not isinstance(video, compat_str) or not video.isdigit():
-                continue
-            access_key = anvplayer_data.get('accessKey')
+    @classmethod
+    def _extract_from_webpage(cls, url, webpage):
+        for mobj in re.finditer(cls._ANVP_RE, webpage):
+            anvplayer_data = unescapeHTML(json.loads(mobj.group('anvp'))) or {}
+            video_id, access_key = anvplayer_data.get('video'), anvplayer_data.get('accessKey')
             if not access_key:
-                mcp = anvplayer_data.get('mcp')
-                if mcp:
-                    access_key = AnvatoIE._MCP_TO_ACCESS_KEY_TABLE.get(
-                        mcp.lower())
-            if not access_key:
+                access_key = cls._MCP_TO_ACCESS_KEY_TABLE.get((anvplayer_data.get('mcp') or '').lower())
+            if not (video_id or '').isdigit() or not access_key:
                 continue
-            entries.append(ie.url_result(
-                'anvato:%s:%s' % (access_key, video), ie=AnvatoIE.ie_key(),
-                video_id=video))
-        return entries
+            yield cls.url_result(f'anvato:{access_key}:{video_id}', AnvatoIE, video_id)
 
     def _extract_anvato_videos(self, webpage, video_id):
         anvplayer_data = self._parse_json(

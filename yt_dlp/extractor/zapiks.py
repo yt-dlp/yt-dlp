@@ -12,6 +12,7 @@ from ..utils import (
 
 class ZapiksIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?zapiks\.(?:fr|com)/(?:(?:[a-z]{2}/)?(?P<display_id>.+?)\.html|index\.php\?.*\bmedia_id=(?P<id>\d+))'
+    _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://(?:www\.)?zapiks\.fr/index\.php\?.+?)"']
     _TESTS = [
         {
             'url': 'http://www.zapiks.fr/ep2s3-bon-appetit-eh-be-viva.html',
@@ -41,6 +42,17 @@ class ZapiksIE(InfoExtractor):
             'only_matching': True,
         },
     ]
+    _WEBPAGE_TESTS = [
+        # Zapiks embed
+        {
+            'url': 'http://www.skipass.com/news/116090-bon-appetit-s5ep3-baqueira-mi-cor.html',
+            'info_dict': {
+                'id': '118046',
+                'ext': 'mp4',
+                'title': 'EP3S5 - Bon Appétit - Baqueira Mi Corazon !',
+                'thumbnail': 'https://zpks.com/v/1/2/127966/118046-4.jpg',
+            }
+        }]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

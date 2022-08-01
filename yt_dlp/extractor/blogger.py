@@ -1,5 +1,3 @@
-import re
-
 from ..utils import (
     mimetype2ext,
     parse_duration,
@@ -13,7 +11,7 @@ from .common import InfoExtractor
 class BloggerIE(InfoExtractor):
     IE_NAME = 'blogger.com'
     _VALID_URL = r'https?://(?:www\.)?blogger\.com/video\.g\?token=(?P<id>.+)'
-    _VALID_EMBED = r'''<iframe[^>]+src=["']((?:https?:)?//(?:www\.)?blogger\.com/video\.g\?token=[^"']+)["']'''
+    _EMBED_REGEX = [r'''<iframe[^>]+src=["'](?P<url>(?:https?:)?//(?:www\.)?blogger\.com/video\.g\?token=[^"']+)["']''']
     _TESTS = [{
         'url': 'https://www.blogger.com/video.g?token=AD6v5dzEe9hfcARr5Hlq1WTkYy6t-fXH3BBahVhGvVHe5szdEUBEloSEDSTA8-b111089KbfWuBvTN7fnbxMtymsHhXAXwVvyzHH4Qch2cfLQdGxKQrrEuFpC1amSl_9GuLWODjPgw',
         'md5': 'f1bc19b6ea1b0fd1d81e84ca9ec467ac',
@@ -26,9 +24,20 @@ class BloggerIE(InfoExtractor):
         }
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(BloggerIE._VALID_EMBED, webpage)
+    _WEBPAGE_TESTS = [
+        {
+            # blogger embed
+            'url': 'https://blog.tomeuvizoso.net/2019/01/a-panfrost-milestone.html',
+            'md5': 'f1bc19b6ea1b0fd1d81e84ca9ec467ac',
+            'info_dict': {
+                'id': 'BLOGGER-video-3c740e3a49197e16-8977',
+                'ext': 'mp4',
+                'title': 'BLOGGER-video-3c740e3a49197e16-8977',
+                'thumbnail': r're:^https?://.*',
+                'duration': 76.068,
+            },
+        },
+    ]
 
     def _real_extract(self, url):
         token_id = self._match_id(url)

@@ -92,6 +92,10 @@ class MLBIE(MLBBaseIE):
                             (?P<id>\d+)
                         )
                     '''
+    _EMBED_REGEX = [
+        r'<iframe[^>]+?src=(["\'])(?P<url>https?://m(?:lb)?\.mlb\.com/shared/video/embed/embed\.html\?.+?)\1',
+        r'data-video-link=["\'](?P<url>http://m\.mlb\.com/video/[^"\']+)',
+    ]
     _TESTS = [
         {
             'url': 'https://www.mlb.com/mariners/video/ackleys-spectacular-catch/c-34698933',

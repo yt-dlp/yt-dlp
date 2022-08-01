@@ -14,6 +14,7 @@ from ..utils import (
 
 class MainStreamingIE(InfoExtractor):
     _VALID_URL = r'https?://(?:webtools-?)?(?P<host>[A-Za-z0-9-]*\.msvdn.net)/(?:embed|amp_embed|content)/(?P<id>\w+)'
+    _EMBED_REGEX = [rf'<iframe[^>]+?src=["\']?(?P<url>{_VALID_URL})["\']?']
     IE_DESC = 'MainStreaming Player'
 
     _TESTS = [
@@ -102,12 +103,21 @@ class MainStreamingIE(InfoExtractor):
         }
     ]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        mobj = re.findall(
-            r'<iframe[^>]+?src=["\']?(?P<url>%s)["\']?' % MainStreamingIE._VALID_URL, webpage)
-        if mobj:
-            return [group[0] for group in mobj]
+    _WEBPAGE_TESTS = [
+        {
+            # MainStreaming player
+            'url': 'https://www.lactv.it/2021/10/03/lac-news24-la-settimana-03-10-2021/',
+            'info_dict': {
+                'id': 'EUlZfGWkGpOd',
+                'title': 'La Settimana ',
+                'description': '03 Ottobre ore 02:00',
+                'ext': 'mp4',
+                'live_status': 'not_live',
+                'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
+                'duration': 1512
+            },
+        },
+    ]
 
     def _playlist_entries(self, host, playlist_content):
         for entry in playlist_content:

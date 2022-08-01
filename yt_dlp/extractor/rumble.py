@@ -15,6 +15,7 @@ from ..utils import (
 
 class RumbleEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rumble\.com/embed/(?:[0-9a-z]+\.)?(?P<id>[0-9a-z]+)'
+    _EMBED_REGEX = [fr'(?:<(?:script|iframe)[^>]+\bsrc=|["\']embedUrl["\']\s*:\s*)["\'](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://rumble.com/embed/v5pv5f',
         'md5': '36a18a049856720189f30977ccbb2c34',
@@ -49,13 +50,48 @@ class RumbleEmbedIE(InfoExtractor):
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
         'only_matching': True,
     }]
+    _WEBPAGE_TESTS = [
+        {
+            'note': 'Rumble embed',
+            'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html',
+            'md5': '53af34098a7f92c4e51cf0bd1c33f009',
+            'info_dict': {
+                'id': 'vb0ofn',
+                'ext': 'mp4',
+                'timestamp': 1612662578,
+                'uploader': 'LovingMontana',
+                'channel': 'LovingMontana',
+                'upload_date': '20210207',
+                'title': 'Winter-loving dog helps girls dig a snow fort ',
+                'channel_url': 'https://rumble.com/c/c-546523',
+                'thumbnail': 'https://sp.rmbl.ws/s8/1/5/f/x/x/5fxxb.OvCc.1-small-Moose-The-Dog-Helps-Girls-D.jpg',
+                'duration': 103,
+            }
+        },
+        {
+            'note': 'Rumble JS embed',
+            'url': 'https://therightscoop.com/what-does-9-plus-1-plus-1-equal-listen-to-this-audio-of-attempted-kavanaugh-assassins-call-and-youll-get-it',
+            'md5': '4701209ac99095592e73dbba21889690',
+            'info_dict': {
+                'id': 'v15eqxl',
+                'ext': 'mp4',
+                'channel': 'Mr Producer Media',
+                'duration': 92,
+                'title': '911 Audio From The Man Who Wanted To Kill Supreme Court Justice Kavanaugh',
+                'channel_url': 'https://rumble.com/c/RichSementa',
+                'thumbnail': 'https://sp.rmbl.ws/s8/1/P/j/f/A/PjfAe.OvCc-small-911-Audio-From-The-Man-Who-.jpg',
+                'timestamp': 1654892716,
+                'uploader': 'Mr Producer Media',
+                'upload_date': '20220610',
+            }
+        },
+    ]
 
     @classmethod
-    def _extract_urls(cls, webpage):
-        embeds = tuple(re.finditer(
-            fr'(?:<(?:script|iframe)[^>]+\bsrc=|["\']embedUrl["\']\s*:\s*)["\'](?P<url>{cls._VALID_URL})', webpage))
+    def _extract_embed_urls(cls, url, webpage):
+        embeds = tuple(super()._extract_embed_urls(url, webpage))
         if embeds:
-            return [mobj.group('url') for mobj in embeds]
+            return embeds
         return [f'https://rumble.com/embed/{mobj.group("id")}' for mobj in re.finditer(
             r'<script>\s*Rumble\(\s*"play"\s*,\s*{\s*[\'"]video[\'"]\s*:\s*[\'"](?P<id>[0-9a-z]+)[\'"]', webpage)]
 

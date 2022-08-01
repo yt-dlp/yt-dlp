@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -10,6 +8,7 @@ from ..utils import (
 
 class APAIE(InfoExtractor):
     _VALID_URL = r'(?P<base_url>https?://[^/]+\.apa\.at)/embed/(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//[^/]+\.apa\.at/embed/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}.*?)\1']
     _TESTS = [{
         'url': 'http://uvp.apa.at/embed/293f6d17-692a-44e3-9fd5-7b178f3a1029',
         'md5': '2b12292faeb0a7d930c778c7a5b4759b',
@@ -30,13 +29,25 @@ class APAIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//[^/]+\.apa\.at/embed/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}.*?)\1',
-                webpage)]
+    _WEBPAGE_TESTS = [
+        {
+            # APA embed
+            'url': 'http://www.vol.at/blue-man-group/5593454',
+            'info_dict': {
+                'id': 'jjv85FdZ',
+                'ext': 'mp4',
+                'title': '"Blau ist mysteriös": Die Blue Man Group im Interview',
+                'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'duration': 254,
+                'timestamp': 1519211149,
+                'upload_date': '20180221',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+    ]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

@@ -57,6 +57,13 @@ class FacebookIE(InfoExtractor):
                 )
                 (?P<id>[0-9]+)
                 '''
+    _EMBED_REGEX = [
+        r'<iframe[^>]+?src=(["\'])(?P<url>https?://www\.facebook\.com/(?:video/embed|plugins/video\.php).+?)\1',
+        # Facebook API embed https://developers.facebook.com/docs/plugins/embedded-video-player
+        r'''(?x)<div[^>]+
+                class=(?P<q1>[\'"])[^\'"]*\bfb-(?:video|post)\b[^\'"]*(?P=q1)[^>]+
+                data-href=(?P<q2>[\'"])(?P<url>(?:https?:)?//(?:www\.)?facebook.com/.+?)(?P=q2)''',
+    ]
     _LOGIN_URL = 'https://www.facebook.com/login.php?next=http%3A%2F%2Ffacebook.com%2Fhome.php&login_attempt=1'
     _CHECKPOINT_URL = 'https://www.facebook.com/checkpoint/?next=http%3A%2F%2Ffacebook.com%2Fhome.php&_fb_noscript=1'
     _NETRC_MACHINE = 'facebook'
@@ -306,25 +313,21 @@ class FacebookIE(InfoExtractor):
         'playlist_count': 1,
         'skip': 'Requires logging in',
     }]
+    _WEBPAGE_TESTS = [
+        # Facebook <iframe> embed
+        {
+            'url': 'https://www.hostblogger.de/blog/archives/6181-Auto-jagt-Betonmischer.html',
+            'md5': 'fbcde74f534176ecb015849146dd3aee',
+            'info_dict': {
+                'id': '599637780109885',
+                'ext': 'mp4',
+                'title': 'Facebook video #599637780109885',
+            },
+        }]
     _SUPPORTED_PAGLETS_REGEX = r'(?:pagelet_group_mall|permalink_video_pagelet|hyperfeed_story_id_[0-9a-f]+)'
     _api_config = {
         'graphURI': '/api/graphql/'
     }
-
-    @staticmethod
-    def _extract_urls(webpage):
-        urls = []
-        for mobj in re.finditer(
-                r'<iframe[^>]+?src=(["\'])(?P<url>https?://www\.facebook\.com/(?:video/embed|plugins/video\.php).+?)\1',
-                webpage):
-            urls.append(mobj.group('url'))
-        # Facebook API embed
-        # see https://developers.facebook.com/docs/plugins/embedded-video-player
-        for mobj in re.finditer(r'''(?x)<div[^>]+
-                class=(?P<q1>[\'"])[^\'"]*\bfb-(?:video|post)\b[^\'"]*(?P=q1)[^>]+
-                data-href=(?P<q2>[\'"])(?P<url>(?:https?:)?//(?:www\.)?facebook.com/.+?)(?P=q2)''', webpage):
-            urls.append(mobj.group('url'))
-        return urls
 
     def _perform_login(self, username, password):
         login_page_req = sanitized_Request(self._LOGIN_URL)

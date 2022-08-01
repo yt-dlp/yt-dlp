@@ -56,8 +56,8 @@ class FoxNewsIE(AMPIE):
         },
     ]
 
-    @staticmethod
-    def _extract_urls(webpage):
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
         return [
             f'https://video.foxnews.com/v/video-embed.html?video_id={mobj.group("video_id")}'
             for mobj in re.finditer(
@@ -125,4 +125,4 @@ class FoxNewsArticleIE(InfoExtractor):
                 'http://video.foxnews.com/v/' + video_id, FoxNewsIE.ie_key())
 
         return self.url_result(
-            FoxNewsIE._extract_urls(webpage)[0], FoxNewsIE.ie_key())
+            FoxNewsIE._extract_embed_urls(url, webpage)[0], FoxNewsIE.ie_key())
