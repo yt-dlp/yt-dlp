@@ -1,18 +1,18 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import (
     compat_etree_fromstring,
     compat_str,
     compat_urllib_parse_unquote,
-    compat_urllib_parse_unquote_plus,
 )
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     error_to_compat_str,
-    ExtractorError,
     float_or_none,
     get_element_by_id,
     get_first,
@@ -467,7 +467,7 @@ class FacebookIE(InfoExtractor):
             dash_manifest = video.get('dash_manifest')
             if dash_manifest:
                 formats.extend(self._parse_mpd_formats(
-                    compat_etree_fromstring(compat_urllib_parse_unquote_plus(dash_manifest))))
+                    compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest))))
 
         def process_formats(formats):
             # Downloads with browser's User-Agent are rate limited. Working around

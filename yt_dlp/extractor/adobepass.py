@@ -1,3 +1,4 @@
+import getpass
 import json
 import re
 import time
@@ -5,18 +6,14 @@ import urllib.error
 import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urlparse,
-    compat_getpass
-)
+from ..compat import compat_urlparse
 from ..utils import (
-    unescapeHTML,
-    urlencode_postdata,
-    unified_timestamp,
-    ExtractorError,
     NO_DEFAULT,
+    ExtractorError,
+    unescapeHTML,
+    unified_timestamp,
+    urlencode_postdata,
 )
-
 
 MSO_INFO = {
     'DTV': {
@@ -1431,7 +1428,7 @@ class AdobePassIE(InfoExtractor):
         guid = xml_text(resource, 'guid') if '<' in resource else resource
         count = 0
         while count < 2:
-            requestor_info = self._downloader.cache.load(self._MVPD_CACHE, requestor_id) or {}
+            requestor_info = self.cache.load(self._MVPD_CACHE, requestor_id) or {}
             authn_token = requestor_info.get('authn_token')
             if authn_token and is_expired(authn_token, 'simpleTokenExpires'):
                 authn_token = None
@@ -1506,7 +1503,7 @@ class AdobePassIE(InfoExtractor):
                             'send_confirm_link': False,
                             'send_token': True
                         }))
-                    philo_code = compat_getpass('Type auth code you have received [Return]: ')
+                    philo_code = getpass.getpass('Type auth code you have received [Return]: ')
                     self._download_webpage(
                         'https://idp.philo.com/auth/update/login_code', video_id, 'Submitting token', data=urlencode_postdata({
                             'token': philo_code
@@ -1726,12 +1723,12 @@ class AdobePassIE(InfoExtractor):
                         raise_mvpd_required()
                     raise
                 if '<pendingLogout' in session:
-                    self._downloader.cache.store(self._MVPD_CACHE, requestor_id, {})
+                    self.cache.store(self._MVPD_CACHE, requestor_id, {})
                     count += 1
                     continue
                 authn_token = unescapeHTML(xml_text(session, 'authnToken'))
                 requestor_info['authn_token'] = authn_token
-                self._downloader.cache.store(self._MVPD_CACHE, requestor_id, requestor_info)
+                self.cache.store(self._MVPD_CACHE, requestor_id, requestor_info)
 
             authz_token = requestor_info.get(guid)
             if authz_token and is_expired(authz_token, 'simpleTokenTTL'):
@@ -1747,14 +1744,14 @@ class AdobePassIE(InfoExtractor):
                         'userMeta': '1',
                     }), headers=mvpd_headers)
                 if '<pendingLogout' in authorize:
-                    self._downloader.cache.store(self._MVPD_CACHE, requestor_id, {})
+                    self.cache.store(self._MVPD_CACHE, requestor_id, {})
                     count += 1
                     continue
                 if '<error' in authorize:
                     raise ExtractorError(xml_text(authorize, 'details'), expected=True)
                 authz_token = unescapeHTML(xml_text(authorize, 'authzToken'))
                 requestor_info[guid] = authz_token
-                self._downloader.cache.store(self._MVPD_CACHE, requestor_id, requestor_info)
+                self.cache.store(self._MVPD_CACHE, requestor_id, requestor_info)
 
             mvpd_headers.update({
                 'ap_19': xml_text(authn_token, 'simpleSamlNameID'),
@@ -1770,7 +1767,7 @@ class AdobePassIE(InfoExtractor):
                     'hashed_guid': 'false',
                 }), headers=mvpd_headers)
             if '<pendingLogout' in short_authorize:
-                self._downloader.cache.store(self._MVPD_CACHE, requestor_id, {})
+                self.cache.store(self._MVPD_CACHE, requestor_id, {})
                 count += 1
                 continue
             return short_authorize

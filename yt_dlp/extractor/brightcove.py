@@ -600,9 +600,9 @@ class BrightcoveNewIE(AdobePassIE):
         account_id, player_id, embed, content_type, video_id = self._match_valid_url(url).groups()
 
         policy_key_id = '%s_%s' % (account_id, player_id)
-        policy_key = self._downloader.cache.load('brightcove', policy_key_id)
+        policy_key = self.cache.load('brightcove', policy_key_id)
         policy_key_extracted = False
-        store_pk = lambda x: self._downloader.cache.store('brightcove', policy_key_id, x)
+        store_pk = lambda x: self.cache.store('brightcove', policy_key_id, x)
 
         def extract_policy_key():
             base_url = 'http://players.brightcove.net/%s/%s_%s/' % (account_id, player_id, embed)

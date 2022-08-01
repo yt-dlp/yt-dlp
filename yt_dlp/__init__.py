@@ -1,15 +1,16 @@
-#!/usr/bin/env python3
-f'You are using an unsupported version of Python. Only Python versions 3.6 and above are supported by yt-dlp'  # noqa: F541
+f'You are using an unsupported version of Python. Only Python versions 3.7 and above are supported by yt-dlp'  # noqa: F541
 
 __license__ = 'Public Domain'
 
+import collections
+import getpass
 import itertools
 import optparse
 import os
 import re
 import sys
 
-from .compat import compat_getpass, compat_shlex_quote
+from .compat import compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader import FileDownloader
 from .downloader.external import get_external_downloader
@@ -19,6 +20,8 @@ from .extractor.common import InfoExtractor
 from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
+    FFmpegMergerPP,
+    FFmpegPostProcessor,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoConvertorPP,
@@ -221,6 +224,7 @@ def validate_options(opts):
         validate_regex('format sorting', f, InfoExtractor.FormatSort.regex)
 
     # Postprocessor formats
+    validate_in('merge output format', opts.merge_output_format, FFmpegMergerPP.SUPPORTED_EXTS)
     validate_regex('audio format', opts.audioformat, FFmpegExtractAudioPP.FORMAT_RE)
     validate_in('subtitle format', opts.convertsubtitles, FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)
     validate_regex('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP.FORMAT_RE)
@@ -403,6 +407,8 @@ def validate_options(opts):
 
     default_downloader = None
     for proto, path in opts.external_downloader.items():
+        if path == 'native':
+            continue
         ed = get_external_downloader(path)
         if ed is None:
             raise ValueError(
@@ -514,7 +520,7 @@ def validate_options(opts):
         # Do not unnecessarily download audio
         opts.format = 'bestaudio/best'
 
-    if opts.getcomments and opts.writeinfojson is None:
+    if opts.getcomments and opts.writeinfojson is None and not opts.embed_infojson:
         # If JSON is not printed anywhere, but comments are requested, save it to file
         if not opts.dumpjson or opts.print_json or opts.dump_single_json:
             opts.writeinfojson = True
@@ -529,9 +535,9 @@ def validate_options(opts):
 
     # Ask for passwords
     if opts.username is not None and opts.password is None:
-        opts.password = compat_getpass('Type account password and press [Return]: ')
+        opts.password = getpass.getpass('Type account password and press [Return]: ')
     if opts.ap_username is not None and opts.ap_password is None:
-        opts.ap_password = compat_getpass('Type TV provider account password and press [Return]: ')
+        opts.ap_password = getpass.getpass('Type TV provider account password and press [Return]: ')
 
     return warnings, deprecation_warnings
 
@@ -663,8 +669,11 @@ def get_postprocessors(opts):
         }
 
 
+ParsedOptions = collections.namedtuple('ParsedOptions', ('parser', 'options', 'urls', 'ydl_opts'))
+
+
 def parse_options(argv=None):
-    """ @returns (parser, opts, urls, ydl_opts) """
+    """@returns ParsedOptions(parser, opts, urls, ydl_opts)"""
     parser, opts, urls = parseOpts(argv)
     urls = get_urls(urls, opts.batchfile, opts.verbose)
 
@@ -682,13 +691,28 @@ def parse_options(argv=None):
         'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
     ))
 
+    playlist_pps = [pp for pp in postprocessors if pp.get('when') == 'playlist']
+    write_playlist_infojson = (opts.writeinfojson and not opts.clean_infojson
+                               and opts.allow_playlist_files and opts.outtmpl.get('pl_infojson') != '')
+    if not any((
+        opts.extract_flat,
+        opts.dump_single_json,
+        opts.forceprint.get('playlist'),
+        opts.print_to_file.get('playlist'),
+        write_playlist_infojson,
+    )):
+        if not playlist_pps:
+            opts.extract_flat = 'discard'
+        elif playlist_pps == [{'key': 'FFmpegConcat', 'only_multi_video': True, 'when': 'playlist'}]:
+            opts.extract_flat = 'discard_in_playlist'
+
     final_ext = (
         opts.recodevideo if opts.recodevideo in FFmpegVideoConvertorPP.SUPPORTED_EXTS
         else opts.remuxvideo if opts.remuxvideo in FFmpegVideoRemuxerPP.SUPPORTED_EXTS
         else opts.audioformat if (opts.extractaudio and opts.audioformat in FFmpegExtractAudioPP.SUPPORTED_EXTS)
         else None)
 
-    return parser, opts, urls, {
+    return ParsedOptions(parser, opts, urls, {
         'usenetrc': opts.usenetrc,
         'netrc_location': opts.netrc_location,
         'username': opts.username,
@@ -861,7 +885,7 @@ def parse_options(argv=None):
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': opts.compat_opts,
-    }
+    })
 
 
 def _real_main(argv=None):
@@ -877,6 +901,11 @@ def _real_main(argv=None):
 
     if print_extractor_information(opts, all_urls):
         return
+
+    # We may need ffmpeg_location without having access to the YoutubeDL instance
+    # See https://github.com/yt-dlp/yt-dlp/issues/2191
+    if opts.ffmpeg_location:
+        FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir

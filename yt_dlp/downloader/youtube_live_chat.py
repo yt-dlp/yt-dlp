@@ -1,5 +1,6 @@
 import json
 import time
+import urllib.error
 
 from .fragment import FragmentFD
 from ..compat import compat_urllib_error
@@ -129,7 +130,7 @@ class YoutubeLiveChatFD(FragmentFD):
                             or frag_index == 1 and try_refresh_replay_beginning
                             or parse_actions_replay)
                     return (True, *func(live_chat_continuation))
-                except compat_urllib_error.HTTPError as err:
+                except urllib.error.HTTPError as err:
                     retry.error = err
                     continue
             return False, None, None, None

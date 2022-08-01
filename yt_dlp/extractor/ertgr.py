@@ -119,7 +119,7 @@ class ERTFlixCodenameIE(ERTFlixBaseIE):
 class ERTFlixIE(ERTFlixBaseIE):
     IE_NAME = 'ertflix'
     IE_DESC = 'ERTFLIX videos'
-    _VALID_URL = r'https?://www\.ertflix\.gr/(?:series|vod)/(?P<id>[a-z]{3}\.\d+)'
+    _VALID_URL = r'https?://www\.ertflix\.gr/(?:[^/]+/)?(?:series|vod)/(?P<id>[a-z]{3}\.\d+)'
     _TESTS = [{
         'url': 'https://www.ertflix.gr/vod/vod.173258-aoratoi-ergates',
         'md5': '6479d5e60fd7e520b07ba5411dcdd6e7',
@@ -171,6 +171,9 @@ class ERTFlixIE(ERTFlixBaseIE):
             'title': 'Το δίκτυο',
         },
         'playlist_mincount': 9,
+    }, {
+        'url': 'https://www.ertflix.gr/en/vod/vod.127652-ta-kalytera-mas-chronia-ep1-mia-volta-sto-feggari',
+        'only_matching': True,
     }]
 
     def _extract_episode(self, episode):

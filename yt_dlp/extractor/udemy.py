@@ -1,16 +1,12 @@
 import re
+import urllib.request
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-    compat_urllib_request,
-    compat_urlparse,
-)
+from ..compat import compat_HTTPError, compat_str, compat_urlparse
 from ..utils import (
+    ExtractorError,
     determine_ext,
     extract_attributes,
-    ExtractorError,
     float_or_none,
     int_or_none,
     js_to_json,
@@ -148,14 +144,14 @@ class UdemyIE(InfoExtractor):
             'X-Udemy-Snail-Case': 'true',
             'X-Requested-With': 'XMLHttpRequest',
         }
-        for cookie in self._downloader.cookiejar:
+        for cookie in self.cookiejar:
             if cookie.name == 'client_id':
                 headers['X-Udemy-Client-Id'] = cookie.value
             elif cookie.name == 'access_token':
                 headers['X-Udemy-Bearer-Token'] = cookie.value
                 headers['X-Udemy-Authorization'] = 'Bearer %s' % cookie.value
 
-        if isinstance(url_or_request, compat_urllib_request.Request):
+        if isinstance(url_or_request, urllib.request.Request):
             for header, value in headers.items():
                 url_or_request.add_header(header, value)
         else:

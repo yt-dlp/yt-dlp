@@ -222,7 +222,7 @@ After you have ensured this site is distributing its content legally, you can fo
 
         $ flake8 yt_dlp/extractor/yourextractor.py
 
-1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.6 and above. Backward compatibility is not required for even older versions of Python.
+1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.7 and above. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
         $ git add yt_dlp/extractor/_extractors.py
@@ -457,7 +457,7 @@ title = self._search_regex(  # incorrect
     webpage, 'title', group='title')
 ```
 
-Here the presence or absence of other attributes including `style` is irrelevent for the data we need, and so the regex must not depend on it
+Here the presence or absence of other attributes including `style` is irrelevant for the data we need, and so the regex must not depend on it
 
 
 #### Keep the regular expressions as simple as possible, but no simpler
@@ -501,7 +501,7 @@ There is a soft limit to keep lines of code under 100 characters long. This mean
 
 For example, you should **never** split long string literals like URLs or some other often copied entities over multiple lines to fit this limit:
 
-Conversely, don't unecessarily split small lines further. As a rule of thumb, if removing the line split keeps the code under 80 characters, it should be a single line.
+Conversely, don't unnecessarily split small lines further. As a rule of thumb, if removing the line split keeps the code under 80 characters, it should be a single line.
 
 ##### Examples
 

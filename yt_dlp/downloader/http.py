@@ -1,11 +1,12 @@
+import http.client
 import os
 import random
 import socket
 import ssl
 import time
+import urllib.error
 
 from .common import FileDownloader
-from ..compat import compat_http_client, compat_urllib_error
 from ..utils import (
     ContentTooShortError,
     RetryManager,
@@ -25,7 +26,7 @@ RESPONSE_READ_EXCEPTIONS = (
     socket.timeout,  # compat: py < 3.10
     ConnectionError,
     ssl.SSLError,
-    compat_http_client.HTTPException
+    http.client.HTTPException
 )
 
 
@@ -153,7 +154,7 @@ class HttpFD(FileDownloader):
                     ctx.resume_len = 0
                     ctx.open_mode = 'wb'
                 ctx.data_len = ctx.content_len = int_or_none(ctx.data.info().get('Content-length', None))
-            except compat_urllib_error.HTTPError as err:
+            except urllib.error.HTTPError as err:
                 if err.code == 416:
                     # Unable to resume (requested range not satisfiable)
                     try:
@@ -161,7 +162,7 @@ class HttpFD(FileDownloader):
                         ctx.data = self.ydl.urlopen(
                             sanitized_Request(url, request_data, headers))
                         content_length = ctx.data.info()['Content-Length']
-                    except compat_urllib_error.HTTPError as err:
+                    except urllib.error.HTTPError as err:
                         if err.code < 500 or err.code >= 600:
                             raise
                     else:
@@ -194,7 +195,7 @@ class HttpFD(FileDownloader):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
-            except compat_urllib_error.URLError as err:
+            except urllib.error.URLError as err:
                 if isinstance(err.reason, ssl.CertificateError):
                     raise
                 raise RetryDownload(err)
@@ -202,6 +203,12 @@ class HttpFD(FileDownloader):
             # Any errors that occur during this will not be wrapped by URLError
             except RESPONSE_READ_EXCEPTIONS as err:
                 raise RetryDownload(err)
+
+        def close_stream():
+            if ctx.stream is not None:
+                if not ctx.tmpfilename == '-':
+                    ctx.stream.close()
+                ctx.stream = None
 
         def download():
             data_len = ctx.data.info().get('Content-length', None)
@@ -236,12 +243,9 @@ class HttpFD(FileDownloader):
             before = start  # start measuring
 
             def retry(e):
-                to_stdout = ctx.tmpfilename == '-'
-                if ctx.stream is not None:
-                    if not to_stdout:
-                        ctx.stream.close()
-                    ctx.stream = None
-                ctx.resume_len = byte_counter if to_stdout else os.path.getsize(encodeFilename(ctx.tmpfilename))
+                close_stream()
+                ctx.resume_len = (byte_counter if ctx.tmpfilename == '-'
+                                  else os.path.getsize(encodeFilename(ctx.tmpfilename)))
                 raise RetryDownload(e)
 
             while True:
@@ -375,4 +379,7 @@ class HttpFD(FileDownloader):
                 continue
             except SucceedDownload:
                 return True
+            except:  # noqa: E722
+                close_stream()
+                raise
         return False

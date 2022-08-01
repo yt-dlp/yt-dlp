@@ -3,17 +3,25 @@ import hashlib
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
 from zipimport import zipimporter
 
 from .compat import functools  # isort: split
 from .compat import compat_realpath
-from .utils import Popen, shell_quote, traverse_obj, version_tuple
+from .utils import (
+    Popen,
+    cached_method,
+    shell_quote,
+    system_identifier,
+    traverse_obj,
+    version_tuple,
+)
 from .version import __version__
 
 REPOSITORY = 'yt-dlp/yt-dlp'
-API_URL = f'https://api.github.com/repos/{REPOSITORY}/releases/latest'
+API_URL = f'https://api.github.com/repos/{REPOSITORY}/releases'
 
 
 @functools.cache
@@ -25,6 +33,8 @@ def _get_variant_and_executable_path():
             return 'py2exe', path
         if sys._MEIPASS == os.path.dirname(path):
             return f'{sys.platform}_dir', path
+        if sys.platform == 'darwin' and version_tuple(platform.mac_ver()[0]) < (10, 15):
+            return 'darwin_legacy_exe', path
         return f'{sys.platform}_exe', path
 
     path = os.path.dirname(__file__)
@@ -45,6 +55,7 @@ _FILE_SUFFIXES = {
     'py2exe': '_min.exe',
     'win32_exe': '.exe',
     'darwin_exe': '_macos',
+    'darwin_legacy_exe': '_macos_legacy',
     'linux_exe': '_linux',
 }
 
@@ -76,9 +87,23 @@ class Updater:
         self.ydl = ydl
 
     @functools.cached_property
-    def _new_version_info(self):
-        self.ydl.write_debug(f'Fetching release info: {API_URL}')
-        return json.loads(self.ydl.urlopen(API_URL).read().decode())
+    def _tag(self):
+        if version_tuple(__version__) >= version_tuple(self.latest_version):
+            return 'latest'
+
+        identifier = f'{detect_variant()} {system_identifier()}'
+        for line in self._download('_update_spec', 'latest').decode().splitlines():
+            if not line.startswith('lock '):
+                continue
+            _, tag, pattern = line.split(' ', 2)
+            if re.match(pattern, identifier):
+                return f'tags/{tag}'
+        return 'latest'
+
+    @cached_method
+    def _get_version_info(self, tag):
+        self.ydl.write_debug(f'Fetching release info: {API_URL}/{tag}')
+        return json.loads(self.ydl.urlopen(f'{API_URL}/{tag}').read().decode())
 
     @property
     def current_version(self):
@@ -87,8 +112,15 @@ class Updater:
 
     @property
     def new_version(self):
+        """Version of the latest release we can update to"""
+        if self._tag.startswith('tags/'):
+            return self._tag[5:]
+        return self._get_version_info(self._tag)['tag_name']
+
+    @property
+    def latest_version(self):
         """Version of the latest release"""
-        return self._new_version_info['tag_name']
+        return self._get_version_info('latest')['tag_name']
 
     @property
     def has_update(self):
@@ -100,9 +132,8 @@ class Updater:
         """Filename of the executable"""
         return compat_realpath(_get_variant_and_executable_path()[1])
 
-    def _download(self, name=None):
-        name = name or self.release_name
-        url = traverse_obj(self._new_version_info, (
+    def _download(self, name, tag):
+        url = traverse_obj(self._get_version_info(tag), (
             'assets', lambda _, v: v['name'] == name, 'browser_download_url'), get_all=False)
         if not url:
             raise Exception('Unable to find download URL')
@@ -120,7 +151,7 @@ class Updater:
     @functools.cached_property
     def release_hash(self):
         """Hash of the latest release"""
-        hash_data = dict(ln.split()[::-1] for ln in self._download('SHA2-256SUMS').decode().splitlines())
+        hash_data = dict(ln.split()[::-1] for ln in self._download('SHA2-256SUMS', self._tag).decode().splitlines())
         return hash_data[self.release_name]
 
     def _report_error(self, msg, expected=False):
@@ -136,12 +167,14 @@ class Updater:
         """Report whether there is an update available"""
         try:
             self.ydl.to_screen(
-                f'Latest version: {self.new_version}, Current version: {self.current_version}')
+                f'Latest version: {self.latest_version}, Current version: {self.current_version}')
+            if not self.has_update:
+                if self._tag == 'latest':
+                    return self.ydl.to_screen(f'yt-dlp is up to date ({__version__})')
+                return self.ydl.report_warning(
+                    'yt-dlp cannot be updated any further since you are on an older Python version')
         except Exception:
             return self._report_network_error('obtain version info', delim='; Please try again later or')
-
-        if not self.has_update:
-            return self.ydl.to_screen(f'yt-dlp is up to date ({__version__})')
 
         if not is_non_updateable():
             self.ydl.to_screen(f'Current Build Hash {_sha256_file(self.filename)}')
@@ -173,7 +206,7 @@ class Updater:
             return self._report_error('Unable to remove the old version')
 
         try:
-            newcontent = self._download()
+            newcontent = self._download(self.release_name, self._tag)
         except OSError:
             return self._report_network_error('download latest version')
         except Exception:
@@ -234,7 +267,7 @@ class Updater:
 
 def run_update(ydl):
     """Update the program file with the latest version from the repository
-    @returns    Whether there was a successfull update (No update = False)
+    @returns    Whether there was a successful update (No update = False)
     """
     return Updater(ydl).update()
 

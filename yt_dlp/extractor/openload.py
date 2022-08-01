@@ -104,9 +104,8 @@ class PhantomJSwrapper:
 
         self.exe = check_executable('phantomjs', ['-v'])
         if not self.exe:
-            raise ExtractorError('PhantomJS executable not found in PATH, '
-                                 'download it from http://phantomjs.org',
-                                 expected=True)
+            raise ExtractorError(
+                'PhantomJS not found, Please download it from https://phantomjs.org/download.html', expected=True)
 
         self.extractor = extractor
 
@@ -131,7 +130,7 @@ class PhantomJSwrapper:
                 os.remove(self._TMP_FILES[name].name)
 
     def _save_cookies(self, url):
-        cookies = cookie_jar_to_list(self.extractor._downloader.cookiejar)
+        cookies = cookie_jar_to_list(self.extractor.cookiejar)
         for cookie in cookies:
             if 'path' not in cookie:
                 cookie['path'] = '/'
