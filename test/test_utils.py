@@ -368,6 +368,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_strdate('2012/10/11 01:56:38 +0000'), '20121011')
         self.assertEqual(unified_strdate('1968 12 10'), '19681210')
         self.assertEqual(unified_strdate('1968-12-10'), '19681210')
+        self.assertEqual(unified_strdate('31-07-2022 20:00'), '20220731')
         self.assertEqual(unified_strdate('28/01/2014 21:00:00 +0100'), '20140128')
         self.assertEqual(
             unified_strdate('11/26/2014 11:30:00 AM PST', day_first=False),
