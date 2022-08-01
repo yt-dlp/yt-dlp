@@ -12,7 +12,6 @@ from ..utils import (
     mimetype2ext,
     parse_iso8601,
     smuggle_url,
-    str_or_none,
     traverse_obj,
     try_get,
     url_or_none,
