@@ -19,6 +19,7 @@ from ..utils import (
     dict_get,
     float_or_none,
     int_or_none,
+    make_archive_id,
     parse_duration,
     parse_iso8601,
     parse_qs,
@@ -1166,7 +1167,7 @@ class TwitchClipsIE(TwitchBaseIE):
 
         return {
             'id': clip.get('id') or video_id,
-            '_old_archive_ids': [f'{self.ie_key()} {old_id}'] if old_id else None,
+            '_old_archive_ids': [make_archive_id(self, old_id)] if old_id else None,
             'display_id': video_id,
             'title': clip.get('title') or video_id,
             'formats': formats,
