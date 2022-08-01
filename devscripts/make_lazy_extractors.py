@@ -11,7 +11,7 @@ import optparse
 from inspect import getsource
 
 NO_ATTR = object()
-STATIC_CLASS_PROPERTIES = ['IE_NAME', 'IE_DESC', 'SEARCH_KEY', '_WORKING', '_NETRC_MACHINE', 'age_limit']
+STATIC_CLASS_PROPERTIES = ['IE_NAME', 'IE_DESC', 'SEARCH_KEY', '_VALID_URL', '_WORKING', '_NETRC_MACHINE', 'age_limit']
 CLASS_METHODS = [
     'ie_key', 'working', 'description', 'suitable', '_match_valid_url', '_match_id', 'get_temp_id', 'is_suitable'
 ]
@@ -116,11 +116,6 @@ def build_lazy_ie(ie, name, attr_base):
     }.get(base.__name__, base.__name__) for base in ie.__bases__)
 
     s = IE_TEMPLATE.format(name=name, module=ie.__module__, bases=bases)
-    valid_url = getattr(ie, '_VALID_URL', None)
-    if not valid_url and hasattr(ie, '_make_valid_url'):
-        valid_url = ie._make_valid_url()
-    if valid_url:
-        s += f'    _VALID_URL = {valid_url!r}\n'
     return s + '\n'.join(extra_ie_code(ie, attr_base))
 
 

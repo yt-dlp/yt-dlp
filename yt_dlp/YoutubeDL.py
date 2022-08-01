@@ -1566,7 +1566,8 @@ class YoutubeDL:
         result_type = ie_result.get('_type', 'video')
 
         if result_type in ('url', 'url_transparent'):
-            ie_result['url'] = sanitize_url(ie_result['url'])
+            ie_result['url'] = sanitize_url(
+                ie_result['url'], scheme='http' if self.params.get('prefer_insecure') else 'https')
             if ie_result.get('original_url'):
                 extra_info.setdefault('original_url', ie_result['original_url'])
 
