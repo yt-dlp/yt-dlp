@@ -582,7 +582,7 @@ def create_parser():
         metavar='FILTER', dest='match_filter', action='append',
         help=(
             'Generic video filter. Any "OUTPUT TEMPLATE" field can be compared with a '
-            'number or a string using the operators defined in "Filtering formats". '
+            'number or a string using the operators defined in "Filtering Formats". '
             'You can also simply specify a field to match if the field is present, '
             'use "!field" to check if the field is not present, and "&" to check multiple conditions. '
             'Use a "\\" to escape "&" or quotes if needed. If used multiple times, '
