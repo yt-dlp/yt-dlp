@@ -1083,8 +1083,9 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         thumbnail_conv_filename = replace_extension(thumbnail_filename, target_ext)
 
         self.to_screen(f'Converting thumbnail "{thumbnail_filename}" to {target_ext}')
+        _, source_ext = os.path.splitext(thumbnail_filename)
         self.real_run_ffmpeg(
-            [(thumbnail_filename, ['-f', 'image2', '-pattern_type', 'none'])],
+            [(thumbnail_filename, [] if source_ext == '.gif' else ['-f', 'image2', '-pattern_type', 'none'])],
             [(thumbnail_conv_filename.replace('%', '%%'), self._options(target_ext))])
         return thumbnail_conv_filename
 
