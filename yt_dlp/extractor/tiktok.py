@@ -1,7 +1,6 @@
 import itertools
 import json
 import random
-import re
 import string
 import time
 
@@ -379,6 +378,7 @@ class TikTokBaseIE(InfoExtractor):
 
 class TikTokIE(TikTokBaseIE):
     _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)/video)/(?P<id>\d+)'
+    _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
 
     _TESTS = [{
         'url': 'https://www.tiktok.com/@leenabhushan/video/6748451240264420610',
@@ -528,11 +528,6 @@ class TikTokIE(TikTokBaseIE):
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
         'only_matching': True
     }]
-
-    @classmethod
-    def _extract_urls(cls, webpage):
-        return [mobj.group('url') for mobj in re.finditer(
-            rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{cls._VALID_URL})', webpage)]
 
     def _extract_aweme_app(self, aweme_id):
         try:

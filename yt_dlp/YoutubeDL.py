@@ -1566,7 +1566,8 @@ class YoutubeDL:
         result_type = ie_result.get('_type', 'video')
 
         if result_type in ('url', 'url_transparent'):
-            ie_result['url'] = sanitize_url(ie_result['url'])
+            ie_result['url'] = sanitize_url(
+                ie_result['url'], scheme='http' if self.params.get('prefer_insecure') else 'https')
             if ie_result.get('original_url'):
                 extra_info.setdefault('original_url', ie_result['original_url'])
 
@@ -3454,11 +3455,9 @@ class YoutubeDL:
         if fn is None:
             return False
 
-        vid_id = self._make_archive_id(info_dict)
-        if not vid_id:
-            return False  # Incomplete video information
-
-        return vid_id in self.archive
+        vid_ids = [self._make_archive_id(info_dict)]
+        vid_ids.extend(info_dict.get('_old_archive_ids', []))
+        return any(id_ in self.archive for id_ in vid_ids)
 
     def record_download_archive(self, info_dict):
         fn = self.params.get('download_archive')

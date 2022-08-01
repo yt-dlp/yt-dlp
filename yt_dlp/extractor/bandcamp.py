@@ -22,6 +22,7 @@ from ..utils import (
 
 class BandcampIE(InfoExtractor):
     _VALID_URL = r'https?://[^/]+\.bandcamp\.com/track/(?P<id>[^/?#&]+)'
+    _EMBED_REGEX = [r'<meta property="og:url"[^>]*?content="(?P<url>.*?bandcamp\.com.*?)"']
     _TESTS = [{
         'url': 'http://youtube-dl.bandcamp.com/track/youtube-dl-test-song',
         'md5': 'c557841d5e50261777a6585648adf439',

@@ -249,7 +249,8 @@ class FunimationIE(FunimationBaseIE):
         self._sort_formats(formats, ('lang', 'source'))
 
         return {
-            'id': initial_experience_id if only_initial_experience else episode_id,
+            'id': episode_id,
+            '_old_archive_ids': [initial_experience_id],
             'display_id': display_id,
             'duration': duration,
             'title': episode['episodeTitle'],

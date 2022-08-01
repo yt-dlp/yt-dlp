@@ -219,6 +219,7 @@ from .camdemy import (
     CamdemyFolderIE
 )
 from .cammodels import CamModelsIE
+from .camtasia import CamtasiaEmbedIE
 from .camwithher import CamWithHerIE
 from .canalalpha import CanalAlphaIE
 from .canalplus import CanalplusIE
@@ -445,7 +446,7 @@ from .dw import (
     DWIE,
     DWArticleIE,
 )
-from .eagleplatform import EaglePlatformIE
+from .eagleplatform import EaglePlatformIE, ClipYouEmbedIE
 from .ebaumsworld import EbaumsWorldIE
 from .echomsk import EchoMskIE
 from .egghead import (
@@ -661,6 +662,7 @@ from .hse import (
     HSEShowIE,
     HSEProductIE,
 )
+from .genericembeds import HTML5MediaEmbedIE
 from .huajiao import HuajiaoIE
 from .huya import HuyaLiveIE
 from .huffpost import HuffPostIE
@@ -1553,6 +1555,7 @@ from .shared import (
     SharedIE,
     VivoIE,
 )
+from .sharevideos import ShareVideosEmbedIE
 from .shemaroome import ShemarooMeIE
 from .showroomlive import ShowRoomLiveIE
 from .simplecast import (

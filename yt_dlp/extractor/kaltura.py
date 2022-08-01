@@ -111,13 +111,8 @@ class KalturaIE(InfoExtractor):
         }
     ]
 
-    @staticmethod
-    def _extract_url(webpage):
-        urls = KalturaIE._extract_urls(webpage)
-        return urls[0] if urls else None
-
-    @staticmethod
-    def _extract_urls(webpage):
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
         # Embed codes: https://knowledge.kaltura.com/embedding-kaltura-media-players-your-site
         finditer = (
             list(re.finditer(
@@ -159,14 +154,14 @@ class KalturaIE(InfoExtractor):
             for k, v in embed_info.items():
                 if v:
                     embed_info[k] = v.strip()
-            url = 'kaltura:%(partner_id)s:%(id)s' % embed_info
+            embed_url = 'kaltura:%(partner_id)s:%(id)s' % embed_info
             escaped_pid = re.escape(embed_info['partner_id'])
             service_mobj = re.search(
                 r'<script[^>]+src=(["\'])(?P<id>(?:https?:)?//(?:(?!\1).)+)/p/%s/sp/%s00/embedIframeJs' % (escaped_pid, escaped_pid),
                 webpage)
             if service_mobj:
-                url = smuggle_url(url, {'service_url': service_mobj.group('id')})
-            urls.append(url)
+                embed_url = smuggle_url(embed_url, {'service_url': service_mobj.group('id')})
+            urls.append(embed_url)
         return urls
 
     def _kaltura_api_call(self, video_id, actions, service_url=None, *args, **kwargs):

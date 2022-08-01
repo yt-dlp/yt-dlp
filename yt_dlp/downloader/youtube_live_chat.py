@@ -3,7 +3,6 @@ import time
 import urllib.error
 
 from .fragment import FragmentFD
-from ..compat import compat_urllib_error
 from ..utils import (
     RegexNotFoundError,
     RetryManager,

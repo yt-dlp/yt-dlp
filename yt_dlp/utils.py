@@ -599,6 +599,7 @@ def sanitize_open(filename, open_mode):
     if filename == '-':
         if sys.platform == 'win32':
             import msvcrt
+
             # stdout may be any IO stream. Eg, when using contextlib.redirect_stdout
             with contextlib.suppress(io.UnsupportedOperation):
                 msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
@@ -705,13 +706,13 @@ def sanitize_path(s, force=False):
     return os.path.join(*sanitized_path)
 
 
-def sanitize_url(url):
+def sanitize_url(url, *, scheme='http'):
     # Prepend protocol-less URLs with `http:` scheme in order to mitigate
     # the number of unwanted failures due to missing protocol
     if url is None:
         return
     elif url.startswith('//'):
-        return 'http:%s' % url
+        return f'{scheme}:{url}'
     # Fix some common typos seen so far
     COMMON_TYPOS = (
         # https://github.com/ytdl-org/youtube-dl/issues/15649
