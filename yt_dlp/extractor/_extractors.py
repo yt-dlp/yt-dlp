@@ -1395,6 +1395,7 @@ from .rai import (
     RaiPlaySoundLiveIE,
     RaiPlaySoundPlaylistIE,
     RaiNewsIE,
+    RaiSudtirolIE,
     RaiIE,
 )
 from .raywenderlich import (
