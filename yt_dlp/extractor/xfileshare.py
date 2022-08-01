@@ -186,7 +186,10 @@ class XFileShareIE(InfoExtractor):
                         entry_protocol='m3u8_native', m3u8_id='hls',
                         fatal=False))
                 else:
-                    formats.append({'url': video_url, 'format_id': 'sd'})
+                    formats.append({
+                        'url': video_url,
+                        'format_id': 'sd',
+                    })
         self._sort_formats(formats)
 
         thumbnail = self._search_regex(
