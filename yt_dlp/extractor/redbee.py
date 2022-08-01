@@ -344,7 +344,7 @@ class RTBFIE(RedBeeBaseIE):
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
-        self._sort_formats(formats)
+        self._sort_formats(formats, ['ext'])
         return {
             'id': media_id,
             'formats': formats,
