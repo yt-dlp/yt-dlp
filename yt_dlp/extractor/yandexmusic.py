@@ -115,8 +115,7 @@ class YandexMusicTrackIE(YandexMusicBaseIE):
 
         download_data = self._download_json(
             'https://music.yandex.ru/api/v2.1/handlers/track/%s:%s/web-album_track-track-track-main/download/m' % (track_id, album_id),
-            track_id, 'Downloading track location url JSON',
-            headers={'X-Retpath-Y': url})
+            track_id, 'Downloading track location url JSON', query={'hq': 1}, headers={'X-Retpath-Y': url})
 
         fd_data = self._download_json(
             download_data['src'], track_id,
