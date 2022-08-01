@@ -184,6 +184,7 @@ class NBCIE(ThePlatformIE):
 class NBCSportsVPlayerIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:vplayer\.nbcsports\.com|(?:www\.)?nbcsports\.com/vplayer)/'
     _VALID_URL = _VALID_URL_BASE + r'(?:[^/]+/)+(?P<id>[0-9a-zA-Z_]+)'
+    _EMBED_REGEX = [r'(?:iframe[^>]+|var video|div[^>]+data-(?:mpx-)?)[sS]rc\s?=\s?"(?P<url>%s[^\"]+)' % _VALID_URL_BASE]
 
     _TESTS = [{
         'url': 'https://vplayer.nbcsports.com/p/BxmELC/nbcsports_embed/select/9CsDKds0kvHI',
@@ -206,13 +207,6 @@ class NBCSportsVPlayerIE(InfoExtractor):
         'url': 'https://www.nbcsports.com/vplayer/p/BxmELC/nbcsports/select/PHJSaFWbrTY9?form=html&autoPlay=true',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_url(webpage):
-        video_urls = re.search(
-            r'(?:iframe[^>]+|var video|div[^>]+data-(?:mpx-)?)[sS]rc\s?=\s?"(?P<url>%s[^\"]+)' % NBCSportsVPlayerIE._VALID_URL_BASE, webpage)
-        if video_urls:
-            return video_urls.group('url')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -317,6 +311,7 @@ class NBCSportsStreamIE(AdobePassIE):
 
 class NBCNewsIE(ThePlatformIE):
     _VALID_URL = r'(?x)https?://(?:www\.)?(?:nbcnews|today|msnbc)\.com/([^/]+/)*(?:.*-)?(?P<id>[^/?]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//www\.nbcnews\.com/widget/video-embed/[^"\']+)\1']
 
     _TESTS = [
         {

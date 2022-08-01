@@ -3882,6 +3882,11 @@ class InfoExtractor:
     class StopExtraction(Exception):
         pass
 
+    @classmethod
+    def _extract_url(cls, webpage):  # TODO: Remove
+        """Only for compatibility with some older extractors"""
+        return next(iter(cls._extract_embed_urls(None, webpage) or []), None)
+
 
 class SearchInfoExtractor(InfoExtractor):
     """

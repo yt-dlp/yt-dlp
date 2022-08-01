@@ -929,6 +929,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                      (?:\#|$)""" % {
         'invidious': '|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
     }
+    _EMBED_REGEX = [r'''(?x)
+        (?:
+            <iframe[^>]+?src=|
+            data-video-url=|
+            <embed[^>]+?src=|
+            embedSWF\(?:\s*|
+            <object[^>]+data=|
+            new\s+SWFObject\(
+        )
+        (["\'])
+            (?P<url>(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/
+            (?:embed|v|p)/[0-9A-Za-z_-]{11}.*?)
+        \1''']
     _PLAYER_INFO_RE = (
         r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/player',
         r'/(?P<id>[a-zA-Z0-9_-]{8,})/player(?:_ias\.vflset(?:/[a-zA-Z]{2,3}_[a-zA-Z]{2,3})?|-plasma-ias-(?:phone|tablet)-[a-z]{2}_[A-Z]{2}\.vflset)/base\.js$',
@@ -2721,42 +2734,29 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 url, video_id, f'Marking {label}watched',
                 'Unable to mark watched', fatal=False)
 
-    @staticmethod
-    def _extract_urls(webpage):
-        # Embedded YouTube player
-        entries = [
-            unescapeHTML(mobj.group('url'))
-            for mobj in re.finditer(r'''(?x)
-            (?:
-                <iframe[^>]+?src=|
-                data-video-url=|
-                <embed[^>]+?src=|
-                embedSWF\(?:\s*|
-                <object[^>]+data=|
-                new\s+SWFObject\(
-            )
-            (["\'])
-                (?P<url>(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/
-                (?:embed|v|p)/[0-9A-Za-z_-]{11}.*?)
-            \1''', webpage)]
+    @classmethod
+    def _extract_from_webpage(cls, url, webpage):
+        # Invidious Instances
+        # https://github.com/yt-dlp/yt-dlp/issues/195
+        # https://github.com/iv-org/invidious/pull/1730
+        mobj = re.search(
+            r'<link rel="alternate" href="(?P<url>https://www\.youtube\.com/watch\?v=[0-9A-Za-z_-]{11})"',
+            webpage)
+        if mobj:
+            yield cls.url_result(mobj.group('url'), cls)
+            raise cls.StopExtraction()
+
+        yield from super()._extract_from_webpage(url, webpage)
 
         # lazyYT YouTube embed
-        entries.extend(list(map(
-            unescapeHTML,
-            re.findall(r'class="lazyYT" data-youtube-id="([^"]+)"', webpage))))
+        for id_ in re.findall(r'class="lazyYT" data-youtube-id="([^"]+)"', webpage):
+            yield cls.url_result(unescapeHTML(id_), cls, id_)
 
         # Wordpress "YouTube Video Importer" plugin
-        matches = re.findall(r'''(?x)<div[^>]+
-            class=(?P<q1>[\'"])[^\'"]*\byvii_single_video_player\b[^\'"]*(?P=q1)[^>]+
-            data-video_id=(?P<q2>[\'"])([^\'"]+)(?P=q2)''', webpage)
-        entries.extend(m[-1] for m in matches)
-
-        return entries
-
-    @staticmethod
-    def _extract_url(webpage):
-        urls = YoutubeIE._extract_urls(webpage)
-        return urls[0] if urls else None
+        for m in re.findall(r'''(?x)<div[^>]+
+                class=(?P<q1>[\'"])[^\'"]*\byvii_single_video_player\b[^\'"]*(?P=q1)[^>]+
+                data-video_id=(?P<q2>[\'"])([^\'"]+)(?P=q2)''', webpage):
+            yield cls.url_result(m[-1], cls, m[-1])
 
     @classmethod
     def extract_id(cls, url):
