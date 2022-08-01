@@ -104,7 +104,7 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
     IE_NAME = 'megatvcom:embed'
     IE_DESC = 'megatv.com embedded videos'
     _VALID_URL = r'(?:https?:)?//(?:www\.)?megatv\.com/embed/?\?p=(?P<id>\d+)'
-    _EMBED_RE = re.compile(rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''')
+    _EMBED_REGEX = [rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''']
 
     _TESTS = [{
         'url': 'https://www.megatv.com/embed/?p=2020520979',
@@ -133,11 +133,6 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
             'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/11/Capture-266.jpg',
         },
     }]
-
-    @classmethod
-    def _extract_urls(cls, webpage):
-        for mobj in cls._EMBED_RE.finditer(webpage):
-            yield unescapeHTML(mobj.group('url'))
 
     def _match_canonical_url(self, webpage):
         LINK_RE = r'''(?x)

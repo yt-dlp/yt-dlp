@@ -7,6 +7,8 @@ from ..utils import (
 
 class CrooksAndLiarsIE(InfoExtractor):
     _VALID_URL = r'https?://embed\.crooksandliars\.com/(?:embed|v)/(?P<id>[A-Za-z0-9]+)'
+    _EMBED_REGEX = [r'<(?:iframe[^>]+src|param[^>]+value)=(["\'])(?P<url>(?:https?:)?//embed\.crooksandliars\.com/(?:embed|v)/.+?)\1']
+
     _TESTS = [{
         'url': 'https://embed.crooksandliars.com/embed/8RUoRhRi',
         'info_dict': {

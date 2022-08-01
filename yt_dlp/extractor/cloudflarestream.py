@@ -1,5 +1,4 @@
 import base64
-import re
 
 from .common import InfoExtractor
 
@@ -16,6 +15,7 @@ class CloudflareStreamIE(InfoExtractor):
                         )
                         (?P<id>%s)
                     ''' % (_DOMAIN_RE, _EMBED_RE, _ID_RE)
+    _EMBED_REGEX = [fr'<script[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//{_EMBED_RE}(?:{_ID_RE}).*?)\1']
     _TESTS = [{
         'url': 'https://embed.cloudflarestream.com/embed/we4g.fla9.latest.js?video=31c9291ab41fac05471db4e73aa11717',
         'info_dict': {
@@ -36,14 +36,6 @@ class CloudflareStreamIE(InfoExtractor):
         'url': 'https://embed.videodelivery.net/embed/r4xu.fla9.latest.js?video=81d80727f3022488598f68d323c1ad5e',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<script[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//%s(?:%s).*?)\1' % (CloudflareStreamIE._EMBED_RE, CloudflareStreamIE._ID_RE),
-                webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

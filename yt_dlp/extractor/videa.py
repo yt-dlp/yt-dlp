@@ -1,5 +1,4 @@
 import random
-import re
 import string
 import struct
 
@@ -29,6 +28,7 @@ class VideaIE(InfoExtractor):
                         )
                         (?P<id>[^?#&]+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//videa\.hu/player\?.*?\bv=.+?)\1']
     _TESTS = [{
         'url': 'http://videa.hu/videok/allatok/az-orult-kigyasz-285-kigyot-kigyo-8YfIAjxwWGwT8HVQ',
         'md5': '97a7af41faeaffd9f1fc864a7c7e7603',
@@ -73,12 +73,6 @@ class VideaIE(InfoExtractor):
         'only_matching': True,
     }]
     _STATIC_SECRET = 'xHb0ZvME5q8CBcoQi6AngerDu3FGO9fkUlwPmLVY_RTzj2hJIS4NasXWKy1td7p'
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [url for _, url in re.findall(
-            r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//videa\.hu/player\?.*?\bv=.+?)\1',
-            webpage)]
 
     @staticmethod
     def rc4(cipher_text, key):

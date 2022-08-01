@@ -46,14 +46,15 @@ class SubstackIE(InfoExtractor):
     }]
 
     @classmethod
-    def _extract_url(cls, webpage, url):
+    def _extract_embed_urls(cls, url, webpage):
         if not re.search(r'<script[^>]+src=["\']https://substackcdn.com/[^"\']+\.js', webpage):
             return
 
         mobj = re.search(r'{[^}]*["\']subdomain["\']\s*:\s*["\'](?P<subdomain>[^"]+)', webpage)
         if mobj:
             parsed = urllib.parse.urlparse(url)
-            return parsed._replace(netloc=f'{mobj.group("subdomain")}.substack.com').geturl()
+            yield parsed._replace(netloc=f'{mobj.group("subdomain")}.substack.com').geturl()
+            raise cls.StopExtraction()
 
     def _extract_video_formats(self, video_id, username):
         formats, subtitles = [], {}
