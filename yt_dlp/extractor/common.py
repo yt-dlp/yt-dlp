@@ -14,6 +14,7 @@ import random
 import re
 import sys
 import time
+import types
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
@@ -23,6 +24,7 @@ from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..utils import (
+    IDENTITY,
     JSON_LD_RE,
     NO_DEFAULT,
     ExtractorError,
@@ -59,6 +61,7 @@ from ..utils import (
     parse_m3u8_attributes,
     parse_resolution,
     sanitize_filename,
+    sanitize_url,
     sanitized_Request,
     str_or_none,
     str_to_int,
@@ -431,13 +434,25 @@ class InfoExtractor:
     title, description etc.
 
 
-    Subclasses of this should define a _VALID_URL regexp and, re-define the
-    _real_extract() and (optionally) _real_initialize() methods.
-    Probably, they should also be added to the list of extractors.
+    Subclasses of this should also be added to the list of extractors and
+    should define a _VALID_URL regexp and, re-define the _real_extract() and
+    (optionally) _real_initialize() methods.
 
     Subclasses may also override suitable() if necessary, but ensure the function
     signature is preserved and that this function imports everything it needs
     (except other extractors), so that lazy_extractors works correctly.
+
+    Subclasses can define a list of _EMBED_REGEX, which will be searched for in
+    the HTML of Generic webpages. It may also override _extract_embed_urls
+    or _extract_from_webpage as necessary. While these are normally classmethods,
+    _extract_from_webpage is allowed to be an instance method.
+
+    _extract_from_webpage may raise self.StopExtraction() to stop further
+    processing of the webpage and obtain exclusive rights to it. This is useful
+    when the extractor cannot reliably be matched using just the URL.
+    Eg: invidious/peertube instances
+
+    Embed-only extractors can be defined by setting _VALID_URL = False.
 
     To support username + password (or netrc) login, the extractor must define a
     _NETRC_MACHINE and re-define _perform_login(username, password) and
@@ -476,6 +491,8 @@ class InfoExtractor:
     _NETRC_MACHINE = None
     IE_DESC = None
     SEARCH_KEY = None
+    _VALID_URL = None
+    _EMBED_REGEX = []
 
     def _login_hint(self, method=NO_DEFAULT, netrc=None):
         password_hint = f'--username and --password, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
@@ -499,12 +516,12 @@ class InfoExtractor:
 
     @classmethod
     def _match_valid_url(cls, url):
+        if cls._VALID_URL is False:
+            return None
         # This does not use has/getattr intentionally - we want to know whether
         # we have cached the regexp for *this* class, whereas getattr would also
         # match the superclass
         if '_VALID_URL_RE' not in cls.__dict__:
-            if '_VALID_URL' not in cls.__dict__:
-                cls._VALID_URL = cls._make_valid_url()
             cls._VALID_URL_RE = re.compile(cls._VALID_URL)
         return cls._VALID_URL_RE.match(url)
 
@@ -1143,10 +1160,12 @@ class InfoExtractor:
             'url': url,
         }
 
-    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None, video_kwargs=None, **kwargs):
-        urls = (self.url_result(self._proto_relative_url(m), ie, **(video_kwargs or {}))
-                for m in orderedSet(map(getter, matches) if getter else matches))
-        return self.playlist_result(urls, playlist_id, playlist_title, **kwargs)
+    @classmethod
+    def playlist_from_matches(cls, matches, playlist_id=None, playlist_title=None,
+                              getter=IDENTITY, ie=None, video_kwargs=None, **kwargs):
+        return cls.playlist_result(
+            (cls.url_result(m, ie, **(video_kwargs or {})) for m in orderedSet(map(getter, matches), lazy=True)),
+            playlist_id, playlist_title, **kwargs)
 
     @staticmethod
     def playlist_result(entries, playlist_id=None, playlist_title=None, playlist_description=None, *, multi_video=False, **kwargs):
@@ -1353,11 +1372,19 @@ class InfoExtractor:
     def _dc_search_uploader(self, html):
         return self._html_search_meta('dc.creator', html, 'uploader')
 
-    def _rta_search(self, html):
+    @staticmethod
+    def _rta_search(html):
         # See http://www.rtalabel.org/index.php?content=howtofaq#single
         if re.search(r'(?ix)<meta\s+name="rating"\s+'
                      r'     content="RTA-5042-1996-1400-1577-RTA"',
                      html):
+            return 18
+
+        # And then there are the jokers who advertise that they use RTA, but actually don't.
+        AGE_LIMIT_MARKERS = [
+            r'Proudly Labeled <a href="http://www\.rtalabel\.org/" title="Restricted to Adults">RTA</a>',
+        ]
+        if any(re.search(marker, html) for marker in AGE_LIMIT_MARKERS):
             return 18
         return 0
 
@@ -1965,14 +1992,9 @@ class InfoExtractor:
             else 'https:')
 
     def _proto_relative_url(self, url, scheme=None):
-        if url is None:
-            return url
-        if url.startswith('//'):
-            if scheme is None:
-                scheme = self.http_scheme()
-            return scheme + url
-        else:
-            return url
+        scheme = scheme or self.http_scheme()
+        assert scheme.endswith(':')
+        return sanitize_url(url, scheme=scheme[:-1])
 
     def _sleep(self, timeout, video_id, msg_template=None):
         if msg_template is None:
@@ -3767,10 +3789,12 @@ class InfoExtractor:
             headers['Ytdl-request-proxy'] = geo_verification_proxy
         return headers
 
-    def _generic_id(self, url):
+    @staticmethod
+    def _generic_id(url):
         return urllib.parse.unquote(os.path.splitext(url.rstrip('/').split('/')[-1])[0])
 
-    def _generic_title(self, url):
+    @staticmethod
+    def _generic_title(url):
         return urllib.parse.unquote(os.path.splitext(url_basename(url))[0])
 
     @staticmethod
@@ -3816,6 +3840,37 @@ class InfoExtractor:
         self.to_screen(f'Downloading {playlist_label}{playlist_id} - add --no-playlist to download just the {video_label}{video_id}')
         return True
 
+    @classmethod
+    def extract_from_webpage(cls, ydl, url, webpage):
+        ie = (cls if isinstance(cls._extract_from_webpage, types.MethodType)
+              else ydl.get_info_extractor(cls.ie_key()))
+        yield from ie._extract_from_webpage(url, webpage) or []
+
+    @classmethod
+    def _extract_from_webpage(cls, url, webpage):
+        for embed_url in orderedSet(
+                cls._extract_embed_urls(url, webpage) or [], lazy=True):
+            yield cls.url_result(embed_url, cls)
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        """@returns all the embed urls on the webpage"""
+        if '_EMBED_URL_RE' not in cls.__dict__:
+            assert isinstance(cls._EMBED_REGEX, (list, tuple))
+            for idx, regex in enumerate(cls._EMBED_REGEX):
+                assert regex.count('(?P<url>') == 1, \
+                    f'{cls.__name__}._EMBED_REGEX[{idx}] must have exactly 1 url group\n\t{regex}'
+            cls._EMBED_URL_RE = tuple(map(re.compile, cls._EMBED_REGEX))
+
+        for regex in cls._EMBED_URL_RE:
+            for mobj in regex.finditer(webpage):
+                embed_url = urllib.parse.urljoin(url, unescapeHTML(mobj.group('url')))
+                if cls._VALID_URL is False or cls.suitable(embed_url):
+                    yield embed_url
+
+    class StopExtraction(Exception):
+        pass
+
 
 class SearchInfoExtractor(InfoExtractor):
     """
@@ -3826,8 +3881,8 @@ class SearchInfoExtractor(InfoExtractor):
 
     _MAX_RESULTS = float('inf')
 
-    @classmethod
-    def _make_valid_url(cls):
+    @classproperty
+    def _VALID_URL(cls):
         return r'%s(?P<prefix>|[1-9][0-9]*|all):(?P<query>[\s\S]+)' % cls._SEARCH_KEY
 
     def _real_extract(self, query):
