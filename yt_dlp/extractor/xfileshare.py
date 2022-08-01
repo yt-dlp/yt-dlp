@@ -68,15 +68,13 @@ class XFileShareIE(InfoExtractor):
     )
 
     _TESTS = [{
-        'url': 'https://uqload.com/nn85ef9zmgzk',
+        'url': 'https://uqload.com/dltx1wztngdz',
+        'md5': '3cfbb65e4c90e93d7b37bcb65a595557',
         'info_dict': {
-            'id': 'nn85ef9zmgzk',
+            'id': 'dltx1wztngdz',
             'ext': 'mp4',
-            'title': r're:.*',
-            'thumbnail': r're:https://.*\.jpg',
-            'http_headers': {
-                'Referer': 'https://uqload.com/nn85ef9zmgzk'
-            }
+            'title': 'Rick Astley Never Gonna Give You mp4',
+            'thumbnail': r're:https://.*\.jpg'
         }
     }, {
         'url': 'http://xvideosharing.com/fq65f94nd2ve',
@@ -188,10 +186,7 @@ class XFileShareIE(InfoExtractor):
                         entry_protocol='m3u8_native', m3u8_id='hls',
                         fatal=False))
                 else:
-                    f = {'url': video_url, 'format_id': 'sd'}
-                    if host == 'uqload.com':
-                        f['http_headers'] = {"Referer": url}
-                    formats.append(f)
+                    formats.append({'url': video_url, 'format_id': 'sd'})
         self._sort_formats(formats)
 
         thumbnail = self._search_regex(
@@ -205,4 +200,5 @@ class XFileShareIE(InfoExtractor):
             'title': title,
             'thumbnail': thumbnail,
             'formats': formats,
+            'http_headers': {'Referer': url}
         }
