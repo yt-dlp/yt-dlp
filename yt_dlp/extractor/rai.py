@@ -783,19 +783,17 @@ class RaiSudtirolIE(RaiBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        video_data = self._html_search_regex(r'<span class="med_data">(.+?)</span>', webpage, 'video_data', fatal=False)
+        video_date = self._html_search_regex(r'<span class="med_data">(.+?)</span>', webpage, 'video_date', fatal=False)
         video_title = self._html_search_regex(r'<span class="med_title">(.+?)</span>', webpage, 'video_title', fatal=False)
         video_url = self._html_search_regex(r'sources:\s*\[\{file:\s*"(.+?)"\}\]', webpage, 'video_url')
         video_thumb = self._html_search_regex(r'image: \'(.+?)\'', webpage, 'video_thumb', fatal=False)
         video_thumb = urljoin('https://raisudtirol.rai.it/', video_thumb)
 
-        if video_url.startswith('//'):
-            video_url = f'https:{video_url}'
         return {
             'id': video_id,
-            'title': join_nonempty(video_title, video_data, delim=' - '),
-            'date': unified_strdate(video_data),
+            'title': join_nonempty(video_title, video_date, delim=' - '),
+            'date': unified_strdate(video_date),
             'thumbnail': video_thumb,
-            'url': video_url,
+            'url': self._proto_relative_url(video_url),
             'uploader': 'raisudtirol',
         }
