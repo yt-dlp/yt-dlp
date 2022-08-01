@@ -546,14 +546,14 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     error (default is 3), or "infinite"
     --fragment-retries RETRIES      Number of retries for a fragment (default is
                                     10), or "infinite" (DASH, hlsnative and ISM)
-    --retry-sleep [TYPE:]EXPR       An expression for the time to sleep between
-                                    retries in seconds (optionally) prefixed by
-                                    the type of retry (file_access, fragment,
-                                    http (default)) to apply the sleep to. EXPR
-                                    can be a number, linear=START[:END[:STEP=1]]
-                                    or exp=START[:END[:BASE=2]]. This option can
-                                    be used multiple times to set the sleep for
-                                    the different retry types. Eg: --retry-sleep
+    --retry-sleep [TYPE:]EXPR       Time to sleep between retries in seconds
+                                    (optionally) prefixed by the type of retry
+                                    (http (default), fragment, file_access,
+                                    extractor) to apply the sleep to. EXPR can
+                                    be a number, linear=START[:END[:STEP=1]] or
+                                    exp=START[:END[:BASE=2]]. This option can be
+                                    used multiple times to set the sleep for the
+                                    different retry types. Eg: --retry-sleep
                                     linear=1::2 --retry-sleep fragment:exp=1:20
     --skip-unavailable-fragments    Skip unavailable fragments for DASH,
                                     hlsnative and ISM downloads (default)

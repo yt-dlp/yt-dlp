@@ -95,8 +95,8 @@ class TestHttpFD(unittest.TestCase):
         try_rm(encodeFilename(filename))
         self.assertTrue(downloader.real_download(filename, {
             'url': 'http://127.0.0.1:%d/%s' % (self.port, ep),
-        }))
-        self.assertEqual(os.path.getsize(encodeFilename(filename)), TEST_SIZE)
+        }), ep)
+        self.assertEqual(os.path.getsize(encodeFilename(filename)), TEST_SIZE, ep)
         try_rm(encodeFilename(filename))
 
     def download_all(self, params):

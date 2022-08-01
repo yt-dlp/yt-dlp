@@ -32,6 +32,7 @@ from ..utils import (
     GeoUtils,
     LenientJSONDecoder,
     RegexNotFoundError,
+    RetryManager,
     UnsupportedError,
     age_restricted,
     base_url,
@@ -3847,6 +3848,13 @@ class InfoExtractor:
             return False
         self.to_screen(f'Downloading {playlist_label}{playlist_id} - add --no-playlist to download just the {video_label}{video_id}')
         return True
+
+    def _error_or_warning(self, err, _count=None, _retries=0, *, fatal=True):
+        RetryManager.report_retry(err, _count or int(fatal), _retries, info=self.to_screen, warn=self.report_warning,
+                                  sleep_func=self.get_param('retry_sleep_functions', {}).get('extractor'))
+
+    def RetryManager(self, **kwargs):
+        return RetryManager(self.get_param('extractor_retries', 3), self._error_or_warning, **kwargs)
 
     @classmethod
     def extract_from_webpage(cls, ydl, url, webpage):

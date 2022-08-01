@@ -861,11 +861,11 @@ def create_parser():
         dest='retry_sleep', metavar='[TYPE:]EXPR', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'http|fragment|file_access',
+            'allowed_keys': 'http|fragment|file_access|extractor',
             'default_key': 'http',
         }, help=(
-            'An expression for the time to sleep between retries in seconds (optionally) prefixed '
-            'by the type of retry (file_access, fragment, http (default)) to apply the sleep to. '
+            'Time to sleep between retries in seconds (optionally) prefixed by the type of retry '
+            '(http (default), fragment, file_access, extractor) to apply the sleep to. '
             'EXPR can be a number, linear=START[:END[:STEP=1]] or exp=START[:END[:BASE=2]]. '
             'This option can be used multiple times to set the sleep for the different retry types. '
             'Eg: --retry-sleep linear=1::2 --retry-sleep fragment:exp=1:20'))

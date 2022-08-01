@@ -19,7 +19,6 @@ from ..utils import (
     int_or_none,
     KNOWN_EXTENSIONS,
     mimetype2ext,
-    remove_end,
     parse_qs,
     str_or_none,
     try_get,
@@ -661,25 +660,20 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
             'offset': 0,
         }
 
-        retries = self.get_param('extractor_retries', 3)
-
         for i in itertools.count():
-            attempt, last_error = -1, None
-            while attempt < retries:
-                attempt += 1
-                if last_error:
-                    self.report_warning('%s. Retrying ...' % remove_end(last_error, '.'), playlist_id)
+            for retry in self.RetryManager():
                 try:
                     response = self._download_json(
                         url, playlist_id, query=query, headers=self._HEADERS,
-                        note='Downloading track page %s%s' % (i + 1, f' (retry #{attempt})' if attempt else ''))
+                        note=f'Downloading track page {i + 1}')
                     break
                 except ExtractorError as e:
                     # Downloading page may result in intermittent 502 HTTP error
                     # See https://github.com/yt-dlp/yt-dlp/issues/872
-                    if attempt >= retries or not isinstance(e.cause, compat_HTTPError) or e.cause.code != 502:
+                    if not isinstance(e.cause, compat_HTTPError) or e.cause.code != 502:
                         raise
-                    last_error = str(e.cause or e.msg)
+                    retry.error = e
+                    continue
 
             def resolve_entry(*candidates):
                 for cand in candidates:

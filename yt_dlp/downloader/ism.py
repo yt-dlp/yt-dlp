@@ -5,6 +5,7 @@ import time
 import urllib.error
 
 from .fragment import FragmentFD
+from ..utils import RetryManager
 
 u8 = struct.Struct('>B')
 u88 = struct.Struct('>Bx')
@@ -245,7 +246,6 @@ class IsmFD(FragmentFD):
             'ism_track_written': False,
         })
 
-        fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
 
         frag_index = 0
@@ -253,8 +253,10 @@ class IsmFD(FragmentFD):
             frag_index += 1
             if frag_index <= ctx['fragment_index']:
                 continue
-            count = 0
-            while count <= fragment_retries:
+
+            retry_manager = RetryManager(self.params.get('fragment_retries'), self.report_retry,
+                                         frag_index=frag_index, fatal=not skip_unavailable_fragments)
+            for retry in retry_manager:
                 try:
                     success = self._download_fragment(ctx, segment['url'], info_dict)
                     if not success:
@@ -267,18 +269,14 @@ class IsmFD(FragmentFD):
                         write_piff_header(ctx['dest_stream'], info_dict['_download_params'])
                         extra_state['ism_track_written'] = True
                     self._append_fragment(ctx, frag_content)
-                    break
                 except urllib.error.HTTPError as err:
-                    count += 1
-                    if count <= fragment_retries:
-                        self.report_retry_fragment(err, frag_index, count, fragment_retries)
-            if count > fragment_retries:
-                if skip_unavailable_fragments:
-                    self.report_skip_fragment(frag_index)
+                    retry.error = err
                     continue
-                self.report_error('giving up after %s fragment retries' % fragment_retries)
-                return False
+
+            if retry_manager.error:
+                if not skip_unavailable_fragments:
+                    return False
+                self.report_skip_fragment(frag_index)
 
         self._finish_frag_download(ctx, info_dict)
-
         return True
