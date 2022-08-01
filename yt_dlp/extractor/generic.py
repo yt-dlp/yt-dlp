@@ -3,6 +3,8 @@ import re
 import urllib.parse
 import xml.etree.ElementTree
 
+from . import gen_extractor_classes
+from .common import InfoExtractor  # isort: split
 from .ant1newsgr import Ant1NewsGrEmbedIE
 from .anvato import AnvatoIE
 from .apa import APAIE
@@ -14,7 +16,6 @@ from .blogger import BloggerIE
 from .brightcove import BrightcoveLegacyIE, BrightcoveNewIE
 from .channel9 import Channel9IE
 from .cloudflarestream import CloudflareStreamIE
-from .common import InfoExtractor
 from .commonprotocols import RtmpIE
 from .condenast import CondeNastIE
 from .dailymail import DailyMailIE
@@ -115,6 +116,7 @@ from ..utils import (
     determine_ext,
     dict_get,
     float_or_none,
+    format_field,
     int_or_none,
     is_html,
     js_to_json,
@@ -2641,8 +2643,15 @@ class GenericIE(InfoExtractor):
         """Report information extraction."""
         self._downloader.to_screen('[redirect] Following redirect to %s' % new_url)
 
-    def report_detected(self, name):
-        self._downloader.write_debug(f'Identified a {name}')
+    def report_detected(self, name, num=1, note=None):
+        if num > 1:
+            name += 's'
+        elif not num:
+            return
+        else:
+            num = 'a'
+
+        self._downloader.write_debug(f'Identified {num} {name}{format_field(note, None, "; %s")}')
 
     def _extract_rss(self, url, video_id, doc):
         NS_MAP = {
@@ -2854,8 +2863,7 @@ class GenericIE(InfoExtractor):
 
         if not self.get_param('test', False) and not is_intentional:
             force = self.get_param('force_generic_extractor', False)
-            self.report_warning(
-                '%s on generic information extractor.' % ('Forcing' if force else 'Falling back'))
+            self.report_warning('%s generic information extractor' % ('Forcing' if force else 'Falling back on'))
 
         first_bytes = full_response.read(512)
 
@@ -2933,6 +2941,22 @@ class GenericIE(InfoExtractor):
             self.report_detected('Camtasia video')
             return camtasia_res
 
+        info_dict.update({
+            # it's tempting to parse this further, but you would
+            # have to take into account all the variations like
+            #   Video Title - Site Name
+            #   Site Name | Video Title
+            #   Video Title - Tagline | Site Name
+            # and so on and so forth; it's just not practical
+            'title': (self._og_search_title(webpage, default=None)
+                      or self._html_extract_title(webpage, 'video title', default='video')),
+            'description': self._og_search_description(webpage, default=None),
+            'thumbnail': self._og_search_thumbnail(webpage, default=None),
+            'age_limit': self._rta_search(webpage),
+        })
+
+        domain_name = self._search_regex(r'^(?:https?://)?([^/]*)/.*', url, 'video uploader')
+
         # Sometimes embedded video player is hidden behind percent encoding
         # (e.g. https://github.com/ytdl-org/youtube-dl/issues/2448)
         # Unescaping the whole page allows to handle those cases in a generic way
@@ -2946,40 +2970,12 @@ class GenericIE(InfoExtractor):
             r'<div[^>]+class=[^>]*?\bsqs-video-wrapper\b[^>]*>',
             lambda x: unescapeHTML(x.group(0)), webpage)
 
-        # it's tempting to parse this further, but you would
-        # have to take into account all the variations like
-        #   Video Title - Site Name
-        #   Site Name | Video Title
-        #   Video Title - Tagline | Site Name
-        # and so on and so forth; it's just not practical
-        video_title = (self._og_search_title(webpage, default=None)
-                       or self._html_extract_title(webpage, 'video title', default='video'))
+        # TODO: Remove
+        video_title, video_description, video_thumbnail, age_limit, video_uploader = \
+            info_dict['title'], info_dict['description'], info_dict['thumbnail'], info_dict['age_limit'], domain_name
 
-        # Try to detect age limit automatically
-        age_limit = self._rta_search(webpage)
-        # And then there are the jokers who advertise that they use RTA,
-        # but actually don't.
-        AGE_LIMIT_MARKERS = [
-            r'Proudly Labeled <a href="http://www\.rtalabel\.org/" title="Restricted to Adults">RTA</a>',
-        ]
-        if any(re.search(marker, webpage) for marker in AGE_LIMIT_MARKERS):
-            age_limit = 18
-
-        # video uploader is domain name
-        video_uploader = self._search_regex(
-            r'^(?:https?://)?([^/]*)/.*', url, 'video uploader')
-
-        video_description = self._og_search_description(webpage, default=None)
-        video_thumbnail = self._og_search_thumbnail(webpage, default=None)
-
-        info_dict.update({
-            'title': video_title,
-            'description': video_description,
-            'thumbnail': video_thumbnail,
-            'age_limit': age_limit,
-        })
-
-        self._downloader.write_debug('Looking for video embeds')
+        # TODO: Move Embeds
+        self._downloader.write_debug('Looking for single embeds')
 
         # Look for Brightcove Legacy Studio embeds
         bc_urls = BrightcoveLegacyIE._extract_brightcove_urls(webpage)
@@ -2998,7 +2994,7 @@ class GenericIE(InfoExtractor):
             }
 
         # Look for Brightcove New Studio embeds
-        bc_urls = BrightcoveNewIE._extract_urls(self, webpage)
+        bc_urls = BrightcoveNewIE._extract_brightcove_urls(self, webpage)
         if bc_urls:
             return self.playlist_from_matches(
                 bc_urls, video_id, video_title,
@@ -3246,7 +3242,7 @@ class GenericIE(InfoExtractor):
             return self.playlist_from_matches(sportbox_urls, video_id, video_title, ie=SportBoxIE.ie_key())
 
         # Look for embedded Spotify player
-        spotify_urls = SpotifyBaseIE._extract_embed_urls(webpage)
+        spotify_urls = SpotifyBaseIE._extract_urls(webpage)
         if spotify_urls:
             return self.playlist_from_matches(spotify_urls, video_id, video_title)
 
@@ -3837,6 +3833,30 @@ class GenericIE(InfoExtractor):
         tiktok_urls = TikTokIE._extract_urls(webpage)
         if tiktok_urls:
             return self.playlist_from_matches(tiktok_urls, video_id, video_title)
+        # TODO: END: Move Embeds
+
+        self._downloader.write_debug('Looking for embeds')
+        embeds = []
+        for ie in gen_extractor_classes():
+            gen = ie.extract_from_webpage(self._downloader, url, webpage)
+            current_embeds = []
+            try:
+                while True:
+                    current_embeds.append(next(gen))
+            except self.StopExtraction:
+                self.report_detected(f'{ie.IE_NAME} exclusive embed', len(current_embeds),
+                                     embeds and 'discarding other embeds')
+                embeds = current_embeds
+                break
+            except StopIteration:
+                self.report_detected(f'{ie.IE_NAME} embed', len(current_embeds))
+                embeds.extend(current_embeds)
+
+        del current_embeds
+        if len(embeds) == 1:
+            return {**info_dict, **embeds[0]}
+        elif embeds:
+            return self.playlist_result(embeds, **info_dict)
 
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
@@ -4119,7 +4139,6 @@ class GenericIE(InfoExtractor):
                 entries.append(self.url_result(video_url, 'Youtube'))
                 continue
 
-            # here's a fun little line of code for you:
             video_id = os.path.splitext(video_id)[0]
             headers = {
                 'referer': full_response.geturl()
