@@ -117,7 +117,7 @@ class ParliamentLiveUKIE(RedBeeBaseIE):
         video_info = self._download_json(
             f'https://www.parliamentlive.tv/Event/GetShareVideo/{video_id}', video_id, fatal=False)
 
-        self._sort_formats(formats, ['ext'])
+        self._sort_formats(formats, ['res', 'proto'])
 
         return {
             'id': video_id,
@@ -346,7 +346,7 @@ class RTBFIE(RedBeeBaseIE):
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
-        self._sort_formats(formats, ['ext'])
+        self._sort_formats(formats, ['res', 'proto'])
         return {
             'id': media_id,
             'formats': formats,
