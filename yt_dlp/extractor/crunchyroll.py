@@ -762,23 +762,23 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
     _TESTS = [{
         'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/to-the-future',
         'info_dict': {
-            'id': '696363',
+            'id': 'GY2P1Q98Y',
             'ext': 'mp4',
-            'timestamp': 1459610100,
+            'duration': 1380.241,
+            'timestamp': 1459632600,
             'description': 'md5:a022fbec4fbb023d43631032c91ed64b',
-            'uploader': 'Toei Animation',
             'title': 'World Trigger Episode 73 – To the Future',
             'upload_date': '20160402',
-            'episode_number': 73,
             'series': 'World Trigger',
-            'average_rating': 4.9,
-            'episode': 'To the Future',
+            'series_id': 'GR757DMKY',
             'season': 'World Trigger',
-            'thumbnail': 'https://img1.ak.crunchyroll.com/i/spire3-tmb/c870dedca1a83137c2d3d144984155ed1459527119_main.jpg',
+            'season_id': 'GR9P39NJ6',
             'season_number': 1,
+            'episode': 'To the Future',
+            'episode_number': 73,
+            'thumbnail': r're:^https://beta.crunchyroll.com/imgsrv/.*\.jpeg$',
         },
         'params': {'skip_download': 'm3u8'},
-        'expected_warnings': ['Unable to download XML']
     }, {
         'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/',
         'only_matching': True,
@@ -869,7 +869,7 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
     _TESTS = [{
         'url': 'https://beta.crunchyroll.com/series/GY19NQ2QR/Girl-Friend-BETA',
         'info_dict': {
-            'id': 'girl-friend-beta',
+            'id': 'GY19NQ2QR',
             'title': 'Girl Friend BETA',
         },
         'playlist_mincount': 10,
