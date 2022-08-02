@@ -2488,7 +2488,7 @@ class YoutubeDL:
         info_dict['_has_drm'] = any(f.get('has_drm') for f in formats) or None
         if not self.params.get('allow_unplayable_formats'):
             formats = [f for f in formats if not f.get('has_drm')]
-            if info_dict['_has_drm'] and all(
+            if info_dict['_has_drm'] and formats and all(
                     f.get('acodec') == f.get('vcodec') == 'none' for f in formats):
                 self.report_warning(
                     'This video is DRM protected and only images are available for download. '
