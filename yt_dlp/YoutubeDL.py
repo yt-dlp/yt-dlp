@@ -135,6 +135,7 @@ from .utils import (
     timetuple_from_msec,
     to_high_limit_path,
     traverse_obj,
+    try_call,
     try_get,
     url_basename,
     variadic,
@@ -373,7 +374,7 @@ class YoutubeDL:
 
                        Progress hooks are guaranteed to be called at least twice
                        (with status "started" and "finished") if the processing is successful.
-    merge_output_format: Extension to use when merging formats.
+    merge_output_format: "/" separated list of extensions to use when merging formats.
     final_ext:         Expected final extension; used to detect when the file was
                        already downloaded and converted
     fixup:             Automatically correct known faults of the file.
@@ -2089,12 +2090,13 @@ class YoutubeDL:
             the_only_video = video_fmts[0] if len(video_fmts) == 1 else None
             the_only_audio = audio_fmts[0] if len(audio_fmts) == 1 else None
 
-            output_ext = self.params.get('merge_output_format') or get_compatible_ext(
+            output_ext = get_compatible_ext(
                 vcodecs=[f.get('vcodec') for f in video_fmts],
                 acodecs=[f.get('acodec') for f in audio_fmts],
                 vexts=[f['ext'] for f in video_fmts],
                 aexts=[f['ext'] for f in audio_fmts],
-                prefer_free_formats=self.params.get('prefer_free_formats'))
+                preferences=(try_call(lambda: self.params['merge_output_format'].split('/'))
+                             or self.params.get('prefer_free_formats') and ('webm', 'mkv')))
 
             filtered = lambda *keys: filter(None, (traverse_obj(fmt, *keys) for fmt in formats_info))
 

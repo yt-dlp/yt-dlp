@@ -3455,10 +3455,12 @@ def parse_codecs(codecs_str):
     return {}
 
 
-def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, prefer_free_formats=False):
+def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
     assert len(vcodecs) == len(vexts) and len(acodecs) == len(aexts)
 
-    if max(len(acodecs), len(vcodecs)) > 1:
+    allow_mkv = not preferences or 'mkv' in preferences
+
+    if allow_mkv and max(len(acodecs), len(vcodecs)) > 1:
         return 'mkv'  # TODO: any other format allows this?
 
     # TODO: All codecs supported by parse_codecs isn't handled here
@@ -3472,25 +3474,25 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, prefer_free_formats=Fa
             'vp9x', 'vp8x',  # in the webm spec
         },
     }
-    if prefer_free_formats:
-        del COMPATIBLE_CODECS['mp4']
 
     sanitize_codec = functools.partial(try_get, getter=lambda x: x.split('.')[0].replace('0', ''))
     vcodec, acodec = sanitize_codec(vcodecs[0]), sanitize_codec(acodecs[0])
-    for ext, codec_set in COMPATIBLE_CODECS.items():
-        if codec_set.issuperset((vcodec, acodec)):
+
+    for ext in preferences or COMPATIBLE_CODECS.keys():
+        codec_set = COMPATIBLE_CODECS.get(ext, set())
+        if ext == 'mkv' or codec_set.issuperset((vcodec, acodec)):
             return ext
 
     COMPATIBLE_EXTS = (
-        {'mp3', 'mp4', 'm4a', 'm4p', 'm4b', 'm4r', 'm4v', 'ismv', 'isma'},
+        {'mp3', 'mp4', 'm4a', 'm4p', 'm4b', 'm4r', 'm4v', 'ismv', 'isma', 'mov'},
         {'webm'},
     )
-    if prefer_free_formats:
-        COMPATIBLE_EXTS = [{'webm'}]
-
-    if any(ext_sets.issuperset((vexts[0], aexts[0])) for ext_sets in COMPATIBLE_EXTS):
-        return vexts[0]
-    return 'mkv'
+    for ext in preferences or vexts:
+        current_exts = {ext, *vexts, *aexts}
+        if ext == 'mkv' or current_exts == {ext} or any(
+                ext_sets.issuperset(current_exts) for ext_sets in COMPATIBLE_EXTS):
+            return ext
+    return 'mkv' if allow_mkv else preferences[-1]
 
 
 def urlhandle_detect_ext(url_handle):

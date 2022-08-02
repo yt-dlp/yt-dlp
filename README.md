@@ -858,10 +858,10 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     downloadable
     -F, --list-formats              List available formats of each video.
                                     Simulate unless --no-simulate is used
-    --merge-output-format FORMAT    Container to use when merging formats (e.g.
-                                    bestvideo+bestaudio). Ignored if no merge is
-                                    required. (currently supported: avi, flv,
-                                    mkv, mov, mp4, webm)
+    --merge-output-format FORMAT    Containers that may be used when merging
+                                    formats, separated by "/" (Eg: "mp4/mkv").
+                                    Ignored if no merge is required. (currently
+                                    supported: avi, flv, mkv, mov, mp4, webm)
 
 ## Subtitle Options:
     --write-subs                    Write subtitle file
