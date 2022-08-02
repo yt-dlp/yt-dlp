@@ -2093,7 +2093,8 @@ class YoutubeDL:
                 vcodecs=[f.get('vcodec') for f in video_fmts],
                 acodecs=[f.get('acodec') for f in audio_fmts],
                 vexts=[f['ext'] for f in video_fmts],
-                aexts=[f['ext'] for f in audio_fmts])
+                aexts=[f['ext'] for f in audio_fmts],
+                prefer_free_formats=self.params.get('prefer_free_formats'))
 
             filtered = lambda *keys: filter(None, (traverse_obj(fmt, *keys) for fmt in formats_info))
 

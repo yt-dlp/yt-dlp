@@ -3455,7 +3455,7 @@ def parse_codecs(codecs_str):
     return {}
 
 
-def get_compatible_ext(vcodecs, acodecs, vexts, aexts):
+def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, prefer_free_formats=False):
     assert len(vcodecs) == len(vexts) and len(acodecs) == len(aexts)
 
     if max(len(acodecs), len(vcodecs)) > 1:
@@ -3472,6 +3472,8 @@ def get_compatible_ext(vcodecs, acodecs, vexts, aexts):
             'vp9x', 'vp8x',  # in the webm spec
         },
     }
+    if prefer_free_formats:
+        del COMPATIBLE_CODECS['mp4']
 
     sanitize_codec = functools.partial(try_get, getter=lambda x: x.split('.')[0].replace('0', ''))
     vcodec, acodec = sanitize_codec(vcodecs[0]), sanitize_codec(acodecs[0])
@@ -3483,6 +3485,8 @@ def get_compatible_ext(vcodecs, acodecs, vexts, aexts):
         {'mp3', 'mp4', 'm4a', 'm4p', 'm4b', 'm4r', 'm4v', 'ismv', 'isma'},
         {'webm'},
     )
+    if prefer_free_formats:
+        COMPATIBLE_EXTS = [{'webm'}]
 
     if any(ext_sets.issuperset((vexts[0], aexts[0])) for ext_sets in COMPATIBLE_EXTS):
         return vexts[0]
