@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
@@ -11,7 +8,7 @@ from ..utils import (
 
 
 class CanalAlphaIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?canalalpha\.ch/play/[^/]+/[^/]+/(?P<id>\d+)/?.*'
+    _VALID_URL = r'https?://(?:www\.)?canalalpha\.ch/play/[^/]+/[^/]+/(?P<id>\d+)/?.*'
 
     _TESTS = [{
         'url': 'https://www.canalalpha.ch/play/le-journal/episode/24520/jeudi-28-octobre-2021',
@@ -78,11 +75,11 @@ class CanalAlphaIE(InfoExtractor):
             'height': try_get(video, lambda x: x['res']['height'], expected_type=int),
         } for video in try_get(data_json, lambda x: x['video']['mp4'], expected_type=list) or [] if video.get('$url')]
         if manifests.get('hls'):
-            m3u8_frmts, m3u8_subs = self._parse_m3u8_formats_and_subtitles(manifests['hls'], id)
+            m3u8_frmts, m3u8_subs = self._parse_m3u8_formats_and_subtitles(manifests['hls'], video_id=id)
             formats.extend(m3u8_frmts)
             subtitles = self._merge_subtitles(subtitles, m3u8_subs)
         if manifests.get('dash'):
-            dash_frmts, dash_subs = self._parse_mpd_formats_and_subtitles(manifests['dash'], id)
+            dash_frmts, dash_subs = self._parse_mpd_formats_and_subtitles(manifests['dash'])
             formats.extend(dash_frmts)
             subtitles = self._merge_subtitles(subtitles, dash_subs)
         self._sort_formats(formats)

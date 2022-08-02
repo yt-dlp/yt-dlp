@@ -1,7 +1,3 @@
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -175,6 +171,7 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
 
 class TNAFlixNetworkEmbedIE(TNAFlixNetworkBaseIE):
     _VALID_URL = r'https?://player\.(?:tna|emp)flix\.com/video/(?P<id>\d+)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//player\.(?:tna|emp)flix\.com/video/\d+)\1']
 
     _TITLE_REGEX = r'<title>([^<]+)</title>'
 
@@ -195,12 +192,6 @@ class TNAFlixNetworkEmbedIE(TNAFlixNetworkBaseIE):
         'url': 'https://player.empflix.com/video/33051',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [url for _, url in re.findall(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//player\.(?:tna|emp)flix\.com/video/\d+)\1',
-            webpage)]
 
 
 class TNAEMPFlixBaseIE(TNAFlixNetworkBaseIE):

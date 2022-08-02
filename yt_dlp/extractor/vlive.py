@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import json
 
@@ -26,22 +23,16 @@ class VLiveBaseIE(NaverBaseIE):
     _NETRC_MACHINE = 'vlive'
     _logged_in = False
 
-    def _real_initialize(self):
-        if not self._logged_in:
-            VLiveBaseIE._logged_in = self._login()
-
-    def _login(self):
-        email, password = self._get_login_info()
-        if email is None:
-            return False
-
+    def _perform_login(self, username, password):
+        if self._logged_in:
+            return
         LOGIN_URL = 'https://www.vlive.tv/auth/email/login'
         self._request_webpage(
             LOGIN_URL, None, note='Downloading login cookies')
 
         self._download_webpage(
             LOGIN_URL, None, note='Logging in',
-            data=urlencode_postdata({'email': email, 'pwd': password}),
+            data=urlencode_postdata({'email': username, 'pwd': password}),
             headers={
                 'Referer': LOGIN_URL,
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -54,7 +45,7 @@ class VLiveBaseIE(NaverBaseIE):
 
         if not try_get(login_info, lambda x: x['message']['login'], bool):
             raise ExtractorError('Unable to log in', expected=True)
-        return True
+        VLiveBaseIE._logged_in = True
 
     def _call_api(self, path_template, video_id, fields=None, query_add={}, note=None):
         if note is None:
@@ -146,30 +137,24 @@ class VLiveIE(VLiveBaseIE):
             'post/v1.0/officialVideoPost-%s', video_id,
             'author{nickname},channel{channelCode,channelName},officialVideo{commentCount,exposeStatus,likeCount,playCount,playTime,status,title,type,vodId},playlist{playlistSeq,totalCount,name}')
 
-        playlist = post.get('playlist')
-        if not playlist or self.get_param('noplaylist'):
-            if playlist:
-                self.to_screen(
-                    'Downloading just video %s because of --no-playlist'
-                    % video_id)
-
+        playlist_id = str_or_none(try_get(post, lambda x: x['playlist']['playlistSeq']))
+        if not self._yes_playlist(playlist_id, video_id):
             video = post['officialVideo']
             return self._get_vlive_info(post, video, video_id)
-        else:
-            playlist_name = playlist.get('name')
-            playlist_id = str_or_none(playlist.get('playlistSeq'))
-            playlist_count = str_or_none(playlist.get('totalCount'))
 
-            playlist = self._call_api(
-                'playlist/v1.0/playlist-%s/posts', playlist_id, 'data', {'limit': playlist_count})
+        playlist_name = str_or_none(try_get(post, lambda x: x['playlist']['name']))
+        playlist_count = str_or_none(try_get(post, lambda x: x['playlist']['totalCount']))
 
-            entries = []
-            for video_data in playlist['data']:
-                video = video_data.get('officialVideo')
-                video_id = str_or_none(video.get('videoSeq'))
-                entries.append(self._get_vlive_info(video_data, video, video_id))
+        playlist = self._call_api(
+            'playlist/v1.0/playlist-%s/posts', playlist_id, 'data', {'limit': playlist_count})
 
-            return self.playlist_result(entries, playlist_id, playlist_name)
+        entries = []
+        for video_data in playlist['data']:
+            video = video_data.get('officialVideo')
+            video_id = str_or_none(video.get('videoSeq'))
+            entries.append(self._get_vlive_info(video_data, video, video_id))
+
+        return self.playlist_result(entries, playlist_id, playlist_name)
 
     def _get_vlive_info(self, post, video, video_id):
         def get_common_fields():
@@ -210,7 +195,7 @@ class VLiveIE(VLiveBaseIE):
                 self._sort_formats(formats)
                 info = get_common_fields()
                 info.update({
-                    'title': self._live_title(video['title']),
+                    'title': video['title'],
                     'id': video_id,
                     'formats': formats,
                     'is_live': True,

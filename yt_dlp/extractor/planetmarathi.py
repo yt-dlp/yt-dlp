@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     try_get,
@@ -9,7 +6,7 @@ from ..utils import (
 
 
 class PlanetMarathiIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?planetmarathi\.com/titles/(?P<id>[^/#&?$]+)'
+    _VALID_URL = r'https?://(?:www\.)?planetmarathi\.com/titles/(?P<id>[^/#&?$]+)'
     _TESTS = [{
         'url': 'https://www.planetmarathi.com/titles/ek-unad-divas',
         'playlist_mincount': 2,

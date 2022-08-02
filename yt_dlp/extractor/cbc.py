@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 import json
 import base64
@@ -11,11 +8,13 @@ from ..compat import (
     compat_str,
 )
 from ..utils import (
+    int_or_none,
+    join_nonempty,
     js_to_json,
-    smuggle_url,
-    try_get,
     orderedSet,
+    smuggle_url,
     strip_or_none,
+    try_get,
     ExtractorError,
 )
 
@@ -125,9 +124,9 @@ class CBCIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        title = self._og_search_title(webpage, default=None) or self._html_search_meta(
-            'twitter:title', webpage, 'title', default=None) or self._html_search_regex(
-                r'<title>([^<]+)</title>', webpage, 'title', fatal=False)
+        title = (self._og_search_title(webpage, default=None)
+                 or self._html_search_meta('twitter:title', webpage, 'title', default=None)
+                 or self._html_extract_title(webpage))
         entries = [
             self._extract_player_init(player_init, display_id)
             for player_init in re.findall(r'CBC\.APP\.Caffeine\.initInstance\(({.+?})\);', webpage)]
@@ -305,13 +304,45 @@ class CBCGemIE(InfoExtractor):
     def _get_claims_token(self, email, password):
         if not self.claims_token_valid():
             self._claims_token = self._new_claims_token(email, password)
-            self._downloader.cache.store(self._NETRC_MACHINE, 'claims_token', self._claims_token)
+            self.cache.store(self._NETRC_MACHINE, 'claims_token', self._claims_token)
         return self._claims_token
 
     def _real_initialize(self):
         if self.claims_token_valid():
             return
-        self._claims_token = self._downloader.cache.load(self._NETRC_MACHINE, 'claims_token')
+        self._claims_token = self.cache.load(self._NETRC_MACHINE, 'claims_token')
+
+    def _find_secret_formats(self, formats, video_id):
+        """ Find a valid video url and convert it to the secret variant """
+        base_format = next((f for f in formats if f.get('vcodec') != 'none'), None)
+        if not base_format:
+            return
+
+        base_url = re.sub(r'(Manifest\(.*?),filter=[\w-]+(.*?\))', r'\1\2', base_format['url'])
+        url = re.sub(r'(Manifest\(.*?),format=[\w-]+(.*?\))', r'\1\2', base_url)
+
+        secret_xml = self._download_xml(url, video_id, note='Downloading secret XML', fatal=False)
+        if not secret_xml:
+            return
+
+        for child in secret_xml:
+            if child.attrib.get('Type') != 'video':
+                continue
+            for video_quality in child:
+                bitrate = int_or_none(video_quality.attrib.get('Bitrate'))
+                if not bitrate or 'Index' not in video_quality.attrib:
+                    continue
+                height = int_or_none(video_quality.attrib.get('MaxHeight'))
+
+                yield {
+                    **base_format,
+                    'format_id': join_nonempty('sec', height),
+                    # Note: \g<1> is necessary instead of \1 since bitrate is a number
+                    'url': re.sub(r'(QualityLevels\()\d+(\))', fr'\g<1>{bitrate}\2', base_url),
+                    'width': int_or_none(video_quality.attrib.get('MaxWidth')),
+                    'tbr': bitrate / 1000.0,
+                    'height': height,
+                }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -335,6 +366,7 @@ class CBCGemIE(InfoExtractor):
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id='hls')
         self._remove_duplicate_formats(formats)
+        formats.extend(self._find_secret_formats(formats, video_id))
 
         for format in formats:
             if format.get('vcodec') == 'none':

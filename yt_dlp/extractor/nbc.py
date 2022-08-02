@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import base64
 import json
 import re
@@ -186,6 +184,7 @@ class NBCIE(ThePlatformIE):
 class NBCSportsVPlayerIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:vplayer\.nbcsports\.com|(?:www\.)?nbcsports\.com/vplayer)/'
     _VALID_URL = _VALID_URL_BASE + r'(?:[^/]+/)+(?P<id>[0-9a-zA-Z_]+)'
+    _EMBED_REGEX = [r'(?:iframe[^>]+|var video|div[^>]+data-(?:mpx-)?)[sS]rc\s?=\s?"(?P<url>%s[^\"]+)' % _VALID_URL_BASE]
 
     _TESTS = [{
         'url': 'https://vplayer.nbcsports.com/p/BxmELC/nbcsports_embed/select/9CsDKds0kvHI',
@@ -197,27 +196,22 @@ class NBCSportsVPlayerIE(InfoExtractor):
             'timestamp': 1426270238,
             'upload_date': '20150313',
             'uploader': 'NBCU-SPORTS',
+            'duration': 72.818,
+            'chapters': [],
+            'thumbnail': r're:^https?://.*\.jpg$'
         }
     }, {
-        'url': 'https://vplayer.nbcsports.com/p/BxmELC/nbcsports_embed/select/media/_hqLjQ95yx8Z',
+        'url': 'https://vplayer.nbcsports.com/p/BxmELC/nbcsports_embed/select/media/PEgOtlNcC_y2',
         'only_matching': True,
     }, {
         'url': 'https://www.nbcsports.com/vplayer/p/BxmELC/nbcsports/select/PHJSaFWbrTY9?form=html&autoPlay=true',
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_url(webpage):
-        iframe_m = re.search(
-            r'<(?:iframe[^>]+|div[^>]+data-(?:mpx-)?)src="(?P<url>%s[^"]+)"' % NBCSportsVPlayerIE._VALID_URL_BASE, webpage)
-        if iframe_m:
-            return iframe_m.group('url')
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        theplatform_url = self._og_search_video_url(webpage).replace(
-            'vplayer.nbcsports.com', 'player.theplatform.com')
+        theplatform_url = self._html_search_regex(r'tp:releaseUrl="(.+?)"', webpage, 'url')
         return self.url_result(theplatform_url, 'ThePlatform')
 
 
@@ -235,6 +229,9 @@ class NBCSportsIE(InfoExtractor):
             'uploader': 'NBCU-SPORTS',
             'upload_date': '20150330',
             'timestamp': 1427726529,
+            'chapters': [],
+            'thumbnail': 'https://hdliveextra-a.akamaihd.net/HD/image_sports/NBCU_Sports_Group_-_nbcsports/253/303/izzodps.jpg',
+            'duration': 528.395,
         }
     }, {
         # data-mpx-src
@@ -305,7 +302,7 @@ class NBCSportsStreamIE(AdobePassIE):
         self._sort_formats(formats)
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': live_source.get('description'),
             'formats': formats,
             'is_live': is_live,
@@ -314,6 +311,7 @@ class NBCSportsStreamIE(AdobePassIE):
 
 class NBCNewsIE(ThePlatformIE):
     _VALID_URL = r'(?x)https?://(?:www\.)?(?:nbcnews|today|msnbc)\.com/([^/]+/)*(?:.*-)?(?P<id>[^/?]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//www\.nbcnews\.com/widget/video-embed/[^"\']+)\1']
 
     _TESTS = [
         {
@@ -403,9 +401,7 @@ class NBCNewsIE(ThePlatformIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        data = self._parse_json(self._search_regex(
-            r'<script[^>]+id="__NEXT_DATA__"[^>]*>({.+?})</script>',
-            webpage, 'bootstrap json'), video_id)['props']['initialState']
+        data = self._search_nextjs_data(webpage, video_id)['props']['initialState']
         video_data = try_get(data, lambda x: x['video']['current'], dict)
         if not video_data:
             video_data = data['article']['content'][0]['primaryMedia']['video']
@@ -545,8 +541,6 @@ class NBCOlympicsStreamIE(AdobePassIE):
 
         title = event_config['eventTitle']
         is_live = {'live': True, 'replay': False}.get(event_config.get('eventStatus'))
-        if is_live:
-            title = self._live_title(title)
 
         source_url = self._download_json(
             f'https://api-leap.nbcsports.com/feeds/assets/{pid}?application=NBCOlympics&platform=desktop&format=nbc-player&env=staging',
@@ -580,7 +574,7 @@ class NBCOlympicsStreamIE(AdobePassIE):
         for f in formats:
             # -http_seekable requires ffmpeg 4.3+ but it doesnt seem possible to
             # download with ffmpeg without this option
-            f['_ffmpeg_args'] = ['-seekable', '0', '-http_seekable', '0', '-icy', '0']
+            f['downloader_options'] = {'ffmpeg_args': ['-seekable', '0', '-http_seekable', '0', '-icy', '0']}
         self._sort_formats(formats)
 
         return {

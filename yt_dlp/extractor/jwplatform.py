@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -8,7 +5,7 @@ from ..utils import unsmuggle_url
 
 
 class JWPlatformIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://(?:content\.jwplatform|cdn\.jwplayer)\.com/(?:(?:feed|player|thumb|preview)s|jw6|v2/media)/|jwplatform:)(?P<id>[a-zA-Z0-9]{8})'
+    _VALID_URL = r'(?:https?://(?:content\.jwplatform|cdn\.jwplayer)\.com/(?:(?:feed|player|thumb|preview|manifest)s|jw6|v2/media)/|jwplatform:)(?P<id>[a-zA-Z0-9]{8})'
     _TESTS = [{
         'url': 'http://content.jwplatform.com/players/nPripu9l-ALJ3XQCI.js',
         'md5': 'fa8899fa601eb7c83a64e9d568bdf325',
@@ -25,13 +22,8 @@ class JWPlatformIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_url(webpage):
-        urls = JWPlatformIE._extract_urls(webpage)
-        return urls[0] if urls else None
-
-    @staticmethod
-    def _extract_urls(webpage):
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
         for tag, key in ((r'(?:script|iframe)', 'src'), ('input', 'value')):
             # <input value=URL> is used by hyland.com
             # if we find <iframe>, dont look for <input>
@@ -40,6 +32,9 @@ class JWPlatformIE(InfoExtractor):
                 webpage)
             if ret:
                 return ret
+        mobj = re.search(r'<div\b[^>]* data-video-jw-id="([a-zA-Z0-9]{8})"', webpage)
+        if mobj:
+            return [f'jwplatform:{mobj.group(1)}']
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})

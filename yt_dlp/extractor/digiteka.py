@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..utils import int_or_none
 
@@ -28,6 +23,7 @@ class DigitekaIE(InfoExtractor):
             )
             /id
         )/(?P<id>[\d+a-z]+)'''
+    _EMBED_REGEX = [r'<(?:iframe|script)[^>]+src=["\'](?P<url>(?:https?:)?//(?:www\.)?ultimedia\.com/deliver/(?:generic|musique)(?:/[^/]+)*/(?:src|article)/[\d+a-z]+)']
     _TESTS = [{
         # news
         'url': 'https://www.ultimedia.com/default/index/videogeneric/id/s8uk0r',
@@ -60,14 +56,6 @@ class DigitekaIE(InfoExtractor):
         'url': 'https://www.digiteka.net/deliver/generic/iframe/mdtk/01637594/src/lqm3kl/zone/1/showtitle/1/autoplay/yes',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<(?:iframe|script)[^>]+src=["\'](?P<url>(?:https?:)?//(?:www\.)?ultimedia\.com/deliver/(?:generic|musique)(?:/[^/]+)*/(?:src|article)/[\d+a-z]+)',
-            webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

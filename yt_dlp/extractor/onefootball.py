@@ -1,11 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 
 
 class OneFootballIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?onefootball\.com/[a-z]{2}/video/[^/&?#]+-(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?onefootball\.com/[a-z]{2}/video/[^/&?#]+-(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://onefootball.com/en/video/highlights-fc-zuerich-3-3-fc-basel-34012334',

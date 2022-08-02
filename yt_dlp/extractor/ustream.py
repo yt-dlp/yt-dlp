@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import random
 import re
 
@@ -22,6 +20,7 @@ from ..utils import (
 class UstreamIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:ustream\.tv|video\.ibm\.com)/(?P<type>recorded|embed|embed/recorded)/(?P<id>\d+)'
     IE_NAME = 'ustream'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:www\.)?(?:ustream\.tv|video\.ibm\.com)/embed/.+?)\1']
     _TESTS = [{
         'url': 'http://www.ustream.tv/recorded/20274954',
         'md5': '088f151799e8f572f84eb62f17d73e5c',
@@ -72,13 +71,6 @@ class UstreamIE(InfoExtractor):
         'url': 'https://video.ibm.com/embed/recorded/128240221?&autoplay=true&controls=true&volume=100',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:www\.)?(?:ustream\.tv|video\.ibm\.com)/embed/.+?)\1', webpage)
-        if mobj is not None:
-            return mobj.group('url')
 
     def _get_stream_info(self, url, video_id, app_id_ver, extra_note=None):
         def num_to_hex(n):

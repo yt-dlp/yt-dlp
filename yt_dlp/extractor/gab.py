@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -15,7 +12,7 @@ from ..utils import (
 
 
 class GabTVIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)tv.gab.com/channel/[^/]+/view/(?P<id>[a-z0-9-]+)'
+    _VALID_URL = r'https?://tv\.gab\.com/channel/[^/]+/view/(?P<id>[a-z0-9-]+)'
     _TESTS = [{
         'url': 'https://tv.gab.com/channel/wurzelroot/view/why-was-america-in-afghanistan-61217eacea5665de450d0488',
         'info_dict': {

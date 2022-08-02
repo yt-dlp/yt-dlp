@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import js_to_json
@@ -10,6 +5,7 @@ from ..utils import js_to_json
 
 class OnionStudiosIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?onionstudios\.com/(?:video(?:s/[^/]+-|/)|embed\?.*\bid=)(?P<id>\d+)(?!-)'
+    _EMBED_REGEX = [r'(?s)<(?:iframe|bulbs-video)[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?onionstudios\.com/(?:embed.+?|video/\d+\.json))\1']
 
     _TESTS = [{
         'url': 'http://www.onionstudios.com/videos/hannibal-charges-forward-stops-for-a-cocktail-2937',
@@ -31,13 +27,6 @@ class OnionStudiosIE(InfoExtractor):
         'url': 'http://www.onionstudios.com/video/6139.json',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'(?s)<(?:iframe|bulbs-video)[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?onionstudios\.com/(?:embed.+?|video/\d+\.json))\1', webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

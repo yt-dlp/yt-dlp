@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -18,6 +15,7 @@ class ZypeIE(InfoExtractor):
     _ID_RE = r'[\da-fA-F]+'
     _COMMON_RE = r'//player\.zype\.com/embed/%s\.(?:js|json|html)\?.*?(?:access_token|(?:ap[ip]|player)_key)='
     _VALID_URL = r'https?:%s[^&]+' % (_COMMON_RE % ('(?P<id>%s)' % _ID_RE))
+    _EMBED_REGEX = [fr'<script[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?{_COMMON_RE % _ID_RE}.+?)\1']
     _TEST = {
         'url': 'https://player.zype.com/embed/5b400b834b32992a310622b9.js?api_key=jZ9GUhRmxcPvX7M3SlfejB6Hle9jyHTdk2jVxG7wOHPLODgncEKVdPYBhuz9iWXQ&autoplay=false&controls=true&da=false',
         'md5': 'eaee31d474c76a955bdaba02a505c595',
@@ -31,14 +29,6 @@ class ZypeIE(InfoExtractor):
             'upload_date': '20170909',
         },
     }
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<script[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?%s.+?)\1' % (ZypeIE._COMMON_RE % ZypeIE._ID_RE),
-                webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

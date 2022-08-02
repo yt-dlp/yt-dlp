@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -94,4 +91,5 @@ class CWTVIE(InfoExtractor):
             'timestamp': parse_iso8601(video_data.get('start_time')),
             'age_limit': parse_age_limit(video_data.get('rating')),
             'ie_key': 'ThePlatform',
+            'thumbnail': video_data.get('large_thumbnail')
         }

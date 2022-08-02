@@ -1,14 +1,16 @@
-from __future__ import unicode_literals
-
+import base64
+import json
 import re
+import urllib.parse
 
+from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from .once import OnceIE
-from ..compat import compat_str
 from ..utils import (
     determine_ext,
     dict_get,
     int_or_none,
+    traverse_obj,
     unified_strdate,
     unified_timestamp,
 )
@@ -26,7 +28,6 @@ class ESPNIE(OnceIE):
                                 (?:
                                     (?:
                                         video/(?:clip|iframe/twitter)|
-                                        watch/player
                                     )
                                     (?:
                                         .*?\?.*?\bid=|
@@ -49,6 +50,8 @@ class ESPNIE(OnceIE):
             'description': 'md5:39370c2e016cb4ecf498ffe75bef7f0f',
             'timestamp': 1390936111,
             'upload_date': '20140128',
+            'duration': 1302,
+            'thumbnail': r're:https://.+\.jpg',
         },
         'params': {
             'skip_download': True,
@@ -74,15 +77,6 @@ class ESPNIE(OnceIE):
         'url': 'https://cdn.espn.go.com/video/clip/_/id/19771774',
         'only_matching': True,
     }, {
-        'url': 'http://www.espn.com/watch/player?id=19141491',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.espn.com/watch/player?bucketId=257&id=19505875',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.espn.com/watch/player/_/id/19141491',
-        'only_matching': True,
-    }, {
         'url': 'http://www.espn.com/video/clip?id=10365079',
         'only_matching': True,
     }, {
@@ -100,7 +94,13 @@ class ESPNIE(OnceIE):
     }, {
         'url': 'http://www.espn.com/espnw/video/26066627/arkansas-gibson-completes-hr-cycle-four-innings',
         'only_matching': True,
-    }]
+    }, {
+        'url': 'http://www.espn.com/watch/player?id=19141491',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.espn.com/watch/player?bucketId=257&id=19505875',
+        'only_matching': True,
+    }, ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -118,7 +118,7 @@ class ESPNIE(OnceIE):
             for source_id, source in source.items():
                 if source_id == 'alert':
                     continue
-                elif isinstance(source, compat_str):
+                elif isinstance(source, str):
                     extract_source(source, base_source_id)
                 elif isinstance(source, dict):
                     traverse_source(
@@ -198,7 +198,7 @@ class ESPNArticleIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if ESPNIE.suitable(url) else super(ESPNArticleIE, cls).suitable(url)
+        return False if (ESPNIE.suitable(url) or WatchESPNIE.suitable(url)) else super().suitable(url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -278,4 +278,136 @@ class ESPNCricInfoIE(InfoExtractor):
             'duration': data_json.get('duration'),
             'formats': formats,
             'subtitles': subtitles,
+        }
+
+
+class WatchESPNIE(AdobePassIE):
+    _VALID_URL = r'https?://(?:www\.)?espn\.com/(?:watch|espnplus)/player/_/id/(?P<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'
+    _TESTS = [{
+        'url': 'https://www.espn.com/watch/player/_/id/dbbc6b1d-c084-4b47-9878-5f13c56ce309',
+        'info_dict': {
+            'id': 'dbbc6b1d-c084-4b47-9878-5f13c56ce309',
+            'ext': 'mp4',
+            'title': 'Huddersfield vs. Burnley',
+            'duration': 7500,
+            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/dbbc6b1d-c084-4b47-9878-5f13c56ce309/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.espn.com/watch/player/_/id/a049a56e-a7ce-477e-aef3-c7e48ef8221c',
+        'info_dict': {
+            'id': 'a049a56e-a7ce-477e-aef3-c7e48ef8221c',
+            'ext': 'mp4',
+            'title': 'Dynamo Dresden vs. VfB Stuttgart (Round #1) (German Cup)',
+            'duration': 8335,
+            'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/bd1f3d12-0654-47d9-852e-71b85ea695c7/16x9.jpg?timestamp=202201112217&showBadge=true&cb=12&package=ESPN_PLUS',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.espn.com/espnplus/player/_/id/317f5fd1-c78a-4ebe-824a-129e0d348421',
+        'info_dict': {
+            'id': '317f5fd1-c78a-4ebe-824a-129e0d348421',
+            'ext': 'mp4',
+            'title': 'The Wheel - Episode 10',
+            'duration': 3352,
+            'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/317f5fd1-c78a-4ebe-824a-129e0d348421/16x9.jpg?timestamp=202205031523&showBadge=true&cb=12&package=ESPN_PLUS',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+    _API_KEY = 'ZXNwbiZicm93c2VyJjEuMC4w.ptUt7QxsteaRruuPmGZFaJByOoqKvDP2a5YkInHrc7c'
+
+    def _call_bamgrid_api(self, path, video_id, payload=None, headers={}):
+        if 'Authorization' not in headers:
+            headers['Authorization'] = f'Bearer {self._API_KEY}'
+        parse = urllib.parse.urlencode if path == 'token' else json.dumps
+        return self._download_json(
+            f'https://espn.api.edge.bamgrid.com/{path}', video_id, headers=headers, data=parse(payload).encode())
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        cdn_data = self._download_json(
+            f'https://watch-cdn.product.api.espn.com/api/product/v3/watchespn/web/playback/event?id={video_id}',
+            video_id)
+        video_data = cdn_data['playbackState']
+
+        # ESPN+ subscription required, through cookies
+        if 'DTC' in video_data.get('sourceId'):
+            cookie = self._get_cookies(url).get('ESPN-ONESITE.WEB-PROD.token')
+            if not cookie:
+                self.raise_login_required(method='cookies')
+
+            assertion = self._call_bamgrid_api(
+                'devices', video_id,
+                headers={'Content-Type': 'application/json; charset=UTF-8'},
+                payload={
+                    'deviceFamily': 'android',
+                    'applicationRuntime': 'android',
+                    'deviceProfile': 'tv',
+                    'attributes': {},
+                })['assertion']
+            token = self._call_bamgrid_api(
+                'token', video_id, payload={
+                    'subject_token': assertion,
+                    'subject_token_type': 'urn:bamtech:params:oauth:token-type:device',
+                    'platform': 'android',
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'
+                })['access_token']
+
+            assertion = self._call_bamgrid_api(
+                'accounts/grant', video_id, payload={'id_token': cookie.value.split('|')[1]},
+                headers={
+                    'Authorization': token,
+                    'Content-Type': 'application/json; charset=UTF-8'
+                })['assertion']
+            token = self._call_bamgrid_api(
+                'token', video_id, payload={
+                    'subject_token': assertion,
+                    'subject_token_type': 'urn:bamtech:params:oauth:token-type:account',
+                    'platform': 'android',
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'
+                })['access_token']
+
+            playback = self._download_json(
+                video_data['videoHref'].format(scenario='browser~ssai'), video_id,
+                headers={
+                    'Accept': 'application/vnd.media-service+json; version=5',
+                    'Authorization': token
+                })
+            m3u8_url, headers = playback['stream']['complete'][0]['url'], {'authorization': token}
+
+        # No login required
+        elif video_data.get('sourceId') == 'ESPN_FREE':
+            asset = self._download_json(
+                f'https://watch.auth.api.espn.com/video/auth/media/{video_id}/asset?apikey=uiqlbgzdwuru14v627vdusswb',
+                video_id)
+            m3u8_url, headers = asset['stream'], {}
+
+        # TV Provider required
+        else:
+            resource = self._get_mvpd_resource('ESPN', video_data['name'], video_id, None)
+            auth = self._extract_mvpd_auth(url, video_id, 'ESPN', resource).encode()
+
+            asset = self._download_json(
+                f'https://watch.auth.api.espn.com/video/auth/media/{video_id}/asset?apikey=uiqlbgzdwuru14v627vdusswb',
+                video_id, data=f'adobeToken={urllib.parse.quote_plus(base64.b64encode(auth))}&drmSupport=HLS'.encode())
+            m3u8_url, headers = asset['stream'], {}
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id='hls')
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'duration': traverse_obj(cdn_data, ('tracking', 'duration')),
+            'title': video_data.get('name'),
+            'formats': formats,
+            'subtitles': subtitles,
+            'thumbnail': video_data.get('posterHref'),
+            'http_headers': headers,
         }

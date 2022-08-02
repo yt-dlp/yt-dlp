@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -20,6 +15,7 @@ class VideoPressIE(InfoExtractor):
     _ID_REGEX = r'[\da-zA-Z]{8}'
     _PATH_REGEX = r'video(?:\.word)?press\.com/embed/'
     _VALID_URL = r'https?://%s(?P<id>%s)' % (_PATH_REGEX, _ID_REGEX)
+    _EMBED_REGEX = [rf'<iframe[^>]+src=["\'](?P<url>(?:https?://)?{_PATH_REGEX}{_ID_REGEX})']
     _TESTS = [{
         'url': 'https://videopress.com/embed/kUJmAcSf',
         'md5': '706956a6c875873d51010921310e4bc6',
@@ -41,12 +37,6 @@ class VideoPressIE(InfoExtractor):
         'url': 'https://video.wordpress.com/embed/kUJmAcSf',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+src=["\']((?:https?://)?%s%s)' % (VideoPressIE._PATH_REGEX, VideoPressIE._ID_REGEX),
-            webpage)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

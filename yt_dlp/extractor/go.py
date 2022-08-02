@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .adobepass import AdobePassIE
@@ -14,6 +11,8 @@ from ..utils import (
     try_get,
     urlencode_postdata,
     ExtractorError,
+    unified_timestamp,
+    traverse_obj,
 )
 
 
@@ -73,7 +72,7 @@ class GoIE(AdobePassIE):
         },
         'skip': 'This content is no longer available.',
     }, {
-        'url': 'http://watchdisneyxd.go.com/doraemon',
+        'url': 'https://disneynow.com/shows/big-hero-6-the-series',
         'info_dict': {
             'title': 'Doraemon',
             'id': 'SH55574025',
@@ -83,10 +82,19 @@ class GoIE(AdobePassIE):
         'url': 'http://freeform.go.com/shows/shadowhunters/episodes/season-2/1-this-guilty-blood',
         'info_dict': {
             'id': 'VDKA3609139',
-            'ext': 'mp4',
             'title': 'This Guilty Blood',
             'description': 'md5:f18e79ad1c613798d95fdabfe96cd292',
             'age_limit': 14,
+            'episode': 'Episode 1',
+            'upload_date': '20170102',
+            'season': 'Season 2',
+            'thumbnail': 'http://cdn1.edgedatg.com/aws/v2/abcf/Shadowhunters/video/201/ae5f75608d86bf88aa4f9f4aa76ab1b7/579x325-Q100_ae5f75608d86bf88aa4f9f4aa76ab1b7.jpg',
+            'duration': 2544,
+            'season_number': 2,
+            'series': 'Shadowhunters',
+            'episode_number': 1,
+            'timestamp': 1483387200,
+            'ext': 'mp4'
         },
         'params': {
             'geo_bypass_ip_block': '3.244.239.0/24',
@@ -94,13 +102,22 @@ class GoIE(AdobePassIE):
             'skip_download': True,
         },
     }, {
-        'url': 'https://abc.com/shows/the-rookie/episode-guide/season-02/03-the-bet',
+        'url': 'https://abc.com/shows/the-rookie/episode-guide/season-04/12-the-knock',
         'info_dict': {
-            'id': 'VDKA13435179',
-            'ext': 'mp4',
-            'title': 'The Bet',
-            'description': 'md5:c66de8ba2e92c6c5c113c3ade84ab404',
+            'id': 'VDKA26050359',
+            'title': 'The Knock',
+            'description': 'md5:0c2947e3ada4c31f28296db7db14aa64',
             'age_limit': 14,
+            'ext': 'mp4',
+            'thumbnail': 'http://cdn1.edgedatg.com/aws/v2/abc/TheRookie/video/412/daf830d06e83b11eaf5c0a299d993ae3/1556x876-Q75_daf830d06e83b11eaf5c0a299d993ae3.jpg',
+            'episode': 'Episode 12',
+            'season_number': 4,
+            'season': 'Season 4',
+            'timestamp': 1642975200,
+            'episode_number': 12,
+            'upload_date': '20220123',
+            'series': 'The Rookie',
+            'duration': 2572,
         },
         'params': {
             'geo_bypass_ip_block': '3.244.239.0/24',
@@ -111,24 +128,18 @@ class GoIE(AdobePassIE):
         'url': 'https://fxnow.fxnetworks.com/shows/better-things/video/vdka12782841',
         'info_dict': {
             'id': 'VDKA12782841',
-            'ext': 'mp4',
             'title': 'First Look: Better Things - Season 2',
             'description': 'md5:fa73584a95761c605d9d54904e35b407',
+            'ext': 'mp4',
+            'age_limit': 14,
+            'upload_date': '20170825',
+            'duration': 161,
+            'series': 'Better Things',
+            'thumbnail': 'http://cdn1.edgedatg.com/aws/v2/fx/BetterThings/video/12782841/b6b05e58264121cc2c98811318e6d507/1556x876-Q75_b6b05e58264121cc2c98811318e6d507.jpg',
+            'timestamp': 1503661074,
         },
         'params': {
             'geo_bypass_ip_block': '3.244.239.0/24',
-            # m3u8 download
-            'skip_download': True,
-        },
-    }, {
-        'url': 'https://abc.com/shows/modern-family/episode-guide/season-01/101-pilot',
-        'info_dict': {
-            'id': 'VDKA22600213',
-            'ext': 'mp4',
-            'title': 'Pilot',
-            'description': 'md5:74306df917cfc199d76d061d66bebdb4',
-        },
-        'params': {
             # m3u8 download
             'skip_download': True,
         },
@@ -217,6 +228,7 @@ class GoIE(AdobePassIE):
         title = video_data['title']
 
         formats = []
+        subtitles = {}
         for asset in video_data.get('assets', {}).get('asset', []):
             asset_url = asset.get('value')
             if not asset_url:
@@ -256,8 +268,10 @@ class GoIE(AdobePassIE):
                     error_message = ', '.join([error['message'] for error in errors])
                     raise ExtractorError('%s said: %s' % (self.IE_NAME, error_message), expected=True)
                 asset_url += '?' + entitlement['uplynkData']['sessionKey']
-                formats.extend(self._extract_m3u8_formats(
-                    asset_url, video_id, 'mp4', m3u8_id=format_id or 'hls', fatal=False))
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    asset_url, video_id, 'mp4', m3u8_id=format_id or 'hls', fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             else:
                 f = {
                     'format_id': format_id,
@@ -281,7 +295,6 @@ class GoIE(AdobePassIE):
                 formats.append(f)
         self._sort_formats(formats)
 
-        subtitles = {}
         for cc in video_data.get('closedcaption', {}).get('src', []):
             cc_url = cc.get('value')
             if not cc_url:
@@ -317,4 +330,5 @@ class GoIE(AdobePassIE):
             'thumbnails': thumbnails,
             'formats': formats,
             'subtitles': subtitles,
+            'timestamp': unified_timestamp(traverse_obj(video_data, ('airdates', 'airdate', 0))),
         }

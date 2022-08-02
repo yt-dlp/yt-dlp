@@ -1,12 +1,10 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    int_or_none
+    int_or_none,
+    str_to_int
 )
 
 
@@ -22,6 +20,10 @@ class RUTVIE(InfoExtractor):
                         )
                         (?P<id>\d+)
                     '''
+    _EMBED_URLS = [
+        r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/(?:iframe/(?:swf|video|live)/id|index/iframe/cast_id)/.+?)\1',
+        r'<meta[^>]+?property=(["\'])og:video\1[^>]+?content=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/flash\d+v/container\.swf\?id=.+?\2)',
+    ]
 
     _TESTS = [
         {
@@ -109,19 +111,6 @@ class RUTVIE(InfoExtractor):
         },
     ]
 
-    @classmethod
-    def _extract_url(cls, webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/(?:iframe/(?:swf|video|live)/id|index/iframe/cast_id)/.+?)\1', webpage)
-        if mobj:
-            return mobj.group('url')
-
-        mobj = re.search(
-            r'<meta[^>]+?property=(["\'])og:video\1[^>]+?content=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/flash\d+v/container\.swf\?id=.+?\2)',
-            webpage)
-        if mobj:
-            return mobj.group('url')
-
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
@@ -179,8 +168,7 @@ class RUTVIE(InfoExtractor):
                         'player_url': 'http://player.rutv.ru/flash3v/osmf.swf?i=22',
                         'rtmp_live': True,
                         'ext': 'flv',
-                        'vbr': int(quality),
-                        'quality': preference,
+                        'vbr': str_to_int(quality),
                     }
                 elif transport == 'm3u8':
                     formats.extend(self._extract_m3u8_formats(
@@ -191,9 +179,10 @@ class RUTVIE(InfoExtractor):
                         'url': url
                     }
                 fmt.update({
-                    'width': width,
-                    'height': height,
+                    'width': int_or_none(quality, default=height, invscale=width, scale=height),
+                    'height': int_or_none(quality, default=height),
                     'format_id': '%s-%s' % (transport, quality),
+                    'source_preference': preference,
                 })
                 formats.append(fmt)
 
@@ -201,7 +190,7 @@ class RUTVIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': description,
             'thumbnail': thumbnail,
             'view_count': view_count,

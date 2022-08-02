@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -21,6 +16,7 @@ class TwentyMinutenIE(InfoExtractor):
                         )
                         (?P<id>\d+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:(?:https?:)?//)?(?:www\.)?20min\.ch/videoplayer/videoplayer.html\?.*?\bvideoId@\d+.*?)\1']
     _TESTS = [{
         'url': 'http://www.20min.ch/videotv/?vid=469148&cid=2',
         'md5': 'e7264320db31eed8c38364150c12496e',
@@ -46,12 +42,6 @@ class TwentyMinutenIE(InfoExtractor):
         'url': 'http://www.20min.ch/videotv/?cid=44&vid=468738',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [m.group('url') for m in re.finditer(
-            r'<iframe[^>]+src=(["\'])(?P<url>(?:(?:https?:)?//)?(?:www\.)?20min\.ch/videoplayer/videoplayer.html\?.*?\bvideoId@\d+.*?)\1',
-            webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

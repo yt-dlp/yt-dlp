@@ -1,5 +1,3 @@
-# coding: utf-8
-
 from .common import InfoExtractor
 from ..utils import (
     try_get,
@@ -22,7 +20,7 @@ class WPPilotBaseIE(InfoExtractor):
 
     def _get_channel_list(self, cache=True):
         if cache is True:
-            cache_res = self._downloader.cache.load('wppilot', 'channel-list')
+            cache_res = self.cache.load('wppilot', 'channel-list')
             if cache_res:
                 return cache_res, True
         webpage = self._download_webpage('https://pilot.wp.pl/tv/', None, 'Downloading webpage')
@@ -37,7 +35,7 @@ class WPPilotBaseIE(InfoExtractor):
             channel_list = try_get(qhash_content, lambda x: x['data']['allChannels']['nodes'])
             if channel_list is None:
                 continue
-            self._downloader.cache.store('wppilot', 'channel-list', channel_list)
+            self.cache.store('wppilot', 'channel-list', channel_list)
             return channel_list, False
         raise ExtractorError('Unable to find the channel list')
 
@@ -103,7 +101,7 @@ class WPPilotIE(WPPilotBaseIE):
         channel = self._get_channel(video_id)
         video_id = str(channel['id'])
 
-        is_authorized = next((c for c in self._downloader.cookiejar if c.name == 'netviapisessid'), None)
+        is_authorized = next((c for c in self.cookiejar if c.name == 'netviapisessid'), None)
         # cookies starting with "g:" are assigned to guests
         is_authorized = True if is_authorized is not None and not is_authorized.value.startswith('g:') else False
 

@@ -1,8 +1,3 @@
-# coding: utf-8
-
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -37,6 +32,7 @@ class FranceTVIE(InfoExtractor):
                         (?P<id>[^@]+)(?:@(?P<catalog>.+))?
                     )
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?://)?embed\.francetv\.fr/\?ue=.+?)\1']
 
     _TESTS = [{
         # without catalog
@@ -187,7 +183,7 @@ class FranceTVIE(InfoExtractor):
                 'protocol': 'mhtml',
                 'url': 'about:invalid',
                 'fragments': [{
-                    'path': sheet,
+                    'url': sheet,
                     # XXX: not entirely accurate; each spritesheet seems to be
                     # a 10×10 grid of thumbnails corresponding to approximately
                     # 2 seconds of the video; the last spritesheet may be shorter
@@ -203,7 +199,7 @@ class FranceTVIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'thumbnail': image,
             'duration': duration,
             'timestamp': timestamp,
@@ -375,7 +371,7 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
 
         webpage = self._download_webpage(url, display_id)
 
-        dailymotion_urls = DailymotionIE._extract_urls(webpage)
+        dailymotion_urls = DailymotionIE._extract_embed_urls(url, webpage)
         if dailymotion_urls:
             return self.playlist_result([
                 self.url_result(dailymotion_url, DailymotionIE.ie_key())

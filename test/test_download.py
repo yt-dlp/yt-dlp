@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+import collections
+import hashlib
+import http.client
+import json
+import socket
+import urllib.error
 
 from test.helper import (
     assertGreaterEqual,
@@ -14,30 +21,21 @@ from test.helper import (
     expect_warnings,
     get_params,
     gettestcases,
+    getwebpagetestcases,
     is_download_test,
     report_warning,
     try_rm,
 )
 
-
-import hashlib
-import io
-import json
-import socket
-
-import yt_dlp.YoutubeDL
-from yt_dlp.compat import (
-    compat_http_client,
-    compat_urllib_error,
-    compat_HTTPError,
-)
+import yt_dlp.YoutubeDL  # isort: split
+from yt_dlp.extractor import get_info_extractor
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
-    format_bytes,
     UnavailableVideoError,
+    format_bytes,
+    join_nonempty,
 )
-from yt_dlp.extractor import get_info_extractor
 
 RETRIES = 3
 
@@ -46,15 +44,15 @@ class YoutubeDL(yt_dlp.YoutubeDL):
     def __init__(self, *args, **kwargs):
         self.to_stderr = self.to_screen
         self.processed_info_dicts = []
-        super(YoutubeDL, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-    def report_warning(self, message):
+    def report_warning(self, message, *args, **kwargs):
         # Don't accept warnings during tests
         raise ExtractorError(message)
 
     def process_info(self, info_dict):
-        self.processed_info_dicts.append(info_dict)
-        return super(YoutubeDL, self).process_info(info_dict)
+        self.processed_info_dicts.append(info_dict.copy())
+        return super().process_info(info_dict)
 
 
 def _file_md5(fn):
@@ -62,7 +60,9 @@ def _file_md5(fn):
         return hashlib.md5(f.read()).hexdigest()
 
 
-defs = gettestcases()
+normal_test_cases = gettestcases()
+webpage_test_cases = getwebpagetestcases()
+tests_counter = collections.defaultdict(collections.Counter)
 
 
 @is_download_test
@@ -77,24 +77,13 @@ class TestDownload(unittest.TestCase):
 
     def __str__(self):
         """Identify each test with the `add_ie` attribute, if available."""
+        cls, add_ie = type(self), getattr(self, self._testMethodName).add_ie
+        return f'{self._testMethodName} ({cls.__module__}.{cls.__name__}){f" [{add_ie}]" if add_ie else ""}:'
 
-        def strclass(cls):
-            """From 2.7's unittest; 2.6 had _strclass so we can't import it."""
-            return '%s.%s' % (cls.__module__, cls.__name__)
-
-        add_ie = getattr(self, self._testMethodName).add_ie
-        return '%s (%s)%s:' % (self._testMethodName,
-                               strclass(self.__class__),
-                               ' [%s]' % add_ie if add_ie else '')
-
-    def setUp(self):
-        self.defs = defs
 
 # Dynamically generate tests
 
-
 def generator(test_case, tname):
-
     def test_template(self):
         if self.COMPLETED_TESTS.get(tname):
             return
@@ -107,9 +96,10 @@ def generator(test_case, tname):
 
         def print_skipping(reason):
             print('Skipping %s: %s' % (test_case['name'], reason))
+            self.skipTest(reason)
+
         if not ie.working():
             print_skipping('IE marked as not _WORKING')
-            return
 
         for tc in test_cases:
             info_dict = tc.get('info_dict', {})
@@ -123,11 +113,10 @@ def generator(test_case, tname):
 
         if 'skip' in test_case:
             print_skipping(test_case['skip'])
-            return
+
         for other_ie in other_ies:
             if not other_ie.working():
                 print_skipping('test depends on %sIE, marked as not WORKING' % other_ie.ie_key())
-                return
 
         params = get_params(test_case.get('params', {}))
         params['outtmpl'] = tname + '_' + params['outtmpl']
@@ -172,14 +161,14 @@ def generator(test_case, tname):
                         force_generic_extractor=params.get('force_generic_extractor', False))
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
-                    if not err.exc_info[0] in (compat_urllib_error.URLError, socket.timeout, UnavailableVideoError, compat_http_client.BadStatusLine) or (err.exc_info[0] == compat_HTTPError and err.exc_info[1].code == 503):
+                    if not err.exc_info[0] in (urllib.error.URLError, socket.timeout, UnavailableVideoError, http.client.BadStatusLine) or (err.exc_info[0] == urllib.error.HTTPError and err.exc_info[1].code == 503):
                         raise
 
                     if try_num == RETRIES:
                         report_warning('%s failed due to network errors, skipping...' % tname)
                         return
 
-                    print('Retrying: {0} failed tries\n\n##########\n\n'.format(try_num))
+                    print(f'Retrying: {try_num} failed tries\n\n##########\n\n')
 
                     try_num += 1
                 else:
@@ -245,7 +234,7 @@ def generator(test_case, tname):
                 self.assertTrue(
                     os.path.exists(info_json_fn),
                     'Missing info file %s' % info_json_fn)
-                with io.open(info_json_fn, encoding='utf-8') as infof:
+                with open(info_json_fn, encoding='utf-8') as infof:
                     info_dict = json.load(infof)
                 expect_info_dict(self, info_dict, tc.get('info_dict', {}))
         finally:
@@ -260,35 +249,43 @@ def generator(test_case, tname):
 
 
 # And add them to TestDownload
-tests_counter = {}
-for test_case in defs:
-    name = test_case['name']
-    i = tests_counter.get(name, 0)
-    tests_counter[name] = i + 1
-    tname = f'test_{name}_{i}' if i else f'test_{name}'
-    test_method = generator(test_case, tname)
-    test_method.__name__ = str(tname)
-    ie_list = test_case.get('add_ie')
-    test_method.add_ie = ie_list and ','.join(ie_list)
-    setattr(TestDownload, test_method.__name__, test_method)
-    del test_method
+def inject_tests(test_cases, label=''):
+    for test_case in test_cases:
+        name = test_case['name']
+        tname = join_nonempty('test', name, label, tests_counter[name][label], delim='_')
+        tests_counter[name][label] += 1
+
+        test_method = generator(test_case, tname)
+        test_method.__name__ = tname
+        test_method.add_ie = ','.join(test_case.get('add_ie', []))
+        setattr(TestDownload, test_method.__name__, test_method)
 
 
-def batch_generator(name, num_tests):
+inject_tests(normal_test_cases)
 
+# TODO: disable redirection to the IE to ensure we are actually testing the webpage extraction
+inject_tests(webpage_test_cases, 'webpage')
+
+
+def batch_generator(name):
     def test_template(self):
-        for i in range(num_tests):
-            getattr(self, f'test_{name}_{i}' if i else f'test_{name}')()
+        for label, num_tests in tests_counter[name].items():
+            for i in range(num_tests):
+                test_name = join_nonempty('test', name, label, i, delim='_')
+                try:
+                    getattr(self, test_name)()
+                except unittest.SkipTest:
+                    print(f'Skipped {test_name}')
 
     return test_template
 
 
-for name, num_tests in tests_counter.items():
-    test_method = batch_generator(name, num_tests)
+for name in tests_counter:
+    test_method = batch_generator(name)
     test_method.__name__ = f'test_{name}_all'
     test_method.add_ie = ''
     setattr(TestDownload, test_method.__name__, test_method)
-    del test_method
+del test_method
 
 
 if __name__ == '__main__':

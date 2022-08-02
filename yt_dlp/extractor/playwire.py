@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     dict_get,
@@ -10,6 +7,8 @@ from ..utils import (
 
 class PlaywireIE(InfoExtractor):
     _VALID_URL = r'https?://(?:config|cdn)\.playwire\.com(?:/v2)?/(?P<publisher_id>\d+)/(?:videos/v2|embed|config)/(?P<id>\d+)'
+    _EMBED_REGEX = [r'<script[^>]+data-config=(["\'])(?P<url>(?:https?:)?//config\.playwire\.com/.+?)\1']
+
     _TESTS = [{
         'url': 'http://config.playwire.com/14907/videos/v2/3353705/player.json',
         'md5': 'e6398701e3595888125729eaa2329ed9',

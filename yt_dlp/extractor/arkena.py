@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -22,6 +17,8 @@ class ArkenaIE(InfoExtractor):
                                 play\.arkena\.com/(?:config|embed)/avp/v\d/player/media/(?P<id>[^/]+)/[^/]+/(?P<account_id>\d+)
                             )
                         '''
+    # See https://support.arkena.com/display/PLAY/Ways+to+embed+your+video
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//play\.arkena\.com/embed/avp/.+?)\1']
     _TESTS = [{
         'url': 'https://video.qbrick.com/play2/embed/player?accountId=1034090&mediaId=d8ab4607-00090107-aab86310',
         'md5': '97f117754e5f3c020f5f26da4a44ebaf',
@@ -52,15 +49,6 @@ class ArkenaIE(InfoExtractor):
         'url': 'http://video.arkena.com/play2/embed/player?accountId=472718&mediaId=35763b3b-00090078-bf604299&pageStyling=styled',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_url(webpage):
-        # See https://support.arkena.com/display/PLAY/Ways+to+embed+your+video
-        mobj = re.search(
-            r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//play\.arkena\.com/embed/avp/.+?)\1',
-            webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

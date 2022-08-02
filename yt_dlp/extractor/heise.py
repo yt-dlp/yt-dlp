@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from .kaltura import KalturaIE
 from .youtube import YoutubeIE
@@ -124,7 +121,7 @@ class HeiseIE(InfoExtractor):
         if kaltura_id:
             return _make_kaltura_result('kaltura:2238431:%s' % kaltura_id)
 
-        yt_urls = YoutubeIE._extract_urls(webpage)
+        yt_urls = YoutubeIE._extract_embed_urls(url, webpage)
         if yt_urls:
             return self.playlist_from_matches(
                 yt_urls, video_id, title, ie=YoutubeIE.ie_key())

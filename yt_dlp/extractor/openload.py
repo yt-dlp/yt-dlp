@@ -1,23 +1,16 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
+import contextlib
 import json
 import os
 import subprocess
 import tempfile
 
-from ..compat import (
-    compat_urlparse,
-    compat_kwargs,
-)
+from ..compat import compat_urlparse
 from ..utils import (
-    check_executable,
-    encodeArgument,
     ExtractorError,
+    Popen,
+    check_executable,
     get_exe_version,
     is_outdated_version,
-    std_headers,
-    Popen,
 )
 
 
@@ -38,13 +31,11 @@ def cookie_to_dict(cookie):
         cookie_dict['secure'] = cookie.secure
     if cookie.discard is not None:
         cookie_dict['discard'] = cookie.discard
-    try:
+    with contextlib.suppress(TypeError):
         if (cookie.has_nonstandard_attr('httpOnly')
                 or cookie.has_nonstandard_attr('httponly')
                 or cookie.has_nonstandard_attr('HttpOnly')):
             cookie_dict['httponly'] = True
-    except TypeError:
-        pass
     return cookie_dict
 
 
@@ -52,7 +43,7 @@ def cookie_jar_to_list(cookie_jar):
     return [cookie_to_dict(cookie) for cookie in cookie_jar]
 
 
-class PhantomJSwrapper(object):
+class PhantomJSwrapper:
     """PhantomJS wrapper class
 
     This class is experimental.
@@ -113,9 +104,8 @@ class PhantomJSwrapper(object):
 
         self.exe = check_executable('phantomjs', ['-v'])
         if not self.exe:
-            raise ExtractorError('PhantomJS executable not found in PATH, '
-                                 'download it from http://phantomjs.org',
-                                 expected=True)
+            raise ExtractorError(
+                'PhantomJS not found, Please download it from https://phantomjs.org/download.html', expected=True)
 
         self.extractor = extractor
 
@@ -136,13 +126,11 @@ class PhantomJSwrapper(object):
 
     def __del__(self):
         for name in self._TMP_FILE_NAMES:
-            try:
+            with contextlib.suppress(OSError, KeyError):
                 os.remove(self._TMP_FILES[name].name)
-            except (IOError, OSError, KeyError):
-                pass
 
     def _save_cookies(self, url):
-        cookies = cookie_jar_to_list(self.extractor._downloader.cookiejar)
+        cookies = cookie_jar_to_list(self.extractor.cookiejar)
         for cookie in cookies:
             if 'path' not in cookie:
                 cookie['path'] = '/'
@@ -159,7 +147,7 @@ class PhantomJSwrapper(object):
                 cookie['rest'] = {'httpOnly': None}
             if 'expiry' in cookie:
                 cookie['expire_time'] = cookie['expiry']
-            self.extractor._set_cookie(**compat_kwargs(cookie))
+            self.extractor._set_cookie(**cookie)
 
     def get(self, url, html=None, video_id=None, note=None, note2='Executing JS on webpage', headers={}, jscode='saveAndExit();'):
         """
@@ -208,7 +196,7 @@ class PhantomJSwrapper(object):
 
         replaces = self.options
         replaces['url'] = url
-        user_agent = headers.get('User-Agent') or std_headers['User-Agent']
+        user_agent = headers.get('User-Agent') or self.extractor.get_param('http_headers')['User-Agent']
         replaces['ua'] = user_agent.replace('"', '\\"')
         replaces['jscode'] = jscode
 
@@ -219,20 +207,18 @@ class PhantomJSwrapper(object):
             f.write(self._TEMPLATE.format(**replaces).encode('utf-8'))
 
         if video_id is None:
-            self.extractor.to_screen('%s' % (note2,))
+            self.extractor.to_screen(f'{note2}')
         else:
-            self.extractor.to_screen('%s: %s' % (video_id, note2))
+            self.extractor.to_screen(f'{video_id}: {note2}')
 
-        p = Popen(
+        stdout, stderr, returncode = Popen.run(
             [self.exe, '--ssl-protocol=any', self._TMP_FILES['script'].name],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate_or_kill()
-        if p.returncode != 0:
-            raise ExtractorError(
-                'Executing JS failed\n:' + encodeArgument(err))
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if returncode:
+            raise ExtractorError(f'Executing JS failed:\n{stderr}')
         with open(self._TMP_FILES['html'].name, 'rb') as f:
             html = f.read().decode('utf-8')
 
         self._load_cookies()
 
-        return (html, encodeArgument(out))
+        return html, stdout

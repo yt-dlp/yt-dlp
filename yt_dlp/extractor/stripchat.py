@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
@@ -13,7 +10,7 @@ from ..utils import (
 
 
 class StripchatIE(InfoExtractor):
-    _VALID_URL = r'https?://stripchat\.com/(?P<id>[0-9A-Za-z-_]+)'
+    _VALID_URL = r'https?://stripchat\.com/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://stripchat.com/feel_me',
         'info_dict': {
@@ -25,6 +22,9 @@ class StripchatIE(InfoExtractor):
             'age_limit': 18,
         },
         'skip': 'Room is offline',
+    }, {
+        'url': 'https://stripchat.com/Rakhijaan@xh',
+        'only_matching': True
     }]
 
     def _real_extract(self, url):
@@ -57,7 +57,7 @@ class StripchatIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(video_id),
+            'title': video_id,
             'description': self._og_search_description(webpage),
             'is_live': True,
             'formats': formats,

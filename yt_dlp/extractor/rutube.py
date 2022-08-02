@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
 import itertools
 
 from .common import InfoExtractor
@@ -97,6 +93,7 @@ class RutubeIE(RutubeBaseIE):
     IE_NAME = 'rutube'
     IE_DESC = 'Rutube videos'
     _VALID_URL = r'https?://rutube\.ru/(?:video|(?:play/)?embed)/(?P<id>[\da-z]{32})'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//rutube\.ru/embed/[\da-z]{32}.*?)\1']
 
     _TESTS = [{
         'url': 'http://rutube.ru/video/3eac3b4561676c17df9132a9a1e62e3e/',
@@ -130,12 +127,6 @@ class RutubeIE(RutubeBaseIE):
     @classmethod
     def suitable(cls, url):
         return False if RutubePlaylistIE.suitable(url) else super(RutubeIE, cls).suitable(url)
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [mobj.group('url') for mobj in re.finditer(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//rutube\.ru/embed/[\da-z]{32}.*?)\1',
-            webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -230,9 +221,9 @@ class RutubePlaylistBaseIE(RutubeBaseIE):
         return self._extract_playlist(self._match_id(url))
 
 
-class RutubeChannelIE(RutubePlaylistBaseIE):
-    IE_NAME = 'rutube:channel'
-    IE_DESC = 'Rutube channels'
+class RutubeTagsIE(RutubePlaylistBaseIE):
+    IE_NAME = 'rutube:tags'
+    IE_DESC = 'Rutube tags'
     _VALID_URL = r'https?://rutube\.ru/tags/video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://rutube.ru/tags/video/1800/',
@@ -312,3 +303,18 @@ class RutubePlaylistIE(RutubePlaylistBaseIE):
         playlist_kind = qs['pl_type'][0]
         playlist_id = qs['pl_id'][0]
         return self._extract_playlist(playlist_id, item_kind=playlist_kind)
+
+
+class RutubeChannelIE(RutubePlaylistBaseIE):
+    IE_NAME = 'rutube:channel'
+    IE_DESC = 'Rutube channel'
+    _VALID_URL = r'https?://rutube\.ru/channel/(?P<id>\d+)/videos'
+    _TESTS = [{
+        'url': 'https://rutube.ru/channel/639184/videos/',
+        'info_dict': {
+            'id': '639184',
+        },
+        'playlist_mincount': 133,
+    }]
+
+    _PAGE_TEMPLATE = 'http://rutube.ru/api/video/person/%s/?page=%s&format=json'

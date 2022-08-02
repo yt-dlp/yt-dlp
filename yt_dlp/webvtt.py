@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals, print_function, division
-
 """
 A partial parser for WebVTT segments. Interprets enough of the WebVTT stream
 to be able to assemble a single stand-alone subtitle file, suitably adjusting
@@ -11,17 +8,13 @@ Regular expressions based on the W3C WebVTT specification
 in RFC 8216 §3.5 <https://tools.ietf.org/html/rfc8216#section-3.5>.
 """
 
-import re
 import io
+import re
+
 from .utils import int_or_none, timetuple_from_msec
-from .compat import (
-    compat_str as str,
-    compat_Pattern,
-    compat_Match,
-)
 
 
-class _MatchParser(object):
+class _MatchParser:
     """
     An object that maintains the current parsing position and allows
     conveniently advancing it as syntax elements are successfully parsed.
@@ -32,7 +25,7 @@ class _MatchParser(object):
         self._pos = 0
 
     def match(self, r):
-        if isinstance(r, compat_Pattern):
+        if isinstance(r, re.Pattern):
             return r.match(self._data, self._pos)
         if isinstance(r, str):
             if self._data.startswith(r, self._pos):
@@ -43,7 +36,7 @@ class _MatchParser(object):
     def advance(self, by):
         if by is None:
             amt = 0
-        elif isinstance(by, compat_Match):
+        elif isinstance(by, re.Match):
             amt = len(by.group(0))
         elif isinstance(by, str):
             amt = len(by)
@@ -70,7 +63,7 @@ class _MatchChildParser(_MatchParser):
     """
 
     def __init__(self, parent):
-        super(_MatchChildParser, self).__init__(parent._data)
+        super().__init__(parent._data)
         self.__parent = parent
         self._pos = parent._pos
 
@@ -84,7 +77,7 @@ class _MatchChildParser(_MatchParser):
 
 class ParseError(Exception):
     def __init__(self, parser):
-        super(ParseError, self).__init__("Parse error at position %u (near %r)" % (
+        super().__init__("Parse error at position %u (near %r)" % (
             parser._pos, parser._data[parser._pos:parser._pos + 20]
         ))
 
@@ -109,14 +102,8 @@ def _parse_ts(ts):
     Convert a parsed WebVTT timestamp (a re.Match obtained from _REGEX_TS)
     into an MPEG PES timestamp: a tick counter at 90 kHz resolution.
     """
-
-    h, min, s, ms = ts.groups()
-    return 90 * (
-        int(h or 0) * 3600000 +  # noqa: W504,E221,E222
-        int(min)    *   60000 +  # noqa: W504,E221,E222
-        int(s)      *    1000 +  # noqa: W504,E221,E222
-        int(ms)                  # noqa: W504,E221,E222
-    )
+    return 90 * sum(
+        int(part or 0) * mult for part, mult in zip(ts.groups(), (3600_000, 60_000, 1000, 1)))
 
 
 def _format_ts(ts):
@@ -127,7 +114,7 @@ def _format_ts(ts):
     return '%02u:%02u:%02u.%03u' % timetuple_from_msec(int((ts + 45) // 90))
 
 
-class Block(object):
+class Block:
     """
     An abstract WebVTT block.
     """
@@ -174,6 +161,12 @@ class Magic(HeaderBlock):
     _REGEX_TSMAP_MPEGTS = re.compile(r'MPEGTS:([0-9]+)')
     _REGEX_TSMAP_SEP = re.compile(r'[ \t]*,[ \t]*')
 
+    # This was removed from the spec in the 2017 revision;
+    # the last spec draft to describe this syntax element is
+    # <https://www.w3.org/TR/2015/WD-webvtt1-20151208/#webvtt-metadata-header>.
+    # Nevertheless, YouTube keeps serving those
+    _REGEX_META = re.compile(r'(?:(?!-->)[^\r\n])+:(?:(?!-->)[^\r\n])+(?:\r\n|[\r\n])')
+
     @classmethod
     def __parse_tsmap(cls, parser):
         parser = parser.child()
@@ -213,13 +206,18 @@ class Magic(HeaderBlock):
             raise ParseError(parser)
 
         extra = m.group(1)
-        local, mpegts = None, None
-        if parser.consume(cls._REGEX_TSMAP):
-            local, mpegts = cls.__parse_tsmap(parser)
-        if not parser.consume(_REGEX_NL):
+        local, mpegts, meta = None, None, ''
+        while not parser.consume(_REGEX_NL):
+            if parser.consume(cls._REGEX_TSMAP):
+                local, mpegts = cls.__parse_tsmap(parser)
+                continue
+            m = parser.consume(cls._REGEX_META)
+            if m:
+                meta += m.group(0)
+                continue
             raise ParseError(parser)
         parser.commit()
-        return cls(extra=extra, mpegts=mpegts, local=local)
+        return cls(extra=extra, mpegts=mpegts, local=local, meta=meta)
 
     def write_into(self, stream):
         stream.write('WEBVTT')
@@ -232,6 +230,8 @@ class Magic(HeaderBlock):
             stream.write(',MPEGTS:')
             stream.write(str(self.mpegts if self.mpegts is not None else 0))
             stream.write('\n')
+        if self.meta:
+            stream.write(self.meta)
         stream.write('\n')
 
 
@@ -359,7 +359,7 @@ def parse_fragment(frag_content):
     a bytes object containing the raw contents of a WebVTT file.
     """
 
-    parser = _MatchParser(frag_content.decode('utf-8'))
+    parser = _MatchParser(frag_content.decode())
 
     yield Magic.parse(parser)
 

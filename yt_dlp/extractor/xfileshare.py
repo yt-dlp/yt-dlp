@@ -1,14 +1,10 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_chr
 from ..utils import (
+    ExtractorError,
     decode_packed_codes,
     determine_ext,
-    ExtractorError,
     int_or_none,
     js_to_json,
     urlencode_postdata,
@@ -35,11 +31,11 @@ def aa_decode(aa_code):
         aa_char = aa_char.replace('+ ', '')
         m = re.match(r'^\d+', aa_char)
         if m:
-            ret += compat_chr(int(m.group(0), 8))
+            ret += chr(int(m.group(0), 8))
         else:
             m = re.match(r'^u([\da-f]+)', aa_char)
             if m:
-                ret += compat_chr(int(m.group(1), 16))
+                ret += chr(int(m.group(1), 16))
     return ret
 
 
@@ -65,6 +61,7 @@ class XFileShareIE(InfoExtractor):
     IE_DESC = 'XFileShare based sites: %s' % ', '.join(list(zip(*_SITES))[1])
     _VALID_URL = (r'https?://(?:www\.)?(?P<host>%s)/(?:embed-)?(?P<id>[0-9a-zA-Z]+)'
                   % '|'.join(site for site in list(zip(*_SITES))[0]))
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:%s)/embed-[0-9a-zA-Z]+.*?)\1' % '|'.join(site for site in list(zip(*_SITES))[0])]
 
     _FILE_NOT_FOUND_REGEXES = (
         r'>(?:404 - )?File Not Found<',
@@ -72,6 +69,15 @@ class XFileShareIE(InfoExtractor):
     )
 
     _TESTS = [{
+        'url': 'https://uqload.com/dltx1wztngdz',
+        'md5': '3cfbb65e4c90e93d7b37bcb65a595557',
+        'info_dict': {
+            'id': 'dltx1wztngdz',
+            'ext': 'mp4',
+            'title': 'Rick Astley Never Gonna Give You mp4',
+            'thumbnail': r're:https://.*\.jpg'
+        }
+    }, {
         'url': 'http://xvideosharing.com/fq65f94nd2ve',
         'md5': '4181f63957e8fe90ac836fa58dc3c8a6',
         'info_dict': {
@@ -87,15 +93,6 @@ class XFileShareIE(InfoExtractor):
         'url': 'https://wolfstream.tv/nthme29v9u2x',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:%s)/embed-[0-9a-zA-Z]+.*?)\1'
-                % '|'.join(site for site in list(zip(*XFileShareIE._SITES))[0]),
-                webpage)]
 
     def _real_extract(self, url):
         host, video_id = self._match_valid_url(url).groups()
@@ -198,4 +195,5 @@ class XFileShareIE(InfoExtractor):
             'title': title,
             'thumbnail': thumbnail,
             'formats': formats,
+            'http_headers': {'Referer': url}
         }

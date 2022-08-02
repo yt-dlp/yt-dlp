@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import re
 
@@ -280,7 +277,7 @@ class ARDMediathekIE(ARDMediathekBaseIE):
 
         info.update({
             'id': video_id,
-            'title': self._live_title(title) if info.get('is_live') else title,
+            'title': title,
             'description': description,
             'thumbnail': thumbnail,
         })
@@ -376,9 +373,24 @@ class ARDIE(InfoExtractor):
             formats.append(f)
         self._sort_formats(formats)
 
+        _SUB_FORMATS = (
+            ('./dataTimedText', 'ttml'),
+            ('./dataTimedTextNoOffset', 'ttml'),
+            ('./dataTimedTextVtt', 'vtt'),
+        )
+
+        subtitles = {}
+        for subsel, subext in _SUB_FORMATS:
+            for node in video_node.findall(subsel):
+                subtitles.setdefault('de', []).append({
+                    'url': node.attrib['url'],
+                    'ext': subext,
+                })
+
         return {
             'id': xpath_text(video_node, './videoId', default=display_id),
             'formats': formats,
+            'subtitles': subtitles,
             'display_id': display_id,
             'title': video_node.find('./title').text,
             'duration': parse_duration(video_node.find('./duration').text),
@@ -392,8 +404,9 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
         (?:(?:beta|www)\.)?ardmediathek\.de/
         (?:(?P<client>[^/]+)/)?
         (?:player|live|video|(?P<playlist>sendung|sammlung))/
-        (?:(?P<display_id>[^?#]+)/)?
-        (?P<id>(?(playlist)|Y3JpZDovL)[a-zA-Z0-9]+)'''
+        (?:(?P<display_id>(?(playlist)[^?#]+?|[^?#]+))/)?
+        (?P<id>(?(playlist)|Y3JpZDovL)[a-zA-Z0-9]+)
+        (?(playlist)/(?P<season>\d+)?/?(?:[?#]|$))'''
 
     _TESTS = [{
         'url': 'https://www.ardmediathek.de/mdr/video/die-robuste-roswita/Y3JpZDovL21kci5kZS9iZWl0cmFnL2Ntcy84MWMxN2MzZC0wMjkxLTRmMzUtODk4ZS0wYzhlOWQxODE2NGI/',
@@ -420,6 +433,13 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'timestamp': 1636398000,
             'description': 'md5:39578c7b96c9fe50afdf5674ad985e6b',
             'upload_date': '20211108',
+        },
+    }, {
+        'url': 'https://www.ardmediathek.de/sendung/beforeigners/beforeigners/staffel-1/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JlZm9yZWlnbmVycw/1',
+        'playlist_count': 6,
+        'info_dict': {
+            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL2JlZm9yZWlnbmVycw',
+            'title': 'beforeigners/beforeigners/staffel-1',
         },
     }, {
         'url': 'https://beta.ardmediathek.de/ard/video/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydC9mYmM4NGM1NC0xNzU4LTRmZGYtYWFhZS0wYzcyZTIxNGEyMDE',
@@ -546,14 +566,15 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
                 break
             pageNumber = pageNumber + 1
 
-        return self.playlist_result(entries, playlist_title=display_id)
+        return self.playlist_result(entries, playlist_id, playlist_title=display_id)
 
     def _real_extract(self, url):
-        video_id, display_id, playlist_type, client = self._match_valid_url(url).group(
-            'id', 'display_id', 'playlist', 'client')
+        video_id, display_id, playlist_type, client, season_number = self._match_valid_url(url).group(
+            'id', 'display_id', 'playlist', 'client', 'season')
         display_id, client = display_id or video_id, client or 'ard'
 
         if playlist_type:
+            # TODO: Extract only specified season
             return self._ARD_extract_playlist(url, video_id, display_id, client, playlist_type)
 
         player_page = self._download_json(

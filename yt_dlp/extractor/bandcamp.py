@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import random
 import re
 import time
@@ -25,6 +22,7 @@ from ..utils import (
 
 class BandcampIE(InfoExtractor):
     _VALID_URL = r'https?://[^/]+\.bandcamp\.com/track/(?P<id>[^/?#&]+)'
+    _EMBED_REGEX = [r'<meta property="og:url"[^>]*?content="(?P<url>.*?bandcamp\.com.*?)"']
     _TESTS = [{
         'url': 'http://youtube-dl.bandcamp.com/track/youtube-dl-test-song',
         'md5': 'c557841d5e50261777a6585648adf439',
@@ -183,6 +181,7 @@ class BandcampIE(InfoExtractor):
                             'format_note': f.get('description'),
                             'filesize': parse_filesize(f.get('size_mb')),
                             'vcodec': 'none',
+                            'acodec': format_id.split('-')[0],
                         })
 
         self._sort_formats(formats)
@@ -212,7 +211,7 @@ class BandcampIE(InfoExtractor):
 
 class BandcampAlbumIE(BandcampIE):
     IE_NAME = 'Bandcamp:album'
-    _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com(?!/music)(?:/album/(?P<id>[^/?#&]+))?'
+    _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com/album/(?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'http://blazo.bandcamp.com/album/jazz-format-mixtape-vol-1',
@@ -257,14 +256,6 @@ class BandcampAlbumIE(BandcampIE):
             'id': 'hierophany-of-the-open-grave',
         },
         'playlist_mincount': 9,
-    }, {
-        'url': 'http://dotscale.bandcamp.com',
-        'info_dict': {
-            'title': 'Loom',
-            'id': 'dotscale',
-            'uploader_id': 'dotscale',
-        },
-        'playlist_mincount': 7,
     }, {
         # with escaped quote in title
         'url': 'https://jstrecords.bandcamp.com/album/entropy-ep',
@@ -391,41 +382,63 @@ class BandcampWeeklyIE(BandcampIE):
         }
 
 
-class BandcampMusicIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<id>[^/]+)\.bandcamp\.com/music'
+class BandcampUserIE(InfoExtractor):
+    IE_NAME = 'Bandcamp:user'
+    _VALID_URL = r'https?://(?!www\.)(?P<id>[^.]+)\.bandcamp\.com(?:/music)?/?(?:[#?]|$)'
+
     _TESTS = [{
+        # Type 1 Bandcamp user page.
+        'url': 'https://adrianvonziegler.bandcamp.com',
+        'info_dict': {
+            'id': 'adrianvonziegler',
+            'title': 'Discography of adrianvonziegler',
+        },
+        'playlist_mincount': 23,
+    }, {
+        # Bandcamp user page with only one album
+        'url': 'http://dotscale.bandcamp.com',
+        'info_dict': {
+            'id': 'dotscale',
+            'title': 'Discography of dotscale'
+        },
+        'playlist_count': 1,
+    }, {
+        # Type 2 Bandcamp user page.
+        'url': 'https://nightcallofficial.bandcamp.com',
+        'info_dict': {
+            'id': 'nightcallofficial',
+            'title': 'Discography of nightcallofficial',
+        },
+        'playlist_count': 4,
+    }, {
         'url': 'https://steviasphere.bandcamp.com/music',
         'playlist_mincount': 47,
         'info_dict': {
             'id': 'steviasphere',
+            'title': 'Discography of steviasphere',
         },
     }, {
         'url': 'https://coldworldofficial.bandcamp.com/music',
         'playlist_mincount': 10,
         'info_dict': {
             'id': 'coldworldofficial',
+            'title': 'Discography of coldworldofficial',
         },
     }, {
         'url': 'https://nuclearwarnowproductions.bandcamp.com/music',
         'playlist_mincount': 399,
         'info_dict': {
             'id': 'nuclearwarnowproductions',
+            'title': 'Discography of nuclearwarnowproductions',
         },
-    }
-    ]
-
-    _TYPE_IE_DICT = {
-        'album': BandcampAlbumIE.ie_key(),
-        'track': BandcampIE.ie_key()
-    }
+    }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
-        items = re.findall(r'href\=\"\/(?P<path>(?P<type>album|track)+/[^\"]+)', webpage)
-        entries = [
-            self.url_result(
-                f'https://{id}.bandcamp.com/{item[0]}',
-                ie=self._TYPE_IE_DICT[item[1]])
-            for item in items]
-        return self.playlist_result(entries, id)
+        uploader = self._match_id(url)
+        webpage = self._download_webpage(url, uploader)
+
+        discography_data = (re.findall(r'<li data-item-id=["\'][^>]+>\s*<a href=["\'](?![^"\'/]*?/merch)([^"\']+)', webpage)
+                            or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage))
+
+        return self.playlist_from_matches(
+            discography_data, uploader, f'Discography of {uploader}', getter=lambda x: urljoin(url, x))

@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import int_or_none
 
@@ -75,8 +71,7 @@ class FiveTVIE(InfoExtractor):
              r'<a[^>]+?href="([^"]+)"[^>]+?class="videoplayer"'],
             webpage, 'video url')
 
-        title = self._og_search_title(webpage, default=None) or self._search_regex(
-            r'<title>([^<]+)</title>', webpage, 'title')
+        title = self._og_search_title(webpage, default=None) or self._html_extract_title(webpage)
         duration = int_or_none(self._og_search_property(
             'video:duration', webpage, 'duration', default=None))
 

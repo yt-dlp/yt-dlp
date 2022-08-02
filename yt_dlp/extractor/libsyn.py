@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
@@ -14,6 +10,7 @@ from ..utils import (
 
 class LibsynIE(InfoExtractor):
     _VALID_URL = r'(?P<mainurl>https?://html5-player\.libsyn\.com/embed/episode/id/(?P<id>[0-9]+))'
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//html5-player\.libsyn\.com/embed/.+?)\1']
 
     _TESTS = [{
         'url': 'http://html5-player.libsyn.com/embed/episode/id/6385796/',

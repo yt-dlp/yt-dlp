@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     clean_podcast_url,
@@ -71,6 +66,11 @@ class SimplecastBaseIE(InfoExtractor):
 class SimplecastIE(SimplecastBaseIE):
     IE_NAME = 'simplecast'
     _VALID_URL = r'https?://(?:api\.simplecast\.com/episodes|player\.simplecast\.com)/(?P<id>%s)' % SimplecastBaseIE._UUID_REGEX
+    _EMBED_REGEX = [rf'''(?x)<iframe[^>]+src=["\']
+        (?P<url>https?://(?:
+            embed\.simplecast\.com/[0-9a-f]{8}|
+            player\.simplecast\.com/{SimplecastBaseIE._UUID_REGEX}
+        ))''']
     _COMMON_TEST_INFO = {
         'display_id': 'errant-signal-chris-franklin-new-wave-video-essays',
         'id': 'b6dc49a2-9404-4853-9aa9-9cfc097be876',
@@ -96,15 +96,6 @@ class SimplecastIE(SimplecastBaseIE):
         'url': 'https://player.simplecast.com/b6dc49a2-9404-4853-9aa9-9cfc097be876',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'''(?x)<iframe[^>]+src=["\']
-                (
-                    https?://(?:embed\.simplecast\.com/[0-9a-f]{8}|
-                    player\.simplecast\.com/%s
-                ))''' % SimplecastBaseIE._UUID_REGEX, webpage)
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)

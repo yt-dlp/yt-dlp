@@ -1,28 +1,39 @@
 # Config
 *.conf
-*.spec
 cookies
 *cookies.txt
 .netrc
 
 # Downloaded
-*.3gp
 *.annotations.xml
-*.ape
 *.aria2
-*.avi
 *.description
-*.desktop
 *.dump
-*.flac
-*.flv
 *.frag
+*.frag.aria2
 *.frag.urls
 *.info.json
+*.live_chat.json
+*.meta
+*.part*
+*.tmp
+*.temp
+*.unknown_video
+*.ytdl
+.cache/
+
+*.3gp
+*.ape
+*.ass
+*.avi
+*.desktop
+*.f4v
+*.flac
+*.flv
 *.jpeg
 *.jpg
-*.live_chat.json
 *.m4a
+*.mpga
 *.m4v
 *.mhtml
 *.mkv
@@ -31,23 +42,18 @@ cookies
 *.mp4
 *.ogg
 *.opus
-*.part
-*.part-*
 *.png
 *.sbv
 *.srt
 *.swf
 *.swp
 *.ttml
-*.unknown_video
 *.url
 *.vtt
 *.wav
 *.webloc
 *.webm
 *.webp
-*.ytdl
-.cache/
 
 # Allow config/media files in testdata
 !test/**
@@ -78,6 +84,7 @@ updates_key.pem
 *.egg-info
 .tox
 *.class
+*.isorted
 
 # Generated
 AUTHORS
@@ -86,11 +93,10 @@ README.txt
 *.1
 *.bash-completion
 *.fish
-*.exe
 *.tar.gz
 *.zsh
 *.spec
-test/testdata/player-*.js
+test/testdata/sigs/player-*.js
 
 # Binary
 /youtube-dl
@@ -104,6 +110,7 @@ yt-dlp.zip
 *.iml
 .vscode
 *.sublime-*
+*.code-workspace
 
 # Lazy extractors
 */extractor/lazy_extractors.py
@@ -112,3 +119,6 @@ yt-dlp.zip
 ytdlp_plugins/extractor/*
 !ytdlp_plugins/extractor/__init__.py
 !ytdlp_plugins/extractor/sample.py
+ytdlp_plugins/postprocessor/*
+!ytdlp_plugins/postprocessor/__init__.py
+!ytdlp_plugins/postprocessor/sample.py

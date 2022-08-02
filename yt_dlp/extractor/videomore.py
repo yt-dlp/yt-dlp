@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
@@ -50,6 +45,12 @@ class VideomoreIE(InfoExtractor):
                         (?P<id>\d+)
                         (?:[/?#&]|\.(?:xml|json)|$)
                     '''
+    _EMBED_REGEX = [r'''(?x)
+        (?:
+            <iframe[^>]+src=([\'"])|
+            <object[^>]+data=(["\'])https?://videomore\.ru/player\.swf\?.*config=
+        )(?P<url>https?://videomore\.ru/[^?#"']+/\d+(?:\.xml)?)
+    ''']
     _TESTS = [{
         'url': 'http://videomore.ru/kino_v_detalayah/5_sezon/367617',
         'md5': '44455a346edc0d509ac5b5a5b531dc35',
@@ -128,19 +129,6 @@ class VideomoreIE(InfoExtractor):
         'only_matching': True,
     }]
     _GEO_BYPASS = False
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<object[^>]+data=(["\'])https?://videomore\.ru/player\.swf\?.*config=(?P<url>https?://videomore\.ru/(?:[^/]+/)+\d+\.xml).*\1',
-            webpage)
-        if not mobj:
-            mobj = re.search(
-                r'<iframe[^>]+src=([\'"])(?P<url>https?://videomore\.ru/embed/\d+)',
-                webpage)
-
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

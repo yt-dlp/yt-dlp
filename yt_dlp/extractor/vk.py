@@ -1,41 +1,48 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import collections
-import functools
+import hashlib
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    get_element_by_class,
-    int_or_none,
-    OnDemandPagedList,
-    orderedSet,
-    str_or_none,
-    str_to_int,
-    unescapeHTML,
-    unified_timestamp,
-    url_or_none,
-    urlencode_postdata,
-)
 from .dailymotion import DailymotionIE
 from .odnoklassniki import OdnoklassnikiIE
 from .pladform import PladformIE
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
+from ..compat import compat_urlparse
+from ..utils import (
+    ExtractorError,
+    clean_html,
+    get_element_by_class,
+    int_or_none,
+    orderedSet,
+    str_or_none,
+    str_to_int,
+    unescapeHTML,
+    unified_timestamp,
+    update_url_query,
+    url_or_none,
+    urlencode_postdata,
+)
 
 
 class VKBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'vk'
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
+    def _download_webpage_handle(self, url_or_request, video_id, *args, fatal=True, **kwargs):
+        response = super()._download_webpage_handle(url_or_request, video_id, *args, fatal=fatal, **kwargs)
+        challenge_url, cookie = response[1].geturl() if response else '', None
+        if challenge_url.startswith('https://vk.com/429.html?'):
+            cookie = self._get_cookies(challenge_url).get('hash429')
+        if not cookie:
+            return response
 
+        hash429 = hashlib.md5(cookie.value.encode('ascii')).hexdigest()
+        self._request_webpage(
+            update_url_query(challenge_url, {'key': hash429}), video_id, fatal=fatal,
+            note='Resolving WAF challenge', errnote='Failed to bypass WAF challenge')
+        return super()._download_webpage_handle(url_or_request, video_id, *args, fatal=True, **kwargs)
+
+    def _perform_login(self, username, password):
         login_page, url_handle = self._download_webpage_handle(
             'https://vk.com', None, 'Downloading login page')
 
@@ -59,15 +66,15 @@ class VKBaseIE(InfoExtractor):
             raise ExtractorError(
                 'Unable to login, incorrect username and/or password', expected=True)
 
-    def _real_initialize(self):
-        self._login()
-
     def _download_payload(self, path, video_id, data, fatal=True):
+        endpoint = f'https://vk.com/{path}.php'
         data['al'] = 1
         code, payload = self._download_json(
-            'https://vk.com/%s.php' % path, video_id,
-            data=urlencode_postdata(data), fatal=fatal,
-            headers={'X-Requested-With': 'XMLHttpRequest'})['payload']
+            endpoint, video_id, data=urlencode_postdata(data), fatal=fatal,
+            headers={
+                'Referer': endpoint,
+                'X-Requested-With': 'XMLHttpRequest',
+            })['payload']
         if code == '3':
             self.raise_login_required()
         elif code == '8':
@@ -78,6 +85,7 @@ class VKBaseIE(InfoExtractor):
 class VKIE(VKBaseIE):
     IE_NAME = 'vk'
     IE_DESC = 'VK'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://vk\.com/video_ext\.php.+?)\1']
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
@@ -87,26 +95,31 @@ class VKIE(VKBaseIE):
                             )
                             ext\.php\?(?P<embed_query>.*?\boid=(?P<oid>-?\d+).*?\bid=(?P<id>\d+).*)|
                             (?:
-                                (?:(?:m|new)\.)?vk\.com/(?:.+?\?.*?z=)?video|
+                                (?:(?:m|new)\.)?vk\.com/(?:.+?\?.*?z=)?(?:video|clip)|
                                 (?:www\.)?daxab.com/embed/
                             )
-                            (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>[\da-f]+))?
+                            (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
                         )
                     '''
+    # https://help.sibnet.ru/?sibnet_video_embed
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//video\.sibnet\.ru/shell\.php\?.*?\bvideoid=\d+.*?)\1']
     _TESTS = [
         {
             'url': 'http://vk.com/videos-77521?z=video-77521_162222515%2Fclub77521',
-            'md5': '7babad3b85ea2e91948005b1b8b0cb84',
             'info_dict': {
                 'id': '-77521_162222515',
                 'ext': 'mp4',
                 'title': 'ProtivoGunz - Хуёвая песня',
                 'uploader': 're:(?:Noize MC|Alexander Ilyashenko).*',
-                'uploader_id': '-77521',
+                'uploader_id': '39545378',
                 'duration': 195,
                 'timestamp': 1329049880,
                 'upload_date': '20120212',
+                'comment_count': int,
+                'like_count': int,
+                'thumbnail': r're:https?://.+\.jpg$',
             },
+            'params': {'skip_download': 'm3u8'},
         },
         {
             'url': 'http://vk.com/video205387401_165548505',
@@ -119,12 +132,14 @@ class VKIE(VKBaseIE):
                 'duration': 9,
                 'timestamp': 1374364108,
                 'upload_date': '20130720',
+                'comment_count': int,
+                'like_count': int,
+                'thumbnail': r're:https?://.+\.jpg$',
             }
         },
         {
             'note': 'Embedded video',
             'url': 'https://vk.com/video_ext.php?oid=-77521&id=162222515&hash=87b046504ccd8bfa',
-            'md5': '7babad3b85ea2e91948005b1b8b0cb84',
             'info_dict': {
                 'id': '-77521_162222515',
                 'ext': 'mp4',
@@ -133,8 +148,10 @@ class VKIE(VKBaseIE):
                 'duration': 195,
                 'upload_date': '20120212',
                 'timestamp': 1329049880,
-                'uploader_id': '-77521',
+                'uploader_id': '39545378',
+                'thumbnail': r're:https?://.+\.jpg$',
             },
+            'params': {'skip_download': 'm3u8'},
         },
         {
             # VIDEO NOW REMOVED
@@ -182,6 +199,22 @@ class VKIE(VKBaseIE):
             'skip': 'Removed',
         },
         {
+            'url': 'https://vk.com/video-93049196_456239755?list=ln-cBjJ7S4jYYx3ADnmDT',
+            'info_dict': {
+                'id': '-93049196_456239755',
+                'ext': 'mp4',
+                'title': '8 серия (озвучка)',
+                'duration': 8383,
+                'comment_count': int,
+                'uploader': 'Dizi2021',
+                'like_count': int,
+                'timestamp': 1640162189,
+                'upload_date': '20211222',
+                'uploader_id': '-93049196',
+                'thumbnail': r're:https?://.+\.jpg$',
+            },
+        },
+        {
             # video (removed?) only available with list id
             'url': 'https://vk.com/video30481095_171201961?list=8764ae2d21f14088d4',
             'md5': '091287af5402239a1051c37ec7b92913',
@@ -205,10 +238,23 @@ class VKIE(VKBaseIE):
                 'title': "DSWD Awards 'Children's Joy Foundation, Inc.' Certificate of Registration and License to Operate",
                 'description': 'md5:bf9c26cfa4acdfb146362682edd3827a',
                 'duration': 178,
-                'upload_date': '20130116',
+                'upload_date': '20130117',
                 'uploader': "Children's Joy Foundation Inc.",
                 'uploader_id': 'thecjf',
                 'view_count': int,
+                'channel_id': 'UCgzCNQ11TmR9V97ECnhi3gw',
+                'availability': 'public',
+                'like_count': int,
+                'live_status': 'not_live',
+                'playable_in_embed': True,
+                'channel': 'Children\'s Joy Foundation Inc.',
+                'uploader_url': 'http://www.youtube.com/user/thecjf',
+                'thumbnail': r're:https?://.+\.jpg$',
+                'tags': 'count:27',
+                'start_time': 0.0,
+                'categories': ['Nonprofits & Activism'],
+                'channel_url': 'https://www.youtube.com/channel/UCgzCNQ11TmR9V97ECnhi3gw',
+                'age_limit': 0,
             },
         },
         {
@@ -224,9 +270,7 @@ class VKIE(VKBaseIE):
                 'uploader_id': 'x1p5vl5',
                 'timestamp': 1473877246,
             },
-            'params': {
-                'skip_download': True,
-            },
+            'skip': 'Removed'
         },
         {
             # video key is extra_data not url\d+
@@ -241,9 +285,7 @@ class VKIE(VKBaseIE):
                 'timestamp': 1454859345,
                 'upload_date': '20160207',
             },
-            'params': {
-                'skip_download': True,
-            },
+            'skip': 'Removed',
         },
         {
             # finished live stream, postlive_mp4
@@ -254,11 +296,12 @@ class VKIE(VKBaseIE):
                 'title': 'ИгроМир 2016 День 1 — Игромания Утром',
                 'uploader': 'Игромания',
                 'duration': 5239,
-                # TODO: use act=show to extract view_count
-                # 'view_count': int,
                 'upload_date': '20160929',
                 'uploader_id': '-387766',
                 'timestamp': 1475137527,
+                'thumbnail': r're:https?://.+\.jpg$',
+                'comment_count': int,
+                'like_count': int,
             },
             'params': {
                 'skip_download': True,
@@ -298,14 +341,11 @@ class VKIE(VKBaseIE):
             # The video is not available in your region.
             'url': 'https://vk.com/video-51812607_171445436',
             'only_matching': True,
+        },
+        {
+            'url': 'https://vk.com/clip30014565_456240946',
+            'only_matching': True,
         }]
-
-    @staticmethod
-    def _extract_sibnet_urls(webpage):
-        # https://help.sibnet.ru/?sibnet_video_embed
-        return [unescapeHTML(mobj.group('url')) for mobj in re.finditer(
-            r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//video\.sibnet\.ru/shell\.php\?.*?\bvideoid=\d+.*?)\1',
-            webpage)]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -314,7 +354,7 @@ class VKIE(VKBaseIE):
         mv_data = {}
         if video_id:
             data = {
-                'act': 'show_inline',
+                'act': 'show',
                 'video': video_id,
             }
             # Some videos (removed?) can only be downloaded with list id specified
@@ -407,7 +447,7 @@ class VKIE(VKBaseIE):
                 m_rutube.group(1).replace('\\', ''))
             return self.url_result(rutube_url)
 
-        dailymotion_urls = DailymotionIE._extract_urls(info_page)
+        dailymotion_urls = DailymotionIE._extract_embed_urls(url, info_page)
         if dailymotion_urls:
             return self.url_result(dailymotion_urls[0], DailymotionIE.ie_key())
 
@@ -415,7 +455,7 @@ class VKIE(VKBaseIE):
         if odnoklassniki_url:
             return self.url_result(odnoklassniki_url, OdnoklassnikiIE.ie_key())
 
-        sibnet_urls = self._extract_sibnet_urls(info_page)
+        sibnet_urls = self._extract_embed_urls(url, info_page)
         if sibnet_urls:
             return self.url_result(sibnet_urls[0])
 
@@ -434,8 +474,6 @@ class VKIE(VKBaseIE):
         # 2 = live
         # 3 = post live (finished live)
         is_live = data.get('live') == 2
-        if is_live:
-            title = self._live_title(title)
 
         timestamp = unified_timestamp(self._html_search_regex(
             r'class=["\']mv_info_date[^>]+>([^<]+)(?:<|from)', info_page,
@@ -498,63 +536,59 @@ class VKIE(VKBaseIE):
 class VKUserVideosIE(VKBaseIE):
     IE_NAME = 'vk:uservideos'
     IE_DESC = "VK - User's Videos"
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/videos(?P<id>-?[0-9]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/video/@(?P<id>[^?$#/&]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
     _TEMPLATE_URL = 'https://vk.com/videos'
     _TESTS = [{
-        'url': 'https://vk.com/videos-767561',
+        'url': 'https://vk.com/video/@mobidevices',
         'info_dict': {
-            'id': '-767561_all',
+            'id': '-17892518_all',
         },
-        'playlist_mincount': 1150,
+        'playlist_mincount': 1355,
     }, {
-        'url': 'https://vk.com/videos-767561?section=uploaded',
+        'url': 'https://vk.com/video/@mobidevices?section=uploaded',
         'info_dict': {
-            'id': '-767561_uploaded',
+            'id': '-17892518_uploaded',
         },
-        'playlist_mincount': 425,
-    }, {
-        'url': 'http://vk.com/videos205387401',
-        'only_matching': True,
-    }, {
-        'url': 'http://vk.com/videos-77521',
-        'only_matching': True,
-    }, {
-        'url': 'http://vk.com/videos-97664626?section=all',
-        'only_matching': True,
-    }, {
-        'url': 'http://m.vk.com/videos205387401',
-        'only_matching': True,
-    }, {
-        'url': 'http://new.vk.com/videos205387401',
-        'only_matching': True,
+        'playlist_mincount': 182,
     }]
-    _PAGE_SIZE = 1000
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
 
-    def _fetch_page(self, page_id, section, page):
-        l = self._download_payload('al_video', page_id, {
+    def _entries(self, page_id, section):
+        video_list_json = self._download_payload('al_video', page_id, {
             'act': 'load_videos_silent',
-            'offset': page * self._PAGE_SIZE,
+            'offset': 0,
             'oid': page_id,
             'section': section,
-        })[0][section]['list']
+        })[0][section]
+        count = video_list_json['count']
+        total = video_list_json['total']
+        video_list = video_list_json['list']
 
-        for video in l:
-            v = self._VIDEO._make(video[:2])
-            video_id = '%d_%d' % (v.owner_id, v.id)
-            yield self.url_result(
-                'http://vk.com/video' + video_id, VKIE.ie_key(), video_id)
+        while True:
+            for video in video_list:
+                v = self._VIDEO._make(video[:2])
+                video_id = '%d_%d' % (v.owner_id, v.id)
+                yield self.url_result(
+                    'http://vk.com/video' + video_id, VKIE.ie_key(), video_id)
+            if count >= total:
+                break
+            video_list_json = self._download_payload('al_video', page_id, {
+                'act': 'load_videos_silent',
+                'offset': count,
+                'oid': page_id,
+                'section': section,
+            })[0][section]
+            count += video_list_json['count']
+            video_list = video_list_json['list']
 
     def _real_extract(self, url):
-        page_id, section = self._match_valid_url(url).groups()
+        u_id, section = self._match_valid_url(url).groups()
+        webpage = self._download_webpage(url, u_id)
+        page_id = self._search_regex(r'data-owner-id\s?=\s?"([^"]+)"', webpage, 'page_id')
         if not section:
             section = 'all'
 
-        entries = OnDemandPagedList(
-            functools.partial(self._fetch_page, page_id, section),
-            self._PAGE_SIZE)
-
-        return self.playlist_result(entries, '%s_%s' % (page_id, section))
+        return self.playlist_result(self._entries(page_id, section), '%s_%s' % (page_id, section))
 
 
 class VKWallPostIE(VKBaseIE):
@@ -593,7 +627,6 @@ class VKWallPostIE(VKBaseIE):
         }],
         'params': {
             'skip_download': True,
-            'usenetrc': True,
         },
         'skip': 'Requires vk account credentials',
     }, {
@@ -604,9 +637,6 @@ class VKWallPostIE(VKBaseIE):
             'title': 'Сергей Горбунов - Wall post 85155021_6319',
         },
         'playlist_count': 1,
-        'params': {
-            'usenetrc': True,
-        },
         'skip': 'Requires vk account credentials',
     }, {
         # wall page URL
@@ -681,7 +711,7 @@ class VKWallPostIE(VKBaseIE):
                 'artist': performer,
                 'track': title,
                 'ext': 'mp4',
-                'protocol': 'm3u8',
+                'protocol': 'm3u8_native',
             })
 
         for video in re.finditer(

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import random
 import re
@@ -313,6 +310,7 @@ class TVPEmbedIE(InfoExtractor):
                 =)
         (?P<id>\d+)
     '''
+    _EMBED_REGEX = [rf'(?x)<iframe[^>]+?src=(["\'])(?P<url>{_VALID_URL[4:]})']
 
     _TESTS = [{
         'url': 'tvp:194536',
@@ -342,12 +340,6 @@ class TVPEmbedIE(InfoExtractor):
         'url': 'https://www.tvp.pl/shared/details.php?copy_id=52205981&object_id=52204505&autoplay=false&is_muted=false&allowfullscreen=true&template=external-embed/video/iframe-video.html',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage, **kw):
-        return [m.group('embed') for m in re.finditer(
-            r'(?x)<iframe[^>]+?src=(["\'])(?P<embed>%s)' % TVPEmbedIE._VALID_URL[4:],
-            webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

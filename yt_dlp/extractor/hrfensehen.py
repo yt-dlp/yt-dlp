@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import re
 
@@ -26,13 +23,7 @@ class HRFernsehenIE(InfoExtractor):
             }]},
             'timestamp': 1598470200,
             'upload_date': '20200826',
-            'thumbnails': [{
-                'url': 'https://www.hessenschau.de/tv-sendung/hs_ganz-1554~_t-1598465545029_v-16to9.jpg',
-                'id': '0'
-            }, {
-                'url': 'https://www.hessenschau.de/tv-sendung/hs_ganz-1554~_t-1598465545029_v-16to9__medium.jpg',
-                'id': '1'
-            }],
+            'thumbnail': 'https://www.hessenschau.de/tv-sendung/hs_ganz-1554~_t-1598465545029_v-16to9__medium.jpg',
             'title': 'hessenschau vom 26.08.2020'
         }
     }, {
@@ -81,7 +72,7 @@ class HRFernsehenIE(InfoExtractor):
         description = self._html_search_meta(
             ['description'], webpage)
 
-        loader_str = unescapeHTML(self._search_regex(r"data-hr-mediaplayer-loader='([^']*)'", webpage, "ardloader"))
+        loader_str = unescapeHTML(self._search_regex(r"data-new-hr-mediaplayer-loader='([^']*)'", webpage, "ardloader"))
         loader_data = json.loads(loader_str)
 
         info = {

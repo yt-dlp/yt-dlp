@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -33,6 +30,7 @@ class PikselIE(InfoExtractor):
             )\.jp|
             vidego\.baltimorecity\.gov
         )/v/(?:refid/(?P<refid>[^/]+)/prefid/)?(?P<id>[\w-]+)'''
+    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?:)?//player\.piksel\.com/v/[a-z0-9]+)']
     _TESTS = [
         {
             'url': 'http://player.piksel.com/v/ums2867l',
@@ -64,14 +62,6 @@ class PikselIE(InfoExtractor):
             'only_matching': True,
         }
     ]
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+src=["\'](?P<url>(?:https?:)?//player\.piksel\.com/v/[a-z0-9]+)',
-            webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _call_api(self, app_token, resource, display_id, query, fatal=True):
         response = (self._download_json(

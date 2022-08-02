@@ -1,29 +1,27 @@
-from __future__ import division, unicode_literals
-
 import json
 import time
+import urllib.error
 
 from .fragment import FragmentFD
-from ..compat import compat_urllib_error
 from ..utils import (
-    try_get,
+    RegexNotFoundError,
+    RetryManager,
     dict_get,
     int_or_none,
-    RegexNotFoundError,
+    try_get,
 )
-from ..extractor.youtube import YoutubeBaseInfoExtractor as YT_BaseIE
 
 
 class YoutubeLiveChatFD(FragmentFD):
     """ Downloads YouTube live chats fragment by fragment """
 
-    FD_NAME = 'youtube_live_chat'
-
     def real_download(self, filename, info_dict):
         video_id = info_dict['video_id']
         self.to_screen('[%s] Downloading live chat' % self.FD_NAME)
+        if not self.params.get('skip_download') and info_dict['protocol'] == 'youtube_live_chat':
+            self.report_warning('Live chat download runs until the livestream ends. '
+                                'If you wish to download the video simultaneously, run a separate yt-dlp instance')
 
-        fragment_retries = self.params.get('fragment_retries', 0)
         test = self.params.get('test', False)
 
         ctx = {
@@ -32,7 +30,9 @@ class YoutubeLiveChatFD(FragmentFD):
             'total_frags': None,
         }
 
-        ie = YT_BaseIE(self.ydl)
+        from ..extractor.youtube import YoutubeBaseInfoExtractor
+
+        ie = YoutubeBaseInfoExtractor(self.ydl)
 
         start_time = int(time.time() * 1000)
 
@@ -51,7 +51,7 @@ class YoutubeLiveChatFD(FragmentFD):
                     replay_chat_item_action = action['replayChatItemAction']
                     offset = int(replay_chat_item_action['videoOffsetTimeMsec'])
                 processed_fragment.extend(
-                    json.dumps(action, ensure_ascii=False).encode('utf-8') + b'\n')
+                    json.dumps(action, ensure_ascii=False).encode() + b'\n')
             if offset is not None:
                 continuation = try_get(
                     live_chat_continuation,
@@ -93,7 +93,7 @@ class YoutubeLiveChatFD(FragmentFD):
                     'isLive': True,
                 }
                 processed_fragment.extend(
-                    json.dumps(pseudo_action, ensure_ascii=False).encode('utf-8') + b'\n')
+                    json.dumps(pseudo_action, ensure_ascii=False).encode() + b'\n')
             continuation_data_getters = [
                 lambda x: x['continuations'][0]['invalidationContinuationData'],
                 lambda x: x['continuations'][0]['timedContinuationData'],
@@ -109,12 +109,12 @@ class YoutubeLiveChatFD(FragmentFD):
             return continuation_id, live_offset, click_tracking_params
 
         def download_and_parse_fragment(url, frag_index, request_data=None, headers=None):
-            count = 0
-            while count <= fragment_retries:
+            for retry in RetryManager(self.params.get('fragment_retries'), self.report_retry, frag_index=frag_index):
                 try:
-                    success, raw_fragment = dl_fragment(url, request_data, headers)
+                    success = dl_fragment(url, request_data, headers)
                     if not success:
                         return False, None, None, None
+                    raw_fragment = self._read_fragment(ctx)
                     try:
                         data = ie.extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
                     except RegexNotFoundError:
@@ -124,27 +124,22 @@ class YoutubeLiveChatFD(FragmentFD):
                     live_chat_continuation = try_get(
                         data,
                         lambda x: x['continuationContents']['liveChatContinuation'], dict) or {}
-                    if info_dict['protocol'] == 'youtube_live_chat_replay':
-                        if frag_index == 1:
-                            continuation_id, offset, click_tracking_params = try_refresh_replay_beginning(live_chat_continuation)
-                        else:
-                            continuation_id, offset, click_tracking_params = parse_actions_replay(live_chat_continuation)
-                    elif info_dict['protocol'] == 'youtube_live_chat':
-                        continuation_id, offset, click_tracking_params = parse_actions_live(live_chat_continuation)
-                    return True, continuation_id, offset, click_tracking_params
-                except compat_urllib_error.HTTPError as err:
-                    count += 1
-                    if count <= fragment_retries:
-                        self.report_retry_fragment(err, frag_index, count, fragment_retries)
-            if count > fragment_retries:
-                self.report_error('giving up after %s fragment retries' % fragment_retries)
-                return False, None, None, None
+
+                    func = (info_dict['protocol'] == 'youtube_live_chat' and parse_actions_live
+                            or frag_index == 1 and try_refresh_replay_beginning
+                            or parse_actions_replay)
+                    return (True, *func(live_chat_continuation))
+                except urllib.error.HTTPError as err:
+                    retry.error = err
+                    continue
+            return False, None, None, None
 
         self._prepare_and_start_frag_download(ctx, info_dict)
 
-        success, raw_fragment = dl_fragment(info_dict['url'])
+        success = dl_fragment(info_dict['url'])
         if not success:
             return False
+        raw_fragment = self._read_fragment(ctx)
         try:
             data = ie.extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
         except RegexNotFoundError:
@@ -185,7 +180,7 @@ class YoutubeLiveChatFD(FragmentFD):
                     request_data['context']['clickTracking'] = {'clickTrackingParams': click_tracking_params}
                 headers = ie.generate_api_headers(ytcfg=ytcfg, visitor_data=visitor_data)
                 headers.update({'content-type': 'application/json'})
-                fragment_request_data = json.dumps(request_data, ensure_ascii=False).encode('utf-8') + b'\n'
+                fragment_request_data = json.dumps(request_data, ensure_ascii=False).encode() + b'\n'
                 success, continuation_id, offset, click_tracking_params = download_and_parse_fragment(
                     url, frag_index, fragment_request_data, headers)
             else:

@@ -1,14 +1,8 @@
-from __future__ import unicode_literals
-
 import subprocess
 
 from .common import PostProcessor
 from ..compat import compat_shlex_quote
-from ..utils import (
-    encodeArgument,
-    PostProcessingError,
-    variadic,
-)
+from ..utils import PostProcessingError, encodeArgument, variadic
 
 
 class ExecPP(PostProcessor):
@@ -22,11 +16,13 @@ class ExecPP(PostProcessor):
         if tmpl_dict:  # if there are no replacements, tmpl_dict = {}
             return self._downloader.escape_outtmpl(tmpl) % tmpl_dict
 
-        # If no replacements are found, replace {} for backard compatibility
-        if '{}' not in cmd:
-            cmd += ' {}'
-        return cmd.replace('{}', compat_shlex_quote(
-            info.get('filepath') or info['_filename']))
+        filepath = info.get('filepath', info.get('_filename'))
+        # If video, and no replacements are found, replace {} for backard compatibility
+        if filepath:
+            if '{}' not in cmd:
+                cmd += ' {}'
+            cmd = cmd.replace('{}', compat_shlex_quote(filepath))
+        return cmd
 
     def run(self, info):
         for tmpl in self.exec_cmd:

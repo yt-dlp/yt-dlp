@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .adobepass import AdobePassIE
 from ..utils import (
     update_url_query,

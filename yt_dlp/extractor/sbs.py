@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     smuggle_url,
@@ -18,6 +15,12 @@ class SBSIE(InfoExtractor):
                 .*?\bplay=|/watch/
             )|news/(?:embeds/)?video/
         )(?P<id>[0-9]+)'''
+    _EMBED_REGEX = [r'''(?x)]
+            (?:
+                <meta\s+property="og:video"\s+content=|
+                <iframe[^>]+?src=
+            )
+            (["\'])(?P<url>https?://(?:www\.)?sbs\.com\.au/ondemand/video/.+?)\1''']
 
     _TESTS = [{
         # Original URL is handled by the generic IE which finds the iframe:

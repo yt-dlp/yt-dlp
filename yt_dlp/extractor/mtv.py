@@ -1,13 +1,7 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_xpath,
-)
+from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     find_xpath_attr,
@@ -167,9 +161,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
                 itemdoc, './/{http://search.yahoo.com/mrss/}category',
                 'scheme', 'urn:mtvn:video_title')
         if title_el is None:
-            title_el = itemdoc.find(compat_xpath('.//{http://search.yahoo.com/mrss/}title'))
+            title_el = itemdoc.find('.//{http://search.yahoo.com/mrss/}title')
         if title_el is None:
-            title_el = itemdoc.find(compat_xpath('.//title'))
+            title_el = itemdoc.find('.//title')
             if title_el.text is None:
                 title_el = None
 
@@ -337,6 +331,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
 class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
     IE_NAME = 'mtvservices:embedded'
     _VALID_URL = r'https?://media\.mtvnservices\.com/embed/(?P<mgid>.+?)(\?|/|$)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1']
 
     _TEST = {
         # From http://www.thewrap.com/peter-dinklage-sums-up-game-of-thrones-in-45-seconds-video/
@@ -351,13 +346,6 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
             'upload_date': '20140515',
         },
     }
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1', webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _get_feed_url(self, uri, url=None):
         video_id = self._id_from_uri(uri)

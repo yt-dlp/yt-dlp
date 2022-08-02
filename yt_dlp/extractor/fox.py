@@ -1,10 +1,7 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import uuid
 
-from .adobepass import AdobePassIE
+from .common import InfoExtractor
 from ..compat import (
     compat_HTTPError,
     compat_str,
@@ -20,7 +17,7 @@ from ..utils import (
 )
 
 
-class FOXIE(AdobePassIE):
+class FOXIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?fox\.com/watch/(?P<id>[\da-fA-F]+)'
     _TESTS = [{
         # clip
@@ -37,6 +34,7 @@ class FOXIE(AdobePassIE):
             'creator': 'FOX',
             'series': 'Gotham',
             'age_limit': 14,
+            'episode': 'Aftermath: Bruce Wayne Develops Into The Dark Knight'
         },
         'params': {
             'skip_download': True,
@@ -46,14 +44,15 @@ class FOXIE(AdobePassIE):
         'url': 'https://www.fox.com/watch/087036ca7f33c8eb79b08152b4dd75c1/',
         'only_matching': True,
     }, {
-        # episode, geo-restricted, tv provided required
-        'url': 'https://www.fox.com/watch/30056b295fb57f7452aeeb4920bc3024/',
+        # sports event, geo-restricted
+        'url': 'https://www.fox.com/watch/b057484dade738d1f373b3e46216fa2c/',
         'only_matching': True,
     }]
     _GEO_BYPASS = False
     _HOME_PAGE_URL = 'https://www.fox.com/'
-    _API_KEY = 'abdcbed02c124d393b39e818a4312055'
+    _API_KEY = '6E9S4bmcoNnZwVLOHywOv8PJEdu76cM9'
     _access_token = None
+    _device_id = compat_str(uuid.uuid4())
 
     def _call_api(self, path, video_id, data=None):
         headers = {
@@ -63,7 +62,7 @@ class FOXIE(AdobePassIE):
             headers['Authorization'] = 'Bearer ' + self._access_token
         try:
             return self._download_json(
-                'https://api2.fox.com/v2.0/' + path,
+                'https://api3.fox.com/v2.0/' + path,
                 video_id, data=data, headers=headers)
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
@@ -87,16 +86,37 @@ class FOXIE(AdobePassIE):
             if not self._access_token:
                 self._access_token = self._call_api(
                     'login', None, json.dumps({
-                        'deviceId': compat_str(uuid.uuid4()),
+                        'deviceId': self._device_id,
                     }).encode())['accessToken']
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        video = self._call_api('vodplayer/' + video_id, video_id)
+        self._access_token = self._call_api(
+            'previewpassmvpd?device_id=%s&mvpd_id=TempPass_fbcfox_60min' % self._device_id,
+            video_id)['accessToken']
+
+        video = self._call_api('watch', video_id, data=json.dumps({
+            'capabilities': ['drm/widevine', 'fsdk/yo'],
+            'deviceWidth': 1280,
+            'deviceHeight': 720,
+            'maxRes': '720p',
+            'os': 'macos',
+            'osv': '',
+            'provider': {
+                'freewheel': {'did': self._device_id},
+                'vdms': {'rays': ''},
+                'dmp': {'kuid': '', 'seg': ''}
+            },
+            'playlist': '',
+            'privacy': {'us': '1---'},
+            'siteSection': '',
+            'streamType': 'vod',
+            'streamId': video_id}).encode('utf-8'))
 
         title = video['name']
         release_url = video['url']
+
         try:
             m3u8_url = self._download_json(release_url, video_id)['playURL']
         except ExtractorError as e:

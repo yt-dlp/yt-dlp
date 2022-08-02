@@ -1,5 +1,5 @@
-# coding: utf-8
-from __future__ import unicode_literals
+import json
+import re
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_urlparse
@@ -8,6 +8,8 @@ from ..utils import (
     ExtractorError,
     find_xpath_attr,
     int_or_none,
+    traverse_obj,
+    try_call,
     unified_strdate,
     url_or_none,
     xpath_attr,
@@ -36,6 +38,7 @@ class RuutuIE(InfoExtractor):
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'duration': 114,
                 'age_limit': 0,
+                'upload_date': '20150508',
             },
         },
         {
@@ -49,6 +52,9 @@ class RuutuIE(InfoExtractor):
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'duration': 40,
                 'age_limit': 0,
+                'upload_date': '20150507',
+                'series': 'Superpesis',
+                'categories': ['Urheilu'],
             },
         },
         {
@@ -61,6 +67,8 @@ class RuutuIE(InfoExtractor):
                 'description': 'md5:7d90f358c47542e3072ff65d7b1bcffe',
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'age_limit': 0,
+                'upload_date': '20151012',
+                'series': 'Läpivalaisu',
             },
         },
         # Episode where <SourceFile> is "NOT-USED", but has other
@@ -80,6 +88,9 @@ class RuutuIE(InfoExtractor):
                 'description': 'md5:bbb6963df17dfd0ecd9eb9a61bf14b52',
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'age_limit': 0,
+                'upload_date': '20190320',
+                'series': 'Mysteeritarinat',
+                'duration': 1324,
             },
             'expected_warnings': [
                 'HTTP Error 502: Bad Gateway',
@@ -122,6 +133,32 @@ class RuutuIE(InfoExtractor):
         },
     ]
     _API_BASE = 'https://gatling.nelonenmedia.fi'
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        # nelonen.fi
+        settings = try_call(
+            lambda: json.loads(re.search(
+                r'jQuery\.extend\(Drupal\.settings, ({.+?})\);', webpage).group(1), strict=False))
+        if settings:
+            video_id = traverse_obj(settings, (
+                'mediaCrossbowSettings', 'file', 'field_crossbow_video_id', 'und', 0, 'value'))
+            if video_id:
+                return [f'http://www.ruutu.fi/video/{video_id}']
+        # hs.fi and is.fi
+        settings = try_call(
+            lambda: json.loads(re.search(
+                '(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>',
+                webpage).group(1), strict=False))
+        if settings:
+            video_ids = set(traverse_obj(settings, (
+                'props', 'pageProps', 'page', 'assetData', 'splitBody', ..., 'video', 'sourceId')) or [])
+            if video_ids:
+                return [f'http://www.ruutu.fi/video/{v}' for v in video_ids]
+            video_id = traverse_obj(settings, (
+                'props', 'pageProps', 'page', 'assetData', 'mainVideo', 'sourceId'))
+            if video_id:
+                return [f'http://www.ruutu.fi/video/{video_id}']
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -194,10 +231,10 @@ class RuutuIE(InfoExtractor):
         extract_formats(video_xml.find('./Clip'))
 
         def pv(name):
-            node = find_xpath_attr(
-                video_xml, './Clip/PassthroughVariables/variable', 'name', name)
-            if node is not None:
-                return node.get('value')
+            value = try_call(lambda: find_xpath_attr(
+                video_xml, './Clip/PassthroughVariables/variable', 'name', name).get('value'))
+            if value != 'NA':
+                return value or None
 
         if not formats:
             if (not self.get_param('allow_unplayable_formats')
@@ -222,6 +259,6 @@ class RuutuIE(InfoExtractor):
             'series': pv('series_name'),
             'season_number': int_or_none(pv('season_number')),
             'episode_number': int_or_none(pv('episode_number')),
-            'categories': themes.split(',') if themes else [],
+            'categories': themes.split(',') if themes else None,
             'formats': formats,
         }

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -284,6 +281,20 @@ class RCSEmbedsIE(RCSBaseIE):
                         (?:gazzanet\.)?gazzetta
                     )\.it)
                     /video-embed/(?P<id>[^/=&\?]+?)(?:$|\?)'''
+    _EMBED_REGEX = [r'''(?x)
+            (?:
+                data-frame-src=|
+                <iframe[^\n]+src=
+            )
+            (["'])
+                (?P<url>(?:https?:)?//video\.
+                    (?:
+                        rcs|
+                        (?:corriere\w+\.)?corriere|
+                        (?:gazzanet\.)?gazzetta
+                    )
+                \.it/video-embed/.+?)
+            \1''']
     _TESTS = [{
         'url': 'https://video.rcs.it/video-embed/iodonna-0001585037',
         'md5': '623ecc8ffe7299b2d0c1046d8331a9df',
@@ -324,30 +335,9 @@ class RCSEmbedsIE(RCSBaseIE):
             urls[i] = urljoin(base_url(e), url_basename(e))
         return urls
 
-    @staticmethod
-    def _extract_urls(webpage):
-        entries = [
-            mobj.group('url')
-            for mobj in re.finditer(r'''(?x)
-            (?:
-                data-frame-src=|
-                <iframe[^\n]+src=
-            )
-            (["'])
-                (?P<url>(?:https?:)?//video\.
-                    (?:
-                        rcs|
-                        (?:corriere\w+\.)?corriere|
-                        (?:gazzanet\.)?gazzetta
-                    )
-                \.it/video-embed/.+?)
-            \1''', webpage)]
-        return RCSEmbedsIE._sanitize_urls(entries)
-
-    @staticmethod
-    def _extract_url(webpage):
-        urls = RCSEmbedsIE._extract_urls(webpage)
-        return urls[0] if urls else None
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        return cls._sanitize_urls(tuple(super()._extract_embed_urls(url, webpage)))
 
 
 class RCSIE(RCSBaseIE):

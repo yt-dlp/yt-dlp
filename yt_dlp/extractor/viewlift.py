@@ -1,7 +1,4 @@
-from __future__ import unicode_literals
-
 import json
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
@@ -36,9 +33,6 @@ class ViewLiftBaseIE(InfoExtractor):
     def _fetch_token(self, site, url):
         if self._TOKENS.get(site):
             return
-        email, password = self._get_login_info(netrc_machine=site)
-        if email:
-            self.report_warning('Logging in using username and password is broken. %s' % self._LOGIN_HINTS['cookies'])
 
         cookies = self._get_cookies(url)
         if cookies and cookies.get('token'):
@@ -68,6 +62,7 @@ class ViewLiftBaseIE(InfoExtractor):
 class ViewLiftEmbedIE(ViewLiftBaseIE):
     IE_NAME = 'viewlift:embed'
     _VALID_URL = r'https?://(?:(?:www|embed)\.)?(?P<domain>%s)/embed/player\?.*\bfilmId=(?P<id>[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12})' % ViewLiftBaseIE._DOMAINS_REGEX
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:embed\.)?(?:%s)/embed/player.+?)\1' % ViewLiftBaseIE._DOMAINS_REGEX]
     _TESTS = [{
         'url': 'http://embed.snagfilms.com/embed/player?filmId=74849a00-85a9-11e1-9660-123139220831&w=500',
         'md5': '2924e9215c6eff7a55ed35b72276bd93',
@@ -93,14 +88,6 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
         'url': 'http://www.snagfilms.com/embed/player?filmId=0000014c-de2f-d5d6-abcf-ffef58af0017',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:embed\.)?(?:%s)/embed/player.+?)\1' % ViewLiftBaseIE._DOMAINS_REGEX,
-            webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         domain, film_id = self._match_valid_url(url).groups()

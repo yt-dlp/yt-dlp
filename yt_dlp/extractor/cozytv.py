@@ -1,12 +1,9 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import unified_strdate
 
 
 class CozyTVIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?cozy\.tv/(?P<uploader>[^/]+)/replays/(?P<id>[^/$#&?]+)'
+    _VALID_URL = r'https?://(?:www\.)?cozy\.tv/(?P<uploader>[^/]+)/replays/(?P<id>[^/$#&?]+)'
 
     _TESTS = [{
         'url': 'https://cozy.tv/beardson/replays/2021-11-19_1',
