@@ -68,7 +68,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20211221.00.00',
+                'clientVersion': '2.20220801.00.00',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1
@@ -78,7 +78,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
-                'clientVersion': '1.20211215.00.01',
+                'clientVersion': '1.20220731.00.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56
@@ -89,7 +89,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_REMIX',
-                'clientVersion': '1.20211213.00.00',
+                'clientVersion': '1.20220727.01.00',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
@@ -99,7 +99,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_CREATOR',
-                'clientVersion': '1.20211220.02.00',
+                'clientVersion': '1.20220726.00.00',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
@@ -109,7 +109,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '16.49',
+                'clientVersion': '17.28.34',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
@@ -120,7 +120,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '16.49',
+                'clientVersion': '17.28.34',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
@@ -131,7 +131,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
-                'clientVersion': '4.57',
+                'clientVersion': '5.16.51',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
@@ -142,7 +142,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_CREATOR',
-                'clientVersion': '21.47',
+                'clientVersion': '22.28.100',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
@@ -155,7 +155,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '16.46',
+                'clientVersion': '17.30.1',
                 'deviceModel': 'iPhone14,3',
             }
         },
@@ -166,7 +166,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MESSAGES_EXTENSION',
-                'clientVersion': '16.46',
+                'clientVersion': '17.30.1',
                 'deviceModel': 'iPhone14,3',
             },
         },
@@ -178,7 +178,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MUSIC',
-                'clientVersion': '4.57',
+                'clientVersion': '5.18',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
@@ -188,7 +188,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_CREATOR',
-                'clientVersion': '21.47',
+                'clientVersion': '22.29.101',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
@@ -201,7 +201,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'MWEB',
-                'clientVersion': '2.20211221.01.00',
+                'clientVersion': '2.20220801.00.00',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2
