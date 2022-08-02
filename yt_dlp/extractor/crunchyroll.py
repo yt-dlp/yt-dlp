@@ -780,26 +780,6 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Unable to download XML']
     }, {
-        'url': 'https://beta.crunchyroll.com/watch/GYK53DMPR/wicked-lord-shingan-reborn',
-        'info_dict': {
-            'id': '648781',
-            'ext': 'mp4',
-            'episode_number': 1,
-            'timestamp': 1389173400,
-            'series': 'Love, Chunibyo & Other Delusions - Heart Throb -',
-            'description': 'md5:5579d1a0355cc618558ba23d27067a62',
-            'uploader': 'TBS',
-            'episode': 'Wicked Lord Shingan... Reborn',
-            'average_rating': 4.9,
-            'season': 'Love, Chunibyo & Other Delusions - Heart Throb -',
-            'thumbnail': 'https://img1.ak.crunchyroll.com/i/spire3-tmb/2ba0384e225a5370d5f0ee9496d91ea51389046521_main.jpg',
-            'title': 'Love, Chunibyo & Other Delusions - Heart Throb - Episode 1 – Wicked Lord Shingan... Reborn',
-            'season_number': 2,
-            'upload_date': '20140108',
-        },
-        'params': {'skip_download': 'm3u8'},
-        'expected_warnings': ['Unable to download XML']
-    }, {
         'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/',
         'only_matching': True,
     }, {
@@ -891,13 +871,6 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
         'info_dict': {
             'id': 'girl-friend-beta',
             'title': 'Girl Friend BETA',
-        },
-        'playlist_mincount': 10,
-    }, {
-        'url': 'https://beta.crunchyroll.com/series/GYJQV73V6/love-chunibyo--other-delusions---heart-throb--',
-        'info_dict': {
-            'id': 'love-chunibyo-other-delusions-heart-throb-',
-            'title': 'Love, Chunibyo & Other Delusions - Heart Throb -',
         },
         'playlist_mincount': 10,
     }, {
