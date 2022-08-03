@@ -47,8 +47,7 @@ class HarpodeonIE(InfoExtractor):
         title, creator, release_year = self._search_regex(
             r'<div[^>]+videoInfo[^<]*<h2[^>]*>(?P<title>.+)<\/h2>(?:\n<p[^>]*>\((?P<creator>.+), )?(?P<release_year>[0-9]{4})?', webpage, 'title', group=['title', 'creator', 'release_year'])
 
-        hp_base = self._html_search_regex(
-            r'hpBase\(\s*["\'](^["\']+)', webpage, 'hp_base')
+        hp_base = self._html_search_regex(r'hpBase\(\s*["\']([^"\']+)', webpage, 'hp_base')
 
         hp_inject_video, hp_resolution = self._search_regex(
             r'hpInjectVideo\((?:\'|\")(?P<hp_inject_video>.+)(?:\'|\"),(?:\'|\")(?P<hp_resolution>.+)(?:\'|\")', webpage, 'hp_inject_video', group=['hp_inject_video', 'hp_resolution'])
