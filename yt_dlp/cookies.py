@@ -1,6 +1,5 @@
 import base64
 import contextlib
-import ctypes
 import http.cookiejar
 import json
 import os
@@ -876,10 +875,12 @@ def _decrypt_windows_dpapi(ciphertext, logger):
     References:
         - https://docs.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptunprotectdata
     """
-    from ctypes.wintypes import DWORD
+
+    import ctypes
+    import ctypes.wintypes
 
     class DATA_BLOB(ctypes.Structure):
-        _fields_ = [('cbData', DWORD),
+        _fields_ = [('cbData', ctypes.wintypes.DWORD),
                     ('pbData', ctypes.POINTER(ctypes.c_char))]
 
     buffer = ctypes.create_string_buffer(ciphertext)
