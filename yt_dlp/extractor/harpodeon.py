@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import str_or_none, unified_strdate
+from ..utils import unified_strdate
 
 
 class HarpodeonIE(InfoExtractor):
@@ -12,7 +12,7 @@ class HarpodeonIE(InfoExtractor):
             'id': '268068288',
             'ext': 'mp4',
             'title': 'The Smoking Out of Bella Butts',
-            'description': 'Anti-smoking campaigner Bella Butts enlists the help of the mayor\'s wife to enact a ban on tobacco, much to the chagrin of the town\'s cigar-addicted menfolk.',
+            'description': 'md5:47e16bdb41fc8a79c83ab83af11c8b77',
             'creator': 'Vitagraph Company of America',
             'release_date': '19150101'
         }
@@ -23,7 +23,7 @@ class HarpodeonIE(InfoExtractor):
             'id': '268068288',
             'ext': 'mp4',
             'title': 'The Smoking Out of Bella Butts',
-            'description': 'Anti-smoking campaigner Bella Butts enlists the help of the mayor\'s wife to enact a ban on tobacco, much to the chagrin of the town\'s cigar-addicted menfolk.',
+            'description': 'md5:47e16bdb41fc8a79c83ab83af11c8b77',
             'creator': 'Vitagraph Company of America',
             'release_date': '19150101'
         }
@@ -34,7 +34,7 @@ class HarpodeonIE(InfoExtractor):
             'id': '421838710',
             'ext': 'mp4',
             'title': 'Behind the Screen',
-            'description': 'A woman tries to break into being a stage hand at Charlie\'s studio by disguising herself as a man. Meanwhile, hostile strikers plan to blow up the set.',
+            'description': 'md5:008972a3dc51fba3965ee517d2ba9155',
             'creator': 'Lone Star Corporation',
             'release_date': '19160101'
         }
@@ -44,14 +44,18 @@ class HarpodeonIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title, creator, release_year = self._search_regex(
-            r'<div[^>]+videoInfo[^<]*<h2[^>]*>(?P<title>.+)<\/h2>(?:\n<p[^>]*>\((?P<creator>.+), )?(?P<release_year>[0-9]{4})?', webpage, 'title', group=['title', 'creator', 'release_year'])
+        title, creator, release_year = self._search_regex(r'''(?x)
+                                                          <div[^>]+videoInfo[^<]*<h2[^>]*>(?P<title>[^>]+)</h2>
+                                                          (?:\s*<p[^>]*>\((?P<creator>.+),\s*)?(?P<release_year>\d{4})?''',
+                                                          webpage, 'title', group=('title', 'creator', 'release_year'),
+                                                          fatal=False) or (None, None, None)
 
-        hp_base = self._html_search_regex(
-            r'hpBase\(\s*["\'](^["\']+)', webpage, 'hp_base')
+        hp_base = self._html_search_regex(r'hpBase\(\s*["\']([^"\']+)', webpage, 'hp_base')
 
-        hp_inject_video, hp_resolution = self._search_regex(
-            r'hpInjectVideo\((?:\'|\")(?P<hp_inject_video>.+)(?:\'|\"),(?:\'|\")(?P<hp_resolution>.+)(?:\'|\")', webpage, 'hp_inject_video', group=['hp_inject_video', 'hp_resolution'])
+        hp_inject_video, hp_resolution = self._search_regex(r'''(?x)
+                                                            hpInjectVideo\([\'\"](?P<hp_inject_video>\w+)[\'\"],
+                                                            [\'\"](?P<hp_resolution>\d+)[\'\"]''',
+                                                            webpage, 'hp_inject_video', group=['hp_inject_video', 'hp_resolution'])
 
         return {
             'id': video_id,
