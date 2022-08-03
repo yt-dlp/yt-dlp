@@ -44,18 +44,20 @@ class HarpodeonIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title, creator, release_year = self._search_regex(r'''(?x)
-                                                          <div[^>]+videoInfo[^<]*<h2[^>]*>(?P<title>[^>]+)</h2>
-                                                          (?:\s*<p[^>]*>\((?P<creator>.+),\s*)?(?P<release_year>\d{4})?''',
-                                                          webpage, 'title', group=('title', 'creator', 'release_year'),
-                                                          fatal=False) or (None, None, None)
+        title, creator, release_year = self._search_regex(
+            r'''(?x)
+                <div[^>]+videoInfo[^<]*<h2[^>]*>(?P<title>[^>]+)</h2>
+                (?:\s*<p[^>]*>\((?P<creator>.+),\s*)?(?P<release_year>\d{4})?''',
+            webpage, 'title', group=('title', 'creator', 'release_year'),
+            fatal=False) or (None, None, None)
 
         hp_base = self._html_search_regex(r'hpBase\(\s*["\']([^"\']+)', webpage, 'hp_base')
 
-        hp_inject_video, hp_resolution = self._search_regex(r'''(?x)
-                                                            hpInjectVideo\([\'\"](?P<hp_inject_video>\w+)[\'\"],
-                                                            [\'\"](?P<hp_resolution>\d+)[\'\"]''',
-                                                            webpage, 'hp_inject_video', group=['hp_inject_video', 'hp_resolution'])
+        hp_inject_video, hp_resolution = self._search_regex(
+            r'''(?x)
+                hpInjectVideo\([\'\"](?P<hp_inject_video>\w+)[\'\"],
+                [\'\"](?P<hp_resolution>\d+)[\'\"]''',
+            webpage, 'hp_inject_video', group=['hp_inject_video', 'hp_resolution'])
 
         return {
             'id': video_id,
