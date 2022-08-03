@@ -10,6 +10,7 @@ class HarpodeonIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.harpodeon.com/video/The_Smoking_Out_of_Bella_Butts/268068288',
         'md5': '727371564a6a9ebccef2073535b5b6bd',
+        'skip': 'Free video could become unavailable',
         'info_dict': {
             'id': '268068288',
             'ext': 'mp4',
@@ -28,6 +29,17 @@ class HarpodeonIE(InfoExtractor):
             'description': 'Anti-smoking campaigner Bella Butts enlists the help of the mayor\'s wife to enact a ban on tobacco, much to the chagrin of the town\'s cigar-addicted menfolk.',
             'creator': 'Vitagraph Company of America',
             'release_date': '19150101'
+        }
+    }, {
+        'url': 'https://www.harpodeon.com/preview/Behind_the_Screen/421838710',
+        'md5': '7979df9ca04637282cb7d172ab3a9c3b',
+        'info_dict': {
+            'id': '421838710',
+            'ext': 'mp4',
+            'title': 'Behind the Screen',
+            'description': 'A woman tries to break into being a stage hand at Charlie\'s studio by disguising herself as a man. Meanwhile, hostile strikers plan to blow up the set.',
+            'creator': 'Lone Star Corporation',
+            'release_date': '19160101'
         }
     }]
 
