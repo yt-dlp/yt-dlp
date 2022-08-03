@@ -1,4 +1,8 @@
-f'You are using an unsupported version of Python. Only Python versions 3.7 and above are supported by yt-dlp'  # noqa: F541
+try:
+    import contextvars  # noqa: F401
+except Exception:
+    raise Exception(
+        f'You are using an unsupported version of Python. Only Python versions 3.7 and above are supported by yt-dlp')  # noqa: F541
 
 __license__ = 'Public Domain'
 

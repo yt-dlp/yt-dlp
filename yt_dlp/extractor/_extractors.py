@@ -1210,19 +1210,8 @@ from .openrec import (
 from .ora import OraTVIE
 from .orf import (
     ORFTVthekIE,
-    ORFFM4IE,
     ORFFM4StoryIE,
-    ORFOE1IE,
-    ORFOE3IE,
-    ORFNOEIE,
-    ORFWIEIE,
-    ORFBGLIE,
-    ORFOOEIE,
-    ORFSTMIE,
-    ORFKTNIE,
-    ORFSBGIE,
-    ORFTIRIE,
-    ORFVBGIE,
+    ORFRadioIE,
     ORFIPTVIE,
 )
 from .outsidetv import OutsideTVIE

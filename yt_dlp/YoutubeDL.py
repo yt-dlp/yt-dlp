@@ -107,6 +107,7 @@ from .utils import (
     iri_to_uri,
     join_nonempty,
     locked_file,
+    make_archive_id,
     make_dir,
     make_HTTPS_handler,
     merge_headers,
@@ -1738,8 +1739,8 @@ class YoutubeDL:
             # Better to do this after potentially exhausting entries
             ie_result['playlist_count'] = all_entries.get_full_count()
 
-        ie_copy = collections.ChainMap(
-            ie_result, self._playlist_infodict(ie_result, n_entries=int_or_none(n_entries)))
+        extra = self._playlist_infodict(ie_result, n_entries=int_or_none(n_entries))
+        ie_copy = collections.ChainMap(ie_result, extra)
 
         _infojson_written = False
         write_playlist_files = self.params.get('allow_playlist_files', True)
@@ -1785,19 +1786,23 @@ class YoutubeDL:
             if not lazy and 'playlist-index' in self.params.get('compat_opts', []):
                 playlist_index = ie_result['requested_entries'][i]
 
-            extra = {
+            entry_copy = collections.ChainMap(entry, {
                 **common_info,
                 'n_entries': int_or_none(n_entries),
                 'playlist_index': playlist_index,
                 'playlist_autonumber': i + 1,
-            }
+            })
 
-            if self._match_entry(collections.ChainMap(entry, extra), incomplete=True) is not None:
+            if self._match_entry(entry_copy, incomplete=True) is not None:
                 continue
 
             self.to_screen('[download] Downloading video %s of %s' % (
                 self._format_screen(i + 1, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
 
+            extra.update({
+                'playlist_index': playlist_index,
+                'playlist_autonumber': i + 1,
+            })
             entry_result = self.__process_iterable_entry(entry, download, extra)
             if not entry_result:
                 failures += 1
@@ -2483,7 +2488,7 @@ class YoutubeDL:
         info_dict['_has_drm'] = any(f.get('has_drm') for f in formats) or None
         if not self.params.get('allow_unplayable_formats'):
             formats = [f for f in formats if not f.get('has_drm')]
-            if info_dict['_has_drm'] and all(
+            if info_dict['_has_drm'] and formats and all(
                     f.get('acodec') == f.get('vcodec') == 'none' for f in formats):
                 self.report_warning(
                     'This video is DRM protected and only images are available for download. '
@@ -3448,7 +3453,7 @@ class YoutubeDL:
                     break
             else:
                 return
-        return f'{extractor.lower()} {video_id}'
+        return make_archive_id(extractor, video_id)
 
     def in_download_archive(self, info_dict):
         fn = self.params.get('download_archive')

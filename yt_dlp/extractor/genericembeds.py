@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from ..utils import make_archive_id
 
 
 class HTML5MediaEmbedIE(InfoExtractor):
@@ -23,7 +24,7 @@ class HTML5MediaEmbedIE(InfoExtractor):
                 'id': f'{video_id}-{num}',
                 'title': f'{title} ({num})',
                 '_old_archive_ids': [
-                    f'Generic {f"{video_id}-{num}" if len(entries) > 1 else video_id}',
+                    make_archive_id('generic', f'{video_id}-{num}' if len(entries) > 1 else video_id),
                 ],
             })
             self._sort_formats(entry['formats'])

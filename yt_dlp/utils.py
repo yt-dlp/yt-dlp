@@ -5707,6 +5707,11 @@ class RetryManager:
             time.sleep(delay)
 
 
+def make_archive_id(ie, video_id):
+    ie_key = ie if isinstance(ie, str) else ie.ie_key()
+    return f'{ie_key.lower()} {video_id}'
+
+
 # Deprecated
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
