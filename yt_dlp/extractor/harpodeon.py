@@ -1,12 +1,9 @@
 from .common import InfoExtractor
-from ..utils import (
-    str_or_none,
-    unified_strdate
-)
+from ..utils import str_or_none, unified_strdate
 
 
 class HarpodeonIE(InfoExtractor):
-    _VALID_URL = r'https?:\/\/(?:www\.)?harpodeon\.com\/(?:video|preview)\/[a-zA-Z_]+\/(?P<id>[0-9]+)$'
+    _VALID_URL = r'https?://(?:www\.)?harpodeon\.com/(?:video|preview)/\w+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.harpodeon.com/video/The_Smoking_Out_of_Bella_Butts/268068288',
         'md5': '727371564a6a9ebccef2073535b5b6bd',
@@ -51,19 +48,17 @@ class HarpodeonIE(InfoExtractor):
             r'<div[^>]+videoInfo[^<]*<h2[^>]*>(?P<title>.+)<\/h2>(?:\n<p[^>]*>\((?P<creator>.+), )?(?P<release_year>[0-9]{4})?', webpage, 'title', group=['title', 'creator', 'release_year'])
 
         hp_base = self._html_search_regex(
-            r'hpBase\((?:\'|\")(?P<hpBase>.+)(?:\'|\")', webpage, 'hp_base')
+            r'hpBase\(\s*["\'](^["\']+)', webpage, 'hp_base')
 
         hp_inject_video, hp_resolution = self._search_regex(
             r'hpInjectVideo\((?:\'|\")(?P<hp_inject_video>.+)(?:\'|\"),(?:\'|\")(?P<hp_resolution>.+)(?:\'|\")', webpage, 'hp_inject_video', group=['hp_inject_video', 'hp_resolution'])
 
-        video_url = hp_base + hp_inject_video + '_' + hp_resolution + ".mp4"
-
         return {
             'id': video_id,
             'title': title,
-            'url': video_url,
+            'url': f'{hp_base}{hp_inject_video}_{hp_resolution}.mp4',
             'http_headers': {'Referer': url},
             'description': self._html_search_meta('description', webpage, fatal=False),
-            'creator': str_or_none(creator),
-            'release_date': unified_strdate(release_year + "0101")
+            'creator': creator,
+            'release_date': unified_strdate(f'{release_year}0101')
         }
