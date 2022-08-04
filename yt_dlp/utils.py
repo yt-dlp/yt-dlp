@@ -40,6 +40,7 @@ import tempfile
 import time
 import traceback
 import types
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -647,6 +648,9 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
             return ACCENT_CHARS[char]
         elif not restricted and char == '\n':
             return '\0 '
+        elif is_id is NO_DEFAULT and not restricted and char in '"*:<>?|/\\':
+            # Replace with their full-width unicode counterparts
+            return {'/': '\u29F8', '\\': '\u29f9'}.get(char, chr(ord(char) + 0xfee0))
         elif char == '?' or ord(char) < 32 or ord(char) == 127:
             return ''
         elif char == '"':
@@ -659,6 +663,8 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
             return '\0_'
         return char
 
+    if restricted and is_id is NO_DEFAULT:
+        s = unicodedata.normalize('NFKC', s)
     s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)  # Handle timestamps
     result = ''.join(map(replace_insane, s))
     if is_id is NO_DEFAULT:
