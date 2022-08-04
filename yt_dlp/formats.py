@@ -9,8 +9,10 @@ from .utils import (
     Namespace,
     apply_filter,
     determine_protocol,
+    get_compatible_ext,
     orderedSet,
     traverse_obj,
+    try_call,
 )
 
 
@@ -258,13 +260,16 @@ def merge_formats(formats, ctx=None, optional=False):
 
     filtered = lambda *keys: filter(None, (traverse_obj(f, *keys) for f in formats))
 
+    output_ext = get_compatible_ext(
+        vcodecs=[f.get('vcodec') for f in video_fmts],
+        acodecs=[f.get('acodec') for f in audio_fmts],
+        vexts=[f['ext'] for f in video_fmts],
+        aexts=[f['ext'] for f in audio_fmts],
+        preferences=(try_call(lambda: ctx.merge_output_format.split('/'))
+                     or ctx.prefer_free_formats and ('webm', 'mkv')))
+
     return {
-        'ext': next(filter(None, (
-            ctx and ctx.merge_output_format,
-            the_only_video.get('ext'),
-            not video_fmts and the_only_audio.get('ext'),
-            'mkv',
-        ))),
+        'ext': output_ext,
         'requested_formats': formats,
         'format': '+'.join(filtered('format')),
         'format_id': '+'.join(filtered('format_id')),
@@ -610,6 +615,7 @@ def build_format_selector(format_spec, ydl):
             merge_output_format=ydl.params.get('merge_output_format'),
             allow_multiple_audio_streams=ydl.params.get('allow_multiple_audio_streams'),
             allow_multiple_video_streams=ydl.params.get('allow_multiple_video_streams'),
+            prefer_free_formats=ydl.params.get('prefer_free_formats'),
             has_merged_format=FormatType.Merged in map(FormatType.of, formats),
             incomplete_formats=any(not next(filter(type_.isin, formats), None) for type_ in (FormatType.Video, FormatType.Audio)),
             check_format=check_format,
