@@ -45,7 +45,7 @@ class NovaPlayIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         self._access_token = self._access_token or self._download_json(
-                'https://play.nova.bg/api/client', None, note='Fetching access token')['accessToken']
+            'https://play.nova.bg/api/client', None, note='Fetching access token')['accessToken']
         video_props = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['video']
         m3u8_url = self._download_json(
             f'https://nbg-api.fite.tv/api/v2/videos/{video_id}/streams',
