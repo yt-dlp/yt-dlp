@@ -4,14 +4,16 @@ import optparse
 import os.path
 import re
 import shlex
+import shutil
 import string
 import sys
 
-from .compat import compat_expanduser, compat_get_terminal_size, compat_getenv
+from .compat import compat_expanduser
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
 from .postprocessor import (
     FFmpegExtractAudioPP,
+    FFmpegMergerPP,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoRemuxerPP,
@@ -39,7 +41,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 
     def _readUserConf(package_name, default=[]):
         # .config
-        xdg_config_home = compat_getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
+        xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
         userConfFile = os.path.join(xdg_config_home, package_name, 'config')
         if not os.path.isfile(userConfFile):
             userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
@@ -48,7 +50,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             return userConf, userConfFile
 
         # appdata
-        appdata_dir = compat_getenv('appdata')
+        appdata_dir = os.getenv('appdata')
         if appdata_dir:
             userConfFile = os.path.join(appdata_dir, package_name, 'config')
             userConf = Config.read_file(userConfFile, default=None)
@@ -96,18 +98,27 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 
     opts = optparse.Values({'verbose': True, 'print_help': False})
     try:
-        if overrideArguments:
-            root.append_config(overrideArguments, label='Override')
-        else:
-            root.append_config(sys.argv[1:], label='Command-line')
+        try:
+            if overrideArguments:
+                root.append_config(overrideArguments, label='Override')
+            else:
+                root.append_config(sys.argv[1:], label='Command-line')
+            loaded_all_configs = all(load_configs())
+        except ValueError as err:
+            raise root.parser.error(err)
 
-        if all(load_configs()):
+        if loaded_all_configs:
             # If ignoreconfig is found inside the system configuration file,
             # the user configuration is removed
             if root.parse_known_args()[0].ignoreconfig:
                 user_conf = next((i for i, conf in enumerate(root.configs) if conf.label == 'User'), None)
                 if user_conf is not None:
                     root.configs.pop(user_conf)
+
+        try:
+            root.configs[0].load_configs()  # Resolve any aliases using --config-location
+        except ValueError as err:
+            raise root.parser.error(err)
 
         opts, args = root.parse_args()
     except optparse.OptParseError:
@@ -133,7 +144,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
     def __init__(self):
         # No need to wrap help messages if we're on a wide console
-        max_width = compat_get_terminal_size().columns or 80
+        max_width = shutil.get_terminal_size().columns or 80
         # The % is chosen to get a pretty output in README.md
         super().__init__(width=max_width, max_help_position=int(0.45 * max_width))
 
@@ -171,8 +182,19 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         self.rargs, self.largs = self._get_args(args), []
         self.values = values or self.get_default_values()
         while self.rargs:
+            arg = self.rargs[0]
             try:
-                self._process_args(self.largs, self.rargs, self.values)
+                if arg == '--':
+                    del self.rargs[0]
+                    break
+                elif arg.startswith('--'):
+                    self._process_long_opt(self.rargs, self.values)
+                elif arg.startswith('-') and arg != '-':
+                    self._process_short_opts(self.rargs, self.values)
+                elif self.allow_interspersed_args:
+                    self.largs.append(self.rargs.pop(0))
+                else:
+                    break
             except optparse.OptParseError as err:
                 if isinstance(err, self._UNKNOWN_OPTION):
                     self.largs.append(err.opt_str)
@@ -183,14 +205,14 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         return self.check_values(self.values, self.largs)
 
     def error(self, msg):
-        msg = f'{self.get_prog_name()}: error: {msg.strip()}\n'
+        msg = f'{self.get_prog_name()}: error: {str(msg).strip()}\n'
         raise optparse.OptParseError(f'{self.get_usage()}\n{msg}' if self.usage else msg)
 
     def _get_args(self, args):
         return sys.argv[1:] if args is None else list(args)
 
     def _match_long_opt(self, opt):
-        """Improve ambigious argument resolution by comparing option objects instead of argument strings"""
+        """Improve ambiguous argument resolution by comparing option objects instead of argument strings"""
         try:
             return super()._match_long_opt(opt)
         except optparse.AmbiguousOptionError as e:
@@ -313,6 +335,10 @@ def create_parser():
         action='store_true', dest='update_self',
         help='Update this program to latest version')
     general.add_option(
+        '--no-update',
+        action='store_false', dest='update_self',
+        help='Do not update (default)')
+    general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
         help='Ignore download and postprocessing errors. The download will be considered successful even if the postprocessing fails')
@@ -403,9 +429,9 @@ def create_parser():
         action='store_false', dest='mark_watched',
         help='Do not mark videos watched (default)')
     general.add_option(
-        '--no-colors',
+        '--no-colors', '--no-colours',
         action='store_true', dest='no_color', default=False,
-        help='Do not emit color codes in output')
+        help='Do not emit color codes in output (Alias: --no-colours)')
     general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',
@@ -433,7 +459,7 @@ def create_parser():
             'Eg: --alias get-audio,-X "-S=aext:{0},abr -x --audio-format {0}" creates options '
             '"--get-audio" and "-X" that takes an argument (ARG0) and expands to '
             '"-S=aext:ARG0,abr -x --audio-format ARG0". All defined aliases are listed in the --help output. '
-            'Alias options can trigger more aliases; so be carefull to avoid defining recursive options. '
+            'Alias options can trigger more aliases; so be careful to avoid defining recursive options. '
             f'As a safety measure, each alias may be triggered a maximum of {_YoutubeDLOptionParser.ALIAS_TRIGGER_LIMIT} times. '
             'This option can be used multiple times'))
 
@@ -496,15 +522,19 @@ def create_parser():
     selection.add_option(
         '--playlist-start',
         dest='playliststart', metavar='NUMBER', default=1, type=int,
-        help='Playlist video to start at (default is %default)')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--playlist-end',
         dest='playlistend', metavar='NUMBER', default=None, type=int,
-        help='Playlist video to end at (default is last)')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
-        '--playlist-items',
+        '-I', '--playlist-items',
         dest='playlist_items', metavar='ITEM_SPEC', default=None,
-        help='Playlist video items to download. Specify indices of the videos in the playlist separated by commas like: "--playlist-items 1,2,5,8" if you want to download videos indexed 1, 2, 5, 8 in the playlist. You can specify range: "--playlist-items 1-3,7,10-13", it will download the videos at index 1, 2, 3, 7, 10, 11, 12 and 13')
+        help=(
+            'Comma separated playlist_index of the videos to download. '
+            'You can specify a range using "[START]:[STOP][:STEP]". For backward compatibility, START-STOP is also supported. '
+            'Use negative indices to count from the right and negative STEP to download in reverse order. '
+            'Eg: "-I 1:3,7,-5::2" used on a playlist of size 15 will download the videos at index 1,2,3,7,11,13,15'))
     selection.add_option(
         '--match-title',
         dest='matchtitle', metavar='REGEX',
@@ -552,7 +582,7 @@ def create_parser():
         metavar='FILTER', dest='match_filter', action='append',
         help=(
             'Generic video filter. Any "OUTPUT TEMPLATE" field can be compared with a '
-            'number or a string using the operators defined in "Filtering formats". '
+            'number or a string using the operators defined in "Filtering Formats". '
             'You can also simply specify a field to match if the field is present, '
             'use "!field" to check if the field is not present, and "&" to check multiple conditions. '
             'Use a "\\" to escape "&" or quotes if needed. If used multiple times, '
@@ -752,9 +782,9 @@ def create_parser():
         '--merge-output-format',
         action='store', dest='merge_output_format', metavar='FORMAT', default=None,
         help=(
-            'If a merge is required (e.g. bestvideo+bestaudio), '
-            'output to given container format. One of mkv, mp4, ogg, webm, flv. '
-            'Ignored if no merge is required'))
+            'Containers that may be used when merging formats, separated by "/" (Eg: "mp4/mkv"). '
+            'Ignored if no merge is required. '
+            f'(currently supported: {", ".join(sorted(FFmpegMergerPP.SUPPORTED_EXTS))})'))
     video_format.add_option(
         '--allow-unplayable-formats',
         action='store_true', dest='allow_unplayable_formats', default=False,
@@ -832,11 +862,11 @@ def create_parser():
         dest='retry_sleep', metavar='[TYPE:]EXPR', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'http|fragment|file_access',
+            'allowed_keys': 'http|fragment|file_access|extractor',
             'default_key': 'http',
         }, help=(
-            'An expression for the time to sleep between retries in seconds (optionally) prefixed '
-            'by the type of retry (file_access, fragment, http (default)) to apply the sleep to. '
+            'Time to sleep between retries in seconds (optionally) prefixed by the type of retry '
+            '(http (default), fragment, file_access, extractor) to apply the sleep to. '
             'EXPR can be a number, linear=START[:END[:STEP=1]] or exp=START[:END[:BASE=2]]. '
             'This option can be used multiple times to set the sleep for the different retry types. '
             'Eg: --retry-sleep linear=1::2 --retry-sleep fragment:exp=1:20'))
@@ -880,16 +910,24 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--playlist-reverse',
-        action='store_true',
-        help='Download playlist videos in reverse order')
+        action='store_true', dest='playlist_reverse',
+        help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--no-playlist-reverse',
         action='store_false', dest='playlist_reverse',
-        help='Download playlist videos in default order (default)')
+        help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--playlist-random',
-        action='store_true',
+        action='store_true', dest='playlist_random',
         help='Download playlist videos in random order')
+    downloader.add_option(
+        '--lazy-playlist',
+        action='store_true', dest='lazy_playlist',
+        help='Process entries in the playlist as they are received. This disables n_entries, --playlist-random and --playlist-reverse')
+    downloader.add_option(
+        '--no-lazy-playlist',
+        action='store_false', dest='lazy_playlist',
+        help='Process videos in the playlist only after the entire playlist is parsed (default)')
     downloader.add_option(
         '--xattr-set-filesize',
         dest='xattr_set_filesize', action='store_true',
@@ -917,6 +955,14 @@ def create_parser():
             'Do not use the mpegts container for HLS videos. '
             'This is default when not downloading live streams'))
     downloader.add_option(
+        '--download-sections',
+        metavar='REGEX', dest='download_ranges', action='append',
+        help=(
+            'Download only chapters whose title matches the given regular expression. '
+            'Time ranges prefixed by a "*" can also be used in place of chapters to download the specified range. '
+            'Eg: --download-sections "*10:15-15:00" --download-sections "intro". '
+            'Needs ffmpeg. This option can be used multiple times to download multiple sections'))
+    downloader.add_option(
         '--downloader', '--external-downloader',
         dest='external_downloader', metavar='[PROTO:]NAME', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
@@ -927,7 +973,7 @@ def create_parser():
         }, help=(
             'Name or path of the external downloader to use (optionally) prefixed by '
             'the protocols (http, ftp, m3u8, dash, rstp, rtmp, mms) to use it for. '
-            f'Currently supports native, {", ".join(list_external_downloaders())}. '
+            f'Currently supports native, {", ".join(sorted(list_external_downloaders()))}. '
             'You can use this option multiple times to set different downloaders for different protocols. '
             'For example, --downloader aria2c --downloader "dash,m3u8:native" will use '
             'aria2c for http/ftp downloads, and the native downloader for dash/m3u8 downloads '
@@ -1154,6 +1200,10 @@ def create_parser():
         '--write-pages',
         action='store_true', dest='write_pages', default=False,
         help='Write downloaded intermediary pages to files in the current directory to debug problems')
+    verbosity.add_option(
+        '--load-pages',
+        action='store_true', dest='load_pages', default=False,
+        help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--youtube-print-sig-code',
         action='store_true', dest='youtube_print_sig_code', default=False,
@@ -1419,20 +1469,23 @@ def create_parser():
     postproc.add_option(
         '--audio-format', metavar='FORMAT', dest='audioformat', default='best',
         help=(
-            'Specify audio format to convert the audio to when -x is used. Currently supported formats are: '
-            'best (default) or one of %s' % ', '.join(FFmpegExtractAudioPP.SUPPORTED_EXTS)))
+            'Format to convert the audio to when -x is used. '
+            f'(currently supported: best (default), {", ".join(sorted(FFmpegExtractAudioPP.SUPPORTED_EXTS))}). '
+            'You can specify multiple rules using similar syntax as --remux-video'))
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
         dest='audioquality', default='5',
-        help='Specify ffmpeg audio quality to use when converting the audio with -x. Insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
+        help=(
+            'Specify ffmpeg audio quality to use when converting the audio with -x. '
+            'Insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)'))
     postproc.add_option(
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,
         help=(
-            'Remux the video into another container if necessary (currently supported: %s). '
-            'If target container does not support the video/audio codec, remuxing will fail. '
-            'You can specify multiple rules; Eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 '
-            'and anything else to mkv.' % ', '.join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)))
+            'Remux the video into another container if necessary '
+            f'(currently supported: {", ".join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)}). '
+            'If target container does not support the video/audio codec, remuxing will fail. You can specify multiple rules; '
+            'Eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 and anything else to mkv'))
     postproc.add_option(
         '--recode-video',
         metavar='FORMAT', dest='recodevideo', default=None,
@@ -1600,13 +1653,14 @@ def create_parser():
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help=(
             'Convert the subtitles to another format (currently supported: %s) '
-            '(Alias: --convert-subtitles)' % ', '.join(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))
+            '(Alias: --convert-subtitles)' % ', '.join(sorted(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS))))
     postproc.add_option(
         '--convert-thumbnails',
         metavar='FORMAT', dest='convertthumbnails', default=None,
         help=(
             'Convert the thumbnails to another format '
-            '(currently supported: %s) ' % ', '.join(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)))
+            f'(currently supported: {", ".join(sorted(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS))}). '
+            'You can specify multiple rules using similar syntax as --remux-video'))
     postproc.add_option(
         '--split-chapters', '--split-tracks',
         dest='split_chapters', action='store_true', default=False,
@@ -1623,9 +1677,7 @@ def create_parser():
         metavar='REGEX', dest='remove_chapters', action='append',
         help=(
             'Remove chapters whose title matches the given regular expression. '
-            'Time ranges prefixed by a "*" can also be used in place of chapters to remove the specified range. '
-            'Eg: --remove-chapters "*10:15-15:00" --remove-chapters "intro". '
-            'This option can be used multiple times'))
+            'The syntax is the same as --download-sections. This option can be used multiple times'))
     postproc.add_option(
         '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
         help='Do not remove any chapters from the file (default)')
@@ -1633,9 +1685,8 @@ def create_parser():
         '--force-keyframes-at-cuts',
         action='store_true', dest='force_keyframes_at_cuts', default=False,
         help=(
-            'Force keyframes around chapters when removing/splitting them. '
-            'This is slow due to needing a re-encode, but '
-            'the resulting video may have fewer artifacts around the cuts'))
+            'Force keyframes at cuts when downloading/splitting/removing sections. '
+            'This is slow due to needing a re-encode, but the resulting video may have fewer artifacts around the cuts'))
     postproc.add_option(
         '--no-force-keyframes-at-cuts',
         action='store_false', dest='force_keyframes_at_cuts',

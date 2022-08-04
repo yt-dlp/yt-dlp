@@ -27,19 +27,19 @@ class Zee5IE(InfoExtractor):
                      (?P<id>[^#/?]+)/?(?:$|[?#])
                      '''
     _TESTS = [{
-        'url': 'https://www.zee5.com/movies/details/krishna-the-birth/0-0-63098',
+        'url': 'https://www.zee5.com/movies/details/adavari-matalaku-ardhale-verule/0-0-movie_1143162669',
         'info_dict': {
-            'id': '0-0-63098',
+            'id': '0-0-movie_1143162669',
             'ext': 'mp4',
-            'display_id': 'krishna-the-birth',
-            'title': 'Krishna - The Birth',
-            'duration': 4368,
+            'display_id': 'adavari-matalaku-ardhale-verule',
+            'title': 'Adavari Matalaku Ardhale Verule',
+            'duration': 9360,
             'description': compat_str,
-            'alt_title': 'Krishna - The Birth',
+            'alt_title': 'Adavari Matalaku Ardhale Verule',
             'uploader': 'Zee Entertainment Enterprises Ltd',
-            'release_date': '20060101',
-            'upload_date': '20060101',
-            'timestamp': 1136073600,
+            'release_date': '20070427',
+            'upload_date': '20070427',
+            'timestamp': 1177632000,
             'thumbnail': r're:^https?://.*\.jpg$',
             'episode_number': 0,
             'episode': 'Episode 0',
@@ -84,7 +84,7 @@ class Zee5IE(InfoExtractor):
         'only_matching': True
     }]
     _DETAIL_API_URL = 'https://spapi.zee5.com/singlePlayback/getDetails/secure?content_id={}&device_id={}&platform_name=desktop_web&country=IN&check_parental_control=false'
-    _DEVICE_ID = 'TszZPYPuY9Pq2cJizV0U000000000000'
+    _DEVICE_ID = '1q70TH8Wz0wTyw4buVgg000000000000'
     _USER_TOKEN = None
     _LOGIN_HINT = 'Use "--username <mobile_number>" to login using otp or "--username token" and "--password <user_token>" to login using user token.'
     _NETRC_MACHINE = 'zee5'

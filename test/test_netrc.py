@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+
+# Allow direct execution
 import os
 import sys
 import unittest

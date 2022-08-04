@@ -1,8 +1,8 @@
 import random
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, try_get, compat_str, str_or_none
-from ..compat import compat_urllib_parse_unquote
+from ..compat import compat_str, compat_urllib_parse_unquote
+from ..utils import ExtractorError, str_or_none, try_get
 
 
 class AudiusBaseIE(InfoExtractor):

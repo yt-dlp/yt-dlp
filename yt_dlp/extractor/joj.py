@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -18,6 +16,7 @@ class JojIE(InfoExtractor):
                     )
                     (?P<id>[^/?#^]+)
                 '''
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//media\.joj\.sk/embed/(?:(?!\1).)+)\1']
     _TESTS = [{
         'url': 'https://media.joj.sk/embed/a388ec4c-6019-4a4a-9312-b1bee194e932',
         'info_dict': {
@@ -37,14 +36,6 @@ class JojIE(InfoExtractor):
         'url': 'joj:9i1cxv',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//media\.joj\.sk/embed/(?:(?!\1).)+)\1',
-                webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -70,7 +61,7 @@ class JojIE(InfoExtractor):
                     r'(\d+)[pP]\.', format_url, 'height', default=None)
                 formats.append({
                     'url': format_url,
-                    'format_id': format_field(height, template='%sp'),
+                    'format_id': format_field(height, None, '%sp'),
                     'height': int(height),
                 })
         if not formats:

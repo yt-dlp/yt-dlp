@@ -20,10 +20,10 @@ class MediasetIE(ThePlatformBaseIE):
                     (?:
                         mediaset:|
                         https?://
-                            (?:(?:www|static3)\.)?mediasetplay\.mediaset\.it/
+                            (?:\w+\.)+mediaset\.it/
                             (?:
                                 (?:video|on-demand|movie)/(?:[^/]+/)+[^/]+_|
-                                player/index\.html\?.*?\bprogramGuid=
+                                player/(?:v\d+/)?index\.html\?.*?\bprogramGuid=
                             )
                     )(?P<id>[0-9A-Z]{16,})
                     '''
@@ -159,10 +159,15 @@ class MediasetIE(ThePlatformBaseIE):
     }, {
         'url': 'https://www.mediasetplay.mediaset.it/movie/herculeslaleggendahainizio/hercules-la-leggenda-ha-inizio_F305927501000102',
         'only_matching': True,
+    }, {
+        'url': 'https://mediasetinfinity.mediaset.it/video/braveandbeautiful/episodio-113_F310948005000402',
+        'only_matching': True,
+    }, {
+        'url': 'https://static3.mediasetplay.mediaset.it/player/v2/index.html?partnerId=wittytv&configId=&programGuid=FD00000000153323',
+        'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(ie, webpage):
+    def _extract_from_webpage(self, url, webpage):
         def _qs(url):
             return parse_qs(url)
 
@@ -182,8 +187,7 @@ class MediasetIE(ThePlatformBaseIE):
             video_id = embed_qs.get('id', [None])[0]
             if not video_id:
                 continue
-            urlh = ie._request_webpage(
-                embed_url, video_id, note='Following embed URL redirect')
+            urlh = self._request_webpage(embed_url, video_id, note='Following embed URL redirect')
             embed_url = urlh.geturl()
             program_guid = _program_guid(_qs(embed_url))
             if program_guid:
@@ -286,7 +290,7 @@ class MediasetShowIE(MediasetIE):
     _VALID_URL = r'''(?x)
                     (?:
                         https?://
-                            (?:(?:www|static3)\.)?mediasetplay\.mediaset\.it/
+                            (\w+\.)+mediaset\.it/
                             (?:
                                 (?:fiction|programmi-tv|serie-tv|kids)/(?:.+?/)?
                                     (?:[a-z-]+)_SE(?P<id>\d{12})

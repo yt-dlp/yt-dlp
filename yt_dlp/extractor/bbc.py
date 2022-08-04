@@ -1,16 +1,12 @@
-import xml.etree.ElementTree
 import functools
 import itertools
 import json
 import re
+import urllib.error
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-    compat_urllib_error,
-    compat_urlparse,
-)
+from ..compat import compat_HTTPError, compat_str, compat_urlparse
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -50,6 +46,7 @@ class BBCCoUkIE(InfoExtractor):
                         )
                         (?P<id>%s)(?!/(?:episodes|broadcasts|clips))
                     ''' % _ID_REGEX
+    _EMBED_REGEX = [r'setPlaylist\("(?P<url>https?://www\.bbc\.co\.uk/iplayer/[^/]+/[\da-z]{8})"\)']
 
     _LOGIN_URL = 'https://account.bbc.com/signin'
     _NETRC_MACHINE = 'bbc'
@@ -391,7 +388,7 @@ class BBCCoUkIE(InfoExtractor):
                                 href, programme_id, ext='mp4', entry_protocol='m3u8_native',
                                 m3u8_id=format_id, fatal=False)
                         except ExtractorError as e:
-                            if not (isinstance(e.exc_info[1], compat_urllib_error.HTTPError)
+                            if not (isinstance(e.exc_info[1], urllib.error.HTTPError)
                                     and e.exc_info[1].code in (403, 404)):
                                 raise
                             fmts = []
@@ -1235,7 +1232,7 @@ class BBCIE(BBCCoUkIE):
                                           (lambda x: x['data']['blocks'],
                                            lambda x: x['data']['content']['model']['blocks'],),
                                           list) or []):
-                        if block.get('type') != 'media':
+                        if block.get('type') not in ['media', 'video']:
                             continue
                         parse_media(block.get('model'))
             return self.playlist_result(

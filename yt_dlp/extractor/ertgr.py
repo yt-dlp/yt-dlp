@@ -15,7 +15,6 @@ from ..utils import (
     parse_iso8601,
     str_or_none,
     try_get,
-    unescapeHTML,
     url_or_none,
     variadic,
 )
@@ -119,7 +118,7 @@ class ERTFlixCodenameIE(ERTFlixBaseIE):
 class ERTFlixIE(ERTFlixBaseIE):
     IE_NAME = 'ertflix'
     IE_DESC = 'ERTFLIX videos'
-    _VALID_URL = r'https?://www\.ertflix\.gr/(?:series|vod)/(?P<id>[a-z]{3}\.\d+)'
+    _VALID_URL = r'https?://www\.ertflix\.gr/(?:[^/]+/)?(?:series|vod)/(?P<id>[a-z]{3}\.\d+)'
     _TESTS = [{
         'url': 'https://www.ertflix.gr/vod/vod.173258-aoratoi-ergates',
         'md5': '6479d5e60fd7e520b07ba5411dcdd6e7',
@@ -171,6 +170,9 @@ class ERTFlixIE(ERTFlixBaseIE):
             'title': 'Το δίκτυο',
         },
         'playlist_mincount': 9,
+    }, {
+        'url': 'https://www.ertflix.gr/en/vod/vod.127652-ta-kalytera-mas-chronia-ep1-mia-volta-sto-feggari',
+        'only_matching': True,
     }]
 
     def _extract_episode(self, episode):
@@ -272,6 +274,7 @@ class ERTWebtvEmbedIE(InfoExtractor):
     IE_DESC = 'ert.gr webtv embedded videos'
     _BASE_PLAYER_URL_RE = re.escape('//www.ert.gr/webtv/live-uni/vod/dt-uni-vod.php')
     _VALID_URL = rf'https?:{_BASE_PLAYER_URL_RE}\?([^#]+&)?f=(?P<id>[^#&]+)'
+    _EMBED_REGEX = [rf'<iframe[^>]+?src=(?P<_q1>["\'])(?P<url>(?:https?:)?{_BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+)(?P=_q1)']
 
     _TESTS = [{
         'url': 'https://www.ert.gr/webtv/live-uni/vod/dt-uni-vod.php?f=trailers/E2251_TO_DIKTYO_E09_16-01_1900.mp4&bgimg=/photos/2022/1/to_diktio_ep09_i_istoria_tou_diadiktiou_stin_Ellada_1021x576.jpg',
@@ -283,17 +286,6 @@ class ERTWebtvEmbedIE(InfoExtractor):
             'thumbnail': 'https://program.ert.gr/photos/2022/1/to_diktio_ep09_i_istoria_tou_diadiktiou_stin_Ellada_1021x576.jpg'
         },
     }]
-
-    @classmethod
-    def _extract_urls(cls, webpage):
-        EMBED_URL_RE = rf'(?:https?:)?{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
-        EMBED_RE = rf'<iframe[^>]+?src=(?P<_q1>["\'])(?P<url>{EMBED_URL_RE})(?P=_q1)'
-
-        for mobj in re.finditer(EMBED_RE, webpage):
-            url = unescapeHTML(mobj.group('url'))
-            if not cls.suitable(url):
-                continue
-            yield url
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

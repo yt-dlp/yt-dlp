@@ -59,10 +59,11 @@ PROTOCOL_MAP = {
 
 def shorten_protocol_name(proto, simplify=False):
     short_protocol_names = {
-        'm3u8_native': 'm3u8_n',
-        'rtmp_ffmpeg': 'rtmp_f',
+        'm3u8_native': 'm3u8',
+        'm3u8': 'm3u8F',
+        'rtmp_ffmpeg': 'rtmpF',
         'http_dash_segments': 'dash',
-        'http_dash_segments_generator': 'dash_g',
+        'http_dash_segments_generator': 'dashG',
         'niconico_dmc': 'dmc',
         'websocket_frag': 'WSfrag',
     }
@@ -70,6 +71,7 @@ def shorten_protocol_name(proto, simplify=False):
         short_protocol_names.update({
             'https': 'http',
             'ftps': 'ftp',
+            'm3u8': 'm3u8',  # Reverse above m3u8 mapping
             'm3u8_native': 'm3u8',
             'http_dash_segments_generator': 'dash',
             'rtmp_ffmpeg': 'rtmp',
@@ -84,8 +86,8 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
     if default is NO_DEFAULT:
         default = HttpFD
 
-    # if (info_dict.get('start_time') or info_dict.get('end_time')) and not info_dict.get('requested_formats') and FFmpegFD.can_download(info_dict):
-    #     return FFmpegFD
+    if (info_dict.get('section_start') or info_dict.get('section_end')) and FFmpegFD.can_download(info_dict):
+        return FFmpegFD
 
     info_dict['protocol'] = protocol
     downloaders = params.get('external_downloader')

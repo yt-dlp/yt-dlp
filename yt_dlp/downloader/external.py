@@ -6,11 +6,11 @@ import sys
 import time
 
 from .fragment import FragmentFD
-from ..compat import functools  # isort: split
-from ..compat import compat_setenv
+from ..compat import functools
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
     Popen,
+    RetryManager,
     _configuration_args,
     check_executable,
     classproperty,
@@ -37,6 +37,7 @@ class Features(enum.Enum):
 class ExternalFD(FragmentFD):
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps')
     SUPPORTED_FEATURES = ()
+    _CAPTURE_STDERR = True
 
     def real_download(self, filename, info_dict):
         self.report_destination(filename)
@@ -131,32 +132,27 @@ class ExternalFD(FragmentFD):
         self._debug_cmd(cmd)
 
         if 'fragments' not in info_dict:
-            _, stderr, retcode = self._call_process(cmd, info_dict)
-            if retcode == 0:
-                self.to_stderr(stderr.decode('utf-8', 'replace'))
-            return retcode
+            _, stderr, returncode = self._call_process(cmd, info_dict)
+            if returncode and stderr:
+                self.to_stderr(stderr)
+            return returncode
 
-        fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
 
-        count = 0
-        while count <= fragment_retries:
-            _, stderr, retcode = self._call_process(cmd, info_dict)
-            if retcode == 0:
+        retry_manager = RetryManager(self.params.get('fragment_retries'), self.report_retry,
+                                     frag_index=None, fatal=not skip_unavailable_fragments)
+        for retry in retry_manager:
+            _, stderr, returncode = self._call_process(cmd, info_dict)
+            if not returncode:
                 break
             # TODO: Decide whether to retry based on error code
             # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
-            self.to_stderr(stderr.decode('utf-8', 'replace'))
-            count += 1
-            if count <= fragment_retries:
-                self.to_screen(
-                    '[%s] Got error. Retrying fragments (attempt %d of %s)...'
-                    % (self.get_basename(), count, self.format_retries(fragment_retries)))
-                self.sleep_retry('fragment', count)
-        if count > fragment_retries:
-            if not skip_unavailable_fragments:
-                self.report_error('Giving up after %s fragment retries' % fragment_retries)
-                return -1
+            if stderr:
+                self.to_stderr(stderr)
+            retry.error = Exception()
+            continue
+        if not skip_unavailable_fragments and retry_manager.error:
+            return -1
 
         decrypt_fragment = self.decrypter(info_dict)
         dest, _ = self.sanitize_open(tmpfilename, 'wb')
@@ -186,6 +182,7 @@ class ExternalFD(FragmentFD):
 
 class CurlFD(ExternalFD):
     AVAILABLE_OPT = '-V'
+    _CAPTURE_STDERR = False  # curl writes the progress to stderr
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '--location', '-o', tmpfilename, '--compressed']
@@ -209,16 +206,6 @@ class CurlFD(ExternalFD):
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
         return cmd
-
-    def _call_downloader(self, tmpfilename, info_dict):
-        cmd = [encodeArgument(a) for a in self._make_cmd(tmpfilename, info_dict)]
-
-        self._debug_cmd(cmd)
-
-        # curl writes the progress to stderr so don't capture it.
-        p = Popen(cmd)
-        p.communicate_or_kill()
-        return p.returncode
 
 
 class AxelFD(ExternalFD):
@@ -519,13 +506,6 @@ class FFmpegFD(ExternalFD):
             # http://trac.ffmpeg.org/ticket/6125#comment:10
             args += ['-seekable', '1' if seekable else '0']
 
-        # start_time = info_dict.get('start_time') or 0
-        # if start_time:
-        #     args += ['-ss', str(start_time)]
-        # end_time = info_dict.get('end_time')
-        # if end_time:
-        #     args += ['-t', str(end_time - start_time)]
-
         http_headers = None
         if info_dict.get('http_headers'):
             youtubedl_headers = handle_youtubedl_headers(info_dict['http_headers'])
@@ -552,8 +532,8 @@ class FFmpegFD(ExternalFD):
             # We could switch to the following code if we are able to detect version properly
             # args += ['-http_proxy', proxy]
             env = os.environ.copy()
-            compat_setenv('HTTP_PROXY', proxy, env=env)
-            compat_setenv('http_proxy', proxy, env=env)
+            env['HTTP_PROXY'] = proxy
+            env['http_proxy'] = proxy
 
         protocol = info_dict.get('protocol')
 
@@ -586,15 +566,21 @@ class FFmpegFD(ExternalFD):
             elif isinstance(conn, str):
                 args += ['-rtmp_conn', conn]
 
+        start_time, end_time = info_dict.get('section_start') or 0, info_dict.get('section_end')
+
         for i, url in enumerate(urls):
-            # We need to specify headers for each http input stream
-            # otherwise, it will only be applied to the first.
-            # https://github.com/yt-dlp/yt-dlp/issues/2696
             if http_headers is not None and re.match(r'^https?://', url):
                 args += http_headers
+            if start_time:
+                args += ['-ss', str(start_time)]
+            if end_time:
+                args += ['-t', str(end_time - start_time)]
+
             args += self._configuration_args((f'_i{i + 1}', '_i')) + ['-i', url]
 
-        args += ['-c', 'copy']
+        if not (start_time or end_time) or not self.params.get('force_keyframes_at_cuts'):
+            args += ['-c', 'copy']
+
         if info_dict.get('requested_formats') or protocol == 'http_dash_segments':
             for (i, fmt) in enumerate(info_dict.get('requested_formats') or [info_dict]):
                 stream_number = fmt.get('manifest_stream_number', 0)
@@ -636,24 +622,23 @@ class FFmpegFD(ExternalFD):
         args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
         self._debug_cmd(args)
 
-        proc = Popen(args, stdin=subprocess.PIPE, env=env)
-        if url in ('-', 'pipe:'):
-            self.on_process_started(proc, proc.stdin)
-        try:
-            retval = proc.wait()
-        except BaseException as e:
-            # subprocces.run would send the SIGKILL signal to ffmpeg and the
-            # mp4 file couldn't be played, but if we ask ffmpeg to quit it
-            # produces a file that is playable (this is mostly useful for live
-            # streams). Note that Windows is not affected and produces playable
-            # files (see https://github.com/ytdl-org/youtube-dl/issues/8300).
-            if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32' and url not in ('-', 'pipe:'):
-                proc.communicate_or_kill(b'q')
-            else:
-                proc.kill()
-                proc.wait()
-            raise
-        return retval
+        with Popen(args, stdin=subprocess.PIPE, env=env) as proc:
+            if url in ('-', 'pipe:'):
+                self.on_process_started(proc, proc.stdin)
+            try:
+                retval = proc.wait()
+            except BaseException as e:
+                # subprocces.run would send the SIGKILL signal to ffmpeg and the
+                # mp4 file couldn't be played, but if we ask ffmpeg to quit it
+                # produces a file that is playable (this is mostly useful for live
+                # streams). Note that Windows is not affected and produces playable
+                # files (see https://github.com/ytdl-org/youtube-dl/issues/8300).
+                if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32' and url not in ('-', 'pipe:'):
+                    proc.communicate_or_kill(b'q')
+                else:
+                    proc.kill(timeout=None)
+                raise
+            return retval
 
 
 class AVconvFD(FFmpegFD):

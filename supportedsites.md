@@ -1,7 +1,10 @@
 # Supported sites
+ - **0000studio:archive**
+ - **0000studio:clip**
  - **17live**
  - **17live:clip**
  - **1tv**: Первый канал
+ - **20.detik.com**
  - **20min**
  - **23video**
  - **247sports**
@@ -29,6 +32,8 @@
  - **AcademicEarth:Course**
  - **acast**
  - **acast:channel**
+ - **AcFunBangumi**
+ - **AcFunVideo**
  - **ADN**: [<abbr title="netrc machine"><em>animedigitalnetwork</em></abbr>] Anime Digital Network
  - **AdobeConnect**
  - **adobetv**
@@ -60,8 +65,6 @@
  - **AmHistoryChannel**
  - **anderetijden**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **AnimalPlanet**
- - **AnimeLab**: [<abbr title="netrc machine"><em>animelab</em></abbr>]
- - **AnimeLabShows**: [<abbr title="netrc machine"><em>animelab</em></abbr>]
  - **AnimeOnDemand**: [<abbr title="netrc machine"><em>animeondemand</em></abbr>]
  - **ant1newsgr:article**: ant1news.gr articles
  - **ant1newsgr:embed**: ant1news.gr embedded videos
@@ -89,10 +92,13 @@
  - **AsianCrush**
  - **AsianCrushPlaylist**
  - **AtresPlayer**: [<abbr title="netrc machine"><em>atresplayer</em></abbr>]
+ - **AtScaleConfEvent**
  - **ATTTechChannel**
  - **ATVAt**
  - **AudiMedia**
  - **AudioBoom**
+ - **Audiodraft:custom**
+ - **Audiodraft:generic**
  - **audiomack**
  - **audiomack:album**
  - **Audius**: Audius.co
@@ -204,6 +210,7 @@
  - **CCMA**
  - **CCTV**: 央视网
  - **CDA**
+ - **Cellebrite**
  - **CeskaTelevize**
  - **CGTN**
  - **channel9**: Channel 9
@@ -276,6 +283,8 @@
  - **dailymotion**: [<abbr title="netrc machine"><em>dailymotion</em></abbr>]
  - **dailymotion:playlist**: [<abbr title="netrc machine"><em>dailymotion</em></abbr>]
  - **dailymotion:user**: [<abbr title="netrc machine"><em>dailymotion</em></abbr>]
+ - **DailyWire**
+ - **DailyWirePodcast**
  - **damtomo:record**
  - **damtomo:video**
  - **daum.net**
@@ -322,8 +331,8 @@
  - **drtv**
  - **drtv:live**
  - **DTube**
- - **duboku**: www.duboku.co
- - **duboku:list**: www.duboku.co entire series
+ - **duboku**: www.duboku.io
+ - **duboku:list**: www.duboku.io entire series
  - **Dumpert**
  - **dvtv**: http://video.aktualne.cz/
  - **dw**
@@ -403,6 +412,8 @@
  - **FranceTVSite**
  - **Freesound**
  - **freespeech.org**
+ - **freetv:series**
+ - **FreeTvMovies**
  - **FrontendMasters**: [<abbr title="netrc machine"><em>frontendmasters</em></abbr>]
  - **FrontendMastersCourse**: [<abbr title="netrc machine"><em>frontendmasters</em></abbr>]
  - **FrontendMastersLesson**: [<abbr title="netrc machine"><em>frontendmasters</em></abbr>]
@@ -413,6 +424,7 @@
  - **Funk**
  - **Fusion**
  - **Fux**
+ - **FuyinTV**
  - **Gab**
  - **GabTV**
  - **Gaia**: [<abbr title="netrc machine"><em>gaia</em></abbr>]
@@ -452,6 +464,7 @@
  - **google:podcasts**
  - **google:podcasts:feed**
  - **GoogleDrive**
+ - **GoogleDrive:Folder**
  - **GoPro**
  - **Goshgay**
  - **GoToStage**
@@ -496,6 +509,7 @@
  - **HungamaSong**
  - **huya:live**: huya.com
  - **Hypem**
+ - **Hytale**
  - **Icareus**
  - **ign.com**
  - **IGNArticle**
@@ -535,6 +549,7 @@
  - **Iwara**
  - **iwara:playlist**
  - **iwara:user**
+ - **Ixigua**
  - **Izlesene**
  - **Jable**
  - **JablePlaylist**
@@ -554,12 +569,14 @@
  - **Ketnet**
  - **khanacademy**
  - **khanacademy:unit**
+ - **Kicker**
  - **KickStarter**
  - **KinjaEmbed**
  - **KinoPoisk**
  - **KonserthusetPlay**
  - **Koo**
  - **KrasView**: Красвью
+ - **KTH**
  - **Ku6**
  - **KUSI**
  - **kuwo:album**: 酷我音乐 - 专辑
@@ -605,10 +622,12 @@
  - **linkedin:learning**: [<abbr title="netrc machine"><em>linkedin</em></abbr>]
  - **linkedin:learning:course**: [<abbr title="netrc machine"><em>linkedin</em></abbr>]
  - **LinuxAcademy**: [<abbr title="netrc machine"><em>linuxacademy</em></abbr>]
+ - **Liputan6**
  - **LiTV**
  - **LiveJournal**
  - **livestream**
  - **livestream:original**
+ - **Livestreamfails**
  - **Lnk**
  - **LnkGo**
  - **loc**: Library of Congress
@@ -675,6 +694,7 @@
  - **miomio.tv**
  - **mirrativ**
  - **mirrativ:user**
+ - **MirrorCoUK**
  - **MiTele**: mitele.es
  - **mixch**
  - **mixch:archive**
@@ -686,6 +706,7 @@
  - **MLSSoccer**
  - **Mnet**
  - **MNetTV**: [<abbr title="netrc machine"><em>mnettv</em></abbr>]
+ - **MochaVideo**
  - **MoeVideo**: LetitBit video services: moevideo.net, playreplay.net and videochart.net
  - **Mofosex**
  - **MofosexEmbed**
@@ -740,6 +761,7 @@
  - **NationalGeographicTV**
  - **Naver**
  - **Naver:live**
+ - **navernow**
  - **NBA**
  - **nba:watch**
  - **nba:watch:collection**
@@ -769,6 +791,8 @@
  - **netease:singer**: 网易云音乐 - 歌手
  - **netease:song**: 网易云音乐
  - **NetPlus**: [<abbr title="netrc machine"><em>netplus</em></abbr>]
+ - **Netverse**
+ - **NetversePlaylist**
  - **Netzkino**
  - **Newgrounds**
  - **Newgrounds:playlist**
@@ -932,6 +956,7 @@
  - **PlayPlusTV**: [<abbr title="netrc machine"><em>playplustv</em></abbr>]
  - **PlayStuff**
  - **PlaysTV**
+ - **PlaySuisse**
  - **Playtvak**: Playtvak.cz, iDNES.cz and Lidovky.cz
  - **Playvid**
  - **PlayVids**
@@ -942,7 +967,6 @@
  - **Podchaser**
  - **podomatic**
  - **Pokemon**
- - **PokemonSoundLibrary**
  - **PokemonWatch**
  - **PokerGo**: [<abbr title="netrc machine"><em>pokergo</em></abbr>]
  - **PokerGoCollection**: [<abbr title="netrc machine"><em>pokergo</em></abbr>]
@@ -969,6 +993,7 @@
  - **PornoVoisines**
  - **PornoXO**
  - **PornTube**
+ - **PremiershipRugby**
  - **PressTV**
  - **ProjectVeritas**
  - **prosiebensat1**: ProSiebenSat.1 Digital
@@ -1052,10 +1077,14 @@
  - **RTDocumentryPlaylist**
  - **rte**: Raidió Teilifís Éireann TV
  - **rte:radio**: Raidió Teilifís Éireann radio
+ - **rtl.lu:article**
+ - **rtl.lu:tele-vod**
  - **rtl.nl**: rtl.nl and rtlxl.nl
  - **rtl2**
  - **rtl2:you**
  - **rtl2:you:series**
+ - **RTLLuLive**
+ - **RTLLuRadio**
  - **RTNews**
  - **RTP**
  - **RTRFM**
@@ -1067,6 +1096,7 @@
  - **rtve.es:television**
  - **RTVNH**
  - **RTVS**
+ - **rtvslo.si**
  - **RUHD**
  - **Rule34Video**
  - **RumbleChannel**
@@ -1100,6 +1130,7 @@
  - **ScreencastOMatic**
  - **ScrippsNetworks**
  - **scrippsnetworks:watch**
+ - **Scrolller**
  - **SCTE**: [<abbr title="netrc machine"><em>scte</em></abbr>]
  - **SCTECourse**: [<abbr title="netrc machine"><em>scte</em></abbr>]
  - **Seeker**
@@ -1150,6 +1181,7 @@
  - **southpark.cc.com**
  - **southpark.cc.com:español**
  - **southpark.de**
+ - **southpark.lat**
  - **southpark.nl**
  - **southparkstudios.dk**
  - **SovietsCloset**
@@ -1173,8 +1205,10 @@
  - **SRGSSR**
  - **SRGSSRPlay**: srf.ch, rts.ch, rsi.ch, rtr.ch and swissinfo.ch play sites
  - **stanfordoc**: Stanford Open ClassRoom
+ - **StarTrek**
  - **startv**
  - **Steam**
+ - **SteamCommunityBroadcast**
  - **Stitcher**
  - **StitcherShow**
  - **StoryFire**
@@ -1189,6 +1223,7 @@
  - **StretchInternet**
  - **Stripchat**
  - **stv:player**
+ - **Substack**
  - **SunPorno**
  - **sverigesradio:episode**
  - **sverigesradio:publication**
@@ -1198,6 +1233,7 @@
  - **SVTSeries**
  - **SWRMediathek**
  - **Syfy**
+ - **SYVDK**
  - **SztvHu**
  - **t-online.de**
  - **Tagesschau**
@@ -1236,6 +1272,7 @@
  - **TenPlay**: [<abbr title="netrc machine"><em>10play</em></abbr>]
  - **TF1**
  - **TFO**
+ - **TheHoleTv**
  - **TheIntercept**
  - **ThePlatform**
  - **ThePlatformFeed**
@@ -1278,6 +1315,8 @@
  - **TruNews**
  - **TruTV**
  - **Tube8**
+ - **TubeTuGraz**: [<abbr title="netrc machine"><em>tubetugraz</em></abbr>] tube.tugraz.at
+ - **TubeTuGrazSeries**: [<abbr title="netrc machine"><em>tubetugraz</em></abbr>]
  - **TubiTv**: [<abbr title="netrc machine"><em>tubitv</em></abbr>]
  - **TubiTvShow**
  - **Tumblr**: [<abbr title="netrc machine"><em>tumblr</em></abbr>]
@@ -1306,6 +1345,7 @@
  - **TVCArticle**
  - **TVer**
  - **tvigle**: Интернет-телевидение Tvigle.ru
+ - **TVIPlayer**
  - **tvland.com**
  - **TVN24**
  - **TVNet**
@@ -1412,7 +1452,8 @@
  - **vimeo:watchlater**: [<abbr title="netrc machine"><em>vimeo</em></abbr>] Vimeo watch later list, ":vimeowatchlater" keyword (requires authentication)
  - **Vimm:recording**
  - **Vimm:stream**
- - **Vimp**
+ - **ViMP**
+ - **ViMP:Playlist**
  - **Vimple**: Vimple - one-click video hosting
  - **Vine**
  - **vine:user**
@@ -1463,6 +1504,7 @@
  - **washingtonpost:article**
  - **wat.tv**
  - **WatchBox**
+ - **WatchESPN**
  - **WatchIndianPorn**: Watch Indian Porn
  - **WDR**
  - **wdr:mobile**: (**Currently broken**)
@@ -1476,7 +1518,10 @@
  - **Weibo**
  - **WeiboMobile**
  - **WeiqiTV**: WQTV
+ - **wetv:episode**
+ - **WeTvSeries**
  - **whowatch**
+ - **wikimedia.org**
  - **Willow**
  - **WimTV**
  - **Wistia**
@@ -1535,6 +1580,7 @@
  - **YourPorn**
  - **YourUpload**
  - **youtube**: YouTube
+ - **youtube:clip**
  - **youtube:favorites**: YouTube liked videos; ":ytfav" keyword (requires cookies)
  - **youtube:history**: Youtube watch history; ":ythis" keyword (requires cookies)
  - **youtube:music:search_url**: YouTube music search URLs with selectable sections (Eg: #songs)
