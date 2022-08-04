@@ -801,7 +801,9 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
         if episode_response.get('is_premium_only') and not episode_response.get('playback'):
             raise ExtractorError('This video is for premium members only.', expected=True)
 
-        stream_response = self._download_json(episode_response['playback'], display_id, note='Retrieving stream info')
+        stream_response = self._download_json(
+            f'{api_domain}{episode_response["__links__"]["streams"]["href"]}', display_id,
+            note='Retrieving stream info', query=params)
         get_streams = lambda name: (traverse_obj(stream_response, name) or {}).items()
 
         requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
