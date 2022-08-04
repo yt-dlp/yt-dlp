@@ -17,8 +17,8 @@ pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
 clean-test:
 	rm -rf test/testdata/sigs/player-*.js tmp/ *.annotations.xml *.aria2 *.description *.dump *.frag \
 	*.frag.aria2 *.frag.urls *.info.json *.live_chat.json *.meta *.part* *.tmp *.temp *.unknown_video *.ytdl \
-	*.3gp *.ape *.ass *.avi *.desktop *.flac *.flv *.jpeg *.jpg *.m4a *.m4v *.mhtml *.mkv *.mov *.mp3 \
-	*.mp4 *.ogg *.opus *.png *.sbv *.srt *.swf *.swp *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp
+	*.3gp *.ape *.ass *.avi *.desktop *.f4v *.flac *.flv *.jpeg *.jpg *.m4a *.mpga *.m4v *.mhtml *.mkv *.mov \
+	*.mp3 *.mp4 *.ogg *.opus *.png *.sbv *.srt *.swf *.swp *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp
 clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
 	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
@@ -43,7 +43,7 @@ PYTHON ?= /usr/bin/env python3
 SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then echo /etc; else echo $(PREFIX)/etc; fi)
 
 # set markdown input format to "markdown-smart" for pandoc version 2 and to "markdown" for pandoc prior to version 2
-MARKDOWN = $(shell if [ "$(pandoc -v | head -n1 | cut -d" " -f2 | head -c1)" = "2" ]; then echo markdown-smart; else echo markdown; fi)
+MARKDOWN = $(shell if [ `pandoc -v | head -n1 | cut -d" " -f2 | head -c1` = "2" ]; then echo markdown-smart; else echo markdown; fi)
 
 install: lazy-extractors yt-dlp yt-dlp.1 completions
 	mkdir -p $(DESTDIR)$(BINDIR)

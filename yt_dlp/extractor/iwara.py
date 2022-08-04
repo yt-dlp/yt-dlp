@@ -1,16 +1,16 @@
 import itertools
 import re
-import urllib
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     mimetype2ext,
     remove_end,
+    strip_or_none,
+    unified_strdate,
     url_or_none,
     urljoin,
-    unified_strdate,
-    strip_or_none,
 )
 
 

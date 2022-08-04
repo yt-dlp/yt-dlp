@@ -1,18 +1,18 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import (
     compat_etree_fromstring,
     compat_str,
     compat_urllib_parse_unquote,
-    compat_urllib_parse_unquote_plus,
 )
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     error_to_compat_str,
-    ExtractorError,
     float_or_none,
     get_element_by_id,
     get_first,
@@ -57,6 +57,13 @@ class FacebookIE(InfoExtractor):
                 )
                 (?P<id>[0-9]+)
                 '''
+    _EMBED_REGEX = [
+        r'<iframe[^>]+?src=(["\'])(?P<url>https?://www\.facebook\.com/(?:video/embed|plugins/video\.php).+?)\1',
+        # Facebook API embed https://developers.facebook.com/docs/plugins/embedded-video-player
+        r'''(?x)<div[^>]+
+                class=(?P<q1>[\'"])[^\'"]*\bfb-(?:video|post)\b[^\'"]*(?P=q1)[^>]+
+                data-href=(?P<q2>[\'"])(?P<url>(?:https?:)?//(?:www\.)?facebook.com/.+?)(?P=q2)''',
+    ]
     _LOGIN_URL = 'https://www.facebook.com/login.php?next=http%3A%2F%2Ffacebook.com%2Fhome.php&login_attempt=1'
     _CHECKPOINT_URL = 'https://www.facebook.com/checkpoint/?next=http%3A%2F%2Ffacebook.com%2Fhome.php&_fb_noscript=1'
     _NETRC_MACHINE = 'facebook'
@@ -311,21 +318,6 @@ class FacebookIE(InfoExtractor):
         'graphURI': '/api/graphql/'
     }
 
-    @staticmethod
-    def _extract_urls(webpage):
-        urls = []
-        for mobj in re.finditer(
-                r'<iframe[^>]+?src=(["\'])(?P<url>https?://www\.facebook\.com/(?:video/embed|plugins/video\.php).+?)\1',
-                webpage):
-            urls.append(mobj.group('url'))
-        # Facebook API embed
-        # see https://developers.facebook.com/docs/plugins/embedded-video-player
-        for mobj in re.finditer(r'''(?x)<div[^>]+
-                class=(?P<q1>[\'"])[^\'"]*\bfb-(?:video|post)\b[^\'"]*(?P=q1)[^>]+
-                data-href=(?P<q2>[\'"])(?P<url>(?:https?:)?//(?:www\.)?facebook.com/.+?)(?P=q2)''', webpage):
-            urls.append(mobj.group('url'))
-        return urls
-
     def _perform_login(self, username, password):
         login_page_req = sanitized_Request(self._LOGIN_URL)
         self._set_cookie('facebook.com', 'locale', 'en_US')
@@ -467,7 +459,7 @@ class FacebookIE(InfoExtractor):
             dash_manifest = video.get('dash_manifest')
             if dash_manifest:
                 formats.extend(self._parse_mpd_formats(
-                    compat_etree_fromstring(compat_urllib_parse_unquote_plus(dash_manifest))))
+                    compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest))))
 
         def process_formats(formats):
             # Downloads with browser's User-Agent are rate limited. Working around

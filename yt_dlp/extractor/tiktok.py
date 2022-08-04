@@ -1,7 +1,6 @@
 import itertools
 import json
 import random
-import re
 import string
 import time
 
@@ -12,6 +11,7 @@ from ..utils import (
     HEADRequest,
     LazyList,
     UnsupportedError,
+    get_element_by_id,
     get_first,
     int_or_none,
     join_nonempty,
@@ -33,10 +33,21 @@ class TikTokBaseIE(InfoExtractor):
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
+    _session_initialized = False
 
     @staticmethod
     def _create_url(user_id, video_id):
         return f'https://www.tiktok.com/@{user_id or "_"}/video/{video_id}'
+
+    def _get_sigi_state(self, webpage, display_id):
+        return self._parse_json(get_element_by_id(
+            'SIGI_STATE|sigi-persisted-data', webpage, escape_value=False), display_id)
+
+    def _real_initialize(self):
+        if self._session_initialized:
+            return
+        self._request_webpage(HEADRequest('https://www.tiktok.com'), None, note='Setting up session', fatal=False)
+        TikTokBaseIE._session_initialized = True
 
     def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
                        note='Downloading API JSON', errnote='Unable to download API page'):
@@ -263,6 +274,9 @@ class TikTokBaseIE(InfoExtractor):
 
         return {
             'id': aweme_id,
+            'extractor_key': TikTokIE.ie_key(),
+            'extractor': TikTokIE.IE_NAME,
+            'webpage_url': self._create_url(author_info.get('uid'), aweme_id),
             'title': aweme_detail.get('desc'),
             'description': aweme_detail.get('desc'),
             'view_count': int_or_none(stats_info.get('play_count')),
@@ -364,6 +378,7 @@ class TikTokBaseIE(InfoExtractor):
 
 class TikTokIE(TikTokBaseIE):
     _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)/video)/(?P<id>\d+)'
+    _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
 
     _TESTS = [{
         'url': 'https://www.tiktok.com/@leenabhushan/video/6748451240264420610',
@@ -461,7 +476,7 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-        'expected_warnings': ['Video not available']
+        'expected_warnings': ['trying with webpage', 'Unable to find video in feed']
     }, {
         # Video without title and description
         'url': 'https://www.tiktok.com/@pokemonlife22/video/7059698374567611694',
@@ -485,17 +500,34 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-        'expected_warnings': ['Video not available', 'Creating a generic title']
+    }, {
+        # hydration JSON is sent in a <script> element
+        'url': 'https://www.tiktok.com/@denidil6/video/7065799023130643713',
+        'info_dict': {
+            'id': '7065799023130643713',
+            'ext': 'mp4',
+            'title': '#denidil#денидил',
+            'description': '#denidil#денидил',
+            'uploader': 'denidil6',
+            'uploader_id': '7046664115636405250',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAsvMSzFdQ4ikl3uR2TEJwMBbB2yZh2Zxwhx-WCo3rbDpAharE3GQCrFuJArI3C8QJ',
+            'artist': 'Holocron Music',
+            'album': 'Wolf Sounds (1 Hour) Enjoy the Company of the Animal That Is the Majestic King of the Night',
+            'track': 'Wolf Sounds (1 Hour) Enjoy the Company of the Animal That Is the Majestic King of the Night',
+            'timestamp': 1645134536,
+            'duration': 26,
+            'upload_date': '20220217',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+        },
+        'expected_warnings': ['trying feed workaround', 'Unable to find video in feed']
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
         'only_matching': True
     }]
-
-    @classmethod
-    def _extract_urls(cls, webpage):
-        return [mobj.group('url') for mobj in re.finditer(
-            rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{cls._VALID_URL})', webpage)]
 
     def _extract_aweme_app(self, aweme_id):
         try:
@@ -504,7 +536,7 @@ class TikTokIE(TikTokBaseIE):
             if not aweme_detail:
                 raise ExtractorError('Video not available', video_id=aweme_id)
         except ExtractorError as e:
-            self.report_warning(f'{e}; Retrying with feed workaround')
+            self.report_warning(f'{e.orig_msg}; trying feed workaround')
             feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
                                        note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
             aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
@@ -514,26 +546,19 @@ class TikTokIE(TikTokBaseIE):
 
     def _real_extract(self, url):
         video_id, user_id = self._match_valid_url(url).group('id', 'user_id')
-        url = self._create_url(user_id, video_id)
-
         try:
             return self._extract_aweme_app(video_id)
         except ExtractorError as e:
-            self.report_warning(f'{e}; Retrying with webpage')
+            self.report_warning(f'{e}; trying with webpage')
 
-        # If we only call once, we get a 403 when downlaoding the video.
-        self._download_webpage(url, video_id)
-        webpage = self._download_webpage(url, video_id, note='Downloading video webpage')
+        url = self._create_url(user_id, video_id)
+        webpage = self._download_webpage(url, video_id, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
         next_data = self._search_nextjs_data(webpage, video_id, default='{}')
-
         if next_data:
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)
         else:
-            sigi_json = self._search_regex(
-                r'>\s*window\[[\'"]SIGI_STATE[\'"]\]\s*=\s*(?P<sigi_state>{.+});',
-                webpage, 'sigi data', group='sigi_state')
-            sigi_data = self._parse_json(sigi_json, video_id)
+            sigi_data = self._get_sigi_state(webpage, video_id)
             status = traverse_obj(sigi_data, ('VideoPage', 'statusCode'), expected_type=int) or 0
             video_data = traverse_obj(sigi_data, ('ItemModule', video_id), expected_type=dict)
 
@@ -605,19 +630,17 @@ class TikTokUserIE(TikTokBaseIE):
             'device_id': ''.join(random.choice(string.digits) for _ in range(19)),  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
         }
 
-        max_retries = self.get_param('extractor_retries', 3)
         for page in itertools.count(1):
-            for retries in itertools.count():
+            for retry in self.RetryManager():
                 try:
-                    post_list = self._call_api('aweme/post', query, username,
-                                               note='Downloading user video list page %d%s' % (page, f' (attempt {retries})' if retries != 0 else ''),
-                                               errnote='Unable to download user video list')
+                    post_list = self._call_api(
+                        'aweme/post', query, username, note=f'Downloading user video list page {page}',
+                        errnote='Unable to download user video list')
                 except ExtractorError as e:
-                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0 and retries != max_retries:
-                        self.report_warning('%s. Retrying...' % str(e.cause or e.msg))
+                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
+                        retry.error = e
                         continue
                     raise
-                break
             yield from post_list.get('aweme_list', [])
             if not post_list.get('has_more'):
                 break
@@ -655,19 +678,17 @@ class TikTokBaseListIE(TikTokBaseIE):
             'device_id': ''.join(random.choice(string.digits) for i in range(19))
         }
 
-        max_retries = self.get_param('extractor_retries', 3)
         for page in itertools.count(1):
-            for retries in itertools.count():
+            for retry in self.RetryManager():
                 try:
-                    post_list = self._call_api(self._API_ENDPOINT, query, display_id,
-                                               note='Downloading video list page %d%s' % (page, f' (attempt {retries})' if retries != 0 else ''),
-                                               errnote='Unable to download video list')
+                    post_list = self._call_api(
+                        self._API_ENDPOINT, query, display_id, note=f'Downloading video list page {page}',
+                        errnote='Unable to download video list')
                 except ExtractorError as e:
-                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0 and retries != max_retries:
-                        self.report_warning('%s. Retrying...' % str(e.cause or e.msg))
+                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
+                        retry.error = e
                         continue
                     raise
-                break
             for video in post_list.get('aweme_list', []):
                 yield {
                     **self._parse_aweme_video_app(video),
@@ -849,7 +870,7 @@ class DouyinIE(TikTokIE):
         try:
             return self._extract_aweme_app(video_id)
         except ExtractorError as e:
-            self.report_warning(f'{e}; Retrying with webpage')
+            self.report_warning(f'{e}; trying with webpage')
 
         webpage = self._download_webpage(url, video_id)
         render_data_json = self._search_regex(

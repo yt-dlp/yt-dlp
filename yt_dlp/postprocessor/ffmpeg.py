@@ -1,4 +1,5 @@
 import collections
+import contextvars
 import itertools
 import json
 import os
@@ -9,6 +10,7 @@ import time
 from .common import PostProcessor
 from ..compat import functools, imghdr
 from ..utils import (
+    MEDIA_EXTENSIONS,
     ISO639Utils,
     Popen,
     PostProcessingError,
@@ -81,6 +83,8 @@ class FFmpegPostProcessorError(PostProcessingError):
 
 
 class FFmpegPostProcessor(PostProcessor):
+    _ffmpeg_location = contextvars.ContextVar('ffmpeg_location', default=None)
+
     def __init__(self, downloader=None):
         PostProcessor.__init__(self, downloader)
         self._prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
@@ -100,7 +104,7 @@ class FFmpegPostProcessor(PostProcessor):
     def _determine_executables(self):
         programs = [*self._ffmpeg_to_avconv.keys(), *self._ffmpeg_to_avconv.values()]
 
-        location = self.get_param('ffmpeg_location')
+        location = self.get_param('ffmpeg_location', self._ffmpeg_location.get())
         if location is None:
             return {p: p for p in programs}
 
@@ -239,14 +243,13 @@ class FFmpegPostProcessor(PostProcessor):
                     encodeArgument('-i')]
             cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
             self.write_debug(f'{self.basename} command line: {shell_quote(cmd)}')
-            handle = Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout_data, stderr_data = handle.communicate_or_kill()
-            expected_ret = 0 if self.probe_available else 1
-            if handle.wait() != expected_ret:
+            stdout, stderr, returncode = Popen.run(
+                cmd, text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if returncode != (0 if self.probe_available else 1):
                 return None
         except OSError:
             return None
-        output = (stdout_data if self.probe_available else stderr_data).decode('ascii', 'ignore')
+        output = stdout if self.probe_available else stderr
         if self.probe_available:
             audio_codec = None
             for line in output.split('\n'):
@@ -280,11 +283,10 @@ class FFmpegPostProcessor(PostProcessor):
         ]
 
         cmd += opts
-        cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
-        self.write_debug('ffprobe command line: %s' % shell_quote(cmd))
-        p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        return json.loads(stdout.decode('utf-8', 'replace'))
+        cmd.append(self._ffmpeg_filename_argument(path))
+        self.write_debug(f'ffprobe command line: {shell_quote(cmd)}')
+        stdout, _, _ = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        return json.loads(stdout)
 
     def get_stream_number(self, path, keys, value):
         streams = self.get_metadata_object(path)['streams']
@@ -346,16 +348,15 @@ class FFmpegPostProcessor(PostProcessor):
                 for i, (path, opts) in enumerate(path_opts) if path)
 
         self.write_debug('ffmpeg command line: %s' % shell_quote(cmd))
-        p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        stdout, stderr = p.communicate_or_kill()
-        if p.returncode not in variadic(expected_retcodes):
-            stderr = stderr.decode('utf-8', 'replace').strip()
+        _, stderr, returncode = Popen.run(
+            cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        if returncode not in variadic(expected_retcodes):
             self.write_debug(stderr)
-            raise FFmpegPostProcessorError(stderr.split('\n')[-1])
+            raise FFmpegPostProcessorError(stderr.strip().splitlines()[-1])
         for out_path, _ in output_path_opts:
             if out_path:
                 self.try_utime(out_path, oldest_mtime, oldest_mtime)
-        return stderr.decode('utf-8', 'replace')
+        return stderr
 
     def run_ffmpeg(self, path, out_path, opts, **kwargs):
         return self.run_ffmpeg_multiple_files([path], out_path, opts, **kwargs)
@@ -424,7 +425,7 @@ class FFmpegPostProcessor(PostProcessor):
 
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
-    COMMON_AUDIO_EXTS = ('wav', 'flac', 'm4a', 'aiff', 'mp3', 'ogg', 'mka', 'opus', 'wma')
+    COMMON_AUDIO_EXTS = MEDIA_EXTENSIONS.common_audio + ('wma', )
     SUPPORTED_EXTS = tuple(ACODECS.keys())
     FORMAT_RE = create_mapping_re(('best', *SUPPORTED_EXTS))
 
@@ -531,7 +532,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
 
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mka', 'ogg', *FFmpegExtractAudioPP.SUPPORTED_EXTS)
+    SUPPORTED_EXTS = (*MEDIA_EXTENSIONS.common_video, *sorted(MEDIA_EXTENSIONS.common_audio + ('aac', 'vorbis')))
     FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
     _ACTION = 'converting'
 
@@ -589,7 +590,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
 
         filename = info['filepath']
 
-        # Disabled temporarily. There needs to be a way to overide this
+        # Disabled temporarily. There needs to be a way to override this
         # in case of duration actually mismatching in extractor
         # See: https://github.com/yt-dlp/yt-dlp/issues/1870, https://github.com/yt-dlp/yt-dlp/issues/1385
         '''
@@ -728,11 +729,10 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
                 value = value.replace('\0', '')  # nul character cannot be passed in command line
                 metadata['common'].update({meta_f: value for meta_f in variadic(meta_list)})
 
-        # See [1-4] for some info on media metadata/metadata supported
-        # by ffmpeg.
-        # 1. https://kdenlive.org/en/project/adding-meta-data-to-mp4-video/
-        # 2. https://wiki.multimedia.cx/index.php/FFmpeg_Metadata
-        # 3. https://kodi.wiki/view/Video_file_tagging
+        # Info on media metadata/metadata supported by ffmpeg:
+        # https://wiki.multimedia.cx/index.php/FFmpeg_Metadata
+        # https://kdenlive.org/en/project/adding-meta-data-to-mp4-video/
+        # https://kodi.wiki/view/Video_file_tagging
 
         add('title', ('track', 'title'))
         add('date', 'upload_date')
@@ -801,6 +801,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
 
 class FFmpegMergerPP(FFmpegPostProcessor):
+    SUPPORTED_EXTS = MEDIA_EXTENSIONS.common_video
+
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         filename = info['filepath']
@@ -925,7 +927,7 @@ class FFmpegFixupDuplicateMoovPP(FFmpegCopyStreamPP):
 
 
 class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('srt', 'vtt', 'ass', 'lrc')
+    SUPPORTED_EXTS = MEDIA_EXTENSIONS.subtitles
 
     def __init__(self, downloader=None, format=None):
         super().__init__(downloader)
@@ -1047,7 +1049,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
 
 class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('jpg', 'png', 'webp')
+    SUPPORTED_EXTS = MEDIA_EXTENSIONS.thumbnails
     FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
 
     def __init__(self, downloader=None, format=None):
@@ -1081,8 +1083,9 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         thumbnail_conv_filename = replace_extension(thumbnail_filename, target_ext)
 
         self.to_screen(f'Converting thumbnail "{thumbnail_filename}" to {target_ext}')
+        _, source_ext = os.path.splitext(thumbnail_filename)
         self.real_run_ffmpeg(
-            [(thumbnail_filename, ['-f', 'image2', '-pattern_type', 'none'])],
+            [(thumbnail_filename, [] if source_ext == '.gif' else ['-f', 'image2', '-pattern_type', 'none'])],
             [(thumbnail_conv_filename.replace('%', '%%'), self._options(target_ext))])
         return thumbnail_conv_filename
 
@@ -1153,9 +1156,9 @@ class FFmpegConcatPP(FFmpegPostProcessor):
         if len(in_files) < len(entries):
             raise PostProcessingError('Aborting concatenation because some downloads failed')
 
-        ie_copy = self._downloader._playlist_infodict(info)
         exts = traverse_obj(entries, (..., 'requested_downloads', 0, 'ext'), (..., 'ext'))
-        ie_copy['ext'] = exts[0] if len(set(exts)) == 1 else 'mkv'
+        ie_copy = collections.ChainMap({'ext': exts[0] if len(set(exts)) == 1 else 'mkv'},
+                                       info, self._downloader._playlist_infodict(info))
         out_file = self._downloader.prepare_filename(ie_copy, 'pl_video')
 
         files_to_delete = self.concat_files(in_files, out_file)

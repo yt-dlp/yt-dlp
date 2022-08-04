@@ -23,6 +23,7 @@ class SpotifyBaseIE(InfoExtractor):
         'ShowEpisodes': 'e0e5ce27bd7748d2c59b4d44ba245a8992a05be75d6fabc3b20753fc8857444d',
     }
     _VALID_URL_TEMPL = r'https?://open\.spotify\.com/(?:embed-podcast/|embed/|)%s/(?P<id>[^/?&#]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://open\.spotify.com/embed/[^"]+)"']
 
     def _real_initialize(self):
         self._ACCESS_TOKEN = self._download_json(
@@ -96,12 +97,6 @@ class SpotifyBaseIE(InfoExtractor):
                 episode, lambda x: x['releaseDate']['isoString'])),
             'series': series,
         }
-
-    @classmethod
-    def _extract_embed_urls(cls, webpage):
-        return re.findall(
-            r'<iframe[^>]+src="(https?://open\.spotify.com/embed/[^"]+)"',
-            webpage)
 
 
 class SpotifyIE(SpotifyBaseIE):

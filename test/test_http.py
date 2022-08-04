@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
@@ -6,17 +7,19 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
+import http.server
 import ssl
 import threading
-from test.helper import http_server_port
+import urllib.request
 
+from test.helper import http_server_port
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_http_server, compat_urllib_request
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
+class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
@@ -53,7 +56,7 @@ class FakeLogger:
 
 class TestHTTP(unittest.TestCase):
     def setUp(self):
-        self.httpd = compat_http_server.HTTPServer(
+        self.httpd = http.server.HTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         self.port = http_server_port(self.httpd)
         self.server_thread = threading.Thread(target=self.httpd.serve_forever)
@@ -64,7 +67,7 @@ class TestHTTP(unittest.TestCase):
 class TestHTTPS(unittest.TestCase):
     def setUp(self):
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
-        self.httpd = compat_http_server.HTTPServer(
+        self.httpd = http.server.HTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.load_cert_chain(certfn, None)
@@ -82,7 +85,7 @@ class TestHTTPS(unittest.TestCase):
 
         ydl = YoutubeDL({'logger': FakeLogger(), 'nocheckcertificate': True})
         r = ydl.extract_info('https://127.0.0.1:%d/video.html' % self.port)
-        self.assertEqual(r['entries'][0]['url'], 'https://127.0.0.1:%d/vid.mp4' % self.port)
+        self.assertEqual(r['url'], 'https://127.0.0.1:%d/vid.mp4' % self.port)
 
 
 class TestClientCert(unittest.TestCase):
@@ -90,7 +93,7 @@ class TestClientCert(unittest.TestCase):
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
         self.certdir = os.path.join(TEST_DIR, 'testdata', 'certificate')
         cacertfn = os.path.join(self.certdir, 'ca.crt')
-        self.httpd = compat_http_server.HTTPServer(('127.0.0.1', 0), HTTPTestRequestHandler)
+        self.httpd = http.server.HTTPServer(('127.0.0.1', 0), HTTPTestRequestHandler)
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.verify_mode = ssl.CERT_REQUIRED
         sslctx.load_verify_locations(cafile=cacertfn)
@@ -110,7 +113,7 @@ class TestClientCert(unittest.TestCase):
             **params,
         })
         r = ydl.extract_info('https://127.0.0.1:%d/video.html' % self.port)
-        self.assertEqual(r['entries'][0]['url'], 'https://127.0.0.1:%d/vid.mp4' % self.port)
+        self.assertEqual(r['url'], 'https://127.0.0.1:%d/vid.mp4' % self.port)
 
     def test_certificate_combined_nopass(self):
         self._run_test(client_certificate=os.path.join(self.certdir, 'clientwithkey.crt'))
@@ -130,7 +133,7 @@ class TestClientCert(unittest.TestCase):
 
 
 def _build_proxy_handler(name):
-    class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
+    class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
         proxy_name = name
 
         def log_message(self, format, *args):
@@ -146,14 +149,14 @@ def _build_proxy_handler(name):
 
 class TestProxy(unittest.TestCase):
     def setUp(self):
-        self.proxy = compat_http_server.HTTPServer(
+        self.proxy = http.server.HTTPServer(
             ('127.0.0.1', 0), _build_proxy_handler('normal'))
         self.port = http_server_port(self.proxy)
         self.proxy_thread = threading.Thread(target=self.proxy.serve_forever)
         self.proxy_thread.daemon = True
         self.proxy_thread.start()
 
-        self.geo_proxy = compat_http_server.HTTPServer(
+        self.geo_proxy = http.server.HTTPServer(
             ('127.0.0.1', 0), _build_proxy_handler('geo'))
         self.geo_port = http_server_port(self.geo_proxy)
         self.geo_proxy_thread = threading.Thread(target=self.geo_proxy.serve_forever)
@@ -170,7 +173,7 @@ class TestProxy(unittest.TestCase):
         response = ydl.urlopen(url).read().decode()
         self.assertEqual(response, f'normal: {url}')
 
-        req = compat_urllib_request.Request(url)
+        req = urllib.request.Request(url)
         req.add_header('Ytdl-request-proxy', geo_proxy)
         response = ydl.urlopen(req).read().decode()
         self.assertEqual(response, f'geo: {url}')

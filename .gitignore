@@ -27,11 +27,13 @@ cookies
 *.ass
 *.avi
 *.desktop
+*.f4v
 *.flac
 *.flv
 *.jpeg
 *.jpg
 *.m4a
+*.mpga
 *.m4v
 *.mhtml
 *.mkv

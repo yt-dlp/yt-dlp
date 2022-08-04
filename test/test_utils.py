@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
-import contextlib
 import os
 import sys
 import unittest
@@ -8,19 +8,16 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-# Various small unit tests
+import contextlib
 import io
 import itertools
 import json
 import xml.etree.ElementTree
 
 from yt_dlp.compat import (
-    compat_chr,
     compat_etree_fromstring,
-    compat_getenv,
     compat_HTMLParseError,
     compat_os_name,
-    compat_setenv,
 )
 from yt_dlp.utils import (
     Config,
@@ -42,6 +39,7 @@ from yt_dlp.utils import (
     datetime_from_str,
     detect_exe_version,
     determine_ext,
+    determine_file_encoding,
     dfxp2srt,
     dict_get,
     encode_base_n,
@@ -55,6 +53,7 @@ from yt_dlp.utils import (
     fix_xml_ampersands,
     float_or_none,
     format_bytes,
+    get_compatible_ext,
     get_element_by_attribute,
     get_element_by_class,
     get_element_html_by_attribute,
@@ -266,20 +265,20 @@ class TestUtil(unittest.TestCase):
         def env(var):
             return f'%{var}%' if sys.platform == 'win32' else f'${var}'
 
-        compat_setenv('yt_dlp_EXPATH_PATH', 'expanded')
+        os.environ['yt_dlp_EXPATH_PATH'] = 'expanded'
         self.assertEqual(expand_path(env('yt_dlp_EXPATH_PATH')), 'expanded')
 
         old_home = os.environ.get('HOME')
         test_str = R'C:\Documents and Settings\тест\Application Data'
         try:
-            compat_setenv('HOME', test_str)
-            self.assertEqual(expand_path(env('HOME')), compat_getenv('HOME'))
-            self.assertEqual(expand_path('~'), compat_getenv('HOME'))
+            os.environ['HOME'] = test_str
+            self.assertEqual(expand_path(env('HOME')), os.getenv('HOME'))
+            self.assertEqual(expand_path('~'), os.getenv('HOME'))
             self.assertEqual(
                 expand_path('~/%s' % env('yt_dlp_EXPATH_PATH')),
-                '%s/expanded' % compat_getenv('HOME'))
+                '%s/expanded' % os.getenv('HOME'))
         finally:
-            compat_setenv('HOME', old_home or '')
+            os.environ['HOME'] = old_home or ''
 
     def test_prepend_extension(self):
         self.assertEqual(prepend_extension('abc.ext', 'temp'), 'abc.temp.ext')
@@ -370,6 +369,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unified_strdate('2012/10/11 01:56:38 +0000'), '20121011')
         self.assertEqual(unified_strdate('1968 12 10'), '19681210')
         self.assertEqual(unified_strdate('1968-12-10'), '19681210')
+        self.assertEqual(unified_strdate('31-07-2022 20:00'), '20220731')
         self.assertEqual(unified_strdate('28/01/2014 21:00:00 +0100'), '20140128')
         self.assertEqual(
             unified_strdate('11/26/2014 11:30:00 AM PST', day_first=False),
@@ -898,7 +898,7 @@ class TestUtil(unittest.TestCase):
             'dynamic_range': 'HDR10',
         })
         self.assertEqual(parse_codecs('av01.0.12M.10.0.110.09.16.09.0'), {
-            'vcodec': 'av01.0.12M.10',
+            'vcodec': 'av01.0.12M.10.0.110.09.16.09.0',
             'acodec': 'none',
             'dynamic_range': 'HDR10',
         })
@@ -1128,7 +1128,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(extract_attributes('<e x="décompose&#769;">'), {'x': 'décompose\u0301'})
         # "Narrow" Python builds don't support unicode code points outside BMP.
         try:
-            compat_chr(0x10000)
+            chr(0x10000)
             supports_outside_bmp = True
         except ValueError:
             supports_outside_bmp = False
@@ -1824,6 +1824,50 @@ Line 1
         finally:
             with contextlib.suppress(OSError):
                 os.remove(FILE)
+
+    def test_determine_file_encoding(self):
+        self.assertEqual(determine_file_encoding(b''), (None, 0))
+        self.assertEqual(determine_file_encoding(b'--verbose -x --audio-format mkv\n'), (None, 0))
+
+        self.assertEqual(determine_file_encoding(b'\xef\xbb\xbf'), ('utf-8', 3))
+        self.assertEqual(determine_file_encoding(b'\x00\x00\xfe\xff'), ('utf-32-be', 4))
+        self.assertEqual(determine_file_encoding(b'\xff\xfe'), ('utf-16-le', 2))
+
+        self.assertEqual(determine_file_encoding(b'\xff\xfe# coding: utf-8\n--verbose'), ('utf-16-le', 2))
+
+        self.assertEqual(determine_file_encoding(b'# coding: utf-8\n--verbose'), ('utf-8', 0))
+        self.assertEqual(determine_file_encoding(b'# coding: someencodinghere-12345\n--verbose'), ('someencodinghere-12345', 0))
+
+        self.assertEqual(determine_file_encoding(b'#coding:utf-8\n--verbose'), ('utf-8', 0))
+        self.assertEqual(determine_file_encoding(b'#  coding:   utf-8   \r\n--verbose'), ('utf-8', 0))
+
+        self.assertEqual(determine_file_encoding('# coding: utf-32-be'.encode('utf-32-be')), ('utf-32-be', 0))
+        self.assertEqual(determine_file_encoding('# coding: utf-16-le'.encode('utf-16-le')), ('utf-16-le', 0))
+
+    def test_get_compatible_ext(self):
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None, None], vexts=['mp4'], aexts=['m4a', 'm4a']), 'mkv')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['flv'], aexts=['flv']), 'flv')
+
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['mp4'], aexts=['m4a']), 'mp4')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['mp4'], aexts=['webm']), 'mkv')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['m4a']), 'mkv')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['webm']), 'webm')
+
+        self.assertEqual(get_compatible_ext(
+            vcodecs=['h264'], acodecs=['mp4a'], vexts=['mov'], aexts=['m4a']), 'mp4')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=['av01.0.12M.08'], acodecs=['opus'], vexts=['mp4'], aexts=['webm']), 'webm')
+
+        self.assertEqual(get_compatible_ext(
+            vcodecs=['vp9'], acodecs=['opus'], vexts=['webm'], aexts=['webm'], preferences=['flv', 'mp4']), 'mp4')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=['av1'], acodecs=['mp4a'], vexts=['webm'], aexts=['m4a'], preferences=('webm', 'mkv')), 'mkv')
 
 
 if __name__ == '__main__':

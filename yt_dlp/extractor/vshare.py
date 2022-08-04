@@ -1,15 +1,10 @@
-import re
-
 from .common import InfoExtractor
-from ..compat import compat_chr
-from ..utils import (
-    decode_packed_codes,
-    ExtractorError,
-)
+from ..utils import ExtractorError, decode_packed_codes
 
 
 class VShareIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?vshare\.io/[dv]/(?P<id>[^/?#&]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?vshare\.io/v/[^/?#&]+)']
     _TESTS = [{
         'url': 'https://vshare.io/d/0f64ce6',
         'md5': '17b39f55b5497ae8b59f5fbce8e35886',
@@ -23,12 +18,6 @@ class VShareIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?vshare\.io/v/[^/?#&]+)',
-            webpage)
-
     def _extract_packed(self, webpage):
         packed = self._search_regex(
             r'(eval\(function.+)', webpage, 'packed code')
@@ -37,7 +26,7 @@ class VShareIE(InfoExtractor):
         digits = [int(digit) for digit in digits.split(',')]
         key_digit = self._search_regex(
             r'fromCharCode\(.+?(\d+)\)}', unpacked, 'key digit')
-        chars = [compat_chr(d - int(key_digit)) for d in digits]
+        chars = [chr(d - int(key_digit)) for d in digits]
         return ''.join(chars)
 
     def _real_extract(self, url):
