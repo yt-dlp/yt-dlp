@@ -102,6 +102,7 @@ from .utils import (
     format_decimal_suffix,
     format_field,
     formatSeconds,
+    get_compatible_ext,
     get_domain,
     int_or_none,
     iri_to_uri,
@@ -134,6 +135,7 @@ from .utils import (
     timetuple_from_msec,
     to_high_limit_path,
     traverse_obj,
+    try_call,
     try_get,
     url_basename,
     variadic,
@@ -372,7 +374,7 @@ class YoutubeDL:
 
                        Progress hooks are guaranteed to be called at least twice
                        (with status "started" and "finished") if the processing is successful.
-    merge_output_format: Extension to use when merging formats.
+    merge_output_format: "/" separated list of extensions to use when merging formats.
     final_ext:         Expected final extension; used to detect when the file was
                        already downloaded and converted
     fixup:             Automatically correct known faults of the file.
@@ -2088,14 +2090,13 @@ class YoutubeDL:
             the_only_video = video_fmts[0] if len(video_fmts) == 1 else None
             the_only_audio = audio_fmts[0] if len(audio_fmts) == 1 else None
 
-            output_ext = self.params.get('merge_output_format')
-            if not output_ext:
-                if the_only_video:
-                    output_ext = the_only_video['ext']
-                elif the_only_audio and not video_fmts:
-                    output_ext = the_only_audio['ext']
-                else:
-                    output_ext = 'mkv'
+            output_ext = get_compatible_ext(
+                vcodecs=[f.get('vcodec') for f in video_fmts],
+                acodecs=[f.get('acodec') for f in audio_fmts],
+                vexts=[f['ext'] for f in video_fmts],
+                aexts=[f['ext'] for f in audio_fmts],
+                preferences=(try_call(lambda: self.params['merge_output_format'].split('/'))
+                             or self.params.get('prefer_free_formats') and ('webm', 'mkv')))
 
             filtered = lambda *keys: filter(None, (traverse_obj(fmt, *keys) for fmt in formats_info))
 
@@ -3067,33 +3068,9 @@ class YoutubeDL:
                         return
 
                 if info_dict.get('requested_formats') is not None:
-
-                    def compatible_formats(formats):
-                        # TODO: some formats actually allow this (mkv, webm, ogg, mp4), but not all of them.
-                        video_formats = [format for format in formats if format.get('vcodec') != 'none']
-                        audio_formats = [format for format in formats if format.get('acodec') != 'none']
-                        if len(video_formats) > 2 or len(audio_formats) > 2:
-                            return False
-
-                        # Check extension
-                        exts = {format.get('ext') for format in formats}
-                        COMPATIBLE_EXTS = (
-                            {'mp3', 'mp4', 'm4a', 'm4p', 'm4b', 'm4r', 'm4v', 'ismv', 'isma'},
-                            {'webm'},
-                        )
-                        for ext_sets in COMPATIBLE_EXTS:
-                            if ext_sets.issuperset(exts):
-                                return True
-                        # TODO: Check acodec/vcodec
-                        return False
-
                     requested_formats = info_dict['requested_formats']
                     old_ext = info_dict['ext']
                     if self.params.get('merge_output_format') is None:
-                        if not compatible_formats(requested_formats):
-                            info_dict['ext'] = 'mkv'
-                            self.report_warning(
-                                'Requested formats are incompatible for merge and will be merged into mkv')
                         if (info_dict['ext'] == 'webm'
                                 and info_dict.get('thumbnails')
                                 # check with type instead of pp_key, __name__, or isinstance
