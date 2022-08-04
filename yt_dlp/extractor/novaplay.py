@@ -39,8 +39,7 @@ class NovaPlayIE(InfoExtractor):
         }
     ]
 
-    def _real_initialize(self):
-        self._access_token = ""
+    _access_token = None
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
