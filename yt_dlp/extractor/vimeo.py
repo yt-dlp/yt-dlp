@@ -741,6 +741,10 @@ class VimeoIE(VimeoBaseInfoExtractor):
         for embed_url in super()._extract_embed_urls(url, webpage):
             yield cls._smuggle_referrer(embed_url, url)
 
+    @classmethod
+    def _extract_url(cls, url, webpage):
+        return next(cls._extract_embed_urls(url, webpage), None)
+
     def _verify_player_video_password(self, url, video_id, headers):
         password = self._get_video_password()
         data = urlencode_postdata({
