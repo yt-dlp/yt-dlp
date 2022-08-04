@@ -615,8 +615,10 @@ def build_format_selector(format_spec, ydl):
             check_format=check_format,
             info_dict=info_dict,
         )
+        '''
         for s in selector:
             print('*', repr(s), '\n  -', s, ' => ', ', '.join(f['format_id'] for f in s.apply(formats, ctx)))
+        '''
         return selector.apply(formats, ctx)
     return func
 
