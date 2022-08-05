@@ -2090,6 +2090,7 @@ from .wetv import WeTvEpisodeIE, WeTvSeriesIE
 from .wikimedia import WikimediaIE
 from .willow import WillowIE
 from .wimtv import WimTVIE
+from .winsport import WinsportIE
 from .whowatch import WhoWatchIE
 from .wistia import (
     WistiaIE,
