@@ -4,6 +4,7 @@ from ..utils import (
     float_or_none,
     str_or_none,
     traverse_obj,
+    try_call,
 )
 
 # Video from www.kompas.tv and video.kompas.com seems use jixie player
@@ -24,7 +25,7 @@ class KompasVideoIE(InfoExtractor):
             'display_id': 'kim-jong-un-siap-kirim-nuklir-lawan-as-dan-korsel',
             'duration': 85.066667,
             'categories': ['news'],
-            'thumbnail': 'https://video.jixie.media/1001/164474/164474_426x240.jpg',
+            'thumbnail': 'https://video.jixie.media/1001/164474/164474_1280x720.jpg',
             'tags': ['kcm', 'news', 'korea-utara', 'kim-jong-un', 'senjata-nuklir-korea-utara', 'nuklir-korea-utara', 'korea-selatan', 'amerika-serikat', 'latihan-bersama-korea-selatan-dan-amerika-serikat'],
         }
     }]
@@ -61,7 +62,6 @@ class KompasVideoIE(InfoExtractor):
             'description': (clean_html(traverse_obj(json_data, ('metadata', 'description')))
                             or self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage)),
             'thumbnails': traverse_obj(json_data, ('metadata', 'thumbnails')),
-            'thumbnail': traverse_obj(json_data, ('metadata', 'thumbnail')),
             'duration': float_or_none(traverse_obj(json_data, ('metadata', 'duration'))),
             'has_drm': json_data.get('drm'),
             'tags': try_call(lambda: json_data['metadata']['keywords'].split(',')),
