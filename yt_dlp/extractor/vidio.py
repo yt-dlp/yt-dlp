@@ -70,7 +70,7 @@ class VidioIE(VidioBaseIE):
     _VALID_URL = r'https?://(?:www\.)?vidio\.com/(watch|embed)/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
     _TESTS = [{
         'url': 'http://www.vidio.com/watch/165683-dj_ambred-booyah-live-2015',
-        'md5': 'cd2801394afc164e9775db6a140b91fe',
+        'md5': 'abac81b1a205a8d94c609a473b5ea62a',
         'info_dict': {
             'id': '165683',
             'display_id': 'dj_ambred-booyah-live-2015',
@@ -89,7 +89,8 @@ class VidioIE(VidioBaseIE):
             'view_count': int,
             'dislike_count': int,
             'comment_count': int,
-            'tags': 'count:4',
+            'tags': 'count:3',
+            'uploader_url': 'https://www.vidio.com/@twelvepictures',
         },
     }, {
         'url': 'https://www.vidio.com/watch/77949-south-korea-test-fires-missile-that-can-strike-all-of-the-north',
