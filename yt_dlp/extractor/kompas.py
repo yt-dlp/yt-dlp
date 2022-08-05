@@ -2,7 +2,6 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     float_or_none,
-    str_or_none,
     traverse_obj,
     try_call,
 )
