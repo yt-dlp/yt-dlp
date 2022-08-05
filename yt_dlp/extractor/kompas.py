@@ -1,19 +1,9 @@
-import re
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     clean_html,
     float_or_none,
-    int_or_none,
     str_or_none,
     traverse_obj,
-    unescapeHTML,
-    get_element_html_by_class,
-    get_elements_html_by_class,
-    get_element_html_by_id,
-    get_element_by_id,
-    get_elements_by_attribute,
-    get_element_text_and_html_by_tag,
 )
 
 # Video from www.kompas.tv and video.kompas.com seems use jixie player
