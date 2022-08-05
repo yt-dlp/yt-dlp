@@ -10,6 +10,7 @@ from ..utils import (
 # see [1] https://jixie.atlassian.net/servicedesk/customer/portal/2/article/1339654214?src=-1456335525,
 # [2] https://scripts.jixie.media/jxvideo.3.1.min.js for more info
 
+
 class KompasVideoIE(InfoExtractor):
     _VALID_URL = r'https?://video\.kompas\.com/\w+/(?P<id>\d+)/(?P<slug>[\w-]+)'
     _TESTS = [{
@@ -67,4 +68,3 @@ class KompasVideoIE(InfoExtractor):
             'categories': str_or_none(traverse_obj(json_data, ('metadata', 'categories')), '').split(',') or None,
             'uploader_id': json_data.get('owner_id'),
         }
-
