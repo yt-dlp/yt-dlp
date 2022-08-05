@@ -25,7 +25,7 @@ class KompasVideoIE(InfoExtractor):
             'duration': 85.066667,
             'categories': ['news'],
             'thumbnail': 'https://video.jixie.media/1001/164474/164474_1280x720.jpg',
-            'tags': ['kcm', 'news', 'korea-utara', 'kim-jong-un', 'senjata-nuklir-korea-utara', 'nuklir-korea-utara', 'korea-selatan', 'amerika-serikat', 'latihan-bersama-korea-selatan-dan-amerika-serikat'],
+            'tags': 'count:9',
         }
     }]
 
@@ -62,7 +62,6 @@ class KompasVideoIE(InfoExtractor):
                             or self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage)),
             'thumbnails': traverse_obj(json_data, ('metadata', 'thumbnails')),
             'duration': float_or_none(traverse_obj(json_data, ('metadata', 'duration'))),
-            'has_drm': json_data.get('drm'),
             'tags': try_call(lambda: json_data['metadata']['keywords'].split(',')),
             'categories': try_call(lambda: json_data['metadata']['categories'].split(',')),
             'uploader_id': json_data.get('owner_id'),
