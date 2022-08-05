@@ -64,7 +64,7 @@ class KompasVideoIE(InfoExtractor):
             'thumbnail': traverse_obj(json_data, ('metadata', 'thumbnail')),
             'duration': float_or_none(traverse_obj(json_data, ('metadata', 'duration'))),
             'has_drm': json_data.get('drm'),
-            'tags': str_or_none(traverse_obj(json_data, ('metadata', 'keywords')), '').split(',') or None,
-            'categories': str_or_none(traverse_obj(json_data, ('metadata', 'categories')), '').split(',') or None,
+            'tags': try_call(lambda: json_data['metadata']['keywords'].split(',')),
+            'categories': try_call(lambda: json_data['metadata']['categories'].split(',')),
             'uploader_id': json_data.get('owner_id'),
         }
