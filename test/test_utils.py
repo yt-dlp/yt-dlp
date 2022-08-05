@@ -140,13 +140,13 @@ class TestUtil(unittest.TestCase):
 
         self.assertEqual(sanitize_filename('123'), '123')
 
-        self.assertEqual('abc_de', sanitize_filename('abc/de'))
+        self.assertEqual('abc⧸de', sanitize_filename('abc/de'))
         self.assertFalse('/' in sanitize_filename('abc/de///'))
 
-        self.assertEqual('abc_de', sanitize_filename('abc/<>\\*|de'))
-        self.assertEqual('xxx', sanitize_filename('xxx/<>\\*|'))
-        self.assertEqual('yes no', sanitize_filename('yes? no'))
-        self.assertEqual('this - that', sanitize_filename('this: that'))
+        self.assertEqual('abc_de', sanitize_filename('abc/<>\\*|de', is_id=False))
+        self.assertEqual('xxx', sanitize_filename('xxx/<>\\*|', is_id=False))
+        self.assertEqual('yes no', sanitize_filename('yes? no', is_id=False))
+        self.assertEqual('this - that', sanitize_filename('this: that', is_id=False))
 
         self.assertEqual(sanitize_filename('AT&T'), 'AT&T')
         aumlaut = 'ä'
