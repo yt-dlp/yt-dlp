@@ -1,11 +1,19 @@
+import re
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     float_or_none,
     int_or_none,
     str_or_none,
     traverse_obj,
     unescapeHTML,
+    get_element_html_by_class,
+    get_elements_html_by_class,
+    get_element_html_by_id,
+    get_element_by_id,
+    get_elements_by_attribute,
+    get_element_text_and_html_by_tag,
 )
 
 # Video from www.kompas.tv and video.kompas.com seems use jixie player
@@ -127,32 +135,31 @@ class KompasTVIE(KompasTVBaseIE):
             'uploader_url': 'http://www.youtube.com/user/KompasTVNews'
         }
     }, {
-        # generic extractor take wrong url (content_url instead embedUrl)
-        'url': 'https://www.youtube.com/embed/3N9tV6WFVag?autoplay=0&amp;fs=1&amp;rel=0&amp;showinfo=1&amp;modestbranding=1',
+        'url': 'https://www.kompas.tv/article/314271/kominfo-blokir-platform-digital-steam-hingga-paypal-hari-ini-belum-daftar-pse',
         'info_dict': {
-            'id': '3N9tV6WFVag',
+            'id': 'YcRUXRoj67M',
             'ext': 'mp4',
-            'tags': ['jakarta', 'kunjungan presiden', 'kunjungan presiden ke asia', 'moeldoko', 'staf kepresidenan moeldoko'],
-            'categories': ['News & Politics'],
-            'thumbnail': 'https://i.ytimg.com/vi/3N9tV6WFVag/hqdefault.jpg',
-            'live_status': 'not_live',
-            'age_limit': 0,
-            'channel_url': 'https://www.youtube.com/channel/UC5BMIWZe9isJXLZZWPWvBlg',
-            'channel': 'KOMPASTV',
-            'playable_in_embed': True,
-            'comment_count': int,
-            'uploader_id': 'KompasTVNews',
-            'view_count': int,
-            'duration': 49,
-            'availability': 'public',
-            'title': 'Hasil Kunjungan Presiden ke 3 Negara Asia, Moeldoko: Sangat berdampak Baik Bagi Petani Sawit',
-            'uploader': 'KOMPASTV',
-            'channel_follower_count': int,
-            'like_count': int,
-            'upload_date': '20220730',
-            'description': 'md5:626ccb6110dd77a6213e8c44b4255599',
-            'channel_id': 'UC5BMIWZe9isJXLZZWPWvBlg',
             'uploader_url': 'http://www.youtube.com/user/KompasTVNews',
+            'channel_id': 'UC5BMIWZe9isJXLZZWPWvBlg',
+            'view_count': int,
+            'description': 'md5:6937ff5d3108b5f6014dbe9d0e50013c',
+            'channel_follower_count': int,
+            'channel_url': 'https://www.youtube.com/channel/UC5BMIWZe9isJXLZZWPWvBlg',
+            'categories': ['News & Politics'],
+            'tags': ['kominfo', 'kominfo blokir paypal', 'paypal', 'pse', 'steam', 'steam diblokir kominfo'],
+            'playable_in_embed': True,
+            'channel': 'KOMPASTV',
+            'comment_count': int,
+            'like_count': int,
+            'uploader_id': 'KompasTVNews',
+            'age_limit': 0,
+            'uploader': 'KOMPASTV',
+            'thumbnail': 'https://i.ytimg.com/vi/YcRUXRoj67M/hqdefault.jpg',
+            'availability': 'public',
+            'title': 'Kominfo Blokir Platform Digital Steam hingga Paypal Hari Ini, Belum Daftar PSE?',
+            'upload_date': '20220730',
+            'live_status': 'not_live',
+            'duration': 132,
         }
     }, {
         # dailymotion video id only
@@ -187,29 +194,34 @@ class KompasTVIE(KompasTVBaseIE):
         video_id, display_id = self._match_valid_url(url).group('id', 'slug')
         webpage = self._download_webpage(url, display_id)
         
-        # the urls can found in json_ld(embedUrl) and iframe(src attr)
+        # # the urls can found in json_ld(embedUrl) and iframe(src attr)
         urls = []
-        # extracting from json_ld
-        json_ld_data = list(self._yield_json_ld(webpage, display_id))
-        print(json_ld_data)
-        for json_ld in json_ld_data:
-            if json_ld.get('embedUrl'):
-                urls.append(unescapeHTML(json_ld.get('embedUrl')))
+        # # extracting from json_ld
+        # json_ld_data = list(self._yield_json_ld(webpage, display_id))
+        # #print(json_ld_data)
+        # for json_ld in json_ld_data:
+            # if json_ld.get('embedUrl'):
+                # urls.append(unescapeHTML(json_ld.get('embedUrl')))
         
         # extracting from iframe
         # TODO: better regex
         iframe_url = self._search_regex(
-            r'<iframe[^>]\s*[\w="\s]+\bsrc=\'(?P<iframe_src>[^\']+)',
-            webpage, 'iframe_url', default=None, fatal=False, group=('iframe_src'))
+            r'<iframe[^>]\s*[\w="\s]+\bsrc=\'(?P<iframe_src>[^\']+)', webpage, 
+            'iframe_url', default=None, fatal=False, group=('iframe_src'))
         
         if iframe_url:
             urls.append(iframe_url)
         
         # extract dailymotion video id and then redirect to DailymotionIE
         dmplayer_video_id = self._search_regex(
-            r'videoId\s*=\s*"(?P<id>[^"]+)', webpage, 'dmplayer_video_id', default=None, 
-            fatal=False, group=('id'))
+            r'videoId\s*=\s*"(?P<id>[^"]+)', webpage, 
+            'dmplayer_video_id', default=None, fatal=False, group=('id'))
         
+        print(re.match(r'videoId\s*=\s*"(?P<id>[^"]+)', webpage,))
+        
+        #print(dmplayer_video_id)
+        if len(urls) == 0 and dmplayer_video_id is None:
+            raise ExtractorError('No video found')
         # TODO: return from iframe (not implemented until 4307 merged)
         video_url = urls[0] if len(urls) >= 1 else f'https://www.dailymotion.com/video/{dmplayer_video_id}'
         return self.url_result(video_url, video_id=video_id, video_title=self._html_search_meta(['og:title', 'twitter:title'], webpage),
