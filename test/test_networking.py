@@ -271,7 +271,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
                 ydl.urlopen, 'https://127.0.0.1:%d/video.html' % self.https_port)
         with self.make_ydl({'logger': FakeLogger(), 'nocheckcertificate': True}, fake=False) as ydl:
             r = ydl.extract_info('https://127.0.0.1:%d/video.html' % self.https_port)
-            self.assertEqual(r['entries'][0]['url'], 'https://127.0.0.1:%d/vid.mp4' % self.https_port)
+            self.assertEqual(r['url'], 'https://127.0.0.1:%d/vid.mp4' % self.https_port)
 
     def test_http_proxy(self):
         geo_proxy = f'127.0.0.1:{self.geo_port}'
@@ -320,7 +320,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
     def test_unicode_path_redirection(self):
         with self.make_ydl(fake=False) as ydl:
             r = ydl.extract_info('http://127.0.0.1:%d/302-non-ascii-redirect' % self.http_port)
-            self.assertEqual(r['entries'][0]['url'], 'http://127.0.0.1:%d/vid.mp4' % self.http_port)
+            self.assertEqual(r['url'], 'http://127.0.0.1:%d/vid.mp4' % self.http_port)
 
     def test_raise_http_error(self):
         with self.make_ydl() as ydl:
@@ -478,7 +478,7 @@ class TestClientCert(RequestHandlerTestBase, unittest.TestCase):
             **params,
         }, fake=False) as ydl:
             r = ydl.extract_info('https://127.0.0.1:%d/video.html' % self.port)
-            self.assertEqual(r['entries'][0]['url'], 'https://127.0.0.1:%d/vid.mp4' % self.port)
+            self.assertEqual(r['url'], 'https://127.0.0.1:%d/vid.mp4' % self.port)
 
     def test_certificate_combined_nopass(self):
         self._run_test(client_certificate=os.path.join(self.certdir, 'clientwithkey.crt'))
