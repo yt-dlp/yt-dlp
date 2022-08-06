@@ -60,8 +60,7 @@ class FifaIE(InfoExtractor):
             f'{preconnect_link}/sections/videoDetails/{video_id}', video_id, 'Downloading Video Details', fatal=False)
 
         preplay_parameters = self._download_json(
-            f'{preconnect_link}/video/GetVerizonPreplayParameters/{video_id}', video_id, 'Downloading Preplay Parameters')['preplayParameters']
-
+            f'{preconnect_link}/videoPlayerData/{video_id}', video_id, 'Downloading Preplay Parameters')['preplayParameters']
         cid = preplay_parameters['contentId']
         content_data = self._download_json(
             f'https://content.uplynk.com/preplay/{cid}/multiple.json', video_id, 'Downloading Content Data', query={
