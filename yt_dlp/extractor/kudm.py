@@ -55,7 +55,9 @@ class SbdmIE(InfoExtractor):
 
 
 class GqdmIE(InfoExtractor):
-    _VALID_URL = r'(?x)https?://www\.gqdm\.net/index.php/vod/play/id/(?P<series_id>\d+)/sid/(?P<sid>\d+)/nid/(?P<nid>\d+).html'
+    _VALID_URL = r'(?x)https?://www\.(gqdm|sbdm)\.net/index.php/vod/play/id/(?P<series_id>\d+)/sid/(?P<sid>\d+)/nid/(?P<nid>\d+).html'
+
+    # sometimes sbdm act as gqdm
 
     _TESTS = [{
         'url': 'https://www.gqdm.net/index.php/vod/play/id/538/sid/1/nid/3.html',
