@@ -257,10 +257,38 @@ class Response(io.IOBase):
 
 class RequestHandler:
 
+    """Request Handler class
+
+    Request handlers are class that, given an HTTP Request,
+    process the request from start to finish and return an HTTP Response.
+
+    Subclasses should re-define the _real_handle() and (optionally) _prepare_request() methods,
+    which must return an instance of Response and Request respectively.
+
+    If a Request is not to be supported by the handler, an UnsupportedRequest
+    should be raised with a reason within _prepare_request().
+
+    If an implementation makes use of an SSLContext, it should retrieve one from make_sslcontext() and
+    (optionally) re-define _make_sslcontext() with a custom SSLContext initialization method.
+
+    All exceptions raised by a RequestHandler should be an instance of RequestError.
+    Any other exception raised will be treated as a handler issue.
+
+
+    To cover some common cases, the following may be defined:
+
+    _SUPPORTED_SCHEMES may contain a list of supported url schemes. Any Request
+    with an url scheme not in this list will raise an UnsupportedRequest.
+
+    _SUPPORTED_PROXY_SCHEMES may contain a list of support proxy url schemes. Any Request that contains
+    a proxy url with an url scheme not in this list will raise an UnsupportedRequest.
+
+    _SUPPORTED_ENCODINGS may contain a list of supported content encodings for the Accept-Encoding header.
+
+    """
+
     _SUPPORTED_SCHEMES: list = None
     _SUPPORTED_PROXY_SCHEMES: list = None
-
-    # List of supported content encodings for Accept-Encoding header
     _SUPPORTED_ENCODINGS: list = None
 
     def __init__(self, ydl: YoutubeDL):
@@ -362,7 +390,7 @@ class RequestHandler:
             raise
 
     def _real_handle(self, request: Request):
-        """Handle a request. Redefine in subclasses."""
+        """Handle a request from start to finish. Redefine in subclasses."""
         raise NotImplementedError
 
     def close(self):
