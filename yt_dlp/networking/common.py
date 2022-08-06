@@ -264,22 +264,8 @@ class RequestHandler:
     _SUPPORTED_ENCODINGS: list = None
 
     def __init__(self, ydl: YoutubeDL):
-        self._set_ydl(ydl)
-        self.cookiejar = self.ydl.cookiejar
-
-    def _set_ydl(self, ydl):
-        # FIXME: this is ugly
         self.ydl = ydl
-
-        for func in (
-            'deprecation_warning',
-            'report_warning',
-            'to_stderr',
-            'write_debug',
-            'to_debugtraffic'
-        ):
-            if not hasattr(self, func):
-                setattr(self, func, getattr(ydl, func))
+        self.cookiejar = self.ydl.cookiejar
 
     def make_sslcontext(self, **kwargs):
         """
