@@ -5475,12 +5475,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             selected_tab = self._extract_selected_tab(tabs)
             selected_tab_url = urljoin(
                 url, traverse_obj(selected_tab, ('endpoint', 'commandMetadata', 'webCommandMetadata', 'url')))
+            translated_tab_name = selected_tab.get('title', '').lower()
 
-            selected_tab_name = selected_tab.get('title', '').lower()
-
-            # Prefer tab name from tab url as it is always in en
-            if selected_tab_url:
-                selected_tab_name = get_mobj(selected_tab_url)['tab'][1:] or selected_tab_name
+            # Prefer tab name from tab url as it is always in en,
+            # but only when preferred lang is set as it may not extract reliably in all cases.
+            selected_tab_name = (self._preferred_lang in (None, 'en') and translated_tab_name
+                                 or selected_tab_url and get_mobj(selected_tab_url)['tab'][1:]  # primary
+                                 or translated_tab_name)
 
             if selected_tab_name == 'home':
                 selected_tab_name = 'featured'
