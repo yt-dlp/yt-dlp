@@ -12,6 +12,7 @@ import os
 import random
 import re
 import shutil
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -3707,7 +3708,6 @@ class YoutubeDL:
                     sys.exc_clear()
 
         write_debug(system_identifier())
-
         exe_versions, ffmpeg_features = FFmpegPostProcessor.get_versions_and_features(self)
         ffmpeg_features = {key for key, val in ffmpeg_features.items() if val}
         if ffmpeg_features:

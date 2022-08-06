@@ -1315,10 +1315,11 @@ def system_identifier():
     if python_implementation == 'PyPy' and hasattr(sys, 'pypy_version_info'):
         python_implementation += ' version %d.%d.%d' % sys.pypy_version_info[:3]
 
-    return 'Python %s (%s %s) - %s %s' % (
+    return 'Python %s (%s %s, %s) - %s %s' % (
         platform.python_version(),
         python_implementation,
         platform.architecture()[0],
+        ssl.OPENSSL_VERSION,
         platform.platform(),
         format_field(join_nonempty(*platform.libc_ver(), delim=' '), None, '(%s)'),
     )
