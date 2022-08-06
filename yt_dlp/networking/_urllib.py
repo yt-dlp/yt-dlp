@@ -464,19 +464,6 @@ class UrllibRH(RequestHandler):
             frozenset(list(request.proxies.items()) + [request.allow_redirects]),
             self._create_opener(proxies=request.proxies, allow_redirects=request.allow_redirects))
 
-    def _make_sslcontext(self, verify, **kwargs):
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        context.check_hostname = verify
-        context.verify_mode = ssl.CERT_REQUIRED if verify else ssl.CERT_NONE
-        # Some servers may reject requests if ALPN extension is not sent. See:
-        # https://github.com/python/cpython/issues/85140
-        # https://github.com/yt-dlp/yt-dlp/issues/3878
-        with contextlib.suppress(NotImplementedError):
-            context.set_alpn_protocols(['http/1.1'])
-        if verify:
-            ssl_load_certs(context, self.ydl.params)
-        return context
-
     def _real_handle(self, request):
         urllib_req = urllib.request.Request(
             url=request.url, data=request.data, headers=dict(request.headers), method=request.method)

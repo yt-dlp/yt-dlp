@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import functools
 import io
 import ssl
@@ -12,6 +13,7 @@ from email.message import Message
 from http import HTTPStatus
 from typing import Union
 
+from .utils import ssl_load_certs
 from .. import utils
 
 try:
@@ -298,7 +300,7 @@ class RequestHandler:
     def make_sslcontext(self, **kwargs):
         """
         Make a new SSLContext configured for this backend.
-        Note: _make_sslcontext must be implemented
+        To customize SSLContext initialization, override _make_sslcontext()
         """
         context = self._make_sslcontext(
             verify=not self.ydl.params.get('nocheckcertificate'), **kwargs)
@@ -320,9 +322,19 @@ class RequestHandler:
 
         return context
 
-    def _make_sslcontext(self, verify: bool, **kwargs) -> ssl.SSLContext:
-        """Generate a backend-specific SSLContext. Redefine in subclasses"""
-        raise NotImplementedError
+    def _make_sslcontext(self, verify, **kwargs):
+        """Generates a default HTTP/1.1 SSLContext with certs"""
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        context.check_hostname = verify
+        context.verify_mode = ssl.CERT_REQUIRED if verify else ssl.CERT_NONE
+        # Some servers may reject requests if ALPN extension is not sent. See:
+        # https://github.com/python/cpython/issues/85140
+        # https://github.com/yt-dlp/yt-dlp/issues/3878
+        with contextlib.suppress(NotImplementedError):
+            context.set_alpn_protocols(['http/1.1'])
+        if verify:
+            ssl_load_certs(context, self.ydl.params)
+        return context
 
     def _check_scheme(self, request: Request):
         if self._SUPPORTED_SCHEMES is None:
