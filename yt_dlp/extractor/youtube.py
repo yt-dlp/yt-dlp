@@ -5389,6 +5389,44 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/channel/UCKcqXmCcyqnhgpA5P0oHH_Q',
         },
         'playlist_mincount': 2
+    }, {
+        'note': 'translated tab name',
+        'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/playlists',
+        'info_dict': {
+            'id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'tags': [],
+            'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'description': '',
+            'title': 'cole-dlp-test-acc - 再生リスト',
+            'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'uploader': 'cole-dlp-test-acc',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel': 'cole-dlp-test-acc',
+        },
+        'playlist_mincount': 1,
+        'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
+        'expected_warnings': ['Preferring \'ja\''],
+    }, {
+        # XXX: this should really check flat playlist entries, but the test suite doesn't support that
+        'note': 'preferred lang set with playlist with translated video titles',
+        'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlQAaPZ5Z-rJoTdbT-45Q7c0',
+        'info_dict': {
+            'id': 'PLt5yu3-wZAlQAaPZ5Z-rJoTdbT-45Q7c0',
+            'tags': [],
+            'view_count': int,
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'uploader': 'cole-dlp-test-acc',
+            'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel': 'cole-dlp-test-acc',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'description': 'test',
+            'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'title': 'dlp test playlist',
+        },
+        'playlist_mincount': 1,
+        'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
+        'expected_warnings': ['Preferring \'ja\''],
     }]
 
     @classmethod
