@@ -770,6 +770,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 return None
 
     def _parse_time_text(self, text):
+        if not text:
+            return
         dt = self.extract_relative_time(text)
         timestamp = None
         if isinstance(dt, datetime.datetime):
@@ -778,21 +780,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if timestamp is None:
             timestamp = (
                 unified_timestamp(text) or unified_timestamp(
-                self._search_regex(
-                    (
-                    r'([a-z]+\s*\d{1,2},?\s*20\d{2})', r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*(?:on|for))?\s*(.+\d)'),
-                    text.lower(), 'time text', default=None)))
+                    self._search_regex(
+                        (r'([a-z]+\s*\d{1,2},?\s*20\d{2})', r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*(?:on|for))?\s*(.+\d)'),
+                        text.lower(), 'time text', default=None)))
 
         if text and timestamp is None and self._preferred_lang in (None, 'en'):
             self.report_warning(
                 f"Cannot parse localized time text '{text}'", only_once=True)
         return timestamp
-
-    def _extract_time_text(self, renderer, *path_list):
-        """@returns (timestamp, time_text)"""
-        text = self._get_text(renderer, *path_list) or ''
-        timestamp = self._parse_time_text(text)
-        return timestamp, text
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
@@ -2879,8 +2874,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         text = self._get_text(comment_renderer, 'contentText')
 
-        # note: timestamp is an estimate calculated from the current time and time_text
-        timestamp, time_text = self._extract_time_text(comment_renderer, 'publishedTimeText')
+        # Timestamp is an estimate calculated from the current time and time_text
+        # FIXME: this should probably not be enabled by default
+        time_text = self._get_text(comment_renderer, 'publishedTimeText') or ''
+        timestamp = self._parse_time_text(time_text)
+
         author = self._get_text(comment_renderer, 'authorText')
         author_id = try_get(comment_renderer,
                             lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], str)
@@ -3916,7 +3914,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             unified_strdate(get_first(microformats, 'uploadDate'))
             or unified_strdate(search_meta('uploadDate')))
         if not upload_date or (not info.get('is_live') and not info.get('was_live') and info.get('live_status') != 'is_upcoming'):
-            upload_date = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d') or upload_date
+            upload_date = strftime_or_none(
+                self._parse_time_text(self._get_text(vpir, 'dateText')), '%Y%m%d') or upload_date
+
         info['upload_date'] = upload_date
 
         for to, frm in fallbacks.items():
@@ -4400,7 +4400,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             playlist_id = item_id
 
         playlist_stats = traverse_obj(primary_sidebar_renderer, 'stats')
-        last_updated_unix, _ = self._extract_time_text(playlist_stats, 2)
+        last_updated_unix = self._parse_time_text(self._get_text(playlist_stats, 2))
         if title is None:
             title = self._get_text(data, ('header', 'hashtagHeaderRenderer', 'hashtag')) or playlist_id
         title += format_field(selected_tab, 'title', ' - %s')
@@ -5803,7 +5803,7 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
         title = self._search_regex(
             rf'{re.escape(channel or "")}[^:]+: (.+)', notification_title,
             'video title', default=None)
-        upload_date = (strftime_or_none(self._extract_time_text(notification, 'sentTimeText')[0], '%Y%m%d')
+        upload_date = (strftime_or_none(self._parse_time_text(self._get_text(notification, 'sentTimeText')), '%Y%m%d')
                        if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE.ie_key())
                        else None)
         return {
