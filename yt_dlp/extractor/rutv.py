@@ -20,6 +20,10 @@ class RUTVIE(InfoExtractor):
                         )
                         (?P<id>\d+)
                     '''
+    _EMBED_URLS = [
+        r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/(?:iframe/(?:swf|video|live)/id|index/iframe/cast_id)/.+?)\1',
+        r'<meta[^>]+?property=(["\'])og:video\1[^>]+?content=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/flash\d+v/container\.swf\?id=.+?\2)',
+    ]
 
     _TESTS = [
         {
@@ -106,19 +110,6 @@ class RUTVIE(InfoExtractor):
             'only_matching': True,
         },
     ]
-
-    @classmethod
-    def _extract_url(cls, webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/(?:iframe/(?:swf|video|live)/id|index/iframe/cast_id)/.+?)\1', webpage)
-        if mobj:
-            return mobj.group('url')
-
-        mobj = re.search(
-            r'<meta[^>]+?property=(["\'])og:video\1[^>]+?content=(["\'])(?P<url>https?://(?:test)?player\.(?:rutv\.ru|vgtrk\.com)/flash\d+v/container\.swf\?id=.+?\2)',
-            webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

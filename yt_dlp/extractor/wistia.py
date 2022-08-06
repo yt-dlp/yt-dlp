@@ -5,8 +5,8 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    try_call,
     try_get,
-    unescapeHTML,
 )
 
 
@@ -117,7 +117,7 @@ class WistiaBaseIE(InfoExtractor):
 
 class WistiaIE(WistiaBaseIE):
     _VALID_URL = r'(?:wistia:|%s(?:iframe|medias)/)%s' % (WistiaBaseIE._VALID_URL_BASE, WistiaBaseIE._VALID_ID_REGEX)
-
+    _EMBED_REGEX = [r'<(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\'](?P<url>(?:https?:)?//(?:fast\.)?wistia\.(?:net|com)/embed/(?:iframe|medias)/[a-z0-9]{10})']
     _TESTS = [{
         # with hls video
         'url': 'wistia:807fafadvk',
@@ -146,17 +146,10 @@ class WistiaIE(WistiaBaseIE):
     }]
 
     # https://wistia.com/support/embed-and-share/video-on-your-website
-    @staticmethod
-    def _extract_url(webpage):
-        urls = WistiaIE._extract_urls(webpage)
-        return urls[0] if urls else None
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        urls = list(super()._extract_embed_urls(url, webpage))
 
-    @staticmethod
-    def _extract_urls(webpage):
-        urls = []
-        for match in re.finditer(
-                r'<(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\'](?P<url>(?:https?:)?//(?:fast\.)?wistia\.(?:net|com)/embed/(?:iframe|medias)/[a-z0-9]{10})', webpage):
-            urls.append(unescapeHTML(match.group('url')))
         for match in re.finditer(
                 r'''(?sx)
                     <div[^>]+class=(["'])(?:(?!\1).)*?\bwistia_async_(?P<id>[a-z0-9]{10})\b(?:(?!\1).)*?\1
@@ -165,6 +158,20 @@ class WistiaIE(WistiaBaseIE):
         for match in re.finditer(r'(?:data-wistia-?id=["\']|Wistia\.embed\(["\']|id=["\']wistia_)(?P<id>[a-z0-9]{10})', webpage):
             urls.append('wistia:%s' % match.group('id'))
         return urls
+
+    @classmethod
+    def _extract_from_webpage(cls, url, webpage):
+        from .teachable import TeachableIE
+
+        if list(TeachableIE._extract_embed_urls(url, webpage)):
+            return
+
+        for entry in super()._extract_from_webpage(url, webpage):
+            yield {
+                **entry,
+                '_type': 'url_transparent',
+                'uploader': try_call(lambda: re.match(r'(?:https?://)?([^/]+)/', url).group(1)),
+            }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

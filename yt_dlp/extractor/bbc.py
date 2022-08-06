@@ -46,6 +46,7 @@ class BBCCoUkIE(InfoExtractor):
                         )
                         (?P<id>%s)(?!/(?:episodes|broadcasts|clips))
                     ''' % _ID_REGEX
+    _EMBED_REGEX = [r'setPlaylist\("(?P<url>https?://www\.bbc\.co\.uk/iplayer/[^/]+/[\da-z]{8})"\)']
 
     _LOGIN_URL = 'https://account.bbc.com/signin'
     _NETRC_MACHINE = 'bbc'
@@ -1231,7 +1232,7 @@ class BBCIE(BBCCoUkIE):
                                           (lambda x: x['data']['blocks'],
                                            lambda x: x['data']['content']['model']['blocks'],),
                                           list) or []):
-                        if block.get('type') != 'media':
+                        if block.get('type') not in ['media', 'video']:
                             continue
                         parse_media(block.get('model'))
             return self.playlist_result(
