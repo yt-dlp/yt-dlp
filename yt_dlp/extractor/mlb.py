@@ -1,4 +1,6 @@
 import re
+import urllib.parse
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
@@ -263,3 +265,68 @@ class MLBVideoIE(MLBBaseIE):
   }
 }''' % display_id,
             })['data']['mediaPlayback'][0]
+
+
+class MLBTVIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?mlb\.com/tv/g(?P<id>\d{6})/?.*'
+
+    _TESTS = [{
+        'url': 'https://www.mlb.com/tv/g661581/vee2eff5f-a7df-4c20-bdb4-7b926fa12638',
+        'info_dict': {
+            'id': '661581',
+            'ext': 'mp4',
+            'title': '2022-07-02 - St. Louis Cardinals @ Philadelphia Phillies',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+    def _perform_login(self, username, password):
+
+        access_token = self._download_json('https://ids.mlb.com/oauth2/aus1m088yK07noBfh356/v1/token', None,
+                                           headers={'User-Agent': 'okhttp/3.12.1',
+                                                    'Content-Type': 'application/x-www-form-urlencoded'},
+                                           data=(('grant_type=password&username=%s&password=%s&scope=openid offline_access'
+                                                  '&client_id=0oa3e1nutA1HLzAKG356') % (urllib.parse.quote(username), urllib.parse.quote(password)))
+                                           .encode())['access_token']
+
+        entitlement = self._download_webpage('https://media-entitlement.mlb.com/api/v3/jwt?os=Android&appname=AtBat&did=' + str(uuid.uuid4()), None,
+                                             headers={'User-Agent': 'okhttp/3.12.1', 'Authorization': f'Bearer {access_token}'})
+
+        access_token = self._download_json('https://us.edge.bamgrid.com/token', None,
+                                           headers={'Accept': 'application/json',
+                                                    'Authorization': 'Bearer bWxidHYmYW5kcm9pZCYxLjAuMA.6LZMbH2r--rbXcgEabaDdIslpo4RyZrlVfWZhsAgXIk',
+                                                    'Content-Type': 'application/x-www-form-urlencoded'},
+                                           data=(('grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token=%s'
+                                                  '&subject_token_type=urn:ietf:params:oauth:token-type:jwt&platform=android-tv') % entitlement)
+                                           .encode())['access_token']
+
+        return access_token
+
+    def _real_initialize(self):
+        self._access_token = self._perform_login(self.get_param('username'), self.get_param('password'))
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        formats, subtitles = [], []
+        airings = self._download_json(f'https://search-api-mlbtv.mlb.com/svc/search/v2/graphql/persisted/query/core/Airings?variables=%7B%22partnerProgramIds%22%3A%5B%22{video_id}%22%5D%2C%22applyEsniMediaRightsLabels%22%3Atrue%7D', video_id)['data']['Airings']
+        for airing in airings:
+            playback = self._download_json(airing['playbackUrls'][0]['href'].format(scenario='browser~csai'), video_id,
+                                           headers={'Authorization': self._access_token,
+                                                    'Accept': 'application/vnd.media-service+json; version=2'})
+            m3u8_url = playback['stream']['complete']
+            f, s = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id=airing['feedType'] + '-' + airing['feedLanguage'])
+            formats.extend(f)
+            subtitles.extend(s)
+            title = airing['titles'][0]['episodeName']
+
+        self._sort_formats(formats)
+
+        return {
+            'title': title,
+            'formats': formats,
+            'subtitles': subtitles,
+            'http_headers': {'Authorization': 'Bearer ' + self._access_token},
+            'id': video_id
+        }
