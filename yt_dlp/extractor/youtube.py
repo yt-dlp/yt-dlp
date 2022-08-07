@@ -3111,6 +3111,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if initial_pr:
             pr = dict(initial_pr)
             pr['streamingData'] = None
+            prs.append(pr)
 
         last_error = None
         tried_iframe_fallback = False
