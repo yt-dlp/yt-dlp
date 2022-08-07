@@ -330,6 +330,6 @@ class MLBTVIE(InfoExtractor):
             'title': title,
             'formats': formats,
             'subtitles': subtitles,
-            'http_headers': {'Authorization': 'Bearer ' + self._access_token},
+            'http_headers': {'Authorization': f'Bearer {self._access_token}'},
             'id': video_id
         }
