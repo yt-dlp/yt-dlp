@@ -58,10 +58,10 @@ class NineGagIE(InfoExtractor):
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
-        post = traverse_obj(self._download_json(
+        post = self._download_json(
             'https://9gag.com/v1/post', post_id, query={
                 'id': post_id
-            }), ('data', 'post'))
+            })['data']['post']
 
         if post.get('type') != 'Animated':
             raise ExtractorError(
