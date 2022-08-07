@@ -8,6 +8,7 @@ from ..utils import (
     int_or_none,
     parse_duration,
     parse_iso8601,
+    traverse_obj,
     try_get,
 )
 
@@ -321,7 +322,7 @@ class MLBTVIE(InfoExtractor):
             f, s = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id=airing['feedType'] + '-' + airing['feedLanguage'])
             formats.extend(f)
             subtitles.extend(s)
-            title = airing['titles'][0]['episodeName']
+            title = traverse_obj(airing, ('titles', 0, 'episodeName'))
 
         self._sort_formats(formats)
 
