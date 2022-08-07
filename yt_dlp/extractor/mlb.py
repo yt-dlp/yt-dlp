@@ -313,9 +313,12 @@ class MLBTVIE(InfoExtractor):
             f'https://search-api-mlbtv.mlb.com/svc/search/v2/graphql/persisted/query/core/Airings?variables=%7B%22partnerProgramIds%22%3A%5B%22{video_id}%22%5D%2C%22applyEsniMediaRightsLabels%22%3Atrue%7D',
             video_id)['data']['Airings']
         for airing in airings:
-            playback = self._download_json(airing['playbackUrls'][0]['href'].format(scenario='browser~csai'), video_id,
-                                           headers={'Authorization': self._access_token,
-                                                    'Accept': 'application/vnd.media-service+json; version=2'})
+            playback = self._download_json(
+                airing['playbackUrls'][0]['href'].format(scenario='browser~csai'),
+                 video_id, headers={
+                     'Authorization': self._access_token,
+                     'Accept': 'application/vnd.media-service+json; version=2'
+                 })
             m3u8_url = playback['stream']['complete']
             f, s = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id=airing['feedType'] + '-' + airing['feedLanguage'])
             formats.extend(f)
