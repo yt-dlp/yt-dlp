@@ -3,7 +3,6 @@ from ..utils import (
     ExtractorError,
     determine_ext,
     int_or_none,
-    try_get,
     traverse_obj,
     unescapeHTML,
     url_or_none,
@@ -59,17 +58,15 @@ class NineGagIE(InfoExtractor):
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
-        post = self._download_json(
+        post = traverse_obj(self._download_json(
             'https://9gag.com/v1/post', post_id, query={
                 'id': post_id
-            })['data']['post']
+            }), ('data', 'post'))
 
         if post.get('type') != 'Animated':
             raise ExtractorError(
                 'The given url does not contain a video',
                 expected=True)
-
-        title = unescapeHTML(post['title'])
 
         duration = None
         formats = []
@@ -121,7 +118,7 @@ class NineGagIE(InfoExtractor):
                 formats.append(common)
         self._sort_formats(formats)
 
-        section = try_get(post, lambda x: x['postSection']['name'])
+        section = traverse_obj(post, ('postSection', 'name'))
 
         tags = None
         post_tags = post.get('tags')
@@ -133,11 +130,9 @@ class NineGagIE(InfoExtractor):
                     continue
                 tags.append(tag_key)
 
-        get_count = lambda x: int_or_none(post.get(x + 'Count'))
-
         return {
             'id': post_id,
-            'title': title,
+            'title': unescapeHTML(post.get('title')),
             'timestamp': int_or_none(post.get('creationTs')),
             'duration': duration,
             'uploader': traverse_obj(post, ('creator', 'fullName')),
@@ -145,9 +140,9 @@ class NineGagIE(InfoExtractor):
             'uploader_url': url_or_none(traverse_obj(post, ('creator', 'profileUrl'))),
             'formats': formats,
             'thumbnails': thumbnails,
-            'like_count': get_count('upVote'),
-            'dislike_count': get_count('downVote'),
-            'comment_count': get_count('comments'),
+            'like_count': int_or_none(post.get('upVoteCount')),
+            'dislike_count': int_or_none(post.get('downVoteCount')),
+            'comment_count': int_or_none(post.get('commentsCount')),
             'age_limit': 18 if post.get('nsfw') == 1 else None,
             'categories': [section] if section else None,
             'tags': tags,
