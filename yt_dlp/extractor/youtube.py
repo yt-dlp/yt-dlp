@@ -3075,15 +3075,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return orderedSet(requested_clients)
 
-    def _validate_player_response(self, player_response, video_id, client):
-        # YouTube may return a different video player response than expected.
-        # See: https://github.com/TeamNewPipe/NewPipe/issues/8713
-        pr_video_id = traverse_obj(player_response, ('videoDetails', 'videoId'))
-        if pr_video_id and pr_video_id != video_id:
-            self.report_warning(f'{client} client returned a player response for "{pr_video_id}" instead of "{video_id}"' + bug_reports_message())
-            return False
-        return True
-
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg):
         initial_pr = None
         if webpage:
@@ -3141,8 +3132,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 last_error = e
                 continue
 
-            if pr and self._validate_player_response(pr, video_id, client):
-                prs.append(pr)
+            if pr:
+                # YouTube may return a different video player response than expected.
+                # See: https://github.com/TeamNewPipe/NewPipe/issues/8713
+                pr_video_id = traverse_obj(pr, ('videoDetails', 'videoId'))
+                if pr_video_id and pr_video_id != video_id:
+                    self.report_warning(
+                        f'{client} client returned a player response for "{pr_video_id}" instead of "{video_id}"' + bug_reports_message())
+                else:
+                    prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
             if variant == 'embedded' and self._is_unplayable(pr) and self.is_authenticated:
