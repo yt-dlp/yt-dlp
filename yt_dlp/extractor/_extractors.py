@@ -950,6 +950,7 @@ from .mixcloud import (
 from .mlb import (
     MLBIE,
     MLBVideoIE,
+    MLBTVIE,
 )
 from .mlssoccer import MLSSoccerIE
 from .mnet import MnetIE
