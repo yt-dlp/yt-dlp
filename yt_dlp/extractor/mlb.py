@@ -269,7 +269,7 @@ class MLBVideoIE(MLBBaseIE):
 
 
 class MLBTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?mlb\.com/tv/g(?P<id>\d{6})/?.*'
+    _VALID_URL = r'https?://(?:www\.)?mlb\.com/tv/g(?P<id>\d{6})'
 
     _TESTS = [{
         'url': 'https://www.mlb.com/tv/g661581/vee2eff5f-a7df-4c20-bdb4-7b926fa12638',
