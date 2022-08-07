@@ -310,7 +310,7 @@ class MLBTVIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        formats, subtitles = [], []
+        formats, subtitles = [], {}
         airings = self._download_json(
             f'https://search-api-mlbtv.mlb.com/svc/search/v2/graphql/persisted/query/core/Airings?variables=%7B%22partnerProgramIds%22%3A%5B%22{video_id}%22%5D%2C%22applyEsniMediaRightsLabels%22%3Atrue%7D',
             video_id)['data']['Airings']
@@ -321,7 +321,7 @@ class MLBTVIE(InfoExtractor):
             m3u8_url = playback['stream']['complete']
             f, s = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id=airing['feedType'] + '-' + airing['feedLanguage'])
             formats.extend(f)
-            subtitles.extend(s)
+            self._merge_subtitles(s, subtitles)
             title = traverse_obj(airing, ('titles', 0, 'episodeName'))
 
         self._sort_formats(formats)
