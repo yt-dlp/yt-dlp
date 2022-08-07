@@ -270,6 +270,7 @@ class MLBVideoIE(MLBBaseIE):
 
 class MLBTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?mlb\.com/tv/g(?P<id>\d{6})'
+    _NETRC_MACHINE = 'mlb'
 
     _TESTS = [{
         'url': 'https://www.mlb.com/tv/g661581/vee2eff5f-a7df-4c20-bdb4-7b926fa12638',
@@ -303,10 +304,7 @@ class MLBTVIE(InfoExtractor):
                                                   '&subject_token_type=urn:ietf:params:oauth:token-type:jwt&platform=android-tv') % entitlement)
                                            .encode())['access_token']
 
-        return access_token
-
-    def _real_initialize(self):
-        self._access_token = self._perform_login(self.get_param('username'), self.get_param('password'))
+        self._access_token = access_token
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
