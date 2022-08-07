@@ -154,6 +154,7 @@ class InfoExtractor:
                     * abr        Average audio bitrate in KBit/s
                     * acodec     Name of the audio codec in use
                     * asr        Audio sampling rate in Hertz
+                    * audio_channels  Number of audio channels
                     * vbr        Average video bitrate in KBit/s
                     * fps        Frame rate
                     * vcodec     Name of the video codec in use
@@ -1668,7 +1669,7 @@ class InfoExtractor:
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
         default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
-                   'res', 'fps', 'hdr:12', 'codec:vp9.2', 'size', 'br', 'asr',
+                   'res', 'fps', 'hdr:12', 'channels', 'codec:vp9.2', 'size', 'br', 'asr',
                    'proto', 'ext', 'hasaud', 'source', 'id')  # These must not be aliases
         ytdl_default = ('hasaud', 'lang', 'quality', 'tbr', 'filesize', 'vbr',
                         'height', 'width', 'proto', 'vext', 'abr', 'aext',
@@ -1704,6 +1705,7 @@ class InfoExtractor:
             'height': {'convert': 'float_none'},
             'width': {'convert': 'float_none'},
             'fps': {'convert': 'float_none'},
+            'channels': {'convert': 'float_none', 'field': 'audio_channels'},
             'tbr': {'convert': 'float_none'},
             'vbr': {'convert': 'float_none'},
             'abr': {'convert': 'float_none'},
@@ -1717,13 +1719,14 @@ class InfoExtractor:
             'res': {'type': 'multiple', 'field': ('height', 'width'),
                     'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
 
-            # For compatibility with youtube-dl
+            # Actual field names
             'format_id': {'type': 'alias', 'field': 'id'},
             'preference': {'type': 'alias', 'field': 'ie_pref'},
             'language_preference': {'type': 'alias', 'field': 'lang'},
             'source_preference': {'type': 'alias', 'field': 'source'},
             'protocol': {'type': 'alias', 'field': 'proto'},
             'filesize_approx': {'type': 'alias', 'field': 'fs_approx'},
+            'audio_channels': {'type': 'alias', 'field': 'channels'},
 
             # Deprecated
             'dimension': {'type': 'alias', 'field': 'res', 'deprecated': True},

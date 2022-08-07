@@ -1276,6 +1276,7 @@ The available fields are:
  - `vbr` (numeric): Average video bitrate in KBit/s
  - `fps` (numeric): Frame rate
  - `dynamic_range` (string): The dynamic range of the video
+ - `audio_channels` (numeric): The number of audio channels
  - `stretched_ratio` (float): `width:height` of the video's pixels, if not square
  - `vcodec` (string): Name of the video codec in use
  - `container` (string): Name of the container format
@@ -1529,6 +1530,7 @@ The available fields are:
  - `res`: Video resolution, calculated as the smallest dimension.
  - `fps`: Framerate of video
  - `hdr`: The dynamic range of the video (`DV` > `HDR12` > `HDR10+` > `HDR10` > `HLG` > `SDR`)
+ - `channels`: The number of audio channels
  - `tbr`: Total average bitrate in KBit/s
  - `vbr`: Average video bitrate in KBit/s
  - `abr`: Average audio bitrate in KBit/s

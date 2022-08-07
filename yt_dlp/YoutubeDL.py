@@ -527,7 +527,8 @@ class YoutubeDL:
     """
 
     _NUMERIC_FIELDS = {
-        'width', 'height', 'tbr', 'abr', 'asr', 'vbr', 'fps', 'filesize', 'filesize_approx',
+        'width', 'height', 'asr', 'audio_channels', 'fps',
+        'tbr', 'abr', 'vbr', 'filesize', 'filesize_approx',
         'timestamp', 'release_timestamp',
         'duration', 'view_count', 'like_count', 'dislike_count', 'repost_count',
         'average_rating', 'comment_count', 'age_limit',
@@ -539,7 +540,7 @@ class YoutubeDL:
     _format_fields = {
         # NB: Keep in sync with the docstring of extractor/common.py
         'url', 'manifest_url', 'manifest_stream_number', 'ext', 'format', 'format_id', 'format_note',
-        'width', 'height', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr',
+        'width', 'height', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
         'preference', 'language', 'language_preference', 'quality', 'source_preference',
@@ -2129,6 +2130,7 @@ class YoutubeDL:
                     'acodec': the_only_audio.get('acodec'),
                     'abr': the_only_audio.get('abr'),
                     'asr': the_only_audio.get('asr'),
+                    'audio_channels': the_only_audio.get('audio_channels')
                 })
 
             return new_dict
@@ -3569,6 +3571,7 @@ class YoutubeDL:
                 format_field(f, func=self.format_resolution, ignore=('audio only', 'images')),
                 format_field(f, 'fps', '\t%d', func=round),
                 format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
+                format_field(f, 'audio_channels', '\t%s'),
                 delim,
                 format_field(f, 'filesize', ' \t%s', func=format_bytes) + format_field(f, 'filesize_approx', '~\t%s', func=format_bytes),
                 format_field(f, 'tbr', '\t%dk', func=round),
@@ -3588,7 +3591,7 @@ class YoutubeDL:
                     delim=' '),
             ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
         header_line = self._list_format_headers(
-            'ID', 'EXT', 'RESOLUTION', '\tFPS', 'HDR', delim, '\tFILESIZE', '\tTBR', 'PROTO',
+            'ID', 'EXT', 'RESOLUTION', '\tFPS', 'HDR', 'CH', delim, '\tFILESIZE', '\tTBR', 'PROTO',
             delim, 'VCODEC', '\tVBR', 'ACODEC', '\tABR', '\tASR', 'MORE INFO')
 
         return render_table(
