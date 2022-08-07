@@ -3076,7 +3076,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return orderedSet(requested_clients)
 
     def _validate_player_response(self, player_response, video_id, client):
-        # YouTube may sometimes return a different video than expected.
+        # YouTube may return a different video player response than expected.
         # See: https://github.com/TeamNewPipe/NewPipe/issues/8713
         pr_video_id = traverse_obj(player_response, ('videoDetails', 'videoId'))
         if pr_video_id and pr_video_id != video_id:
@@ -3111,8 +3111,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if initial_pr:
             pr = dict(initial_pr)
             pr['streamingData'] = None
-            if self._validate_player_response(pr, video_id, 'web'):
-                prs.append(pr)
 
         last_error = None
         tried_iframe_fallback = False
