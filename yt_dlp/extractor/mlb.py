@@ -310,7 +310,9 @@ class MLBTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         formats, subtitles = [], []
-        airings = self._download_json(f'https://search-api-mlbtv.mlb.com/svc/search/v2/graphql/persisted/query/core/Airings?variables=%7B%22partnerProgramIds%22%3A%5B%22{video_id}%22%5D%2C%22applyEsniMediaRightsLabels%22%3Atrue%7D', video_id)['data']['Airings']
+        airings = self._download_json(
+            f'https://search-api-mlbtv.mlb.com/svc/search/v2/graphql/persisted/query/core/Airings?variables=%7B%22partnerProgramIds%22%3A%5B%22{video_id}%22%5D%2C%22applyEsniMediaRightsLabels%22%3Atrue%7D',
+            video_id)['data']['Airings']
         for airing in airings:
             playback = self._download_json(airing['playbackUrls'][0]['href'].format(scenario='browser~csai'), video_id,
                                            headers={'Authorization': self._access_token,
