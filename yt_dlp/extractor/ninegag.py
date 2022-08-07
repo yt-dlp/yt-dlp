@@ -4,6 +4,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     try_get,
+    traverse_obj,
     unescapeHTML,
     url_or_none,
 )
@@ -11,18 +12,20 @@ from ..utils import (
 
 class NineGagIE(InfoExtractor):
     IE_NAME = '9gag'
+    IE_DESC = '9GAG'
     _VALID_URL = r'https?://(?:www\.)?9gag\.com/gag/(?P<id>[^/?&#]+)'
 
     _TESTS = [{
         'url': 'https://9gag.com/gag/ae5Ag7B',
         'info_dict': {
             'id': 'ae5Ag7B',
-            'ext': 'mp4',
+            'ext': 'webm',
             'title': 'Capybara Agility Training',
             'upload_date': '20191108',
             'timestamp': 1573237208,
+            'thumbnail': 'https://img-9gag-fun.9cache.com/photo/ae5Ag7B_460s.jpg',
             'categories': ['Awesome'],
-            'tags': ['Weimaraner', 'American Pit Bull Terrier'],
+            'tags': ['Awesome'],
             'duration': 44,
             'like_count': int,
             'dislike_count': int,
@@ -32,6 +35,26 @@ class NineGagIE(InfoExtractor):
         # HTML escaped title
         'url': 'https://9gag.com/gag/av5nvyb',
         'only_matching': True,
+    }, {
+        # Non Anonymous Uploader
+        'url': 'https://9gag.com/gag/ajgp66G',
+        'info_dict': {
+            'id': 'ajgp66G',
+            'ext': 'webm',
+            'title': 'Master Shifu! Or Splinter! You decide:',
+            'upload_date': '20220806',
+            'timestamp': 1659803411,
+            'thumbnail': 'https://img-9gag-fun.9cache.com/photo/ajgp66G_460s.jpg',
+            'categories': ['Funny'],
+            'tags': ['Funny'],
+            'duration': 26,
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'uploader': 'Peter Klaus',
+            'uploader_id': 'peterklaus12',
+            'uploader_url': 'https://9gag.com/u/peterklaus12',
+        }
     }]
 
     def _real_extract(self, url):
@@ -117,6 +140,9 @@ class NineGagIE(InfoExtractor):
             'title': title,
             'timestamp': int_or_none(post.get('creationTs')),
             'duration': duration,
+            'uploader': traverse_obj(post, ('creator', 'fullName')),
+            'uploader_id': traverse_obj(post, ('creator', 'username')),
+            'uploader_url': url_or_none(traverse_obj(post, ('creator', 'profileUrl'))),
             'formats': formats,
             'thumbnails': thumbnails,
             'like_count': get_count('upVote'),
