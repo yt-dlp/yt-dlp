@@ -631,6 +631,7 @@ from .gronkh import (
     GronkhVodsIE
 )
 from .groupon import GrouponIE
+from .harpodeon import HarpodeonIE
 from .hbo import HBOIE
 from .hearthisat import HearThisAtIE
 from .heise import HeiseIE
