@@ -328,7 +328,8 @@ class MLBTVIE(InfoExtractor):
                     'Accept': 'application/vnd.media-service+json; version=2'
                 })
             m3u8_url = playback['stream']['complete']
-            f, s = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id=airing['feedType'] + '-' + airing['feedLanguage'])
+            f, s = self._extract_m3u8_formats_and_subtitles(
+                m3u8_url, video_id, 'mp4', m3u8_id=join_nonempty(airing.get('feedType'), airing.get('feedLanguage'))
             formats.extend(f)
             self._merge_subtitles(s, subtitles)
             title = traverse_obj(airing, ('titles', 0, 'episodeName'))
