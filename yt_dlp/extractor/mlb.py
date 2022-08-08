@@ -301,7 +301,7 @@ class MLBTVIE(InfoExtractor):
                 'Authorization': f'Bearer {access_token}'
             })
 
-        data = ('grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token=%s&subject_token_type=urn:ietf:params:oauth:token-type:jwt&platform=android-tv') % entitlement
+        data = f'grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token={entitlement}&subject_token_type=urn:ietf:params:oauth:token-type:jwt&platform=android-tv'
         access_token = self._download_json(
             'https://us.edge.bamgrid.com/token', None,
             headers={
