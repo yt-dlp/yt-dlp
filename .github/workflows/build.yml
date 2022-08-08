@@ -2,7 +2,7 @@ name: Build
 on: workflow_dispatch
 
 jobs:
-  create_release:
+  prepare:
     runs-on: ubuntu-latest
     outputs:
       version_suffix: ${{ steps.version_suffix.outputs.version_suffix }}
@@ -45,7 +45,7 @@ jobs:
 
 
   build_unix:
-    needs: create_release
+    needs: prepare
     runs-on: ubuntu-18.04  # Standalone executable should be built on minimum supported OS
     outputs:
       sha256_bin: ${{ steps.get_sha.outputs.sha256_bin }}
@@ -70,7 +70,7 @@ jobs:
 
     - name: Prepare
       run: |
-          python devscripts/update-version.py ${{ needs.create_release.outputs.version_suffix }}
+          python devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
           python devscripts/make_lazy_extractors.py
     - name: Build Unix executables
       run: |
@@ -90,19 +90,14 @@ jobs:
           echo "::set-output name=sha256_linux_zip::$(sha256sum dist/yt-dlp_linux.zip | awk '{print $1}')"
           echo "::set-output name=sha512_linux_zip::$(sha512sum dist/yt-dlp_linux.zip | awk '{print $1}')"
 
-    - name: Prepare artifacts
-      run: |
-        mv dist/yt-dlp_linux yt-dlp_linux
-        mv dist/yt-dlp_linux.zip yt-dlp_linux.zip
-
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
         path: |
           yt-dlp
           yt-dlp.tar.gz
-          yt-dlp_linux
-          yt-dlp_linux.zip
+          dist/yt-dlp_linux
+          dist/yt-dlp_linux.zip
 
     - name: Build and publish on PyPi
       env:
@@ -127,16 +122,16 @@ jobs:
       if: "env.BREW_TOKEN != ''"
       run: |
         git clone git@github.com:yt-dlp/homebrew-taps taps/
-        python devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ needs.create_release.outputs.ytdlp_version }}"
+        python devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ needs.prepare.outputs.ytdlp_version }}"
         git -C taps/ config user.name github-actions
         git -C taps/ config user.email github-actions@example.com
-        git -C taps/ commit -am 'yt-dlp: ${{ needs.create_release.outputs.ytdlp_version }}'
+        git -C taps/ commit -am 'yt-dlp: ${{ needs.prepare.outputs.ytdlp_version }}'
         git -C taps/ push
 
 
   build_macos:
     runs-on: macos-11
-    needs: create_release
+    needs: prepare
     outputs:
       sha256_macos: ${{ steps.get_sha.outputs.sha256_macos }}
       sha512_macos: ${{ steps.get_sha.outputs.sha512_macos }}
@@ -153,7 +148,7 @@ jobs:
 
     - name: Prepare
       run: |
-          /usr/bin/python3 devscripts/update-version.py ${{ needs.create_release.outputs.version_suffix }}
+          /usr/bin/python3 devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
           /usr/bin/python3 devscripts/make_lazy_extractors.py
     - name: Build
       run: |
@@ -168,22 +163,17 @@ jobs:
           echo "::set-output name=sha256_macos_zip::$(sha256sum dist/yt-dlp_macos.zip | awk '{print $1}')"
           echo "::set-output name=sha512_macos_zip::$(sha512sum dist/yt-dlp_macos.zip | awk '{print $1}')"
 
-    - name: Prepare artifacts
-      run: |
-        mv dist/yt-dlp_macos yt-dlp_macos
-        mv dist/yt-dlp_macos.zip yt-dlp_macos.zip
-
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
         path: |
-          yt-dlp_macos
-          yt-dlp_macos.zip
+          dist/yt-dlp_macos
+          dist/yt-dlp_macos.zip
 
 
   build_macos_legacy:
     runs-on: macos-latest
-    needs: create_release
+    needs: prepare
     outputs:
       sha256_macos_legacy: ${{ steps.get_sha.outputs.sha256_macos_legacy }}
       sha512_macos_legacy: ${{ steps.get_sha.outputs.sha512_macos_legacy }}
@@ -209,31 +199,28 @@ jobs:
 
     - name: Prepare
       run: |
-          python3 devscripts/update-version.py ${{ needs.create_release.outputs.version_suffix }}
+          python3 devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
           python3 devscripts/make_lazy_extractors.py
     - name: Build
       run: |
           python3 pyinst.py
+          mv dist/yt-dlp_macos dist/yt-dlp_macos_legacy
     - name: Get SHA2-SUMS
       id: get_sha
       run: |
-          echo "::set-output name=sha256_macos_legacy::$(sha256sum dist/yt-dlp_macos | awk '{print $1}')"
-          echo "::set-output name=sha512_macos_legacy::$(sha512sum dist/yt-dlp_macos | awk '{print $1}')"
-
-    - name: Prepare artifacts
-      run: |
-        mv dist/yt-dlp_macos yt-dlp_macos_legacy
+          echo "::set-output name=sha256_macos_legacy::$(sha256sum dist/yt-dlp_macos_legacy | awk '{print $1}')"
+          echo "::set-output name=sha512_macos_legacy::$(sha512sum dist/yt-dlp_macos_legacy | awk '{print $1}')"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
         path: |
-          yt-dlp_macos_legacy
+          dist/yt-dlp_macos_legacy
 
 
   build_windows:
     runs-on: windows-latest
-    needs: create_release
+    needs: prepare
     outputs:
       sha256_win: ${{ steps.get_sha.outputs.sha256_win }}
       sha512_win: ${{ steps.get_sha.outputs.sha512_win }}
@@ -254,7 +241,7 @@ jobs:
 
     - name: Prepare
       run: |
-          python devscripts/update-version.py ${{ needs.create_release.outputs.version_suffix }}
+          python devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
           python devscripts/make_lazy_extractors.py
     - name: Build
       run: |
@@ -273,24 +260,18 @@ jobs:
           echo "::set-output name=sha256_win_zip::$((Get-FileHash dist\yt-dlp_win.zip -Algorithm SHA256).Hash.ToLower())"
           echo "::set-output name=sha512_win_zip::$((Get-FileHash dist\yt-dlp_win.zip -Algorithm SHA512).Hash.ToLower())"
 
-    - name: Prepare artifacts
-      run: |
-        Move-Item ./dist/yt-dlp.exe ./yt-dlp.exe
-        Move-Item ./dist/yt-dlp_min.exe ./yt-dlp_min.exe
-        Move-Item ./dist/yt-dlp_win.zip  ./yt-dlp_win.zip
-
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
         path: |
-          yt-dlp.exe
-          yt-dlp_min.exe
-          yt-dlp_win.zip
+          dist/yt-dlp.exe
+          dist/yt-dlp_min.exe
+          dist/yt-dlp_win.zip
 
 
   build_windows32:
     runs-on: windows-latest
-    needs: create_release
+    needs: prepare
     outputs:
       sha256_win32: ${{ steps.get_sha.outputs.sha256_win32 }}
       sha512_win32: ${{ steps.get_sha.outputs.sha512_win32 }}
@@ -308,7 +289,7 @@ jobs:
 
     - name: Prepare
       run: |
-          python devscripts/update-version.py ${{ needs.create_release.outputs.version_suffix }}
+          python devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
           python devscripts/make_lazy_extractors.py
     - name: Build
       run: |
@@ -319,25 +300,18 @@ jobs:
           echo "::set-output name=sha256_win32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA256).Hash.ToLower())"
           echo "::set-output name=sha512_win32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA512).Hash.ToLower())"
 
-    - name: Prepare artifacts
-      run: |
-        Move-Item ./dist/yt-dlp_x86.exe ./yt-dlp_x86.exe
-
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
         path: |
-          yt-dlp_x86.exe
+          dist/yt-dlp_x86.exe
 
 
   publish_release:
     runs-on: ubuntu-latest
-    needs: [create_release, build_unix, build_windows, build_windows32, build_macos, build_macos_legacy]
+    needs: [prepare, build_unix, build_windows, build_windows32, build_macos, build_macos_legacy]
 
     steps:
-    - name: Download artifacts
-      uses: actions/download-artifact@v3
-
     - name: Make SHA2-SUMS files
       run: |
         echo "${{ needs.build_unix.outputs.sha256_bin }}  yt-dlp" >> SHA2-256SUMS
@@ -364,28 +338,25 @@ jobs:
         echo "${{ needs.build_macos_legacy.outputs.sha512_macos_legacy }}  yt-dlp_macos_legacy" >> SHA2-512SUMS
 
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        path: src
+    - uses: actions/download-artifact@v3
 
     - name: Get Changelog
       run: |
-        changelog=$(grep -oPz '(?s)(?<=### ${{ steps.bump_version.outputs.ytdlp_version }}\n{2}).+?(?=\n{2,3}###)' src/Changelog.md) || true
+        changelog=$(grep -oPz '(?s)(?<=### ${{ steps.bump_version.outputs.ytdlp_version }}\n{2}).+?(?=\n{2,3}###)' Changelog.md) || true
         echo "changelog<<EOF" >> $GITHUB_ENV
         echo "$changelog" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
-
     - name: Make Update spec
       run: |
         echo "# This file is used for regulating self-update" >> _update_spec
         echo "lock 2022.07.18 .+ Python 3.6" >> _update_spec
 
     - name: Publish Release
-      uses: softprops/action-gh-release@v1
+      uses: yt-dlp/action-gh-release@v1
       with:
-        tag_name: ${{ needs.create_release.outputs.ytdlp_version }}
-        name: yt-dlp ${{ needs.create_release.outputs.ytdlp_version }}
-        target_commitish: ${{ needs.create_release.outputs.head_sha }}
+        tag_name: ${{ needs.prepare.outputs.ytdlp_version }}
+        name: yt-dlp ${{ needs.prepare.outputs.ytdlp_version }}
+        target_commitish: ${{ needs.prepare.outputs.head_sha }}
         body: |
           #### [A description of the various files]((https://github.com/yt-dlp/yt-dlp#release-files)) are in the README
 
@@ -401,14 +372,14 @@ jobs:
           SHA2-256SUMS
           SHA2-512SUMS
           artifact/yt-dlp
-          artifact/yt-dlp.exe
           artifact/yt-dlp.tar.gz
-          artifact/yt-dlp_linux
-          artifact/yt-dlp_linux.zip
+          artifact/yt-dlp.exe
+          artifact/yt-dlp_win.zip
+          artifact/yt-dlp_min.exe
+          artifact/yt-dlp_x86.exe
           artifact/yt-dlp_macos
           artifact/yt-dlp_macos.zip
           artifact/yt-dlp_macos_legacy
-          artifact/yt-dlp_min.exe
-          artifact/yt-dlp_win.zip
-          artifact/yt-dlp_x86.exe
+          artifact/dist/yt-dlp_linux
+          artifact/dist/yt-dlp_linux.zip
           _update_spec
