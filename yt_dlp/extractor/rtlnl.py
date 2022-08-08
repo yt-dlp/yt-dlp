@@ -8,6 +8,7 @@ from ..utils import (
 class RtlNlIE(InfoExtractor):
     IE_NAME = 'rtl.nl'
     IE_DESC = 'rtl.nl and rtlxl.nl'
+    _EMBED_REGEX = [r'<iframe[^>]+?\bsrc=(?P<q1>[\'"])(?P<url>(?:https?:)?//(?:(?:www|static)\.)?rtl\.nl/(?:system/videoplayer/[^"]+(?:video_)?)?embed[^"]+)(?P=q1)']
     _VALID_URL = r'''(?x)
         https?://(?:(?:www|static)\.)?
         (?:

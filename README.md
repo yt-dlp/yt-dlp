@@ -105,7 +105,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Multiple paths and output templates**: You can give different [output templates](#output-template) and download paths for different types of files. You can also set a temporary path where intermediary files are downloaded to using `--paths` (`-P`)
 
-* **Portable Configuration**: Configuration files are automatically loaded from the home and root directories. See [configuration](#configuration) for details
+* **Portable Configuration**: Configuration files are automatically loaded from the home and root directories. See [CONFIGURATION](#configuration) for details
 
 * **Output template improvements**: Output templates can now have date-time formatting, numeric offsets, object traversal etc. See [output template](#output-template) for details. Even more advanced operations can also be done with the help of `--parse-metadata` and `--replace-in-metadata`
 
@@ -127,7 +127,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 
 * The options `--auto-number` (`-A`), `--title` (`-t`) and `--literal` (`-l`), no longer work. See [removed options](#Removed) for details
 * `avconv` is not supported as an alternative to `ffmpeg`
-* yt-dlp stores config files in slightly different locations to youtube-dl. See [configuration](#configuration) for a list of correct locations
+* yt-dlp stores config files in slightly different locations to youtube-dl. See [CONFIGURATION](#configuration) for a list of correct locations
 * The default [output template](#output-template) is `%(title)s [%(id)s].%(ext)s`. There is no real reason for this change. This was changed before yt-dlp was ever made public and now there are no plans to change it back to `%(title)s-%(id)s.%(ext)s`. Instead, you may use `--compat-options filename`
 * The default [format sorting](#sorting-formats) is different from youtube-dl and prefers higher resolution and better codecs rather than higher bitrates. You can use the `--format-sort` option to change this to any order you prefer, or use `--compat-options format-sort` to use youtube-dl's sorting order
 * The default format selector is `bv*+ba/b`. This means that if a combined video + audio format that is better than the best video-only format is found, the former will be preferred. Use `-f bv+ba/b` or `--compat-options format-spec` to revert this
@@ -138,7 +138,6 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * Some metadata are embedded into different fields when using `--add-metadata` as compared to youtube-dl. Most notably, `comment` field contains the `webpage_url` and `synopsis` contains the `description`. You can [use `--parse-metadata`](#modifying-metadata) to modify this to your liking or use `--compat-options embed-metadata` to revert this
 * `playlist_index` behaves differently when used with options like `--playlist-reverse` and `--playlist-items`. See [#302](https://github.com/yt-dlp/yt-dlp/issues/302) for details. You can use `--compat-options playlist-index` if you want to keep the earlier behavior
 * The output of `-F` is listed in a new format. Use `--compat-options list-formats` to revert this
-* All *experiences* of a funimation episode are considered as a single video. This behavior breaks existing archives. Use `--compat-options seperate-video-versions` to extract information from only the default player
 * Live chats (if available) are considered as subtitles. Use `--sub-langs all,-live_chat` to download all subtitles except live chat. You can also use `--compat-options no-live-chat` to prevent any live chat/danmaku from downloading
 * Youtube channel URLs are automatically redirected to `/video`. Append a `/featured` to the URL to download only the videos in the home page. If the channel does not have a videos tab, we try to download the equivalent `UU` playlist instead. For all other tabs, if the channel does not show the requested tab, an error will be raised. Also, `/live` URLs raise an error if there are no live videos instead of silently downloading the entire channel. You may use `--compat-options no-youtube-channel-redirect` to revert all these redirections
 * Unavailable videos are also listed for youtube playlists. Use `--compat-options no-youtube-unavailable-videos` to remove this
@@ -313,7 +312,7 @@ If you do not have the necessary dependencies for a task you are attempting, yt-
 ## COMPILE
 
 ### Standalone PyInstaller Builds
-To build the Windows/MacOS executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). Once you have all the necessary dependencies installed, simply run `pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the Python used.
+To build the standalone executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). Once you have all the necessary dependencies installed, simply run `pyinst.py`. The executable will be built for the same architecture (x86/ARM, 32/64 bit) as the Python used.
 
     python3 -m pip install -U pyinstaller -r requirements.txt
     python3 devscripts/make_lazy_extractors.py
@@ -344,7 +343,8 @@ If you wish to build it anyway, install Python and py2exe, and then simply run `
 
 ### Related scripts
 
-* **`devscripts/update-version.py`** - Update the version number based on current timestamp
+* **`devscripts/update-version.py [revision]`** - Update the version number based on current date
+* **`devscripts/set-variant.py variant [-M update_message]`** - Set the build variant of the executable
 * **`devscripts/make_lazy_extractors.py`** - Create lazy extractors. Running this before building the binaries (any variant) will improve their startup performance. Set the environment variable `YTDLP_NO_LAZY_EXTRACTORS=1` if you wish to forcefully disable lazy extractor loading.
 
 You can also fork the project on github and run your fork's [build workflow](.github/workflows/build.yml) to automatically build a full release
@@ -361,8 +361,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 ## General Options:
     -h, --help                      Print this help text and exit
     --version                       Print program version and exit
-    -U, --update                    Update this program to latest version
-    --no-update                     Do not update (default)
+    -U, --update                    Update this program to the latest version
+    --no-update                     Do not check for updates (default)
     -i, --ignore-errors             Ignore download and postprocessing errors.
                                     The download will be considered successful
                                     even if the postprocessing fails
@@ -491,7 +491,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --match-filters FILTER          Generic video filter. Any "OUTPUT TEMPLATE"
                                     field can be compared with a number or a
                                     string using the operators defined in
-                                    "Filtering formats". You can also simply
+                                    "Filtering Formats". You can also simply
                                     specify a field to match if the field is
                                     present, use "!field" to check if the field
                                     is not present, and "&" to check multiple
@@ -547,14 +547,14 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     error (default is 3), or "infinite"
     --fragment-retries RETRIES      Number of retries for a fragment (default is
                                     10), or "infinite" (DASH, hlsnative and ISM)
-    --retry-sleep [TYPE:]EXPR       An expression for the time to sleep between
-                                    retries in seconds (optionally) prefixed by
-                                    the type of retry (file_access, fragment,
-                                    http (default)) to apply the sleep to. EXPR
-                                    can be a number, linear=START[:END[:STEP=1]]
-                                    or exp=START[:END[:BASE=2]]. This option can
-                                    be used multiple times to set the sleep for
-                                    the different retry types. Eg: --retry-sleep
+    --retry-sleep [TYPE:]EXPR       Time to sleep between retries in seconds
+                                    (optionally) prefixed by the type of retry
+                                    (http (default), fragment, file_access,
+                                    extractor) to apply the sleep to. EXPR can
+                                    be a number, linear=START[:END[:STEP=1]] or
+                                    exp=START[:END[:BASE=2]]. This option can be
+                                    used multiple times to set the sleep for the
+                                    different retry types. Eg: --retry-sleep
                                     linear=1::2 --retry-sleep fragment:exp=1:20
     --skip-unavailable-fragments    Skip unavailable fragments for DASH,
                                     hlsnative and ISM downloads (default)
@@ -859,10 +859,10 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     downloadable
     -F, --list-formats              List available formats of each video.
                                     Simulate unless --no-simulate is used
-    --merge-output-format FORMAT    If a merge is required (e.g.
-                                    bestvideo+bestaudio), output to given
-                                    container format. One of mkv, mp4, ogg,
-                                    webm, flv. Ignored if no merge is required
+    --merge-output-format FORMAT    Containers that may be used when merging
+                                    formats, separated by "/" (Eg: "mp4/mkv").
+                                    Ignored if no merge is required. (currently
+                                    supported: avi, flv, mkv, mov, mp4, webm)
 
 ## Subtitle Options:
     --write-subs                    Write subtitle file
@@ -916,7 +916,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     (requires ffmpeg and ffprobe)
     --audio-format FORMAT           Format to convert the audio to when -x is
                                     used. (currently supported: best (default),
-                                    mp3, aac, m4a, opus, vorbis, flac, alac,
+                                    aac, alac, flac, m4a, mp3, opus, vorbis,
                                     wav). You can specify multiple rules using
                                     similar syntax as --remux-video
     --audio-quality QUALITY         Specify ffmpeg audio quality to use when
@@ -924,9 +924,9 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     between 0 (best) and 10 (worst) for VBR or a
                                     specific bitrate like 128K (default 5)
     --remux-video FORMAT            Remux the video into another container if
-                                    necessary (currently supported: mp4, mkv,
-                                    flv, webm, mov, avi, mka, ogg, mp3, aac,
-                                    m4a, opus, vorbis, flac, alac, wav). If
+                                    necessary (currently supported: avi, flv,
+                                    mkv, mov, mp4, webm, aac, aiff, alac, flac,
+                                    m4a, mka, mp3, ogg, opus, vorbis, wav). If
                                     target container does not support the
                                     video/audio codec, remuxing will fail. You
                                     can specify multiple rules; Eg.
@@ -1025,7 +1025,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     be used multiple times
     --no-exec                       Remove any previously defined --exec
     --convert-subs FORMAT           Convert the subtitles to another format
-                                    (currently supported: srt, vtt, ass, lrc)
+                                    (currently supported: ass, lrc, srt, vtt)
                                     (Alias: --convert-subtitles)
     --convert-thumbnails FORMAT     Convert the thumbnails to another format
                                     (currently supported: jpg, png, webp). You
@@ -1257,7 +1257,7 @@ The available fields are:
  - `average_rating` (numeric): Average rating give by users, the scale used depends on the webpage
  - `comment_count` (numeric): Number of comments on the video (For some extractors, comments are only downloaded at the end, and so this field cannot be used)
  - `age_limit` (numeric): Age restriction for the video (years)
- - `live_status` (string): One of "is_live", "was_live", "is_upcoming", "not_live"
+ - `live_status` (string): One of "not_live", "is_live", "is_upcoming", "was_live", "post_live" (was live, but VOD is not yet processed)
  - `is_live` (boolean): Whether this video is a live stream or a fixed-length video
  - `was_live` (boolean): Whether this video was originally a live stream
  - `playable_in_embed` (string): Whether this video is allowed to play in embedded players on other sites
@@ -1277,6 +1277,7 @@ The available fields are:
  - `vbr` (numeric): Average video bitrate in KBit/s
  - `fps` (numeric): Frame rate
  - `dynamic_range` (string): The dynamic range of the video
+ - `audio_channels` (numeric): The number of audio channels
  - `stretched_ratio` (float): `width:height` of the video's pixels, if not square
  - `vcodec` (string): Name of the video codec in use
  - `container` (string): Name of the container format
@@ -1443,7 +1444,7 @@ You can also use special names to select particular edge case formats:
 
  - `all`: Select **all formats** separately
  - `mergeall`: Select and **merge all formats** (Must be used with `--audio-multistreams`, `--video-multistreams` or both)
- - `b*`, `best*`: Select the best quality format that **contains either** a video or an audio
+ - `b*`, `best*`: Select the best quality format that **contains either** a video or an audio or both (ie; `vcodec!=none or acodec!=none`)
  - `b`, `best`: Select the best quality format that **contains both** video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
  - `bv`, `bestvideo`: Select the best quality **video-only** format. Equivalent to `best*[acodec=none]`
  - `bv*`, `bestvideo*`: Select the best quality format that **contains video**. It may also contain audio. Equivalent to `best*[vcodec!=none]`
@@ -1456,7 +1457,7 @@ You can also use special names to select particular edge case formats:
  - `wa`, `worstaudio`: Select the worst quality audio-only format. Equivalent to `worst*[vcodec=none]`
  - `wa*`, `worstaudio*`: Select the worst quality format that contains audio. It may also contain video. Equivalent to `worst*[acodec!=none]`
 
-For example, to download the worst quality video-only format you can use `-f worstvideo`. It is however recommended not to use `worst` and related options. When your format selector is `worst`, the format which is worst in all respects is selected. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-S +size` or more rigorously, `-S +size,+br,+res,+fps` instead of `-f worst`. See [sorting formats](#sorting-formats) for more details.
+For example, to download the worst quality video-only format you can use `-f worstvideo`. It is however recommended not to use `worst` and related options. When your format selector is `worst`, the format which is worst in all respects is selected. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-S +size` or more rigorously, `-S +size,+br,+res,+fps` instead of `-f worst`. See [Sorting Formats](#sorting-formats) for more details.
 
 You can select the n'th best format of a type by using `best<type>.<n>`. For example, `best.2` will select the 2nd best combined format. Similarly, `bv*.3` will select the 3rd best format that contains a video stream.
 
@@ -1530,6 +1531,7 @@ The available fields are:
  - `res`: Video resolution, calculated as the smallest dimension.
  - `fps`: Framerate of video
  - `hdr`: The dynamic range of the video (`DV` > `HDR12` > `HDR10+` > `HDR10` > `HLG` > `SDR`)
+ - `channels`: The number of audio channels
  - `tbr`: Total average bitrate in KBit/s
  - `vbr`: Average video bitrate in KBit/s
  - `abr`: Average audio bitrate in KBit/s
@@ -1777,7 +1779,7 @@ The following extractors use this feature:
 
 #### crunchyrollbeta
 * `format`: Which stream type(s) to extract. Default is `adaptive_hls` Eg: `crunchyrollbeta:format=vo_adaptive_hls`
-    * Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `trailer_hls`, `trailer_dash`
+    * Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `download_dash`, `multitrack_adaptive_hls_v2`
 * `hardsub`: Preference order for which hardsub versions to extract. Default is `None` (no hardsubs). Eg: `crunchyrollbeta:hardsub=en-US,None`
 
 #### vikichannel
@@ -2134,6 +2136,7 @@ These options may no longer work as intended
     --no-include-ads                 Default
     --write-annotations              No supported site has annotations now
     --no-write-annotations           Default
+    --compat-options seperate-video-versions  No longer needed
 
 #### Removed
 These options were deprecated since 2014 and have now been entirely removed

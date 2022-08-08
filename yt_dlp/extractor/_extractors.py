@@ -60,6 +60,7 @@ from .americastestkitchen import (
     AmericasTestKitchenIE,
     AmericasTestKitchenSeasonIE,
 )
+from .angel import AngelIE
 from .animeondemand import AnimeOnDemandIE
 from .anvato import AnvatoIE
 from .aol import AolIE
@@ -218,6 +219,7 @@ from .camdemy import (
     CamdemyFolderIE
 )
 from .cammodels import CamModelsIE
+from .camtasia import CamtasiaEmbedIE
 from .camwithher import CamWithHerIE
 from .canalalpha import CanalAlphaIE
 from .canalplus import CanalplusIE
@@ -444,7 +446,7 @@ from .dw import (
     DWIE,
     DWArticleIE,
 )
-from .eagleplatform import EaglePlatformIE
+from .eagleplatform import EaglePlatformIE, ClipYouEmbedIE
 from .ebaumsworld import EbaumsWorldIE
 from .echomsk import EchoMskIE
 from .egghead import (
@@ -641,6 +643,7 @@ from .hidive import HiDiveIE
 from .historicfilms import HistoricFilmsIE
 from .hitbox import HitboxIE, HitboxLiveIE
 from .hitrecord import HitRecordIE
+from .holodex import HolodexIE
 from .hotnewhiphop import HotNewHipHopIE
 from .hotstar import (
     HotStarIE,
@@ -659,6 +662,7 @@ from .hse import (
     HSEShowIE,
     HSEProductIE,
 )
+from .genericembeds import HTML5MediaEmbedIE
 from .huajiao import HuajiaoIE
 from .huya import HuyaLiveIE
 from .huffpost import HuffPostIE
@@ -761,6 +765,7 @@ from .kicker import KickerIE
 from .kickstarter import KickStarterIE
 from .kinja import KinjaEmbedIE
 from .kinopoisk import KinoPoiskIE
+from .kompas import KompasVideoIE
 from .konserthusetplay import KonserthusetPlayIE
 from .koo import KooIE
 from .kth import KTHIE
@@ -1206,19 +1211,8 @@ from .openrec import (
 from .ora import OraTVIE
 from .orf import (
     ORFTVthekIE,
-    ORFFM4IE,
     ORFFM4StoryIE,
-    ORFOE1IE,
-    ORFOE3IE,
-    ORFNOEIE,
-    ORFWIEIE,
-    ORFBGLIE,
-    ORFOOEIE,
-    ORFSTMIE,
-    ORFKTNIE,
-    ORFSBGIE,
-    ORFTIRIE,
-    ORFVBGIE,
+    ORFRadioIE,
     ORFIPTVIE,
 )
 from .outsidetv import OutsideTVIE
@@ -1393,6 +1387,7 @@ from .rai import (
     RaiPlaySoundLiveIE,
     RaiPlaySoundPlaylistIE,
     RaiNewsIE,
+    RaiSudtirolIE,
     RaiIE,
 )
 from .raywenderlich import (
@@ -1550,6 +1545,7 @@ from .shared import (
     SharedIE,
     VivoIE,
 )
+from .sharevideos import ShareVideosEmbedIE
 from .shemaroome import ShemarooMeIE
 from .showroomlive import ShowRoomLiveIE
 from .simplecast import (

@@ -243,6 +243,7 @@ class InstagramIOSIE(InfoExtractor):
 
 class InstagramIE(InstagramBaseIE):
     _VALID_URL = r'(?P<url>https?://(?:www\.)?instagram\.com(?:/[^/]+)?/(?:p|tv|reel)/(?P<id>[^/?#&]+))'
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?instagram\.com/p/[^/]+/embed.*?)\1']
     _TESTS = [{
         'url': 'https://instagram.com/p/aye83DjauH/?foo=bar#abc',
         'md5': '0d2da106a9d2631273e192b372806516',
@@ -346,23 +347,16 @@ class InstagramIE(InstagramBaseIE):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_embed_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?instagram\.com/p/[^/]+/embed.*?)\1',
-            webpage)
-        if mobj:
-            return mobj.group('url')
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        res = tuple(super()._extract_embed_urls(url, webpage))
+        if res:
+            return res
 
-        blockquote_el = get_element_by_attribute(
-            'class', 'instagram-media', webpage)
-        if blockquote_el is None:
-            return
-
-        mobj = re.search(
-            r'<a[^>]+href=([\'"])(?P<link>[^\'"]+)\1', blockquote_el)
+        mobj = re.search(r'<a[^>]+href=([\'"])(?P<link>[^\'"]+)\1',
+                         get_element_by_attribute('class', 'instagram-media', webpage) or '')
         if mobj:
-            return mobj.group('link')
+            return [mobj.group('link')]
 
     def _real_extract(self, url):
         video_id, url = self._match_valid_url(url).group('id', 'url')

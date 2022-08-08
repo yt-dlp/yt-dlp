@@ -1,12 +1,10 @@
 import hashlib
 import itertools
-import re
 import urllib.parse
 
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor, SearchInfoExtractor
 from .youtube import YoutubeIE
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -14,6 +12,7 @@ from ..utils import (
     mimetype2ext,
     parse_iso8601,
     smuggle_url,
+    traverse_obj,
     try_get,
     url_or_none,
 )
@@ -22,6 +21,8 @@ from ..utils import (
 class YahooIE(InfoExtractor):
     IE_DESC = 'Yahoo screen and movies'
     _VALID_URL = r'(?P<url>https?://(?:(?P<country>[a-zA-Z]{2}(?:-[a-zA-Z]{2})?|malaysia)\.)?(?:[\da-zA-Z_-]+\.)?yahoo\.com/(?:[^/]+/)*(?P<id>[^?&#]*-[0-9]+(?:-[a-z]+)?)\.html)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://(?:screen|movies)\.yahoo\.com/.+?\.html\?format=embed)\1']
+
     _TESTS = [{
         'url': 'http://screen.yahoo.com/julian-smith-travis-legg-watch-214727115.html',
         'info_dict': {
@@ -311,7 +312,7 @@ class YahooIE(InfoExtractor):
 
             if items.get('markup'):
                 entries.extend(
-                    self.url_result(yt_url) for yt_url in YoutubeIE._extract_urls(items['markup']))
+                    self.url_result(yt_url) for yt_url in YoutubeIE._extract_embed_urls(url, items['markup']))
 
             return self.playlist_result(
                 entries, item.get('uuid'),
@@ -456,33 +457,20 @@ class YahooGyaOIE(InfoExtractor):
 class YahooJapanNewsIE(InfoExtractor):
     IE_NAME = 'yahoo:japannews'
     IE_DESC = 'Yahoo! Japan News'
-    _VALID_URL = r'https?://(?P<host>(?:news|headlines)\.yahoo\.co\.jp)[^\d]*(?P<id>\d[\d-]*\d)?'
+    _VALID_URL = r'https?://news\.yahoo\.co\.jp/(?:articles|feature)/(?P<id>[a-zA-Z0-9]+)'
     _GEO_COUNTRIES = ['JP']
     _TESTS = [{
-        'url': 'https://headlines.yahoo.co.jp/videonews/ann?a=20190716-00000071-ann-int',
+        'url': 'https://news.yahoo.co.jp/articles/a70fe3a064f1cfec937e2252c7fc6c1ba3201c0e',
         'info_dict': {
-            'id': '1736242',
+            'id': 'a70fe3a064f1cfec937e2252c7fc6c1ba3201c0e',
             'ext': 'mp4',
-            'title': 'ムン大統領が対日批判を強化“現金化”効果は？（テレビ朝日系（ANN）） - Yahoo!ニュース',
-            'description': '韓国の元徴用工らを巡る裁判の原告が弁護士が差し押さえた三菱重工業の資産を売却して - Yahoo!ニュース(テレビ朝日系（ANN）)',
-            'thumbnail': r're:^https?://.*\.[a-zA-Z\d]{3,4}$',
+            'title': '【独自】安倍元総理「国葬」中止求め“脅迫メール”…「子ども誘拐」“送信者”を追跡',
+            'description': 'md5:1c06974575f930f692d8696fbcfdc546',
+            'thumbnail': r're:https://.+',
         },
         'params': {
             'skip_download': True,
         },
-    }, {
-        # geo restricted
-        'url': 'https://headlines.yahoo.co.jp/hl?a=20190721-00000001-oxv-l04',
-        'only_matching': True,
-    }, {
-        'url': 'https://headlines.yahoo.co.jp/videonews/',
-        'only_matching': True,
-    }, {
-        'url': 'https://news.yahoo.co.jp',
-        'only_matching': True,
-    }, {
-        'url': 'https://news.yahoo.co.jp/byline/hashimotojunji/20190628-00131977/',
-        'only_matching': True,
     }, {
         'url': 'https://news.yahoo.co.jp/feature/1356',
         'only_matching': True
@@ -491,11 +479,7 @@ class YahooJapanNewsIE(InfoExtractor):
     def _extract_formats(self, json_data, content_id):
         formats = []
 
-        video_data = try_get(
-            json_data,
-            lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
-            list)
-        for vid in video_data or []:
+        for vid in traverse_obj(json_data, ('ResultSet', 'Result', ..., 'VideoUrlSet', 'VideoUrl', ...)) or []:
             delivery = vid.get('delivery')
             url = url_or_none(vid.get('Url'))
             if not delivery or not url:
@@ -508,7 +492,7 @@ class YahooJapanNewsIE(InfoExtractor):
             else:
                 formats.append({
                     'url': url,
-                    'format_id': 'http-%s' % compat_str(vid.get('bitrate', '')),
+                    'format_id': f'http-{vid.get("bitrate")}',
                     'height': int_or_none(vid.get('height')),
                     'width': int_or_none(vid.get('width')),
                     'tbr': int_or_none(vid.get('bitrate')),
@@ -519,62 +503,48 @@ class YahooJapanNewsIE(InfoExtractor):
         return formats
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        host = mobj.group('host')
-        display_id = mobj.group('id') or host
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        preloaded_state = self._search_json(r'__PRELOADED_STATE__\s*=', webpage, 'preloaded state', video_id)
 
-        webpage = self._download_webpage(url, display_id)
+        content_id = traverse_obj(
+            preloaded_state, ('articleDetail', 'paragraphs', ..., 'objectItems', ..., 'video', 'vid'),
+            get_all=False, expected_type=int)
+        if content_id is None:
+            raise ExtractorError('This article does not contain a video', expected=True)
 
-        title = self._html_search_meta(
-            ['og:title', 'twitter:title'], webpage, 'title', default=None
-        ) or self._html_extract_title(webpage)
-
-        if display_id == host:
-            # Headline page (w/ multiple BC playlists) ('news.yahoo.co.jp', 'headlines.yahoo.co.jp/videonews/', ...)
-            stream_plists = re.findall(r'plist=(\d+)', webpage) or re.findall(r'plist["\']:\s*["\']([^"\']+)', webpage)
-            entries = [
-                self.url_result(
-                    smuggle_url(
-                        'http://players.brightcove.net/5690807595001/HyZNerRl7_default/index.html?playlistId=%s' % plist_id,
-                        {'geo_countries': ['JP']}),
-                    ie='BrightcoveNew', video_id=plist_id)
-                for plist_id in stream_plists]
-            return self.playlist_result(entries, playlist_title=title)
-
-        # Article page
-        description = self._html_search_meta(
-            ['og:description', 'description', 'twitter:description'],
-            webpage, 'description', default=None)
-        thumbnail = self._og_search_thumbnail(
-            webpage, default=None) or self._html_search_meta(
-            'twitter:image', webpage, 'thumbnail', default=None)
-        space_id = self._search_regex([
-            r'<script[^>]+class=["\']yvpub-player["\'][^>]+spaceid=([^&"\']+)',
-            r'YAHOO\.JP\.srch\.\w+link\.onLoad[^;]+spaceID["\' ]*:["\' ]+([^"\']+)',
-            r'<!--\s+SpaceID=(\d+)'
-        ], webpage, 'spaceid')
-
-        content_id = self._search_regex(
-            r'<script[^>]+class=["\']yvpub-player["\'][^>]+contentid=(?P<contentid>[^&"\']+)',
-            webpage, 'contentid', group='contentid')
-
+        HOST = 'news.yahoo.co.jp'
+        space_id = traverse_obj(preloaded_state, ('pageData', 'spaceId'), expected_type=str)
         json_data = self._download_json(
-            'https://feapi-yvpub.yahooapis.jp/v1/content/%s' % content_id,
-            content_id,
-            query={
+            f'https://feapi-yvpub.yahooapis.jp/v1/content/{content_id}',
+            video_id, query={
                 'appid': 'dj0zaiZpPVZMTVFJR0FwZWpiMyZzPWNvbnN1bWVyc2VjcmV0Jng9YjU-',
                 'output': 'json',
-                'space_id': space_id,
-                'domain': host,
-                'ak': hashlib.md5('_'.join((space_id, host)).encode()).hexdigest(),
+                'domain': HOST,
+                'ak': hashlib.md5('_'.join((space_id, HOST)).encode()).hexdigest() if space_id else '',
                 'device_type': '1100',
             })
-        formats = self._extract_formats(json_data, content_id)
+
+        title = (
+            traverse_obj(preloaded_state,
+                         ('articleDetail', 'headline'), ('pageData', 'pageParam', 'title'),
+                         expected_type=str)
+            or self._html_search_meta(('og:title', 'twitter:title'), webpage, 'title', default=None)
+            or self._html_extract_title(webpage))
+        description = (
+            traverse_obj(preloaded_state, ('pageData', 'description'), expected_type=str)
+            or self._html_search_meta(
+                ('og:description', 'description', 'twitter:description'),
+                webpage, 'description', default=None))
+        thumbnail = (
+            traverse_obj(preloaded_state, ('pageData', 'ogpImage'), expected_type=str)
+            or self._og_search_thumbnail(webpage, default=None)
+            or self._html_search_meta('twitter:image', webpage, 'thumbnail', default=None))
 
         return {
-            'id': content_id,
+            'id': video_id,
             'title': title,
             'description': description,
             'thumbnail': thumbnail,
-            'formats': formats,
+            'formats': self._extract_formats(json_data, video_id),
         }

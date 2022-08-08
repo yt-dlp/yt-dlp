@@ -167,8 +167,7 @@ class MediasetIE(ThePlatformBaseIE):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(ie, webpage):
+    def _extract_from_webpage(self, url, webpage):
         def _qs(url):
             return parse_qs(url)
 
@@ -188,8 +187,7 @@ class MediasetIE(ThePlatformBaseIE):
             video_id = embed_qs.get('id', [None])[0]
             if not video_id:
                 continue
-            urlh = ie._request_webpage(
-                embed_url, video_id, note='Following embed URL redirect')
+            urlh = self._request_webpage(embed_url, video_id, note='Following embed URL redirect')
             embed_url = urlh.geturl()
             program_guid = _program_guid(_qs(embed_url))
             if program_guid:

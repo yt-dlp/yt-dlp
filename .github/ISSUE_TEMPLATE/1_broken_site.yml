@@ -3,6 +3,13 @@ description: Report broken or misfunctioning site
 labels: [triage, site-bug]
 body:
   - type: checkboxes
+    attributes:
+      label: DO NOT REMOVE OR SKIP THE ISSUE TEMPLATE
+      description: Fill all fields even if you think it is irrelevant for the issue
+      options:
+        - label: I understand that I will be **blocked** if I remove or skip any mandatory\* field
+          required: true
+  - type: checkboxes
     id: checklist
     attributes:
       label: Checklist

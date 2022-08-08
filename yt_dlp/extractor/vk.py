@@ -85,6 +85,7 @@ class VKBaseIE(InfoExtractor):
 class VKIE(VKBaseIE):
     IE_NAME = 'vk'
     IE_DESC = 'VK'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://vk\.com/video_ext\.php.+?)\1']
     _VALID_URL = r'''(?x)
                     https?://
                         (?:
@@ -100,6 +101,8 @@ class VKIE(VKBaseIE):
                             (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
                         )
                     '''
+    # https://help.sibnet.ru/?sibnet_video_embed
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//video\.sibnet\.ru/shell\.php\?.*?\bvideoid=\d+.*?)\1']
     _TESTS = [
         {
             'url': 'http://vk.com/videos-77521?z=video-77521_162222515%2Fclub77521',
@@ -344,13 +347,6 @@ class VKIE(VKBaseIE):
             'only_matching': True,
         }]
 
-    @staticmethod
-    def _extract_sibnet_urls(webpage):
-        # https://help.sibnet.ru/?sibnet_video_embed
-        return [unescapeHTML(mobj.group('url')) for mobj in re.finditer(
-            r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//video\.sibnet\.ru/shell\.php\?.*?\bvideoid=\d+.*?)\1',
-            webpage)]
-
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('videoid')
@@ -451,17 +447,17 @@ class VKIE(VKBaseIE):
                 m_rutube.group(1).replace('\\', ''))
             return self.url_result(rutube_url)
 
-        dailymotion_urls = DailymotionIE._extract_urls(info_page)
-        if dailymotion_urls:
-            return self.url_result(dailymotion_urls[0], DailymotionIE.ie_key())
+        dailymotion_url = next(DailymotionIE._extract_embed_urls(url, info_page), None)
+        if dailymotion_url:
+            return self.url_result(dailymotion_url, DailymotionIE.ie_key())
 
         odnoklassniki_url = OdnoklassnikiIE._extract_url(info_page)
         if odnoklassniki_url:
             return self.url_result(odnoklassniki_url, OdnoklassnikiIE.ie_key())
 
-        sibnet_urls = self._extract_sibnet_urls(info_page)
-        if sibnet_urls:
-            return self.url_result(sibnet_urls[0])
+        sibnet_url = next(self._extract_embed_urls(url, info_page), None)
+        if sibnet_url:
+            return self.url_result(sibnet_url)
 
         m_opts = re.search(r'(?s)var\s+opts\s*=\s*({.+?});', info_page)
         if m_opts:

@@ -232,6 +232,7 @@ class AdobeTVChannelIE(AdobeTVPlaylistBaseIE):
 class AdobeTVVideoIE(AdobeTVBaseIE):
     IE_NAME = 'adobetv:video'
     _VALID_URL = r'https?://video\.tv\.adobe\.com/v/(?P<id>\d+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=[\'"](?P<url>(?:https?:)?//video\.tv\.adobe\.com/v/\d+[^"]+)[\'"]']
 
     _TEST = {
         # From https://helpx.adobe.com/acrobat/how-to/new-experience-acrobat-dc.html?set=acrobat--get-started--essential-beginners

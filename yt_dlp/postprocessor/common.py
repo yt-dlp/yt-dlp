@@ -1,12 +1,11 @@
 import functools
-import itertools
 import json
 import os
-import time
 import urllib.error
 
 from ..utils import (
     PostProcessingError,
+    RetryManager,
     _configuration_args,
     encodeFilename,
     network_exceptions,
@@ -190,27 +189,23 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
             progress_template.get('postprocess-title') or 'yt-dlp %(progress._default_template)s',
             progress_dict))
 
-    def _download_json(self, url, *, expected_http_errors=(404,)):
+    def _retry_download(self, err, count, retries):
         # While this is not an extractor, it behaves similar to one and
         # so obey extractor_retries and sleep_interval_requests
-        max_retries = self.get_param('extractor_retries', 3)
-        sleep_interval = self.get_param('sleep_interval_requests') or 0
+        RetryManager.report_retry(err, count, retries, info=self.to_screen, warn=self.report_warning,
+                                  sleep_func=self.get_param('sleep_interval_requests'))
 
+    def _download_json(self, url, *, expected_http_errors=(404,)):
         self.write_debug(f'{self.PP_NAME} query: {url}')
-        for retries in itertools.count():
+        for retry in RetryManager(self.get_param('extractor_retries', 3), self._retry_download):
             try:
                 rsp = self._downloader.urlopen(sanitized_Request(url))
-                return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))
             except network_exceptions as e:
                 if isinstance(e, urllib.error.HTTPError) and e.code in expected_http_errors:
                     return None
-                if retries < max_retries:
-                    self.report_warning(f'{e}. Retrying...')
-                    if sleep_interval > 0:
-                        self.to_screen(f'Sleeping {sleep_interval} seconds ...')
-                        time.sleep(sleep_interval)
-                    continue
-                raise PostProcessingError(f'Unable to communicate with {self.PP_NAME} API: {e}')
+                retry.error = PostProcessingError(f'Unable to communicate with {self.PP_NAME} API: {e}')
+                continue
+        return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))
 
 
 class AudioConversionError(PostProcessingError):  # Deprecated

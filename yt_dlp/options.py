@@ -13,18 +13,20 @@ from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
 from .postprocessor import (
     FFmpegExtractAudioPP,
+    FFmpegMergerPP,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoRemuxerPP,
     SponsorBlockPP,
 )
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
-from .update import detect_variant
+from .update import detect_variant, is_non_updateable
 from .utils import (
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
     Config,
     expand_path,
+    format_field,
     get_executable_path,
     join_nonempty,
     remove_end,
@@ -332,11 +334,13 @@ def create_parser():
     general.add_option(
         '-U', '--update',
         action='store_true', dest='update_self',
-        help='Update this program to latest version')
+        help=format_field(
+            is_non_updateable(), None, 'Check if updates are available. %s',
+            default='Update this program to the latest version'))
     general.add_option(
         '--no-update',
         action='store_false', dest='update_self',
-        help='Do not update (default)')
+        help='Do not check for updates (default)')
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
@@ -581,7 +585,7 @@ def create_parser():
         metavar='FILTER', dest='match_filter', action='append',
         help=(
             'Generic video filter. Any "OUTPUT TEMPLATE" field can be compared with a '
-            'number or a string using the operators defined in "Filtering formats". '
+            'number or a string using the operators defined in "Filtering Formats". '
             'You can also simply specify a field to match if the field is present, '
             'use "!field" to check if the field is not present, and "&" to check multiple conditions. '
             'Use a "\\" to escape "&" or quotes if needed. If used multiple times, '
@@ -781,9 +785,9 @@ def create_parser():
         '--merge-output-format',
         action='store', dest='merge_output_format', metavar='FORMAT', default=None,
         help=(
-            'If a merge is required (e.g. bestvideo+bestaudio), '
-            'output to given container format. One of mkv, mp4, ogg, webm, flv. '
-            'Ignored if no merge is required'))
+            'Containers that may be used when merging formats, separated by "/" (Eg: "mp4/mkv"). '
+            'Ignored if no merge is required. '
+            f'(currently supported: {", ".join(sorted(FFmpegMergerPP.SUPPORTED_EXTS))})'))
     video_format.add_option(
         '--allow-unplayable-formats',
         action='store_true', dest='allow_unplayable_formats', default=False,
@@ -861,11 +865,11 @@ def create_parser():
         dest='retry_sleep', metavar='[TYPE:]EXPR', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'http|fragment|file_access',
+            'allowed_keys': 'http|fragment|file_access|extractor',
             'default_key': 'http',
         }, help=(
-            'An expression for the time to sleep between retries in seconds (optionally) prefixed '
-            'by the type of retry (file_access, fragment, http (default)) to apply the sleep to. '
+            'Time to sleep between retries in seconds (optionally) prefixed by the type of retry '
+            '(http (default), fragment, file_access, extractor) to apply the sleep to. '
             'EXPR can be a number, linear=START[:END[:STEP=1]] or exp=START[:END[:BASE=2]]. '
             'This option can be used multiple times to set the sleep for the different retry types. '
             'Eg: --retry-sleep linear=1::2 --retry-sleep fragment:exp=1:20'))
@@ -972,7 +976,7 @@ def create_parser():
         }, help=(
             'Name or path of the external downloader to use (optionally) prefixed by '
             'the protocols (http, ftp, m3u8, dash, rstp, rtmp, mms) to use it for. '
-            f'Currently supports native, {", ".join(list_external_downloaders())}. '
+            f'Currently supports native, {", ".join(sorted(list_external_downloaders()))}. '
             'You can use this option multiple times to set different downloaders for different protocols. '
             'For example, --downloader aria2c --downloader "dash,m3u8:native" will use '
             'aria2c for http/ftp downloads, and the native downloader for dash/m3u8 downloads '
@@ -1469,7 +1473,7 @@ def create_parser():
         '--audio-format', metavar='FORMAT', dest='audioformat', default='best',
         help=(
             'Format to convert the audio to when -x is used. '
-            f'(currently supported: best (default), {", ".join(FFmpegExtractAudioPP.SUPPORTED_EXTS)}). '
+            f'(currently supported: best (default), {", ".join(sorted(FFmpegExtractAudioPP.SUPPORTED_EXTS))}). '
             'You can specify multiple rules using similar syntax as --remux-video'))
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
@@ -1652,13 +1656,13 @@ def create_parser():
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help=(
             'Convert the subtitles to another format (currently supported: %s) '
-            '(Alias: --convert-subtitles)' % ', '.join(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))
+            '(Alias: --convert-subtitles)' % ', '.join(sorted(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS))))
     postproc.add_option(
         '--convert-thumbnails',
         metavar='FORMAT', dest='convertthumbnails', default=None,
         help=(
             'Convert the thumbnails to another format '
-            f'(currently supported: {", ".join(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)}). '
+            f'(currently supported: {", ".join(sorted(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS))}). '
             'You can specify multiple rules using similar syntax as --remux-video'))
     postproc.add_option(
         '--split-chapters', '--split-tracks',

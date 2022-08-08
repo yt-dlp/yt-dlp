@@ -1,7 +1,6 @@
 import itertools
 import json
 import random
-import re
 import string
 import time
 
@@ -379,6 +378,7 @@ class TikTokBaseIE(InfoExtractor):
 
 class TikTokIE(TikTokBaseIE):
     _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)/video)/(?P<id>\d+)'
+    _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
 
     _TESTS = [{
         'url': 'https://www.tiktok.com/@leenabhushan/video/6748451240264420610',
@@ -529,11 +529,6 @@ class TikTokIE(TikTokBaseIE):
         'only_matching': True
     }]
 
-    @classmethod
-    def _extract_urls(cls, webpage):
-        return [mobj.group('url') for mobj in re.finditer(
-            rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{cls._VALID_URL})', webpage)]
-
     def _extract_aweme_app(self, aweme_id):
         try:
             aweme_detail = self._call_api('aweme/detail', {'aweme_id': aweme_id}, aweme_id,
@@ -635,19 +630,17 @@ class TikTokUserIE(TikTokBaseIE):
             'device_id': ''.join(random.choice(string.digits) for _ in range(19)),  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
         }
 
-        max_retries = self.get_param('extractor_retries', 3)
         for page in itertools.count(1):
-            for retries in itertools.count():
+            for retry in self.RetryManager():
                 try:
-                    post_list = self._call_api('aweme/post', query, username,
-                                               note='Downloading user video list page %d%s' % (page, f' (attempt {retries})' if retries != 0 else ''),
-                                               errnote='Unable to download user video list')
+                    post_list = self._call_api(
+                        'aweme/post', query, username, note=f'Downloading user video list page {page}',
+                        errnote='Unable to download user video list')
                 except ExtractorError as e:
-                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0 and retries != max_retries:
-                        self.report_warning('%s. Retrying...' % str(e.cause or e.msg))
+                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
+                        retry.error = e
                         continue
                     raise
-                break
             yield from post_list.get('aweme_list', [])
             if not post_list.get('has_more'):
                 break
@@ -685,19 +678,17 @@ class TikTokBaseListIE(TikTokBaseIE):
             'device_id': ''.join(random.choice(string.digits) for i in range(19))
         }
 
-        max_retries = self.get_param('extractor_retries', 3)
         for page in itertools.count(1):
-            for retries in itertools.count():
+            for retry in self.RetryManager():
                 try:
-                    post_list = self._call_api(self._API_ENDPOINT, query, display_id,
-                                               note='Downloading video list page %d%s' % (page, f' (attempt {retries})' if retries != 0 else ''),
-                                               errnote='Unable to download video list')
+                    post_list = self._call_api(
+                        self._API_ENDPOINT, query, display_id, note=f'Downloading video list page {page}',
+                        errnote='Unable to download video list')
                 except ExtractorError as e:
-                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0 and retries != max_retries:
-                        self.report_warning('%s. Retrying...' % str(e.cause or e.msg))
+                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
+                        retry.error = e
                         continue
                     raise
-                break
             for video in post_list.get('aweme_list', []):
                 yield {
                     **self._parse_aweme_video_app(video),

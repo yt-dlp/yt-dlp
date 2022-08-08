@@ -28,7 +28,6 @@ from ..utils import (
     clean_html,
     datetime_from_str,
     dict_get,
-    error_to_compat_str,
     float_or_none,
     format_field,
     get_first,
@@ -45,7 +44,6 @@ from ..utils import (
     parse_iso8601,
     parse_qs,
     qualities,
-    remove_end,
     remove_start,
     smuggle_url,
     str_or_none,
@@ -70,7 +68,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20211221.00.00',
+                'clientVersion': '2.20220801.00.00',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1
@@ -80,7 +78,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
-                'clientVersion': '1.20211215.00.01',
+                'clientVersion': '1.20220731.00.00',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56
@@ -91,7 +89,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_REMIX',
-                'clientVersion': '1.20211213.00.00',
+                'clientVersion': '1.20220727.01.00',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
@@ -101,7 +99,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_CREATOR',
-                'clientVersion': '1.20211220.02.00',
+                'clientVersion': '1.20220726.00.00',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
@@ -111,7 +109,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '16.49',
+                'clientVersion': '17.29.34',
+                'androidSdkVersion': 30
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
@@ -122,7 +121,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '16.49',
+                'clientVersion': '17.29.34',
+                'androidSdkVersion': 30
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
@@ -133,7 +133,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
-                'clientVersion': '4.57',
+                'clientVersion': '5.16.51',
+                'androidSdkVersion': 30
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
@@ -144,7 +145,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_CREATOR',
-                'clientVersion': '21.47',
+                'clientVersion': '22.28.100',
+                'androidSdkVersion': 30
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
@@ -157,7 +159,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '16.46',
+                'clientVersion': '17.30.1',
                 'deviceModel': 'iPhone14,3',
             }
         },
@@ -168,7 +170,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MESSAGES_EXTENSION',
-                'clientVersion': '16.46',
+                'clientVersion': '17.30.1',
                 'deviceModel': 'iPhone14,3',
             },
         },
@@ -180,7 +182,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MUSIC',
-                'clientVersion': '4.57',
+                'clientVersion': '5.18',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
@@ -190,7 +192,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_CREATOR',
-                'clientVersion': '21.47',
+                'clientVersion': '22.29.101',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
@@ -203,7 +205,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'MWEB',
-                'clientVersion': '2.20211221.01.00',
+                'clientVersion': '2.20220801.00.00',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2
@@ -792,74 +794,54 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
                           default_client='web'):
-        response = None
-        last_error = None
-        count = -1
-        retries = self.get_param('extractor_retries', 3)
-        if check_get_keys is None:
-            check_get_keys = []
-        while count < retries:
-            count += 1
-            if last_error:
-                self.report_warning('%s. Retrying ...' % remove_end(last_error, '.'))
+        for retry in self.RetryManager():
             try:
                 response = self._call_api(
                     ep=ep, fatal=True, headers=headers,
-                    video_id=item_id, query=query,
+                    video_id=item_id, query=query, note=note,
                     context=self._extract_context(ytcfg, default_client),
                     api_key=self._extract_api_key(ytcfg, default_client),
-                    api_hostname=api_hostname, default_client=default_client,
-                    note='%s%s' % (note, ' (retry #%d)' % count if count else ''))
+                    api_hostname=api_hostname, default_client=default_client)
             except ExtractorError as e:
-                if isinstance(e.cause, network_exceptions):
-                    if isinstance(e.cause, urllib.error.HTTPError):
-                        first_bytes = e.cause.read(512)
-                        if not is_html(first_bytes):
-                            yt_error = try_get(
-                                self._parse_json(
-                                    self._webpage_read_content(e.cause, None, item_id, prefix=first_bytes) or '{}', item_id, fatal=False),
-                                lambda x: x['error']['message'], str)
-                            if yt_error:
-                                self._report_alerts([('ERROR', yt_error)], fatal=False)
-                    # Downloading page may result in intermittent 5xx HTTP error
-                    # Sometimes a 404 is also received. See: https://github.com/ytdl-org/youtube-dl/issues/28289
-                    # We also want to catch all other network exceptions since errors in later pages can be troublesome
-                    # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
-                    if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code not in (403, 429):
-                        last_error = error_to_compat_str(e.cause or e.msg)
-                        if count < retries:
-                            continue
-                if fatal:
-                    raise
-                else:
-                    self.report_warning(error_to_compat_str(e))
-                    return
+                if not isinstance(e.cause, network_exceptions):
+                    return self._error_or_warning(e, fatal=fatal)
+                elif not isinstance(e.cause, urllib.error.HTTPError):
+                    retry.error = e
+                    continue
 
-            else:
-                try:
-                    self._extract_and_report_alerts(response, only_once=True)
-                except ExtractorError as e:
-                    # YouTube servers may return errors we want to retry on in a 200 OK response
-                    # See: https://github.com/yt-dlp/yt-dlp/issues/839
-                    if 'unknown error' in e.msg.lower():
-                        last_error = e.msg
-                        continue
-                    if fatal:
-                        raise
-                    self.report_warning(error_to_compat_str(e))
-                    return
-                if not check_get_keys or dict_get(response, check_get_keys):
-                    break
-                # Youtube sometimes sends incomplete data
-                # See: https://github.com/ytdl-org/youtube-dl/issues/28194
-                last_error = 'Incomplete data received'
-                if count >= retries:
-                    if fatal:
-                        raise ExtractorError(last_error)
-                    else:
-                        self.report_warning(last_error)
-                        return
-        return response
+                first_bytes = e.cause.read(512)
+                if not is_html(first_bytes):
+                    yt_error = try_get(
+                        self._parse_json(
+                            self._webpage_read_content(e.cause, None, item_id, prefix=first_bytes) or '{}', item_id, fatal=False),
+                        lambda x: x['error']['message'], str)
+                    if yt_error:
+                        self._report_alerts([('ERROR', yt_error)], fatal=False)
+                # Downloading page may result in intermittent 5xx HTTP error
+                # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
+                # We also want to catch all other network exceptions since errors in later pages can be troublesome
+                # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
+                if e.cause.code not in (403, 429):
+                    retry.error = e
+                    continue
+                return self._error_or_warning(e, fatal=fatal)
+
+            try:
+                self._extract_and_report_alerts(response, only_once=True)
+            except ExtractorError as e:
+                # YouTube servers may return errors we want to retry on in a 200 OK response
+                # See: https://github.com/yt-dlp/yt-dlp/issues/839
+                if 'unknown error' in e.msg.lower():
+                    retry.error = e
+                    continue
+                return self._error_or_warning(e, fatal=fatal)
+            # Youtube sometimes sends incomplete data
+            # See: https://github.com/ytdl-org/youtube-dl/issues/28194
+            if not traverse_obj(response, *variadic(check_get_keys)):
+                retry.error = ExtractorError('Incomplete data received')
+                continue
+
+            return response
 
     @staticmethod
     def is_music_url(url):
@@ -958,6 +940,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                      (?:\#|$)""" % {
         'invidious': '|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
     }
+    _EMBED_REGEX = [r'''(?x)
+        (?:
+            <iframe[^>]+?src=|
+            data-video-url=|
+            <embed[^>]+?src=|
+            embedSWF\(?:\s*|
+            <object[^>]+data=|
+            new\s+SWFObject\(
+        )
+        (["\'])
+            (?P<url>(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/
+            (?:embed|v|p)/[0-9A-Za-z_-]{11}.*?)
+        \1''']
     _PLAYER_INFO_RE = (
         r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/player',
         r'/(?P<id>[a-zA-Z0-9_-]{8,})/player(?:_ias\.vflset(?:/[a-zA-Z]{2,3}_[a-zA-Z]{2,3})?|-plasma-ias-(?:phone|tablet)-[a-z]{2}_[A-Z]{2}\.vflset)/base\.js$',
@@ -2346,8 +2341,47 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             },
             'params': {'skip_download': True, 'extractor_args': {'youtube': {'lang': ['fr']}}},
             'expected_warnings': [r'Preferring \'fr\' translated fields'],
-        },
+        }, {
+            'note': '6 channel audio',
+            'url': 'https://www.youtube.com/watch?v=zgdo7-RRjgo',
+            'only_matching': True,
+        }
+    ]
 
+    _WEBPAGE_TESTS = [
+        # YouTube <object> embed
+        {
+            'url': 'http://www.improbable.com/2017/04/03/untrained-modern-youths-and-ancient-masters-in-selfie-portraits/',
+            'md5': '873c81d308b979f0e23ee7e620b312a3',
+            'info_dict': {
+                'id': 'msN87y-iEx0',
+                'ext': 'mp4',
+                'title': 'Feynman: Mirrors FUN TO IMAGINE 6',
+                'upload_date': '20080526',
+                'description': 'md5:873c81d308b979f0e23ee7e620b312a3',
+                'uploader': 'Christopher Sykes',
+                'uploader_id': 'ChristopherJSykes',
+                'age_limit': 0,
+                'tags': ['feynman', 'mirror', 'science', 'physics', 'imagination', 'fun', 'cool', 'puzzle'],
+                'channel_id': 'UCCeo--lls1vna5YJABWAcVA',
+                'playable_in_embed': True,
+                'thumbnail': 'https://i.ytimg.com/vi/msN87y-iEx0/hqdefault.jpg',
+                'like_count': int,
+                'comment_count': int,
+                'channel': 'Christopher Sykes',
+                'live_status': 'not_live',
+                'channel_url': 'https://www.youtube.com/channel/UCCeo--lls1vna5YJABWAcVA',
+                'availability': 'public',
+                'duration': 195,
+                'view_count': int,
+                'categories': ['Science & Technology'],
+                'channel_follower_count': int,
+                'uploader_url': 'http://www.youtube.com/user/ChristopherJSykes',
+            },
+            'params': {
+                'skip_download': True,
+            }
+        },
     ]
 
     @classmethod
@@ -2382,7 +2416,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
                 expected_type=dict, default=[])
-            _, is_live, _, formats = self._list_formats(video_id, microformats, video_details, prs, player_url)
+            _, is_live, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
             start_time = time.time()
 
         def mpd_feed(format_id, delay):
@@ -2769,42 +2803,29 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 url, video_id, f'Marking {label}watched',
                 'Unable to mark watched', fatal=False)
 
-    @staticmethod
-    def _extract_urls(webpage):
-        # Embedded YouTube player
-        entries = [
-            unescapeHTML(mobj.group('url'))
-            for mobj in re.finditer(r'''(?x)
-            (?:
-                <iframe[^>]+?src=|
-                data-video-url=|
-                <embed[^>]+?src=|
-                embedSWF\(?:\s*|
-                <object[^>]+data=|
-                new\s+SWFObject\(
-            )
-            (["\'])
-                (?P<url>(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/
-                (?:embed|v|p)/[0-9A-Za-z_-]{11}.*?)
-            \1''', webpage)]
+    @classmethod
+    def _extract_from_webpage(cls, url, webpage):
+        # Invidious Instances
+        # https://github.com/yt-dlp/yt-dlp/issues/195
+        # https://github.com/iv-org/invidious/pull/1730
+        mobj = re.search(
+            r'<link rel="alternate" href="(?P<url>https://www\.youtube\.com/watch\?v=[0-9A-Za-z_-]{11})"',
+            webpage)
+        if mobj:
+            yield cls.url_result(mobj.group('url'), cls)
+            raise cls.StopExtraction()
+
+        yield from super()._extract_from_webpage(url, webpage)
 
         # lazyYT YouTube embed
-        entries.extend(list(map(
-            unescapeHTML,
-            re.findall(r'class="lazyYT" data-youtube-id="([^"]+)"', webpage))))
+        for id_ in re.findall(r'class="lazyYT" data-youtube-id="([^"]+)"', webpage):
+            yield cls.url_result(unescapeHTML(id_), cls, id_)
 
         # Wordpress "YouTube Video Importer" plugin
-        matches = re.findall(r'''(?x)<div[^>]+
-            class=(?P<q1>[\'"])[^\'"]*\byvii_single_video_player\b[^\'"]*(?P=q1)[^>]+
-            data-video_id=(?P<q2>[\'"])([^\'"]+)(?P=q2)''', webpage)
-        entries.extend(m[-1] for m in matches)
-
-        return entries
-
-    @staticmethod
-    def _extract_url(webpage):
-        urls = YoutubeIE._extract_urls(webpage)
-        return urls[0] if urls else None
+        for m in re.findall(r'''(?x)<div[^>]+
+                class=(?P<q1>[\'"])[^\'"]*\byvii_single_video_player\b[^\'"]*(?P=q1)[^>]+
+                data-video_id=(?P<q2>[\'"])([^\'"]+)(?P=q2)''', webpage):
+            yield cls.url_result(m[-1], cls, m[-1])
 
     @classmethod
     def extract_id(cls, url):
@@ -3206,7 +3227,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
             if pr:
-                prs.append(pr)
+                # YouTube may return a different video player response than expected.
+                # See: https://github.com/TeamNewPipe/NewPipe/issues/8713
+                pr_video_id = traverse_obj(pr, ('videoDetails', 'videoId'))
+                if pr_video_id and pr_video_id != video_id:
+                    self.report_warning(
+                        f'Skipping player response from {client} client (got player response for video "{pr_video_id}" instead of "{video_id}")' + bug_reports_message())
+                else:
+                    prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
             if variant == 'embedded' and self._is_unplayable(pr) and self.is_authenticated:
@@ -3223,7 +3251,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(last_error)
         return prs, player_url
 
-    def _extract_formats(self, streaming_data, video_id, player_url, is_live, duration):
+    def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, is_live, duration):
         itags, stream_ids = {}, []
         itag_qualities, res_qualities = {}, {}
         q = qualities([
@@ -3319,10 +3347,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     '%s%s' % (audio_track.get('displayName') or '',
                               ' (default)' if language_preference > 0 else ''),
                     fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
+                    try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
+                    try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                     throttled and 'THROTTLED', is_damaged and 'DAMAGED', delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
                 'source_preference': -10 if throttled else -5 if itag == '22' else -1,
                 'fps': int_or_none(fmt.get('fps')) or None,
+                'audio_channels': fmt.get('audioChannels'),
                 'height': height,
                 'quality': q(quality),
                 'has_drm': bool(fmt.get('drmFamilies')),
@@ -3380,17 +3411,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if val in qdict), -1)
             return True
 
+        subtitles = {}
         for sd in streaming_data:
             hls_manifest_url = get_hls and sd.get('hlsManifestUrl')
             if hls_manifest_url:
-                for f in self._extract_m3u8_formats(hls_manifest_url, video_id, 'mp4', fatal=False):
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(hls_manifest_url, video_id, 'mp4', fatal=False, live=is_live)
+                subtitles = self._merge_subtitles(subs, subtitles)
+                for f in fmts:
                     if process_manifest_format(f, 'hls', self._search_regex(
                             r'/itag/(\d+)', f['url'], 'itag', default=None)):
                         yield f
 
             dash_manifest_url = get_dash and sd.get('dashManifestUrl')
             if dash_manifest_url:
-                for f in self._extract_mpd_formats(dash_manifest_url, video_id, fatal=False):
+                formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
+                subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
+                for f in formats:
                     if process_manifest_format(f, 'dash', f['format_id']):
                         f['filesize'] = int_or_none(self._search_regex(
                             r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
@@ -3398,6 +3434,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             f['is_from_start'] = True
 
                         yield f
+        yield subtitles
 
     def _extract_storyboard(self, player_responses, duration):
         spec = get_first(
@@ -3458,9 +3495,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_live = get_first(live_broadcast_details, 'isLiveNow')
 
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
-        formats = list(self._extract_formats(streaming_data, video_id, player_url, is_live, duration))
+        *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, is_live, duration)
 
-        return live_broadcast_details, is_live, streaming_data, formats
+        return live_broadcast_details, is_live, streaming_data, formats, subtitles
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -3549,15 +3586,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or get_first(microformats, 'lengthSeconds')
             or parse_duration(search_meta('duration'))) or None
 
-        if get_first(video_details, 'isPostLiveDvr'):
-            self.write_debug('Video is in Post-Live Manifestless mode')
-            if (duration or 0) > 4 * 3600:
-                self.report_warning(
-                    'The livestream has not finished processing. Only 4 hours of the video can be currently downloaded. '
-                    'This is a known issue and patches are welcome')
-
-        live_broadcast_details, is_live, streaming_data, formats = self._list_formats(
-            video_id, microformats, video_details, player_responses, player_url, duration)
+        live_broadcast_details, is_live, streaming_data, formats, automatic_captions = \
+            self._list_formats(video_id, microformats, video_details, player_responses, player_url)
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
@@ -3648,9 +3678,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 
-        # Source is given priority since formats that throttle are given lower source_preference
-        # When throttling issue is fully fixed, remove this
-        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source', 'codec:vp9.2', 'lang', 'proto'))
+        # source_preference is lower for throttled/potentially damaged formats
+        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'channels', 'source', 'codec:vp9.2', 'lang', 'proto'))
 
         info = {
             'id': video_id,
@@ -3687,6 +3716,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'release_timestamp': live_start_time,
         }
 
+        if get_first(video_details, 'isPostLiveDvr'):
+            self.write_debug('Video is in Post-Live Manifestless mode')
+            info['live_status'] = 'post_live'
+            if (duration or 0) > 4 * 3600:
+                self.report_warning(
+                    'The livestream has not finished processing. Only 4 hours of the video can be currently downloaded. '
+                    'This is a known issue and patches are welcome')
+
+        subtitles = {}
         pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
         if pctr:
             def get_lang_code(track):
@@ -3713,7 +3751,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'name': sub_name,
                     })
 
-            subtitles, automatic_captions = {}, {}
+            # NB: Constructing the full subtitle dictionary is slow
+            get_translated_subs = 'translated_subs' not in self._configuration_arg('skip') and (
+                self.get_param('writeautomaticsub', False) or self.get_param('listsubtitles'))
             for lang_code, caption_track in captions.items():
                 base_url = caption_track.get('baseUrl')
                 orig_lang = parse_qs(base_url).get('lang', [None])[-1]
@@ -3732,7 +3772,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         continue
                     orig_trans_code = trans_code
                     if caption_track.get('kind') != 'asr':
-                        if 'translated_subs' in self._configuration_arg('skip'):
+                        if not get_translated_subs:
                             continue
                         trans_code += f'-{lang_code}'
                         trans_name += format_field(lang_name, None, ' from %s')
@@ -3744,8 +3784,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Setting tlang=lang returns damaged subtitles.
                     process_language(automatic_captions, base_url, trans_code, trans_name,
                                      {} if orig_lang == orig_trans_code else {'tlang': trans_code})
-            info['automatic_captions'] = automatic_captions
-            info['subtitles'] = subtitles
+
+        info['automatic_captions'] = automatic_captions
+        info['subtitles'] = subtitles
 
         parsed_url = urllib.parse.urlparse(url)
         for component in [parsed_url.fragment, parsed_url.query]:
@@ -4570,48 +4611,30 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         return 'webpage' in self._configuration_arg('skip', ie_key=YoutubeTabIE.ie_key())
 
     def _extract_webpage(self, url, item_id, fatal=True):
-        retries = self.get_param('extractor_retries', 3)
-        count = -1
-        webpage = data = last_error = None
-        while count < retries:
-            count += 1
-            # Sometimes youtube returns a webpage with incomplete ytInitialData
-            # See: https://github.com/yt-dlp/yt-dlp/issues/116
-            if last_error:
-                self.report_warning('%s. Retrying ...' % last_error)
+        webpage, data = None, None
+        for retry in self.RetryManager(fatal=fatal):
             try:
-                webpage = self._download_webpage(
-                    url, item_id,
-                    note='Downloading webpage%s' % (' (retry #%d)' % count if count else '',))
+                webpage = self._download_webpage(url, item_id, note='Downloading webpage')
                 data = self.extract_yt_initial_data(item_id, webpage or '', fatal=fatal) or {}
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
                     if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code not in (403, 429):
-                        last_error = error_to_compat_str(e.cause or e.msg)
-                        if count < retries:
-                            continue
-                if fatal:
-                    raise
-                self.report_warning(error_to_compat_str(e))
+                        retry.error = e
+                        continue
+                self._error_or_warning(e, fatal=fatal)
                 break
-            else:
-                try:
-                    self._extract_and_report_alerts(data)
-                except ExtractorError as e:
-                    if fatal:
-                        raise
-                    self.report_warning(error_to_compat_str(e))
-                    break
 
-                if dict_get(data, ('contents', 'currentVideoEndpoint', 'onResponseReceivedActions')):
-                    break
+            try:
+                self._extract_and_report_alerts(data)
+            except ExtractorError as e:
+                self._error_or_warning(e, fatal=fatal)
+                break
 
-                last_error = 'Incomplete yt initial data received'
-                if count >= retries:
-                    if fatal:
-                        raise ExtractorError(last_error)
-                    self.report_warning(last_error)
-                    break
+            # Sometimes youtube returns a webpage with incomplete ytInitialData
+            # See: https://github.com/yt-dlp/yt-dlp/issues/116
+            if not traverse_obj(data, 'contents', 'currentVideoEndpoint', 'onResponseReceivedActions'):
+                retry.error = ExtractorError('Incomplete yt initial data received')
+                continue
 
         return webpage, data
 

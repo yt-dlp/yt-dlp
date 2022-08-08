@@ -49,6 +49,11 @@ class ArchiveOrgIE(InfoExtractor):
             'upload_date': '20100315',
             'creator': 'SRI International',
             'uploader': 'laura@archive.org',
+            'thumbnail': r're:https://archive\.org/download/.*\.jpg',
+            'release_year': 1968,
+            'display_id': 'XD300-23_68HighlightsAResearchCntAugHumanIntellect.cdr',
+            'track': 'XD300-23 68HighlightsAResearchCntAugHumanIntellect',
+
         },
     }, {
         'url': 'https://archive.org/details/Cops1922',
@@ -57,33 +62,43 @@ class ArchiveOrgIE(InfoExtractor):
             'id': 'Cops1922',
             'ext': 'mp4',
             'title': 'Buster Keaton\'s "Cops" (1922)',
-            'description': 'md5:43a603fd6c5b4b90d12a96b921212b9c',
+            'description': 'md5:cd6f9910c35aedd5fc237dbc3957e2ca',
             'uploader': 'yorkmba99@hotmail.com',
             'timestamp': 1387699629,
             'upload_date': '20131222',
+            'display_id': 'Cops-v2.mp4',
+            'thumbnail': r're:https://archive\.org/download/.*\.jpg',
+            'duration': 1091.96,
         },
     }, {
         'url': 'http://archive.org/embed/XD300-23_68HighlightsAResearchCntAugHumanIntellect',
         'only_matching': True,
     }, {
         'url': 'https://archive.org/details/Election_Ads',
-        'md5': '284180e857160cf866358700bab668a3',
+        'md5': 'eec5cddebd4793c6a653b69c3b11f2e6',
         'info_dict': {
             'id': 'Election_Ads/Commercial-JFK1960ElectionAdCampaignJingle.mpg',
             'title': 'Commercial-JFK1960ElectionAdCampaignJingle.mpg',
-            'ext': 'mp4',
+            'ext': 'mpg',
+            'thumbnail': r're:https://archive\.org/download/.*\.jpg',
+            'duration': 59.77,
+            'display_id': 'Commercial-JFK1960ElectionAdCampaignJingle.mpg',
         },
     }, {
         'url': 'https://archive.org/details/Election_Ads/Commercial-Nixon1960ElectionAdToughonDefense.mpg',
-        'md5': '7915213ef02559b5501fe630e1a53f59',
+        'md5': 'ea1eed8234e7d4165f38c8c769edef38',
         'info_dict': {
             'id': 'Election_Ads/Commercial-Nixon1960ElectionAdToughonDefense.mpg',
             'title': 'Commercial-Nixon1960ElectionAdToughonDefense.mpg',
-            'ext': 'mp4',
+            'ext': 'mpg',
             'timestamp': 1205588045,
             'uploader': 'mikedavisstripmaster@yahoo.com',
             'description': '1960 Presidential Campaign Election Commercials John F Kennedy, Richard M Nixon',
             'upload_date': '20080315',
+            'display_id': 'Commercial-Nixon1960ElectionAdToughonDefense.mpg',
+            'duration': 59.51,
+            'license': 'http://creativecommons.org/licenses/publicdomain/',
+            'thumbnail': r're:https://archive\.org/download/.*\.jpg',
         },
     }, {
         'url': 'https://archive.org/details/gd1977-05-08.shure57.stevenson.29303.flac16',
@@ -92,6 +107,12 @@ class ArchiveOrgIE(InfoExtractor):
             'id': 'gd1977-05-08.shure57.stevenson.29303.flac16/gd1977-05-08d01t01.flac',
             'title': 'Turning',
             'ext': 'flac',
+            'track': 'Turning',
+            'creator': 'Grateful Dead',
+            'display_id': 'gd1977-05-08d01t01.flac',
+            'track_number': 1,
+            'album': '1977-05-08 - Barton Hall - Cornell University',
+            'duration': 39.8,
         },
     }, {
         'url': 'https://archive.org/details/gd1977-05-08.shure57.stevenson.29303.flac16/gd1977-05-08d01t07.flac',
@@ -102,11 +123,20 @@ class ArchiveOrgIE(InfoExtractor):
             'ext': 'flac',
             'timestamp': 1205895624,
             'uploader': 'mvernon54@yahoo.com',
-            'description': 'md5:6a31f1996db0aa0fc9da6d6e708a1bb0',
+            'description': 'md5:6c921464414814720c6593810a5c7e3d',
             'upload_date': '20080319',
             'location': 'Barton Hall - Cornell University',
+            'duration': 438.68,
+            'track': 'Deal',
+            'creator': 'Grateful Dead',
+            'album': '1977-05-08 - Barton Hall - Cornell University',
+            'release_date': '19770508',
+            'display_id': 'gd1977-05-08d01t07.flac',
+            'release_year': 1977,
+            'track_number': 7,
         },
     }, {
+        # FIXME: give a better error message than just IndexError when all available formats are restricted
         'url': 'https://archive.org/details/lp_the-music-of-russia_various-artists-a-askaryan-alexander-melik',
         'md5': '7cb019baa9b332e82ea7c10403acd180',
         'info_dict': {
@@ -114,6 +144,7 @@ class ArchiveOrgIE(InfoExtractor):
             'title': 'Bells Of Rostov',
             'ext': 'mp3',
         },
+        'skip': 'restricted'
     }, {
         'url': 'https://archive.org/details/lp_the-music-of-russia_various-artists-a-askaryan-alexander-melik/disc1/02.02.+Song+And+Chorus+In+The+Polovetsian+Camp+From+%22Prince+Igor%22+(Act+2%2C+Scene+1).mp3',
         'md5': '1d0aabe03edca83ca58d9ed3b493a3c3',
@@ -126,6 +157,52 @@ class ArchiveOrgIE(InfoExtractor):
             'description': 'md5:012b2d668ae753be36896f343d12a236',
             'upload_date': '20190928',
         },
+        'skip': 'restricted'
+    }, {
+        # Original formats are private
+        'url': 'https://archive.org/details/irelandthemakingofarepublic',
+        'info_dict': {
+            'id': 'irelandthemakingofarepublic',
+            'title': 'Ireland: The Making of a Republic',
+            'upload_date': '20160610',
+            'description': 'md5:f70956a156645a658a0dc9513d9e78b7',
+            'uploader': 'dimitrios@archive.org',
+            'creator': ['British Broadcasting Corporation', 'Time-Life Films'],
+            'timestamp': 1465594947,
+        },
+        'playlist': [
+            {
+                'md5': '0b211261b26590d49df968f71b90690d',
+                'info_dict': {
+                    'id': 'irelandthemakingofarepublic/irelandthemakingofarepublicreel1_01.mov',
+                    'ext': 'mp4',
+                    'title': 'irelandthemakingofarepublicreel1_01.mov',
+                    'duration': 130.46,
+                    'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel1_01_000117.jpg',
+                    'display_id': 'irelandthemakingofarepublicreel1_01.mov',
+                },
+            }, {
+                'md5': '67335ee3b23a0da930841981c1e79b02',
+                'info_dict': {
+                    'id': 'irelandthemakingofarepublic/irelandthemakingofarepublicreel1_02.mov',
+                    'ext': 'mp4',
+                    'duration': 1395.13,
+                    'title': 'irelandthemakingofarepublicreel1_02.mov',
+                    'display_id': 'irelandthemakingofarepublicreel1_02.mov',
+                    'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel1_02_001374.jpg',
+                },
+            }, {
+                'md5': 'e470e86787893603f4a341a16c281eb5',
+                'info_dict': {
+                    'id': 'irelandthemakingofarepublic/irelandthemakingofarepublicreel2.mov',
+                    'ext': 'mp4',
+                    'duration': 1602.67,
+                    'title': 'irelandthemakingofarepublicreel2.mov',
+                    'thumbnail': 'https://archive.org/download/irelandthemakingofarepublic/irelandthemakingofarepublic.thumbs/irelandthemakingofarepublicreel2_001554.jpg',
+                    'display_id': 'irelandthemakingofarepublicreel2.mov',
+                },
+            }
+        ]
     }]
 
     @staticmethod
@@ -216,17 +293,25 @@ class ArchiveOrgIE(InfoExtractor):
                     'filesize': int_or_none(f.get('size'))})
 
             extension = (f['name'].rsplit('.', 1) + [None])[1]
-            if extension in KNOWN_EXTENSIONS:
+
+            # We don't want to skip private formats if the user has access to them,
+            # however without access to an account with such privileges we can't implement/test this.
+            # For now to be safe, we will only skip them if there is no user logged in.
+            is_logged_in = bool(self._get_cookies('https://archive.org').get('logged-in-sig'))
+            if extension in KNOWN_EXTENSIONS and (not f.get('private') or is_logged_in):
                 entry['formats'].append({
                     'url': 'https://archive.org/download/' + identifier + '/' + f['name'],
                     'format': f.get('format'),
                     'width': int_or_none(f.get('width')),
                     'height': int_or_none(f.get('height')),
                     'filesize': int_or_none(f.get('size')),
-                    'protocol': 'https'})
+                    'protocol': 'https',
+                    'source_preference': 0 if f.get('source') == 'original' else -1,
+                    'format_note': f.get('source')
+                })
 
         for entry in entries.values():
-            self._sort_formats(entry['formats'])
+            self._sort_formats(entry['formats'], ('source', ))
 
         if len(entries) == 1:
             # If there's only one item, use it as the main info dict
