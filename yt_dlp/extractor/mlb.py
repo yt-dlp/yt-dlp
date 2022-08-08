@@ -332,12 +332,10 @@ class MLBTVIE(InfoExtractor):
                 m3u8_url, video_id, 'mp4', m3u8_id=join_nonempty(airing.get('feedType'), airing.get('feedLanguage'))
             formats.extend(f)
             self._merge_subtitles(s, subtitles)
-            title = traverse_obj(airing, ('titles', 0, 'episodeName'))
 
         self._sort_formats(formats)
-
         return {
-            'title': title,
+            'title': traverse_obj(airings, (..., 'titles', 0, 'episodeName'), get_all=False),
             'formats': formats,
             'subtitles': subtitles,
             'http_headers': {'Authorization': f'Bearer {self._access_token}'},
