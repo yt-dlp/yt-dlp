@@ -1797,6 +1797,8 @@ class YoutubeDL:
             })
 
             if self._match_entry(entry_copy, incomplete=True) is not None:
+                # For compatabilty with youtube-dl. See https://github.com/yt-dlp/yt-dlp/issues/4369
+                resolved_entries[i] = (playlist_index, NO_DEFAULT)
                 continue
 
             self.to_screen('[download] Downloading video %s of %s' % (
@@ -1817,7 +1819,8 @@ class YoutubeDL:
                 resolved_entries[i] = (playlist_index, entry_result)
 
         # Update with processed data
-        ie_result['requested_entries'], ie_result['entries'] = tuple(zip(*resolved_entries)) or ([], [])
+        ie_result['requested_entries'] = [i for i, e in resolved_entries if e is not NO_DEFAULT]
+        ie_result['entries'] = [e for _, e in resolved_entries if e is not NO_DEFAULT]
 
         # Write the updated info to json
         if _infojson_written is True and self._write_info_json(
