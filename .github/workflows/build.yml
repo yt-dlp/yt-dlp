@@ -47,15 +47,6 @@ jobs:
   build_unix:
     needs: prepare
     runs-on: ubuntu-18.04  # Standalone executable should be built on minimum supported OS
-    outputs:
-      sha256_bin: ${{ steps.get_sha.outputs.sha256_bin }}
-      sha512_bin: ${{ steps.get_sha.outputs.sha512_bin }}
-      sha256_tar: ${{ steps.get_sha.outputs.sha256_tar }}
-      sha512_tar: ${{ steps.get_sha.outputs.sha512_tar }}
-      sha256_linux: ${{ steps.get_sha.outputs.sha256_linux }}
-      sha512_linux: ${{ steps.get_sha.outputs.sha512_linux }}
-      sha256_linux_zip: ${{ steps.get_sha.outputs.sha256_linux_zip }}
-      sha512_linux_zip: ${{ steps.get_sha.outputs.sha512_linux_zip }}
 
     steps:
     - uses: actions/checkout@v3
@@ -81,14 +72,6 @@ jobs:
     - name: Get SHA2-SUMS
       id: get_sha
       run: |
-          echo "::set-output name=sha256_bin::$(sha256sum yt-dlp | awk '{print $1}')"
-          echo "::set-output name=sha512_bin::$(sha512sum yt-dlp | awk '{print $1}')"
-          echo "::set-output name=sha256_tar::$(sha256sum yt-dlp.tar.gz | awk '{print $1}')"
-          echo "::set-output name=sha512_tar::$(sha512sum yt-dlp.tar.gz | awk '{print $1}')"
-          echo "::set-output name=sha256_linux::$(sha256sum dist/yt-dlp_linux | awk '{print $1}')"
-          echo "::set-output name=sha512_linux::$(sha512sum dist/yt-dlp_linux | awk '{print $1}')"
-          echo "::set-output name=sha256_linux_zip::$(sha256sum dist/yt-dlp_linux.zip | awk '{print $1}')"
-          echo "::set-output name=sha512_linux_zip::$(sha512sum dist/yt-dlp_linux.zip | awk '{print $1}')"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
@@ -132,11 +115,6 @@ jobs:
   build_macos:
     runs-on: macos-11
     needs: prepare
-    outputs:
-      sha256_macos: ${{ steps.get_sha.outputs.sha256_macos }}
-      sha512_macos: ${{ steps.get_sha.outputs.sha512_macos }}
-      sha256_macos_zip: ${{ steps.get_sha.outputs.sha256_macos_zip }}
-      sha512_macos_zip: ${{ steps.get_sha.outputs.sha512_macos_zip }}
 
     steps:
     - uses: actions/checkout@v3
@@ -155,13 +133,6 @@ jobs:
           /usr/bin/python3 pyinst.py --target-architecture universal2 --onedir
           (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
           /usr/bin/python3 pyinst.py --target-architecture universal2
-    - name: Get SHA2-SUMS
-      id: get_sha
-      run: |
-          echo "::set-output name=sha256_macos::$(sha256sum dist/yt-dlp_macos | awk '{print $1}')"
-          echo "::set-output name=sha512_macos::$(sha512sum dist/yt-dlp_macos | awk '{print $1}')"
-          echo "::set-output name=sha256_macos_zip::$(sha256sum dist/yt-dlp_macos.zip | awk '{print $1}')"
-          echo "::set-output name=sha512_macos_zip::$(sha512sum dist/yt-dlp_macos.zip | awk '{print $1}')"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
@@ -174,9 +145,6 @@ jobs:
   build_macos_legacy:
     runs-on: macos-latest
     needs: prepare
-    outputs:
-      sha256_macos_legacy: ${{ steps.get_sha.outputs.sha256_macos_legacy }}
-      sha512_macos_legacy: ${{ steps.get_sha.outputs.sha512_macos_legacy }}
 
     steps:
     - uses: actions/checkout@v3
@@ -205,11 +173,6 @@ jobs:
       run: |
           python3 pyinst.py
           mv dist/yt-dlp_macos dist/yt-dlp_macos_legacy
-    - name: Get SHA2-SUMS
-      id: get_sha
-      run: |
-          echo "::set-output name=sha256_macos_legacy::$(sha256sum dist/yt-dlp_macos_legacy | awk '{print $1}')"
-          echo "::set-output name=sha512_macos_legacy::$(sha512sum dist/yt-dlp_macos_legacy | awk '{print $1}')"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
@@ -221,13 +184,6 @@ jobs:
   build_windows:
     runs-on: windows-latest
     needs: prepare
-    outputs:
-      sha256_win: ${{ steps.get_sha.outputs.sha256_win }}
-      sha512_win: ${{ steps.get_sha.outputs.sha512_win }}
-      sha256_py2exe: ${{ steps.get_sha.outputs.sha256_py2exe }}
-      sha512_py2exe: ${{ steps.get_sha.outputs.sha512_py2exe }}
-      sha256_win_zip: ${{ steps.get_sha.outputs.sha256_win_zip }}
-      sha512_win_zip: ${{ steps.get_sha.outputs.sha512_win_zip }}
 
     steps:
     - uses: actions/checkout@v3
@@ -250,15 +206,6 @@ jobs:
           python pyinst.py
           python pyinst.py --onedir
           Compress-Archive -Path ./dist/yt-dlp/* -DestinationPath ./dist/yt-dlp_win.zip
-    - name: Get SHA2-SUMS
-      id: get_sha
-      run: |
-          echo "::set-output name=sha256_py2exe::$((Get-FileHash dist\yt-dlp_min.exe -Algorithm SHA256).Hash.ToLower())"
-          echo "::set-output name=sha512_py2exe::$((Get-FileHash dist\yt-dlp_min.exe -Algorithm SHA512).Hash.ToLower())"
-          echo "::set-output name=sha256_win::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA256).Hash.ToLower())"
-          echo "::set-output name=sha512_win::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA512).Hash.ToLower())"
-          echo "::set-output name=sha256_win_zip::$((Get-FileHash dist\yt-dlp_win.zip -Algorithm SHA256).Hash.ToLower())"
-          echo "::set-output name=sha512_win_zip::$((Get-FileHash dist\yt-dlp_win.zip -Algorithm SHA512).Hash.ToLower())"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
@@ -272,9 +219,6 @@ jobs:
   build_windows32:
     runs-on: windows-latest
     needs: prepare
-    outputs:
-      sha256_win32: ${{ steps.get_sha.outputs.sha256_win32 }}
-      sha512_win32: ${{ steps.get_sha.outputs.sha512_win32 }}
 
     steps:
     - uses: actions/checkout@v3
@@ -294,11 +238,6 @@ jobs:
     - name: Build
       run: |
           python pyinst.py
-    - name: Get SHA2-SUMS
-      id: get_sha
-      run: |
-          echo "::set-output name=sha256_win32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA256).Hash.ToLower())"
-          echo "::set-output name=sha512_win32::$((Get-FileHash dist\yt-dlp_x86.exe -Algorithm SHA512).Hash.ToLower())"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
@@ -312,31 +251,6 @@ jobs:
     needs: [prepare, build_unix, build_windows, build_windows32, build_macos, build_macos_legacy]
 
     steps:
-    - name: Make SHA2-SUMS files
-      run: |
-        echo "${{ needs.build_unix.outputs.sha256_bin }}  yt-dlp" >> SHA2-256SUMS
-        echo "${{ needs.build_unix.outputs.sha256_tar }}  yt-dlp.tar.gz" >> SHA2-256SUMS
-        echo "${{ needs.build_unix.outputs.sha256_linux }}  yt-dlp_linux" >> SHA2-256SUMS
-        echo "${{ needs.build_unix.outputs.sha256_linux_zip }}  yt-dlp_linux.zip" >> SHA2-256SUMS
-        echo "${{ needs.build_windows.outputs.sha256_win }}  yt-dlp.exe" >> SHA2-256SUMS
-        echo "${{ needs.build_windows.outputs.sha256_py2exe }}  yt-dlp_min.exe" >> SHA2-256SUMS
-        echo "${{ needs.build_windows32.outputs.sha256_win32 }}  yt-dlp_x86.exe" >> SHA2-256SUMS
-        echo "${{ needs.build_windows.outputs.sha256_win_zip }}  yt-dlp_win.zip" >> SHA2-256SUMS
-        echo "${{ needs.build_macos.outputs.sha256_macos }}  yt-dlp_macos" >> SHA2-256SUMS
-        echo "${{ needs.build_macos.outputs.sha256_macos_zip }}  yt-dlp_macos.zip" >> SHA2-256SUMS
-        echo "${{ needs.build_macos_legacy.outputs.sha256_macos_legacy }}  yt-dlp_macos_legacy" >> SHA2-256SUMS
-        echo "${{ needs.build_unix.outputs.sha512_bin }}  yt-dlp" >> SHA2-512SUMS
-        echo "${{ needs.build_unix.outputs.sha512_tar }}  yt-dlp.tar.gz" >> SHA2-512SUMS
-        echo "${{ needs.build_unix.outputs.sha512_linux }}  yt-dlp_linux" >> SHA2-512SUMS
-        echo "${{ needs.build_unix.outputs.sha512_linux_zip }}  yt-dlp_linux.zip" >> SHA2-512SUMS
-        echo "${{ needs.build_windows.outputs.sha512_win }}  yt-dlp.exe" >> SHA2-512SUMS
-        echo "${{ needs.build_windows.outputs.sha512_py2exe }}  yt-dlp_min.exe" >> SHA2-512SUMS
-        echo "${{ needs.build_windows32.outputs.sha512_win32 }}  yt-dlp_x86.exe" >> SHA2-512SUMS
-        echo "${{ needs.build_windows.outputs.sha512_win_zip }}  yt-dlp_win.zip" >> SHA2-512SUMS
-        echo "${{ needs.build_macos.outputs.sha512_macos }}  yt-dlp_macos" >> SHA2-512SUMS
-        echo "${{ needs.build_macos.outputs.sha512_macos_zip }}  yt-dlp_macos.zip" >> SHA2-512SUMS
-        echo "${{ needs.build_macos_legacy.outputs.sha512_macos_legacy }}  yt-dlp_macos_legacy" >> SHA2-512SUMS
-
     - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
 
@@ -350,6 +264,30 @@ jobs:
       run: |
         echo "# This file is used for regulating self-update" >> _update_spec
         echo "lock 2022.07.18 .+ Python 3.6" >> _update_spec
+    - name: Make SHA2-SUMS files
+      run: |
+          sha256sum artifact/yt-dlp | awk '{print $1 "  yt-dlp"}' >> SHA2-256SUMS
+          sha256sum artifact/yt-dlp.tar.gz | awk '{print $1 "  yt-dlp.tar.gz"}' >> SHA2-256SUMS
+          sha256sum artifact/yt-dlp.exe | awk '{print $1 "  yt-dlp.exe"}' >> SHA2-256SUMS
+          sha256sum artifact/yt-dlp_win.zip | awk '{print $1 "  yt-dlp_win.zip"}' >> SHA2-256SUMS
+          sha256sum artifact/yt-dlp_min.exe | awk '{print $1 "  yt-dlp_min.exe"}' >> SHA2-256SUMS
+          sha256sum artifact/yt-dlp_x86.exe | awk '{print $1 "  yt-dlp_x86.exe"}' >> SHA2-256SUMS
+          sha256sum artifact/yt-dlp_macos | awk '{print $1 "  yt-dlp_macos"}' >> SHA2-256SUMS
+          sha256sum artifact/yt-dlp_macos.zip | awk '{print $1 "  yt-dlp_macos.zip"}' >> SHA2-256SUMS
+          sha256sum artifact/yt-dlp_macos_legacy | awk '{print $1 "  yt-dlp_macos_legacy"}' >> SHA2-256SUMS
+          sha256sum artifact/dist/yt-dlp_linux | awk '{print $1 "  yt-dlp_linux"}' >> SHA2-256SUMS
+          sha256sum artifact/dist/yt-dlp_linux.zip | awk '{print $1 "  yt-dlp_linux.zip"}' >> SHA2-256SUMS
+          sha512sum artifact/yt-dlp | awk '{print $1 "  yt-dlp"}' >> SHA2-512SUMS
+          sha512sum artifact/yt-dlp.tar.gz | awk '{print $1 "  yt-dlp.tar.gz"}' >> SHA2-512SUMS
+          sha512sum artifact/yt-dlp.exe | awk '{print $1 "  yt-dlp.exe"}' >> SHA2-512SUMS
+          sha512sum artifact/yt-dlp_win.zip | awk '{print $1 "  yt-dlp_win.zip"}' >> SHA2-512SUMS
+          sha512sum artifact/yt-dlp_min.exe | awk '{print $1 "  yt-dlp_min.exe"}' >> SHA2-512SUMS
+          sha512sum artifact/yt-dlp_x86.exe | awk '{print $1 "  yt-dlp_x86.exe"}' >> SHA2-512SUMS
+          sha512sum artifact/yt-dlp_macos | awk '{print $1 "  yt-dlp_macos"}' >> SHA2-512SUMS
+          sha512sum artifact/yt-dlp_macos.zip | awk '{print $1 "  yt-dlp_macos.zip"}' >> SHA2-512SUMS
+          sha512sum artifact/yt-dlp_macos_legacy | awk '{print $1 "  yt-dlp_macos_legacy"}' >> SHA2-512SUMS
+          sha512sum artifact/dist/yt-dlp_linux | awk '{print $1 "  yt-dlp_linux"}' >> SHA2-512SUMS
+          sha512sum artifact/dist/yt-dlp_linux.zip | awk '{print $1 "  yt-dlp_linux.zip"}' >> SHA2-512SUMS
 
     - name: Publish Release
       uses: yt-dlp/action-gh-release@v1
