@@ -285,15 +285,13 @@ class MLBTVIE(InfoExtractor):
     }]
 
     def _perform_login(self, username, password):
-
+        data = f'grant_type=password&username={urllib.parse.quote(username)}&password={urllib.parse.quote(password)}&scope=openid offline_access&client_id=0oa3e1nutA1HLzAKG356'
         access_token = self._download_json(
             'https://ids.mlb.com/oauth2/aus1m088yK07noBfh356/v1/token', None,
             headers={
                 'User-Agent': 'okhttp/3.12.1',
-                'Content-Type': 'application/x-www-form-urlencoded'},
-            data=(('grant_type=password&username=%s&password=%s&scope=openid offline_access'
-                  '&client_id=0oa3e1nutA1HLzAKG356') % (urllib.parse.quote(username), urllib.parse.quote(password))).encode()
-        )['access_token']
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }, data=data.encode())['access_token']
 
         entitlement = self._download_webpage(
             f'https://media-entitlement.mlb.com/api/v3/jwt?os=Android&appname=AtBat&did={str(uuid.uuid4())}', None,
