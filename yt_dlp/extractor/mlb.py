@@ -6,6 +6,7 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     int_or_none,
+    join_nonempty,
     parse_duration,
     parse_iso8601,
     traverse_obj,
@@ -300,17 +301,14 @@ class MLBTVIE(InfoExtractor):
                 'Authorization': f'Bearer {access_token}'
             })
 
+        data = ('grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token=%s&subject_token_type=urn:ietf:params:oauth:token-type:jwt&platform=android-tv') % entitlement
         access_token = self._download_json(
             'https://us.edge.bamgrid.com/token', None,
             headers={
                 'Accept': 'application/json',
                 'Authorization': 'Bearer bWxidHYmYW5kcm9pZCYxLjAuMA.6LZMbH2r--rbXcgEabaDdIslpo4RyZrlVfWZhsAgXIk',
                 'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            data=(
-                 ('grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token=%s'
-                  '&subject_token_type=urn:ietf:params:oauth:token-type:jwt&platform=android-tv') % entitlement).encode()
-        )['access_token']
+            }, data=data.encode())['access_token']
 
         self._access_token = access_token
 
