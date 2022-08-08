@@ -109,7 +109,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '17.28.34',
+                'clientVersion': '17.29.34',
+                'androidSdkVersion': 30
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
@@ -120,7 +121,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '17.28.34',
+                'clientVersion': '17.29.34',
+                'androidSdkVersion': 30
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
@@ -132,6 +134,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
                 'clientVersion': '5.16.51',
+                'androidSdkVersion': 30
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
@@ -143,6 +146,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'ANDROID_CREATOR',
                 'clientVersion': '22.28.100',
+                'androidSdkVersion': 30
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
@@ -3142,7 +3146,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 pr_video_id = traverse_obj(pr, ('videoDetails', 'videoId'))
                 if pr_video_id and pr_video_id != video_id:
                     self.report_warning(
-                        f'{client} client returned a player response for "{pr_video_id}" instead of "{video_id}"' + bug_reports_message())
+                        f'Skipping player response from {client} client (got player response for video "{pr_video_id}" instead of "{video_id}")' + bug_reports_message())
                 else:
                     prs.append(pr)
 
