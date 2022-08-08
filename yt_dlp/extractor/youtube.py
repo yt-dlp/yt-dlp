@@ -379,7 +379,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             raise ExtractorError(f'Unsupported language code: {preferred_lang}', expected=True)
         elif preferred_lang != 'en':
             self.report_warning(
-                f'Preferring \'{preferred_lang}\' translated fields. Note that some metadata extraction may fail or be incorrect.')
+                f'Preferring "{preferred_lang}" translated fields. Note that some metadata extraction may fail or be incorrect.')
         return preferred_lang
 
     def _initialize_consent(self):
@@ -786,7 +786,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         if text and timestamp is None and self._preferred_lang in (None, 'en'):
             self.report_warning(
-                f"Cannot parse localized time text '{text}'", only_once=True)
+                f'Cannot parse localized time text "{text}"', only_once=True)
         return timestamp
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
