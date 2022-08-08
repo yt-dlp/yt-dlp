@@ -2,12 +2,19 @@ name: Ask question
 description: Ask yt-dlp related question
 labels: [question]
 body:
+  - type: checkboxes
+    attributes:
+      label: DO NOT REMOVE OR SKIP THE ISSUE TEMPLATE
+      description: Fill all fields even if you think it is irrelevant for the issue
+      options:
+        - label: I understand that I will be **blocked** if I remove or skip any mandatory\* field
+          required: true
   - type: markdown
     attributes:
       value: |
         ### Make sure you are **only** asking a question and not reporting a bug or requesting a feature.
         If your question contains "isn't working" or "can you add", this is most likely the wrong template.
-        If you are in doubt whether this is the right template, **use another template**!
+        If you are in doubt whether this is the right template, **USE ANOTHER TEMPLATE**!
   - type: checkboxes
     id: checklist
     attributes:

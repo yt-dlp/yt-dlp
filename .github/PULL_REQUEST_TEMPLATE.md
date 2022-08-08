@@ -1,3 +1,5 @@
+**IMPORTANT**: PRs without the template will be CLOSED
+
 ### Description of your *pull request* and other information
 
 </details>

@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 
+# Allow direct execution
 import os
-import platform
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import platform
+
 from PyInstaller.__main__ import run as run_pyinstaller
+
+from devscripts.utils import read_version
 
 OS_NAME, MACHINE, ARCH = sys.platform, platform.machine(), platform.architecture()[0][:2]
 if MACHINE in ('x86_64', 'AMD64') or ('i' in MACHINE and '86' in MACHINE):
@@ -13,8 +19,7 @@ if MACHINE in ('x86_64', 'AMD64') or ('i' in MACHINE and '86' in MACHINE):
 
 
 def main():
-    opts = parse_options()
-    version = read_version('yt_dlp/version.py')
+    opts, version = parse_options(), read_version()
 
     onedir = '--onedir' in opts or '-D' in opts
     if not onedir and '-F' not in opts and '--onefile' not in opts:
@@ -51,13 +56,6 @@ def parse_options():
             raise Exception(f'{opts[0]}bit executable cannot be built on a {ARCH}bit system')
         opts = opts[1:]
     return opts
-
-
-# Get the version from yt_dlp/version.py without importing the package
-def read_version(fname):
-    with open(fname, encoding='utf-8') as f:
-        exec(compile(f.read(), fname, 'exec'))
-        return locals()['__version__']
 
 
 def exe(onedir):
