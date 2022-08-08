@@ -2340,7 +2340,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_url': 'http://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
             },
             'params': {'skip_download': True, 'extractor_args': {'youtube': {'lang': ['fr']}}},
-            'expected_warnings': [r'Preferring \'fr\' translated fields'],
+            'expected_warnings': [r'Preferring "fr" translated fields'],
         }, {
             'note': '6 channel audio',
             'url': 'https://www.youtube.com/watch?v=zgdo7-RRjgo',
@@ -5429,7 +5429,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
-        'expected_warnings': ['Preferring \'ja\''],
+        'expected_warnings': ['Preferring "ja"'],
     }, {
         # XXX: this should really check flat playlist entries, but the test suite doesn't support that
         'note': 'preferred lang set with playlist with translated video titles',
@@ -5449,7 +5449,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
-        'expected_warnings': ['Preferring \'ja\''],
+        'expected_warnings': ['Preferring "ja"'],
     }]
 
     @classmethod
