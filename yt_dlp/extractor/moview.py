@@ -1,7 +1,7 @@
-from .kompas import KompasVideoBaseIE
+from .jixie import JixieBaseIE
 
 
-class MoviewPlayIE(KompasVideoBaseIE):
+class MoviewPlayIE(JixieBaseIE):
     _VALID_URL = r'https?://www\.moview\.id/play/\d+/(?P<id>[\w-]+)'
     _TESTS = [
         {
