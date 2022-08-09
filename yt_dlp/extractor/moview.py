@@ -1,9 +1,8 @@
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
-    float_or_none, 
+    float_or_none,
     traverse_obj,
-    try_call,
     try_call,
 )
 
@@ -55,7 +54,7 @@ class MoviewPlayIE(InfoExtractor):
         json_data = self._download_json(
             'https://apidam.jixie.io/api/public/stream', display_id,
             query={'metadata': 'full', 'video_id': video_id})['data']
-        
+
         formats, subtitles = [], {}
         for stream in json_data['streams']:
             if stream.get('type') == 'HLS':
