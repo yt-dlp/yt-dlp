@@ -302,15 +302,13 @@ class MLBTVIE(InfoExtractor):
             })
 
         data = f'grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token={entitlement}&subject_token_type=urn:ietf:params:oauth:token-type:jwt&platform=android-tv'
-        access_token = self._download_json(
+        self._access_token = self._download_json(
             'https://us.edge.bamgrid.com/token', None,
             headers={
                 'Accept': 'application/json',
                 'Authorization': 'Bearer bWxidHYmYW5kcm9pZCYxLjAuMA.6LZMbH2r--rbXcgEabaDdIslpo4RyZrlVfWZhsAgXIk',
                 'Content-Type': 'application/x-www-form-urlencoded'
             }, data=data.encode())['access_token']
-
-        self._access_token = access_token
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
