@@ -14,8 +14,6 @@ class MoviewPlayIE(JixieBaseIE):
                 'uploader_id': 'Mo165qXUUf',
                 'duration': 528.2,
                 'title': 'Candy Monster',
-                'categories': [''],
-                'tags': [''],
                 'description': 'Mengapa Candy Monster ingin mengambil permen Chloe?',
                 'thumbnail': 'https://video.jixie.media/1034/146182/146182_1280x720.jpg',
             }
@@ -25,9 +23,7 @@ class MoviewPlayIE(JixieBaseIE):
             'info_dict': {
                 'id': '28210',
                 'ext': 'mp4',
-                'categories': [''],
                 'duration': 2595.666667,
-                'tags': [''],
                 'display_id': 'Paris-Van-Java-Episode-16',
                 'uploader_id': 'Mo165qXUUf',
                 'thumbnail': 'https://video.jixie.media/1003/28210/28210_1280x720.jpg',

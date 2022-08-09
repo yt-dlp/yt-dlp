@@ -42,7 +42,7 @@ class JixieBaseIE(InfoExtractor):
                             or self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage)),
             'thumbnails': traverse_obj(json_data, ('metadata', 'thumbnails')),
             'duration': float_or_none(traverse_obj(json_data, ('metadata', 'duration'))),
-            'tags': try_call(lambda: json_data['metadata']['keywords'].split(',')),
-            'categories': try_call(lambda: json_data['metadata']['categories'].split(',')),
+            'tags': try_call(lambda: (json_data['metadata']['keywords'] or None).split(',')),
+            'categories': try_call(lambda: (json_data['metadata']['categories'] or None).split(',')),
             'uploader_id': json_data.get('owner_id'),
         }
