@@ -974,6 +974,7 @@ from .motherless import (
 from .motorsport import MotorsportIE
 from .movieclips import MovieClipsIE
 from .moviepilot import MoviepilotIE
+from .moview import MoviewPlayIE
 from .moviezine import MoviezineIE
 from .movingimage import MovingImageIE
 from .msn import MSNIE
