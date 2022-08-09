@@ -29,7 +29,7 @@ class TruthIE(InfoExtractor):
                 'comment_count': int,
                 'like_count': int,
             },
-       },
+        },
         {
             'url': 'https://truthsocial.com/@ProjectVeritasAction/posts/108618228543962049',
             'md5': 'fd47ba68933f9dce27accc52275be9c3',
