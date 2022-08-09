@@ -12,6 +12,7 @@ class MoviewPlayIE(InfoExtractor):
     _VALID_URL = r'https?://www\.moview\.id/play/\d+/(?P<id>[\w-]+)'
     _TESTS = [
         {
+            # drm hls, only use direct link
             'url': 'https://www.moview.id/play/174/Candy-Monster',
             'info_dict': {
                 'id': '146182',
@@ -24,6 +25,21 @@ class MoviewPlayIE(InfoExtractor):
                 'tags': [''],
                 'description': 'Mengapa Candy Monster ingin mengambil permen Chloe?',
                 'thumbnail': 'https://video.jixie.media/1034/146182/146182_1280x720.jpg',
+            }
+        }, {
+            # non-drm hls
+            'url': 'https://www.moview.id/play/75/Paris-Van-Java-Episode-16',
+            'info_dict': {
+                'id': '28210',
+                'ext': 'mp4',
+                'categories': [''],
+                'duration': 2595.666667,
+                'tags': [''],
+                'display_id': 'Paris-Van-Java-Episode-16',
+                'uploader_id': 'Mo165qXUUf',
+                'thumbnail': 'https://video.jixie.media/1003/28210/28210_1280x720.jpg',
+                'description': 'md5:2a5e18d98eef9b39d7895029cac96c63',
+                'title': 'Paris Van Java Episode 16',
             }
         }
     ]
