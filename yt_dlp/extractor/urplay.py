@@ -31,6 +31,31 @@ class URPlayIE(InfoExtractor):
             'age_limit': 15,
         },
     }, {
+        'url': 'https://urplay.se/program/222967-en-foralders-dagbok-mitt-barn-skadar-sig-sjalv',
+        'info_dict': {
+            'id': '222967',
+            'ext': 'mp4',
+            'title': 'En förälders dagbok : Mitt barn skadar sig själv',
+            'description': 'md5:9f771eef03a732a213b367b52fe826ca',
+            'thumbnail': r're:^https?://.+\.jpg',
+            'timestamp': 1629676800,
+            'upload_date': '20210823',
+            'series': 'En förälders dagbok',
+            'duration': 1740,
+            'age_limit': 15,
+            'episode_number': 3,
+            'categories': ['Hälsa & relationer / Familj & sociala relationer',
+                           'Hälsa & relationer / Psykisk ohälsa'],
+            'tags': ["Familjesociologi",
+                     "Föräldrar och barn",
+                     "Föräldraskap",
+                     "Psykiatri",
+                     "Samhällsvetenskap",
+                     "Självdestruktivt beteende",
+                     "Sociologi"],
+            'episode': 'Mitt barn skadar sig själv',
+        },
+    }, {
         'url': 'https://urskola.se/Produkter/190031-Tripp-Trapp-Trad-Sovkudde',
         'info_dict': {
             'id': '190031',
@@ -75,7 +100,7 @@ class URPlayIE(InfoExtractor):
         urplayer_streams = urplayer_data.get('streamingInfo', {})
 
         for k, v in urplayer_streams.get('raw', {}).items():
-            if not (k in ('sd', 'hd') and isinstance(v, dict)):
+            if not (k in ('sd', 'hd', 'mp3', 'm4a') and isinstance(v, dict)):
                 continue
             file_http = v.get('location')
             if file_http:
