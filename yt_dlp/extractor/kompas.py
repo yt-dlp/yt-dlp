@@ -11,7 +11,7 @@ from ..utils import (
 # [2] https://scripts.jixie.media/jxvideo.3.1.min.js for more info
 
 
-class KompasBaseIE(InfoExtractor):
+class KompasVideoBaseIE(InfoExtractor):
     def _extract_data_from_jixie_id(self, display_id, video_id, webpage):
         json_data = self._download_json(
             'https://apidam.jixie.io/api/public/stream', display_id,
@@ -48,7 +48,7 @@ class KompasBaseIE(InfoExtractor):
         }
 
 
-class KompasVideoIE(KompasBaseIE):
+class KompasVideoIE(KompasVideoBaseIE):
     _VALID_URL = r'https?://video\.kompas\.com/\w+/(?P<id>\d+)/(?P<slug>[\w-]+)'
     _TESTS = [{
         'url': 'https://video.kompas.com/watch/164474/kim-jong-un-siap-kirim-nuklir-lawan-as-dan-korsel',

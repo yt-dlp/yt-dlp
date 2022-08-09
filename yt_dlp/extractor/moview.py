@@ -1,7 +1,7 @@
-from .kompas import KompasBaseIE
+from .kompas import KompasVideoBaseIE
 
 
-class MoviewPlayIE(KompasBaseIE):
+class MoviewPlayIE(KompasVideoBaseIE):
     _VALID_URL = r'https?://www\.moview\.id/play/\d+/(?P<id>[\w-]+)'
     _TESTS = [
         {
