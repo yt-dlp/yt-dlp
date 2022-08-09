@@ -285,11 +285,12 @@ class MLBTVIE(InfoExtractor):
         },
     }]
     _access_token = None
-    
+
     def _real_initialize(self):
         if not self._access_token:
             self.raise_login_required(
                 'All videos are only available to registered users', method='password')
+
     def _perform_login(self, username, password):
         data = f'grant_type=password&username={urllib.parse.quote(username)}&password={urllib.parse.quote(password)}&scope=openid offline_access&client_id=0oa3e1nutA1HLzAKG356'
         access_token = self._download_json(
