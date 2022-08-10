@@ -19,11 +19,15 @@ class EurosportIE(InfoExtractor):
         }
     }]
     _TOKEN = None
+    # actually defined in https://netsport.eurosport.io/?variables={"databaseId":<databaseId>,"playoutType":"VDP"}&extensions={"persistedQuery":{"version":1 ..
+    # but this method require to get sha256 hash
+    _GEO_COUNTRIES = ['de', 'lb', 'nl', 'it', 'fr', 'gb', 'eu']  # this is not complete list but countries in EU should work
 
     def _real_initialize(self):
-        EurosportIE._TOKEN = self._download_json(
-            'https://eu3-prod-direct.eurosport.com/token?realm=eurosport', None,
-            'Trying to get token')['data']['attributes']['token']
+        if EurosportIE._TOKEN is None:
+            EurosportIE._TOKEN = self._download_json(
+                'https://eu3-prod-direct.eurosport.com/token?realm=eurosport', None,
+                'Trying to get token')['data']['attributes']['token']
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -31,7 +35,7 @@ class EurosportIE(InfoExtractor):
 
         json_data = self._download_json(
             f'https://eu3-prod-direct.eurosport.com/playback/v2/videoPlaybackInfo/sourceSystemId/eurosport-{display_id}',
-            display_id, query={'usePreAuth': True})['data']
+            display_id, query={'usePreAuth': True}, headers={'Authorization': f'Bearer {EurosportIE._TOKEN}'})['data']
 
         json_ld_data = self._search_json_ld(webpage, display_id)
 
