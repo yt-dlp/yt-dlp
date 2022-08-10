@@ -21,7 +21,7 @@ class EurosportIE(InfoExtractor):
     _TOKEN = None
     # actually defined in https://netsport.eurosport.io/?variables={"databaseId":<databaseId>,"playoutType":"VDP"}&extensions={"persistedQuery":{"version":1 ..
     # but this method require to get sha256 hash
-    _GEO_COUNTRIES = ['de', 'lb', 'nl', 'it', 'fr', 'gb', 'eu']  # this is not complete list but countries in EU should work
+    _GEO_COUNTRIES = ['DE', 'NL', 'EU', 'IT', 'FR']  # Not complete list but it should work
 
     def _real_initialize(self):
         if EurosportIE._TOKEN is None:
