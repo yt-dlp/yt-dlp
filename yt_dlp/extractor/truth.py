@@ -61,15 +61,29 @@ class TruthIE(InfoExtractor):
         # Pull out video
         url = status['media_attachments'][0]['url']
 
-        # Return the staff
+        # Return the stuff
         account = status.get('account') or {}
+        uploader = strip_or_none(account.get('display_name'))
         uploader_id = strip_or_none(account.get('username'))
+        post = strip_or_none(clean_html(status.get('content')))
+
+        # Set the title, handling case where its too long or empty
+        if len(post) > 40:
+            title = post[:35] + "[...]"
+        elif len(post) == 0:
+            title = self._generic_title(url)
+        else:
+            title = post
+        if uploader:
+            title = '%s - %s' % (uploader, title)
+
         return {
             'id': video_id,
             'url': url,
-            'title': strip_or_none(clean_html(status.get('content'))) or self._generic_title(url),
+            'title': title,
+            'description': post,
             'timestamp': unified_timestamp(status.get('created_at')),
-            'uploader': strip_or_none(account.get('display_name')),
+            'uploader': uploader,
             'uploader_id': uploader_id,
             'uploader_url': ('https://truthsocial.com/@' + uploader_id) if uploader_id else None,
             'repost_count': int_or_none(status.get('reblogs_count')),
