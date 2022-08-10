@@ -53,7 +53,6 @@ class RaiBaseIE(InfoExtractor):
 
             if xpath_text(relinker, './license_url', default='{}') != '{}':
                 self.report_drm(video_id)
-                continue
 
             if not geoprotection:
                 geoprotection = xpath_text(
@@ -720,7 +719,7 @@ class RaiIE(RaiBaseIE):
 
 class RaiNewsIE(RaiIE):
     _VALID_URL = rf'https?://(www\.)?rainews\.it/(?!articoli)[^?#]+-(?P<id>{RaiBaseIE._UUID_RE})(?:-[^/?#]+)?\.html'
-    _EMBED_REGEX = [r'<iframe[^>]+data-src="(?P<url>/iframe/[^?#]+?\.html)']
+    _EMBED_REGEX = [rf'<iframe[^>]+data-src="(?P<url>/iframe/[^?#]+?{RaiBaseIE._UUID_RE}\.html)']
     _TESTS = [{
         # new rainews player (#3911)
         'url': 'https://www.rainews.it/rubriche/24mm/video/2022/05/24mm-del-29052022-12cf645d-1ffd-4220-b27c-07c226dbdecf.html',
