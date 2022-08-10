@@ -12,28 +12,18 @@ except ImportError:
     from distutils.core import Command, setup
     setuptools_available = False
 
+from devscripts.utils import read_file, read_version
 
-def read(fname):
-    with open(fname, encoding='utf-8') as f:
-        return f.read()
-
-
-# Get the version from yt_dlp/version.py without importing the package
-def read_version(fname):
-    exec(compile(read(fname), fname, 'exec'))
-    return locals()['__version__']
-
-
-VERSION = read_version('yt_dlp/version.py')
+VERSION = read_version()
 
 DESCRIPTION = 'A youtube-dl fork with additional features and patches'
 
 LONG_DESCRIPTION = '\n\n'.join((
     'Official repository: <https://github.com/yt-dlp/yt-dlp>',
     '**PS**: Some links in this document will not work since this is a copy of the README.md from Github',
-    read('README.md')))
+    read_file('README.md')))
 
-REQUIREMENTS = read('requirements.txt').splitlines()
+REQUIREMENTS = read_file('requirements.txt').splitlines()
 
 
 def packages():
@@ -121,7 +111,7 @@ class build_lazy_extractors(Command):
         if self.dry_run:
             print('Skipping build of lazy extractors in dry run mode')
             return
-        subprocess.run([sys.executable, 'devscripts/make_lazy_extractors.py', 'yt_dlp/extractor/lazy_extractors.py'])
+        subprocess.run([sys.executable, 'devscripts/make_lazy_extractors.py'])
 
 
 params = py2exe_params() if sys.argv[1:2] == ['py2exe'] else build_params()

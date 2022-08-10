@@ -371,7 +371,7 @@ class FranceTVInfoIE(FranceTVBaseInfoExtractor):
 
         webpage = self._download_webpage(url, display_id)
 
-        dailymotion_urls = DailymotionIE._extract_embed_urls(url, webpage)
+        dailymotion_urls = tuple(DailymotionIE._extract_embed_urls(url, webpage))
         if dailymotion_urls:
             return self.playlist_result([
                 self.url_result(dailymotion_url, DailymotionIE.ie_key())

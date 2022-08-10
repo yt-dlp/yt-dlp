@@ -447,17 +447,17 @@ class VKIE(VKBaseIE):
                 m_rutube.group(1).replace('\\', ''))
             return self.url_result(rutube_url)
 
-        dailymotion_urls = DailymotionIE._extract_embed_urls(url, info_page)
-        if dailymotion_urls:
-            return self.url_result(dailymotion_urls[0], DailymotionIE.ie_key())
+        dailymotion_url = next(DailymotionIE._extract_embed_urls(url, info_page), None)
+        if dailymotion_url:
+            return self.url_result(dailymotion_url, DailymotionIE.ie_key())
 
         odnoklassniki_url = OdnoklassnikiIE._extract_url(info_page)
         if odnoklassniki_url:
             return self.url_result(odnoklassniki_url, OdnoklassnikiIE.ie_key())
 
-        sibnet_urls = self._extract_embed_urls(url, info_page)
-        if sibnet_urls:
-            return self.url_result(sibnet_urls[0])
+        sibnet_url = next(self._extract_embed_urls(url, info_page), None)
+        if sibnet_url:
+            return self.url_result(sibnet_url)
 
         m_opts = re.search(r'(?s)var\s+opts\s*=\s*({.+?});', info_page)
         if m_opts:

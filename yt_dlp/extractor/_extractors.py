@@ -631,6 +631,7 @@ from .gronkh import (
     GronkhVodsIE
 )
 from .groupon import GrouponIE
+from .harpodeon import HarpodeonIE
 from .hbo import HBOIE
 from .hearthisat import HearThisAtIE
 from .heise import HeiseIE
@@ -1235,7 +1236,6 @@ from .paramountplus import (
     ParamountPlusIE,
     ParamountPlusSeriesIE,
 )
-from .parliamentliveuk import ParliamentLiveUKIE
 from .parlview import ParlviewIE
 from .patreon import (
     PatreonIE,
@@ -1406,6 +1406,7 @@ from .rcti import (
     RCTIPlusTVIE,
 )
 from .rds import RDSIE
+from .redbee import ParliamentLiveUKIE, RTBFIE
 from .redbulltv import (
     RedBullTVIE,
     RedBullEmbedIE,
@@ -1439,7 +1440,6 @@ from .rokfin import (
 from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE
 from .rozhlas import RozhlasIE
-from .rtbf import RTBFIE
 from .rte import RteIE, RteRadioIE
 from .rtlnl import (
     RtlNlIE,

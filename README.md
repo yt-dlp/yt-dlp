@@ -71,7 +71,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 # NEW FEATURES
 
-* Merged with **youtube-dl v2021.12.17+ [commit/a03b977](https://github.com/ytdl-org/youtube-dl/commit/a03b9775d544b06a5b4f2aa630214c7c22fc2229)**<!--([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))--> and **youtube-dlc v2020.11.11-3+ [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
+* Merged with **youtube-dl v2021.12.17+ [commit/adb5294](https://github.com/ytdl-org/youtube-dl/commit/adb5294177265ba35b45746dbb600965076ed150)**<!--([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))--> and **youtube-dlc v2020.11.11-3+ [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
 
 * **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
@@ -312,7 +312,7 @@ If you do not have the necessary dependencies for a task you are attempting, yt-
 ## COMPILE
 
 ### Standalone PyInstaller Builds
-To build the Windows/MacOS executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). Once you have all the necessary dependencies installed, simply run `pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the Python used.
+To build the standalone executable, you must have Python and `pyinstaller` (plus any of yt-dlp's [optional dependencies](#dependencies) if needed). Once you have all the necessary dependencies installed, simply run `pyinst.py`. The executable will be built for the same architecture (x86/ARM, 32/64 bit) as the Python used.
 
     python3 -m pip install -U pyinstaller -r requirements.txt
     python3 devscripts/make_lazy_extractors.py
@@ -343,7 +343,8 @@ If you wish to build it anyway, install Python and py2exe, and then simply run `
 
 ### Related scripts
 
-* **`devscripts/update-version.py`** - Update the version number based on current timestamp
+* **`devscripts/update-version.py [revision]`** - Update the version number based on current date
+* **`devscripts/set-variant.py variant [-M update_message]`** - Set the build variant of the executable
 * **`devscripts/make_lazy_extractors.py`** - Create lazy extractors. Running this before building the binaries (any variant) will improve their startup performance. Set the environment variable `YTDLP_NO_LAZY_EXTRACTORS=1` if you wish to forcefully disable lazy extractor loading.
 
 You can also fork the project on github and run your fork's [build workflow](.github/workflows/build.yml) to automatically build a full release
@@ -360,8 +361,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 ## General Options:
     -h, --help                      Print this help text and exit
     --version                       Print program version and exit
-    -U, --update                    Update this program to latest version
-    --no-update                     Do not update (default)
+    -U, --update                    Update this program to the latest version
+    --no-update                     Do not check for updates (default)
     -i, --ignore-errors             Ignore download and postprocessing errors.
                                     The download will be considered successful
                                     even if the postprocessing fails
@@ -1276,6 +1277,7 @@ The available fields are:
  - `vbr` (numeric): Average video bitrate in KBit/s
  - `fps` (numeric): Frame rate
  - `dynamic_range` (string): The dynamic range of the video
+ - `audio_channels` (numeric): The number of audio channels
  - `stretched_ratio` (float): `width:height` of the video's pixels, if not square
  - `vcodec` (string): Name of the video codec in use
  - `container` (string): Name of the container format
@@ -1529,6 +1531,7 @@ The available fields are:
  - `res`: Video resolution, calculated as the smallest dimension.
  - `fps`: Framerate of video
  - `hdr`: The dynamic range of the video (`DV` > `HDR12` > `HDR10+` > `HDR10` > `HLG` > `SDR`)
+ - `channels`: The number of audio channels
  - `tbr`: Total average bitrate in KBit/s
  - `vbr`: Average video bitrate in KBit/s
  - `abr`: Average audio bitrate in KBit/s

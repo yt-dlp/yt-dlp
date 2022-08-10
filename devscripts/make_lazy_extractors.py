@@ -7,8 +7,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-import optparse
 from inspect import getsource
+
+from devscripts.utils import get_filename_args, read_file, write_file
 
 NO_ATTR = object()
 STATIC_CLASS_PROPERTIES = ['IE_NAME', 'IE_DESC', 'SEARCH_KEY', '_VALID_URL', '_WORKING', '_NETRC_MACHINE', 'age_limit']
@@ -19,17 +20,11 @@ IE_TEMPLATE = '''
 class {name}({bases}):
     _module = {module!r}
 '''
-with open('devscripts/lazy_load_template.py', encoding='utf-8') as f:
-    MODULE_TEMPLATE = f.read()
+MODULE_TEMPLATE = read_file('devscripts/lazy_load_template.py')
 
 
 def main():
-    parser = optparse.OptionParser(usage='%prog [OUTFILE.py]')
-    args = parser.parse_args()[1] or ['yt_dlp/extractor/lazy_extractors.py']
-    if len(args) != 1:
-        parser.error('Expected only an output filename')
-
-    lazy_extractors_filename = args[0]
+    lazy_extractors_filename = get_filename_args(default_outfile='yt_dlp/extractor/lazy_extractors.py')
     if os.path.exists(lazy_extractors_filename):
         os.remove(lazy_extractors_filename)
 
@@ -46,8 +41,7 @@ def main():
         *build_ies(_ALL_CLASSES, (InfoExtractor, SearchInfoExtractor), DummyInfoExtractor),
     ))
 
-    with open(lazy_extractors_filename, 'wt', encoding='utf-8') as f:
-        f.write(f'{module_src}\n')
+    write_file(lazy_extractors_filename, f'{module_src}\n')
 
 
 def get_all_ies():

@@ -7,20 +7,14 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-import optparse
 import re
 
-
-def read(fname):
-    with open(fname, encoding='utf-8') as f:
-        return f.read()
-
-
-# Get the version without importing the package
-def read_version(fname):
-    exec(compile(read(fname), fname, 'exec'))
-    return locals()['__version__']
-
+from devscripts.utils import (
+    get_filename_args,
+    read_file,
+    read_version,
+    write_file,
+)
 
 VERBOSE_TMPL = '''
   - type: checkboxes
@@ -58,20 +52,24 @@ VERBOSE_TMPL = '''
       required: true
 '''.strip()
 
+NO_SKIP = '''
+  - type: checkboxes
+    attributes:
+      label: DO NOT REMOVE OR SKIP THE ISSUE TEMPLATE
+      description: Fill all fields even if you think it is irrelevant for the issue
+      options:
+        - label: I understand that I will be **blocked** if I remove or skip any mandatory\\* field
+          required: true
+'''.strip()
+
 
 def main():
-    parser = optparse.OptionParser(usage='%prog INFILE OUTFILE')
-    _, args = parser.parse_args()
-    if len(args) != 2:
-        parser.error('Expected an input and an output filename')
-
-    fields = {'version': read_version('yt_dlp/version.py')}
+    fields = {'version': read_version(), 'no_skip': NO_SKIP}
     fields['verbose'] = VERBOSE_TMPL % fields
     fields['verbose_optional'] = re.sub(r'(\n\s+validations:)?\n\s+required: true', '', fields['verbose'])
 
-    infile, outfile = args
-    with open(outfile, 'w', encoding='utf-8') as outf:
-        outf.write(read(infile) % fields)
+    infile, outfile = get_filename_args(has_infile=True)
+    write_file(outfile, read_file(infile) % fields)
 
 
 if __name__ == '__main__':
