@@ -21,6 +21,9 @@ class JixieBaseIE(InfoExtractor):
         for stream in json_data['streams']:
             if stream.get('type') == 'HLS':
                 fmt, sub = self._extract_m3u8_formats_and_subtitles(stream.get('url'), display_id, ext='mp4')
+                if json_data.get('drm'):
+                    for f in fmt:
+                        f['has_drm'] = True
                 formats.extend(fmt)
                 self._merge_subtitles(sub, target=subtitles)
             else:
