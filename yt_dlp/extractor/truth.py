@@ -19,7 +19,8 @@ class TruthIE(InfoExtractor):
             'info_dict': {
                 'id': '108779000807761862',
                 'ext': 'qt',
-                'title': '0d8691160c73d663',
+                'title': 'Donald J. Trump - 0d8691160c73d663',
+                'description': '',
                 'timestamp': 1659835827,
                 'upload_date': '20220807',
                 'uploader': 'Donald J. Trump',
@@ -36,7 +37,8 @@ class TruthIE(InfoExtractor):
             'info_dict': {
                 'id': '108618228543962049',
                 'ext': 'mp4',
-                'title': 'md5:de2fc49045bf92bb8dc97e56503b150f',
+                'title': 'md5:48813a16498d21b07edf24e1af621e83',
+                'description': 'md5:de2fc49045bf92bb8dc97e56503b150f',
                 'timestamp': 1657382637,
                 'upload_date': '20220709',
                 'uploader': 'Project Veritas Action',
