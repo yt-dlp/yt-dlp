@@ -40,7 +40,7 @@ class EurosportIE(InfoExtractor):
             # actually they also serve mss, but i don't know how to extract that
             if stream_type == "hls":
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id)
+                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id, ext='mp4')
             elif stream_type == "dash":
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
                     traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id)
