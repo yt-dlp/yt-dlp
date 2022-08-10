@@ -1,9 +1,5 @@
 from .common import InfoExtractor
 
-from urllib import parse
-
-from .common import InfoExtractor
-
 from ..utils import (
     clean_html,
     strip_or_none,
