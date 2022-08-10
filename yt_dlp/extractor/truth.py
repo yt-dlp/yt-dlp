@@ -11,7 +11,7 @@ from ..utils import (
 class TruthIE(InfoExtractor):
     """Extract videos from posts on Donald Trump's truthsocial.com."""
 
-    _VALID_URL = r'https://truthsocial\.com/@[^/]+/posts/(?P<id>[0-9]+)'
+    _VALID_URL = r'https://truthsocial\.com/@[^/]+/posts/(?P<id>[\d]+)'
     _TESTS = [
         {
             'url': 'https://truthsocial.com/@realDonaldTrump/posts/108779000807761862',
@@ -36,7 +36,7 @@ class TruthIE(InfoExtractor):
             'info_dict': {
                 'id': '108618228543962049',
                 'ext': 'mp4',
-                'title': "RETRACTO #368: Utah NPR Affiliate RETRACTS False Claim Live On Air Following Veritas' Reporting on Curtis Campaign \n“Nothing I ever do will suffice for these people. They are engaged in conspiracy theories. They are doing precisely the thing they project that I do. Which is they don’t believe in facts, they don’t believe in logic, and they don’t believe in rationality.” - James O’Keefe",
+                'title': 'md5:de2fc49045bf92bb8dc97e56503b150f',
                 'timestamp': 1657382637,
                 'upload_date': '20220709',
                 'uploader': 'Project Veritas Action',
@@ -51,36 +51,28 @@ class TruthIE(InfoExtractor):
     _GEO_COUNTRIES = ['US']  # The site is only available in the US
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-
         # Get data from API
-        api_url = 'https://truthsocial.com/api/v1/statuses/' + video_id
-        status = self._download_json(api_url, video_id)
+        video_id = self._match_id(url)
+        status = self._download_json(
+            'https://truthsocial.com/api/v1/statuses/' + video_id,
+            video_id
+        )
 
         # Pull out video
         url = status['media_attachments'][0]['url']
 
-        # Pull out metadata
-        title = strip_or_none(clean_html(status.get('content'))) or self._generic_title(url)
-        timestamp = unified_timestamp(status.get('created_at'))
+        # Return the staff
         account = status.get('account') or {}
-        uploader = strip_or_none(account.get('display_name'))
         uploader_id = strip_or_none(account.get('username'))
-        uploader_url = ('https://truthsocial.com/@' + uploader_id) if uploader_id else None
-        repost_count = int_or_none(status.get('reblogs_count'))
-        like_count = int_or_none(status.get('favourites_count'))
-        comment_count = int_or_none(status.get('replies_count'))
-
-        # Return the stuff
         return {
             'id': video_id,
             'url': url,
-            'title': title,
-            'timestamp': timestamp,
-            'uploader': uploader,
+            'title': strip_or_none(clean_html(status.get('content'))) or self._generic_title(url),
+            'timestamp': unified_timestamp(status.get('created_at')),
+            'uploader': strip_or_none(account.get('display_name')),
             'uploader_id': uploader_id,
-            'uploader_url': uploader_url,
-            'repost_count': repost_count,
-            'like_count': like_count,
-            'comment_count': comment_count,
+            'uploader_url': ('https://truthsocial.com/@' + uploader_id) if uploader_id else None,
+            'repost_count': int_or_none(status.get('reblogs_count')),
+            'like_count': int_or_none(status.get('favourites_count')),
+            'comment_count': int_or_none(status.get('replies_count')),
         }
