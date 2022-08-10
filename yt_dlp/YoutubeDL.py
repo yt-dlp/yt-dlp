@@ -3752,14 +3752,18 @@ class YoutubeDL:
     @functools.cached_property
     def proxies(self) -> dict:
         """Global proxy configuration"""
-        proxies = getproxies() or {}
-        # compat. Set HTTPS_PROXY to __noproxy__ to revert
-        if 'http' in proxies and 'https' not in proxies:
-            proxies['https'] = proxies['http']
-        conf_proxy = self.params.get('proxy')
-        if conf_proxy:
-            # compat. We should ideally use `all` proxy here
-            proxies.update({'http': conf_proxy, 'https': conf_proxy})
+        opts_proxy = self.params.get('proxy')
+        if opts_proxy is not None:
+            if opts_proxy == '':
+                proxies = {}
+            else:
+                proxies = {'http': opts_proxy, 'https': opts_proxy}
+        else:
+            proxies = getproxies()
+            # compat. Set HTTPS_PROXY to __noproxy__ to revert
+            if 'http' in proxies and 'https' not in proxies:
+                proxies['https'] = proxies['http']
+
         return proxies
 
     @functools.cached_property
