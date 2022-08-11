@@ -76,8 +76,6 @@ class TruthIE(InfoExtractor):
             title = self._generic_title(url)
         else:
             title = post
-        if uploader:
-            title = '%s - %s' % (uploader, title)
 
         return {
             'id': video_id,
