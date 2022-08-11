@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
+    format_field,
     int_or_none,
     strip_or_none,
     traverse_obj,
@@ -53,9 +54,7 @@ class TruthIE(InfoExtractor):
         video_id = self._match_id(url)
         status = self._download_json(
             f'https://truthsocial.com/api/v1/statuses/{video_id}', video_id)
-
         uploader_id = strip_or_none(traverse_obj(status, ('account', 'username')))
-        
         return {
             'id': video_id,
             'url': status['media_attachments'][0]['url'],
