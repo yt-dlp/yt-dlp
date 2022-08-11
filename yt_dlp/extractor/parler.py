@@ -2,9 +2,10 @@ from .common import InfoExtractor
 
 from ..utils import (
     clean_html,
-    strip_or_none,
+    format_field,
     unified_timestamp,
     urlencode_postdata,
+    strip_or_none,
 )
 
 
@@ -20,7 +21,7 @@ class ParlerIE(InfoExtractor):
             'info_dict': {
                 'id': 'df79fdba-07cc-48fe-b085-3293897520d7',
                 'ext': 'mp4',
-                'title': 'md5:6f220bde2df4a97cbb89ac11f1fd8197',
+                'title': 'Parler video #df79fdba-07cc-48fe-b085-3293897520d7',
                 'description': 'md5:6f220bde2df4a97cbb89ac11f1fd8197',
                 'timestamp': 1659744000,
                 'upload_date': '20220806',
@@ -35,7 +36,7 @@ class ParlerIE(InfoExtractor):
             'info_dict': {
                 'id': 'a7406eb4-91e5-4793-b5e3-ade57a24e287',
                 'ext': 'mp4',
-                'title': 'This man should run for office',
+                'title': 'Parler video #a7406eb4-91e5-4793-b5e3-ade57a24e287',
                 'description': 'This man should run for office',
                 'timestamp': 1659657600,
                 'upload_date': '20220805',
@@ -47,30 +48,22 @@ class ParlerIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        # Get data from API
         video_id = self._match_id(url)
         status = self._download_json(
             'https://parler.com/open-api/ParleyDetailEndpoint.php',
             video_id,
             data=urlencode_postdata({'uuid': video_id})
         )
-
-        # Pull out video
         url = status['data'][0]['primary']['video_data']['videoSrc']
-
-        # Now we know this exists and is a dict
         data = status['data'][0]['primary']
-
-        # Return the stuff
         uploader_id = strip_or_none(data.get('username'))
-        post = strip_or_none(clean_html(data.get('full_body')))
         return {
             'id': video_id,
             'url': url,
-            'title': post,
-            'description': post,
+            'title': "",
+            'description': strip_or_none(clean_html(data.get('full_body'))) or None,
             'timestamp': unified_timestamp(data.get('date_created')),
             'uploader': strip_or_none(data.get('name')),
             'uploader_id': uploader_id,
-            'uploader_url': ('https://parler.com/' + uploader_id) if uploader_id else None,
+            'uploader_url': format_field(uploader_id, None, 'https://parler.com/%s'),
         }
