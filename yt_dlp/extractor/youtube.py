@@ -3588,7 +3588,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         formats.extend(self._extract_storyboard(player_responses, duration))
 
         # source_preference is lower for throttled/potentially damaged formats
-        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'channels', 'source', 'codec:vp9.2', 'lang', 'proto'))
+        self._sort_formats(formats, (
+            'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto'))
 
         info = {
             'id': video_id,
