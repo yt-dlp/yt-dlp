@@ -1,11 +1,10 @@
 from .common import InfoExtractor
-
 from ..utils import (
     clean_html,
     int_or_none,
-    unified_timestamp,
     strip_or_none,
-    traverse_obj
+    traverse_obj,
+    unified_timestamp,
 )
 
 
