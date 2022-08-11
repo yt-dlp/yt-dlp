@@ -4,7 +4,8 @@ from ..utils import (
     clean_html,
     int_or_none,
     unified_timestamp,
-    strip_or_none
+    strip_or_none,
+    traverse_obj
 )
 
 
@@ -19,7 +20,7 @@ class TruthIE(InfoExtractor):
             'info_dict': {
                 'id': '108779000807761862',
                 'ext': 'qt',
-                'title': 'Donald J. Trump - 0d8691160c73d663',
+                'title': '0d8691160c73d663',
                 'description': '',
                 'timestamp': 1659835827,
                 'upload_date': '20220807',
@@ -37,7 +38,7 @@ class TruthIE(InfoExtractor):
             'info_dict': {
                 'id': '108618228543962049',
                 'ext': 'mp4',
-                'title': 'md5:48813a16498d21b07edf24e1af621e83',
+                'title': 'md5:d313e7659709bf212e3c719d12e2763e',
                 'description': 'md5:de2fc49045bf92bb8dc97e56503b150f',
                 'timestamp': 1657382637,
                 'upload_date': '20220709',
@@ -64,9 +65,7 @@ class TruthIE(InfoExtractor):
         url = status['media_attachments'][0]['url']
 
         # Return the stuff
-        account = status.get('account') or {}
-        uploader = strip_or_none(account.get('display_name'))
-        uploader_id = strip_or_none(account.get('username'))
+        uploader_id = strip_or_none(traverse_obj(status, ('account', 'username')))
         post = strip_or_none(clean_html(status.get('content')))
 
         # Set the title, handling case where its too long or empty
@@ -83,7 +82,7 @@ class TruthIE(InfoExtractor):
             'title': title,
             'description': post,
             'timestamp': unified_timestamp(status.get('created_at')),
-            'uploader': uploader,
+            'uploader': strip_or_none(traverse_obj(status, ('account', 'display_name'))),
             'uploader_id': uploader_id,
             'uploader_url': ('https://truthsocial.com/@' + uploader_id) if uploader_id else None,
             'repost_count': int_or_none(status.get('reblogs_count')),
