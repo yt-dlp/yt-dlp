@@ -20,7 +20,7 @@ class ParlerIE(InfoExtractor):
             'info_dict': {
                 'id': 'df79fdba-07cc-48fe-b085-3293897520d7',
                 'ext': 'mp4',
-                'title': 'Tulsi Gabbard - Puberty-blocking procedures promote[...]',
+                'title': 'md5:6f220bde2df4a97cbb89ac11f1fd8197',
                 'description': 'md5:6f220bde2df4a97cbb89ac11f1fd8197',
                 'timestamp': 1659744000,
                 'upload_date': '20220806',
@@ -35,7 +35,7 @@ class ParlerIE(InfoExtractor):
             'info_dict': {
                 'id': 'a7406eb4-91e5-4793-b5e3-ade57a24e287',
                 'ext': 'mp4',
-                'title': 'Benny Johnson - This man should run for office',
+                'title': 'This man should run for office',
                 'description': 'This man should run for office',
                 'timestamp': 1659657600,
                 'upload_date': '20220805',
@@ -49,11 +49,10 @@ class ParlerIE(InfoExtractor):
     def _real_extract(self, url):
         # Get data from API
         video_id = self._match_id(url)
-        payload = urlencode_postdata({'uuid': video_id})
         status = self._download_json(
             'https://parler.com/open-api/ParleyDetailEndpoint.php',
             video_id,
-            data=payload
+            data=urlencode_postdata({'uuid': video_id})
         )
 
         # Pull out video
@@ -63,27 +62,15 @@ class ParlerIE(InfoExtractor):
         data = status['data'][0]['primary']
 
         # Return the stuff
-        uploader = strip_or_none(data.get('name'))
         uploader_id = strip_or_none(data.get('username'))
         post = strip_or_none(clean_html(data.get('full_body')))
-
-        # Set the title, handling case where its too long or empty
-        if len(post) > 40:
-            title = post[:35] + "[...]"
-        elif len(post) == 0:
-            title = self._generic_title(url)
-        else:
-            title = post
-        if uploader:
-            title = '%s - %s' % (uploader, title)
-
         return {
             'id': video_id,
             'url': url,
-            'title': title,
+            'title': post,
             'description': post,
             'timestamp': unified_timestamp(data.get('date_created')),
-            'uploader': uploader,
+            'uploader': strip_or_none(data.get('name')),
             'uploader_id': uploader_id,
             'uploader_url': ('https://parler.com/' + uploader_id) if uploader_id else None,
         }
