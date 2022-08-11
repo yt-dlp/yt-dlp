@@ -17,8 +17,8 @@ class TruthIE(InfoExtractor):
             'info_dict': {
                 'id': '108779000807761862',
                 'ext': 'qt',
-                'title': '0d8691160c73d663',
-                'description': '',
+                'title': 'Truth video #108779000807761862',
+                'description': None,
                 'timestamp': 1659835827,
                 'upload_date': '20220807',
                 'uploader': 'Donald J. Trump',
@@ -35,7 +35,7 @@ class TruthIE(InfoExtractor):
             'info_dict': {
                 'id': '108618228543962049',
                 'ext': 'mp4',
-                'title': 'md5:d313e7659709bf212e3c719d12e2763e',
+                'title': 'md5:debde7186cf83f60ff7b44dbb9444e35',
                 'description': 'md5:de2fc49045bf92bb8dc97e56503b150f',
                 'timestamp': 1657382637,
                 'upload_date': '20220709',
@@ -61,7 +61,7 @@ class TruthIE(InfoExtractor):
             'id': video_id,
             'url': status['media_attachments'][0]['url'],
             'title': '',
-            'description': strip_or_none(clean_html(status.get('content'))),
+            'description': strip_or_none(clean_html(status.get('content'))) or None,
             'timestamp': unified_timestamp(status.get('created_at')),
             'uploader': strip_or_none(traverse_obj(status, ('account', 'display_name'))),
             'uploader_id': uploader_id,
