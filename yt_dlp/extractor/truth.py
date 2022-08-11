@@ -64,7 +64,7 @@ class TruthIE(InfoExtractor):
             'timestamp': unified_timestamp(status.get('created_at')),
             'uploader': strip_or_none(traverse_obj(status, ('account', 'display_name'))),
             'uploader_id': uploader_id,
-            'uploader_url': ('https://truthsocial.com/@' + uploader_id) if uploader_id else None,
+            'uploader_url': format_field(uploader_id, None, 'https://truthsocial.com/@%s'),
             'repost_count': int_or_none(status.get('reblogs_count')),
             'like_count': int_or_none(status.get('favourites_count')),
             'comment_count': int_or_none(status.get('replies_count')),
