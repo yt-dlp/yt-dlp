@@ -9,9 +9,7 @@ from ..utils import (
 
 
 class TruthIE(InfoExtractor):
-    """Extract videos from posts on Donald Trump's truthsocial.com."""
-
-    _VALID_URL = r'https://truthsocial\.com/@[^/]+/posts/(?P<id>[\d]+)'
+    _VALID_URL = r'https?://truthsocial\.com/@[^/]+/posts/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://truthsocial.com/@realDonaldTrump/posts/108779000807761862',
@@ -53,33 +51,17 @@ class TruthIE(InfoExtractor):
     _GEO_COUNTRIES = ['US']  # The site is only available in the US
 
     def _real_extract(self, url):
-        # Get data from API
         video_id = self._match_id(url)
         status = self._download_json(
-            'https://truthsocial.com/api/v1/statuses/' + video_id,
-            video_id
-        )
+            f'https://truthsocial.com/api/v1/statuses/{video_id}', video_id)
 
-        # Pull out video
-        url = status['media_attachments'][0]['url']
-
-        # Return the stuff
         uploader_id = strip_or_none(traverse_obj(status, ('account', 'username')))
-        post = strip_or_none(clean_html(status.get('content')))
-
-        # Set the title, handling case where its too long or empty
-        if len(post) > 40:
-            title = post[:35] + "[...]"
-        elif len(post) == 0:
-            title = self._generic_title(url)
-        else:
-            title = post
-
+        
         return {
             'id': video_id,
-            'url': url,
-            'title': title,
-            'description': post,
+            'url': status['media_attachments'][0]['url'],
+            'title': '',
+            'description': strip_or_none(clean_html(status.get('content'))),
             'timestamp': unified_timestamp(status.get('created_at')),
             'uploader': strip_or_none(traverse_obj(status, ('account', 'display_name'))),
             'uploader_id': uploader_id,
