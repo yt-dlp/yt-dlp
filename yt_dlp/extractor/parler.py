@@ -63,7 +63,7 @@ class ParlerIE(InfoExtractor):
             'id': video_id,
             'url': data['primary']['video_data']['videoSrc'],
             'thumbnail': data['primary']['video_data']['thumbnailUrl'],
-            'title': "",
+            'title': '',
             'description': strip_or_none(clean_html(data['primary'].get('full_body'))) or None,
             'timestamp': unified_timestamp(data['primary'].get('date_created')),
             'uploader': strip_or_none(data['primary'].get('name')),
