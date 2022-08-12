@@ -33,12 +33,15 @@ class AENetworksBaseIE(ThePlatformIE):
             query['auth'] = auth
         TP_SMIL_QUERY = [{
             'assetTypes': 'high_video_ak',
-            'switch': 'hls_high_ak'
+            'switch': 'hls_high_ak',
+            'formats': 'MPEG-DASH+widevine,M3U+appleHlsEncryption,M3U+none,MPEG-DASH+none,MPEG4,MP3',
         }, {
-            'assetTypes': 'high_video_s3'
+            'assetTypes': 'high_video_s3',
+            'formats': 'MPEG-DASH+widevine,M3U+appleHlsEncryption,M3U+none,MPEG-DASH+none,MPEG4,MP3',
         }, {
             'assetTypes': 'high_video_s3',
             'switch': 'hls_high_fastly',
+            'formats': 'MPEG-DASH+widevine,M3U+appleHlsEncryption,M3U+none,MPEG-DASH+none,MPEG4,MP3',
         }]
         formats = []
         subtitles = {}
