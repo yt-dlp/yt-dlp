@@ -3,9 +3,10 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     format_field,
+    int_or_none,
+    strip_or_none,
     unified_timestamp,
     urlencode_postdata,
-    strip_or_none,
 )
 
 
@@ -20,6 +21,7 @@ class ParlerIE(InfoExtractor):
             'info_dict': {
                 'id': 'df79fdba-07cc-48fe-b085-3293897520d7',
                 'ext': 'mp4',
+                'thumbnail': 'https://bl-images.parler.com/videos/6ce7cdf3-a27a-4d72-bf9c-d3e17ce39a66/thumbnail.jpeg',
                 'title': 'Parler video #df79fdba-07cc-48fe-b085-3293897520d7',
                 'description': 'md5:6f220bde2df4a97cbb89ac11f1fd8197',
                 'timestamp': 1659744000,
@@ -27,6 +29,9 @@ class ParlerIE(InfoExtractor):
                 'uploader': 'Tulsi Gabbard',
                 'uploader_id': 'TulsiGabbard',
                 'uploader_url': 'https://parler.com/TulsiGabbard',
+                'view_count': int,
+                'comment_count': int,
+                'repost_count': int,
             },
         },
         {
@@ -35,6 +40,7 @@ class ParlerIE(InfoExtractor):
             'info_dict': {
                 'id': 'a7406eb4-91e5-4793-b5e3-ade57a24e287',
                 'ext': 'mp4',
+                'thumbnail': 'https://bl-images.parler.com/videos/317827a8-1e48-4cbc-981f-7dd17d4c1183/thumbnail.jpeg',
                 'title': 'Parler video #a7406eb4-91e5-4793-b5e3-ade57a24e287',
                 'description': 'This man should run for office',
                 'timestamp': 1659657600,
@@ -42,6 +48,9 @@ class ParlerIE(InfoExtractor):
                 'uploader': 'Benny Johnson',
                 'uploader_id': 'BennyJohnson',
                 'uploader_url': 'https://parler.com/BennyJohnson',
+                'view_count': int,
+                'comment_count': int,
+                'repost_count': int,
             },
         },
     ]
@@ -50,14 +59,20 @@ class ParlerIE(InfoExtractor):
         video_id = self._match_id(url)
         data = self._download_json(
             'https://parler.com/open-api/ParleyDetailEndpoint.php', video_id,
-            data=urlencode_postdata({'uuid': video_id}))['data'][0]['primary']
+            data=urlencode_postdata({'uuid': video_id}))['data'][0]
+        import json
+        print(json.dumps(data, indent=2))
         return {
             'id': video_id,
-            'url': data['video_data']['videoSrc'],
+            'url': data['primary']['video_data']['videoSrc'],
+            'thumbnail': data['primary']['video_data']['thumbnailUrl'],
             'title': "",
-            'description': strip_or_none(clean_html(data.get('full_body'))) or None,
-            'timestamp': unified_timestamp(data.get('date_created')),
-            'uploader': strip_or_none(data.get('name')),
-            'uploader_id': strip_or_none(data.get('username')),
-            'uploader_url': format_field(strip_or_none(data.get('username')), None, 'https://parler.com/%s'),
+            'description': strip_or_none(clean_html(data['primary'].get('full_body'))) or None,
+            'timestamp': unified_timestamp(data['primary'].get('date_created')),
+            'uploader': strip_or_none(data['primary'].get('name')),
+            'uploader_id': strip_or_none(data['primary'].get('username')),
+            'uploader_url': format_field(strip_or_none(data['primary'].get('username')), None, 'https://parler.com/%s'),
+            'view_count': int_or_none(data['primary'].get("view_count")),
+            'comment_count': int_or_none(data['engagement']['commentCount']),
+            'repost_count': int_or_none(data['engagement']['echoCount']),
         }
