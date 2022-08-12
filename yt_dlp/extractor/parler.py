@@ -96,7 +96,7 @@ class ParlerIE(InfoExtractor):
         primary = data['primary']
 
         # If this is a YouTube embed, skip out
-        if json.loads(primary.get("V2LINKLONG")):
+        if primary.get("V2LINKLONG") and json.loads(primary.get("V2LINKLONG")):
             return self.url_result(json.loads(primary.get("V2LINKLONG"))[0], YoutubeIE)
 
         # Otherwise, pull out all the stuff
