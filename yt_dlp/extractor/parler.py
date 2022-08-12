@@ -5,6 +5,7 @@ from ..utils import (
     format_field,
     int_or_none,
     strip_or_none,
+    traverse_obj,
     unified_timestamp,
     urlencode_postdata,
 )
@@ -59,17 +60,18 @@ class ParlerIE(InfoExtractor):
         data = self._download_json(
             'https://parler.com/open-api/ParleyDetailEndpoint.php', video_id,
             data=urlencode_postdata({'uuid': video_id}))['data'][0]
+        primary = data['primary']
         return {
             'id': video_id,
-            'url': data['primary']['video_data']['videoSrc'],
-            'thumbnail': data['primary']['video_data']['thumbnailUrl'],
+            'url': traverse_obj(primary, ('video_data', 'videoSrc')),
+            'thumbnail': traverse_obj(primary, ('video_data', 'thumbnailUrl')),
             'title': '',
-            'description': strip_or_none(clean_html(data['primary'].get('full_body'))) or None,
-            'timestamp': unified_timestamp(data['primary'].get('date_created')),
-            'uploader': strip_or_none(data['primary'].get('name')),
-            'uploader_id': strip_or_none(data['primary'].get('username')),
-            'uploader_url': format_field(strip_or_none(data['primary'].get('username')), None, 'https://parler.com/%s'),
-            'view_count': int_or_none(data['primary'].get("view_count")),
-            'comment_count': int_or_none(data['engagement']['commentCount']),
-            'repost_count': int_or_none(data['engagement']['echoCount']),
+            'description': strip_or_none(clean_html(primary.get('full_body'))) or None,
+            'timestamp': unified_timestamp(primary.get('date_created')),
+            'uploader': strip_or_none(primary.get('name')),
+            'uploader_id': strip_or_none(primary.get('username')),
+            'uploader_url': format_field(strip_or_none(primary.get('username')), None, 'https://parler.com/%s'),
+            'view_count': int_or_none(primary.get("view_count")),
+            'comment_count': int_or_none(traverse_obj(data, ('engagement', 'commentCount'))),
+            'repost_count': int_or_none(traverse_obj(data, ('engagement', 'echoCount'))),
         }
