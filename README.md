@@ -791,7 +791,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     "postprocess:",  or "postprocess-title:".
                                     The video's fields are accessible under the
                                     "info" key and the progress attributes are
-                                    accessible under "progress" key. E.g.:
+                                    accessible under "progress" key. e.g.:
                                     --console-title --progress-template
                                     "download-title:%(info.id)s-%(progress.eta)s"
     -v, --verbose                   Print various debugging information
@@ -1201,28 +1201,28 @@ It may however also contain special sequences that will be replaced when downloa
 
 The field names themselves (the part inside the parenthesis) can also have some special formatting:
 
-1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. Eg: `%(tags.0)s`, `%(subtitles.en.-1.ext)s`, `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. `%()s` refers to the entire infodict. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
+1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. e.g. `%(tags.0)s`, `%(subtitles.en.-1.ext)s`, `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. `%()s` refers to the entire infodict. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
 
-1. **Addition**: Addition and subtraction of numeric fields can be done using `+` and `-` respectively. Eg: `%(playlist_index+10)03d`, `%(n_entries+1-playlist_index)d`
+1. **Addition**: Addition and subtraction of numeric fields can be done using `+` and `-` respectively. e.g. `%(playlist_index+10)03d`, `%(n_entries+1-playlist_index)d`
 
-1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. Eg: `%(duration>%H-%M-%S)s`, `%(upload_date>%Y-%m-%d)s`, `%(epoch-3600>%H-%M-%S)s`
+1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. e.g. `%(duration>%H-%M-%S)s`, `%(upload_date>%Y-%m-%d)s`, `%(epoch-3600>%H-%M-%S)s`
 
-1. **Alternatives**: Alternate fields can be specified separated with a `,`. Eg: `%(release_date>%Y,upload_date>%Y|Unknown)s`
+1. **Alternatives**: Alternate fields can be specified separated with a `,`. e.g. `%(release_date>%Y,upload_date>%Y|Unknown)s`
 
 1. **Replacement**: A replacement value can specified using a `&` separator. If the field is *not* empty, this replacement value will be used instead of the actual field content. This is done after alternate fields are considered; thus the replacement is used if *any* of the alternative fields is *not* empty.
 
-1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-template`. Eg: `%(uploader|Unknown)s`
+1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-template`. e.g. `%(uploader|Unknown)s`
 
-1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing), `h` = HTML escaping, `l` = a comma separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (Eg: 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
+1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing), `h` = HTML escaping, `l` = a comma separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (e.g. 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
 
-1. **Unicode normalization**: The format type `U` can be used for NFC [unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. Eg: `%(title)+.100U` is NFKC
+1. **Unicode normalization**: The format type `U` can be used for NFC [unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. e.g. `%(title)+.100U` is NFKC
 
 To summarize, the general syntax for a field is:
 ```
 %(name[.keys][addition][>strf][,alternate][&replacement][|default])[flags][width][.precision][length]type
 ```
 
-Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. For example, `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates is empty, that type of file will not be written. Eg: `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
+Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. For example, `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates is empty, that type of file will not be written. e.g. `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
 
 The available fields are:
 
@@ -1540,7 +1540,7 @@ The available fields are:
  
 **Deprecation warning**: Many of these fields have (currently undocumented) aliases, that may be removed in a future version. It is recommended to use only the documented field names.
 
-All fields, unless specified otherwise, are sorted in descending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a preferred value for the fields, separated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two preferred values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
+All fields, unless specified otherwise, are sorted in descending order. To reverse this, prefix the field with a `+`. e.g. `+res` prefers format with the smallest resolution. Additionally, you can suffix a preferred value for the fields, separated by a `:`. e.g. `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two preferred values, the first for video and the second for audio. e.g. `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. e.g. `filesize~1G` prefers the format with filesize closest to 1 GiB.
 
 The fields `hasvid` and `ie_pref` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--format-sort-force`. Apart from these, the default order used is: `lang,quality,res,fps,hdr:12,vcodec:vp9.2,channels,acodec,size,br,asr,proto,ext,hasaud,source,id`. The extractors may override this default order, but they cannot override the user-provided order.
 
@@ -1685,9 +1685,9 @@ Note that any field created by this can be used in the [output template](#output
 
 This option also has a few special uses:
 
-* You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. Eg: `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)` will download the first vimeo video found in the description
+* You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. e.g. `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)` will download the first vimeo video found in the description
 
-* You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file. For example, you can use this to set a different "description" and "synopsis". To modify the metadata of individual streams, use the `meta<n>_` prefix (Eg: `meta1_language`). Any value set to the `meta_` field will overwrite all default values.
+* You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file. For example, you can use this to set a different "description" and "synopsis". To modify the metadata of individual streams, use the `meta<n>_` prefix (e.g. `meta1_language`). Any value set to the `meta_` field will overwrite all default values.
 
 **Note**: Metadata modification happens before format selection, post-extraction and other post-processing operations. Some fields may be added or changed during these steps, overriding your changes.
 
@@ -1746,18 +1746,18 @@ $ yt-dlp --replace-in-metadata "title,uploader" "[ _]" "-"
 
 # EXTRACTOR ARGUMENTS
 
-Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. Eg: `--extractor-args "youtube:player-client=android_embedded,web;include_live_dash" --extractor-args "funimation:version=uncut"`
+Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. e.g. `--extractor-args "youtube:player-client=android_embedded,web;include_live_dash" --extractor-args "funimation:version=uncut"`
 
 The following extractors use this feature:
 
 #### youtube
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
-* `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (Eg: `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
+* `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (e.g. `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
 * `include_live_dash`: Include live dash formats even without `--live-from-start` (These formats don't download properly)
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
-    * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
+    * e.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
 * `innertube_host`: Innertube API host to use for all API requests 
   * e.g. `studio.youtube.com`, `youtubei.googleapis.com`
   * Note: Cookies exported from `www.youtube.com` will not work with hosts other than `*.youtube.com`
@@ -1768,17 +1768,17 @@ The following extractors use this feature:
 * `approximate_date`: Extract approximate `upload_date` in flat-playlist. This may cause date-based filters to be slightly off
 
 #### funimation
-* `language`: Languages to extract. Eg: `funimation:language=english,japanese`
+* `language`: Languages to extract. e.g. `funimation:language=english,japanese`
 * `version`: The video version to extract - `uncut` or `simulcast`
 
 #### crunchyroll
-* `language`: Languages to extract. Eg: `crunchyroll:language=jaJp`
-* `hardsub`: Which hard-sub versions to extract. Eg: `crunchyroll:hardsub=None,enUS`
+* `language`: Languages to extract. e.g. `crunchyroll:language=jaJp`
+* `hardsub`: Which hard-sub versions to extract. e.g. `crunchyroll:hardsub=None,enUS`
 
 #### crunchyrollbeta
-* `format`: Which stream type(s) to extract. Default is `adaptive_hls` Eg: `crunchyrollbeta:format=vo_adaptive_hls`
+* `format`: Which stream type(s) to extract. Default is `adaptive_hls` e.g. `crunchyrollbeta:format=vo_adaptive_hls`
     * Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `download_dash`, `multitrack_adaptive_hls_v2`
-* `hardsub`: Preference order for which hardsub versions to extract. Default is `None` (no hardsubs). Eg: `crunchyrollbeta:hardsub=en-US,None`
+* `hardsub`: Preference order for which hardsub versions to extract. Default is `None` (no hardsubs). e.g. `crunchyrollbeta:hardsub=en-US,None`
 
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
@@ -1802,7 +1802,7 @@ The following extractors use this feature:
 * `manifest_app_version`: Numeric app version to call mobile APIs with. (e.g. `221`)
 
 #### rokfinchannel
-* `tab`: Which tab to download. One of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`. (E.g. `rokfinchannel:tab=streams`)
+* `tab`: Which tab to download. One of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`. (e.g. `rokfinchannel:tab=streams`)
 
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
@@ -2066,7 +2066,7 @@ While these options still work, their use is not recommended since there are oth
     --all-formats                    -f all
     --all-subs                       --sub-langs all --write-subs
     --print-json                     -j --no-simulate
-    --autonumber-size NUMBER         Use string formatting. Eg: %(autonumber)03d
+    --autonumber-size NUMBER         Use string formatting. e.g. %(autonumber)03d
     --autonumber-start NUMBER        Use internal field formatting like %(autonumber+NUMBER)s
     --id                             -o "%(id)s.%(ext)s"
     --metadata-from-title FORMAT     --parse-metadata "%(title)s:FORMAT"

@@ -3246,9 +3246,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else -10 if 'descriptive' in (audio_track.get('displayName') or '').lower() and -10
                 else -1)
             # Some formats may have much smaller duration than others (possibly damaged during encoding)
-            # Eg: 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
+            # e.g. 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
             # Make sure to avoid false positives with small duration differences.
-            # Eg: __2ABJjxzNo, ySuUZEjARPY
+            # e.g. __2ABJjxzNo, ySuUZEjARPY
             is_damaged = try_get(fmt, lambda x: float(x['approxDurationMs']) / duration < 500)
             if is_damaged:
                 self.report_warning(
@@ -5833,7 +5833,7 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
 
 
 class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
-    IE_DESC = 'YouTube music search URLs with selectable sections (Eg: #songs)'
+    IE_DESC = 'YouTube music search URLs with selectable sections (e.g. #songs)'
     IE_NAME = 'youtube:music:search_url'
     _VALID_URL = r'https?://music\.youtube\.com/search\?([^#]+&)?(?:search_query|q)=(?:[^&]+)(?:[&#]|$)'
     _TESTS = [{
