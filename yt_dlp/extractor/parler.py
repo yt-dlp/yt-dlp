@@ -1,4 +1,7 @@
+import json
+
 from .common import InfoExtractor
+from .youtube import YoutubeIE
 
 from ..utils import (
     clean_html,
@@ -53,14 +56,50 @@ class ParlerIE(InfoExtractor):
                 'repost_count': int,
             },
         },
+        {
+            'url': 'https://parler.com/feed/f23b85c1-6558-470f-b9ff-02c145f28da5',
+            'md5': 'eaba1ff4a10fe281f5ce74e930ab2cb4',
+            'info_dict': {
+                'id': 'r5vkSaz8PxQ',
+                'ext': 'mp4',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/r5vkSaz8PxQ/maxresdefault.webp',
+                'title': 'Tom MacDonald Names Reaction',
+                'description': 'md5:33c21f0d35ae6dc2edf3007d6696baea',
+                'upload_date': '20220716',
+                'duration': 1267,
+                'uploader': 'Mahesh Chookolingo',
+                'uploader_id': 'maheshchookolingo',
+                'uploader_url': 'http://www.youtube.com/user/maheshchookolingo',
+                'channel': 'Mahesh Chookolingo',
+                'channel_id': 'UCox6YeMSY1PQInbCtTaZj_w',
+                'channel_url': 'https://www.youtube.com/channel/UCox6YeMSY1PQInbCtTaZj_w',
+                'categories': ['Entertainment'],
+                'tags': list,
+                'availability': 'public',
+                'live_status': 'not_live',
+                'view_count': int,
+                'comment_count': int,
+                'like_count': int,
+                'channel_follower_count': int,
+                'age_limit': int,
+                'playable_in_embed': True,
+            },
+        },
     ]
 
     def _real_extract(self, url):
+        # Get the crucial data from the API
         video_id = self._match_id(url)
         data = self._download_json(
             'https://parler.com/open-api/ParleyDetailEndpoint.php', video_id,
             data=urlencode_postdata({'uuid': video_id}))['data'][0]
         primary = data['primary']
+
+        # If this is a YouTube embed, skip out
+        if json.loads(primary.get("V2LINKLONG")):
+            return self.url_result(json.loads(primary.get("V2LINKLONG"))[0], YoutubeIE)
+
+        # Otherwise, pull out all the stuff
         return {
             'id': video_id,
             'url': traverse_obj(primary, ('video_data', 'videoSrc')),
