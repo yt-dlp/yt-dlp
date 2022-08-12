@@ -81,7 +81,7 @@ class ParlerIE(InfoExtractor):
                 'comment_count': int,
                 'like_count': int,
                 'channel_follower_count': int,
-                'age_limit': int,
+                'age_limit': 0,
                 'playable_in_embed': True,
             },
         },
