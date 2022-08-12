@@ -693,15 +693,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_and_report_alerts(self, data, *args, **kwargs):
         return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
 
-    _BADGE_ICON_MAP = {
+    _PRIVACY_ICON_MAP = {
         'PRIVACY_UNLISTED': 'unlisted',
         'PRIVACY_PRIVATE': 'private',
         'PRIVACY_PUBLIC': 'public'
-    }
-    _BADGE_STYLE_MAP = {
-        'BADGE_STYLE_TYPE_MEMBERS_ONLY': 'members_only',
-        'BADGE_STYLE_TYPE_PREMIUM': 'premium',
-        'BADGE_STYLE_TYPE_LIVE_NOW': 'is_live'
     }
 
     def _extract_badges(self, renderer: dict):
@@ -710,18 +705,37 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         Returns a set of known badge types.
         This may include one or more of: 'unlisted', 'private', 'public', 'members_only', 'premium', 'is_live'
         """
+        badge_style_map = {
+            'BADGE_STYLE_TYPE_MEMBERS_ONLY': 'members_only',
+            'BADGE_STYLE_TYPE_PREMIUM': 'premium',
+            'BADGE_STYLE_TYPE_LIVE_NOW': 'is_live'
+        }
+
+        label_map = {
+            'unlisted': 'unlisted',
+            'private': 'private',
+            'members only': 'members_only',
+            'live': 'is_live',
+            'premium': 'premium'
+        }
+
         badge_types = set()
         for badge in traverse_obj(renderer, ('badges', ..., 'metadataBadgeRenderer'), default=[]):
-            icon_badge_type = self._BADGE_ICON_MAP.get(traverse_obj(badge, ('icon', 'iconType'), expected_type=str))
+            icon_badge_type = self._PRIVACY_ICON_MAP.get(traverse_obj(badge, ('icon', 'iconType'), expected_type=str))
             if icon_badge_type:
                 badge_types.add(icon_badge_type)
 
-            style_badge_type = self._BADGE_STYLE_MAP.get(traverse_obj(badge, 'style'))
+            style_badge_type = badge_style_map.get(traverse_obj(badge, 'style'))
             if style_badge_type:
                 badge_types.add(style_badge_type)
 
-        return badge_types
+            # fallback, won't work in some languages
+            label = traverse_obj(badge, 'label', expected_type=str, default='')
+            for match, label_badge_type in label_map.items():
+                if match in label.lower():
+                    badge_types.add(label_badge_type)
 
+        return badge_types
 
     @staticmethod
     def _get_text(data, *path_list, max_runs=None):
@@ -3999,17 +4013,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_membersonly = False
             is_premium = False
             contents = try_get(initial_data, lambda x: x['contents']['twoColumnWatchNextResults']['results']['results']['contents'], list) or []
-            badges = set()
+            badges_types = set()
             for content in contents:
                 if not isinstance(content, dict):
                     continue
-                badges.update(self._extract_badges(content.get('videoPrimaryInfoRenderer')))
-            for badge in badges:
-                if badge == 'members_only':
+                badges_types.update(self._extract_badges(content.get('videoPrimaryInfoRenderer')))
+            for badge_type in badges_types:
+                if badge_type == 'members_only':
                     is_membersonly = True
-                elif badge == 'premium':
+                elif badge_type == 'premium':
                     is_premium = True
-                elif badge == 'unlisted':
+                elif badge_type == 'unlisted':
                     is_unlisted = True
 
         info['availability'] = self._availability(
@@ -4557,13 +4571,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         Note: Unless YouTube tells us explicitly, we do not assume it is public
         @param data: response
         """
+        options = []
         is_private = is_unlisted = None
         renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer') or {}
 
-        options = []
-
         player_header_privacy = traverse_obj(
-            data, ('header', 'playlistHeaderRenderer', 'privacy'), expected_type=str, default=None)
+            data, ('header', 'playlistHeaderRenderer', 'privacy'), expected_type=str)
         if player_header_privacy:
             options.append(player_header_privacy.lower())
 
@@ -4573,9 +4586,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         privacy_setting_icon = traverse_obj(
             renderer, (
                 'privacyForm', 'dropdownFormFieldRenderer', 'dropdown', 'dropdownRenderer', 'entries',
-                lambda _, v: v['privacyDropdownItemRenderer']['isSelected'], 'privacyDropdownItemRenderer', 'icon', 'iconType'), get_all=False)
+                lambda _, v: v['privacyDropdownItemRenderer']['isSelected'], 'privacyDropdownItemRenderer', 'icon', 'iconType'),
+            get_all=False, expected_type=str)
+
         if privacy_setting_icon:
-            options.append(self._BADGE_ICON_MAP.get(privacy_setting_icon))
+            options.append(self._PRIVACY_ICON_MAP.get(privacy_setting_icon))
 
         for option in options:
             if option == 'unlisted':
@@ -4866,6 +4881,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
             'uploader_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
             'channel_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
+            'availability': 'public',
         },
         'playlist_count': 1,
     }, {
@@ -4883,6 +4899,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
             'channel_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
             'uploader_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
+            'availability': 'public',
         },
         'playlist_count': 0,
     }, {
@@ -5029,6 +5046,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UCEPzS1rYsrkqzSLNp76nrcg',
             'channel_url': 'https://www.youtube.com/c/ChRiStIaAn008',
             'channel': 'Christiaan008',
+            'availability': 'public',
         },
         'playlist_count': 96,
     }, {
@@ -5047,6 +5065,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'view_count': int,
             'description': '',
             'channel_id': 'UCBABnxM4Ar9ten8Mdjj1j0Q',
+            'availability': 'public',
         },
         'playlist_mincount': 1123,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
@@ -5070,6 +5089,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': 'Interstellar Movie',
             'description': '',
             'modified_date': r're:\d{8}',
+            'availability': 'public',
         },
         'playlist_mincount': 21,
     }, {
@@ -5088,6 +5108,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCTYLiWFZy8xtPwxFwX9rV7Q',
             'channel_id': 'UCTYLiWFZy8xtPwxFwX9rV7Q',
             'modified_date': r're:\d{8}',
+            'availability': 'public',
         },
         'playlist_mincount': 200,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
@@ -5107,6 +5128,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/c/blanktv',
             'modified_date': r're:\d{8}',
             'description': '',
+            'availability': 'public',
         },
         'playlist_mincount': 1000,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
@@ -5125,6 +5147,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UC9-y-6csu5WGm29I7JiwpnA',
             'channel_url': 'https://www.youtube.com/user/Computerphile',
             'channel': 'Computerphile',
+            'availability': 'public',
         },
         'playlist_mincount': 11,
     }, {
@@ -5290,6 +5313,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
             'tags': [],
             'channel': 'NoCopyrightSounds',
+            'availability': 'public',
         },
         'playlist_mincount': 166,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
@@ -5310,6 +5334,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'modified_date': r're:\d{8}',
             'uploader_url': 'https://www.youtube.com/channel/UC9ALqqC4aIeG5iDs7i90Bfw',
             'description': '',
+            'availability': 'public',
         },
         'expected_warnings': [
             'The URL does not have a videos tab',
@@ -5410,6 +5435,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': 'Royalty Free Music - Topic',
             'view_count': int,
             'uploader_url': 'https://www.youtube.com/channel/UC9ALqqC4aIeG5iDs7i90Bfw',
+            'availability': 'public',
         },
         'expected_warnings': [
             'does not have a videos tab',
@@ -5477,6 +5503,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'description': 'test',
             'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
             'title': 'dlp test playlist',
+            'availability': 'public',
         },
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
