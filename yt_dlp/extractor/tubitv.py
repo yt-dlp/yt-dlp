@@ -76,7 +76,7 @@ class TubiTvIE(InfoExtractor):
         formats = []
 
         for resource in video_data['video_resources']:
-            if resource['type'] in ('dash'):
+            if resource['type'] in ('dash', ):
                 formats += self._extract_mpd_formats(resource['manifest']['url'], video_id, mpd_id=resource['type'], fatal=False)
             elif resource['type'] in ('hlsv3', 'hlsv6'):
                 formats += self._extract_m3u8_formats(resource['manifest']['url'], video_id, 'mp4', m3u8_id=resource['type'], fatal=False)
