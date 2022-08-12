@@ -10,8 +10,7 @@ from ..utils import (
 
 
 class ParlerIE(InfoExtractor):
-    """Extract videos from posts on parler.com."""
-
+    IE_DESC = "Extract videos from posts on parler.com"
     _UUID_RE = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
     _VALID_URL = r'https://parler\.com/feed/(?P<id>%s)' % (_UUID_RE,)
     _TESTS = [
@@ -52,15 +51,13 @@ class ParlerIE(InfoExtractor):
         data = self._download_json(
             'https://parler.com/open-api/ParleyDetailEndpoint.php', video_id,
             data=urlencode_postdata({'uuid': video_id}))['data'][0]['primary']
-        url = data['video_data']['videoSrc']
-        uploader_id = strip_or_none(data.get('username'))
         return {
             'id': video_id,
-            'url': url,
+            'url': data['video_data']['videoSrc'],
             'title': "",
             'description': strip_or_none(clean_html(data.get('full_body'))) or None,
             'timestamp': unified_timestamp(data.get('date_created')),
             'uploader': strip_or_none(data.get('name')),
-            'uploader_id': uploader_id,
-            'uploader_url': format_field(uploader_id, None, 'https://parler.com/%s'),
+            'uploader_id': strip_or_none(data.get('username')),
+            'uploader_url': format_field(strip_or_none(data.get('username')), None, 'https://parler.com/%s'),
         }
