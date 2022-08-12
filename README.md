@@ -376,7 +376,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --extractor-descriptions        Output descriptions of all supported
                                     extractors and exit
     --force-generic-extractor       Force extraction to use the generic extractor
-    --default-search PREFIX         Use this prefix for unqualified URLs. Eg:
+    --default-search PREFIX         Use this prefix for unqualified URLs. e.g.
                                     "gvsearch2:python" downloads two videos from
                                     google videos for the search term "python".
                                     Use the value "auto" to let yt-dlp guess
@@ -425,7 +425,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     an alias starts with a dash "-", it is
                                     prefixed with "--". Arguments are parsed
                                     according to the Python string formatting
-                                    mini-language. Eg: --alias get-audio,-X
+                                    mini-language. e.g. --alias get-audio,-X
                                     "-S=aext:{0},abr -x --audio-format {0}"
                                     creates options "--get-audio" and "-X" that
                                     takes an argument (ARG0) and expands to
@@ -440,9 +440,9 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 ## Network Options:
     --proxy URL                     Use the specified HTTP/HTTPS/SOCKS proxy. To
                                     enable SOCKS proxy, specify a proper scheme.
-                                    Eg: socks5://user:pass@127.0.0.1:1080/. Pass
-                                    in an empty string (--proxy "") for direct
-                                    connection
+                                    e.g. socks5://user:pass@127.0.0.1:1080/.
+                                    Pass in an empty string (--proxy "") for
+                                    direct connection
     --socket-timeout SECONDS        Time to wait before giving up, in seconds
     --source-address IP             Client-side IP address to bind to
     -4, --force-ipv4                Make all connections via IPv4
@@ -471,7 +471,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     compatibility, START-STOP is also supported.
                                     Use negative indices to count from the right
                                     and negative STEP to download in reverse
-                                    order. Eg: "-I 1:3,7,-5::2" used on a
+                                    order. e.g. "-I 1:3,7,-5::2" used on a
                                     playlist of size 15 will download the videos
                                     at index 1,2,3,7,11,13,15
     --min-filesize SIZE             Do not download any videos smaller than SIZE
@@ -480,8 +480,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     (e.g. 50k or 44.6m)
     --date DATE                     Download only videos uploaded on this date.
                                     The date can be "YYYYMMDD" or in the format 
-                                    [now|today|yesterday][-N[day|week|month|year]].
-                                    Eg: --date today-2weeks
+                                    [now|today|yesterday][-N[day|week|month|year
+                                    ]]. e.g. --date today-2weeks
     --datebefore DATE               Download only videos uploaded on or before
                                     this date. The date formats accepted is the
                                     same as --date
@@ -498,7 +498,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     conditions. Use a "\" to escape "&" or
                                     quotes if needed. If used multiple times,
                                     the filter matches if atleast one of the
-                                    conditions are met. Eg: --match-filter
+                                    conditions are met. e.g. --match-filter
                                     !is_live --match-filter "like_count>?100 &
                                     description~='(?i)\bcats \& dogs\b'" matches
                                     only videos that are not live OR those that
@@ -554,7 +554,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     be a number, linear=START[:END[:STEP=1]] or
                                     exp=START[:END[:BASE=2]]. This option can be
                                     used multiple times to set the sleep for the
-                                    different retry types. Eg: --retry-sleep
+                                    different retry types. e.g. --retry-sleep
                                     linear=1::2 --retry-sleep fragment:exp=1:20
     --skip-unavailable-fragments    Skip unavailable fragments for DASH,
                                     hlsnative and ISM downloads (default)
@@ -598,7 +598,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     the given regular expression. Time ranges
                                     prefixed by a "*" can also be used in place
                                     of chapters to download the specified range.
-                                    Eg: --download-sections "*10:15-15:00"
+                                    e.g. --download-sections "*10:15-15:00"
                                     --download-sections "intro". Needs ffmpeg.
                                     This option can be used multiple times to
                                     download multiple sections
@@ -791,7 +791,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     "postprocess:",  or "postprocess-title:".
                                     The video's fields are accessible under the
                                     "info" key and the progress attributes are
-                                    accessible under "progress" key. e.g.:
+                                    accessible under "progress" key. e.g.
                                     --console-title --progress-template
                                     "download-title:%(info.id)s-%(progress.eta)s"
     -v, --verbose                   Print various debugging information
@@ -860,7 +860,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     -F, --list-formats              List available formats of each video.
                                     Simulate unless --no-simulate is used
     --merge-output-format FORMAT    Containers that may be used when merging
-                                    formats, separated by "/" (Eg: "mp4/mkv").
+                                    formats, separated by "/" (e.g. "mp4/mkv").
                                     Ignored if no merge is required. (currently
                                     supported: avi, flv, mkv, mov, mp4, webm)
 
@@ -874,14 +874,14 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --list-subs                     List available subtitles of each video.
                                     Simulate unless --no-simulate is used
     --sub-format FORMAT             Subtitle format; accepts formats preference,
-                                    Eg: "srt" or "ass/srt/best"
+                                    e.g. "srt" or "ass/srt/best"
     --sub-langs LANGS               Languages of the subtitles to download (can
-                                    be regex) or "all" separated by commas. (Eg:
-                                    --sub-langs "en.*,ja") You can prefix the
-                                    language code with a "-" to exclude it from
-                                    the requested languages. (Eg: --sub-langs
-                                    all,-live_chat) Use --list-subs for a list
-                                    of available language tags
+                                    be regex) or "all" separated by commas.
+                                    (e.g. --sub-langs "en.*,ja") You can prefix
+                                    the language code with a "-" to exclude it
+                                    from the requested languages. (e.g. --sub-
+                                    langs all,-live_chat) Use --list-subs for a
+                                    list of available language tags
 
 ## Authentication Options:
     -u, --username USERNAME         Login with this account ID
@@ -929,7 +929,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     m4a, mka, mp3, ogg, opus, vorbis, wav). If
                                     target container does not support the
                                     video/audio codec, remuxing will fail. You
-                                    can specify multiple rules; Eg.
+                                    can specify multiple rules; e.g.
                                     "aac>m4a/mov>mp4/mkv" will remux aac to m4a,
                                     mov to mp4 and anything else to mkv
     --recode-video FORMAT           Re-encode the video into another format if
@@ -954,7 +954,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     for ffmpeg/ffprobe, "_i"/"_o" can be
                                     appended to the prefix optionally followed
                                     by a number to pass the argument before the
-                                    specified input/output file. Eg: --ppa
+                                    specified input/output file. e.g. --ppa
                                     "Merger+ffmpeg_i1:-v quiet". You can use
                                     this option multiple times to give different
                                     arguments to different postprocessors.
@@ -1072,7 +1072,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
     introductions, etc.) from downloaded YouTube videos using the
-    [SponsorBlock API](https://sponsor.ajay.app)
+    SponsorBlock API (https://sponsor.ajay.app)
 
     --sponsorblock-mark CATS        SponsorBlock categories to create chapters
                                     for, separated by commas. Available
@@ -1081,7 +1081,7 @@ Make chapter entries for, or remove various segments (sponsor,
                                     music_offtopic, poi_highlight, all and
                                     default (=all). You can prefix the category
                                     with a "-" to exclude it. See [1] for
-                                    description of the categories. Eg:
+                                    description of the categories. e.g.
                                     --sponsorblock-mark all,-preview
                                     [1] https://wiki.sponsor.ajay.app/w/Segment_Categories
     --sponsorblock-remove CATS      SponsorBlock categories to be removed from
