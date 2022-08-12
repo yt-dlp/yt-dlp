@@ -5759,6 +5759,13 @@ def make_archive_id(ie, video_id):
     return f'{ie_key.lower()} {video_id}'
 
 
+def truncate_string(s, left, right=0):
+    assert left > 3 and right >= 0
+    if s is None or len(s) <= left + right:
+        return s
+    return f'{s[:left-3]}...{s[-right:]}'
+
+
 # Deprecated
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
