@@ -11,7 +11,7 @@ from ..utils import (
 
 
 class ParlerIE(InfoExtractor):
-    IE_DESC = "Extract videos from posts on parler.com"
+    IE_DESC = 'Posts on parler.com'
     _UUID_RE = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
     _VALID_URL = r'https://parler\.com/feed/(?P<id>%s)' % (_UUID_RE,)
     _TESTS = [
