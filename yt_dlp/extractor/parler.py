@@ -60,8 +60,6 @@ class ParlerIE(InfoExtractor):
         data = self._download_json(
             'https://parler.com/open-api/ParleyDetailEndpoint.php', video_id,
             data=urlencode_postdata({'uuid': video_id}))['data'][0]
-        import json
-        print(json.dumps(data, indent=2))
         return {
             'id': video_id,
             'url': data['primary']['video_data']['videoSrc'],
