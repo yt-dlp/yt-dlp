@@ -49,13 +49,10 @@ class ParlerIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        status = self._download_json(
-            'https://parler.com/open-api/ParleyDetailEndpoint.php',
-            video_id,
-            data=urlencode_postdata({'uuid': video_id})
-        )
-        url = status['data'][0]['primary']['video_data']['videoSrc']
-        data = status['data'][0]['primary']
+        data = self._download_json(
+            'https://parler.com/open-api/ParleyDetailEndpoint.php', video_id,
+            data=urlencode_postdata({'uuid': video_id}))['data'][0]['primary']
+        url = data['video_data']['videoSrc']
         uploader_id = strip_or_none(data.get('username'))
         return {
             'id': video_id,
