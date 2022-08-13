@@ -6,7 +6,7 @@ from .common import InfoExtractor
 
 
 class DoodStreamIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?dood\.(?:to|watch|so|pm)/[ed]/(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?dood\.(?:to|watch|so|pm|wf)/[ed]/(?P<id>[a-z0-9]+)'
     _TESTS = [{
         'url': 'http://dood.to/e/5s1wmbdacezb',
         'md5': '4568b83b31e13242b3f1ff96c55f0595',
