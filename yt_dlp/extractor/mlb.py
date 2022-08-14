@@ -333,7 +333,7 @@ class MLBTVIE(InfoExtractor):
             f, s = self._extract_m3u8_formats_and_subtitles(
                 m3u8_url, video_id, 'mp4', m3u8_id=join_nonempty(airing.get('feedType'), airing.get('feedLanguage')))
             formats.extend(f)
-            self._merge_subtitles(s, subtitles)
+            self._merge_subtitles(s, target=subtitles)
 
         self._sort_formats(formats)
         return {
