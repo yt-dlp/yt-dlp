@@ -53,6 +53,16 @@ class Request:
     @param compression: whether to include content-encoding header on request.
     @param allow_redirects: whether to follow redirects for this request.
     @param timeout: socket timeout value for this request.
+
+    A Request may also have the following special headers:
+    Youtubedl-no-compression: if present, equivalent to setting compression to False.
+    Ytdl-request-proxy: proxy url to use for request.
+
+    Apart from the url protocol, proxy dict also supports the following keys:
+    - all: proxy to use for all protocols. Used as a fallback if no proxy is set for a specific protocol.
+    - no: comma seperated list of hostnames (optionally with port) to not use a proxy for.
+
+    A proxy value can be set to __noproxy__ or None to set no proxy for that protocol.
     """
 
     def __init__(
@@ -369,7 +379,7 @@ class RequestHandler:
         if not request.compression:
             request.headers.pop('Accept-Encoding', None)
 
-        # Proxy preference: header req proxy > req proxies > ydl opt proxies > env proxies
+        # Proxy preference: header req proxy > req proxies > ydl opt proxies / env proxies
         request.proxies = {**self.ydl.proxies, **request.proxies}
         req_proxy = request.headers.pop('Ytdl-request-proxy', None)
         if req_proxy:
