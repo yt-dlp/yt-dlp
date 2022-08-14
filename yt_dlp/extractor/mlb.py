@@ -318,18 +318,18 @@ class MLBTVIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        formats, subtitles = [], {}
         airings = self._download_json(
             f'https://search-api-mlbtv.mlb.com/svc/search/v2/graphql/persisted/query/core/Airings?variables=%7B%22partnerProgramIds%22%3A%5B%22{video_id}%22%5D%2C%22applyEsniMediaRightsLabels%22%3Atrue%7D',
             video_id)['data']['Airings']
+    
+        formats, subtitles = [], {}
         for airing in airings:
-            playback = self._download_json(
+            m3u8_url = self._download_json(
                 airing['playbackUrls'][0]['href'].format(scenario='browser~csai'), video_id,
                 headers={
                     'Authorization': self._access_token,
                     'Accept': 'application/vnd.media-service+json; version=2'
-                })
-            m3u8_url = playback['stream']['complete']
+                })['stream']['complete']
             f, s = self._extract_m3u8_formats_and_subtitles(
                 m3u8_url, video_id, 'mp4', m3u8_id=join_nonempty(airing.get('feedType'), airing.get('feedLanguage')))
             formats.extend(f)
@@ -337,9 +337,9 @@ class MLBTVIE(InfoExtractor):
 
         self._sort_formats(formats)
         return {
+            'id': video_id,
             'title': traverse_obj(airings, (..., 'titles', 0, 'episodeName'), get_all=False),
             'formats': formats,
             'subtitles': subtitles,
             'http_headers': {'Authorization': f'Bearer {self._access_token}'},
-            'id': video_id
         }
