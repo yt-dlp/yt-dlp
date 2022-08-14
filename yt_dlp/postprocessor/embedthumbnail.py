@@ -139,7 +139,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if not success:
                 success = True
                 atomicparsley = next((
-                    x for x in ['AtomicParsley', 'atomicparsley']
+                    # libatomicparsley.so : See https://github.com/xibr/ytdlp-lazy/issues/1
+                    x for x in ['AtomicParsley', 'atomicparsley', 'libatomicparsley.so']
                     if check_executable(x, ['-v'])), None)
                 if atomicparsley is None:
                     self.to_screen('Neither mutagen nor AtomicParsley was found. Falling back to ffmpeg')

@@ -237,6 +237,10 @@ class ZattooPlatformBaseIE(InfoExtractor):
             ondemand_termtoken=ondemand_termtoken, ondemand_type=ondemand_type)
         return info_dict
 
+    def _real_extract(self, url):
+        vid1, vid2 = self._match_valid_url(url).group('vid1', 'vid2')
+        return getattr(self, f'_extract_{self._TYPE}')(vid1 or vid2)
+
 
 def _make_valid_url(host):
     return rf'https?://(?:www\.)?{re.escape(host)}/watch/[^/]+?/(?P<id>[0-9]+)[^/]+(?:/(?P<recid>[0-9]+))?'
@@ -253,10 +257,6 @@ class ZattooBaseIE(ZattooPlatformBaseIE):
             [^?#]+\?(?:[^#]+&)?{qs}=(?P<vid2>{match})
             {match_base}
         )'''
-
-    def _real_extract(self, url):
-        vid1, vid2 = self._match_valid_url(url).group('vid1', 'vid2')
-        return getattr(self, f'_extract_{self._TYPE}')(vid1 or vid2)
 
 
 class ZattooIE(ZattooBaseIE):
