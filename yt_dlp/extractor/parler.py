@@ -1,8 +1,5 @@
-import json
-
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-
 from ..utils import (
     clean_html,
     format_field,

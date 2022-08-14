@@ -20,10 +20,10 @@
 * `--compat-option no-live-chat` should disable danmaku
 * Fix misleading DRM message
 * Import ctypes only when necessary
-* Minor bugfixes by [pukkandan](https://github.com/pukkandan)
-* Reject entire playlists faster with `--match-filter` by [pukkandan](https://github.com/pukkandan)
+* Minor bugfixes
+* Reject entire playlists faster with `--match-filter`
 * Remove filtered entries from `-J`
-* Standardize retry mechanism by [pukkandan](https://github.com/pukkandan)
+* Standardize retry mechanism
 * Validate `--merge-output-format`
 * [downloader] Add average speed to final progress line
 * [extractor] Add field `audio_channels`
@@ -31,7 +31,7 @@
 * [ffmpeg] Set `ffmpeg_location` in a contextvar
 * [FFmpegThumbnailsConvertor] Fix conversion from GIF
 * [MetadataParser] Don't set `None` when the field didn't match
-* [outtmpl] Smarter replacing of unsupported characters by [pukkandan](https://github.com/pukkandan)
+* [outtmpl] Smarter replacing of unsupported characters
 * [outtmpl] Treat empty values as None in filenames
 * [utils] sanitize_open: Allow any IO stream as stdout
 * [build, devscripts] Add devscript to set a build variant
@@ -64,7 +64,7 @@
 * [extractor/bbc] Fix news articles by [ajj8](https://github.com/ajj8)
 * [extractor/camtasia] Separate into own extractor by [coletdjnz](https://github.com/coletdjnz)
 * [extractor/cloudflarestream] Fix video_id padding by [haobinliang](https://github.com/haobinliang)
-* [extractor/crunchyroll] Fix conversion of thumbnail from GIF by [pukkandan](https://github.com/pukkandan)
+* [extractor/crunchyroll] Fix conversion of thumbnail from GIF
 * [extractor/crunchyroll] Handle missing metadata correctly by [Burve](https://github.com/Burve), [pukkandan](https://github.com/pukkandan)
 * [extractor/crunchyroll:beta] Extract timestamp and fix tests by [tejing1](https://github.com/tejing1)
 * [extractor/crunchyroll:beta] Use streams API by [tejing1](https://github.com/tejing1)

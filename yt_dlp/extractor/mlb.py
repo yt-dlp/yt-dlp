@@ -325,7 +325,7 @@ class MLBTVIE(InfoExtractor):
         airings = self._download_json(
             f'https://search-api-mlbtv.mlb.com/svc/search/v2/graphql/persisted/query/core/Airings?variables=%7B%22partnerProgramIds%22%3A%5B%22{video_id}%22%5D%2C%22applyEsniMediaRightsLabels%22%3Atrue%7D',
             video_id)['data']['Airings']
-    
+
         formats, subtitles = [], {}
         for airing in airings:
             m3u8_url = self._download_json(

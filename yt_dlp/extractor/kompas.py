@@ -1,7 +1,5 @@
 from .jixie import JixieBaseIE
 
-# Video from video.kompas.com seems use jixie player
-
 
 class KompasVideoIE(JixieBaseIE):
     _VALID_URL = r'https?://video\.kompas\.com/\w+/(?P<id>\d+)/(?P<slug>[\w-]+)'

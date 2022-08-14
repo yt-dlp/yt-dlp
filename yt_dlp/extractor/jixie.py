@@ -1,17 +1,14 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    float_or_none,
-    traverse_obj,
-    try_call,
-)
-
-# more info about jixie:
-# [1] https://jixie.atlassian.net/servicedesk/customer/portal/2/article/1339654214?src=-1456335525,
-# [2] https://scripts.jixie.media/jxvideo.3.1.min.js
+from ..utils import clean_html, float_or_none, traverse_obj, try_call
 
 
 class JixieBaseIE(InfoExtractor):
+    """
+    API Reference:
+        https://jixie.atlassian.net/servicedesk/customer/portal/2/article/1339654214?src=-1456335525,
+        https://scripts.jixie.media/jxvideo.3.1.min.js
+    """
+
     def _extract_data_from_jixie_id(self, display_id, video_id, webpage):
         json_data = self._download_json(
             'https://apidam.jixie.io/api/public/stream', display_id,
