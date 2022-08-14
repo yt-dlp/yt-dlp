@@ -471,8 +471,8 @@ def create_parser():
         '--proxy', dest='proxy',
         default=None, metavar='URL',
         help=(
-            'Use the specified HTTP/HTTPS/SOCKS proxy. To enable SOCKS proxy, specify a proper scheme. '
-            'E.g. socks5://user:pass@127.0.0.1:1080/. Pass in an empty string (--proxy "") for direct connection'))
+            'Use the specified HTTP/HTTPS/SOCKS proxy. To enable SOCKS proxy, specify a proper scheme, '
+            'e.g. socks5://user:pass@127.0.0.1:1080/. Pass in an empty string (--proxy "") for direct connection'))
     network.add_option(
         '--socket-timeout',
         dest='socket_timeout', type=float, default=None, metavar='SECONDS',
@@ -549,11 +549,11 @@ def create_parser():
     selection.add_option(
         '--min-filesize',
         metavar='SIZE', dest='min_filesize', default=None,
-        help='Do not download any videos smaller than SIZE. E.g. 50k or 44.6m')
+        help='Do not download any videos smaller than SIZE, e.g. 50k or 44.6M')
     selection.add_option(
         '--max-filesize',
         metavar='SIZE', dest='max_filesize', default=None,
-        help='Do not download any videos larger than SIZE. E.g. 50k or 44.6m')
+        help='Do not download any videos larger than SIZE, e.g. 50k or 44.6M')
     selection.add_option(
         '--date',
         metavar='DATE', dest='date', default=None,
@@ -871,8 +871,8 @@ def create_parser():
             'Time to sleep between retries in seconds (optionally) prefixed by the type of retry '
             '(http (default), fragment, file_access, extractor) to apply the sleep to. '
             'EXPR can be a number, linear=START[:END[:STEP=1]] or exp=START[:END[:BASE=2]]. '
-            'This option can be used multiple times to set the sleep for the different retry types. '
-            'E.g. --retry-sleep linear=1::2 --retry-sleep fragment:exp=1:20'))
+            'This option can be used multiple times to set the sleep for the different retry types, '
+            'e.g. --retry-sleep linear=1::2 --retry-sleep fragment:exp=1:20'))
     downloader.add_option(
         '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragment',
         action='store_true', dest='skip_unavailable_fragments', default=True,
@@ -905,7 +905,7 @@ def create_parser():
         '--http-chunk-size',
         dest='http_chunk_size', metavar='SIZE', default=None,
         help=(
-            'Size of a chunk for chunk-based HTTP downloadin, e.g. 10485760 or 10M (default is disabled). '
+            'Size of a chunk for chunk-based HTTP downloading, e.g. 10485760 or 10M (default is disabled). '
             'May be useful for bypassing bandwidth throttling imposed by a webserver (experimental)'))
     downloader.add_option(
         '--test',
@@ -963,8 +963,8 @@ def create_parser():
         help=(
             'Download only chapters whose title matches the given regular expression. '
             'Time ranges prefixed by a "*" can also be used in place of chapters to download the specified range. '
-            'E.g. --download-sections "*10:15-15:00" --download-sections "intro". '
-            'Needs ffmpeg. This option can be used multiple times to download multiple sections'))
+            'Needs ffmpeg. This option can be used multiple times to download multiple sections, '
+            'e.g. --download-sections "*10:15-15:00" --download-sections "intro"'))
     downloader.add_option(
         '--downloader', '--external-downloader',
         dest='external_downloader', metavar='[PROTO:]NAME', default={}, type='str',
@@ -1513,7 +1513,7 @@ def create_parser():
             'You can also specify "PP+EXE:ARGS" to give the arguments to the specified executable '
             'only when being used by the specified postprocessor. Additionally, for ffmpeg/ffprobe, '
             '"_i"/"_o" can be appended to the prefix optionally followed by a number to pass the argument '
-            'before the specified input/output file. E.g. --ppa "Merger+ffmpeg_i1:-v quiet". '
+            'before the specified input/output file, e.g. --ppa "Merger+ffmpeg_i1:-v quiet". '
             'You can use this option multiple times to give different arguments to different '
             'postprocessors. (Alias: --ppa)'))
     postproc.add_option(

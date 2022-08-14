@@ -439,8 +439,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 
 ## Network Options:
     --proxy URL                     Use the specified HTTP/HTTPS/SOCKS proxy. To
-                                    enable SOCKS proxy, specify a proper scheme.
-                                    E.g. socks5://user:pass@127.0.0.1:1080/.
+                                    enable SOCKS proxy, specify a proper scheme,
+                                    e.g. socks5://user:pass@127.0.0.1:1080/.
                                     Pass in an empty string (--proxy "") for
                                     direct connection
     --socket-timeout SECONDS        Time to wait before giving up, in seconds
@@ -475,13 +475,13 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     playlist of size 15 will download the videos
                                     at index 1,2,3,7,11,13,15
     --min-filesize SIZE             Do not download any videos smaller than
-                                    SIZE. E.g. 50k or 44.6m
+                                    SIZE. E.g. 50k or 44.6M
     --max-filesize SIZE             Do not download any videos larger than SIZE.
-                                    E.g. 50k or 44.6m
+                                    E.g. 50k or 44.6M
     --date DATE                     Download only videos uploaded on this date.
                                     The date can be "YYYYMMDD" or in the format 
-                                    [now|today|yesterday][-N[day|week|month|year
-                                    ]]. E.g. --date today-2weeks
+                                    [now|today|yesterday][-N[day|week|month|year]].
+                                    E.g. --date today-2weeks
     --datebefore DATE               Download only videos uploaded on or before
                                     this date. The date formats accepted is the
                                     same as --date
@@ -554,7 +554,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     be a number, linear=START[:END[:STEP=1]] or
                                     exp=START[:END[:BASE=2]]. This option can be
                                     used multiple times to set the sleep for the
-                                    different retry types. E.g. --retry-sleep
+                                    different retry types, e.g. --retry-sleep
                                     linear=1::2 --retry-sleep fragment:exp=1:20
     --skip-unavailable-fragments    Skip unavailable fragments for DASH,
                                     hlsnative and ISM downloads (default)
@@ -573,8 +573,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     (default)
     --no-resize-buffer              Do not automatically adjust the buffer size
     --http-chunk-size SIZE          Size of a chunk for chunk-based HTTP
-                                    downloadin, e.g. 10485760 or 10M (default is
-                                    disabled). May be useful for bypassing
+                                    downloading, e.g. 10485760 or 10M (default
+                                    is disabled). May be useful for bypassing
                                     bandwidth throttling imposed by a webserver
                                     (experimental)
     --playlist-random               Download playlist videos in random order
@@ -598,10 +598,10 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     the given regular expression. Time ranges
                                     prefixed by a "*" can also be used in place
                                     of chapters to download the specified range.
-                                    E.g. --download-sections "*10:15-15:00"
-                                    --download-sections "intro". Needs ffmpeg.
-                                    This option can be used multiple times to
-                                    download multiple sections
+                                    Needs ffmpeg. This option can be used
+                                    multiple times to download multiple
+                                    sections, e.g. --download-sections
+                                    "*10:15-15:00" --download-sections "intro"
     --downloader [PROTO:]NAME       Name or path of the external downloader to
                                     use (optionally) prefixed by the protocols
                                     (http, ftp, m3u8, dash, rstp, rtmp, mms) to
@@ -954,7 +954,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     for ffmpeg/ffprobe, "_i"/"_o" can be
                                     appended to the prefix optionally followed
                                     by a number to pass the argument before the
-                                    specified input/output file. E.g. --ppa
+                                    specified input/output file, e.g. --ppa
                                     "Merger+ffmpeg_i1:-v quiet". You can use
                                     this option multiple times to give different
                                     arguments to different postprocessors.
@@ -1072,7 +1072,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
     introductions, etc.) from downloaded YouTube videos using the
-    SponsorBlock API (https://sponsor.ajay.app)
+    [SponsorBlock API](https://sponsor.ajay.app)
 
     --sponsorblock-mark CATS        SponsorBlock categories to create chapters
                                     for, separated by commas. Available
@@ -1768,17 +1768,16 @@ The following extractors use this feature:
 * `approximate_date`: Extract approximate `upload_date` in flat-playlist. This may cause date-based filters to be slightly off
 
 #### funimation
-* `language`: Languages to extract. E.g. `funimation:language=english,japanese`
+* `language`: Languages to extract, e.g. `funimation:language=english,japanese`
 * `version`: The video version to extract - `uncut` or `simulcast`
 
 #### crunchyroll
-* `language`: Languages to extract. E.g. `crunchyroll:language=jaJp`
-* `hardsub`: Which hard-sub versions to extract. E.g. `crunchyroll:hardsub=None,enUS`
+* `language`: Languages to extract, e.g. `crunchyroll:language=jaJp`
+* `hardsub`: Which hard-sub versions to extract, e.g. `crunchyroll:hardsub=None,enUS`
 
 #### crunchyrollbeta
-* `format`: Which stream type(s) to extract. Default is `adaptive_hls` E.g. `crunchyrollbeta:format=vo_adaptive_hls`
-    * Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `download_dash`, `multitrack_adaptive_hls_v2`
-* `hardsub`: Preference order for which hardsub versions to extract. Default is `None` (no hardsubs). E.g. `crunchyrollbeta:hardsub=en-US,None`
+* `format`: Which stream type(s) to extract (default: `adaptive_hls`). Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `download_dash`, `multitrack_adaptive_hls_v2`
+* `hardsub`: Preference order for which hardsub versions to extract (default: `None` = no hardsubs), e.g. `crunchyrollbeta:hardsub=en-US,None`
 
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
@@ -1798,11 +1797,11 @@ The following extractors use this feature:
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
 #### tiktok
-* `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`. E.g. `20.2.1`
-* `manifest_app_version`: Numeric app version to call mobile APIs with. E.g. `221`
+* `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`, e.g. `20.2.1`
+* `manifest_app_version`: Numeric app version to call mobile APIs with, e.g. `221`
 
 #### rokfinchannel
-* `tab`: Which tab to download. One of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`. E.g. `rokfinchannel:tab=streams`
+* `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`
 
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
@@ -2066,7 +2065,7 @@ While these options still work, their use is not recommended since there are oth
     --all-formats                    -f all
     --all-subs                       --sub-langs all --write-subs
     --print-json                     -j --no-simulate
-    --autonumber-size NUMBER         Use string formatting. e.g. %(autonumber)03d
+    --autonumber-size NUMBER         Use string formatting, e.g. %(autonumber)03d
     --autonumber-start NUMBER        Use internal field formatting like %(autonumber+NUMBER)s
     --id                             -o "%(id)s.%(ext)s"
     --metadata-from-title FORMAT     --parse-metadata "%(title)s:FORMAT"

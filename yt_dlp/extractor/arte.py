@@ -129,8 +129,8 @@ class ArteTVIE(ArteTVBaseIE):
                                      countries=self._COUNTRIES_MAP.get(geoblocking['code'], ('DE', 'FR')))
 
         if not traverse_obj(config, ('data', 'attributes', 'rights')):
-            # e.g. https://www.arte.tv/de/videos/097407-215-A/28-minuten
-            # e.g. https://www.arte.tv/es/videos/104351-002-A/serviteur-du-peuple-1-23
+            # E.g. https://www.arte.tv/de/videos/097407-215-A/28-minuten
+            # E.g. https://www.arte.tv/es/videos/104351-002-A/serviteur-du-peuple-1-23
             raise ExtractorError(
                 'Video is not available in this language edition of Arte or broadcast rights expired', expected=True)
 

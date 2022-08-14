@@ -331,7 +331,7 @@ class InfoExtractor:
     playable_in_embed: Whether this video is allowed to play in embedded
                     players on other sites. Can be True (=always allowed),
                     False (=never allowed), None (=unknown), or a string
-                    specifying the criteria for embedability (e.g. 'whitelist')
+                    specifying the criteria for embedability; e.g. 'whitelist'
     availability:   Under what condition the video is available. One of
                     'private', 'premium_only', 'subscriber_only', 'needs_auth',
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
@@ -452,8 +452,8 @@ class InfoExtractor:
 
     _extract_from_webpage may raise self.StopExtraction() to stop further
     processing of the webpage and obtain exclusive rights to it. This is useful
-    when the extractor cannot reliably be matched using just the URL.
-    E.g. invidious/peertube instances
+    when the extractor cannot reliably be matched using just the URL,
+    e.g. invidious/peertube instances
 
     Embed-only extractors can be defined by setting _VALID_URL = False.
 

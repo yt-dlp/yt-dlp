@@ -272,7 +272,7 @@ class YoutubeDL:
     subtitleslangs:    List of languages of the subtitles to download (can be regex).
                        The list may contain "all" to refer to all the available
                        subtitles. The language can be prefixed with a "-" to
-                       exclude it from the requested languages. e.g. ['all', '-live_chat']
+                       exclude it from the requested languages, e.g. ['all', '-live_chat']
     keepvideo:         Keep the video file after post-processing
     daterange:         A DateRange object, download only if the upload_date is in the range.
     skip_download:     Skip the actual download of the video file
@@ -302,7 +302,7 @@ class YoutubeDL:
     cookiefile:        File name or text stream from where cookies should be read and dumped to
     cookiesfrombrowser:  A tuple containing the name of the browser, the profile
                        name/pathfrom where cookies are loaded, and the name of the
-                       keyring. e.g. ('chrome', ) or ('vivaldi', 'default', 'BASICTEXT')
+                       keyring, e.g. ('chrome', ) or ('vivaldi', 'default', 'BASICTEXT')
     legacyserverconnect: Explicitly allow HTTPS connection to servers that do not
                        support RFC 5746 secure renegotiation
     nocheckcertificate:  Do not verify SSL certificates
@@ -470,7 +470,7 @@ class YoutubeDL:
                        discontinuities such as ad breaks (default: False)
     extractor_args:    A dictionary of arguments to be passed to the extractors.
                        See "EXTRACTOR ARGUMENTS" for details.
-                       e.g. {'youtube': {'skip': ['dash', 'hls']}}
+                       E.g. {'youtube': {'skip': ['dash', 'hls']}}
     mark_watched:      Mark videos watched (even with --simulate). Only for YouTube
 
     The following options are deprecated and may be removed in the future:

@@ -3035,7 +3035,7 @@ class GenericIE(InfoExtractor):
                 self.report_detected('Twitter card')
         if not found:
             # We look for Open Graph info:
-            # We have to match any number spaces between elements, some sites try to align them (eg.: statigr.am)
+            # We have to match any number spaces between elements, some sites try to align them, e.g.: statigr.am
             m_video_type = re.findall(r'<meta.*?property="og:video:type".*?content="video/(.*?)"', webpage)
             # We only look in og:video if the MIME type is a video, don't try if it's a Flash player:
             if m_video_type is not None:

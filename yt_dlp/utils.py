@@ -600,7 +600,7 @@ def sanitize_open(filename, open_mode):
         if sys.platform == 'win32':
             import msvcrt
 
-            # stdout may be any IO stream. Eg, when using contextlib.redirect_stdout
+            # stdout may be any IO stream, e.g. when using contextlib.redirect_stdout
             with contextlib.suppress(io.UnsupportedOperation):
                 msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
         return (sys.stdout.buffer if hasattr(sys.stdout, 'buffer') else sys.stdout, filename)
