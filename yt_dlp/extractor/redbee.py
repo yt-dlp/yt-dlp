@@ -280,7 +280,10 @@ class RTBFIE(RedBeeBaseIE):
         if provider in self._PROVIDERS:
             return self.url_result(data['url'], self._PROVIDERS[provider])
 
-        title = data['subtitle']
+        # In general, we prefer the 'subtitle' because it's a lot more specific than the 'title',
+        # but we need to fallback to 'title' in case 'subtitle' doesn't exist, like for livestreams.
+        # https://github.com/yt-dlp/yt-dlp/issues/4656
+        title = data.get('subtitle') or data['title']
         is_live = data.get('isLive')
         height_re = r'-(\d+)p\.'
         formats = []
