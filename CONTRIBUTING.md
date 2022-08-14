@@ -195,7 +195,7 @@ After you have ensured this site is distributing its content legally, you can fo
                 # * A value
                 # * MD5 checksum; start the string with md5:
                 # * A regular expression; start the string with re:
-                # * Any Python type (for example int or float)
+                # * Any Python type, e.g. int or float
             }
         }]
 
@@ -261,7 +261,7 @@ The aforementioned metafields are the critical data that the extraction does not
 
 For pornographic sites, appropriate `age_limit` must also be returned.
 
-The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
+The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - e.g. when the video is a live stream that has not started yet.
 
 [Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 

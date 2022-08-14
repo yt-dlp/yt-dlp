@@ -376,7 +376,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --extractor-descriptions        Output descriptions of all supported
                                     extractors and exit
     --force-generic-extractor       Force extraction to use the generic extractor
-    --default-search PREFIX         Use this prefix for unqualified URLs. Eg:
+    --default-search PREFIX         Use this prefix for unqualified URLs. E.g.
                                     "gvsearch2:python" downloads two videos from
                                     google videos for the search term "python".
                                     Use the value "auto" to let yt-dlp guess
@@ -425,7 +425,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     an alias starts with a dash "-", it is
                                     prefixed with "--". Arguments are parsed
                                     according to the Python string formatting
-                                    mini-language. Eg: --alias get-audio,-X
+                                    mini-language. E.g. --alias get-audio,-X
                                     "-S=aext:{0},abr -x --audio-format {0}"
                                     creates options "--get-audio" and "-X" that
                                     takes an argument (ARG0) and expands to
@@ -439,10 +439,10 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 
 ## Network Options:
     --proxy URL                     Use the specified HTTP/HTTPS/SOCKS proxy. To
-                                    enable SOCKS proxy, specify a proper scheme.
-                                    Eg: socks5://user:pass@127.0.0.1:1080/. Pass
-                                    in an empty string (--proxy "") for direct
-                                    connection
+                                    enable SOCKS proxy, specify a proper scheme,
+                                    e.g. socks5://user:pass@127.0.0.1:1080/.
+                                    Pass in an empty string (--proxy "") for
+                                    direct connection
     --socket-timeout SECONDS        Time to wait before giving up, in seconds
     --source-address IP             Client-side IP address to bind to
     -4, --force-ipv4                Make all connections via IPv4
@@ -471,17 +471,17 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     compatibility, START-STOP is also supported.
                                     Use negative indices to count from the right
                                     and negative STEP to download in reverse
-                                    order. Eg: "-I 1:3,7,-5::2" used on a
+                                    order. E.g. "-I 1:3,7,-5::2" used on a
                                     playlist of size 15 will download the videos
                                     at index 1,2,3,7,11,13,15
-    --min-filesize SIZE             Do not download any videos smaller than SIZE
-                                    (e.g. 50k or 44.6m)
-    --max-filesize SIZE             Do not download any videos larger than SIZE
-                                    (e.g. 50k or 44.6m)
+    --min-filesize SIZE             Do not download any videos smaller than
+                                    SIZE, e.g. 50k or 44.6M
+    --max-filesize SIZE             Do not download any videos larger than SIZE,
+                                    e.g. 50k or 44.6M
     --date DATE                     Download only videos uploaded on this date.
                                     The date can be "YYYYMMDD" or in the format 
                                     [now|today|yesterday][-N[day|week|month|year]].
-                                    Eg: --date today-2weeks
+                                    E.g. --date today-2weeks
     --datebefore DATE               Download only videos uploaded on or before
                                     this date. The date formats accepted is the
                                     same as --date
@@ -498,7 +498,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     conditions. Use a "\" to escape "&" or
                                     quotes if needed. If used multiple times,
                                     the filter matches if atleast one of the
-                                    conditions are met. Eg: --match-filter
+                                    conditions are met. E.g. --match-filter
                                     !is_live --match-filter "like_count>?100 &
                                     description~='(?i)\bcats \& dogs\b'" matches
                                     only videos that are not live OR those that
@@ -536,11 +536,11 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     -N, --concurrent-fragments N    Number of fragments of a dash/hlsnative
                                     video that should be downloaded concurrently
                                     (default is 1)
-    -r, --limit-rate RATE           Maximum download rate in bytes per second
-                                    (e.g. 50K or 4.2M)
+    -r, --limit-rate RATE           Maximum download rate in bytes per second,
+                                    e.g. 50K or 4.2M
     --throttled-rate RATE           Minimum download rate in bytes per second
                                     below which throttling is assumed and the
-                                    video data is re-extracted (e.g. 100K)
+                                    video data is re-extracted, e.g. 100K
     -R, --retries RETRIES           Number of retries (default is 10), or
                                     "infinite"
     --file-access-retries RETRIES   Number of times to retry on file access
@@ -554,7 +554,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     be a number, linear=START[:END[:STEP=1]] or
                                     exp=START[:END[:BASE=2]]. This option can be
                                     used multiple times to set the sleep for the
-                                    different retry types. Eg: --retry-sleep
+                                    different retry types, e.g. --retry-sleep
                                     linear=1::2 --retry-sleep fragment:exp=1:20
     --skip-unavailable-fragments    Skip unavailable fragments for DASH,
                                     hlsnative and ISM downloads (default)
@@ -566,14 +566,14 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     downloading is finished
     --no-keep-fragments             Delete downloaded fragments after
                                     downloading is finished (default)
-    --buffer-size SIZE              Size of download buffer (e.g. 1024 or 16K)
+    --buffer-size SIZE              Size of download buffer, e.g. 1024 or 16K
                                     (default is 1024)
     --resize-buffer                 The buffer size is automatically resized
                                     from an initial value of --buffer-size
                                     (default)
     --no-resize-buffer              Do not automatically adjust the buffer size
     --http-chunk-size SIZE          Size of a chunk for chunk-based HTTP
-                                    downloading (e.g. 10485760 or 10M) (default
+                                    downloading, e.g. 10485760 or 10M (default
                                     is disabled). May be useful for bypassing
                                     bandwidth throttling imposed by a webserver
                                     (experimental)
@@ -598,10 +598,10 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     the given regular expression. Time ranges
                                     prefixed by a "*" can also be used in place
                                     of chapters to download the specified range.
-                                    Eg: --download-sections "*10:15-15:00"
-                                    --download-sections "intro". Needs ffmpeg.
-                                    This option can be used multiple times to
-                                    download multiple sections
+                                    Needs ffmpeg. This option can be used
+                                    multiple times to download multiple
+                                    sections, e.g. --download-sections
+                                    "*10:15-15:00" --download-sections "intro"
     --downloader [PROTO:]NAME       Name or path of the external downloader to
                                     use (optionally) prefixed by the protocols
                                     (http, ftp, m3u8, dash, rstp, rtmp, mms) to
@@ -609,7 +609,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     aria2c, avconv, axel, curl, ffmpeg, httpie,
                                     wget. You can use this option multiple times
                                     to set different downloaders for different
-                                    protocols. For example, --downloader aria2c
+                                    protocols. E.g. --downloader aria2c
                                     --downloader "dash,m3u8:native" will use
                                     aria2c for http/ftp downloads, and the
                                     native downloader for dash/m3u8 downloads
@@ -791,7 +791,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     "postprocess:",  or "postprocess-title:".
                                     The video's fields are accessible under the
                                     "info" key and the progress attributes are
-                                    accessible under "progress" key. E.g.:
+                                    accessible under "progress" key. E.g.
                                     --console-title --progress-template
                                     "download-title:%(info.id)s-%(progress.eta)s"
     -v, --verbose                   Print various debugging information
@@ -860,7 +860,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     -F, --list-formats              List available formats of each video.
                                     Simulate unless --no-simulate is used
     --merge-output-format FORMAT    Containers that may be used when merging
-                                    formats, separated by "/" (Eg: "mp4/mkv").
+                                    formats, separated by "/", e.g. "mp4/mkv".
                                     Ignored if no merge is required. (currently
                                     supported: avi, flv, mkv, mov, mp4, webm)
 
@@ -874,13 +874,13 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --list-subs                     List available subtitles of each video.
                                     Simulate unless --no-simulate is used
     --sub-format FORMAT             Subtitle format; accepts formats preference,
-                                    Eg: "srt" or "ass/srt/best"
+                                    e.g. "srt" or "ass/srt/best"
     --sub-langs LANGS               Languages of the subtitles to download (can
-                                    be regex) or "all" separated by commas. (Eg:
-                                    --sub-langs "en.*,ja") You can prefix the
+                                    be regex) or "all" separated by commas, e.g.
+                                    --sub-langs "en.*,ja". You can prefix the
                                     language code with a "-" to exclude it from
-                                    the requested languages. (Eg: --sub-langs
-                                    all,-live_chat) Use --list-subs for a list
+                                    the requested languages, e.g. --sub-langs
+                                    all,-live_chat. Use --list-subs for a list
                                     of available language tags
 
 ## Authentication Options:
@@ -929,7 +929,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     m4a, mka, mp3, ogg, opus, vorbis, wav). If
                                     target container does not support the
                                     video/audio codec, remuxing will fail. You
-                                    can specify multiple rules; Eg.
+                                    can specify multiple rules; e.g.
                                     "aac>m4a/mov>mp4/mkv" will remux aac to m4a,
                                     mov to mp4 and anything else to mkv
     --recode-video FORMAT           Re-encode the video into another format if
@@ -954,7 +954,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     for ffmpeg/ffprobe, "_i"/"_o" can be
                                     appended to the prefix optionally followed
                                     by a number to pass the argument before the
-                                    specified input/output file. Eg: --ppa
+                                    specified input/output file, e.g. --ppa
                                     "Merger+ffmpeg_i1:-v quiet". You can use
                                     this option multiple times to give different
                                     arguments to different postprocessors.
@@ -1081,7 +1081,7 @@ Make chapter entries for, or remove various segments (sponsor,
                                     music_offtopic, poi_highlight, all and
                                     default (=all). You can prefix the category
                                     with a "-" to exclude it. See [1] for
-                                    description of the categories. Eg:
+                                    description of the categories. E.g.
                                     --sponsorblock-mark all,-preview
                                     [1] https://wiki.sponsor.ajay.app/w/Segment_Categories
     --sponsorblock-remove CATS      SponsorBlock categories to be removed from
@@ -1140,7 +1140,7 @@ You can configure yt-dlp by placing any supported command line option to a confi
 
 1. **System Configuration**: `/etc/yt-dlp.conf`
 
-For example, with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
+E.g. with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
 ```
 # Lines starting with # are comments
 
@@ -1178,7 +1178,7 @@ After that you can add credentials for an extractor in the following format, whe
 ```
 machine <extractor> login <username> password <password>
 ```
-For example:
+E.g.
 ```
 machine youtube login myaccount@gmail.com password my_youtube_password
 machine twitch login my_twitch_account_name password my_twitch_password
@@ -1197,32 +1197,32 @@ The `-o` option is used to indicate a template for the output file names while `
 
 The simplest usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"` (hard-coding file extension like this is _not_ recommended and could break some post-processing).
 
-It may however also contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [Python string formatting operations](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations.
+It may however also contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [Python string formatting operations](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting), e.g. `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations.
 
 The field names themselves (the part inside the parenthesis) can also have some special formatting:
 
-1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. Eg: `%(tags.0)s`, `%(subtitles.en.-1.ext)s`, `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. `%()s` refers to the entire infodict. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
+1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. E.g. `%(tags.0)s`, `%(subtitles.en.-1.ext)s`, `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. `%()s` refers to the entire infodict. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
 
-1. **Addition**: Addition and subtraction of numeric fields can be done using `+` and `-` respectively. Eg: `%(playlist_index+10)03d`, `%(n_entries+1-playlist_index)d`
+1. **Addition**: Addition and subtraction of numeric fields can be done using `+` and `-` respectively. E.g. `%(playlist_index+10)03d`, `%(n_entries+1-playlist_index)d`
 
-1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. Eg: `%(duration>%H-%M-%S)s`, `%(upload_date>%Y-%m-%d)s`, `%(epoch-3600>%H-%M-%S)s`
+1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. E.g. `%(duration>%H-%M-%S)s`, `%(upload_date>%Y-%m-%d)s`, `%(epoch-3600>%H-%M-%S)s`
 
-1. **Alternatives**: Alternate fields can be specified separated with a `,`. Eg: `%(release_date>%Y,upload_date>%Y|Unknown)s`
+1. **Alternatives**: Alternate fields can be specified separated with a `,`. E.g. `%(release_date>%Y,upload_date>%Y|Unknown)s`
 
 1. **Replacement**: A replacement value can specified using a `&` separator. If the field is *not* empty, this replacement value will be used instead of the actual field content. This is done after alternate fields are considered; thus the replacement is used if *any* of the alternative fields is *not* empty.
 
-1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-template`. Eg: `%(uploader|Unknown)s`
+1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-template`. E.g. `%(uploader|Unknown)s`
 
-1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing), `h` = HTML escaping, `l` = a comma separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (Eg: 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
+1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing), `h` = HTML escaping, `l` = a comma separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (e.g. 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
 
-1. **Unicode normalization**: The format type `U` can be used for NFC [unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. Eg: `%(title)+.100U` is NFKC
+1. **Unicode normalization**: The format type `U` can be used for NFC [unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. E.g. `%(title)+.100U` is NFKC
 
 To summarize, the general syntax for a field is:
 ```
 %(name[.keys][addition][>strf][,alternate][&replacement][|default])[flags][width][.precision][length]type
 ```
 
-Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. For example, `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates is empty, that type of file will not be written. Eg: `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
+Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. E.g. `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates is empty, that type of file will not be written. E.g. `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
 
 The available fields are:
 
@@ -1358,13 +1358,13 @@ Available only in `--sponsorblock-chapter-title`:
  - `category_names` (list): Friendly names of the categories
  - `name` (string): Friendly name of the smallest category
 
-Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. For example for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `BaW_jenozKc`, this will result in a `yt-dlp test video-BaW_jenozKc.mp4` file created in the current directory.
+Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. E.g. for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `BaW_jenozKc`, this will result in a `yt-dlp test video-BaW_jenozKc.mp4` file created in the current directory.
 
 Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
 
 **Tip**: Look at the `-j` output to identify which fields are available for the particular URL
 
-For numeric sequences you can use [numeric related formatting](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting), for example, `%(view_count)05d` will result in a string with view count padded with zeros up to 5 characters, like in `00042`.
+For numeric sequences you can use [numeric related formatting](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting); e.g. `%(view_count)05d` will result in a string with view count padded with zeros up to 5 characters, like in `00042`.
 
 Output templates can also contain arbitrary hierarchical path, e.g. `-o "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s"` which will result in downloading each video in a directory corresponding to this path template. Any missing directory will be automatically created for you.
 
@@ -1434,7 +1434,7 @@ The general syntax for format selection is `-f FORMAT` (or `--format FORMAT`) wh
 **tl;dr:** [navigate me to examples](#format-selection-examples).
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
-The simplest case is requesting a specific format, for example with `-f 22` you can download the format with format code equal to 22. You can get the list of available format codes for particular video using `--list-formats` or `-F`. Note that these format codes are extractor specific.
+The simplest case is requesting a specific format; e.g. with `-f 22` you can download the format with format code equal to 22. You can get the list of available format codes for particular video using `--list-formats` or `-F`. Note that these format codes are extractor specific.
 
 You can also use a file extension (currently `3gp`, `aac`, `flv`, `m4a`, `mp3`, `mp4`, `ogg`, `wav`, `webm` are supported) to download the best quality format of a particular file extension served as a single file, e.g. `-f webm` will download the best quality format with the `webm` extension served as a single file.
 
@@ -1461,15 +1461,15 @@ For example, to download the worst quality video-only format you can use `-f wor
 
 You can select the n'th best format of a type by using `best<type>.<n>`. For example, `best.2` will select the 2nd best combined format. Similarly, `bv*.3` will select the 3rd best format that contains a video stream.
 
-If you want to download multiple videos and they don't have the same formats available, you can specify the order of preference using slashes. Note that formats on the left hand side are preferred, for example `-f 22/17/18` will download format 22 if it's available, otherwise it will download format 17 if it's available, otherwise it will download format 18 if it's available, otherwise it will complain that no suitable formats are available for download.
+If you want to download multiple videos and they don't have the same formats available, you can specify the order of preference using slashes. Note that formats on the left hand side are preferred; e.g. `-f 22/17/18` will download format 22 if it's available, otherwise it will download format 17 if it's available, otherwise it will download format 18 if it's available, otherwise it will complain that no suitable formats are available for download.
 
 If you want to download several formats of the same video use a comma as a separator, e.g. `-f 22,17,18` will download all these three formats, of course if they are available. Or a more sophisticated example combined with the precedence feature: `-f 136/137/mp4/bestvideo,140/m4a/bestaudio`.
 
-You can merge the video and audio of multiple formats into a single file using `-f <format1>+<format2>+...` (requires ffmpeg installed), for example `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg.
+You can merge the video and audio of multiple formats into a single file using `-f <format1>+<format2>+...` (requires ffmpeg installed); e.g. `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg.
 
 **Deprecation warning**: Since the *below* described behavior is complex and counter-intuitive, this will be removed and multistreams will be enabled by default in the future. A new operator will be instead added to limit formats to single audio/video
 
-Unless `--video-multistreams` is used, all formats with a video stream except the first one are ignored. Similarly, unless `--audio-multistreams` is used, all formats with an audio stream except the first one are ignored. For example, `-f bestvideo+best+bestaudio --video-multistreams --audio-multistreams` will download and merge all 3 given formats. The resulting file will have 2 video streams and 2 audio streams. But `-f bestvideo+best+bestaudio --no-video-multistreams` will download and merge only `bestvideo` and `bestaudio`. `best` is ignored since another format containing a video stream (`bestvideo`) has already been selected. The order of the formats is therefore important. `-f best+bestaudio --no-audio-multistreams` will download and merge both formats while `-f bestaudio+best --no-audio-multistreams` will ignore `best` and download only `bestaudio`.
+Unless `--video-multistreams` is used, all formats with a video stream except the first one are ignored. Similarly, unless `--audio-multistreams` is used, all formats with an audio stream except the first one are ignored. E.g. `-f bestvideo+best+bestaudio --video-multistreams --audio-multistreams` will download and merge all 3 given formats. The resulting file will have 2 video streams and 2 audio streams. But `-f bestvideo+best+bestaudio --no-video-multistreams` will download and merge only `bestvideo` and `bestaudio`. `best` is ignored since another format containing a video stream (`bestvideo`) has already been selected. The order of the formats is therefore important. `-f best+bestaudio --no-audio-multistreams` will download and merge both formats while `-f bestaudio+best --no-audio-multistreams` will ignore `best` and download only `bestaudio`.
 
 ## Filtering Formats
 
@@ -1500,9 +1500,9 @@ Any string comparison may be prefixed with negation `!` in order to produce an o
 
 Note that none of the aforementioned meta fields are guaranteed to be present since this solely depends on the metadata obtained by particular extractor, i.e. the metadata offered by the website. Any other field made available by the extractor can also be used for filtering.
 
-Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "[height<=?720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s. You can also use the filters with `all` to download all formats that satisfy the filter. For example, `-f "all[vcodec=none]"` selects all audio-only formats.
+Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "[height<=?720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s. You can also use the filters with `all` to download all formats that satisfy the filter, e.g. `-f "all[vcodec=none]"` selects all audio-only formats.
 
-Format selectors can also be grouped using parentheses, for example if you want to download the best pre-merged mp4 and webm formats with a height lower than 480 you can use `-f "(mp4,webm)[height<480]"`.
+Format selectors can also be grouped using parentheses; e.g. `-f "(mp4,webm)[height<480]"` will download the best pre-merged mp4 and webm formats with a height lower than 480.
 
 ## Sorting Formats
 
@@ -1540,7 +1540,7 @@ The available fields are:
  
 **Deprecation warning**: Many of these fields have (currently undocumented) aliases, that may be removed in a future version. It is recommended to use only the documented field names.
 
-All fields, unless specified otherwise, are sorted in descending order. To reverse this, prefix the field with a `+`. Eg: `+res` prefers format with the smallest resolution. Additionally, you can suffix a preferred value for the fields, separated by a `:`. Eg: `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two preferred values, the first for video and the second for audio. Eg: `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. Eg: `filesize~1G` prefers the format with filesize closest to 1 GiB.
+All fields, unless specified otherwise, are sorted in descending order. To reverse this, prefix the field with a `+`. E.g. `+res` prefers format with the smallest resolution. Additionally, you can suffix a preferred value for the fields, separated by a `:`. E.g. `res:720` prefers larger videos, but no larger than 720p and the smallest video if there are no videos less than 720p. For `codec` and `ext`, you can provide two preferred values, the first for video and the second for audio. E.g. `+codec:avc:m4a` (equivalent to `+vcodec:avc,+acodec:m4a`) sets the video codec preference to `h264` > `h265` > `vp9` > `vp9.2` > `av01` > `vp8` > `h263` > `theora` and audio codec preference to `mp4a` > `aac` > `vorbis` > `opus` > `mp3` > `ac3` > `dts`. You can also make the sorting prefer the nearest values to the provided by using `~` as the delimiter. E.g. `filesize~1G` prefers the format with filesize closest to 1 GiB.
 
 The fields `hasvid` and `ie_pref` are always given highest priority in sorting, irrespective of the user-defined order. This behaviour can be changed by using `--format-sort-force`. Apart from these, the default order used is: `lang,quality,res,fps,hdr:12,vcodec:vp9.2,channels,acodec,size,br,asr,proto,ext,hasaud,source,id`. The extractors may override this default order, but they cannot override the user-provided order.
 
@@ -1685,9 +1685,9 @@ Note that any field created by this can be used in the [output template](#output
 
 This option also has a few special uses:
 
-* You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. Eg: `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)` will download the first vimeo video found in the description
+* You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. E.g. `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)` will download the first vimeo video found in the description
 
-* You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file. For example, you can use this to set a different "description" and "synopsis". To modify the metadata of individual streams, use the `meta<n>_` prefix (Eg: `meta1_language`). Any value set to the `meta_` field will overwrite all default values.
+* You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file - you can use this to set a different "description" and "synopsis". To modify the metadata of individual streams, use the `meta<n>_` prefix (e.g. `meta1_language`). Any value set to the `meta_` field will overwrite all default values.
 
 **Note**: Metadata modification happens before format selection, post-extraction and other post-processing operations. Some fields may be added or changed during these steps, overriding your changes.
 
@@ -1746,20 +1746,20 @@ $ yt-dlp --replace-in-metadata "title,uploader" "[ _]" "-"
 
 # EXTRACTOR ARGUMENTS
 
-Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. Eg: `--extractor-args "youtube:player-client=android_embedded,web;include_live_dash" --extractor-args "funimation:version=uncut"`
+Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. E.g. `--extractor-args "youtube:player-client=android_embedded,web;include_live_dash" --extractor-args "funimation:version=uncut"`
 
 The following extractors use this feature:
 
 #### youtube
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
-* `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (Eg: `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
+* `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (e.g. `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
 * `include_live_dash`: Include live dash formats even without `--live-from-start` (These formats don't download properly)
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
 * `innertube_host`: Innertube API host to use for all API requests 
-  * e.g. `studio.youtube.com`, `youtubei.googleapis.com`
+  * E.g. `studio.youtube.com`, `youtubei.googleapis.com`
   * Note: Cookies exported from `www.youtube.com` will not work with hosts other than `*.youtube.com`
 * `innertube_key`: Innertube API key to use for all API requests
 
@@ -1768,17 +1768,16 @@ The following extractors use this feature:
 * `approximate_date`: Extract approximate `upload_date` in flat-playlist. This may cause date-based filters to be slightly off
 
 #### funimation
-* `language`: Languages to extract. Eg: `funimation:language=english,japanese`
+* `language`: Languages to extract, e.g. `funimation:language=english,japanese`
 * `version`: The video version to extract - `uncut` or `simulcast`
 
 #### crunchyroll
-* `language`: Languages to extract. Eg: `crunchyroll:language=jaJp`
-* `hardsub`: Which hard-sub versions to extract. Eg: `crunchyroll:hardsub=None,enUS`
+* `language`: Languages to extract, e.g. `crunchyroll:language=jaJp`
+* `hardsub`: Which hard-sub versions to extract, e.g. `crunchyroll:hardsub=None,enUS`
 
 #### crunchyrollbeta
-* `format`: Which stream type(s) to extract. Default is `adaptive_hls` Eg: `crunchyrollbeta:format=vo_adaptive_hls`
-    * Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `download_dash`, `multitrack_adaptive_hls_v2`
-* `hardsub`: Preference order for which hardsub versions to extract. Default is `None` (no hardsubs). Eg: `crunchyrollbeta:hardsub=en-US,None`
+* `format`: Which stream type(s) to extract (default: `adaptive_hls`). Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `download_dash`, `multitrack_adaptive_hls_v2`
+* `hardsub`: Preference order for which hardsub versions to extract (default: `None` = no hardsubs), e.g. `crunchyrollbeta:hardsub=en-US,None`
 
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
@@ -1798,11 +1797,11 @@ The following extractors use this feature:
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
 #### tiktok
-* `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`. (e.g. `20.2.1`)
-* `manifest_app_version`: Numeric app version to call mobile APIs with. (e.g. `221`)
+* `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`, e.g. `20.2.1`
+* `manifest_app_version`: Numeric app version to call mobile APIs with, e.g. `221`
 
 #### rokfinchannel
-* `tab`: Which tab to download. One of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`. (E.g. `rokfinchannel:tab=streams`)
+* `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`
 
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
@@ -2066,7 +2065,7 @@ While these options still work, their use is not recommended since there are oth
     --all-formats                    -f all
     --all-subs                       --sub-langs all --write-subs
     --print-json                     -j --no-simulate
-    --autonumber-size NUMBER         Use string formatting. Eg: %(autonumber)03d
+    --autonumber-size NUMBER         Use string formatting, e.g. %(autonumber)03d
     --autonumber-start NUMBER        Use internal field formatting like %(autonumber+NUMBER)s
     --id                             -o "%(id)s.%(ext)s"
     --metadata-from-title FORMAT     --parse-metadata "%(title)s:FORMAT"

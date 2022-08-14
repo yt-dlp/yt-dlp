@@ -211,7 +211,7 @@
 
 * [**Deprecate support for Python 3.6**](https://github.com/yt-dlp/yt-dlp/issues/3764#issuecomment-1154051119)
 * **Add option `--download-sections` to download video partially**
-    * Chapter regex and time ranges are accepted (Eg: `--download-sections *1:10-2:20`)
+    * Chapter regex and time ranges are accepted, e.g. `--download-sections *1:10-2:20`
 * Add option `--alias`
 * Add option `--lazy-playlist` to process entries as they are received
 * Add option `--retry-sleep`
@@ -1375,7 +1375,7 @@
 
 * Add new option `--netrc-location`
 * [outtmpl] Allow alternate fields using `,`
-* [outtmpl] Add format type `B` to treat the value as bytes (eg: to limit the filename to a certain number of bytes)
+* [outtmpl] Add format type `B` to treat the value as bytes, e.g. to limit the filename to a certain number of bytes
 * Separate the options `--ignore-errors` and `--no-abort-on-error`
 * Basic framework for simultaneous download of multiple formats by [nao20010128nao](https://github.com/nao20010128nao)
 * [17live] Add 17.live extractor by [nao20010128nao](https://github.com/nao20010128nao)
@@ -1765,7 +1765,7 @@
 
 * Merge youtube-dl: Upto [commit/a803582](https://github.com/ytdl-org/youtube-dl/commit/a8035827177d6b59aca03bd717acb6a9bdd75ada)
 * Add `--extractor-args` to pass some extractor-specific arguments. See [readme](https://github.com/yt-dlp/yt-dlp#extractor-arguments)
-    * Add extractor option `skip` for `youtube`. Eg: `--extractor-args youtube:skip=hls,dash`
+    * Add extractor option `skip` for `youtube`, e.g. `--extractor-args youtube:skip=hls,dash`
     * Deprecates `--youtube-skip-dash-manifest`, `--youtube-skip-hls-manifest`, `--youtube-include-dash-manifest`, `--youtube-include-hls-manifest`
 * Allow `--list...` options to work with `--print`, `--quiet` and other `--list...` options
 * [youtube] Use `player` API for additional video extraction requests by [coletdjnz](https://github.com/coletdjnz)

@@ -610,7 +610,7 @@ def sanitize_open(filename, open_mode):
         if sys.platform == 'win32':
             import msvcrt
 
-            # stdout may be any IO stream. Eg, when using contextlib.redirect_stdout
+            # stdout may be any IO stream, e.g. when using contextlib.redirect_stdout
             with contextlib.suppress(io.UnsupportedOperation):
                 msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
         return (sys.stdout.buffer if hasattr(sys.stdout, 'buffer') else sys.stdout, filename)
@@ -786,8 +786,8 @@ def _htmlentity_transform(entity_with_semicolon):
     if entity in html.entities.name2codepoint:
         return chr(html.entities.name2codepoint[entity])
 
-    # TODO: HTML5 allows entities without a semicolon. For example,
-    # '&Eacuteric' should be decoded as 'Éric'.
+    # TODO: HTML5 allows entities without a semicolon.
+    # E.g. '&Eacuteric' should be decoded as 'Éric'.
     if entity_with_semicolon in html.entities.html5:
         return html.entities.html5[entity_with_semicolon]
 
