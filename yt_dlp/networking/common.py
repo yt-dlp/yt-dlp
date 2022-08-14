@@ -355,8 +355,6 @@ class RequestHandler:
         return context
 
     def _check_scheme(self, request: Request):
-        if not self.SUPPORTED_SCHEMES:
-            return
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
         if scheme == 'file':  # no other handler should handle this request
             raise RequestError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
@@ -365,12 +363,12 @@ class RequestHandler:
             raise UnsupportedRequest(f'"unsupported scheme: "{scheme}"')
 
     def _check_proxies(self, request: Request):
-        if not self.SUPPORTED_PROXY_SCHEMES:
-            return
         for proxy_key, proxy_url in request.proxies.items():
             if proxy_url is None:
                 continue
-            if proxy_key == 'no' and Features.NO_PROXY in self.SUPPORTED_FEATURES:
+            if proxy_key == 'no':
+                if Features.NO_PROXY not in self.SUPPORTED_FEATURES:
+                    raise UnsupportedRequest('\'no\' proxy is not supported')
                 continue
             if proxy_key == 'all' and Features.ALL_PROXY not in self.SUPPORTED_FEATURES:
                 raise UnsupportedRequest('\'all\' proxy is not supported')
