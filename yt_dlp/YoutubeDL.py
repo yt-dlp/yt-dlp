@@ -12,7 +12,6 @@ import os
 import random
 import re
 import shutil
-import ssl
 import subprocess
 import sys
 import tempfile

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import errno
 import functools
 import gzip
@@ -28,7 +27,6 @@ from .utils import (
     get_redirect_method,
     select_proxy,
     make_socks_proxy_opts,
-    ssl_load_certs,
 )
 from ..dependencies import brotli
 from ..socks import (
