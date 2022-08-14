@@ -395,7 +395,7 @@ class InstagramIE(InstagramBaseIE):
             r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
         if not additional_data:
             self.raise_login_required('Requested content was not found, the content might be private')
-        
+
         product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
         if product_item:
             media.update(product_item)
