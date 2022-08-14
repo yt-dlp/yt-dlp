@@ -17,6 +17,8 @@ from .utils import (
 )
 
 _NAME_RE = r'[a-zA-Z_$][\w$]*'
+
+# Ref: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
 _OPERATORS = {  # None => Defined in JSInterpreter._operator
     '?': None,
 
@@ -26,14 +28,18 @@ _OPERATORS = {  # None => Defined in JSInterpreter._operator
     '|': operator.or_,
     '^': operator.xor,
 
-    # FIXME: This should actually be below comparision
-    '>>': operator.rshift,
-    '<<': operator.lshift,
+    '===': operator.is_,
+    '!==': operator.is_not,
+    '==': operator.eq,
+    '!=': operator.ne,
 
     '<=': operator.le,
     '>=': operator.ge,
     '<': operator.lt,
     '>': operator.gt,
+
+    '>>': operator.rshift,
+    '<<': operator.lshift,
 
     '+': operator.add,
     '-': operator.sub,
@@ -41,7 +47,11 @@ _OPERATORS = {  # None => Defined in JSInterpreter._operator
     '*': operator.mul,
     '/': operator.truediv,
     '%': operator.mod,
+
+    '**': operator.pow,
 }
+
+_COMP_OPERATORS = {'===', '!==', '==', '!=', '<=', '>=', '<', '>'}
 
 _MATCHING_PARENS = dict(zip('({[', ')}]'))
 _QUOTES = '\'"'
@@ -81,7 +91,7 @@ class LocalNameSpace(collections.ChainMap):
 
 class Debugger:
     import sys
-    ENABLED = 'pytest' in sys.modules
+    ENABLED = False and 'pytest' in sys.modules
 
     @staticmethod
     def write(*args, level=100):
@@ -200,7 +210,7 @@ class JSInterpreter:
             if should_return:
                 return ret, should_return
 
-        m = re.match(r'(?P<var>var\s)|return(?:\s+|$)', stmt)
+        m = re.match(r'(?P<var>(?:var|const|let)\s)|return(?:\s+|$)', stmt)
         if m:
             expr = stmt[len(m.group(0)):].strip()
             should_return = not m.group('var')
@@ -218,12 +228,17 @@ class JSInterpreter:
             obj = expr[4:]
             if obj.startswith('Date('):
                 left, right = self._separate_at_paren(obj[4:], ')')
-                expr = unified_timestamp(left[1:-1], False)
+                expr = unified_timestamp(
+                    self.interpret_expression(left, local_vars, allow_recursion), False)
                 if not expr:
                     raise self.Exception(f'Failed to parse date {left!r}', expr)
                 expr = self._dump(int(expr * 1000), local_vars) + right
             else:
                 raise self.Exception(f'Unsupported object {obj}', expr)
+
+        if expr.startswith('void '):
+            left = self.interpret_expression(expr[5:], local_vars, allow_recursion)
+            return None, should_return
 
         if expr.startswith('{'):
             inner, outer = self._separate_at_paren(expr, '}')
@@ -307,7 +322,8 @@ class JSInterpreter:
                     if default:
                         matched = matched or case == 'default'
                     elif not matched:
-                        matched = case != 'default' and switch_val == self.interpret_expression(case, local_vars, allow_recursion)
+                        matched = (case != 'default'
+                                   and switch_val == self.interpret_expression(case, local_vars, allow_recursion))
                     if not matched:
                         continue
                     try:
@@ -347,7 +363,7 @@ class JSInterpreter:
         m = re.match(fr'''(?x)
             (?P<assign>
                 (?P<out>{_NAME_RE})(?:\[(?P<index>[^\]]+?)\])?\s*
-                (?P<op>{"|".join(map(re.escape, _OPERATORS))})?
+                (?P<op>{"|".join(map(re.escape, set(_OPERATORS) - _COMP_OPERATORS))})?
                 =(?P<expr>.*)$
             )|(?P<return>
                 (?!if|return|true|false|null|undefined)(?P<name>{_NAME_RE})$
@@ -397,12 +413,14 @@ class JSInterpreter:
 
         for op in _OPERATORS:
             separated = list(self._separate(expr, op))
-            if len(separated) < 2:
-                continue
             right_expr = separated.pop()
-            while op == '-' and len(separated) > 1 and not separated[-1].strip():
-                right_expr = f'-{right_expr}'
+            while op in '<>*-' and len(separated) > 1 and not separated[-1].strip():
                 separated.pop()
+                right_expr = f'{op}{right_expr}'
+                if op != '-':
+                    right_expr = f'{separated.pop()}{op}{right_expr}'
+            if not separated:
+                continue
             left_val = self.interpret_expression(op.join(separated), local_vars, allow_recursion)
             return self._operator(op, 0 if left_val is None else left_val,
                                   right_expr, expr, local_vars, allow_recursion), should_return
@@ -564,8 +582,8 @@ class JSInterpreter:
         # Currently, it only supports function definitions
         fields_m = re.finditer(
             r'''(?x)
-                (?P<key>%s)\s*:\s*function\s*\((?P<args>[a-z,]+)\){(?P<code>[^}]+)}
-            ''' % _FUNC_NAME_RE,
+                (?P<key>%s)\s*:\s*function\s*\((?P<args>(?:%s|,)*)\){(?P<code>[^}]+)}
+            ''' % (_FUNC_NAME_RE, _NAME_RE),
             fields)
         for f in fields_m:
             argnames = f.group('args').split(',')
@@ -580,7 +598,7 @@ class JSInterpreter:
                 (?:
                     function\s+%(name)s|
                     [{;,]\s*%(name)s\s*=\s*function|
-                    var\s+%(name)s\s*=\s*function
+                    (?:var|const|let)\s+%(name)s\s*=\s*function
                 )\s*
                 \((?P<args>[^)]*)\)\s*
                 (?P<code>{.+})''' % {'name': re.escape(funcname)},
@@ -615,10 +633,8 @@ class JSInterpreter:
         argnames = tuple(argnames)
 
         def resf(args, kwargs={}, allow_recursion=100):
-            global_stack[0].update({
-                **dict(itertools.zip_longest(argnames, args, fillvalue=None)),
-                **kwargs
-            })
+            global_stack[0].update(itertools.zip_longest(argnames, args, fillvalue=None))
+            global_stack[0].update(kwargs)
             var_stack = LocalNameSpace(*global_stack)
             ret, should_abort = self.interpret_statement(code.replace('\n', ''), var_stack, allow_recursion - 1)
             if should_abort:

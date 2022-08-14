@@ -48,6 +48,9 @@ class TestJSInterpreter(unittest.TestCase):
         jsi = JSInterpreter('function f(){return 1 << 5;}')
         self.assertEqual(jsi.call_function('f'), 32)
 
+        jsi = JSInterpreter('function f(){return 2 ** 5}')
+        self.assertEqual(jsi.call_function('f'), 32)
+
         jsi = JSInterpreter('function f(){return 19 & 21;}')
         self.assertEqual(jsi.call_function('f'), 17)
 
@@ -56,6 +59,12 @@ class TestJSInterpreter(unittest.TestCase):
 
         jsi = JSInterpreter('function f(){return []? 2+3: 4;}')
         self.assertEqual(jsi.call_function('f'), 5)
+
+        jsi = JSInterpreter('function f(){return 1 == 2}')
+        self.assertEqual(jsi.call_function('f'), False)
+
+        jsi = JSInterpreter('function f(){return 0 && 1 || 2;}')
+        self.assertEqual(jsi.call_function('f'), 2)
 
     def test_array_access(self):
         jsi = JSInterpreter('function f(){var x = [1,2,3]; x[0] = 4; x[0] = 5; x[2.0] = 7; return x;}')
@@ -113,6 +122,16 @@ class TestJSInterpreter(unittest.TestCase):
             return a;
         }''')
         self.assertEqual(jsi.call_function('x'), [20, 20, 30, 40, 50])
+
+    def test_builtins(self):
+        jsi = JSInterpreter('''
+        function x() { return new Date('Wednesday 31 December 1969 18:01:26 MDT') - 0; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), 86000)
+        jsi = JSInterpreter('''
+        function x(dt) { return new Date(dt) - 0; }
+        ''')
+        self.assertEqual(jsi.call_function('x', 'Wednesday 31 December 1969 18:01:26 MDT'), 86000)
 
     def test_call(self):
         jsi = JSInterpreter('''
@@ -187,6 +206,17 @@ class TestJSInterpreter(unittest.TestCase):
         function x() { a=5; a -= 1, a+=3; return a }
         ''')
         self.assertEqual(jsi.call_function('x'), 7)
+
+        jsi = JSInterpreter('''
+        function x() { a=5; return (a -= 1, a+=3, a); }
+        ''')
+        self.assertEqual(jsi.call_function('x'), 7)
+
+    def test_void(self):
+        jsi = JSInterpreter('''
+        function x() { return void 42; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), None)
 
     def test_return_function(self):
         jsi = JSInterpreter('''
