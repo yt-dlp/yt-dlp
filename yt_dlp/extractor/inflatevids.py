@@ -4,10 +4,14 @@ from ..utils import (
     url_or_none,
     strip_or_none,
     str_to_int,
+    unified_strdate,
+    clean_html,
 )
 
 class InflateVidsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tube.inflatevids\.xyz/watch/(?P<id>[0-9]+)'
+    _LOGIN_FORM_URL = 'https://tube.inflatevids.xyz/login'
+
+    _VALID_URL = r'https?://(?:www\.)?tube.inflatevids\.xyz/watch/(?P<id>[^>]+)'
     _TESTS = [{
         'url': 'https://tube.inflatevids.xyz/watch/8zdGbHUiIsi6hLg',
         'info_dict': {
@@ -30,26 +34,38 @@ class InflateVidsIE(InfoExtractor):
                 webpage, 'title', default=None),
 
             # TODO: Strip out newlines and other escape sequences.
-            'description': self._html_search_regex(r'<div[^>]+itemprop=\"description\"[^>]*>(.*)',
-                webpage, 'description', default=None),
+            'description': clean_html(
+                self._html_search_regex(r'<div[^>]+itemprop=\"description\"[^>]*>(.*)',
+                webpage, 'description', default=None)
+            ),
             
             'view_count': int_or_none(
                 self._html_search_regex(r'<span[^>]+video-views-count[^>]*>([^<]+)<',
-                    webpage, 'view_count'),
+                webpage, 'view_count'),
             ),
 
-            'like_count':int_or_none(
-                self._html_search_regex(r'<div[^<]+data-likes[^>]\"([^<]*)\"',
-                    webpage, 'like_count')),
+            'like_count': int_or_none(
+                self._html_search_regex(r'(?:<div[^<]+\"likes-bar\"[^<]+data-likes[^>])\"([^<]*)\"',
+                webpage, 'like_count')
+            ),
+            
+            'dislike_count': int_or_none(
+                self._html_search_regex(r'(?:<div[^<]+\"dislikes-bar\"[^<]+data-likes[^>])\"([^<]*)\"',
+                webpage, 'dislike_count')
+            ),
+            
+            # TODO: Add support for this.
+            #'categories': 
             
             'url': url_or_none(
                 self._html_search_meta('og:video', webpage)
-                or self._html_search_regex(r'<div[^>]+contentUrl[^>]*>([^<]+)<'),
+                or self._html_search_regex(r'(?:<div[^>]+contentUrl[^>]*>)([^<]+)<'),
             ),
 
-            # TODO: This is broken! Convert the date to what Python can parse.
-            #'upload_date': self._html_search_regex(r'<div[^>]+uploadDate[^>]*>([^<]+)<',
-            #    webpage, 'upload_date', default=None),
+            'upload_date': unified_strdate(
+                self._html_search_regex(r'<div[^>]+uploadDate[^>]*>([^<]+)<',
+                webpage, 'upload_date', default=None)
+            ),
             
             'thumbnail': self._html_search_meta(
                 ['og:image', 'twitter:image', 'thumbnail'],
