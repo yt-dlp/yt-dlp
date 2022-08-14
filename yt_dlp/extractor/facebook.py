@@ -797,5 +797,5 @@ class FacebookReelIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        new_url = f'https://m.facebook.com/watch/?v={video_id}&_rdr'
-        return self.url_result(new_url)
+        return self.url_result(
+            f'https://m.facebook.com/watch/?v={video_id}&_rdr', FacebookIE, video_id)
