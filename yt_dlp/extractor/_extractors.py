@@ -1236,6 +1236,7 @@ from .paramountplus import (
     ParamountPlusIE,
     ParamountPlusSeriesIE,
 )
+from .parler import ParlerIE
 from .parlview import ParlviewIE
 from .patreon import (
     PatreonIE,
