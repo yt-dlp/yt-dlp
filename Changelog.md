@@ -11,6 +11,37 @@
 -->
 
 
+### 2022.08.14
+
+* Merge youtube-dl: Upto [commit/d231b56](https://github.com/ytdl-org/youtube-dl/commit/d231b56)
+* [jsinterp] Handle **new youtube signature functions**
+* [jsinterp] Truncate error messages
+* [extractor] Fix format sorting of `channels`
+* [ffmpeg] Disable avconv unless `--prefer-avconv`
+* [ffmpeg] Smarter detection of ffprobe filename
+* [patreon] Ignore erroneous media attachments by [coletdjnz](https://github.com/coletdjnz)
+* [postprocessor/embedthumbnail] Detect `libatomicparsley.so`
+* [ThumbnailsConvertor] Fix conversion after `fixup_webp`
+* [utils] Fix `get_compatible_ext`
+* [build] Fix changelog
+* [update] Set executable bit-mask by [pukkandan](https://github.com/pukkandan), [Lesmiscore](https://github.com/Lesmiscore)
+* [devscripts] Fix import
+* [docs] Consistent use of `e.g.` by [Lesmiscore](https://github.com/Lesmiscore)
+* [cleanup] Misc fixes and cleanup
+* [extractor/moview] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/parler] Add extractor by [palewire](https://github.com/palewire)
+* [extractor/truth] Add extractor by [palewire](https://github.com/palewire)
+* [extractor/aenetworks] Add formats parameter by [jacobtruman](https://github.com/jacobtruman)
+* [extractor/crunchyroll] Improve `_VALID_URL`s
+* [extractor/doodstream] Add `wf` domain by [aldoridhoni](https://github.com/aldoridhoni)
+* [extractor/facebook] Add reel support by [bashonly](https://github.com/bashonly)
+* [extractor/MLB] New extractor by [ischmidt20](https://github.com/ischmidt20)
+* [extractor/rai] Misc fixes by [nixxo](https://github.com/nixxo)
+* [extractor/toggo] Improve `_VALID_URL` by [masta79](https://github.com/masta79)
+* [extractor/tubitv] Extract additional formats by [shirt-dev](https://github.com/shirt-dev)
+* [extractor/zattoo] Potential fix for resellers
+
+
 ### 2022.08.08
 
 * **Remove Python 3.6 support**
