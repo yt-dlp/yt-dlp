@@ -268,7 +268,7 @@ class Response(io.IOBase):
         return self.headers
 
 
-class Features(enum.Enum):
+class Features(enum.auto):
     ALL_PROXY = enum.auto()
     NO_PROXY = enum.auto()
 
@@ -295,20 +295,21 @@ class RequestHandler:
 
     To cover some common cases, the following may be defined:
 
-    _SUPPORTED_SCHEMES may contain a list of supported url schemes. Any Request
+    SUPPORTED_SCHEMES may contain a list of supported url schemes. Any Request
     with an url scheme not in this list will raise an UnsupportedRequest.
 
-    _SUPPORTED_PROXY_SCHEMES may contain a list of support proxy url schemes. Any Request that contains
+    SUPPORTED_PROXY_SCHEMES may contain a list of support proxy url schemes. Any Request that contains
     a proxy url with an url scheme not in this list will raise an UnsupportedRequest.
 
-    _SUPPORTED_ENCODINGS may contain a list of supported content encodings for the Accept-Encoding header.
+    SUPPORTED_ENCODINGS may contain a list of supported content encodings for the Accept-Encoding header.
 
+    SUPPORTED_FEATURES may contain a list of supported features, as defined in Features enum.
     """
 
-    _SUPPORTED_SCHEMES: list = None
-    _SUPPORTED_PROXY_SCHEMES: list = None
-    _SUPPORTED_ENCODINGS: list = None
-    _SUPPORTED_FEATURES: list = None
+    SUPPORTED_SCHEMES = []
+    SUPPORTED_PROXY_SCHEMES = []
+    SUPPORTED_ENCODINGS = []
+    SUPPORTED_FEATURES = []
 
     def __init__(self, ydl: YoutubeDL):
         self.ydl = ydl
@@ -354,27 +355,27 @@ class RequestHandler:
         return context
 
     def _check_scheme(self, request: Request):
-        if self._SUPPORTED_SCHEMES is None:
+        if not self.SUPPORTED_SCHEMES:
             return
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
         if scheme == 'file':  # no other handler should handle this request
             raise RequestError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
 
-        if scheme not in self._SUPPORTED_SCHEMES:
+        if scheme not in self.SUPPORTED_SCHEMES:
             raise UnsupportedRequest(f'"unsupported scheme: "{scheme}"')
 
     def _check_proxies(self, request: Request):
-        if self._SUPPORTED_PROXY_SCHEMES is None:
+        if not self.SUPPORTED_PROXY_SCHEMES:
             return
         for proxy_key, proxy_url in request.proxies.items():
             if proxy_url is None:
                 continue
-            if proxy_key == 'no' and Features.NO_PROXY in self._SUPPORTED_FEATURES:
+            if proxy_key == 'no' and Features.NO_PROXY in self.SUPPORTED_FEATURES:
                 continue
-            if proxy_key == 'all' and Features.ALL_PROXY not in self._SUPPORTED_FEATURES:
+            if proxy_key == 'all' and Features.ALL_PROXY not in self.SUPPORTED_FEATURES:
                 raise UnsupportedRequest('\'all\' proxy is not supported')
             scheme = urllib.parse.urlparse(proxy_url).scheme.lower()
-            if scheme not in self._SUPPORTED_PROXY_SCHEMES:
+            if scheme not in self.SUPPORTED_PROXY_SCHEMES:
                 raise UnsupportedRequest(f'unsupported proxy type: "{scheme}"')
 
     def prepare_request(self, request: Request):
@@ -384,8 +385,8 @@ class RequestHandler:
             del request.headers['Youtubedl-no-compression']
             request.compression = False
 
-        if self._SUPPORTED_ENCODINGS:
-            request.headers['Accept-Encoding'] = ', '.join(self._SUPPORTED_ENCODINGS)
+        if self.SUPPORTED_ENCODINGS:
+            request.headers['Accept-Encoding'] = ', '.join(self.SUPPORTED_ENCODINGS)
 
         if not request.compression:
             request.headers.pop('Accept-Encoding', None)

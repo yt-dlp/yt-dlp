@@ -424,10 +424,10 @@ def handle_response_read_exceptions(e):
 
 
 class UrllibRH(RequestHandler):
-    _SUPPORTED_SCHEMES = ['http', 'https', 'data', 'ftp']
-    _SUPPORTED_ENCODINGS = SUPPORTED_ENCODINGS
-    _SUPPORTED_PROXY_SCHEMES = ['http', 'socks4', 'socks4a', 'socks5', 'socks4a', 'socks']
-    _SUPPORTED_FEATURES = [Features.NO_PROXY, Features.ALL_PROXY]
+    SUPPORTED_SCHEMES = ['http', 'https', 'data', 'ftp']
+    SUPPORTED_ENCODINGS = SUPPORTED_ENCODINGS
+    SUPPORTED_PROXY_SCHEMES = ['http', 'socks4', 'socks4a', 'socks5', 'socks4a', 'socks']
+    SUPPORTED_FEATURES = [Features.NO_PROXY, Features.ALL_PROXY]
     NAME = 'urllib'
 
     def __init__(self, ydl):
