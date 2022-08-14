@@ -500,6 +500,7 @@ from .facebook import (
     FacebookIE,
     FacebookPluginsVideoIE,
     FacebookRedirectURLIE,
+    FacebookReelIE,
 )
 from .fancode import (
     FancodeVodIE,
