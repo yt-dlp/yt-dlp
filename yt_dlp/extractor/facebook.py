@@ -789,7 +789,7 @@ class FacebookReelIE(InfoExtractor):
             'uploader': 'Beast Camp Training',
             'uploader_id': '1738535909799870',
             'duration': 9.536,
-            'thumbnail': 'https://scontent.ffcm1-2.fna.fbcdn.net/v/t15.5256-10/254298344_1195289497628352_5270091278460582762_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=776239&_nc_ohc=FAubX41upxsAX-zPKfB&_nc_ht=scontent.ffcm1-2.fna&oh=00_AT9I8wBhwCGIjiXHBZ0EX8Bv9MXKNrtZ5iTaTa5QmdUzVA&oe=62FEC0CC',
+            'thumbnail': r're:^https?://.*',
             'upload_date': '20211121',
             'timestamp': 1637502604,
         }
