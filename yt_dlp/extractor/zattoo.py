@@ -238,8 +238,8 @@ class ZattooPlatformBaseIE(InfoExtractor):
         return info_dict
 
     def _real_extract(self, url):
-        vid1, vid2 = self._match_valid_url(url).group('vid1', 'vid2')
-        return getattr(self, f'_extract_{self._TYPE}')(vid1 or vid2)
+        video_id, record_id = self._match_valid_url(url).groups()
+        return self._extract_video(video_id, record_id)
 
 
 def _make_valid_url(host):
@@ -257,6 +257,10 @@ class ZattooBaseIE(ZattooPlatformBaseIE):
             [^?#]+\?(?:[^#]+&)?{qs}=(?P<vid2>{match})
             {match_base}
         )'''
+
+    def _real_extract(self, url):
+        vid1, vid2 = self._match_valid_url(url).group('vid1', 'vid2')
+        return getattr(self, f'_extract_{self._TYPE}')(vid1 or vid2)
 
 
 class ZattooIE(ZattooBaseIE):
