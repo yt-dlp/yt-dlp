@@ -276,12 +276,11 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
     def test_http_proxy(self):
         geo_proxy = f'127.0.0.1:{self.geo_port}'
         geo_proxy2 = f'localhost:{self.geo_port}'  # ensure backend can support this format
-
+        url = 'http://foo.com/bar'
         with self.make_ydl({
             'proxy': f'//127.0.0.1:{self.proxy_port}',
             'geo_verification_proxy': geo_proxy,
         }) as ydl:
-            url = 'http://foo.com/bar'
             response = ydl.urlopen(url).read().decode('utf-8')
             self.assertEqual(response, f'normal: {url}')
             req = Request(url)
@@ -302,6 +301,11 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
             for no_proxy in (f'127.0.0.1:{self.http_port}', '127.0.0.1', 'localhost'):
                 nop_response = ydl.urlopen(Request(real_url, proxies={'no': f'127.0.0.1:{self.http_port}'})).read().decode('utf-8')
                 self.assertIn('Accept', nop_response)
+
+        # test all proxy
+        with self.make_ydl() as ydl:
+            response = ydl.urlopen(Request(url, proxies={'all': geo_proxy})).read().decode('utf-8')
+            self.assertEqual(response, f'geo: {url}')
 
     def test_http_proxy_with_idn(self):
         with self.make_ydl({
