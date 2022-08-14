@@ -23,7 +23,7 @@ from urllib.request import (
     DataHandler,
 )
 
-from .common import Response, RequestHandler
+from .common import Response, RequestHandler, Features
 from .utils import (
     get_redirect_method,
     select_proxy,
@@ -429,6 +429,7 @@ class UrllibRH(RequestHandler):
     _SUPPORTED_SCHEMES = ['http', 'https', 'data', 'ftp']
     _SUPPORTED_ENCODINGS = SUPPORTED_ENCODINGS
     _SUPPORTED_PROXY_SCHEMES = ['http', 'socks4', 'socks4a', 'socks5', 'socks4a', 'socks']
+    _SUPPORTED_FEATURES = [Features.NO_PROXY, Features.ALL_PROXY]
     NAME = 'urllib'
 
     def __init__(self, ydl):

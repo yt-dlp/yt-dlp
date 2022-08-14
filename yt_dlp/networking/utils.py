@@ -129,9 +129,26 @@ def make_socks_proxy_opts(socks_proxy):
     }
 
 
-def select_proxy(url, proxies):
+def bypass_proxies(url, no_proxy):
+    # Should we bypass the proxies for this url going by no proxy?
+    # This is a default configuration making use of urllib handling
+    url_components = urllib.parse.urlparse(url)
+    hostport = str(url_components.hostname) + (f':{url_components.port}' if url_components.port is not None else '')
+    if urllib.request.proxy_bypass_environment(hostport, {'no': no_proxy}):
+        return True
+    elif urllib.request.proxy_bypass(hostport):  # check system settings
+        return True
+
+    return False
+
+
+def select_proxy(url, proxies, no_proxies_func=bypass_proxies):
     """Unified proxy selector for all backends"""
     url_components = urllib.parse.urlparse(url)
+
+    if 'no' in proxies and no_proxies_func and no_proxies_func(url, proxies['no']):
+        return
+
     priority = [
         url_components.scheme or 'http',  # prioritise more specific mappings
         'all'

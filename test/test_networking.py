@@ -298,6 +298,11 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
             self.assertNotIn('Ytdl-request-proxy', response3)
             self.assertIn('Accept', response3)
 
+            # NO_PROXY
+            for no_proxy in (f'127.0.0.1:{self.http_port}', '127.0.0.1', 'localhost'):
+                nop_response = ydl.urlopen(Request(real_url, proxies={'no': f'127.0.0.1:{self.http_port}'})).read().decode('utf-8')
+                self.assertIn('Accept', nop_response)
+
     def test_http_proxy_with_idn(self):
         with self.make_ydl({
             'proxy': f'127.0.0.1:{self.proxy_port}',
