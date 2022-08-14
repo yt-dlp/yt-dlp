@@ -978,7 +978,7 @@ def create_parser():
             'the protocols (http, ftp, m3u8, dash, rstp, rtmp, mms) to use it for. '
             f'Currently supports native, {", ".join(sorted(list_external_downloaders()))}. '
             'You can use this option multiple times to set different downloaders for different protocols. '
-            'For example, --downloader aria2c --downloader "dash,m3u8:native" will use '
+            'E.g. --downloader aria2c --downloader "dash,m3u8:native" will use '
             'aria2c for http/ftp downloads, and the native downloader for dash/m3u8 downloads '
             '(Alias: --external-downloader)'))
     downloader.add_option(

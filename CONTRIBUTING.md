@@ -195,7 +195,7 @@ After you have ensured this site is distributing its content legally, you can fo
                 # * A value
                 # * MD5 checksum; start the string with md5:
                 # * A regular expression; start the string with re:
-                # * Any Python type (for example int or float)
+                # * Any Python type, e.g. int or float
             }
         }]
 

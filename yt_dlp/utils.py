@@ -776,8 +776,8 @@ def _htmlentity_transform(entity_with_semicolon):
     if entity in html.entities.name2codepoint:
         return chr(html.entities.name2codepoint[entity])
 
-    # TODO: HTML5 allows entities without a semicolon. For example,
-    # '&Eacuteric' should be decoded as 'Éric'.
+    # TODO: HTML5 allows entities without a semicolon.
+    # E.g. '&Eacuteric' should be decoded as 'Éric'.
     if entity_with_semicolon in html.entities.html5:
         return html.entities.html5[entity_with_semicolon]
 

@@ -184,7 +184,7 @@ def build_fragments_list(boot_info):
     first_frag_number = fragment_run_entry_table[0]['first']
     fragments_counter = itertools.count(first_frag_number)
     for segment, fragments_count in segment_run_table['segment_run']:
-        # In some live HDS streams (for example Rai), `fragments_count` is
+        # In some live HDS streams (e.g. Rai), `fragments_count` is
         # abnormal and causing out-of-memory errors. It's OK to change the
         # number of fragments for live streams as they are updated periodically
         if fragments_count == 4294967295 and boot_info['live']:

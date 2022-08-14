@@ -169,7 +169,7 @@ class PhantomJSwrapper:
         In most cases you don't need to add any `jscode`.
         It is executed in `page.onLoadFinished`.
         `saveAndExit();` is mandatory, use it instead of `phantom.exit()`
-        It is possible to wait for some element on the webpage, for example:
+        It is possible to wait for some element on the webpage, e.g.
             var check = function() {
               var elementFound = page.evaluate(function() {
                 return document.querySelector('#b.done') !== null;

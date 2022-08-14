@@ -1046,7 +1046,7 @@ class YoutubeDL:
 
         # outtmpl should be expand_path'ed before template dict substitution
         # because meta fields may contain env variables we don't want to
-        # be expanded. For example, for outtmpl "%(title)s.%(ext)s" and
+        # be expanded. E.g. for outtmpl "%(title)s.%(ext)s" and
         # title "Hello $PATH", we don't want `$PATH` to be expanded.
         return expand_path(outtmpl).replace(sep, '')
 
@@ -1977,8 +1977,8 @@ class YoutubeDL:
                     filter_parts.append(string)
 
         def _remove_unused_ops(tokens):
-            # Remove operators that we don't use and join them with the surrounding strings
-            # for example: 'mp4' '-' 'baseline' '-' '16x9' is converted to 'mp4-baseline-16x9'
+            # Remove operators that we don't use and join them with the surrounding strings.
+            # E.g. 'mp4' '-' 'baseline' '-' '16x9' is converted to 'mp4-baseline-16x9'
             ALLOWED_OPS = ('/', '+', ',', '(', ')')
             last_string, last_start, last_end, last_line = None, None, None, None
             for type, string, start, end, line in tokens:
