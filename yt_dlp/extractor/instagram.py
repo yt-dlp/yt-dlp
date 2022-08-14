@@ -373,7 +373,7 @@ class InstagramIE(InstagramBaseIE):
             })
         media = traverse_obj(general_info, ('data', 'shortcode_media')) or {}
         if not media:
-            self.report_warning('General metadata extraction failed', video_id)
+            self.report_warning('General metadata extraction failed (You might not be logged in).', video_id)
 
         info = self._download_json(
             f'https://i.instagram.com/api/v1/media/{_id_to_pk(video_id)}/info/', video_id,
@@ -391,11 +391,11 @@ class InstagramIE(InstagramBaseIE):
         webpage = self._download_webpage(
             f'https://www.instagram.com/p/{video_id}/embed/', video_id,
             note='Downloading embed webpage', fatal=False)
-        if not webpage:
-            self.raise_login_required('Requested content was not found, the content might be private')
-
         additional_data = self._search_json(
             r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
+        if not additional_data:
+            self.raise_login_required('Requested content was not found, the content might be private')
+        
         product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
         if product_item:
             media.update(product_item)
