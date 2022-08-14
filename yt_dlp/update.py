@@ -230,6 +230,7 @@ class Updater:
             return self._report_permission_error(new_filename)
 
         if old_filename:
+            mask = os.stat(self.filename).st_mode
             try:
                 os.rename(self.filename, old_filename)
             except OSError:
@@ -251,7 +252,7 @@ class Updater:
                 self._report_error('Unable to remove the old version')
 
             try:
-                os.chmod(self.filename, 0o777)
+                os.chmod(self.filename, mask)
             except OSError:
                 return self._report_error(
                     f'Unable to set permissions. Run: sudo chmod a+rx {compat_shlex_quote(self.filename)}')
