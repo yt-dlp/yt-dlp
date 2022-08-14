@@ -88,18 +88,16 @@ class ParlerIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        # Get the crucial data from the API
         video_id = self._match_id(url)
         data = self._download_json(
             'https://parler.com/open-api/ParleyDetailEndpoint.php', video_id,
             data=urlencode_postdata({'uuid': video_id}))['data'][0]
         primary = data['primary']
 
-        # If this is a YouTube embed, skip out
-        if primary.get("V2LINKLONG") and json.loads(primary.get("V2LINKLONG")):
-            return self.url_result(json.loads(primary.get("V2LINKLONG"))[0], YoutubeIE)
+        embed = self._parse_json(primary.get('V2LINKLONG') or '', video_id, fatal=False)
+        if embed:
+            return self.url_result(embed[0], YoutubeIE)
 
-        # Otherwise, pull out all the stuff
         return {
             'id': video_id,
             'url': traverse_obj(primary, ('video_data', 'videoSrc')),
@@ -110,7 +108,7 @@ class ParlerIE(InfoExtractor):
             'uploader': strip_or_none(primary.get('name')),
             'uploader_id': strip_or_none(primary.get('username')),
             'uploader_url': format_field(strip_or_none(primary.get('username')), None, 'https://parler.com/%s'),
-            'view_count': int_or_none(primary.get("view_count")),
+            'view_count': int_or_none(primary.get('view_count')),
             'comment_count': int_or_none(traverse_obj(data, ('engagement', 'commentCount'))),
             'repost_count': int_or_none(traverse_obj(data, ('engagement', 'echoCount'))),
         }
