@@ -850,7 +850,8 @@ class Popen(subprocess.Popen):
             # https://github.com/yt-dlp/yt-dlp/issues/4573
             if env is None:
                 env = dict(os.environ)
-            env.pop('LD_LIBRARY_PATH', None)
+            env.pop('LD_LIBRARY_PATH', None)  # GNU/Linux
+            env.pop('DYLD_LIBRARY_PATH', None)  # macOS
         super().__init__(*args, **kwargs, startupinfo=self._startupinfo)
 
     def communicate_or_kill(self, *args, **kwargs):
