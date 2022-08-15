@@ -134,7 +134,7 @@ class InstagramBaseIE(InfoExtractor):
             }
 
     def _extract_product_media(self, product_media):
-        media_id = product_media.get('code') or product_media.get('id')
+        media_id = product_media.get('code') or _pk_to_id(product_media.get('pk'))
         vcodec = product_media.get('video_codec')
         dash_manifest_raw = product_media.get('video_dash_manifest')
         videos_list = product_media.get('video_versions')
@@ -179,7 +179,7 @@ class InstagramBaseIE(InfoExtractor):
 
         user_info = product_info.get('user') or {}
         info_dict = {
-            'id': product_info.get('code') or product_info.get('id'),
+            'id': product_info.get('code') or _pk_to_id(product_info.get('pk')),
             'title': product_info.get('title') or f'Video by {user_info.get("username")}',
             'description': traverse_obj(product_info, ('caption', 'text'), expected_type=str_or_none),
             'timestamp': int_or_none(product_info.get('taken_at')),
