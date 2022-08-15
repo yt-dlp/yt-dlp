@@ -389,7 +389,7 @@ class InstagramIE(InstagramBaseIE):
             return self._extract_product(media)
 
         webpage = self._download_webpage(
-            f'https://www.instagram.com/p/{video_id}/embed/', video_id,
+            f'{url}/embed/', video_id,
             note='Downloading embed webpage', fatal=False)
         additional_data = self._search_json(
             r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
