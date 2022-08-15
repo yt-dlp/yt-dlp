@@ -845,7 +845,7 @@ class Popen(subprocess.Popen):
             kwargs['universal_newlines'] = True  # For 3.6 compatibility
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
-        if sys.platform not in ('win32', 'cygwin'):
+        if compat_os_name != 'nt' and hasattr(sys, '_MEIPASS'):
             # unset LD_LIBRARY_PATH for child processes on non-Windows systems
             # https://github.com/yt-dlp/yt-dlp/issues/4573
             if env is None:
