@@ -283,7 +283,7 @@ class RTBFIE(RedBeeBaseIE):
 
             raise ExtractorError('Could not find media data')
 
-        data = self._parse_json(media_data, media_id, fatal=False)
+        data = self._parse_json(media_data, media_id)
 
         error = data.get('error')
         if error:
