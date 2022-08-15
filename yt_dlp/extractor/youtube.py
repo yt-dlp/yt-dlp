@@ -3168,7 +3168,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, is_live, duration):
         itags, stream_ids = {}, []
-        itag_qualities, res_qualities = {}, {}
+        itag_qualities, res_qualities = {}, {0: -1}
         q = qualities([
             # Normally tiny is the smallest video-only formats. But
             # audio-only formats with unknown quality may get tagged as tiny
@@ -3320,10 +3320,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['format_id'] = itag
                 itags[itag] = proto
 
-            f['quality'] = next((
-                q(qdict[val])
-                for val, qdict in ((f.get('format_id', '').split('-')[0], itag_qualities), (f.get('height'), res_qualities))
-                if val in qdict), -1)
+            f['quality'] = itag_qualities.get(try_get(f, lambda f: f['format_id'].split('-')[0]), -1)
+            if f['quality'] == -1 and f.get('height'):
+                f['quality'] = q(res_qualities[min(res_qualities, key=lambda x: abs(x - f['height']))])
             return True
 
         subtitles = {}
