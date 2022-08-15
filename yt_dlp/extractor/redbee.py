@@ -301,66 +301,70 @@ class RTBFIE(RedBeeBaseIE):
         formats, subtitles = [], {}
 
         m3u8_url = data.get('urlHlsAes128') or data.get('urlHls')
-        if m3u8_url:
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                m3u8_url, media_id, 'mp4', m3u8_id='hls', fatal=False)
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
+        # The old api still returns m3u8 and mpd manifest for livestreams, but these are 'fake'
+        # since all they contain is a 20s video that is completely unrelated.
+        # https://github.com/yt-dlp/yt-dlp/issues/4656#issuecomment-1214461092
+        if not is_live:
+            if m3u8_url:
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    m3u8_url, media_id, 'mp4', m3u8_id='hls', fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
 
-        fix_url = lambda x: x.replace('//rtbf-vod.', '//rtbf.') if '/geo/drm/' in x else x
-        http_url = data.get('url')
-        if formats and http_url and re.search(height_re, http_url):
-            http_url = fix_url(http_url)
-            for m3u8_f in formats[:]:
-                height = m3u8_f.get('height')
-                if not height:
-                    continue
-                f = m3u8_f.copy()
-                del f['protocol']
-                f.update({
-                    'format_id': m3u8_f['format_id'].replace('hls-', 'http-'),
-                    'url': re.sub(height_re, '-%dp.' % height, http_url),
-                })
-                formats.append(f)
-        else:
-            sources = data.get('sources') or {}
-            for key, format_id in self._QUALITIES:
-                format_url = sources.get(key)
-                if not format_url:
-                    continue
-                height = int_or_none(self._search_regex(
-                    height_re, format_url, 'height', default=None))
+            fix_url = lambda x: x.replace('//rtbf-vod.', '//rtbf.') if '/geo/drm/' in x else x
+            http_url = data.get('url')
+            if formats and http_url and re.search(height_re, http_url):
+                http_url = fix_url(http_url)
+                for m3u8_f in formats[:]:
+                    height = m3u8_f.get('height')
+                    if not height:
+                        continue
+                    f = m3u8_f.copy()
+                    del f['protocol']
+                    f.update({
+                        'format_id': m3u8_f['format_id'].replace('hls-', 'http-'),
+                        'url': re.sub(height_re, '-%dp.' % height, http_url),
+                    })
+                    formats.append(f)
+            else:
+                sources = data.get('sources') or {}
+                for key, format_id in self._QUALITIES:
+                    format_url = sources.get(key)
+                    if not format_url:
+                        continue
+                    height = int_or_none(self._search_regex(
+                        height_re, format_url, 'height', default=None))
+                    formats.append({
+                        'format_id': format_id,
+                        'url': fix_url(format_url),
+                        'height': height,
+                    })
+
+            mpd_url = data.get('urlDash')
+            if mpd_url and (self.get_param('allow_unplayable_formats') or not data.get('drm')):
+                fmts, subs = self._extract_mpd_formats_and_subtitles(
+                    mpd_url, media_id, mpd_id='dash', fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+
+            audio_url = data.get('urlAudio')
+            if audio_url:
                 formats.append({
-                    'format_id': format_id,
-                    'url': fix_url(format_url),
-                    'height': height,
+                    'format_id': 'audio',
+                    'url': audio_url,
+                    'vcodec': 'none',
                 })
 
-        mpd_url = data.get('urlDash')
-        if mpd_url and (self.get_param('allow_unplayable_formats') or not data.get('drm')):
-            fmts, subs = self._extract_mpd_formats_and_subtitles(
-                mpd_url, media_id, mpd_id='dash', fatal=False)
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
-
-        audio_url = data.get('urlAudio')
-        if audio_url:
-            formats.append({
-                'format_id': 'audio',
-                'url': audio_url,
-                'vcodec': 'none',
-            })
-
-        for track in (data.get('tracks') or {}).values():
-            sub_url = track.get('url')
-            if not sub_url:
-                continue
-            subtitles.setdefault(track.get('lang') or 'fr', []).append({
-                'url': sub_url,
-            })
+            for track in (data.get('tracks') or {}).values():
+                sub_url = track.get('url')
+                if not sub_url:
+                    continue
+                subtitles.setdefault(track.get('lang') or 'fr', []).append({
+                    'url': sub_url,
+                })
 
         if not formats:
-            fmts, subs = self._get_formats_and_subtitles(url, media_id)
+            fmts, subs = self._get_formats_and_subtitles(url, f'live_{media_id}' if is_live else media_id)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
