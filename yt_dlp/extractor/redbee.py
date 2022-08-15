@@ -69,6 +69,9 @@ class RedBeeBaseIE(InfoExtractor):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     format['mediaLocator'], asset_id, fatal=False)
 
+            for index in range(len(fmts)):
+                fmts[index]['has_drm'] = format.get('drm') is not None
+
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
