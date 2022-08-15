@@ -840,11 +840,16 @@ class Popen(subprocess.Popen):
     else:
         _startupinfo = None
 
-    def __init__(self, *args, text=False, **kwargs):
+    def __init__(self, *args, env=None, text=False, **kwargs):
         if text is True:
             kwargs['universal_newlines'] = True  # For 3.6 compatibility
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
+        if env is None and sys.platform != 'win32':
+            # unset LD_LIBRARY_PATH for non-Windows subprocess
+            # https://github.com/yt-dlp/yt-dlp/issues/4573
+            env = dict(os.environ)
+            env.pop('LD_LIBRARY_PATH', None)
         super().__init__(*args, **kwargs, startupinfo=self._startupinfo)
 
     def communicate_or_kill(self, *args, **kwargs):
