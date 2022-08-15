@@ -272,8 +272,17 @@ class RTBFIE(RedBeeBaseIE):
         embed_page = self._download_webpage(
             'https://www.rtbf.be/auvio/embed/' + ('direct' if live else 'media'),
             media_id, query={'id': media_id})
-        data = self._parse_json(self._html_search_regex(
-            r'data-media="([^"]+)"', embed_page, 'media data'), media_id)
+
+        media_data = self._html_search_regex(r'data-media="([^"]+)"', embed_page, 'media data', fatal=False)
+        if not media_data:
+            if re.findall(r'<div[^>]+id="[^"]*js-error-expired[^"]*"[^>]+class="(?![^"]*hidden)', embed_page):
+                raise ExtractorError('Livestream has ended.', expected=True)
+            if re.findall(r'<div[^>]+id="[^"]*js-sso-connect[^"]*"[^>]+class="(?![^"]*hidden)', embed_page):
+                self.raise_login_required()
+
+            raise ExtractorError('Could not find media data')
+
+        data = self._parse_json(media_data, media_id, fatal=False)
 
         error = data.get('error')
         if error:
