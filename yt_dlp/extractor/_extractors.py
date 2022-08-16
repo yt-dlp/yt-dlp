@@ -2208,6 +2208,8 @@ from .zattoo import (
     OsnatelTVIE,
     QuantumTVIE,
     SaltTVIE,
+    SaltTVLiveIE,
+    SaltTVRecordingsIE,
     SAKTVIE,
     VTXTVIE,
     WalyTVIE,

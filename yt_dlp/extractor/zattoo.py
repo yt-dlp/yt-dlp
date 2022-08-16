@@ -236,32 +236,28 @@ class ZattooPlatformBaseIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, record_id = self._match_valid_url(url).groups()
-        return self._extract_video(video_id, record_id)
+        return getattr(self, f'_extract_{self._TYPE}')(video_id or record_id)
 
 
 def _make_valid_url(host):
     return rf'https?://(?:www\.)?{re.escape(host)}/watch/[^/]+?/(?P<id>[0-9]+)[^/]+(?:/(?P<recid>[0-9]+))?'
 
 
+def _create_valid_url(host, match, qs, base_re=None):
+    match_base = fr'|{base_re}/(?P<vid1>{match})' if base_re else '(?P<vid1>)'
+    return rf'''(?x)https?://(?:www\.)?{re.escape(host)}/(?:
+        [^?#]+\?(?:[^#]+&)?{qs}=(?P<vid2>{match})
+        {match_base}
+    )'''
+
+
 class ZattooBaseIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'zattoo'
     _HOST = 'zattoo.com'
 
-    @staticmethod
-    def _create_valid_url(match, qs, base_re=None):
-        match_base = fr'|{base_re}/(?P<vid1>{match})' if base_re else '(?P<vid1>)'
-        return rf'''(?x)https?://(?:www\.)?zattoo\.com/(?:
-            [^?#]+\?(?:[^#]+&)?{qs}=(?P<vid2>{match})
-            {match_base}
-        )'''
-
-    def _real_extract(self, url):
-        vid1, vid2 = self._match_valid_url(url).group('vid1', 'vid2')
-        return getattr(self, f'_extract_{self._TYPE}')(vid1 or vid2)
-
 
 class ZattooIE(ZattooBaseIE):
-    _VALID_URL = ZattooBaseIE._create_valid_url(r'\d+', 'program', '(?:program|watch)/[^/]+')
+    _VALID_URL = _create_valid_url(ZattooBaseIE._HOST, r'\d+', 'program', '(?:program|watch)/[^/]+')
     _TYPE = 'video'
     _TESTS = [{
         'url': 'https://zattoo.com/program/zdf/250170418',
@@ -288,7 +284,7 @@ class ZattooIE(ZattooBaseIE):
 
 
 class ZattooLiveIE(ZattooBaseIE):
-    _VALID_URL = ZattooBaseIE._create_valid_url(r'[^/?&#]+', 'channel', 'live')
+    _VALID_URL = _create_valid_url(ZattooBaseIE._HOST, r'[^/?&#]+', 'channel', 'live')
     _TYPE = 'live'
     _TESTS = [{
         'url': 'https://zattoo.com/channels/german?channel=srf_zwei',
@@ -304,7 +300,7 @@ class ZattooLiveIE(ZattooBaseIE):
 
 
 class ZattooMoviesIE(ZattooBaseIE):
-    _VALID_URL = ZattooBaseIE._create_valid_url(r'\w+', 'movie_id', 'vod/movies')
+    _VALID_URL = _create_valid_url(ZattooBaseIE._HOST, r'\w+', 'movie_id', 'vod/movies')
     _TYPE = 'ondemand'
     _TESTS = [{
         'url': 'https://zattoo.com/vod/movies/7521',
@@ -316,7 +312,7 @@ class ZattooMoviesIE(ZattooBaseIE):
 
 
 class ZattooRecordingsIE(ZattooBaseIE):
-    _VALID_URL = ZattooBaseIE._create_valid_url(r'\d+', 'recording')
+    _VALID_URL = _create_valid_url('zattoo.com', r'\d+', 'recording')
     _TYPE = 'record'
     _TESTS = [{
         'url': 'https://zattoo.com/recordings?recording=193615508',
@@ -454,12 +450,25 @@ class EinsUndEinsTVIE(ZattooPlatformBaseIE):
     }]
 
 
-class SaltTVIE(ZattooPlatformBaseIE):
+class SaltTVBaseIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'salttv'
     _HOST = 'tv.salt.ch'
-    _VALID_URL = _make_valid_url(_HOST)
 
-    _TESTS = [{
-        'url': 'https://tv.salt.ch/watch/abc/123-abc',
-        'only_matching': True,
-    }]
+
+class SaltTVIE(SaltTVBaseIE):
+    _VALID_URL = _create_valid_url(SaltTVBaseIE._HOST, r'\d+', 'program', '(?:program|watch)/[^/]+')
+    _TYPE = 'video'
+
+
+class SaltTVLiveIE(SaltTVBaseIE):
+    _VALID_URL = _create_valid_url(SaltTVBaseIE._HOST, r'[^/?&#]+', 'channel', 'live')
+    _TYPE = 'live'
+
+    @classmethod
+    def suitable(cls, url):
+        return False if SaltTVIE.suitable(url) else super().suitable(url)
+
+
+class SaltTVRecordingsIE(SaltTVBaseIE):
+    _VALID_URL = _create_valid_url(SaltTVBaseIE._HOST, r'\d+', 'recording')
+    _TYPE = 'record'
