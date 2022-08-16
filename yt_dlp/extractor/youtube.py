@@ -809,7 +809,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             # Youtube sometimes sends incomplete data
             # See: https://github.com/ytdl-org/youtube-dl/issues/28194
             if not traverse_obj(response, *variadic(check_get_keys)):
-                retry.error = ExtractorError('Incomplete data received')
+                retry.error = ExtractorError('Incomplete data received', expected=True)
                 continue
 
             return response
