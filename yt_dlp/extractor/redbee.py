@@ -276,9 +276,9 @@ class RTBFIE(RedBeeBaseIE):
 
         media_data = self._html_search_regex(r'data-media="([^"]+)"', embed_page, 'media data', fatal=False)
         if not media_data:
-            if re.findall(r'<div[^>]+id="[^"]*js-error-expired[^"]*"[^>]+class="(?![^"]*hidden)', embed_page):
+            if re.search(r'<div[^>]+id="js-error-expired"[^>]+class="(?![^"]*hidden)', embed_page):
                 raise ExtractorError('Livestream has ended.', expected=True)
-            if re.findall(r'<div[^>]+id="[^"]*js-sso-connect[^"]*"[^>]+class="(?![^"]*hidden)', embed_page):
+            if re.search(r'<div[^>]+id="js-sso-connect"[^>]+class="(?![^"]*hidden)', embed_page):
                 self.raise_login_required()
 
             raise ExtractorError('Could not find media data')
