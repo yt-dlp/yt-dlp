@@ -2,14 +2,24 @@ from .common import InfoExtractor
 from ..utils import traverse_obj
 
 
-class NOSNLIE(InfoExtractor):
-    _VALID_URL = r'https?://nos\.nl/\w+/\w+/(?P<display_id>[\w-]+)'
+class NOSNLArticleIE(InfoExtractor):
+    _VALID_URL = r'https?://nos\.nl/(\w+/)?\w+/(?P<display_id>[\w-]+)'
     _TESTS = [
         {
             'url': 'https://nos.nl/nieuwsuur/artikel/2440353-verzakking-door-droogte-dreigt-tot-een-miljoen-kwetsbare-huizen',
             'info_dict': {
-                'id': 'fixme',
+                'id': '2440340',
                 'ext': 'mp4',
+                'description': 'md5:5f83185d902ac97af3af4bed7ece3db5',
+                'title': '\'We hebben een huis vol met scheuren\'',
+            }
+        }, {
+            'url': 'https://nos.nl/artikel/2440409-vannacht-sliepen-weer-enkele-honderden-asielzoekers-in-ter-apel-buiten',
+            'info_dict': {
+                'id': '2440505',
+                'ext': 'mp4',
+                'description': 'Honderden asielzoekers moesten zaterdagnacht buiten slapen bij het aanmeldcentrum in Ter Apel. ',
+                'title': 'Honderden asielzoekers sliepen weer buiten in Ter Apel',
             }
         }
     ]
