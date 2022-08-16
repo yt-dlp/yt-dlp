@@ -18,7 +18,6 @@ class EurosportIE(InfoExtractor):
             'upload_date': '20220605',
         }
     }, {
-        # geo-blocked but can bypassed by xff
         'url': 'https://www.eurosport.com/tennis/roland-garros/2022/watch-the-top-five-shots-from-men-s-final-as-rafael-nadal-beats-casper-ruud-to-seal-14th-french-open_vid1694283/video.shtml',
         'info_dict': {
             'id': '2481254',
@@ -30,9 +29,20 @@ class EurosportIE(InfoExtractor):
             'display_id': 'vid1694283',
             'timestamp': 1654456090,
             'upload_date': '20220605',
-        },
-        'params': {
-            'fixup': 'never',
+        }
+    }, {
+        # geo-fence but can bypassed by xff
+        'url': 'https://www.eurosport.com/cycling/tour-de-france-femmes/2022/incredible-ride-marlen-reusser-storms-to-stage-4-win-at-tour-de-france-femmes_vid1722221/video.shtml',
+        'info_dict': {
+            'id': '2582552',
+            'ext': 'mp4',
+            'title': '‘Incredible ride!’ - Marlen Reusser storms to Stage 4 win at Tour de France Femmes',
+            'duration': 188.0,
+            'display_id': 'vid1722221',
+            'timestamp': 1658936167,
+            'thumbnail': 'https://imgresizer.eurosport.com/unsafe/1280x960/smart/filters:format(jpeg)/origin-imgresizer.eurosport.com/2022/07/27/3423347-69852108-2560-1440.jpg',
+            'description': 'md5:32bbe3a773ac132c57fb1e8cca4b7c71',
+            'upload_date': '20220727',
         }
     }]
     _TOKEN = None
@@ -62,7 +72,9 @@ class EurosportIE(InfoExtractor):
             if stream_type == "hls":
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id, ext='mp4')
-            elif stream_type == "dash":
+                for f in fmts:
+                    f.update({'protocol': 'm3u8'})
+            if stream_type == "dash":
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
                     traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id)
             formats.extend(fmts)
