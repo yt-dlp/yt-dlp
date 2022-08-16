@@ -6,6 +6,7 @@ class NOSNLArticleIE(InfoExtractor):
     _VALID_URL = r'https?://nos\.nl/(\w+/)?\w+/(?P<display_id>[\w-]+)'
     _TESTS = [
         {
+            # only 1 video
             'url': 'https://nos.nl/nieuwsuur/artikel/2440353-verzakking-door-droogte-dreigt-tot-een-miljoen-kwetsbare-huizen',
             'info_dict': {
                 'id': '2440340',
@@ -14,12 +15,26 @@ class NOSNLArticleIE(InfoExtractor):
                 'title': '\'We hebben een huis vol met scheuren\'',
             }
         }, {
+            # more than 1 video
             'url': 'https://nos.nl/artikel/2440409-vannacht-sliepen-weer-enkele-honderden-asielzoekers-in-ter-apel-buiten',
             'info_dict': {
                 'id': '2440505',
                 'ext': 'mp4',
-                'description': 'Honderden asielzoekers moesten zaterdagnacht buiten slapen bij het aanmeldcentrum in Ter Apel. ',
-                'title': 'Honderden asielzoekers sliepen weer buiten in Ter Apel',
+            },
+            'playlist_count': 2,
+        }, {
+            # audio + video
+            'url': 'https://nos.nl/artikel/2440789-wekdienst-16-8-groningse-acties-tien-jaar-na-zware-aardbeving-femke-bol-in-actie-op-ek-atletiek',
+            'info_dict': {
+                'id': 2440789,
+                'title': 'Wekdienst 16/8: Groningse acties tien jaar na zware aardbeving • Femke Bol in actie op EK atletiek ',
+            },
+            'playlist_count': 2,
+        }, {
+            'url': 'https://nos.nl/video/2440712-nederlander-vecht-voor-oekraine-ik-leef-hier-veel-levens',
+            'info_dict': {
+                'id': 'fixme',
+                'ext': 'mp4',
             }
         }
     ]
@@ -37,6 +52,12 @@ class NOSNLArticleIE(InfoExtractor):
                     'formats': formats,
                     'subtitles': subtitle,
 
+                }
+            elif item.get('type') == 'audio':
+                yield {
+                    'id': str(item['id']),
+                    'title': item.get('title'),
+                    'url': traverse_obj(item, ('media', 'src')),
                 }
 
     def _real_extract(self, url):
