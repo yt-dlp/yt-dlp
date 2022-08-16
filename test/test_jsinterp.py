@@ -212,6 +212,11 @@ class TestJSInterpreter(unittest.TestCase):
         ''')
         self.assertEqual(jsi.call_function('x'), 7)
 
+        jsi = JSInterpreter('''
+        function x() { return (l=[0,1,2,3], function(a, b){return a+b})((l[1], l[2]), l[3]) }
+        ''')
+        self.assertEqual(jsi.call_function('x'), 5)
+
     def test_void(self):
         jsi = JSInterpreter('''
         function x() { return void 42; }

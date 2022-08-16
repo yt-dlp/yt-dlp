@@ -33,19 +33,19 @@ _OPERATORS = {  # None => Defined in JSInterpreter._operator
     '==': operator.eq,
     '!=': operator.ne,
 
-    '<=': operator.le,
-    '>=': operator.ge,
-    '<': operator.lt,
-    '>': operator.gt,
+    '<=': lambda a, b: (a or 0) <= (b or 0),
+    '>=': lambda a, b: (a or 0) >= (b or 0),
+    '<': lambda a, b: (a or 0) < (b or 0),
+    '>': lambda a, b: (a or 0) > (b or 0),
 
     '>>': operator.rshift,
     '<<': operator.lshift,
 
-    '+': operator.add,
-    '-': operator.sub,
+    '+': lambda a, b: (a or 0) + (b or 0),
+    '-': lambda a, b: (a or 0) - (b or 0),
 
-    '*': operator.mul,
-    '/': operator.truediv,
+    '*': lambda a, b: (a or 0) * (b or 0),
+    '/': lambda a, b: (a or 0) / b,
     '%': operator.mod,
 
     '**': operator.pow,
@@ -339,11 +339,12 @@ class JSInterpreter:
 
         # Comma separated statements
         sub_expressions = list(self._separate(expr))
-        expr = sub_expressions.pop().strip() if sub_expressions else ''
-        for sub_expr in sub_expressions:
-            ret, should_abort = self.interpret_statement(sub_expr, local_vars, allow_recursion)
-            if should_abort:
-                return ret, True
+        if len(sub_expressions) > 1:
+            for sub_expr in sub_expressions:
+                ret, should_abort = self.interpret_statement(sub_expr, local_vars, allow_recursion)
+                if should_abort:
+                    return ret, True
+            return ret, False
 
         for m in re.finditer(rf'''(?x)
                 (?P<pre_sign>\+\+|--)(?P<var1>{_NAME_RE})|
@@ -422,8 +423,7 @@ class JSInterpreter:
             if not separated:
                 continue
             left_val = self.interpret_expression(op.join(separated), local_vars, allow_recursion)
-            return self._operator(op, 0 if left_val is None else left_val,
-                                  right_expr, expr, local_vars, allow_recursion), should_return
+            return self._operator(op, left_val, right_expr, expr, local_vars, allow_recursion), should_return
 
         if m and m.group('attribute'):
             variable = m.group('var')
