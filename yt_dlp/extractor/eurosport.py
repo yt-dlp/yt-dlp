@@ -30,6 +30,9 @@ class EurosportIE(InfoExtractor):
             'display_id': 'vid1694283',
             'timestamp': 1654456090,
             'upload_date': '20220605',
+        },
+        'params': {
+            'fixup': 'never',
         }
     }]
     _TOKEN = None
