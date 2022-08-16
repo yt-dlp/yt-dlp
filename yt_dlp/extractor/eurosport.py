@@ -17,6 +17,20 @@ class EurosportIE(InfoExtractor):
             'timestamp': 1654446698,
             'upload_date': '20220605',
         }
+    }, {
+        # geo-blocked but can bypassed by xff
+        'url': 'https://www.eurosport.com/tennis/roland-garros/2022/watch-the-top-five-shots-from-men-s-final-as-rafael-nadal-beats-casper-ruud-to-seal-14th-french-open_vid1694283/video.shtml',
+        'info_dict': {
+            'id': '2481254',
+            'ext': 'mp4',
+            'title': 'md5:149dcc5dfb38ab7352acc008cc9fb071',
+            'duration': 130.0,
+            'thumbnail': 'https://imgresizer.eurosport.com/unsafe/1280x960/smart/filters:format(jpeg)/origin-imgresizer.eurosport.com/2022/06/05/3388422-69248708-2560-1440.png',
+            'description': 'md5:a0c8a7f6b285e48ae8ddbe7aa85cfee6',
+            'display_id': 'vid1694283',
+            'timestamp': 1654456090,
+            'upload_date': '20220605',
+        }
     }]
     _TOKEN = None
     # actually defined in https://netsport.eurosport.io/?variables={"databaseId":<databaseId>,"playoutType":"VDP"}&extensions={"persistedQuery":{"version":1 ..
