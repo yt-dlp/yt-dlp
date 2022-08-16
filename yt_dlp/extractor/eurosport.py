@@ -45,7 +45,9 @@ class EurosportIE(InfoExtractor):
             'upload_date': '20220727',
         }
     }]
+
     _TOKEN = None
+
     # actually defined in https://netsport.eurosport.io/?variables={"databaseId":<databaseId>,"playoutType":"VDP"}&extensions={"persistedQuery":{"version":1 ..
     # but this method require to get sha256 hash
     _GEO_COUNTRIES = ['DE', 'NL', 'EU', 'IT', 'FR']  # Not complete list but it should work
@@ -68,15 +70,18 @@ class EurosportIE(InfoExtractor):
 
         formats, subtitles = [], {}
         for stream_type in json_data['attributes']['streaming']:
-            # actually they also serve mss, but i don't know how to extract that
-            if stream_type == "hls":
+            if stream_type == 'hls':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id, ext='mp4')
                 for f in fmts:
                     f.update({'protocol': 'm3u8'})
-            elif stream_type == "dash":
+            elif stream_type == 'dash':
                 fmts, subs = self._extract_mpd_formats_and_subtitles(
                     traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id)
+            elif stream_type == 'mss':
+                fmts, subs = self._extract_ism_formats_and_subtitles(
+                    traverse_obj(json_data, ('attributes', 'streaming', stream_type, 'url')), display_id)
+
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
