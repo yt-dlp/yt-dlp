@@ -3443,7 +3443,7 @@ class YoutubeDL:
             return False
 
         vid_ids = [self._make_archive_id(info_dict)]
-        vid_ids.extend(info_dict.get('_old_archive_ids', []))
+        vid_ids.extend(info_dict.get('_old_archive_ids') or [])
         return any(id_ in self.archive for id_ in vid_ids)
 
     def record_download_archive(self, info_dict):
