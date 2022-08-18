@@ -268,7 +268,7 @@ class Response(io.IOBase):
         return self.headers
 
 
-class Features(enum.auto):
+class Features(enum.Enum):
     ALL_PROXY = enum.auto()
     NO_PROXY = enum.auto()
 
