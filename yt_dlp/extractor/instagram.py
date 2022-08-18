@@ -39,37 +39,42 @@ class InstagramBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'instagram'
     _IS_LOGGED_IN = False
 
+    _API_BASE_URL = 'https://i.instagram.com/api/v1'
+    _LOGIN_URL = 'https://www.instagram.com/accounts/login'
+    _API_HEADERS = {
+        'X-IG-App-ID': '936619743392459',
+        'X-ASBD-ID': '198387',
+        'X-IG-WWW-Claim': '0',
+        'Origin': 'https://www.instagram.com',
+        'Accept': '*/*',
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
+    }
+
     def _perform_login(self, username, password):
         if self._IS_LOGGED_IN:
             return
 
         login_webpage = self._download_webpage(
-            'https://www.instagram.com/accounts/login/', None,
-            note='Downloading login webpage', errnote='Failed to download login webpage')
+            self._LOGIN_URL, None, note='Downloading login webpage', errnote='Failed to download login webpage')
 
-        shared_data = self._parse_json(
-            self._search_regex(
-                r'window\._sharedData\s*=\s*({.+?});',
-                login_webpage, 'shared data', default='{}'),
-            None)
+        shared_data = self._parse_json(self._search_regex(
+            r'window\._sharedData\s*=\s*({.+?});', login_webpage, 'shared data', default='{}'), None)
 
-        login = self._download_json('https://www.instagram.com/accounts/login/ajax/', None, note='Logging in', headers={
-            'Accept': '*/*',
-            'X-IG-App-ID': '936619743392459',
-            'X-ASBD-ID': '198387',
-            'X-IG-WWW-Claim': '0',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': shared_data['config']['csrf_token'],
-            'X-Instagram-AJAX': shared_data['rollout_hash'],
-            'Referer': 'https://www.instagram.com/',
-        }, data=urlencode_postdata({
-            'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
-            'username': username,
-            'queryParams': '{}',
-            'optIntoOneTap': 'false',
-            'stopDeletionNonce': '',
-            'trustedDeviceRecords': '{}',
-        }))
+        login = self._download_json(
+            f'{self._LOGIN_URL}/ajax/', None, note='Logging in', headers={
+                **self._API_HEADERS,
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': shared_data['config']['csrf_token'],
+                'X-Instagram-AJAX': shared_data['rollout_hash'],
+                'Referer': 'https://www.instagram.com/',
+            }, data=urlencode_postdata({
+                'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
+                'username': username,
+                'queryParams': '{}',
+                'optIntoOneTap': 'false',
+                'stopDeletionNonce': '',
+                'trustedDeviceRecords': '{}',
+            }))
 
         if not login.get('authenticated'):
             if login.get('message'):
@@ -363,15 +368,8 @@ class InstagramIE(InstagramBaseIE):
         media, webpage = {}, ''
 
         api_check = self._download_json(
-            f'https://i.instagram.com/api/v1/web/get_ruling_for_content/?content_type=MEDIA&target_id={_id_to_pk(video_id)}',
-            video_id, fatal=False, note='Setting up session', errnote=False, headers={
-                'Accept': '*/*',
-                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
-                'X-IG-App-ID': '936619743392459',
-                'X-ASBD-ID': '198387',
-                'X-IG-WWW-Claim': '0',
-                'Origin': 'https://www.instagram.com',
-            }) or {}
+            f'{self._API_BASE_URL}/web/get_ruling_for_content/?content_type=MEDIA&target_id={_id_to_pk(video_id)}',
+            video_id, headers=self._API_HEADERS, fatal=False, note='Setting up session', errnote=False) or {}
         csrf_token = self._get_cookies('https://www.instagram.com').get('csrftoken')
 
         if not csrf_token:
@@ -381,15 +379,10 @@ class InstagramIE(InstagramBaseIE):
         else:
             if self._get_cookies(url).get('sessionid'):
                 media = traverse_obj(self._download_json(
-                    f'https://i.instagram.com/api/v1/media/{_id_to_pk(video_id)}/info/', video_id,
+                    f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
                     fatal=False, note='Downloading video info', errnote=False, headers={
-                        'Accept': '*/*',
-                        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
+                        **self._API_HEADERS,
                         'X-CSRFToken': csrf_token.value,
-                        'X-IG-App-ID': '936619743392459',
-                        'X-ASBD-ID': '198387',
-                        'X-IG-WWW-Claim': '0',
-                        'Origin': 'https://www.instagram.com',
                     }), ('items', 0))
                 if media:
                     return self._extract_product(media)
@@ -400,12 +393,8 @@ class InstagramIE(InstagramBaseIE):
                 '"child_comment_count":3,"fetch_comment_count":40,'
                 '"parent_comment_count":24,"has_threaded_comments":true}', video_id, fatal=False, errnote=False,
                 headers={
-                    'Accept': '*/*',
-                    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
+                    **self._API_HEADERS,
                     'X-CSRFToken': csrf_token.value,
-                    'X-IG-App-ID': '936619743392459',
-                    'X-ASBD-ID': '198387',
-                    'X-IG-WWW-Claim': '0',
                     'X-Requested-With': 'XMLHttpRequest',
                     'Referer': url,
                 })
@@ -417,7 +406,7 @@ class InstagramIE(InstagramBaseIE):
             shared_data = self._search_json(
                 r'window\._sharedData\s*=', webpage, 'shared data', video_id, fatal=False)
 
-            if 'www.instagram.com/accounts/login' not in urlh.geturl():
+            if self._LOGIN_URL not in urlh.geturl():
                 media.update(traverse_obj(
                     shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
                     ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})
@@ -683,12 +672,8 @@ class InstagramStoryIE(InstagramBaseIE):
 
         story_info_url = user_id if username != 'highlights' else f'highlight:{story_id}'
         videos = traverse_obj(self._download_json(
-            f'https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={story_info_url}',
-            story_id, errnote=False, fatal=False, headers={
-                'X-IG-App-ID': 936619743392459,
-                'X-ASBD-ID': 198387,
-                'X-IG-WWW-Claim': 0,
-            }), 'reels')
+            f'{self._API_BASE_URL}/feed/reels_media/?reel_ids={story_info_url}',
+            story_id, errnote=False, fatal=False, headers=self._API_HEADERS), 'reels')
         if not videos:
             self.raise_login_required('You need to log in to access this content')
 
