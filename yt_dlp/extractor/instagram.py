@@ -47,7 +47,7 @@ class InstagramBaseIE(InfoExtractor):
         'X-IG-WWW-Claim': '0',
         'Origin': 'https://www.instagram.com',
         'Accept': '*/*',
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36',
     }
 
     def _perform_login(self, username, password):
@@ -380,23 +380,33 @@ class InstagramIE(InstagramBaseIE):
             if self._get_cookies(url).get('sessionid'):
                 media = traverse_obj(self._download_json(
                     f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
-                    fatal=False, note='Downloading video info', errnote=False, headers={
+                    fatal=False, note='Downloading video info', headers={
                         **self._API_HEADERS,
                         'X-CSRFToken': csrf_token.value,
                     }), ('items', 0))
                 if media:
                     return self._extract_product(media)
 
+            variables = {
+                'shortcode': video_id,
+                'child_comment_count': 3,
+                'fetch_comment_count': 40,
+                'parent_comment_count': 24,
+                'has_threaded_comments': True,
+            }
             general_info = self._download_json(
-                f'https://www.instagram.com/graphql/query/?query_hash=9f8827793ef34641b2fb195d4d41151c'
-                f'&variables=%7B"shortcode":"{video_id}",'
-                '"child_comment_count":3,"fetch_comment_count":40,'
-                '"parent_comment_count":24,"has_threaded_comments":true}', video_id, fatal=False, errnote=False,
+                'https://www.instagram.com/graphql/query/', video_id, fatal=False,
                 headers={
-                    **self._API_HEADERS,
+                    'Accept': '*/*',
                     'X-CSRFToken': csrf_token.value,
+                    'X-IG-App-ID': '936619743392459',
+                    'X-ASBD-ID': '198387',
+                    'X-IG-WWW-Claim': '0',
                     'X-Requested-With': 'XMLHttpRequest',
                     'Referer': url,
+                }, query={
+                    'query_hash': '9f8827793ef34641b2fb195d4d41151c',
+                    'variables': json.dumps(variables, separators=(',', ':')),
                 })
             media = traverse_obj(general_info, ('data', 'shortcode_media'))
 
