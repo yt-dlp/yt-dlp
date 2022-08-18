@@ -7,8 +7,10 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import math
+import re
 
-from yt_dlp.jsinterp import JSInterpreter
+from yt_dlp.jsinterp import JS_Undefined, JSInterpreter
 
 
 class TestJSInterpreter(unittest.TestCase):
@@ -65,6 +67,9 @@ class TestJSInterpreter(unittest.TestCase):
 
         jsi = JSInterpreter('function f(){return 0 && 1 || 2;}')
         self.assertEqual(jsi.call_function('f'), 2)
+
+        jsi = JSInterpreter('function f(){return 0 ?? 42;}')
+        self.assertEqual(jsi.call_function('f'), 0)
 
     def test_array_access(self):
         jsi = JSInterpreter('function f(){var x = [1,2,3]; x[0] = 4; x[0] = 5; x[2.0] = 7; return x;}')
@@ -228,6 +233,119 @@ class TestJSInterpreter(unittest.TestCase):
         function x() { return [1, function(){return 1}][1] }
         ''')
         self.assertEqual(jsi.call_function('x')([]), 1)
+
+    def test_null(self):
+        jsi = JSInterpreter('''
+        function x() { return null; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), None)
+
+        jsi = JSInterpreter('''
+        function x() { return [null > 0, null < 0, null == 0, null === 0]; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), [False, False, False, False])
+
+        jsi = JSInterpreter('''
+        function x() { return [null >= 0, null <= 0]; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), [True, True])
+
+    def test_undefined(self):
+        jsi = JSInterpreter('''
+        function x() { return undefined === undefined; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), True)
+
+        jsi = JSInterpreter('''
+        function x() { return undefined; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), JS_Undefined)
+
+        jsi = JSInterpreter('''
+        function x() { let v; return v; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), JS_Undefined)
+
+        jsi = JSInterpreter('''
+        function x() { return [undefined === undefined, undefined == undefined, undefined < undefined, undefined > undefined]; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), [True, True, False, False])
+
+        jsi = JSInterpreter('''
+        function x() { return [undefined === 0, undefined == 0, undefined < 0, undefined > 0]; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), [False, False, False, False])
+
+        jsi = JSInterpreter('''
+        function x() { return [undefined >= 0, undefined <= 0]; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), [False, False])
+
+        jsi = JSInterpreter('''
+        function x() { return [undefined > null, undefined < null, undefined == null, undefined === null]; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), [False, False, True, False])
+
+        jsi = JSInterpreter('''
+        function x() { return [undefined === null, undefined == null, undefined < null, undefined > null]; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), [False, True, False, False])
+
+        jsi = JSInterpreter('''
+        function x() { let v; return [42+v, v+42, v**42, 42**v, 0**v]; }
+        ''')
+        for y in jsi.call_function('x'):
+            self.assertTrue(math.isnan(y))
+
+        jsi = JSInterpreter('''
+        function x() { let v; return v**0; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), 1)
+
+        jsi = JSInterpreter('''
+        function x() { let v; return [v>42, v<=42, v&&42, 42&&v]; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), [False, False, JS_Undefined, JS_Undefined])
+
+        jsi = JSInterpreter('function x(){return undefined ?? 42; }')
+        self.assertEqual(jsi.call_function('x'), 42)
+
+    def test_object(self):
+        jsi = JSInterpreter('''
+        function x() { return {}; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), {})
+
+        jsi = JSInterpreter('''
+        function x() { let a = {m1: 42, m2: 0 }; return [a["m1"], a.m2]; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), [42, 0])
+
+        jsi = JSInterpreter('''
+        function x() { let a; return a?.qq; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), JS_Undefined)
+
+        jsi = JSInterpreter('''
+        function x() { let a = {m1: 42, m2: 0 }; return a?.qq; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), JS_Undefined)
+
+    def test_regex(self):
+        jsi = JSInterpreter('''
+        function x() { let a=/,,[/,913,/](,)}/; }
+        ''')
+        self.assertEqual(jsi.call_function('x'), None)
+
+        jsi = JSInterpreter('''
+        function x() { let a=/,,[/,913,/](,)}/; return a; }
+        ''')
+        self.assertIsInstance(jsi.call_function('x'), re.Pattern)
+
+        jsi = JSInterpreter('''
+        function x() { let a=/,,[/,913,/](,)}/i; return a; }
+        ''')
+        self.assertEqual(jsi.call_function('x').flags & re.I, re.I)
 
 
 if __name__ == '__main__':
