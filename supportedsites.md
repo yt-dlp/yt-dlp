@@ -380,6 +380,7 @@
  - **ExtremeTube**
  - **EyedoTV**
  - **facebook**: [<abbr title="netrc machine"><em>facebook</em></abbr>]
+ - **facebook:reel**
  - **FacebookPluginsVideo**
  - **fancode:live**: [<abbr title="netrc machine"><em>fancode</em></abbr>]
  - **fancode:vod**: [<abbr title="netrc machine"><em>fancode</em></abbr>]
@@ -709,6 +710,7 @@
  - **mixcloud:playlist**
  - **mixcloud:user**
  - **MLB**
+ - **MLBTV**: [<abbr title="netrc machine"><em>mlb</em></abbr>]
  - **MLBVideo**
  - **MLSSoccer**
  - **Mnet**
@@ -726,6 +728,7 @@
  - **MovieClips**
  - **MovieFap**
  - **Moviepilot**
+ - **MoviewPlay**
  - **Moviezine**
  - **MovingImage**
  - **MSN**
@@ -916,6 +919,7 @@
  - **ParamountNetwork**
  - **ParamountPlus**
  - **ParamountPlusSeries**
+ - **Parler**: Posts on parler.com
  - **parliamentlive.tv**: UK parliament videos
  - **Parlview**
  - **Patreon**
@@ -1314,6 +1318,7 @@
  - **TrovoVod**
  - **TrueID**
  - **TruNews**
+ - **Truth**
  - **TruTV**
  - **Tube8**
  - **TubeTuGraz**: [<abbr title="netrc machine"><em>tubetugraz</em></abbr>] tube.tugraz.at
@@ -1584,7 +1589,7 @@
  - **youtube:clip**
  - **youtube:favorites**: YouTube liked videos; ":ytfav" keyword (requires cookies)
  - **youtube:history**: Youtube watch history; ":ythis" keyword (requires cookies)
- - **youtube:music:search_url**: YouTube music search URLs with selectable sections (Eg: #songs)
+ - **youtube:music:search_url**: YouTube music search URLs with selectable sections, e.g. #songs
  - **youtube:notif**: YouTube notifications; ":ytnotif" keyword (requires cookies)
  - **youtube:playlist**: YouTube playlists
  - **youtube:recommended**: YouTube recommended videos; ":ytrec" keyword

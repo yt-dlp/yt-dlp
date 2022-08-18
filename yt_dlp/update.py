@@ -9,7 +9,7 @@ import sys
 from zipimport import zipimporter
 
 from .compat import functools  # isort: split
-from .compat import compat_realpath
+from .compat import compat_realpath, compat_shlex_quote
 from .utils import (
     Popen,
     cached_method,
@@ -229,24 +229,33 @@ class Updater:
         except OSError:
             return self._report_permission_error(new_filename)
 
-        try:
-            if old_filename:
+        if old_filename:
+            mask = os.stat(self.filename).st_mode
+            try:
                 os.rename(self.filename, old_filename)
-        except OSError:
-            return self._report_error('Unable to move current version')
-        try:
-            if old_filename:
-                os.rename(new_filename, self.filename)
-        except OSError:
-            self._report_error('Unable to overwrite current version')
-            return os.rename(old_filename, self.filename)
+            except OSError:
+                return self._report_error('Unable to move current version')
 
-        if detect_variant() not in ('win32_exe', 'py2exe'):
-            if old_filename:
-                os.remove(old_filename)
-        else:
+            try:
+                os.rename(new_filename, self.filename)
+            except OSError:
+                self._report_error('Unable to overwrite current version')
+                return os.rename(old_filename, self.filename)
+
+        if detect_variant() in ('win32_exe', 'py2exe'):
             atexit.register(Popen, f'ping 127.0.0.1 -n 5 -w 1000 & del /F "{old_filename}"',
                             shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif old_filename:
+            try:
+                os.remove(old_filename)
+            except OSError:
+                self._report_error('Unable to remove the old version')
+
+            try:
+                os.chmod(self.filename, mask)
+            except OSError:
+                return self._report_error(
+                    f'Unable to set permissions. Run: sudo chmod a+rx {compat_shlex_quote(self.filename)}')
 
         self.ydl.to_screen(f'Updated yt-dlp to version {self.new_version}')
         return True

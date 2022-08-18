@@ -51,6 +51,9 @@ class RaiBaseIE(InfoExtractor):
                 query={'output': 45, 'pl': platform},
                 headers=self.geo_verification_headers())
 
+            if xpath_text(relinker, './license_url', default='{}') != '{}':
+                self.report_drm(video_id)
+
             if not geoprotection:
                 geoprotection = xpath_text(
                     relinker, './geoprotection', default=None) == 'Y'
@@ -251,6 +254,8 @@ class RaiPlayIE(RaiBaseIE):
             },
             'release_year': 2022,
             'episode': 'Espresso nel caffè - 07/04/2014',
+            'timestamp': 1396919880,
+            'upload_date': '20140408',
         },
         'params': {
             'skip_download': True,
@@ -274,6 +279,8 @@ class RaiPlayIE(RaiBaseIE):
             'release_year': 2021,
             'season_number': 1,
             'episode': 'Senza occhi',
+            'timestamp': 1637318940,
+            'upload_date': '20211119',
         },
     }, {
         'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
@@ -284,7 +291,7 @@ class RaiPlayIE(RaiBaseIE):
         'only_matching': True,
     }, {
         # DRM protected
-        'url': 'https://www.raiplay.it/video/2020/09/Lo-straordinario-mondo-di-Zoey-S1E1-Lo-straordinario-potere-di-Zoey-ed493918-1d32-44b7-8454-862e473d00ff.html',
+        'url': 'https://www.raiplay.it/video/2021/06/Lo-straordinario-mondo-di-Zoey-S2E1-Lo-straordinario-ritorno-di-Zoey-3ba992de-2332-41ad-9214-73e32ab209f4.html',
         'only_matching': True,
     }]
 
@@ -363,6 +370,8 @@ class RaiPlayLiveIE(RaiPlayIE):
             'creator': 'Rai News 24',
             'is_live': True,
             'live_status': 'is_live',
+            'upload_date': '20090502',
+            'timestamp': 1241276220,
         },
         'params': {
             'skip_download': True,
@@ -448,6 +457,8 @@ class RaiPlaySoundIE(RaiBaseIE):
             'series': 'Il Ruggito del Coniglio',
             'episode': 'Il Ruggito del Coniglio del 10/12/2021',
             'creator': 'rai radio 2',
+            'timestamp': 1638346620,
+            'upload_date': '20211201',
         },
         'params': {
             'skip_download': True,
@@ -707,7 +718,8 @@ class RaiIE(RaiBaseIE):
 
 
 class RaiNewsIE(RaiIE):
-    _VALID_URL = rf'https?://(www\.)?rainews\.it/[^?#]+-(?P<id>{RaiBaseIE._UUID_RE})(?:-[^/?#]+)?\.html'
+    _VALID_URL = rf'https?://(www\.)?rainews\.it/(?!articoli)[^?#]+-(?P<id>{RaiBaseIE._UUID_RE})(?:-[^/?#]+)?\.html'
+    _EMBED_REGEX = [rf'<iframe[^>]+data-src="(?P<url>/iframe/[^?#]+?{RaiBaseIE._UUID_RE}\.html)']
     _TESTS = [{
         # new rainews player (#3911)
         'url': 'https://www.rainews.it/rubriche/24mm/video/2022/05/24mm-del-29052022-12cf645d-1ffd-4220-b27c-07c226dbdecf.html',
@@ -732,6 +744,10 @@ class RaiNewsIE(RaiIE):
             'upload_date': '20161103'
         },
         'expected_warnings': ['unable to extract player_data'],
+    }, {
+        # iframe + drm
+        'url': 'https://www.rainews.it/iframe/video/2022/07/euro2022-europei-calcio-femminile-italia-belgio-gol-0-1-video-4de06a69-de75-4e32-a657-02f0885f8118.html',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -755,6 +771,7 @@ class RaiNewsIE(RaiIE):
                 raise ExtractorError('Relinker URL not found', cause=e)
 
         relinker_info = self._extract_relinker_info(urljoin(url, relinker_url), video_id)
+
         self._sort_formats(relinker_info['formats'])
 
         return {
@@ -769,13 +786,13 @@ class RaiNewsIE(RaiIE):
 class RaiSudtirolIE(RaiBaseIE):
     _VALID_URL = r'https?://raisudtirol\.rai\.it/.+?media=(?P<id>[TP]tv\d+)'
     _TESTS = [{
-        'url': 'https://raisudtirol.rai.it/de/index.php?media=Ttv1656281400',
+        'url': 'https://raisudtirol.rai.it/la/index.php?media=Ptv1619729460',
         'info_dict': {
-            'id': 'Ttv1656281400',
+            'id': 'Ptv1619729460',
             'ext': 'mp4',
-            'title': 'Tagesschau + Sport am Sonntag - 31-07-2022 20:00',
-            'series': 'Tagesschau + Sport am Sonntag',
-            'upload_date': '20220731',
+            'title': 'Euro: trasmisciun d\'economia - 29-04-2021 20:51',
+            'series': 'Euro: trasmisciun d\'economia',
+            'upload_date': '20210429',
             'thumbnail': r're:https://raisudtirol\.rai\.it/img/.+?\.jpg',
             'uploader': 'raisudtirol',
         }
@@ -796,6 +813,14 @@ class RaiSudtirolIE(RaiBaseIE):
             'series': video_title,
             'upload_date': unified_strdate(video_date),
             'thumbnail': urljoin('https://raisudtirol.rai.it/', video_thumb),
-            'url': self._proto_relative_url(video_url),
             'uploader': 'raisudtirol',
+            'formats': [{
+                'format_id': 'https-mp4',
+                'url': self._proto_relative_url(video_url),
+                'width': 1024,
+                'height': 576,
+                'fps': 25,
+                'vcodec': 'h264',
+                'acodec': 'aac',
+            }],
         }

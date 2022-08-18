@@ -11,6 +11,37 @@
 -->
 
 
+### 2022.08.14
+
+* Merge youtube-dl: Upto [commit/d231b56](https://github.com/ytdl-org/youtube-dl/commit/d231b56)
+* [jsinterp] Handle **new youtube signature functions**
+* [jsinterp] Truncate error messages
+* [extractor] Fix format sorting of `channels`
+* [ffmpeg] Disable avconv unless `--prefer-avconv`
+* [ffmpeg] Smarter detection of ffprobe filename
+* [patreon] Ignore erroneous media attachments by [coletdjnz](https://github.com/coletdjnz)
+* [postprocessor/embedthumbnail] Detect `libatomicparsley.so`
+* [ThumbnailsConvertor] Fix conversion after `fixup_webp`
+* [utils] Fix `get_compatible_ext`
+* [build] Fix changelog
+* [update] Set executable bit-mask by [pukkandan](https://github.com/pukkandan), [Lesmiscore](https://github.com/Lesmiscore)
+* [devscripts] Fix import
+* [docs] Consistent use of `e.g.` by [Lesmiscore](https://github.com/Lesmiscore)
+* [cleanup] Misc fixes and cleanup
+* [extractor/moview] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/parler] Add extractor by [palewire](https://github.com/palewire)
+* [extractor/truth] Add extractor by [palewire](https://github.com/palewire)
+* [extractor/aenetworks] Add formats parameter by [jacobtruman](https://github.com/jacobtruman)
+* [extractor/crunchyroll] Improve `_VALID_URL`s
+* [extractor/doodstream] Add `wf` domain by [aldoridhoni](https://github.com/aldoridhoni)
+* [extractor/facebook] Add reel support by [bashonly](https://github.com/bashonly)
+* [extractor/MLB] New extractor by [ischmidt20](https://github.com/ischmidt20)
+* [extractor/rai] Misc fixes by [nixxo](https://github.com/nixxo)
+* [extractor/toggo] Improve `_VALID_URL` by [masta79](https://github.com/masta79)
+* [extractor/tubitv] Extract additional formats by [shirt-dev](https://github.com/shirt-dev)
+* [extractor/zattoo] Potential fix for resellers
+
+
 ### 2022.08.08
 
 * **Remove Python 3.6 support**
@@ -20,10 +51,10 @@
 * `--compat-option no-live-chat` should disable danmaku
 * Fix misleading DRM message
 * Import ctypes only when necessary
-* Minor bugfixes by [pukkandan](https://github.com/pukkandan)
-* Reject entire playlists faster with `--match-filter` by [pukkandan](https://github.com/pukkandan)
+* Minor bugfixes
+* Reject entire playlists faster with `--match-filter`
 * Remove filtered entries from `-J`
-* Standardize retry mechanism by [pukkandan](https://github.com/pukkandan)
+* Standardize retry mechanism
 * Validate `--merge-output-format`
 * [downloader] Add average speed to final progress line
 * [extractor] Add field `audio_channels`
@@ -31,7 +62,7 @@
 * [ffmpeg] Set `ffmpeg_location` in a contextvar
 * [FFmpegThumbnailsConvertor] Fix conversion from GIF
 * [MetadataParser] Don't set `None` when the field didn't match
-* [outtmpl] Smarter replacing of unsupported characters by [pukkandan](https://github.com/pukkandan)
+* [outtmpl] Smarter replacing of unsupported characters
 * [outtmpl] Treat empty values as None in filenames
 * [utils] sanitize_open: Allow any IO stream as stdout
 * [build, devscripts] Add devscript to set a build variant
@@ -64,7 +95,7 @@
 * [extractor/bbc] Fix news articles by [ajj8](https://github.com/ajj8)
 * [extractor/camtasia] Separate into own extractor by [coletdjnz](https://github.com/coletdjnz)
 * [extractor/cloudflarestream] Fix video_id padding by [haobinliang](https://github.com/haobinliang)
-* [extractor/crunchyroll] Fix conversion of thumbnail from GIF by [pukkandan](https://github.com/pukkandan)
+* [extractor/crunchyroll] Fix conversion of thumbnail from GIF
 * [extractor/crunchyroll] Handle missing metadata correctly by [Burve](https://github.com/Burve), [pukkandan](https://github.com/pukkandan)
 * [extractor/crunchyroll:beta] Extract timestamp and fix tests by [tejing1](https://github.com/tejing1)
 * [extractor/crunchyroll:beta] Use streams API by [tejing1](https://github.com/tejing1)
@@ -211,7 +242,7 @@
 
 * [**Deprecate support for Python 3.6**](https://github.com/yt-dlp/yt-dlp/issues/3764#issuecomment-1154051119)
 * **Add option `--download-sections` to download video partially**
-    * Chapter regex and time ranges are accepted (Eg: `--download-sections *1:10-2:20`)
+    * Chapter regex and time ranges are accepted, e.g. `--download-sections *1:10-2:20`
 * Add option `--alias`
 * Add option `--lazy-playlist` to process entries as they are received
 * Add option `--retry-sleep`
@@ -1375,7 +1406,7 @@
 
 * Add new option `--netrc-location`
 * [outtmpl] Allow alternate fields using `,`
-* [outtmpl] Add format type `B` to treat the value as bytes (eg: to limit the filename to a certain number of bytes)
+* [outtmpl] Add format type `B` to treat the value as bytes, e.g. to limit the filename to a certain number of bytes
 * Separate the options `--ignore-errors` and `--no-abort-on-error`
 * Basic framework for simultaneous download of multiple formats by [nao20010128nao](https://github.com/nao20010128nao)
 * [17live] Add 17.live extractor by [nao20010128nao](https://github.com/nao20010128nao)
@@ -1765,7 +1796,7 @@
 
 * Merge youtube-dl: Upto [commit/a803582](https://github.com/ytdl-org/youtube-dl/commit/a8035827177d6b59aca03bd717acb6a9bdd75ada)
 * Add `--extractor-args` to pass some extractor-specific arguments. See [readme](https://github.com/yt-dlp/yt-dlp#extractor-arguments)
-    * Add extractor option `skip` for `youtube`. Eg: `--extractor-args youtube:skip=hls,dash`
+    * Add extractor option `skip` for `youtube`, e.g. `--extractor-args youtube:skip=hls,dash`
     * Deprecates `--youtube-skip-dash-manifest`, `--youtube-skip-hls-manifest`, `--youtube-include-dash-manifest`, `--youtube-include-hls-manifest`
 * Allow `--list...` options to work with `--print`, `--quiet` and other `--list...` options
 * [youtube] Use `player` API for additional video extraction requests by [coletdjnz](https://github.com/coletdjnz)

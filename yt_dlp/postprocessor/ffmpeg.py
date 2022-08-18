@@ -1105,6 +1105,7 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
                 continue
             has_thumbnail = True
             self.fixup_webp(info, idx)
+            original_thumbnail = thumbnail_dict['filepath']  # Path can change during fixup
             thumbnail_ext = os.path.splitext(original_thumbnail)[1][1:].lower()
             if thumbnail_ext == 'jpeg':
                 thumbnail_ext = 'jpg'

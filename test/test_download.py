@@ -102,11 +102,11 @@ def generator(test_case, tname):
             info_dict = tc.get('info_dict', {})
             params = tc.get('params', {})
             if not info_dict.get('id'):
-                raise Exception('Test definition incorrect. \'id\' key is not present')
+                raise Exception(f'Test {tname} definition incorrect - "id" key is not present')
             elif not info_dict.get('ext'):
                 if params.get('skip_download') and params.get('ignore_no_formats_error'):
                     continue
-                raise Exception('Test definition incorrect. The output file cannot be known. \'ext\' key is not present')
+                raise Exception(f'Test {tname} definition incorrect - "ext" key must be present to define the output file')
 
         if 'skip' in test_case:
             print_skipping(test_case['skip'])
@@ -159,6 +159,7 @@ def generator(test_case, tname):
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
                     if not isinstance(err.exc_info[1], (TransportError, UnavailableVideoError)) or (isinstance(err.exc_info[1], HTTPError) and err.exc_info[1].code == 503):
+                        err.msg = f'{getattr(err, "msg", err)} ({tname})'
                         raise
 
                     if try_num == RETRIES:
