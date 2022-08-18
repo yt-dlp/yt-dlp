@@ -360,8 +360,8 @@ class InstagramIE(InstagramBaseIE):
 
     def _real_extract(self, url):
         video_id, url = self._match_valid_url(url).group('id', 'url')
-        media = {}
-        webpage = {}
+        media, webpage = {}, ''
+
         api_check = self._download_json(
             f'https://i.instagram.com/api/v1/web/get_ruling_for_content/?content_type=MEDIA&target_id={_id_to_pk(video_id)}',
             video_id, fatal=False, note='Setting up session', errnote=False, headers={
@@ -371,25 +371,27 @@ class InstagramIE(InstagramBaseIE):
                 'X-ASBD-ID': '198387',
                 'X-IG-WWW-Claim': '0',
                 'Origin': 'https://www.instagram.com',
-            })
-        csrf_token = self._get_cookies('https://www.instagram.com').get('csrftoken').value
-        if api_check['status'] != 'ok':
-            self.report_warning('Instagram API is not granting access.')
+            }) or {}
+        csrf_token = self._get_cookies('https://www.instagram.com').get('csrftoken')
+
+        if not csrf_token:
+            self.report_warning('No csrf token set by Instagram API', video_id)
+        elif api_check.get('status') != 'ok':
+            self.report_warning('Instagram API is not granting access', video_id)
         else:
             if self._IS_LOGGED_IN or self._cookies_passed and self._get_cookies(url).get('sessionid'):
-                info = self._download_json(
+                media = traverse_obj(self._download_json(
                     f'https://i.instagram.com/api/v1/media/{_id_to_pk(video_id)}/info/', video_id,
                     fatal=False, note='Downloading video info', errnote=False, headers={
                         'Accept': '*/*',
                         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
-                        'X-CSRFToken': csrf_token,
+                        'X-CSRFToken': csrf_token.value,
                         'X-IG-App-ID': '936619743392459',
                         'X-ASBD-ID': '198387',
                         'X-IG-WWW-Claim': '0',
                         'Origin': 'https://www.instagram.com',
-                    })
-                if info:
-                    media = info['items'][0]
+                    }), ('items', 0))
+                if media:
                     return self._extract_product(media)
 
             general_info = self._download_json(
@@ -400,7 +402,7 @@ class InstagramIE(InstagramBaseIE):
                 headers={
                     'Accept': '*/*',
                     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
-                    'X-CSRFToken': csrf_token,
+                    'X-CSRFToken': csrf_token.value,
                     'X-IG-App-ID': '936619743392459',
                     'X-ASBD-ID': '198387',
                     'X-IG-WWW-Claim': '0',
@@ -420,11 +422,9 @@ class InstagramIE(InstagramBaseIE):
                     shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
                     ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})
             else:
-                self.report_warning('Main webpage is locked behind the login page. '
-                                    'Retrying with embed webpage (Note that some metadata might be missing)')
+                self.report_warning('Main webpage is locked behind the login page. Retrying with embed webpage')
                 webpage = self._download_webpage(
-                    f'{url}/embed/', video_id,
-                    note='Downloading embed webpage', fatal=False)
+                    f'{url}/embed/', video_id, note='Downloading embed webpage', fatal=False)
                 additional_data = self._search_json(
                     r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
                 if not additional_data:
