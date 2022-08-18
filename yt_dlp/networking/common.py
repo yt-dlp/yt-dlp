@@ -389,11 +389,11 @@ class RequestHandler:
         if not request.compression:
             request.headers.pop('Accept-Encoding', None)
 
-        # Proxy preference: header req proxy > req proxies > ydl opt proxies / env proxies
-        request.proxies = {**self.ydl.proxies, **request.proxies}
+        request.proxies = request.proxies or self.ydl.proxies
         req_proxy = request.headers.pop('Ytdl-request-proxy', None)
         if req_proxy:
-            request.proxies.update({'http': req_proxy, 'https': req_proxy})
+            request.proxies = {'all': req_proxy}
+
         for proxy_key, proxy_url in request.proxies.items():
             if proxy_url == '__noproxy__':  # compat
                 request.proxies[proxy_key] = None

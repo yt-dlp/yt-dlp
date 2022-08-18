@@ -3754,9 +3754,8 @@ class YoutubeDL:
         opts_proxy = self.params.get('proxy')
         if opts_proxy is not None:
             if opts_proxy == '':
-                proxies = {}
-            else:
-                proxies = {'http': opts_proxy, 'https': opts_proxy}
+                opts_proxy = '__noproxy__'
+            proxies = {'all': opts_proxy}
         else:
             proxies = getproxies()
             # compat. Set HTTPS_PROXY to __noproxy__ to revert
