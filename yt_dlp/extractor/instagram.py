@@ -390,9 +390,9 @@ class InstagramIE(InstagramBaseIE):
 
         webpage, urlh = self._download_webpage_handle(url, video_id)
         shared_data = self._search_json(
-                r'window\._sharedData\s*=', webpage, 'shared data', video_id, fatal=False)
+            r'window\._sharedData\s*=', webpage, 'shared data', video_id, fatal=False)
 
-        if not 'www.instagram.com/accounts/login' in urlh.geturl():
+        if 'www.instagram.com/accounts/login' not in urlh.geturl():
             media.update(traverse_obj(
                 shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
                 ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})
