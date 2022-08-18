@@ -378,12 +378,12 @@ class InstagramIE(InstagramBaseIE):
             self.report_warning('Instagram API is not granting access', video_id)
         else:
             if self._get_cookies(url).get('sessionid'):
-                media = traverse_obj(self._download_json(
+                media.update(traverse_obj(self._download_json(
                     f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
                     fatal=False, note='Downloading video info', headers={
                         **self._API_HEADERS,
                         'X-CSRFToken': csrf_token.value,
-                    }), ('items', 0))
+                    }), ('items', 0)) or {})
                 if media:
                     return self._extract_product(media)
 
@@ -405,15 +405,15 @@ class InstagramIE(InstagramBaseIE):
                     'query_hash': '9f8827793ef34641b2fb195d4d41151c',
                     'variables': json.dumps(variables, separators=(',', ':')),
                 })
-            media = traverse_obj(general_info, ('data', 'shortcode_media'))
+            media.update(traverse_obj(general_info, ('data', 'shortcode_media')) or {})
 
         if not media:
             self.report_warning('General metadata extraction failed (some metadata might be missing).', video_id)
             webpage, urlh = self._download_webpage_handle(url, video_id)
             shared_data = self._search_json(
-                r'window\._sharedData\s*=', webpage, 'shared data', video_id, fatal=False)
+                r'window\._sharedData\s*=', webpage, 'shared data', video_id, fatal=False) or {}
 
-            if self._LOGIN_URL not in urlh.geturl():
+            if shared_data and self._LOGIN_URL not in urlh.geturl():
                 media.update(traverse_obj(
                     shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
                     ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})
@@ -424,7 +424,7 @@ class InstagramIE(InstagramBaseIE):
                 additional_data = self._search_json(
                     r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
                 if not additional_data:
-                    self.raise_login_required('Requested content was not found, the content might be private')
+                    self.raise_login_required('Requested content is not available, rate-limit reached or login required')
 
                 product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
                 if product_item:
