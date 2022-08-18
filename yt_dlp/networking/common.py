@@ -273,26 +273,6 @@ class Features(enum.auto):
     NO_PROXY = enum.auto()
 
 
-class OptFeatures(enum.Enum):
-    # YouTubeDL options that RequestHandlers are responsible for implementing support for
-    OPT_SOURCE_ADDRESS = 'source_address'
-    OPT_NO_CHECK_CERTIFICATE = 'nocheckcertificate'
-    OPT_CLIENT_CERTIFICATE_KEY = 'client_certificate_key'
-    OPT_CLIENT_CERTIFICATE_PASSWORD = 'client_certificate_password'
-    OPT_CLIENT_CERTIFICATE = 'client_certificate'
-    OPT_LEGACY_SERVER_CONNECT = 'legacyserverconnect'
-
-
-# Provided by default make_ssl_context()
-DEFAULT_SSL_FEATURES = (
-    OptFeatures.OPT_NO_CHECK_CERTIFICATE,
-    OptFeatures.OPT_LEGACY_SERVER_CONNECT,
-    OptFeatures.OPT_CLIENT_CERTIFICATE_KEY,
-    OptFeatures.OPT_CLIENT_CERTIFICATE_PASSWORD,
-    OptFeatures.OPT_CLIENT_CERTIFICATE
-)
-
-
 class RequestHandler:
 
     """Request Handler class
@@ -329,7 +309,7 @@ class RequestHandler:
     SUPPORTED_SCHEMES = None
     SUPPORTED_PROXY_SCHEMES = None
     SUPPORTED_ENCODINGS = None
-    SUPPORTED_FEATURES = None
+    SUPPORTED_FEATURES = []
 
     def __init__(self, ydl: YoutubeDL):
         self.ydl = ydl
@@ -382,16 +362,6 @@ class RequestHandler:
         if self.SUPPORTED_SCHEMES is not None and scheme not in self.SUPPORTED_SCHEMES:
             raise UnsupportedRequest(f'"unsupported scheme: "{scheme}"')
 
-    def _supports_feature(self, feature):
-        if self.SUPPORTED_FEATURES is None:
-            return True
-        return feature in self.SUPPORTED_FEATURES
-
-    def _check_opt_features(self):
-        for opt_feature in OptFeatures:
-            if self.ydl.params.get(opt_feature.value) is not None and not self._supports_feature(opt_feature):
-                raise UnsupportedRequest(f'\'{opt_feature.value}\' opt is not supported')
-
     def _check_proxies(self, request: Request):
         if self.SUPPORTED_PROXY_SCHEMES is None:
             return
@@ -399,10 +369,10 @@ class RequestHandler:
             if proxy_url is None:
                 continue
             if proxy_key == 'no':
-                if not self._supports_feature(Features.NO_PROXY):
+                if Features.NO_PROXY not in self.SUPPORTED_FEATURES:
                     raise UnsupportedRequest('\'no\' proxy is not supported')
                 continue
-            if proxy_key == 'all' and not self._supports_feature(Features.ALL_PROXY):
+            if proxy_key == 'all' and Features.ALL_PROXY not in self.SUPPORTED_FEATURES:
                 raise UnsupportedRequest('\'all\' proxy is not supported')
 
             # Unlikely this handler will use this proxy, so ignore.
@@ -417,7 +387,6 @@ class RequestHandler:
 
     def prepare_request(self, request: Request):
         self._check_scheme(request)
-        self._check_opt_features()
         request.headers = CaseInsensitiveDict(self.ydl.params.get('http_headers', {}), request.headers)
         if 'Youtubedl-no-compression' in request.headers:
             del request.headers['Youtubedl-no-compression']
