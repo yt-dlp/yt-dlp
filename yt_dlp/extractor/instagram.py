@@ -379,7 +379,7 @@ class InstagramIE(InstagramBaseIE):
         elif api_check.get('status') != 'ok':
             self.report_warning('Instagram API is not granting access', video_id)
         else:
-            if self._IS_LOGGED_IN or self._cookies_passed and self._get_cookies(url).get('sessionid'):
+            if self._get_cookies(url).get('sessionid'):
                 media = traverse_obj(self._download_json(
                     f'https://i.instagram.com/api/v1/media/{_id_to_pk(video_id)}/info/', video_id,
                     fatal=False, note='Downloading video info', errnote=False, headers={
