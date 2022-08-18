@@ -198,13 +198,18 @@ class RaiBaseIE(InfoExtractor):
 
         formats = []
         for q in available_qualities:
-            fmt = {
-                'url': _MP4_TMPL % (relinker_url, q),
-                'protocol': 'https',
-                'ext': 'mp4',
-                **get_format_info(q)
-            }
+            try:
+                fmt = {
+                    'url': _MP4_TMPL % (relinker_url, q),
+                    'protocol': 'https',
+                    'ext': 'mp4',
+                    **get_format_info(q)
+                }
+            except Exception:
+                continue
             formats.append(fmt)
+        if not formats:
+            raise Exception('Unable to find a usable format')
         return formats
 
     @staticmethod
