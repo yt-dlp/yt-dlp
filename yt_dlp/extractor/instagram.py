@@ -373,7 +373,7 @@ class InstagramIE(InstagramBaseIE):
             })
         media = traverse_obj(general_info, ('data', 'shortcode_media')) or {}
         if not media:
-            self.report_warning('General metadata extraction failed (You might not be logged in).', video_id)
+            self.report_warning('General metadata extraction failed (some metadata might be missing).', video_id)
 
         info = self._download_json(
             f'https://i.instagram.com/api/v1/media/{_id_to_pk(video_id)}/info/', video_id,
@@ -388,21 +388,32 @@ class InstagramIE(InstagramBaseIE):
             media.update(info['items'][0])
             return self._extract_product(media)
 
-        webpage = self._download_webpage(
-            f'{url}/embed/', video_id,
-            note='Downloading embed webpage', fatal=False)
-        additional_data = self._search_json(
-            r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
-        if not additional_data:
-            self.raise_login_required('Requested content was not found, the content might be private')
+        webpage, urlh = self._download_webpage_handle(url, video_id)
+        shared_data = self._search_json(
+                r'window\._sharedData\s*=', webpage, 'shared data', video_id, fatal=False)
 
-        product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
-        if product_item:
-            media.update(product_item)
-            return self._extract_product(media)
+        if not 'www.instagram.com/accounts/login' in urlh.geturl():
+            media.update(traverse_obj(
+                shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
+                ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})
+        else:
+            self.report_warning('Main webpage is locked behind the login page. '
+                                'Retrying with embed webpage (Note that some metadata might be missing)')
+            webpage = self._download_webpage(
+                f'{url}/embed/', video_id,
+                note='Downloading embed webpage', fatal=False)
+            additional_data = self._search_json(
+                r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
+            if not additional_data:
+                self.raise_login_required('Requested content was not found, the content might be private')
 
-        media.update(traverse_obj(
-            additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {})
+            product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
+            if product_item:
+                media.update(product_item)
+                return self._extract_product(media)
+
+            media.update(traverse_obj(
+                additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {})
 
         username = traverse_obj(media, ('owner', 'username')) or self._search_regex(
             r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'username', fatal=False)
