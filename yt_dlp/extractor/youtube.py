@@ -17,6 +17,7 @@ import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
+from .openload import PhantomJSwrapper
 from ..compat import functools
 from ..jsinterp import JSInterpreter
 from ..utils import (
@@ -2624,8 +2625,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if self.get_param('youtube_print_sig_code'):
             self.to_screen(f'Extracted nsig function from {player_id}:\n{func_code[1]}\n')
 
-        extract_nsig = self._cached(self._extract_n_function_from_code, 'nsig func', player_url)
-        ret = extract_nsig(jsi, func_code)(s)
+        try:
+            extract_nsig = self._cached(self._extract_n_function_from_code, 'nsig func', player_url)
+            ret = extract_nsig(jsi, func_code)(s)
+        except JSInterpreter.Exception as e:
+            try:
+                jsi = PhantomJSwrapper(self)
+            except ExtractorError:
+                raise e
+            self.report_warning(
+                f'Native nsig extraction failed: Trying with PhantomJS\n'
+                f'         n = {s} ; player = {player_url}', video_id)
+            self.write_debug(e)
+
+            args, func_body = func_code
+            ret = jsi.execute(
+                f'console.log(function({", ".join(args)}) {{ {func_body} }}({s!r}));',
+                video_id=video_id, note='Executing signature code').strip()
 
         self.write_debug(f'Decrypted nsig {s} => {ret}')
         return ret
@@ -2655,9 +2671,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         func = jsi.extract_function_from_code(*func_code)
 
         def extract_nsig(s):
-            ret = func([s])
+            try:
+                ret = func([s])
+            except JSInterpreter.Exception:
+                raise
+            except Exception as e:
+                raise JSInterpreter.Exception(traceback.format_exc(), cause=e)
+
             if ret.startswith('enhanced_except_'):
-                raise ExtractorError('Signature function returned an exception')
+                raise JSInterpreter.Exception('Signature function returned an exception')
             return ret
 
         return extract_nsig
@@ -3240,9 +3262,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'n': decrypt_nsig(query['n'][0], video_id, player_url)
                     })
                 except ExtractorError as e:
+                    phantomjs_hint = ''
+                    if isinstance(e, JSInterpreter.Exception):
+                        phantomjs_hint = f'         Install {self._downloader._format_err("PhantomJS", self._downloader.Styles.EMPHASIS)} to workaround the issue\n'
                     self.report_warning(
-                        'nsig extraction failed: You may experience throttling for some formats\n'
-                        f'n = {query["n"][0]} ; player = {player_url}', video_id=video_id, only_once=True)
+                        f'nsig extraction failed: You may experience throttling for some formats\n{phantomjs_hint}'
+                        f'         n = {query["n"][0]} ; player = {player_url}', video_id=video_id, only_once=True)
                     self.write_debug(e, only_once=True)
                     throttled = True
 
