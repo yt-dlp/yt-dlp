@@ -2,10 +2,7 @@ import re
 from uuid import uuid4
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
+from ..compat import compat_HTTPError, compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -236,6 +233,10 @@ class ZattooPlatformBaseIE(InfoExtractor):
             None, ondemand_id, ondemand_id=ondemand_id,
             ondemand_termtoken=ondemand_termtoken, ondemand_type=ondemand_type)
         return info_dict
+
+    def _real_extract(self, url):
+        video_id, record_id = self._match_valid_url(url).groups()
+        return self._extract_video(video_id, record_id)
 
 
 def _make_valid_url(host):

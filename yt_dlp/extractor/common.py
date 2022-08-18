@@ -331,7 +331,7 @@ class InfoExtractor:
     playable_in_embed: Whether this video is allowed to play in embedded
                     players on other sites. Can be True (=always allowed),
                     False (=never allowed), None (=unknown), or a string
-                    specifying the criteria for embedability (Eg: 'whitelist')
+                    specifying the criteria for embedability; e.g. 'whitelist'
     availability:   Under what condition the video is available. One of
                     'private', 'premium_only', 'subscriber_only', 'needs_auth',
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
@@ -452,8 +452,8 @@ class InfoExtractor:
 
     _extract_from_webpage may raise self.StopExtraction() to stop further
     processing of the webpage and obtain exclusive rights to it. This is useful
-    when the extractor cannot reliably be matched using just the URL.
-    Eg: invidious/peertube instances
+    when the extractor cannot reliably be matched using just the URL,
+    e.g. invidious/peertube instances
 
     Embed-only extractors can be defined by setting _VALID_URL = False.
 
@@ -1669,8 +1669,8 @@ class InfoExtractor:
         regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
         default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
-                   'res', 'fps', 'hdr:12', 'channels', 'codec:vp9.2', 'size', 'br', 'asr',
-                   'proto', 'ext', 'hasaud', 'source', 'id')  # These must not be aliases
+                   'res', 'fps', 'hdr:12', 'vcodec:vp9.2', 'channels', 'acodec',
+                   'size', 'br', 'asr', 'proto', 'ext', 'hasaud', 'source', 'id')  # These must not be aliases
         ytdl_default = ('hasaud', 'lang', 'quality', 'tbr', 'filesize', 'vbr',
                         'height', 'width', 'proto', 'vext', 'abr', 'aext',
                         'fps', 'fs_approx', 'source', 'id')
@@ -2367,7 +2367,7 @@ class InfoExtractor:
                     audio_group_id = last_stream_inf.get('AUDIO')
                     # As per [1, 4.3.4.1.1] any EXT-X-STREAM-INF tag which
                     # references a rendition group MUST have a CODECS attribute.
-                    # However, this is not always respected, for example, [2]
+                    # However, this is not always respected. E.g. [2]
                     # contains EXT-X-STREAM-INF tag which references AUDIO
                     # rendition group but does not have CODECS and despite
                     # referencing an audio group it represents a complete
@@ -3003,8 +3003,8 @@ class InfoExtractor:
                                     segment_number += 1
                                 segment_time += segment_d
                     elif 'segment_urls' in representation_ms_info and 's' in representation_ms_info:
-                        # No media template
-                        # Example: https://www.youtube.com/watch?v=iXZV5uAYMJI
+                        # No media template,
+                        # e.g. https://www.youtube.com/watch?v=iXZV5uAYMJI
                         # or any YouTube dashsegments video
                         fragments = []
                         segment_index = 0
@@ -3021,7 +3021,7 @@ class InfoExtractor:
                         representation_ms_info['fragments'] = fragments
                     elif 'segment_urls' in representation_ms_info:
                         # Segment URLs with no SegmentTimeline
-                        # Example: https://www.seznam.cz/zpravy/clanek/cesko-zasahne-vitr-o-sile-vichrice-muze-byt-i-zivotu-nebezpecny-39091
+                        # E.g. https://www.seznam.cz/zpravy/clanek/cesko-zasahne-vitr-o-sile-vichrice-muze-byt-i-zivotu-nebezpecny-39091
                         # https://github.com/ytdl-org/youtube-dl/pull/14844
                         fragments = []
                         segment_duration = float_or_none(
@@ -3249,8 +3249,8 @@ class InfoExtractor:
         media_tags.extend(re.findall(
             # We only allow video|audio followed by a whitespace or '>'.
             # Allowing more characters may end up in significant slow down (see
-            # https://github.com/ytdl-org/youtube-dl/issues/11979, example URL:
-            # http://www.porntrex.com/maps/videositemap.xml).
+            # https://github.com/ytdl-org/youtube-dl/issues/11979,
+            # e.g. http://www.porntrex.com/maps/videositemap.xml).
             r'(?s)(<(?P<tag>%s)(?:\s+[^>]*)?>)(.*?)</(?P=tag)>' % _MEDIA_TAG_NAME_RE, webpage))
         for media_tag, _, media_type, media_content in media_tags:
             media_info = {
@@ -3706,7 +3706,7 @@ class InfoExtractor:
             desc += f'; "{cls.SEARCH_KEY}:" prefix'
             if search_examples:
                 _COUNTS = ('', '5', '10', 'all')
-                desc += f' (Example: "{cls.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(search_examples)}")'
+                desc += f' (e.g. "{cls.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(search_examples)}")'
         if not cls.working():
             desc += ' (**Currently broken**)' if markdown else ' (Currently broken)'
 

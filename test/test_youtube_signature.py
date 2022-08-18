@@ -94,6 +94,18 @@ _NSIG_TESTS = [
         'https://www.youtube.com/s/player/5dd88d1d/player-plasma-ias-phone-en_US.vflset/base.js',
         'kSxKFLeqzv_ZyHSAt', 'n8gS8oRlHOxPFA',
     ),
+    (
+        'https://www.youtube.com/s/player/324f67b9/player_ias.vflset/en_US/base.js',
+        'xdftNy7dh9QGnhW', '22qLGxrmX8F1rA',
+    ),
+    (
+        'https://www.youtube.com/s/player/4c3f79c5/player_ias.vflset/en_US/base.js',
+        'TDCstCG66tEAO5pR9o', 'dbxNtZ14c-yWyw',
+    ),
+    (
+        'https://www.youtube.com/s/player/c81bbb4a/player_ias.vflset/en_US/base.js',
+        'gre3EcLurNY2vqp94', 'Z9DfGxWP115WTg',
+    ),
 ]
 
 
@@ -101,6 +113,7 @@ _NSIG_TESTS = [
 class TestPlayerInfo(unittest.TestCase):
     def test_youtube_extract_player_info(self):
         PLAYER_URLS = (
+            ('https://www.youtube.com/s/player/4c3f79c5/player_ias.vflset/en_US/base.js', '4c3f79c5'),
             ('https://www.youtube.com/s/player/64dddad9/player_ias.vflset/en_US/base.js', '64dddad9'),
             ('https://www.youtube.com/s/player/64dddad9/player_ias.vflset/fr_FR/base.js', '64dddad9'),
             ('https://www.youtube.com/s/player/64dddad9/player-plasma-ias-phone-en_US.vflset/base.js', '64dddad9'),

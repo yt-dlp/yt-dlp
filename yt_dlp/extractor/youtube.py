@@ -809,7 +809,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             # Youtube sometimes sends incomplete data
             # See: https://github.com/ytdl-org/youtube-dl/issues/28194
             if not traverse_obj(response, *variadic(check_get_keys)):
-                retry.error = ExtractorError('Incomplete data received')
+                retry.error = ExtractorError('Incomplete data received', expected=True)
                 continue
 
             return response
@@ -2653,7 +2653,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if self.get_param('youtube_print_sig_code'):
             self.to_screen(f'Extracted nsig function from {player_id}:\n{func_code[1]}\n')
 
-        return lambda s: jsi.extract_function_from_code(*func_code)([s])
+        func = jsi.extract_function_from_code(*func_code)
+        return lambda s: func([s])
 
     def _extract_signature_timestamp(self, video_id, player_url, ytcfg=None, fatal=False):
         """
@@ -3167,7 +3168,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, is_live, duration):
         itags, stream_ids = {}, []
-        itag_qualities, res_qualities = {}, {}
+        itag_qualities, res_qualities = {}, {0: -1}
         q = qualities([
             # Normally tiny is the smallest video-only formats. But
             # audio-only formats with unknown quality may get tagged as tiny
@@ -3246,9 +3247,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else -10 if 'descriptive' in (audio_track.get('displayName') or '').lower() and -10
                 else -1)
             # Some formats may have much smaller duration than others (possibly damaged during encoding)
-            # Eg: 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
+            # E.g. 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
             # Make sure to avoid false positives with small duration differences.
-            # Eg: __2ABJjxzNo, ySuUZEjARPY
+            # E.g. __2ABJjxzNo, ySuUZEjARPY
             is_damaged = try_get(fmt, lambda x: float(x['approxDurationMs']) / duration < 500)
             if is_damaged:
                 self.report_warning(
@@ -3319,10 +3320,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['format_id'] = itag
                 itags[itag] = proto
 
-            f['quality'] = next((
-                q(qdict[val])
-                for val, qdict in ((f.get('format_id', '').split('-')[0], itag_qualities), (f.get('height'), res_qualities))
-                if val in qdict), -1)
+            f['quality'] = itag_qualities.get(try_get(f, lambda f: f['format_id'].split('-')[0]), -1)
+            if f['quality'] == -1 and f.get('height'):
+                f['quality'] = q(res_qualities[min(res_qualities, key=lambda x: abs(x - f['height']))])
             return True
 
         subtitles = {}
@@ -3588,7 +3588,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         formats.extend(self._extract_storyboard(player_responses, duration))
 
         # source_preference is lower for throttled/potentially damaged formats
-        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'channels', 'source', 'codec:vp9.2', 'lang', 'proto'))
+        self._sort_formats(formats, (
+            'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto'))
 
         info = {
             'id': video_id,
@@ -5832,7 +5833,7 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
 
 
 class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
-    IE_DESC = 'YouTube music search URLs with selectable sections (Eg: #songs)'
+    IE_DESC = 'YouTube music search URLs with selectable sections, e.g. #songs'
     IE_NAME = 'youtube:music:search_url'
     _VALID_URL = r'https?://music\.youtube\.com/search\?([^#]+&)?(?:search_query|q)=(?:[^&]+)(?:[&#]|$)'
     _TESTS = [{
