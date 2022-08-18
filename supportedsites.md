@@ -530,7 +530,7 @@
  - **Ina**
  - **Inc**
  - **IndavideoEmbed**
- - **InflateVids**
+ - **InflateVids**: [<abbr title="netrc machine"><em>inflatevids</em></abbr>]
  - **InfoQ**
  - **Instagram**: [<abbr title="netrc machine"><em>instagram</em></abbr>]
  - **instagram:story**: [<abbr title="netrc machine"><em>instagram</em></abbr>]
