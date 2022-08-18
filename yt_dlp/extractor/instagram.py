@@ -397,7 +397,7 @@ class InstagramIE(InstagramBaseIE):
             general_info = self._download_json(
                 'https://www.instagram.com/graphql/query/', video_id, fatal=False,
                 headers={
-                   **self._API_HEADERS,
+                    **self._API_HEADERS,
                     'X-CSRFToken': csrf_token.value,
                     'X-Requested-With': 'XMLHttpRequest',
                     'Referer': url,
