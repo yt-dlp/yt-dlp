@@ -320,7 +320,7 @@ class ZattooRecordingsIE(ZattooBaseIE):
 
 
 class NetPlusTVBaseIE(ZattooPlatformBaseIE):
-    _NETRC = 'netplus'
+    _NETRC_MACHINE = 'netplus'
     _HOST = 'netplus.tv'
     _API_HOST = 'www.%s' % _HOST
 

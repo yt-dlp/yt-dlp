@@ -868,7 +868,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                             else None),
             'live_status': ('is_upcoming' if scheduled_timestamp is not None
                             else 'was_live' if 'streamed' in time_text.lower()
-                            else 'is_live' if overlay_style is not None and overlay_style == 'LIVE' or 'live now' in badges
+                            else 'is_live' if overlay_style == 'LIVE' or 'live now' in badges
                             else None),
             'release_timestamp': scheduled_timestamp,
             'availability': self._availability(needs_premium='premium' in badges, needs_subscription='members only' in badges)

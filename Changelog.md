@@ -19,8 +19,7 @@
 * [extractor] Fix format sorting of `channels`
 * [ffmpeg] Disable avconv unless `--prefer-avconv`
 * [ffmpeg] Smarter detection of ffprobe filename
-* [patreon] Ignore erroneous media attachments by [coletdjnz](https://github.com/coletdjnz)
-* [postprocessor/embedthumbnail] Detect `libatomicparsley.so`
+* [embedthumbnail] Detect `libatomicparsley.so`
 * [ThumbnailsConvertor] Fix conversion after `fixup_webp`
 * [utils] Fix `get_compatible_ext`
 * [build] Fix changelog
@@ -30,6 +29,7 @@
 * [cleanup] Misc fixes and cleanup
 * [extractor/moview] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
 * [extractor/parler] Add extractor by [palewire](https://github.com/palewire)
+* [extractor/patreon] Ignore erroneous media attachments by [coletdjnz](https://github.com/coletdjnz)
 * [extractor/truth] Add extractor by [palewire](https://github.com/palewire)
 * [extractor/aenetworks] Add formats parameter by [jacobtruman](https://github.com/jacobtruman)
 * [extractor/crunchyroll] Improve `_VALID_URL`s

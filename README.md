@@ -329,7 +329,7 @@ You will need the build tools `python` (3.6+), `zip`, `make` (GNU), `pandoc`\* a
 
 After installing these, simply run `make`.
 
-You can also run `make yt-dlp` instead to compile only the binary without updating any of the additional files. (The dependencies marked with **\*** are not needed for this)
+You can also run `make yt-dlp` instead to compile only the binary without updating any of the additional files. (The build tools marked with **\*** are not needed for this)
 
 ### Standalone Py2Exe Builds (Windows)
 
