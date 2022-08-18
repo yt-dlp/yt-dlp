@@ -299,8 +299,14 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
 
             # NO_PROXY
             for no_proxy in (f'127.0.0.1:{self.http_port}', '127.0.0.1', 'localhost'):
-                nop_response = ydl.urlopen(Request(real_url, proxies={'no': f'127.0.0.1:{self.http_port}'})).read().decode('utf-8')
+                nop_response = ydl.urlopen(Request(real_url, proxies={'no': no_proxy})).read().decode('utf-8')
                 self.assertIn('Accept', nop_response)
+
+            # test unrelated proxy is ignored (would cause all handlers to be unsupported otherwise)
+            response4 = ydl.urlopen(
+                Request('http://localhost:%d/headers' % self.http_port,
+                        proxies={'unrelated': 'unrelated://example.com'})).read().decode('utf-8')
+            self.assertIn('Accept', response4)
 
         # test all proxy
         with self.make_ydl() as ydl:

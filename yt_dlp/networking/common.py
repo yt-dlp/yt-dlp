@@ -306,9 +306,9 @@ class RequestHandler:
     SUPPORTED_FEATURES may contain a list of supported features, as defined in Features enum.
     """
 
-    SUPPORTED_SCHEMES = []
-    SUPPORTED_PROXY_SCHEMES = []
-    SUPPORTED_ENCODINGS = []
+    SUPPORTED_SCHEMES = None
+    SUPPORTED_PROXY_SCHEMES = None
+    SUPPORTED_ENCODINGS = None
     SUPPORTED_FEATURES = []
 
     def __init__(self, ydl: YoutubeDL):
@@ -359,10 +359,12 @@ class RequestHandler:
         if scheme == 'file':  # no other handler should handle this request
             raise RequestError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
 
-        if scheme not in self.SUPPORTED_SCHEMES:
+        if self.SUPPORTED_SCHEMES is not None and scheme not in self.SUPPORTED_SCHEMES:
             raise UnsupportedRequest(f'"unsupported scheme: "{scheme}"')
 
     def _check_proxies(self, request: Request):
+        if self.SUPPORTED_PROXY_SCHEMES is None:
+            return
         for proxy_key, proxy_url in request.proxies.items():
             if proxy_url is None:
                 continue
@@ -372,6 +374,13 @@ class RequestHandler:
                 continue
             if proxy_key == 'all' and Features.ALL_PROXY not in self.SUPPORTED_FEATURES:
                 raise UnsupportedRequest('\'all\' proxy is not supported')
+
+            # Unlikely this handler will use this proxy, so ignore.
+            # This is to allow a case where a proxy may be set for a protocol
+            # for one handler in which such protocol (and proxy) is not supported by another handler.
+            if self.SUPPORTED_SCHEMES is not None and proxy_key not in self.SUPPORTED_SCHEMES + ['all']:
+                continue
+
             scheme = urllib.parse.urlparse(proxy_url).scheme.lower()
             if scheme not in self.SUPPORTED_PROXY_SCHEMES:
                 raise UnsupportedRequest(f'unsupported proxy type: "{scheme}"')
