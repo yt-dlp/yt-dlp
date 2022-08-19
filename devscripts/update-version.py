@@ -16,6 +16,7 @@ from devscripts.utils import read_version, write_file
 
 
 def get_new_version(revision):
+    return read_version()
     version = datetime.utcnow().strftime('%Y.%m.%d')
 
     if revision:

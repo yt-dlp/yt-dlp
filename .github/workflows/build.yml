@@ -264,7 +264,7 @@ jobs:
     - name: Make Update spec
       run: |
         echo "# This file is used for regulating self-update" >> _update_spec
-        echo "lock 2022.07.18 .+ Python 3.6" >> _update_spec
+        echo "lock 2022.08.18.36 .+ Python 3.6" >> _update_spec
     - name: Make SHA2-SUMS files
       run: |
           sha256sum artifact/yt-dlp | awk '{print $1 "  yt-dlp"}' >> SHA2-256SUMS

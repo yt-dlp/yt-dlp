@@ -11,6 +11,12 @@
 -->
 
 
+### 2022.08.18.36
+
+* Revert "[ffmpeg] Set `ffmpeg_location` in a contextvar"
+* Revert "Remove Python 3.6 support"
+* Use `compat.re`
+
 ### 2022.08.19
 
 * Fix bug in `--download-archive`
