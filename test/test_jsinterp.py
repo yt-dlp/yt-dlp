@@ -356,5 +356,14 @@ class TestJSInterpreter(unittest.TestCase):
         self.assertEqual(jsi.call_function('x', 4), None)
         self.assertEqual(jsi.call_function('x', 'not_a_number'), 116)
 
+    def test_negative_number_left_shift_overflow(self):
+        jsi = JSInterpreter('function x(){return -524999584 << 5}')
+        self.assertEqual(jsi.call_function('x'), 379882496)
+
+    def test_positive_number_left_shift_overflow(self):
+        jsi = JSInterpreter('function x(){return 1236566549 << 5}')
+        self.assertEqual(jsi.call_function('x'), 915423904)
+
+
 if __name__ == '__main__':
     unittest.main()
