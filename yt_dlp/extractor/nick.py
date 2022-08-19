@@ -176,9 +176,6 @@ class NickDeIE(MTVServicesInfoExtractor):
     }, {
         'url': 'http://www.nick.ch/shows/2304-adventure-time-abenteuerzeit-mit-finn-und-jake',
         'only_matching': True,
-    }, {
-        'url': 'http://www.nickelodeon.be/afspeellijst/4530-top-videos/videos/episode/73917-inval-broodschapper-lariekoek-arie',
-        'only_matching': True,
     }]
 
     def _get_feed_url(self, uri, url=None):
