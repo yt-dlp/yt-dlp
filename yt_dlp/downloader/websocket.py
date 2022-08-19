@@ -1,4 +1,3 @@
-import asyncio
 import contextlib
 import os
 import signal
@@ -6,6 +5,7 @@ import threading
 
 from .common import FileDownloader
 from .external import FFmpegFD
+from ..compat import asyncio
 from ..dependencies import websockets
 
 

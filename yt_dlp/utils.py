@@ -1,4 +1,3 @@
-import asyncio
 import atexit
 import base64
 import binascii
@@ -47,7 +46,7 @@ import urllib.request
 import xml.etree.ElementTree
 import zlib
 
-from .compat import functools  # isort: split
+from .compat import asyncio, functools  # isort: split
 from .compat import (
     compat_etree_fromstring,
     compat_expanduser,

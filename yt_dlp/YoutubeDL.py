@@ -591,8 +591,7 @@ class YoutubeDL:
             for type_, stream in self._out_files.items_ if type_ != 'console'
         })
 
-        # The code is left like this to be reused for future deprecations
-        MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
+        MIN_SUPPORTED, MIN_RECOMMENDED = (3, 6), (3, 7)
         current_version = sys.version_info[:2]
         if current_version < MIN_RECOMMENDED:
             msg = ('Support for Python version %d.%d has been deprecated. '

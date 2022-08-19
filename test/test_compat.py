@@ -28,8 +28,7 @@ class TestCompat(unittest.TestCase):
         with self.assertWarns(DeprecationWarning):
             compat.WINDOWS_VT_MODE
 
-        # TODO: Test submodule
-        # compat.asyncio.events  # Must not raise error
+        compat.asyncio.events  # Must not raise error
 
     def test_compat_expanduser(self):
         old_home = os.environ.get('HOME')
