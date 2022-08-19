@@ -389,7 +389,7 @@ class InstagramIE(InstagramBaseIE):
             'has_threaded_comments': True,
         }
         general_info = self._download_json(
-            'https://www.instagram.com/graphql/query/', video_id, fatal=False,
+            'https://www.instagram.com/graphql/query/', video_id, fatal=False, errnote=False,
             headers={
                 **self._API_HEADERS,
                 'X-CSRFToken': csrf_token_value,
