@@ -422,12 +422,12 @@ class InstagramIE(InstagramBaseIE):
                 shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
                 ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})
         else:
-            self.report_warning('Main webpage is locked behind the login page. Retrying with embed webpage')
+            self.report_warning('Main webpage is locked behind the login page. Retrying with embed webpage (some metadata might be missing).')
             webpage = self._download_webpage(
                 f'{url}/embed/', video_id, note='Downloading embed webpage', fatal=False)
             additional_data = self._search_json(
                 r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
-            if not additional_data:
+            if not additional_data and media == {}:
                 self.raise_login_required('Requested content is not available, rate-limit reached or login required')
 
             product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
