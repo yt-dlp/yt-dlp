@@ -8,8 +8,8 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import math
-import re
 
+from yt_dlp.compat import re
 from yt_dlp.jsinterp import JS_Undefined, JSInterpreter
 
 
