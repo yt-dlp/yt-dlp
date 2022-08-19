@@ -683,6 +683,13 @@ class JSInterpreter:
                         return obj.index(idx, start)
                     except ValueError:
                         return -1
+                elif member == 'charCodeAt':
+                    assertion(isinstance(obj, str), 'must be applied on a string')
+                    assertion(len(argvals) == 1, 'takes one argument')
+                    idx = argvals[0] if isinstance(argvals[0], int) else 0
+                    if idx >= len(obj):
+                        return None
+                    return ord(obj[idx])
 
                 idx = int(member) if isinstance(obj, list) else member
                 return obj[idx](argvals, allow_recursion=allow_recursion)

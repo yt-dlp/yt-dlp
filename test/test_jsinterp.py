@@ -347,6 +347,14 @@ class TestJSInterpreter(unittest.TestCase):
         ''')
         self.assertEqual(jsi.call_function('x').flags & re.I, re.I)
 
+    def test_char_code_at(self):
+        jsi = JSInterpreter('function x(i){return "test".charCodeAt(i)}')
+        self.assertEqual(jsi.call_function('x', 0), 116)
+        self.assertEqual(jsi.call_function('x', 1), 101)
+        self.assertEqual(jsi.call_function('x', 2), 115)
+        self.assertEqual(jsi.call_function('x', 3), 116)
+        self.assertEqual(jsi.call_function('x', 4), None)
+        self.assertEqual(jsi.call_function('x', 'not_a_number'), 116)
 
 if __name__ == '__main__':
     unittest.main()
