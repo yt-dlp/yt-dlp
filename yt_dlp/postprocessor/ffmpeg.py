@@ -1,5 +1,4 @@
 import collections
-import contextvars
 import itertools
 import json
 import os
@@ -83,8 +82,6 @@ class FFmpegPostProcessorError(PostProcessingError):
 
 
 class FFmpegPostProcessor(PostProcessor):
-    _ffmpeg_location = contextvars.ContextVar('ffmpeg_location', default=None)
-
     def __init__(self, downloader=None):
         PostProcessor.__init__(self, downloader)
         self._prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
@@ -104,7 +101,7 @@ class FFmpegPostProcessor(PostProcessor):
     def _determine_executables(self):
         programs = [*self._ffmpeg_to_avconv.keys(), *self._ffmpeg_to_avconv.values()]
 
-        location = self.get_param('ffmpeg_location', self._ffmpeg_location.get())
+        location = self.get_param('ffmpeg_location')
         if location is None:
             return {p: p for p in programs}
 

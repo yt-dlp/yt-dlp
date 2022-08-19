@@ -1,8 +1,4 @@
-try:
-    import contextvars  # noqa: F401
-except Exception:
-    raise Exception(
-        f'You are using an unsupported version of Python. Only Python versions 3.7 and above are supported by yt-dlp')  # noqa: F541
+f'You are using an unsupported version of Python. Only Python versions 3.7 and above are supported by yt-dlp'  # noqa: F541
 
 __license__ = 'Public Domain'
 
@@ -25,7 +21,6 @@ from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
-    FFmpegPostProcessor,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoConvertorPP,
@@ -906,11 +901,6 @@ def _real_main(argv=None):
 
     if print_extractor_information(opts, all_urls):
         return
-
-    # We may need ffmpeg_location without having access to the YoutubeDL instance
-    # See https://github.com/yt-dlp/yt-dlp/issues/2191
-    if opts.ffmpeg_location:
-        FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
 
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir
