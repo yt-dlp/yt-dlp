@@ -102,6 +102,14 @@ _NSIG_TESTS = [
         'https://www.youtube.com/s/player/4c3f79c5/player_ias.vflset/en_US/base.js',
         'TDCstCG66tEAO5pR9o', 'dbxNtZ14c-yWyw',
     ),
+    (
+        'https://www.youtube.com/s/player/c81bbb4a/player_ias.vflset/en_US/base.js',
+        'gre3EcLurNY2vqp94', 'Z9DfGxWP115WTg',
+    ),
+    (
+        'https://www.youtube.com/s/player/1f7d5369/player_ias.vflset/en_US/base.js',
+        'batNX7sYqIJdkJ', 'IhOkL_zxbkOZBw',
+    ),
 ]
 
 

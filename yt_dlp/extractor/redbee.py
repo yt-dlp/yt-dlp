@@ -69,6 +69,10 @@ class RedBeeBaseIE(InfoExtractor):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     format['mediaLocator'], asset_id, fatal=False)
 
+            if format.get('drm'):
+                for f in fmts:
+                    f['has_drm'] = True
+
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
@@ -269,8 +273,17 @@ class RTBFIE(RedBeeBaseIE):
         embed_page = self._download_webpage(
             'https://www.rtbf.be/auvio/embed/' + ('direct' if live else 'media'),
             media_id, query={'id': media_id})
-        data = self._parse_json(self._html_search_regex(
-            r'data-media="([^"]+)"', embed_page, 'media data'), media_id)
+
+        media_data = self._html_search_regex(r'data-media="([^"]+)"', embed_page, 'media data', fatal=False)
+        if not media_data:
+            if re.search(r'<div[^>]+id="js-error-expired"[^>]+class="(?![^"]*hidden)', embed_page):
+                raise ExtractorError('Livestream has ended.', expected=True)
+            if re.search(r'<div[^>]+id="js-sso-connect"[^>]+class="(?![^"]*hidden)', embed_page):
+                self.raise_login_required()
+
+            raise ExtractorError('Could not find media data')
+
+        data = self._parse_json(media_data, media_id)
 
         error = data.get('error')
         if error:
@@ -280,15 +293,20 @@ class RTBFIE(RedBeeBaseIE):
         if provider in self._PROVIDERS:
             return self.url_result(data['url'], self._PROVIDERS[provider])
 
-        title = data['subtitle']
+        title = traverse_obj(data, 'subtitle', 'title')
         is_live = data.get('isLive')
         height_re = r'-(\d+)p\.'
-        formats = []
+        formats, subtitles = [], {}
 
-        m3u8_url = data.get('urlHlsAes128') or data.get('urlHls')
+        # The old api still returns m3u8 and mpd manifest for livestreams, but these are 'fake'
+        # since all they contain is a 20s video that is completely unrelated.
+        # https://github.com/yt-dlp/yt-dlp/issues/4656#issuecomment-1214461092
+        m3u8_url = None if data.get('isLive') else traverse_obj(data, 'urlHlsAes128', 'urlHls')
         if m3u8_url:
-            formats.extend(self._extract_m3u8_formats(
-                m3u8_url, media_id, 'mp4', m3u8_id='hls', fatal=False))
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                m3u8_url, media_id, 'mp4', m3u8_id='hls', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
         fix_url = lambda x: x.replace('//rtbf-vod.', '//rtbf.') if '/geo/drm/' in x else x
         http_url = data.get('url')
@@ -319,10 +337,12 @@ class RTBFIE(RedBeeBaseIE):
                     'height': height,
                 })
 
-        mpd_url = data.get('urlDash')
+        mpd_url = None if data.get('isLive') else data.get('urlDash')
         if mpd_url and (self.get_param('allow_unplayable_formats') or not data.get('drm')):
-            formats.extend(self._extract_mpd_formats(
-                mpd_url, media_id, mpd_id='dash', fatal=False))
+            fmts, subs = self._extract_mpd_formats_and_subtitles(
+                mpd_url, media_id, mpd_id='dash', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
         audio_url = data.get('urlAudio')
         if audio_url:
@@ -332,7 +352,6 @@ class RTBFIE(RedBeeBaseIE):
                 'vcodec': 'none',
             })
 
-        subtitles = {}
         for track in (data.get('tracks') or {}).values():
             sub_url = track.get('url')
             if not sub_url:
@@ -342,7 +361,7 @@ class RTBFIE(RedBeeBaseIE):
             })
 
         if not formats:
-            fmts, subs = self._get_formats_and_subtitles(url, media_id)
+            fmts, subs = self._get_formats_and_subtitles(url, f'live_{media_id}' if is_live else media_id)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
