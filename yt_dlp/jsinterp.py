@@ -282,8 +282,7 @@ class JSInterpreter:
         try:
             # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators#binary_bitwise_operators
             if op in ('&', '|', '^', '~', '<<', '>>', '>>', '>>>'):
-                import ctypes
-                return ctypes.c_int32(_OPERATORS[op](left_val, right_val)).value
+                return _OPERATORS[op](left_val, right_val) & 0xffffffff
 
             return _OPERATORS[op](left_val, right_val)
         except Exception as e:
