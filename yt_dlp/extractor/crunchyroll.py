@@ -721,25 +721,18 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
     def _get_params(self, lang):
         if not CrunchyrollBetaBaseIE.params:
             if self._get_cookies(f'https://beta.crunchyroll.com/{lang}').get('etp_rt'):
-                auth = 'cookie'
+                grant_type, key = 'etp_rt_cookie', 'accountAuthClientId'
             else:
-                auth = 'client id'
+                grant_type, key = 'client_id', 'anonClientId'
 
             initial_state, app_config = self._get_beta_embedded_json(self._download_webpage(
                 f'https://beta.crunchyroll.com/{lang}', None, note='Retrieving main page'), None)
             api_domain = app_config['cxApiParams']['apiDomain']
 
-            if auth == 'client id':
-                client_id = app_config['cxApiParams']['anonClientId']
-                grant_type = 'client_id'
-            else:
-                client_id = app_config['cxApiParams']['accountAuthClientId']
-                grant_type = 'etp_rt_cookie'
-
             auth_response = self._download_json(
-                f'{api_domain}/auth/v1/token', None, note=f'Authenticating with {auth}',
+                f'{api_domain}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
                 headers={
-                    'Authorization': 'Basic ' + str(base64.b64encode(('%s:' % client_id).encode('ascii')), 'ascii')
+                    'Authorization': 'Basic ' + str(base64.b64encode(('%s:' % app_config['cxApiParams'][key]).encode('ascii')), 'ascii')
                 }, data=f'grant_type={grant_type}'.encode('ascii'))
             policy_response = self._download_json(
                 f'{api_domain}/index/v2', None, note='Retrieving signed policy',
