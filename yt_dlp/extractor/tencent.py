@@ -63,8 +63,7 @@ class TencentBaseIE(InfoExtractor):
 
     def _extract_video_formats_and_subtitles(self, api_response, video_id):
         video_response = api_response['vl']['vi'][0]
-        video_width = video_response.get('vw')
-        video_height = video_response.get('vh')
+        video_width, video_height= video_response.get('vw'), video_response.get('vh')
 
         formats, subtitles = [], {}
         for video_format in video_response['ul']['ui']:
