@@ -255,16 +255,21 @@ class RTBFIE(RedBeeBaseIE):
         if not login_token:
             self.raise_login_required()
 
-        session_jwt = self._download_json(
-            'https://login.rtbf.be/accounts.getJWT', media_id, query={
-                'login_token': login_token.value,
-                'APIKey': self._GIGYA_API_KEY,
-                'sdk': 'js_latest',
-                'authMode': 'cookie',
-                'pageURL': url,
-                'sdkBuild': '13273',
-                'format': 'json',
-            })['id_token']
+        session_jwt = None
+        if self._get_cookies(url).get('rtbf_jwt'):
+            session_jwt = self._get_cookies(url).get('rtbf_jwt').value
+
+        if not session_jwt:
+            session_jwt = self._download_json(
+                'https://login.rtbf.be/accounts.getJWT', media_id, query={
+                    'login_token': login_token.value,
+                    'APIKey': self._GIGYA_API_KEY,
+                    'sdk': 'js_latest',
+                    'authMode': 'cookie',
+                    'pageURL': url,
+                    'sdkBuild': '13273',
+                    'format': 'json',
+                })['id_token']
 
         return super()._get_formats_and_subtitles(media_id, jwt=session_jwt)
 
