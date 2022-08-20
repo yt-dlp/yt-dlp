@@ -5,9 +5,15 @@ import time
 import string
 
 from .common import InfoExtractor
-from .. import traverse_obj
 from ..aes import aes_cbc_encrypt_bytes
-from ..utils import determine_ext, int_or_none, js_to_json, urljoin, ExtractorError
+from ..utils import (
+    ExtractorError,
+    determine_ext, 
+    int_or_none, 
+    js_to_json, 
+    traverse_obj,
+    urljoin,
+)
 
 
 class TencentBaseIE(InfoExtractor):
