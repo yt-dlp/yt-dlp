@@ -1787,6 +1787,10 @@ from .toongoggles import ToonGogglesIE
 from .toutv import TouTvIE
 from .toypics import ToypicsUserIE, ToypicsIE
 from .traileraddict import TrailerAddictIE
+from .triller import (
+    TrillerIE,
+    TrillerUserIE,
+)
 from .trilulilu import TriluliluIE
 from .trovo import (
     TrovoIE,
