@@ -2646,6 +2646,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self.write_debug(f'Decrypted nsig {s} => {ret}')
         return ret
 
+    def _extract_n_function_name(self, jscode):
+        funcname, idx = self._search_regex(
+            r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)',
+            jscode, 'Initial JS player n function name', group=('nfunc', 'idx'))
+        if not idx:
+            return funcname
+
+        return json.loads(js_to_json(self._search_regex(
+            rf'var {re.escape(funcname)}\s*=\s*(\[.+?\]);', jscode,
+            f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
+
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
         func_code = self.cache.load('youtube-nsig', player_id)
@@ -2655,15 +2666,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if func_code:
             return jsi, player_id, func_code
 
-        funcname, idx = self._search_regex(
-            r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)',
-            jscode, 'Initial JS player n function name', group=('nfunc', 'idx'))
-        if idx:
-            funcname = json.loads(js_to_json(self._search_regex(
-                rf'var {re.escape(funcname)}\s*=\s*(\[.+?\]);', jscode,
-                f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
-
-        func_code = jsi.extract_function_code(funcname)
+        func_code = jsi.extract_function_code(self._extract_n_function_name(jscode))
         self.cache.store('youtube-nsig', player_id, func_code)
         return jsi, player_id, func_code
 
