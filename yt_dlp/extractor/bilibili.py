@@ -627,7 +627,9 @@ class BiliBiliSearchIE(SearchInfoExtractor):
                     'search_type': 'video',
                     'tids': 0,
                     'highlight': 1,
-                })['data'].get('result') or []
+                })['data'].get('result')
+            if not videos:
+                break
             for video in videos:
                 yield self.url_result(video['arcurl'], 'BiliBili', str(video['aid']))
 
