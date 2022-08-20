@@ -15,7 +15,41 @@ from ..utils import (
 
 
 class TrillerBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'triller'
+    _IS_LOGGED_IN = False
+    _AUTH_TOKEN = None
     _API_BASE_URL = 'https://social.triller.co/v1.5'
+
+    def _perform_login(self, username, password):
+        if self._IS_LOGGED_IN and self._AUTH_TOKEN:
+            return
+
+        user_check = self._download_json(
+            f'{self._API_BASE_URL}/api/user/is-valid-username', None, note='Logging in',
+            fatal=False, expected_status=400, headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://triller.co',
+            }, data=json.dumps({'username': username}, separators=(',', ':')).encode('utf-8'))
+        if user_check.get('status'):  # endpoint returns "status":false if username exists
+            raise ExtractorError('Unable to login: Invalid username', expected=True)
+
+        credentials = {
+            'username': username,
+            'password': password,
+        }
+        login = self._download_json(
+            f'{self._API_BASE_URL}/user/auth', None, note=False, fatal=False,
+            expected_status=400, headers={
+                'Content-Type': 'application/json',
+                'Origin': 'https://triller.co',
+            }, data=json.dumps(credentials, separators=(',', ':')).encode('utf-8'))
+        if not login.get('auth_token'):
+            if login.get('error') == 1008:
+                raise ExtractorError('Unable to login: Incorrect password', expected=True)
+            raise ExtractorError('Unable to login')
+
+        self._AUTH_TOKEN = login.get('auth_token')
+        self._IS_LOGGED_IN = True
 
     def _create_guest(self):
         guest = self._download_json(
@@ -26,7 +60,10 @@ class TrillerBaseIE(InfoExtractor):
                 'platform': 'Web',
                 'app_version': '',
             })
-        return guest.get('auth_token')
+        if not guest.get('auth_token'):
+            raise ExtractorError('Unable to fetch required auth token for user extraction')
+
+        self._AUTH_TOKEN = guest.get('auth_token')
 
     def _get_comments(self, video_id, limit=15):
         comment_info = self._download_json(
@@ -175,10 +212,10 @@ class TrillerIE(TrillerBaseIE):
             self.report_warning('Unable to extract user info')
 
         if user_info.get('private') and not user_info.get('followed_by_me'):
-            raise ExtractorError('This video is private')
+            raise ExtractorError('This video is private', expected=True)
 
         if user_info.get('blocked_by_user') or user_info.get('blocking_user'):
-            raise ExtractorError('The author of the video is blocked')
+            raise ExtractorError('The author of the video is blocked', expected=True)
 
         return {
             **self._parse_video_info(video_info, user_info),
@@ -197,17 +234,16 @@ class TrillerUserIE(TrillerBaseIE):
         }
     }]
 
-    def _extract_videos(self, username, user_id, auth_token, query,
-                        note='Downloading user video list'):
+    def _extract_videos(self, username, user_id, query, note='Downloading user video list'):
         return self._download_json(
             f'{self._API_BASE_URL}/api/users/{user_id}/videos', username,
             fatal=False, note=note, errnote='Unable to download user video list',
             headers={
-                'Authorization': f'Bearer {auth_token}',
+                'Authorization': f'Bearer {self._AUTH_TOKEN}',
                 'Origin': 'https://triller.co',
             }, query=query)
 
-    def _extract_video_list(self, username, user_id, auth_token, limit=6):
+    def _extract_video_list(self, username, user_id, limit=6):
         query = {
             'limit': limit,
         }
@@ -216,7 +252,7 @@ class TrillerUserIE(TrillerBaseIE):
             for retry in self.RetryManager():
                 try:
                     video_list = self._extract_videos(
-                        username, user_id, auth_token, query=query,
+                        username, user_id, query=query,
                         note=f'Downloading user video list page {page}')
                 except ExtractorError as e:
                     if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
@@ -245,28 +281,27 @@ class TrillerUserIE(TrillerBaseIE):
 
     def _real_extract(self, url):
         username = self._match_id(url)
-        auth_token = self._create_guest()
-        if not auth_token:
-            raise ExtractorError('Unable to fetch required auth token for user extraction')
+        if not self._IS_LOGGED_IN:
+            self._create_guest()
 
         user_info = traverse_obj(self._download_json(
             f'{self._API_BASE_URL}/api/users/by_username/{username}',
             username, fatal=True, note='Downloading user info',
             errnote='Failed to download user info', headers={
-                'Authorization': f'Bearer {auth_token}',
+                'Authorization': f'Bearer {self._AUTH_TOKEN}',
                 'Origin': 'https://triller.co',
             }), 'user', default={})
         if not user_info:
             raise ExtractorError('Unable to extract user info')
 
         if user_info.get('private') and not user_info.get('followed_by_me'):
-            raise ExtractorError('This user profile is private')
+            raise ExtractorError('This user profile is private', expected=True)
 
         if user_info.get('blocked_by_user') or user_info.get('blocking_user'):
-            raise ExtractorError('This user profile is blocked')
+            raise ExtractorError('This user profile is blocked', expected=True)
 
         user_id = str_or_none(user_info.get('user_id'))
-        videos = LazyList(self._extract_video_list(username, user_id, auth_token))
+        videos = LazyList(self._extract_video_list(username, user_id))
         thumbnail = user_info.get('avatar_url')
 
         return self.playlist_result(self._entries(username, videos), user_id, username, thumbnail=thumbnail)
