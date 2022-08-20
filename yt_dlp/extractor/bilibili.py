@@ -620,7 +620,6 @@ class BiliBiliSearchIE(SearchInfoExtractor):
                     'keyword': query,
                     'page': page_num,
                     'context': '',
-                    'order': 'pubdate',
                     'duration': 0,
                     'tids_2': '',
                     '__refresh__': 'true',
