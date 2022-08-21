@@ -167,6 +167,31 @@ class TrillerIE(TrillerBaseIE):
             (?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})
         '''
     _TESTS = [{
+        'url': 'https://triller.co/@theestallion/video/2358fcd7-3df2-4c77-84c8-1d091610a6cf',
+        'md5': '228662d783923b60d78395fedddc0a20',
+        'info_dict': {
+            'id': '71595734',
+            'ext': 'mp4',
+            'title': 'md5:9a2bf9435c5c4292678996a464669416',
+            'thumbnail': r're:^https://uploads\.cdn\.triller\.co/.+\.jpg$',
+            'description': 'md5:9a2bf9435c5c4292678996a464669416',
+            'uploader': 'theestallion',
+            'uploader_id': '18992236',
+            'creator': 'Megan Thee Stallion',
+            'timestamp': 1660598222,
+            'upload_date': '20220815',
+            'duration': 47,
+            'height': 3840,
+            'width': 2160,
+            'view_count': int,
+            'like_count': int,
+            'artist': 'Megan Thee Stallion',
+            'track': 'Her',
+            'webpage_url': 'https://triller.co/@theestallion/video/2358fcd7-3df2-4c77-84c8-1d091610a6cf',
+            'uploader_url': 'https://triller.co/@theestallion',
+            'comment_count': int,
+        }
+    }, {
         'url': 'https://triller.co/@charlidamelio/video/46c6fcfa-aa9e-4503-a50c-68444f44cddc',
         'md5': '874055f462af5b0699b9dbb527a505a0',
         'info_dict': {
@@ -225,6 +250,15 @@ class TrillerIE(TrillerBaseIE):
 class TrillerUserIE(TrillerBaseIE):
     _VALID_URL = r'https?://(?:www\.)?triller\.co/@(?P<id>[\w\._]+)/?(?:$|[#?])'
     _TESTS = [{
+        # first videos request only returns 2 videos
+        'url': 'https://triller.co/@theestallion',
+        'playlist_mincount': 9,
+        'info_dict': {
+            'id': '18992236',
+            'title': 'theestallion',
+            'thumbnail': r're:^https://uploads\.cdn\.triller\.co/.+\.jpg$',
+        }
+    }, {
         'url': 'https://triller.co/@charlidamelio',
         'playlist_mincount': 25,
         'info_dict': {
@@ -261,9 +295,9 @@ class TrillerUserIE(TrillerBaseIE):
                     raise
             yield from video_list.get('videos', [])
             videos = video_list.get('videos')
-            before_time = videos[-1].get('timestamp') or None
-            if len(videos) < limit or not before_time:
+            if not videos:
                 break
+            before_time = videos[-1].get('timestamp') or None
             query = {
                 'before_time': before_time,
                 'limit': limit,
