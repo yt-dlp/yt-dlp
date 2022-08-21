@@ -57,6 +57,25 @@ class NiconicoIE(InfoExtractor):
         },
         'skip': 'Requires an account',
     }, {
+        # Same as the last test, but this time using only the ID as the URL
+        'url': 'sm22312215',
+        'md5': 'd1a75c0823e2f629128c43e1212760f9',
+        'info_dict': {
+            'id': 'sm22312215',
+            'ext': 'mp4',
+            'title': 'Big Buck Bunny',
+            'thumbnail': r're:https?://.*',
+            'uploader': 'takuya0301',
+            'uploader_id': '2698420',
+            'upload_date': '20131123',
+            'timestamp': int,  # timestamp is unstable
+            'description': '(c) copyright 2008, Blender Foundation / www.bigbuckbunny.org',
+            'duration': 33,
+            'view_count': int,
+            'comment_count': int,
+        },
+        'skip': 'Requires an account',
+    }, {
         # File downloaded with and without credentials are different, so omit
         # the md5 field
         'url': 'http://www.nicovideo.jp/watch/nm14296458',
@@ -169,7 +188,7 @@ class NiconicoIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _VALID_URL = r'https?://(?:(?:www\.|secure\.|sp\.)?nicovideo\.jp/watch|nico\.ms)/(?P<id>(?:[a-z]{2})?[0-9]+)'
+    _VALID_URL = r'(?:https?://(?:(?:www\.|secure\.|sp\.)?nicovideo\.jp/watch|nico\.ms)/|^)(?P<id>[a-z]{2}[1-9][0-9]*)(?=[#?]|$)'
     _NETRC_MACHINE = 'niconico'
     _COMMENT_API_ENDPOINTS = (
         'https://nvcomment.nicovideo.jp/legacy/api.json',
@@ -601,7 +620,7 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
 
 class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
     IE_NAME = 'niconico:playlist'
-    _VALID_URL = r'https?://(?:(?:www\.|sp\.)?nicovideo\.jp|nico\.ms)/(?:user/\d+/)?(?:my/)?mylist/(?:#/)?(?P<id>\d+)'
+    _VALID_URL = r'(?:https?://(?:(?:www\.|sp\.)?nicovideo\.jp|nico\.ms)/)?(?:user/\d+/)?(?:my/)?mylist/(?:#/)?(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'http://www.nicovideo.jp/mylist/27411728',
@@ -613,6 +632,9 @@ class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
             'uploader_id': '805442',
         },
         'playlist_mincount': 291,
+    }, {
+        'url': 'mylist/27411728',
+        'only_matching': True,
     }, {
         'url': 'https://www.nicovideo.jp/user/805442/mylist/27411728',
         'only_matching': True,
