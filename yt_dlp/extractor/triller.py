@@ -336,5 +336,5 @@ class TrillerUserIE(TrillerBaseIE):
         videos = LazyList(self._extract_video_list(username, user_id))
         thumbnail = user_info.get('avatar_url')
 
-        return self.playlist_result(self._entries(videos, user_info), user_id, username,
-                                    thumbnail=thumbnail)
+        return self.playlist_result(
+            self._entries(videos, user_info), user_id, username, thumbnail=thumbnail)
