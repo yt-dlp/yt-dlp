@@ -268,49 +268,42 @@ class TrillerUserIE(TrillerBaseIE):
         }
     }]
 
-    def _extract_videos(self, username, user_id, query, note='Downloading user video list'):
-        return self._download_json(
-            f'{self._API_BASE_URL}/api/users/{user_id}/videos', username,
-            fatal=False, note=note, errnote='Unable to download user video list',
-            headers={
-                'Authorization': f'Bearer {self._AUTH_TOKEN}',
-                'Origin': 'https://triller.co',
-            }, query=query)
-
     def _extract_video_list(self, username, user_id, limit=6):
         query = {
             'limit': limit,
         }
-
         for page in itertools.count(1):
             for retry in self.RetryManager():
                 try:
-                    video_list = self._extract_videos(
-                        username, user_id, query=query,
-                        note=f'Downloading user video list page {page}')
+                    video_list = self._download_json(
+                        f'{self._API_BASE_URL}/api/users/{user_id}/videos', username,
+                        fatal=False, note=f'Downloading user video list page {page}',
+                        errnote='Unable to download user video list', headers={
+                            'Authorization': f'Bearer {self._AUTH_TOKEN}',
+                            'Origin': 'https://triller.co',
+                        }, query=query)
                 except ExtractorError as e:
                     if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
                         retry.error = e
                         continue
                     raise
             yield from video_list.get('videos', [])
-            videos = video_list.get('videos')
-            if not videos:
+            if not video_list.get('videos'):
                 break
-            before_time = videos[-1].get('timestamp') or None
+            before_time = traverse_obj(video_list, ('videos', -1, 'timestamp'))
+            if not before_time:
+                break
             query = {
                 'before_time': before_time,
                 'limit': limit,
             }
 
-    def _entries(self, username, videos):
+    def _entries(self, videos):
         for video in videos:
-            video_uuid = video.get('video_uuid')
             yield {
                 **self._parse_video_info(video),
                 'extractor_key': TrillerIE.ie_key(),
                 'extractor': 'Triller',
-                'webpage_url': f'https://triller.co/@{username}/video/{video_uuid}',
             }
 
     def _real_extract(self, url):
@@ -338,4 +331,4 @@ class TrillerUserIE(TrillerBaseIE):
         videos = LazyList(self._extract_video_list(username, user_id))
         thumbnail = user_info.get('avatar_url')
 
-        return self.playlist_result(self._entries(username, videos), user_id, username, thumbnail=thumbnail)
+        return self.playlist_result(self._entries(videos), user_id, username, thumbnail=thumbnail)
