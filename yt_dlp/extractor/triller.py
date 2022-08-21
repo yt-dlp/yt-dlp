@@ -51,6 +51,11 @@ class TrillerBaseIE(InfoExtractor):
         self._AUTH_TOKEN = login.get('auth_token')
         self._IS_LOGGED_IN = True
 
+    def _real_initialize(self):
+        if not self._IS_LOGGED_IN and self._cookies_passed:
+            self.report_warning(
+                f'Triller does not use cookies for authentication. {self._login_hint("password")}')
+
     def _create_guest(self):
         guest = self._download_json(
             f'{self._API_BASE_URL}/user/create_guest',
