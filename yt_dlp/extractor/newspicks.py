@@ -1,9 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-)
+from ..utils import ExtractorError
 
 
 class NewsPicksIE(InfoExtractor):
