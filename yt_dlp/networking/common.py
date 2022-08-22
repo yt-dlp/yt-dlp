@@ -394,7 +394,7 @@ class RequestHandler:
             del request.headers['Youtubedl-no-compression']
             request.compression = False
 
-        if self.SUPPORTED_ENCODINGS:
+        if self.SUPPORTED_ENCODINGS and 'Accept-Encoding' not in request.headers:
             request.headers['Accept-Encoding'] = ', '.join(self.SUPPORTED_ENCODINGS)
 
         if not request.compression:
