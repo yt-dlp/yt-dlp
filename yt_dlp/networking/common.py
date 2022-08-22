@@ -327,6 +327,7 @@ class RequestHandler:
         if self.ydl.params.get('legacyserverconnect'):
             context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
             # Allow use of weaker ciphers in Python 3.10+. See https://bugs.python.org/issue43998
+            # XXX: this be should probably a separate option, or delegate to external SSL config
             context.set_ciphers('DEFAULT')
 
         client_certfile = self.ydl.params.get('client_certificate')
@@ -373,6 +374,7 @@ class RequestHandler:
                     raise UnsupportedRequest('\'no\' proxy is not supported')
                 continue
             if proxy_key == 'all' and Features.ALL_PROXY not in self.SUPPORTED_FEATURES:
+                # XXX: If necessary, we could break up all_proxy here using SUPPORTED_SCHEMES
                 raise UnsupportedRequest('\'all\' proxy is not supported')
 
             # Unlikely this handler will use this proxy, so ignore.
