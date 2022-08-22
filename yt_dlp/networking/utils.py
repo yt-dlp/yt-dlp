@@ -65,17 +65,6 @@ std_headers = CaseInsensitiveDict({
 })
 
 
-# XXX: do we need this still?
-def handle_youtubedl_headers(headers):
-    filtered_headers = headers
-
-    if 'Youtubedl-no-compression' in filtered_headers:
-        filtered_headers = {k: v for k, v in filtered_headers.items() if k.lower() != 'accept-encoding'}
-        del filtered_headers['Youtubedl-no-compression']
-
-    return filtered_headers
-
-
 def ssl_load_certs(context: ssl.SSLContext, params):
     if certifi is not None and 'no-certifi' not in params.get('compat_opts', []):
         context.load_verify_locations(cafile=certifi.where())

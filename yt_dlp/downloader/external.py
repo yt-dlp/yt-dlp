@@ -7,7 +7,6 @@ import time
 
 from .fragment import FragmentFD
 from ..compat import functools
-from ..networking.utils import handle_youtubedl_headers
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
     Popen,
@@ -21,6 +20,7 @@ from ..utils import (
     determine_ext,
     encodeArgument,
     encodeFilename,
+    handle_youtubedl_headers,
     remove_end,
     traverse_obj,
 )
