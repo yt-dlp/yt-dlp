@@ -8,7 +8,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     str_or_none,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -78,19 +78,15 @@ class MedalTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @classmethod
-    def _match_path(cls, url):
-        return cls._match_valid_url(url).group('path')
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        path = self._match_path(url)
+        path = self._match_valid_url(url).group('path')
 
         webpage = self._download_webpage(url, video_id)
 
-        next_data = self._parse_json(self._search_regex(
-            r'<script[^>]*__NEXT_DATA__[^>]*>\s*({.+?})\s*</script>',
-            webpage, 'next data', default='{}'), video_id)
+        next_data = self._search_json(
+            '<script[^>]*__NEXT_DATA__[^>]*>', webpage,
+            'next data', video_id, end_pattern='</script>', fatal=False)
 
         build_id = next_data.get('buildId')
         if not build_id:
@@ -99,10 +95,10 @@ class MedalTVIE(InfoExtractor):
 
         locale = next_data.get('locale', 'en')
 
-        api_url = 'https://medal.tv/_next/data/{0}/{1}/{2}/{3}.json'.format(build_id, locale, path, video_id)
-        api_response = self._download_json(api_url, video_id)
+        api_response = self._download_json(
+            f'https://medal.tv/_next/data/{build_id}/{locale}/{path}/{video_id}.json', video_id)
 
-        clip = try_get(api_response, lambda x: x['pageProps']['clip'], dict) or {}
+        clip = traverse_obj(api_response, ('pageProps', 'clip')) or {}
         if not clip:
             raise ExtractorError(
                 'Could not find video information.', video_id=video_id)
@@ -158,7 +154,7 @@ class MedalTVIE(InfoExtractor):
 
         # Necessary because the id of the author is not known in advance.
         # Won't raise an issue if no profile can be found as this is optional.
-        author = try_get(api_response, lambda x: x['pageProps']['profile'], dict) or {}
+        author = traverse_obj(api_response, ('pageProps', 'profile')) or {}
         author_id = str_or_none(author.get('userId'))
         author_url = format_field(author_id, None, 'https://medal.tv/users/%s')
 
