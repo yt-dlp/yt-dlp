@@ -19,15 +19,18 @@ from ..utils import (
 
 from enum import Enum
 
+
 class UrlType(Enum):
     MEDIA = "media"
     CHANNEL = "channel"
     CHANNEL_PLAYLIST = "channel playlist"
     PLAYLIST = "playlist"
 
+
 class ChannelType(Enum):
     MOVIE_PAGE = 1
     TV_PAGE = 11
+
 
 class CrackleIE(InfoExtractor):
     _VALID_URL = r'(?:crackle:|https?://(?:(?:www|m)\.)?(?:sony)?crackle\.com/)((watch/)?(?:(?P<channel_id>\d+)|playlist/(?P<playlist_id>\d+)|(?:[^/]+)+))(/(?P<video_id>\d+))?'
@@ -71,7 +74,7 @@ class CrackleIE(InfoExtractor):
             'info_dict': {
                 'id': '5851',
                 'title': 'Thanksgiving',
-             },
+            },
             'expected_warnings': [
                 'Trying with a list of known countries'
             ],
@@ -82,7 +85,7 @@ class CrackleIE(InfoExtractor):
             'info_dict': {
                 'id': '2130982',
                 'title': 'Episodes',
-             },
+            },
             'expected_warnings': [
                 'Trying with a list of known countries'
             ],
@@ -127,7 +130,7 @@ class CrackleIE(InfoExtractor):
             'height': 480,
         },
     }
-    
+
     def _download_json(self, url, *args, **kwargs):
         # Authorization generation algorithm is reverse engineered from:
         # https://www.sonycrackle.com/static/js/main.ea93451f.chunk.js
@@ -139,23 +142,23 @@ class CrackleIE(InfoExtractor):
         }
         return InfoExtractor._download_json(self, url, *args, headers=headers, **kwargs)
 
-    def _download_crackle_details_direct(self, json_type:UrlType, json_id:str, country:str):
+    def _download_crackle_details_direct(self, json_type: UrlType, json_id: str, country: str):
 
         url = 'https://web-api-us.crackle.com/Service.svc/'
 
-        if json_type == UrlType.CHANNEL_PLAYLIST :
+        if json_type == UrlType.CHANNEL_PLAYLIST:
             url += 'channel/%s/playlists/all/'
-        elif json_type == UrlType.PLAYLIST :
+        elif json_type == UrlType.PLAYLIST:
             url += 'playlist/%s/info/'
-        else :
+        else:
             url += 'details/%s/%%s/' % json_type.value
 
         url += '%s?disableProtocols=true'
 
         details = self._download_json(
-                        url % (json_id, country),
-                        json_id, note='Downloading %s JSON from %s API' % (json_type.value, country),
-                        errnote='Unable to download %s JSON' % json_type.value)
+            url % (json_id, country),
+            json_id, note='Downloading %s JSON from %s API' % (json_type.value, country),
+            errnote='Unable to download %s JSON' % json_type.value)
         status = details.get('status') or details.get('Status')
         if status.get('messageCode') != '0':
             raise ExtractorError(
@@ -165,11 +168,11 @@ class CrackleIE(InfoExtractor):
 
         return details
 
-    def _download_crackle_details(self, json_type:UrlType, json_id, country):
+    def _download_crackle_details(self, json_type: UrlType, json_id, country):
 
         details = {}
 
-        if country is None :
+        if country is None:
 
             geo_bypass_country = self.get_param('geo_bypass_country', None)
             countries = orderedSet((geo_bypass_country, 'US', 'AU', 'CA', 'AS', 'FM', 'GU', 'MP', 'PR', 'PW', 'MH', 'VI', ''))
@@ -202,11 +205,11 @@ class CrackleIE(InfoExtractor):
                     if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
                         continue
                     raise
-                
+
                 # Found video formats
                 if json_type != UrlType.MEDIA or isinstance(details.get('MediaURLs'), list):
                     break
-        else :
+        else:
             details = self._download_crackle_details_direct(json_type, json_id, country)
 
         return details, country
@@ -214,7 +217,7 @@ class CrackleIE(InfoExtractor):
     def _get_video_info(self, video_id, country):
 
         media, country = self._download_crackle_details(UrlType.MEDIA, video_id, country)
-        
+
         ignore_no_formats = self.get_param('ignore_no_formats_error')
 
         if not media or (not media.get('MediaURLs') and not ignore_no_formats):
@@ -339,34 +342,34 @@ class CrackleIE(InfoExtractor):
         playlist_id = mobj.get('playlist_id')
 
         country = None
-        
-        if video_id is not None :
+
+        if video_id is not None:
             # get video of specific page
             video, country = self._get_video_info(video_id, country)
             return video
-        elif playlist_id is not None :
+        elif playlist_id is not None:
             # enumerate videos in playlist
             videos = []
             playlist, country = self._download_crackle_details(UrlType.PLAYLIST, playlist_id, country)
             result = playlist and playlist.get('Result')
             for x in (result and result.get('Medias')) or []:
-                v_id = str(traverse_obj(x, ('MediaInfo','Id')))
+                v_id = str(traverse_obj(x, ('MediaInfo', 'Id')))
                 video, country = self._get_video_info(v_id, country)
                 videos.append(video)
 
             return self.playlist_result(videos, playlist_id, result and result.get('Name'))
-        else :
+        else:
             videos = []
             channel, country = self._download_crackle_details(UrlType.CHANNEL, channel_id, country)
 
-            channel_type = channel.get('ChannelTypeId');
+            channel_type = channel.get('ChannelTypeId')
 
-            if channel_type ==  ChannelType.MOVIE_PAGE.value :
+            if channel_type == ChannelType.MOVIE_PAGE.value:
                 # movie channel - get featured media
                 v_id = str(traverse_obj(channel, ('FeaturedMedia', 'ID')))
                 video, country = self._get_video_info(v_id, country)
                 return video
-            elif channel_type ==  ChannelType.TV_PAGE.value :
+            elif channel_type == ChannelType.TV_PAGE.value:
                 # series channel - enumerate videos in channel
                 playlist, country = self._download_crackle_details(UrlType.CHANNEL_PLAYLIST, channel_id, country)
                 for p in playlist.get('Playlists') or []:
