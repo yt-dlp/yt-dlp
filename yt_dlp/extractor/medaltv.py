@@ -13,7 +13,7 @@ from ..utils import (
 
 
 class MedalTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?medal\.tv/clips/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?medal\.tv/(?P<path>games/[^/?#&]+/clips)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://medal.tv/clips/2mA60jWAGQCBH',
         'md5': '7b07b064331b1cf9e8e5c52a06ae68fa',
@@ -48,16 +48,31 @@ class MedalTVIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    @classmethod
+    def _match_path(cls, url):
+        return cls._match_valid_url(url).group('path')
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        path = self._match_path(url)
+
         webpage = self._download_webpage(url, video_id)
 
-        hydration_data = self._parse_json(self._search_regex(
-            r'<script[^>]*>\s*(?:var\s*)?hydrationData\s*=\s*({.+?})\s*</script>',
-            webpage, 'hydration data', default='{}'), video_id)
+        next_data = self._parse_json(self._search_regex(
+            r'<script[^>]*__NEXT_DATA__[^>]*>\s*({.+?})\s*</script>',
+            webpage, 'next data', default='{}'), video_id)
 
-        clip = try_get(
-            hydration_data, lambda x: x['clips'][video_id], dict) or {}
+        build_id = next_data.get('buildId')
+        if not build_id:
+            raise ExtractorError(
+                'Could not find build ID.', video_id=video_id)
+
+        locale = next_data.get('locale', 'en')
+
+        api_url = 'https://medal.tv/_next/data/{0}/{1}/{2}/{3}.json'.format(build_id, locale, path, video_id)
+        api_response = self._download_json(api_url, video_id)
+
+        clip = try_get(api_response, lambda x: x['pageProps']['clip'], dict) or {}
         if not clip:
             raise ExtractorError(
                 'Could not find video information.', video_id=video_id)
@@ -113,9 +128,8 @@ class MedalTVIE(InfoExtractor):
 
         # Necessary because the id of the author is not known in advance.
         # Won't raise an issue if no profile can be found as this is optional.
-        author = try_get(
-            hydration_data, lambda x: list(x['profiles'].values())[0], dict) or {}
-        author_id = str_or_none(author.get('id'))
+        author = try_get(api_response, lambda x: x['pageProps']['profile'], dict) or {}
+        author_id = str_or_none(author.get('userId'))
         author_url = format_field(author_id, None, 'https://medal.tv/users/%s')
 
         return {
