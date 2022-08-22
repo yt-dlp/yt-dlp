@@ -2630,7 +2630,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             ret = extract_nsig(jsi, func_code)(s)
         except JSInterpreter.Exception as e:
             try:
-                jsi = PhantomJSwrapper(self)
+                jsi = PhantomJSwrapper(self, timeout=5000)
             except ExtractorError:
                 raise e
             self.report_warning(

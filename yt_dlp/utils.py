@@ -860,9 +860,9 @@ class Popen(subprocess.Popen):
             self.wait(timeout=timeout)
 
     @classmethod
-    def run(cls, *args, **kwargs):
+    def run(cls, *args, timeout=None, **kwargs):
         with cls(*args, **kwargs) as proc:
-            stdout, stderr = proc.communicate_or_kill()
+            stdout, stderr = proc.communicate_or_kill(timeout=timeout)
             return stdout or '', stderr or '', proc.returncode
 
 
