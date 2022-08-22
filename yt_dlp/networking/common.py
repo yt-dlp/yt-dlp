@@ -361,7 +361,7 @@ class RequestHandler:
             raise RequestError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
 
         if self.SUPPORTED_SCHEMES is not None and scheme not in self.SUPPORTED_SCHEMES:
-            raise UnsupportedRequest(f'"unsupported scheme: "{scheme}"')
+            raise UnsupportedRequest(f'unsupported scheme: "{scheme}"')
 
     def _check_proxies(self, request: Request):
         if self.SUPPORTED_PROXY_SCHEMES is None:
