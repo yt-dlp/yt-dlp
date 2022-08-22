@@ -15,6 +15,24 @@ from ..utils import (
 class MedalTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?medal\.tv/(?P<path>games/[^/?#&]+/clips)/(?P<id>[^/?#&]+)'
     _TESTS = [{
+        'url': 'https://medal.tv/games/valorant/clips/jTBFnLKdLy15K',
+        'md5': '6930f8972914b6b9fdc2bb3918098ba0',
+        'info_dict': {
+            'id': 'jTBFnLKdLy15K',
+            'ext': 'mp4',
+            'title': "Mornu's clutch",
+            'description': '',
+            'uploader': 'Aciel',
+            'timestamp': 1651628243,
+            'upload_date': '20220504',
+            'uploader_id': '19335460',
+            'uploader_url': 'https://medal.tv/users/19335460',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'duration': 13,
+        }
+    }, {
         'url': 'https://medal.tv/clips/2mA60jWAGQCBH',
         'md5': '3d19d426fe0b2d91c26e412684e66a06',
         'info_dict': {
