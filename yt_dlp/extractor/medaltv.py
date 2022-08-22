@@ -16,7 +16,7 @@ class MedalTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?medal\.tv/(?P<path>games/[^/?#&]+/clips)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://medal.tv/clips/2mA60jWAGQCBH',
-        'md5': '7b07b064331b1cf9e8e5c52a06ae68fa',
+        'md5': '3d19d426fe0b2d91c26e412684e66a06',
         'info_dict': {
             'id': '2mA60jWAGQCBH',
             'ext': 'mp4',
@@ -26,6 +26,12 @@ class MedalTVIE(InfoExtractor):
             'timestamp': 1603165266,
             'upload_date': '20201020',
             'uploader_id': '10619174',
+            'thumbnail': 'https://cdn.medal.tv/10619174/thumbnail-34934644-720p.jpg?t=1080p&c=202042&missing',
+            'uploader_url': 'https://medal.tv/users/10619174',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'duration': 23,
         }
     }, {
         'url': 'https://medal.tv/clips/2um24TWdty0NA',
@@ -39,6 +45,12 @@ class MedalTVIE(InfoExtractor):
             'timestamp': 1605580939,
             'upload_date': '20201117',
             'uploader_id': '5156321',
+            'thumbnail': 'https://cdn.medal.tv/5156321/thumbnail-36787208-360p.jpg?t=1080p&c=202046&missing',
+            'uploader_url': 'https://medal.tv/users/5156321',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'duration': 9,
         }
     }, {
         'url': 'https://medal.tv/clips/37rMeFpryCC-9',
