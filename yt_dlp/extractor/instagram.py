@@ -404,13 +404,14 @@ class InstagramIE(InstagramBaseIE):
         media.update(traverse_obj(general_info, ('data', 'shortcode_media')) or {})
 
         if self._get_cookies(url).get('sessionid'):
-            media.update(traverse_obj(self._download_json(
+            info = traverse_obj(self._download_json(
                 f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
                 fatal=False, note='Downloading video info', headers={
                     **self._API_HEADERS,
                     'X-CSRFToken': csrf_token_value,
-                }), ('items', 0)) or {})
-            if media:
+                }), ('items', 0))
+            if info:
+                media.update(info)
                 return self._extract_product(media)
 
         webpage, urlh = self._download_webpage_handle(url, video_id)
