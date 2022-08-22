@@ -430,7 +430,8 @@ class RequestHandler:
             request = self.prepare_request(request)
             return self._real_handle(request)
         except RequestError as e:
-            e.handler = self
+            if e.handler is None:
+                e.handler = self
             raise
 
     def _real_handle(self, request: Request):
