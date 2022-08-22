@@ -13,44 +13,105 @@ from ..utils import (
     parse_age_limit,
     parse_duration,
     url_or_none,
-    ExtractorError
+    ExtractorError,
+    traverse_obj,
 )
 
+from enum import Enum
+
+class UrlType(Enum):
+    MEDIA = "media"
+    CHANNEL = "channel"
+    CHANNEL_PLAYLIST = "channel playlist"
+    PLAYLIST = "playlist"
+
+class ChannelType(Enum):
+    MOVIE_PAGE = 1
+    TV_PAGE = 11
 
 class CrackleIE(InfoExtractor):
-    _VALID_URL = r'(?:crackle:|https?://(?:(?:www|m)\.)?(?:sony)?crackle\.com/(?:playlist/\d+/|(?:[^/]+/)+))(?P<id>\d+)'
-    _TESTS = [{
-        # Crackle is available in the United States and territories
-        'url': 'https://www.crackle.com/thanksgiving/2510064',
-        'info_dict': {
-            'id': '2510064',
-            'ext': 'mp4',
-            'title': 'Touch Football',
-            'description': 'md5:cfbb513cf5de41e8b56d7ab756cff4df',
-            'duration': 1398,
-            'view_count': int,
-            'average_rating': 0,
-            'age_limit': 17,
-            'genre': 'Comedy',
-            'creator': 'Daniel Powell',
-            'artist': 'Chris Elliott, Amy Sedaris',
-            'release_year': 2016,
-            'series': 'Thanksgiving',
-            'episode': 'Touch Football',
-            'season_number': 1,
-            'episode_number': 1,
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
-        'expected_warnings': [
-            'Trying with a list of known countries'
-        ],
-    }, {
-        'url': 'https://www.sonycrackle.com/thanksgiving/2510064',
-        'only_matching': True,
-    }]
+    _VALID_URL = r'(?:crackle:|https?://(?:(?:www|m)\.)?(?:sony)?crackle\.com/)((watch/)?(?:(?P<channel_id>\d+)|playlist/(?P<playlist_id>\d+)|(?:[^/]+)+))(/(?P<video_id>\d+))?'
+    _TESTS = [
+        {
+            # Crackle is available in the United States and territories
+            'url': 'https://www.crackle.com/thanksgiving/2510064',
+            'info_dict': {
+                'id': '2510064',
+                'ext': 'mp4',
+                'title': 'Touch Football',
+                'description': 'md5:cfbb513cf5de41e8b56d7ab756cff4df',
+                'duration': 1398,
+                'view_count': int,
+                'average_rating': 0,
+                'age_limit': 17,
+                'genre': 'Comedy',
+                'creator': 'Daniel Powell',
+                'artist': 'Chris Elliott, Amy Sedaris',
+                'release_year': 2016,
+                'series': 'Thanksgiving',
+                'episode': 'Touch Football',
+                'season_number': 1,
+                'episode_number': 1,
+                'season': 'Season 1',
+            },
+            'params': {
+                # m3u8 download
+                'skip_download': True,
+            },
+            'expected_warnings': [
+                'Trying with a list of known countries'
+            ],
+        }, {
+            'url': 'https://www.sonycrackle.com/thanksgiving/2510064',
+            'only_matching': True,
+        }, {
+            # entire series provided as channel URL
+            'url': 'https://www.crackle.com/watch/5851',
+            'playlist_count': 8,
+            'info_dict': {
+                'id': '5851',
+                'title': 'Thanksgiving',
+             },
+            'expected_warnings': [
+                'Trying with a list of known countries'
+            ],
+        }, {
+            # entire series provided as playlist URL
+            'url': 'https://www.crackle.com/watch/playlist/2130982',
+            'playlist_count': 8,
+            'info_dict': {
+                'id': '2130982',
+                'title': 'Episodes',
+             },
+            'expected_warnings': [
+                'Trying with a list of known countries'
+            ],
+        }, {
+            # movie provided as channel URL
+            'url': 'https://www.crackle.com/watch/7484',
+            'info_dict': {
+                'id': '2516266',
+                'title': '1 Mile To You',
+                'release_year': 2017,
+                'ext': 'mp4',
+                'creator': 'Leif Tilden',
+                'age_limit': 14,
+                'description': 'md5:13806df170014c4c9dd7c9b5b8b4921d',
+                'average_rating': float,
+                'duration': 6277,
+                'view_count': int,
+                'artist': 'md5:54868aa9fb6781c75f427da428735df4',
+                'genre': 'Drama, Sports, Romance',
+            },
+            'params': {
+                # m3u8 download
+                'skip_download': True,
+            },
+            'expected_warnings': [
+                'Trying with a list of known countries'
+            ],
+        }
+    ]
 
     _MEDIA_FILE_SLOTS = {
         '360p.mp4': {
@@ -66,7 +127,7 @@ class CrackleIE(InfoExtractor):
             'height': 480,
         },
     }
-
+    
     def _download_json(self, url, *args, **kwargs):
         # Authorization generation algorithm is reverse engineered from:
         # https://www.sonycrackle.com/static/js/main.ea93451f.chunk.js
@@ -78,56 +139,82 @@ class CrackleIE(InfoExtractor):
         }
         return InfoExtractor._download_json(self, url, *args, headers=headers, **kwargs)
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
+    def _download_crackle_details_direct(self, json_type:UrlType, json_id:str, country:str):
 
-        geo_bypass_country = self.get_param('geo_bypass_country', None)
-        countries = orderedSet((geo_bypass_country, 'US', 'AU', 'CA', 'AS', 'FM', 'GU', 'MP', 'PR', 'PW', 'MH', 'VI', ''))
-        num_countries, num = len(countries) - 1, 0
+        url = 'https://web-api-us.crackle.com/Service.svc/'
 
-        media = {}
-        for num, country in enumerate(countries):
-            if num == 1:  # start hard-coded list
-                self.report_warning('%s. Trying with a list of known countries' % (
-                    'Unable to obtain video formats from %s API' % geo_bypass_country if geo_bypass_country
-                    else 'No country code was given using --geo-bypass-country'))
-            elif num == num_countries:  # end of list
-                geo_info = self._download_json(
-                    'https://web-api-us.crackle.com/Service.svc/geo/country',
-                    video_id, fatal=False, note='Downloading geo-location information from crackle API',
-                    errnote='Unable to fetch geo-location information from crackle') or {}
-                country = geo_info.get('CountryCode')
+        if json_type == UrlType.CHANNEL_PLAYLIST :
+            url += 'channel/%s/playlists/all/'
+        elif json_type == UrlType.PLAYLIST :
+            url += 'playlist/%s/info/'
+        else :
+            url += 'details/%s/%%s/' % json_type.value
+
+        url += '%s?disableProtocols=true'
+
+        details = self._download_json(
+                        url % (json_id, country),
+                        json_id, note='Downloading %s JSON from %s API' % (json_type.value, country),
+                        errnote='Unable to download %s JSON' % json_type.value)
+        status = details.get('status') or details.get('Status')
+        if status.get('messageCode') != '0':
+            raise ExtractorError(
+                '%s said: %s %s - %s' % (
+                    self.IE_NAME, status.get('messageCodeDescription'), status.get('messageCode'), status.get('message')),
+                expected=True)
+
+        return details
+
+    def _download_crackle_details(self, json_type:UrlType, json_id, country):
+
+        details = {}
+
+        if country is None :
+
+            geo_bypass_country = self.get_param('geo_bypass_country', None)
+            countries = orderedSet((geo_bypass_country, 'US', 'AU', 'CA', 'AS', 'FM', 'GU', 'MP', 'PR', 'PW', 'MH', 'VI', ''))
+            num_countries, num = len(countries) - 1, 0
+
+            for num, country in enumerate(countries):
+                if num == 1:  # start hard-coded list
+                    self.report_warning('%s. Trying with a list of known countries' % (
+                        'Unable to obtain video formats from %s API' % geo_bypass_country if geo_bypass_country
+                        else 'No country code was given using --geo-bypass-country'))
+                elif num == num_countries:  # end of list
+                    geo_info = self._download_json(
+                        'https://web-api-us.crackle.com/Service.svc/geo/country',
+                        json_id, fatal=False, note='Downloading geo-location information from crackle API',
+                        errnote='Unable to fetch geo-location information from crackle') or {}
+                    country = geo_info.get('CountryCode')
+                    if country is None:
+                        continue
+                    self.to_screen('%s identified country as %s' % (self.IE_NAME, country))
+                    if country in countries:
+                        self.to_screen('Downloading from %s API was already attempted. Skipping...' % country)
+                        continue
+
                 if country is None:
                     continue
-                self.to_screen('%s identified country as %s' % (self.IE_NAME, country))
-                if country in countries:
-                    self.to_screen('Downloading from %s API was already attempted. Skipping...' % country)
-                    continue
+                try:
+                    details = self._download_crackle_details_direct(json_type, json_id, country)
+                except ExtractorError as e:
+                    # 401 means geo restriction, trying next country
+                    if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                        continue
+                    raise
+                
+                # Found video formats
+                if json_type != UrlType.MEDIA or isinstance(details.get('MediaURLs'), list):
+                    break
+        else :
+            details = self._download_crackle_details_direct(json_type, json_id, country)
 
-            if country is None:
-                continue
-            try:
-                media = self._download_json(
-                    'https://web-api-us.crackle.com/Service.svc/details/media/%s/%s?disableProtocols=true' % (video_id, country),
-                    video_id, note='Downloading media JSON from %s API' % country,
-                    errnote='Unable to download media JSON')
-            except ExtractorError as e:
-                # 401 means geo restriction, trying next country
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                    continue
-                raise
+        return details, country
 
-            status = media.get('status')
-            if status.get('messageCode') != '0':
-                raise ExtractorError(
-                    '%s said: %s %s - %s' % (
-                        self.IE_NAME, status.get('messageCodeDescription'), status.get('messageCode'), status.get('message')),
-                    expected=True)
+    def _get_video_info(self, video_id, country):
 
-            # Found video formats
-            if isinstance(media.get('MediaURLs'), list):
-                break
-
+        media, country = self._download_crackle_details(UrlType.MEDIA, video_id, country)
+        
         ignore_no_formats = self.get_param('ignore_no_formats_error')
 
         if not media or (not media.get('MediaURLs') and not ignore_no_formats):
@@ -222,7 +309,7 @@ class CrackleIE(InfoExtractor):
                     'height': int(mobj.group(2)),
                 })
 
-        return {
+        video = {
             'id': video_id,
             'title': title,
             'description': description,
@@ -242,3 +329,51 @@ class CrackleIE(InfoExtractor):
             'subtitles': subtitles,
             'formats': formats,
         }
+        return video, country
+
+    def _real_extract(self, url):
+
+        mobj = self._match_valid_url(url).groupdict()
+        video_id = mobj.get('video_id')
+        channel_id = mobj.get('channel_id')
+        playlist_id = mobj.get('playlist_id')
+
+        country = None
+        
+        if video_id is not None :
+            # get video of specific page
+            video, country = self._get_video_info(video_id, country)
+            return video
+        elif playlist_id is not None :
+            # enumerate videos in playlist
+            videos = []
+            playlist, country = self._download_crackle_details(UrlType.PLAYLIST, playlist_id, country)
+            result = playlist and playlist.get('Result')
+            for x in (result and result.get('Medias')) or []:
+                v_id = str(traverse_obj(x, ('MediaInfo','Id')))
+                video, country = self._get_video_info(v_id, country)
+                videos.append(video)
+
+            return self.playlist_result(videos, playlist_id, result and result.get('Name'))
+        else :
+            videos = []
+            channel, country = self._download_crackle_details(UrlType.CHANNEL, channel_id, country)
+
+            channel_type = channel.get('ChannelTypeId');
+
+            if channel_type ==  ChannelType.MOVIE_PAGE.value :
+                # movie channel - get featured media
+                v_id = str(traverse_obj(channel, ('FeaturedMedia', 'ID')))
+                video, country = self._get_video_info(v_id, country)
+                return video
+            elif channel_type ==  ChannelType.TV_PAGE.value :
+                # series channel - enumerate videos in channel
+                playlist, country = self._download_crackle_details(UrlType.CHANNEL_PLAYLIST, channel_id, country)
+                for p in playlist.get('Playlists') or []:
+                    if p.get('PlaylistName') == 'Episodes':
+                        for x in p.get('Items') or []:
+                            v_id = str(traverse_obj(x, ('MediaInfo', 'Id')))
+                            video, country = self._get_video_info(v_id, country)
+                            videos.append(video)
+
+            return self.playlist_result(videos, channel_id, channel.get('Name'))
