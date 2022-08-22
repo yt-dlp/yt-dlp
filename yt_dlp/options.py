@@ -303,10 +303,11 @@ def create_parser():
             parser.add_option_group(alias_group)
 
         aliases = (x if x.startswith('-') else f'--{x}' for x in map(str.strip, aliases.split(',')))
+        DEST = '_triggered_aliases'
+        setattr(parser.values, DEST, collections.defaultdict(int))
         try:
             alias_group.add_option(
-                *aliases, help=opts, nargs=nargs, type='str' if nargs else None,
-                dest='_triggered_aliases', default=collections.defaultdict(int),
+                *aliases, help=opts, nargs=nargs, dest=DEST, type='str' if nargs else None,
                 metavar=' '.join(f'ARG{i}' for i in range(nargs)), action='callback',
                 callback=_alias_callback, callback_kwargs={'opts': opts, 'nargs': nargs})
         except Exception as err:
