@@ -11,6 +11,7 @@ from ..utils import (
     int_or_none,
     strip_or_none,
     traverse_obj,
+    try_call,
     unified_timestamp,
 )
 
@@ -255,7 +256,7 @@ class RTBFIE(RedBeeBaseIE):
         if not login_token:
             self.raise_login_required()
 
-        session_jwt = self._download_json(
+        session_jwt = try_call(lambda: self._get_cookies(url)['rtbf_jwt'].value) or self._download_json(
             'https://login.rtbf.be/accounts.getJWT', media_id, query={
                 'login_token': login_token.value,
                 'APIKey': self._GIGYA_API_KEY,
