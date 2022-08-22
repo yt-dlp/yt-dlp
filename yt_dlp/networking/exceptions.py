@@ -35,6 +35,7 @@ class HTTPError(urllib.error.HTTPError, RequestError):
         msg = response.reason or ''
         if redirect_loop:
             msg += ' (redirect loop detected)'
+        RequestError.__init__(self)
         super().__init__(
             url=response.url, code=response.code, msg=msg, hdrs=response.headers, fp=response)
 
