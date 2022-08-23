@@ -2,7 +2,7 @@ from .common import InfoExtractor
 from ..utils import parse_duration
 
 
-class PornboxExtractorIE(InfoExtractor):
+class PornboxIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?pornbox\.com/application/watch-page/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://pornbox.com/application/watch-page/73480',
