@@ -46,27 +46,22 @@ class PornboxIE(InfoExtractor):
 
         public_data = self._download_json(f'https://pornbox.com/contents/{video_id}', video_id)
 
-        medias = public_data.get('medias')
-        full_video = list(filter(lambda x: x.get('title') == "Full video", medias))[0]
-        media_id = full_video.get('media_id')
-
         if public_data.get('studios') is not None:
             date = public_data.get('studios')[0].get('release_date')
         else:
             date = public_data.get('publish_date')
         date = date[:10].replace('-', '')
         cast = []
-        for m in public_data.get('models'):
+        for m in public_data.get('models') or []:
             cast.append(m.get('model_name'))
-        for m in public_data.get('male_models'):
+        for m in public_data.get('male_models') or []:
             cast.append(m.get('model_name'))
         tags = []
-        for t in public_data.get('niches'):
+        for t in public_data.get('niches') or []:
             tags.append(t.get('niche'))
 
-        scene_subtitles = public_data.get('subtitles') or []
         subtitles = {}
-        for country_code in scene_subtitles:
+        for country_code in public_data.get('subtitles') or []:
             subtitles[country_code] = [{
                 'url': f'https://pornbox.com/contents/{video_id}/subtitles/{country_code}',
                 'ext': 'srt'
@@ -91,6 +86,10 @@ class PornboxIE(InfoExtractor):
             self.raise_login_required('You are either not logged in or do not have access to this scene',
                                       metadata_available=True, method='cookies')
             return metadata
+
+        medias = public_data.get('medias')
+        full_video = list(filter(lambda x: x.get('title') == "Full video", medias))[0]
+        media_id = full_video.get('media_id')
 
         headers = {
             "Accept": "*/*",
