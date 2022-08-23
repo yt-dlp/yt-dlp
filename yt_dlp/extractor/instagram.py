@@ -173,13 +173,13 @@ class InstagramBaseIE(InfoExtractor):
         if isinstance(product_info, list):
             product_info = product_info[0]
 
-        comment_data = traverse_obj(product_info, ('edge_media_to_parent_comment', 'edges'))
+        comment_data = traverse_obj(product_info, ('edge_media_to_parent_comment', 'edges'), ('comments'))
         comments = [{
-            'author': traverse_obj(comment_dict, ('node', 'owner', 'username')),
-            'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id')),
-            'id': traverse_obj(comment_dict, ('node', 'id')),
-            'text': traverse_obj(comment_dict, ('node', 'text')),
-            'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), expected_type=int_or_none),
+            'author': traverse_obj(comment_dict, ('node', 'owner', 'username'), ('user', 'username')),
+            'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id'), ('user', 'pk')),
+            'id': traverse_obj(comment_dict, ('node', 'id'), ('pk')),
+            'text': traverse_obj(comment_dict, ('node', 'text'), ('text')),
+            'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), ('created_at'), expected_type=int_or_none),
         } for comment_dict in comment_data] if comment_data else None
 
         user_info = product_info.get('user') or {}
@@ -381,6 +381,23 @@ class InstagramIE(InstagramBaseIE):
         else:
             csrf_token_value = csrf_token.value
 
+        info = traverse_obj(self._download_json(
+            f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
+            fatal=False, errnote=False, note='Downloading video info', headers={
+                **self._API_HEADERS,
+                'X-CSRFToken': csrf_token_value,
+            }), ('items', 0))
+        if info:
+            media.update(info)
+            comments_info = self._download_json(
+                f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/comments/', video_id,
+                fatal=False, errnote=False, note='Downloading comments info', headers={
+                    **self._API_HEADERS,
+                    'X-CSRFToken': csrf_token_value,
+                }) or {}
+            media.update(comments_info)
+            return self._extract_product(media)
+
         variables = {
             'shortcode': video_id,
             'child_comment_count': 3,
@@ -402,17 +419,6 @@ class InstagramIE(InstagramBaseIE):
         if not general_info:
             self.report_warning('General metadata extraction failed (some metadata might be missing).', video_id)
         media.update(traverse_obj(general_info, ('data', 'shortcode_media')) or {})
-
-        if self._get_cookies(url).get('sessionid'):
-            info = traverse_obj(self._download_json(
-                f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
-                fatal=False, note='Downloading video info', headers={
-                    **self._API_HEADERS,
-                    'X-CSRFToken': csrf_token_value,
-                }), ('items', 0))
-            if info:
-                media.update(info)
-                return self._extract_product(media)
 
         webpage, urlh = self._download_webpage_handle(url, video_id)
         shared_data = self._search_json(
