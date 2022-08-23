@@ -88,7 +88,9 @@ class PornboxIE(InfoExtractor):
             return metadata
 
         medias = public_data.get('medias')
-        full_video = list(filter(lambda x: x.get('title') == "Full video", medias))[0]
+        full_video = next(filter(lambda x: x.get('title') == 'Full video', medias), None)
+        if full_video is None:
+            self.raise_no_formats(msg='Could not find stream id', video_id=video_id)
         media_id = full_video.get('media_id')
 
         headers = {
@@ -102,8 +104,8 @@ class PornboxIE(InfoExtractor):
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin"
         }
-        stream_data = self._download_json(f'https://pornbox.com/media/{media_id}/stream', video_id, headers=headers,
-                                          note='Getting manifest urls')
+        stream_data = self._download_json(f'https://pornbox.com/media/{media_id}/stream', video_id=video_id,
+                                          headers=headers, note='Getting manifest urls')
         qualities = stream_data.get('qualities')
         qualities.sort(key=lambda x: x.get('bitrate'))
         formats = []
