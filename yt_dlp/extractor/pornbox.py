@@ -10,7 +10,7 @@ class PornboxIE(InfoExtractor):
         'info_dict': {
             'id': '73480',
             'ext': 'mp4',
-            'title': 'Cute Teen Lesya Milk VS Big Monster Cock by Leo Casanova - Big Ass - Intense Hard Anal Fuck',
+            'title': 'md5:13c05c869615621a41b521a6c04d0af7',
             'description': 'md5:13c05c869615621a41b521a6c04d0af7',
             'uploader': 'VK Studio',
             'upload_date': '20220617',
@@ -28,7 +28,7 @@ class PornboxIE(InfoExtractor):
             'info_dict': {
                 'id': '216045',
                 'ext': 'mp4',
-                'title': 'DP Bella Grey - Hard Anal Fuck - Interview With Translation VK054',
+                'title': 'md5:3e48528e73a9a2b12f7a2772ed0b26a2',
                 'description': 'md5:3e631dcaac029f15ed434e402d1b06c7',
                 'uploader': 'VK Studio',
                 'upload_date': '20210412',
