@@ -11,12 +11,14 @@ class PornboxExtractorIE(InfoExtractor):
             'id': '73480',
             'ext': 'mp4',
             'title': 'Cute Teen Lesya Milk VS Big Monster Cock by Leo Casanova - Big Ass - Intense Hard Anal Fuck',
-            'description': 'Cute Teen Lesya Milk VS Big Monster Cock by Leo Casanova - Big Ass - Intense Hard Anal Fuck',
+            'description': 'md5:13c05c869615621a41b521a6c04d0af7',
             'uploader': 'VK Studio',
             'upload_date': '20220617',
             'age_limit': 18,
+            'availability': 'premium_only',
             'duration': 2753,
             'cast': ['Lesya Milk', 'Leo Casanova'],
+            'tags': 'count:48',
             'thumbnail': r're:^https?://cdn-image\.gtflixtv\.com.*\.jpg.*$'
         }
     },
@@ -27,24 +29,70 @@ class PornboxExtractorIE(InfoExtractor):
                 'id': '216045',
                 'ext': 'mp4',
                 'title': 'DP Bella Grey - Hard Anal Fuck - Interview With Translation VK054',
-                'description': 'DP Bella Grey - Hard Anal Fuck - Interview With Translation',
+                'description': 'md5:3e631dcaac029f15ed434e402d1b06c7',
                 'uploader': 'VK Studio',
                 'upload_date': '20210412',
                 'age_limit': 18,
+                'availability': 'premium_only',
                 'duration': 2710,
                 'cast': ['Bella Grey', 'Oliver Trunk'],
+                'tags': 'count:29',
                 'thumbnail': r're:^https?://cdn-image\.gtflixtv\.com.*\.jpg.*$'
             }
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data_json = self._download_json(f'https://pornbox.com/contents/{video_id}', video_id)
-        medias = data_json.get('medias')
-        media_id = list(filter(lambda x: x.get('title') == "Full video", medias))[0].get('media_id')
+
+        public_data = self._download_json(f'https://pornbox.com/contents/{video_id}', video_id)
+
+        medias = public_data.get('medias')
+        full_video = list(filter(lambda x: x.get('title') == "Full video", medias))[0]
+        media_id = full_video.get('media_id')
+
+        if public_data.get('studios') is not None:
+            date = public_data.get('studios')[0].get('release_date')
+        else:
+            date = public_data.get('publish_date')
+        date = date[:10].replace('-', '')
+        cast = []
+        for m in public_data.get('models'):
+            cast.append(m.get('model_name'))
+        for m in public_data.get('male_models'):
+            cast.append(m.get('model_name'))
+        tags = []
+        for t in public_data.get('niches'):
+            tags.append(t.get('niche'))
+
+        scene_subtitles = public_data.get('subtitles') or []
+        subtitles = {}
+        for country_code in scene_subtitles:
+            subtitles[country_code] = [{
+                'url': f'https://pornbox.com/contents/{video_id}/subtitles/{country_code}',
+                'ext': 'srt'
+            }]
+
+        metadata = {
+            'id': video_id,
+            'title': public_data.get('scene_name').strip(),
+            'description': public_data.get('small_description').strip(),
+            'uploader': public_data.get('studio'),
+            'upload_date': date,
+            'age_limit': 18,
+            'availability': 'premium_only',
+            'duration': parse_duration(public_data.get('runtime')),
+            'cast': cast,
+            'tags': tags,
+            'thumbnail': public_data.get('player_poster'),
+            'subtitles': subtitles
+        }
+
+        if not public_data.get('is_purchased'):
+            self.raise_login_required('You are either not logged in or do not have access to this scene',
+                                      metadata_available=True, method='cookies')
+            return metadata
 
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0",
             "Accept": "*/*",
             "Accept-Language": "en-US;q=0.7,en;q=0.3",
             "Accept-Encoding": "gzip, deflate, br",
@@ -55,46 +103,18 @@ class PornboxExtractorIE(InfoExtractor):
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin"
         }
-        stream_data = self._download_json(f'https://pornbox.com/media/{media_id}/stream', video_id, headers=headers)
+        stream_data = self._download_json(f'https://pornbox.com/media/{media_id}/stream', video_id, headers=headers,
+                                          note='Getting manifest urls')
         qualities = stream_data.get('qualities')
         qualities.sort(key=lambda x: x.get('bitrate'))
         formats = []
         for q in qualities:
             formats.append({
                 'url': q.get('src'),
-                'vbr': int(int(q.get('bitrate')) / 1000),
+                'vbr': int(q.get('bitrate')) // 1000,
                 'format_id': q.get('quality')
             })
 
-        if data_json.get('studios') is not None:
-            date = data_json.get('studios')[0].get('release_date')
-        else:
-            date = data_json.get('publish_date')
-        date = date[:10].replace('-', '')
-        cast = []
-        for m in data_json.get('models'):
-            cast.append(m.get('model_name'))
-        for m in data_json.get('male_models'):
-            cast.append(m.get('model_name'))
+        metadata['formats'] = formats
 
-        scene_subtitles = data_json.get('subtitles') or []
-        subtitles = {}
-        for country_code in scene_subtitles:
-            subtitles[country_code] = [{
-                'url': f'https://pornbox.com/contents/{video_id}/subtitles/{country_code}',
-                'ext': 'srt'
-            }]
-
-        return {
-            'id': video_id,
-            'title': data_json.get('scene_name').strip(),
-            'formats': formats,
-            'description': data_json.get('small_description').strip(),
-            'uploader': data_json.get('studio'),
-            'upload_date': date,
-            'age_limit': 18,
-            'duration': parse_duration(data_json.get('runtime')),
-            'cast': cast,
-            'thumbnail': data_json.get('player_poster'),
-            'subtitles': subtitles
-        }
+        return metadata
