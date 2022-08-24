@@ -244,7 +244,6 @@ def with_make_rh(handlers=None, ignore_handlers=None):
                     try:
                         test(self, functools.partial(make_rh, handler), *args, **kwargs)
                     except UnsupportedRequest as e:
-                        # TODO: test it only skips this sub test
                         self.skipTest(f'Skipping, unsupported test for {handler.NAME} handler: {e}')
         return wrapper
     return inner_func
