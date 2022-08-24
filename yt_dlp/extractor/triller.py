@@ -227,17 +227,16 @@ class TrillerIE(TrillerBaseIE):
         username, video_uuid = self._match_valid_url(url).groups()
 
         video_info = traverse_obj(self._download_json(
-            f'{self._API_BASE_URL}/api/videos/{video_uuid}', video_uuid,
-            fatal=True, note='Downloading video info API JSON',
+            f'{self._API_BASE_URL}/api/videos/{video_uuid}',
+            video_uuid, note='Downloading video info API JSON',
             errnote='Unable to download video info API JSON',
             headers={
                 'Origin': 'https://triller.co',
-            }), ('videos', 0), default={})
-
+            }), ('videos', 0))
         if not video_info:
             raise ExtractorError('No video info found in API response')
 
-        user_info = video_info.get('user')
+        user_info = video_info.get('user', {})
         if not user_info:
             self.report_warning('Unable to extract user info')
 
@@ -281,8 +280,8 @@ class TrillerUserIE(TrillerBaseIE):
             for retry in self.RetryManager():
                 try:
                     video_list = self._download_json(
-                        f'{self._API_BASE_URL}/api/users/{user_id}/videos', username,
-                        fatal=False, note=f'Downloading user video list page {page}',
+                        f'{self._API_BASE_URL}/api/users/{user_id}/videos',
+                        username, note=f'Downloading user video list page {page}',
                         errnote='Unable to download user video list', headers={
                             'Authorization': f'Bearer {self._AUTH_TOKEN}',
                             'Origin': 'https://triller.co',
@@ -316,13 +315,13 @@ class TrillerUserIE(TrillerBaseIE):
         if not self._IS_LOGGED_IN:
             self._create_guest()
 
-        user_info = traverse_obj(self._download_json(
+        user_info = self._download_json(
             f'{self._API_BASE_URL}/api/users/by_username/{username}',
-            username, fatal=True, note='Downloading user info',
+            username, note='Downloading user info',
             errnote='Failed to download user info', headers={
                 'Authorization': f'Bearer {self._AUTH_TOKEN}',
                 'Origin': 'https://triller.co',
-            }), 'user', default={})
+            }).get('user')
         if not user_info:
             raise ExtractorError('Unable to extract user info')
 
