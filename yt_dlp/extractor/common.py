@@ -19,6 +19,10 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ..YoutubeDL import YoutubeDL
+
 from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..downloader import FileDownloader
@@ -49,6 +53,7 @@ from ..utils import (
     fix_xml_ampersands,
     float_or_none,
     format_field,
+    get_first_group,
     int_or_none,
     join_nonempty,
     js_to_json,
@@ -61,6 +66,7 @@ from ..utils import (
     parse_iso8601,
     parse_m3u8_attributes,
     parse_resolution,
+    preferredencoding,
     sanitize_filename,
     sanitize_url,
     sanitized_Request,
@@ -3945,6 +3951,127 @@ class SearchInfoExtractor(InfoExtractor):
     @classproperty
     def SEARCH_KEY(cls):
         return cls._SEARCH_KEY
+
+
+class SelfHostedInfoExtractor(InfoExtractor):
+    """
+    Base class for extractors for Self-hosted services.
+
+    Self-hosted extractors are for the services,
+    that cannot be handled by just listing all of their domains.
+    Mostly related to free and open source software,
+    which everyone is allowed to host on their own servers
+    (like PeerTube, Mastodon, Misskey, and lots of others).
+    """
+
+    _NODEINFO_CACHE = {}
+    _SELF_HOSTED = True
+
+    _IMPOSSIBLE_HOSTNAMES = ()
+    _PREFIX_GROUPS = ('prefix', )
+    _HOSTNAME_GROUPS = ()
+    _INSTANCE_LIST = ()
+    _DYNAMIC_INSTANCE_LIST = ()
+    _NODEINFO_SOFTWARE = ()
+    _SOFTWARE_NAME = 'self-hosted'
+
+    @classmethod
+    def suitable(cls, url):
+        mobj = cls._match_valid_url(url)
+        if not mobj:
+            return False
+        prefix = get_first_group(mobj, *cls._PREFIX_GROUPS)
+        hostname = get_first_group(mobj, *cls._HOSTNAME_GROUPS)
+        return cls._test_selfhosted_instance(None, hostname, True, prefix)
+
+    @classmethod
+    def _test_selfhosted_instance(cls, ie, hostname, skip, prefix, webpage=None):
+        if isinstance(hostname, bytes):
+            hostname = hostname.decode(preferredencoding())
+        hostname = hostname.encode('idna').decode('utf-8')
+
+        if hostname in cls._INSTANCE_LIST:
+            return True
+        if hostname in cls._DYNAMIC_INSTANCE_LIST:
+            return True
+
+        if hostname in cls._IMPOSSIBLE_HOSTNAMES:
+            return False
+
+        # continue anyway if something like "mastodon:" is added to URL
+        if prefix:
+            return True
+        # without proper flag,
+        #   skip further instance check
+        if skip:
+            return False
+
+        ie.report_warning(f'Testing if {hostname} is a {cls._SOFTWARE_NAME} instance because it is not listed in internal instance list.')
+
+        if cls._probe_webpage(webpage) or cls._fetch_nodeinfo_software(ie, hostname) in cls._NODEINFO_SOFTWARE:
+            # this is probably acceptable instance
+            cls._DYNAMIC_INSTANCE_LIST.add(hostname)
+            return True
+
+        return False
+
+    @staticmethod
+    def _is_probe_enabled(ydl: 'YoutubeDL'):
+        """
+        True if user requested probing for the service.
+        There must be corresponding options for each services one-by-one, and this method just return its value.
+        """
+        return False
+
+    @classmethod
+    def _probe_selfhosted_service(cls, ie: 'InfoExtractor', url, hostname, webpage=None):
+        """
+        True if it's acceptable URL for the service.
+        Results are cached whenever possible.
+        """
+        prefix = ie._search_regex(
+            cls._VALID_URL,
+            url, f'{cls._SOFTWARE_NAME.lower()} test', group='prefix', default=None)
+        return cls._test_selfhosted_instance(ie, hostname, False, prefix, webpage)
+
+    @classmethod
+    def _probe_webpage(cls, webpage):
+        """
+        Receives a URL and webpage contents, and returns True if suitable for this IE.
+        """
+
+        if webpage is None:
+            # there's nothing to check
+            return False
+
+        if any(p in webpage for p in (cls._SH_VALID_CONTENT_STRINGS or ())):
+            return True
+
+        # no strings? check regexes!
+        if '_SH_CONTENT_REGEXES_RES' not in cls.__dict__:
+            cls._SH_VALID_CONTENT_REGEXES_RES = (re.compile(rgx)
+                                                 for rgx in cls._SH_VALID_CONTENT_REGEXES or ())
+        if not any(rgx.match(webpage) is not None for rgx in cls._SH_VALID_CONTENT_REGEXES_RES):
+            return False
+
+        return True
+
+    @staticmethod
+    def _fetch_nodeinfo_software(ie: 'InfoExtractor', hostname: 'str'):
+        if hostname in SelfHostedInfoExtractor._NODEINFO_CACHE:
+            nodeinfo = SelfHostedInfoExtractor._NODEINFO_CACHE[hostname]
+        else:
+            nodeinfo_href = ie._download_json(
+                f'https://{hostname}/.well-known/nodeinfo', hostname,
+                'Downloading instance nodeinfo link', fatal=False)
+            nodeinfo_url = traverse_obj(nodeinfo_href, ('links', -1, 'href'))
+            if not nodeinfo_url:
+                return False
+
+            nodeinfo = ie._download_json(nodeinfo_url, hostname, 'Downloading instance nodeinfo')
+            SelfHostedInfoExtractor._NODEINFO_CACHE[hostname] = nodeinfo
+
+        return traverse_obj(nodeinfo, ('software', 'name'))
 
 
 class UnsupportedURLIE(InfoExtractor):
