@@ -367,6 +367,21 @@ class InstagramIE(InstagramBaseIE):
         video_id, url = self._match_valid_url(url).group('id', 'url')
         media, webpage = {}, ''
 
+        info = traverse_obj(self._download_json(
+            f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
+            fatal=False, errnote=False, note='Downloading video info', headers={
+                **self._API_HEADERS
+            }), ('items', 0))
+        if info:
+            media.update(info)
+            comments_info = self._download_json(
+                f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/comments/?can_support_threading=true&permalink_enabled=false', video_id,
+                fatal=False, errnote=False, note='Downloading comments info', headers={
+                    **self._API_HEADERS
+                }) or {}
+            media.update(comments_info)
+            return self._extract_product(media)
+
         api_check = self._download_json(
             f'{self._API_BASE_URL}/web/get_ruling_for_content/?content_type=MEDIA&target_id={_id_to_pk(video_id)}',
             video_id, headers=self._API_HEADERS, fatal=False, note='Setting up session', errnote=False) or {}
@@ -380,23 +395,6 @@ class InstagramIE(InstagramBaseIE):
             csrf_token_value = ''
         else:
             csrf_token_value = csrf_token.value
-
-        info = traverse_obj(self._download_json(
-            f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
-            fatal=False, errnote=False, note='Downloading video info', headers={
-                **self._API_HEADERS,
-                'X-CSRFToken': csrf_token_value,
-            }), ('items', 0))
-        if info:
-            media.update(info)
-            comments_info = self._download_json(
-                f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/comments/', video_id,
-                fatal=False, errnote=False, note='Downloading comments info', headers={
-                    **self._API_HEADERS,
-                    'X-CSRFToken': csrf_token_value,
-                }) or {}
-            media.update(comments_info)
-            return self._extract_product(media)
 
         variables = {
             'shortcode': video_id,
