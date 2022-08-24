@@ -29,6 +29,7 @@ from .utils import (
     format_field,
     get_executable_path,
     join_nonempty,
+    orderedSet_from_options,
     remove_end,
     write_string,
 )
@@ -232,30 +233,16 @@ def create_parser():
             current + value if append is True else value + current)
 
     def _set_from_options_callback(
-            option, opt_str, value, parser, delim=',', allowed_values=None, aliases={},
+            option, opt_str, value, parser, allowed_values, delim=',', aliases={},
             process=lambda x: x.lower().strip()):
-        current = set(getattr(parser.values, option.dest))
-        values = [process(value)] if delim is None else list(map(process, value.split(delim)[::-1]))
-        while values:
-            actual_val = val = values.pop()
-            if not val:
-                raise optparse.OptionValueError(f'Invalid {option.metavar} for {opt_str}: {value}')
-            if val == 'all':
-                current.update(allowed_values)
-            elif val == '-all':
-                current = set()
-            elif val in aliases:
-                values.extend(aliases[val])
-            else:
-                if val[0] == '-':
-                    val = val[1:]
-                    current.discard(val)
-                else:
-                    current.update([val])
-                if allowed_values is not None and val not in allowed_values:
-                    raise optparse.OptionValueError(f'wrong {option.metavar} for {opt_str}: {actual_val}')
+        values = [process(value)] if delim is None else map(process, value.split(delim))
+        try:
+            requested = orderedSet_from_options(values, collections.ChainMap(aliases, {'all': allowed_values}),
+                                                start=getattr(parser.values, option.dest))
+        except ValueError as e:
+            raise optparse.OptionValueError(f'wrong {option.metavar} for {opt_str}: {e.args[0]}')
 
-        setattr(parser.values, option.dest, current)
+        setattr(parser.values, option.dest, set(requested))
 
     def _dict_from_options_callback(
             option, opt_str, value, parser,
@@ -447,8 +434,8 @@ def create_parser():
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json', 'embed-metadata',
                 'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
             }, 'aliases': {
-                'youtube-dl': ['-multistreams', 'all'],
-                'youtube-dlc': ['-no-youtube-channel-redirect', '-no-live-chat', 'all'],
+                'youtube-dl': ['all', '-multistreams'],
+                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat'],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '

@@ -115,6 +115,7 @@ from .utils import (
     network_exceptions,
     number_of_digits,
     orderedSet,
+    orderedSet_from_options,
     parse_filesize,
     preferredencoding,
     prepend_extension,
@@ -2737,27 +2738,11 @@ class YoutubeDL:
         if self.params.get('allsubtitles', False):
             requested_langs = all_sub_langs
         elif self.params.get('subtitleslangs', False):
-            # A list is used so that the order of languages will be the same as
-            # given in subtitleslangs. See https://github.com/yt-dlp/yt-dlp/issues/1041
-            requested_langs = []
-            for lang_re in self.params.get('subtitleslangs'):
-                discard = lang_re[0] == '-'
-                if discard:
-                    lang_re = lang_re[1:]
-                if lang_re == 'all':
-                    if discard:
-                        requested_langs = []
-                    else:
-                        requested_langs.extend(all_sub_langs)
-                    continue
-                current_langs = filter(re.compile(lang_re + '$').match, all_sub_langs)
-                if discard:
-                    for lang in current_langs:
-                        while lang in requested_langs:
-                            requested_langs.remove(lang)
-                else:
-                    requested_langs.extend(current_langs)
-            requested_langs = orderedSet(requested_langs)
+            try:
+                requested_langs = orderedSet_from_options(
+                    self.params.get('subtitleslangs'), {'all': all_sub_langs}, use_regex=True)
+            except re.error as e:
+                raise ValueError(f'Wrong regex for subtitlelangs: {e.pattern}')
         elif normal_sub_langs:
             requested_langs = ['en'] if 'en' in normal_sub_langs else normal_sub_langs[:1]
         else:
