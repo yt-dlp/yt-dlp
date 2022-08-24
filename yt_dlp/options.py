@@ -632,7 +632,7 @@ def create_parser():
     selection.add_option(
         '--break-per-input',
         action='store_true', dest='break_per_url', default=False,
-        help='Make --break-on-existing, --break-on-reject and --max-downloads act only on the current input URL')
+        help='Make --break-on-existing, --break-on-reject, --max-downloads and autonumber reset per input URL')
     selection.add_option(
         '--no-break-per-input',
         action='store_false', dest='break_per_url',

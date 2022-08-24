@@ -3265,6 +3265,7 @@ class YoutubeDL:
                 self.to_screen(f'[info] {e}')
                 if not self.params.get('break_per_url'):
                     raise
+                self._num_downloads = 0
             else:
                 if self.params.get('dump_single_json', False):
                     self.post_extract(res)
