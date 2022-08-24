@@ -5785,6 +5785,17 @@ def truncate_string(s, left, right=0):
     return f'{s[:left-3]}...{s[-right:]}'
 
 
+def get_first_group(match, *groups, default=None):
+    for g in groups:
+        try:
+            m = match.group(g)
+            if m:
+                return m
+        except IndexError:
+            continue
+    return default
+
+
 # Deprecated
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)

@@ -575,10 +575,7 @@ from .funimation import (
 from .funk import FunkIE
 from .fusion import FusionIE
 from .fuyintv import FuyinTVIE
-from .gab import (
-    GabTVIE,
-    GabIE,
-)
+from .gab import GabTVIE
 from .gaia import GaiaIE
 from .gameinformer import GameInformerIE
 from .gamejolt import (
@@ -894,6 +891,11 @@ from .markiza import (
     MarkizaPageIE,
 )
 from .massengeschmacktv import MassengeschmackTVIE
+from .mastodon import (
+    MastodonIE,
+    MastodonUserIE,
+    MastodonUserNumericIE,
+)
 from .masters import MastersIE
 from .matchtv import MatchTVIE
 from .mdr import MDRIE
@@ -942,6 +944,7 @@ from .mirrativ import (
     MirrativIE,
     MirrativUserIE,
 )
+from .misskey import MisskeyIE, MisskeyUserIE
 from .mirrorcouk import MirrorCoUKIE
 from .mit import TechTVMITIE, OCWMITIE
 from .mitele import MiTeleIE
@@ -1251,6 +1254,8 @@ from .peekvids import PeekVidsIE, PlayVidsIE
 from .peertube import (
     PeerTubeIE,
     PeerTubePlaylistIE,
+    PeerTubeChannelIE,
+    PeerTubeAccountIE,
 )
 from .peertv import PeerTVIE
 from .peloton import (
@@ -1796,7 +1801,6 @@ from .trovo import (
 )
 from .trueid import TrueIDIE
 from .trunews import TruNewsIE
-from .truth import TruthIE
 from .trutv import TruTVIE
 from .tube8 import Tube8IE
 from .tubetugraz import TubeTuGrazIE, TubeTuGrazSeriesIE
