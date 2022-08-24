@@ -3,7 +3,6 @@ import re
 import urllib.parse
 import xml.etree.ElementTree
 
-from . import gen_extractor_classes
 from .common import InfoExtractor  # isort: split
 from .brightcove import BrightcoveLegacyIE, BrightcoveNewIE
 from .commonprotocols import RtmpIE
@@ -2805,7 +2804,7 @@ class GenericIE(InfoExtractor):
 
         self._downloader.write_debug('Looking for embeds')
         embeds = []
-        for ie in gen_extractor_classes():
+        for ie in self._downloader._ies.values():
             gen = ie.extract_from_webpage(self._downloader, url, webpage)
             current_embeds = []
             try:

@@ -362,7 +362,7 @@ def create_parser():
             'You can also use regexes, "all", "default" and "end" (end URL matching); '
             'e.g. --ies "holodex.*,end,youtube". '
             'Prefix the name with a "-" to exclude it, e.g. --ies default,-generic. '
-            'Use --list-extractors for a list of available extractor names'))
+            'Use --list-extractors for a list of extractor names. (Alias: --ies)'))
     general.add_option(
         '--force-generic-extractor',
         action='store_true', dest='force_generic_extractor', default=False,
