@@ -375,7 +375,13 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --list-extractors               List all supported extractors and exit
     --extractor-descriptions        Output descriptions of all supported
                                     extractors and exit
-    --force-generic-extractor       Force extraction to use the generic extractor
+    --use-extractors NAMES          Extractor names to use separated by commas.
+                                    You can also use regexes, "all", "default"
+                                    and "end" (end URL matching); e.g. --ies
+                                    "holodex.*,end,youtube". Prefix the name
+                                    with a "-" to exclude it, e.g. --ies
+                                    default,-generic. Use --list-extractors for
+                                    a list of extractor names. (Alias: --ies)
     --default-search PREFIX         Use this prefix for unqualified URLs. E.g.
                                     "gvsearch2:python" downloads two videos from
                                     google videos for the search term "python".
@@ -524,8 +530,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     a file that is in the archive
     --break-on-reject               Stop the download process when encountering
                                     a file that has been filtered out
-    --break-per-input               Make --break-on-existing, --break-on-reject
-                                    and --max-downloads act only on the current
+    --break-per-input               Make --break-on-existing, --break-on-reject,
+                                    --max-downloads and autonumber reset per
                                     input URL
     --no-break-per-input            --break-on-existing and similar options
                                     terminates the entire download queue
@@ -2058,6 +2064,7 @@ While these options are redundant, they are still expected to be used due to the
 #### Not recommended
 While these options still work, their use is not recommended since there are other alternatives to achieve the same
 
+    --force-generic-extractor        --ies generic,default
     --exec-before-download CMD       --exec "before_dl:CMD"
     --no-exec-before-download        --no-exec
     --all-formats                    -f all
