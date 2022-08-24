@@ -13,6 +13,7 @@ from ..common import SelfHostedInfoExtractor
 from ...utils import (
     ExtractorError,
     determine_ext,
+    get_first_group,
     mimetype2ext,
     smuggle_url,
     traverse_obj,
@@ -197,7 +198,7 @@ class MisskeyUserIE(MisskeyBaseIE):
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        instance = mobj.group('instance2') or mobj.group('instance')
+        instance = get_first_group(mobj, 'instance2','instance')
         user_handle = mobj.group('id')
 
         user_info = self._download_json(
