@@ -344,6 +344,7 @@ def validate_options(opts):
 
     # Cookies from browser
     if opts.cookiesfrombrowser:
+        container = None
         mobj = re.match(r'(?P<name>[^+:]+)(\s*\+\s*(?P<keyring>[^:]+))?(\s*:(?P<profile>.+))?', opts.cookiesfrombrowser)
         if mobj is None:
             raise ValueError(f'invalid cookies from browser arguments: {opts.cookiesfrombrowser}')
@@ -352,12 +353,16 @@ def validate_options(opts):
         if browser_name not in SUPPORTED_BROWSERS:
             raise ValueError(f'unsupported browser specified for cookies: "{browser_name}". '
                              f'Supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}')
+        elif browser_name == 'firefox':
+            if ':' in profile and not os.path.exists(profile):
+                container = ':'.join(profile.split(':')[1:])
+                profile = profile.split(':')[0]
         if keyring is not None:
             keyring = keyring.upper()
             if keyring not in SUPPORTED_KEYRINGS:
                 raise ValueError(f'unsupported keyring specified for cookies: "{keyring}". '
                                  f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
-        opts.cookiesfrombrowser = (browser_name, profile, keyring)
+        opts.cookiesfrombrowser = (browser_name, profile, keyring, container)
 
     # MetadataParser
     def metadataparser_actions(f):

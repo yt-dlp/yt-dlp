@@ -1399,7 +1399,7 @@ def create_parser():
         help='Do not read/dump cookies from/to file (default)')
     filesystem.add_option(
         '--cookies-from-browser',
-        dest='cookiesfrombrowser', metavar='BROWSER[+KEYRING][:PROFILE]',
+        dest='cookiesfrombrowser', metavar='BROWSER[+KEYRING][:PROFILE[:CONTAINER]]',
         help=(
             'The name of the browser and (optionally) the name/path of '
             'the profile to load cookies from, separated by a ":". '
@@ -1407,7 +1407,9 @@ def create_parser():
             'By default, the most recently accessed profile is used. '
             'The keyring used for decrypting Chromium cookies on Linux can be '
             '(optionally) specified after the browser name separated by a "+". '
-            f'Currently supported keyrings are: {", ".join(map(str.lower, sorted(SUPPORTED_KEYRINGS)))}'))
+            f'Currently supported keyrings are: {", ".join(map(str.lower, sorted(SUPPORTED_KEYRINGS)))}'
+            'Optionally, a Firefox container name can be specified after the '
+            'profile (which must then be specified), separated by a ":".'))
     filesystem.add_option(
         '--no-cookies-from-browser',
         action='store_const', const=None, dest='cookiesfrombrowser',
