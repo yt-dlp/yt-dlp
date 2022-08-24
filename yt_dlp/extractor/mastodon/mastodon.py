@@ -8,7 +8,7 @@ import re
 try:
     from .instances import instances
 except ImportError:
-    instances = ('gab.com', )
+    instances = ('gab.com', 'truthsocial.com')
 
 from ..common import SelfHostedInfoExtractor
 from ..peertube.peertube import PeerTubeIE
