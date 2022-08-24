@@ -4026,13 +4026,6 @@ class SelfHostedInfoExtractor(InfoExtractor):
 
         return False
 
-    @staticmethod
-    def _is_probe_enabled(ydl: 'YoutubeDL'):
-        """
-        True if user requested probing for the service.
-        """
-        return True
-
     @classmethod
     def _probe_selfhosted_service(cls, ie: 'InfoExtractor', url, hostname, webpage=None):
         """

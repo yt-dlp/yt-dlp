@@ -156,10 +156,6 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
             'authorization': f"{actual_token['token_type']} {actual_token['access_token']}",
         }
 
-    @staticmethod
-    def _is_probe_enabled(ydl):
-        return ydl.params.get('check_mastodon_instance', False)
-
     def _determine_instance_software(self, host, webpage=None):
         if webpage:
             for i, string in enumerate(self._SH_VALID_CONTENT_STRINGS):
@@ -528,7 +524,7 @@ class MastodonUserNumericIE(MastodonBaseIE):
     def _real_extract(self, url):
         prefix, domain, user_id = self._match_valid_url(url).group('prefix', 'domain', 'id')
 
-        if not prefix and not self._test_mastodon_instance(domain):
+        if not prefix and not self._test_selfhosted_instance(self, domain, False, prefix):
             return self.url_result(url, ie='Generic')
 
         api_response = self._download_json('https://%s/api/v1/accounts/%s' % (domain, user_id), user_id)

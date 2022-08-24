@@ -40,10 +40,6 @@ class MisskeyBaseIE(SelfHostedInfoExtractor):
     _NODEINFO_SOFTWARE = ('misskey', )
     _SOFTWARE_NAME = 'Misskey'
 
-    @staticmethod
-    def _is_probe_enabled(ydl):
-        return ydl.params.get('check_misskey_instance', False)
-
 
 class MisskeyIE(MisskeyBaseIE):
     IE_NAME = 'misskey'

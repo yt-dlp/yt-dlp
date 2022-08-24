@@ -97,10 +97,6 @@ class PeerTubeBaseIE(SelfHostedInfoExtractor):
         video_id = mobj.group('id')
         return host, video_id
 
-    @staticmethod
-    def _is_probe_enabled(ydl):
-        return ydl.params.get('check_peertube_instance', False)
-
     def _call_api(self, host, resource, resource_id, path, note=None, errnote=None, fatal=True):
         return self._download_json(
             self._API_BASE % (host, resource, resource_id, path), resource_id,
