@@ -15,6 +15,7 @@ from ..peertube.peertube import PeerTubeIE
 from ...utils import (
     ExtractorError,
     clean_html,
+    dict_get,
     make_archive_id,
     parse_duration,
     get_first_group,
@@ -446,7 +447,7 @@ class MastodonIE(MastodonBaseIE):
                 entries.append({
                     'id': media['id'],
                     'title': str_or_none(media['description']) or title,
-                    'url': str_or_none(media['url']),
+                    'url': str_or_none(dict_get(media, ('url', 'source_mp4'))),
                     'thumbnail': str_or_none(media['preview_url']) if media['type'] == 'video' else None,
                     'vcodec': 'none' if media['type'] == 'audio' else None,
                     'duration': float_or_none(try_get(media, lambda x: x['meta']['original']['duration'])),
