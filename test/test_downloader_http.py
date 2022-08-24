@@ -13,7 +13,7 @@ import re
 import threading
 
 from test.helper import http_server_port, try_rm
-from test.test_networking import RequestHandlerTestBase, with_request_handlers
+from yt_dlp import YoutubeDL
 from yt_dlp.downloader.http import HttpFD
 from yt_dlp.utils import encodeFilename
 
@@ -78,7 +78,7 @@ class FakeLogger:
         pass
 
 
-class TestHttpFD(RequestHandlerTestBase, unittest.TestCase):
+class TestHttpFD(unittest.TestCase):
     def setUp(self):
         self.httpd = http.server.HTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
@@ -89,7 +89,7 @@ class TestHttpFD(RequestHandlerTestBase, unittest.TestCase):
 
     def download(self, params, ep):
         params['logger'] = FakeLogger()
-        ydl = self.make_ydl(params, fake=False)
+        ydl = YoutubeDL(params)
         downloader = HttpFD(ydl, params)
         filename = 'testfile.mp4'
         try_rm(encodeFilename(filename))
@@ -103,11 +103,9 @@ class TestHttpFD(RequestHandlerTestBase, unittest.TestCase):
         for ep in ('regular', 'no-content-length', 'no-range', 'no-range-no-content-length'):
             self.download(params, ep)
 
-    @with_request_handlers()
     def test_regular(self):
         self.download_all({})
 
-    @with_request_handlers()
     def test_chunked(self):
         self.download_all({
             'http_chunk_size': 1000,

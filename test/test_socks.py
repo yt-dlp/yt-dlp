@@ -12,12 +12,12 @@ import random
 import subprocess
 
 from test.helper import get_params, is_download_test
-from test.test_networking import RequestHandlerTestBase, with_request_handlers
+from test.test_networking import with_make_rh
 from yt_dlp.networking import Request
 
 
 @is_download_test
-class TestMultipleSocks(RequestHandlerTestBase, unittest.TestCase):
+class TestMultipleSocks(unittest.TestCase):
     @staticmethod
     def _check_params(attrs):
         params = get_params()
@@ -27,55 +27,51 @@ class TestMultipleSocks(RequestHandlerTestBase, unittest.TestCase):
                 return
         return params
 
-    @with_request_handlers()
-    def test_proxy_http(self):
+    @with_make_rh()
+    def test_proxy_http(self, make_rh):
         params = self._check_params(['primary_proxy', 'primary_server_ip'])
         if params is None:
             return
-        ydl = self.make_ydl({
-            'proxy': params['primary_proxy']
-        })
-        self.assertEqual(
-            ydl.urlopen('http://yt-dl.org/ip').read().decode('utf-8'),
-            params['primary_server_ip'])
+        with make_rh({'proxy': params['primary_proxy']}) as rh:
+            self.assertEqual(
+                rh.handle(Request('http://yt-dl.org/ip')).read().decode('utf-8'),
+                params['primary_server_ip'])
 
-    @with_request_handlers()
-    def test_proxy_https(self):
+    @with_make_rh()
+    def test_proxy_https(self, make_rh):
         params = self._check_params(['primary_proxy', 'primary_server_ip'])
         if params is None:
             return
-        ydl = self.make_ydl({
-            'proxy': params['primary_proxy']
-        })
-        self.assertEqual(
-            ydl.urlopen('https://yt-dl.org/ip').read().decode('utf-8'),
-            params['primary_server_ip'])
+        with make_rh({'proxy': params['primary_proxy']}) as rh:
+            self.assertEqual(
+                rh.handle(Request('https://yt-dl.org/ip')).read().decode('utf-8'),
+                params['primary_server_ip'])
 
-    @with_request_handlers()
-    def test_secondary_proxy_http(self):
+    @with_make_rh()
+    def test_secondary_proxy_http(self, make_rh):
         params = self._check_params(['secondary_proxy', 'secondary_server_ip'])
         if params is None:
             return
-        ydl = self.make_ydl()
-        req = Request('http://yt-dl.org/ip', proxies={'all': params['secondary_proxy']})
-        self.assertEqual(
-            ydl.urlopen(req).read().decode('utf-8'),
-            params['secondary_server_ip'])
+        with make_rh() as rh:
+            req = Request('http://yt-dl.org/ip', proxies={'all': params['secondary_proxy']})
+            self.assertEqual(
+                rh.handle(req).read().decode('utf-8'),
+                params['secondary_server_ip'])
 
-    @with_request_handlers()
-    def test_secondary_proxy_https(self):
+    @with_make_rh()
+    def test_secondary_proxy_https(self, make_rh):
         params = self._check_params(['secondary_proxy', 'secondary_server_ip'])
         if params is None:
             return
-        ydl = self.make_ydl()
-        req = Request('http://yt-dl.org/ip', proxies={'all': params['secondary_proxy']})
-        self.assertEqual(
-            ydl.urlopen(req).read().decode('utf-8'),
-            params['secondary_server_ip'])
+        with make_rh() as rh:
+            req = Request('http://yt-dl.org/ip', proxies={'all': params['secondary_proxy']})
+            self.assertEqual(
+                rh.handle(req).read().decode('utf-8'),
+                params['secondary_server_ip'])
 
 
 @is_download_test
-class TestSocks(RequestHandlerTestBase, unittest.TestCase):
+class TestSocks(unittest.TestCase):
     _SKIP_SOCKS_TEST = True
 
     def setUp(self):
@@ -94,24 +90,22 @@ class TestSocks(RequestHandlerTestBase, unittest.TestCase):
         self.server_process.terminate()
         self.server_process.communicate()
 
-    def _get_ip(self, protocol):
+    @with_make_rh()
+    def _get_ip(self, make_rh, protocol):
         if self._SKIP_SOCKS_TEST:
             return '127.0.0.1'
 
-        ydl = self.make_ydl({
+        with make_rh({
             'proxy': '%s://127.0.0.1:%d' % (protocol, self.port),
-        })
-        return ydl.urlopen('http://yt-dl.org/ip').read().decode('utf-8')
+        }) as rh:
+            return rh.handle(Request('http://yt-dl.org/ip')).read().decode('utf-8')
 
-    @with_request_handlers()
     def test_socks4(self):
         self.assertTrue(isinstance(self._get_ip('socks4'), str))
 
-    @with_request_handlers()
     def test_socks4a(self):
         self.assertTrue(isinstance(self._get_ip('socks4a'), str))
 
-    @with_request_handlers()
     def test_socks5(self):
         self.assertTrue(isinstance(self._get_ip('socks5'), str))
 
