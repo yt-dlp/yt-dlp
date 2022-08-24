@@ -15,6 +15,7 @@ from ..peertube.peertube import PeerTubeIE
 from ...utils import (
     ExtractorError,
     clean_html,
+    make_archive_id,
     parse_duration,
     get_first_group,
     str_or_none,
@@ -431,6 +432,11 @@ class MastodonIE(MastodonBaseIE):
             'uploader_id': traverse_obj(metadata, ('account', 'username')),
             'uploader_url': traverse_obj(metadata, ('account', 'url')),
         }
+
+        if domain == 'gab.com':
+            info_dict['_old_archive_ids'] = [make_archive_id('Gab', video_id)]
+        elif domain == 'truthsocial.com':
+            info_dict['_old_archive_ids'] = [make_archive_id('Truth', video_id)]
 
         entries = []
         for media in metadata.get('media_attachments') or ():
