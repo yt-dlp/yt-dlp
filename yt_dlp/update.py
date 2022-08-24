@@ -1,4 +1,5 @@
 import atexit
+import contextlib
 import hashlib
 import json
 import os
@@ -48,6 +49,19 @@ def _get_variant_and_executable_path():
 
 def detect_variant():
     return VARIANT or _get_variant_and_executable_path()[0]
+
+
+@functools.cache
+def current_git_head():
+    if detect_variant() != 'source':
+        return
+    with contextlib.suppress(Exception):
+        stdout, _, _ = Popen.run(
+            ['git', 'rev-parse', '--short', 'HEAD'],
+            text=True, cwd=os.path.dirname(os.path.abspath(__file__)),
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if re.fullmatch('[0-9a-f]+', stdout.strip()):
+            return stdout.strip()
 
 
 _FILE_SUFFIXES = {
