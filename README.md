@@ -320,7 +320,7 @@ To build the standalone executable, you must have Python and `pyinstaller` (plus
 
 On some systems, you may need to use `py` or `python` instead of `python3`.
 
-Note that pyinstaller [does not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment.
+Note that pyinstaller with versions below 4.4 [do not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment.
 
 **Important**: Running `pyinstaller` directly **without** using `pyinst.py` is **not** officially supported. This may or may not work correctly.
 
