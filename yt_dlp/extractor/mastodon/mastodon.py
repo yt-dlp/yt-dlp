@@ -436,6 +436,8 @@ class MastodonIE(MastodonBaseIE):
         if domain == 'gab.com':
             info_dict['_old_archive_ids'] = [make_archive_id('Gab', video_id)]
         elif domain == 'truthsocial.com':
+            # https://github.com/yt-dlp/yt-dlp/blob/2516cafb28293612cfb6e158dac34a3117b42461/yt_dlp/extractor/truth.py#L12
+            # the old extractor for Truth Social is just "TruthIE", not "TruthSocialIE"
             info_dict['_old_archive_ids'] = [make_archive_id('Truth', video_id)]
 
         entries = []
