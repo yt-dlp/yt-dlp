@@ -354,9 +354,19 @@ def create_parser():
         action='store_true', dest='list_extractor_descriptions', default=False,
         help='Output descriptions of all supported extractors and exit')
     general.add_option(
+        '--use-extractors', '--ies',
+        action='callback', dest='allowed_extractors', metavar='NAMES', type='str',
+        default=[], callback=_list_from_options_callback,
+        help=(
+            'Extractor names to use separated by commas. '
+            'You can also use regexes, "all", "default" and "end" (end URL matching); '
+            'e.g. --ies "holodex.*,end,youtube". '
+            'Prefix the name with a "-" to exclude it, e.g. --ies default,-generic. '
+            'Use --list-extractors for a list of available extractor names'))
+    general.add_option(
         '--force-generic-extractor',
         action='store_true', dest='force_generic_extractor', default=False,
-        help='Force extraction to use the generic extractor')
+        help=optparse.SUPPRESS_HELP)
     general.add_option(
         '--default-search',
         dest='default_search', metavar='PREFIX',

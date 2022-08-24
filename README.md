@@ -375,7 +375,13 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --list-extractors               List all supported extractors and exit
     --extractor-descriptions        Output descriptions of all supported
                                     extractors and exit
-    --force-generic-extractor       Force extraction to use the generic extractor
+    --use-extractors, --ies NAMES   Extractor names to use separated by commas.
+                                    You can also use regexes, "all", "default"
+                                    and "end" (end URL matching); e.g. --ies
+                                    "holodex.*,end,youtube". Prefix the name
+                                    with a "-" to exclude it, e.g. --ies
+                                    default,-generic. Use --list-extractors for
+                                    a list of available extractor names
     --default-search PREFIX         Use this prefix for unqualified URLs. E.g.
                                     "gvsearch2:python" downloads two videos from
                                     google videos for the search term "python".
@@ -2058,6 +2064,7 @@ While these options are redundant, they are still expected to be used due to the
 #### Not recommended
 While these options still work, their use is not recommended since there are other alternatives to achieve the same
 
+    --force-generic-extractor        --ies generic,default
     --exec-before-download CMD       --exec "before_dl:CMD"
     --no-exec-before-download        --no-exec
     --all-formats                    -f all
