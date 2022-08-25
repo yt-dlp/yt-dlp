@@ -11,7 +11,7 @@ from ..utils import (
 )
 
 # These bloat the lazy_extractors, so allow them to passthrough silently
-ALLOWED_CLASSMETHODS = {'get_testcases', 'extract_from_webpage'}
+ALLOWED_CLASSMETHODS = {'get_testcases', 'extract_from_webpage', '_fetch_nodeinfo_software'}
 _WARNED = False
 
 

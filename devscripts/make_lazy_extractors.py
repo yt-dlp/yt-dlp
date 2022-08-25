@@ -8,16 +8,20 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 from inspect import getsource
+from itertools import chain
 
 from devscripts.utils import get_filename_args, read_file, write_file
+from yt_dlp.utils import try_call
 
 NO_ATTR = object()
 STATIC_CLASS_PROPERTIES = [
     'IE_NAME', 'IE_DESC', 'SEARCH_KEY', '_VALID_URL', '_WORKING', '_ENABLED', '_NETRC_MACHINE', 'age_limit'
 ]
+SH_STATIC_CLASS_PROPS = ('_IMPOSSIBLE_HOSTNAMES', '_PREFIX_GROUPS', '_HOSTNAME_GROUPS', '_INSTANCE_LIST', '_DYNAMIC_INSTANCE_LIST', '_NODEINFO_SOFTWARE', '_SOFTWARE_NAME')
 CLASS_METHODS = [
     'ie_key', 'working', 'description', 'suitable', '_match_valid_url', '_match_id', 'get_temp_id', 'is_suitable'
 ]
+SH_CLASS_METHODS = ('_test_selfhosted_instance', '_probe_webpage')
 IE_TEMPLATE = '''
 class {name}({bases}):
     _module = {module!r}
@@ -32,15 +36,18 @@ def main():
 
     _ALL_CLASSES = get_all_ies()  # Must be before import
 
-    from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
+    from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor, SelfHostedInfoExtractor
 
     DummyInfoExtractor = type('InfoExtractor', (InfoExtractor,), {'IE_NAME': NO_ATTR})
+    DummySHInfoExtractor = type('SelfHostedInfoExtractor', (SelfHostedInfoExtractor,), {'IE_NAME': NO_ATTR})
     module_src = '\n'.join((
         MODULE_TEMPLATE,
         '    _module = None',
         *extra_ie_code(DummyInfoExtractor),
         '\nclass LazyLoadSearchExtractor(LazyLoadExtractor):\n    pass\n',
-        *build_ies(_ALL_CLASSES, (InfoExtractor, SearchInfoExtractor), DummyInfoExtractor),
+        '\nclass LazyLoadSelfHostedExtractor(LazyLoadExtractor):',
+        *extra_ie_code(DummySHInfoExtractor, DummyInfoExtractor, SH_STATIC_CLASS_PROPS, SH_CLASS_METHODS),
+        *build_ies(_ALL_CLASSES, (InfoExtractor, SearchInfoExtractor, SelfHostedInfoExtractor), DummyInfoExtractor, DummySHInfoExtractor),
     ))
 
     write_file(lazy_extractors_filename, f'{module_src}\n')
@@ -59,23 +66,23 @@ def get_all_ies():
     return _ALL_CLASSES
 
 
-def extra_ie_code(ie, base=None):
-    for var in STATIC_CLASS_PROPERTIES:
+def extra_ie_code(ie, base=None, static_class_properties=(), class_methods=()):
+    for var in chain(STATIC_CLASS_PROPERTIES, static_class_properties):
         val = getattr(ie, var)
-        if val != (getattr(base, var) if base else NO_ATTR):
+        if val != (getattr(base, var, NO_ATTR) if base else NO_ATTR):
             yield f'    {var} = {val!r}'
     yield ''
 
-    for name in CLASS_METHODS:
+    for name in chain(CLASS_METHODS, class_methods):
         f = getattr(ie, name)
-        if not base or f.__func__ != getattr(base, name).__func__:
+        if not base or f.__func__ != try_call(lambda: getattr(base, name).__func__):
             yield getsource(f)
 
 
-def build_ies(ies, bases, attr_base):
+def build_ies(ies, bases, attr_base, selfhosted_base):
     names = []
     for ie in sort_ies(ies, bases):
-        yield build_lazy_ie(ie, ie.__name__, attr_base)
+        yield build_lazy_ie(ie, ie.__name__, selfhosted_base if ie._SELF_HOSTED else attr_base)
         if ie in ies:
             names.append(ie.__name__)
 
@@ -109,10 +116,11 @@ def build_lazy_ie(ie, name, attr_base):
     bases = ', '.join({
         'InfoExtractor': 'LazyLoadExtractor',
         'SearchInfoExtractor': 'LazyLoadSearchExtractor',
+        'SelfHostedInfoExtractor': 'LazyLoadSelfHostedExtractor',
     }.get(base.__name__, base.__name__) for base in ie.__bases__)
 
     s = IE_TEMPLATE.format(name=name, module=ie.__module__, bases=bases)
-    return s + '\n'.join(extra_ie_code(ie, attr_base))
+    return s + '\n'.join(extra_ie_code(ie, attr_base, *((SH_STATIC_CLASS_PROPS, SH_CLASS_METHODS) if 'LazyLoadSelfHostedExtractor' in bases else ())))
 
 
 if __name__ == '__main__':

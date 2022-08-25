@@ -19,10 +19,6 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..YoutubeDL import YoutubeDL
-
 from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..downloader import FileDownloader
@@ -501,6 +497,7 @@ class InfoExtractor:
     _GEO_IP_BLOCKS = None
     _WORKING = True
     _ENABLED = True
+    _SELF_HOSTED = False
     _NETRC_MACHINE = None
     IE_DESC = None
     SEARCH_KEY = None
@@ -3997,8 +3994,6 @@ class SelfHostedInfoExtractor(InfoExtractor):
 
     @classmethod
     def _test_selfhosted_instance(cls, ie, hostname, skip, prefix, webpage=None):
-        if isinstance(hostname, bytes):
-            hostname = hostname.decode(preferredencoding())
         hostname = hostname.encode('idna').decode('utf-8')
 
         if hostname in cls._INSTANCE_LIST:
@@ -4027,17 +4022,6 @@ class SelfHostedInfoExtractor(InfoExtractor):
         return False
 
     @classmethod
-    def _probe_selfhosted_service(cls, ie: 'InfoExtractor', url, hostname, webpage=None):
-        """
-        True if it's acceptable URL for the service.
-        Results are cached whenever possible.
-        """
-        prefix = ie._search_regex(
-            cls._VALID_URL,
-            url, f'{cls._SOFTWARE_NAME.lower()} test', group='prefix', default=None)
-        return cls._test_selfhosted_instance(ie, hostname, False, prefix, webpage)
-
-    @classmethod
     def _probe_webpage(cls, webpage):
         """
         Receives a URL and webpage contents, and returns True if suitable for this IE.
@@ -4059,19 +4043,19 @@ class SelfHostedInfoExtractor(InfoExtractor):
 
         return True
 
-    @staticmethod
-    def _fetch_nodeinfo_software(ie: 'InfoExtractor', hostname: 'str'):
+    @classmethod
+    def _fetch_nodeinfo_software(cls, hostname: 'str'):
         if hostname in SelfHostedInfoExtractor._NODEINFO_CACHE:
             nodeinfo = SelfHostedInfoExtractor._NODEINFO_CACHE[hostname]
         else:
-            nodeinfo_href = ie._download_json(
+            nodeinfo_href = cls._download_json(
                 f'https://{hostname}/.well-known/nodeinfo', hostname,
                 'Downloading instance nodeinfo link', fatal=False)
             nodeinfo_url = traverse_obj(nodeinfo_href, ('links', -1, 'href'))
             if not nodeinfo_url:
                 return False
 
-            nodeinfo = ie._download_json(nodeinfo_url, hostname, 'Downloading instance nodeinfo')
+            nodeinfo = cls._download_json(nodeinfo_url, hostname, 'Downloading instance nodeinfo')
             SelfHostedInfoExtractor._NODEINFO_CACHE[hostname] = nodeinfo
 
         return traverse_obj(nodeinfo, ('software', 'name'))
