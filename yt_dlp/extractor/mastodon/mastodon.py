@@ -59,11 +59,9 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
     _NODEINFO_SOFTWARE = ('mastodon', 'pleroma', 'gab')
     _SOFTWARE_NAME = 'Mastodon'
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if not username:
-            return False
+    _login_info = False
 
+    def _perform_login(self, username, password):
         # very basic regex, but the instance domain (the one where user has an account)
         # must be separated from the user login
         mobj = re.match(r'^(?P<username>[^@]+(?:@[^@]+)?)@(?P<instance>.+)$', username)
@@ -151,7 +149,7 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
                 'code': oauth_token,
                 'grant_type': 'authorization_code',
             }).encode('utf-8')))
-        return {
+        self._login_info = {
             'instance': instance,
             'authorization': f"{actual_token['token_type']} {actual_token['access_token']}",
         }
@@ -363,17 +361,16 @@ class MastodonIE(MastodonBaseIE):
     }]
 
     def _real_extract(self, url):
-        webpage = None
         mobj = self._match_valid_url(url)
 
         video_id = mobj.group('id')
         domain = get_first_group(mobj, 'domain_1', 'domain_2')
 
-        login_info = self._login()
+        login_info = self._login_info
         if login_info and domain != login_info['instance']:
             wf_url = url
             if not url.startswith('http'):
-                software = self._determine_instance_software(domain, webpage)
+                software = self._determine_instance_software(domain, None)
                 url_part = None
                 if software == 'pleroma':
                     if '-' in video_id:   # UUID
@@ -386,7 +383,7 @@ class MastodonIE(MastodonBaseIE):
                     # mastodon and gab social require usernames in the url,
                     # but we can't determine the username without fetching the post,
                     # but we can't fetch the post without determining the username...
-                    raise ExtractorError(f'Use the full url with --force-use-mastodon to download from {software}', expected=True)
+                    raise ExtractorError(f'Use the full url with --ies mastodon,generic to download from {software}', expected=True)
                 else:
                     raise ExtractorError(f'Unknown software: {software}')
                 wf_url = f'https://{domain}/{url_part}/{video_id}'
@@ -403,8 +400,7 @@ class MastodonIE(MastodonBaseIE):
             metadata = search['statuses'][0]
         else:
             if not login_info and any(frag in url for frag in ('/objects/', '/activities/')):
-                if not webpage:
-                    webpage = self._download_webpage(url, '%s:%s' % (domain, video_id), expected_status=302)
+                webpage = self._download_webpage(url, '%s:%s' % (domain, video_id), expected_status=302)
                 real_url = self._og_search_property('url', webpage, default=None)
                 if real_url:
                     return self.url_result(real_url, ie='Mastodon')
