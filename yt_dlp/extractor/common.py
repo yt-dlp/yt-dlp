@@ -62,7 +62,6 @@ from ..utils import (
     parse_iso8601,
     parse_m3u8_attributes,
     parse_resolution,
-    preferredencoding,
     sanitize_filename,
     sanitize_url,
     sanitized_Request,
