@@ -7,7 +7,7 @@ import re
 try:
     from .instances import instances
 except ImportError:
-    instances = ()
+    instances = ('misskey.io', 'misskey.dev')
 
 from ..common import SelfHostedInfoExtractor
 from ...utils import (

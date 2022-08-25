@@ -8,7 +8,7 @@ import re
 try:
     from .instances import instances
 except ImportError:
-    instances = ('gab.com', 'truthsocial.com')
+    instances = ('gab.com', 'truthsocial.com', 'mstdn.jp', 'pawoo.net', 'mstdn.kemono-friends.info', 'mastodon.technology', 'donotsta.re', 'outerheaven.club', 'stereophonic.space', 'gleasonator.com', 'mstdn.social', 'pawoo.net')
 
 from ..common import SelfHostedInfoExtractor
 from ..peertube.peertube import PeerTubeIE
