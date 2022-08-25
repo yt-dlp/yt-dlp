@@ -353,10 +353,9 @@ def validate_options(opts):
         if browser_name not in SUPPORTED_BROWSERS:
             raise ValueError(f'unsupported browser specified for cookies: "{browser_name}". '
                              f'Supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}')
-        elif browser_name == 'firefox':
+        elif profile and browser_name == 'firefox':
             if ':' in profile and not os.path.exists(profile):
-                container = ':'.join(profile.split(':')[1:])
-                profile = profile.split(':')[0]
+                profile, container = profile.split(':', 1)
         if keyring is not None:
             keyring = keyring.upper()
             if keyring not in SUPPORTED_KEYRINGS:

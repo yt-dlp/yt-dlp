@@ -1409,7 +1409,7 @@ def create_parser():
             '(optionally) specified after the browser name separated by a "+". '
             f'Currently supported keyrings are: {", ".join(map(str.lower, sorted(SUPPORTED_KEYRINGS)))}'
             'Optionally, a Firefox container name can be specified after the '
-            'profile (which must then be specified), separated by a ":".'))
+            'profile separated by a ":".'))
     filesystem.add_option(
         '--no-cookies-from-browser',
         action='store_const', const=None, dest='cookiesfrombrowser',

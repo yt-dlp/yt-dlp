@@ -25,7 +25,7 @@ from .dependencies import (
     sqlite3,
 )
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
-from .utils import Popen, YoutubeDLCookieJar, error_to_str, expand_path
+from .utils import Popen, YoutubeDLCookieJar, error_to_str, expand_path, try_call
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
@@ -135,15 +135,11 @@ def _extract_firefox_cookies(profile, container, logger):
             raise FileNotFoundError(f'could not read containers.json in {search_root}')
         with open(containers_path, 'r') as containers:
             identities = json.load(containers).get('identities', [])
-        for context in identities:
-            if context.get('name') == container:
-                container_id = context.get('userContextId')
-                break
-            elif context.get('l10nID'):
-                if re.match(r'userContext([^\.]+)\.label', context.get('l10nID')).group() == container:
-                    container_id = context.get('userContextId')
-                    break
-        if container_id is None:
+        container_id = next((context.get('userContextId') for context in identities if container in (
+            context.get('name'),
+            try_call(lambda: re.fullmatch(r'userContext([^\.]+)\.label', context['l10nID']).group())
+        )), None)
+        if not isinstance(container_id, int):
             raise ValueError(f'could not find firefox container "{container}" in containers.json')
 
     cookie_database_path = _find_most_recently_used_file(search_root, 'cookies.sqlite', logger)
@@ -155,13 +151,14 @@ def _extract_firefox_cookies(profile, container, logger):
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
+            origin_attributes = ''
             if isinstance(container_id, int):
+                origin_attributes = f'^userContextId={container_id}'
                 logger.debug(
                     f'Only loading cookies from firefox container "{container}", ID {container_id}')
-                cursor.execute(
-                    f'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes="^userContextId={container_id}"')
-            else:
-                cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
+            cursor.execute(
+                'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes=?',
+                (origin_attributes, ))
             jar = YoutubeDLCookieJar()
             with _create_progress_bar(logger) as progress_bar:
                 table = cursor.fetchall()
