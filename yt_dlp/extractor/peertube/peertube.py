@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 try:
     from .instances import instances
 except ImportError:
-    instances = ('framatube.org', 'peertube2.cpy.re', 'spacepub.space', 'peertube2.cpy.re', 'peertube.debian.social', 'vod.ksite.de', 'video.blender.org', 'peertube.debian.social', 'video.internet-czas-dzialac.pl')
+    instances = ()
 
 from ..common import SelfHostedInfoExtractor
 from ...compat import compat_str
