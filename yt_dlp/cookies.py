@@ -156,9 +156,13 @@ def _extract_firefox_cookies(profile, container, logger):
                 origin_attributes = f'^userContextId={container_id}'
                 logger.debug(
                     f'Only loading cookies from firefox container "{container}", ID {container_id}')
-            cursor.execute(
-                'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes=?',
-                (origin_attributes, ))
+            try:
+                cursor.execute(
+                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes=?',
+                    (origin_attributes, ))
+            except sqlite3.OperationalError:
+                logger.debug('Database exception, loading all cookies')
+                cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
             with _create_progress_bar(logger) as progress_bar:
                 table = cursor.fetchall()
