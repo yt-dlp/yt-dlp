@@ -194,7 +194,7 @@ class MisskeyUserIE(MisskeyBaseIE):
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        instance = get_first_group(mobj, 'instance2','instance')
+        instance = get_first_group(mobj, 'instance2', 'instance')
         user_handle = mobj.group('id')
 
         user_info = self._download_json(
