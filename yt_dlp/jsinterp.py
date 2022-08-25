@@ -98,8 +98,8 @@ _OPERATORS = {  # None => Defined in JSInterpreter._operator
     '&': _js_bit_op(operator.and_),
 
     '===': operator.is_,
-    '==': _js_eq_op(operator.eq),
     '!==': operator.is_not,
+    '==': _js_eq_op(operator.eq),
     '!=': _js_eq_op(operator.ne),
 
     '<=': _js_comp_op(operator.le),
