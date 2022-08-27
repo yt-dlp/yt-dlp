@@ -1,4 +1,6 @@
+from datetime import datetime
 from .common import InfoExtractor
+from ..utils import parse_duration
 
 
 class PrankCastIE(InfoExtractor):
@@ -36,10 +38,18 @@ class PrankCastIE(InfoExtractor):
         # Get author (AKA show host)
         uploader = self._html_search_regex(r'(?<=user_name\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'uploader').replace('"', '')
 
+        # Parse the duration of the stream
+        start = self._html_search_regex(r'(?<=start_date\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'start_date').replace('"', '').replace('Z', '')
+        end = self._html_search_regex(r'(?<=end_date\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'end_date').replace('"', '').replace('Z', '')
+
+        duration = datetime.fromisoformat(end) - datetime.fromisoformat(start)
+        parsed_duration = int(parse_duration(str(duration)))
+
         return {
             'id': video_id,
             'title': title,
             'upload_date': upload_date,
             'uploader': uploader,
-            'url': url
+            'url': url,
+            'duration': parsed_duration
         }
