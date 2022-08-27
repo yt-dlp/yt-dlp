@@ -1,5 +1,7 @@
+import re
+
 from .common import InfoExtractor
-from ..utils import traverse_obj
+from ..utils import traverse_obj, urljoin
 
 
 class IslamChannelIE(InfoExtractor):
@@ -59,3 +61,22 @@ class IslamChannelIE(InfoExtractor):
                 'preference': 1,
             }] if thumbnail else None,
         }
+
+
+class IslamChannelSeriesIE(InfoExtractor):
+    _VALID_URL = r'https?://watch\.islamchannel\.tv/series/(?P<id>[a-f\d-]+)'
+    _TESTS = [{
+        'url': 'https://watch.islamchannel.tv/series/a6cccef3-3ef1-11eb-bc19-06b69c2357cd',
+        'info_dict': {
+            'id': 'a6cccef3-3ef1-11eb-bc19-06b69c2357cd',
+        },
+        'playlist_mincount': 31,
+    }]
+
+    def _real_extract(self, url):
+        pl_id = self._match_id(url)
+        webpage = self._download_webpage(url, pl_id)
+        
+        return self.playlist_result(
+            (self.url_result(urljoin(url, x.group(1))) for x in re.finditer(r'<a\s+href="(/watch/\d+)"[^>]+?data-video-type="show">', webpage)),
+            pl_id)
