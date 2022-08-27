@@ -37,8 +37,9 @@ class EpochIE(InfoExtractor):
 
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        title = self._search_regex('<title>(?P<title>.*)<\/title>', unescapeHTML(webpage), 'title', group='title')
-        youmaker_video_id = self._search_regex('<div class="videobox" id="videobox" data-trailer="[\w-]+" data-id="([\w-]+)">', webpage, 'url')
+        title = self._search_regex(r'<title>(?P<title>.*)<\/title>', unescapeHTML(webpage), 'title', group='title')
+        youmaker_video_id = self._search_regex(
+            r'<div class="videobox" id="videobox" data-trailer="[\w-]+" data-id="([\w-]+)">', webpage, 'url')
 
         return {
             "id": video_id,
