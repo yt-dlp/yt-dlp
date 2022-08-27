@@ -31,6 +31,18 @@ class EpochIE(InfoExtractor):
                 'extractor_key': 'Epoch'
             }
         },
+        {
+            'url': 'https://www.theepochtimes.com/kash-patel-a-6-year-saga-of-government-corruption-from-russiagate-to-mar-a-lago_4690250.html',
+            'info_dict': {
+                'id': '4690250',
+                'ext': 'mp4',
+                'url': 'http://vs1.youmaker.com/assets/aa9ceecd-a127-453d-a2de-7153d6fd69b6/playlist.m3u8',
+                'title': 'Kash Patel: A ‘6-Year-Saga’ of Government Corruption, From Russiagate to Mar-a-Lago',
+                'webpage_url_domain': 'theepochtimes.com',
+                'extractor': 'Epoch',
+                'extractor_key': 'Epoch'
+            }
+        },
     ]
 
     def _real_extract(self, url):
