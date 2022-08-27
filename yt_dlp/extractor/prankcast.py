@@ -18,7 +18,7 @@ class PrankCastIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        # TODO more code goes here, for example ...
+        # Extract the JSON
         json = self._html_search_regex(r'<script id=\"__NEXT_DATA__\"[^>]*>(.*)</script>', webpage, 'json_info')
 
         # Get the broadcast URL and the recording hash.
