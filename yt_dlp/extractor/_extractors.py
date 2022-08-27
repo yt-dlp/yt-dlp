@@ -2256,3 +2256,4 @@ from .zingmp3 import (
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE
+from .prankcast import PrankCastIE
