@@ -1797,6 +1797,7 @@ from .trovo import (
 from .trueid import TrueIDIE
 from .trunews import TruNewsIE
 from .truth import TruthIE
+from .epoch import EpochIE
 from .trutv import TruTVIE
 from .tube8 import Tube8IE
 from .tubetugraz import TubeTuGrazIE, TubeTuGrazSeriesIE
