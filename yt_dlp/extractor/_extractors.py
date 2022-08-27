@@ -720,6 +720,7 @@ from .iqiyi import (
     IqIE,
     IqAlbumIE
 )
+from .islamchannel import IslamChannelIE
 from .itprotv import (
     ITProTVIE,
     ITProTVCourseIE
