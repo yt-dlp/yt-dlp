@@ -3633,7 +3633,23 @@ class InfoExtractor:
 
     def _get_cookies(self, url):
         """ Return a http.cookies.SimpleCookie with the cookies for the url """
-        return http.cookies.SimpleCookie(self._downloader._calc_cookies(url))
+        raw_cookie = self._downloader._calc_cookies(url)
+
+        cookie = http.cookies.SimpleCookie()
+        if raw_cookie is None:
+            return cookie
+
+        # Iterate over split chunks to skip invalid values instead of failing fast.
+        for chunk in raw_cookie.split(";"):
+            key, _, value = chunk.partition("=")
+            if not value:
+                key, value = "", key
+            key = key.strip()
+            value = value.strip()
+            if key or value:
+                cookie[key] = urllib.parse.unquote(value)
+
+        return cookie
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """
