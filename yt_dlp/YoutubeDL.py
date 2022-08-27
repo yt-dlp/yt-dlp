@@ -2404,6 +2404,7 @@ class YoutubeDL:
         assert info_dict.get('_type', 'video') == 'video'
         self._num_videos += 1
 
+        print('info dict', info_dict)
         if 'id' not in info_dict:
             raise ExtractorError('Missing "id" field in extractor result', ie=info_dict['extractor'])
         elif not info_dict.get('id'):
