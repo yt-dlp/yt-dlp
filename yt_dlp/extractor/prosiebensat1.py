@@ -10,6 +10,7 @@ from ..utils import (
     int_or_none,
     merge_dicts,
     unified_strdate,
+    traverse_obj,
 )
 
 
@@ -22,17 +23,7 @@ class ProSiebenSat1BaseIE(InfoExtractor):
     def _extract_video_info(self, url, clip_id):
         client_location = url
 
-        video = self._download_json(
-            'http://vas.sim-technik.de/vas/live/v2/videos',
-            clip_id, 'Downloading videos JSON', query={
-                'access_token': self._TOKEN,
-                'client_location': client_location,
-                'client_name': self._CLIENT_NAME,
-                'ids': clip_id,
-            })[0]
-
-        if not self.get_param('allow_unplayable_formats') and video.get('is_protected') is True:
-            self.report_drm(clip_id)
+        video = {}
 
         formats = []
         if self._ACCESS_ID:
@@ -384,14 +375,14 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
     _IV = 'Aeluchoc6aevechuipiexeeboowedaok'
 
     _CLIPID_REGEXES = [
-        r'"clip_id"\s*:\s+"(\d+)"',
-        r'clipid: "(\d+)"',
-        r'clip[iI]d=(\d+)',
-        r'clip[iI][dD]\s*=\s*["\'](\d+)',
-        r"'itemImageUrl'\s*:\s*'/dynamic/thumbnails/full/\d+/(\d+)",
-        r'proMamsId&quot;\s*:\s*&quot;(\d+)',
-        r'proMamsId"\s*:\s*"(\d+)',
+        r'"clip_id"\s*:\s+"([^"]+)"',
+        r'clipId":"([^"]+)"',
+        r'clip[iI]d=([^"]+)',
+        r'clip[iI][dD]\s*=\s*["\']([^"]+)',
+        r"'itemImageUrl'\s*:\s*'/dynamic/thumbnails/full/[^/]+/([^']+)'",
+        r'"contentId":"([0-9]*)",',
     ]
+
     _TITLE_REGEXES = [
         r'<h2 class="subtitle" itemprop="name">\s*(.+?)</h2>',
         r'<header class="clearfix">\s*<h3>(.+?)</h3>',
@@ -418,14 +409,20 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
     ]
     _PAGE_TYPE_REGEXES = [
         r'<meta name="page_type" content="([^"]+)">',
+        r'<meta data-react-helmet="true" name="page_type" content="([^"]+)"/>',
         r"'itemType'\s*:\s*'([^']*)'",
     ]
     _PLAYLIST_ID_REGEXES = [
         r'content[iI]d=(\d+)',
         r"'itemId'\s*:\s*'([^']*)'",
+        r'nodeId":"([^"]+)"',
     ]
     _PLAYLIST_CLIP_REGEXES = [
         r'(?s)data-qvt=.+?<a href="([^"]+)"',
+    ]
+    _PLAYLIST_JSON_REGEXES = [
+        r'<script id="state" type="text/plain">(.*)</script',
+        r'var\s+contentResources\s*=\s*(\[.+?\]);\s*</script',
     ]
 
     def _extract_clip(self, url, webpage):
@@ -459,19 +456,19 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
     def _extract_playlist(self, url, webpage):
         playlist_id = self._html_search_regex(
             self._PLAYLIST_ID_REGEXES, webpage, 'playlist id')
-        playlist = self._parse_json(
-            self._search_regex(
-                r'var\s+contentResources\s*=\s*(\[.+?\]);\s*</script',
-                webpage, 'playlist'),
-            playlist_id)
+        playlist_json = self._search_regex(
+            self._PLAYLIST_JSON_REGEXES,
+            webpage, 'playlist')
+        playlist = traverse_obj(self._parse_json(playlist_json, playlist_id), ("views", "default", "page", "clips"))
+
         entries = []
         for item in playlist:
-            clip_id = item.get('id') or item.get('upc')
-            if not clip_id:
+            video_id = item.get('id') or item.get('upc')
+            if not video_id:
                 continue
-            info = self._extract_video_info(url, clip_id)
+            info = self._extract_video_info(url, video_id)
             info.update({
-                'id': clip_id,
+                'id': video_id,
                 'title': item.get('title') or item.get('teaser', {}).get('headline'),
                 'description': item.get('teaser', {}).get('description'),
                 'thumbnail': item.get('poster'),
