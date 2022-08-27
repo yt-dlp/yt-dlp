@@ -1,4 +1,4 @@
-from .common import InfoExtractor 
+from .common import InfoExtractor
 
 
 class PrankCastIE(InfoExtractor):
@@ -25,11 +25,11 @@ class PrankCastIE(InfoExtractor):
         # The full URL is {broadcast_url}/{recording_hash}.mp3
         broadcast_url = self._html_search_regex(r'(?<=broadcast_url\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'broadcast_url').replace('"', '')
         recording_hash = self._html_search_regex(r'(?<=recording_hash\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'recording_hash').replace('"', '')
-        url = broadcast_url+recording_hash+".mp3"
+        url = broadcast_url + recording_hash + ".mp3"
 
         # Get broadcast date
         upload_date = self._html_search_regex(r'(?<=start_date\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'upload_date').replace('"', '').split('T')[0].replace('-', '')
-        
+
         # Get broadcast title
         title = self._html_search_regex(r'(?<=broadcast_title\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'title').replace('"', '')
 
