@@ -77,6 +77,6 @@ class IslamChannelSeriesIE(InfoExtractor):
         pl_id = self._match_id(url)
         webpage = self._download_webpage(url, pl_id)
 
-        return self.playlist_result(
-            (self.url_result(urljoin(url, x.group(1))) for x in re.finditer(r'<a\s+href="(/watch/\d+)"[^>]+?data-video-type="show">', webpage)),
-            pl_id)
+        return self.playlist_from_matches(
+            re.finditer(r'<a\s+href="(/watch/\d+)"[^>]+?data-video-type="show">', webpage),
+            pl_id, getter=lambda x: urljoin(url, x.group(1)), ie=IslamChannelIE)
