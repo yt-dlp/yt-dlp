@@ -22,8 +22,8 @@ class IslamChannelIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         thumbnail = self._search_regex(
-            r'data-poster="([^"]+)"', webpage, 'data poster', fatal=False
-            ) or self._html_search_meta(('og:image', 'twitter:image'), webpage)
+            r'data-poster="([^"]+)"', webpage, 'data poster', fatal=False) or \
+            self._html_search_meta(('og:image', 'twitter:image'), webpage)
 
         headers = {
             'Token': self._search_regex(r'data-token="([^"]+)"', webpage, 'data token'),
@@ -76,7 +76,7 @@ class IslamChannelSeriesIE(InfoExtractor):
     def _real_extract(self, url):
         pl_id = self._match_id(url)
         webpage = self._download_webpage(url, pl_id)
-        
+
         return self.playlist_result(
             (self.url_result(urljoin(url, x.group(1))) for x in re.finditer(r'<a\s+href="(/watch/\d+)"[^>]+?data-video-type="show">', webpage)),
             pl_id)
