@@ -164,6 +164,7 @@ class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
 
 class _YoutubeDLOptionParser(optparse.OptionParser):
     # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+    ALIAS_DEST = '_triggered_aliases'
     ALIAS_TRIGGER_LIMIT = 100
 
     def __init__(self):
@@ -175,6 +176,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
             formatter=_YoutubeDLHelpFormatter(),
             conflict_handler='resolve',
         )
+        self.set_default(self.ALIAS_DEST, collections.defaultdict(int))
 
     _UNKNOWN_OPTION = (optparse.BadOptionError, optparse.AmbiguousOptionError)
     _BAD_OPTION = optparse.OptionValueError
@@ -290,11 +292,9 @@ def create_parser():
             parser.add_option_group(alias_group)
 
         aliases = (x if x.startswith('-') else f'--{x}' for x in map(str.strip, aliases.split(',')))
-        DEST = '_triggered_aliases'
-        setattr(parser.values, DEST, collections.defaultdict(int))
         try:
             alias_group.add_option(
-                *aliases, help=opts, nargs=nargs, dest=DEST, type='str' if nargs else None,
+                *aliases, help=opts, nargs=nargs, dest=parser.ALIAS_DEST, type='str' if nargs else None,
                 metavar=' '.join(f'ARG{i}' for i in range(nargs)), action='callback',
                 callback=_alias_callback, callback_kwargs={'opts': opts, 'nargs': nargs})
         except Exception as err:
