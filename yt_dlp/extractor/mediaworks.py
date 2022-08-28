@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+import re
 
 from ..utils import (
     float_or_none,
@@ -38,6 +39,12 @@ class MediaworksVODIE(InfoExtractor):
         },
         'params': {'format': 'ba[ext=mp3]'}
     }]
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        for mobj in re.finditer(
+                r'<div\s+id=\"Player-Attributes-JWID[^>]+data-request-url=\"https://vodupload-api.mediaworks\.nz/library/asset/published/\"[^>]+data-asset-id=\"(?P<id>[A-Za-z0-9-]+)\"', webpage):
+            yield 'https://vodupload-api.mediaworks.nz/library/asset/published/' + mobj.group('id')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
