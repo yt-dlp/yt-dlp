@@ -1,4 +1,5 @@
 import atexit
+import contextlib
 import hashlib
 import json
 import os
@@ -9,7 +10,7 @@ import sys
 from zipimport import zipimporter
 
 from .compat import functools  # isort: split
-from .compat import compat_realpath
+from .compat import compat_realpath, compat_shlex_quote
 from .utils import (
     Popen,
     cached_method,
@@ -18,7 +19,7 @@ from .utils import (
     traverse_obj,
     version_tuple,
 )
-from .version import __version__
+from .version import UPDATE_HINT, VARIANT, __version__
 
 REPOSITORY = 'yt-dlp/yt-dlp'
 API_URL = f'https://api.github.com/repos/{REPOSITORY}/releases'
@@ -47,7 +48,20 @@ def _get_variant_and_executable_path():
 
 
 def detect_variant():
-    return _get_variant_and_executable_path()[0]
+    return VARIANT or _get_variant_and_executable_path()[0]
+
+
+@functools.cache
+def current_git_head():
+    if detect_variant() != 'source':
+        return
+    with contextlib.suppress(Exception):
+        stdout, _, _ = Popen.run(
+            ['git', 'rev-parse', '--short', 'HEAD'],
+            text=True, cwd=os.path.dirname(os.path.abspath(__file__)),
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if re.fullmatch('[0-9a-f]+', stdout.strip()):
+            return stdout.strip()
 
 
 _FILE_SUFFIXES = {
@@ -64,13 +78,16 @@ _NON_UPDATEABLE_REASONS = {
     **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
        for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
-    'unknown': 'It looks like you installed yt-dlp with a package manager, pip or setup.py; Use that to update',
-    'other': 'It looks like you are using an unofficial build of yt-dlp; Build the executable again',
+    'unknown': 'You installed yt-dlp with a package manager or setup.py; Use that to update',
+    'other': 'You are using an unofficial build of yt-dlp; Build the executable again',
 }
 
 
 def is_non_updateable():
-    return _NON_UPDATEABLE_REASONS.get(detect_variant(), _NON_UPDATEABLE_REASONS['other'])
+    if UPDATE_HINT:
+        return UPDATE_HINT
+    return _NON_UPDATEABLE_REASONS.get(
+        detect_variant(), _NON_UPDATEABLE_REASONS['unknown' if VARIANT else 'other'])
 
 
 def _sha256_file(path):
@@ -226,24 +243,33 @@ class Updater:
         except OSError:
             return self._report_permission_error(new_filename)
 
-        try:
-            if old_filename:
+        if old_filename:
+            mask = os.stat(self.filename).st_mode
+            try:
                 os.rename(self.filename, old_filename)
-        except OSError:
-            return self._report_error('Unable to move current version')
-        try:
-            if old_filename:
-                os.rename(new_filename, self.filename)
-        except OSError:
-            self._report_error('Unable to overwrite current version')
-            return os.rename(old_filename, self.filename)
+            except OSError:
+                return self._report_error('Unable to move current version')
 
-        if detect_variant() not in ('win32_exe', 'py2exe'):
-            if old_filename:
-                os.remove(old_filename)
-        else:
+            try:
+                os.rename(new_filename, self.filename)
+            except OSError:
+                self._report_error('Unable to overwrite current version')
+                return os.rename(old_filename, self.filename)
+
+        if detect_variant() in ('win32_exe', 'py2exe'):
             atexit.register(Popen, f'ping 127.0.0.1 -n 5 -w 1000 & del /F "{old_filename}"',
                             shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif old_filename:
+            try:
+                os.remove(old_filename)
+            except OSError:
+                self._report_error('Unable to remove the old version')
+
+            try:
+                os.chmod(self.filename, mask)
+            except OSError:
+                return self._report_error(
+                    f'Unable to set permissions. Run: sudo chmod a+rx {compat_shlex_quote(self.filename)}')
 
         self.ydl.to_screen(f'Updated yt-dlp to version {self.new_version}')
         return True

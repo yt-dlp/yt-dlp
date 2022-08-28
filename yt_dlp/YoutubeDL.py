@@ -29,6 +29,7 @@ from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
 from .extractor import gen_extractor_classes, get_info_extractor
+from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
 from .postprocessor import _PLUGIN_CLASSES as plugin_postprocessors
@@ -47,7 +48,7 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import detect_variant
+from .update import REPOSITORY, current_git_head, detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -115,6 +116,7 @@ from .utils import (
     network_exceptions,
     number_of_digits,
     orderedSet,
+    orderedSet_from_options,
     parse_filesize,
     preferredencoding,
     prepend_extension,
@@ -144,7 +146,7 @@ from .utils import (
     write_json_file,
     write_string,
 )
-from .version import RELEASE_GIT_HEAD, __version__
+from .version import RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':
     import ctypes
@@ -236,7 +238,7 @@ class YoutubeDL:
                        Default is 'only_download' for CLI, but False for API
     skip_playlist_after_errors: Number of allowed failures until the rest of
                        the playlist is skipped
-    force_generic_extractor: Force downloader to use the generic extractor
+    allowed_extractors:  List of regexes to match against extractor names that are allowed
     overwrites:        Overwrite all video and metadata files if True,
                        overwrite only non-video files if None
                        and don't overwrite any file if False
@@ -272,7 +274,7 @@ class YoutubeDL:
     subtitleslangs:    List of languages of the subtitles to download (can be regex).
                        The list may contain "all" to refer to all the available
                        subtitles. The language can be prefixed with a "-" to
-                       exclude it from the requested languages. Eg: ['all', '-live_chat']
+                       exclude it from the requested languages, e.g. ['all', '-live_chat']
     keepvideo:         Keep the video file after post-processing
     daterange:         A DateRange object, download only if the upload_date is in the range.
     skip_download:     Skip the actual download of the video file
@@ -301,8 +303,8 @@ class YoutubeDL:
                        should act on each input URL as opposed to for the entire queue
     cookiefile:        File name or text stream from where cookies should be read and dumped to
     cookiesfrombrowser:  A tuple containing the name of the browser, the profile
-                       name/pathfrom where cookies are loaded, and the name of the
-                       keyring. Eg: ('chrome', ) or ('vivaldi', 'default', 'BASICTEXT')
+                       name/path from where cookies are loaded, and the name of the
+                       keyring, e.g. ('chrome', ) or ('vivaldi', 'default', 'BASICTEXT')
     legacyserverconnect: Explicitly allow HTTPS connection to servers that do not
                        support RFC 5746 secure renegotiation
     nocheckcertificate:  Do not verify SSL certificates
@@ -444,6 +446,7 @@ class YoutubeDL:
                        * index: Section number (Optional)
     force_keyframes_at_cuts: Re-encode the video when downloading ranges to get precise cuts
     noprogress:        Do not print the progress bar
+    live_from_start:   Whether to download livestreams videos from the start
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
@@ -470,11 +473,13 @@ class YoutubeDL:
                        discontinuities such as ad breaks (default: False)
     extractor_args:    A dictionary of arguments to be passed to the extractors.
                        See "EXTRACTOR ARGUMENTS" for details.
-                       Eg: {'youtube': {'skip': ['dash', 'hls']}}
+                       E.g. {'youtube': {'skip': ['dash', 'hls']}}
     mark_watched:      Mark videos watched (even with --simulate). Only for YouTube
 
     The following options are deprecated and may be removed in the future:
 
+    force_generic_extractor: Force downloader to use the generic extractor
+                       - Use allowed_extractors = ['generic', 'default']
     playliststart:     - Use playlist_items
                        Playlist item to start at.
     playlistend:       - Use playlist_items
@@ -527,7 +532,8 @@ class YoutubeDL:
     """
 
     _NUMERIC_FIELDS = {
-        'width', 'height', 'tbr', 'abr', 'asr', 'vbr', 'fps', 'filesize', 'filesize_approx',
+        'width', 'height', 'asr', 'audio_channels', 'fps',
+        'tbr', 'abr', 'vbr', 'filesize', 'filesize_approx',
         'timestamp', 'release_timestamp',
         'duration', 'view_count', 'like_count', 'dislike_count', 'repost_count',
         'average_rating', 'comment_count', 'age_limit',
@@ -539,7 +545,7 @@ class YoutubeDL:
     _format_fields = {
         # NB: Keep in sync with the docstring of extractor/common.py
         'url', 'manifest_url', 'manifest_stream_number', 'ext', 'format', 'format_id', 'format_note',
-        'width', 'height', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr',
+        'width', 'height', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
         'preference', 'language', 'language_preference', 'quality', 'source_preference',
@@ -755,13 +761,6 @@ class YoutubeDL:
             self._ies_instances[ie_key] = ie
             ie.set_downloader(self)
 
-    def _get_info_extractor_class(self, ie_key):
-        ie = self._ies.get(ie_key)
-        if ie is None:
-            ie = get_info_extractor(ie_key)
-            self.add_info_extractor(ie)
-        return ie
-
     def get_info_extractor(self, ie_key):
         """
         Get an instance of an IE with name ie_key, it will try to get one from
@@ -778,8 +777,19 @@ class YoutubeDL:
         """
         Add the InfoExtractors returned by gen_extractors to the end of the list
         """
-        for ie in gen_extractor_classes():
-            self.add_info_extractor(ie)
+        all_ies = {ie.IE_NAME.lower(): ie for ie in gen_extractor_classes()}
+        all_ies['end'] = UnsupportedURLIE()
+        try:
+            ie_names = orderedSet_from_options(
+                self.params.get('allowed_extractors', ['default']), {
+                    'all': list(all_ies),
+                    'default': [name for name, ie in all_ies.items() if ie._ENABLED],
+                }, use_regex=True)
+        except re.error as e:
+            raise ValueError(f'Wrong regex for allowed_extractors: {e.pattern}')
+        for name in ie_names:
+            self.add_info_extractor(all_ies[name])
+        self.write_debug(f'Loaded {len(ie_names)} extractors')
 
     def add_post_processor(self, pp, when='post_process'):
         """Add a PostProcessor object to the end of the chain."""
@@ -1045,7 +1055,7 @@ class YoutubeDL:
 
         # outtmpl should be expand_path'ed before template dict substitution
         # because meta fields may contain env variables we don't want to
-        # be expanded. For example, for outtmpl "%(title)s.%(ext)s" and
+        # be expanded. E.g. for outtmpl "%(title)s.%(ext)s" and
         # title "Hello $PATH", we don't want `$PATH` to be expanded.
         return expand_path(outtmpl).replace(sep, '')
 
@@ -1410,11 +1420,11 @@ class YoutubeDL:
             ie_key = 'Generic'
 
         if ie_key:
-            ies = {ie_key: self._get_info_extractor_class(ie_key)}
+            ies = {ie_key: self._ies[ie_key]} if ie_key in self._ies else {}
         else:
             ies = self._ies
 
-        for ie_key, ie in ies.items():
+        for key, ie in ies.items():
             if not ie.suitable(url):
                 continue
 
@@ -1423,14 +1433,16 @@ class YoutubeDL:
                                     'and will probably not work.')
 
             temp_id = ie.get_temp_id(url)
-            if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': ie_key}):
-                self.to_screen(f'[{ie_key}] {temp_id}: has already been recorded in the archive')
+            if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': key}):
+                self.to_screen(f'[{key}] {temp_id}: has already been recorded in the archive')
                 if self.params.get('break_on_existing', False):
                     raise ExistingVideoReached()
                 break
-            return self.__extract_info(url, self.get_info_extractor(ie_key), download, extra_info, process)
+            return self.__extract_info(url, self.get_info_extractor(key), download, extra_info, process)
         else:
-            self.report_error('no suitable InfoExtractor for URL %s' % url)
+            extractors_restricted = self.params.get('allowed_extractors') not in (None, ['default'])
+            self.report_error(f'No suitable extractor{format_field(ie_key, None, " (%s)")} found for URL {url}',
+                              tb=False if extractors_restricted else None)
 
     def _handle_extraction_exceptions(func):
         @functools.wraps(func)
@@ -1796,6 +1808,8 @@ class YoutubeDL:
             })
 
             if self._match_entry(entry_copy, incomplete=True) is not None:
+                # For compatabilty with youtube-dl. See https://github.com/yt-dlp/yt-dlp/issues/4369
+                resolved_entries[i] = (playlist_index, NO_DEFAULT)
                 continue
 
             self.to_screen('[download] Downloading video %s of %s' % (
@@ -1816,7 +1830,8 @@ class YoutubeDL:
                 resolved_entries[i] = (playlist_index, entry_result)
 
         # Update with processed data
-        ie_result['requested_entries'], ie_result['entries'] = tuple(zip(*resolved_entries)) or ([], [])
+        ie_result['requested_entries'] = [i for i, e in resolved_entries if e is not NO_DEFAULT]
+        ie_result['entries'] = [e for _, e in resolved_entries if e is not NO_DEFAULT]
 
         # Write the updated info to json
         if _infojson_written is True and self._write_info_json(
@@ -1973,8 +1988,8 @@ class YoutubeDL:
                     filter_parts.append(string)
 
         def _remove_unused_ops(tokens):
-            # Remove operators that we don't use and join them with the surrounding strings
-            # for example: 'mp4' '-' 'baseline' '-' '16x9' is converted to 'mp4-baseline-16x9'
+            # Remove operators that we don't use and join them with the surrounding strings.
+            # E.g. 'mp4' '-' 'baseline' '-' '16x9' is converted to 'mp4-baseline-16x9'
             ALLOWED_OPS = ('/', '+', ',', '(', ')')
             last_string, last_start, last_end, last_line = None, None, None, None
             for type, string, start, end, line in tokens:
@@ -2129,6 +2144,7 @@ class YoutubeDL:
                     'acodec': the_only_audio.get('acodec'),
                     'abr': the_only_audio.get('abr'),
                     'asr': the_only_audio.get('asr'),
+                    'audio_channels': the_only_audio.get('audio_channels')
                 })
 
             return new_dict
@@ -2731,27 +2747,11 @@ class YoutubeDL:
         if self.params.get('allsubtitles', False):
             requested_langs = all_sub_langs
         elif self.params.get('subtitleslangs', False):
-            # A list is used so that the order of languages will be the same as
-            # given in subtitleslangs. See https://github.com/yt-dlp/yt-dlp/issues/1041
-            requested_langs = []
-            for lang_re in self.params.get('subtitleslangs'):
-                discard = lang_re[0] == '-'
-                if discard:
-                    lang_re = lang_re[1:]
-                if lang_re == 'all':
-                    if discard:
-                        requested_langs = []
-                    else:
-                        requested_langs.extend(all_sub_langs)
-                    continue
-                current_langs = filter(re.compile(lang_re + '$').match, all_sub_langs)
-                if discard:
-                    for lang in current_langs:
-                        while lang in requested_langs:
-                            requested_langs.remove(lang)
-                else:
-                    requested_langs.extend(current_langs)
-            requested_langs = orderedSet(requested_langs)
+            try:
+                requested_langs = orderedSet_from_options(
+                    self.params.get('subtitleslangs'), {'all': all_sub_langs}, use_regex=True)
+            except re.error as e:
+                raise ValueError(f'Wrong regex for subtitlelangs: {e.pattern}')
         elif normal_sub_langs:
             requested_langs = ['en'] if 'en' in normal_sub_langs else normal_sub_langs[:1]
         else:
@@ -3265,6 +3265,7 @@ class YoutubeDL:
                 self.to_screen(f'[info] {e}')
                 if not self.params.get('break_per_url'):
                     raise
+                self._num_downloads = 0
             else:
                 if self.params.get('dump_single_json', False):
                     self.post_extract(res)
@@ -3313,6 +3314,12 @@ class YoutubeDL:
             return info_dict
         info_dict.setdefault('epoch', int(time.time()))
         info_dict.setdefault('_type', 'video')
+        info_dict.setdefault('_version', {
+            'version': __version__,
+            'current_git_head': current_git_head(),
+            'release_git_head': RELEASE_GIT_HEAD,
+            'repository': REPOSITORY,
+        })
 
         if remove_private_keys:
             reject = lambda k, v: v is None or k.startswith('__') or k in {
@@ -3438,7 +3445,7 @@ class YoutubeDL:
             return False
 
         vid_ids = [self._make_archive_id(info_dict)]
-        vid_ids.extend(info_dict.get('_old_archive_ids', []))
+        vid_ids.extend(info_dict.get('_old_archive_ids') or [])
         return any(id_ in self.archive for id_ in vid_ids)
 
     def record_download_archive(self, info_dict):
@@ -3569,6 +3576,7 @@ class YoutubeDL:
                 format_field(f, func=self.format_resolution, ignore=('audio only', 'images')),
                 format_field(f, 'fps', '\t%d', func=round),
                 format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
+                format_field(f, 'audio_channels', '\t%s'),
                 delim,
                 format_field(f, 'filesize', ' \t%s', func=format_bytes) + format_field(f, 'filesize_approx', '~\t%s', func=format_bytes),
                 format_field(f, 'tbr', '\t%dk', func=round),
@@ -3588,7 +3596,7 @@ class YoutubeDL:
                     delim=' '),
             ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
         header_line = self._list_format_headers(
-            'ID', 'EXT', 'RESOLUTION', '\tFPS', 'HDR', delim, '\tFILESIZE', '\tTBR', 'PROTO',
+            'ID', 'EXT', 'RESOLUTION', '\tFPS', 'HDR', 'CH', delim, '\tFILESIZE', '\tTBR', 'PROTO',
             delim, 'VCODEC', '\tVBR', 'ACODEC', '\tABR', '\tASR', 'MORE INFO')
 
         return render_table(
@@ -3673,8 +3681,11 @@ class YoutubeDL:
             write_debug = lambda msg: self._write_string(f'[debug] {msg}\n')
 
         source = detect_variant()
+        if VARIANT not in (None, 'pip'):
+            source += '*'
         write_debug(join_nonempty(
-            'yt-dlp version', __version__,
+            f'{"yt-dlp" if REPOSITORY == "yt-dlp/yt-dlp" else REPOSITORY} version',
+            __version__,
             f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
             delim=' '))
@@ -3690,18 +3701,8 @@ class YoutubeDL:
         if self.params['compat_opts']:
             write_debug('Compatibility options: %s' % ', '.join(self.params['compat_opts']))
 
-        if source == 'source':
-            try:
-                stdout, _, _ = Popen.run(
-                    ['git', 'rev-parse', '--short', 'HEAD'],
-                    text=True, cwd=os.path.dirname(os.path.abspath(__file__)),
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                if re.fullmatch('[0-9a-f]+', stdout.strip()):
-                    write_debug(f'Git HEAD: {stdout.strip()}')
-            except Exception:
-                with contextlib.suppress(Exception):
-                    sys.exc_clear()
-
+        if current_git_head():
+            write_debug(f'Git HEAD: {current_git_head()}')
         write_debug(system_identifier())
 
         exe_versions, ffmpeg_features = FFmpegPostProcessor.get_versions_and_features(self)

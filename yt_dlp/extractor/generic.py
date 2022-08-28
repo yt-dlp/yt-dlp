@@ -3,7 +3,6 @@ import re
 import urllib.parse
 import xml.etree.ElementTree
 
-from . import gen_extractor_classes
 from .common import InfoExtractor  # isort: split
 from .brightcove import BrightcoveLegacyIE, BrightcoveNewIE
 from .commonprotocols import RtmpIE
@@ -26,6 +25,7 @@ from ..utils import (
     parse_resolution,
     smuggle_url,
     str_or_none,
+    traverse_obj,
     try_call,
     unescapeHTML,
     unified_timestamp,
@@ -2805,7 +2805,7 @@ class GenericIE(InfoExtractor):
 
         self._downloader.write_debug('Looking for embeds')
         embeds = []
-        for ie in gen_extractor_classes():
+        for ie in self._downloader._ies.values():
             gen = ie.extract_from_webpage(self._downloader, url, webpage)
             current_embeds = []
             try:
@@ -2840,8 +2840,9 @@ class GenericIE(InfoExtractor):
             try:
                 info = self._parse_jwplayer_data(
                     jwplayer_data, video_id, require_title=False, base_url=url)
-                self.report_detected('JW Player data')
-                return merge_dicts(info, info_dict)
+                if traverse_obj(info, 'formats', ('entries', ..., 'formats')):
+                    self.report_detected('JW Player data')
+                    return merge_dicts(info, info_dict)
             except ExtractorError:
                 # See https://github.com/ytdl-org/youtube-dl/pull/16735
                 pass
@@ -3035,7 +3036,7 @@ class GenericIE(InfoExtractor):
                 self.report_detected('Twitter card')
         if not found:
             # We look for Open Graph info:
-            # We have to match any number spaces between elements, some sites try to align them (eg.: statigr.am)
+            # We have to match any number spaces between elements, some sites try to align them, e.g.: statigr.am
             m_video_type = re.findall(r'<meta.*?property="og:video:type".*?content="video/(.*?)"', webpage)
             # We only look in og:video if the MIME type is a video, don't try if it's a Flash player:
             if m_video_type is not None:

@@ -2,6 +2,7 @@ name: Broken site
 description: Report broken or misfunctioning site
 labels: [triage, site-bug]
 body:
+  %(no_skip)s
   - type: checkboxes
     id: checklist
     attributes:

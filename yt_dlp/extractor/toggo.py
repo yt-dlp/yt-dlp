@@ -4,7 +4,7 @@ from ..utils import int_or_none, parse_qs
 
 class ToggoIE(InfoExtractor):
     IE_NAME = 'toggo'
-    _VALID_URL = r'https?://(?:www\.)?toggo\.de/(?:toggolino/)?[^/?#]+/folge/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?toggo\.de/(?:toggolino/)?[^/?#]+/(?:folge|video)/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.toggo.de/weihnachtsmann--co-kg/folge/ein-geschenk-fuer-zwei',
         'info_dict': {
@@ -32,6 +32,9 @@ class ToggoIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.toggo.de/toggolino/paw-patrol/folge/der-wetter-zeppelin-der-chili-kochwettbewerb',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.toggo.de/toggolino/paw-patrol/video/paw-patrol-rettung-im-anflug',
         'only_matching': True,
     }]
 

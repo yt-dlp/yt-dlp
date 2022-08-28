@@ -3,7 +3,7 @@ from ..utils import traverse_obj
 
 
 class TVIPlayerIE(InfoExtractor):
-    _VALID_URL = r'https?://tviplayer\.iol\.pt(/programa/[\w-]+/[a-f0-9]+)?/video/(?P<id>[a-f0-9]+)'
+    _VALID_URL = r'https?://tviplayer\.iol\.pt(/programa/[\w-]+/[a-f0-9]+)?/\w+/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://tviplayer.iol.pt/programa/jornal-das-8/53c6b3903004dc006243d0cf/video/61c8e8b90cf2c7ea0f0f71a9',
         'info_dict': {
@@ -27,6 +27,7 @@ class TVIPlayerIE(InfoExtractor):
             'season_number': 1,
         }
     }, {
+        # no /programa/
         'url': 'https://tviplayer.iol.pt/video/62c4131c0cf2f9a86eac06bb',
         'info_dict': {
             'id': '62c4131c0cf2f9a86eac06bb',
@@ -36,6 +37,18 @@ class TVIPlayerIE(InfoExtractor):
             'season': 'Season 2',
             'duration': 148,
             'season_number': 2,
+        }
+    }, {
+        # episodio url
+        'url': 'https://tviplayer.iol.pt/programa/para-sempre/61716c360cf2365a5ed894c4/episodio/t1e187',
+        'info_dict': {
+            'id': 't1e187',
+            'ext': 'mp4',
+            'season': 'Season 1',
+            'title': 'Quem denunciou Pedro?',
+            'thumbnail': 'https://www.iol.pt/multimedia/oratvi/multimedia/imagem/id/62eda30b0cf2ea367d48973b/',
+            'duration': 1250,
+            'season_number': 1,
         }
     }]
 

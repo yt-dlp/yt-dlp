@@ -17,6 +17,7 @@ import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
+from .openload import PhantomJSwrapper
 from ..compat import functools
 from ..jsinterp import JSInterpreter
 from ..utils import (
@@ -109,7 +110,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '17.28.34',
+                'clientVersion': '17.29.34',
+                'androidSdkVersion': 30
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
@@ -120,7 +122,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '17.28.34',
+                'clientVersion': '17.29.34',
+                'androidSdkVersion': 30
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
@@ -132,6 +135,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
                 'clientVersion': '5.16.51',
+                'androidSdkVersion': 30
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
@@ -143,6 +147,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'ANDROID_CREATOR',
                 'clientVersion': '22.28.100',
+                'androidSdkVersion': 30
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
@@ -805,7 +810,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             # Youtube sometimes sends incomplete data
             # See: https://github.com/ytdl-org/youtube-dl/issues/28194
             if not traverse_obj(response, *variadic(check_get_keys)):
-                retry.error = ExtractorError('Incomplete data received')
+                retry.error = ExtractorError('Incomplete data received', expected=True)
                 continue
 
             return response
@@ -863,7 +868,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                             else None),
             'live_status': ('is_upcoming' if scheduled_timestamp is not None
                             else 'was_live' if 'streamed' in time_text.lower()
-                            else 'is_live' if overlay_style is not None and overlay_style == 'LIVE' or 'live now' in badges
+                            else 'is_live' if overlay_style == 'LIVE' or 'live now' in badges
                             else None),
             'release_timestamp': scheduled_timestamp,
             'availability': self._availability(needs_premium='premium' in badges, needs_subscription='members only' in badges)
@@ -2254,6 +2259,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'tags': [],
                 'uploader_url': 'http://www.youtube.com/user/nao20010128nao',
             }
+        }, {
+            'note': '6 channel audio',
+            'url': 'https://www.youtube.com/watch?v=zgdo7-RRjgo',
+            'only_matching': True,
         }
     ]
 
@@ -2504,20 +2513,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         assert os.path.basename(func_id) == func_id
 
         self.write_debug(f'Extracting signature function {func_id}')
-        cache_spec = self.cache.load('youtube-sigfuncs', func_id)
-        if cache_spec is not None:
-            return lambda s: ''.join(s[i] for i in cache_spec)
+        cache_spec, code = self.cache.load('youtube-sigfuncs', func_id), None
 
-        code = self._load_player(video_id, player_url)
+        if not cache_spec:
+            code = self._load_player(video_id, player_url)
         if code:
             res = self._parse_sig_js(code)
-
             test_string = ''.join(map(chr, range(len(example_sig))))
-            cache_res = res(test_string)
-            cache_spec = [ord(c) for c in cache_res]
-
+            cache_spec = [ord(c) for c in res(test_string)]
             self.cache.store('youtube-sigfuncs', func_id, cache_spec)
-            return res
+
+        return lambda s: ''.join(s[i] for i in cache_spec)
 
     def _print_sig_code(self, func, example_sig):
         if not self.get_param('youtube_print_sig_code'):
@@ -2585,18 +2591,29 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         initial_function = jsi.extract_function(funcname)
         return lambda s: initial_function([s])
 
+    def _cached(self, func, *cache_id):
+        def inner(*args, **kwargs):
+            if cache_id not in self._player_cache:
+                try:
+                    self._player_cache[cache_id] = func(*args, **kwargs)
+                except ExtractorError as e:
+                    self._player_cache[cache_id] = e
+                except Exception as e:
+                    self._player_cache[cache_id] = ExtractorError(traceback.format_exc(), cause=e)
+
+            ret = self._player_cache[cache_id]
+            if isinstance(ret, Exception):
+                raise ret
+            return ret
+        return inner
+
     def _decrypt_signature(self, s, video_id, player_url):
         """Turn the encrypted s field into a working signature"""
-        try:
-            player_id = (player_url, self._signature_cache_id(s))
-            if player_id not in self._player_cache:
-                func = self._extract_signature_function(video_id, player_url, s)
-                self._player_cache[player_id] = func
-            func = self._player_cache[player_id]
-            self._print_sig_code(func, s)
-            return func(s)
-        except Exception as e:
-            raise ExtractorError(traceback.format_exc(), cause=e, video_id=video_id)
+        extract_sig = self._cached(
+            self._extract_signature_function, 'sig', player_url, self._signature_cache_id(s))
+        func = extract_sig(video_id, player_url, s)
+        self._print_sig_code(func, s)
+        return func(s)
 
     def _decrypt_nsig(self, s, video_id, player_url):
         """Turn the encrypted n field into a working signature"""
@@ -2604,48 +2621,71 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             raise ExtractorError('Cannot decrypt nsig without player_url')
         player_url = urljoin('https://www.youtube.com', player_url)
 
-        sig_id = ('nsig_value', s)
-        if sig_id in self._player_cache:
-            return self._player_cache[sig_id]
-
-        try:
-            player_id = ('nsig', player_url)
-            if player_id not in self._player_cache:
-                self._player_cache[player_id] = self._extract_n_function(video_id, player_url)
-            func = self._player_cache[player_id]
-            self._player_cache[sig_id] = func(s)
-            self.write_debug(f'Decrypted nsig {s} => {self._player_cache[sig_id]}')
-            return self._player_cache[sig_id]
-        except Exception as e:
-            raise ExtractorError(traceback.format_exc(), cause=e, video_id=video_id)
-
-    def _extract_n_function_name(self, jscode):
-        nfunc, idx = self._search_regex(
-            r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)',
-            jscode, 'Initial JS player n function name', group=('nfunc', 'idx'))
-        if not idx:
-            return nfunc
-        return json.loads(js_to_json(self._search_regex(
-            rf'var {re.escape(nfunc)}\s*=\s*(\[.+?\]);', jscode,
-            f'Initial JS player n function list ({nfunc}.{idx})')))[int(idx)]
-
-    def _extract_n_function(self, video_id, player_url):
-        player_id = self._extract_player_info(player_url)
-        func_code = self.cache.load('youtube-nsig', player_id)
-
-        if func_code:
-            jsi = JSInterpreter(func_code)
-        else:
-            jscode = self._load_player(video_id, player_url)
-            funcname = self._extract_n_function_name(jscode)
-            jsi = JSInterpreter(jscode)
-            func_code = jsi.extract_function_code(funcname)
-            self.cache.store('youtube-nsig', player_id, func_code)
-
+        jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
         if self.get_param('youtube_print_sig_code'):
             self.to_screen(f'Extracted nsig function from {player_id}:\n{func_code[1]}\n')
 
-        return lambda s: jsi.extract_function_from_code(*func_code)([s])
+        try:
+            extract_nsig = self._cached(self._extract_n_function_from_code, 'nsig func', player_url)
+            ret = extract_nsig(jsi, func_code)(s)
+        except JSInterpreter.Exception as e:
+            try:
+                jsi = PhantomJSwrapper(self, timeout=5000)
+            except ExtractorError:
+                raise e
+            self.report_warning(
+                f'Native nsig extraction failed: Trying with PhantomJS\n'
+                f'         n = {s} ; player = {player_url}', video_id)
+            self.write_debug(e)
+
+            args, func_body = func_code
+            ret = jsi.execute(
+                f'console.log(function({", ".join(args)}) {{ {func_body} }}({s!r}));',
+                video_id=video_id, note='Executing signature code').strip()
+
+        self.write_debug(f'Decrypted nsig {s} => {ret}')
+        return ret
+
+    def _extract_n_function_name(self, jscode):
+        funcname, idx = self._search_regex(
+            r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)',
+            jscode, 'Initial JS player n function name', group=('nfunc', 'idx'))
+        if not idx:
+            return funcname
+
+        return json.loads(js_to_json(self._search_regex(
+            rf'var {re.escape(funcname)}\s*=\s*(\[.+?\]);', jscode,
+            f'Initial JS player n function list ({funcname}.{idx})')))[int(idx)]
+
+    def _extract_n_function_code(self, video_id, player_url):
+        player_id = self._extract_player_info(player_url)
+        func_code = self.cache.load('youtube-nsig', player_id, after='2022.08.19')
+        jscode = func_code or self._load_player(video_id, player_url)
+        jsi = JSInterpreter(jscode)
+
+        if func_code:
+            return jsi, player_id, func_code
+
+        func_code = jsi.extract_function_code(self._extract_n_function_name(jscode))
+        self.cache.store('youtube-nsig', player_id, func_code)
+        return jsi, player_id, func_code
+
+    def _extract_n_function_from_code(self, jsi, func_code):
+        func = jsi.extract_function_from_code(*func_code)
+
+        def extract_nsig(s):
+            try:
+                ret = func([s])
+            except JSInterpreter.Exception:
+                raise
+            except Exception as e:
+                raise JSInterpreter.Exception(traceback.format_exc(), cause=e)
+
+            if ret.startswith('enhanced_except_'):
+                raise JSInterpreter.Exception('Signature function returned an exception')
+            return ret
+
+        return extract_nsig
 
     def _extract_signature_timestamp(self, video_id, player_url, ytcfg=None, fatal=False):
         """
@@ -3133,7 +3173,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continue
 
             if pr:
-                prs.append(pr)
+                # YouTube may return a different video player response than expected.
+                # See: https://github.com/TeamNewPipe/NewPipe/issues/8713
+                pr_video_id = traverse_obj(pr, ('videoDetails', 'videoId'))
+                if pr_video_id and pr_video_id != video_id:
+                    self.report_warning(
+                        f'Skipping player response from {client} client (got player response for video "{pr_video_id}" instead of "{video_id}")' + bug_reports_message())
+                else:
+                    prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
             if variant == 'embedded' and self._is_unplayable(pr) and self.is_authenticated:
@@ -3152,7 +3199,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, is_live, duration):
         itags, stream_ids = {}, []
-        itag_qualities, res_qualities = {}, {}
+        itag_qualities, res_qualities = {}, {0: None}
         q = qualities([
             # Normally tiny is the smallest video-only formats. But
             # audio-only formats with unknown quality may get tagged as tiny
@@ -3204,7 +3251,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         self._decrypt_signature(encrypted_sig, video_id, player_url)
                     )
                 except ExtractorError as e:
-                    self.report_warning('Signature extraction failed: Some formats may be missing', only_once=True)
+                    self.report_warning('Signature extraction failed: Some formats may be missing',
+                                        video_id=video_id, only_once=True)
                     self.write_debug(e, only_once=True)
                     continue
 
@@ -3212,12 +3260,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             throttled = False
             if query.get('n'):
                 try:
+                    decrypt_nsig = self._cached(self._decrypt_nsig, 'nsig', query['n'][0])
                     fmt_url = update_url_query(fmt_url, {
-                        'n': self._decrypt_nsig(query['n'][0], video_id, player_url)})
+                        'n': decrypt_nsig(query['n'][0], video_id, player_url)
+                    })
                 except ExtractorError as e:
+                    phantomjs_hint = ''
+                    if isinstance(e, JSInterpreter.Exception):
+                        phantomjs_hint = f'         Install {self._downloader._format_err("PhantomJS", self._downloader.Styles.EMPHASIS)} to workaround the issue\n'
                     self.report_warning(
-                        'nsig extraction failed: You may experience throttling for some formats\n'
-                        f'n = {query["n"][0]} ; player = {player_url}', only_once=True)
+                        f'nsig extraction failed: You may experience throttling for some formats\n{phantomjs_hint}'
+                        f'         n = {query["n"][0]} ; player = {player_url}', video_id=video_id, only_once=True)
                     self.write_debug(e, only_once=True)
                     throttled = True
 
@@ -3231,9 +3284,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else -10 if 'descriptive' in (audio_track.get('displayName') or '').lower() and -10
                 else -1)
             # Some formats may have much smaller duration than others (possibly damaged during encoding)
-            # Eg: 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
+            # E.g. 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
             # Make sure to avoid false positives with small duration differences.
-            # Eg: __2ABJjxzNo, ySuUZEjARPY
+            # E.g. __2ABJjxzNo, ySuUZEjARPY
             is_damaged = try_get(fmt, lambda x: float(x['approxDurationMs']) / duration < 500)
             if is_damaged:
                 self.report_warning(
@@ -3246,10 +3299,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     '%s%s' % (audio_track.get('displayName') or '',
                               ' (default)' if language_preference > 0 else ''),
                     fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
+                    try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
+                    try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                     throttled and 'THROTTLED', is_damaged and 'DAMAGED', delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
                 'source_preference': -10 if throttled else -5 if itag == '22' else -1,
                 'fps': int_or_none(fmt.get('fps')) or None,
+                'audio_channels': fmt.get('audioChannels'),
                 'height': height,
                 'quality': q(quality),
                 'has_drm': bool(fmt.get('drmFamilies')),
@@ -3301,10 +3357,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['format_id'] = itag
                 itags[itag] = proto
 
-            f['quality'] = next((
-                q(qdict[val])
-                for val, qdict in ((f.get('format_id', '').split('-')[0], itag_qualities), (f.get('height'), res_qualities))
-                if val in qdict), -1)
+            f['quality'] = q(itag_qualities.get(try_get(f, lambda f: f['format_id'].split('-')[0]), -1))
+            if f['quality'] == -1 and f.get('height'):
+                f['quality'] = q(res_qualities[min(res_qualities, key=lambda x: abs(x - f['height']))])
             return True
 
         subtitles = {}
@@ -3570,7 +3625,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         formats.extend(self._extract_storyboard(player_responses, duration))
 
         # source_preference is lower for throttled/potentially damaged formats
-        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source', 'codec:vp9.2', 'lang', 'proto'))
+        self._sort_formats(formats, (
+            'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto'))
 
         info = {
             'id': video_id,
@@ -5814,7 +5870,7 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
 
 
 class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
-    IE_DESC = 'YouTube music search URLs with selectable sections (Eg: #songs)'
+    IE_DESC = 'YouTube music search URLs with selectable sections, e.g. #songs'
     IE_NAME = 'youtube:music:search_url'
     _VALID_URL = r'https?://music\.youtube\.com/search\?([^#]+&)?(?:search_query|q)=(?:[^&]+)(?:[&#]|$)'
     _TESTS = [{
