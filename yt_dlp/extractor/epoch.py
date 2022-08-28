@@ -1,22 +1,16 @@
 from .common import InfoExtractor
-from ..utils import (
-    unescapeHTML
-)
 
 
 class EpochIE(InfoExtractor):
     _VALID_URL = r'https?://www.theepochtimes\.com/[\w-]+_(?P<id>\d+).html'
+    _YOUMAKER_MANIFEST_URL = 'http://vs1.youmaker.com/assets/{0}/playlist.m3u8'
     _TESTS = [
         {
             'url': 'https://www.theepochtimes.com/they-can-do-audio-video-physical-surveillance-on-you-24h-365d-a-year-rex-lee-on-intrusive-apps_4661688.html',
             'info_dict': {
-                "id": '4661688',
+                'id': '4661688',
                 'ext': 'mp4',
-                'url': 'http://vs1.youmaker.com/assets/a3dd732c-4750-4bc8-8156-69180668bda1/playlist.m3u8',
                 'title': '‘They Can Do Audio, Video, Physical Surveillance on You 24H/365D a Year’: Rex Lee on Intrusive Apps',
-                'webpage_url_domain': 'theepochtimes.com',
-                'extractor': 'Epoch',
-                'extractor_key': 'Epoch'
             }
         },
         {
@@ -24,11 +18,7 @@ class EpochIE(InfoExtractor):
             'info_dict': {
                 'id': '4342413',
                 'ext': 'mp4',
-                'url': 'https://vs1.youmaker.com/assets/276c7f46-3bbf-475d-9934-b9bbe827cf0a/playlist.m3u8',
                 'title': 'The Communist Party’s Cyberattacks on America Explained; Rex Lee Talks Tech Hybrid Warfare',
-                'webpage_url_domain': 'theepochtimes.com',
-                'extractor': 'Epoch',
-                'extractor_key': 'Epoch'
             }
         },
         {
@@ -36,11 +26,7 @@ class EpochIE(InfoExtractor):
             'info_dict': {
                 'id': '4690250',
                 'ext': 'mp4',
-                'url': 'http://vs1.youmaker.com/assets/aa9ceecd-a127-453d-a2de-7153d6fd69b6/playlist.m3u8',
                 'title': 'Kash Patel: A ‘6-Year-Saga’ of Government Corruption, From Russiagate to Mar-a-Lago',
-                'webpage_url_domain': 'theepochtimes.com',
-                'extractor': 'Epoch',
-                'extractor_key': 'Epoch'
             }
         },
     ]
@@ -49,13 +35,17 @@ class EpochIE(InfoExtractor):
 
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        title = self._search_regex(r'<title>(?P<title>.*)<\/title>', unescapeHTML(webpage), 'title', group='title')
+        title = self._html_extract_title(webpage)
         youmaker_video_id = self._search_regex(
-            r'<div class="videobox" id="videobox" data-trailer="[\w-]+" data-id="([\w-]+)">', webpage, 'url')
+            r'data-trailer="[\w-]+" data-id="([\w-]+)"', webpage, 'url')
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            self._YOUMAKER_MANIFEST_URL.format(youmaker_video_id), video_id, 'mp4', entry_protocol='m3u8_native',
+            m3u8_id='hls', fatal=False)
 
         return {
-            "id": video_id,
-            "ext": "mp4",
-            "url": f"http://vs1.youmaker.com/assets/{youmaker_video_id}/playlist.m3u8",
-            "title": title
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            'title': title
         }
