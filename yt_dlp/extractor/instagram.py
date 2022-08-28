@@ -367,20 +367,21 @@ class InstagramIE(InstagramBaseIE):
         video_id, url = self._match_valid_url(url).group('id', 'url')
         media, webpage = {}, ''
 
-        info = traverse_obj(self._download_json(
-            f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
-            fatal=False, errnote=False, note='Downloading video info', headers={
-                **self._API_HEADERS
-            }), ('items', 0))
-        if info:
-            media.update(info)
-            comments_info = self._download_json(
-                f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/comments/?can_support_threading=true&permalink_enabled=false', video_id,
-                fatal=False, errnote=False, note='Downloading comments info', headers={
+        if self._get_cookies(url).get('sessionid'):
+            info = traverse_obj(self._download_json(
+                f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
+                fatal=False, errnote=False, note='Downloading video info', headers={
                     **self._API_HEADERS
-                }) or {}
-            media.update(comments_info)
-            return self._extract_product(media)
+                }), ('items', 0))
+            if info:
+                media.update(info)
+                comments_info = self._download_json(
+                    f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/comments/?can_support_threading=true&permalink_enabled=false', video_id,
+                    fatal=False, errnote=False, note='Downloading comments info', headers={
+                        **self._API_HEADERS
+                    }) or {}
+                media.update(comments_info)
+                return self._extract_product(media)
 
         api_check = self._download_json(
             f'{self._API_BASE_URL}/web/get_ruling_for_content/?content_type=MEDIA&target_id={_id_to_pk(video_id)}',
@@ -414,34 +415,34 @@ class InstagramIE(InstagramBaseIE):
                 'query_hash': '9f8827793ef34641b2fb195d4d41151c',
                 'variables': json.dumps(variables, separators=(',', ':')),
             })
-        if not general_info:
-            self.report_warning('General metadata extraction failed (some metadata might be missing).', video_id)
         media.update(traverse_obj(general_info, ('data', 'shortcode_media')) or {})
 
-        webpage, urlh = self._download_webpage_handle(url, video_id)
-        shared_data = self._search_json(
-            r'window\._sharedData\s*=', webpage, 'shared data', video_id, fatal=False) or {}
+        if not general_info:
+            self.report_warning('General metadata extraction failed (some metadata might be missing).', video_id)
+            webpage, urlh = self._download_webpage_handle(url, video_id)
+            shared_data = self._search_json(
+                r'window\._sharedData\s*=', webpage, 'shared data', video_id, fatal=False) or {}
 
-        if shared_data and self._LOGIN_URL not in urlh.geturl():
-            media.update(traverse_obj(
-                shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
-                ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})
-        else:
-            self.report_warning('Main webpage is locked behind the login page. Retrying with embed webpage (some metadata might be missing).')
-            webpage = self._download_webpage(
-                f'{url}/embed/', video_id, note='Downloading embed webpage', fatal=False)
-            additional_data = self._search_json(
-                r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
-            if not additional_data and media == {}:
-                self.raise_login_required('Requested content is not available, rate-limit reached or login required')
+            if shared_data and self._LOGIN_URL not in urlh.geturl():
+                media.update(traverse_obj(
+                    shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
+                    ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})
+            else:
+                self.report_warning('Main webpage is locked behind the login page. Retrying with embed webpage (some metadata might be missing).')
+                webpage = self._download_webpage(
+                    f'{url}/embed/', video_id, note='Downloading embed webpage', fatal=False)
+                additional_data = self._search_json(
+                    r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
+                if not additional_data and media == {}:
+                    self.raise_login_required('Requested content is not available, rate-limit reached or login required')
 
-            product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
-            if product_item:
-                media.update(product_item)
-                return self._extract_product(media)
+                product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
+                if product_item:
+                    media.update(product_item)
+                    return self._extract_product(media)
 
-            media.update(traverse_obj(
-                additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {})
+                media.update(traverse_obj(
+                    additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {})
 
         username = traverse_obj(media, ('owner', 'username')) or self._search_regex(
             r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'username', fatal=False)
