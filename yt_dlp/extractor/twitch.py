@@ -1169,7 +1169,7 @@ class TwitchClipsIE(TwitchBaseIE):
             'id': clip.get('id') or video_id,
             '_old_archive_ids': [make_archive_id(self, old_id)] if old_id else None,
             'display_id': video_id,
-            'title': clip.get('title') or video_id,
+            'title': clip.get('title'),
             'formats': formats,
             'duration': int_or_none(clip.get('durationSeconds')),
             'view_count': int_or_none(clip.get('viewCount')),

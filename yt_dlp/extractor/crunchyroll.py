@@ -114,7 +114,14 @@ class CrunchyrollBaseIE(InfoExtractor):
 
 class CrunchyrollIE(CrunchyrollBaseIE, VRVBaseIE):
     IE_NAME = 'crunchyroll'
-    _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.(?:com|fr)/(?:media(?:-|/\?id=)|(?!series/|watch/)(?:[^/]+/){1,2}[^/?&]*?)(?P<id>[0-9]+))(?:[/?&]|$)'
+    _VALID_URL = r'''(?x)
+        https?://(?:(?P<prefix>www|m)\.)?(?P<url>
+            crunchyroll\.(?:com|fr)/(?:
+                media(?:-|/\?id=)|
+                (?!series/|watch/)(?:[^/]+/){1,2}[^/?&#]*?
+            )(?P<id>[0-9]+)
+        )(?:[/?&#]|$)'''
+
     _TESTS = [{
         'url': 'http://www.crunchyroll.com/wanna-be-the-strongest-in-the-world/episode-1-an-idol-wrestler-is-born-645513',
         'info_dict': {
@@ -758,7 +765,11 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
 
 class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
     IE_NAME = 'crunchyroll:beta'
-    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{2}(?:-\w{2})?/)?)watch/(?P<id>\w+)/(?P<display_id>[\w\-]*)/?(?:\?|$)'
+    _VALID_URL = r'''(?x)
+        https?://beta\.crunchyroll\.com/
+        (?P<lang>(?:\w{2}(?:-\w{2})?/)?)
+        watch/(?P<id>\w+)
+        (?:/(?P<display_id>[\w-]+))?/?(?:[?#]|$)'''
     _TESTS = [{
         'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/to-the-future',
         'info_dict': {
@@ -780,7 +791,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
-        'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/',
+        'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y',
         'only_matching': True,
     }, {
         'url': 'https://beta.crunchyroll.com/pt-br/watch/G8WUN8VKP/the-ruler-of-conspiracy',
@@ -867,7 +878,11 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
 
 class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
     IE_NAME = 'crunchyroll:playlist:beta'
-    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{2}(?:-\w{2})?/)?)series/(?P<id>\w+)/(?P<display_id>[\w\-]*)/?(?:\?|$)'
+    _VALID_URL = r'''(?x)
+        https?://beta\.crunchyroll\.com/
+        (?P<lang>(?:\w{2}(?:-\w{2})?/)?)
+        series/(?P<id>\w+)
+        (?:/(?P<display_id>[\w-]+))?/?(?:[?#]|$)'''
     _TESTS = [{
         'url': 'https://beta.crunchyroll.com/series/GY19NQ2QR/Girl-Friend-BETA',
         'info_dict': {
@@ -876,7 +891,7 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
         },
         'playlist_mincount': 10,
     }, {
-        'url': 'https://beta.crunchyroll.com/it/series/GY19NQ2QR/Girl-Friend-BETA',
+        'url': 'https://beta.crunchyroll.com/it/series/GY19NQ2QR',
         'only_matching': True,
     }]
 

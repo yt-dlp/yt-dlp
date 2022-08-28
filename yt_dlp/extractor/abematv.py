@@ -365,7 +365,7 @@ class AbemaTVIE(AbemaTVBaseIE):
         # read breadcrumb on top of page
         breadcrumb = self._extract_breadcrumb_list(webpage, video_id)
         if breadcrumb:
-            # breadcrumb list translates to: (example is 1st test for this IE)
+            # breadcrumb list translates to: (e.g. 1st test for this IE)
             # Home > Anime (genre) > Isekai Shokudo 2 (series name) > Episode 1 "Cheese cakes" "Morning again" (episode title)
             # hence this works
             info['series'] = breadcrumb[-2]

@@ -142,6 +142,10 @@ class MediasetIE(ThePlatformBaseIE):
         'url': 'https://static3.mediasetplay.mediaset.it/player/index.html?appKey=5ad3966b1de1c4000d5cec48&programGuid=FAFU000000665104&id=665104',
         'only_matching': True,
     }, {
+        # embedUrl (from https://www.wittytv.it/amici/est-ce-que-tu-maimes-gabriele-5-dicembre-copia/)
+        'url': 'https://static3.mediasetplay.mediaset.it/player/v2/index.html?partnerId=wittytv&configId=&programGuid=FD00000000153323&autoplay=true&purl=http://www.wittytv.it/amici/est-ce-que-tu-maimes-gabriele-5-dicembre-copia/',
+        'only_matching': True,
+    }, {
         'url': 'mediaset:FAFU000000665924',
         'only_matching': True,
     }, {

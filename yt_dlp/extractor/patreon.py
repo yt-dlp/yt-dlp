@@ -154,6 +154,28 @@ class PatreonIE(PatreonBaseIE):
             'channel_url': 'https://www.patreon.com/loish',
             'channel_follower_count': int,
         }
+    }, {
+        # bad videos under media (if media is included). Real one is under post_file
+        'url': 'https://www.patreon.com/posts/premium-access-70282931',
+        'info_dict': {
+            'id': '70282931',
+            'ext': 'mp4',
+            'title': '[Premium Access + Uncut] The Office - 2x6 The Fight - Group Reaction',
+            'channel_url': 'https://www.patreon.com/thenormies',
+            'channel_id': '573397',
+            'uploader_id': '2929435',
+            'uploader': 'The Normies',
+            'description': 'md5:79c9fd8778e2cef84049a94c058a5e23',
+            'comment_count': int,
+            'upload_date': '20220809',
+            'thumbnail': r're:^https?://.*$',
+            'channel_follower_count': int,
+            'like_count': int,
+            'timestamp': 1660052820,
+            'tags': ['The Office', 'early access', 'uncut'],
+            'uploader_url': 'https://www.patreon.com/thenormies',
+        },
+        'skip': 'Patron-only content',
     }]
 
     def _real_extract(self, url):
@@ -166,7 +188,7 @@ class PatreonIE(PatreonBaseIE):
                 'fields[post_tag]': 'value',
                 'fields[campaign]': 'url,name,patron_count',
                 'json-api-use-default-includes': 'false',
-                'include': 'media,user,user_defined_tags,campaign',
+                'include': 'audio,user,user_defined_tags,campaign,attachments_media',
             })
         attributes = post['data']['attributes']
         title = attributes['title'].strip()
@@ -190,11 +212,16 @@ class PatreonIE(PatreonBaseIE):
                 media_attributes = i.get('attributes') or {}
                 download_url = media_attributes.get('download_url')
                 ext = mimetype2ext(media_attributes.get('mimetype'))
-                if download_url and ext in KNOWN_EXTENSIONS:
+
+                # if size_bytes is None, this media file is likely unavailable
+                # See: https://github.com/yt-dlp/yt-dlp/issues/4608
+                size_bytes = int_or_none(media_attributes.get('size_bytes'))
+                if download_url and ext in KNOWN_EXTENSIONS and size_bytes is not None:
+                    # XXX: what happens if there are multiple attachments?
                     return {
                         **info,
                         'ext': ext,
-                        'filesize': int_or_none(media_attributes.get('size_bytes')),
+                        'filesize': size_bytes,
                         'url': download_url,
                     }
             elif i_type == 'user':
