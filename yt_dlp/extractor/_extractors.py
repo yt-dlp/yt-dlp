@@ -913,6 +913,7 @@ from .mediasite import (
     MediasiteCatalogIE,
     MediasiteNamedCatalogIE,
 )
+from .mediaworks import MediaworksVODIE
 from .medici import MediciIE
 from .megaphone import MegaphoneIE
 from .meipai import MeipaiIE
