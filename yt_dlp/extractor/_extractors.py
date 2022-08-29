@@ -717,6 +717,10 @@ from .iqiyi import (
     IqIE,
     IqAlbumIE
 )
+from .islamchannel import (
+    IslamChannelIE,
+    IslamChannelSeriesIE,
+)
 from .itprotv import (
     ITProTVIE,
     ITProTVCourseIE
