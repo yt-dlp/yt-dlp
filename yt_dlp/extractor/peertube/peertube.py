@@ -1042,8 +1042,9 @@ except ImportError:
     )
 
 from ..common import SelfHostedInfoExtractor
-from ...compat import compat_str
+from ...compat import functools
 from ...utils import (
+    OnDemandPagedList,
     get_first_group,
     int_or_none,
     parse_resolution,
@@ -1072,6 +1073,7 @@ class PeerTubeBaseIE(SelfHostedInfoExtractor):
     _API_BASE = 'https://%s/api/v1/%s/%s/%s'
     _NETRC_MACHINE = 'peertube'
     _LOGIN_INFO = None
+    _PAGE_SIZE = 25
 
     _HOSTNAME_GROUPS = ('host', 'host_2')
     _INSTANCE_LIST = instances
@@ -1155,7 +1157,7 @@ class PeerTubeBaseIE(SelfHostedInfoExtractor):
                 continue
             file_size = int_or_none(file_.get('size'))
             format_id = try_get(
-                file_, lambda x: x['resolution']['label'], compat_str)
+                file_, lambda x: x['resolution']['label'], str)
             f = parse_resolution(format_id)
             f.update({
                 'url': file_url,
@@ -1188,7 +1190,7 @@ class PeerTubeBaseIE(SelfHostedInfoExtractor):
             })
 
         def data(section, field, type_):
-            return try_get(video, lambda x: x[section][field], type_)
+            return traverse_obj(video, (section, field), expected_type=type_)
 
         def account_data(field, type_):
             return data('account', field, type_)
@@ -1196,14 +1198,10 @@ class PeerTubeBaseIE(SelfHostedInfoExtractor):
         def channel_data(field, type_):
             return data('channel', field, type_)
 
-        category = data('category', 'label', compat_str)
+        category = data('category', 'label', str)
         categories = [category] if category else None
 
-        nsfw = video.get('nsfw')
-        if nsfw is bool:
-            age_limit = 18 if nsfw else 0
-        else:
-            age_limit = None
+        age_limit = 18 if video.get('nsfw') else None
 
         webpage_url = 'https://%s/videos/watch/%s' % (host, display_id)
 
@@ -1213,14 +1211,14 @@ class PeerTubeBaseIE(SelfHostedInfoExtractor):
             'description': video.get('description'),
             'thumbnail': urljoin(webpage_url, video.get('thumbnailPath')),
             'timestamp': unified_timestamp(video.get('publishedAt')),
-            'uploader': account_data('displayName', compat_str),
+            'uploader': account_data('displayName', str),
             'uploader_id': str_or_none(account_data('id', int)),
-            'uploader_url': url_or_none(account_data('url', compat_str)),
-            'channel': channel_data('displayName', compat_str),
+            'uploader_url': url_or_none(account_data('url', str)),
+            'channel': channel_data('displayName', str),
             'channel_id': str_or_none(channel_data('id', int)),
-            'channel_url': url_or_none(channel_data('url', compat_str)),
-            'language': data('language', 'id', compat_str),
-            'license': data('licence', 'label', compat_str),
+            'channel_url': url_or_none(channel_data('url', str)),
+            'language': data('language', 'id', str),
+            'license': data('licence', 'label', str),
             'duration': int_or_none(video.get('duration')),
             'view_count': int_or_none(video.get('views')),
             'like_count': int_or_none(video.get('likes')),
@@ -1381,7 +1379,7 @@ class PeerTubeIE(PeerTubeBaseIE):
             return
         subtitles = {}
         for e in data:
-            language_id = try_get(e, lambda x: x['language']['id'], compat_str)
+            language_id = try_get(e, lambda x: x['language']['id'], str)
             caption_url = urljoin('https://%s' % host, e.get('captionPath'))
             if not caption_url:
                 continue
@@ -1457,23 +1455,20 @@ class PeerTubePlaylistIE(PeerTubeBaseIE):
         'only_matching': True,
     }]
 
-    def _entries(self, url, host, display_id):
-        i, ent = 0, 0
-        videos = {'total': 0}
-        while ent < videos['total'] or i == 0:
-            videos = self._call_api(host, 'video-playlists', display_id,
-                                    'videos?start=%d&count=25' % (i * 25),
-                                    note=('Downloading playlist video list (page #%d)' % i))
-            i += 1
-            for video in videos['data']:
-                ent += 1
-                yield self._parse_video(video['video'], url)
+    def _entries(self, url, host, display_id, page):
+        videos = self._call_api(
+            host, 'video-playlists', display_id,
+            f'videos?start={page * self._PAGE_SIZE}&count={self._PAGE_SIZE}',
+            note=f'Downloading playlist video list (page #{page})')
+        yield (self._parse_video(video, url) for video in videos['data'])
 
     def _real_extract(self, url):
         host, display_id = self._match_id_and_host(url)
 
         playlist_data = self._call_api(host, 'video-playlists', display_id, '', 'Downloading playlist metadata')
-        entries = self._entries(url, host, display_id)
+        entries = OnDemandPagedList(
+            functools.partial(self._entries, url, host, display_id),
+            self._PAGE_SIZE)
 
         return {
             '_type': 'playlist',
@@ -1532,24 +1527,20 @@ class PeerTubeChannelIE(PeerTubeBaseIE):
         'only_matching': True,
     }]
 
-    def _entries(self, url, host, display_id):
-        i, ent = 0, 0
-        videos = {'total': 0}
-        while ent < videos['total'] or i == 0:
-            videos = self._call_api(
-                host, 'video-channels', display_id,
-                'videos?start=%d&count=25&sort=publishedAt' % (i * 25),
-                note=('Downloading channel video list (page #%d)' % i))
-            i += 1
-            for video in videos['data']:
-                ent += 1
-                yield self._parse_video(video, url)
+    def _entries(self, url, host, display_id, page):
+        videos = self._call_api(
+            host, 'video-channels', display_id,
+            f'videos?start={page * self._PAGE_SIZE}&count={self._PAGE_SIZE}&sort=publishedAt',
+            note=f'Downloading channel video list (page #{page})')
+        yield (self._parse_video(video, url) for video in videos['data'])
 
     def _real_extract(self, url):
         host, display_id = self._match_id_and_host(url)
 
         channel_data = self._call_api(host, 'video-channels', display_id, '', 'Downloading channel metadata')
-        entries = self._entries(url, host, display_id)
+        entries = OnDemandPagedList(
+            functools.partial(self._entries, url, host, display_id),
+            self._PAGE_SIZE)
 
         return {
             '_type': 'playlist',
@@ -1601,24 +1592,20 @@ class PeerTubeAccountIE(PeerTubeBaseIE):
         'only_matching': True,
     }]
 
-    def _entries(self, url, host, display_id):
-        i, ent = 0, 0
-        videos = {'total': 0}
-        while ent < videos['total'] or i == 0:
-            videos = self._call_api(
-                host, 'accounts', display_id,
-                'videos?start=%d&count=25&sort=publishedAt' % (i * 25),
-                note=('Downloading account video list (page #%d)' % i))
-            i += 1
-            for video in videos['data']:
-                ent += 1
-                yield self._parse_video(video, url)
+    def _entries(self, url, host, display_id, page):
+        videos = self._call_api(
+            host, 'accounts', display_id,
+            f'videos?start={page * self._PAGE_SIZE}&count={self._PAGE_SIZE}&sort=publishedAt',
+            note=f'Downloading account video list (page #{page})')
+        yield (self._parse_video(video, url) for video in videos['data'])
 
     def _real_extract(self, url):
         host, display_id = self._match_id_and_host(url)
 
         account_data = self._call_api(host, 'accounts', display_id, '', 'Downloading account metadata')
-        entries = self._entries(url, host, display_id)
+        entries = OnDemandPagedList(
+            functools.partial(self._entries, url, host, display_id),
+            self._PAGE_SIZE)
 
         return {
             '_type': 'playlist',
