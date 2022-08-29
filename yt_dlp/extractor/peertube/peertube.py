@@ -1135,9 +1135,7 @@ class PeerTubeBaseIE(SelfHostedInfoExtractor):
             note=note, errnote=errnote, fatal=fatal)
 
     def _parse_video(self, video, url):
-        mobj = self._match_valid_url(url)
-        host = mobj.group('host') or mobj.group('host_2')
-        display_id = mobj.group('id')
+        host, display_id = self._match_id_and_host(url)
         info_dict = {}
 
         formats = []
@@ -1393,9 +1391,7 @@ class PeerTubeIE(PeerTubeBaseIE):
         return subtitles
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        host = get_first_group(mobj, 'host', 'host_2')
-        video_id = mobj.group('id')
+        host, video_id = self._match_id_and_host(url)
 
         if self._LOGIN_INFO and self._LOGIN_INFO['instance'] != host:
             video_search = self._call_api(
