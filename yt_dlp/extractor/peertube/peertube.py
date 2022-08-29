@@ -1236,7 +1236,7 @@ class PeerTubeIE(PeerTubeBaseIE):
     _VALID_URL = r'''(?x)
         (?P<prefix>peertube:)?(?:
             (?P<host>[^:]+):|
-            (?P<proto>https?://)(?P<host_2>[^/]+)/(?:videos/(?:watch|embed)|api/v\d/videos|w)/
+            https?://(?P<host_2>[^/]+)/(?:videos/(?:watch|embed)|api/v\d/videos|w)/
         )
         (?P<id>%s)
     ''' % PeerTubeBaseIE._UUID_RE
@@ -1410,15 +1410,14 @@ class PeerTubeIE(PeerTubeBaseIE):
         info_dict['subtitles'] = self.extract_subtitles(host, video_id)
 
         description = None
-        if mobj.group('proto'):
+        if url.startswith('http'):
             webpage = self._download_webpage(url, video_id, fatal=False) or None
             description = self._og_search_description(webpage, default=None)
         if not description:
             full_description = self._call_api(
                 host, 'videos', video_id, 'description', note='Downloading description JSON',
                 fatal=False)
-            if isinstance(full_description, dict):
-                description = str_or_none(full_description.get('description'))
+            description = str_or_none(traverse_obj(full_description, 'description'))
         if not description:
             description = video.get('description')
         info_dict['description'] = description
