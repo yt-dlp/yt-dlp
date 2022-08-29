@@ -1397,8 +1397,6 @@ class PeerTubeIE(PeerTubeBaseIE):
         host = get_first_group(mobj, 'host', 'host_2')
         video_id = mobj.group('id')
 
-        self._login()
-
         if self._LOGIN_INFO and self._LOGIN_INFO['instance'] != host:
             video_search = self._call_api(
                 self._LOGIN_INFO['instance'], 'search', 'videos', '?' + urlencode({
@@ -1479,8 +1477,6 @@ class PeerTubePlaylistIE(PeerTubeBaseIE):
     def _real_extract(self, url):
         host, display_id = self._match_id_and_host(url)
 
-        self._login()
-
         playlist_data = self._call_api(host, 'video-playlists', display_id, '', 'Downloading playlist metadata')
         entries = self._entries(url, host, display_id)
 
@@ -1557,8 +1553,6 @@ class PeerTubeChannelIE(PeerTubeBaseIE):
     def _real_extract(self, url):
         host, display_id = self._match_id_and_host(url)
 
-        self._login()
-
         channel_data = self._call_api(host, 'video-channels', display_id, '', 'Downloading channel metadata')
         entries = self._entries(url, host, display_id)
 
@@ -1627,8 +1621,6 @@ class PeerTubeAccountIE(PeerTubeBaseIE):
 
     def _real_extract(self, url):
         host, display_id = self._match_id_and_host(url)
-
-        self._login()
 
         account_data = self._call_api(host, 'accounts', display_id, '', 'Downloading account metadata')
         entries = self._entries(url, host, display_id)
