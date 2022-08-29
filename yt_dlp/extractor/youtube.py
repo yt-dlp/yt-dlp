@@ -190,6 +190,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'IOS_MUSIC',
                 'clientVersion': '5.21',
+                'deviceModel': 'iPhone14,3',
                 'userAgent': 'com.google.ios.youtubemusic/5.21 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
@@ -201,6 +202,7 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'IOS_CREATOR',
                 'clientVersion': '22.33.101',
+                'deviceModel': 'iPhone14,3',
                 'userAgent': 'com.google.ios.ytcreator/22.33.101 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
