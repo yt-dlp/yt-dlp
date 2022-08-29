@@ -1460,7 +1460,7 @@ class PeerTubePlaylistIE(PeerTubeBaseIE):
             host, 'video-playlists', display_id,
             f'videos?start={page * self._PAGE_SIZE}&count={self._PAGE_SIZE}',
             note=f'Downloading playlist video list (page #{page})')
-        yield (self._parse_video(video, url) for video in videos['data'])
+        yield from (self._parse_video(video, url) for video in videos['data'])
 
     def _real_extract(self, url):
         host, display_id = self._match_id_and_host(url)
@@ -1532,7 +1532,7 @@ class PeerTubeChannelIE(PeerTubeBaseIE):
             host, 'video-channels', display_id,
             f'videos?start={page * self._PAGE_SIZE}&count={self._PAGE_SIZE}&sort=publishedAt',
             note=f'Downloading channel video list (page #{page})')
-        yield (self._parse_video(video, url) for video in videos['data'])
+        yield from (self._parse_video(video, url) for video in videos['data'])
 
     def _real_extract(self, url):
         host, display_id = self._match_id_and_host(url)
@@ -1597,7 +1597,7 @@ class PeerTubeAccountIE(PeerTubeBaseIE):
             host, 'accounts', display_id,
             f'videos?start={page * self._PAGE_SIZE}&count={self._PAGE_SIZE}&sort=publishedAt',
             note=f'Downloading account video list (page #{page})')
-        yield (self._parse_video(video, url) for video in videos['data'])
+        yield from (self._parse_video(video, url) for video in videos['data'])
 
     def _real_extract(self, url):
         host, display_id = self._match_id_and_host(url)
