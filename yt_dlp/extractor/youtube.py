@@ -2,6 +2,7 @@ import base64
 import calendar
 import copy
 import datetime
+import enum
 import hashlib
 import itertools
 import json
@@ -263,6 +264,15 @@ def build_innertube_clients():
 
 
 build_innertube_clients()
+
+
+class BadgeType(enum.Enum):
+    AVAILABILITY_UNLISTED = 'availability_unlisted',
+    AVAILABILITY_PRIVATE = 'availability_private',
+    AVAILABILITY_PUBLIC = 'availability_public',
+    AVAILABILITY_PREMIUM = 'availability_premium',
+    AVAILABILITY_SUBSCRIPTION = 'availability_subscription'
+    LIVE_NOW = 'live_now',
 
 
 class YoutubeBaseInfoExtractor(InfoExtractor):
@@ -694,49 +704,49 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_and_report_alerts(self, data, *args, **kwargs):
         return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
 
-    _PRIVACY_ICON_MAP = {
-        'PRIVACY_UNLISTED': 'unlisted',
-        'PRIVACY_PRIVATE': 'private',
-        'PRIVACY_PUBLIC': 'public'
-    }
-
     def _extract_badges(self, renderer: dict):
-        """
-        Extract known badges from the renderer.
-        Returns a set of known badge types.
-        This may include one or more of: 'unlisted', 'private', 'public', 'members_only', 'premium', 'is_live'
-        """
+        privacy_icon_map = {
+            'PRIVACY_UNLISTED': BadgeType.AVAILABILITY_UNLISTED,
+            'PRIVACY_PRIVATE': BadgeType.AVAILABILITY_PRIVATE,
+            'PRIVACY_PUBLIC': BadgeType.AVAILABILITY_PUBLIC
+        }
+
         badge_style_map = {
-            'BADGE_STYLE_TYPE_MEMBERS_ONLY': 'members_only',
-            'BADGE_STYLE_TYPE_PREMIUM': 'premium',
-            'BADGE_STYLE_TYPE_LIVE_NOW': 'is_live'
+            'BADGE_STYLE_TYPE_MEMBERS_ONLY': BadgeType.AVAILABILITY_SUBSCRIPTION,
+            'BADGE_STYLE_TYPE_PREMIUM': BadgeType.AVAILABILITY_PREMIUM,
+            'BADGE_STYLE_TYPE_LIVE_NOW': BadgeType.LIVE_NOW
         }
 
         label_map = {
-            'unlisted': 'unlisted',
-            'private': 'private',
-            'members only': 'members_only',
-            'live': 'is_live',
-            'premium': 'premium'
+            'unlisted': BadgeType.AVAILABILITY_UNLISTED,
+            'private': BadgeType.AVAILABILITY_PRIVATE,
+            'members only': BadgeType.AVAILABILITY_SUBSCRIPTION,
+            'live': BadgeType.LIVE_NOW,
+            'premium': BadgeType.AVAILABILITY_PREMIUM
         }
 
-        badge_types = set()
+        badges = []
         for badge in traverse_obj(renderer, ('badges', ..., 'metadataBadgeRenderer'), default=[]):
-            icon_badge_type = self._PRIVACY_ICON_MAP.get(traverse_obj(badge, ('icon', 'iconType'), expected_type=str))
-            if icon_badge_type:
-                badge_types.add(icon_badge_type)
-
-            style_badge_type = badge_style_map.get(traverse_obj(badge, 'style'))
-            if style_badge_type:
-                badge_types.add(style_badge_type)
+            badge_type = (
+                privacy_icon_map.get(traverse_obj(badge, ('icon', 'iconType'), expected_type=str))
+                or badge_style_map.get(traverse_obj(badge, 'style'))
+            )
+            if badge_type:
+                badges.append({'type': badge_type})
+                continue
 
             # fallback, won't work in some languages
             label = traverse_obj(badge, 'label', expected_type=str, default='')
             for match, label_badge_type in label_map.items():
                 if match in label.lower():
-                    badge_types.add(label_badge_type)
+                    badges.append({'type': badge_type})
+                    continue
 
-        return badge_types
+        return badges
+
+    @staticmethod
+    def _has_badge(badges, badge_type):
+        return bool(traverse_obj(badges, lambda _, v: v['type'] == badge_type))
 
     @staticmethod
     def _get_text(data, *path_list, max_runs=None):
@@ -933,10 +943,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                             else None),
             'live_status': ('is_upcoming' if scheduled_timestamp is not None
                             else 'was_live' if 'streamed' in time_text.lower()
-                            else 'is_live' if overlay_style == 'LIVE' or 'is_live' in badges
+                            else 'is_live' if overlay_style == 'LIVE' or self._has_badge(badges, BadgeType.LIVE_NOW)
                             else None),
             'release_timestamp': scheduled_timestamp,
-            'availability': self._availability(needs_premium='premium' in badges, needs_subscription='members_only' in badges)
+            'availability':
+                'public' if self._has_badge(badges, BadgeType.AVAILABILITY_PUBLIC)
+                else self._availability(
+                    is_private=self._has_badge(badges, BadgeType.AVAILABILITY_PRIVATE) or None,
+                    needs_premium=self._has_badge(badges, BadgeType.AVAILABILITY_PREMIUM) or None,
+                    needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
+                    is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None)
         }
 
 
@@ -4043,33 +4059,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if v:
                 info[d_k] = v
 
-        is_private = get_first(video_details, 'isPrivate', expected_type=bool)
-        is_unlisted = get_first(microformats, 'isUnlisted', expected_type=bool)
-        is_membersonly = None
-        is_premium = None
-        if initial_data and is_private is not None:
-            is_membersonly = False
-            is_premium = False
-            contents = try_get(initial_data, lambda x: x['contents']['twoColumnWatchNextResults']['results']['results']['contents'], list) or []
-            badges_types = set()
-            for content in contents:
-                if not isinstance(content, dict):
-                    continue
-                badges_types.update(self._extract_badges(content.get('videoPrimaryInfoRenderer')))
-            for badge_type in badges_types:
-                if badge_type == 'members_only':
-                    is_membersonly = True
-                elif badge_type == 'premium':
-                    is_premium = True
-                elif badge_type == 'unlisted':
-                    is_unlisted = True
+        badges = self._extract_badges(traverse_obj(contents, (..., 'videoPrimaryInfoRenderer'), get_all=False))
 
-        info['availability'] = self._availability(
-            is_private=is_private,
-            needs_premium=is_premium,
-            needs_subscription=is_membersonly,
-            needs_auth=info['age_limit'] >= 18,
-            is_unlisted=None if is_private is None else is_unlisted)
+        is_private = (self._has_badge(badges, BadgeType.AVAILABILITY_PRIVATE)
+                      or get_first(video_details, 'isPrivate', expected_type=bool))
+
+        info['availability'] = (
+            'public' if self._has_badge(badges, BadgeType.AVAILABILITY_PUBLIC)
+            else self._availability(
+                is_private=is_private,
+                needs_premium=(
+                    self._has_badge(badges, BadgeType.AVAILABILITY_PREMIUM)
+                    or False if initial_data and is_private is not None else None),
+                needs_subscription=(
+                    self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION)
+                    or False if initial_data and is_private is not None else None),
+                needs_auth=info['age_limit'] >= 18,
+                is_unlisted=None if is_private is None else (
+                    self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED)
+                    or get_first(microformats, 'isUnlisted', expected_type=bool))))
 
         info['__post_extractor'] = self.extract_comments(master_ytcfg, video_id, contents, webpage)
 
@@ -4609,16 +4617,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         Note: Unless YouTube tells us explicitly, we do not assume it is public
         @param data: response
         """
-        options = []
-        is_private = is_unlisted = None
         renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer') or {}
 
         player_header_privacy = traverse_obj(
             data, ('header', 'playlistHeaderRenderer', 'privacy'), expected_type=str)
-        if player_header_privacy:
-            options.append(player_header_privacy.lower())
 
-        options.extend(self._extract_badges(renderer))
+        badges = self._extract_badges(renderer)
 
         # Personal playlists, when authenticated, have a dropdown visibility selector instead of a badge
         privacy_setting_icon = traverse_obj(
@@ -4627,23 +4631,23 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 lambda _, v: v['privacyDropdownItemRenderer']['isSelected'], 'privacyDropdownItemRenderer', 'icon', 'iconType'),
             get_all=False, expected_type=str)
 
-        if privacy_setting_icon:
-            options.append(self._PRIVACY_ICON_MAP.get(privacy_setting_icon))
-
-        for option in options:
-            if option == 'unlisted':
-                is_unlisted = True
-            elif option == 'private':
-                is_private = True
-            elif option == 'public':
-                is_unlisted = is_private = False
-
-        return self._availability(
-            is_private=is_private,
-            is_unlisted=is_unlisted,
-            needs_auth=False,
-            needs_subscription=False,
-            needs_premium=False)
+        return (
+            'public' if (
+                self._has_badge(badges, BadgeType.AVAILABILITY_PUBLIC)
+                or player_header_privacy == 'PUBLIC'
+                or privacy_setting_icon == 'PRIVACY_PUBLIC')
+            else self._availability(
+                is_private=(
+                    self._has_badge(badges, BadgeType.AVAILABILITY_PRIVATE)
+                    or player_header_privacy == 'PRIVATE' if player_header_privacy is not None
+                    else privacy_setting_icon == 'PRIVACY_PRIVATE' if privacy_setting_icon is not None else None),
+                is_unlisted=(
+                    self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED)
+                    or player_header_privacy == 'UNLISTED' if player_header_privacy is not None
+                    else privacy_setting_icon == 'PRIVACY_UNLISTED' if privacy_setting_icon is not None else None),
+                needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
+                needs_premium=self._has_badge(badges, BadgeType.AVAILABILITY_PREMIUM) or None,
+                needs_auth=False))
 
     @staticmethod
     def _extract_sidebar_info_renderer(data, info_renderer, expected_type=dict):
