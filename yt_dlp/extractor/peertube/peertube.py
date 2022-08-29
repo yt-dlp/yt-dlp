@@ -1169,7 +1169,7 @@ class PeerTubeBaseIE(SelfHostedInfoExtractor):
             else:
                 f['fps'] = int_or_none(file_.get('fps'))
             formats.append(f)
-            # ytdl-patched does not support BitTorrent for now
+            # yt-dlp does not support BitTorrent for now
             # if file_.get('torrentDownloadUrl'):
             #     f = f.copy()
             #     f.update({
