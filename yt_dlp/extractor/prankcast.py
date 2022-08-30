@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from .common import InfoExtractor
 from ..utils import parse_duration
@@ -21,26 +22,31 @@ class PrankCastIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         # Extract the JSON
-        json = self._search_nextjs_data(webpage, video_id)
+        json_info = self._search_nextjs_data(webpage, video_id)
 
         # Get the broadcast URL and the recording hash.
         # The full URL is {broadcast_url}/{recording_hash}.mp3
-        broadcast_url = json['props']['pageProps']['ssr_data_showreel']['broadcast_url']
-        recording_hash = json['props']['pageProps']['ssr_data_showreel']['recording_hash']
+        broadcast_url = json_info['props']['pageProps']['ssr_data_showreel']['broadcast_url']
+        recording_hash = json_info['props']['pageProps']['ssr_data_showreel']['recording_hash']
         url = broadcast_url + recording_hash + ".mp3"
 
         # Get dates
-        start_date = json['props']['pageProps']['ssr_data_showreel']['start_date'].replace('Z', '')
-        end_date = json['props']['pageProps']['ssr_data_showreel']['end_date'].replace('Z', '')
+        start_date = json_info['props']['pageProps']['ssr_data_showreel']['start_date'].replace('Z', '')
+        end_date = json_info['props']['pageProps']['ssr_data_showreel']['end_date'].replace('Z', '')
 
         # Get broadcast date
         upload_date = start_date.split('T')[0].replace('-', '')
 
         # Get broadcast title
-        broadcast_title = json['props']['pageProps']['ssr_data_showreel']['broadcast_title']
+        broadcast_title = json_info['props']['pageProps']['ssr_data_showreel']['broadcast_title']
 
         # Get author (AKA show host)
-        uploader = json['props']['pageProps']['ssr_data_showreel']['user_name']
+        uploader = json_info['props']['pageProps']['ssr_data_showreel']['user_name']
+
+        # Get the co-hosts/guests
+        guests = [uploader]
+        for guest in json.loads(json_info['props']['pageProps']['ssr_data_showreel']['guests_json']):
+            guests.append(guest['name'])
 
         # Parse the duration of the stream
         duration = datetime.fromisoformat(end_date) - datetime.fromisoformat(start_date)
@@ -52,5 +58,6 @@ class PrankCastIE(InfoExtractor):
             'upload_date': upload_date,
             'uploader': uploader,
             'url': url,
-            'duration': parsed_duration
+            'duration': parsed_duration,
+            'cast': ', '.join(guests)
         }
