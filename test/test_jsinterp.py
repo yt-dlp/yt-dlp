@@ -130,6 +130,11 @@ class TestJSInterpreter(unittest.TestCase):
 
     def test_builtins(self):
         jsi = JSInterpreter('''
+        function x() { return NaN }
+        ''')
+        self.assertTrue(math.isnan(jsi.call_function('x')))
+
+        jsi = JSInterpreter('''
         function x() { return new Date('Wednesday 31 December 1969 18:01:26 MDT') - 0; }
         ''')
         self.assertEqual(jsi.call_function('x'), 86000)

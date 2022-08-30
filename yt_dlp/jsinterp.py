@@ -172,7 +172,14 @@ class Debugger:
         def interpret_statement(self, stmt, local_vars, allow_recursion, *args, **kwargs):
             if cls.ENABLED and stmt.strip():
                 cls.write(stmt, level=allow_recursion)
-            ret, should_ret = f(self, stmt, local_vars, allow_recursion, *args, **kwargs)
+            try:
+                ret, should_ret = f(self, stmt, local_vars, allow_recursion, *args, **kwargs)
+            except Exception as e:
+                if cls.ENABLED:
+                    if isinstance(e, ExtractorError):
+                        e = e.orig_msg
+                    cls.write('=> Raises:', e, '<-|', stmt, level=allow_recursion)
+                raise
             if cls.ENABLED and stmt.strip():
                 cls.write(['->', '=>'][should_ret], repr(ret), '<-|', stmt, level=allow_recursion)
             return ret, should_ret
@@ -226,7 +233,7 @@ class JSInterpreter:
 
     @staticmethod
     def _separate(expr, delim=',', max_split=None):
-        OP_CHARS = '+-*/%&|^=<>!,;{}()[]:'
+        OP_CHARS = '+-*/%&|^=<>!,;{}:'
         if not expr:
             return
         counters = {k: 0 for k in _MATCHING_PARENS.values()}
@@ -504,7 +511,7 @@ class JSInterpreter:
                 (?P<op>{"|".join(map(re.escape, set(_OPERATORS) - _COMP_OPERATORS))})?
                 =(?!=)(?P<expr>.*)$
             )|(?P<return>
-                (?!if|return|true|false|null|undefined)(?P<name>{_NAME_RE})$
+                (?!if|return|true|false|null|undefined|NaN)(?P<name>{_NAME_RE})$
             )|(?P<indexing>
                 (?P<in>{_NAME_RE})\[(?P<idx>.+)\]$
             )|(?P<attribute>
@@ -539,6 +546,8 @@ class JSInterpreter:
             raise JS_Continue()
         elif expr == 'undefined':
             return JS_Undefined, should_return
+        elif expr == 'NaN':
+            return float('NaN'), should_return
 
         elif m and m.group('return'):
             return local_vars.get(m.group('name'), JS_Undefined), should_return
@@ -784,7 +793,7 @@ class JSInterpreter:
             global_stack[0].update(itertools.zip_longest(argnames, args, fillvalue=None))
             global_stack[0].update(kwargs)
             var_stack = LocalNameSpace(*global_stack)
-            ret, should_abort = self.interpret_statement(code.replace('\n', ''), var_stack, allow_recursion - 1)
+            ret, should_abort = self.interpret_statement(code.replace('\n', ' '), var_stack, allow_recursion - 1)
             if should_abort:
                 return ret
         return resf

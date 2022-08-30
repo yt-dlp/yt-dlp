@@ -2670,7 +2670,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
-        func_code = self.cache.load('youtube-nsig', player_id, after='2022.08.19.1')
+        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2022.08.19.2')
         jscode = func_code or self._load_player(video_id, player_url)
         jsi = JSInterpreter(jscode)
 
@@ -3282,7 +3282,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 except ExtractorError as e:
                     phantomjs_hint = ''
                     if isinstance(e, JSInterpreter.Exception):
-                        phantomjs_hint = f'         Install {self._downloader._format_err("PhantomJS", self._downloader.Styles.EMPHASIS)} to workaround the issue\n'
+                        phantomjs_hint = (f'         Install {self._downloader._format_err("PhantomJS", self._downloader.Styles.EMPHASIS)} '
+                                          f'to workaround the issue. {PhantomJSwrapper.INSTALL_HINT}\n')
                     self.report_warning(
                         f'nsig extraction failed: You may experience throttling for some formats\n{phantomjs_hint}'
                         f'         n = {query["n"][0]} ; player = {player_url}', video_id=video_id, only_once=True)
