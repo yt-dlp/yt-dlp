@@ -14,7 +14,11 @@ from email.message import Message
 from http import HTTPStatus
 from typing import Union
 
-from .utils import ssl_load_certs
+from .utils import (
+    ssl_load_certs,
+    handle_request_errors
+)
+
 from .. import utils
 
 try:
@@ -387,19 +391,17 @@ class RequestHandler:
             if scheme not in self.SUPPORTED_PROXY_SCHEMES:
                 raise UnsupportedRequest(f'unsupported proxy type: "{scheme}"')
 
-    def prepare_request(self, request: Request):
-        self._check_scheme(request)
-        request.headers = CaseInsensitiveDict(self.ydl.params.get('http_headers', {}), request.headers)
-        if 'Youtubedl-no-compression' in request.headers:
-            del request.headers['Youtubedl-no-compression']
-            request.compression = False
+    @handle_request_errors
+    def can_handle(self, request, fatal=False):
+        try:
+            self.prepare_request(request)
+        except UnsupportedRequest:
+            if fatal:
+                raise
+            return False
+        return True
 
-        if self.SUPPORTED_ENCODINGS and 'Accept-Encoding' not in request.headers:
-            request.headers['Accept-Encoding'] = ', '.join(self.SUPPORTED_ENCODINGS)
-
-        if not request.compression:
-            request.headers.pop('Accept-Encoding', None)
-
+    def _prepare_proxies(self, request):
         request.proxies = request.proxies or self.ydl.proxies
         req_proxy = request.headers.pop('Ytdl-request-proxy', None)
         if req_proxy:
@@ -417,17 +419,41 @@ class RequestHandler:
                 if proxy_scheme is None:
                     request.proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
 
-        request.timeout = float(request.timeout or self.ydl.params.get('socket_timeout') or 20)  # do not accept 0
+    def _prepare_headers(self, request):
+        request.headers = CaseInsensitiveDict(self.ydl.params.get('http_headers', {}), request.headers)
+        if 'Youtubedl-no-compression' in request.headers:
+            del request.headers['Youtubedl-no-compression']
+            request.compression = False
+
+        if self.SUPPORTED_ENCODINGS and 'Accept-Encoding' not in request.headers:
+            request.headers['Accept-Encoding'] = ', '.join(self.SUPPORTED_ENCODINGS)
+
+        if not request.compression:
+            request.headers.pop('Accept-Encoding', None)
+
+    @handle_request_errors
+    def prepare_request(self, request: Request):
+        """Returns a new Request prepared for this handler."""
+        if not isinstance(request, Request):
+            raise TypeError('Expected an instance of Request')
+        request = request.copy()
+        self._check_scheme(request)
+        self._prepare_headers(request)
+        self._prepare_proxies(request)
+        request.timeout = float(
+            request.timeout or self.ydl.params.get('socket_timeout') or 20)  # do not accept 0
         self._check_proxies(request)
         return self._prepare_request(request)
 
     def _prepare_request(self, request: Request):
-        """Prepare a request for this handler. Redefine in subclasses."""
+        """Returns a new Request prepared for this handler. Redefine in subclasses for custom handling"""
         return request
 
+    @handle_request_errors
     def handle(self, request: Request):
         try:
             request = self.prepare_request(request)
+            assert isinstance(request, Request)
             return self._real_handle(request)
         except RequestError as e:
             if e.handler is None:
@@ -479,11 +505,8 @@ class RequestDirector:
     def is_supported(self, request: Request):
         """Check if a request can be handled without making any requests"""
         for handler in self._handlers:
-            try:
-                handler.prepare_request(request.copy())
+            if handler.can_handle(request):
                 return True
-            except UnsupportedRequest:
-                continue
         return False
 
     def send(self, request: Union[Request, str, urllib.request.Request]) -> Response:

@@ -22,7 +22,7 @@ from test.helper import FakeYDL, http_server_port
 from yt_dlp import YoutubeDL
 from yt_dlp.networking import Request, UrllibRH, REQUEST_HANDLERS
 from yt_dlp.utils import urlencode_postdata
-from yt_dlp.networking.exceptions import HTTPError, IncompleteRead, SSLError, UnsupportedRequest
+from yt_dlp.networking.exceptions import HTTPError, IncompleteRead, SSLError, UnsupportedRequest, RequestError
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -289,6 +289,19 @@ class RequestHandlerTestCase(unittest.TestCase):
 
 
 class TestRequestHandler(RequestHandlerTestCase):
+
+    @with_make_rh()
+    def test_raise(self, make_rh):
+        with make_rh() as rh:
+            for func in (rh.handle, rh.prepare_request, functools.partial(rh.can_handle, fatal=True)):
+                try:
+                    func(Request('bad123://'))
+                except RequestError as e:
+                    self.assertIs(e.handler, rh)
+
+            with self.assertRaises(TypeError):
+                rh.handle(None)
+
     @with_make_rh()
     def test_nocheckcertificate(self, make_rh):
         with make_rh({'logger': FakeLogger()}) as rh:
