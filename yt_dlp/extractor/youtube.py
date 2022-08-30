@@ -2670,7 +2670,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
-        func_code = self.cache.load('youtube-nsig', player_id, after='2022.08.19')
+        func_code = self.cache.load('youtube-nsig', player_id, after='2022.08.19.1')
         jscode = func_code or self._load_player(video_id, player_url)
         jsi = JSInterpreter(jscode)
 
