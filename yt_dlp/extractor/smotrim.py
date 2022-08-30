@@ -58,16 +58,17 @@ class SmotrimIE(InfoExtractor):
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None, 'Downloading webpage')
-        m = re.match(self._VALID_URL, url)
-        if m.group('type') == 'brand':
-            video_id = self._search_regex(r'"https://player.smotrim.ru/iframe/video/id/(?P<video_id>[0-9]+)/', webpage, 'video_id', default=None)
+        if re.match(self._VALID_URL, url).group('type') == 'brand':
+            video_id = self._search_regex(
+                r'"https://player.smotrim.ru/iframe/video/id/(?P<video_id>[0-9]+)/',
+                webpage, 'video_id', default=None)
             if video_id is None:
                 raise ExtractorError('This page doesn\'t contain video.', expected=True)
             webpage = self._download_webpage('https://smotrim.ru/video/' + video_id, None, 'Redirect to video')
 
         # Example: https://player.smotrim.ru/iframe/video/id/1539617/start_zoom/true/showZoomBtn/false/sid/smotrim/isPlay/true/mute/true/?acc_video_id=1488382"
         m = re.search(
-            r'"https://player.smotrim.ru/iframe/video/id/(?P<video_id>[0-9]+)/[^"]*?/?acc_video_id=(?P<player_id>[0-9]+)"',
+            r'"https://player.smotrim.ru/iframe/video/id/(?P<video_id>[0-9]+)/[^"]*?/\?acc_video_id=(?P<player_id>[0-9]+)"',
             webpage)
         if m is None:
             raise ExtractorError('This page doesn\'t contain video.', expected=True)
