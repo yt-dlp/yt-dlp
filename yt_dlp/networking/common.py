@@ -547,11 +547,6 @@ class RequestDirector:
                 unexpected_errors.append(e)
                 continue
 
-            if not response:
-                self.ydl.report_warning(
-                    f'{handler.NAME} request handler returned nothing for response, trying another handler...' + bug_reports_message())
-                continue
-
             assert isinstance(response, Response)
             return response
 
