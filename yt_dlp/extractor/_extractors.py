@@ -1083,6 +1083,7 @@ from .newgrounds import (
     NewgroundsPlaylistIE,
     NewgroundsUserIE,
 )
+from .newspicks import NewsPicksIE
 from .newstube import NewstubeIE
 from .newsy import NewsyIE
 from .nextmedia import (

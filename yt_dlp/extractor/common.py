@@ -3260,7 +3260,7 @@ class InfoExtractor:
                 'subtitles': {},
             }
             media_attributes = extract_attributes(media_tag)
-            src = strip_or_none(media_attributes.get('src'))
+            src = strip_or_none(dict_get(media_attributes, ('src', 'data-video-src', 'data-src', 'data-source')))
             if src:
                 f = parse_content_type(media_attributes.get('type'))
                 _, formats = _media_formats(src, media_type, f)
@@ -3271,7 +3271,7 @@ class InfoExtractor:
                     s_attr = extract_attributes(source_tag)
                     # data-video-src and data-src are non standard but seen
                     # several times in the wild
-                    src = strip_or_none(dict_get(s_attr, ('src', 'data-video-src', 'data-src')))
+                    src = strip_or_none(dict_get(s_attr, ('src', 'data-video-src', 'data-src', 'data-source')))
                     if not src:
                         continue
                     f = parse_content_type(s_attr.get('type'))
