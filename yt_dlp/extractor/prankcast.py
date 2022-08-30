@@ -21,7 +21,7 @@ class PrankCastIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         # Extract the JSON
-        json = self._search_nextjs_data(webpage, video_id);
+        json = self._search_nextjs_data(webpage, video_id)
 
         # Get the broadcast URL and the recording hash.
         # The full URL is {broadcast_url}/{recording_hash}.mp3
