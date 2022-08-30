@@ -840,19 +840,35 @@ class Popen(subprocess.Popen):
     else:
         _startupinfo = None
 
+    @staticmethod
+    def _fix_pyinstaller_ld_path(env):
+        """Restore LD_LIBRARY_PATH when using PyInstaller
+            Ref: https://github.com/pyinstaller/pyinstaller/blob/develop/doc/runtime-information.rst#ld_library_path--libpath-considerations
+                 https://github.com/yt-dlp/yt-dlp/issues/4573
+        """
+        if not hasattr(sys, '_MEIPASS'):
+            return
+
+        def _fix(key):
+            orig = env.get(f'{key}_ORIG')
+            if orig is None:
+                env.pop(key, None)
+            else:
+                env[key] = orig
+
+        _fix('LD_LIBRARY_PATH')  # Linux
+        _fix('DYLD_LIBRARY_PATH')  # macOS
+
     def __init__(self, *args, env=None, text=False, **kwargs):
+        if env is None:
+            env = os.environ.copy()
+        self._fix_pyinstaller_ld_path(env)
+
         if text is True:
             kwargs['universal_newlines'] = True  # For 3.6 compatibility
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
-        if compat_os_name != 'nt' and hasattr(sys, '_MEIPASS'):
-            # unset LD_LIBRARY_PATH for child processes on non-Windows systems
-            # https://github.com/yt-dlp/yt-dlp/issues/4573
-            if env is None:
-                env = dict(os.environ)
-            env.pop('LD_LIBRARY_PATH', None)  # GNU/Linux
-            env.pop('DYLD_LIBRARY_PATH', None)  # macOS
-        super().__init__(*args, **kwargs, startupinfo=self._startupinfo)
+        super().__init__(*args, env=env, **kwargs, startupinfo=self._startupinfo)
 
     def communicate_or_kill(self, *args, **kwargs):
         try:
