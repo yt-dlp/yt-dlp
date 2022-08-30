@@ -21,33 +21,34 @@ class PrankCastIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         # Extract the JSON
-        json = self._html_search_regex(r'<script id=\"__NEXT_DATA__\"[^>]*>(.*)</script>', webpage, 'json_info')
+        json = self._search_nextjs_data(webpage, video_id);
 
         # Get the broadcast URL and the recording hash.
         # The full URL is {broadcast_url}/{recording_hash}.mp3
-        broadcast_url = self._html_search_regex(r'(?<=broadcast_url\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'broadcast_url').replace('"', '')
-        recording_hash = self._html_search_regex(r'(?<=recording_hash\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'recording_hash').replace('"', '')
+        broadcast_url = json['props']['pageProps']['ssr_data_showreel']['broadcast_url']
+        recording_hash = json['props']['pageProps']['ssr_data_showreel']['recording_hash']
         url = broadcast_url + recording_hash + ".mp3"
 
+        # Get dates
+        start_date = json['props']['pageProps']['ssr_data_showreel']['start_date'].replace('Z', '')
+        end_date = json['props']['pageProps']['ssr_data_showreel']['end_date'].replace('Z', '')
+
         # Get broadcast date
-        upload_date = self._html_search_regex(r'(?<=start_date\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'upload_date').replace('"', '').split('T')[0].replace('-', '')
+        upload_date = start_date.split('T')[0].replace('-', '')
 
         # Get broadcast title
-        title = self._html_search_regex(r'(?<=broadcast_title\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'title').replace('"', '')
+        broadcast_title = json['props']['pageProps']['ssr_data_showreel']['broadcast_title']
 
         # Get author (AKA show host)
-        uploader = self._html_search_regex(r'(?<=user_name\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'uploader').replace('"', '')
+        uploader = json['props']['pageProps']['ssr_data_showreel']['user_name']
 
         # Parse the duration of the stream
-        start = self._html_search_regex(r'(?<=start_date\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'start_date').replace('"', '').replace('Z', '')
-        end = self._html_search_regex(r'(?<=end_date\")(?:\s*\:\s*)(\".*?(?=\")\")', json, 'end_date').replace('"', '').replace('Z', '')
-
-        duration = datetime.fromisoformat(end) - datetime.fromisoformat(start)
+        duration = datetime.fromisoformat(end_date) - datetime.fromisoformat(start_date)
         parsed_duration = int(parse_duration(str(duration)))
 
         return {
             'id': video_id,
-            'title': title,
+            'title': broadcast_title,
             'upload_date': upload_date,
             'uploader': uploader,
             'url': url,
