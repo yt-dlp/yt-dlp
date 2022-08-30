@@ -25,6 +25,7 @@ from .utils import (
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
     Config,
+    deprecation_warning,
     expand_path,
     format_field,
     get_executable_path,
@@ -1864,7 +1865,6 @@ def create_parser():
 
 
 def _hide_login_info(opts):
-    write_string(
-        'DeprecationWarning: "yt_dlp.options._hide_login_info" is deprecated and may be removed in a future version. '
-        'Use "yt_dlp.utils.Config.hide_login_info" instead\n')
+    deprecation_warning(f'"{__name__}._hide_login_info" is deprecated and may be removed '
+                        'in a future version. Use "yt_dlp.utils.Config.hide_login_info" instead')
     return Config.hide_login_info(opts)

@@ -63,6 +63,8 @@ from .utils import (
 )
 from .YoutubeDL import YoutubeDL
 
+_IN_CLI = False
+
 
 def _exit(status=0, *args):
     for msg in args:

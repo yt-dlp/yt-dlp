@@ -1766,9 +1766,8 @@ class InfoExtractor:
             if field not in self.settings:
                 if key in ('forced', 'priority'):
                     return False
-                self.ydl.deprecation_warning(
-                    f'Using arbitrary fields ({field}) for format sorting is deprecated '
-                    'and may be removed in a future version')
+                self.ydl.deprecated_feature(f'Using arbitrary fields ({field}) for format sorting is '
+                                            'deprecated and may be removed in a future version')
                 self.settings[field] = {}
             propObj = self.settings[field]
             if key not in propObj:
@@ -1853,9 +1852,8 @@ class InfoExtractor:
                 if self._get_field_setting(field, 'type') == 'alias':
                     alias, field = field, self._get_field_setting(field, 'field')
                     if self._get_field_setting(alias, 'deprecated'):
-                        self.ydl.deprecation_warning(
-                            f'Format sorting alias {alias} is deprecated '
-                            f'and may be removed in a future version. Please use {field} instead')
+                        self.ydl.deprecated_feature(f'Format sorting alias {alias} is deprecated and may '
+                                                    'be removed in a future version. Please use {field} instead')
                 reverse = match.group('reverse') is not None
                 closest = match.group('separator') == '~'
                 limit_text = match.group('limit')

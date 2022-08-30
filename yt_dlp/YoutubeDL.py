@@ -90,6 +90,7 @@ from .utils import (
     args_to_str,
     bug_reports_message,
     date_from_str,
+    deprecation_warning,
     determine_ext,
     determine_protocol,
     encode_compat_str,
@@ -631,7 +632,7 @@ class YoutubeDL:
         for msg in self.params.get('_warnings', []):
             self.report_warning(msg)
         for msg in self.params.get('_deprecation_warnings', []):
-            self.deprecation_warning(msg)
+            self.deprecated_feature(msg)
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         if 'list-formats' in self.params['compat_opts']:
@@ -835,9 +836,11 @@ class YoutubeDL:
     def to_stdout(self, message, skip_eol=False, quiet=None):
         """Print message to stdout"""
         if quiet is not None:
-            self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument quiet. Use "YoutubeDL.to_screen" instead')
+            self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument quiet. '
+                                     'Use "YoutubeDL.to_screen" instead')
         if skip_eol is not False:
-            self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument skip_eol. Use "YoutubeDL.to_screen" instead')
+            self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument skip_eol. '
+                                     'Use "YoutubeDL.to_screen" instead')
         self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.out)
 
     def to_screen(self, message, skip_eol=False, quiet=None):
@@ -973,11 +976,14 @@ class YoutubeDL:
                 return
             self.to_stderr(f'{self._format_err("WARNING:", self.Styles.WARNING)} {message}', only_once)
 
-    def deprecation_warning(self, message):
+    def deprecation_warning(self, message, *, stacklevel=0):
+        deprecation_warning(
+            message, stacklevel=stacklevel + 1, printer=self.report_error, is_error=False)
+
+    def deprecated_feature(self, message):
         if self.params.get('logger') is not None:
-            self.params['logger'].warning(f'DeprecationWarning: {message}')
-        else:
-            self.to_stderr(f'{self._format_err("DeprecationWarning:", self.Styles.ERROR)} {message}', True)
+            self.params['logger'].warning(f'Deprecated Feature: {message}')
+        self.to_stderr(f'{self._format_err("Deprecated Feature:", self.Styles.ERROR)} {message}', True)
 
     def report_error(self, message, *args, **kwargs):
         '''
