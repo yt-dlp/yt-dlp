@@ -304,8 +304,9 @@ class YoutubeDL:
                        should act on each input URL as opposed to for the entire queue
     cookiefile:        File name or text stream from where cookies should be read and dumped to
     cookiesfrombrowser:  A tuple containing the name of the browser, the profile
-                       name/path from where cookies are loaded, and the name of the
-                       keyring, e.g. ('chrome', ) or ('vivaldi', 'default', 'BASICTEXT')
+                       name/path from where cookies are loaded, the name of the keyring,
+                       and the container name, e.g. ('chrome', ) or
+                       ('vivaldi', 'default', 'BASICTEXT') or ('firefox', 'default', None, 'Meta')
     legacyserverconnect: Explicitly allow HTTPS connection to servers that do not
                        support RFC 5746 secure renegotiation
     nocheckcertificate:  Do not verify SSL certificates
