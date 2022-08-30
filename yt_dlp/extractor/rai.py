@@ -156,7 +156,7 @@ class RaiBaseIE(InfoExtractor):
             br = int_or_none(tbr)
             if len(fmts) == 1 and not br:
                 br = fmts[0].get('tbr')
-            if br or 0 > 300:
+            if br and br > 300:
                 tbr = compat_str(math.floor(br / 100) * 100)
             else:
                 tbr = '250'

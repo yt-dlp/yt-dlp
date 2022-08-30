@@ -63,6 +63,8 @@ from .utils import (
 )
 from .YoutubeDL import YoutubeDL
 
+_IN_CLI = False
+
 
 def _exit(status=0, *args):
     for msg in args:
@@ -766,6 +768,7 @@ def parse_options(argv=None):
         'windowsfilenames': opts.windowsfilenames,
         'ignoreerrors': opts.ignoreerrors,
         'force_generic_extractor': opts.force_generic_extractor,
+        'allowed_extractors': opts.allowed_extractors or ['default'],
         'ratelimit': opts.ratelimit,
         'throttledratelimit': opts.throttledratelimit,
         'overwrites': opts.overwrites,

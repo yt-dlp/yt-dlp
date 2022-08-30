@@ -3,7 +3,6 @@ import re
 import urllib.parse
 import xml.etree.ElementTree
 
-from . import gen_extractor_classes
 from .common import InfoExtractor  # isort: split
 from .brightcove import BrightcoveLegacyIE, BrightcoveNewIE
 from .commonprotocols import RtmpIE
@@ -26,6 +25,7 @@ from ..utils import (
     parse_resolution,
     smuggle_url,
     str_or_none,
+    traverse_obj,
     try_call,
     unescapeHTML,
     unified_timestamp,
@@ -2805,7 +2805,7 @@ class GenericIE(InfoExtractor):
 
         self._downloader.write_debug('Looking for embeds')
         embeds = []
-        for ie in gen_extractor_classes():
+        for ie in self._downloader._ies.values():
             gen = ie.extract_from_webpage(self._downloader, url, webpage)
             current_embeds = []
             try:
@@ -2840,8 +2840,9 @@ class GenericIE(InfoExtractor):
             try:
                 info = self._parse_jwplayer_data(
                     jwplayer_data, video_id, require_title=False, base_url=url)
-                self.report_detected('JW Player data')
-                return merge_dicts(info, info_dict)
+                if traverse_obj(info, 'formats', ('entries', ..., 'formats')):
+                    self.report_detected('JW Player data')
+                    return merge_dicts(info, info_dict)
             except ExtractorError:
                 # See https://github.com/ytdl-org/youtube-dl/pull/16735
                 pass

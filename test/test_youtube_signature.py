@@ -102,6 +102,26 @@ _NSIG_TESTS = [
         'https://www.youtube.com/s/player/4c3f79c5/player_ias.vflset/en_US/base.js',
         'TDCstCG66tEAO5pR9o', 'dbxNtZ14c-yWyw',
     ),
+    (
+        'https://www.youtube.com/s/player/c81bbb4a/player_ias.vflset/en_US/base.js',
+        'gre3EcLurNY2vqp94', 'Z9DfGxWP115WTg',
+    ),
+    (
+        'https://www.youtube.com/s/player/1f7d5369/player_ias.vflset/en_US/base.js',
+        'batNX7sYqIJdkJ', 'IhOkL_zxbkOZBw',
+    ),
+    (
+        'https://www.youtube.com/s/player/009f1d77/player_ias.vflset/en_US/base.js',
+        '5dwFHw8aFWQUQtffRq', 'audescmLUzI3jw',
+    ),
+    (
+        'https://www.youtube.com/s/player/dc0c6770/player_ias.vflset/en_US/base.js',
+        '5EHDMgYLV6HPGk_Mu-kk', 'n9lUJLHbxUI0GQ',
+    ),
+    (
+        'https://www.youtube.com/s/player/113ca41c/player_ias.vflset/en_US/base.js',
+        'cgYl-tlYkhjT7A', 'hI7BBr2zUgcmMg',
+    ),
 ]
 
 

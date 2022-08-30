@@ -480,6 +480,9 @@ class InfoExtractor:
     will be used by geo restriction bypass mechanism similarly
     to _GEO_COUNTRIES.
 
+    The _ENABLED attribute should be set to False for IEs that
+    are disabled by default and must be explicitly enabled.
+
     The _WORKING attribute should be set to False for broken IEs
     in order to warn the users and skip the tests.
     """
@@ -491,6 +494,7 @@ class InfoExtractor:
     _GEO_COUNTRIES = None
     _GEO_IP_BLOCKS = None
     _WORKING = True
+    _ENABLED = True
     _NETRC_MACHINE = None
     IE_DESC = None
     SEARCH_KEY = None
@@ -1762,9 +1766,8 @@ class InfoExtractor:
             if field not in self.settings:
                 if key in ('forced', 'priority'):
                     return False
-                self.ydl.deprecation_warning(
-                    f'Using arbitrary fields ({field}) for format sorting is deprecated '
-                    'and may be removed in a future version')
+                self.ydl.deprecated_feature(f'Using arbitrary fields ({field}) for format sorting is '
+                                            'deprecated and may be removed in a future version')
                 self.settings[field] = {}
             propObj = self.settings[field]
             if key not in propObj:
@@ -1849,9 +1852,8 @@ class InfoExtractor:
                 if self._get_field_setting(field, 'type') == 'alias':
                     alias, field = field, self._get_field_setting(field, 'field')
                     if self._get_field_setting(alias, 'deprecated'):
-                        self.ydl.deprecation_warning(
-                            f'Format sorting alias {alias} is deprecated '
-                            f'and may be removed in a future version. Please use {field} instead')
+                        self.ydl.deprecated_feature(f'Format sorting alias {alias} is deprecated and may '
+                                                    'be removed in a future version. Please use {field} instead')
                 reverse = match.group('reverse') is not None
                 closest = match.group('separator') == '~'
                 limit_text = match.group('limit')
@@ -3941,3 +3943,12 @@ class SearchInfoExtractor(InfoExtractor):
     @classproperty
     def SEARCH_KEY(cls):
         return cls._SEARCH_KEY
+
+
+class UnsupportedURLIE(InfoExtractor):
+    _VALID_URL = '.*'
+    _ENABLED = False
+    IE_DESC = False
+
+    def _real_extract(self, url):
+        raise UnsupportedError(url)

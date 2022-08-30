@@ -71,7 +71,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 # NEW FEATURES
 
-* Merged with **youtube-dl v2021.12.17+ [commit/d231b56](https://github.com/ytdl-org/youtube-dl/commit/d231b56717c73ee597d2e077d11b69ed48a1b02d)**<!--([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))--> and **youtube-dlc v2020.11.11-3+ [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
+* Merged with **youtube-dl v2021.12.17+ [commit/b0a60ce](https://github.com/ytdl-org/youtube-dl/commit/b0a60ce2032172aeaaf27fe3866ab72768f10cb2)**<!--([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))--> and **youtube-dlc v2020.11.11-3+ [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
 
 * **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
@@ -329,7 +329,7 @@ You will need the build tools `python` (3.6+), `zip`, `make` (GNU), `pandoc`\* a
 
 After installing these, simply run `make`.
 
-You can also run `make yt-dlp` instead to compile only the binary without updating any of the additional files. (The dependencies marked with **\*** are not needed for this)
+You can also run `make yt-dlp` instead to compile only the binary without updating any of the additional files. (The build tools marked with **\*** are not needed for this)
 
 ### Standalone Py2Exe Builds (Windows)
 
@@ -375,7 +375,13 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --list-extractors               List all supported extractors and exit
     --extractor-descriptions        Output descriptions of all supported
                                     extractors and exit
-    --force-generic-extractor       Force extraction to use the generic extractor
+    --use-extractors NAMES          Extractor names to use separated by commas.
+                                    You can also use regexes, "all", "default"
+                                    and "end" (end URL matching); e.g. --ies
+                                    "holodex.*,end,youtube". Prefix the name
+                                    with a "-" to exclude it, e.g. --ies
+                                    default,-generic. Use --list-extractors for
+                                    a list of extractor names. (Alias: --ies)
     --default-search PREFIX         Use this prefix for unqualified URLs. E.g.
                                     "gvsearch2:python" downloads two videos from
                                     google videos for the search term "python".
@@ -524,8 +530,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     a file that is in the archive
     --break-on-reject               Stop the download process when encountering
                                     a file that has been filtered out
-    --break-per-input               Make --break-on-existing, --break-on-reject
-                                    and --max-downloads act only on the current
+    --break-per-input               Make --break-on-existing, --break-on-reject,
+                                    --max-downloads and autonumber reset per
                                     input URL
     --no-break-per-input            --break-on-existing and similar options
                                     terminates the entire download queue
@@ -2058,6 +2064,7 @@ While these options are redundant, they are still expected to be used due to the
 #### Not recommended
 While these options still work, their use is not recommended since there are other alternatives to achieve the same
 
+    --force-generic-extractor        --ies generic,default
     --exec-before-download CMD       --exec "before_dl:CMD"
     --no-exec-before-download        --no-exec
     --all-formats                    -f all

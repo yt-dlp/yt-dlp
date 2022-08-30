@@ -11,6 +11,23 @@
 -->
 
 
+### 2022.08.19
+
+* Fix bug in `--download-archive`
+* [jsinterp] **Fix for new youtube players** and related improvements by [dirkf](https://github.com/dirkf), [pukkandan](https://github.com/pukkandan)
+* [phantomjs] Add function to execute JS without a DOM by [MinePlayersPE](https://github.com/MinePlayersPE), [pukkandan](https://github.com/pukkandan)
+* [build] Exclude devscripts from installs by [Lesmiscore](https://github.com/Lesmiscore)
+* [cleanup] Misc fixes and cleanup
+* [extractor/youtube] **Add fallback to phantomjs** for nsig
+* [extractor/youtube] Fix error reporting of "Incomplete data"
+* [extractor/youtube] Improve format sorting for IOS formats
+* [extractor/youtube] Improve signature caching
+* [extractor/instagram] Fix extraction by [bashonly](https://github.com/bashonly), [pritam20ps05](https://github.com/pritam20ps05)
+* [extractor/rai] Minor fix by [nixxo](https://github.com/nixxo)
+* [extractor/rtbf] Fix stream extractor by [elyse0](https://github.com/elyse0)
+* [extractor/SovietsCloset] Fix extractor by [ChillingPepper](https://github.com/ChillingPepper)
+* [extractor/zattoo] Fix Zattoo resellers by [goggle](https://github.com/goggle)
+
 ### 2022.08.14
 
 * Merge youtube-dl: Upto [commit/d231b56](https://github.com/ytdl-org/youtube-dl/commit/d231b56)
@@ -19,8 +36,7 @@
 * [extractor] Fix format sorting of `channels`
 * [ffmpeg] Disable avconv unless `--prefer-avconv`
 * [ffmpeg] Smarter detection of ffprobe filename
-* [patreon] Ignore erroneous media attachments by [coletdjnz](https://github.com/coletdjnz)
-* [postprocessor/embedthumbnail] Detect `libatomicparsley.so`
+* [embedthumbnail] Detect `libatomicparsley.so`
 * [ThumbnailsConvertor] Fix conversion after `fixup_webp`
 * [utils] Fix `get_compatible_ext`
 * [build] Fix changelog
@@ -30,6 +46,7 @@
 * [cleanup] Misc fixes and cleanup
 * [extractor/moview] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
 * [extractor/parler] Add extractor by [palewire](https://github.com/palewire)
+* [extractor/patreon] Ignore erroneous media attachments by [coletdjnz](https://github.com/coletdjnz)
 * [extractor/truth] Add extractor by [palewire](https://github.com/palewire)
 * [extractor/aenetworks] Add formats parameter by [jacobtruman](https://github.com/jacobtruman)
 * [extractor/crunchyroll] Improve `_VALID_URL`s

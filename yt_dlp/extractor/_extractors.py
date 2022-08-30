@@ -720,6 +720,10 @@ from .iqiyi import (
     IqIE,
     IqAlbumIE
 )
+from .islamchannel import (
+    IslamChannelIE,
+    IslamChannelSeriesIE,
+)
 from .itprotv import (
     ITProTVIE,
     ITProTVCourseIE
@@ -2200,17 +2204,41 @@ from .youtube import (
 from .zapiks import ZapiksIE
 from .zattoo import (
     BBVTVIE,
+    BBVTVLiveIE,
+    BBVTVRecordingsIE,
     EinsUndEinsTVIE,
+    EinsUndEinsTVLiveIE,
+    EinsUndEinsTVRecordingsIE,
     EWETVIE,
+    EWETVLiveIE,
+    EWETVRecordingsIE,
     GlattvisionTVIE,
+    GlattvisionTVLiveIE,
+    GlattvisionTVRecordingsIE,
     MNetTVIE,
-    NetPlusIE,
+    MNetTVLiveIE,
+    MNetTVRecordingsIE,
+    NetPlusTVIE,
+    NetPlusTVLiveIE,
+    NetPlusTVRecordingsIE,
     OsnatelTVIE,
+    OsnatelTVLiveIE,
+    OsnatelTVRecordingsIE,
     QuantumTVIE,
+    QuantumTVLiveIE,
+    QuantumTVRecordingsIE,
     SaltTVIE,
+    SaltTVLiveIE,
+    SaltTVRecordingsIE,
     SAKTVIE,
+    SAKTVLiveIE,
+    SAKTVRecordingsIE,
     VTXTVIE,
+    VTXTVLiveIE,
+    VTXTVRecordingsIE,
     WalyTVIE,
+    WalyTVLiveIE,
+    WalyTVRecordingsIE,
     ZattooIE,
     ZattooLiveIE,
     ZattooMoviesIE,
