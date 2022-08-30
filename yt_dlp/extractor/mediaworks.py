@@ -2,6 +2,7 @@ from .common import InfoExtractor
 import re
 
 from ..utils import (
+    bug_reports_message,
     float_or_none,
     unified_timestamp,
     traverse_obj
@@ -40,6 +41,21 @@ class MediaworksVODIE(InfoExtractor):
         'params': {'format': 'ba[ext=mp3]'}
     }]
 
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.rova.nz/home/podcasts/socrates-walks-into-a-bar/the-trolley-problem---episode-1.html',
+        'info_dict': {
+            'id': 'VID02494',
+            'ext': 'mp4',
+            'title': 'The Trolley Problem',
+            'duration': 2843.56,
+            'channel': 'Other',
+            'timestamp': 1658356489,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'description': 'Socrates Walks Into A Bar Podcast Episode 1',
+            'upload_date': '20220720',
+        }
+    }]
+
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         for mobj in re.finditer(
@@ -55,7 +71,7 @@ class MediaworksVODIE(InfoExtractor):
 
         content_type = asset.get('type')
         if content_type and content_type != 'video':
-            self.report_warning(f'Unknown content type: {content_type}', video_id)
+            self.report_warning(f'Unknown content type: {content_type}' + bug_reports_message(), video_id)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(asset['streamingUrl'], video_id)
 
