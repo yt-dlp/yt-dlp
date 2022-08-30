@@ -3645,9 +3645,9 @@ class InfoExtractor:
             if not value:
                 key, value = "", key
             key = key.strip()
-            value = value.strip()
+            value = http.cookies._unquote(value.strip())
             if key or value:
-                cookie[key] = urllib.parse.unquote(value)
+                cookie[key] = value
 
         return cookie
 
