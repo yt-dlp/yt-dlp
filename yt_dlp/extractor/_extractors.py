@@ -1340,6 +1340,7 @@ from .puhutv import (
     PuhuTVIE,
     PuhuTVSerieIE,
 )
+from .prankcast import PrankCastIE
 from .premiershiprugby import PremiershipRugbyIE
 from .presstv import PressTVIE
 from .projectveritas import ProjectVeritasIE
@@ -2256,4 +2257,3 @@ from .zingmp3 import (
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE
-from .prankcast import PrankCastIE
