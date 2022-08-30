@@ -490,6 +490,11 @@ def create_parser():
         action='store_const', const='::', dest='source_address',
         help='Make all connections via IPv6',
     )
+    network.add_option(
+        '--enable-file-protocol', action='store_true',
+        dest='enable_file_protocol', default=False,
+        help='Enable file:// URLs. This is disabled by default for security reasons.'
+    )
 
     geo = optparse.OptionGroup(parser, 'Geo-restriction')
     geo.add_option(

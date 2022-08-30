@@ -3,6 +3,7 @@
 # Allow direct execution
 import os
 import sys
+import tempfile
 import unittest
 from contextlib import contextmanager
 
@@ -16,6 +17,8 @@ import io
 import ssl
 import threading
 import urllib.request
+import urllib.error
+
 from http.cookiejar import Cookie
 
 from test.helper import FakeYDL, http_server_port
@@ -492,6 +495,26 @@ class TestUrllibRequestHandler(RequestHandlerTestCase):
         with make_rh() as rh:
             res = rh.ydl._opener.open('http://127.0.0.1:%d/gen_200' % self.http_port)
             self.assertIsInstance(res, http.client.HTTPResponse)
+
+    @with_make_rh([UrllibRH])
+    def test_file_protocol(self, make_rh):
+        with tempfile.NamedTemporaryFile() as t:
+            t.write(b'foobar')
+            t.flush()
+            req = Request(f'file://{t.name}')
+            with make_rh() as rh:
+                self.assertRaises(UnsupportedRequest, rh.handle, req)
+                self.assertRaisesRegex(
+                    urllib.error.URLError, 'urlopen error unknown url type: file', rh.ydl._opener.open, req.url)
+            with make_rh({'enable_file_protocol': True}) as rh:
+                try:
+                    res = rh.handle(req)
+                    self.assertEqual(res.read(), b'foobar')
+                except UnsupportedRequest:
+                    self.fail('UnsupportedRequest raised')
+
+                res = rh.ydl._opener.open(req.url)
+                self.assertEqual(res.read(), b'foobar')
 
 
 class TestRequestDirector(RequestHandlerTestCase):

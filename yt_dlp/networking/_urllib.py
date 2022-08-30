@@ -20,6 +20,7 @@ from urllib.request import (
     UnknownHandler,
     HTTPCookieProcessor,
     DataHandler,
+    FileHandler
 )
 
 from .common import Response, RequestHandler, Features
@@ -44,7 +45,8 @@ from .exceptions import (
     HTTPError,
     IncompleteRead,
     SSLError,
-    ProxyError
+    ProxyError,
+    UnsupportedRequest
 )
 
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
@@ -424,7 +426,7 @@ def handle_response_read_exceptions(e):
 
 
 class UrllibRH(RequestHandler):
-    SUPPORTED_SCHEMES = ['http', 'https', 'data', 'ftp']
+    SUPPORTED_SCHEMES = ['http', 'https', 'data', 'ftp', 'file']
     SUPPORTED_ENCODINGS = SUPPORTED_ENCODINGS
     SUPPORTED_PROXY_SCHEMES = ['http', 'socks4', 'socks4a', 'socks5', 'socks4a', 'socks']
     SUPPORTED_FEATURES = [Features.NO_PROXY, Features.ALL_PROXY]
@@ -449,6 +451,9 @@ class UrllibRH(RequestHandler):
             HTTPErrorProcessor(),
             YDLRedirectHandler() if allow_redirects else YDLNoRedirectHandler()]
 
+        if self.ydl.params.get('enable_file_protocol'):
+            handlers.append(FileHandler())
+
         for handler in handlers:
             opener.add_handler(handler)
 
@@ -457,6 +462,12 @@ class UrllibRH(RequestHandler):
         # (See https://github.com/ytdl-org/youtube-dl/issues/1309 for details)
         opener.addheaders = []
         return opener
+
+    def _prepare_request(self, request):
+        scheme = urllib.parse.urlparse(request.url).scheme.lower()
+        if scheme == 'file' and not self.ydl.params.get('enable_file_protocol'):
+            raise UnsupportedRequest('file:// scheme is disabled by default in yt-dlp for security reasons')
+        return request
 
     def get_opener(self, request):
         return self._openers.setdefault(

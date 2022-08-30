@@ -313,6 +313,7 @@ class YoutubeDL:
                         If not provided and the key is encrypted, yt-dlp will ask interactively
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        (Only supported by some extractors)
+    enable_file_protocol: Enable file:// URLs. This is disabled by default for security reasons.
     http_headers:      A dictionary of custom headers to be used for all requests
     proxy:             URL of the proxy server to use
     geo_verification_proxy:  URL of the proxy to use for IP address verification
