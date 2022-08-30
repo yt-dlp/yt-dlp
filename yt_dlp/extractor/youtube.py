@@ -267,12 +267,12 @@ build_innertube_clients()
 
 
 class BadgeType(enum.Enum):
-    AVAILABILITY_UNLISTED = 'availability_unlisted',
-    AVAILABILITY_PRIVATE = 'availability_private',
-    AVAILABILITY_PUBLIC = 'availability_public',
-    AVAILABILITY_PREMIUM = 'availability_premium',
-    AVAILABILITY_SUBSCRIPTION = 'availability_subscription'
-    LIVE_NOW = 'live_now',
+    AVAILABILITY_UNLISTED = enum.auto()
+    AVAILABILITY_PRIVATE = enum.auto()
+    AVAILABILITY_PUBLIC = enum.auto()
+    AVAILABILITY_PREMIUM = enum.auto()
+    AVAILABILITY_SUBSCRIPTION = enum.auto()
+    LIVE_NOW = enum.auto()
 
 
 class YoutubeBaseInfoExtractor(InfoExtractor):
