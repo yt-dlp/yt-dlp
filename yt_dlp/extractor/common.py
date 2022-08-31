@@ -1693,7 +1693,7 @@ class InfoExtractor:
                      'order_free': ('webm', 'mp4', 'flv', '', 'none')},
             'aext': {'type': 'ordered', 'field': 'audio_ext',
                      'order': ('m4a', 'aac', 'mp3', 'ogg', 'opus', 'webm', '', 'none'),
-                     'order_free': ('opus', 'ogg', 'webm', 'm4a', 'mp3', 'aac', '', 'none')},
+                     'order_free': ('ogg', 'opus', 'webm', 'mp3', 'm4a', 'aac', '', 'none')},
             'hidden': {'visible': False, 'forced': True, 'type': 'extractor', 'max': -1000},
             'aud_or_vid': {'visible': False, 'forced': True, 'type': 'multiple',
                            'field': ('vcodec', 'acodec'),

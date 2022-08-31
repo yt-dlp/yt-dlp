@@ -1530,7 +1530,7 @@ The available fields are:
  - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `eac3` > `ac3` > `dts` > other)
  - `codec`: Equivalent to `vcodec,acodec`
  - `vext`: Video Extension (`mp4` > `webm` > `flv` > other). If `--prefer-free-formats` is used, `webm` is preferred.
- - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other). If `--prefer-free-formats` is used, the order changes to `opus` > `ogg` > `webm` > `m4a` > `mp3` > `aac`.
+ - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other). If `--prefer-free-formats` is used, the order changes to `ogg` > `opus` > `webm` > `mp3` > `m4a` > `aac`
  - `ext`: Equivalent to `vext,aext`
  - `filesize`: Exact filesize, if known in advance
  - `fs_approx`: Approximate filesize calculated from the manifests
