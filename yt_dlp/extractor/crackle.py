@@ -273,7 +273,7 @@ class CrackleBaseIE(InfoExtractor):
 
 class CrackleVideoIE(CrackleBaseIE):
 
-    _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(?:watch/)?(?:\d+|playlist/\d+|(?!playlist|watch)[^/]+)/(?P<video_id>\d+)'
+    _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(?:watch/)?(?:\d+|playlist/\d+|(?!playlist|watch)[^/]+)/(?P<video_id>\d+)$'
 
     _TESTS = [
         {
@@ -317,7 +317,7 @@ class CrackleChannelIE(CrackleBaseIE):
         MOVIE_PAGE = 1
         TV_PAGE = 11
 
-    _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(?:watch/)?(?P<channel_id>\d+)'
+    _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(?:watch/)?(?P<channel_id>\d+)/?$'
 
     _TESTS = [
         {
@@ -388,7 +388,7 @@ class CrackleChannelIE(CrackleBaseIE):
 
 class CracklePlaylistIE(CrackleBaseIE):
 
-    _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(watch/)?playlist/(?P<playlist_id>\d+)'
+    _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(watch/)?playlist/(?P<playlist_id>\d+)/?$'
 
     _TESTS = [
         {
