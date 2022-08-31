@@ -20,6 +20,18 @@ class AudioBoomIE(InfoExtractor):
             'uploader': 'Sue Perkins: An hour or so with...',
             'uploader_url': r're:https?://(?:www\.)?audioboom\.com/channel/perkins',
         }
+    }, {  # Direct mp3-file link
+        'url': 'https://audioboom.com/posts/8128496.mp3',
+        'md5': 'e329edf304d450def95c7f86a9165ee1',
+        'info_dict': {
+            'id': '8128496',
+            'ext': 'mp3',
+            'title': 'TCRNo8 / DAILY 03 - In Control',
+            'description': 'md5:44665f142db74858dfa21c5b34787948',
+            'duration': 1689.7,
+            'uploader': 'Lost Dot Podcast: The Trans Pyrenees and Transcontinental Race',
+            'uploader_url': r're:https?://(?:www\.)?audioboom\.com/channels/5003904',
+        }
     }, {
         'url': 'https://audioboom.com/posts/4279833-3-09-2016-czaban-hour-3?t=0',
         'only_matching': True,
