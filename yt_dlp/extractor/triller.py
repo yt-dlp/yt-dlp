@@ -118,7 +118,6 @@ class TrillerBaseIE(InfoExtractor):
         self._sort_formats(formats)
 
         comment_count = int_or_none(video_info.get('comment_count'))
-        # comments = self._get_comments(video_id, comment_count)
 
         if not user_info:
             user_info = traverse_obj(video_info, 'user', default={})
