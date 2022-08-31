@@ -130,6 +130,11 @@ class TestJSInterpreter(unittest.TestCase):
 
     def test_builtins(self):
         jsi = JSInterpreter('''
+        function x() { return NaN }
+        ''')
+        self.assertTrue(math.isnan(jsi.call_function('x')))
+
+        jsi = JSInterpreter('''
         function x() { return new Date('Wednesday 31 December 1969 18:01:26 MDT') - 0; }
         ''')
         self.assertEqual(jsi.call_function('x'), 86000)
@@ -356,11 +361,10 @@ class TestJSInterpreter(unittest.TestCase):
         self.assertEqual(jsi.call_function('x', 4), None)
         self.assertEqual(jsi.call_function('x', 'not_a_number'), 116)
 
-    def test_negative_number_left_shift_overflow(self):
+    def test_bitwise_operators_overflow(self):
         jsi = JSInterpreter('function x(){return -524999584 << 5}')
         self.assertEqual(jsi.call_function('x'), 379882496)
 
-    def test_positive_number_left_shift_overflow(self):
         jsi = JSInterpreter('function x(){return 1236566549 << 5}')
         self.assertEqual(jsi.call_function('x'), 915423904)
 

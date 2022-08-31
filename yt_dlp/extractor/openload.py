@@ -52,6 +52,8 @@ class PhantomJSwrapper:
     This class is experimental.
     """
 
+    INSTALL_HINT = 'Please download it from https://phantomjs.org/download.html'
+
     _BASE_JS = R'''
         phantom.onError = function(msg, trace) {{
           var msgStack = ['PHANTOM ERROR: ' + msg];
@@ -110,8 +112,7 @@ class PhantomJSwrapper:
 
         self.exe = check_executable('phantomjs', ['-v'])
         if not self.exe:
-            raise ExtractorError(
-                'PhantomJS not found, Please download it from https://phantomjs.org/download.html', expected=True)
+            raise ExtractorError(f'PhantomJS not found, {self.INSTALL_HINT}', expected=True)
 
         self.extractor = extractor
 
@@ -219,7 +220,7 @@ class PhantomJSwrapper:
 
         return html, stdout
 
-    def execute(self, jscode, video_id=None, note='Executing JS'):
+    def execute(self, jscode, video_id=None, *, note='Executing JS'):
         """Execute JS and return stdout"""
         if 'phantom.exit();' not in jscode:
             jscode += ';\nphantom.exit();'
@@ -231,8 +232,12 @@ class PhantomJSwrapper:
 
         cmd = [self.exe, '--ssl-protocol=any', self._TMP_FILES['script'].name]
         self.extractor.write_debug(f'PhantomJS command line: {shell_quote(cmd)}')
-        stdout, stderr, returncode = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            stdout, stderr, returncode = Popen.run(cmd, timeout=self.options['timeout'] / 1000,
+                                                   text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except Exception as e:
+            raise ExtractorError(f'{note} failed: Unable to run PhantomJS binary', cause=e)
         if returncode:
-            raise ExtractorError(f'Executing JS failed:\n{stderr.strip()}')
+            raise ExtractorError(f'{note} failed with returncode {returncode}:\n{stderr.strip()}')
 
         return stdout

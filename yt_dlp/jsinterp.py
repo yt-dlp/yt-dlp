@@ -18,10 +18,11 @@ from .utils import (
 
 
 def _js_bit_op(op):
+    def zeroise(x):
+        return 0 if x in (None, JS_Undefined) else x
+
     def wrapped(a, b):
-        def zeroise(x):
-            return 0 if x in (None, JS_Undefined) else x
-        return op(zeroise(a), zeroise(b))
+        return op(zeroise(a), zeroise(b)) & 0xffffffff
 
     return wrapped
 
@@ -98,8 +99,8 @@ _OPERATORS = {  # None => Defined in JSInterpreter._operator
     '&': _js_bit_op(operator.and_),
 
     '===': operator.is_,
-    '==': _js_eq_op(operator.eq),
     '!==': operator.is_not,
+    '==': _js_eq_op(operator.eq),
     '!=': _js_eq_op(operator.ne),
 
     '<=': _js_comp_op(operator.le),
@@ -172,7 +173,14 @@ class Debugger:
         def interpret_statement(self, stmt, local_vars, allow_recursion, *args, **kwargs):
             if cls.ENABLED and stmt.strip():
                 cls.write(stmt, level=allow_recursion)
-            ret, should_ret = f(self, stmt, local_vars, allow_recursion, *args, **kwargs)
+            try:
+                ret, should_ret = f(self, stmt, local_vars, allow_recursion, *args, **kwargs)
+            except Exception as e:
+                if cls.ENABLED:
+                    if isinstance(e, ExtractorError):
+                        e = e.orig_msg
+                    cls.write('=> Raises:', e, '<-|', stmt, level=allow_recursion)
+                raise
             if cls.ENABLED and stmt.strip():
                 cls.write(['->', '=>'][should_ret], repr(ret), '<-|', stmt, level=allow_recursion)
             return ret, should_ret
@@ -226,7 +234,7 @@ class JSInterpreter:
 
     @staticmethod
     def _separate(expr, delim=',', max_split=None):
-        OP_CHARS = '+-*/%&|^=<>!,;'
+        OP_CHARS = '+-*/%&|^=<>!,;{}:'
         if not expr:
             return
         counters = {k: 0 for k in _MATCHING_PARENS.values()}
@@ -243,7 +251,7 @@ class JSInterpreter:
             elif in_quote == '/' and char in '[]':
                 in_regex_char_group = char == '['
             escaping = not escaping and in_quote and char == '\\'
-            after_op = not in_quote and char in OP_CHARS or (char == ' ' and after_op)
+            after_op = not in_quote and char in OP_CHARS or (char.isspace() and after_op)
 
             if char != delim[pos] or any(counters.values()) or in_quote:
                 pos = 0
@@ -280,10 +288,6 @@ class JSInterpreter:
             return right_val
 
         try:
-            # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators#binary_bitwise_operators
-            if op in ('&', '|', '^', '~', '<<', '>>', '>>', '>>>'):
-                return _OPERATORS[op](left_val, right_val) & 0xffffffff
-
             return _OPERATORS[op](left_val, right_val)
         except Exception as e:
             raise self.Exception(f'Failed to evaluate {left_val!r} {op} {right_val!r}', expr, cause=e)
@@ -508,7 +512,7 @@ class JSInterpreter:
                 (?P<op>{"|".join(map(re.escape, set(_OPERATORS) - _COMP_OPERATORS))})?
                 =(?!=)(?P<expr>.*)$
             )|(?P<return>
-                (?!if|return|true|false|null|undefined)(?P<name>{_NAME_RE})$
+                (?!if|return|true|false|null|undefined|NaN)(?P<name>{_NAME_RE})$
             )|(?P<indexing>
                 (?P<in>{_NAME_RE})\[(?P<idx>.+)\]$
             )|(?P<attribute>
@@ -543,6 +547,8 @@ class JSInterpreter:
             raise JS_Continue()
         elif expr == 'undefined':
             return JS_Undefined, should_return
+        elif expr == 'NaN':
+            return float('NaN'), should_return
 
         elif m and m.group('return'):
             return local_vars.get(m.group('name'), JS_Undefined), should_return
@@ -689,7 +695,7 @@ class JSInterpreter:
                         return -1
                 elif member == 'charCodeAt':
                     assertion(isinstance(obj, str), 'must be applied on a string')
-                    assertion(len(argvals) == 1, 'takes one argument')
+                    assertion(len(argvals) == 1, 'takes exactly one argument')
                     idx = argvals[0] if isinstance(argvals[0], int) else 0
                     if idx >= len(obj):
                         return None
@@ -795,7 +801,7 @@ class JSInterpreter:
             global_stack[0].update(itertools.zip_longest(argnames, args, fillvalue=None))
             global_stack[0].update(kwargs)
             var_stack = LocalNameSpace(*global_stack)
-            ret, should_abort = self.interpret_statement(code.replace('\n', ''), var_stack, allow_recursion - 1)
+            ret, should_abort = self.interpret_statement(code.replace('\n', ' '), var_stack, allow_recursion - 1)
             if should_abort:
                 return ret
         return resf

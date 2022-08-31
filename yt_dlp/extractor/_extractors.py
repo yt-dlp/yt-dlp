@@ -720,6 +720,10 @@ from .iqiyi import (
     IqIE,
     IqAlbumIE
 )
+from .islamchannel import (
+    IslamChannelIE,
+    IslamChannelSeriesIE,
+)
 from .itprotv import (
     ITProTVIE,
     ITProTVCourseIE
@@ -1079,6 +1083,7 @@ from .newgrounds import (
     NewgroundsPlaylistIE,
     NewgroundsUserIE,
 )
+from .newspicks import NewsPicksIE
 from .newstube import NewstubeIE
 from .newsy import NewsyIE
 from .nextmedia import (
