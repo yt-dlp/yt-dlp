@@ -706,13 +706,14 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     and dump cookie jar in
     --no-cookies                    Do not read/dump cookies from/to file
                                     (default)
-    --cookies-from-browser BROWSER[+KEYRING][:PROFILE]
+    --cookies-from-browser BROWSER[+KEYRING][:PROFILE[:CONTAINER]]
                                     The name of the browser and (optionally) the
                                     name/path of the profile to load cookies
-                                    from, separated by a ":". Currently
-                                    supported browsers are: brave, chrome,
-                                    chromium, edge, firefox, opera, safari,
-                                    vivaldi. By default, the most recently
+                                    from (and container name if Firefox)
+                                    separated by a ":". Currently supported
+                                    browsers are: brave, chrome, chromium, edge,
+                                    firefox, opera, safari, vivaldi. By default,
+                                    the default container of the most recently
                                     accessed profile is used. The keyring used
                                     for decrypting Chromium cookies on Linux can
                                     be (optionally) specified after the browser

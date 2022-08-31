@@ -515,16 +515,14 @@ _BY_NAME = {
     if name.endswith('FD') and name not in ('ExternalFD', 'FragmentFD')
 }
 
-_BY_EXE = {klass.EXE_NAME: klass for klass in _BY_NAME.values()}
-
 
 def list_external_downloaders():
     return sorted(_BY_NAME.keys())
 
 
 def get_external_downloader(external_downloader):
-    """ Given the name of the executable, see whether we support the given
-        downloader . """
-    # Drop .exe extension on Windows
+    """ Given the name of the executable, see whether we support the given downloader """
     bn = os.path.splitext(os.path.basename(external_downloader))[0]
-    return _BY_NAME.get(bn, _BY_EXE.get(bn))
+    return _BY_NAME.get(bn) or next((
+        klass for klass in _BY_NAME.values() if klass.EXE_NAME in bn
+    ), None)

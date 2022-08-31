@@ -828,8 +828,8 @@ def escapeHTML(text):
 
 
 def process_communicate_or_kill(p, *args, **kwargs):
-    write_string('DeprecationWarning: yt_dlp.utils.process_communicate_or_kill is deprecated '
-                 'and may be removed in a future version. Use yt_dlp.utils.Popen.communicate_or_kill instead')
+    deprecation_warning(f'"{__name__}.process_communicate_or_kill" is deprecated and may be removed '
+                        f'in a future version. Use "{__name__}.Popen.communicate_or_kill" instead')
     return Popen.communicate_or_kill(p, *args, **kwargs)
 
 
@@ -840,12 +840,35 @@ class Popen(subprocess.Popen):
     else:
         _startupinfo = None
 
-    def __init__(self, *args, text=False, **kwargs):
+    @staticmethod
+    def _fix_pyinstaller_ld_path(env):
+        """Restore LD_LIBRARY_PATH when using PyInstaller
+            Ref: https://github.com/pyinstaller/pyinstaller/blob/develop/doc/runtime-information.rst#ld_library_path--libpath-considerations
+                 https://github.com/yt-dlp/yt-dlp/issues/4573
+        """
+        if not hasattr(sys, '_MEIPASS'):
+            return
+
+        def _fix(key):
+            orig = env.get(f'{key}_ORIG')
+            if orig is None:
+                env.pop(key, None)
+            else:
+                env[key] = orig
+
+        _fix('LD_LIBRARY_PATH')  # Linux
+        _fix('DYLD_LIBRARY_PATH')  # macOS
+
+    def __init__(self, *args, env=None, text=False, **kwargs):
+        if env is None:
+            env = os.environ.copy()
+        self._fix_pyinstaller_ld_path(env)
+
         if text is True:
             kwargs['universal_newlines'] = True  # For 3.6 compatibility
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
-        super().__init__(*args, **kwargs, startupinfo=self._startupinfo)
+        super().__init__(*args, env=env, **kwargs, startupinfo=self._startupinfo)
 
     def communicate_or_kill(self, *args, **kwargs):
         try:
@@ -1934,7 +1957,7 @@ class DateRange:
 
 def platform_name():
     """ Returns the platform name as a str """
-    write_string('DeprecationWarning: yt_dlp.utils.platform_name is deprecated, use platform.platform instead')
+    deprecation_warning(f'"{__name__}.platform_name" is deprecated, use "platform.platform" instead')
     return platform.platform()
 
 
@@ -1978,6 +2001,23 @@ def write_string(s, out=None, encoding=None):
 
     buffer.write(s.encode(enc, 'ignore') if enc else s)
     out.flush()
+
+
+def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
+    from . import _IN_CLI
+    if _IN_CLI:
+        if msg in deprecation_warning._cache:
+            return
+        deprecation_warning._cache.add(msg)
+        if printer:
+            return printer(f'{msg}{bug_reports_message()}', **kwargs)
+        return write_string(f'ERROR: {msg}{bug_reports_message()}\n', **kwargs)
+    else:
+        import warnings
+        warnings.warn(DeprecationWarning(msg), stacklevel=stacklevel + 3)
+
+
+deprecation_warning._cache = set()
 
 
 def bytes_to_intlist(bs):
@@ -4862,8 +4902,8 @@ def decode_base_n(string, n=None, table=None):
 
 
 def decode_base(value, digits):
-    write_string('DeprecationWarning: yt_dlp.utils.decode_base is deprecated '
-                 'and may be removed in a future version. Use yt_dlp.decode_base_n instead')
+    deprecation_warning(f'{__name__}.decode_base is deprecated and may be removed '
+                        f'in a future version. Use {__name__}.decode_base_n instead')
     return decode_base_n(value, table=digits)
 
 
@@ -5332,8 +5372,8 @@ def traverse_obj(
 
 
 def traverse_dict(dictn, keys, casesense=True):
-    write_string('DeprecationWarning: yt_dlp.utils.traverse_dict is deprecated '
-                 'and may be removed in a future version. Use yt_dlp.utils.traverse_obj instead')
+    deprecation_warning(f'"{__name__}.traverse_dict" is deprecated and may be removed '
+                        f'in a future version. Use "{__name__}.traverse_obj" instead')
     return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 
