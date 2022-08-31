@@ -470,6 +470,7 @@ from .epicon import (
     EpiconIE,
     EpiconSeriesIE,
 )
+from .epoch import EpochIE
 from .eporner import EpornerIE
 from .eroprofile import (
     EroProfileIE,
