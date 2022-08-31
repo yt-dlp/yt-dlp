@@ -316,6 +316,7 @@ class CrackleChannelIE(CrackleBaseIE):
     class ChannelType(Enum):
         MOVIE_PAGE = 1
         TV_PAGE = 11
+        TV_PAGE_MULTILANGUAGE = 13
 
     _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(?:watch/)?(?P<channel_id>\d+)/?$'
 
@@ -373,7 +374,7 @@ class CrackleChannelIE(CrackleBaseIE):
             v_id = str(traverse_obj(channel, ('FeaturedMedia', 'ID')))
             video, country = self._get_video_info(v_id, country)
             return video
-        elif channel_type == self.ChannelType.TV_PAGE.value:
+        elif channel_type in (self.ChannelType.TV_PAGE.value, self.ChannelType.TV_PAGE_MULTILANGUAGE.value):
             # series channel - enumerate videos in channel
             playlist, country = self._download_crackle_details(CrackleBaseIE.UrlType.CHANNEL_PLAYLIST, channel_id, country)
             for p in playlist.get('Playlists') or []:
