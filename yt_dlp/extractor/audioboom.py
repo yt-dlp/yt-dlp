@@ -2,6 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     float_or_none,
+    unescapeHTML,
 )
 
 
@@ -32,9 +33,9 @@ class AudioBoomIE(InfoExtractor):
         clip = None
 
         clip_store = self._parse_json(
-            self._html_search_regex(
-                r'data-new-clip-store=(["\'])(?P<json>{.+?})\1',
-                webpage, 'clip store', default='{}', group='json'),
+            unescapeHTML(self._html_search_regex(
+                r'data-react-class="V5DetailPagePlayer" *data-react-props=(["\'])(?P<json>{.+?})\1',
+                webpage, 'clip store', default='{}', group='json')),
             video_id, fatal=False)
         if clip_store:
             clips = clip_store.get('clips')
