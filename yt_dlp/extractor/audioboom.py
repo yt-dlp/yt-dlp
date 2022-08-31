@@ -15,7 +15,7 @@ class AudioBoomIE(InfoExtractor):
             'id': '7398103',
             'ext': 'mp3',
             'title': 'Asim Chaudhry',
-            'description': 'md5:2f3fef17dacc2595b5362e1d7d3602fc',
+            'description': 'md5:0ed714ae0e81e5d9119cac2f618ad679',
             'duration': 4000.99,
             'uploader': 'Sue Perkins: An hour or so with...',
             'uploader_url': r're:https?://(?:www\.)?audioboom\.com/channel/perkins',
@@ -57,8 +57,9 @@ class AudioBoomIE(InfoExtractor):
 
         uploader = from_clip('author') or self._html_search_meta(
             ['og:audio:artist', 'twitter:audio:artist_name', 'audio_artist'], webpage, 'uploader')
-        uploader_url = from_clip('author_url') or self._html_search_meta(
-            'audioboo:channel', webpage, 'uploader url')
+        uploader_url = from_clip('author_url') or self._html_search_regex(
+            r'<div class="avatar flex-shrink-0">\s*<a href="(?P<uploader_url>http[^"]+)"',
+            webpage, 'uploader url', fatal=False)
 
         return {
             'id': video_id,
