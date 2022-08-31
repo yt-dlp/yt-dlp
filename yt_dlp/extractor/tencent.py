@@ -119,7 +119,7 @@ class TencentBaseIE(InfoExtractor):
         return formats, subtitles
 
     def _get_clean_title(self, title):
-        return re.sub(r'(?:_Watch online|_腾讯视频|_(?:高清)?1080P在线观看平台).*?$', '', title)
+        return re.sub(r'\s*[_\-]\s*(?:Watch online|腾讯视频|(?:高清)?1080P在线观看平台).*?$', '', title)
 
 
 class VQQBaseIE(TencentBaseIE):
