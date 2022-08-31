@@ -3,6 +3,7 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
+    format_field,
     int_or_none,
     str_or_none,
     traverse_obj,
@@ -16,12 +17,11 @@ from ..utils import (
 
 class TrillerBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'triller'
-    _IS_LOGGED_IN = False
     _AUTH_TOKEN = None
     _API_BASE_URL = 'https://social.triller.co/v1.5'
 
     def _perform_login(self, username, password):
-        if self._IS_LOGGED_IN and self._AUTH_TOKEN:
+        if self._AUTH_TOKEN:
             return
 
         user_check = self._download_json(
@@ -48,62 +48,43 @@ class TrillerBaseIE(InfoExtractor):
                 raise ExtractorError('Unable to login: Incorrect password', expected=True)
             raise ExtractorError('Unable to login')
 
-        self._AUTH_TOKEN = login.get('auth_token')
-        self._IS_LOGGED_IN = True
-
-    def _real_initialize(self):
-        if not self._IS_LOGGED_IN and self._cookies_passed:
-            self.report_warning(
-                f'Triller does not use cookies for authentication. {self._login_hint("password")}')
-
-    def _create_guest(self):
-        guest = self._download_json(
-            f'{self._API_BASE_URL}/user/create_guest',
-            None, note='Creating guest session', data=b'', headers={
-                'Origin': 'https://triller.co',
-            }, query={
-                'platform': 'Web',
-                'app_version': '',
-            })
-        if not guest.get('auth_token'):
-            raise ExtractorError('Unable to fetch required auth token for user extraction')
-
-        self._AUTH_TOKEN = guest.get('auth_token')
+        self._AUTH_TOKEN = login['auth_token']
 
     def _get_comments(self, video_id, limit=15):
         comment_info = self._download_json(
             f'{self._API_BASE_URL}/api/videos/{video_id}/comments_v2',
             video_id, fatal=False, note=False, errnote='Unable to extract comments',
-            headers={
-                'Origin': 'https://triller.co',
-            }, query={
-                'limit': limit,
-            }) or {}
-        comment_data = comment_info.get('comments', [])
-        comments = [{
+            headers={'Origin': 'https://triller.co'}, query={'limit': limit}) or {}
+        if not comment_info.get('comments'):
+            return
+        yield [{
             'author': traverse_obj(comment_dict, ('author', 'username')),
             'author_id': traverse_obj(comment_dict, ('author', 'user_id')),
             'id': comment_dict.get('id'),
             'text': comment_dict.get('body'),
             'timestamp': unified_timestamp(comment_dict.get('timestamp')),
-        } for comment_dict in comment_data] if comment_data else None
-        return comments
+        } for comment_dict in comment_info['comments']]
+
+    def _check_user_info(self, user_info):
+        if not user_info:
+            self.report_warning('Unable to extract user info')
+        elif user_info.get('private') and not user_info.get('followed_by_me'):
+            raise ExtractorError('This video is private', expected=True)
+        elif traverse_obj(user_info, 'blocked_by_user', 'blocking_user'):
+            raise ExtractorError('The author of the video is blocked', expected=True)
+        return user_info
 
     def _parse_video_info(self, video_info, user_info=None):
         video_uuid = video_info.get('video_uuid')
         video_id = video_info.get('id')
-        if not user_info:
-            user_info = traverse_obj(video_info, 'user', default={})
 
-        username = user_info.get('username')
         formats = []
-        video_url = video_info.get('video_url') or video_info.get('stream_url')
+        video_url = traverse_obj(video_info, 'video_url', 'stream_url')
         if video_url:
             formats.append({
                 'url': video_url,
                 'ext': 'mp4',
                 'vcodec': 'h264',
-                'resolution': f'{video_info.get("width")}x{video_info.get("height")}',
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
                 'format_id': url_basename(video_url).split('.')[0],
@@ -111,18 +92,15 @@ class TrillerBaseIE(InfoExtractor):
             })
         video_set = video_info.get('video_set', [])
         for video in video_set:
-            resolution = video.get('resolution')
-            bitrate = int_or_none(video.get('bitrate')) / 1000
-            video_url = video.get('url')
+            resolution = video.get('resolution') or ''
             formats.append({
-                'url': video_url,
+                'url': video['url'],
                 'ext': 'mp4',
                 'vcodec': video.get('codec'),
-                'vbr': bitrate,
-                'resolution': resolution,
+                'vbr': int_or_none(video.get('bitrate'), 1000),
                 'width': int_or_none(resolution.split('x')[0]),
                 'height': int_or_none(resolution.split('x')[1]),
-                'format_id': url_basename(video_url).split('.')[0],
+                'format_id': url_basename(video['url']).split('.')[0],
             })
         audio_url = video_info.get('audio_url')
         if audio_url:
@@ -140,7 +118,12 @@ class TrillerBaseIE(InfoExtractor):
         self._sort_formats(formats)
 
         comment_count = int_or_none(video_info.get('comment_count'))
-        comments = self._get_comments(video_id, comment_count)
+        # comments = self._get_comments(video_id, comment_count)
+
+        if not user_info:
+            user_info = traverse_obj(video_info, 'user', default={})
+
+        username = user_info.get('username')
 
         return {
             'id': str_or_none(video_id) or video_uuid,
@@ -158,10 +141,12 @@ class TrillerBaseIE(InfoExtractor):
             'artist': str_or_none(video_info.get('song_artist')),
             'track': str_or_none(video_info.get('song_title')),
             'webpage_url': f'https://triller.co/@{username}/video/{video_uuid}',
-            'uploader_url': f'https://triller.co/@{username}',
+            'uploader_url': format_field(username, None, 'https://triller.co/@%s'),
+            'extractor_key': TrillerIE.ie_key(),
+            'extractor': TrillerIE.IE_NAME,
             'formats': formats,
             'comment_count': comment_count,
-            'comments': comments,
+            '__post_extractor': self.extract_comments(video_id, comment_count),
         }
 
 
@@ -224,7 +209,7 @@ class TrillerIE(TrillerBaseIE):
     }]
 
     def _real_extract(self, url):
-        username, video_uuid = self._match_valid_url(url).groups()
+        username, video_uuid = self._match_valid_url(url).group('username', 'id')
 
         video_info = traverse_obj(self._download_json(
             f'{self._API_BASE_URL}/api/videos/{video_uuid}',
@@ -236,19 +221,9 @@ class TrillerIE(TrillerBaseIE):
         if not video_info:
             raise ExtractorError('No video info found in API response')
 
-        user_info = video_info.get('user', {})
-        if not user_info:
-            self.report_warning('Unable to extract user info')
+        user_info = self._check_user_info(video_info.get('user', {}))
 
-        if user_info.get('private') and not user_info.get('followed_by_me'):
-            raise ExtractorError('This video is private', expected=True)
-
-        if user_info.get('blocked_by_user') or user_info.get('blocking_user'):
-            raise ExtractorError('The author of the video is blocked', expected=True)
-
-        return {
-            **self._parse_video_info(video_info, user_info),
-        }
+        return self._parse_video_info(video_info, user_info)
 
 
 class TrillerUserIE(TrillerBaseIE):
@@ -272,6 +247,21 @@ class TrillerUserIE(TrillerBaseIE):
         }
     }]
 
+    def _real_initialize(self):
+        if not self._AUTH_TOKEN:
+            guest = self._download_json(
+                f'{self._API_BASE_URL}/user/create_guest',
+                None, note='Creating guest session', data=b'', headers={
+                    'Origin': 'https://triller.co',
+                }, query={
+                    'platform': 'Web',
+                    'app_version': '',
+                })
+            if not guest.get('auth_token'):
+                raise ExtractorError('Unable to fetch required auth token for user extraction')
+
+            self._AUTH_TOKEN = guest['auth_token']
+
     def _extract_video_list(self, username, user_id, limit=6):
         query = {
             'limit': limit,
@@ -291,45 +281,26 @@ class TrillerUserIE(TrillerBaseIE):
                         retry.error = e
                         continue
                     raise
-            yield from video_list.get('videos', [])
             if not video_list.get('videos'):
                 break
-            before_time = traverse_obj(video_list, ('videos', -1, 'timestamp'))
-            if not before_time:
+            yield from video_list['videos']
+            query['before_time'] = traverse_obj(video_list, ('videos', -1, 'timestamp'))
+            if not query['before_time']:
                 break
-            query = {
-                'before_time': before_time,
-                'limit': limit,
-            }
 
     def _entries(self, videos, user_info):
         for video in videos:
-            yield {
-                **self._parse_video_info(video, user_info),
-                'extractor_key': TrillerIE.ie_key(),
-                'extractor': 'Triller',
-            }
+            yield self._parse_video_info(video, user_info)
 
     def _real_extract(self, url):
         username = self._match_id(url)
-        if not self._IS_LOGGED_IN:
-            self._create_guest()
-
-        user_info = self._download_json(
+        user_info = self._check_user_info(self._download_json(
             f'{self._API_BASE_URL}/api/users/by_username/{username}',
             username, note='Downloading user info',
             errnote='Failed to download user info', headers={
                 'Authorization': f'Bearer {self._AUTH_TOKEN}',
                 'Origin': 'https://triller.co',
-            }).get('user')
-        if not user_info:
-            raise ExtractorError('Unable to extract user info')
-
-        if user_info.get('private') and not user_info.get('followed_by_me'):
-            raise ExtractorError('This user profile is private', expected=True)
-
-        if user_info.get('blocked_by_user') or user_info.get('blocking_user'):
-            raise ExtractorError('This user profile is blocked', expected=True)
+            }).get('user', {}))
 
         user_id = str_or_none(user_info.get('user_id'))
         videos = LazyList(self._extract_video_list(username, user_id))
