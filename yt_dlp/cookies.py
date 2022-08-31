@@ -160,8 +160,8 @@ def _extract_firefox_cookies(profile, container, logger):
                 else:
                     logger.debug('Only loading cookies not belonging to any container')
                 cursor.execute(
-                   'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes=?',
-                   (origin_attributes, ))
+                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes=?',
+                    (origin_attributes, ))
             else:
                 cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
