@@ -151,17 +151,15 @@ def _extract_firefox_cookies(profile, container, logger):
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
-            if container is not None:
-                origin_attributes = ''
-                if isinstance(container_id, int):
-                    origin_attributes = f'^userContextId={container_id}'
-                    logger.debug(
-                        f'Only loading cookies from firefox container "{container}", ID {container_id}')
-                else:
-                    logger.debug('Only loading cookies not belonging to any container')
+            if container is not None and isinstance(container_id, int):
+                logger.debug(
+                    f'Only loading cookies from firefox container "{container}", ID {container_id}')
+                cursor.execute(f'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes LIKE ? OR originAttributes LIKE ?',
+                    (f'%userContextId={container_id}', f'%userContextId={container_id}&%'))
+            elif container == 'none':
+                logger.debug('Only loading cookies not belonging to any container')
                 cursor.execute(
-                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes=?',
-                    (origin_attributes, ))
+                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes=""')
             else:
                 cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
