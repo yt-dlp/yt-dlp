@@ -154,7 +154,8 @@ def _extract_firefox_cookies(profile, container, logger):
             if container is not None and isinstance(container_id, int):
                 logger.debug(
                     f'Only loading cookies from firefox container "{container}", ID {container_id}')
-                cursor.execute(f'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes LIKE ? OR originAttributes LIKE ?',
+                cursor.execute(
+                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes LIKE ? OR originAttributes LIKE ?',
                     (f'%userContextId={container_id}', f'%userContextId={container_id}&%'))
             elif container == 'none':
                 logger.debug('Only loading cookies not belonging to any container')
