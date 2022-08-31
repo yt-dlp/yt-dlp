@@ -28,13 +28,26 @@ class EpochIE(InfoExtractor):
                 'title': 'Kash Patel: A ‘6-Year-Saga’ of Government Corruption, From Russiagate to Mar-a-Lago',
             }
         },
+        {
+            'url': 'https://www.theepochtimes.com/dick-morris-discusses-his-book-the-return-trumps-big-2024-comeback_4819205.html',
+            'info_dict': {
+                'id': '9489f994-2a20-4812-b233-ac0e5c345632',
+                'ext': 'mp4',
+                'title': 'Dick Morris Discusses His Book ‘The Return: Trump’s Big 2024 Comeback’',
+            }
+        },
     ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        youmaker_video_id = self._search_regex(r'data-trailer="[\w-]+" data-id="([\w-]+)"', webpage, 'url')
+        html_ws = r'\t\n\f\r\x20'
+        html_attr_val = r'(?:"[^"]*"|\'[^\']*\'|[{html_ws}]*[^"\'{html_ws}>][^{html_ws}>]*)'
+        youmaker_video_id = next(id for id in self._search_regex(
+            fr'[{html_ws}]data-trailer={html_attr_val}[{html_ws}]+data-id=(?:(["\'])(?P<id_quoted>[\w-]+)\1|(?P<id_unquoted>[\w-]+))',
+            webpage, 'url', group=('id_quoted', 'id_unquoted'))
+            if id is not None)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'http://vs1.youmaker.com/assets/{youmaker_video_id}/playlist.m3u8', video_id, 'mp4', m3u8_id='hls')
 
