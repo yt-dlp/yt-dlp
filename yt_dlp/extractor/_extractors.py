@@ -1729,10 +1729,10 @@ from .teletask import TeleTaskIE
 from .telewebion import TelewebionIE
 from .tempo import TempoIE
 from .tencent import (
-    VQQEpisodeIE, 
-    VQQSeriesIE, 
-    VQQVideoIE, 
-    WeTvEpisodeIE, 
+    VQQEpisodeIE,
+    VQQSeriesIE,
+    VQQVideoIE,
+    WeTvEpisodeIE,
     WeTvSeriesIE,
 )
 from .tennistv import TennisTVIE

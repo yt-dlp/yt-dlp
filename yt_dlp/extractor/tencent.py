@@ -1,8 +1,8 @@
 import functools
 import random
 import re
-import time
 import string
+import time
 
 from .common import InfoExtractor
 from ..aes import aes_cbc_encrypt_bytes
@@ -17,9 +17,7 @@ from ..utils import (
 
 
 class TencentBaseIE(InfoExtractor):
-    """
-        Subclasses must set _API_URL, _APP_VERSION, _PLATFORM, _HOST, _REFERER
-    """
+    """Subclasses must set _API_URL, _APP_VERSION, _PLATFORM, _HOST, _REFERER"""
 
     def _get_ckey(self, video_id, url, guid):
         ua = self.get_param('http_headers')['User-Agent']
@@ -41,21 +39,23 @@ class TencentBaseIE(InfoExtractor):
             'cid': series_id,
             'cKey': ckey,
             'encryptVer': '8.1',
-            'spcaptiontype': '1' if subtitle_format == 'vtt' else '0',  # 0 - SRT, 1 - VTT
-            'sphls': '2' if video_format == 'hls' else '0',  # 0 - MP4, 1 - HLS
-            'dtype': '3' if video_format == 'hls' else '0',  # 0 - MP4, 3 - HLS
-            'defn': video_quality,  # '': 480p, 'shd': 720p, 'fhd': 1080p
+            'spcaptiontype': '1' if subtitle_format == 'vtt' else '0',
+            'sphls': '2' if video_format == 'hls' else '0',
+            'dtype': '3' if video_format == 'hls' else '0',
+            'defn': video_quality,
             'spsrt': '2',  # Enable subtitles
             'sphttps': '1',  # Enable HTTPS
-            'otype': 'json',  # Response format: xml, json,
+            'otype': 'json',
             'spwm': '1',
-            'host': self._HOST,  # These next four values are needed for SHD
+            # For SHD
+            'host': self._HOST,
             'referer': self._REFERER,
             'ehost': video_url,
             'appVer': self._APP_VERSION,
             'platform': self._PLATFORM,
-            'guid': guid,  # These next two values are needed for VQQ extractor
-            'flowid': ''.join([random.choice(string.digits + string.ascii_lowercase) for _ in range(32)]),
+            # For VQQ
+            'guid': guid,
+            'flowid': ''.join(random.choice(string.digits + string.ascii_lowercase) for _ in range(32)),
         }
 
         return self._search_json(r'QZOutputJson=', self._download_webpage(
@@ -71,8 +71,7 @@ class TencentBaseIE(InfoExtractor):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     video_format['url'] + video_format['hls']['pt'], video_id, 'mp4', fatal=False)
                 for f in fmts:
-                    f['width'] = video_width
-                    f['height'] = video_height
+                    f.update({'width': video_width, 'height': video_height})
 
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
@@ -100,6 +99,7 @@ class TencentBaseIE(InfoExtractor):
     def _extract_all_video_formats_and_subtitles(self, url, video_id, series_id):
         formats, subtitles = [], {}
         for video_format, subtitle_format, video_quality in (
+                # '': 480p, 'shd': 720p, 'fhd': 1080p
                 ('mp4', 'srt', ''), ('hls', 'vtt', 'shd'), ('hls', 'vtt', 'fhd')):
             api_response = self._get_video_api_response(
                 url, video_id, series_id, subtitle_format, video_format, video_quality)
@@ -216,20 +216,19 @@ class VQQEpisodeIE(VQQBaseIE):
     def _real_extract(self, url):
         video_id, series_id = self._match_valid_url(url).group('id', 'series_id')
         webpage = self._download_webpage(url, video_id)
-
-        formats, subtitles = self._extract_all_video_formats_and_subtitles(url, video_id, series_id)
         webpage_metadata = self._get_webpage_metadata(webpage, video_id)
 
+        formats, subtitles = self._extract_all_video_formats_and_subtitles(url, video_id, series_id)
         return {
             'id': video_id,
-            'title': self._get_clean_title(self._og_search_title(webpage) or traverse_obj(
-                webpage_metadata, ('global', 'videoInfo', 'title'))),
-            'description': self._og_search_description(webpage) or traverse_obj(
-                webpage_metadata, ('global', 'videoInfo', 'desc')),
+            'title': self._get_clean_title(self._og_search_title(webpage)
+                                           or traverse_obj(webpage_metadata, ('global', 'videoInfo', 'title'))),
+            'description': (self._og_search_description(webpage)
+                            or traverse_obj(webpage_metadata, ('global', 'videoInfo', 'desc'))),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': self._og_search_thumbnail(webpage) or traverse_obj(
-                webpage_metadata, ('global', 'videoInfo', 'pic160x90')),
+            'thumbnail': (self._og_search_thumbnail(webpage)
+                          or traverse_obj(webpage_metadata, ('global', 'videoInfo', 'pic160x90'))),
             'series': traverse_obj(webpage_metadata, ('global', 'coverInfo', 'title')),
         }
 
@@ -259,7 +258,6 @@ class VQQSeriesIE(VQQBaseIE):
     def _real_extract(self, url):
         series_id = self._match_id(url)
         webpage = self._download_webpage(url, series_id)
-
         webpage_metadata = self._get_webpage_metadata(webpage, series_id)
 
         episode_paths = [f'/x/cover/{series_id}/{video_id}.html' for video_id in re.findall(
@@ -268,10 +266,10 @@ class VQQSeriesIE(VQQBaseIE):
 
         return self.playlist_from_matches(
             episode_paths, series_id, ie=VQQEpisodeIE, getter=functools.partial(urljoin, url),
-            title=self._get_clean_title(
-                traverse_obj(webpage_metadata, ('coverInfo', 'title')) or self._og_search_title(webpage)),
-            description=traverse_obj(webpage_metadata, ('coverInfo', 'description')) or self._og_search_description(
-                webpage))
+            title=self._get_clean_title(traverse_obj(webpage_metadata, ('coverInfo', 'title'))
+                                        or self._og_search_title(webpage)),
+            description=(traverse_obj(webpage_metadata, ('coverInfo', 'description'))
+                         or self._og_search_description(webpage)))
 
 
 class WeTvBaseIE(TencentBaseIE):
@@ -340,16 +338,15 @@ class WeTvEpisodeIE(WeTvBaseIE):
     def _real_extract(self, url):
         video_id, series_id = self._match_valid_url(url).group('id', 'series_id')
         webpage = self._download_webpage(url, video_id)
-
-        formats, subtitles = self._extract_all_video_formats_and_subtitles(url, video_id, series_id)
         webpage_metadata = self._get_webpage_metadata(webpage, video_id)
 
+        formats, subtitles = self._extract_all_video_formats_and_subtitles(url, video_id, series_id)
         return {
             'id': video_id,
-            'title': self._get_clean_title(
-                self._og_search_title(webpage) or traverse_obj(webpage_metadata, ('coverInfo', 'title'))),
-            'description': traverse_obj(
-                webpage_metadata, ('coverInfo', 'description') or self._og_search_description(webpage)),
+            'title': self._get_clean_title(self._og_search_title(webpage)
+                                           or traverse_obj(webpage_metadata, ('coverInfo', 'title'))),
+            'description': (traverse_obj(webpage_metadata, ('coverInfo', 'description'))
+                            or self._og_search_description(webpage)),
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': self._og_search_thumbnail(webpage),
@@ -390,7 +387,7 @@ class WeTvSeriesIE(WeTvBaseIE):
 
         return self.playlist_from_matches(
             episode_paths, series_id, ie=WeTvEpisodeIE, getter=functools.partial(urljoin, url),
-            title=self._get_clean_title(traverse_obj(
-                webpage_metadata, ('coverInfo', 'title')) or self._og_search_title(webpage)),
-            description=traverse_obj(
-                webpage_metadata, ('coverInfo', 'description')) or self._og_search_description(webpage))
+            title=self._get_clean_title(traverse_obj(webpage_metadata, ('coverInfo', 'title'))
+                                        or self._og_search_title(webpage)),
+            description=(traverse_obj(webpage_metadata, ('coverInfo', 'description'))
+                         or self._og_search_description(webpage)))
