@@ -141,7 +141,7 @@ class VQQBaseIE(TencentBaseIE):
 
 class VQQVideoIE(VQQBaseIE):
     IE_NAME = 'vqq:video'
-    _VALID_URL = VQQBaseIE._VALID_URL_BASE + r'/x/page/(?P<id>\w+)'
+    _VALID_URL = VQQBaseIE._VALID_URL_BASE + r'/x/(?:page|cover/(?P<series_id>\w+))/(?P<id>\w+)'
 
     _TESTS = [{
         'url': 'https://v.qq.com/x/page/q326831cny0.html',
@@ -163,33 +163,7 @@ class VQQVideoIE(VQQBaseIE):
             'description': 'md5:29fe847497a98e04a8c3826e499edd2e',
             'thumbnail': r're:^https?://[^?#]+o3013za7cse',
         },
-    }]
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-
-        formats, subtitles = self._extract_all_video_formats_and_subtitles(url, video_id, '')
-        webpage_metadata = self._get_webpage_metadata(webpage, video_id)
-
-        return {
-            'id': video_id,
-            'title': self._get_clean_title(self._og_search_title(webpage) or traverse_obj(
-                webpage_metadata, ('global', 'videoInfo', 'title'))),
-            'description': self._og_search_description(webpage) or traverse_obj(
-                webpage_metadata, ('global', 'videoInfo', 'desc')),
-            'formats': formats,
-            'subtitles': subtitles,
-            'thumbnail': self._og_search_thumbnail(webpage) or traverse_obj(
-                webpage_metadata, ('global', 'videoInfo', 'pic160x90')),
-        }
-
-
-class VQQEpisodeIE(VQQBaseIE):
-    IE_NAME = 'vqq:episode'
-    _VALID_URL = VQQBaseIE._VALID_URL_BASE + r'/x/cover/(?P<series_id>\w+)/(?P<id>\w+)'
-
-    _TESTS = [{
+    }, {
         'url': 'https://v.qq.com/x/cover/7ce5noezvafma27/a00269ix3l8.html',
         'md5': '71459c5375c617c265a22f083facce67',
         'info_dict': {
@@ -265,7 +239,7 @@ class VQQSeriesIE(VQQBaseIE):
             webpage)]
 
         return self.playlist_from_matches(
-            episode_paths, series_id, ie=VQQEpisodeIE, getter=functools.partial(urljoin, url),
+            episode_paths, series_id, ie=VQQVideoIE, getter=functools.partial(urljoin, url),
             title=self._get_clean_title(traverse_obj(webpage_metadata, ('coverInfo', 'title'))
                                         or self._og_search_title(webpage)),
             description=(traverse_obj(webpage_metadata, ('coverInfo', 'description'))
