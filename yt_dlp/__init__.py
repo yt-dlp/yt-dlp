@@ -358,6 +358,10 @@ def validate_options(opts):
         elif profile and browser_name == 'firefox':
             if ':' in profile and not os.path.exists(profile):
                 profile, container = profile.split(':', 1)
+                if profile == '':
+                    profile = None
+                if container == '':
+                    container = None
         if keyring is not None:
             keyring = keyring.upper()
             if keyring not in SUPPORTED_KEYRINGS:
