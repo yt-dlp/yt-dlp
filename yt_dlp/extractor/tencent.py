@@ -356,8 +356,8 @@ class WeTvSeriesIE(WeTvBaseIE):
         webpage = self._download_webpage(url, series_id)
         webpage_metadata = self._get_webpage_metadata(webpage, series_id)
 
-        episode_paths = (re.findall(r'<a[^>]+class="play-video__link"[^>]+href="(?P<path>[^"]+)', webpage)
-                         or [f'/{series_id}/{episode["vid"]}' for episode in webpage_metadata.get('videoList')])
+        episode_paths = ([f'/play/{series_id}/{episode["vid"]}' for episode in webpage_metadata.get('videoList')]
+                         or re.findall(r'<a[^>]+class="play-video__link"[^>]+href="(?P<path>[^"]+)', webpage))
 
         return self.playlist_from_matches(
             episode_paths, series_id, ie=WeTvEpisodeIE, getter=functools.partial(urljoin, url),
