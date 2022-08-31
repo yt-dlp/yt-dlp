@@ -159,13 +159,9 @@ def _extract_firefox_cookies(profile, container, logger):
                         f'Only loading cookies from firefox container "{container}", ID {container_id}')
                 else:
                     logger.debug('Only loading cookies not belonging to any container')
-                try:
-                    cursor.execute(
-                        'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes=?',
-                        (origin_attributes, ))
-                except sqlite3.OperationalError:
-                    logger.debug('Database exception, loading all cookies')
-                    cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
+                cursor.execute(
+                   'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes=?',
+                   (origin_attributes, ))
             else:
                 cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
