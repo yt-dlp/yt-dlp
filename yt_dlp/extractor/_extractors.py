@@ -349,7 +349,11 @@ from .cpac import (
 )
 from .cozytv import CozyTVIE
 from .cracked import CrackedIE
-from .crackle import CrackleIE
+from .crackle import (
+    CrackleVideoIE,
+    CrackleChannelIE,
+    CracklePlaylistIE
+)
 from .craftsy import CraftsyIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
