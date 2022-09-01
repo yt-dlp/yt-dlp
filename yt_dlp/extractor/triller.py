@@ -15,12 +15,11 @@ from ..utils import (
 
 class TrillerBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'triller'
-    _AUTH_TOKEN = None
     _API_BASE_URL = 'https://social.triller.co/v1.5'
     _API_HEADERS = {'Origin': 'https://triller.co'}
 
     def _perform_login(self, username, password):
-        if self._AUTH_TOKEN:
+        if self._API_HEADERS.get('Authorization'):
             return
 
         user_check = self._download_json(
@@ -47,8 +46,7 @@ class TrillerBaseIE(InfoExtractor):
                 raise ExtractorError('Unable to login: Incorrect password', expected=True)
             raise ExtractorError('Unable to login')
 
-        self._AUTH_TOKEN = login['auth_token']
-        self._API_HEADERS['Authorization'] = f'Bearer {self._AUTH_TOKEN}'
+        self._API_HEADERS['Authorization'] = f'Bearer {login["auth_token"]}'
 
     def _get_comments(self, video_id, limit=15):
         comment_info = self._download_json(
@@ -242,7 +240,7 @@ class TrillerUserIE(TrillerBaseIE):
     }]
 
     def _real_initialize(self):
-        if not self._AUTH_TOKEN:
+        if not self._API_HEADERS.get('Authorization'):
             guest = self._download_json(
                 f'{self._API_BASE_URL}/user/create_guest',
                 None, note='Creating guest session', data=b'', headers=self._API_HEADERS, query={
@@ -252,8 +250,7 @@ class TrillerUserIE(TrillerBaseIE):
             if not guest.get('auth_token'):
                 raise ExtractorError('Unable to fetch required auth token for user extraction')
 
-            self._AUTH_TOKEN = guest['auth_token']
-            self._API_HEADERS['Authorization'] = f'Bearer {self._AUTH_TOKEN}'
+            self._API_HEADERS['Authorization'] = f'Bearer {guest["auth_token"]}'
 
     def _extract_video_list(self, username, user_id, limit=6):
         query = {
