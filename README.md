@@ -321,7 +321,7 @@ To build the standalone executable, you must have Python and `pyinstaller` (plus
 
 On some systems, you may need to use `py` or `python` instead of `python3`.
 
-Note that pyinstaller [does not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment.
+Note that pyinstaller with versions below 4.4 [do not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment.
 
 **Important**: Running `pyinstaller` directly **without** using `pyinst.py` is **not** officially supported. This may or may not work correctly.
 
@@ -531,8 +531,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     a file that is in the archive
     --break-on-reject               Stop the download process when encountering
                                     a file that has been filtered out
-    --break-per-input               Make --break-on-existing, --break-on-reject,
-                                    --max-downloads and autonumber reset per
+    --break-per-input               --break-on-existing, --break-on-reject,
+                                    --max-downloads, and autonumber resets per
                                     input URL
     --no-break-per-input            --break-on-existing and similar options
                                     terminates the entire download queue
@@ -1238,7 +1238,6 @@ The available fields are:
  - `id` (string): Video identifier
  - `title` (string): Video title
  - `fulltitle` (string): Video title ignoring live timestamp and generic title
- - `url` (string): Video URL
  - `ext` (string): Video filename extension
  - `alt_title` (string): A secondary title of the video
  - `description` (string): The description of the video
@@ -1273,26 +1272,6 @@ The available fields are:
  - `availability` (string): Whether the video is "private", "premium_only", "subscriber_only", "needs_auth", "unlisted" or "public"
  - `start_time` (numeric): Time in seconds where the reproduction should start, as specified in the URL
  - `end_time` (numeric): Time in seconds where the reproduction should end, as specified in the URL
- - `format` (string): A human-readable description of the format
- - `format_id` (string): Format code specified by `--format`
- - `format_note` (string): Additional info about the format
- - `width` (numeric): Width of the video
- - `height` (numeric): Height of the video
- - `resolution` (string): Textual description of width and height
- - `tbr` (numeric): Average bitrate of audio and video in KBit/s
- - `abr` (numeric): Average audio bitrate in KBit/s
- - `acodec` (string): Name of the audio codec in use
- - `asr` (numeric): Audio sampling rate in Hertz
- - `vbr` (numeric): Average video bitrate in KBit/s
- - `fps` (numeric): Frame rate
- - `dynamic_range` (string): The dynamic range of the video
- - `audio_channels` (numeric): The number of audio channels
- - `stretched_ratio` (float): `width:height` of the video's pixels, if not square
- - `vcodec` (string): Name of the video codec in use
- - `container` (string): Name of the container format
- - `filesize` (numeric): The number of bytes, if known in advance
- - `filesize_approx` (numeric): An estimate for the number of bytes
- - `protocol` (string): The protocol that will be used for the actual download
  - `extractor` (string): Name of the extractor
  - `extractor_key` (string): Key name of the extractor
  - `epoch` (numeric): Unix epoch of when the information extraction was completed
@@ -1311,6 +1290,8 @@ The available fields are:
  - `webpage_url_basename` (string): The basename of the webpage URL
  - `webpage_url_domain` (string): The domain of the webpage URL
  - `original_url` (string): The URL given by the user (or same as `webpage_url` for playlist entries)
+ 
+All the fields in [Filtering Formats](#filtering-formats) can also be used
 
 Available for the video that belongs to some logical chapter or section:
 
@@ -1392,13 +1373,13 @@ If you are using an output template inside a Windows batch file then you must es
 #### Output template examples
 
 ```bash
-$ yt-dlp --get-filename -o "test video.%(ext)s" BaW_jenozKc
+$ yt-dlp --print filename -o "test video.%(ext)s" BaW_jenozKc
 test video.webm    # Literal name with correct extension
 
-$ yt-dlp --get-filename -o "%(title)s.%(ext)s" BaW_jenozKc
+$ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc
 youtube-dl test video ''_ä↭𝕐.webm    # All kinds of weird characters
 
-$ yt-dlp --get-filename -o "%(title)s.%(ext)s" BaW_jenozKc --restrict-filenames
+$ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc --restrict-filenames
 youtube-dl_test_video_.webm    # Restricted file name
 
 # Download YouTube playlist videos in separate directory indexed by video order in a playlist
@@ -1487,6 +1468,7 @@ You can also filter the video formats by putting a condition in brackets, as in 
 The following numeric meta fields can be used with comparisons `<`, `<=`, `>`, `>=`, `=` (equals), `!=` (not equals):
 
  - `filesize`: The number of bytes, if known in advance
+ - `filesize_approx`: An estimate for the number of bytes
  - `width`: Width of the video, if known
  - `height`: Height of the video, if known
  - `tbr`: Average bitrate of audio and video in KBit/s
@@ -1494,16 +1476,23 @@ The following numeric meta fields can be used with comparisons `<`, `<=`, `>`, `
  - `vbr`: Average video bitrate in KBit/s
  - `asr`: Audio sampling rate in Hertz
  - `fps`: Frame rate
+ - `audio_channels`: The number of audio channels
+ - `stretched_ratio`: `width:height` of the video's pixels, if not square
 
 Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends with), `*=` (contains), `~=` (matches regex) and following string meta fields:
 
+ - `url`: Video URL
  - `ext`: File extension
  - `acodec`: Name of the audio codec in use
  - `vcodec`: Name of the video codec in use
  - `container`: Name of the container format
  - `protocol`: The protocol that will be used for the actual download, lower-case (`http`, `https`, `rtsp`, `rtmp`, `rtmpe`, `mms`, `f4m`, `ism`, `http_dash_segments`, `m3u8`, or `m3u8_native`)
- - `format_id`: A short description of the format
  - `language`: Language code
+ - `dynamic_range`: The dynamic range of the video
+ - `format_id`: A short description of the format
+ - `format`: A human-readable description of the format
+ - `format_note`: Additional info about the format
+ - `resolution`: Textual description of width and height
 
 Any string comparison may be prefixed with negation `!` in order to produce an opposite comparison, e.g. `!*=` (does not contain). The comparand of a string comparison needs to be quoted with either double or single quotes if it contains spaces or special characters other than `._-`.
 

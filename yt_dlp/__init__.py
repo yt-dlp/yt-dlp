@@ -365,7 +365,7 @@ def validate_options(opts):
             if keyring not in SUPPORTED_KEYRINGS:
                 raise ValueError(f'unsupported keyring specified for cookies: "{keyring}". '
                                  f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
-        opts.cookiesfrombrowser = (browser_name, profile or None, keyring, container or None)
+        opts.cookiesfrombrowser = (browser_name, profile, keyring, container)
 
     # MetadataParser
     def metadataparser_actions(f):

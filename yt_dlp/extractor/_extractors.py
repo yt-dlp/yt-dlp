@@ -1,5 +1,28 @@
 # flake8: noqa: F401
 
+from .youtube import (  # Youtube is moved to the top to improve performance
+    YoutubeIE,
+    YoutubeClipIE,
+    YoutubeFavouritesIE,
+    YoutubeNotificationsIE,
+    YoutubeHistoryIE,
+    YoutubeTabIE,
+    YoutubeLivestreamEmbedIE,
+    YoutubePlaylistIE,
+    YoutubeRecommendedIE,
+    YoutubeSearchDateIE,
+    YoutubeSearchIE,
+    YoutubeSearchURLIE,
+    YoutubeMusicSearchURLIE,
+    YoutubeSubscriptionsIE,
+    YoutubeStoriesIE,
+    YoutubeTruncatedIDIE,
+    YoutubeTruncatedURLIE,
+    YoutubeYtBeIE,
+    YoutubeYtUserIE,
+    YoutubeWatchLaterIE,
+)
+
 from .abc import (
     ABCIE,
     ABCIViewIE,
@@ -2191,28 +2214,6 @@ from .younow import (
 from .youporn import YouPornIE
 from .yourporn import YourPornIE
 from .yourupload import YourUploadIE
-from .youtube import (
-    YoutubeIE,
-    YoutubeClipIE,
-    YoutubeFavouritesIE,
-    YoutubeNotificationsIE,
-    YoutubeHistoryIE,
-    YoutubeTabIE,
-    YoutubeLivestreamEmbedIE,
-    YoutubePlaylistIE,
-    YoutubeRecommendedIE,
-    YoutubeSearchDateIE,
-    YoutubeSearchIE,
-    YoutubeSearchURLIE,
-    YoutubeMusicSearchURLIE,
-    YoutubeSubscriptionsIE,
-    YoutubeStoriesIE,
-    YoutubeTruncatedIDIE,
-    YoutubeTruncatedURLIE,
-    YoutubeYtBeIE,
-    YoutubeYtUserIE,
-    YoutubeWatchLaterIE,
-)
 from .zapiks import ZapiksIE
 from .zattoo import (
     BBVTVIE,

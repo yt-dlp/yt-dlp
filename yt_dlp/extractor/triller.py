@@ -3,13 +3,13 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     int_or_none,
     str_or_none,
     traverse_obj,
     unified_strdate,
     unified_timestamp,
     url_basename,
-    ExtractorError,
 )
 
 

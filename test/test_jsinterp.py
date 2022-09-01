@@ -387,7 +387,7 @@ class TestJSInterpreter(unittest.TestCase):
         ''')
         self.assertEqual(jsi.call_function('x').flags & re.I, re.I)
 
-        jsi = JSInterpreter('''
+        jsi = JSInterpreter(R'''
         function x() { let a=/,][}",],()}(\[)/; return a; }
         ''')
         self.assertEqual(jsi.call_function('x').pattern, r',][}",],()}(\[)')

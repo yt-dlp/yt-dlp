@@ -442,9 +442,9 @@ def create_parser():
             'allowed_values': {
                 'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
-                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json', 'embed-metadata',
-                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
-                'no-youtube-prefer-utc-upload-date'
+                'no-attach-info-json', 'embed-metadata', 'embed-thumbnail-atomicparsley',
+                'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
+                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
             }, 'aliases': {
                 'youtube-dl': ['all', '-multistreams'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat'],
@@ -634,7 +634,7 @@ def create_parser():
     selection.add_option(
         '--break-per-input',
         action='store_true', dest='break_per_url', default=False,
-        help='Make --break-on-existing, --break-on-reject, --max-downloads and autonumber reset per input URL')
+        help='--break-on-existing, --break-on-reject, --max-downloads, and autonumber resets per input URL')
     selection.add_option(
         '--no-break-per-input',
         action='store_false', dest='break_per_url',

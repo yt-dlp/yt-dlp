@@ -25,7 +25,13 @@ from .dependencies import (
     sqlite3,
 )
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
-from .utils import Popen, YoutubeDLCookieJar, error_to_str, expand_path, try_call
+from .utils import (
+    Popen,
+    YoutubeDLCookieJar,
+    error_to_str,
+    expand_path,
+    try_call,
+)
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
@@ -138,7 +144,7 @@ def _extract_firefox_cookies(profile, container, logger):
         containers_path = os.path.join(os.path.dirname(cookie_database_path), 'containers.json')
         if not os.path.isfile(containers_path) or not os.access(containers_path, os.R_OK):
             raise FileNotFoundError(f'could not read containers.json in {search_root}')
-        with open(containers_path, 'r') as containers:
+        with open(containers_path) as containers:
             identities = json.load(containers).get('identities', [])
         container_id = next((context.get('userContextId') for context in identities if container in (
             context.get('name'),
