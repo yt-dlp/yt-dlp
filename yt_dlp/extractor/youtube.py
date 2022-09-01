@@ -2661,7 +2661,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             raise ExtractorError('Cannot decrypt nsig without player_url')
         player_url = urljoin('https://www.youtube.com', player_url)
 
-        jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
+        try:
+            jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
+        except ExtractorError as e:
+            raise ExtractorError('Unable to extract nsig function code', cause=e)
         if self.get_param('youtube_print_sig_code'):
             self.to_screen(f'Extracted nsig function from {player_id}:\n{func_code[1]}\n')
 
@@ -2706,7 +2709,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if func_code:
             return jsi, player_id, func_code
 
-        func_code = jsi.extract_function_code(self._extract_n_function_name(jscode))
+        func_name = self._extract_n_function_name(jscode)
+
+        # For redundancy
+        func_code = self._search_regex(
+            r'''(?xs)%s\s*=\s*function\s*\((?P<var>[\w$]+)\)\s*
+                     # NB: The end of the regex is intentionally kept strict
+                     {(?P<code>.+?}\s*return\ [\w$]+.join\(""\))};''' % func_name,
+            jscode, 'nsig function', group=('var', 'code'), default=None)
+        if func_code:
+            func_code = ([func_code[0]], func_code[1])
+        else:
+            self.write_debug('Extracting nsig function with jsinterp')
+            func_code = jsi.extract_function_code(func_name)
+
         self.cache.store('youtube-nsig', player_id, func_code)
         return jsi, player_id, func_code
 
