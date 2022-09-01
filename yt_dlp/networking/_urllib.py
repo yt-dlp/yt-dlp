@@ -212,7 +212,7 @@ class YoutubeDLHandler(urllib.request.AbstractHTTPHandler):
             resp.msg = old_resp.msg
             del resp.headers['Content-encoding']
         # brotli
-        if resp.headers.get('Content-encoding', '') == 'br':
+        if resp.headers.get('Content-encoding', '') == 'br' and brotli is not None:
             resp = urllib.response.addinfourl(
                 io.BytesIO(self.brotli(resp.read())), old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
