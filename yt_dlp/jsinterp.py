@@ -245,11 +245,12 @@ class JSInterpreter:
                 counters[_MATCHING_PARENS[char]] += 1
             elif not in_quote and char in counters:
                 counters[char] -= 1
-            elif not escaping and char in _QUOTES and in_quote in (char, None):
-                if in_quote or after_op or char != '/':
-                    in_quote = None if in_quote and not in_regex_char_group else char
-            elif in_quote == '/' and char in '[]':
-                in_regex_char_group = char == '['
+            elif not escaping:
+                if char in _QUOTES and in_quote in (char, None):
+                    if in_quote or after_op or char != '/':
+                        in_quote = None if in_quote and not in_regex_char_group else char
+                elif in_quote == '/' and char in '[]':
+                    in_regex_char_group = char == '['
             escaping = not escaping and in_quote and char == '\\'
             after_op = not in_quote and char in OP_CHARS or (char.isspace() and after_op)
 
