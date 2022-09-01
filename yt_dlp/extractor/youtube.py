@@ -923,19 +923,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                      (?:\#|$)""" % {
         'invidious': '|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
     }
-    _EMBED_REGEX = [r'''(?x)
-        (?:
-            <iframe[^>]+?src=|
-            data-video-url=|
-            <embed[^>]+?src=|
-            embedSWF\(?:\s*|
-            <object[^>]+data=|
-            new\s+SWFObject\(
-        )
-        (["\'])
-            (?P<url>(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/
-            (?:embed|v|p)/[0-9A-Za-z_-]{11}.*?)
-        \1''']
+    _EMBED_REGEX = [
+        r'''(?x)
+            (?:
+                <iframe[^>]+?src=|
+                data-video-url=|
+                <embed[^>]+?src=|
+                embedSWF\(?:\s*|
+                <object[^>]+data=|
+                new\s+SWFObject\(
+            )
+            (["\'])
+                (?P<url>(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/
+                (?:embed|v|p)/[0-9A-Za-z_-]{11}.*?)
+            \1''',
+        # https://wordpress.org/plugins/lazy-load-for-videos/
+        r'''(?xs)
+            <a\s[^>]*\bhref="(?P<url>https://www\.youtube\.com/watch\?v=[0-9A-Za-z_-]{11})"
+            \s[^>]*\bclass="[^"]*\blazy-load-youtube''',
+    ]
+
     _PLAYER_INFO_RE = (
         r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/player',
         r'/(?P<id>[a-zA-Z0-9_-]{8,})/player(?:_ias\.vflset(?:/[a-zA-Z]{2,3}_[a-zA-Z]{2,3})?|-plasma-ias-(?:phone|tablet)-[a-z]{2}_[A-Z]{2}\.vflset)/base\.js$',
