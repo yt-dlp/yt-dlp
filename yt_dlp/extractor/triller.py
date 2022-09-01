@@ -3,7 +3,6 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
-    format_field,
     int_or_none,
     str_or_none,
     traverse_obj,
@@ -24,7 +23,7 @@ class TrillerBaseIE(InfoExtractor):
             return
 
         user_check = self._download_json(
-            f'{self._API_BASE_URL}/api/user/is-valid-username', None, note='Logging in',
+            f'{self._API_BASE_URL}/api/user/is-valid-username', None, note='Checking username',
             fatal=False, expected_status=400, headers={
                 'Content-Type': 'application/json',
                 'Origin': 'https://triller.co',
@@ -37,8 +36,8 @@ class TrillerBaseIE(InfoExtractor):
             'password': password,
         }
         login = self._download_json(
-            f'{self._API_BASE_URL}/user/auth', None, note=False, fatal=False,
-            expected_status=400, headers={
+            f'{self._API_BASE_URL}/user/auth', None, note='Logging in',
+            fatal=False, expected_status=400, headers={
                 'Content-Type': 'application/json',
                 'Origin': 'https://triller.co',
             }, data=json.dumps(credentials, separators=(',', ':')).encode('utf-8'))
@@ -52,17 +51,18 @@ class TrillerBaseIE(InfoExtractor):
     def _get_comments(self, video_id, limit=15):
         comment_info = self._download_json(
             f'{self._API_BASE_URL}/api/videos/{video_id}/comments_v2',
-            video_id, fatal=False, note=False, errnote='Unable to extract comments',
+            video_id, fatal=False, note='Downloading comments API JSON',
             headers={'Origin': 'https://triller.co'}, query={'limit': limit}) or {}
         if not comment_info.get('comments'):
             return
-        return [{
-            'author': traverse_obj(comment_dict, ('author', 'username')),
-            'author_id': traverse_obj(comment_dict, ('author', 'user_id')),
-            'id': comment_dict.get('id'),
-            'text': comment_dict.get('body'),
-            'timestamp': unified_timestamp(comment_dict.get('timestamp')),
-        } for comment_dict in comment_info['comments']]
+        for comment_dict in comment_info['comments']:
+            yield {
+                'author': traverse_obj(comment_dict, ('author', 'username')),
+                'author_id': traverse_obj(comment_dict, ('author', 'user_id')),
+                'id': comment_dict.get('id'),
+                'text': comment_dict.get('body'),
+                'timestamp': unified_timestamp(comment_dict.get('timestamp')),
+            }
 
     def _check_user_info(self, user_info):
         if not user_info:
@@ -113,7 +113,7 @@ class TrillerBaseIE(InfoExtractor):
         if manifest_url:
             formats.extend(self._extract_m3u8_formats(
                 manifest_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                m3u8_id='hls', fatal=False, note=False))
+                m3u8_id='hls', fatal=False))
         self._sort_formats(formats)
 
         comment_count = int_or_none(video_info.get('comment_count'))
@@ -136,7 +136,7 @@ class TrillerBaseIE(InfoExtractor):
             'artist': str_or_none(video_info.get('song_artist')),
             'track': str_or_none(video_info.get('song_title')),
             'webpage_url': f'https://triller.co/@{username}/video/{video_uuid}',
-            'uploader_url': format_field(username, None, 'https://triller.co/@%s'),
+            'uploader_url': f'https://triller.co/@{username}',
             'extractor_key': TrillerIE.ie_key(),
             'extractor': TrillerIE.IE_NAME,
             'formats': formats,
