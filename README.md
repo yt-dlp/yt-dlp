@@ -706,17 +706,19 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     and dump cookie jar in
     --no-cookies                    Do not read/dump cookies from/to file
                                     (default)
-    --cookies-from-browser BROWSER[+KEYRING][:PROFILE[:CONTAINER]]
-                                    The name of the browser and (optionally) the
-                                    name/path of the profile to load cookies
-                                    from (and container name if Firefox)
-                                    separated by a ":". Currently supported
-                                    browsers are: brave, chrome, chromium, edge,
-                                    firefox, opera, safari, vivaldi. By default,
-                                    the default container of the most recently
-                                    accessed profile is used. The keyring used
-                                    for decrypting Chromium cookies on Linux can
-                                    be (optionally) specified after the browser
+    --cookies-from-browser BROWSER[+KEYRING][:PROFILE][:CONTAINER]
+                                    The name of the browser to load cookies
+                                    from. Currently supported browsers are:
+                                    brave, chrome, chromium, edge, firefox,
+                                    opera, safari, vivaldi. Optionally, the
+                                    name/path of the PROFILE to load cookies
+                                    from and the CONTAINER name (if Firefox)
+                                    ("none" for no container) can be given,
+                                    separated by a ":". By default, all
+                                    containers of the most recently accessed
+                                    profile are used. The keyring used for
+                                    decrypting Chromium cookies on Linux can be
+                                    (optionally) specified after the browser
                                     name separated by a "+". Currently supported
                                     keyrings are: basictext, gnomekeyring, kwallet
     --no-cookies-from-browser       Do not load cookies from browser (default)

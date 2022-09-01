@@ -358,14 +358,12 @@ def validate_options(opts):
         elif profile and browser_name == 'firefox':
             if ':' in profile and not os.path.exists(profile):
                 profile, container = profile.split(':', 1)
-                profile = profile if profile else None
-                container = container if container else None
         if keyring is not None:
             keyring = keyring.upper()
             if keyring not in SUPPORTED_KEYRINGS:
                 raise ValueError(f'unsupported keyring specified for cookies: "{keyring}". '
                                  f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
-        opts.cookiesfrombrowser = (browser_name, profile, keyring, container)
+        opts.cookiesfrombrowser = (browser_name, profile or None, keyring, container or None)
 
     # MetadataParser
     def metadataparser_actions(f):

@@ -134,7 +134,7 @@ def _extract_firefox_cookies(profile, container, logger):
     logger.debug(f'Extracting cookies from: "{cookie_database_path}"')
 
     container_id = None
-    if container is not None and container != 'none':
+    if container not in (None, 'none'):
         containers_path = os.path.join(os.path.dirname(cookie_database_path), 'containers.json')
         if not os.path.isfile(containers_path) or not os.access(containers_path, os.R_OK):
             raise FileNotFoundError(f'could not read containers.json in {search_root}')
@@ -151,7 +151,7 @@ def _extract_firefox_cookies(profile, container, logger):
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
-            if container is not None and isinstance(container_id, int):
+            if isinstance(container_id, int):
                 logger.debug(
                     f'Only loading cookies from firefox container "{container}", ID {container_id}')
                 cursor.execute(
