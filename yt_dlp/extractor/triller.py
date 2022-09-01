@@ -11,7 +11,6 @@ from ..utils import (
     unified_timestamp,
     url_basename,
     ExtractorError,
-    LazyList,
 )
 
 
@@ -283,7 +282,7 @@ class TrillerUserIE(TrillerBaseIE):
             if not query['before_time']:
                 break
 
-    def _entries(self, videos, user_info):
+    def _entries(self, videos, username, user_info):
         for video in videos:
             yield self._parse_video_info(video, username, user_info)
 
