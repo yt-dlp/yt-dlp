@@ -2528,9 +2528,6 @@ class YoutubeDL:
                     '--live-from-start is passed, but there are no formats that can be downloaded from the start. '
                     'If you want to download from the current time, use --no-live-from-start'))
 
-        if not formats:
-            self.raise_no_formats(info_dict)
-
         def is_wellformed(f):
             url = f.get('url')
             if not url:
@@ -2543,7 +2540,10 @@ class YoutubeDL:
             return True
 
         # Filter out malformed formats for better extraction robustness
-        formats = list(filter(is_wellformed, formats))
+        formats = list(filter(is_wellformed, formats or []))
+
+        if not formats:
+            self.raise_no_formats(info_dict)
 
         formats_dict = {}
 
