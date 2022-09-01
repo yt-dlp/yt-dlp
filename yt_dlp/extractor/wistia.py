@@ -7,24 +7,32 @@ from ..utils import (
     int_or_none,
     try_call,
     try_get,
+    parse_qs,
+    traverse_obj,
+    update_url_query,
 )
+
+import urllib.parse
+import urllib.error
+from base64 import b64decode
 
 
 class WistiaBaseIE(InfoExtractor):
     _VALID_ID_REGEX = r'(?P<id>[a-z0-9]{10})'
     _VALID_URL_BASE = r'https?://(?:\w+\.)?wistia\.(?:net|com)/(?:embed/)?'
-    _EMBED_BASE_URL = 'http://fast.wistia.com/embed/'
+    _EMBED_BASE_URL = 'http://fast.wistia.net/embed/'
 
     def _download_embed_config(self, config_type, config_id, referer):
-        base_url = self._EMBED_BASE_URL + '%ss/%s' % (config_type, config_id)
+        base_url = self._EMBED_BASE_URL + '%s/%s' % (config_type, config_id)
         embed_config = self._download_json(
             base_url + '.json', config_id, headers={
                 'Referer': referer if referer.startswith('http') else base_url,  # Some videos require this.
             })
 
-        if isinstance(embed_config, dict) and embed_config.get('error'):
+        error = traverse_obj(embed_config, 'error')
+        if error:
             raise ExtractorError(
-                'Error while getting the playlist', expected=True)
+                f'Error while getting the playlist: {error}', expected=True)
 
         return embed_config
 
@@ -117,7 +125,6 @@ class WistiaBaseIE(InfoExtractor):
 
 class WistiaIE(WistiaBaseIE):
     _VALID_URL = r'(?:wistia:|%s(?:iframe|medias)/)%s' % (WistiaBaseIE._VALID_URL_BASE, WistiaBaseIE._VALID_ID_REGEX)
-    _EMBED_REGEX = [r'<(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\'](?P<url>(?:https?:)?//(?:fast\.)?wistia\.(?:net|com)/embed/(?:iframe|medias)/[a-z0-9]{10})']
     _TESTS = [{
         # with hls video
         'url': 'wistia:807fafadvk',
@@ -145,17 +152,40 @@ class WistiaIE(WistiaBaseIE):
         'only_matching': True,
     }]
 
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        embed_config = self._download_embed_config('medias', video_id, url)
+        return self._extract_media(embed_config)
+
+
+# TODO: we could also split this up across extractors
+class WistiaEmbedIE(WistiaBaseIE):
+    _VALID_URL = False
+    _EMBED_REGEX = [r'<(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\'](?P<url>(?:https?:)?//(?:fast\.)?wistia\.(?:net|com)/embed/(?:iframe|medias)/[a-z0-9]{10})']
     # https://wistia.com/support/embed-and-share/video-on-your-website
+    # https://www.profitwell.com/recur/boxed-out
+    # https://terminus.com/the-roof-video-series
+    # https://360learning.com/studio/onboarding-joei/ (section instead of div)
+    # https://www.weidert.com/blog/wistia-channels-video-marketing-tool (span instead of div)
+    # https://wistia.com/support/embed-and-share/channel-embeds for channel embeds
+    # https://wistia.com/support/embed-and-share/video-on-your-website
+
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         urls = list(super()._extract_embed_urls(url, webpage))
-
         for match in re.finditer(
-                r'''(?sx)
-                    <div[^>]+class=(["'])(?:(?!\1).)*?\bwistia_async_(?P<id>[a-z0-9]{10})\b(?:(?!\1).)*?\1
-                ''', webpage):
-            urls.append('wistia:%s' % match.group('id'))
-        for match in re.finditer(r'(?:data-wistia-?id=["\']|Wistia\.embed\(["\']|id=["\']wistia_)(?P<id>[a-z0-9]{10})', webpage):
+            # we should probably relax this so it is not restricted to div/section/span since that appears to vary
+            r'''(?sx)
+            <(?:div|section|span)[^>]+class=(["'])(?:(?!\1).)*?(?:wistia_(?P<type>channel|embed))?\s*\bwistia_async_(?P<id>[a-z0-9]{10})\b(?:(?!\1).)*?\1
+            ''', webpage):
+            media_id = match.group('id')
+            if match.group('type') == 'channel':
+                # original url may contain wmediaid query param
+                urls.append(update_url_query(f'wistiachannel:{media_id}', parse_qs(url)))
+            else:
+                urls.append('wistia:%s' % match.group('id'))
+        for match in re.finditer(r'(?:data-wistia-?id=["\']|Wistia\.embed\(["\']|id=["\']wistia_)(?P<id>[a-z0-9]{10})',
+                                 webpage):
             urls.append('wistia:%s' % match.group('id'))
         return urls
 
@@ -173,11 +203,6 @@ class WistiaIE(WistiaBaseIE):
                 'uploader': try_call(lambda: re.match(r'(?:https?://)?([^/]+)/', url).group(1)),
             }
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        embed_config = self._download_embed_config('media', video_id, url)
-        return self._extract_media(embed_config)
-
 
 class WistiaPlaylistIE(WistiaBaseIE):
     _VALID_URL = r'%splaylists/%s' % (WistiaBaseIE._VALID_URL_BASE, WistiaBaseIE._VALID_ID_REGEX)
@@ -192,7 +217,7 @@ class WistiaPlaylistIE(WistiaBaseIE):
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        playlist = self._download_embed_config('playlist', playlist_id, url)
+        playlist = self._download_embed_config('playlists', playlist_id, url)
 
         entries = []
         for media in (try_get(playlist, lambda x: x[0]['medias']) or []):
@@ -202,3 +227,55 @@ class WistiaPlaylistIE(WistiaBaseIE):
             entries.append(self._extract_media(embed_config))
 
         return self.playlist_result(entries, playlist_id)
+
+
+# https://fast.wistia.net/embed/channel/yvyvu7wjbg?wchannelid=yvyvu7wjbg (no permission via API)
+class WistiaChannelIE(WistiaBaseIE):
+    _VALID_URL = r'(?:wistiachannel:|%schannel/)%s' % (WistiaBaseIE._VALID_URL_BASE, WistiaBaseIE._VALID_ID_REGEX)
+
+    def _download_batch_media_data(self, config_type, config_id, referer):
+        base_url = self._EMBED_BASE_URL + '%ss/%s' % (config_type, config_id)
+        embed_config = self._download_json(
+            base_url + '.json', config_id, headers={
+                'Referer': referer if referer.startswith('http') else base_url,  # Some videos require this.
+            })
+
+        if isinstance(embed_config, dict) and embed_config.get('error'):
+            raise ExtractorError(
+                'Error while getting the playlist', expected=True)
+
+        return embed_config
+
+    def _real_extract(self, url):
+        channel_id = self._match_id(url)
+        params = parse_qs(url)
+        media_id = traverse_obj(params, ('wmediaid', 0))
+        if media_id:
+            if self.get_param('noplaylist'):
+                self.to_screen(f'Downloading just video {media_id} because of --no-playlist')
+                return self.url_result(f'wistia:{media_id}', 'Wistia')
+            else:
+                self.to_screen(
+                    f'Downloading channel {channel_id}; add --no-playlist to just download video {media_id}')
+
+        try:
+            data = self._download_embed_config('channel', channel_id, url)
+        except (ExtractorError, urllib.error.HTTPError):
+            # Some channels give a 403 from the JSON API
+            self.report_warning('Failed to download channel data from API, falling back to webpage.')
+            webpage = self._download_webpage(f'https://fast.wistia.net/embed/channel/{channel_id}', channel_id)
+            data = self._parse_json(
+                self._search_regex(r'wchanneljsonp-%s\'\]\s*=[^\"]*\"([A-Za-z0-9=/]*)' % channel_id, webpage, 'jsonp', channel_id),
+                channel_id, transform_source=lambda x: urllib.parse.unquote_plus(b64decode(x).decode('utf-8')))
+
+        # XXX: the response suggests there can be multiple "series" but I've never seen one
+        series = traverse_obj(data, ('series', 0), default={})
+
+        entries = []
+        for video in traverse_obj(series, ('sections', ..., 'videos', ...)) or []:
+            hashed_id = video.get('hashedId')
+            if hashed_id:
+                entries.append(self.url_result(f'wistia:{hashed_id}', 'Wistia', title=video.get('name')))
+
+        return self.playlist_result(
+            entries, channel_id, playlist_title=series.get('name'), playlist_description=series.get('description'))
