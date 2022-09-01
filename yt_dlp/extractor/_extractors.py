@@ -1735,6 +1735,12 @@ from .telequebec import (
 from .teletask import TeleTaskIE
 from .telewebion import TelewebionIE
 from .tempo import TempoIE
+from .tencent import (
+    VQQSeriesIE,
+    VQQVideoIE,
+    WeTvEpisodeIE,
+    WeTvSeriesIE,
+)
 from .tennistv import TennisTVIE
 from .tenplay import TenPlayIE
 from .testurl import TestURLIE
@@ -2099,7 +2105,6 @@ from .weibo import (
     WeiboMobileIE
 )
 from .weiqitv import WeiqiTVIE
-from .wetv import WeTvEpisodeIE, WeTvSeriesIE
 from .wikimedia import WikimediaIE
 from .willow import WillowIE
 from .wimtv import WimTVIE
