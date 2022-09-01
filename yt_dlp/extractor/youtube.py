@@ -2160,6 +2160,35 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_follower_count': int
             }
         }, {
+            # Same video as above, but with --compat-opt no-youtube-prefer-utc-upload-date
+            'url': 'https://www.youtube.com/watch?v=2NUZ8W2llS4',
+            'info_dict': {
+                'id': '2NUZ8W2llS4',
+                'ext': 'mp4',
+                'title': 'The NP that test your phone performance 🙂',
+                'description': 'md5:144494b24d4f9dfacb97c1bbef5de84d',
+                'uploader': 'Leon Nguyen',
+                'uploader_id': 'VNSXIII',
+                'uploader_url': 'http://www.youtube.com/user/VNSXIII',
+                'channel_id': 'UCRqNBSOHgilHfAczlUmlWHA',
+                'channel_url': 'https://www.youtube.com/channel/UCRqNBSOHgilHfAczlUmlWHA',
+                'duration': 21,
+                'view_count': int,
+                'age_limit': 0,
+                'categories': ['Gaming'],
+                'tags': 'count:23',
+                'playable_in_embed': True,
+                'live_status': 'not_live',
+                'upload_date': '20220102',
+                'like_count': int,
+                'availability': 'public',
+                'channel': 'Leon Nguyen',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp',
+                'comment_count': int,
+                'channel_follower_count': int
+            },
+            'params': {'compat_opts': ['no-youtube-prefer-utc-upload-date']}
+        }, {
             # date text is premiered video, ensure upload date in UTC (published 1641172509)
             'url': 'https://www.youtube.com/watch?v=mzZzzBU6lrM',
             'info_dict': {
@@ -3920,7 +3949,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         upload_date = (
             unified_strdate(get_first(microformats, 'uploadDate'))
             or unified_strdate(search_meta('uploadDate')))
-        if not upload_date or (not info.get('is_live') and not info.get('was_live') and info.get('live_status') != 'is_upcoming'):
+        if not upload_date or (
+            not info.get('is_live')
+            and not info.get('was_live')
+            and info.get('live_status') != 'is_upcoming'
+            and 'no-youtube-prefer-utc-upload-date' not in self.get_param('compat_opts', [])
+        ):
             upload_date = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d') or upload_date
         info['upload_date'] = upload_date
 
