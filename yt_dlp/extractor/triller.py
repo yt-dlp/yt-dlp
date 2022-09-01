@@ -57,7 +57,7 @@ class TrillerBaseIE(InfoExtractor):
             headers={'Origin': 'https://triller.co'}, query={'limit': limit}) or {}
         if not comment_info.get('comments'):
             return
-        yield [{
+        return [{
             'author': traverse_obj(comment_dict, ('author', 'username')),
             'author_id': traverse_obj(comment_dict, ('author', 'user_id')),
             'id': comment_dict.get('id'),
@@ -74,7 +74,7 @@ class TrillerBaseIE(InfoExtractor):
             raise ExtractorError('The author of the video is blocked', expected=True)
         return user_info
 
-    def _parse_video_info(self, video_info, user_info=None):
+    def _parse_video_info(self, video_info, username, user_info=None):
         video_uuid = video_info.get('video_uuid')
         video_id = video_info.get('id')
 
@@ -120,8 +120,6 @@ class TrillerBaseIE(InfoExtractor):
         comment_count = int_or_none(video_info.get('comment_count'))
 
         user_info = user_info or traverse_obj(video_info, 'user', default={})
-
-        username = user_info.get('username')
 
         return {
             'id': str_or_none(video_id) or video_uuid,
@@ -220,7 +218,7 @@ class TrillerIE(TrillerBaseIE):
             raise ExtractorError('No video info found in API response')
 
         user_info = self._check_user_info(video_info.get('user') or {})
-        return self._parse_video_info(video_info, user_info)
+        return self._parse_video_info(video_info, username, user_info)
 
 
 class TrillerUserIE(TrillerBaseIE):
@@ -287,7 +285,7 @@ class TrillerUserIE(TrillerBaseIE):
 
     def _entries(self, videos, user_info):
         for video in videos:
-            yield self._parse_video_info(video, user_info)
+            yield self._parse_video_info(video, username, user_info)
 
     def _real_extract(self, url):
         username = self._match_id(url)
@@ -304,4 +302,4 @@ class TrillerUserIE(TrillerBaseIE):
         thumbnail = user_info.get('avatar_url')
 
         return self.playlist_result(
-            self._entries(videos, user_info), user_id, username, thumbnail=thumbnail)
+            self._entries(videos, username, user_info), user_id, username, thumbnail=thumbnail)
