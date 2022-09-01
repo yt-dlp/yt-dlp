@@ -1400,7 +1400,7 @@ def create_parser():
         help='Do not read/dump cookies from/to file (default)')
     filesystem.add_option(
         '--cookies-from-browser',
-        dest='cookiesfrombrowser', metavar='BROWSER[+KEYRING][:[PROFILE][:CONTAINER]]',
+        dest='cookiesfrombrowser', metavar='BROWSER[+KEYRING][:[CONTAINER:]PROFILE]',
         help=(
             'The name of the browser to load cookies from. '
             f'Currently supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}. '
