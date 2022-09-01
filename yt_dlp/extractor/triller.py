@@ -90,7 +90,7 @@ class TrillerBaseIE(InfoExtractor):
                 'format_id': url_basename(video_url).split('.')[0],
                 'filesize': video_info.get('filesize'),
             })
-        video_set = video_info.get('video_set', [])
+        video_set = video_info.get('video_set') or []
         for video in video_set:
             resolution = video.get('resolution') or ''
             formats.append({
@@ -119,8 +119,7 @@ class TrillerBaseIE(InfoExtractor):
 
         comment_count = int_or_none(video_info.get('comment_count'))
 
-        if not user_info:
-            user_info = traverse_obj(video_info, 'user', default={})
+        user_info = user_info or traverse_obj(video_info, 'user', default={})
 
         username = user_info.get('username')
 
@@ -220,8 +219,7 @@ class TrillerIE(TrillerBaseIE):
         if not video_info:
             raise ExtractorError('No video info found in API response')
 
-        user_info = self._check_user_info(video_info.get('user', {}))
-
+        user_info = self._check_user_info(video_info.get('user') or {})
         return self._parse_video_info(video_info, user_info)
 
 
@@ -302,7 +300,7 @@ class TrillerUserIE(TrillerBaseIE):
             }).get('user', {}))
 
         user_id = str_or_none(user_info.get('user_id'))
-        videos = LazyList(self._extract_video_list(username, user_id))
+        videos = self._extract_video_list(username, user_id)
         thumbnail = user_info.get('avatar_url')
 
         return self.playlist_result(
