@@ -1,16 +1,18 @@
-from .common import InfoExtractor
 import re
 
+from .common import InfoExtractor
 from ..utils import (
     bug_reports_message,
     float_or_none,
+    traverse_obj,
     unified_timestamp,
-    traverse_obj
 )
 
 
-class MediaworksVODIE(InfoExtractor):
-    _VALID_URL = r'https?://vodupload-api\.mediaworks\.nz/library/asset/published/(?P<id>[A-Za-z0-9-]+)'
+class MediaWorksNZVODIE(InfoExtractor):
+    _VALID_URL_BASE_RE = r'https?://vodupload-api\.mediaworks\.nz/library/asset/published/'
+    _VALID_URL_ID_RE = r'(?P<id>[A-Za-z0-9-]+)'
+    _VALID_URL = rf'(?:mwnzvod:|{_VALID_URL_BASE_RE}){_VALID_URL_ID_RE}'
     _TESTS = [{
         'url': 'https://vodupload-api.mediaworks.nz/library/asset/published/VID00359',
         'info_dict': {
@@ -59,8 +61,10 @@ class MediaworksVODIE(InfoExtractor):
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         for mobj in re.finditer(
-                r'<div\s+id=\"Player-Attributes-JWID[^>]+data-request-url=\"https://vodupload-api.mediaworks\.nz/library/asset/published/\"[^>]+data-asset-id=\"(?P<id>[A-Za-z0-9-]+)\"', webpage):
-            yield 'https://vodupload-api.mediaworks.nz/library/asset/published/' + mobj.group('id')
+            rf'''(?x)<div\s+\bid=[\"\']Player-Attributes-JWID[^>]+\bdata-request-url=[\"\']{cls._VALID_URL_BASE_RE}[\"\'][^>]+
+            \bdata-asset-id=[\"\']{cls._VALID_URL_ID_RE}[\"\']''', webpage
+        ):
+            yield 'mwnzvod:%s' % mobj.group('id')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -81,8 +85,8 @@ class MediaworksVODIE(InfoExtractor):
             audio_formats = self._extract_m3u8_formats(audio_streaming_url, video_id, fatal=False, ext='mp3')
             for audio_format in audio_formats:
                 # all the audio streams appear to be aac
-                audio_format['vcodec'] = 'none'
-                audio_format['acodec'] = 'aac'
+                audio_format['vcodec'] = audio_format.get('vcodec') or 'none'
+                audio_format['acodec'] = audio_format.get('acodec') or 'aac'
                 formats.append(audio_format)
 
         self._sort_formats(formats)
