@@ -46,11 +46,13 @@ class PrankCastIE(InfoExtractor):
         else:
             guests = []
 
-        guests_json = self._parse_json(json_info.get('guests_json'), video_id) or []
-        for guest in guests_json:
-            guest_name = guest.get('name')
-            if guest_name is not None:
-                guests.append(guest_name)
+        guests_json = json_info.get('guests_json')
+        if guests_json is not None:
+            guests_json = self._parse_json(guests_json, video_id)
+            for guest in guests_json:
+                guest_name = guest.get('name')
+                if guest_name is not None:
+                    guests.append(guest_name)
 
         # Get dates
         start_date = parse_iso8601(json_info.get('start_date'))
