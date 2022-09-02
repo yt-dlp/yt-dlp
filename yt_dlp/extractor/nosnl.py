@@ -3,7 +3,7 @@ from ..utils import traverse_obj
 
 
 class NOSNLArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://nos\.nl/(\w+/)?\w+/(?P<display_id>[\w-]+)'
+    _VALID_URL = r'https?://nos\.nl/(\w+/)?\w+/\d+-(?P<display_id>[\w-]+)'
     _TESTS = [
         {
             # only 1 video
@@ -18,15 +18,15 @@ class NOSNLArticleIE(InfoExtractor):
             # more than 1 video
             'url': 'https://nos.nl/artikel/2440409-vannacht-sliepen-weer-enkele-honderden-asielzoekers-in-ter-apel-buiten',
             'info_dict': {
-                'id': '2440505',
-                'ext': 'mp4',
+                'id': '2440409',
+                'title': 'Vannacht sliepen weer enkele honderden asielzoekers in Ter Apel buiten',
             },
             'playlist_count': 2,
         }, {
             # audio + video
             'url': 'https://nos.nl/artikel/2440789-wekdienst-16-8-groningse-acties-tien-jaar-na-zware-aardbeving-femke-bol-in-actie-op-ek-atletiek',
             'info_dict': {
-                'id': 2440789,
+                'id': '2440789',
                 'title': 'Wekdienst 16/8: Groningse acties tien jaar na zware aardbeving • Femke Bol in actie op EK atletiek ',
             },
             'playlist_count': 2,
@@ -43,10 +43,9 @@ class NOSNLArticleIE(InfoExtractor):
         for item in nextjs_json.get('items'):
             if item.get('type') == 'video':
                 formats, subtitle = self._extract_m3u8_formats_and_subtitles(
-                    traverse_obj(item, ('source', 'url')), display_id)
-
+                    traverse_obj(item, ('source', 'url')), display_id, ext='mp4')
                 yield {
-                    'id': item['id'],
+                    'id': str(item['id']),
                     'title': item.get('title'),
                     'description': item.get('description'),
                     'formats': formats,
@@ -66,4 +65,4 @@ class NOSNLArticleIE(InfoExtractor):
 
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['data']
         video_generator = self._get_video_generator(nextjs_json, display_id)
-        return self.playlist_result(video_generator, nextjs_json['id'], nextjs_json.get('title'))
+        return self.playlist_result(video_generator, str(nextjs_json['id']), nextjs_json.get('title'))
