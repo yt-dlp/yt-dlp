@@ -499,7 +499,7 @@ class InfoExtractor:
     _ENABLED = True
     _NETRC_MACHINE = None
     IE_DESC = None
-    SEARCH_KEY = None
+    SEARCH_KEY = SH_KEY = None
     _VALID_URL = None
     _EMBED_REGEX = []
 
@@ -3957,7 +3957,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
     which everyone is allowed to host on their own servers
     (like PeerTube, Mastodon, Misskey, and lots of others).
 
-    Subclasses must define _KEY, _KNOWN_INSTANCES, _BASE_IE and optionally
+    Subclasses must define SH_KEY, _KNOWN_INSTANCES, _BASE_IE and optionally
     _NODEINFO_SOFTWARES, _SH_VALID_CONTENT_REGEXES
     # TODO: Better docs
     """
@@ -3974,7 +3974,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
     def IE_NAME(cls):
         if cls._ENABLED:
             return super().IE_NAME
-        return f'{cls._KEY}:instances'
+        return f'{cls.SH_KEY}:instances'
 
     @classproperty
     def _ENABLED(cls):
@@ -3997,20 +3997,20 @@ class SelfHostedInfoExtractor(InfoExtractor):
     def suitable(cls, url):
         if not cls._ENABLED:
             return
-        new_url = remove_start(url, f'{cls._KEY}:')
+        new_url = remove_start(url, f'{cls.SH_KEY}:')
         if new_url != url:
             return cls._match_hostname(new_url) != (None, None)
         return cls._match_hostname(url)[1] in cls._KNOWN_INSTANCES
 
     def extract(self, url):
-        return super().extract(remove_start(url, f'{self._KEY}:'))
+        return super().extract(remove_start(url, f'{self.SH_KEY}:'))
 
     def _extract_from_webpage(self, url, webpage):
         if self._ENABLED:
             return
         ie = self._is_selfhosted_instance(url, webpage)
         if ie:
-            yield self.url_result(f'{ie._KEY}:{url}', ie)
+            yield self.url_result(f'{ie.SH_KEY}:{url}', ie)
             raise self.StopExtraction()
 
     def _is_selfhosted_instance(self, url, webpage):
@@ -4018,7 +4018,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
         if not hostname or hostname in self._KNOWN_INSTANCES:
             return ie
 
-        self.to_screen(f'Testing if {hostname} is a {self._KEY} instance')
+        self.to_screen(f'Testing if {hostname} is a {self.SH_KEY} instance')
         if self._probe_webpage(webpage) or self._fetch_nodeinfo_software(hostname) in self._NODEINFO_SOFTWARES.values():
             self._KNOWN_INSTANCES.add(hostname)
             return ie

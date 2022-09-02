@@ -35,7 +35,7 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
     '''
 
     _NETRC_MACHINE = 'mastodon'
-    _KEY = 'mastodon'
+    SH_KEY = 'mastodon'
     _NODEINFO_SOFTWARES = {k: v for v, k in (
         ('mastodon', ',"settings":{"known_fediverse":'),  # Mastodon initial-state
         ('mastodon', '<li><a href="https://docs.joinmastodon.org/">Documentation</a></li>'),
@@ -170,7 +170,7 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
                 webpage = self._download_webpage(url, display_id, expected_status=302)
                 real_url = self._og_search_property('url', webpage, default=None)
                 if real_url:
-                    return self.url_result(f'{self._KEY}:{real_url}', MastodonIE)
+                    return self.url_result(f'{self.SH_KEY}:{real_url}', MastodonIE)
 
             metadata = self._download_json(
                 f'https://{domain}/api/v1/statuses/{video_id}', display_id,
