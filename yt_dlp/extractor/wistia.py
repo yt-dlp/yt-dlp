@@ -158,17 +158,9 @@ class WistiaIE(WistiaBaseIE):
         return self._extract_media(embed_config)
 
 
-# TODO: we could also split this up across extractors
 class WistiaEmbedIE(WistiaBaseIE):
     _VALID_URL = False
     _EMBED_REGEX = [r'<(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\'](?P<url>(?:https?:)?//(?:fast\.)?wistia\.(?:net|com)/embed/(?:iframe|medias)/[a-z0-9]{10})']
-    # https://wistia.com/support/embed-and-share/video-on-your-website
-    # https://www.profitwell.com/recur/boxed-out
-    # https://terminus.com/the-roof-video-series
-    # https://360learning.com/studio/onboarding-joei/ (section instead of div)
-    # https://www.weidert.com/blog/wistia-channels-video-marketing-tool (span instead of div)
-    # https://wistia.com/support/embed-and-share/channel-embeds for channel embeds
-    # https://wistia.com/support/embed-and-share/video-on-your-website
 
     _WEBPAGE_TESTS = [{
         'url': 'https://www.profitwell.com/recur/boxed-out',
