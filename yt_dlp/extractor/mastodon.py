@@ -162,7 +162,7 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
         }
 
     def _real_extract(self, url):
-        video_id, domain = self._match_id(url), self._match_hostname(url)
+        video_id, domain = self._match_id(url), self._match_hostname(url)[1]
         display_id = self._make_video_id(video_id, domain)
 
         if domain == self._login_info.get('instance', domain):
@@ -495,10 +495,10 @@ class MastodonIE(MastodonBaseIE):
 
 
 class MastodonInstancesIE(MastodonBaseIE):
-    _BASE_IE = MastodonIE
+    _BASE_IES = (MastodonIE, )
     _WEBPAGE_TESTS = [{
         # Soapbox, audio file
-        'url': 'https://gleasonator.com/notice/9zvJY6h7jJzwopKAIi',  #
+        'url': 'https://gleasonator.com/notice/9zvJY6h7jJzwopKAIi',
         'info_dict': {
             'id': '9zvJY6h7jJzwopKAIi@gleasonator.com',
             'title': '#FEDIBLOCK',

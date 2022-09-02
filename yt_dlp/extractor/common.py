@@ -3957,7 +3957,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
     which everyone is allowed to host on their own servers
     (like PeerTube, Mastodon, Misskey, and lots of others).
 
-    Subclasses must define _KEY _KNOWN_INSTANCES, _BASE_IE and optionally
+    Subclasses must define _KEY, _KNOWN_INSTANCES, _BASE_IE and optionally
     _NODEINFO_SOFTWARES, _SH_VALID_CONTENT_REGEXES
     # TODO: Better docs
     """
@@ -3965,7 +3965,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
     # TODO: Generate and load _KNOWN_INSTANCES
     # TODO: FIx lazy extraction
 
-    _BASE_IE = None
+    _BASE_IES = None
     _NODEINFO_SOFTWARES = {}  # {string: software}
     _SH_VALID_CONTENT_REGEXES = ()
     _NODEINFO_CACHE = {}
@@ -3974,18 +3974,20 @@ class SelfHostedInfoExtractor(InfoExtractor):
     def IE_NAME(cls):
         if cls._ENABLED:
             return super().IE_NAME
-        return f'{cls._BASE_IE.IE_NAME}:instances'
+        return f'{cls._KEY}:instances'
 
     @classproperty
     def _ENABLED(cls):
-        return not bool(cls._BASE_IE)
+        return not bool(cls._BASE_IES)
 
     @classmethod
     def _match_hostname(cls, url):
-        hostname = traverse_obj(
-            super()._match_valid_url(url), lambda k, _: k.startswith('domain'), get_all=False)
-        if hostname:
-            return hostname.encode('idna').decode('utf-8')
+        for ie in cls._BASE_IES or [cls]:
+            hostname = traverse_obj(
+                ie._match_valid_url(url), lambda k, _: k.startswith('domain'), get_all=False)
+            if hostname:
+                return ie, hostname.encode('idna').decode('utf-8')
+        return None, None
 
     @staticmethod
     def _make_video_id(video_id, domain):
@@ -3997,8 +3999,8 @@ class SelfHostedInfoExtractor(InfoExtractor):
             return
         new_url = remove_start(url, f'{cls._KEY}:')
         if new_url != url:
-            return bool(cls._match_hostname(new_url))
-        return cls._match_hostname(url) in cls._KNOWN_INSTANCES
+            return cls._match_hostname(new_url) != (None, None)
+        return cls._match_hostname(url)[1] in cls._KNOWN_INSTANCES
 
     def extract(self, url):
         return super().extract(remove_start(url, f'{self._KEY}:'))
@@ -4006,22 +4008,20 @@ class SelfHostedInfoExtractor(InfoExtractor):
     def _extract_from_webpage(self, url, webpage):
         if self._ENABLED:
             return
-        if self._is_selfhosted_instance(url, webpage):
-            yield self.url_result(f'{self._BASE_IE._KEY}:{url}', self._BASE_IE)
-        raise self.StopExtraction()
+        ie = self._is_selfhosted_instance(url, webpage)
+        if ie:
+            yield self.url_result(f'{ie._KEY}:{url}', ie)
+            raise self.StopExtraction()
 
     def _is_selfhosted_instance(self, url, webpage):
-        hostname = self._match_hostname(url)
-        if hostname in self._KNOWN_INSTANCES:
-            return True
-        elif not hostname:
-            return False
+        ie, hostname = self._match_hostname(url)
+        if not hostname or hostname in self._KNOWN_INSTANCES:
+            return ie
 
         self.to_screen(f'Testing if {hostname} is a {self._KEY} instance')
         if self._probe_webpage(webpage) or self._fetch_nodeinfo_software(hostname) in self._NODEINFO_SOFTWARES.values():
             self._KNOWN_INSTANCES.add(hostname)
-            return True
-        return False
+            return ie
 
     def _probe_webpage(self, webpage):
         return (any(p in webpage for p in self._NODEINFO_SOFTWARES.keys())
