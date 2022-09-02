@@ -372,6 +372,7 @@ class MastodonIE(MastodonBaseIE):
 
         video_id = mobj.group('id')
         domain = get_first_group(mobj, 'domain_1', 'domain_2')
+        display_id = f'{video_id}@{domain}'
 
         login_info = self._login_info
         if login_info and domain != login_info['instance']:
@@ -395,7 +396,7 @@ class MastodonIE(MastodonBaseIE):
                     raise ExtractorError(f'Unknown software: {software}')
                 wf_url = f'https://{domain}/{url_part}/{video_id}'
             search = self._download_json(
-                f"https://{login_info['instance']}/api/v2/search", '%s:%s' % (domain, video_id),
+                f"https://{login_info['instance']}/api/v2/search", display_id,
                 query={
                     'q': wf_url,
                     'type': 'statuses',
@@ -407,12 +408,12 @@ class MastodonIE(MastodonBaseIE):
             metadata = search['statuses'][0]
         else:
             if not login_info and any(frag in url for frag in ('/objects/', '/activities/')):
-                webpage = self._download_webpage(url, '%s:%s' % (domain, video_id), expected_status=302)
+                webpage = self._download_webpage(url, display_id, expected_status=302)
                 real_url = self._og_search_property('url', webpage, default=None)
                 if real_url:
                     return self.url_result(real_url, ie='Mastodon')
             metadata = self._download_json(
-                'https://%s/api/v1/statuses/%s' % (domain, video_id), '%s:%s' % (domain, video_id),
+                'https://%s/api/v1/statuses/%s' % (domain, video_id), display_id,
                 headers={
                     'Authorization': login_info['authorization'],
                 } if login_info else {})
@@ -420,7 +421,7 @@ class MastodonIE(MastodonBaseIE):
         title = clean_html(metadata.get('content'))
 
         info_dict = {
-            'id': f'{video_id}@{domain}',
+            'id': display_id,
             'title': title,
 
             'duration': metadata.get('duration') or parse_duration(metadata.get('length')),
@@ -452,7 +453,7 @@ class MastodonIE(MastodonBaseIE):
                     'duration': float_or_none(try_get(media, lambda x: x['meta']['original']['duration'])),
                     'width': int_or_none(try_get(media, lambda x: x['meta']['original']['width'])),
                     'height': int_or_none(try_get(media, lambda x: x['meta']['original']['height'])),
-                    'tbr': int_or_none(try_get(media, lambda x: x['meta']['original']['bitrate'])),
+                    'tbr': int_or_none(try_get(media, lambda x: x['meta']['original']['bitrate']), scale=1024),
                 })
 
         if len(entries) == 0:
