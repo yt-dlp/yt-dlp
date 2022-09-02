@@ -213,18 +213,16 @@ class InstagramBaseIE(InfoExtractor):
             fatal=False, errnote='Comments extraction failed', note='Downloading comments info', headers=self._API_HEADERS) or {}
 
         comment_data = traverse_obj(comments_info, ('edge_media_to_parent_comment', 'edges'), 'comments')
-        if comment_data:
-            for comment_dict in comment_data:
-                yield {
-                    'author': traverse_obj(comment_dict, ('node', 'owner', 'username'), ('user', 'username')),
-                    'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id'), ('user', 'pk')),
-                    'author_thumbnail': traverse_obj(comment_dict, ('node', 'owner', 'profile_pic_url'), ('user', 'profile_pic_url'), expected_type=str_or_none),
-                    'id': traverse_obj(comment_dict, ('node', 'id'), 'pk'),
-                    'text': traverse_obj(comment_dict, ('node', 'text'), 'text'),
-                    'like_count': traverse_obj(comment_dict, ('node', 'edge_liked_by', 'count'), 'comment_like_count', expected_type=int_or_none),
-                    'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), 'created_at', expected_type=int_or_none),
-                }
-
+        for comment_dict in comment_data or []:
+            yield {
+                'author': traverse_obj(comment_dict, ('node', 'owner', 'username'), ('user', 'username')),
+                'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id'), ('user', 'pk')),
+                'author_thumbnail': traverse_obj(comment_dict, ('node', 'owner', 'profile_pic_url'), ('user', 'profile_pic_url'), expected_type=url_or_none),
+                'id': traverse_obj(comment_dict, ('node', 'id'), 'pk'),
+                'text': traverse_obj(comment_dict, ('node', 'text'), 'text'),
+                'like_count': traverse_obj(comment_dict, ('node', 'edge_liked_by', 'count'), 'comment_like_count', expected_type=int_or_none),
+                'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), 'created_at', expected_type=int_or_none),
+            }
 
 class InstagramIOSIE(InfoExtractor):
     IE_DESC = 'IOS instagram:// URL'
@@ -278,8 +276,8 @@ class InstagramIE(InstagramBaseIE):
             'comments': list,
         },
         'expected_warnings': [
-            'General metadata extraction failed (some metadata might be missing).',
-            'Main webpage is locked behind the login page. Retrying with embed webpage (some metadata might be missing).',
+            'General metadata extraction failed',
+            'Main webpage is locked behind the login page',
         ],
     }, {
         # reel
@@ -302,8 +300,8 @@ class InstagramIE(InstagramBaseIE):
             'comments': list,
         },
         'expected_warnings': [
-            'General metadata extraction failed (some metadata might be missing).',
-            'Main webpage is locked behind the login page. Retrying with embed webpage (some metadata might be missing).',
+            'General metadata extraction failed',
+            'Main webpage is locked behind the login page',
         ],
     }, {
         # multi video post
@@ -339,8 +337,8 @@ class InstagramIE(InstagramBaseIE):
             'description': 'md5:0f9203fc6a2ce4d228da5754bcf54957',
         },
         'expected_warnings': [
-            'General metadata extraction failed (some metadata might be missing).',
-            'Main webpage is locked behind the login page. Retrying with embed webpage (some metadata might be missing).',
+            'General metadata extraction failed',
+            'Main webpage is locked behind the login page',
         ],
     }, {
         # IGTV
@@ -362,8 +360,8 @@ class InstagramIE(InstagramBaseIE):
             'description': 'Meet Cass Hirst (@cass.fb), a fingerboarding pro who can perform tiny ollies and kickflips while blindfolded.',
         },
         'expected_warnings': [
-            'General metadata extraction failed (some metadata might be missing).',
-            'Main webpage is locked behind the login page. Retrying with embed webpage (some metadata might be missing).',
+            'General metadata extraction failed',
+            'Main webpage is locked behind the login page',
         ],
     }, {
         'url': 'https://instagram.com/p/-Cmh1cukG2/',
@@ -412,12 +410,10 @@ class InstagramIE(InstagramBaseIE):
 
         if not csrf_token:
             self.report_warning('No csrf token set by Instagram API', video_id)
-            csrf_token = ''
         else:
             csrf_token = csrf_token.value if api_check.get('status') == 'ok' else None
             if not csrf_token:
                 self.report_warning('Instagram API is not granting access', video_id)
-                csrf_token = ''
 
         variables = {
             'shortcode': video_id,
@@ -430,7 +426,7 @@ class InstagramIE(InstagramBaseIE):
             'https://www.instagram.com/graphql/query/', video_id, fatal=False, errnote=False,
             headers={
                 **self._API_HEADERS,
-                'X-CSRFToken': csrf_token,
+                'X-CSRFToken': csrf_token or '',
                 'X-Requested-With': 'XMLHttpRequest',
                 'Referer': url,
             }, query={
