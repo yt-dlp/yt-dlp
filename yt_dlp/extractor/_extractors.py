@@ -600,10 +600,7 @@ from .funimation import (
 from .funk import FunkIE
 from .fusion import FusionIE
 from .fuyintv import FuyinTVIE
-from .gab import (
-    GabTVIE,
-    GabIE,
-)
+from .gab import GabTVIE
 from .gaia import GaiaIE
 from .gameinformer import GameInformerIE
 from .gamejolt import (
@@ -923,6 +920,10 @@ from .markiza import (
     MarkizaPageIE,
 )
 from .massengeschmacktv import MassengeschmackTVIE
+from .mastodon import (
+    MastodonIE,
+    MastodonInstancesIE,
+)
 from .masters import MastersIE
 from .matchtv import MatchTVIE
 from .mdr import MDRIE
@@ -1836,7 +1837,6 @@ from .trovo import (
 )
 from .trueid import TrueIDIE
 from .trunews import TruNewsIE
-from .truth import TruthIE
 from .trutv import TruTVIE
 from .tube8 import Tube8IE
 from .tubetugraz import TubeTuGrazIE, TubeTuGrazSeriesIE
