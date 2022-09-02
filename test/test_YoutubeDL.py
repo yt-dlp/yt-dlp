@@ -668,7 +668,7 @@ class TestYoutubeDL(unittest.TestCase):
     def test_prepare_outtmpl_and_filename(self):
         def test(tmpl, expected, *, info=None, **params):
             params['outtmpl'] = tmpl
-            ydl = YoutubeDL(params)
+            ydl = FakeYDL(params)
             ydl._num_downloads = 1
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 

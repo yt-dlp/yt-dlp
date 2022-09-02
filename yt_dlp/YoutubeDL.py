@@ -1044,7 +1044,7 @@ class YoutubeDL:
 
     def get_output_path(self, dir_type='', filename=None):
         paths = self.params.get('paths', {})
-        assert isinstance(paths, dict)
+        assert isinstance(paths, dict), '"paths" parameter must be a dictionary'
         path = os.path.join(
             expand_path(paths.get('home', '').strip()),
             expand_path(paths.get(dir_type, '').strip()) if dir_type else '',
@@ -2528,9 +2528,6 @@ class YoutubeDL:
                     '--live-from-start is passed, but there are no formats that can be downloaded from the start. '
                     'If you want to download from the current time, use --no-live-from-start'))
 
-        if not formats:
-            self.raise_no_formats(info_dict)
-
         def is_wellformed(f):
             url = f.get('url')
             if not url:
@@ -2543,7 +2540,10 @@ class YoutubeDL:
             return True
 
         # Filter out malformed formats for better extraction robustness
-        formats = list(filter(is_wellformed, formats))
+        formats = list(filter(is_wellformed, formats or []))
+
+        if not formats:
+            self.raise_no_formats(info_dict)
 
         formats_dict = {}
 
@@ -2745,9 +2745,9 @@ class YoutubeDL:
                 if lang not in available_subs:
                     available_subs[lang] = cap_info
 
-        if (not self.params.get('writesubtitles') and not
-                self.params.get('writeautomaticsub') or not
-                available_subs):
+        if not available_subs or (
+                not self.params.get('writesubtitles')
+                and not self.params.get('writeautomaticsub')):
             return None
 
         all_sub_langs = tuple(available_subs.keys())
@@ -2764,7 +2764,7 @@ class YoutubeDL:
         else:
             requested_langs = ['en'] if 'en' in all_sub_langs else all_sub_langs[:1]
         if requested_langs:
-            self.write_debug('Downloading subtitles: %s' % ', '.join(requested_langs))
+            self.to_screen(f'[info] {video_id}: Downloading subtitles: {", ".join(requested_langs)}')
 
         formats_query = self.params.get('subtitlesformat', 'best')
         formats_preference = formats_query.split('/') if formats_query else []

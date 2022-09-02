@@ -1693,7 +1693,7 @@ class InfoExtractor:
                      'order_free': ('webm', 'mp4', 'flv', '', 'none')},
             'aext': {'type': 'ordered', 'field': 'audio_ext',
                      'order': ('m4a', 'aac', 'mp3', 'ogg', 'opus', 'webm', '', 'none'),
-                     'order_free': ('opus', 'ogg', 'webm', 'm4a', 'mp3', 'aac', '', 'none')},
+                     'order_free': ('ogg', 'opus', 'webm', 'mp3', 'm4a', 'aac', '', 'none')},
             'hidden': {'visible': False, 'forced': True, 'type': 'extractor', 'max': -1000},
             'aud_or_vid': {'visible': False, 'forced': True, 'type': 'multiple',
                            'field': ('vcodec', 'acodec'),
@@ -3874,7 +3874,7 @@ class InfoExtractor:
     def _extract_from_webpage(cls, url, webpage):
         for embed_url in orderedSet(
                 cls._extract_embed_urls(url, webpage) or [], lazy=True):
-            yield cls.url_result(embed_url, cls)
+            yield cls.url_result(embed_url, None if cls._VALID_URL is False else cls)
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):

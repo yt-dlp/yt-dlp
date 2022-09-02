@@ -25,7 +25,13 @@ from .dependencies import (
     sqlite3,
 )
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
-from .utils import Popen, YoutubeDLCookieJar, error_to_str, expand_path, try_call
+from .utils import (
+    Popen,
+    YoutubeDLCookieJar,
+    error_to_str,
+    expand_path,
+    try_call,
+)
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
@@ -128,12 +134,17 @@ def _extract_firefox_cookies(profile, container, logger):
     else:
         search_root = os.path.join(_firefox_browser_dir(), profile)
 
+    cookie_database_path = _find_most_recently_used_file(search_root, 'cookies.sqlite', logger)
+    if cookie_database_path is None:
+        raise FileNotFoundError(f'could not find firefox cookies database in {search_root}')
+    logger.debug(f'Extracting cookies from: "{cookie_database_path}"')
+
     container_id = None
-    if container is not None:
-        containers_path = os.path.join(search_root, 'containers.json')
+    if container not in (None, 'none'):
+        containers_path = os.path.join(os.path.dirname(cookie_database_path), 'containers.json')
         if not os.path.isfile(containers_path) or not os.access(containers_path, os.R_OK):
             raise FileNotFoundError(f'could not read containers.json in {search_root}')
-        with open(containers_path, 'r') as containers:
+        with open(containers_path) as containers:
             identities = json.load(containers).get('identities', [])
         container_id = next((context.get('userContextId') for context in identities if container in (
             context.get('name'),
@@ -142,26 +153,21 @@ def _extract_firefox_cookies(profile, container, logger):
         if not isinstance(container_id, int):
             raise ValueError(f'could not find firefox container "{container}" in containers.json')
 
-    cookie_database_path = _find_most_recently_used_file(search_root, 'cookies.sqlite', logger)
-    if cookie_database_path is None:
-        raise FileNotFoundError(f'could not find firefox cookies database in {search_root}')
-    logger.debug(f'Extracting cookies from: "{cookie_database_path}"')
-
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
-            origin_attributes = ''
             if isinstance(container_id, int):
-                origin_attributes = f'^userContextId={container_id}'
                 logger.debug(
                     f'Only loading cookies from firefox container "{container}", ID {container_id}')
-            try:
                 cursor.execute(
-                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes=?',
-                    (origin_attributes, ))
-            except sqlite3.OperationalError:
-                logger.debug('Database exception, loading all cookies')
+                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes LIKE ? OR originAttributes LIKE ?',
+                    (f'%userContextId={container_id}', f'%userContextId={container_id}&%'))
+            elif container == 'none':
+                logger.debug('Only loading cookies not belonging to any container')
+                cursor.execute(
+                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE NOT INSTR(originAttributes,"userContextId=")')
+            else:
                 cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
             with _create_progress_bar(logger) as progress_bar:
