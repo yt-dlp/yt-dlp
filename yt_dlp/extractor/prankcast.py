@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from .common import InfoExtractor
 from ..utils import parse_duration
@@ -22,49 +21,48 @@ class PrankCastIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         # Extract the JSON
-        json_info = self._search_nextjs_data(webpage, video_id)
+        json_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['ssr_data_showreel']
 
         # Get the broadcast URL and the recording hash.
         # The full URL is {broadcast_url}/{recording_hash}.mp3
-        broadcast_url = json_info['props']['pageProps']['ssr_data_showreel']['broadcast_url']
-        recording_hash = json_info['props']['pageProps']['ssr_data_showreel']['recording_hash']
+        broadcast_url = json_info.get('broadcast_url')
+        recording_hash = json_info.get('recording_hash')
         url = broadcast_url + recording_hash + ".mp3"
 
-        # Get dates
-        start_date = None
-        if 'start_date' in json_info['props']['pageProps']['ssr_data_showreel']:
-            start_date = json_info['props']['pageProps']['ssr_data_showreel']['start_date'].replace('Z', '')
+        # Get broadcast title
+        broadcast_title = json_info.get('broadcast_title')
 
-        end_date = None
-        if 'end_date' in json_info['props']['pageProps']['ssr_data_showreel']:
-            end_date = json_info['props']['pageProps']['ssr_data_showreel']['end_date'].replace('Z', '')
+        # Get dates
+        start_date = json_info.get('start_date')
+        if 'start_date' != "":
+            start_date = start_date.replace('Z', '')
+
+        end_date = json_info.get('end_date')
+        if 'end_date' != "":
+            end_date = end_date.replace('Z', '')
 
         # Get broadcast date
         upload_date = None
         if start_date is not None:
             upload_date = start_date.split('T')[0].replace('-', '')
 
-        # Get broadcast title
-        broadcast_title = json_info['props']['pageProps']['ssr_data_showreel']['broadcast_title']
-
         # Get author (AKA show host)
-        uploader = None
-        if 'user_name' in json_info['props']['pageProps']['ssr_data_showreel']:
-            uploader = json_info['props']['pageProps']['ssr_data_showreel']['user_name']
+        uploader = json_info.get('user_name')
 
         # Get the co-hosts/guests
-        if uploader is not None:
+        if uploader != "":
             guests = [uploader]
         else:
             guests = []
 
-        if 'guests_json' in json_info['props']['pageProps']['ssr_data_showreel']:
-            for guest in json.loads(json_info['props']['pageProps']['ssr_data_showreel']['guests_json']):
+        guests_json = json_info.get('guests_json')
+        if guests_json != "":
+            for guest in self._parse_json(json_info['guests_json'], video_id):
                 guests.append(guest['name'])
 
         # Parse the duration of the stream
         parsed_duration = None
-        if start_date is not None and end_date is not None:
+        if start_date != "" and end_date != "":
             duration = datetime.fromisoformat(end_date) - datetime.fromisoformat(start_date)
             parsed_duration = int(parse_duration(str(duration)))
 
