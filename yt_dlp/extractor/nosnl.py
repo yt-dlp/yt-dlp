@@ -3,7 +3,7 @@ from ..utils import traverse_obj
 
 
 class NOSNLArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://nos\.nl/(\w+/)?\w+/\d+-(?P<display_id>[\w-]+)'
+    _VALID_URL = r'https?://nos\.nl/((?!video)(\w+/)?\w+/)\d+-(?P<display_id>[\w-]+)'
     _TESTS = [
         {
             # only 1 video
@@ -30,13 +30,7 @@ class NOSNLArticleIE(InfoExtractor):
                 'title': 'Wekdienst 16/8: Groningse acties tien jaar na zware aardbeving • Femke Bol in actie op EK atletiek ',
             },
             'playlist_count': 2,
-        }, {
-            'url': 'https://nos.nl/video/2440712-nederlander-vecht-voor-oekraine-ik-leef-hier-veel-levens',
-            'info_dict': {
-                'id': 'fixme',
-                'ext': 'mp4',
-            }
-        }
+        },
     ]
 
     def _get_video_generator(self, nextjs_json, display_id):
