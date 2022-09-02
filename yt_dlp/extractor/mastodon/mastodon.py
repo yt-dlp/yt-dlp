@@ -218,6 +218,7 @@ class MastodonIE(MastodonBaseIE):
             'uploader': 'nao20010128nao',
             'uploader_id': 'nao20010128nao',
             'age_limit': 0,
+            'ext': 'mp4',
         },
     }, {
         'note': 'embed video with NSFW',
@@ -228,6 +229,7 @@ class MastodonIE(MastodonBaseIE):
             'uploader': 'nao20010128nao',
             'uploader_id': 'nao20010128nao',
             'age_limit': 18,
+            'ext': 'mp4',
         },
     }, {
         'note': 'uploader_id not present in URL',
@@ -238,6 +240,7 @@ class MastodonIE(MastodonBaseIE):
             'uploader': 'nao20010128nao',
             'uploader_id': 'nao20010128nao',
             'age_limit': 18,
+            'ext': 'mp4',
         },
     }, {
         'note': 'has YouTube as card',
@@ -257,6 +260,7 @@ class MastodonIE(MastodonBaseIE):
         'info_dict': {
             'id': '103997543924688111',
             'uploader_id': 'm',
+            'ext': 'mp4',
         },
     }, {
         'note': 'short form, compatible with haruhi-dl\'s usage',
@@ -267,6 +271,7 @@ class MastodonIE(MastodonBaseIE):
             'uploader': 'nao20010128nao',
             'uploader_id': 'nao20010128nao',
             'age_limit': 0,
+            'ext': 'mp4',
         },
     }, {
         # mastodon, video description
@@ -304,6 +309,7 @@ class MastodonIE(MastodonBaseIE):
             'title': 'ah yes\nthe legendary stealth tactics of sam fisher',
             'uploader': 'Hans',
             'uploader_id': 'Talloran',
+            'ext': 'mp4',
         },
     }, {
         # pleroma, with /objects/
@@ -313,6 +319,7 @@ class MastodonIE(MastodonBaseIE):
             'title': 'this is the test case for stereophonic.space',
             'uploader': 'lesmi',
             'uploader_id': 'lesmi',
+            'ext': 'mp4',
         },
     }, {
         # gab social
