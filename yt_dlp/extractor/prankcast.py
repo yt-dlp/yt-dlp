@@ -3,7 +3,7 @@ from ..utils import parse_iso8601
 
 
 class PrankCastIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?prankcast\.com/.*/showreel/(?P<id>\d+)(?P<display_id>.+)'
+    _VALID_URL = r'https?://(?:www\.)?prankcast\.com/.*/showreel/(?P<id>\d+)-(?P<display_id>.+)'
     _TESTS = [{
         'url': 'https://prankcast.com/Devonanustart/showreel/1561-Beverly-is-back-like-a-heart-attack-',
         'info_dict': {
