@@ -46,7 +46,7 @@ class AudioBoomIE(InfoExtractor):
 
         clip_store = self._parse_json(
             unescapeHTML(self._html_search_regex(
-                r'data-react-class="V5DetailPagePlayer" *data-react-props=(["\'])(?P<json>{.+?})\1',
+                r'data-react-class="V5DetailPagePlayer"\s*data-react-props=(["\'])(?P<json>{.+?})\1',
                 webpage, 'clip store', default='{}', group='json')),
             video_id, fatal=False)
         if clip_store:
