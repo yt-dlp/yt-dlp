@@ -421,7 +421,7 @@ class MastodonIE(MastodonBaseIE):
         title = clean_html(metadata.get('content'))
 
         info_dict = {
-            'id': video_id,
+            'id': f'{video_id}@{domain}',
             'title': title,
 
             'duration': metadata.get('duration') or parse_duration(metadata.get('length')),
@@ -514,7 +514,7 @@ class MastodonUserIE(MastodonBaseIE):
         domain, user_id = self._match_valid_url(url).group('domain', 'id')
 
         entries = self._entries(domain, user_id)
-        return self.playlist_result(entries, user_id, 'Toots from @%s@%s' % (user_id, domain))
+        return self.playlist_result(entries, f'{user_id}@{domain}', f'Toots from @{user_id}@{domain}')
 
 
 class MastodonUserNumericIE(MastodonBaseIE):
@@ -531,6 +531,6 @@ class MastodonUserNumericIE(MastodonBaseIE):
         if not prefix and not self._test_selfhosted_instance(self, domain, False, prefix):
             return self.url_result(url, ie='Generic')
 
-        api_response = self._download_json('https://%s/api/v1/accounts/%s' % (domain, user_id), user_id)
+        api_response = self._download_json(f'https://{domain}/api/v1/accounts/{user_id}', user_id)
         username = api_response.get('username')
-        return self.url_result('https://%s/@%s' % (domain, username), video_id=username)
+        return self.url_result(f'https://{domain}/@{username}', video_id=username)

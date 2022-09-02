@@ -1203,13 +1203,11 @@ class PeerTubeBaseIE(SelfHostedInfoExtractor):
 
         age_limit = 18 if video.get('nsfw') else None
 
-        webpage_url = 'https://%s/videos/watch/%s' % (host, display_id)
-
         info_dict.update({
-            'id': video['uuid'],
+            'id': f'{video["uuid"]}@{host}',
             'title': video['name'],
             'description': video.get('description'),
-            'thumbnail': urljoin(webpage_url, video.get('thumbnailPath')),
+            'thumbnail': urljoin(f'https://{host}/videos/watch/{display_id}', video.get('thumbnailPath')),
             'timestamp': unified_timestamp(video.get('publishedAt')),
             'uploader': account_data('displayName', str),
             'uploader_id': str_or_none(account_data('id', int)),
@@ -1473,7 +1471,7 @@ class PeerTubePlaylistIE(PeerTubeBaseIE):
         return {
             '_type': 'playlist',
             'entries': entries,
-            'id': playlist_data.get('uuid'),
+            'id': f'{playlist_data["uuid"]}@{host}' if playlist_data.get('uuid') else None,
             'title': playlist_data.get('displayName'),
             'description': playlist_data.get('description'),
 
@@ -1545,7 +1543,7 @@ class PeerTubeChannelIE(PeerTubeBaseIE):
         return {
             '_type': 'playlist',
             'entries': entries,
-            'id': str_or_none(channel_data.get('id')),
+            'id': f'{channel_data["id"]}@{host}' if channel_data.get('id') else None,
             'title': channel_data.get('displayName'),
             'display_id': channel_data.get('name'),
             'description': channel_data.get('description'),
@@ -1610,7 +1608,7 @@ class PeerTubeAccountIE(PeerTubeBaseIE):
         return {
             '_type': 'playlist',
             'entries': entries,
-            'id': str_or_none(account_data.get('id')),
+            'id': f'{account_data["id"]}@{host}' if account_data.get('id') else None,
             'title': account_data.get('displayName'),
             'display_id': account_data.get('name'),
             'description': account_data.get('description'),

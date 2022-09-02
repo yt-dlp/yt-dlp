@@ -136,7 +136,7 @@ class MisskeyIE(MisskeyBaseIE):
             })
 
         base = {
-            'id': video_id,
+            'id': f'{video_id}@{instance}',
             'title': title,
             'timestamp': timestamp,
             'uploader': uploader,
@@ -212,6 +212,7 @@ class MisskeyUserIE(MisskeyBaseIE):
 
         return {
             '_type': 'playlist',
+            'id': f'{uploader_id}@{instance}',
             'title': 'Notes from @%s@%s' % (uploader_id, instance),
             'entries': entries,
             'uploader': uploader,
