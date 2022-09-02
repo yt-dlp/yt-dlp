@@ -95,24 +95,24 @@ class ArteTVIE(ArteTVBaseIE):
 
     # all obtained by exhaustive testing
     _COUNTRIES_MAP = {
-        'DE_FR': {
+        'DE_FR': (
             'BL', 'DE', 'FR', 'GF', 'GP', 'MF', 'MQ', 'NC',
             'PF', 'PM', 'RE', 'WF', 'YT',
-        },
+        ),
         # with both of the below 'BE' sometimes works, sometimes doesn't
-        'EUR_DE_FR': {
+        'EUR_DE_FR': (
             'AT', 'BL', 'CH', 'DE', 'FR', 'GF', 'GP', 'LI',
             'MC', 'MF', 'MQ', 'NC', 'PF', 'PM', 'RE', 'WF',
             'YT',
-        },
-        'SAT': {
+        ),
+        'SAT': (
             'AD', 'AT', 'AX', 'BG', 'BL', 'CH', 'CY', 'CZ',
             'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'GF',
             'GR', 'HR', 'HU', 'IE', 'IS', 'IT', 'KN', 'LI',
             'LT', 'LU', 'LV', 'MC', 'MF', 'MQ', 'MT', 'NC',
             'NL', 'NO', 'PF', 'PL', 'PM', 'PT', 'RE', 'RO',
             'SE', 'SI', 'SK', 'SM', 'VA', 'WF', 'YT',
-        },
+        ),
     }
 
     def _real_extract(self, url):

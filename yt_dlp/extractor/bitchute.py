@@ -65,10 +65,12 @@ class BitChuteIE(InfoExtractor):
                 error = self._html_search_regex(r'<h1 class="page-title">([^<]+)</h1>', webpage, 'error', default='Cannot find video')
                 if error == 'Video Unavailable':
                     raise GeoRestrictedError(error)
-                raise ExtractorError(error)
+                raise ExtractorError(error, expected=True)
             formats = entries[0]['formats']
 
         self._check_formats(formats, video_id)
+        if not formats:
+            raise self.raise_no_formats('Video is unavailable', expected=True, video_id=video_id)
         self._sort_formats(formats)
 
         description = self._html_search_regex(

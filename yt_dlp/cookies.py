@@ -3,6 +3,7 @@ import contextlib
 import http.cookiejar
 import json
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -24,7 +25,13 @@ from .dependencies import (
     sqlite3,
 )
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
-from .utils import Popen, YoutubeDLCookieJar, error_to_str, expand_path
+from .utils import (
+    Popen,
+    YoutubeDLCookieJar,
+    error_to_str,
+    expand_path,
+    try_call,
+)
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
@@ -85,8 +92,9 @@ def _create_progress_bar(logger):
 def load_cookies(cookie_file, browser_specification, ydl):
     cookie_jars = []
     if browser_specification is not None:
-        browser_name, profile, keyring = _parse_browser_specification(*browser_specification)
-        cookie_jars.append(extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring))
+        browser_name, profile, keyring, container = _parse_browser_specification(*browser_specification)
+        cookie_jars.append(
+            extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring, container=container))
 
     if cookie_file is not None:
         is_filename = YoutubeDLCookieJar.is_path(cookie_file)
@@ -101,9 +109,9 @@ def load_cookies(cookie_file, browser_specification, ydl):
     return _merge_cookie_jars(cookie_jars)
 
 
-def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None):
+def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None, container=None):
     if browser_name == 'firefox':
-        return _extract_firefox_cookies(profile, logger)
+        return _extract_firefox_cookies(profile, container, logger)
     elif browser_name == 'safari':
         return _extract_safari_cookies(profile, logger)
     elif browser_name in CHROMIUM_BASED_BROWSERS:
@@ -112,7 +120,7 @@ def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(),
         raise ValueError(f'unknown browser: {browser_name}')
 
 
-def _extract_firefox_cookies(profile, logger):
+def _extract_firefox_cookies(profile, container, logger):
     logger.info('Extracting cookies from firefox')
     if not sqlite3:
         logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
@@ -131,11 +139,36 @@ def _extract_firefox_cookies(profile, logger):
         raise FileNotFoundError(f'could not find firefox cookies database in {search_root}')
     logger.debug(f'Extracting cookies from: "{cookie_database_path}"')
 
+    container_id = None
+    if container not in (None, 'none'):
+        containers_path = os.path.join(os.path.dirname(cookie_database_path), 'containers.json')
+        if not os.path.isfile(containers_path) or not os.access(containers_path, os.R_OK):
+            raise FileNotFoundError(f'could not read containers.json in {search_root}')
+        with open(containers_path) as containers:
+            identities = json.load(containers).get('identities', [])
+        container_id = next((context.get('userContextId') for context in identities if container in (
+            context.get('name'),
+            try_call(lambda: re.fullmatch(r'userContext([^\.]+)\.label', context['l10nID']).group())
+        )), None)
+        if not isinstance(container_id, int):
+            raise ValueError(f'could not find firefox container "{container}" in containers.json')
+
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
-            cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
+            if isinstance(container_id, int):
+                logger.debug(
+                    f'Only loading cookies from firefox container "{container}", ID {container_id}')
+                cursor.execute(
+                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes LIKE ? OR originAttributes LIKE ?',
+                    (f'%userContextId={container_id}', f'%userContextId={container_id}&%'))
+            elif container == 'none':
+                logger.debug('Only loading cookies not belonging to any container')
+                cursor.execute(
+                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE NOT INSTR(originAttributes,"userContextId=")')
+            else:
+                cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
             with _create_progress_bar(logger) as progress_bar:
                 table = cursor.fetchall()
@@ -948,11 +981,11 @@ def _is_path(value):
     return os.path.sep in value
 
 
-def _parse_browser_specification(browser_name, profile=None, keyring=None):
+def _parse_browser_specification(browser_name, profile=None, keyring=None, container=None):
     if browser_name not in SUPPORTED_BROWSERS:
         raise ValueError(f'unsupported browser: "{browser_name}"')
     if keyring not in (None, *SUPPORTED_KEYRINGS):
         raise ValueError(f'unsupported keyring: "{keyring}"')
     if profile is not None and _is_path(profile):
         profile = os.path.expanduser(profile)
-    return browser_name, profile, keyring
+    return browser_name, profile, keyring, container
