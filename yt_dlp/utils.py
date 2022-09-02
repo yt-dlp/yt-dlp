@@ -5306,6 +5306,8 @@ def traverse_obj(
         for i, key in enumerate(path):
             if None in (key, obj):
                 return obj
+            if isinstance(obj, re.Match):
+                obj = obj.groupdict()
             if isinstance(key, (list, tuple)):
                 obj = [_traverse_obj(obj, sub_key, _current_depth) for sub_key in key]
                 key = ...
@@ -5700,8 +5702,9 @@ def merge_headers(*dicts):
     return {k.title(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}
 
 
-def cached_method(f):
+def cached_method(f, cache=None):
     """Cache a method"""
+    default_cache = {} if cache is None else cache
     signature = inspect.signature(f)
 
     @functools.wraps(f)
@@ -5712,7 +5715,7 @@ def cached_method(f):
 
         if not hasattr(self, '__cached_method__cache'):
             self.__cached_method__cache = {}
-        cache = self.__cached_method__cache.setdefault(f.__name__, {})
+        cache = self.__cached_method__cache.setdefault(f.__name__, default_cache)
         if key not in cache:
             cache[key] = f(self, *args, **kwargs)
         return cache[key]
