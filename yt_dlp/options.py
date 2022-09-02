@@ -25,10 +25,12 @@ from .utils import (
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
     Config,
+    deprecation_warning,
     expand_path,
     format_field,
     get_executable_path,
     join_nonempty,
+    orderedSet_from_options,
     remove_end,
     write_string,
 )
@@ -163,6 +165,7 @@ class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
 
 class _YoutubeDLOptionParser(optparse.OptionParser):
     # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+    ALIAS_DEST = '_triggered_aliases'
     ALIAS_TRIGGER_LIMIT = 100
 
     def __init__(self):
@@ -174,6 +177,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
             formatter=_YoutubeDLHelpFormatter(),
             conflict_handler='resolve',
         )
+        self.set_default(self.ALIAS_DEST, collections.defaultdict(int))
 
     _UNKNOWN_OPTION = (optparse.BadOptionError, optparse.AmbiguousOptionError)
     _BAD_OPTION = optparse.OptionValueError
@@ -232,30 +236,16 @@ def create_parser():
             current + value if append is True else value + current)
 
     def _set_from_options_callback(
-            option, opt_str, value, parser, delim=',', allowed_values=None, aliases={},
+            option, opt_str, value, parser, allowed_values, delim=',', aliases={},
             process=lambda x: x.lower().strip()):
-        current = set(getattr(parser.values, option.dest))
-        values = [process(value)] if delim is None else list(map(process, value.split(delim)[::-1]))
-        while values:
-            actual_val = val = values.pop()
-            if not val:
-                raise optparse.OptionValueError(f'Invalid {option.metavar} for {opt_str}: {value}')
-            if val == 'all':
-                current.update(allowed_values)
-            elif val == '-all':
-                current = set()
-            elif val in aliases:
-                values.extend(aliases[val])
-            else:
-                if val[0] == '-':
-                    val = val[1:]
-                    current.discard(val)
-                else:
-                    current.update([val])
-                if allowed_values is not None and val not in allowed_values:
-                    raise optparse.OptionValueError(f'wrong {option.metavar} for {opt_str}: {actual_val}')
+        values = [process(value)] if delim is None else map(process, value.split(delim))
+        try:
+            requested = orderedSet_from_options(values, collections.ChainMap(aliases, {'all': allowed_values}),
+                                                start=getattr(parser.values, option.dest))
+        except ValueError as e:
+            raise optparse.OptionValueError(f'wrong {option.metavar} for {opt_str}: {e.args[0]}')
 
-        setattr(parser.values, option.dest, current)
+        setattr(parser.values, option.dest, set(requested))
 
     def _dict_from_options_callback(
             option, opt_str, value, parser,
@@ -305,8 +295,7 @@ def create_parser():
         aliases = (x if x.startswith('-') else f'--{x}' for x in map(str.strip, aliases.split(',')))
         try:
             alias_group.add_option(
-                *aliases, help=opts, nargs=nargs, type='str' if nargs else None,
-                dest='_triggered_aliases', default=collections.defaultdict(int),
+                *aliases, help=opts, nargs=nargs, dest=parser.ALIAS_DEST, type='str' if nargs else None,
                 metavar=' '.join(f'ARG{i}' for i in range(nargs)), action='callback',
                 callback=_alias_callback, callback_kwargs={'opts': opts, 'nargs': nargs})
         except Exception as err:
@@ -366,9 +355,19 @@ def create_parser():
         action='store_true', dest='list_extractor_descriptions', default=False,
         help='Output descriptions of all supported extractors and exit')
     general.add_option(
+        '--use-extractors', '--ies',
+        action='callback', dest='allowed_extractors', metavar='NAMES', type='str',
+        default=[], callback=_list_from_options_callback,
+        help=(
+            'Extractor names to use separated by commas. '
+            'You can also use regexes, "all", "default" and "end" (end URL matching); '
+            'e.g. --ies "holodex.*,end,youtube". '
+            'Prefix the name with a "-" to exclude it, e.g. --ies default,-generic. '
+            'Use --list-extractors for a list of extractor names. (Alias: --ies)'))
+    general.add_option(
         '--force-generic-extractor',
         action='store_true', dest='force_generic_extractor', default=False,
-        help='Force extraction to use the generic extractor')
+        help=optparse.SUPPRESS_HELP)
     general.add_option(
         '--default-search',
         dest='default_search', metavar='PREFIX',
@@ -443,11 +442,12 @@ def create_parser():
             'allowed_values': {
                 'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
-                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json', 'embed-metadata',
-                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
+                'no-attach-info-json', 'embed-metadata', 'embed-thumbnail-atomicparsley',
+                'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
+                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
             }, 'aliases': {
-                'youtube-dl': ['-multistreams', 'all'],
-                'youtube-dlc': ['-no-youtube-channel-redirect', '-no-live-chat', 'all'],
+                'youtube-dl': ['all', '-multistreams'],
+                'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat'],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
@@ -634,7 +634,7 @@ def create_parser():
     selection.add_option(
         '--break-per-input',
         action='store_true', dest='break_per_url', default=False,
-        help='Make --break-on-existing, --break-on-reject and --max-downloads act only on the current input URL')
+        help='--break-on-existing, --break-on-reject, --max-downloads, and autonumber resets per input URL')
     selection.add_option(
         '--no-break-per-input',
         action='store_false', dest='break_per_url',
@@ -1401,14 +1401,15 @@ def create_parser():
         help='Do not read/dump cookies from/to file (default)')
     filesystem.add_option(
         '--cookies-from-browser',
-        dest='cookiesfrombrowser', metavar='BROWSER[+KEYRING][:PROFILE]',
+        dest='cookiesfrombrowser', metavar='BROWSER[+KEYRING][:PROFILE][::CONTAINER]',
         help=(
-            'The name of the browser and (optionally) the name/path of '
-            'the profile to load cookies from, separated by a ":". '
+            'The name of the browser to load cookies from. '
             f'Currently supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}. '
-            'By default, the most recently accessed profile is used. '
-            'The keyring used for decrypting Chromium cookies on Linux can be '
-            '(optionally) specified after the browser name separated by a "+". '
+            'Optionally, the KEYRING used for decrypting Chromium cookies on Linux, '
+            'the name/path of the PROFILE to load cookies from, '
+            'and the CONTAINER name (if Firefox) ("none" for no container) '
+            'can be given with their respective seperators. '
+            'By default, all containers of the most recently accessed profile are used. '
             f'Currently supported keyrings are: {", ".join(map(str.lower, sorted(SUPPORTED_KEYRINGS)))}'))
     filesystem.add_option(
         '--no-cookies-from-browser',
@@ -1866,7 +1867,6 @@ def create_parser():
 
 
 def _hide_login_info(opts):
-    write_string(
-        'DeprecationWarning: "yt_dlp.options._hide_login_info" is deprecated and may be removed in a future version. '
-        'Use "yt_dlp.utils.Config.hide_login_info" instead\n')
+    deprecation_warning(f'"{__name__}._hide_login_info" is deprecated and may be removed '
+                        'in a future version. Use "yt_dlp.utils.Config.hide_login_info" instead')
     return Config.hide_login_info(opts)

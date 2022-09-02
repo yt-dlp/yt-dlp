@@ -218,6 +218,9 @@ class BiliBiliIE(InfoExtractor):
 
         durl = traverse_obj(video_info, ('dash', 'video'))
         audios = traverse_obj(video_info, ('dash', 'audio')) or []
+        flac_audio = traverse_obj(video_info, ('dash', 'flac', 'audio'))
+        if flac_audio:
+            audios.append(flac_audio)
         entries = []
 
         RENDITIONS = ('qn=80&quality=80&type=', 'quality=2&type=mp4')
@@ -620,14 +623,15 @@ class BiliBiliSearchIE(SearchInfoExtractor):
                     'keyword': query,
                     'page': page_num,
                     'context': '',
-                    'order': 'pubdate',
                     'duration': 0,
                     'tids_2': '',
                     '__refresh__': 'true',
                     'search_type': 'video',
                     'tids': 0,
                     'highlight': 1,
-                })['data'].get('result') or []
+                })['data'].get('result')
+            if not videos:
+                break
             for video in videos:
                 yield self.url_result(video['arcurl'], 'BiliBili', str(video['aid']))
 

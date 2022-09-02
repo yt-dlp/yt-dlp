@@ -194,7 +194,7 @@ jobs:
     - name: Install Requirements
       run: |  # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python -m pip install --upgrade pip setuptools wheel py2exe
-          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.2-py3-none-any.whl" -r requirements.txt
+          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.3-py3-none-any.whl" -r requirements.txt
 
     - name: Prepare
       run: |
@@ -230,7 +230,7 @@ jobs:
     - name: Install Requirements
       run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-5.2-py3-none-any.whl" -r requirements.txt
+          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-5.3-py3-none-any.whl" -r requirements.txt
 
     - name: Prepare
       run: |
