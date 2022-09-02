@@ -222,6 +222,14 @@ macOS or Linux users that are using Homebrew can also install it by:
 brew install yt-dlp/taps/yt-dlp
 ```
 
+### With [Chocolatey](https://chocolatey.org/)
+
+Windows users that are using Chocolatey can also install it by:
+
+```
+choco install yt-dlp
+```
+
 ## UPDATE
 You can use `yt-dlp -U` to update if you are [using the provided release](#using-the-release-binary)
 
