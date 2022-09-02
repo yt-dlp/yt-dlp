@@ -224,6 +224,7 @@ class InstagramBaseIE(InfoExtractor):
                 'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), 'created_at', expected_type=int_or_none),
             }
 
+
 class InstagramIOSIE(InfoExtractor):
     IE_DESC = 'IOS instagram:// URL'
     _VALID_URL = r'instagram://media\?id=(?P<id>[\d_]+)'
