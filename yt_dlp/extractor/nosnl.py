@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj
+from ..utils import parse_duration, parse_iso8601, traverse_obj
 
 
 class NOSNLArticleIE(InfoExtractor):
@@ -13,6 +13,7 @@ class NOSNLArticleIE(InfoExtractor):
                 'ext': 'mp4',
                 'description': 'md5:5f83185d902ac97af3af4bed7ece3db5',
                 'title': '\'We hebben een huis vol met scheuren\'',
+                'duration': 95.0,
             }
         }, {
             # more than 1 video
@@ -20,6 +21,7 @@ class NOSNLArticleIE(InfoExtractor):
             'info_dict': {
                 'id': '2440409',
                 'title': 'Vannacht sliepen weer enkele honderden asielzoekers in Ter Apel buiten',
+                'description': 'Er werd wel geprobeerd om kwetsbare migranten onderdak te bieden, zegt het COA.'
             },
             'playlist_count': 2,
         }, {
@@ -28,6 +30,7 @@ class NOSNLArticleIE(InfoExtractor):
             'info_dict': {
                 'id': '2440789',
                 'title': 'Wekdienst 16/8: Groningse acties tien jaar na zware aardbeving • Femke Bol in actie op EK atletiek ',
+                'description': 'Nieuws, weer, verkeer: met dit overzicht begin je geïnformeerd aan de dag.',
             },
             'playlist_count': 2,
         },
@@ -38,19 +41,22 @@ class NOSNLArticleIE(InfoExtractor):
             if item.get('type') == 'video':
                 formats, subtitle = self._extract_m3u8_formats_and_subtitles(
                     traverse_obj(item, ('source', 'url')), display_id, ext='mp4')
+
                 yield {
                     'id': str(item['id']),
                     'title': item.get('title'),
                     'description': item.get('description'),
                     'formats': formats,
                     'subtitles': subtitle,
-
+                    'duration': parse_duration(item.get('duration')),
                 }
+
             elif item.get('type') == 'audio':
                 yield {
                     'id': str(item['id']),
                     'title': item.get('title'),
                     'url': traverse_obj(item, ('media', 'src')),
+                    'ext': 'mp3',
                 }
 
     def _real_extract(self, url):
@@ -59,4 +65,7 @@ class NOSNLArticleIE(InfoExtractor):
 
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['data']
         video_generator = self._get_video_generator(nextjs_json, display_id)
-        return self.playlist_result(video_generator, str(nextjs_json['id']), nextjs_json.get('title'))
+        return self.playlist_result(
+            video_generator, str(nextjs_json['id']), nextjs_json.get('title') or self._html_search_meta(['title', 'og:title', 'twitter:title'], webpage),
+            nextjs_json.get('description') or self._html_search_meta(['description', 'twitter:description', 'og:description'], webpage),
+            tags=nextjs_json.get('keyword'), modified_timestamp=parse_iso8601(nextjs_json.get(nextjs_json.get('modifiedAt'))))
