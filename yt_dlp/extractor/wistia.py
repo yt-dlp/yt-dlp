@@ -170,16 +170,56 @@ class WistiaEmbedIE(WistiaBaseIE):
     # https://wistia.com/support/embed-and-share/channel-embeds for channel embeds
     # https://wistia.com/support/embed-and-share/video-on-your-website
 
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.profitwell.com/recur/boxed-out',
+        'info_dict': {
+            'id': '6jyvmqz6zs',
+            'title': 'Boxed Out | ProfitWell',
+            'description': 'md5:1b1eb10bee670851bf69299aaef2d2a4',
+            'upload_date': '20220831',
+            'timestamp': 1661911178.0,
+            'uploader': 'www.profitwell.com',
+            'thumbnail': 'https://www.profitwell.com/hubfs/Screen%20Shot%202020-11-17%20at%201.01.45%20PM.png#keepProtocol',
+            'age_limit': 0,
+        },
+        'playlist_mincount': 30,
+    }, {
+        # section instead of div
+        'url': 'https://360learning.com/studio/onboarding-joei/',
+        'info_dict': {
+            'id': 'z874k93n2o',
+            'title': 'Onboarding Joei - our content director | 360Learning',
+            'description': 'md5:f9de04c83c0ca710aa1ca56d45823c67',
+            'thumbnail': 'https://images.prismic.io/360learning/3d45dbe9-d7ad-41d4-8954-066f4015d0a5_onboardingJoei.png?auto=compress,format',
+            'age_limit': 0,
+            'uploader': '360learning.com',
+        },
+        'playlist_mincount': 20,
+    }, {
+        'url': 'https://www.weidert.com/blog/wistia-channels-video-marketing-tool',
+        'info_dict': {
+            'id': 'cqwukac3z1',
+            'ext': 'bin',
+            'title': 'How Using Wistia Channels Helps Capture More Inbound Value From Your Video Content',
+            'description': 'md5:d7f3ab63b8419a20777b139449a9ba1f',
+            'age_limit': 0,
+            'duration': 158.125,
+            'thumbnail': 'https://www.weidert.com/hubfs/Blog/2021-blog-images/WW_PPC_Wistia_Artwork_N1_V2.png#keepProtocol',
+            'uploader': 'www.weidert.com',
+            'upload_date': '20220902',
+            'timestamp': 1662102343.0,
+        }
+    }]
+
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         urls = list(super()._extract_embed_urls(url, webpage))
         for match in re.finditer(
-            # we should probably relax this so it is not restricted to div/section/span since that appears to vary
-            r'''(?sx)
-            <(?:div|section|span)[^>]+class=(["'])(?:(?!\1).)*?(?:wistia_(?P<type>channel|embed))?\s*\bwistia_async_(?P<id>[a-z0-9]{10})\b(?:(?!\1).)*?\1
-            ''', webpage):
+                r'''(?sx)
+                    <(?:div|section)[^>]+class=([\"'])(?:(?!\1).)*?(?P<type>wistia[a-z_0-9]+)\s*\bwistia_async_(?P<id>[a-z0-9]{10})\b(?:(?!\1).)*?\1
+                ''', webpage):
             media_id = match.group('id')
-            if match.group('type') == 'channel':
+            if match.group('type') == 'wistia_channel':
                 # original url may contain wmediaid query param
                 urls.append(update_url_query(f'wistiachannel:{media_id}', parse_qs(url)))
             else:
@@ -229,22 +269,20 @@ class WistiaPlaylistIE(WistiaBaseIE):
         return self.playlist_result(entries, playlist_id)
 
 
-# https://fast.wistia.net/embed/channel/yvyvu7wjbg?wchannelid=yvyvu7wjbg (no permission via API)
 class WistiaChannelIE(WistiaBaseIE):
     _VALID_URL = r'(?:wistiachannel:|%schannel/)%s' % (WistiaBaseIE._VALID_URL_BASE, WistiaBaseIE._VALID_ID_REGEX)
 
-    def _download_batch_media_data(self, config_type, config_id, referer):
-        base_url = self._EMBED_BASE_URL + '%ss/%s' % (config_type, config_id)
-        embed_config = self._download_json(
-            base_url + '.json', config_id, headers={
-                'Referer': referer if referer.startswith('http') else base_url,  # Some videos require this.
-            })
-
-        if isinstance(embed_config, dict) and embed_config.get('error'):
-            raise ExtractorError(
-                'Error while getting the playlist', expected=True)
-
-        return embed_config
+    _TESTS = [{
+        # JSON Embed API returns 403, should fall back to webpage
+        'url': 'https://fast.wistia.net/embed/channel/yvyvu7wjbg?wchannelid=yvyvu7wjbg',
+        'info_dict': {
+            'id': 'yvyvu7wjbg',
+            'title': 'Copysmith Tutorials and Education!',
+            'description': 'Learn all things Copysmith via short and informative videos!'
+        },
+        'playlist_mincount': 10,
+        'expected_warnings': ['falling back to webpage'],
+    }]
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
@@ -278,4 +316,4 @@ class WistiaChannelIE(WistiaBaseIE):
                 entries.append(self.url_result(f'wistia:{hashed_id}', 'Wistia', title=video.get('name')))
 
         return self.playlist_result(
-            entries, channel_id, playlist_title=series.get('name'), playlist_description=series.get('description'))
+            entries, channel_id, playlist_title=series.get('title'), playlist_description=series.get('description'))
