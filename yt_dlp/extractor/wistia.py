@@ -213,6 +213,8 @@ class WistiaEmbedIE(WistiaBaseIE):
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
+        # https://wistia.com/support/embed-and-share/video-on-your-website
+        # https://wistia.com/support/embed-and-share/channel-embeds
         urls = list(super()._extract_embed_urls(url, webpage))
         for match in re.finditer(
                 r'''(?sx)
@@ -282,6 +284,27 @@ class WistiaChannelIE(WistiaBaseIE):
         },
         'playlist_mincount': 10,
         'expected_warnings': ['falling back to webpage'],
+    }, {
+        'url': 'https://fast.wistia.net/embed/channel/3802iirk0l',
+        'info_dict': {
+            'id': '3802iirk0l',
+            'title': 'The Roof',
+        },
+        'playlist_mincount': 20,
+    }, {
+        # link to popup video, follow --no-playlist
+        'url': 'https://fast.wistia.net/embed/channel/3802iirk0l?wchannelid=3802iirk0l&wmediaid=sp5dqjzw3n',
+        'info_dict': {
+            'id': 'sp5dqjzw3n',
+            'ext': 'bin',
+            'title': 'The Roof S2: The Modern CRO',
+            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/dadfa9233eaa505d5e0c85c23ff70741.bin',
+            'duration': 86.487,
+            'description': 'A sales leader on The Roof? Man, they really must be letting anyone up here this season.\n',
+            'timestamp': 1619790290,
+            'upload_date': '20210430',
+        },
+        'params': {'noplaylist': True, 'skip_download': True},
     }]
 
     def _real_extract(self, url):
