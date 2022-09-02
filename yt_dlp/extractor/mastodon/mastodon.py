@@ -60,7 +60,6 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
     )
     _NETRC_MACHINE = 'mastodon'
 
-    _IMPOSSIBLE_HOSTNAMES = ('medium.com', 'lbry.tv')
     _HOSTNAME_GROUPS = ('domain_1', 'domain_2', 'domain')
     _INSTANCE_LIST = instances
     _DYNAMIC_INSTANCE_LIST = known_valid_instances

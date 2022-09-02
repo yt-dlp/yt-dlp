@@ -3963,7 +3963,6 @@ class SelfHostedInfoExtractor(InfoExtractor):
     _NODEINFO_CACHE = {}
     _SELF_HOSTED = True
 
-    _IMPOSSIBLE_HOSTNAMES = ()
     _PREFIX_GROUPS = ('prefix', )
     _HOSTNAME_GROUPS = ()
     _INSTANCE_LIST = ()
@@ -3997,9 +3996,6 @@ class SelfHostedInfoExtractor(InfoExtractor):
             return True
         if hostname in cls._DYNAMIC_INSTANCE_LIST:
             return True
-
-        if hostname in cls._IMPOSSIBLE_HOSTNAMES:
-            return False
 
         # continue anyway if something like "mastodon:" is added to URL
         if prefix:
