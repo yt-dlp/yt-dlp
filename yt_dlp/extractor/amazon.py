@@ -40,8 +40,8 @@ class AmazonStoreIE(InfoExtractor):
         id = self._match_id(url)
 
         for retry in self.RetryManager(fatal=True):
+            webpage = self._download_webpage(url, id)
             try:
-                webpage = self._download_webpage(url, id)
                 data_json = self._parse_json(self._html_search_regex(r'var\s?obj\s?=\s?jQuery\.parseJSON\(\'(.*)\'\)', webpage, 'data'), id)
             except ExtractorError as e:
                 retry.error = e
