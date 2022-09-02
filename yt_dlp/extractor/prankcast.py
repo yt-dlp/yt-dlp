@@ -30,15 +30,15 @@ class PrankCastIE(InfoExtractor):
         url = broadcast_url + recording_hash + ".mp3"
 
         # Get broadcast title
-        broadcast_title = json_info.get('broadcast_title')
+        broadcast_title = json_info.get('broadcast_title') or self._og_search_title(webpage)
 
         # Get dates
         start_date = json_info.get('start_date')
-        if 'start_date' != "":
+        if 'start_date' != '':
             start_date = start_date.replace('Z', '')
 
         end_date = json_info.get('end_date')
-        if 'end_date' != "":
+        if 'end_date' != '':
             end_date = end_date.replace('Z', '')
 
         # Get broadcast date
@@ -50,19 +50,19 @@ class PrankCastIE(InfoExtractor):
         uploader = json_info.get('user_name')
 
         # Get the co-hosts/guests
-        if uploader != "":
+        if uploader != '':
             guests = [uploader]
         else:
             guests = []
 
         guests_json = json_info.get('guests_json')
-        if guests_json != "":
+        if guests_json != '':
             for guest in self._parse_json(json_info['guests_json'], video_id):
                 guests.append(guest['name'])
 
         # Parse the duration of the stream
         parsed_duration = None
-        if start_date != "" and end_date != "":
+        if start_date != '' and end_date != '':
             duration = datetime.fromisoformat(end_date) - datetime.fromisoformat(start_date)
             parsed_duration = int(parse_duration(str(duration)))
 
