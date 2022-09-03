@@ -99,7 +99,7 @@ class MediaWorksNZVODIE(InfoExtractor):
             'duration': float_or_none(asset.get('duration')),
             'timestamp': unified_timestamp(asset.get('dateadded')),
             'channel': asset.get('brand'),
-            'thumbnails': [{'url': thumbnail_url} for thumbnail_url in asset.get('thumbnails', [])],
+            'thumbnails': [{'url': thumbnail_url} for thumbnail_url in asset.get('thumbnails') or []],
             'formats': formats,
             'subtitles': subtitles,
         }
