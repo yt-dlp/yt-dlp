@@ -217,6 +217,7 @@ from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
 from .bostonglobe import BostonGlobeIE
 from .box import BoxIE
+from .booyah import BooyahClipsIE
 from .bpb import BpbIE
 from .br import (
     BRIE,
