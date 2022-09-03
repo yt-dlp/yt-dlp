@@ -433,6 +433,7 @@ from .dplay import (
     AnimalPlanetIE,
     TLCIE,
     MotorTrendIE,
+    MotorTrendOnDemandIE,
     DiscoveryPlusIndiaIE,
     DiscoveryNetworksDeIE,
     DiscoveryPlusItalyIE,

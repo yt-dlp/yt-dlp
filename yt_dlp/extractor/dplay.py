@@ -745,6 +745,32 @@ class MotorTrendIE(DiscoveryPlusBaseIE):
     }
 
 
+class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
+    _X_CLIENT = 'WEB:10:MTOD:4.38.1-gi1'
+    _VALID_URL = r'https?://(?:www\.)?motortrendondemand\.com/detail' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.motortrendondemand.com/detail/military-heritage/4885493',
+        'info_dict': {
+            'id': '"4885493"',
+            'display_id': 'military-heritage/4885493',
+            'ext': 'mp4',
+            'title': 'Military Heritage',
+            'description': 'The hosts are in car salesman mode for a unique buyer: the US military.',
+            'season_number': 2,
+            'episode_number': 8,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'mtod_us'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.motortrendondemand.com',
+        'realm': 'motortrend',
+        'country': 'us',
+        'domain': 'https://www.motortrendondemand.com',
+    }
+
+
 class DiscoveryPlusIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:\w{2}/)?video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
