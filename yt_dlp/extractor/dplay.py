@@ -751,7 +751,7 @@ class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
     _TESTS = [{
         'url': 'https://www.motortrendondemand.com/detail/military-heritage/4885493',
         'info_dict': {
-            'id': '"4885493"',
+            'id': '4885493',
             'display_id': 'military-heritage/4885493',
             'ext': 'mp4',
             'title': 'Military Heritage',
