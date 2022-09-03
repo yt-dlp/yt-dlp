@@ -662,7 +662,11 @@ class TestYoutubeDL(unittest.TestCase):
         'playlist_autonumber': 2,
         '__last_playlist_index': 100,
         'n_entries': 10,
-        'formats': [{'id': 'id 1'}, {'id': 'id 2'}, {'id': 'id 3'}]
+        'formats': [
+            {'id': 'id 1', 'height': 1080, 'width': 1920},
+            {'id': 'id 2', 'height': 720},
+            {'id': 'id 3'}
+        ]
     }
 
     def test_prepare_outtmpl_and_filename(self):
@@ -729,6 +733,7 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%(title)'), ValueError))
         test('%(invalid@tmpl|def)s', 'none', outtmpl_na_placeholder='none')
         test('%(..)s', 'NA')
+        test('%(formats.{id)s', 'NA')
 
         # Entire info_dict
         def expect_same_infodict(out):
@@ -813,6 +818,12 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats.:2:-1)r', repr(FORMATS[:2:-1]))
         test('%(formats.0.id.-1+id)f', '1235.000000')
         test('%(formats.0.id.-1+formats.1.id.-1)d', '3')
+        out = json.dumps([{'id': f['id'], 'height.:2': str(f['height'])[:2]}
+                          if 'height' in f else {'id': f['id']}
+                          for f in FORMATS])
+        test('%(formats.:.{id,height.:2})j', (out, sanitize(out)))
+        test('%(formats.:.{id,height}.id)l', ', '.join(f['id'] for f in FORMATS))
+        test('%(.{id,title})j', ('{"id": "1234"}', '{＂id＂： ＂1234＂}'))
 
         # Alternates
         test('%(title,id)s', '1234')

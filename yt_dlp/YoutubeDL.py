@@ -1127,8 +1127,12 @@ class YoutubeDL:
             '-': float.__sub__,
         }
         # Field is of the form key1.key2...
-        # where keys (except first) can be string, int or slice
-        FIELD_RE = r'\w*(?:\.(?:\w+|{num}|{num}?(?::{num}?){{1,2}}))*'.format(num=r'(?:-?\d+)')
+        # where keys (except first) can be string, int, slice or "{field, ...}"
+        FIELD_INNER_RE = r'(?:\w+|%(num)s|%(num)s?(?::%(num)s?){1,2})' % {'num': r'(?:-?\d+)'}
+        FIELD_RE = r'\w*(?:\.(?:%(inner)s|{%(field)s(?:,%(field)s)*}))*' % {
+            'inner': FIELD_INNER_RE,
+            'field': rf'\w*(?:\.{FIELD_INNER_RE})*'
+        }
         MATH_FIELD_RE = rf'(?:{FIELD_RE}|-?{NUMBER_RE})'
         MATH_OPERATORS_RE = r'(?:%s)' % '|'.join(map(re.escape, MATH_FUNCTIONS.keys()))
         INTERNAL_FORMAT_RE = re.compile(rf'''(?x)
@@ -1142,11 +1146,20 @@ class YoutubeDL:
                 (?:\|(?P<default>.*?))?
             )$''')
 
-        def _traverse_infodict(k):
-            k = k.split('.')
-            if k[0] == '':
-                k.pop(0)
-            return traverse_obj(info_dict, k, is_user_input=True, traverse_string=True)
+        def _traverse_infodict(fields):
+            fields = [f for x in re.split(r'\.({.+?})\.?', fields)
+                      for f in ([x] if x.startswith('{') else x.split('.'))]
+            for i in (0, -1):
+                if fields and not fields[i]:
+                    fields.pop(i)
+
+            for i, f in enumerate(fields):
+                if not f.startswith('{'):
+                    continue
+                assert f.endswith('}'), f'No closing brace for {f} in {fields}'
+                fields[i] = {k: k.split('.') for k in f[1:-1].split(',')}
+
+            return traverse_obj(info_dict, fields, is_user_input=True, traverse_string=True)
 
         def get_value(mdict):
             # Object traversal
@@ -2800,12 +2813,13 @@ class YoutubeDL:
         info_copy['automatic_captions_table'] = self.render_subtitles_table(info_dict.get('id'), info_dict.get('automatic_captions'))
 
         def format_tmpl(tmpl):
-            mobj = re.match(r'\w+(=?)$', tmpl)
-            if mobj and mobj.group(1):
-                return f'{tmpl[:-1]} = %({tmpl[:-1]})r'
-            elif mobj:
-                return f'%({tmpl})s'
-            return tmpl
+            mobj = re.fullmatch(r'([\w.:,-]|(?P<dict>{[\w.:,-]+}))+=', tmpl)
+            if not mobj:
+                return tmpl
+            elif not mobj.group('dict'):
+                return '\n'.join(f'{f} = %({f})r' for f in tmpl[:-1].split(','))
+            tmpl = f'.{tmpl[:-1]}' if tmpl.startswith('{') else tmpl[:-1]
+            return f'{tmpl} = %({tmpl})#j'
 
         for tmpl in self.params['forceprint'].get(key, []):
             self.to_stdout(self.evaluate_outtmpl(format_tmpl(tmpl), info_copy))

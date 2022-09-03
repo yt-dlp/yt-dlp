@@ -5280,7 +5280,7 @@ def traverse_obj(
     @param path_list        A list of paths which are checked one by one.
                             Each path is a list of keys where each key is a:
                               - None:     Do nothing
-                              - string:   A dictionary key
+                              - string:   A dictionary key / regex group
                               - int:      An index into a list
                               - tuple:    A list of keys all of which will be traversed
                               - Ellipsis: Fetch all values in the object
@@ -5290,12 +5290,16 @@ def traverse_obj(
     @param expected_type    Only accept final value of this type (Can also be any callable)
     @param get_all          Return all the values obtained from a path or only the first one
     @param casesense        Whether to consider dictionary keys as case sensitive
+
+    The following are only meant to be used by YoutubeDL.prepare_outtmpl and is not part of the API
+
+    @param path_list        In addition to the above,
+                              - dict:     Given {k:v, ...}; return {k: traverse_obj(obj, v), ...}
     @param is_user_input    Whether the keys are generated from user input. If True,
                             strings are converted to int/slice if necessary
     @param traverse_string  Whether to traverse inside strings. If True, any
                             non-compatible object will also be converted into a string
-    # TODO: Write tests
-    '''
+    '''  # TODO: Write tests
     if not casesense:
         _lower = lambda k: (k.lower() if isinstance(k, str) else k)
         path_list = (map(_lower, variadic(path)) for path in path_list)
@@ -5309,6 +5313,7 @@ def traverse_obj(
             if isinstance(key, (list, tuple)):
                 obj = [_traverse_obj(obj, sub_key, _current_depth) for sub_key in key]
                 key = ...
+
             if key is ...:
                 obj = (obj.values() if isinstance(obj, dict)
                        else obj if isinstance(obj, (list, tuple, LazyList))
@@ -5316,6 +5321,8 @@ def traverse_obj(
                 _current_depth += 1
                 depth = max(depth, _current_depth)
                 return [_traverse_obj(inner_obj, path[i + 1:], _current_depth) for inner_obj in obj]
+            elif isinstance(key, dict):
+                obj = filter_dict({k: _traverse_obj(obj, v, _current_depth) for k, v in key.items()})
             elif callable(key):
                 if isinstance(obj, (list, tuple, LazyList)):
                     obj = enumerate(obj)
