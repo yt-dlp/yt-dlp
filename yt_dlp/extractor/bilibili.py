@@ -218,6 +218,9 @@ class BiliBiliIE(InfoExtractor):
 
         durl = traverse_obj(video_info, ('dash', 'video'))
         audios = traverse_obj(video_info, ('dash', 'audio')) or []
+        flac_audio = traverse_obj(video_info, ('dash', 'flac', 'audio'))
+        if flac_audio:
+            audios.append(flac_audio)
         entries = []
 
         RENDITIONS = ('qn=80&quality=80&type=', 'quality=2&type=mp4')

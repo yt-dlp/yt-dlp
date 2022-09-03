@@ -65,8 +65,8 @@ class FragmentFD(FileDownloader):
     """
 
     def report_retry_fragment(self, err, frag_index, count, retries):
-        self.deprecation_warning(
-            'yt_dlp.downloader.FragmentFD.report_retry_fragment is deprecated. Use yt_dlp.downloader.FileDownloader.report_retry instead')
+        self.deprecation_warning('yt_dlp.downloader.FragmentFD.report_retry_fragment is deprecated. '
+                                 'Use yt_dlp.downloader.FileDownloader.report_retry instead')
         return self.report_retry(err, count, retries, frag_index)
 
     def report_skip_fragment(self, frag_index, err=None):

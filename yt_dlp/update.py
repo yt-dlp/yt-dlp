@@ -14,6 +14,7 @@ from .compat import compat_realpath, compat_shlex_quote
 from .utils import (
     Popen,
     cached_method,
+    deprecation_warning,
     shell_quote,
     system_identifier,
     traverse_obj,
@@ -302,11 +303,8 @@ def run_update(ydl):
 def update_self(to_screen, verbose, opener):
     import traceback
 
-    from .utils import write_string
-
-    write_string(
-        'DeprecationWarning: "yt_dlp.update.update_self" is deprecated and may be removed in a future version. '
-        'Use "yt_dlp.update.run_update(ydl)" instead\n')
+    deprecation_warning(f'"{__name__}.update_self" is deprecated and may be removed '
+                        f'in a future version. Use "{__name__}.run_update(ydl)" instead')
 
     printfn = to_screen
 

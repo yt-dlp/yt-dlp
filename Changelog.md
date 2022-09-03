@@ -11,6 +11,54 @@
 -->
 
 
+### 2022.09.01
+
+* Add option `--use-extractors`
+* Merge youtube-dl: Upto [commit/ed5c44e](https://github.com/ytdl-org/youtube-dl/commit/ed5c44e7)
+* Add yt-dlp version to infojson
+* Fix `--break-per-url --max-downloads`
+* Fix bug in `--alias`
+* [cookies] Support firefox container in `--cookies-from-browser` by [bashonly](https://github.com/bashonly), [coletdjnz](https://github.com/coletdjnz), [pukkandan](https://github.com/pukkandan)
+* [downloader/external] Smarter detection of executable
+* [extractor/generic] Don't return JW player without formats
+* [FormatSort] Fix `aext` for `--prefer-free-formats`
+* [jsinterp] Various improvements by [pukkandan](https://github.com/pukkandan), [dirkf](https://github.com/dirkf), [elyse0](https://github.com/elyse0)
+* [cache] Mechanism to invalidate old cache
+* [utils] Add `deprecation_warning`
+* [utils] Add `orderedSet_from_options`
+* [utils] `Popen`: Restore `LD_LIBRARY_PATH` when using PyInstaller by [Lesmiscore](https://github.com/Lesmiscore)
+* [build] `make tar` should not follow `DESTDIR` by [satan1st](https://github.com/satan1st)
+* [build] Update pyinstaller by [shirt-dev](https://github.com/shirt-dev)
+* [test] Fix `test_youtube_signature`
+* [cleanup] Misc fixes and cleanup by [DavidH-2022](https://github.com/DavidH-2022), [MrRawes](https://github.com/MrRawes), [pukkandan](https://github.com/pukkandan)
+* [extractor/epoch] Add extractor by [tejasa97](https://github.com/tejasa97)
+* [extractor/eurosport] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/IslamChannel] Add extractors by [Lesmiscore](https://github.com/Lesmiscore)
+* [extractor/newspicks] Add extractor by [Lesmiscore](https://github.com/Lesmiscore)
+* [extractor/triller] Add extractor by [bashonly](https://github.com/bashonly)
+* [extractor/VQQ] Add extractors by [elyse0](https://github.com/elyse0)
+* [extractor/youtube] Improvements to nsig extraction
+* [extractor/youtube] Fix bug in format sorting
+* [extractor/youtube] Update iOS Innertube clients by [SamantazFox](https://github.com/SamantazFox)
+* [extractor/youtube] Use device-specific user agent by [coletdjnz](https://github.com/coletdjnz)
+* [extractor/youtube] Add `--compat-option no-youtube-prefer-utc-upload-date` by [coletdjnz](https://github.com/coletdjnz)
+* [extractor/arte] Bug fix by [cgrigis](https://github.com/cgrigis)
+* [extractor/bilibili] Extract `flac` with premium account by [jackyyf](https://github.com/jackyyf)
+* [extractor/BiliBiliSearch] Don't sort by date
+* [extractor/BiliBiliSearch] Fix infinite loop
+* [extractor/bitchute] Mark errors as expected
+* [extractor/crunchyroll:beta] Use anonymous access by [tejing1](https://github.com/tejing1)
+* [extractor/huya] Fix stream extraction by [ohaiibuzzle](https://github.com/ohaiibuzzle)
+* [extractor/medaltv] Fix extraction by [xenova](https://github.com/xenova)
+* [extractor/mediaset] Fix embed extraction
+* [extractor/mixcloud] All formats are audio-only
+* [extractor/rtbf] Fix jwt extraction by [elyse0](https://github.com/elyse0)
+* [extractor/screencastomatic] Support `--video-password` by [shreyasminocha](https://github.com/shreyasminocha)
+* [extractor/stripchat] Don't modify input URL by [dfaker](https://github.com/dfaker)
+* [extractor/uktv] Improve `_VALID_URL` by [dirkf](https://github.com/dirkf)
+* [extractor/vimeo:user] Fix `_VALID_URL`
+
+
 ### 2022.08.19
 
 * Fix bug in `--download-archive`

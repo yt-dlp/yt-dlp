@@ -63,6 +63,8 @@ from .utils import (
 )
 from .YoutubeDL import YoutubeDL
 
+_IN_CLI = False
+
 
 def _exit(status=0, *args):
     for msg in args:
@@ -344,10 +346,16 @@ def validate_options(opts):
 
     # Cookies from browser
     if opts.cookiesfrombrowser:
-        mobj = re.match(r'(?P<name>[^+:]+)(\s*\+\s*(?P<keyring>[^:]+))?(\s*:(?P<profile>.+))?', opts.cookiesfrombrowser)
+        container = None
+        mobj = re.fullmatch(r'''(?x)
+            (?P<name>[^+:]+)
+            (?:\s*\+\s*(?P<keyring>[^:]+))?
+            (?:\s*:\s*(?P<profile>.+?))?
+            (?:\s*::\s*(?P<container>.+))?
+        ''', opts.cookiesfrombrowser)
         if mobj is None:
             raise ValueError(f'invalid cookies from browser arguments: {opts.cookiesfrombrowser}')
-        browser_name, keyring, profile = mobj.group('name', 'keyring', 'profile')
+        browser_name, keyring, profile, container = mobj.group('name', 'keyring', 'profile', 'container')
         browser_name = browser_name.lower()
         if browser_name not in SUPPORTED_BROWSERS:
             raise ValueError(f'unsupported browser specified for cookies: "{browser_name}". '
@@ -357,7 +365,7 @@ def validate_options(opts):
             if keyring not in SUPPORTED_KEYRINGS:
                 raise ValueError(f'unsupported keyring specified for cookies: "{keyring}". '
                                  f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
-        opts.cookiesfrombrowser = (browser_name, profile, keyring)
+        opts.cookiesfrombrowser = (browser_name, profile, keyring, container)
 
     # MetadataParser
     def metadataparser_actions(f):

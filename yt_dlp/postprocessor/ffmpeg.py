@@ -15,6 +15,7 @@ from ..utils import (
     Popen,
     PostProcessingError,
     _get_exe_version_output,
+    deprecation_warning,
     detect_exe_version,
     determine_ext,
     dfxp2srt,
@@ -30,7 +31,6 @@ from ..utils import (
     traverse_obj,
     variadic,
     write_json_file,
-    write_string,
 )
 
 EXT_TO_OUT_FORMATS = {
@@ -187,8 +187,8 @@ class FFmpegPostProcessor(PostProcessor):
         else:
             self.probe_basename = basename
         if basename == self._ffmpeg_to_avconv[kind]:
-            self.deprecation_warning(
-                f'Support for {self._ffmpeg_to_avconv[kind]} is deprecated and may be removed in a future version. Use {kind} instead')
+            self.deprecated_feature(f'Support for {self._ffmpeg_to_avconv[kind]} is deprecated and '
+                                    f'may be removed in a future version. Use {kind} instead')
         return version
 
     @functools.cached_property
@@ -1064,7 +1064,7 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
 
     @classmethod
     def is_webp(cls, path):
-        write_string(f'DeprecationWarning: {cls.__module__}.{cls.__name__}.is_webp is deprecated')
+        deprecation_warning(f'{cls.__module__}.{cls.__name__}.is_webp is deprecated')
         return imghdr.what(path) == 'webp'
 
     def fixup_webp(self, info, idx=-1):

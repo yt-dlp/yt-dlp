@@ -52,6 +52,8 @@ class PhantomJSwrapper:
     This class is experimental.
     """
 
+    INSTALL_HINT = 'Please download it from https://phantomjs.org/download.html'
+
     _BASE_JS = R'''
         phantom.onError = function(msg, trace) {{
           var msgStack = ['PHANTOM ERROR: ' + msg];
@@ -110,8 +112,7 @@ class PhantomJSwrapper:
 
         self.exe = check_executable('phantomjs', ['-v'])
         if not self.exe:
-            raise ExtractorError(
-                'PhantomJS not found, Please download it from https://phantomjs.org/download.html', expected=True)
+            raise ExtractorError(f'PhantomJS not found, {self.INSTALL_HINT}', expected=True)
 
         self.extractor = extractor
 
@@ -211,7 +212,7 @@ class PhantomJSwrapper:
             'jscode': jscode,
         }))
 
-        stdout = self.execute(jscode, video_id, note2)
+        stdout = self.execute(jscode, video_id, note=note2)
 
         with open(self._TMP_FILES['html'].name, 'rb') as f:
             html = f.read().decode('utf-8')
@@ -237,6 +238,6 @@ class PhantomJSwrapper:
         except Exception as e:
             raise ExtractorError(f'{note} failed: Unable to run PhantomJS binary', cause=e)
         if returncode:
-            raise ExtractorError(f'{note} failed:\n{stderr.strip()}')
+            raise ExtractorError(f'{note} failed with returncode {returncode}:\n{stderr.strip()}')
 
         return stdout

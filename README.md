@@ -71,7 +71,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 # NEW FEATURES
 
-* Merged with **youtube-dl v2021.12.17+ [commit/b0a60ce](https://github.com/ytdl-org/youtube-dl/commit/b0a60ce2032172aeaaf27fe3866ab72768f10cb2)**<!--([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))--> and **youtube-dlc v2020.11.11-3+ [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
+* Merged with **youtube-dl v2021.12.17+ [commit/ed5c44e](https://github.com/ytdl-org/youtube-dl/commit/ed5c44e7b74ac77f87ca5ed6cb5e964a0c6a0678)**<!--([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))--> and **youtube-dlc v2020.11.11-3+ [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
 
 * **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
@@ -141,6 +141,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * Live chats (if available) are considered as subtitles. Use `--sub-langs all,-live_chat` to download all subtitles except live chat. You can also use `--compat-options no-live-chat` to prevent any live chat/danmaku from downloading
 * Youtube channel URLs are automatically redirected to `/video`. Append a `/featured` to the URL to download only the videos in the home page. If the channel does not have a videos tab, we try to download the equivalent `UU` playlist instead. For all other tabs, if the channel does not show the requested tab, an error will be raised. Also, `/live` URLs raise an error if there are no live videos instead of silently downloading the entire channel. You may use `--compat-options no-youtube-channel-redirect` to revert all these redirections
 * Unavailable videos are also listed for youtube playlists. Use `--compat-options no-youtube-unavailable-videos` to remove this
+* The upload dates extracted from YouTube are in UTC [when available](https://github.com/yt-dlp/yt-dlp/blob/89e4d86171c7b7c997c77d4714542e0383bf0db0/yt_dlp/extractor/youtube.py#L3898-L3900). Use `--compat-options no-youtube-prefer-utc-upload-date` to prefer the non-UTC upload date.
 * If `ffmpeg` is used as the downloader, the downloading and merging of formats happen in a single step when possible. Use `--compat-options no-direct-merge` to revert this
 * Thumbnail embedding in `mp4` is done with mutagen if possible. Use `--compat-options embed-thumbnail-atomicparsley` to force the use of AtomicParsley instead
 * Some private fields such as filenames are removed by default from the infojson. Use `--no-clean-infojson` or `--compat-options no-clean-infojson` to revert this
@@ -320,7 +321,7 @@ To build the standalone executable, you must have Python and `pyinstaller` (plus
 
 On some systems, you may need to use `py` or `python` instead of `python3`.
 
-Note that pyinstaller [does not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment.
+Note that pyinstaller with versions below 4.4 [do not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment.
 
 **Important**: Running `pyinstaller` directly **without** using `pyinst.py` is **not** officially supported. This may or may not work correctly.
 
@@ -530,8 +531,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     a file that is in the archive
     --break-on-reject               Stop the download process when encountering
                                     a file that has been filtered out
-    --break-per-input               Make --break-on-existing, --break-on-reject,
-                                    --max-downloads and autonumber reset per
+    --break-per-input               --break-on-existing, --break-on-reject,
+                                    --max-downloads, and autonumber resets per
                                     input URL
     --no-break-per-input            --break-on-existing and similar options
                                     terminates the entire download queue
@@ -706,18 +707,20 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     and dump cookie jar in
     --no-cookies                    Do not read/dump cookies from/to file
                                     (default)
-    --cookies-from-browser BROWSER[+KEYRING][:PROFILE]
-                                    The name of the browser and (optionally) the
-                                    name/path of the profile to load cookies
-                                    from, separated by a ":". Currently
-                                    supported browsers are: brave, chrome,
-                                    chromium, edge, firefox, opera, safari,
-                                    vivaldi. By default, the most recently
-                                    accessed profile is used. The keyring used
-                                    for decrypting Chromium cookies on Linux can
-                                    be (optionally) specified after the browser
-                                    name separated by a "+". Currently supported
-                                    keyrings are: basictext, gnomekeyring, kwallet
+    --cookies-from-browser BROWSER[+KEYRING][:PROFILE][::CONTAINER]
+                                    The name of the browser to load cookies
+                                    from. Currently supported browsers are:
+                                    brave, chrome, chromium, edge, firefox,
+                                    opera, safari, vivaldi. Optionally, the
+                                    KEYRING used for decrypting Chromium cookies
+                                    on Linux, the name/path of the PROFILE to
+                                    load cookies from, and the CONTAINER name
+                                    (if Firefox) ("none" for no container) can
+                                    be given with their respective seperators.
+                                    By default, all containers of the most
+                                    recently accessed profile are used.
+                                    Currently supported keyrings are: basictext,
+                                    gnomekeyring, kwallet
     --no-cookies-from-browser       Do not load cookies from browser (default)
     --cache-dir DIR                 Location in the filesystem where youtube-dl
                                     can store some downloaded information (such
@@ -1207,7 +1210,7 @@ It may however also contain special sequences that will be replaced when downloa
 
 The field names themselves (the part inside the parenthesis) can also have some special formatting:
 
-1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. E.g. `%(tags.0)s`, `%(subtitles.en.-1.ext)s`, `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. `%()s` refers to the entire infodict. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
+1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a dot `.` separator; e.g. `%(tags.0)s`, `%(subtitles.en.-1.ext)s`. You can do Python slicing with colon `:`; E.g. `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. Curly braces `{}` can be used to build dictionaries with only specific keys; e.g. `%(formats.:.{format_id,height})#j`. An empty field name `%()s` refers to the entire infodict; e.g. `%(.{id,title})s`. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
 
 1. **Addition**: Addition and subtraction of numeric fields can be done using `+` and `-` respectively. E.g. `%(playlist_index+10)03d`, `%(n_entries+1-playlist_index)d`
 
@@ -1235,7 +1238,6 @@ The available fields are:
  - `id` (string): Video identifier
  - `title` (string): Video title
  - `fulltitle` (string): Video title ignoring live timestamp and generic title
- - `url` (string): Video URL
  - `ext` (string): Video filename extension
  - `alt_title` (string): A secondary title of the video
  - `description` (string): The description of the video
@@ -1270,26 +1272,6 @@ The available fields are:
  - `availability` (string): Whether the video is "private", "premium_only", "subscriber_only", "needs_auth", "unlisted" or "public"
  - `start_time` (numeric): Time in seconds where the reproduction should start, as specified in the URL
  - `end_time` (numeric): Time in seconds where the reproduction should end, as specified in the URL
- - `format` (string): A human-readable description of the format
- - `format_id` (string): Format code specified by `--format`
- - `format_note` (string): Additional info about the format
- - `width` (numeric): Width of the video
- - `height` (numeric): Height of the video
- - `resolution` (string): Textual description of width and height
- - `tbr` (numeric): Average bitrate of audio and video in KBit/s
- - `abr` (numeric): Average audio bitrate in KBit/s
- - `acodec` (string): Name of the audio codec in use
- - `asr` (numeric): Audio sampling rate in Hertz
- - `vbr` (numeric): Average video bitrate in KBit/s
- - `fps` (numeric): Frame rate
- - `dynamic_range` (string): The dynamic range of the video
- - `audio_channels` (numeric): The number of audio channels
- - `stretched_ratio` (float): `width:height` of the video's pixels, if not square
- - `vcodec` (string): Name of the video codec in use
- - `container` (string): Name of the container format
- - `filesize` (numeric): The number of bytes, if known in advance
- - `filesize_approx` (numeric): An estimate for the number of bytes
- - `protocol` (string): The protocol that will be used for the actual download
  - `extractor` (string): Name of the extractor
  - `extractor_key` (string): Key name of the extractor
  - `epoch` (numeric): Unix epoch of when the information extraction was completed
@@ -1308,6 +1290,8 @@ The available fields are:
  - `webpage_url_basename` (string): The basename of the webpage URL
  - `webpage_url_domain` (string): The domain of the webpage URL
  - `original_url` (string): The URL given by the user (or same as `webpage_url` for playlist entries)
+ 
+All the fields in [Filtering Formats](#filtering-formats) can also be used
 
 Available for the video that belongs to some logical chapter or section:
 
@@ -1389,13 +1373,13 @@ If you are using an output template inside a Windows batch file then you must es
 #### Output template examples
 
 ```bash
-$ yt-dlp --get-filename -o "test video.%(ext)s" BaW_jenozKc
+$ yt-dlp --print filename -o "test video.%(ext)s" BaW_jenozKc
 test video.webm    # Literal name with correct extension
 
-$ yt-dlp --get-filename -o "%(title)s.%(ext)s" BaW_jenozKc
+$ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc
 youtube-dl test video ''_ä↭𝕐.webm    # All kinds of weird characters
 
-$ yt-dlp --get-filename -o "%(title)s.%(ext)s" BaW_jenozKc --restrict-filenames
+$ yt-dlp --print filename -o "%(title)s.%(ext)s" BaW_jenozKc --restrict-filenames
 youtube-dl_test_video_.webm    # Restricted file name
 
 # Download YouTube playlist videos in separate directory indexed by video order in a playlist
@@ -1484,6 +1468,7 @@ You can also filter the video formats by putting a condition in brackets, as in 
 The following numeric meta fields can be used with comparisons `<`, `<=`, `>`, `>=`, `=` (equals), `!=` (not equals):
 
  - `filesize`: The number of bytes, if known in advance
+ - `filesize_approx`: An estimate for the number of bytes
  - `width`: Width of the video, if known
  - `height`: Height of the video, if known
  - `tbr`: Average bitrate of audio and video in KBit/s
@@ -1491,16 +1476,23 @@ The following numeric meta fields can be used with comparisons `<`, `<=`, `>`, `
  - `vbr`: Average video bitrate in KBit/s
  - `asr`: Audio sampling rate in Hertz
  - `fps`: Frame rate
+ - `audio_channels`: The number of audio channels
+ - `stretched_ratio`: `width:height` of the video's pixels, if not square
 
 Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends with), `*=` (contains), `~=` (matches regex) and following string meta fields:
 
+ - `url`: Video URL
  - `ext`: File extension
  - `acodec`: Name of the audio codec in use
  - `vcodec`: Name of the video codec in use
  - `container`: Name of the container format
  - `protocol`: The protocol that will be used for the actual download, lower-case (`http`, `https`, `rtsp`, `rtmp`, `rtmpe`, `mms`, `f4m`, `ism`, `http_dash_segments`, `m3u8`, or `m3u8_native`)
- - `format_id`: A short description of the format
  - `language`: Language code
+ - `dynamic_range`: The dynamic range of the video
+ - `format_id`: A short description of the format
+ - `format`: A human-readable description of the format
+ - `format_note`: Additional info about the format
+ - `resolution`: Textual description of width and height
 
 Any string comparison may be prefixed with negation `!` in order to produce an opposite comparison, e.g. `!*=` (does not contain). The comparand of a string comparison needs to be quoted with either double or single quotes if it contains spaces or special characters other than `._-`.
 
@@ -1527,7 +1519,7 @@ The available fields are:
  - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `eac3` > `ac3` > `dts` > other)
  - `codec`: Equivalent to `vcodec,acodec`
  - `vext`: Video Extension (`mp4` > `webm` > `flv` > other). If `--prefer-free-formats` is used, `webm` is preferred.
- - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other). If `--prefer-free-formats` is used, the order changes to `opus` > `ogg` > `webm` > `m4a` > `mp3` > `aac`.
+ - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other). If `--prefer-free-formats` is used, the order changes to `ogg` > `opus` > `webm` > `mp3` > `m4a` > `aac`
  - `ext`: Equivalent to `vext,aext`
  - `filesize`: Exact filesize, if known in advance
  - `fs_approx`: Approximate filesize calculated from the manifests
