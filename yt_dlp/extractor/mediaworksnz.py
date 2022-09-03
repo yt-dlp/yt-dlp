@@ -86,8 +86,8 @@ class MediaWorksNZVODIE(InfoExtractor):
             audio_formats = self._extract_m3u8_formats(audio_streaming_url, video_id, fatal=False, ext='mp3')
             for audio_format in audio_formats:
                 # all the audio streams appear to be aac
-                audio_format['vcodec'] = audio_format.get('vcodec') or 'none'
-                audio_format['acodec'] = audio_format.get('acodec') or 'aac'
+                audio_format.setdefault('vcodec', 'none')
+                audio_format.setdefault('acodec', 'aac')
                 formats.append(audio_format)
 
         self._sort_formats(formats)
