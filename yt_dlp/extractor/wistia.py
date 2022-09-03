@@ -303,13 +303,8 @@ class WistiaChannelIE(WistiaBaseIE):
         channel_id = self._match_id(url)
         params = parse_qs(url)
         media_id = traverse_obj(params, ('wmediaid', 0))
-        if media_id:
-            if self.get_param('noplaylist'):
-                self.to_screen(f'Downloading just video {media_id} because of --no-playlist')
-                return self.url_result(f'wistia:{media_id}', 'Wistia')
-            else:
-                self.to_screen(
-                    f'Downloading channel {channel_id}; add --no-playlist to just download video {media_id}')
+        if not self._yes_playlist(channel_id, media_id, playlist_label='channel'):
+            return self.url_result(f'wistia:{media_id}', 'Wistia')
 
         try:
             data = self._download_embed_config('channel', channel_id, url)
