@@ -347,3 +347,73 @@ class MLBTVIE(InfoExtractor):
             'subtitles': subtitles,
             'http_headers': {'Authorization': f'Bearer {self._access_token}'},
         }
+
+
+class MLBArticleIE(InfoExtractor):
+    _VALID_URL = r'https?://www\.mlb\.com/news/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://www.mlb.com/news/manny-machado-robs-guillermo-heredia-reacts',
+        'info_dict': {
+            'id': '36db7394-343c-4ea3-b8ca-ead2e61bca9a',
+            'title': 'Machado\'s grab draws hilarious irate reaction',
+            'modified_timestamp': 1650130737,
+            'description': 'md5:a19d4eb0487b2cb304e9a176f6b67676',
+            'modified_date': '20220416',
+        },
+        'playlist_count': 2,
+    }]
+
+    def get_single_video(self, video_slug, display_id):
+        json_api_data = self._download_json(
+            f'https://www.mlb.com/data-service/en/videos/{video_slug}', display_id)
+
+        formats, subtitles = [], {}
+        for playback_url in traverse_obj(json_api_data, ('playbacks', ..., 'url')) or []:
+            if determine_ext(playback_url) == 'm3u8':
+                fmt, sub = self._extract_m3u8_formats_and_subtitles(playback_url, display_id, ext='mp4')
+                formats.extend(fmt)
+                self._merge_subtitles(sub, target=subtitles)
+            elif determine_ext(playback_url) == 'jpg':
+                continue
+            else:
+                formats.append({
+                    'url': playback_url,
+                    'ext': 'mp4',
+                })
+
+        self._sort_formats(formats)
+        yield {
+            'id': video_slug,
+            'title': json_api_data.get('title'),
+            'description': json_api_data.get('description'),
+            'formats': formats,
+            'subtitles': subtitles,
+            'duration': parse_duration(json_api_data.get('duration')),
+            'timestamp': parse_iso8601(json_api_data.get('timestamp'))
+        }
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        apollo_cache_json = self._search_json(r'window\.initState\s*=\s*', webpage, 'window.initState', display_id)['apolloCache']
+
+        root_query_json = apollo_cache_json.get('ROOT_QUERY')
+        content_data = [root_query_json[key] for key in root_query_json if key.startswith('getForgeContent')][0]
+
+        # search again in apollo cache
+        content_real_info = apollo_cache_json.get(content_data.get('id'))
+
+        content_video_query_id_list = []
+        for content_video_query_id in content_real_info.get('parts'):
+            if content_video_query_id.get('typename') == 'Video':
+                content_video_query_id_list.append(content_video_query_id.get('id'))
+
+        # search again in apollo cache
+        entries = []
+        for video_query in content_video_query_id_list:
+            video_slug = traverse_obj(apollo_cache_json, (video_query, 'slug'))
+            entries.extend(list(self.get_single_video(video_slug, display_id)))
+
+        return self.playlist_result(
+            entries, content_real_info.get('_translationId'), self._html_search_meta('og:title', webpage),
+            content_real_info.get('summary'), modified_timestamp=parse_iso8601(content_real_info.get('lastUpdatedDate')))
