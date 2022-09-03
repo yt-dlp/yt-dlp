@@ -380,7 +380,6 @@ class MLBArticleIE(InfoExtractor):
                     'url': playback_url,
                     'ext': 'mp4',
                 })
-
         self._sort_formats(formats)
         yield {
             'id': video_slug,
