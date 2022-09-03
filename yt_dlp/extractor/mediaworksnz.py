@@ -71,7 +71,7 @@ class MediaWorksNZVODIE(InfoExtractor):
         asset = self._download_json(
             f'https://vodupload-api.mediaworks.nz/library/asset/published/{video_id}', video_id)['asset']
 
-        if asset.get('drm', 'NonDRM') != 'NonDRM':
+        if asset.get('drm') not in ('NonDRM', None):
             self.report_drm(video_id)
 
         content_type = asset.get('type')
