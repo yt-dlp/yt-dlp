@@ -16,8 +16,7 @@ class PrankCastIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        match = self._match_valid_url(url).groupdict()
-        video_id, display_id = match['id'], match['display_id']
+        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
 
         webpage = self._download_webpage(url, video_id)
 
@@ -30,15 +29,8 @@ class PrankCastIE(InfoExtractor):
         recording_hash = json_info.get('recording_hash')
         url = broadcast_url + recording_hash + ".mp3"
 
-        # Get broadcast info
-        broadcast_title = json_info.get('broadcast_title')
-        broadcast_description = json_info.get('broadcast_description')
-        broadcast_category = json_info.get('broadcast_category')
-        broadcast_tags = self._parse_json(json_info.get('broadcast_tags'), video_id)
-
         # Get author (AKA show host)
         uploader = json_info.get('user_name')
-        channel_id = json_info.get('user_id')
 
         # Get the co-hosts/guests
         if uploader != '':
@@ -65,15 +57,15 @@ class PrankCastIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': broadcast_title or self._og_search_title(webpage),
+            'title': json_info.get('broadcast_title') or self._og_search_title(webpage),
             'display_id': display_id,
             'url': url,
             'timestamp': start_date,
             'uploader': uploader,
-            'channel_id': channel_id,
+            'channel_id': json_info.get('user_id'),
             'duration': parsed_duration,
             'cast': guests,
-            'description': broadcast_description,
-            'categories': [broadcast_category],
-            'tags': broadcast_tags
+            'description': json_info.get('broadcast_description'),
+            'categories': [json_info.get('broadcast_category')],
+            'tags': self._parse_json(json_info.get('broadcast_tags'), video_id)
         }
