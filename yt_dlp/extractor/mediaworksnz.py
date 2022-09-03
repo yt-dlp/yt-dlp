@@ -61,8 +61,9 @@ class MediaWorksNZVODIE(InfoExtractor):
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         for mobj in re.finditer(
-            rf'''(?x)<div\s+\bid=[\"\']Player-Attributes-JWID[^>]+\bdata-request-url=[\"\']{cls._VALID_URL_BASE_RE}[\"\'][^>]+
-            \bdata-asset-id=[\"\']{cls._VALID_URL_ID_RE}[\"\']''', webpage
+            rf'''(?x)<div\s+\bid=["']Player-Attributes-JWID[^>]+\b
+            data-request-url=["']{cls._VALID_URL_BASE_RE}["'][^>]+\b
+            data-asset-id=["']{cls._VALID_URL_ID_RE}["']''', webpage
         ):
             yield 'mwnzvod:%s' % mobj.group('id')
 
