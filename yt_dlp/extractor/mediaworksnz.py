@@ -81,7 +81,7 @@ class MediaWorksNZVODIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(asset['streamingUrl'], video_id)
 
         audio_streaming_url = traverse_obj(
-            asset, 'palyoutPathAudio', 'playoutpathaudio', get_all=False, expected_type=str)
+            asset, 'palyoutPathAudio', 'playoutpathaudio', expected_type=str)
         if audio_streaming_url:
             audio_formats = self._extract_m3u8_formats(audio_streaming_url, video_id, fatal=False, ext='mp3')
             for audio_format in audio_formats:
