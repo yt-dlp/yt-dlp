@@ -43,25 +43,22 @@ class BooyahClipsIE(BooyahBaseIE):
 
         formats = []
         for video_data in json_data['playback']['endpoint_list']:
-            fmt = {
+            formats.append({
                 'url': video_data.get('stream_url'),
                 'ext': 'mp4',
-                'resolution': f'{video_data.get("resolution")}p' if video_data else None
-            }
-            watermark_fmt = {
+                'height': video_data.get('resolution'),
+            })
+            formats.append({
                 'url': video_data.get('download_url'),
                 'ext': 'mp4',
                 'format_note': 'Watermarked',
-                'resolution': f'{video_data.get("resolution")}p' if video_data else None
-            }
-            formats.append(fmt)
-            formats.append(watermark_fmt)
-
+                'height': video_data.get('resolution'),
+            })
         self._sort_formats(formats)
 
         comment_json = self._download_json(
-            'https://booyah.live/api/v3/playbacks/13887261322952306617/comments/tops', video_id,
-            headers={'Booyah-Session-Key': BooyahBaseIE._BOOYAH_SESSION_KEY})
+            f'https://booyah.live/api/v3/playbacks/{video_id}/comments/tops', video_id,
+            headers={'Booyah-Session-Key': BooyahBaseIE._BOOYAH_SESSION_KEY}, fatal=False) or []
 
         comment_data = [{
             'id': comment.get('comment_id'),
@@ -71,7 +68,7 @@ class BooyahClipsIE(BooyahBaseIE):
             'text': comment.get('content'),
             'timestamp': comment.get('create_time'),
             'like_count': comment.get('like_cnt'),
-        } for comment in comment_json.get('comment_list')]
+        } for comment in comment_json.get('comment_list')] or None
 
         return {
             'id': video_id,
