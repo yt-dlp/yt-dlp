@@ -14,7 +14,7 @@ class BooyahBaseIE(InfoExtractor):
     def _get_comment_data(self, video_id):
         comment_json = self._download_json(
             f'https://booyah.live/api/v3/playbacks/{video_id}/comments/tops', video_id,
-            headers={'Booyah-Session-Key': BooyahBaseIE._BOOYAH_SESSION_KEY}, fatal=False) or []
+            headers={'Booyah-Session-Key': BooyahBaseIE._BOOYAH_SESSION_KEY}, fatal=False) or {}
 
         return [{
             'id': comment.get('comment_id'),
@@ -24,7 +24,7 @@ class BooyahBaseIE(InfoExtractor):
             'text': comment.get('content'),
             'timestamp': comment.get('create_time'),
             'like_count': comment.get('like_cnt'),
-        } for comment in comment_json.get('comment_list')] or None
+        } for comment in comment_json.get('comment_list') or ()]
 
 
 class BooyahClipsIE(BooyahBaseIE):
