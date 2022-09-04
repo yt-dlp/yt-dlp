@@ -11,6 +11,21 @@ class BooyahBaseIE(InfoExtractor):
                 'https://booyah.live/api/v3/auths/sessions', None, data="".encode())
             BooyahBaseIE._BOOYAH_SESSION_KEY = initial_request.getheader('booyah-session-key')
 
+    def _get_comment_data(self, video_id):
+        comment_json = self._download_json(
+            f'https://booyah.live/api/v3/playbacks/{video_id}/comments/tops', video_id,
+            headers={'Booyah-Session-Key': BooyahBaseIE._BOOYAH_SESSION_KEY}, fatal=False) or []
+
+        return [{
+            'id': comment.get('comment_id'),
+            'author': comment.get('from_nickname'),
+            'author_id': comment.get('from_uid'),
+            'author_thumbnail': comment.get('from_thumbnail'),
+            'text': comment.get('content'),
+            'timestamp': comment.get('create_time'),
+            'like_count': comment.get('like_cnt'),
+        } for comment in comment_json.get('comment_list')] or None
+
 
 class BooyahClipsIE(BooyahBaseIE):
     _VALID_URL = r'https://booyah.live/clips/(?P<id>\d+)'
@@ -56,20 +71,6 @@ class BooyahClipsIE(BooyahBaseIE):
             })
         self._sort_formats(formats)
 
-        comment_json = self._download_json(
-            f'https://booyah.live/api/v3/playbacks/{video_id}/comments/tops', video_id,
-            headers={'Booyah-Session-Key': BooyahBaseIE._BOOYAH_SESSION_KEY}, fatal=False) or []
-
-        comment_data = [{
-            'id': comment.get('comment_id'),
-            'author': comment.get('from_nickname'),
-            'author_id': comment.get('from_uid'),
-            'author_thumbnail': comment.get('from_thumbnail'),
-            'text': comment.get('content'),
-            'timestamp': comment.get('create_time'),
-            'like_count': comment.get('like_cnt'),
-        } for comment in comment_json.get('comment_list')] or None
-
         return {
             'id': video_id,
             'title': traverse_obj(json_data, ('playback', 'name')),
@@ -82,7 +83,7 @@ class BooyahClipsIE(BooyahBaseIE):
             'channel_id': traverse_obj(json_data, ('playback', 'channel_id')),
             'uploader': traverse_obj(json_data, ('user', 'nickname')),
             'uploader_id': str_or_none(traverse_obj(json_data, ('user', 'uid'))),
-            'comments': comment_data,
+            'comments': self._get_comment_data(video_id),
             'modified_timestamp': int_or_none(traverse_obj(json_data, ('playback', 'update_time_ms')), 1000),
             'timestamp': int_or_none(traverse_obj(json_data, ('playback', 'create_time_ms')), 1000),
         }
