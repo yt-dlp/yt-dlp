@@ -28,7 +28,7 @@ class BooyahBaseIE(InfoExtractor):
 
 
 class BooyahClipsIE(BooyahBaseIE):
-    _VALID_URL = r'https://booyah.live/clips/(?P<id>\d+)'
+    _VALID_URL = r'https?://booyah.live/clips/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://booyah.live/clips/13887261322952306617',
         'info_dict': {
