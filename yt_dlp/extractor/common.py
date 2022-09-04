@@ -2284,6 +2284,7 @@ class InfoExtractor:
                     'url': manifest_url,
                     'manifest_url': m3u8_url,
                     'language': media.get('LANGUAGE'),
+                    'audio_channels': media.get('CHANNELS'),
                     'ext': ext,
                     'protocol': entry_protocol,
                     'preference': preference,
