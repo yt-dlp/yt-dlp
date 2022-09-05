@@ -606,7 +606,7 @@ class BilibiliSpacePlaylistIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mid, sid  = self._match_valid_url(url).group('mid', 'sid')
+        mid, sid = self._match_valid_url(url).group('mid', 'sid')
         playlist_id = f'{mid}_{sid}'
 
         def fetch_page(page_idx):
