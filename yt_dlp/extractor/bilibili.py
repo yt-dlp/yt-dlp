@@ -508,21 +508,12 @@ class BilibiliSpaceBaseIE(InfoExtractor):
         InfoExtractor.__init__(self, downloader)
         self.page_idx_start = 1
 
-    def _real_extract(self, url):
+    def _extract_playlist(self, url):
         playlist_id = self._match_id(url)
 
         metadata, pagedlist = self._extract_internal(playlist_id)
 
         return self.playlist_result(pagedlist, playlist_id, metadata['title'])
-
-    def _extract_internal(self, playlist_id, **kwargs):
-        first_page = self._fetch_page(playlist_id, self.page_idx_start, **kwargs)
-        metadata = self._get_metadata(first_page, **kwargs)
-
-        pagedlist = InAdvancePagedList(
-            lambda idx: self._get_entries(self._fetch_page(playlist_id, idx, **kwargs) if idx else first_page, **kwargs),
-            metadata['page_count'], metadata['page_size'])
-        return metadata, pagedlist
 
     def _fetch_page(self, playlist_id, page_idx, **kwargs):
         raise NotImplementedError('This method must be implemented by subclasses')
@@ -532,6 +523,15 @@ class BilibiliSpaceBaseIE(InfoExtractor):
 
     def _get_entries(self, page_data, **kwargs):
         raise NotImplementedError('This method must be implemented by subclasses')
+
+    def _extract_internal(self, playlist_id, **kwargs):
+        first_page = self._fetch_page(playlist_id, self.page_idx_start, **kwargs)
+        metadata = self._get_metadata(first_page, **kwargs)
+
+        pagedlist = InAdvancePagedList(
+            lambda idx: self._get_entries(self._fetch_page(playlist_id, idx, **kwargs) if idx else first_page, **kwargs),
+            metadata['page_count'], metadata['page_size'])
+        return metadata, pagedlist
 
 
 class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
@@ -550,7 +550,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             self.to_screen(f'{url} may have multiple media types. This run will only download videos.\n'
                            + f'For example, use {url}/audio for audios.')
 
-        return BilibiliSpaceBaseIE._real_extract(self, url)
+        return self._extract_playlist(url)
 
     def _fetch_page(self, playlist_id, page_idx, **kwargs):
         return self._download_json('https://api.bilibili.com/x/space/arc/search', playlist_id,
@@ -583,6 +583,9 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
         'playlist_mincount': 1,
     }]
 
+    def _real_extract(self, url):
+        return self._extract_playlist(url)
+
     def _fetch_page(self, playlist_id, page_idx, **kwargs):
         return self._download_json('https://api.bilibili.com/audio/music-service/web/song/upper', playlist_id,
                                    note=f'Downloading page {page_idx}',
@@ -614,13 +617,12 @@ class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        mid, sid = mobj.group('mid'), mobj.group('sid')
-        id = f'{mid}_{sid}'
+        mid, sid = self._match_valid_url(url).group('mid', 'sid')
+        video_id = f'{mid}_{sid}'
 
-        metadata, pagedlist = self._extract_internal(id, mid=mid, sid=sid)
+        metadata, pagedlist = self._extract_internal(video_id, mid=mid, sid=sid)
 
-        return self.playlist_result(pagedlist, id, metadata['title'])
+        return self.playlist_result(pagedlist, video_id, metadata['title'])
 
     def _fetch_page(self, playlist_id, page_idx, **kwargs):
         mid, sid = kwargs['mid'], kwargs['sid']
