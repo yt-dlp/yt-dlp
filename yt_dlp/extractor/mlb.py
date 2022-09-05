@@ -403,7 +403,7 @@ class MLBArticleIE(InfoExtractor):
         content_real_info = apollo_cache_json.get(content_data.get('id'))
 
         content_video_query_id_list = [
-            content_video_query_id.get('id') for content_video_query_id in content_real_info.get('parts') 
+            content_video_query_id.get('id') for content_video_query_id in content_real_info.get('parts')
             if content_video_query_id.get('typename') == 'Video']
 
         # search again in apollo cache
