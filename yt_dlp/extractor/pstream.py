@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import *
+from ..utils import base64, re
 
 
 class PStreamIE(InfoExtractor):
@@ -24,12 +24,35 @@ class PStreamIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        # TODO more code goes here, for example ...
-        title = self._html_search_regex(r'<meta name="og:title" content="(\w*)">', webpage, 'title')
+        # url = 'https://www.pstream.net/e/YdX2V1RLJjJVayY'
 
+        m3u8Pattern = r"(https:\/\/www\.pstream\.net\/m\/([a-zA-Z0-9]*)\.m3u8\?expires=([0-9]*)&signature=(\b[A-Fa-f0-9]{64}\b))"
+        playerScriptPattern = re.compile("(https://www\.pstream\.net/u/player-script\?v=[a-zA-Z0-9]*&e=[a-zA-Z0-9]*(%3D){0,2})")
+        r = self._download_webpage(url, video_id)
+
+        playerScriptURL = self._search_regex(playerScriptPattern, r, "0")
+
+        lines = self._download_webpage(playerScriptURL, video_id)
+        line_decoded = []
+        for line in lines.split('"'):
+            if re.compile("^[a-zA-Z-0-9=]{500,}$").match(line):
+                line_decoded.append(line)
+
+        badJson = base64.b64decode(line_decoded[0])
+        dicti = self._parse_json(badJson[2:], video_id)
+        for i in dicti.items():
+            try:
+                if None != self._search_regex(m3u8Pattern, i[1], "0", fatal=False, default=None):
+                    m3u8_URL = i[1]
+            except TypeError:
+                pass
+
+        # TODO more code goes here, for example ...
+        title = self._search_regex(r'<meta name="og:title" content="([\w ]*)" *\/>', webpage, 'title', fatal=False, default=None)
         return {
             'id': video_id,
             'title': title,
+            'url': m3u8_URL
             # 'description': self._og_search_description(webpage),
             # 'uploader': self._search_regex(r'<div[^>]+id="uploader"[^>]*>([^<]+)<', webpage, 'uploader', fatal=False),
             # TODO more properties (see yt_dlp/extractor/common.py)
