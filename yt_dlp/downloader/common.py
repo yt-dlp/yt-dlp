@@ -92,6 +92,7 @@ class FileDownloader:
 
         for func in (
             'deprecation_warning',
+            'deprecated_feature',
             'report_error',
             'report_file_already_downloaded',
             'report_warning',

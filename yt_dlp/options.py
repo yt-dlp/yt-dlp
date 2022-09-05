@@ -25,6 +25,7 @@ from .utils import (
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
     Config,
+    deprecation_warning,
     expand_path,
     format_field,
     get_executable_path,
@@ -164,6 +165,7 @@ class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
 
 class _YoutubeDLOptionParser(optparse.OptionParser):
     # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+    ALIAS_DEST = '_triggered_aliases'
     ALIAS_TRIGGER_LIMIT = 100
 
     def __init__(self):
@@ -175,6 +177,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
             formatter=_YoutubeDLHelpFormatter(),
             conflict_handler='resolve',
         )
+        self.set_default(self.ALIAS_DEST, collections.defaultdict(int))
 
     _UNKNOWN_OPTION = (optparse.BadOptionError, optparse.AmbiguousOptionError)
     _BAD_OPTION = optparse.OptionValueError
@@ -290,11 +293,9 @@ def create_parser():
             parser.add_option_group(alias_group)
 
         aliases = (x if x.startswith('-') else f'--{x}' for x in map(str.strip, aliases.split(',')))
-        DEST = '_triggered_aliases'
-        setattr(parser.values, DEST, collections.defaultdict(int))
         try:
             alias_group.add_option(
-                *aliases, help=opts, nargs=nargs, dest=DEST, type='str' if nargs else None,
+                *aliases, help=opts, nargs=nargs, dest=parser.ALIAS_DEST, type='str' if nargs else None,
                 metavar=' '.join(f'ARG{i}' for i in range(nargs)), action='callback',
                 callback=_alias_callback, callback_kwargs={'opts': opts, 'nargs': nargs})
         except Exception as err:
@@ -441,8 +442,9 @@ def create_parser():
             'allowed_values': {
                 'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
-                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json', 'embed-metadata',
-                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
+                'no-attach-info-json', 'embed-metadata', 'embed-thumbnail-atomicparsley',
+                'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
+                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
             }, 'aliases': {
                 'youtube-dl': ['all', '-multistreams'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat'],
@@ -637,7 +639,7 @@ def create_parser():
     selection.add_option(
         '--break-per-input',
         action='store_true', dest='break_per_url', default=False,
-        help='Make --break-on-existing, --break-on-reject, --max-downloads and autonumber reset per input URL')
+        help='--break-on-existing, --break-on-reject, --max-downloads, and autonumber resets per input URL')
     selection.add_option(
         '--no-break-per-input',
         action='store_false', dest='break_per_url',
@@ -1404,14 +1406,15 @@ def create_parser():
         help='Do not read/dump cookies from/to file (default)')
     filesystem.add_option(
         '--cookies-from-browser',
-        dest='cookiesfrombrowser', metavar='BROWSER[+KEYRING][:PROFILE]',
+        dest='cookiesfrombrowser', metavar='BROWSER[+KEYRING][:PROFILE][::CONTAINER]',
         help=(
-            'The name of the browser and (optionally) the name/path of '
-            'the profile to load cookies from, separated by a ":". '
+            'The name of the browser to load cookies from. '
             f'Currently supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}. '
-            'By default, the most recently accessed profile is used. '
-            'The keyring used for decrypting Chromium cookies on Linux can be '
-            '(optionally) specified after the browser name separated by a "+". '
+            'Optionally, the KEYRING used for decrypting Chromium cookies on Linux, '
+            'the name/path of the PROFILE to load cookies from, '
+            'and the CONTAINER name (if Firefox) ("none" for no container) '
+            'can be given with their respective seperators. '
+            'By default, all containers of the most recently accessed profile are used. '
             f'Currently supported keyrings are: {", ".join(map(str.lower, sorted(SUPPORTED_KEYRINGS)))}'))
     filesystem.add_option(
         '--no-cookies-from-browser',
@@ -1869,7 +1872,6 @@ def create_parser():
 
 
 def _hide_login_info(opts):
-    write_string(
-        'DeprecationWarning: "yt_dlp.options._hide_login_info" is deprecated and may be removed in a future version. '
-        'Use "yt_dlp.utils.Config.hide_login_info" instead\n')
+    deprecation_warning(f'"{__name__}._hide_login_info" is deprecated and may be removed '
+                        'in a future version. Use "yt_dlp.utils.Config.hide_login_info" instead')
     return Config.hide_login_info(opts)

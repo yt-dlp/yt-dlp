@@ -66,7 +66,6 @@
  - **anderetijden**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **Angel**
  - **AnimalPlanet**
- - **AnimeOnDemand**: [<abbr title="netrc machine"><em>animeondemand</em></abbr>]
  - **ant1newsgr:article**: ant1news.gr articles
  - **ant1newsgr:embed**: ant1news.gr embedded videos
  - **ant1newsgr:watch**: ant1news.gr videos
@@ -364,6 +363,7 @@
  - **Engadget**
  - **Epicon**
  - **EpiconSeries**
+ - **Epoch**
  - **Eporner**
  - **EroProfile**: [<abbr title="netrc machine"><em>eroprofile</em></abbr>]
  - **EroProfile:album**
@@ -377,6 +377,7 @@
  - **EsriVideo**
  - **Europa**
  - **EuropeanTour**
+ - **Eurosport**
  - **EUScreen**
  - **EWETV**: [<abbr title="netrc machine"><em>ewetv</em></abbr>]
  - **EWETVLive**: [<abbr title="netrc machine"><em>ewetv</em></abbr>]
@@ -553,6 +554,8 @@
  - **iq.com**: International version of iQiyi
  - **iq.com:album**
  - **iqiyi**: [<abbr title="netrc machine"><em>iqiyi</em></abbr>] 爱奇艺
+ - **IslamChannel**
+ - **IslamChannelSeries**
  - **ITProTV**
  - **ITProTVCourse**
  - **ITTF**
@@ -820,6 +823,7 @@
  - **Newgrounds**
  - **Newgrounds:playlist**
  - **Newgrounds:user**
+ - **NewsPicks**
  - **Newstube**
  - **Newsy**
  - **NextMedia**: 蘋果日報
@@ -1331,6 +1335,8 @@
  - **ToypicsUser**: Toypics user profile
  - **TrailerAddict**: (**Currently broken**)
  - **TravelChannel**
+ - **Triller**: [<abbr title="netrc machine"><em>triller</em></abbr>]
+ - **TrillerUser**: [<abbr title="netrc machine"><em>triller</em></abbr>]
  - **Trilulilu**
  - **Trovo**
  - **TrovoChannelClip**: All Clips of a trovo.live channel; "trovoclip:" prefix
@@ -1506,6 +1512,8 @@
  - **VoxMedia**
  - **VoxMediaVolume**
  - **vpro**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
+ - **vqq:series**
+ - **vqq:video**
  - **Vrak**
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
  - **VrtNU**: [<abbr title="netrc machine"><em>vrtnu</em></abbr>] VrtNU.be

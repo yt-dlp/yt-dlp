@@ -55,7 +55,7 @@ from .postprocessor import (
     get_postprocessor,
 )
 from .postprocessor.ffmpeg import resolve_mapping as resolve_recode_mapping
-from .update import detect_variant
+from .update import REPOSITORY, current_git_head, detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
     IDENTITY,
@@ -93,6 +93,7 @@ from .utils import (
     args_to_str,
     bug_reports_message,
     date_from_str,
+    deprecation_warning,
     determine_ext,
     determine_protocol,
     encode_compat_str,
@@ -302,8 +303,9 @@ class YoutubeDL:
                        should act on each input URL as opposed to for the entire queue
     cookiefile:        File name or text stream from where cookies should be read and dumped to
     cookiesfrombrowser:  A tuple containing the name of the browser, the profile
-                       name/path from where cookies are loaded, and the name of the
-                       keyring, e.g. ('chrome', ) or ('vivaldi', 'default', 'BASICTEXT')
+                       name/path from where cookies are loaded, the name of the keyring,
+                       and the container name, e.g. ('chrome', ) or
+                       ('vivaldi', 'default', 'BASICTEXT') or ('firefox', 'default', None, 'Meta')
     legacyserverconnect: Explicitly allow HTTPS connection to servers that do not
                        support RFC 5746 secure renegotiation
     nocheckcertificate:  Do not verify SSL certificates
@@ -631,7 +633,7 @@ class YoutubeDL:
         for msg in self.params.get('_warnings', []):
             self.report_warning(msg)
         for msg in self.params.get('_deprecation_warnings', []):
-            self.deprecation_warning(msg)
+            self.deprecated_feature(msg)
 
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         if 'list-formats' in self.params['compat_opts']:
@@ -834,9 +836,11 @@ class YoutubeDL:
     def to_stdout(self, message, skip_eol=False, quiet=None):
         """Print message to stdout"""
         if quiet is not None:
-            self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument quiet. Use "YoutubeDL.to_screen" instead')
+            self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument quiet. '
+                                     'Use "YoutubeDL.to_screen" instead')
         if skip_eol is not False:
-            self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument skip_eol. Use "YoutubeDL.to_screen" instead')
+            self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument skip_eol. '
+                                     'Use "YoutubeDL.to_screen" instead')
         self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.out)
 
     def to_screen(self, message, skip_eol=False, quiet=None):
@@ -978,11 +982,14 @@ class YoutubeDL:
                 return
             self.to_stderr(f'{self._format_err("WARNING:", self.Styles.WARNING)} {message}', only_once)
 
-    def deprecation_warning(self, message):
+    def deprecation_warning(self, message, *, stacklevel=0):
+        deprecation_warning(
+            message, stacklevel=stacklevel + 1, printer=self.report_error, is_error=False)
+
+    def deprecated_feature(self, message):
         if self.params.get('logger') is not None:
-            self.params['logger'].warning(f'DeprecationWarning: {message}')
-        else:
-            self.to_stderr(f'{self._format_err("DeprecationWarning:", self.Styles.ERROR)} {message}', True)
+            self.params['logger'].warning(f'Deprecated Feature: {message}')
+        self.to_stderr(f'{self._format_err("Deprecated Feature:", self.Styles.ERROR)} {message}', True)
 
     def report_error(self, message, *args, **kwargs):
         '''
@@ -1046,7 +1053,7 @@ class YoutubeDL:
 
     def get_output_path(self, dir_type='', filename=None):
         paths = self.params.get('paths', {})
-        assert isinstance(paths, dict)
+        assert isinstance(paths, dict), '"paths" parameter must be a dictionary'
         path = os.path.join(
             expand_path(paths.get('home', '').strip()),
             expand_path(paths.get(dir_type, '').strip()) if dir_type else '',
@@ -1129,8 +1136,12 @@ class YoutubeDL:
             '-': float.__sub__,
         }
         # Field is of the form key1.key2...
-        # where keys (except first) can be string, int or slice
-        FIELD_RE = r'\w*(?:\.(?:\w+|{num}|{num}?(?::{num}?){{1,2}}))*'.format(num=r'(?:-?\d+)')
+        # where keys (except first) can be string, int, slice or "{field, ...}"
+        FIELD_INNER_RE = r'(?:\w+|%(num)s|%(num)s?(?::%(num)s?){1,2})' % {'num': r'(?:-?\d+)'}
+        FIELD_RE = r'\w*(?:\.(?:%(inner)s|{%(field)s(?:,%(field)s)*}))*' % {
+            'inner': FIELD_INNER_RE,
+            'field': rf'\w*(?:\.{FIELD_INNER_RE})*'
+        }
         MATH_FIELD_RE = rf'(?:{FIELD_RE}|-?{NUMBER_RE})'
         MATH_OPERATORS_RE = r'(?:%s)' % '|'.join(map(re.escape, MATH_FUNCTIONS.keys()))
         INTERNAL_FORMAT_RE = re.compile(rf'''(?x)
@@ -1144,11 +1155,20 @@ class YoutubeDL:
                 (?:\|(?P<default>.*?))?
             )$''')
 
-        def _traverse_infodict(k):
-            k = k.split('.')
-            if k[0] == '':
-                k.pop(0)
-            return traverse_obj(info_dict, k, is_user_input=True, traverse_string=True)
+        def _traverse_infodict(fields):
+            fields = [f for x in re.split(r'\.({.+?})\.?', fields)
+                      for f in ([x] if x.startswith('{') else x.split('.'))]
+            for i in (0, -1):
+                if fields and not fields[i]:
+                    fields.pop(i)
+
+            for i, f in enumerate(fields):
+                if not f.startswith('{'):
+                    continue
+                assert f.endswith('}'), f'No closing brace for {f} in {fields}'
+                fields[i] = {k: k.split('.') for k in f[1:-1].split(',')}
+
+            return traverse_obj(info_dict, fields, is_user_input=True, traverse_string=True)
 
         def get_value(mdict):
             # Object traversal
@@ -2528,9 +2548,6 @@ class YoutubeDL:
                     '--live-from-start is passed, but there are no formats that can be downloaded from the start. '
                     'If you want to download from the current time, use --no-live-from-start'))
 
-        if not formats:
-            self.raise_no_formats(info_dict)
-
         def is_wellformed(f):
             url = f.get('url')
             if not url:
@@ -2543,7 +2560,10 @@ class YoutubeDL:
             return True
 
         # Filter out malformed formats for better extraction robustness
-        formats = list(filter(is_wellformed, formats))
+        formats = list(filter(is_wellformed, formats or []))
+
+        if not formats:
+            self.raise_no_formats(info_dict)
 
         formats_dict = {}
 
@@ -2745,9 +2765,9 @@ class YoutubeDL:
                 if lang not in available_subs:
                     available_subs[lang] = cap_info
 
-        if (not self.params.get('writesubtitles') and not
-                self.params.get('writeautomaticsub') or not
-                available_subs):
+        if not available_subs or (
+                not self.params.get('writesubtitles')
+                and not self.params.get('writeautomaticsub')):
             return None
 
         all_sub_langs = tuple(available_subs.keys())
@@ -2764,7 +2784,7 @@ class YoutubeDL:
         else:
             requested_langs = ['en'] if 'en' in all_sub_langs else all_sub_langs[:1]
         if requested_langs:
-            self.write_debug('Downloading subtitles: %s' % ', '.join(requested_langs))
+            self.to_screen(f'[info] {video_id}: Downloading subtitles: {", ".join(requested_langs)}')
 
         formats_query = self.params.get('subtitlesformat', 'best')
         formats_preference = formats_query.split('/') if formats_query else []
@@ -2800,12 +2820,13 @@ class YoutubeDL:
         info_copy['automatic_captions_table'] = self.render_subtitles_table(info_dict.get('id'), info_dict.get('automatic_captions'))
 
         def format_tmpl(tmpl):
-            mobj = re.match(r'\w+(=?)$', tmpl)
-            if mobj and mobj.group(1):
-                return f'{tmpl[:-1]} = %({tmpl[:-1]})r'
-            elif mobj:
-                return f'%({tmpl})s'
-            return tmpl
+            mobj = re.fullmatch(r'([\w.:,-]|(?P<dict>{[\w.:,-]+}))+=', tmpl)
+            if not mobj:
+                return tmpl
+            elif not mobj.group('dict'):
+                return '\n'.join(f'{f} = %({f})r' for f in tmpl[:-1].split(','))
+            tmpl = f'.{tmpl[:-1]}' if tmpl.startswith('{') else tmpl[:-1]
+            return f'{tmpl} = %({tmpl})#j'
 
         for tmpl in self.params['forceprint'].get(key, []):
             self.to_stdout(self.evaluate_outtmpl(format_tmpl(tmpl), info_copy))
@@ -3321,6 +3342,12 @@ class YoutubeDL:
             return info_dict
         info_dict.setdefault('epoch', int(time.time()))
         info_dict.setdefault('_type', 'video')
+        info_dict.setdefault('_version', {
+            'version': __version__,
+            'current_git_head': current_git_head(),
+            'release_git_head': RELEASE_GIT_HEAD,
+            'repository': REPOSITORY,
+        })
 
         if remove_private_keys:
             reject = lambda k, v: v is None or k.startswith('__') or k in {
@@ -3683,7 +3710,8 @@ class YoutubeDL:
         if VARIANT not in (None, 'pip'):
             source += '*'
         write_debug(join_nonempty(
-            'yt-dlp version', __version__,
+            f'{"yt-dlp" if REPOSITORY == "yt-dlp/yt-dlp" else REPOSITORY} version',
+            __version__,
             f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
             delim=' '))
@@ -3699,18 +3727,8 @@ class YoutubeDL:
         if self.params['compat_opts']:
             write_debug('Compatibility options: %s' % ', '.join(self.params['compat_opts']))
 
-        if source == 'source':
-            try:
-                stdout, _, _ = Popen.run(
-                    ['git', 'rev-parse', '--short', 'HEAD'],
-                    text=True, cwd=os.path.dirname(os.path.abspath(__file__)),
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                if re.fullmatch('[0-9a-f]+', stdout.strip()):
-                    write_debug(f'Git HEAD: {stdout.strip()}')
-            except Exception:
-                with contextlib.suppress(Exception):
-                    sys.exc_clear()
-
+        if current_git_head():
+            write_debug(f'Git HEAD: {current_git_head()}')
         write_debug(system_identifier())
         exe_versions, ffmpeg_features = FFmpegPostProcessor.get_versions_and_features(self)
         ffmpeg_features = {key for key, val in ffmpeg_features.items() if val}

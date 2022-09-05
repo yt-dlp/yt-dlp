@@ -110,8 +110,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '17.29.34',
-                'androidSdkVersion': 30
+                'clientVersion': '17.31.35',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
@@ -122,8 +123,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '17.29.34',
-                'androidSdkVersion': 30
+                'clientVersion': '17.31.35',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
@@ -135,7 +137,8 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
                 'clientVersion': '5.16.51',
-                'androidSdkVersion': 30
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.apps.youtube.music/5.16.51 (Linux; U; Android 11) gzip'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
@@ -146,8 +149,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_CREATOR',
-                'clientVersion': '22.28.100',
-                'androidSdkVersion': 30
+                'clientVersion': '22.30.100',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.apps.youtube.creator/22.30.100 (Linux; U; Android 11) gzip'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
@@ -160,8 +164,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '17.30.1',
+                'clientVersion': '17.33.2',
                 'deviceModel': 'iPhone14,3',
+                'userAgent': 'com.google.ios.youtube/17.33.2 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
@@ -171,8 +176,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MESSAGES_EXTENSION',
-                'clientVersion': '17.30.1',
+                'clientVersion': '17.33.2',
                 'deviceModel': 'iPhone14,3',
+                'userAgent': 'com.google.ios.youtube/17.33.2 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 66,
@@ -183,7 +189,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MUSIC',
-                'clientVersion': '5.18',
+                'clientVersion': '5.21',
+                'deviceModel': 'iPhone14,3',
+                'userAgent': 'com.google.ios.youtubemusic/5.21 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
@@ -193,7 +201,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_CREATOR',
-                'clientVersion': '22.29.101',
+                'clientVersion': '22.33.101',
+                'deviceModel': 'iPhone14,3',
+                'userAgent': 'com.google.ios.ytcreator/22.33.101 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
@@ -555,7 +565,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'Origin': origin,
             'X-Youtube-Identity-Token': identity_token or self._extract_identity_token(ytcfg),
             'X-Goog-PageId': account_syncid or self._extract_account_syncid(ytcfg),
-            'X-Goog-Visitor-Id': visitor_data or self._extract_visitor_data(ytcfg)
+            'X-Goog-Visitor-Id': visitor_data or self._extract_visitor_data(ytcfg),
+            'User-Agent': self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT']['client']['userAgent'], default_client=default_client)
         }
         if session_index is None:
             session_index = self._extract_session_index(ytcfg)
@@ -912,19 +923,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                      (?:\#|$)""" % {
         'invidious': '|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
     }
-    _EMBED_REGEX = [r'''(?x)
-        (?:
-            <iframe[^>]+?src=|
-            data-video-url=|
-            <embed[^>]+?src=|
-            embedSWF\(?:\s*|
-            <object[^>]+data=|
-            new\s+SWFObject\(
-        )
-        (["\'])
-            (?P<url>(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/
-            (?:embed|v|p)/[0-9A-Za-z_-]{11}.*?)
-        \1''']
+    _EMBED_REGEX = [
+        r'''(?x)
+            (?:
+                <iframe[^>]+?src=|
+                data-video-url=|
+                <embed[^>]+?src=|
+                embedSWF\(?:\s*|
+                <object[^>]+data=|
+                new\s+SWFObject\(
+            )
+            (["\'])
+                (?P<url>(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/
+                (?:embed|v|p)/[0-9A-Za-z_-]{11}.*?)
+            \1''',
+        # https://wordpress.org/plugins/lazy-load-for-videos/
+        r'''(?xs)
+            <a\s[^>]*\bhref="(?P<url>https://www\.youtube\.com/watch\?v=[0-9A-Za-z_-]{11})"
+            \s[^>]*\bclass="[^"]*\blazy-load-youtube''',
+    ]
+
     _PLAYER_INFO_RE = (
         r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/player',
         r'/(?P<id>[a-zA-Z0-9_-]{8,})/player(?:_ias\.vflset(?:/[a-zA-Z]{2,3}_[a-zA-Z]{2,3})?|-plasma-ias-(?:phone|tablet)-[a-z]{2}_[A-Z]{2}\.vflset)/base\.js$',
@@ -2149,6 +2167,35 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_follower_count': int
             }
         }, {
+            # Same video as above, but with --compat-opt no-youtube-prefer-utc-upload-date
+            'url': 'https://www.youtube.com/watch?v=2NUZ8W2llS4',
+            'info_dict': {
+                'id': '2NUZ8W2llS4',
+                'ext': 'mp4',
+                'title': 'The NP that test your phone performance 🙂',
+                'description': 'md5:144494b24d4f9dfacb97c1bbef5de84d',
+                'uploader': 'Leon Nguyen',
+                'uploader_id': 'VNSXIII',
+                'uploader_url': 'http://www.youtube.com/user/VNSXIII',
+                'channel_id': 'UCRqNBSOHgilHfAczlUmlWHA',
+                'channel_url': 'https://www.youtube.com/channel/UCRqNBSOHgilHfAczlUmlWHA',
+                'duration': 21,
+                'view_count': int,
+                'age_limit': 0,
+                'categories': ['Gaming'],
+                'tags': 'count:23',
+                'playable_in_embed': True,
+                'live_status': 'not_live',
+                'upload_date': '20220102',
+                'like_count': int,
+                'availability': 'public',
+                'channel': 'Leon Nguyen',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp',
+                'comment_count': int,
+                'channel_follower_count': int
+            },
+            'params': {'compat_opts': ['no-youtube-prefer-utc-upload-date']}
+        }, {
             # date text is premiered video, ensure upload date in UTC (published 1641172509)
             'url': 'https://www.youtube.com/watch?v=mzZzzBU6lrM',
             'info_dict': {
@@ -2621,7 +2668,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             raise ExtractorError('Cannot decrypt nsig without player_url')
         player_url = urljoin('https://www.youtube.com', player_url)
 
-        jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
+        try:
+            jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
+        except ExtractorError as e:
+            raise ExtractorError('Unable to extract nsig function code', cause=e)
         if self.get_param('youtube_print_sig_code'):
             self.to_screen(f'Extracted nsig function from {player_id}:\n{func_code[1]}\n')
 
@@ -2659,14 +2709,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
-        func_code = self.cache.load('youtube-nsig', player_id)
+        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2022.09.1')
         jscode = func_code or self._load_player(video_id, player_url)
         jsi = JSInterpreter(jscode)
 
         if func_code:
             return jsi, player_id, func_code
 
-        func_code = jsi.extract_function_code(self._extract_n_function_name(jscode))
+        func_name = self._extract_n_function_name(jscode)
+
+        # For redundancy
+        func_code = self._search_regex(
+            r'''(?xs)%s\s*=\s*function\s*\((?P<var>[\w$]+)\)\s*
+                     # NB: The end of the regex is intentionally kept strict
+                     {(?P<code>.+?}\s*return\ [\w$]+.join\(""\))};''' % func_name,
+            jscode, 'nsig function', group=('var', 'code'), default=None)
+        if func_code:
+            func_code = ([func_code[0]], func_code[1])
+        else:
+            self.write_debug('Extracting nsig function with jsinterp')
+            func_code = jsi.extract_function_code(func_name)
+
         self.cache.store('youtube-nsig', player_id, func_code)
         return jsi, player_id, func_code
 
@@ -2948,8 +3011,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # YouTube comments have a max depth of 2
         max_depth = int_or_none(get_single_config_arg('max_comment_depth'))
         if max_depth:
-            self._downloader.deprecation_warning(
-                '[youtube] max_comment_depth extractor argument is deprecated. Set max replies in the max-comments extractor argument instead.')
+            self._downloader.deprecated_feature('[youtube] max_comment_depth extractor argument is deprecated. '
+                                                'Set max replies in the max-comments extractor argument instead')
         if max_depth == 1 and parent:
             return
 
@@ -3071,7 +3134,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr):
+    _STORY_PLAYER_PARAMS = '8AEB'
+
+    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, smuggled_data):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
@@ -3081,8 +3146,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         yt_query = {
             'videoId': video_id,
-            'params': '8AEB'  # enable stories
         }
+        if smuggled_data.get('is_story') or _split_innertube_client(client)[0] == 'android':
+            yt_query['params'] = self._STORY_PLAYER_PARAMS
+
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -3115,7 +3182,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return orderedSet(requested_clients)
 
-    def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg):
+    def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
         initial_pr = None
         if webpage:
             initial_pr = self._search_json(
@@ -3165,7 +3232,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             try:
                 pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr)
+                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr, smuggled_data)
             except ExtractorError as e:
                 if last_error:
                     self.report_warning(last_error)
@@ -3267,7 +3334,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 except ExtractorError as e:
                     phantomjs_hint = ''
                     if isinstance(e, JSInterpreter.Exception):
-                        phantomjs_hint = f'         Install {self._downloader._format_err("PhantomJS", self._downloader.Styles.EMPHASIS)} to workaround the issue\n'
+                        phantomjs_hint = (f'         Install {self._downloader._format_err("PhantomJS", self._downloader.Styles.EMPHASIS)} '
+                                          f'to workaround the issue. {PhantomJSwrapper.INSTALL_HINT}\n')
                     self.report_warning(
                         f'nsig extraction failed: You may experience throttling for some formats\n{phantomjs_hint}'
                         f'         n = {query["n"][0]} ; player = {player_url}', video_id=video_id, only_once=True)
@@ -3428,14 +3496,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _download_player_responses(self, url, smuggled_data, video_id, webpage_url):
         webpage = None
         if 'webpage' not in self._configuration_arg('player_skip'):
+            query = {'bpctr': '9999999999', 'has_verified': '1'}
+            if smuggled_data.get('is_story'):
+                query['pp'] = self._STORY_PLAYER_PARAMS
             webpage = self._download_webpage(
-                webpage_url + '&bpctr=9999999999&has_verified=1&pp=8AEB', video_id, fatal=False)
+                webpage_url, video_id, fatal=False, query=query)
 
         master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
 
         player_responses, player_url = self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
-            video_id, webpage, master_ytcfg)
+            video_id, webpage, master_ytcfg, smuggled_data)
 
         return webpage, master_ytcfg, player_responses, player_url
 
@@ -3901,7 +3972,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         upload_date = (
             unified_strdate(get_first(microformats, 'uploadDate'))
             or unified_strdate(search_meta('uploadDate')))
-        if not upload_date or (not info.get('is_live') and not info.get('was_live') and info.get('live_status') != 'is_upcoming'):
+        if not upload_date or (
+            not info.get('is_live')
+            and not info.get('was_live')
+            and info.get('live_status') != 'is_upcoming'
+            and 'no-youtube-prefer-utc-upload-date' not in self.get_param('compat_opts', [])
+        ):
             upload_date = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d') or upload_date
         info['upload_date'] = upload_date
 
@@ -6008,7 +6084,7 @@ class YoutubeStoriesIE(InfoExtractor):
     def _real_extract(self, url):
         playlist_id = f'RLTD{self._match_id(url)}'
         return self.url_result(
-            f'https://www.youtube.com/playlist?list={playlist_id}&playnext=1',
+            smuggle_url(f'https://www.youtube.com/playlist?list={playlist_id}&playnext=1', {'is_story': True}),
             ie=YoutubeTabIE, video_id=playlist_id)
 
 
