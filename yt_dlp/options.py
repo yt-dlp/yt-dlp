@@ -491,8 +491,8 @@ def create_parser():
         help='Make all connections via IPv6',
     )
     network.add_option(
-        '--enable-file-protocol', action='store_true',
-        dest='enable_file_protocol', default=False,
+        '--enable-file-urls', action='store_true',
+        dest='enable_file_urls', default=False,
         help='Enable file:// URLs. This is disabled by default for security reasons.'
     )
 

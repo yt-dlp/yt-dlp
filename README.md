@@ -453,7 +453,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --source-address IP             Client-side IP address to bind to
     -4, --force-ipv4                Make all connections via IPv4
     -6, --force-ipv6                Make all connections via IPv6
-    --enable-file-protocol          Enable file:// URLs. This is disabled by
+    --enable-file-urls              Enable file:// URLs. This is disabled by
                                     default for security reasons.
 
 ## Geo-restriction:

@@ -448,7 +448,7 @@ class UrllibRH(RequestHandler):
             HTTPErrorProcessor(),
             YDLRedirectHandler() if allow_redirects else YDLNoRedirectHandler()]
 
-        if self.ydl.params.get('enable_file_protocol'):
+        if self.ydl.params.get('enable_file_urls'):
             handlers.append(FileHandler())
 
         for handler in handlers:
@@ -462,7 +462,7 @@ class UrllibRH(RequestHandler):
 
     def _prepare_request(self, request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
-        if scheme == 'file' and not self.ydl.params.get('enable_file_protocol'):
+        if scheme == 'file' and not self.ydl.params.get('enable_file_urls'):
             raise UnsupportedRequest('file:// scheme is disabled by default in yt-dlp for security reasons')
         return request
 

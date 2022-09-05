@@ -503,7 +503,7 @@ class TestUrllibRequestHandler(RequestHandlerTestCase):
                 self.assertRaises(UnsupportedRequest, rh.handle, req)
                 self.assertRaisesRegex(
                     urllib.error.URLError, 'urlopen error unknown url type: file', rh.ydl._opener.open, req.url)
-            with make_rh({'enable_file_protocol': True}) as rh:
+            with make_rh({'enable_file_urls': True}) as rh:
                 try:
                     res = rh.handle(req)
                     self.assertEqual(res.read(), b'foobar')
