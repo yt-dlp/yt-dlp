@@ -421,6 +421,9 @@ class RequestHandler:
         if self.SUPPORTED_ENCODINGS and 'Accept-Encoding' not in request.headers:
             request.headers['Accept-Encoding'] = ', '.join(self.SUPPORTED_ENCODINGS)
 
+        if 'Accept-Encoding' not in request.headers:
+            request.headers['Accept-Encoding'] = 'identity'
+
     @handle_request_errors
     def prepare_request(self, request: Request):
         """Returns a new Request prepared for this handler."""
