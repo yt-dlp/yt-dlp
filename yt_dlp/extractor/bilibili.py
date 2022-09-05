@@ -508,13 +508,6 @@ class BilibiliSpaceBaseIE(InfoExtractor):
         InfoExtractor.__init__(self, downloader)
         self.page_idx_start = 1
 
-    def _extract_playlist(self, url):
-        playlist_id = self._match_id(url)
-
-        metadata, pagedlist = self._extract_internal(playlist_id)
-
-        return self.playlist_result(pagedlist, playlist_id, metadata['title'])
-
     def _fetch_page(self, playlist_id, page_idx, **kwargs):
         raise NotImplementedError('This method must be implemented by subclasses')
 
@@ -533,6 +526,13 @@ class BilibiliSpaceBaseIE(InfoExtractor):
             metadata['page_count'], metadata['page_size'])
         return metadata, pagedlist
 
+    def _extract_playlist(self, url):
+        playlist_id = self._match_id(url)
+
+        metadata, pagedlist = self._extract_internal(playlist_id)
+
+        return self.playlist_result(pagedlist, playlist_id, metadata['title'])
+
 
 class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
     _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)(?P<video>/video)?$'
@@ -543,14 +543,6 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
         },
         'playlist_mincount': 178,
     }]
-
-    def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        if not mobj.group('video'):
-            self.to_screen(f'{url} may have multiple media types. This run will only download videos.\n'
-                           + f'For example, use {url}/audio for audios.')
-
-        return self._extract_playlist(url)
 
     def _fetch_page(self, playlist_id, page_idx, **kwargs):
         return self._download_json('https://api.bilibili.com/x/space/arc/search', playlist_id,
@@ -572,6 +564,14 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
                                   BiliBiliIE.ie_key(), entry['bvid'])
 
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        if not mobj.group('video'):
+            self.to_screen(f'{url} may have multiple media types. This run will only download videos.\n'
+                           + f'For example, use {url}/audio for audios.')
+
+        return self._extract_playlist(url)
+
 
 class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
     _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)/audio'
@@ -582,9 +582,6 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
         },
         'playlist_mincount': 1,
     }]
-
-    def _real_extract(self, url):
-        return self._extract_playlist(url)
 
     def _fetch_page(self, playlist_id, page_idx, **kwargs):
         return self._download_json('https://api.bilibili.com/audio/music-service/web/song/upper', playlist_id,
@@ -604,6 +601,9 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
             yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}',
                                   BilibiliAudioIE.ie_key(), entry['id'])
 
+    def _real_extract(self, url):
+        return self._extract_playlist(url)
+
 
 class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
     _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail\?sid=(?P<sid>\d+)'
@@ -615,14 +615,6 @@ class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
         },
         'playlist_mincount': 31,
     }]
-
-    def _real_extract(self, url):
-        mid, sid = self._match_valid_url(url).group('mid', 'sid')
-        video_id = f'{mid}_{sid}'
-
-        metadata, pagedlist = self._extract_internal(video_id, mid=mid, sid=sid)
-
-        return self.playlist_result(pagedlist, video_id, metadata['title'])
 
     def _fetch_page(self, playlist_id, page_idx, **kwargs):
         mid, sid = kwargs['mid'], kwargs['sid']
@@ -645,6 +637,14 @@ class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
         for entry in page_data.get('archives', []):
             yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
                                   BiliBiliIE.ie_key(), entry['bvid'])
+
+    def _real_extract(self, url):
+        mid, sid = self._match_valid_url(url).group('mid', 'sid')
+        video_id = f'{mid}_{sid}'
+
+        metadata, pagedlist = self._extract_internal(video_id, mid=mid, sid=sid)
+
+        return self.playlist_result(pagedlist, video_id, metadata['title'])
 
 
 class BilibiliCategoryIE(InfoExtractor):
