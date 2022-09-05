@@ -862,34 +862,14 @@ class BiliBiliPlayerIE(InfoExtractor):
     _VALID_URL = r'https?://player\.bilibili\.com/player\.html\?.*?\baid=(?P<id>\d+)'
     _TEST = {
         'url': 'http://player.bilibili.com/player.html?aid=92494333&cid=157926707&page=1',
-        'info_dict': {
-            'id': '92494333_part1',
-            'ext': 'm4s',
-            'uploader': '骨头゛',
-            'uploader_id': '165511',
-            'timestamp': 1583222426,
-            'title': '大学路上的绊脚石',
-            'upload_date': '20200303',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
-            'duration': 12.167,
-            'cid': '157926707',
-            'bv_id': 'BV1xE411H755',
-            'tags': list,
-            'description': 'md5:3c7b36418519dd8358c0aa00ab778257',
-        },
-        'params': {
-            'skip_download': True,
-        },
+        'only_matching': True,
     }
 
     def _real_extract(self, url):
-        aid = self._match_id(url)
-
-        bv_id = traverse_obj(
-            self._download_json(f'https://api.bilibili.com/x/web-interface/view?aid={aid}', aid),
-            ('data', 'bvid'))
-        return self.url_result(f'http://www.bilibili.com/video/{bv_id}/',
-                               ie=BiliBiliIE.ie_key(), video_id=bv_id)
+        video_id = self._match_id(url)
+        return self.url_result(
+            'http://www.bilibili.tv/video/av%s/' % video_id,
+            ie=BiliBiliIE.ie_key(), video_id=video_id)
 
 
 class BiliIntlBaseIE(InfoExtractor):
