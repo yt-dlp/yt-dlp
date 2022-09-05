@@ -503,18 +503,19 @@ class BiliBiliBangumiIE(InfoExtractor):
             season_info.get('bangumi_title'), season_info.get('evaluate'))
 
 
-def bilibili_space_extract_playlist(fetch_page, get_metadata, get_entries):
-    first_page = fetch_page(1)
-    metadata = get_metadata(first_page)
+class BilibiliSpaceBaseIE(InfoExtractor):
+    def _extract_playlist(self, fetch_page, get_metadata, get_entries):
+        first_page = fetch_page(1)
+        metadata = get_metadata(first_page)
 
-    paged_list = InAdvancePagedList(
-        lambda idx: get_entries(fetch_page(idx) if idx else first_page),
-        metadata['page_count'], metadata['page_size'])
+        paged_list = InAdvancePagedList(
+            lambda idx: get_entries(fetch_page(idx) if idx else first_page),
+            metadata['page_count'], metadata['page_size'])
 
-    return metadata, paged_list
+        return metadata, paged_list
 
 
-class BilibiliSpaceVideoIE(InfoExtractor):
+class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
     _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)(?P<video>/video)?$'
     _TESTS = [{
         'url': 'https://space.bilibili.com/3985676/video',
@@ -552,11 +553,11 @@ class BilibiliSpaceVideoIE(InfoExtractor):
             for entry in traverse_obj(page_data, ('list', 'vlist')) or []:
                 yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}', BiliBiliIE, entry['bvid'])
 
-        metadata, paged_list = bilibili_space_extract_playlist(fetch_page, get_metadata, get_entries)
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id, metadata['title'])
 
 
-class BilibiliSpaceAudioIE(InfoExtractor):
+class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
     _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)/audio'
     _TESTS = [{
         'url': 'https://space.bilibili.com/3985676/audio',
@@ -587,11 +588,11 @@ class BilibiliSpaceAudioIE(InfoExtractor):
             for entry in page_data.get('data', []):
                 yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}', BilibiliAudioIE, entry['id'])
 
-        metadata, paged_list = bilibili_space_extract_playlist(fetch_page, get_metadata, get_entries)
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id, metadata['title'])
 
 
-class BilibiliSpacePlaylistIE(InfoExtractor):
+class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
     _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail\?sid=(?P<sid>\d+)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
@@ -627,7 +628,7 @@ class BilibiliSpacePlaylistIE(InfoExtractor):
                 yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
                                       BiliBiliIE.ie_key(), entry['bvid'])
 
-        metadata, paged_list = bilibili_space_extract_playlist(fetch_page, get_metadata, get_entries)
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id, metadata['title'])
 
 
