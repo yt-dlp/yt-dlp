@@ -444,14 +444,9 @@ class RequestHandler:
 
     @handle_request_errors
     def handle(self, request: Request):
-        try:
-            request = self.prepare_request(request)
-            assert isinstance(request, Request)
-            return self._real_handle(request)
-        except RequestError as e:
-            if e.handler is None:
-                e.handler = self
-            raise
+        request = self.prepare_request(request)
+        assert isinstance(request, Request)
+        return self._real_handle(request)
 
     def _real_handle(self, request: Request):
         """Handle a request from start to finish. Redefine in subclasses."""
