@@ -528,10 +528,9 @@ class BilibiliSpaceBaseIE(InfoExtractor):
 
     def _extract_playlist(self, url):
         playlist_id = self._match_id(url)
+        metadata, paged_list = self._extract_internal(playlist_id)
 
-        metadata, pagedlist = self._extract_internal(playlist_id)
-
-        return self.playlist_result(pagedlist, playlist_id, metadata['title'])
+        return self.playlist_result(paged_list, playlist_id, metadata['title'])
 
 
 class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
@@ -545,9 +544,9 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
     }]
 
     def _fetch_page(self, playlist_id, page_idx, **kwargs):
-        return self._download_json('https://api.bilibili.com/x/space/arc/search', playlist_id,
-                                   note=f'Downloading page {page_idx}',
-                                   query={'mid': playlist_id, 'pn': page_idx, 'jsonp': 'jsonp'})['data']
+        return self._download_json(
+            'https://api.bilibili.com/x/space/arc/search', playlist_id, note=f'Downloading page {page_idx}',
+            query={'mid': playlist_id, 'pn': page_idx, 'jsonp': 'jsonp'})['data']
 
     def _get_metadata(self, page_data, **kwargs):
         page_size = page_data['page']['ps']
@@ -584,9 +583,10 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
     }]
 
     def _fetch_page(self, playlist_id, page_idx, **kwargs):
-        return self._download_json('https://api.bilibili.com/audio/music-service/web/song/upper', playlist_id,
-                                   note=f'Downloading page {page_idx}',
-                                   query={'uid': playlist_id, 'pn': page_idx, 'ps': 30, 'order': 1, 'jsonp': 'jsonp'})['data']
+        return self._download_json(
+            'https://api.bilibili.com/audio/music-service/web/song/upper', playlist_id,
+            note=f'Downloading page {page_idx}',
+            query={'uid': playlist_id, 'pn': page_idx, 'ps': 30, 'order': 1, 'jsonp': 'jsonp'})['data']
 
     def _get_metadata(self, page_data, **kwargs):
         return {
@@ -618,10 +618,10 @@ class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
 
     def _fetch_page(self, playlist_id, page_idx, **kwargs):
         mid, sid = kwargs['mid'], kwargs['sid']
-        return self._download_json('https://api.bilibili.com/x/polymer/space/seasons_archives_list',
-                                   playlist_id, note=f'Downloading page {page_idx}',
-                                   query={'mid': mid, 'season_id': sid, 'page_num': page_idx, 'page_size': 30}
-                                   )['data']
+        return self._download_json(
+            'https://api.bilibili.com/x/polymer/space/seasons_archives_list',
+            playlist_id, note=f'Downloading page {page_idx}',
+            query={'mid': mid, 'season_id': sid, 'page_num': page_idx, 'page_size': 30})['data']
 
     def _get_metadata(self, page_data, **kwargs):
         page_size = page_data['page']['page_size']
@@ -641,10 +641,9 @@ class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
     def _real_extract(self, url):
         mid, sid = self._match_valid_url(url).group('mid', 'sid')
         video_id = f'{mid}_{sid}'
+        metadata, paged_list = self._extract_internal(video_id, mid=mid, sid=sid)
 
-        metadata, pagedlist = self._extract_internal(video_id, mid=mid, sid=sid)
-
-        return self.playlist_result(pagedlist, video_id, metadata['title'])
+        return self.playlist_result(paged_list, video_id, metadata['title'])
 
 
 class BilibiliCategoryIE(InfoExtractor):
