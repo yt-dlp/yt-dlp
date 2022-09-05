@@ -9,7 +9,6 @@ from ..utils import (
     _configuration_args,
     deprecation_warning,
     encodeFilename,
-    write_string
 )
 from ..networking.exceptions import HTTPError, network_exceptions
 
