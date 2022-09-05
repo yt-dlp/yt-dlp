@@ -13,12 +13,12 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    InAdvancePagedList,
+    OnDemandPagedList,
     filter_dict,
     float_or_none,
     int_or_none,
-    InAdvancePagedList,
     mimetype2ext,
-    OnDemandPagedList,
     parse_count,
     parse_iso8601,
     qualities,
@@ -504,8 +504,7 @@ class BiliBiliBangumiIE(InfoExtractor):
 
 
 class BilibiliSpaceBaseIE(InfoExtractor):
-    def __init__(self, downloader=None):
-        InfoExtractor.__init__(self, downloader)
+    def _real_initialize(self):
         self.page_idx_start = 1
 
     def _fetch_page(self, playlist_id, page_idx, **kwargs):
@@ -521,10 +520,10 @@ class BilibiliSpaceBaseIE(InfoExtractor):
         first_page = self._fetch_page(playlist_id, self.page_idx_start, **kwargs)
         metadata = self._get_metadata(first_page, **kwargs)
 
-        pagedlist = InAdvancePagedList(
+        paged_list = InAdvancePagedList(
             lambda idx: self._get_entries(self._fetch_page(playlist_id, idx, **kwargs) if idx else first_page, **kwargs),
             metadata['page_count'], metadata['page_size'])
-        return metadata, pagedlist
+        return metadata, paged_list
 
     def _extract_playlist(self, url):
         playlist_id = self._match_id(url)
