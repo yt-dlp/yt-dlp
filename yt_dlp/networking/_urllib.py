@@ -112,10 +112,7 @@ class YoutubeDLHandler(urllib.request.AbstractHTTPHandler):
 
     This class, when installed with an OpenerDirector, automatically adds
     the standard headers to every HTTP request and handles gzipped and
-    deflated responses from web servers. If compression is to be avoided in
-    a particular request, the original request in the program code only has
-    to include the HTTP header "Youtubedl-no-compression", which will be
-    removed before making the real request.
+    deflated responses from web servers.
 
     Part of this code was copied from:
 

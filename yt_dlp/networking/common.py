@@ -55,12 +55,10 @@ class Request:
     @param proxies: proxy dict mapping of proto:proxy to use for the request and any redirects.
     @param query: URL query parameters to update the url with.
     @param method: HTTP method to use. If no method specified, will use POST if payload data is present else GET
-    @param compression: whether to include content-encoding header on request.
     @param allow_redirects: whether to follow redirects for this request.
     @param timeout: socket timeout value for this request.
 
     A Request may also have the following special headers:
-    Youtubedl-no-compression: if present, equivalent to setting compression to False.
     Ytdl-request-proxy: proxy url to use for request.
 
     Apart from the url protocol, proxy dict also supports the following keys:
@@ -78,7 +76,6 @@ class Request:
             proxies: dict = None,
             query: dict = None,
             method: str = None,
-            compression: bool = True,
             allow_redirects: bool = True,
             timeout: Union[float, int] = None):
 
@@ -99,7 +96,6 @@ class Request:
             self.headers['Authorization'] = basic_auth_header
 
         self.proxies = proxies or {}
-        self.compression = compression
 
     @property
     def url(self):
@@ -155,7 +151,7 @@ class Request:
     def copy(self):
         return type(self)(
             url=self.url, data=self.data, headers=self.headers.copy(), timeout=self.timeout,
-            proxies=self.proxies.copy(), compression=self.compression, method=self.__method,
+            proxies=self.proxies.copy(), method=self.__method,
             allow_redirects=self.allow_redirects)
 
     @property
@@ -418,15 +414,12 @@ class RequestHandler:
 
     def _prepare_headers(self, request):
         request.headers = CaseInsensitiveDict(self.ydl.params.get('http_headers', {}), request.headers)
-        if 'Youtubedl-no-compression' in request.headers:
+        if 'Youtubedl-no-compression' in request.headers:  # compat
             del request.headers['Youtubedl-no-compression']
-            request.compression = False
+            request.headers['Accept-Encoding'] = 'identity'
 
         if self.SUPPORTED_ENCODINGS and 'Accept-Encoding' not in request.headers:
             request.headers['Accept-Encoding'] = ', '.join(self.SUPPORTED_ENCODINGS)
-
-        if not request.compression:
-            request.headers.pop('Accept-Encoding', None)
 
     @handle_request_errors
     def prepare_request(self, request: Request):

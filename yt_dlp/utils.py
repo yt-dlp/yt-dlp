@@ -5340,7 +5340,7 @@ def request_to_url(req):
         return req
 
 
-# Deprecated
+# TODO: remove, deprecated
 def handle_youtubedl_headers(headers):
     filtered_headers = headers
 

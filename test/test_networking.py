@@ -426,14 +426,11 @@ class TestRequestHandler(RequestHandlerTestCase):
             self.assertIn(b'Cookie: test=ytdlp', data)
 
     @with_make_rh()
-    def test_no_compression(self, make_rh):
-        # TODO: add compression as features
+    def test_no_compression_compat(self, make_rh):
         with make_rh() as rh:
-            url = 'http://127.0.0.1:%d/headers' % self.http_port
-            for request in (Request(url, compression=False), Request(url, headers={'Youtubedl-no-compression': '1'})):
-                data = rh.handle(request).read()
-                if b'Accept-Encoding' in data:
-                    self.assertIn(b'Accept-Encoding: identity', data)
+            data = rh.handle(
+                Request('http://127.0.0.1:%d/headers' % self.http_port, headers={'Youtubedl-no-compression': True})).read()
+            self.assertIn(b'Accept-Encoding: identity', data)
 
     @with_make_rh()
     def test_gzip_trailing_garbage(self, make_rh):
