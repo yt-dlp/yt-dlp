@@ -217,9 +217,6 @@ def _build_proxy_handler(name):
             self.wfile.write('{self.proxy_name}: {self.path}'.format(self=self).encode('utf-8'))
     return HTTPTestRequestHandler
 
-# TODO: what to do with request handlers that do not support everything
-# TODO: is there a better way
-
 
 def with_make_rh(handlers=None, ignore_handlers=None):
     # XXX: it might be better/easier to use pytest
@@ -435,7 +432,6 @@ class TestRequestHandler(RequestHandlerTestCase):
 
     @with_make_rh()
     def test_gzip_trailing_garbage(self, make_rh):
-        # TODO: add gzip compression as feature maybe
         # https://github.com/ytdl-org/youtube-dl/commit/aa3e950764337ef9800c936f4de89b31c00dfcf5
         # https://github.com/ytdl-org/youtube-dl/commit/6f2ec15cee79d35dba065677cad9da7491ec6e6f
         with make_rh() as rh:
