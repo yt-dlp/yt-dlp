@@ -550,8 +550,7 @@ class BilibiliSpaceVideoIE(InfoExtractor):
 
         def get_entries(page_data):
             for entry in traverse_obj(page_data, ('list', 'vlist')) or []:
-                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
-                                      BiliBiliIE.ie_key(), entry['bvid'])
+                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}', BiliBiliIE, entry['bvid'])
 
         metadata, paged_list = bilibili_space_extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id, metadata['title'])
@@ -574,8 +573,7 @@ class BilibiliSpaceAudioIE(InfoExtractor):
             return self._download_json(
                 'https://api.bilibili.com/audio/music-service/web/song/upper', playlist_id,
                 note=f'Downloading page {page_idx}',
-                query={'uid': playlist_id, 'pn': page_idx, 'ps': 30, 'order': 1, 'jsonp': 'jsonp'})[
-                'data']
+                query={'uid': playlist_id, 'pn': page_idx, 'ps': 30, 'order': 1, 'jsonp': 'jsonp'})['data']
 
         def get_metadata(page_data):
             return {
@@ -587,8 +585,7 @@ class BilibiliSpaceAudioIE(InfoExtractor):
 
         def get_entries(page_data):
             for entry in page_data.get('data', []):
-                yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}',
-                                      BilibiliAudioIE.ie_key(), entry['id'])
+                yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}', BilibiliAudioIE, entry['id'])
 
         metadata, paged_list = bilibili_space_extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id, metadata['title'])
