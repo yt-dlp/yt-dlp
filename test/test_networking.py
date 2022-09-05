@@ -2,6 +2,7 @@
 
 # Allow direct execution
 import os
+import pathlib
 import sys
 import tempfile
 import unittest
@@ -494,24 +495,27 @@ class TestUrllibRequestHandler(RequestHandlerTestCase):
             self.assertIsInstance(res, http.client.HTTPResponse)
 
     @with_make_rh([UrllibRH])
-    def test_file_protocol(self, make_rh):
-        with tempfile.NamedTemporaryFile() as t:
-            t.write(b'foobar')
-            t.flush()
-            req = Request(f'file://{t.name}')
-            with make_rh() as rh:
-                self.assertRaises(UnsupportedRequest, rh.handle, req)
-                self.assertRaisesRegex(
-                    urllib.error.URLError, 'urlopen error unknown url type: file', rh.ydl._opener.open, req.url)
-            with make_rh({'enable_file_urls': True}) as rh:
-                try:
-                    res = rh.handle(req)
-                    self.assertEqual(res.read(), b'foobar')
-                except UnsupportedRequest:
-                    self.fail('UnsupportedRequest raised')
-
-                res = rh.ydl._opener.open(req.url)
+    def test_file_urls(self, make_rh):
+        tf = tempfile.NamedTemporaryFile(delete=False)
+        tf.write(b'foobar')
+        tf.close()
+        req = Request(pathlib.Path(tf.name).as_uri())
+        with make_rh() as rh:
+            self.assertRaises(UnsupportedRequest, rh.handle, req)
+            self.assertRaisesRegex(
+                urllib.error.URLError, 'urlopen error unknown url type: file', rh.ydl._opener.open, req.url)
+        with make_rh({'enable_file_urls': True}) as rh:
+            try:
+                res = rh.handle(req)
                 self.assertEqual(res.read(), b'foobar')
+                res.close()
+            except UnsupportedRequest:
+                self.fail('UnsupportedRequest raised')
+
+            res = rh.ydl._opener.open(req.url)
+            self.assertEqual(res.read(), b'foobar')
+            res.close()
+        os.unlink(tf.name)
 
 
 class TestRequestDirector(RequestHandlerTestCase):
