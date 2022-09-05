@@ -722,7 +722,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     Currently supported keyrings are: basictext,
                                     gnomekeyring, kwallet
     --no-cookies-from-browser       Do not load cookies from browser (default)
-    --cache-dir DIR                 Location in the filesystem where youtube-dl
+    --cache-dir DIR                 Location in the filesystem where yt-dlp
                                     can store some downloaded information (such
                                     as client ids and signatures) permanently.
                                     By default $XDG_CACHE_HOME/yt-dlp or
