@@ -45,7 +45,7 @@ class HungamaIE(InfoExtractor):
 
         info = self._search_json_ld(webpage, video_id)
 
-        m3u8_url = self._download_json(
+        video_json = self._download_json(
             'https://www.hungama.com/index.php', video_id,
             data=urlencode_postdata({'content_id': video_id}), headers={
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
@@ -53,7 +53,16 @@ class HungamaIE(InfoExtractor):
             }, query={
                 'c': 'common',
                 'm': 'get_video_mdn_url',
-            })['stream_url']
+            })
+
+        m3u8_url = video_json['stream_url']
+        sub_title = video_json['sub_title']
+        subtitles = {}
+        if sub_title:
+            subtitles['en'] = [{
+                'url': sub_title,
+                'ext': 'vtt',
+            }]
 
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, ext='mp4', entry_protocol='m3u8_native',
@@ -63,7 +72,9 @@ class HungamaIE(InfoExtractor):
         info.update({
             'id': video_id,
             'formats': formats,
+            'subtitles': subtitles
         })
+
         return info
 
 
