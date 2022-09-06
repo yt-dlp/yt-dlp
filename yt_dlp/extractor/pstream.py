@@ -1,17 +1,17 @@
 from .common import InfoExtractor
-from ..utils import base64, re, std_headers
+from ..utils import base64, std_headers
 
 
 class PStreamIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?pstream\.net/(e|v)/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
-        'url': 'https://www.pstream.net/e/YdX2V1RLJjJVayY',
-        'md5': 'ff370a5aea3f7bbb1e5a7535a80b1e8aebf5c8d7a1f7c80995e550696d2f7659',
+        'url': 'https://www.pstream.net/v/YdX2V1RLJjJVayY',
+        'md5': '5487d5137cfeb078efb13454cd538f77',
         'info_dict': {
-            'id': 'mQN5YQKD6jLXvRa',
+            'id': 'YdX2V1RLJjJVayY',
             'ext': 'mp4',
             'title': 'How I Keep My House In Order',
-            'thumbnail': r're^https?://i.pstream\.net/\w*/\w*/\w*\.jpg$',
+            'thumbnail': "https://i.pstream.net/l8sR7XK3DHszbtL4_vbWzA/YdX2V1RLJjJVayY/hrKo81Kbxb0iPXt21bL4Coshcp8S4DzO.jpg",
             # TODO more properties, either as:
             # * A value
             # * MD5 checksum; start the string with md5:
@@ -22,20 +22,22 @@ class PStreamIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+
+        url = f'https://www.pstream.net/e/{video_id}'
+
         webpage = self._download_webpage(url, video_id)
 
-        # url = 'https://www.pstream.net/e/YdX2V1RLJjJVayY'
-
         m3u8Pattern = r"(https:\/\/www\.pstream\.net\/m\/([a-zA-Z0-9]*)\.m3u8\?expires=([0-9]*)&signature=(\b[A-Fa-f0-9]{64}\b))"
-        playerScriptPattern = re.compile("(https://www\.pstream\.net/u/player-script\?v=[a-zA-Z0-9]*&e=[a-zA-Z0-9]*(%3D){0,2})")
-        r = self._download_webpage(url, video_id)
+        playerScriptPattern = r"(https://www\.pstream\.net/u/player-script\?v=[a-zA-Z0-9]*&e=[a-zA-Z0-9]*(%3D){0,2})"
+        veryLongBase64 = r"(^[a-zA-Z-0-9=]{500,}$)"
 
-        playerScriptURL = self._search_regex(playerScriptPattern, r, "0")
 
-        lines = self._download_webpage(playerScriptURL, video_id)
+        playerScriptURL = self._search_regex(playerScriptPattern, webpage, "0")
+
+        lines = self._download_webpage(playerScriptURL, video_id, note="Downloading Player script")
         line_decoded = []
         for line in lines.split('"'):
-            if re.compile("^[a-zA-Z-0-9=]{500,}$").match(line):
+            if self._search_regex(veryLongBase64, line, "0", default=None, fatal=False):
                 line_decoded.append(line)
 
         badJson = base64.b64decode(line_decoded[0])
@@ -49,11 +51,15 @@ class PStreamIE(InfoExtractor):
 
         # TODO more code goes here, for example ...
         title = self._search_regex(r'<meta name="og:title" content="([\w ]*)" *\/>', webpage, 'title', fatal=False, default=None)
+        formats, subs = self._extract_m3u8_formats_and_subtitles(m3u8_URL, video_id, ext='mp4')
+        self._sort_formats(formats)
+        thumbnail = self._search_regex(r'(https?://i.pstream\.net/\w*/\w*/\w*\.jpg)', webpage, 'thumbnail')
         return {
             'id': video_id,
             'title': title,
-            'url': m3u8_URL,
-            'http_headers': std_headers
+            'formats': formats,
+            'subtitles': subs,
+            'thumbnail': thumbnail
             # 'description': self._og_search_description(webpage),
             # 'uploader': self._search_regex(r'<div[^>]+id="uploader"[^>]*>([^<]+)<', webpage, 'uploader', fatal=False),
             # TODO more properties (see yt_dlp/extractor/common.py)
