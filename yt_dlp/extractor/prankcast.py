@@ -51,5 +51,5 @@ class PrankCastIE(InfoExtractor):
             'cast': guests,
             'description': json_info.get('broadcast_description'),
             'categories': [json_info.get('broadcast_category')],
-            'tags': self._parse_json(json_info.get('broadcast_tags'), video_id)
+            'tags': self._parse_json(json_info.get('broadcast_tags') or '{}', video_id)
         }
