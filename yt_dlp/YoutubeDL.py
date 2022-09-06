@@ -2813,13 +2813,16 @@ class YoutubeDL:
         info_copy['automatic_captions_table'] = self.render_subtitles_table(info_dict.get('id'), info_dict.get('automatic_captions'))
 
         def format_tmpl(tmpl):
-            mobj = re.fullmatch(r'([\w.:,-]|(?P<dict>{[\w.:,-]+}))+=', tmpl)
+            mobj = re.fullmatch(r'([\w.:,]|-\d|(?P<dict>{([\w.:,]|-\d)+}))+=?', tmpl)
             if not mobj:
                 return tmpl
-            elif not mobj.group('dict'):
-                return '\n'.join(f'{f} = %({f})r' for f in tmpl[:-1].split(','))
-            tmpl = f'.{tmpl[:-1]}' if tmpl.startswith('{') else tmpl[:-1]
-            return f'{tmpl} = %({tmpl})#j'
+
+            fmt = '%({})s'
+            if tmpl.startswith('{'):
+                tmpl = f'.{tmpl}'
+            if tmpl.endswith('='):
+                tmpl, fmt = tmpl[:-1], '{0} = %({0})#j'
+            return '\n'.join(map(fmt.format, [tmpl] if mobj.group('dict') else tmpl.split(',')))
 
         for tmpl in self.params['forceprint'].get(key, []):
             self.to_stdout(self.evaluate_outtmpl(format_tmpl(tmpl), info_copy))
