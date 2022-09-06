@@ -8,6 +8,8 @@ from ..utils import (
     sanitized_Request,
     urlencode_postdata,
     traverse_obj,
+    smuggle_url,
+    unsmuggle_url
 )
 
 
@@ -81,6 +83,9 @@ class TubiTvIE(InfoExtractor):
                 'Login failed (invalid username/password)', expected=True)
 
     def _real_extract(self, url):
+
+        url, smuggle_data = unsmuggle_url(url)
+
         video_id = self._match_id(url)
         video_data = self._download_json(f'https://tubitv.com/oz/videos/{video_id}/content', video_id, query={
             'video_resources': ['dash', 'hlsv3', 'hlsv6', *self._UNPLAYABLE_FORMATS],
@@ -123,6 +128,18 @@ class TubiTvIE(InfoExtractor):
         season_number, episode_number, episode_title = self._search_regex(
             r'^S(\d+):E(\d+) - (.+)', title, 'episode info', fatal=False, group=(1, 2, 3), default=(None, None, None))
 
+        series = None
+        detailed_type = video_data.get('detailed_type')
+        series_id = video_data.get('series_id')
+
+        if detailed_type == 'episode':
+            full_title = traverse_obj(smuggle_data, ('full_title'))
+            if full_title:
+                series = full_title
+            elif series_id:
+                show_webpage = self._download_webpage('https://tubitv.com/series/%s/%s?start=true' % (series_id, series_id), series_id)
+                series = self._og_search_title(show_webpage)
+
         return {
             'id': video_id,
             'title': title,
@@ -135,15 +152,17 @@ class TubiTvIE(InfoExtractor):
             'release_year': int_or_none(video_data.get('year')),
             'season_number': int_or_none(season_number),
             'episode_number': int_or_none(episode_number),
-            'episode_title': episode_title
+            'series': series,
+            'episode': episode_title
         }
 
 
 class TubiTvShowIE(InfoExtractor):
+
     _VALID_URL = r'https?://(?:www\.)?tubitv\.com/series/[0-9]+/(?P<show_name>[^/?#]+)'
     _TESTS = [{
         'url': 'https://tubitv.com/series/3936/the-joy-of-painting-with-bob-ross?start=true',
-        'playlist_mincount': 390,
+        'playlist_mincount': 389,
         'info_dict': {
             'id': 'the-joy-of-painting-with-bob-ross',
         }
@@ -151,6 +170,8 @@ class TubiTvShowIE(InfoExtractor):
 
     def _entries(self, show_url, show_name):
         show_webpage = self._download_webpage(show_url, show_name)
+
+        full_title = self._og_search_title(show_webpage)
 
         show_json = self._parse_json(self._search_regex(
             r'window\.__data\s*=\s*({[^<]+});\s*</script>',
@@ -160,7 +181,7 @@ class TubiTvShowIE(InfoExtractor):
             if traverse_obj(show_json, ('byId', episode_id, 'type')) == 's':
                 continue
             yield self.url_result(
-                'tubitv:%s' % episode_id,
+                smuggle_url('tubitv:%s' % episode_id, {'full_title': full_title}),
                 ie=TubiTvIE.ie_key(), video_id=episode_id)
 
     def _real_extract(self, url):
