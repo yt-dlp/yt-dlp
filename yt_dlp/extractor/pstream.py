@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import base64, re
+from ..utils import base64, re, std_headers
 
 
 class PStreamIE(InfoExtractor):
@@ -52,7 +52,8 @@ class PStreamIE(InfoExtractor):
         return {
             'id': video_id,
             'title': title,
-            'url': m3u8_URL
+            'url': m3u8_URL,
+            'http_headers': std_headers
             # 'description': self._og_search_description(webpage),
             # 'uploader': self._search_regex(r'<div[^>]+id="uploader"[^>]*>([^<]+)<', webpage, 'uploader', fatal=False),
             # TODO more properties (see yt_dlp/extractor/common.py)
