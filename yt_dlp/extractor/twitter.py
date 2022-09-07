@@ -13,6 +13,7 @@ from ..utils import (
     format_field,
     float_or_none,
     int_or_none,
+    join_nonempty,
     traverse_obj,
     try_get,
     strip_or_none,
@@ -385,6 +386,19 @@ class TwitterIE(TwitterBaseIE):
         },
         'add_ie': ['TwitterBroadcast'],
     }, {
+        # Twitter Spaces
+        'url': 'https://twitter.com/MoniqueCamarra/status/1550101959377551360',
+        'info_dict': {
+            'id': '1lPJqmBeeNAJb',
+            'ext': 'mp4',
+            'title': 'EuroFile@6 Ukraine Up-date-Draghi Defenestration-the West',
+            'uploader': r're:Monique Camarra.+?',
+            'uploader_id': 'MoniqueCamarra',
+            'live_status': 'was_live',
+            'description': 'md5:c62fc4c35ce2e0e977d5a72fc3418594',
+        },
+        'add_ie': ['TwitterSpaces'], 
+    }, {
         # unified card
         'url': 'https://twitter.com/BrooklynNets/status/1349794411333394432?s=20',
         'info_dict': {
@@ -454,6 +468,7 @@ class TwitterIE(TwitterBaseIE):
         uploader = user.get('name')
         if uploader:
             title = '%s - %s' % (uploader, title)
+
         uploader_id = user.get('screen_name')
 
         tags = []
@@ -539,6 +554,12 @@ class TwitterIE(TwitterBaseIE):
                         '_type': 'url',
                         'url': get_binding_value('broadcast_url'),
                         'ie_key': TwitterBroadcastIE.ie_key(),
+                    })
+                elif card_name == 'audiospace':
+                    info.update({
+                        '_type': 'url',
+                        'url': 'https://twitter.com/i/spaces/' + get_binding_value('id'),
+                        'ie_key': TwitterSpacesIE.ie_key(),
                     })
                 elif card_name == 'summary':
                     info.update({
@@ -679,6 +700,130 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         info['formats'] = self._extract_pscp_m3u8_formats(
             m3u8_url, broadcast_id, m3u8_id, state, width, height)
         return info
+
+
+class TwitterSpacesIE(TwitterBaseIE, PeriscopeBaseIE):
+    IE_NAME = 'twitter:spaces'
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13})'
+    _TWITTER_GRAPHQL = 'https://twitter.com/i/api/graphql/HPEisOmj1epUNLCWTYhUWw/'
+
+    _TESTS = [{
+        'url': 'https://twitter.com/i/spaces/1RDxlgyvNXzJL',
+        'info_dict': {
+            'id': '1RDxlgyvNXzJL',
+            'ext': 'mp4',
+            'title': 'King Carlo e la mossa Kansas City per fare il Grande Centro',
+            'description': 'Twitter Space partecipated by annarita digiorgio, Signor Ernesto, Raffaello Colosimo, Simone M. Sepe',
+            'uploader': r're:Lucio Di Gaetano.+?',
+            'uploader_id': 'luciodigaetano',
+        },
+    }, {
+        # TODO: FIX TEST
+        # Twitter Space not started yet
+        'url': 'https://twitter.com/i/spaces/1YqGoAeoEOAxv',
+        'info_dict': {
+            'id': '1YqGoAeoEOAxv',
+            'ext': 'mp4',
+        },
+        'expected_warnings': ['Twitter Space not started yet'],
+    }, {
+        # TODO: FIX TEST
+        # Twitter Space no longer available
+        'url': 'https://twitter.com/i/spaces/1OyJADPAgebGb',
+        'info_dict': {
+            'id': '1OyJADPAgebGb',
+            'ext': 'mp4',
+        },
+        'expected_warnings': ['Twitter Space not found'],
+    }]
+
+    def _twitter_graphql(self, path, space_id, query={}):
+        headers = {
+            'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw',
+        }
+        token = self._get_cookies(self._API_BASE).get('ct0')
+        if token:
+            headers['x-csrf-token'] = token.value
+        if not self._GUEST_TOKEN:
+            self._GUEST_TOKEN = self._download_json(
+                self._API_BASE + 'guest/activate.json', space_id,
+                'Downloading guest token', data=b'',
+                headers=headers)['guest_token']
+        headers['x-guest-token'] = self._GUEST_TOKEN
+        try:
+            return self._download_json(
+                self._TWITTER_GRAPHQL + path, space_id, headers=headers, query=query)
+        except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+                raise ExtractorError(self._parse_json(
+                    e.cause.read().decode(),
+                    space_id)['errors'][0]['message'], expected=True)
+            raise
+
+    def _parse_spaces_data(self, data, space_id):
+        metadata = data.get('metadata')
+        space_status = metadata.get('state').lower()
+        live_status = None
+        if space_status == 'notstarted':
+            live_status = 'is_upcoming'
+        elif space_status == 'ended':
+            live_status = 'was_live'
+        elif space_status == 'running':
+            live_status = 'is_live'
+
+        # partecipants
+        description = 'Twitter Space partecipated by ' + join_nonempty(*[p.get('display_name') for p in traverse_obj(data, ('participants', 'speakers'))], delim=', ')
+
+        # TODO: add upload_date and various date stuff
+
+        return {
+            'id': space_id,
+            'title': metadata.get('title'),
+            'description': description,
+            'media_key': metadata.get('media_key'),
+            'uploader': traverse_obj(
+                metadata, ('creator_results', 'result', 'legacy', 'name')),
+            'uploader_id': traverse_obj(
+                metadata, ('creator_results', 'result', 'legacy', 'screen_name')),
+            'is_live': space_status == 'running',
+            'live_status': live_status,
+        }
+
+    def _real_extract(self, url):
+        space_id = self._match_id(url)
+
+        space_data = self._twitter_graphql('AudioSpaceById', space_id, query={
+            'variables': '{"id":"%s","isMetatagsQuery":true,"withSuperFollowsUserFields":true,"withDownvotePerspective":false,"withReactionsMetadata":false,"withReactionsPerspective":false,"withSuperFollowsTweetFields":true,"withReplays":true}' % space_id,
+            'features': '{"spaces_2022_h2_clipping":true,"spaces_2022_h2_spaces_communities":false,"dont_mention_me_view_api_enabled":true,"interactive_text_enabled":true,"responsive_web_uc_gql_enabled":true,"vibe_api_enabled":true,"responsive_web_edit_tweet_api_enabled":true,"standardized_nudges_misinfo":true,"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled":false,"responsive_web_enhance_cards_enabled":true}'
+        })['data']['audioSpace']
+
+        if not space_data:
+            self.raise_no_formats('Twitter Space not found', expected=True)
+
+        info = self._parse_spaces_data(space_data, space_id)
+
+        if info['live_status'] == 'is_upcoming':
+            self.raise_no_formats('Twitter Space not started yet', expected=True)
+
+        if info['is_live']:
+            # TODO: check live spaces data
+            pass
+
+        media_key = info.pop('media_key')
+        source = self._call_api(
+            'live_video_stream/status/' + media_key, media_key)['source']
+        m3u8_url = source.get('noRedirectPlaybackUrl') or source['location']
+
+        formats = self._extract_m3u8_formats(
+            m3u8_url, media_key, 'mp4', m3u8_id='audio')
+        # force audio-only
+        for i in range(len(formats)):
+            formats[i].update({'vcodec': 'none'})
+
+        return {
+            **info,
+            'formats': formats,
+        }
 
 
 class TwitterShortenerIE(TwitterBaseIE):
