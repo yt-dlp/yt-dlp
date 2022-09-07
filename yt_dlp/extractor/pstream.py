@@ -3,7 +3,7 @@ from ..utils import base64
 
 
 class PStreamIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?pstream\.net/(e|v)/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?pstream\.net/(e|v)/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.pstream.net/v/YdX2V1RLJjJVayY',
         'md5': '5487d5137cfeb078efb13454cd538f77',
