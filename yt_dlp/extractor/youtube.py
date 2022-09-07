@@ -3336,10 +3336,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if isinstance(e, JSInterpreter.Exception):
                         phantomjs_hint = (f'         Install {self._downloader._format_err("PhantomJS", self._downloader.Styles.EMPHASIS)} '
                                           f'to workaround the issue. {PhantomJSwrapper.INSTALL_HINT}\n')
-                    self.report_warning(
-                        f'nsig extraction failed: You may experience throttling for some formats\n{phantomjs_hint}'
-                        f'         n = {query["n"][0]} ; player = {player_url}', video_id=video_id, only_once=True)
-                    self.write_debug(e, only_once=True)
+                    if player_url:
+                        self.report_warning(
+                            f'nsig extraction failed: You may experience throttling for some formats\n{phantomjs_hint}'
+                            f'         n = {query["n"][0]} ; player = {player_url}', video_id=video_id, only_once=True)
+                        self.write_debug(e, only_once=True)
+                    else:
+                        self.report_warning(
+                            'Cannot decrypt nsig without player_url: You may experience throttling for some formats',
+                            video_id=video_id, only_once=True)
                     throttled = True
 
             if itag:

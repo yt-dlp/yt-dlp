@@ -509,7 +509,7 @@ class InfoExtractor:
             'password': f'Use {password_hint}',
             'cookies': (
                 'Use --cookies-from-browser or --cookies for the authentication. '
-                'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
+                'See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies'),
         }[method if method is not NO_DEFAULT else 'any' if self.supports_login() else 'cookies']
 
     def __init__(self, downloader=None):

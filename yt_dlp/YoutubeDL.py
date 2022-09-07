@@ -251,8 +251,8 @@ class YoutubeDL:
     matchtitle:        Download only matching titles.
     rejecttitle:       Reject downloads for matching titles.
     logger:            Log messages to a logging.Logger instance.
-    logtostderr:       Log messages to stderr instead of stdout.
-    consoletitle:       Display progress in console window's titlebar.
+    logtostderr:       Print everything to stderr instead of stdout.
+    consoletitle:      Display progress in console window's titlebar.
     writedescription:  Write the video description to a .description file
     writeinfojson:     Write the video description to a .info.json file
     clean_infojson:    Remove private fields from the infojson
@@ -1419,18 +1419,19 @@ class YoutubeDL:
     def extract_info(self, url, download=True, ie_key=None, extra_info=None,
                      process=True, force_generic_extractor=False):
         """
-        Return a list with a dictionary for each video extracted.
+        Extract and return the information dictionary of the URL
 
         Arguments:
-        url -- URL to extract
+        @param url          URL to extract
 
         Keyword arguments:
-        download -- whether to download videos during extraction
-        ie_key -- extractor key hint
-        extra_info -- dictionary containing the extra values to add to each result
-        process -- whether to resolve all unresolved references (URLs, playlist items),
-            must be True for download to work.
-        force_generic_extractor -- force using the generic extractor
+        @param download     Whether to download videos
+        @param process      Whether to resolve all unresolved references (URLs, playlist items).
+                            Must be True for download to work
+        @param ie_key       Use only the extractor with this key
+
+        @param extra_info   Dictionary containing the extra values to add to the info (For internal use only)
+        @force_generic_extractor  Force using the generic extractor (Deprecated; use ie_key='Generic')
         """
 
         if extra_info is None:
@@ -2525,11 +2526,11 @@ class YoutubeDL:
         info_dict['_has_drm'] = any(f.get('has_drm') for f in formats) or None
         if not self.params.get('allow_unplayable_formats'):
             formats = [f for f in formats if not f.get('has_drm')]
-            if info_dict['_has_drm'] and formats and all(
-                    f.get('acodec') == f.get('vcodec') == 'none' for f in formats):
-                self.report_warning(
-                    'This video is DRM protected and only images are available for download. '
-                    'Use --list-formats to see them')
+
+        if formats and all(f.get('acodec') == f.get('vcodec') == 'none' for f in formats):
+            self.report_warning(
+                f'{"This video is DRM protected and " if info_dict["_has_drm"] else ""}'
+                'only images are available for download. Use --list-formats to see them'.capitalize())
 
         get_from_start = not info_dict.get('is_live') or bool(self.params.get('live_from_start'))
         if not get_from_start:
