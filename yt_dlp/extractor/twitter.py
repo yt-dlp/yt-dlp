@@ -397,7 +397,7 @@ class TwitterIE(TwitterBaseIE):
             'live_status': 'was_live',
             'description': 'md5:c62fc4c35ce2e0e977d5a72fc3418594',
         },
-        'add_ie': ['TwitterSpaces'], 
+        'add_ie': ['TwitterSpaces'],
     }, {
         # unified card
         'url': 'https://twitter.com/BrooklynNets/status/1349794411333394432?s=20',
@@ -468,7 +468,6 @@ class TwitterIE(TwitterBaseIE):
         uploader = user.get('name')
         if uploader:
             title = '%s - %s' % (uploader, title)
-
         uploader_id = user.get('screen_name')
 
         tags = []
