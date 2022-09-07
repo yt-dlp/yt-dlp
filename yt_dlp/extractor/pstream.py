@@ -28,9 +28,7 @@ class PStreamIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        url = f'https://www.pstream.net/e/{video_id}'
-
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(f'https://www.pstream.net/e/{video_id}', video_id)
 
         playerScriptURL = self._search_regex(
             r'(https://www\.pstream\.net/u/player-script\?v=[a-zA-Z0-9]*&e=[a-zA-Z0-9]*(?:%3D){0,2})',
@@ -55,7 +53,6 @@ class PStreamIE(InfoExtractor):
             except TypeError:
                 pass
 
-        title = self._og_search_title(webpage)
         formats, subs = self._extract_m3u8_formats_and_subtitles(m3u8_URL, video_id, ext='mp4')
         thumbnail = self._search_regex(r'(^[a-zA-Z-0-9=]{500,}$)', webpage, 'thumbnail', fatal=False, default=None)
 
@@ -63,7 +60,7 @@ class PStreamIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
+            'title': self._og_search_title(webpage),
             'formats': formats,
             'subtitles': subs,
             'thumbnail': thumbnail
