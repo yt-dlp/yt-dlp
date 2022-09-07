@@ -975,7 +975,7 @@ class BiliIntlIE(BiliIntlBaseIE):
 
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-z]{2}/)?play/(?P<id>\d+)$'
+    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-z]{2}/)?play/(?P<id>\d+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.bilibili.tv/en/play/34613',
         'playlist_mincount': 15,
