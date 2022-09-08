@@ -3044,7 +3044,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         text = self._get_text(comment_renderer, 'contentText')
 
         # Timestamp is an estimate calculated from the current time and time_text
-        # FIXME: this should probably not be enabled by default
         time_text = self._get_text(comment_renderer, 'publishedTimeText') or ''
         timestamp = self._parse_time_text(time_text)
 
