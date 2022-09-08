@@ -2342,29 +2342,30 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             }
         }, {
             # Prefer primary title+description language metadata by default
-            'url': 'https://www.youtube.com/watch?v=gHKT4uU8Zng',
+            # Do not prefer translated description if primary is empty
+            'url': 'https://www.youtube.com/watch?v=el3E4MbxRqQ',
             'info_dict': {
-                'id': 'gHKT4uU8Zng',
+                'id': 'el3E4MbxRqQ',
                 'ext': 'mp4',
-                'title': 'dlp test video title primary (en-GB)',
-                'description': 'dlp test video description primary (en-GB)',
-                'tags': [],
-                'uploader': 'cole-dlp-test-acc',
-                'live_status': 'not_live',
+                'title': 'dlp test video 2 - primary sv no desc',
+                'description': None,
                 'channel': 'cole-dlp-test-acc',
-                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/gHKT4uU8Zng/maxresdefault.webp',
-                'uploader_url': 'http://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
-                'age_limit': 0,
-                'playable_in_embed': True,
-                'categories': ['People & Blogs'],
+                'tags': [],
                 'view_count': int,
+                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
                 'like_count': int,
-                'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
-                'upload_date': '20220729',
-                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'playable_in_embed': True,
+                'availability': 'unlisted',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/el3E4MbxRqQ/maxresdefault.webp',
+                'age_limit': 0,
                 'duration': 5,
-                'availability': 'public',
+                'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'uploader_url': 'http://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'live_status': 'not_live',
+                'upload_date': '20220908',
+                'categories': ['People & Blogs'],
+                'uploader': 'cole-dlp-test-acc',
+                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
             },
             'params': {'skip_download': True}
         }, {
@@ -3623,9 +3624,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                        or translated_title
                        or search_meta(['og:title', 'twitter:title', 'title']))
         translated_description = self._get_text(microformats, (..., 'description'))
-        video_description = (self._preferred_lang and translated_description
-                             or get_first(video_details, 'shortDescription')  # primary
-                             or translated_description)
+        original_description = get_first(video_details, 'shortDescription')
+        video_description = (
+            self._preferred_lang and translated_description
+            or (
+                # If original description is blank, it will be an empty string.
+                # Do not prefer translated description in this case.
+                (original_description or None)
+                if original_description is not None
+                else translated_description
+            )
+        )
 
         multifeed_metadata_list = get_first(
             player_responses,
