@@ -1119,7 +1119,7 @@ class DownloadError(YoutubeDLError):
         """ exc_info, if given, is the original exception that caused the trouble (as returned by sys.exc_info()). """
         super().__init__(msg)
         self.exc_info = exc_info
-        
+
 
 class FileTooLarge(YoutubeDLError):
     """Download Error exception.
@@ -1133,6 +1133,7 @@ class FileTooLarge(YoutubeDLError):
         """ exc_info, if given, is the original exception that caused the trouble (as returned by sys.exc_info()). """
         super().__init__(msg)
         self.exc_info = exc_info
+
 
 class FileTooSmall(YoutubeDLError):
     """Download Error exception.
