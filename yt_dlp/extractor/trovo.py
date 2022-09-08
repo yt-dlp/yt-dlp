@@ -7,6 +7,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     format_field,
+    traverse_obj,
     int_or_none,
     str_or_none,
     try_get,
@@ -190,7 +191,7 @@ class TrovoVodIE(TrovoBaseIE):
             'extensions': {},
         })
 
-        vod_detail_info = resp.get('VodDetailInfos', {}).get(vid)
+        vod_detail_info = traverse_obj(resp, ('VodDetailInfos', vid), expected_type=dict)
         if not vod_detail_info:
             raise ExtractorError('This video not found or not available anymore', expected=True)
         vod_info = vod_detail_info.get('vodInfo')
