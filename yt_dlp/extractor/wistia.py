@@ -148,7 +148,11 @@ class WistiaBaseIE(InfoExtractor):
 
 class WistiaIE(WistiaBaseIE):
     _VALID_URL = r'(?:wistia:|%s(?:iframe|medias)/)%s' % (WistiaBaseIE._VALID_URL_BASE, WistiaBaseIE._VALID_ID_REGEX)
-    _EMBED_REGEX = [r'<(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\'](?P<url>(?:https?:)?//(?:fast\.)?wistia\.(?:net|com)/embed/(?:iframe|medias)/[a-z0-9]{10})']
+    _EMBED_REGEX = [
+        r'''(?x)
+            <(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\']
+            (?P<url>(?:https?:)?//(?:fast\.)?wistia\.(?:net|com)/embed/(?:iframe|medias)/[a-z0-9]{10})
+            ''']
     _TESTS = [{
         # with hls video
         'url': 'wistia:807fafadvk',
