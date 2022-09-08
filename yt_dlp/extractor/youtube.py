@@ -1970,7 +1970,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': 'x41yOUIvK2k',
                 'ext': 'mp4',
                 'title': 'IMG 3456',
-                'description': '',
+                'description': None,
                 'upload_date': '20170613',
                 'uploader_id': 'ElevageOrVert',
                 'uploader': 'ElevageOrVert',
@@ -3708,7 +3708,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Do not prefer translated description in this case.
                 (original_description or None)
                 if original_description is not None
-                else translated_description
+                else (translated_description or None)
             )
         )
 
@@ -5848,6 +5848,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'channel': 'milan',
             'channel_id': 'UCEI1-PVPcYXjB73Hfelbmaw',
             'uploader_url': 'https://www.youtube.com/channel/UCEI1-PVPcYXjB73Hfelbmaw',
+            'availability': 'public',
         },
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
@@ -5866,6 +5867,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'uploader_url': 'https://www.youtube.com/c/愛低音的國王',
             'channel_id': 'UC21nz3_MesPLqtDqwdvnoxA',
             'modified_date': r're:\d{8}',
+            'availability': 'public',
         },
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
