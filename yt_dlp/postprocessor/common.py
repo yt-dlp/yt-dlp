@@ -7,10 +7,10 @@ from ..utils import (
     PostProcessingError,
     RetryManager,
     _configuration_args,
+    deprecation_warning,
     encodeFilename,
     network_exceptions,
     sanitized_Request,
-    write_string,
 )
 
 
@@ -73,10 +73,14 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         if self._downloader:
             return self._downloader.report_warning(text, *args, **kwargs)
 
-    def deprecation_warning(self, text):
+    def deprecation_warning(self, msg):
+        warn = getattr(self._downloader, 'deprecation_warning', deprecation_warning)
+        return warn(msg, stacklevel=1)
+
+    def deprecated_feature(self, msg):
         if self._downloader:
-            return self._downloader.deprecation_warning(text)
-        write_string(f'DeprecationWarning: {text}')
+            return self._downloader.deprecated_feature(msg)
+        return deprecation_warning(msg, stacklevel=1)
 
     def report_error(self, text, *args, **kwargs):
         self.deprecation_warning('"yt_dlp.postprocessor.PostProcessor.report_error" is deprecated. '
