@@ -9,6 +9,8 @@ import urllib.error
 from .common import FileDownloader
 from ..utils import (
     ContentTooShortError,
+    FileTooLarge,
+    FileTooSmall,
     RetryManager,
     ThrottledDownload,
     XAttrMetadataError,
@@ -226,13 +228,19 @@ class HttpFD(FileDownloader):
                 min_data_len = self.params.get('min_filesize')
                 max_data_len = self.params.get('max_filesize')
                 if min_data_len is not None and data_len < min_data_len:
-                    self.to_screen(
-                        f'\r[download] File is smaller than min-filesize ({data_len} bytes < {min_data_len} bytes). Aborting.')
-                    return False
+                    if error_on_too_small: 
+                        raise FileTooSmall(f"File is smaller than min-filesize ({data_len} bytes < {min_data_len} bytes)")
+                    else:
+                        self.to_screen(
+                            f'\r[download] File is smaller than min-filesize ({data_len} bytes < {min_data_len} bytes). Aborting.')
+                        return False
                 if max_data_len is not None and data_len > max_data_len:
-                    self.to_screen(
-                        f'\r[download] File is larger than max-filesize ({data_len} bytes > {max_data_len} bytes). Aborting.')
-                    return False
+                    if error_on_too_large:
+                        raise FileTooLarge(f"File is larger than max-filesize ({data_len} bytes > {max_data_len} bytes)") 
+                    else:
+                        self.to_screen(
+                            f'\r[download] File is larger than max-filesize ({data_len} bytes > {max_data_len} bytes). Aborting.')
+                        return False
 
             byte_counter = 0 + ctx.resume_len
             block_size = ctx.block_size
