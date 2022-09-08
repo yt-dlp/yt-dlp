@@ -227,6 +227,8 @@ class HttpFD(FileDownloader):
                 data_len = int(data_len) + ctx.resume_len
                 min_data_len = self.params.get('min_filesize')
                 max_data_len = self.params.get('max_filesize')
+                error_on_too_small = self.params.get("error_on_too_small")
+                error_on_too_large = self.params.get("error_on_too_large")
                 if min_data_len is not None and data_len < min_data_len:
                     if error_on_too_small: 
                         raise FileTooSmall(f"File is smaller than min-filesize ({data_len} bytes < {min_data_len} bytes)")
