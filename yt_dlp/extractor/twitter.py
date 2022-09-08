@@ -84,7 +84,7 @@ class TwitterBaseIE(InfoExtractor):
                 'height': int(m.group('height')),
             })
 
-    def _call_api(self, path, video_id, query={}):
+    def _call_api(self, path, video_id, query={}, api_base_url=_API_BASE):
         headers = {
             'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw',
         }
@@ -99,7 +99,7 @@ class TwitterBaseIE(InfoExtractor):
         headers['x-guest-token'] = self._GUEST_TOKEN
         try:
             return self._download_json(
-                self._API_BASE + path, video_id, headers=headers, query=query)
+                api_base_url + path, video_id, headers=headers, query=query)
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
                 raise ExtractorError(self._parse_json(
@@ -396,6 +396,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader_id': 'MoniqueCamarra',
             'live_status': 'was_live',
             'description': 'md5:c62fc4c35ce2e0e977d5a72fc3418594',
+            'timestamp': 1658423303772,
         },
         'add_ie': ['TwitterSpaces'],
     }, {
@@ -701,7 +702,7 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
         return info
 
 
-class TwitterSpacesIE(TwitterBaseIE, PeriscopeBaseIE):
+class TwitterSpacesIE(TwitterBaseIE):
     IE_NAME = 'twitter:spaces'
     _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13})'
     _TWITTER_GRAPHQL = 'https://twitter.com/i/api/graphql/HPEisOmj1epUNLCWTYhUWw/'
@@ -715,6 +716,8 @@ class TwitterSpacesIE(TwitterBaseIE, PeriscopeBaseIE):
             'description': 'Twitter Space partecipated by annarita digiorgio, Signor Ernesto, Raffaello Colosimo, Simone M. Sepe',
             'uploader': r're:Lucio Di Gaetano.+?',
             'uploader_id': 'luciodigaetano',
+            'live_status': 'was_live',
+            'timestamp': 1659911386113,
         },
     }, {
         # TODO: FIX TEST
@@ -736,29 +739,6 @@ class TwitterSpacesIE(TwitterBaseIE, PeriscopeBaseIE):
         'expected_warnings': ['Twitter Space not found'],
     }]
 
-    def _twitter_graphql(self, path, space_id, query={}):
-        headers = {
-            'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw',
-        }
-        token = self._get_cookies(self._API_BASE).get('ct0')
-        if token:
-            headers['x-csrf-token'] = token.value
-        if not self._GUEST_TOKEN:
-            self._GUEST_TOKEN = self._download_json(
-                self._API_BASE + 'guest/activate.json', space_id,
-                'Downloading guest token', data=b'',
-                headers=headers)['guest_token']
-        headers['x-guest-token'] = self._GUEST_TOKEN
-        try:
-            return self._download_json(
-                self._TWITTER_GRAPHQL + path, space_id, headers=headers, query=query)
-        except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                raise ExtractorError(self._parse_json(
-                    e.cause.read().decode(),
-                    space_id)['errors'][0]['message'], expected=True)
-            raise
-
     def _parse_spaces_data(self, data, space_id):
         metadata = data.get('metadata')
         space_status = metadata.get('state').lower()
@@ -774,8 +754,6 @@ class TwitterSpacesIE(TwitterBaseIE, PeriscopeBaseIE):
 
         # partecipants
         description = 'Twitter Space partecipated by ' + join_nonempty(*[p.get('display_name') for p in traverse_obj(data, ('participants', 'speakers'))], delim=', ')
-
-        # TODO: add upload_date and various date stuff
 
         return {
             'id': space_id,
@@ -794,10 +772,15 @@ class TwitterSpacesIE(TwitterBaseIE, PeriscopeBaseIE):
     def _real_extract(self, url):
         space_id = self._match_id(url)
 
-        space_data = self._twitter_graphql('AudioSpaceById', space_id, query={
-            'variables': '{"id":"%s","isMetatagsQuery":true,"withSuperFollowsUserFields":true,"withDownvotePerspective":false,"withReactionsMetadata":false,"withReactionsPerspective":false,"withSuperFollowsTweetFields":true,"withReplays":true}' % space_id,
-            'features': '{"spaces_2022_h2_clipping":true,"spaces_2022_h2_spaces_communities":false,"dont_mention_me_view_api_enabled":true,"interactive_text_enabled":true,"responsive_web_uc_gql_enabled":true,"vibe_api_enabled":true,"responsive_web_edit_tweet_api_enabled":true,"standardized_nudges_misinfo":true,"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled":false,"responsive_web_enhance_cards_enabled":true}'
-        })['data']['audioSpace']
+        space_data = self._call_api(
+            'AudioSpaceById',
+            space_id,
+            query={
+                'variables': '{"id":"%s","isMetatagsQuery":true,"withSuperFollowsUserFields":true,"withDownvotePerspective":false,"withReactionsMetadata":false,"withReactionsPerspective":false,"withSuperFollowsTweetFields":true,"withReplays":true}' % space_id,
+                'features': '{"spaces_2022_h2_clipping":true,"spaces_2022_h2_spaces_communities":false,"dont_mention_me_view_api_enabled":true,"interactive_text_enabled":true,"responsive_web_uc_gql_enabled":true,"vibe_api_enabled":true,"responsive_web_edit_tweet_api_enabled":true,"standardized_nudges_misinfo":true,"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled":false,"responsive_web_enhance_cards_enabled":true}'
+            },
+            api_base_url=self._TWITTER_GRAPHQL
+        )['data']['audioSpace']
 
         if not space_data:
             self.raise_no_formats('Twitter Space not found', expected=True)
