@@ -293,9 +293,8 @@ class YoutubeDL:
                        downloaded.
                        Videos without view count information are always
                        downloaded. None for no limit.
-    download_archive:  File name of a file where all downloads are recorded.
-                       Videos already present in the file are not downloaded
-                       again.
+    download_archive:  A set, or the name of a file where all downloads are recorded.
+                       Videos already present in the file are not downloaded again.
     break_on_existing: Stop the download process after attempting to download a
                        file that is in the archive.
     break_on_reject:   Stop the download process when encountering a video that
@@ -723,21 +722,23 @@ class YoutubeDL:
 
         def preload_download_archive(fn):
             """Preload the archive, if any is specified"""
+            archive = set()
             if fn is None:
-                return False
+                return archive
+            elif not isinstance(fn, os.PathLike):
+                return fn
+
             self.write_debug(f'Loading archive file {fn!r}')
             try:
                 with locked_file(fn, 'r', encoding='utf-8') as archive_file:
                     for line in archive_file:
-                        self.archive.add(line.strip())
+                        archive.add(line.strip())
             except OSError as ioe:
                 if ioe.errno != errno.ENOENT:
                     raise
-                return False
-            return True
+            return archive
 
-        self.archive = set()
-        preload_download_archive(self.params.get('download_archive'))
+        self.archive = preload_download_archive(self.params.get('download_archive'))
 
     def warn_if_short_id(self, argv):
         # short YouTube ID starting with dash?
@@ -3465,8 +3466,7 @@ class YoutubeDL:
         return make_archive_id(extractor, video_id)
 
     def in_download_archive(self, info_dict):
-        fn = self.params.get('download_archive')
-        if fn is None:
+        if not self.archive:
             return False
 
         vid_ids = [self._make_archive_id(info_dict)]
@@ -3479,9 +3479,11 @@ class YoutubeDL:
             return
         vid_id = self._make_archive_id(info_dict)
         assert vid_id
+
         self.write_debug(f'Adding to archive: {vid_id}')
-        with locked_file(fn, 'a', encoding='utf-8') as archive_file:
-            archive_file.write(vid_id + '\n')
+        if isinstance(fn, os.PathLike):
+            with locked_file(fn, 'a', encoding='utf-8') as archive_file:
+                archive_file.write(vid_id + '\n')
         self.archive.add(vid_id)
 
     @staticmethod
