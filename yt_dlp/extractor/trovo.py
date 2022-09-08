@@ -26,7 +26,7 @@ class TrovoBaseIE(InfoExtractor):
         resp = self._download_json(
             url, video_id, data=json.dumps([data]).encode(), headers={'Accept': 'application/json'},
             query={
-                'qid': ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)),
+                'qid': ''.join(random.choices(string.ascii_uppercase + string.digits, k=16)),
             })[0]
         if 'errors' in resp:
             raise ExtractorError(f'Trovo said: {resp["errors"][0]["message"]}')
@@ -146,7 +146,26 @@ class TrovoVodIE(TrovoBaseIE):
             'upload_date': '20220611',
             'comment_count': int,
             'categories': ['Minecraft'],
-        }
+        },
+        'skip': 'Not available',
+    }, {
+        'url': 'https://trovo.live/s/Trovo/549756886599?vid=ltv-100264059_100264059_387702304241698583',
+        'info_dict': {
+            'id': 'ltv-100264059_100264059_387702304241698583',
+            'ext': 'mp4',
+            'timestamp': 1661479563,
+            'thumbnail': 'http://vod.trovo.live/be5ae591vodtransusw1301120758/cccb9915387702304241698583/coverBySnapshot/coverBySnapshot_10_0.jpg',
+            'uploader_id': '100264059',
+            'uploader': 'Trovo',
+            'title': 'Dev Corner 8/25',
+            'uploader_url': 'https://trovo.live/Trovo',
+            'duration': 3753,
+            'view_count': int,
+            'like_count': int,
+            'upload_date': '20220826',
+            'comment_count': int,
+            'categories': ['Talk Shows'],
+        },
     }, {
         'url': 'https://trovo.live/video/ltv-100095501_100095501_1609596043',
         'only_matching': True,
@@ -162,22 +181,20 @@ class TrovoVodIE(TrovoBaseIE):
         # however that seems unreliable - sometimes it randomly doesn't return the data,
         # at least when using a non-residential IP.
         resp = self._call_api(vid, data={
-            'operationName': 'batchGetVodDetailInfo',
+            'operationName': 'vod_VodReaderService_BatchGetVodDetailInfo',
             'variables': {
                 'params': {
                     'vids': [vid],
                 },
             },
-            'extensions': {
-                'persistedQuery': {
-                    'version': 1,
-                    'sha256Hash': 'ceae0355d66476e21a1dd8e8af9f68de95b4019da2cda8b177c9a2255dad31d0',
-                },
-            },
+            'extensions': {},
         })
-        vod_detail_info = resp['VodDetailInfos'][vid]
-        vod_info = vod_detail_info['vodInfo']
-        title = vod_info['title']
+
+        vod_detail_info = resp.get('VodDetailInfos', {}).get(vid)
+        if not vod_detail_info:
+            raise ExtractorError('This video not found or not available anymore', expected=True)
+        vod_info = vod_detail_info.get('vodInfo')
+        title = vod_info.get('title')
 
         if try_get(vod_info, lambda x: x['playbackRights']['playbackRights'] != 'Normal'):
             playback_rights_setting = vod_info['playbackRights']['playbackRightsSetting']
@@ -228,7 +245,7 @@ class TrovoVodIE(TrovoBaseIE):
     def _get_comments(self, vid):
         for page in itertools.count(1):
             comments_json = self._call_api(vid, data={
-                'operationName': 'getCommentList',
+                'operationName': 'public_CommentProxyService_GetCommentList',
                 'variables': {
                     'params': {
                         'appInfo': {
@@ -240,10 +257,7 @@ class TrovoVodIE(TrovoBaseIE):
                     },
                 },
                 'extensions': {
-                    'persistedQuery': {
-                        'version': 1,
-                        'sha256Hash': 'be8e5f9522ddac7f7c604c0d284fd22481813263580849926c4c66fb767eed25',
-                    },
+                    'singleReq': 'true',
                 },
             })
             for comment in comments_json['commentList']:
