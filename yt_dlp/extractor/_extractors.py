@@ -2140,7 +2140,6 @@ from .wistia import (
     WistiaIE,
     WistiaPlaylistIE,
     WistiaChannelIE,
-    WistiaEmbedIE
 )
 from .worldstarhiphop import WorldStarHipHopIE
 from .wppilot import (

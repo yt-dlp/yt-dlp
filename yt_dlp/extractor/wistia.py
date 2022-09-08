@@ -122,9 +122,33 @@ class WistiaBaseIE(InfoExtractor):
             'subtitles': subtitles,
         }
 
+    @classmethod
+    def _extract_from_webpage(cls, url, webpage):
+        from .teachable import TeachableIE
+
+        if list(TeachableIE._extract_embed_urls(url, webpage)):
+            return
+
+        for entry in super()._extract_from_webpage(url, webpage):
+            yield {
+                **entry,
+                '_type': 'url_transparent',
+                'uploader': try_call(lambda: re.match(r'(?:https?://)?([^/]+)/', url).group(1)),
+            }
+
+    @classmethod
+    def _extract_wistia_async_embed(cls, webpage):
+        # https://wistia.com/support/embed-and-share/video-on-your-website
+        # https://wistia.com/support/embed-and-share/channel-embeds
+        yield from re.finditer(
+            r'''(?sx)
+                <(?:div|section)[^>]+class=([\"'])(?:(?!\1).)*?(?P<type>wistia[a-z_0-9]+)\s*\bwistia_async_(?P<id>[a-z0-9]{10})\b(?:(?!\1).)*?\1
+            ''', webpage)
+
 
 class WistiaIE(WistiaBaseIE):
     _VALID_URL = r'(?:wistia:|%s(?:iframe|medias)/)%s' % (WistiaBaseIE._VALID_URL_BASE, WistiaBaseIE._VALID_ID_REGEX)
+    _EMBED_REGEX = [r'<(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\'](?P<url>(?:https?:)?//(?:fast\.)?wistia\.(?:net|com)/embed/(?:iframe|medias)/[a-z0-9]{10})']
     _TESTS = [{
         # with hls video
         'url': 'wistia:807fafadvk',
@@ -138,6 +162,20 @@ class WistiaIE(WistiaBaseIE):
             'timestamp': 1463607249,
             'duration': 4987.11,
         },
+        'skip': 'video unavailable',
+    }, {
+        'url': 'wistia:a6ndpko1wg',
+        'md5': '10c1ce9c4dde638202513ed17a3767bd',
+        'info_dict': {
+            'id': 'a6ndpko1wg',
+            'ext': 'bin',
+            'title': 'Episode 2: Boxed Water\'s retention is thirsty',
+            'upload_date': '20210324',
+            'description': 'md5:da5994c2c2d254833b412469d9666b7a',
+            'duration': 966.0,
+            'timestamp': 1616614369,
+            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/53dc60239348dc9b9fba3755173ea4c2.bin',
+        }
     }, {
         'url': 'wistia:sh7fpupwlt',
         'only_matching': True,
@@ -152,42 +190,7 @@ class WistiaIE(WistiaBaseIE):
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        embed_config = self._download_embed_config('medias', video_id, url)
-        return self._extract_media(embed_config)
-
-
-class WistiaEmbedIE(WistiaBaseIE):
-    _VALID_URL = False
-    _EMBED_REGEX = [r'<(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\'](?P<url>(?:https?:)?//(?:fast\.)?wistia\.(?:net|com)/embed/(?:iframe|medias)/[a-z0-9]{10})']
-
     _WEBPAGE_TESTS = [{
-        'url': 'https://www.profitwell.com/recur/boxed-out',
-        'info_dict': {
-            'id': '6jyvmqz6zs',
-            'title': 'Boxed Out | ProfitWell',
-            'description': 'md5:1b1eb10bee670851bf69299aaef2d2a4',
-            'upload_date': '20220831',
-            'timestamp': 1661911178.0,
-            'uploader': 'www.profitwell.com',
-            'thumbnail': 'https://www.profitwell.com/hubfs/Screen%20Shot%202020-11-17%20at%201.01.45%20PM.png#keepProtocol',
-            'age_limit': 0,
-        },
-        'playlist_mincount': 30,
-    }, {
-        # section instead of div
-        'url': 'https://360learning.com/studio/onboarding-joei/',
-        'info_dict': {
-            'id': 'z874k93n2o',
-            'title': 'Onboarding Joei - our content director | 360Learning',
-            'description': 'md5:f9de04c83c0ca710aa1ca56d45823c67',
-            'thumbnail': 'https://images.prismic.io/360learning/3d45dbe9-d7ad-41d4-8954-066f4015d0a5_onboardingJoei.png?auto=compress,format',
-            'age_limit': 0,
-            'uploader': '360learning.com',
-        },
-        'playlist_mincount': 20,
-    }, {
         'url': 'https://www.weidert.com/blog/wistia-channels-video-marketing-tool',
         'info_dict': {
             'id': 'cqwukac3z1',
@@ -198,44 +201,26 @@ class WistiaEmbedIE(WistiaBaseIE):
             'duration': 158.125,
             'thumbnail': 'https://www.weidert.com/hubfs/Blog/2021-blog-images/WW_PPC_Wistia_Artwork_N1_V2.png#keepProtocol',
             'uploader': 'www.weidert.com',
-            'upload_date': '20220902',
-            'timestamp': 1662102343.0,
+            'upload_date': str,  # generic uses Last-Modified, so this is subject to change
+            'timestamp': float,
         }
     }]
 
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        embed_config = self._download_embed_config('medias', video_id, url)
+        return self._extract_media(embed_config)
+
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
-        # https://wistia.com/support/embed-and-share/video-on-your-website
-        # https://wistia.com/support/embed-and-share/channel-embeds
         urls = list(super()._extract_embed_urls(url, webpage))
-        for match in re.finditer(
-                r'''(?sx)
-                    <(?:div|section)[^>]+class=([\"'])(?:(?!\1).)*?(?P<type>wistia[a-z_0-9]+)\s*\bwistia_async_(?P<id>[a-z0-9]{10})\b(?:(?!\1).)*?\1
-                ''', webpage):
-            media_id = match.group('id')
-            if match.group('type') == 'wistia_channel':
-                # original url may contain wmediaid query param
-                urls.append(update_url_query(f'wistiachannel:{media_id}', parse_qs(url)))
-            else:
+        for match in cls._extract_wistia_async_embed(webpage):
+            if match.group('type') != 'wistia_channel':
                 urls.append('wistia:%s' % match.group('id'))
         for match in re.finditer(r'(?:data-wistia-?id=["\']|Wistia\.embed\(["\']|id=["\']wistia_)(?P<id>[a-z0-9]{10})',
                                  webpage):
             urls.append('wistia:%s' % match.group('id'))
         return urls
-
-    @classmethod
-    def _extract_from_webpage(cls, url, webpage):
-        from .teachable import TeachableIE
-
-        if list(TeachableIE._extract_embed_urls(url, webpage)):
-            return
-
-        for entry in super()._extract_from_webpage(url, webpage):
-            yield {
-                **entry,
-                '_type': 'url_transparent',
-                'uploader': try_call(lambda: re.match(r'(?:https?://)?([^/]+)/', url).group(1)),
-            }
 
 
 class WistiaPlaylistIE(WistiaBaseIE):
@@ -298,6 +283,32 @@ class WistiaChannelIE(WistiaBaseIE):
         },
         'params': {'noplaylist': True, 'skip_download': True},
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.profitwell.com/recur/boxed-out',
+        'info_dict': {
+            'id': '6jyvmqz6zs',
+            'title': 'Boxed Out | ProfitWell',
+            'description': 'md5:1b1eb10bee670851bf69299aaef2d2a4',
+            'upload_date': str,  # generic uses Last-Modified, which is changed everytime a video is added
+            'timestamp': float,
+            'uploader': 'www.profitwell.com',
+            'thumbnail': 'https://www.profitwell.com/hubfs/Screen%20Shot%202020-11-17%20at%201.01.45%20PM.png#keepProtocol',
+            'age_limit': 0,
+        },
+        'playlist_mincount': 30,
+    }, {
+        # section instead of div
+        'url': 'https://360learning.com/studio/onboarding-joei/',
+        'info_dict': {
+            'id': 'z874k93n2o',
+            'title': 'Onboarding Joei - our content director | 360Learning',
+            'description': 'md5:f9de04c83c0ca710aa1ca56d45823c67',
+            'thumbnail': 'https://images.prismic.io/360learning/3d45dbe9-d7ad-41d4-8954-066f4015d0a5_onboardingJoei.png?auto=compress,format',
+            'age_limit': 0,
+            'uploader': '360learning.com',
+        },
+        'playlist_mincount': 20,
+    }]
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
@@ -327,3 +338,11 @@ class WistiaChannelIE(WistiaBaseIE):
 
         return self.playlist_result(
             entries, channel_id, playlist_title=series.get('title'), playlist_description=series.get('description'))
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        yield from super()._extract_embed_urls(url, webpage)
+        for match in cls._extract_wistia_async_embed(webpage):
+            if match.group('type') == 'wistia_channel':
+                # original url may contain wmediaid query param
+                yield update_url_query(f'wistiachannel:{match.group("id")}', parse_qs(url))
