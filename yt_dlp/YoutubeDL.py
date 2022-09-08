@@ -453,7 +453,7 @@ class YoutubeDL:
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
     nopart, updatetime, buffersize, ratelimit, throttledratelimit, min_filesize,
-    max_filesize, test, noresizebuffer, retries, file_access_retries, fragment_retries,
+    max_filesize, error_on_too_small, error_on_too_large, test, noresizebuffer, retries, file_access_retries, fragment_retries,
     continuedl, xattr_set_filesize, hls_use_mpegts, http_chunk_size,
     external_downloader_args, concurrent_fragment_downloads.
 
