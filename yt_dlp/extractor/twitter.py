@@ -769,6 +769,8 @@ class TwitterSpacesIE(TwitterBaseIE, PeriscopeBaseIE):
             live_status = 'was_live'
         elif space_status == 'running':
             live_status = 'is_live'
+        elif space_status == 'timedout':
+            live_status = 'post_live'
 
         # partecipants
         description = 'Twitter Space partecipated by ' + join_nonempty(*[p.get('display_name') for p in traverse_obj(data, ('participants', 'speakers'))], delim=', ')
@@ -786,6 +788,7 @@ class TwitterSpacesIE(TwitterBaseIE, PeriscopeBaseIE):
                 metadata, ('creator_results', 'result', 'legacy', 'screen_name')),
             'is_live': space_status == 'running',
             'live_status': live_status,
+            'timestamp': metadata.get('updated_at'),
         }
 
     def _real_extract(self, url):
@@ -803,18 +806,17 @@ class TwitterSpacesIE(TwitterBaseIE, PeriscopeBaseIE):
 
         if info['live_status'] == 'is_upcoming':
             self.raise_no_formats('Twitter Space not started yet', expected=True)
-
-        if info['is_live']:
-            # TODO: check live spaces data
-            pass
+        if info['live_status'] == 'post_live':
+            self.raise_no_formats('Twitter Space ended but not downloadable yet', expected=True)
 
         media_key = info.pop('media_key')
         source = self._call_api(
             'live_video_stream/status/' + media_key, media_key)['source']
         m3u8_url = source.get('noRedirectPlaybackUrl') or source['location']
+        m3u8_id = 'live' if info['is_live'] else 'replay'
 
         formats = self._extract_m3u8_formats(
-            m3u8_url, media_key, 'mp4', m3u8_id='audio')
+            m3u8_url, media_key, 'mp4', m3u8_id=m3u8_id)
         # force audio-only
         for i in range(len(formats)):
             formats[i].update({'vcodec': 'none'})
