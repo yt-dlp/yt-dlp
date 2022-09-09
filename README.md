@@ -1705,6 +1705,8 @@ The following extractors use this feature:
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
 * `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
 * `innertube_key`: Innertube API key to use for all API requests
+* `lang`: Supported content language code to prefer translated metadata of this language (case-sensitive). By default, video primary language metadata is preferred, with a fallback to `en` translated.
+  * See youtube.py for list of supported content language codes.
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
 * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
