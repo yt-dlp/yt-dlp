@@ -725,8 +725,6 @@ class YoutubeDL:
             archive = set()
             if fn is None:
                 return archive
-            elif not isinstance(fn, os.PathLike):
-                return fn
 
             self.write_debug(f'Loading archive file {fn!r}')
             try:
