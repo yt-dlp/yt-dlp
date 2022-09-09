@@ -586,6 +586,23 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader': 'punkybird',
             }
         }, {
+            # April 2020: Player response in player config
+            'url': 'https://web.archive.org/web/20200416034815/https://www.youtube.com/watch?v=Cf7vS8jc7dY&gl=US&hl=en',
+            'info_dict': {
+                'id': 'Cf7vS8jc7dY',
+                'ext': 'mp4',
+                'title': 'A Dramatic Pool Story (by Jamie Spicer-Lewis) - Game Grumps Animated',
+                'duration': 64,
+                'upload_date': '20200408',
+                'uploader_id': 'GameGrumps',
+                'uploader': 'GameGrumps',
+                'channel_url': 'http://www.youtube.com/channel/UC9CuvdOVfMPvKCiwdGKL3cQ',
+                'channel_id': 'UC9CuvdOVfMPvKCiwdGKL3cQ',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'description': 'md5:c625bb3c02c4f5fb4205971e468fa341',
+                'uploader_url': 'https://www.youtube.com/user/GameGrumps',
+            }
+        }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'only_matching': True
         }, {
@@ -669,11 +686,19 @@ class YoutubeWebArchiveIE(InfoExtractor):
             swf_config.get('args')
             or self._search_json(r'swfArgs\s*=\s*', webpage, 'swf config', video_id, default={})
             or {})
-        # XXX: this also contains a 'ptchn' key. I'm not sure if that is channel name or uploader
-        player_config = self._search_json(r'yt.playerConfig\s*=\s*', webpage, 'player config', video_id, default={})
+        # XXX: this also may contain a 'ptchn' key. I'm not sure if that is channel name or uploader
+        player_config = self._search_json(
+            r'(?:yt.playerConfig|ytplayer.config)\s*=\s*', webpage, 'player config', video_id, default={})
+
+        if not player_response:
+            # April 2020
+            # TODO: with this full player response being available earlier than we thought,
+            #  maybe we should introduce another time period preference
+            player_response = self._parse_json(
+                traverse_obj(player_config, ('args', 'player_response')) or '{}', video_id, fatal=False)
 
         yt_document_set_config = self._search_json(
-            r'document\.title\s*=[^;]+;\s*yt\.setConfig\(', webpage, 'old config', video_id, default={}, transform_source=js_to_json)  # ~June 2010
+            r'document\.title\s*=[^;]+;\s*yt\.setConfig\(', webpage, 'old document config', video_id, default={}, transform_source=js_to_json)  # ~June 2010
 
         initial_data_video = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'videoPrimaryInfoRenderer'),
