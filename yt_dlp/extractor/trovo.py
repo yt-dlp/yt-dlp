@@ -281,16 +281,29 @@ class TrovoVodIE(TrovoBaseIE):
 
 
 class TrovoChannelBaseIE(TrovoBaseIE):
-    def _get_vod_json(self, page, spacename):
-        raise NotImplementedError('This method must be implemented by subclasses')
-
     def _entries(self, spacename):
         for page in itertools.count(1):
-            vod_json = self._get_vod_json(page, spacename)
+            vod_json = self._call_api(spacename, data={
+                'operationName': self._OPERATION,
+                'variables': {
+                    'params': {
+                        'terminalSpaceID': {
+                            'spaceName': spacename,
+                        },
+                        'currPage': page,
+                        'pageSize': 99,
+                    },
+                },
+                'extensions': {
+                    'singleReq': 'true',
+                },
+            })
             vods = vod_json.get('vodInfos', [])
             for vod in vods:
+                vid = vod.get('vid')
+                room = traverse_obj(vod, ('spaceInfo', 'roomID'))
                 yield self.url_result(
-                    'https://trovo.live/%s/%s' % (self._TYPE, vod.get('vid')),
+                    f'https://trovo.live/s/{spacename}/{room}?vid={vid}',
                     ie=TrovoVodIE.ie_key())
             has_more = vod_json.get('hasMore')
             if not has_more:
@@ -313,24 +326,7 @@ class TrovoChannelVodIE(TrovoChannelBaseIE):
         },
     }]
 
-    _TYPE = 'video'
-
-    def _get_vod_json(self, page, spacename):
-        return self._call_api(spacename, data={
-            'operationName': 'vod_VodReaderService_GetChannelLtvVideoInfos',
-            'variables': {
-                'params': {
-                    'terminalSpaceID': {
-                        'spaceName': spacename,
-                    },
-                    'currPage': page,
-                    'pageSize': 99,
-                },
-            },
-            'extensions': {
-                'singleReq': 'true',
-            },
-        })
+    _OPERATION = 'vod_VodReaderService_GetChannelLtvVideoInfos'
 
 
 class TrovoChannelClipIE(TrovoChannelBaseIE):
@@ -345,21 +341,4 @@ class TrovoChannelClipIE(TrovoChannelBaseIE):
         },
     }]
 
-    _TYPE = 'clip'
-
-    def _get_vod_json(self, page, spacename):
-        return self._call_api(spacename, data={
-            'operationName': 'vod_VodReaderService_GetChannelClipVideoInfos',
-            'variables': {
-                'params': {
-                    'terminalSpaceID': {
-                        'spaceName': spacename,
-                    },
-                    'currPage': page,
-                    'pageSize': 99,
-                },
-            },
-            'extensions': {
-                'singleReq': 'true',
-            },
-        })
+    _OPERATION = 'vod_VodReaderService_GetChannelClipVideoInfos'
