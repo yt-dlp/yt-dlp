@@ -1247,9 +1247,11 @@ class YoutubeDL:
                 delim = '\n' if '#' in flags else ', '
                 value, fmt = delim.join(map(str, variadic(value, allowed_types=(str, bytes)))), str_fmt
             elif fmt[-1] == 'j':  # json
-                value, fmt = json.dumps(value, default=_dumpjson_default, indent=4 if '#' in flags else None), str_fmt
+                value, fmt = json.dumps(
+                    value, default=_dumpjson_default,
+                    indent=4 if '#' in flags else None, ensure_ascii=False), str_fmt
             elif fmt[-1] == 'h':  # html
-                value, fmt = escapeHTML(value), str_fmt
+                value, fmt = escapeHTML(str(value)), str_fmt
             elif fmt[-1] == 'q':  # quoted
                 value = map(str, variadic(value) if '#' in flags else [value])
                 value, fmt = ' '.join(map(compat_shlex_quote, value)), str_fmt

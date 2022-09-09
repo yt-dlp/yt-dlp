@@ -2765,7 +2765,7 @@ class GenericIE(InfoExtractor):
             'age_limit': self._rta_search(webpage),
         })
 
-        domain_name = self._search_regex(r'^(?:https?://)?([^/]*)/.*', url, 'video uploader')
+        domain_name = self._search_regex(r'^(?:https?://)?([^/]*)/.*', url, 'video uploader', default=None)
 
         # Sometimes embedded video player is hidden behind percent encoding
         # (e.g. https://github.com/ytdl-org/youtube-dl/issues/2448)
