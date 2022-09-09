@@ -570,6 +570,22 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
+            # ~July 2013
+            'url': 'https://web.archive.org/web/*/https://www.youtube.com/watch?v=9eO1aasHyTM',
+            'info_dict': {
+                'id': '9eO1aasHyTM',
+                'ext': 'mp4',
+                'title': 'Polar-oid',
+                'description': 'Cameras and bears are dangerous!',
+                'uploader_url': 'https://www.youtube.com/user/punkybird',
+                'uploader_id': 'punkybird',
+                'duration': 202,
+                'channel_id': 'UC62R2cBezNBOqxSerfb1nMQ',
+                'channel_url': 'http://www.youtube.com/channel/UC62R2cBezNBOqxSerfb1nMQ',
+                'upload_date': '20060428',
+                'uploader': 'punkybird',
+            }
+        }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'only_matching': True
         }, {
@@ -702,7 +718,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 [r'<a\s*id=\"watch-username\".*\">\s*<strong[^>]?>([^<]+)</strong>',
                  r'var\s*watchUsername\s*=\s*\'(.+)\';',  # ~May 2009
                  r'<div\s*\bid=\"watch-channel-stats\"[^>]*>\s*<a[^>]*>\s*(.+?)\s*</a',  # ~May 2009
-                 r'<a\s*id=\"watch-userbanner\"[^>]*title=\"\s*(.+?)\s*\"'],  # ~June 2012
+                 r'<a\s*id=\"watch-userbanner\"[^>]*title=\"\s*(.+?)\s*\"',  # ~June 2012
+                 r'(?s)<div\s*id=\"watch\d*-user-header\".*?<a[^>]*yt-user-name[^>]*>\s*(.*?)\s*</a'],  # july 2013
                 webpage, 'uploader', default=None)
             or video_details.get('author')
         )
