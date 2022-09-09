@@ -367,7 +367,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'channel_id': 'UCukCyHaD-bK3in_pKpfH9Eg',
                 'duration': 32,
                 'uploader_id': 'Zeurel',
-                'uploader_url': 'http://www.youtube.com/user/Zeurel'
+                'uploader_url': 'http://www.youtube.com/user/Zeurel',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'channel_url': 'http://www.youtube.com/channel/UCukCyHaD-bK3in_pKpfH9Eg',
             }
         }, {
             # Internal link
@@ -382,7 +384,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'channel_id': 'UCHnyfMqiRRG1u-2MsSQLbXA',
                 'duration': 771,
                 'uploader_id': '1veritasium',
-                'uploader_url': 'http://www.youtube.com/user/1veritasium'
+                'uploader_url': 'http://www.youtube.com/user/1veritasium',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'channel_url': 'http://www.youtube.com/channel/UCHnyfMqiRRG1u-2MsSQLbXA',
             }
         }, {
             # Video from 2012, webm format itag 45. Newest capture is deleted video, with an invalid description.
@@ -396,7 +400,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 398,
                 'description': 'md5:ff4de6a7980cb65d951c2f6966a4f2f3',
                 'uploader_id': 'machinima',
-                'uploader_url': 'http://www.youtube.com/user/machinima'
+                'uploader_url': 'http://www.youtube.com/user/machinima',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
             # FLV video. Video file URL does not provide itag information
@@ -410,7 +415,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 19,
                 'description': 'md5:10436b12e07ac43ff8df65287a56efb4',
                 'uploader_id': 'jawed',
-                'uploader_url': 'http://www.youtube.com/user/jawed'
+                'uploader_url': 'http://www.youtube.com/user/jawed',
+                'channel_url': 'http://www.youtube.com/channel/UC4QobU6STFB0P71PMvOGN5A',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
             'url': 'https://web.archive.org/web/20110712231407/http://www.youtube.com/watch?v=lTx3G6h2xyA',
@@ -424,7 +431,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 204,
                 'description': 'md5:f7535343b6eda34a314eff8b85444680',
                 'uploader_id': 'itsmadeon',
-                'uploader_url': 'http://www.youtube.com/user/itsmadeon'
+                'uploader_url': 'http://www.youtube.com/user/itsmadeon',
+                'channel_url': 'http://www.youtube.com/channel/UCqMDNf3Pn5L7pcNkuSEeO3w',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
             # First capture is of dead video, second is the oldest from CDX response.
@@ -438,7 +447,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 1236,
                 'description': 'md5:21032bae736421e89c2edf36d1936947',
                 'uploader_id': 'MachinimaETC',
-                'uploader_url': 'http://www.youtube.com/user/MachinimaETC'
+                'uploader_url': 'http://www.youtube.com/user/MachinimaETC',
+                'channel_url': 'http://www.youtube.com/channel/UCdIaNUarhzLSXGoItz7BHVA',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
             # First capture of dead video, capture date in link links to dead capture.
@@ -452,7 +463,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 798,
                 'description': 'md5:a1dbf12d9a3bd7cb4c5e33b27d77ffe7',
                 'uploader_id': 'MachinimaETC',
-                'uploader_url': 'http://www.youtube.com/user/MachinimaETC'
+                'uploader_url': 'http://www.youtube.com/user/MachinimaETC',
+                'channel_url': 'http://www.youtube.com/channel/UCdIaNUarhzLSXGoItz7BHVA',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
             },
             'expected_warnings': [
                 r'unable to download capture webpage \(it may not be archived\)'
@@ -477,7 +490,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'description': 'md5:7b567f898d8237b256f36c1a07d6d7bc',
                 'uploader': 'DankPods',
                 'uploader_id': 'UC7Jwj9fkrf1adN4fMmTkpug',
-                'uploader_url': 'http://www.youtube.com/channel/UC7Jwj9fkrf1adN4fMmTkpug'
+                'uploader_url': 'http://www.youtube.com/channel/UC7Jwj9fkrf1adN4fMmTkpug',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
             # player response contains '};' See: https://github.com/ytdl-org/youtube-dl/issues/27093
@@ -493,7 +507,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'description': 'md5:2dbe4051feeff2dab5f41f82bb6d11d0',
                 'uploader': 'PewDiePie',
                 'uploader_id': 'PewDiePie',
-                'uploader_url': 'http://www.youtube.com/user/PewDiePie'
+                'uploader_url': 'http://www.youtube.com/user/PewDiePie',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
