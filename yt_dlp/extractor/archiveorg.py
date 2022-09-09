@@ -556,6 +556,20 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 754,
             }
         }, {
+            # ~June 2012. Upload date is in another lang so cannot extract.
+            'url': 'https://web.archive.org/web/20120607174520/http://www.youtube.com/watch?v=xWTLLl-dQaA',
+            'info_dict': {
+                'id': 'xWTLLl-dQaA',
+                'ext': 'mp4',
+                'title': 'Black Nerd eHarmony Video Bio Parody (SPOOF)',
+                'uploader_url': 'https://www.youtube.com/user/BlackNerdComedy',
+                'description': 'md5:e25f0133aaf9e6793fb81c18021d193e',
+                'uploader_id': 'BlackNerdComedy',
+                'uploader': 'BlackNerdComedy',
+                'duration': 182,
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+            }
+        }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'only_matching': True
         }, {
@@ -634,10 +648,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
             self._YT_INITIAL_DATA_RE, webpage, 'initial data', video_id, default={})
 
         swf_config = self._search_json(r'swfConfig\s*=', webpage, 'swf config', video_id, default={})  # ~June 2010
+        # XXX: this also contains a 'creator' key. I'm not sure if it's the uploader or uploader id
         swf_args = (
             swf_config.get('args')
             or self._search_json(r'swfArgs\s*=\s*', webpage, 'swf config', video_id, default={})
             or {})
+        # XXX: this also contains a 'ptchn' key. I'm not sure if that is channel name or uploader
+        player_config = self._search_json(r'yt.playerConfig\s*=\s*', webpage, 'player config', video_id, default={})
 
         yt_document_set_config = self._search_json(
             r'document\.title\s*=[^;]+;\s*yt\.setConfig\(', webpage, 'old config', video_id, default={}, transform_source=js_to_json)  # ~June 2010
@@ -656,6 +673,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             video_details.get('title')
             or YoutubeBaseInfoExtractor._get_text(microformats, 'title')
             or YoutubeBaseInfoExtractor._get_text(initial_data_video, 'title')
+            or traverse_obj(player_config, ('args', 'title'))
             or self._extract_webpage_title(webpage)
             or search_meta(['og:title', 'twitter:title', 'title']))
 
@@ -663,11 +681,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
             return self._search_regex(  # TODO: more strict regex
                 rf'(?:{type_})/([^/#&?]+)', url or '', f'{type_} id', default=None)
 
+        # XXX: would the get_elements_by_... functions be better suited here?
         # Uploader ID and URL
-        _CHANNEL_URL_HREF_RE = r'href=\"[^\"]+(?P<url>https?://www\.youtube\.com/(?:user|channel)/[^\"]+)\"'
+        _CHANNEL_URL_HREF_RE = r'href=\"[^\"]*(?P<url>https?://www\.youtube\.com/(?:user|channel)/[^\"]+)\"'
         upch_url = self._search_regex(
             [fr'<(?:link\s*itemprop=\"url\"|a\s*id=\"watch-username\").*?\b{_CHANNEL_URL_HREF_RE}>',  # @fd05024
-             fr'<div\s*id=\"watch-channel-stats\"[^>]*>\s*<a\s*\b{_CHANNEL_URL_HREF_RE}'],  # ~ May 2009
+             fr'<div\s*id=\"(?:watch-channel-stats|watch-headline-user-info)\"[^>]*>\s*<a[^>]*\b{_CHANNEL_URL_HREF_RE}'], # ~ May 2009, ~June 2012
             webpage, 'uploader or channel url', default=None)
 
         owner_profile_url = url_or_none(microformats.get('ownerProfileUrl'))  # @a6211d2
@@ -682,7 +701,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
             self._search_regex(
                 [r'<a\s*id=\"watch-username\".*\">\s*<strong[^>]?>([^<]+)</strong>',
                  r'var\s*watchUsername\s*=\s*\'(.+)\';',  # ~May 2009
-                 r'<div\s*\bid=\"watch-channel-stats\"[^>]*>\s*<a[^>]*>\s*(.+?)\s*</a'],  # ~May 2009
+                 r'<div\s*\bid=\"watch-channel-stats\"[^>]*>\s*<a[^>]*>\s*(.+?)\s*</a',  # ~May 2009
+                 r'<a\s*id=\"watch-userbanner\"[^>]*title=\"\s*(.+?)\s*\"'],  # ~June 2012
                 webpage, 'uploader', default=None)
             or video_details.get('author')
         )
@@ -704,6 +724,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             video_details.get('lengthSeconds')
             or microformats.get('lengthSeconds')
             or traverse_obj(swf_args, 'length_seconds', 'l')
+            or traverse_obj(player_config, ('args', 'length_seconds'))
             or parse_duration(search_meta('duration')))
         description = (
             video_details.get('shortDescription')
