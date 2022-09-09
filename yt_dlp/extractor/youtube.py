@@ -3911,19 +3911,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     vpir,
                     lambda x: x['videoActions']['menuRenderer']['topLevelButtons'],
                     list) or []):
-                tbr = tlb.get('toggleButtonRenderer') or {}
-                for getter, regex in [(
-                        lambda x: x['defaultText']['accessibility']['accessibilityData'],
-                        r'(?P<count>[\d,]+)\s*(?P<type>(?:dis)?like)'), ([
-                            lambda x: x['accessibility'],
-                            lambda x: x['accessibilityData']['accessibilityData'],
-                        ], r'(?P<type>(?:dis)?like) this video along with (?P<count>[\d,]+) other people')]:
-                    label = (try_get(tbr, getter, dict) or {}).get('label')
-                    if label:
-                        mobj = re.match(regex, label)
-                        if mobj:
-                            info[mobj.group('type') + '_count'] = str_to_int(mobj.group('count'))
-                            break
+                tbrs = variadic(
+                    traverse_obj(
+                        tlb, 'toggleButtonRenderer',
+                        ('segmentedLikeDislikeButtonRenderer', ..., 'toggleButtonRenderer'),
+                        default=[]))
+                for tbr in tbrs:
+                    for getter, regex in [(
+                            lambda x: x['defaultText']['accessibility']['accessibilityData'],
+                            r'(?P<count>[\d,]+)\s*(?P<type>(?:dis)?like)'), ([
+                                lambda x: x['accessibility'],
+                                lambda x: x['accessibilityData']['accessibilityData'],
+                            ], r'(?P<type>(?:dis)?like) this video along with (?P<count>[\d,]+) other people')]:
+                        label = (try_get(tbr, getter, dict) or {}).get('label')
+                        if label:
+                            mobj = re.match(regex, label)
+                            if mobj:
+                                info[mobj.group('type') + '_count'] = str_to_int(mobj.group('count'))
+                                break
             sbr_tooltip = try_get(
                 vpir, lambda x: x['sentimentBar']['sentimentBarRenderer']['tooltip'])
             if sbr_tooltip:
