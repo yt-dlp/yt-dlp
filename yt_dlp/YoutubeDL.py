@@ -108,6 +108,7 @@ from .utils import (
     get_domain,
     int_or_none,
     iri_to_uri,
+    is_path_like,
     join_nonempty,
     locked_file,
     make_archive_id,
@@ -725,7 +726,7 @@ class YoutubeDL:
             archive = set()
             if fn is None:
                 return archive
-            elif not isinstance(fn, os.PathLike):
+            elif not is_path_like(fn):
                 return fn
 
             self.write_debug(f'Loading archive file {fn!r}')
