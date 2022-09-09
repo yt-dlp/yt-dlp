@@ -367,9 +367,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'channel_id': 'UCukCyHaD-bK3in_pKpfH9Eg',
                 'duration': 32,
                 'uploader_id': 'Zeurel',
-                'uploader_url': 'http://www.youtube.com/user/Zeurel',
+                'uploader_url': 'https://www.youtube.com/user/Zeurel',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
-                'channel_url': 'http://www.youtube.com/channel/UCukCyHaD-bK3in_pKpfH9Eg',
+                'channel_url': 'https://www.youtube.com/channel/UCukCyHaD-bK3in_pKpfH9Eg',
             }
         }, {
             # Internal link
@@ -384,9 +384,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'channel_id': 'UCHnyfMqiRRG1u-2MsSQLbXA',
                 'duration': 771,
                 'uploader_id': '1veritasium',
-                'uploader_url': 'http://www.youtube.com/user/1veritasium',
+                'uploader_url': 'https://www.youtube.com/user/1veritasium',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
-                'channel_url': 'http://www.youtube.com/channel/UCHnyfMqiRRG1u-2MsSQLbXA',
+                'channel_url': 'https://www.youtube.com/channel/UCHnyfMqiRRG1u-2MsSQLbXA',
             }
         }, {
             # Video from 2012, webm format itag 45. Newest capture is deleted video, with an invalid description.
@@ -400,8 +400,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 398,
                 'description': 'md5:ff4de6a7980cb65d951c2f6966a4f2f3',
                 'uploader_id': 'machinima',
-                'uploader_url': 'http://www.youtube.com/user/machinima',
+                'uploader_url': 'https://www.youtube.com/user/machinima',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'uploader': 'machinima'
             }
         }, {
             # FLV video. Video file URL does not provide itag information
@@ -415,9 +416,10 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 19,
                 'description': 'md5:10436b12e07ac43ff8df65287a56efb4',
                 'uploader_id': 'jawed',
-                'uploader_url': 'http://www.youtube.com/user/jawed',
-                'channel_url': 'http://www.youtube.com/channel/UC4QobU6STFB0P71PMvOGN5A',
+                'uploader_url': 'https://www.youtube.com/user/jawed',
+                'channel_url': 'https://www.youtube.com/channel/UC4QobU6STFB0P71PMvOGN5A',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'uploader': 'jawed',
             }
         }, {
             'url': 'https://web.archive.org/web/20110712231407/http://www.youtube.com/watch?v=lTx3G6h2xyA',
@@ -431,8 +433,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 204,
                 'description': 'md5:f7535343b6eda34a314eff8b85444680',
                 'uploader_id': 'itsmadeon',
-                'uploader_url': 'http://www.youtube.com/user/itsmadeon',
-                'channel_url': 'http://www.youtube.com/channel/UCqMDNf3Pn5L7pcNkuSEeO3w',
+                'uploader_url': 'https://www.youtube.com/user/itsmadeon',
+                'channel_url': 'https://www.youtube.com/channel/UCqMDNf3Pn5L7pcNkuSEeO3w',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
@@ -444,11 +446,11 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'Fake Teen Doctor Strikes AGAIN! - Weekly Weird News',
                 'upload_date': '20160218',
                 'channel_id': 'UCdIaNUarhzLSXGoItz7BHVA',
-                'duration': 1236,
+                'duration': 1235,
                 'description': 'md5:21032bae736421e89c2edf36d1936947',
                 'uploader_id': 'MachinimaETC',
-                'uploader_url': 'http://www.youtube.com/user/MachinimaETC',
-                'channel_url': 'http://www.youtube.com/channel/UCdIaNUarhzLSXGoItz7BHVA',
+                'uploader_url': 'https://www.youtube.com/user/MachinimaETC',
+                'channel_url': 'https://www.youtube.com/channel/UCdIaNUarhzLSXGoItz7BHVA',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
@@ -460,11 +462,11 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'WTF: Video Games Still Launch BROKEN?! - T.U.G.S.',
                 'upload_date': '20160219',
                 'channel_id': 'UCdIaNUarhzLSXGoItz7BHVA',
-                'duration': 798,
+                'duration': 797,
                 'description': 'md5:a1dbf12d9a3bd7cb4c5e33b27d77ffe7',
                 'uploader_id': 'MachinimaETC',
-                'uploader_url': 'http://www.youtube.com/user/MachinimaETC',
-                'channel_url': 'http://www.youtube.com/channel/UCdIaNUarhzLSXGoItz7BHVA',
+                'uploader_url': 'https://www.youtube.com/user/MachinimaETC',
+                'channel_url': 'https://www.youtube.com/channel/UCdIaNUarhzLSXGoItz7BHVA',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
             },
             'expected_warnings': [
@@ -485,12 +487,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'It\'s Bootleg AirPods Time.',
                 'upload_date': '20211021',
                 'channel_id': 'UC7Jwj9fkrf1adN4fMmTkpug',
-                'channel_url': 'http://www.youtube.com/channel/UC7Jwj9fkrf1adN4fMmTkpug',
+                'channel_url': 'https://www.youtube.com/channel/UC7Jwj9fkrf1adN4fMmTkpug',
                 'duration': 810,
                 'description': 'md5:7b567f898d8237b256f36c1a07d6d7bc',
-                'uploader': 'DankPods',
-                'uploader_id': 'UC7Jwj9fkrf1adN4fMmTkpug',
-                'uploader_url': 'http://www.youtube.com/channel/UC7Jwj9fkrf1adN4fMmTkpug',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
@@ -502,12 +501,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'bitch lasagna',
                 'upload_date': '20181005',
                 'channel_id': 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
-                'channel_url': 'http://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'channel_url': 'https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
                 'duration': 135,
                 'description': 'md5:2dbe4051feeff2dab5f41f82bb6d11d0',
                 'uploader': 'PewDiePie',
                 'uploader_id': 'PewDiePie',
-                'uploader_url': 'http://www.youtube.com/user/PewDiePie',
+                'uploader_url': 'https://www.youtube.com/user/PewDiePie',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
@@ -581,7 +580,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_id': 'punkybird',
                 'duration': 202,
                 'channel_id': 'UC62R2cBezNBOqxSerfb1nMQ',
-                'channel_url': 'http://www.youtube.com/channel/UC62R2cBezNBOqxSerfb1nMQ',
+                'channel_url': 'https://www.youtube.com/channel/UC62R2cBezNBOqxSerfb1nMQ',
                 'upload_date': '20060428',
                 'uploader': 'punkybird',
             }
@@ -596,7 +595,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'upload_date': '20200408',
                 'uploader_id': 'GameGrumps',
                 'uploader': 'GameGrumps',
-                'channel_url': 'http://www.youtube.com/channel/UC9CuvdOVfMPvKCiwdGKL3cQ',
+                'channel_url': 'https://www.youtube.com/channel/UC9CuvdOVfMPvKCiwdGKL3cQ',
                 'channel_id': 'UC9CuvdOVfMPvKCiwdGKL3cQ',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'description': 'md5:c625bb3c02c4f5fb4205971e468fa341',
@@ -746,7 +745,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                  r'<a\s*id=\"watch-userbanner\"[^>]*title=\"\s*(.+?)\s*\"',  # ~June 2012
                  r'(?s)<div\s*id=\"watch\d*-user-header\".*?<a[^>]*yt-user-name[^>]*>\s*(.*?)\s*</a'],  # july 2013
                 webpage, 'uploader', default=None)
-            or video_details.get('author')
+            or video_details.get('author')  # TODO: sort out what uploader means
         )
         uploader_url = f'https://www.youtube.com/user/{uploader_id}' if uploader_id else None
 
@@ -760,7 +759,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or id_from_url(owner_profile_url, 'channel')
             or id_from_url(upch_url, 'channel'))
 
-        channel_url = f'http://www.youtube.com/channel/{channel_id}' if channel_id else None
+        channel_url = f'https://www.youtube.com/channel/{channel_id}' if channel_id else None
 
         duration = int_or_none(
             video_details.get('lengthSeconds')
