@@ -1670,6 +1670,144 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
             expected_status=TEAPOT_RESPONSE_STATUS)
         self.assertEqual(content, TEAPOT_RESPONSE_BODY)
 
+    def test_manual_cookie_parsing(self):
+        _TEST_CASES = [
+            # Base test cases (mostly copied from http.cookies)
+            (
+                "Test basic cookie",
+                "chips=ahoy; vienna=finger",
+                {"chips": "ahoy", "vienna": "finger"},
+            ),
+            (
+                "Test quoted cookie",
+                'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
+                {"keebler": 'E=mc2; L="Loves"; fudge=\012;'},
+            ),
+            (
+                "Allow '=' in an unquoted value",
+                "keebler=E=mc2",
+                {"keebler": "E=mc2"},
+            ),
+            (
+                "Allow cookies with ':' in their name",
+                "key:term=value:term",
+                {"key:term": "value:term"},
+            ),
+            (
+                "Allow '[' and ']' in cookie values",
+                "a=b; c=[; d=r; f=h",
+                {"a": "b", "c": "[", "d": "r", "f": "h"},
+            ),
+            (
+                "Test basic cookie attributes",
+                'Customer="WILE_E_COYOTE"; Version=1; Path=/acme',
+                {"Customer": ("WILE_E_COYOTE", {"version": "1", "path": "/acme"})},
+            ),
+            (
+                "Test flag only cookie attributes",
+                'Customer="WILE_E_COYOTE"; HttpOnly; Secure',
+                {"Customer": ("WILE_E_COYOTE", {"httponly": True, "secure": True})},
+            ),
+            (
+                "Test flag only attribute with values",
+                "eggs=scrambled; httponly=foo; secure=bar; Path=/bacon",
+                {"eggs": ("scrambled", {"httponly": "foo", "secure": "bar", "path": "/bacon"})},
+            ),
+            (
+                "Test special case for 'expires' attribute, 4 digit year",
+                'Customer="W"; expires=Wed, 01 Jan 2010 00:00:00 GMT',
+                {"Customer": ("W", {"expires": "Wed, 01 Jan 2010 00:00:00 GMT"})},
+            ),
+            (
+                "Test special case for 'expires' attribute, 2 digit year",
+                'Customer="W"; expires=Wed, 01 Jan 98 00:00:00 GMT',
+                {"Customer": ("W", {"expires": "Wed, 01 Jan 98 00:00:00 GMT"})},
+            ),
+            (
+                "Test extra spaces in keys and values",
+                "eggs  =  scrambled  ;  secure  ;  path  =  bar   ; foo=foo   ",
+                {"eggs": ("scrambled", {"secure": True, "path": "bar"}), "foo": "foo"},
+            ),
+            (
+                "Test quoted attributes",
+                'Customer="WILE_E_COYOTE"; Version="1"; Path="/acme"',
+                {"Customer": ("WILE_E_COYOTE", {"version": "1", "path": "/acme"})}
+            ),
+            # Additional edge cases
+            (
+                "Allow ';' in quoted value",
+                'chips="a;hoy"; vienna=finger',
+                {"chips": "a;hoy", "vienna": "finger"},
+            ),
+            (
+                "Ignore and try to skip invalid cookies",
+                'chips={"ahoy;": 1}; vienna="finger;"',
+                {"vienna": "finger;"},
+            ),
+            (
+                "Ignore cookies without a name",
+                "a=b; unnamed; c=d",
+                {"a": "b", "c": "d"},
+            ),
+            (
+                "Ignore '\"' cookie without name",
+                'a=b; "; c=d',
+                {"a": "b", "c": "d"},
+            ),
+            (
+                "Skip all space separated values",
+                "x a=b c=d x; e=f",
+                {"a": "b", "c": "d", "e": "f"},
+            ),
+            (
+                "Skip all space separated values",
+                'x a=b; data={"complex": "json", "with": "key=value"}; x c=d x',
+                {"a": "b", "c": "d"},
+            ),
+            (
+                "Expect quote mending",
+                'a=b; invalid="; c=d',
+                {"a": "b", "c": "d"},
+            ),
+            (
+                "Keep only the last set value",
+                "a=c; a=b",
+                {"a": "b"},
+            ),
+            (
+                "Reset morsel after invalid to not capture attributes",
+                "a=b; invalid; Version=1; c=d",
+                {"a": "b", "c": "d"},
+            ),
+            (
+                "Continue after non-flag attribute without value",
+                "a=b; path; Version=1; c=d",
+                {"a": "b", "c": "d"},
+            ),
+        ]
+
+        for message, raw_cookie, expected in _TEST_CASES:
+            cookie = self.ie._make_simple_cookie(raw_cookie)
+
+            with self.subTest(message, expected=expected):
+                self.assertEqual(cookie.keys(), expected.keys())
+
+                for key, expected_value in expected.items():
+                    morsel = cookie[key]
+                    if isinstance(expected_value, tuple):
+                        expected_value, expected_attributes = expected_value
+                    else:
+                        expected_attributes = {}
+
+                    attributes = {
+                        key: value
+                        for key, value in dict(morsel).items()
+                        if value != ""
+                    }
+                    self.assertEqual(attributes, expected_attributes)
+
+                    self.assertEqual(morsel.value, expected_value)
+
 
 if __name__ == '__main__':
     unittest.main()
