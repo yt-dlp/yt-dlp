@@ -399,7 +399,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if not preferred_lang:
             return
         if preferred_lang not in self._SUPPORTED_LANG_CODES:
-            raise ExtractorError(f'Unsupported language code: {preferred_lang}', expected=True)
+            raise ExtractorError(
+                f'Unsupported language code: {preferred_lang}. Supported language codes (case-sensitive): {join_nonempty(*self._SUPPORTED_LANG_CODES, delim=", ")}.',
+                expected=True)
         elif preferred_lang != 'en':
             self.report_warning(
                 f'Preferring "{preferred_lang}" translated fields. Note that some metadata extraction may fail or be incorrect.')
