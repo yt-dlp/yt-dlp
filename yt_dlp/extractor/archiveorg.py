@@ -602,6 +602,21 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_url': 'https://www.youtube.com/user/GameGrumps',
             }
         }, {
+            # watch7-user-header with yt-user-info
+            'url': 'ytarchive:kbh4T_b4Ixw:20160307085057',
+            'info_dict': {
+                'id': 'kbh4T_b4Ixw',
+                'ext': 'mp4',
+                'title': 'Shovel Knight OST - Strike the Earth! Plains of Passage 16 bit SNES style remake / remix',
+                'channel_url': 'https://www.youtube.com/channel/UCnTaGvsHmMy792DWeT6HbGA',
+                'uploader': 'Nelward music',
+                'duration': 213,
+                'description': 'md5:804b4a9ce37b050a5fefdbb23aeba54d',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'upload_date': '20150503',
+                'channel_id': 'UCnTaGvsHmMy792DWeT6HbGA',
+            }
+        }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'only_matching': True
         }, {
@@ -735,19 +750,23 @@ class YoutubeWebArchiveIE(InfoExtractor):
         uploader_id = (
             id_from_url(owner_profile_url, 'user')
             or id_from_url(upch_url, 'user')
-            or yt_document_set_config.get('VIDEO_USERNAME'))
+            or yt_document_set_config.get('VIDEO_USERNAME'))  # TODO: is this the right id?
+        uploader_url = f'https://www.youtube.com/user/{uploader_id}' if uploader_id else None
 
+        user_header_html = get_element_by_id('watch7-user-header', webpage)
         uploader = (
             self._search_regex(
                 [r'<a\s*id=\"watch-username\".*\">\s*<strong[^>]?>([^<]+)</strong>',
                  r'var\s*watchUsername\s*=\s*\'(.+)\';',  # ~May 2009
                  r'<div\s*\bid=\"watch-channel-stats\"[^>]*>\s*<a[^>]*>\s*(.+?)\s*</a',  # ~May 2009
-                 r'<a\s*id=\"watch-userbanner\"[^>]*title=\"\s*(.+?)\s*\"',  # ~June 2012
-                 r'(?s)<div\s*id=\"watch\d*-user-header\".*?<a[^>]*yt-user-name[^>]*>\s*(.*?)\s*</a'],  # july 2013
+                 r'<a\s*id=\"watch-userbanner\"[^>]*title=\"\s*(.+?)\s*\"'],  # ~June 2012
                 webpage, 'uploader', default=None)
+            or self._html_search_regex(
+                [r'(?s)<div\s*class=\"yt-user-info\".*?<a[^>]*[^>]*>\s*(.*?)\s*<\/a',  # March 2016
+                 r'(?s)<a[^>]*yt-user-name[^>]*>\s*(.*?)\s*<\/a'],  # july 2013
+                user_header_html, 'uploader', default=None)
             or video_details.get('author')  # TODO: sort out what uploader means
         )
-        uploader_url = f'https://www.youtube.com/user/{uploader_id}' if uploader_id else None
 
         channel_id = str_or_none(
             video_details.get('channelId')
