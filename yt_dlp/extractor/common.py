@@ -3631,9 +3631,9 @@ class InfoExtractor:
 
     def _get_cookies(self, url):
         """ Return a http.cookies.SimpleCookie with the cookies for the url """
-        return self.__make_simple_cookie(self._downloader._calc_cookies(url))
+        return self._make_simple_cookie(self._downloader._calc_cookies(url))
 
-    def __make_simple_cookie(self, data):
+    def _make_simple_cookie(self, data):
         """ Workaround for https://github.com/yt-dlp/yt-dlp/issues/4776 """
         # Values copied from http.cookies
         _legal_key_chars = r"\w\d!#%&'~_`><@,:/\$\*\+\-\.\^\|\)\(\?\}\{\="
@@ -3683,12 +3683,13 @@ class InfoExtractor:
         length = len(data)
 
         while 0 <= index < length:
-            match = _cookie_pattern.match(data, index)
+            match = _cookie_pattern.search(data, index)
             if not match:
                 break
 
             index = match.end(0)
             if match.group("bad"):
+                morsel = None
                 continue
 
             key, value = match.group("key"), match.group("val")
@@ -3701,12 +3702,15 @@ class InfoExtractor:
             lower_key = key.lower()
             if lower_key in _reserved:
                 if morsel is None:
-                    break
+                    continue
 
                 if value is None:
                     if lower_key not in _flags:
-                        break
+                        morsel = None
+                        continue
                     value = True
+                else:
+                    value, _ = cookie.value_decode(value)
 
                 morsel[key] = value
 
@@ -3715,6 +3719,9 @@ class InfoExtractor:
                 real_value, coded_value = cookie.value_decode(value)
                 morsel.set(key, real_value, coded_value)
                 cookie[key] = morsel
+
+            else:
+                morsel = None
 
         return cookie
 
