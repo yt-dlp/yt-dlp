@@ -717,26 +717,25 @@ class TwitterSpacesIE(TwitterBaseIE):
             'uploader': r're:Lucio Di Gaetano.+?',
             'uploader_id': 'luciodigaetano',
             'live_status': 'was_live',
-            'timestamp': 1659911386113,
+            'timestamp': 1659877956397,
         },
     }, {
-        # TODO: FIX TEST
         # Twitter Space not started yet
-        'url': 'https://twitter.com/i/spaces/1YqGoAeoEOAxv',
+        'url': 'https://twitter.com/i/spaces/1mnGeRyljQPJX',
         'info_dict': {
-            'id': '1YqGoAeoEOAxv',
-            'ext': 'mp4',
+            'id': '1mnGeRyljQPJX',
+            'title': '@staderlabs x Hedera AMA w/ @defigirlxoxo, @bmgentile, & @thehbarbull',
+            'description': 'Twitter Space partecipated by nobody yet.',
+            'uploader': 'Hedera',
+            'uploader_id': 'hedera',
+            'live_status': 'is_upcoming',
+            'timestamp': 1662394668924,
         },
-        'expected_warnings': ['Twitter Space not started yet'],
-    }, {
-        # TODO: FIX TEST
-        # Twitter Space no longer available
-        'url': 'https://twitter.com/i/spaces/1OyJADPAgebGb',
-        'info_dict': {
-            'id': '1OyJADPAgebGb',
-            'ext': 'mp4',
+        'params': {
+            'ignore_no_formats_error': True,
+            'skip_download': True,
         },
-        'expected_warnings': ['Twitter Space not found'],
+        'expected_warnings': ['Twitter Space not started yet', 'No video formats found', 'Requested format is not available'],
     }]
 
     def _parse_spaces_data(self, data, space_id):
@@ -753,12 +752,12 @@ class TwitterSpacesIE(TwitterBaseIE):
             live_status = 'post_live'
 
         # partecipants
-        description = 'Twitter Space partecipated by ' + join_nonempty(*[p.get('display_name') for p in traverse_obj(data, ('participants', 'speakers'))], delim=', ')
+        partecipants = join_nonempty(*[p.get('display_name') for p in traverse_obj(data, ('participants', 'speakers'))], delim=', ')
 
         return {
             'id': space_id,
             'title': metadata.get('title'),
-            'description': description,
+            'description': f"Twitter Space partecipated by {partecipants or 'nobody yet.'}",
             'media_key': metadata.get('media_key'),
             'uploader': traverse_obj(
                 metadata, ('creator_results', 'result', 'legacy', 'name')),
@@ -766,7 +765,7 @@ class TwitterSpacesIE(TwitterBaseIE):
                 metadata, ('creator_results', 'result', 'legacy', 'screen_name')),
             'is_live': space_status == 'running',
             'live_status': live_status,
-            'timestamp': metadata.get('updated_at'),
+            'timestamp': metadata.get('created_at'),
         }
 
     def _real_extract(self, url):
@@ -787,22 +786,24 @@ class TwitterSpacesIE(TwitterBaseIE):
 
         info = self._parse_spaces_data(space_data, space_id)
 
+        formats = []
+        media_key = info.pop('media_key')
+
         if info['live_status'] == 'is_upcoming':
             self.raise_no_formats('Twitter Space not started yet', expected=True)
-        if info['live_status'] == 'post_live':
+        elif info['live_status'] == 'post_live':
             self.raise_no_formats('Twitter Space ended but not downloadable yet', expected=True)
+        else:
+            source = self._call_api(
+                'live_video_stream/status/' + media_key, media_key)['source']
+            m3u8_url = source.get('noRedirectPlaybackUrl') or source['location']
+            m3u8_id = 'live' if info['is_live'] else 'replay'
 
-        media_key = info.pop('media_key')
-        source = self._call_api(
-            'live_video_stream/status/' + media_key, media_key)['source']
-        m3u8_url = source.get('noRedirectPlaybackUrl') or source['location']
-        m3u8_id = 'live' if info['is_live'] else 'replay'
-
-        formats = self._extract_m3u8_formats(
-            m3u8_url, media_key, 'mp4', m3u8_id=m3u8_id)
-        # force audio-only
-        for i in range(len(formats)):
-            formats[i].update({'vcodec': 'none'})
+            formats = self._extract_m3u8_formats(
+                m3u8_url, media_key, 'mp4', m3u8_id=m3u8_id)
+            # force audio-only
+            for i in range(len(formats)):
+                formats[i].update({'vcodec': 'none'})
 
         return {
             **info,
