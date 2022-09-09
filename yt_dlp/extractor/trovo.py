@@ -281,33 +281,24 @@ class TrovoVodIE(TrovoBaseIE):
 
 
 class TrovoChannelBaseIE(TrovoBaseIE):
-    def _get_vod_json(self, page, uid):
+    def _get_vod_json(self, page, spacename):
         raise NotImplementedError('This method must be implemented by subclasses')
 
-    def _entries(self, uid):
+    def _entries(self, spacename):
         for page in itertools.count(1):
-            vod_json = self._get_vod_json(page, uid)
+            vod_json = self._get_vod_json(page, spacename)
             vods = vod_json.get('vodInfos', [])
             for vod in vods:
                 yield self.url_result(
                     'https://trovo.live/%s/%s' % (self._TYPE, vod.get('vid')),
                     ie=TrovoVodIE.ie_key())
-            has_more = vod_json['hasMore']
+            has_more = vod_json.get('hasMore')
             if not has_more:
                 break
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        live_info = self._call_api(id, data={
-            'operationName': 'live_LiveReaderService_GetLiveInfo',
-            'variables': {
-                'params': {
-                    'userName': id,
-                },
-            },
-        })
-        uid = str(live_info['streamerInfo']['uid'])
-        return self.playlist_result(self._entries(uid), playlist_id=uid)
+        spacename = self._match_id(url)
+        return self.playlist_result(self._entries(spacename), playlist_id=spacename)
 
 
 class TrovoChannelVodIE(TrovoChannelBaseIE):
@@ -318,27 +309,26 @@ class TrovoChannelVodIE(TrovoChannelBaseIE):
         'url': 'trovovod:OneTappedYou',
         'playlist_mincount': 24,
         'info_dict': {
-            'id': '100719456',
+            'id': 'OneTappedYou',
         },
     }]
 
     _TYPE = 'video'
 
-    def _get_vod_json(self, page, uid):
-        return self._call_api(uid, data={
-            'operationName': 'getChannelLtvVideoInfos',
+    def _get_vod_json(self, page, spacename):
+        return self._call_api(spacename, data={
+            'operationName': 'vod_VodReaderService_GetChannelLtvVideoInfos',
             'variables': {
                 'params': {
-                    'channelID': int(uid),
-                    'pageSize': 99,
+                    'terminalSpaceID': {
+                        'spaceName': spacename,
+                    },
                     'currPage': page,
+                    'pageSize': 99,
                 },
             },
             'extensions': {
-                'persistedQuery': {
-                    'version': 1,
-                    'sha256Hash': '78fe32792005eab7e922cafcdad9c56bed8bbc5f5df3c7cd24fcb84a744f5f78',
-                },
+                'singleReq': 'true',
             },
         })
 
@@ -351,26 +341,25 @@ class TrovoChannelClipIE(TrovoChannelBaseIE):
         'url': 'trovoclip:OneTappedYou',
         'playlist_mincount': 29,
         'info_dict': {
-            'id': '100719456',
+            'id': 'OneTappedYou',
         },
     }]
 
     _TYPE = 'clip'
 
-    def _get_vod_json(self, page, uid):
-        return self._call_api(uid, data={
-            'operationName': 'getChannelClipVideoInfos',
+    def _get_vod_json(self, page, spacename):
+        return self._call_api(spacename, data={
+            'operationName': 'vod_VodReaderService_GetChannelClipVideoInfos',
             'variables': {
                 'params': {
-                    'channelID': int(uid),
-                    'pageSize': 99,
+                    'terminalSpaceID': {
+                        'spaceName': spacename,
+                    },
                     'currPage': page,
+                    'pageSize': 99,
                 },
             },
             'extensions': {
-                'persistedQuery': {
-                    'version': 1,
-                    'sha256Hash': 'e7924bfe20059b5c75fc8ff9e7929f43635681a7bdf3befa01072ed22c8eff31',
-                },
+                'singleReq': 'true',
             },
         })
