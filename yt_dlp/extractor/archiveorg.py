@@ -28,7 +28,7 @@ from ..utils import (
     unified_strdate,
     unified_timestamp,
     url_or_none,
-    urlhandle_detect_ext,
+    urlhandle_detect_ext, js_to_json,
 )
 
 
@@ -511,6 +511,51 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
+            # ~June 2010 Capture
+            'url': 'https://web.archive.org/web/0/https://www.youtube.com/watch?v=8XeW5ilk-9Y',
+            'info_dict': {
+                'id': '8XeW5ilk-9Y',
+                'ext': 'flv',
+                'title': 'Story of Stuff, The Critique Part 4 of 4',
+                'duration': 541,
+                'description': 'md5:28157da06f2c5e94c97f7f3072509972',
+                'uploader': 'HowTheWorldWorks',
+                'uploader_id': 'HowTheWorldWorks',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'uploader_url': 'https://www.youtube.com/user/HowTheWorldWorks',
+                'upload_date': '20090520',
+            }
+        }, {
+            # Jan 2011: watch-video-date/eow-date surrounded by whitespace
+            'url': 'https://web.archive.org/web/20110126141719/http://www.youtube.com/watch?v=Q_yjX80U7Yc',
+            'info_dict': {
+                'id': 'Q_yjX80U7Yc',
+                'ext': 'flv',
+                'title': 'Spray Paint Art by Clay Butler: Purple Fantasy Forest',
+                'uploader_id': 'claybutlermusic',
+                'description': 'md5:4595264559e3d0a0ceb3f011f6334543',
+                'upload_date': '20090803',
+                'uploader': 'claybutlermusic',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'duration': 132,
+                'uploader_url': 'https://www.youtube.com/user/claybutlermusic',
+            }
+        }, {
+            # ~May 2009
+            'url': 'https://web.archive.org/web/0/https://www.youtube.com/watch?v=c5uJgG05xUY',
+            'info_dict': {
+                'id': 'c5uJgG05xUY',
+                'ext': 'webm',
+                'title': 'Story of Stuff, The Critique Part 1 of 4',
+                'uploader_id': 'HowTheWorldWorks',
+                'uploader': 'HowTheWorldWorks',
+                'uploader_url': 'https://www.youtube.com/user/HowTheWorldWorks',
+                'upload_date': '20090513',
+                'description': 'md5:4ca77d79538064e41e4cc464e93f44f0',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'duration': 754,
+            }
+        }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'only_matching': True
         }, {
@@ -588,6 +633,15 @@ class YoutubeWebArchiveIE(InfoExtractor):
         initial_data = self._search_json(
             self._YT_INITIAL_DATA_RE, webpage, 'initial data', video_id, default={})
 
+        swf_config = self._search_json(r'swfConfig\s*=', webpage, 'swf config', video_id, default={})  # ~June 2010
+        swf_args = (
+            swf_config.get('args')
+            or self._search_json(r'swfArgs\s*=\s*', webpage, 'swf config', video_id, default={})
+            or {})
+
+        yt_document_set_config = self._search_json(
+            r'document\.title\s*=[^;]+;\s*yt\.setConfig\(', webpage, 'old config', video_id, default={}, transform_source=js_to_json)  # ~June 2010
+
         initial_data_video = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'videoPrimaryInfoRenderer'),
             expected_type=dict, get_all=False, default={})
@@ -605,18 +659,51 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or self._extract_webpage_title(webpage)
             or search_meta(['og:title', 'twitter:title', 'title']))
 
+        def id_from_url(url, type_):
+            return self._search_regex(  # TODO: more strict regex
+                rf'(?:{type_})/([^/#&?]+)', url or '', f'{type_} id', default=None)
+
+        # Uploader ID and URL
+        _CHANNEL_URL_HREF_RE = r'href=\"[^\"]+(?P<url>https?://www\.youtube\.com/(?:user|channel)/[^\"]+)\"'
+        upch_url = self._search_regex(
+            [fr'<(?:link\s*itemprop=\"url\"|a\s*id=\"watch-username\").*?\b{_CHANNEL_URL_HREF_RE}>',  # @fd05024
+             fr'<div\s*id=\"watch-channel-stats\"[^>]*>\s*<a\s*\b{_CHANNEL_URL_HREF_RE}'],  # ~ May 2009
+            webpage, 'uploader or channel url', default=None)
+
+        owner_profile_url = url_or_none(microformats.get('ownerProfileUrl'))  # @a6211d2
+
+        # Uploader refers to the /user/ id ONLY
+        uploader_id = (
+            id_from_url(owner_profile_url, 'user')
+            or id_from_url(upch_url, 'user')
+            or yt_document_set_config.get('VIDEO_USERNAME'))
+
+        uploader = (
+            self._search_regex(
+                [r'<a\s*id=\"watch-username\".*\">\s*<strong[^>]?>([^<]+)</strong>',
+                 r'var\s*watchUsername\s*=\s*\'(.+)\';',  # ~May 2009
+                 r'<div\s*\bid=\"watch-channel-stats\"[^>]*>\s*<a[^>]*>\s*(.+?)\s*</a'],  # ~May 2009
+                webpage, 'uploader', default=None)
+            or video_details.get('author')
+        )
+        uploader_url = f'https://www.youtube.com/user/{uploader_id}' if uploader_id else None
+
         channel_id = str_or_none(
             video_details.get('channelId')
             or microformats.get('externalChannelId')
             or search_meta('channelId')
             or self._search_regex(
                 r'data-channel-external-id=(["\'])(?P<id>(?:(?!\1).)+)\1',  # @b45a9e6
-                webpage, 'channel id', default=None, group='id'))
+                webpage, 'channel id', default=None, group='id')
+            or id_from_url(owner_profile_url, 'channel')
+            or id_from_url(upch_url, 'channel'))
+
         channel_url = f'http://www.youtube.com/channel/{channel_id}' if channel_id else None
 
         duration = int_or_none(
             video_details.get('lengthSeconds')
             or microformats.get('lengthSeconds')
+            or traverse_obj(swf_args, 'length_seconds', 'l')
             or parse_duration(search_meta('duration')))
         description = (
             video_details.get('shortDescription')
@@ -624,26 +711,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or clean_html(get_element_by_id('eow-description', webpage))  # @9e6dd23
             or search_meta(['description', 'og:description', 'twitter:description']))
 
-        uploader = video_details.get('author')
-
-        # Uploader ID and URL
-        uploader_mobj = re.search(
-            r'<link itemprop="url" href="(?P<uploader_url>https?://www\.youtube\.com/(?:user|channel)/(?P<uploader_id>[^"]+))">',  # @fd05024
-            webpage)
-        if uploader_mobj is not None:
-            uploader_id, uploader_url = uploader_mobj.group('uploader_id'), uploader_mobj.group('uploader_url')
-        else:
-            # @a6211d2
-            uploader_url = url_or_none(microformats.get('ownerProfileUrl'))
-            uploader_id = self._search_regex(
-                r'(?:user|channel)/([^/]+)', uploader_url or '', 'uploader id', default=None)
-
         upload_date = unified_strdate(
             dict_get(microformats, ('uploadDate', 'publishDate'))
             or search_meta(['uploadDate', 'datePublished'])
             or self._search_regex(
-                [r'(?s)id="eow-date.*?>(.*?)</span>',
-                 r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']'],  # @7998520
+                [r'(?s)id=\"eow-date.*?>\s*(.*?)\s*</span>',
+                 r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']',  # @7998520
+                 r'class\s*=\s*\"(?:watch-video-date|watch-video-added post-date)\"[^>]*>\s*([^<]+?)\s*<'],  # ~June 2010, ~Jan 2009 (respectively)
                 webpage, 'upload date', default=None))
 
         return {
