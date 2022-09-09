@@ -1970,7 +1970,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': 'x41yOUIvK2k',
                 'ext': 'mp4',
                 'title': 'IMG 3456',
-                'description': None,
+                'description': '',
                 'upload_date': '20170613',
                 'uploader_id': 'ElevageOrVert',
                 'uploader': 'ElevageOrVert',
@@ -2395,7 +2395,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': 'el3E4MbxRqQ',
                 'ext': 'mp4',
                 'title': 'dlp test video 2 - primary sv no desc',
-                'description': None,
+                'description': '',
                 'channel': 'cole-dlp-test-acc',
                 'tags': [],
                 'view_count': int,
@@ -3702,14 +3702,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         original_description = get_first(video_details, 'shortDescription')
         video_description = (
             self._preferred_lang and translated_description
-            or (
-                # If original description is blank, it will be an empty string.
-                # Do not prefer translated description in this case.
-                (original_description or None)
-                if original_description is not None
-                else (translated_description or None)
-            )
-        )
+            # If original description is blank, it will be an empty string.
+            # Do not prefer translated description in this case.
+            or original_description if original_description is not None else translated_description)
 
         multifeed_metadata_list = get_first(
             player_responses,
