@@ -527,8 +527,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
     ]
     _YT_INITIAL_DATA_RE = YoutubeBaseInfoExtractor._YT_INITIAL_DATA_RE
     _YT_INITIAL_PLAYER_RESPONSE_RE = fr'''(?x)
-        (?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*|
-        {YoutubeBaseInfoExtractor._YT_INITIAL_PLAYER_RESPONSE_RE}'''
+        (?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*|
+        {YoutubeBaseInfoExtractor._YT_INITIAL_PLAYER_RESPONSE_RE})'''
 
     _YT_DEFAULT_THUMB_SERVERS = ['i.ytimg.com']  # thumbnails most likely archived on these servers
     _YT_ALL_THUMB_SERVERS = orderedSet(
