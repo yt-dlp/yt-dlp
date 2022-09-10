@@ -66,7 +66,7 @@ class MallTVIE(InfoExtractor):
         video = self._parse_json(self._search_regex(
             r'videoObject\s*=\s*JSON\.parse\(JSON\.stringify\(({.+?})\)\);',
             webpage, 'video object'), display_id)
-            
+
         video_id = self._search_regex(
             r'<input\s*id\s*=\s*player-id-name\s*[^>]+value\s*=\s*(\w+)', webpage, 'video id')
 
