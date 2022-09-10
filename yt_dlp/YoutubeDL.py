@@ -3484,7 +3484,7 @@ class YoutubeDL:
         assert vid_id
 
         self.write_debug(f'Adding to archive: {vid_id}')
-        if isinstance(fn, os.PathLike):
+        if is_path_like(fn):
             with locked_file(fn, 'a', encoding='utf-8') as archive_file:
                 archive_file.write(vid_id + '\n')
         self.archive.add(vid_id)
