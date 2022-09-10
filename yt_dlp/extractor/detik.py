@@ -120,3 +120,34 @@ class Detik20IE(InfoExtractor):
             'subtitles': subtitles,
             'tags': str_or_none(self._html_search_meta(['keywords', 'keyword', 'dtk:keywords'], webpage), '').split(','),
         })
+
+
+class PasangMataDetikIE(InfoExtractor):
+    _VALID_URL = r'https?://pasangmata\.detik\.com/contribution/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://pasangmata.detik.com/contribution/366649',
+        'info_dict': {
+            'id': '366649',
+            'ext': 'mp4',
+            'title': 'Saling Dorong Aparat dan Pendemo di Aksi Tolak Kenaikan BBM',
+            'description': 'md5:7a6580876c8381c454679e028620bea7',
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+
+        video_url = self._search_regex(
+            r'videoUrl[^"]+"([^"]+)', webpage, 'video_url')
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id)
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'title': self._html_search_meta(['og:title', 'twitter:title'], webpage),
+            'description': self._html_search_meta(['description', 'og:description', 'twitter:description'], webpage),
+            'formats': formats,
+            'subtitles': subtitles,
+        }
