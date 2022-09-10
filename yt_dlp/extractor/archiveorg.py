@@ -773,8 +773,6 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or ytcfg.get('VIDEO_USERNAME'))
         uploader_url = f'https://www.youtube.com/user/{uploader_id}' if uploader_id else None
 
-        user_header_html = get_element_by_id('watch7-user-header', webpage)
-
         # TODO: sort out what uploader means
         uploader = (
             self._search_regex(
@@ -786,7 +784,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or self._html_search_regex(
                 [r'(?s)<div\s*class=\"yt-user-info\".*?<a[^>]*[^>]*>\s*(.*?)\s*<\/a',  # March 2016
                  r'(?s)<a[^>]*yt-user-name[^>]*>\s*(.*?)\s*<\/a'],  # july 2013
-                user_header_html, 'uploader', default=None)
+                get_element_by_id('watch7-user-header', webpage), 'uploader', default=None)
             or self._html_search_regex(
                 r'<button\s*href=\"\/user\/[^>]*>\s*<span[^>]*>\s*(.+?)\s*<',  # April 2012
                 get_element_by_id('watch-headline-user-info', webpage), 'uploader', default=None)
