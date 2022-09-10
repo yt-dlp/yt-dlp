@@ -452,6 +452,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_url': 'https://www.youtube.com/user/MachinimaETC',
                 'channel_url': 'https://www.youtube.com/channel/UCdIaNUarhzLSXGoItz7BHVA',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'uploader': 'ETC News',
             }
         }, {
             # First capture of dead video, capture date in link links to dead capture.
@@ -491,6 +492,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 810,
                 'description': 'md5:7b567f898d8237b256f36c1a07d6d7bc',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'uploader': 'DankPods',
             }
         }, {
             # player response contains '};' See: https://github.com/ytdl-org/youtube-dl/issues/27093
@@ -510,7 +512,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
-            # ~June 2010 Capture
+            # ~June 2010 Capture. swfconfig
             'url': 'https://web.archive.org/web/0/https://www.youtube.com/watch?v=8XeW5ilk-9Y',
             'info_dict': {
                 'id': '8XeW5ilk-9Y',
@@ -540,7 +542,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_url': 'https://www.youtube.com/user/claybutlermusic',
             }
         }, {
-            # ~May 2009
+            # ~May 2009 swfArgs. ytcfg is spread out over various vars
             'url': 'https://web.archive.org/web/0/https://www.youtube.com/watch?v=c5uJgG05xUY',
             'info_dict': {
                 'id': 'c5uJgG05xUY',
@@ -615,6 +617,21 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'upload_date': '20150503',
                 'channel_id': 'UCnTaGvsHmMy792DWeT6HbGA',
+            }
+        }, {
+            # April 2012
+            'url': 'https://web.archive.org/web/0/https://www.youtube.com/watch?v=SOm7mPoPskU',
+            'info_dict': {
+                'id': 'SOm7mPoPskU',
+                'ext': 'mp4',
+                'title': 'Boyfriend - Justin Bieber Parody',
+                'uploader_url': 'https://www.youtube.com/user/thecomputernerd01',
+                'uploader': 'thecomputernerd01',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'description': 'md5:dd7fa635519c2a5b4d566beaecad7491',
+                'duration': 200,
+                'upload_date': '20120407',
+                'uploader_id': 'thecomputernerd01',
             }
         }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
@@ -694,15 +711,21 @@ class YoutubeWebArchiveIE(InfoExtractor):
         initial_data = self._search_json(
             self._YT_INITIAL_DATA_RE, webpage, 'initial data', video_id, default={})
 
-        swf_config = self._search_json(r'swfConfig\s*=', webpage, 'swf config', video_id, default={})  # ~June 2010
-        # XXX: this also contains a 'creator' key. I'm not sure if it's the uploader or uploader id
-        swf_args = (
-            swf_config.get('args')
-            or self._search_json(r'swfArgs\s*=\s*', webpage, 'swf config', video_id, default={})
-            or {})
+        ytcfg = {}
+        for j in re.findall(r'yt\.setConfig\(\s*(?P<json>{\s*(?s:.+?)\s*})\s*\);', webpage):  # ~June 2010
+            ytcfg.update(self._parse_json(j, video_id, fatal=False, ignore_extra=True, transform_source=js_to_json, errnote='') or {})
+
         # XXX: this also may contain a 'ptchn' key. I'm not sure if that is channel name or uploader
-        player_config = self._search_json(
-            r'(?:yt.playerConfig|ytplayer.config)\s*=\s*', webpage, 'player config', video_id, default={})
+        player_config = (
+            self._search_json(
+                r'(?:yt.playerConfig|ytplayer.config|swfConfig)\s*=\s*',
+                webpage, 'player config', video_id, default=None)
+            or ytcfg.get('PLAYER_CONFIG') or {})
+
+        # XXX: this also contains a 'creator' key. I'm not sure if it's the uploader or uploader id
+        swf_args = self._search_json(r'swfArgs\s*=\s*', webpage, 'swf config', video_id, default={})
+        if swf_args and not traverse_obj(player_config, ('args',)):
+            player_config['args'] = swf_args
 
         if not player_response:
             # April 2020
@@ -710,9 +733,6 @@ class YoutubeWebArchiveIE(InfoExtractor):
             #  maybe we should introduce another time period preference
             player_response = self._parse_json(
                 traverse_obj(player_config, ('args', 'player_response')) or '{}', video_id, fatal=False)
-
-        yt_document_set_config = self._search_json(
-            r'document\.title\s*=[^;]+;\s*yt\.setConfig\(', webpage, 'old document config', video_id, default={}, transform_source=js_to_json)  # ~June 2010
 
         initial_data_video = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'videoPrimaryInfoRenderer'),
@@ -750,10 +770,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
         uploader_id = (
             id_from_url(owner_profile_url, 'user')
             or id_from_url(upch_url, 'user')
-            or yt_document_set_config.get('VIDEO_USERNAME'))  # TODO: is this the right id?
+            or ytcfg.get('VIDEO_USERNAME'))
         uploader_url = f'https://www.youtube.com/user/{uploader_id}' if uploader_id else None
 
         user_header_html = get_element_by_id('watch7-user-header', webpage)
+
+        # TODO: sort out what uploader means
         uploader = (
             self._search_regex(
                 [r'<a\s*id=\"watch-username\".*\">\s*<strong[^>]?>([^<]+)</strong>',
@@ -765,7 +787,11 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 [r'(?s)<div\s*class=\"yt-user-info\".*?<a[^>]*[^>]*>\s*(.*?)\s*<\/a',  # March 2016
                  r'(?s)<a[^>]*yt-user-name[^>]*>\s*(.*?)\s*<\/a'],  # july 2013
                 user_header_html, 'uploader', default=None)
-            or video_details.get('author')  # TODO: sort out what uploader means
+            or self._html_search_regex(
+                r'<button\s*href=\"\/user\/[^>]*>\s*<span[^>]*>\s*(.+?)\s*<',  # April 2012
+                get_element_by_id('watch-headline-user-info', webpage), 'uploader', default=None)
+            or traverse_obj(player_config, ('args', 'creator'))
+            or video_details.get('author')
         )
 
         channel_id = str_or_none(
@@ -776,15 +802,14 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 r'data-channel-external-id=(["\'])(?P<id>(?:(?!\1).)+)\1',  # @b45a9e6
                 webpage, 'channel id', default=None, group='id')
             or id_from_url(owner_profile_url, 'channel')
-            or id_from_url(upch_url, 'channel'))
+            or id_from_url(upch_url, 'channel')
+            or traverse_obj(player_config, ('args', 'ucid')))
 
         channel_url = f'https://www.youtube.com/channel/{channel_id}' if channel_id else None
-
         duration = int_or_none(
             video_details.get('lengthSeconds')
             or microformats.get('lengthSeconds')
-            or traverse_obj(swf_args, 'length_seconds', 'l')
-            or traverse_obj(player_config, ('args', 'length_seconds'))
+            or traverse_obj(player_config, ('args', ['length_seconds', 'l']), get_all=False)
             or parse_duration(search_meta('duration')))
         description = (
             video_details.get('shortDescription')
