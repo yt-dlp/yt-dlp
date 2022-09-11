@@ -2274,6 +2274,9 @@ class InfoExtractor:
                 subtitles.setdefault(lang, []).append(sub_info)
             if media_type not in ('VIDEO', 'AUDIO'):
                 return
+            channels = media.get('CHANNELS')
+            if not channels is None and channels.isDigit():
+                channels = int(channels)
             media_url = media.get('URI')
             if media_url:
                 manifest_url = format_url(media_url)
@@ -2284,6 +2287,7 @@ class InfoExtractor:
                     'url': manifest_url,
                     'manifest_url': m3u8_url,
                     'language': media.get('LANGUAGE'),
+                    'audio_channels': channels,
                     'ext': ext,
                     'protocol': entry_protocol,
                     'preference': preference,
