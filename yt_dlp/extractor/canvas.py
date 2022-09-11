@@ -20,7 +20,7 @@ from ..utils import (
 
 
 class CanvasIE(InfoExtractor):
-    _VALID_URL = r'https?://mediazone\.vrt\.be/api/v1/(?P<site_id>canvas|een|ketnet|vrt(?:video|nieuws)|sporza|dako)/assets/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https://media-services-public\.vrt\.be/media-aggregator/v2/media-items/(?P<video_id>.+)'
     _TESTS = [{
         'url': 'https://mediazone.vrt.be/api/v1/ketnet/assets/md-ast-4ac54990-ce66-4d00-a8ca-9eac86f4c475',
         'md5': '37b2b7bb9b3dcaa05b67058dc3a714a9',
@@ -43,48 +43,41 @@ class CanvasIE(InfoExtractor):
         'HLS': 'm3u8_native',
         'HLS_AES': 'm3u8_native',
     }
-    _REST_API_BASE = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2'
+    _REST_API_BASE_TOKEN = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2'
+    _REST_API_BASE_VIDEO = 'https://media-services-public.vrt.be/media-aggregator/v2'
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        site_id, video_id = mobj.group('site_id'), mobj.group('id')
+        video_id = mobj.group('video_id')
 
         data = None
-        if site_id != 'vrtvideo':
-            # Old API endpoint, serves more formats but may fail for some videos
-            data = self._download_json(
-                'https://mediazone.vrt.be/api/v1/%s/assets/%s'
-                % (site_id, video_id), video_id, 'Downloading asset JSON',
-                'Unable to download asset JSON', fatal=False)
 
-        # New API endpoint
-        if not data:
-            vrtnutoken = self._download_json('https://token.vrt.be/refreshtoken',
-                                             video_id, note='refreshtoken: Retrieve vrtnutoken',
-                                             errnote='refreshtoken failed')['vrtnutoken']
-            headers = self.geo_verification_headers()
-            headers.update({'Content-Type': 'application/json; charset=utf-8'})
-            vrtPlayerToken = self._download_json(
-                '%s/tokens' % self._REST_API_BASE, video_id,
-                'Downloading token', headers=headers, data=json.dumps({
-                    'identityToken': vrtnutoken
-                }).encode('utf-8'))['vrtPlayerToken']
-            data = self._download_json(
-                '%s/videos/%s' % (self._REST_API_BASE, video_id),
-                video_id, 'Downloading video JSON', query={
-                    'vrtPlayerToken': vrtPlayerToken,
-                    'client': 'null',
-                }, expected_status=400)
-            if 'title' not in data:
-                code = data.get('code')
-                if code == 'AUTHENTICATION_REQUIRED':
-                    self.raise_login_required()
-                elif code == 'INVALID_LOCATION':
-                    self.raise_geo_restricted(countries=['BE'])
-                raise ExtractorError(data.get('message') or code, expected=True)
+        vrtnutoken = self._download_json('https://token.vrt.be/refreshtoken',
+                                            video_id, note='refreshtoken: Retrieve vrtnutoken',
+                                            errnote='refreshtoken failed')['vrtnutoken']
+        headers = self.geo_verification_headers()
+        headers.update({'Content-Type': 'application/json; charset=utf-8'})
+        vrtPlayerToken = self._download_json(
+            '%s/tokens' % self._REST_API_BASE_TOKEN, video_id,
+            'Downloading token', headers=headers, data=json.dumps({
+                'identityToken': vrtnutoken
+            }).encode('utf-8'))['vrtPlayerToken']
+        data = self._download_json(
+            '%s/media-items/%s' % (self._REST_API_BASE_VIDEO, video_id),
+            video_id, 'Downloading video JSON', query={
+                'vrtPlayerToken': vrtPlayerToken,
+                'client': 'vrtnu-web@PROD',
+            }, expected_status=400)
+        if 'title' not in data:
+            code = data.get('code')
+            if code == 'AUTHENTICATION_REQUIRED':
+                self.raise_login_required()
+            elif code == 'INVALID_LOCATION':
+                self.raise_geo_restricted(countries=['BE'])
+            raise ExtractorError(data.get('message') or code, expected=True)
 
         # Note: The title may be an empty string
-        title = data['title'] or f'{site_id} {video_id}'
+        title = data['title'] or f'{video_id}'
         description = data.get('description')
 
         formats = []
@@ -224,7 +217,7 @@ class CanvasEenIE(InfoExtractor):
 
 class VrtNUIE(GigyaBaseIE):
     IE_DESC = 'VrtNU.be'
-    _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtnu/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtnu/a-z/(?P<show>.+)/(?P<year>[0-9]{4})/(?P<id>.+)/?'
     _TESTS = [{
         # Available via old API endpoint
         'url': 'https://www.vrt.be/vrtnu/a-z/postbus-x/1989/postbus-x-s1989a1/',
@@ -312,28 +305,21 @@ class VrtNUIE(GigyaBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, display_id)
+        episode_data = self._download_json(f'{url.strip("/")}.model.json', display_id,
+                        'Downloading asset JSON', 'Unable to download asset JSON')
+        details = episode_data.get('details')
+        actions = details.get('actions')
+        episode_publication_id = actions[2].get('episodePublicationId')
+        episode_video_id = actions[2].get('episodeVideoId')
+        video_id = f'{episode_publication_id}${episode_video_id}'
 
-        attrs = extract_attributes(self._search_regex(
-            r'(<nui-media[^>]+>)', webpage, 'media element'))
-        video_id = attrs['videoid']
-        publication_id = attrs.get('publicationid')
-        if publication_id:
-            video_id = publication_id + '$' + video_id
-
-        page = (self._parse_json(self._search_regex(
-            r'digitalData\s*=\s*({.+?});', webpage, 'digial data',
-            default='{}'), video_id, fatal=False) or {}).get('page') or {}
-
-        info = self._search_json_ld(webpage, display_id, default={})
-        return merge_dicts(info, {
+        return {
             '_type': 'url_transparent',
-            'url': 'https://mediazone.vrt.be/api/v1/vrtvideo/assets/%s' % video_id,
-            'ie_key': CanvasIE.ie_key(),
+            'url': 'https://media-services-public.vrt.be/media-aggregator/v2/media-items/%s' % video_id,
+            'ie_key': 'Canvas',
             'id': video_id,
-            'display_id': display_id,
-            'season_number': int_or_none(page.get('episode_season')),
-        })
+            'display_id': display_id
+        }
 
 
 class DagelijkseKostIE(InfoExtractor):
@@ -382,3 +368,4 @@ class DagelijkseKostIE(InfoExtractor):
             'title': title,
             'description': description,
         }
+
