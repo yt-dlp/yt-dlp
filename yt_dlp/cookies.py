@@ -30,6 +30,7 @@ from .utils import (
     YoutubeDLCookieJar,
     error_to_str,
     expand_path,
+    is_path_like,
     try_call,
 )
 
@@ -97,7 +98,7 @@ def load_cookies(cookie_file, browser_specification, ydl):
             extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring, container=container))
 
     if cookie_file is not None:
-        is_filename = YoutubeDLCookieJar.is_path(cookie_file)
+        is_filename = is_path_like(cookie_file)
         if is_filename:
             cookie_file = expand_path(cookie_file)
 
