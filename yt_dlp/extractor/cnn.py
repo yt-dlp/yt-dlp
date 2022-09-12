@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from .turner import TurnerBaseIE
-from ..utils import url_basename
+from ..utils import str_or_none, url_basename
 
 
 class CNNIE(TurnerBaseIE):
@@ -155,7 +155,8 @@ class CNNIndonesiaIE(InfoExtractor):
             'title': 'Alasan Harga BBM di Indonesia Masih Disubsidi',
             'timestamp': 1662859088,
             'duration': 120.0,
-            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/09/thumbnail-ekopedia-alasan-harga-bbm-disubsidi_169.jpeg?w=650'
+            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/09/thumbnail-ekopedia-alasan-harga-bbm-disubsidi_169.jpeg?w=650',
+            'tags': ['ekopedia', 'subsidi bbm', 'subsidi', 'bbm', 'bbm subsidi', 'harga pertalite naik'],
         }
     }, {
         'url': 'https://www.cnnindonesia.com/internasional/20220911104341-139-846189/video-momen-charles-disambut-meriah-usai-dilantik-jadi-raja-inggris',
@@ -168,6 +169,7 @@ class CNNIndonesiaIE(InfoExtractor):
             'description': 'md5:ece7b003b3ee7d81c6a5cfede7d5397d',
             'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/11/thumbnail-video-1_169.jpeg?w=650',
             'title': 'VIDEO: Momen Charles Disambut Meriah usai Dilantik jadi Raja Inggris',
+            'tags': ['raja charles', 'raja charles iii', 'ratu elizabeth', 'ratu elizabeth meninggal dunia', 'raja inggris', 'inggris'],
         }
     }]
 
@@ -185,12 +187,13 @@ class CNNIndonesiaIE(InfoExtractor):
             r'videoUrl\s*:\s*\'([^\']+)', embed_webpage, 'videoUrl')
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(manifest_url, display_id)
-
+        self._sort_formats(formats)
         return {
             'id': self._html_search_meta(['articleid'], webpage, fatal=True),
             'formats': formats,
             'subtitles': subtitles,
             'title': self._html_search_meta(['og:title', 'twitter:title', 'originalTitle'], webpage),
             'description': self._html_search_meta(['og:description'], webpage),
+            'tags': str_or_none(self._html_search_meta('keywords', webpage), '').split(', '),
             **json_ld_data
         }
