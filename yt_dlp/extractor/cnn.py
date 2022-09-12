@@ -180,7 +180,7 @@ class CNNIndonesiaIE(InfoExtractor):
         embed_url = [json_ld.get('embedUrl') for json_ld in json_ld_list if json_ld.get('@type') == 'VideoObject'][0]
 
         # embed url extract
-        embed_webpage = self._download_webpage(embed_url, display_id)
+        embed_webpage = self._download_webpage(embed_url, display_id, note='Downloading embed webpage')
         manifest_url = self._search_regex(
             r'videoUrl\s*:\s*\'([^\']+)', embed_webpage, 'videoUrl')
 
