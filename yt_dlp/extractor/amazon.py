@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import ExtractorError, int_or_none
 
 
 class AmazonStoreIE(InfoExtractor):
@@ -38,8 +38,14 @@ class AmazonStoreIE(InfoExtractor):
 
     def _real_extract(self, url):
         id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
-        data_json = self._parse_json(self._html_search_regex(r'var\s?obj\s?=\s?jQuery\.parseJSON\(\'(.*)\'\)', webpage, 'data'), id)
+
+        for retry in self.RetryManager(fatal=True):
+            webpage = self._download_webpage(url, id)
+            try:
+                data_json = self._parse_json(self._html_search_regex(r'var\s?obj\s?=\s?jQuery\.parseJSON\(\'(.*)\'\)', webpage, 'data'), id)
+            except ExtractorError as e:
+                retry.error = e
+
         entries = [{
             'id': video['marketPlaceID'],
             'url': video['url'],

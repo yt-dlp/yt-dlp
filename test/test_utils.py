@@ -566,6 +566,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(base_url('http://foo.de/bar/'), 'http://foo.de/bar/')
         self.assertEqual(base_url('http://foo.de/bar/baz'), 'http://foo.de/bar/')
         self.assertEqual(base_url('http://foo.de/bar/baz?x=z/x/c'), 'http://foo.de/bar/')
+        self.assertEqual(base_url('http://foo.de/bar/baz&x=z&w=y/x/c'), 'http://foo.de/bar/baz&x=z&w=y/x/')
 
     def test_urljoin(self):
         self.assertEqual(urljoin('http://foo.de/', '/a/b/c.txt'), 'http://foo.de/a/b/c.txt')

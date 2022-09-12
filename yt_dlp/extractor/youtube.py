@@ -2,6 +2,7 @@ import base64
 import calendar
 import copy
 import datetime
+import enum
 import hashlib
 import itertools
 import json
@@ -110,8 +111,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '17.29.34',
-                'androidSdkVersion': 30
+                'clientVersion': '17.31.35',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
@@ -122,8 +124,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '17.29.34',
-                'androidSdkVersion': 30
+                'clientVersion': '17.31.35',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
@@ -135,7 +138,8 @@ INNERTUBE_CLIENTS = {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
                 'clientVersion': '5.16.51',
-                'androidSdkVersion': 30
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.apps.youtube.music/5.16.51 (Linux; U; Android 11) gzip'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
@@ -146,8 +150,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_CREATOR',
-                'clientVersion': '22.28.100',
-                'androidSdkVersion': 30
+                'clientVersion': '22.30.100',
+                'androidSdkVersion': 30,
+                'userAgent': 'com.google.android.apps.youtube.creator/22.30.100 (Linux; U; Android 11) gzip'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
@@ -160,8 +165,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '17.30.1',
+                'clientVersion': '17.33.2',
                 'deviceModel': 'iPhone14,3',
+                'userAgent': 'com.google.ios.youtube/17.33.2 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
@@ -171,8 +177,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MESSAGES_EXTENSION',
-                'clientVersion': '17.30.1',
+                'clientVersion': '17.33.2',
                 'deviceModel': 'iPhone14,3',
+                'userAgent': 'com.google.ios.youtube/17.33.2 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 66,
@@ -183,7 +190,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MUSIC',
-                'clientVersion': '5.18',
+                'clientVersion': '5.21',
+                'deviceModel': 'iPhone14,3',
+                'userAgent': 'com.google.ios.youtubemusic/5.21 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
@@ -193,7 +202,9 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_CREATOR',
-                'clientVersion': '22.29.101',
+                'clientVersion': '22.33.101',
+                'deviceModel': 'iPhone14,3',
+                'userAgent': 'com.google.ios.ytcreator/22.33.101 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)'
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
@@ -263,6 +274,15 @@ def build_innertube_clients():
 
 
 build_innertube_clients()
+
+
+class BadgeType(enum.Enum):
+    AVAILABILITY_UNLISTED = enum.auto()
+    AVAILABILITY_PRIVATE = enum.auto()
+    AVAILABILITY_PUBLIC = enum.auto()
+    AVAILABILITY_PREMIUM = enum.auto()
+    AVAILABILITY_SUBSCRIPTION = enum.auto()
+    LIVE_NOW = enum.auto()
 
 
 class YoutubeBaseInfoExtractor(InfoExtractor):
@@ -357,6 +377,36 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?piped\.privacy\.com\.de',
     )
 
+    # extracted from account/account_menu ep
+    # XXX: These are the supported YouTube UI and API languages,
+    # which is slightly different from languages supported for translation in YouTube studio
+    _SUPPORTED_LANG_CODES = [
+        'af', 'az', 'id', 'ms', 'bs', 'ca', 'cs', 'da', 'de', 'et', 'en-IN', 'en-GB', 'en', 'es',
+        'es-419', 'es-US', 'eu', 'fil', 'fr', 'fr-CA', 'gl', 'hr', 'zu', 'is', 'it', 'sw', 'lv',
+        'lt', 'hu', 'nl', 'no', 'uz', 'pl', 'pt-PT', 'pt', 'ro', 'sq', 'sk', 'sl', 'sr-Latn', 'fi',
+        'sv', 'vi', 'tr', 'be', 'bg', 'ky', 'kk', 'mk', 'mn', 'ru', 'sr', 'uk', 'el', 'hy', 'iw',
+        'ur', 'ar', 'fa', 'ne', 'mr', 'hi', 'as', 'bn', 'pa', 'gu', 'or', 'ta', 'te', 'kn', 'ml',
+        'si', 'th', 'lo', 'my', 'ka', 'am', 'km', 'zh-CN', 'zh-TW', 'zh-HK', 'ja', 'ko'
+    ]
+
+    @functools.cached_property
+    def _preferred_lang(self):
+        """
+        Returns a language code supported by YouTube for the user preferred language.
+        Returns None if no preferred language set.
+        """
+        preferred_lang = self._configuration_arg('lang', ie_key='Youtube', casesense=True, default=[''])[0]
+        if not preferred_lang:
+            return
+        if preferred_lang not in self._SUPPORTED_LANG_CODES:
+            raise ExtractorError(
+                f'Unsupported language code: {preferred_lang}. Supported language codes (case-sensitive): {join_nonempty(*self._SUPPORTED_LANG_CODES, delim=", ")}.',
+                expected=True)
+        elif preferred_lang != 'en':
+            self.report_warning(
+                f'Preferring "{preferred_lang}" translated fields. Note that some metadata extraction may fail or be incorrect.')
+        return preferred_lang
+
     def _initialize_consent(self):
         cookies = self._get_cookies('https://www.youtube.com/')
         if cookies.get('__Secure-3PSID'):
@@ -381,7 +431,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 pref = dict(urllib.parse.parse_qsl(pref_cookie.value))
             except ValueError:
                 self.report_warning('Failed to parse user PREF cookie' + bug_reports_message())
-        pref.update({'hl': 'en', 'tz': 'UTC'})
+        pref.update({'hl': self._preferred_lang or 'en', 'tz': 'UTC'})
         self._set_cookie('.youtube.com', name='PREF', value=urllib.parse.urlencode(pref))
 
     def _real_initialize(self):
@@ -429,7 +479,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             (ytcfg, self._get_default_ytcfg(default_client)), 'INNERTUBE_CONTEXT', expected_type=dict)
         # Enforce language and tz for extraction
         client_context = traverse_obj(context, 'client', expected_type=dict, default={})
-        client_context.update({'hl': 'en', 'timeZone': 'UTC', 'utcOffsetMinutes': 0})
+        client_context.update({'hl': self._preferred_lang or 'en', 'timeZone': 'UTC', 'utcOffsetMinutes': 0})
         return context
 
     _SAPISID = None
@@ -555,7 +605,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'Origin': origin,
             'X-Youtube-Identity-Token': identity_token or self._extract_identity_token(ytcfg),
             'X-Goog-PageId': account_syncid or self._extract_account_syncid(ytcfg),
-            'X-Goog-Visitor-Id': visitor_data or self._extract_visitor_data(ytcfg)
+            'X-Goog-Visitor-Id': visitor_data or self._extract_visitor_data(ytcfg),
+            'User-Agent': self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT']['client']['userAgent'], default_client=default_client)
         }
         if session_index is None:
             session_index = self._extract_session_index(ytcfg)
@@ -667,12 +718,48 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return self._report_alerts(self._extract_alerts(data), *args, **kwargs)
 
     def _extract_badges(self, renderer: dict):
-        badges = set()
-        for badge in try_get(renderer, lambda x: x['badges'], list) or []:
-            label = try_get(badge, lambda x: x['metadataBadgeRenderer']['label'], str)
-            if label:
-                badges.add(label.lower())
+        privacy_icon_map = {
+            'PRIVACY_UNLISTED': BadgeType.AVAILABILITY_UNLISTED,
+            'PRIVACY_PRIVATE': BadgeType.AVAILABILITY_PRIVATE,
+            'PRIVACY_PUBLIC': BadgeType.AVAILABILITY_PUBLIC
+        }
+
+        badge_style_map = {
+            'BADGE_STYLE_TYPE_MEMBERS_ONLY': BadgeType.AVAILABILITY_SUBSCRIPTION,
+            'BADGE_STYLE_TYPE_PREMIUM': BadgeType.AVAILABILITY_PREMIUM,
+            'BADGE_STYLE_TYPE_LIVE_NOW': BadgeType.LIVE_NOW
+        }
+
+        label_map = {
+            'unlisted': BadgeType.AVAILABILITY_UNLISTED,
+            'private': BadgeType.AVAILABILITY_PRIVATE,
+            'members only': BadgeType.AVAILABILITY_SUBSCRIPTION,
+            'live': BadgeType.LIVE_NOW,
+            'premium': BadgeType.AVAILABILITY_PREMIUM
+        }
+
+        badges = []
+        for badge in traverse_obj(renderer, ('badges', ..., 'metadataBadgeRenderer'), default=[]):
+            badge_type = (
+                privacy_icon_map.get(traverse_obj(badge, ('icon', 'iconType'), expected_type=str))
+                or badge_style_map.get(traverse_obj(badge, 'style'))
+            )
+            if badge_type:
+                badges.append({'type': badge_type})
+                continue
+
+            # fallback, won't work in some languages
+            label = traverse_obj(badge, 'label', expected_type=str, default='')
+            for match, label_badge_type in label_map.items():
+                if match in label.lower():
+                    badges.append({'type': badge_type})
+                    continue
+
         return badges
+
+    @staticmethod
+    def _has_badge(badges, badge_type):
+        return bool(traverse_obj(badges, lambda _, v: v['type'] == badge_type))
 
     @staticmethod
     def _get_text(data, *path_list, max_runs=None):
@@ -744,9 +831,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             except ValueError:
                 return None
 
-    def _extract_time_text(self, renderer, *path_list):
-        """@returns (timestamp, time_text)"""
-        text = self._get_text(renderer, *path_list) or ''
+    def _parse_time_text(self, text):
+        if not text:
+            return
         dt = self.extract_relative_time(text)
         timestamp = None
         if isinstance(dt, datetime.datetime):
@@ -759,9 +846,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                         (r'([a-z]+\s*\d{1,2},?\s*20\d{2})', r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*(?:on|for))?\s*(.+\d)'),
                         text.lower(), 'time text', default=None)))
 
-        if text and timestamp is None:
-            self.report_warning(f"Cannot parse localized time text '{text}'" + bug_reports_message(), only_once=True)
-        return timestamp, text
+        if text and timestamp is None and self._preferred_lang in (None, 'en'):
+            self.report_warning(
+                f'Cannot parse localized time text "{text}"', only_once=True)
+        return timestamp
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
@@ -837,7 +925,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         channel_id = traverse_obj(
             renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'),
             expected_type=str, get_all=False)
-        timestamp, time_text = self._extract_time_text(renderer, 'publishedTimeText')
+        time_text = self._get_text(renderer, 'publishedTimeText') or ''
         scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
@@ -863,15 +951,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'uploader': uploader,
             'channel_id': channel_id,
             'thumbnails': thumbnails,
-            'upload_date': (strftime_or_none(timestamp, '%Y%m%d')
+            'upload_date': (strftime_or_none(self._parse_time_text(time_text), '%Y%m%d')
                             if self._configuration_arg('approximate_date', ie_key='youtubetab')
                             else None),
             'live_status': ('is_upcoming' if scheduled_timestamp is not None
                             else 'was_live' if 'streamed' in time_text.lower()
-                            else 'is_live' if overlay_style == 'LIVE' or 'live now' in badges
+                            else 'is_live' if overlay_style == 'LIVE' or self._has_badge(badges, BadgeType.LIVE_NOW)
                             else None),
             'release_timestamp': scheduled_timestamp,
-            'availability': self._availability(needs_premium='premium' in badges, needs_subscription='members only' in badges)
+            'availability':
+                'public' if self._has_badge(badges, BadgeType.AVAILABILITY_PUBLIC)
+                else self._availability(
+                    is_private=self._has_badge(badges, BadgeType.AVAILABILITY_PRIVATE) or None,
+                    needs_premium=self._has_badge(badges, BadgeType.AVAILABILITY_PREMIUM) or None,
+                    needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
+                    is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None)
         }
 
 
@@ -912,19 +1006,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                      (?:\#|$)""" % {
         'invidious': '|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
     }
-    _EMBED_REGEX = [r'''(?x)
-        (?:
-            <iframe[^>]+?src=|
-            data-video-url=|
-            <embed[^>]+?src=|
-            embedSWF\(?:\s*|
-            <object[^>]+data=|
-            new\s+SWFObject\(
-        )
-        (["\'])
-            (?P<url>(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/
-            (?:embed|v|p)/[0-9A-Za-z_-]{11}.*?)
-        \1''']
+    _EMBED_REGEX = [
+        r'''(?x)
+            (?:
+                <iframe[^>]+?src=|
+                data-video-url=|
+                <embed[^>]+?src=|
+                embedSWF\(?:\s*|
+                <object[^>]+data=|
+                new\s+SWFObject\(
+            )
+            (["\'])
+                (?P<url>(?:https?:)?//(?:www\.)?youtube(?:-nocookie)?\.com/
+                (?:embed|v|p)/[0-9A-Za-z_-]{11}.*?)
+            \1''',
+        # https://wordpress.org/plugins/lazy-load-for-videos/
+        r'''(?xs)
+            <a\s[^>]*\bhref="(?P<url>https://www\.youtube\.com/watch\?v=[0-9A-Za-z_-]{11})"
+            \s[^>]*\bclass="[^"]*\blazy-load-youtube''',
+    ]
+
     _PLAYER_INFO_RE = (
         r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/player',
         r'/(?P<id>[a-zA-Z0-9_-]{8,})/player(?:_ias\.vflset(?:/[a-zA-Z]{2,3}_[a-zA-Z]{2,3})?|-plasma-ias-(?:phone|tablet)-[a-z]{2}_[A-Z]{2}\.vflset)/base\.js$',
@@ -2149,6 +2250,35 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_follower_count': int
             }
         }, {
+            # Same video as above, but with --compat-opt no-youtube-prefer-utc-upload-date
+            'url': 'https://www.youtube.com/watch?v=2NUZ8W2llS4',
+            'info_dict': {
+                'id': '2NUZ8W2llS4',
+                'ext': 'mp4',
+                'title': 'The NP that test your phone performance 🙂',
+                'description': 'md5:144494b24d4f9dfacb97c1bbef5de84d',
+                'uploader': 'Leon Nguyen',
+                'uploader_id': 'VNSXIII',
+                'uploader_url': 'http://www.youtube.com/user/VNSXIII',
+                'channel_id': 'UCRqNBSOHgilHfAczlUmlWHA',
+                'channel_url': 'https://www.youtube.com/channel/UCRqNBSOHgilHfAczlUmlWHA',
+                'duration': 21,
+                'view_count': int,
+                'age_limit': 0,
+                'categories': ['Gaming'],
+                'tags': 'count:23',
+                'playable_in_embed': True,
+                'live_status': 'not_live',
+                'upload_date': '20220102',
+                'like_count': int,
+                'availability': 'public',
+                'channel': 'Leon Nguyen',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp',
+                'comment_count': int,
+                'channel_follower_count': int
+            },
+            'params': {'compat_opts': ['no-youtube-prefer-utc-upload-date']}
+        }, {
             # date text is premiered video, ensure upload date in UTC (published 1641172509)
             'url': 'https://www.youtube.com/watch?v=mzZzzBU6lrM',
             'info_dict': {
@@ -2259,6 +2389,61 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'tags': [],
                 'uploader_url': 'http://www.youtube.com/user/nao20010128nao',
             }
+        }, {
+            # Prefer primary title+description language metadata by default
+            # Do not prefer translated description if primary is empty
+            'url': 'https://www.youtube.com/watch?v=el3E4MbxRqQ',
+            'info_dict': {
+                'id': 'el3E4MbxRqQ',
+                'ext': 'mp4',
+                'title': 'dlp test video 2 - primary sv no desc',
+                'description': '',
+                'channel': 'cole-dlp-test-acc',
+                'tags': [],
+                'view_count': int,
+                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'like_count': int,
+                'playable_in_embed': True,
+                'availability': 'unlisted',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/el3E4MbxRqQ/maxresdefault.webp',
+                'age_limit': 0,
+                'duration': 5,
+                'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'uploader_url': 'http://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'live_status': 'not_live',
+                'upload_date': '20220908',
+                'categories': ['People & Blogs'],
+                'uploader': 'cole-dlp-test-acc',
+                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            },
+            'params': {'skip_download': True}
+        }, {
+            # Extractor argument: prefer translated title+description
+            'url': 'https://www.youtube.com/watch?v=gHKT4uU8Zng',
+            'info_dict': {
+                'id': 'gHKT4uU8Zng',
+                'ext': 'mp4',
+                'channel': 'cole-dlp-test-acc',
+                'tags': [],
+                'duration': 5,
+                'live_status': 'not_live',
+                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'upload_date': '20220728',
+                'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'view_count': int,
+                'categories': ['People & Blogs'],
+                'thumbnail': 'https://i.ytimg.com/vi_webp/gHKT4uU8Zng/maxresdefault.webp',
+                'title': 'dlp test video title translated (fr)',
+                'availability': 'public',
+                'uploader': 'cole-dlp-test-acc',
+                'age_limit': 0,
+                'description': 'dlp test video description translated (fr)',
+                'playable_in_embed': True,
+                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'uploader_url': 'http://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            },
+            'params': {'skip_download': True, 'extractor_args': {'youtube': {'lang': ['fr']}}},
+            'expected_warnings': [r'Preferring "fr" translated fields'],
         }, {
             'note': '6 channel audio',
             'url': 'https://www.youtube.com/watch?v=zgdo7-RRjgo',
@@ -2621,7 +2806,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             raise ExtractorError('Cannot decrypt nsig without player_url')
         player_url = urljoin('https://www.youtube.com', player_url)
 
-        jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
+        try:
+            jsi, player_id, func_code = self._extract_n_function_code(video_id, player_url)
+        except ExtractorError as e:
+            raise ExtractorError('Unable to extract nsig function code', cause=e)
         if self.get_param('youtube_print_sig_code'):
             self.to_screen(f'Extracted nsig function from {player_id}:\n{func_code[1]}\n')
 
@@ -2659,14 +2847,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_code(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
-        func_code = self.cache.load('youtube-nsig', player_id, after='2022.08.19')
+        func_code = self.cache.load('youtube-nsig', player_id, min_ver='2022.09.1')
         jscode = func_code or self._load_player(video_id, player_url)
         jsi = JSInterpreter(jscode)
 
         if func_code:
             return jsi, player_id, func_code
 
-        func_code = jsi.extract_function_code(self._extract_n_function_name(jscode))
+        func_name = self._extract_n_function_name(jscode)
+
+        # For redundancy
+        func_code = self._search_regex(
+            r'''(?xs)%s\s*=\s*function\s*\((?P<var>[\w$]+)\)\s*
+                     # NB: The end of the regex is intentionally kept strict
+                     {(?P<code>.+?}\s*return\ [\w$]+.join\(""\))};''' % func_name,
+            jscode, 'nsig function', group=('var', 'code'), default=None)
+        if func_code:
+            func_code = ([func_code[0]], func_code[1])
+        else:
+            self.write_debug('Extracting nsig function with jsinterp')
+            func_code = jsi.extract_function_code(func_name)
+
         self.cache.store('youtube-nsig', player_id, func_code)
         return jsi, player_id, func_code
 
@@ -2844,8 +3045,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         text = self._get_text(comment_renderer, 'contentText')
 
-        # note: timestamp is an estimate calculated from the current time and time_text
-        timestamp, time_text = self._extract_time_text(comment_renderer, 'publishedTimeText')
+        # Timestamp is an estimate calculated from the current time and time_text
+        time_text = self._get_text(comment_renderer, 'publishedTimeText') or ''
+        timestamp = self._parse_time_text(time_text)
+
         author = self._get_text(comment_renderer, 'authorText')
         author_id = try_get(comment_renderer,
                             lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], str)
@@ -2948,8 +3151,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # YouTube comments have a max depth of 2
         max_depth = int_or_none(get_single_config_arg('max_comment_depth'))
         if max_depth:
-            self._downloader.deprecation_warning(
-                '[youtube] max_comment_depth extractor argument is deprecated. Set max replies in the max-comments extractor argument instead.')
+            self._downloader.deprecated_feature('[youtube] max_comment_depth extractor argument is deprecated. '
+                                                'Set max replies in the max-comments extractor argument instead')
         if max_depth == 1 and parent:
             return
 
@@ -3071,7 +3274,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _is_unplayable(player_response):
         return traverse_obj(player_response, ('playabilityStatus', 'status')) == 'UNPLAYABLE'
 
-    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr):
+    _STORY_PLAYER_PARAMS = '8AEB'
+
+    def _extract_player_response(self, client, video_id, master_ytcfg, player_ytcfg, player_url, initial_pr, smuggled_data):
 
         session_index = self._extract_session_index(player_ytcfg, master_ytcfg)
         syncid = self._extract_account_syncid(player_ytcfg, master_ytcfg, initial_pr)
@@ -3081,8 +3286,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         yt_query = {
             'videoId': video_id,
-            'params': '8AEB'  # enable stories
         }
+        if smuggled_data.get('is_story') or _split_innertube_client(client)[0] == 'android':
+            yt_query['params'] = self._STORY_PLAYER_PARAMS
+
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -3115,7 +3322,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return orderedSet(requested_clients)
 
-    def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg):
+    def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg, smuggled_data):
         initial_pr = None
         if webpage:
             initial_pr = self._search_json(
@@ -3165,7 +3372,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             try:
                 pr = initial_pr if client == 'web' and initial_pr else self._extract_player_response(
-                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr)
+                    client, video_id, player_ytcfg or master_ytcfg, player_ytcfg, player_url if require_js_player else None, initial_pr, smuggled_data)
             except ExtractorError as e:
                 if last_error:
                     self.report_warning(last_error)
@@ -3267,11 +3474,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 except ExtractorError as e:
                     phantomjs_hint = ''
                     if isinstance(e, JSInterpreter.Exception):
-                        phantomjs_hint = f'         Install {self._downloader._format_err("PhantomJS", self._downloader.Styles.EMPHASIS)} to workaround the issue\n'
-                    self.report_warning(
-                        f'nsig extraction failed: You may experience throttling for some formats\n{phantomjs_hint}'
-                        f'         n = {query["n"][0]} ; player = {player_url}', video_id=video_id, only_once=True)
-                    self.write_debug(e, only_once=True)
+                        phantomjs_hint = (f'         Install {self._downloader._format_err("PhantomJS", self._downloader.Styles.EMPHASIS)} '
+                                          f'to workaround the issue. {PhantomJSwrapper.INSTALL_HINT}\n')
+                    if player_url:
+                        self.report_warning(
+                            f'nsig extraction failed: You may experience throttling for some formats\n{phantomjs_hint}'
+                            f'         n = {query["n"][0]} ; player = {player_url}', video_id=video_id, only_once=True)
+                        self.write_debug(e, only_once=True)
+                    else:
+                        self.report_warning(
+                            'Cannot decrypt nsig without player_url: You may experience throttling for some formats',
+                            video_id=video_id, only_once=True)
                     throttled = True
 
             if itag:
@@ -3428,14 +3641,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _download_player_responses(self, url, smuggled_data, video_id, webpage_url):
         webpage = None
         if 'webpage' not in self._configuration_arg('player_skip'):
+            query = {'bpctr': '9999999999', 'has_verified': '1'}
+            if smuggled_data.get('is_story'):
+                query['pp'] = self._STORY_PLAYER_PARAMS
             webpage = self._download_webpage(
-                webpage_url + '&bpctr=9999999999&has_verified=1&pp=8AEB', video_id, fatal=False)
+                webpage_url, video_id, fatal=False, query=query)
 
         master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
 
         player_responses, player_url = self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
-            video_id, webpage, master_ytcfg)
+            video_id, webpage, master_ytcfg, smuggled_data)
 
         return webpage, master_ytcfg, player_responses, player_url
 
@@ -3478,11 +3694,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         microformats = traverse_obj(
             player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
             expected_type=dict, default=[])
-        video_title = (
-            get_first(video_details, 'title')
-            or self._get_text(microformats, (..., 'title'))
-            or search_meta(['og:title', 'twitter:title', 'title']))
-        video_description = get_first(video_details, 'shortDescription')
+
+        translated_title = self._get_text(microformats, (..., 'title'))
+        video_title = (self._preferred_lang and translated_title
+                       or get_first(video_details, 'title')  # primary
+                       or translated_title
+                       or search_meta(['og:title', 'twitter:title', 'title']))
+        translated_description = self._get_text(microformats, (..., 'description'))
+        original_description = get_first(video_details, 'shortDescription')
+        video_description = (
+            self._preferred_lang and translated_description
+            # If original description is blank, it will be an empty string.
+            # Do not prefer translated description in this case.
+            or original_description if original_description is not None else translated_description)
 
         multifeed_metadata_list = get_first(
             player_responses,
@@ -3835,19 +4059,24 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     vpir,
                     lambda x: x['videoActions']['menuRenderer']['topLevelButtons'],
                     list) or []):
-                tbr = tlb.get('toggleButtonRenderer') or {}
-                for getter, regex in [(
-                        lambda x: x['defaultText']['accessibility']['accessibilityData'],
-                        r'(?P<count>[\d,]+)\s*(?P<type>(?:dis)?like)'), ([
-                            lambda x: x['accessibility'],
-                            lambda x: x['accessibilityData']['accessibilityData'],
-                        ], r'(?P<type>(?:dis)?like) this video along with (?P<count>[\d,]+) other people')]:
-                    label = (try_get(tbr, getter, dict) or {}).get('label')
-                    if label:
-                        mobj = re.match(regex, label)
-                        if mobj:
-                            info[mobj.group('type') + '_count'] = str_to_int(mobj.group('count'))
-                            break
+                tbrs = variadic(
+                    traverse_obj(
+                        tlb, 'toggleButtonRenderer',
+                        ('segmentedLikeDislikeButtonRenderer', ..., 'toggleButtonRenderer'),
+                        default=[]))
+                for tbr in tbrs:
+                    for getter, regex in [(
+                            lambda x: x['defaultText']['accessibility']['accessibilityData'],
+                            r'(?P<count>[\d,]+)\s*(?P<type>(?:dis)?like)'), ([
+                                lambda x: x['accessibility'],
+                                lambda x: x['accessibilityData']['accessibilityData'],
+                            ], r'(?P<type>(?:dis)?like) this video along with (?P<count>[\d,]+) other people')]:
+                        label = (try_get(tbr, getter, dict) or {}).get('label')
+                        if label:
+                            mobj = re.match(regex, label)
+                            if mobj:
+                                info[mobj.group('type') + '_count'] = str_to_int(mobj.group('count'))
+                                break
             sbr_tooltip = try_get(
                 vpir, lambda x: x['sentimentBar']['sentimentBarRenderer']['tooltip'])
             if sbr_tooltip:
@@ -3901,8 +4130,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         upload_date = (
             unified_strdate(get_first(microformats, 'uploadDate'))
             or unified_strdate(search_meta('uploadDate')))
-        if not upload_date or (not info.get('is_live') and not info.get('was_live') and info.get('live_status') != 'is_upcoming'):
-            upload_date = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d') or upload_date
+        if not upload_date or (
+            not info.get('is_live')
+            and not info.get('was_live')
+            and info.get('live_status') != 'is_upcoming'
+            and 'no-youtube-prefer-utc-upload-date' not in self.get_param('compat_opts', [])
+        ):
+            upload_date = strftime_or_none(
+                self._parse_time_text(self._get_text(vpir, 'dateText')), '%Y%m%d') or upload_date
         info['upload_date'] = upload_date
 
         for to, frm in fallbacks.items():
@@ -3914,33 +4149,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if v:
                 info[d_k] = v
 
-        is_private = get_first(video_details, 'isPrivate', expected_type=bool)
-        is_unlisted = get_first(microformats, 'isUnlisted', expected_type=bool)
-        is_membersonly = None
-        is_premium = None
-        if initial_data and is_private is not None:
-            is_membersonly = False
-            is_premium = False
-            contents = try_get(initial_data, lambda x: x['contents']['twoColumnWatchNextResults']['results']['results']['contents'], list) or []
-            badge_labels = set()
-            for content in contents:
-                if not isinstance(content, dict):
-                    continue
-                badge_labels.update(self._extract_badges(content.get('videoPrimaryInfoRenderer')))
-            for badge_label in badge_labels:
-                if badge_label.lower() == 'members only':
-                    is_membersonly = True
-                elif badge_label.lower() == 'premium':
-                    is_premium = True
-                elif badge_label.lower() == 'unlisted':
-                    is_unlisted = True
+        badges = self._extract_badges(traverse_obj(contents, (..., 'videoPrimaryInfoRenderer'), get_all=False))
 
-        info['availability'] = self._availability(
-            is_private=is_private,
-            needs_premium=is_premium,
-            needs_subscription=is_membersonly,
-            needs_auth=info['age_limit'] >= 18,
-            is_unlisted=None if is_private is None else is_unlisted)
+        is_private = (self._has_badge(badges, BadgeType.AVAILABILITY_PRIVATE)
+                      or get_first(video_details, 'isPrivate', expected_type=bool))
+
+        info['availability'] = (
+            'public' if self._has_badge(badges, BadgeType.AVAILABILITY_PUBLIC)
+            else self._availability(
+                is_private=is_private,
+                needs_premium=(
+                    self._has_badge(badges, BadgeType.AVAILABILITY_PREMIUM)
+                    or False if initial_data and is_private is not None else None),
+                needs_subscription=(
+                    self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION)
+                    or False if initial_data and is_private is not None else None),
+                needs_auth=info['age_limit'] >= 18,
+                is_unlisted=None if is_private is None else (
+                    self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED)
+                    or get_first(microformats, 'isUnlisted', expected_type=bool))))
 
         info['__post_extractor'] = self.extract_comments(master_ytcfg, video_id, contents, webpage)
 
@@ -4386,7 +4613,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             playlist_id = item_id
 
         playlist_stats = traverse_obj(primary_sidebar_renderer, 'stats')
-        last_updated_unix, _ = self._extract_time_text(playlist_stats, 2)
+        last_updated_unix = self._parse_time_text(self._get_text(playlist_stats, 2))
         if title is None:
             title = self._get_text(data, ('header', 'hashtagHeaderRenderer', 'hashtag')) or playlist_id
         title += format_field(selected_tab, 'title', ' - %s')
@@ -4480,31 +4707,37 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         Note: Unless YouTube tells us explicitly, we do not assume it is public
         @param data: response
         """
-        is_private = is_unlisted = None
         renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer') or {}
-        badge_labels = self._extract_badges(renderer)
+
+        player_header_privacy = traverse_obj(
+            data, ('header', 'playlistHeaderRenderer', 'privacy'), expected_type=str)
+
+        badges = self._extract_badges(renderer)
 
         # Personal playlists, when authenticated, have a dropdown visibility selector instead of a badge
-        privacy_dropdown_entries = try_get(
-            renderer, lambda x: x['privacyForm']['dropdownFormFieldRenderer']['dropdown']['dropdownRenderer']['entries'], list) or []
-        for renderer_dict in privacy_dropdown_entries:
-            is_selected = try_get(
-                renderer_dict, lambda x: x['privacyDropdownItemRenderer']['isSelected'], bool) or False
-            if not is_selected:
-                continue
-            label = self._get_text(renderer_dict, ('privacyDropdownItemRenderer', 'label'))
-            if label:
-                badge_labels.add(label.lower())
-                break
+        privacy_setting_icon = traverse_obj(
+            renderer, (
+                'privacyForm', 'dropdownFormFieldRenderer', 'dropdown', 'dropdownRenderer', 'entries',
+                lambda _, v: v['privacyDropdownItemRenderer']['isSelected'], 'privacyDropdownItemRenderer', 'icon', 'iconType'),
+            get_all=False, expected_type=str)
 
-        for badge_label in badge_labels:
-            if badge_label == 'unlisted':
-                is_unlisted = True
-            elif badge_label == 'private':
-                is_private = True
-            elif badge_label == 'public':
-                is_unlisted = is_private = False
-        return self._availability(is_private, False, False, False, is_unlisted)
+        return (
+            'public' if (
+                self._has_badge(badges, BadgeType.AVAILABILITY_PUBLIC)
+                or player_header_privacy == 'PUBLIC'
+                or privacy_setting_icon == 'PRIVACY_PUBLIC')
+            else self._availability(
+                is_private=(
+                    self._has_badge(badges, BadgeType.AVAILABILITY_PRIVATE)
+                    or player_header_privacy == 'PRIVATE' if player_header_privacy is not None
+                    else privacy_setting_icon == 'PRIVACY_PRIVATE' if privacy_setting_icon is not None else None),
+                is_unlisted=(
+                    self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED)
+                    or player_header_privacy == 'UNLISTED' if player_header_privacy is not None
+                    else privacy_setting_icon == 'PRIVACY_UNLISTED' if privacy_setting_icon is not None else None),
+                needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
+                needs_premium=self._has_badge(badges, BadgeType.AVAILABILITY_PREMIUM) or None,
+                needs_auth=False))
 
     @staticmethod
     def _extract_sidebar_info_renderer(data, info_renderer, expected_type=dict):
@@ -4780,6 +5013,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
             'uploader_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
             'channel_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
+            'availability': 'public',
         },
         'playlist_count': 1,
     }, {
@@ -4797,6 +5031,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
             'channel_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
             'uploader_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
+            'availability': 'public',
         },
         'playlist_count': 0,
     }, {
@@ -4943,6 +5178,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UCEPzS1rYsrkqzSLNp76nrcg',
             'channel_url': 'https://www.youtube.com/c/ChRiStIaAn008',
             'channel': 'Christiaan008',
+            'availability': 'public',
         },
         'playlist_count': 96,
     }, {
@@ -4961,6 +5197,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'view_count': int,
             'description': '',
             'channel_id': 'UCBABnxM4Ar9ten8Mdjj1j0Q',
+            'availability': 'public',
         },
         'playlist_mincount': 1123,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
@@ -4984,6 +5221,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': 'Interstellar Movie',
             'description': '',
             'modified_date': r're:\d{8}',
+            'availability': 'public',
         },
         'playlist_mincount': 21,
     }, {
@@ -5002,6 +5240,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/channel/UCTYLiWFZy8xtPwxFwX9rV7Q',
             'channel_id': 'UCTYLiWFZy8xtPwxFwX9rV7Q',
             'modified_date': r're:\d{8}',
+            'availability': 'public',
         },
         'playlist_mincount': 200,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
@@ -5021,6 +5260,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/c/blanktv',
             'modified_date': r're:\d{8}',
             'description': '',
+            'availability': 'public',
         },
         'playlist_mincount': 1000,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
@@ -5039,6 +5279,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UC9-y-6csu5WGm29I7JiwpnA',
             'channel_url': 'https://www.youtube.com/user/Computerphile',
             'channel': 'Computerphile',
+            'availability': 'public',
         },
         'playlist_mincount': 11,
     }, {
@@ -5204,6 +5445,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
             'tags': [],
             'channel': 'NoCopyrightSounds',
+            'availability': 'public',
         },
         'playlist_mincount': 166,
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
@@ -5224,6 +5466,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'modified_date': r're:\d{8}',
             'uploader_url': 'https://www.youtube.com/channel/UC9ALqqC4aIeG5iDs7i90Bfw',
             'description': '',
+            'availability': 'public',
         },
         'expected_warnings': [
             'The URL does not have a videos tab',
@@ -5324,6 +5567,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel': 'Royalty Free Music - Topic',
             'view_count': int,
             'uploader_url': 'https://www.youtube.com/channel/UC9ALqqC4aIeG5iDs7i90Bfw',
+            'availability': 'public',
         },
         'expected_warnings': [
             'does not have a videos tab',
@@ -5357,6 +5601,45 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/channel/UCKcqXmCcyqnhgpA5P0oHH_Q',
         },
         'playlist_mincount': 2
+    }, {
+        'note': 'translated tab name',
+        'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/playlists',
+        'info_dict': {
+            'id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'tags': [],
+            'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'description': '',
+            'title': 'cole-dlp-test-acc - 再生リスト',
+            'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'uploader': 'cole-dlp-test-acc',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel': 'cole-dlp-test-acc',
+        },
+        'playlist_mincount': 1,
+        'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
+        'expected_warnings': ['Preferring "ja"'],
+    }, {
+        # XXX: this should really check flat playlist entries, but the test suite doesn't support that
+        'note': 'preferred lang set with playlist with translated video titles',
+        'url': 'https://www.youtube.com/playlist?list=PLt5yu3-wZAlQAaPZ5Z-rJoTdbT-45Q7c0',
+        'info_dict': {
+            'id': 'PLt5yu3-wZAlQAaPZ5Z-rJoTdbT-45Q7c0',
+            'tags': [],
+            'view_count': int,
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'uploader': 'cole-dlp-test-acc',
+            'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel': 'cole-dlp-test-acc',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'description': 'test',
+            'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'title': 'dlp test playlist',
+            'availability': 'public',
+        },
+        'playlist_mincount': 1,
+        'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
+        'expected_warnings': ['Preferring "ja"'],
     }]
 
     @classmethod
@@ -5441,10 +5724,20 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         tabs = traverse_obj(data, ('contents', 'twoColumnBrowseResultsRenderer', 'tabs'), expected_type=list)
         if tabs:
             selected_tab = self._extract_selected_tab(tabs)
-            selected_tab_name = selected_tab.get('title', '').lower()
+            selected_tab_url = urljoin(
+                url, traverse_obj(selected_tab, ('endpoint', 'commandMetadata', 'webCommandMetadata', 'url')))
+            translated_tab_name = selected_tab.get('title', '').lower()
+
+            # Prefer tab name from tab url as it is always in en,
+            # but only when preferred lang is set as it may not extract reliably in all cases.
+            selected_tab_name = (self._preferred_lang in (None, 'en') and translated_tab_name
+                                 or selected_tab_url and get_mobj(selected_tab_url)['tab'][1:]  # primary
+                                 or translated_tab_name)
+
             if selected_tab_name == 'home':
                 selected_tab_name = 'featured'
             requested_tab_name = mobj['tab'][1:]
+
             if 'no-youtube-channel-redirect' not in compat_opts:
                 if requested_tab_name == 'live':  # Live tab should have redirected to the video
                     raise UserNotLive(video_id=mobj['id'])
@@ -5556,6 +5849,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'channel': 'milan',
             'channel_id': 'UCEI1-PVPcYXjB73Hfelbmaw',
             'uploader_url': 'https://www.youtube.com/channel/UCEI1-PVPcYXjB73Hfelbmaw',
+            'availability': 'public',
         },
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
@@ -5574,6 +5868,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'uploader_url': 'https://www.youtube.com/c/愛低音的國王',
             'channel_id': 'UC21nz3_MesPLqtDqwdvnoxA',
             'modified_date': r're:\d{8}',
+            'availability': 'public',
         },
         'expected_warnings': [r'[Uu]navailable videos (are|will be) hidden'],
     }, {
@@ -5762,7 +6057,7 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
         title = self._search_regex(
             rf'{re.escape(channel or "")}[^:]+: (.+)', notification_title,
             'video title', default=None)
-        upload_date = (strftime_or_none(self._extract_time_text(notification, 'sentTimeText')[0], '%Y%m%d')
+        upload_date = (strftime_or_none(self._parse_time_text(self._get_text(notification, 'sentTimeText')), '%Y%m%d')
                        if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE.ie_key())
                        else None)
         return {
@@ -6008,7 +6303,7 @@ class YoutubeStoriesIE(InfoExtractor):
     def _real_extract(self, url):
         playlist_id = f'RLTD{self._match_id(url)}'
         return self.url_result(
-            f'https://www.youtube.com/playlist?list={playlist_id}&playnext=1',
+            smuggle_url(f'https://www.youtube.com/playlist?list={playlist_id}&playnext=1', {'is_story': True}),
             ie=YoutubeTabIE, video_id=playlist_id)
 
 

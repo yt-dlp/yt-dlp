@@ -828,8 +828,8 @@ def escapeHTML(text):
 
 
 def process_communicate_or_kill(p, *args, **kwargs):
-    write_string('DeprecationWarning: yt_dlp.utils.process_communicate_or_kill is deprecated '
-                 'and may be removed in a future version. Use yt_dlp.utils.Popen.communicate_or_kill instead')
+    deprecation_warning(f'"{__name__}.process_communicate_or_kill" is deprecated and may be removed '
+                        f'in a future version. Use "{__name__}.Popen.communicate_or_kill" instead')
     return Popen.communicate_or_kill(p, *args, **kwargs)
 
 
@@ -840,12 +840,35 @@ class Popen(subprocess.Popen):
     else:
         _startupinfo = None
 
-    def __init__(self, *args, text=False, **kwargs):
+    @staticmethod
+    def _fix_pyinstaller_ld_path(env):
+        """Restore LD_LIBRARY_PATH when using PyInstaller
+            Ref: https://github.com/pyinstaller/pyinstaller/blob/develop/doc/runtime-information.rst#ld_library_path--libpath-considerations
+                 https://github.com/yt-dlp/yt-dlp/issues/4573
+        """
+        if not hasattr(sys, '_MEIPASS'):
+            return
+
+        def _fix(key):
+            orig = env.get(f'{key}_ORIG')
+            if orig is None:
+                env.pop(key, None)
+            else:
+                env[key] = orig
+
+        _fix('LD_LIBRARY_PATH')  # Linux
+        _fix('DYLD_LIBRARY_PATH')  # macOS
+
+    def __init__(self, *args, env=None, text=False, **kwargs):
+        if env is None:
+            env = os.environ.copy()
+        self._fix_pyinstaller_ld_path(env)
+
         if text is True:
             kwargs['universal_newlines'] = True  # For 3.6 compatibility
             kwargs.setdefault('encoding', 'utf-8')
             kwargs.setdefault('errors', 'replace')
-        super().__init__(*args, **kwargs, startupinfo=self._startupinfo)
+        super().__init__(*args, env=env, **kwargs, startupinfo=self._startupinfo)
 
     def communicate_or_kill(self, *args, **kwargs):
         try:
@@ -1474,6 +1497,10 @@ class YoutubeDLHTTPSHandler(urllib.request.HTTPSHandler):
             raise
 
 
+def is_path_like(f):
+    return isinstance(f, (str, bytes, os.PathLike))
+
+
 class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
     """
     See [1] for cookie file format.
@@ -1492,7 +1519,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
 
     def __init__(self, filename=None, *args, **kwargs):
         super().__init__(None, *args, **kwargs)
-        if self.is_path(filename):
+        if is_path_like(filename):
             filename = os.fspath(filename)
         self.filename = filename
 
@@ -1500,13 +1527,9 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
     def _true_or_false(cndn):
         return 'TRUE' if cndn else 'FALSE'
 
-    @staticmethod
-    def is_path(file):
-        return isinstance(file, (str, bytes, os.PathLike))
-
     @contextlib.contextmanager
     def open(self, file, *, write=False):
-        if self.is_path(file):
+        if is_path_like(file):
             with open(file, 'w' if write else 'r', encoding='utf-8') as f:
                 yield f
         else:
@@ -1587,7 +1610,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                     if f'{line.strip()} '[0] in '[{"':
                         raise http.cookiejar.LoadError(
                             'Cookies file must be Netscape formatted, not JSON. See  '
-                            'https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl')
+                            'https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp')
                     write_string(f'WARNING: skipping cookie file entry due to {e}: {line!r}\n')
                     continue
         cf.seek(0)
@@ -1934,7 +1957,7 @@ class DateRange:
 
 def platform_name():
     """ Returns the platform name as a str """
-    write_string('DeprecationWarning: yt_dlp.utils.platform_name is deprecated, use platform.platform instead')
+    deprecation_warning(f'"{__name__}.platform_name" is deprecated, use "platform.platform" instead')
     return platform.platform()
 
 
@@ -1978,6 +2001,23 @@ def write_string(s, out=None, encoding=None):
 
     buffer.write(s.encode(enc, 'ignore') if enc else s)
     out.flush()
+
+
+def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
+    from . import _IN_CLI
+    if _IN_CLI:
+        if msg in deprecation_warning._cache:
+            return
+        deprecation_warning._cache.add(msg)
+        if printer:
+            return printer(f'{msg}{bug_reports_message()}', **kwargs)
+        return write_string(f'ERROR: {msg}{bug_reports_message()}\n', **kwargs)
+    else:
+        import warnings
+        warnings.warn(DeprecationWarning(msg), stacklevel=stacklevel + 3)
+
+
+deprecation_warning._cache = set()
 
 
 def bytes_to_intlist(bs):
@@ -2439,7 +2479,7 @@ def url_basename(url):
 
 
 def base_url(url):
-    return re.match(r'https?://[^?#&]+/', url).group()
+    return re.match(r'https?://[^?#]+/', url).group()
 
 
 def urljoin(base, path):
@@ -3585,7 +3625,7 @@ def determine_protocol(info_dict):
 
     ext = determine_ext(url)
     if ext == 'm3u8':
-        return 'm3u8'
+        return 'm3u8' if info_dict.get('is_live') else 'm3u8_native'
     elif ext == 'f4m':
         return 'f4m'
 
@@ -4862,8 +4902,8 @@ def decode_base_n(string, n=None, table=None):
 
 
 def decode_base(value, digits):
-    write_string('DeprecationWarning: yt_dlp.utils.decode_base is deprecated '
-                 'and may be removed in a future version. Use yt_dlp.decode_base_n instead')
+    deprecation_warning(f'{__name__}.decode_base is deprecated and may be removed '
+                        f'in a future version. Use {__name__}.decode_base_n instead')
     return decode_base_n(value, table=digits)
 
 
@@ -5249,7 +5289,7 @@ def traverse_obj(
     @param path_list        A list of paths which are checked one by one.
                             Each path is a list of keys where each key is a:
                               - None:     Do nothing
-                              - string:   A dictionary key
+                              - string:   A dictionary key / regex group
                               - int:      An index into a list
                               - tuple:    A list of keys all of which will be traversed
                               - Ellipsis: Fetch all values in the object
@@ -5259,12 +5299,16 @@ def traverse_obj(
     @param expected_type    Only accept final value of this type (Can also be any callable)
     @param get_all          Return all the values obtained from a path or only the first one
     @param casesense        Whether to consider dictionary keys as case sensitive
+
+    The following are only meant to be used by YoutubeDL.prepare_outtmpl and is not part of the API
+
+    @param path_list        In addition to the above,
+                              - dict:     Given {k:v, ...}; return {k: traverse_obj(obj, v), ...}
     @param is_user_input    Whether the keys are generated from user input. If True,
                             strings are converted to int/slice if necessary
     @param traverse_string  Whether to traverse inside strings. If True, any
                             non-compatible object will also be converted into a string
-    # TODO: Write tests
-    '''
+    '''  # TODO: Write tests
     if not casesense:
         _lower = lambda k: (k.lower() if isinstance(k, str) else k)
         path_list = (map(_lower, variadic(path)) for path in path_list)
@@ -5278,6 +5322,7 @@ def traverse_obj(
             if isinstance(key, (list, tuple)):
                 obj = [_traverse_obj(obj, sub_key, _current_depth) for sub_key in key]
                 key = ...
+
             if key is ...:
                 obj = (obj.values() if isinstance(obj, dict)
                        else obj if isinstance(obj, (list, tuple, LazyList))
@@ -5285,6 +5330,8 @@ def traverse_obj(
                 _current_depth += 1
                 depth = max(depth, _current_depth)
                 return [_traverse_obj(inner_obj, path[i + 1:], _current_depth) for inner_obj in obj]
+            elif isinstance(key, dict):
+                obj = filter_dict({k: _traverse_obj(obj, v, _current_depth) for k, v in key.items()})
             elif callable(key):
                 if isinstance(obj, (list, tuple, LazyList)):
                     obj = enumerate(obj)
@@ -5341,8 +5388,8 @@ def traverse_obj(
 
 
 def traverse_dict(dictn, keys, casesense=True):
-    write_string('DeprecationWarning: yt_dlp.utils.traverse_dict is deprecated '
-                 'and may be removed in a future version. Use yt_dlp.utils.traverse_obj instead')
+    deprecation_warning(f'"{__name__}.traverse_dict" is deprecated and may be removed '
+                        f'in a future version. Use "{__name__}.traverse_obj" instead')
     return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 

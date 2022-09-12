@@ -14,4 +14,5 @@ if __package__ is None and not hasattr(sys, 'frozen'):
 import yt_dlp
 
 if __name__ == '__main__':
+    yt_dlp._IN_CLI = True
     yt_dlp.main()
