@@ -21,6 +21,7 @@ import xml.etree.ElementTree
 
 from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
+from ..cookies import LenientSimpleCookie
 from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..utils import (
@@ -3631,99 +3632,7 @@ class InfoExtractor:
 
     def _get_cookies(self, url):
         """ Return a http.cookies.SimpleCookie with the cookies for the url """
-        return self._make_simple_cookie(self._downloader._calc_cookies(url))
-
-    def _make_simple_cookie(self, data):
-        """ Workaround for https://github.com/yt-dlp/yt-dlp/issues/4776 """
-        # Values copied from http.cookies
-        _legal_key_chars = r"\w\d!#%&'~_`><@,:/\$\*\+\-\.\^\|\)\(\?\}\{\="
-        _legal_value_chars = _legal_key_chars + r"\[\]"
-
-        _reserved = {
-            "expires",
-            "path",
-            "comment",
-            "domain",
-            "max-age",
-            "secure",
-            "httponly",
-            "version",
-            "samesite",
-        }
-
-        _flags = {"secure", "httponly"}
-
-        # Added 'bad' group to catch the remaining value
-        _cookie_pattern = re.compile(r"""
-            \s*                            # Optional whitespace at start of cookie
-            (?P<key>                       # Start of group 'key'
-            [""" + _legal_key_chars + r"""]+?# Any word of at least one letter
-            )                              # End of group 'key'
-            (                              # Optional group: there may not be a value.
-            \s*=\s*                          # Equal Sign
-            (                                # Start of potential value
-            (?P<val>                           # Start of group 'val'
-            "(?:[^\\"]|\\.)*"                    # Any doublequoted string
-            |                                    # or
-            \w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT # Special case for "expires" attr
-            |                                    # or
-            [""" + _legal_value_chars + r"""]*     # Any word or empty string
-            )                                  # End of group 'val'
-            |                                  # or
-            (?P<bad>(?:\\;|[^;])*?)            # 'bad' group fallback for invalid values
-            )                                # End of potential value
-            )?                             # End of optional value group
-            \s*                            # Any number of spaces.
-            (\s+|;|$)                      # Ending either at space, semicolon, or EOS.
-            """, re.ASCII | re.VERBOSE)
-
-        cookie = http.cookies.SimpleCookie()
-        morsel = None
-        index = 0
-        length = len(data)
-
-        while 0 <= index < length:
-            match = _cookie_pattern.search(data, index)
-            if not match:
-                break
-
-            index = match.end(0)
-            if match.group("bad"):
-                morsel = None
-                continue
-
-            key, value = match.group("key"), match.group("val")
-
-            if key[0] == "$":
-                if morsel is not None:
-                    morsel[key[1:]] = True
-                continue
-
-            lower_key = key.lower()
-            if lower_key in _reserved:
-                if morsel is None:
-                    continue
-
-                if value is None:
-                    if lower_key not in _flags:
-                        morsel = None
-                        continue
-                    value = True
-                else:
-                    value, _ = cookie.value_decode(value)
-
-                morsel[key] = value
-
-            elif value is not None:
-                morsel = cookie.get(key, http.cookies.Morsel())
-                real_value, coded_value = cookie.value_decode(value)
-                morsel.set(key, real_value, coded_value)
-                cookie[key] = morsel
-
-            else:
-                morsel = None
-
-        return cookie
+        return LenientSimpleCookie(self._downloader._calc_cookies(url))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """
