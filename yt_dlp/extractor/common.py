@@ -2275,7 +2275,7 @@ class InfoExtractor:
             if media_type not in ('VIDEO', 'AUDIO'):
                 return
             channels = media.get('CHANNELS')
-            if not channels is None and str(channels).isdigit():
+            if channels is not None and str(channels).isdigit():
                 channels = int(channels)
             media_url = media.get('URI')
             if media_url:
