@@ -47,7 +47,7 @@ class PornboxIE(InfoExtractor):
         public_data = self._download_json(f'https://pornbox.com/contents/{video_id}', video_id)
 
         if public_data.get('studios') is not None:
-            date = public_data.get('studios')[0].get('release_date')
+            date = public_data.get('studios')[0].get('release_date') or public_data.get('publish_date')
         else:
             date = public_data.get('publish_date')
         date = date[:10].replace('-', '')
