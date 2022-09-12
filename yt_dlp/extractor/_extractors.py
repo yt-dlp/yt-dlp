@@ -328,6 +328,7 @@ from .cnn import (
     CNNIE,
     CNNBlogsIE,
     CNNArticleIE,
+    CNNIndonesiaIE,
 )
 from .coub import CoubIE
 from .comedycentral import (

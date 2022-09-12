@@ -141,3 +141,56 @@ class CNNArticleIE(InfoExtractor):
         webpage = self._download_webpage(url, url_basename(url))
         cnn_url = self._html_search_regex(r"video:\s*'([^']+)'", webpage, 'cnn url')
         return self.url_result('http://cnn.com/video/?/video/' + cnn_url, CNNIE.ie_key())
+
+
+class CNNIndonesiaIE(InfoExtractor):
+    _VALID_URL = r'https?://www\.cnnindonesia\.com/\w+/[\d-]+/(?P<display_id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://www.cnnindonesia.com/ekonomi/20220909212635-89-845885/alasan-harga-bbm-di-indonesia-masih-disubsidi',
+        'info_dict': {
+            'id': '845885',
+            'ext': 'mp4',
+            'description': 'md5:e7954bfa6f1749bc9ef0c079a719c347',
+            'upload_date': '20220911',
+            'title': 'Alasan Harga BBM di Indonesia Masih Disubsidi',
+            'timestamp': 1662859088,
+            'duration': 120.0,
+            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/09/thumbnail-ekopedia-alasan-harga-bbm-disubsidi_169.jpeg?w=650'
+        }
+    }, {
+        'url': 'https://www.cnnindonesia.com/internasional/20220911104341-139-846189/video-momen-charles-disambut-meriah-usai-dilantik-jadi-raja-inggris',
+        'info_dict': {
+            'id': '846189',
+            'ext': 'mp4',
+            'upload_date': '20220911',
+            'duration': 76.0,
+            'timestamp': 1662869995,
+            'description': 'md5:ece7b003b3ee7d81c6a5cfede7d5397d',
+            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/11/thumbnail-video-1_169.jpeg?w=650',
+            'title': 'VIDEO: Momen Charles Disambut Meriah usai Dilantik jadi Raja Inggris',
+        }
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_valid_url(url).group('display_id')
+        webpage = self._download_webpage(url, display_id)
+
+        json_ld_data = self._search_json_ld(webpage, display_id)
+        json_ld_list = list(self._yield_json_ld(webpage, display_id))
+        embed_url = [json_ld.get('embedUrl') for json_ld in json_ld_list if json_ld.get('@type') == 'VideoObject'][0]
+
+        # embed url extract
+        embed_webpage = self._download_webpage(embed_url, display_id)
+        manifest_url = self._search_regex(
+            r'videoUrl\s*:\s*\'([^\']+)', embed_webpage, 'videoUrl')
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(manifest_url, display_id)
+
+        return {
+            'id': self._html_search_meta(['articleid'], webpage, fatal=True),
+            'formats': formats,
+            'subtitles': subtitles,
+            'title': self._html_search_meta(['og:title', 'twitter:title', 'originalTitle'], webpage),
+            'description': self._html_search_meta(['og:description'], webpage),
+            **json_ld_data
+        }
