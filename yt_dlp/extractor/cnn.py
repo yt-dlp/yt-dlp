@@ -144,7 +144,7 @@ class CNNArticleIE(InfoExtractor):
 
 
 class CNNIndonesiaIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.cnnindonesia\.com/\w+/[\d-]+/(?P<display_id>[\w-]+)'
+    _VALID_URL = r'https?://www\.cnnindonesia\.com/[\w-]+/(?P<upload_date>\d{8})\d+-\d+-(?P<id>\d+)/(?P<display_id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.cnnindonesia.com/ekonomi/20220909212635-89-845885/alasan-harga-bbm-di-indonesia-masih-disubsidi',
         'info_dict': {
@@ -174,7 +174,7 @@ class CNNIndonesiaIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id = self._match_valid_url(url).group('display_id')
+        upload_date, video_id, display_id = self._match_valid_url(url).group('upload_date', 'id', 'display_id')
         webpage = self._download_webpage(url, display_id)
 
         json_ld_data = self._search_json_ld(webpage, display_id)
@@ -189,11 +189,12 @@ class CNNIndonesiaIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(manifest_url, display_id)
         self._sort_formats(formats)
         return {
-            'id': self._html_search_meta(['articleid'], webpage, fatal=True),
+            'id': video_id or self._html_search_meta(['articleid'], webpage, fatal=True),
             'formats': formats,
             'subtitles': subtitles,
             'title': self._html_search_meta(['og:title', 'twitter:title', 'originalTitle'], webpage),
             'description': self._html_search_meta(['og:description'], webpage),
             'tags': str_or_none(self._html_search_meta('keywords', webpage), '').split(', '),
+            'upload_date': upload_date,
             **json_ld_data
         }
