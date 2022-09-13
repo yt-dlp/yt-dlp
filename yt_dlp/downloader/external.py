@@ -281,7 +281,10 @@ class Aria2cFD(ExternalFD):
         cmd += self._configuration_args()
 
         if info_dict.get('__rpc_port'):
-            cmd += ['--enable-rpc', f'--rpc-listen-port={info_dict["__rpc_port"]}']
+            cmd += [
+                '--enable-rpc',
+                f'--rpc-listen-port={info_dict["__rpc_port"]}',
+                f'--rpc-secret={info_dict["__rpc_secret"]}']
 
         # aria2c strips out spaces from the beginning/end of filenames and paths.
         # We work around this issue by adding a "./" to the beginning of the
@@ -315,9 +318,12 @@ class Aria2cFD(ExternalFD):
 
     def _call_downloader(self, tmpfilename, info_dict):
         info_dict.pop('__rpc_port', None)
+        info_dict.pop('__rpc_secret', None)
         if self._ENABLE_PROGRESS:
+            import uuid
             info_dict = info_dict.copy()
             info_dict['__rpc_port'] = find_available_port() or 19190
+            info_dict['__rpc_secret'] = str(uuid.uuid4())
         return super()._call_downloader(tmpfilename, info_dict)
 
     def _call_process(self, cmd, info_dict):
@@ -329,9 +335,12 @@ class Aria2cFD(ExternalFD):
         import uuid
 
         rpc_port = info_dict['__rpc_port']
+        rpc_secret = info_dict['__rpc_secret']
         nr_frags = len(info_dict['fragments']) if 'fragments' in info_dict else -1
 
-        def aria2c_rpc(method, params):
+        def aria2c_rpc(method, params, secret=True):
+            if secret and rpc_secret:
+                params = [rpc_secret, *params]
             # note: there's no need to be UUID (it can even a numeric value), but that's easier
             sanitycheck = str(uuid.uuid4())
             d = json.dumps({
