@@ -49,6 +49,36 @@ class DetikEmbedIE(InfoExtractor):
             'tags': 'count:17',
             'subtitle': {},
         }
+    }, {
+        # insertlive embed
+        'url': 'https://www.insertlive.com/embed/video/290482',
+        'info_dict': {
+            'id': '290482',
+            'ext': 'mp4',
+            'release_timestamp': 1663063704,
+            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/13/leonardo-dicaprio_169.png?w=600&q=90',
+            'age_limit': 0,
+            'description': 'Aktor Leonardo DiCaprio memang baru saja putus dari kekasihnya yang bernama Camilla Morrone.',
+            'release_date': '20220913',
+            'title': 'Diincar Leonardo DiCaprio, Gigi Hadid Ngaku Tertarik Tapi Belum Cinta',
+            'subtitle': {},
+            'tags': ['leonardo dicaprio', ' gigi hadid', ' hollywood'],
+        }
+    }, {
+        # beautynesia embed
+        'url': 'https://www.beautynesia.id/embed/video/261636',
+        'info_dict': {
+            'id': '261636',
+            'ext': 'mp4',
+            'age_limit': 0,
+            'release_timestamp': 1662375600,
+            'description': 'Menurut ramalan astrologi, tiga zodiak ini bakal hoki sepanjang September 2022.',
+            'title': '3 Zodiak Paling Beruntung Selama September 2022',
+            'release_date': '20220905',
+            'tags': ['zodiac update', ' zodiak', ' ramalan bintang', ' zodiak beruntung 2022', ' zodiak hoki september 2022', ' zodiak beruntung september 2022'],
+            'subtitle': {},
+            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/05/3-zodiak-paling-beruntung-selama-september-2022_169.jpeg?w=600&q=90',
+        }
     }]
 
     def _extract_from_webpage(self, url, webpage):
