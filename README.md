@@ -1092,14 +1092,14 @@ You can configure yt-dlp by placing any supported command line option to a confi
 1. **Portable Configuration**: `yt-dlp.conf` in the same directory as the bundled binary. If you are running from source-code (`<root dir>/yt_dlp/__main__.py`), the root directory is used instead.
 1. **Home Configuration**: `yt-dlp.conf` in the home path given by `-P`, or in the current directory if no such path is given
 1. **User Configuration**:
-    * `%XDG_CONFIG_HOME%/yt-dlp/config` (recommended on Linux/macOS)
-    * `%XDG_CONFIG_HOME%/yt-dlp.conf`
+    * `$XDG_CONFIG_HOME/yt-dlp/config` (recommended on Linux/macOS)
+    * `$XDG_CONFIG_HOME/yt-dlp.conf`
     * `%APPDATA%/yt-dlp/config` (recommended on Windows)
     * `%APPDATA%/yt-dlp/config.txt`
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
     
-    `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined. On windows, `%APPDATA%` generally points to `C:\Users\<user name>\AppData\Roaming` and `~` points to `%HOME%` if present, `%USERPROFILE%` (generally `C:\Users\<user name>`), or `%HOMEDRIVE%%HOMEPATH%`
+    `$XDG_CONFIG_HOME` defaults to `~/.config` if undefined. On windows, `%APPDATA%` generally points to `C:\Users\<user name>\AppData\Roaming` and `~` points to `%HOME%` if present, `%USERPROFILE%` (generally `C:\Users\<user name>`), or `%HOMEDRIVE%%HOMEPATH%`
 
 1. **System Configuration**: `/etc/yt-dlp.conf`
 
