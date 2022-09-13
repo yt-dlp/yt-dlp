@@ -7,11 +7,8 @@ from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
-    extract_attributes,
     float_or_none,
     get_element_by_class,
-    int_or_none,
-    merge_dicts,
     str_or_none,
     strip_or_none,
     url_or_none,
@@ -53,8 +50,8 @@ class CanvasIE(InfoExtractor):
         data = None
 
         vrtnutoken = self._download_json('https://token.vrt.be/refreshtoken',
-                                            video_id, note='refreshtoken: Retrieve vrtnutoken',
-                                            errnote='refreshtoken failed')['vrtnutoken']
+                                         video_id, note='refreshtoken: Retrieve vrtnutoken',
+                                         errnote='refreshtoken failed')['vrtnutoken']
         headers = self.geo_verification_headers()
         headers.update({'Content-Type': 'application/json; charset=utf-8'})
         vrtPlayerToken = self._download_json(
@@ -306,7 +303,7 @@ class VrtNUIE(GigyaBaseIE):
         display_id = self._match_id(url)
 
         episode_data = self._download_json(f'{url.strip("/")}.model.json', display_id,
-                        'Downloading asset JSON', 'Unable to download asset JSON')
+                                           'Downloading asset JSON', 'Unable to download asset JSON')
         details = episode_data.get('details')
         actions = details.get('actions')
         episode_publication_id = actions[2].get('episodePublicationId')
@@ -368,4 +365,3 @@ class DagelijkseKostIE(InfoExtractor):
             'title': title,
             'description': description,
         }
-
