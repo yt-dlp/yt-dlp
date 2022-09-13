@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import merge_dicts, str_or_none
+from ..utils import merge_dicts, str_or_none, try_call
 
 
 class Detik20IE(InfoExtractor):
