@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, merge_dicts, try_call
+from ..utils import int_or_none, merge_dicts, try_call, url_basename
 
 
 class DetikEmbedIE(InfoExtractor):
@@ -23,6 +23,7 @@ class DetikEmbedIE(InfoExtractor):
         # 20.detik
         'url': 'https://20.detik.com/otobuzz/20220704-220704093/mulai-rp-10-jutaan-ini-skema-kredit-mitsubishi-pajero-sport',
         'info_dict': {
+            'display_id': 'mulai-rp-10-jutaan-ini-skema-kredit-mitsubishi-pajero-sport',
             'id': '220704093',
             'ext': 'mp4',
             'description': 'md5:9b2257341b6f375cdcf90106146d5ffb',
@@ -48,6 +49,7 @@ class DetikEmbedIE(InfoExtractor):
             'age_limit': 0,
             'tags': 'count:17',
             'subtitle': {},
+            'thumbnail': 'https://akcdn.detik.net.id/community/data/media/thumbs-pasangmata/2022/09/08/366649-16626229351533009620.mp4-03.jpg',
         }
     }, {
         # insertlive embed
@@ -82,39 +84,45 @@ class DetikEmbedIE(InfoExtractor):
     }]
 
     def _extract_from_webpage(self, url, webpage):
-        video_id = (self._search_regex(r'identifier\s*:\s*\'([^\']+)', webpage, 'identifier', default=False, fatal=False)
-                    or self._html_search_meta(['video_id', 'dtk:video_id'], webpage, fatal=False))
+        display_id = url_basename(url)
         player_type, video_data = self._search_regex(
             r'<script\s*[^>]+src="https?://(aws)?cdn\.detik\.net\.id/(?P<type>flowplayer|detikVideo)[^>]+>\s*(?P<video_data>{[^}]+})',
             webpage, 'playerjs', group=('type', 'video_data'), default=(None, ''))
 
-        json_ld_data = self._search_json_ld(webpage, video_id, default={})
-        thumbnail_url = None
+        json_ld_data = self._search_json_ld(webpage, display_id, default={})
+        extra_info_dict = {}
+
         if not player_type:
             return
+
         elif player_type == 'flowplayer':
             video_json_data = self._parse_json(video_data.replace('\'', '"'), None)
             video_url = video_json_data['videoUrl']
-            thumbnail_url = video_json_data.get('imageUrl')
+
+            extra_info_dict = {
+                'id': self._search_regex(r'identifier\s*:\s*\'([^\']+)', webpage, 'identifier'),
+                'thumbnail': video_json_data.get('imageUrl'),
+            }
 
         elif player_type == 'detikVideo':
             video_url = self._search_regex(
                 r'videoUrl\s*:\s*[\'"]?([^"\']+)', video_data, 'videoUrl')
-            thumbnail_url = self._search_regex(
-                r'imageUrl\s*:\s*[\'"]?([^"\']+)', video_data, 'videoUrl')
+            extra_info_dict = {
+                'id': self._html_search_meta(['video_id', 'dtk:video_id'], webpage),
+                'thumbnail': self._search_regex(r'imageUrl\s*:\s*[\'"]?([^"\']+)', video_data, 'videoUrl'),
+                # 'duration': int_or_none(self._html_search_meta('duration', webpage, fatal=False), default=0),
+                'release_timestamp': int_or_none(self._html_search_meta('dtk:publishdateunix', webpage, fatal=False), 1000),
+            }
 
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id)
         self._sort_formats(formats)
 
-        yield merge_dicts(json_ld_data, {
-            'id': video_id,
+        yield merge_dicts(json_ld_data, extra_info_dict, {
+            'display_id': display_id,
             'title': self._html_search_meta(['og:title', 'originalTitle'], webpage),
-            'thumbnail': thumbnail_url or self._html_search_meta(['og:image', 'twitter:image:src', 'thumbnailUrl', 'dtk:thumbnailUrl'], webpage),
             'description': self._html_search_meta(['og:description', 'twitter:description', 'description'], webpage),
             'formats': formats,
             'subtitle': subtitles,
             'tags': try_call(lambda: self._html_search_meta(
                 ['keywords', 'keyword', 'dtk:keywords'], webpage).split(',')),
-            # 'duration': int_or_none(self._html_search_meta('duration', webpage, fatal=False)),
-            'release_timestamp': int_or_none(self._html_search_meta('dtk:publishdateunix', webpage, fatal=False), 1000),
         })
