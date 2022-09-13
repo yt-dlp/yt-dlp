@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import merge_dicts, str_or_none, try_call
+from ..utils import int_or_none, merge_dicts, str_or_none, try_call
 
 
 class Detik20IE(InfoExtractor):
@@ -131,10 +131,13 @@ class DetikEmbedIE(InfoExtractor):
             'id': '846189',
             'ext': 'mp4',
             'description': 'md5:ece7b003b3ee7d81c6a5cfede7d5397d',
-            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/11/thumbnail-video-1_169.jpeg?w=650',
+            'thumbnail': r're:https?://akcdn\.detik\.net\.id/visual/2022/09/11/thumbnail-video-1_169.jpeg',
             'title': 'Video CNN Indonesia - VIDEO: Momen Charles Disambut Meriah usai Dilantik jadi Raja Inggris',
             'age_limit': 0,
             'tags': ['raja charles', ' raja charles iii', ' ratu elizabeth', ' ratu elizabeth meninggal dunia', ' raja inggris', ' inggris'],
+            'subtitle': {},
+            'release_timestamp': 1662869995,
+            'release_date': '20220911',
         }
     }, {
         # 20.detik
@@ -143,7 +146,7 @@ class DetikEmbedIE(InfoExtractor):
             'id': '220704093',
             'ext': 'mp4',
             'description': 'md5:9b2257341b6f375cdcf90106146d5ffb',
-            'thumbnail': 'https://cdnv.detik.com/videoservice/AdminTV/2022/07/04/5d6187e402ec4a91877755a5886ff5b6-20220704161859-0s.jpg?w=650&q=80',
+            'thumbnail': r're:https?://cdnv\.detik\.com/videoservice/AdminTV/2022/07/04/5d6187e402ec4a91877755a5886ff5b6-20220704161859-0s.jpg',
             'title': 'Mulai Rp 10 Jutaan! Ini Skema Kredit Mitsubishi Pajero Sport',
             'timestamp': 1656951521,
             'upload_date': '20220704',
@@ -160,27 +163,44 @@ class DetikEmbedIE(InfoExtractor):
             'description': 'md5:7a6580876c8381c454679e028620bea7',
             'age_limit': 0,
             'tags': 'count:17',
+            'subtitle': {},
         }
     }]
 
     def _extract_from_webpage(self, url, webpage):
         video_id = (self._search_regex(r'identifier\s*:\s*\'([^\']+)', webpage, 'identifier', default=False, fatal=False)
                     or self._html_search_meta(['video_id', 'dtk:video_id'], webpage, fatal=False))
-        found = self._search_regex(
-            r'videoUrl["\']?\s*:?\s*["\']?([^"\']+)', webpage, 'videoUrl')
+        player_type, video_data = self._search_regex(
+            r'<script\s*[^>]+src="https?://(aws)?cdn\.detik\.net\.id/(?P<type>flowplayer|detikVideo)[^>]+>\s*(?P<video_data>{[^}]+})',
+            webpage, 'playerjs', group=('type', 'video_data'), default=(None, ''))
+
         json_ld_data = self._search_json_ld(webpage, video_id, default={})
-        if not found:
+        thumbnail_url = None
+        if not player_type:
             return
-        else:
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(found, video_id)
-            self._sort_formats(formats)
-            yield {
-                'id': video_id,
-                'title': self._html_search_meta(['og:title', 'originalTitle'], webpage),
-                'description': self._html_search_meta(['og:description', 'twitter:description'], webpage),
-                'formats': formats,
-                'subtitle': subtitles or None,
-                'tags': try_call(lambda: self._html_search_meta(
-                    ['keywords', 'keyword', 'dtk:keywords'], webpage).split(',')),
-                **json_ld_data
-            }
+        elif player_type == 'flowplayer':
+            video_json_data = self._parse_json(video_data.replace('\'', '"'), None)
+            video_url = video_json_data['videoUrl']
+            thumbnail_url = video_json_data.get('imageUrl')
+
+        elif player_type == 'detikVideo':
+            video_url = self._search_regex(
+                r'videoUrl\s*:\s*[\'"]?([^"\']+)', video_data, 'videoUrl')
+            thumbnail_url = self._search_regex(
+                r'imageUrl\s*:\s*[\'"]?([^"\']+)', video_data, 'videoUrl')
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id)
+        self._sort_formats(formats)
+
+        yield merge_dicts(json_ld_data, {
+            'id': video_id,
+            'title': self._html_search_meta(['og:title', 'originalTitle'], webpage),
+            'thumbnail': thumbnail_url or self._html_search_meta(['og:image', 'twitter:image:src', 'thumbnailUrl', 'dtk:thumbnailUrl'], webpage),
+            'description': self._html_search_meta(['og:description', 'twitter:description', 'description'], webpage),
+            'formats': formats,
+            'subtitle': subtitles,
+            'tags': try_call(lambda: self._html_search_meta(
+                ['keywords', 'keyword', 'dtk:keywords'], webpage).split(',')),
+            # 'duration': int_or_none(self._html_search_meta('duration', webpage, fatal=False)),
+            'release_timestamp': int_or_none(self._html_search_meta('dtk:publishdateunix', webpage, fatal=False), 1000),
+        })
