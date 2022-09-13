@@ -151,12 +151,13 @@ class CNNIndonesiaIE(InfoExtractor):
             'id': '845885',
             'ext': 'mp4',
             'description': 'md5:e7954bfa6f1749bc9ef0c079a719c347',
-            'upload_date': '20220911',
+            'upload_date': '20220909',
             'title': 'Alasan Harga BBM di Indonesia Masih Disubsidi',
             'timestamp': 1662859088,
             'duration': 120.0,
             'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/09/thumbnail-ekopedia-alasan-harga-bbm-disubsidi_169.jpeg?w=650',
             'tags': ['ekopedia', 'subsidi bbm', 'subsidi', 'bbm', 'bbm subsidi', 'harga pertalite naik'],
+            'age_limit': 0,
         }
     }, {
         'url': 'https://www.cnnindonesia.com/internasional/20220911104341-139-846189/video-momen-charles-disambut-meriah-usai-dilantik-jadi-raja-inggris',
@@ -170,6 +171,7 @@ class CNNIndonesiaIE(InfoExtractor):
             'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/11/thumbnail-video-1_169.jpeg?w=650',
             'title': 'VIDEO: Momen Charles Disambut Meriah usai Dilantik jadi Raja Inggris',
             'tags': ['raja charles', 'raja charles iii', 'ratu elizabeth', 'ratu elizabeth meninggal dunia', 'raja inggris', 'inggris'],
+            'age_limit': 0,
         }
     }]
 
@@ -181,20 +183,6 @@ class CNNIndonesiaIE(InfoExtractor):
         json_ld_list = list(self._yield_json_ld(webpage, display_id))
         embed_url = [json_ld.get('embedUrl') for json_ld in json_ld_list if json_ld.get('@type') == 'VideoObject'][0]
 
-        # embed url extract
-        embed_webpage = self._download_webpage(embed_url, display_id, note='Downloading embed webpage')
-        manifest_url = self._search_regex(
-            r'videoUrl\s*:\s*\'([^\']+)', embed_webpage, 'videoUrl')
-
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(manifest_url, display_id)
-        self._sort_formats(formats)
-        return {
-            'id': video_id or self._html_search_meta(['articleid'], webpage, fatal=True),
-            'formats': formats,
-            'subtitles': subtitles,
-            'title': self._html_search_meta(['og:title', 'twitter:title', 'originalTitle'], webpage),
-            'description': self._html_search_meta(['og:description'], webpage),
-            'tags': str_or_none(self._html_search_meta('keywords', webpage), '').split(', '),
-            'upload_date': upload_date,
-            **json_ld_data
-        }
+        return self.url_result(
+            embed_url, video_id=video_id, upload_date=upload_date, url_transparent=True,
+            tags=str_or_none(self._html_search_meta('keywords', webpage), '').split(', '), **json_ld_data)

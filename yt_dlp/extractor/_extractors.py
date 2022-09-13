@@ -407,7 +407,7 @@ from .deezer import (
     DeezerAlbumIE,
 )
 from .democracynow import DemocracynowIE
-from .detik import Detik20IE
+from .detik import Detik20IE, DetikEmbedIE
 from .dfb import DFBIE
 from .dhm import DHMIE
 from .digg import DiggIE

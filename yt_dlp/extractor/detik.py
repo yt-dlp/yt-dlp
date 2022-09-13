@@ -120,3 +120,66 @@ class Detik20IE(InfoExtractor):
             'subtitles': subtitles,
             'tags': str_or_none(self._html_search_meta(['keywords', 'keyword', 'dtk:keywords'], webpage), '').split(','),
         })
+
+
+class DetikEmbedIE(InfoExtractor):
+    _VALID_URL = False
+    _WEBPAGE_TESTS = [{
+        # cnn embed
+        'url': 'https://www.cnnindonesia.com/embed/video/846189',
+        'info_dict': {
+            'id': '846189',
+            'ext': 'mp4',
+            'description': 'md5:ece7b003b3ee7d81c6a5cfede7d5397d',
+            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/11/thumbnail-video-1_169.jpeg?w=650',
+            'title': 'Video CNN Indonesia - VIDEO: Momen Charles Disambut Meriah usai Dilantik jadi Raja Inggris',
+            'age_limit': 0,
+            'tags': ['raja charles', ' raja charles iii', ' ratu elizabeth', ' ratu elizabeth meninggal dunia', ' raja inggris', ' inggris'],
+        }
+    }, {
+        # 20.detik
+        'url': 'https://20.detik.com/otobuzz/20220704-220704093/mulai-rp-10-jutaan-ini-skema-kredit-mitsubishi-pajero-sport',
+        'info_dict': {
+            'id': '220704093',
+            'ext': 'mp4',
+            'description': 'md5:9b2257341b6f375cdcf90106146d5ffb',
+            'thumbnail': 'https://cdnv.detik.com/videoservice/AdminTV/2022/07/04/5d6187e402ec4a91877755a5886ff5b6-20220704161859-0s.jpg?w=650&q=80',
+            'title': 'Mulai Rp 10 Jutaan! Ini Skema Kredit Mitsubishi Pajero Sport',
+            'timestamp': 1656951521,
+            'upload_date': '20220704',
+            'duration': 83.0,
+            'tags': ['cicilan mobil', 'mitsubishi pajero sport', 'mitsubishi', 'pajero sport'],
+        }
+    }, {
+        # pasangmata.detik
+        'url': 'https://pasangmata.detik.com/contribution/366649',
+        'info_dict': {
+            'id': '366649',
+            'ext': 'mp4',
+            'title': 'Saling Dorong Aparat dan Pendemo di Aksi Tolak Kenaikan BBM',
+            'description': 'md5:7a6580876c8381c454679e028620bea7',
+            'age_limit': 0,
+            'tags': 'count:17',
+        }
+    }]
+
+    def _extract_from_webpage(self, url, webpage):
+        video_id = (self._search_regex(r'identifier\s*:\s*\'([^\']+)', webpage, 'identifier', default=False, fatal=False)
+                    or self._html_search_meta(['video_id', 'dtk:video_id'], webpage))
+        found = self._search_regex(
+            r'videoUrl\'?\"?\s*:?\s*["\']?([^\"^\']+)', webpage, 'videoUrl')
+        json_ld_data = self._search_json_ld(webpage, video_id, default={})
+        if not found:
+            return
+        else:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(found, video_id)
+            self._sort_formats(formats)
+            yield {
+                'id': video_id,
+                'title': self._html_search_meta(['og:title', 'originalTitle'], webpage),
+                'description': self._html_search_meta(['og:description', 'twitter:description'], webpage),
+                'formats': formats,
+                'subtitle': subtitles or None,
+                'tags': str_or_none(self._html_search_meta(['keywords', 'keyword', 'dtk:keywords'], webpage), '').split(','),
+                **json_ld_data
+            }
