@@ -167,7 +167,7 @@ class DetikEmbedIE(InfoExtractor):
         video_id = (self._search_regex(r'identifier\s*:\s*\'([^\']+)', webpage, 'identifier', default=False, fatal=False)
                     or self._html_search_meta(['video_id', 'dtk:video_id'], webpage, fatal=False))
         found = self._search_regex(
-            r'videoUrl\'?\"?\s*:?\s*["\']?([^\"^\']+)', webpage, 'videoUrl')
+            r'videoUrl["\']?\s*:?\s*["\']?([^"\']+)', webpage, 'videoUrl')
         json_ld_data = self._search_json_ld(webpage, video_id, default={})
         if not found:
             return
