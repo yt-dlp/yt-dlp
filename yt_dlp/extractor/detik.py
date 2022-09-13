@@ -180,6 +180,7 @@ class DetikEmbedIE(InfoExtractor):
                 'description': self._html_search_meta(['og:description', 'twitter:description'], webpage),
                 'formats': formats,
                 'subtitle': subtitles or None,
-                'tags': str_or_none(self._html_search_meta(['keywords', 'keyword', 'dtk:keywords'], webpage), '').split(','),
+                'tags': try_call(lambda: self._html_search_meta(
+                    ['keywords', 'keyword', 'dtk:keywords'], webpage).split(',')),
                 **json_ld_data
             }
