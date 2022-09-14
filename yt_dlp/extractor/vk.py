@@ -554,6 +554,7 @@ class VKUserVideosIE(VKBaseIE):
         'url': 'https://vk.com/video/playlist/-174476437_2',
         'info_dict': {
             'id': '-174476437_2',
+            'title': 'Анонсы'
         },
         'playlist_mincount': 108,
     }]
@@ -603,7 +604,8 @@ class VKUserVideosIE(VKBaseIE):
             section = 'all'
 
         playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
-        return self.playlist_result(self._entries(page_id, section), u_id, playlist_title)
+        return self.playlist_result(self._entries(page_id, section), '%s_%s' % (page_id, section), playlist_title)
+
 
 class VKWallPostIE(VKBaseIE):
     IE_NAME = 'vk:wallpost'
