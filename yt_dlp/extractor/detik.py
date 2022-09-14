@@ -110,7 +110,7 @@ class DetikEmbedIE(InfoExtractor):
             extra_info_dict = {
                 'id': self._html_search_meta(['video_id', 'dtk:video_id'], webpage),
                 'thumbnail': self._search_regex(r'imageUrl\s*:\s*[\'"]?([^"\']+)', video_data, 'videoUrl'),
-                # 'duration': int_or_none(self._html_search_meta('duration', webpage, fatal=False), default=0),
+                'duration': int_or_none(self._html_search_meta('duration', webpage, fatal=False, default=0)),
                 'release_timestamp': int_or_none(self._html_search_meta('dtk:publishdateunix', webpage, fatal=False), 1000),
             }
 
