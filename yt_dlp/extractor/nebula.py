@@ -148,7 +148,7 @@ class NebulaBaseIE(InfoExtractor):
 
 
 class NebulaIE(NebulaBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/videos/(?P<id>[-\w]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)/videos/(?P<id>[-\w]+)'
     _TESTS = [
         {
             'url': 'https://nebula.app/videos/that-time-disney-remade-beauty-and-the-beast',
@@ -246,7 +246,7 @@ class NebulaIE(NebulaBaseIE):
 
 class NebulaSubscriptionsIE(NebulaBaseIE):
     IE_NAME = 'nebula:subscriptions'
-    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/myshows'
+    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)/myshows'
     _TESTS = [
         {
             'url': 'https://nebula.app/myshows',
@@ -274,7 +274,7 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
 
 class NebulaChannelIE(NebulaBaseIE):
     IE_NAME = 'nebula:channel'
-    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/(?!myshows|videos/)(?P<id>[-\w]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)/(?!myshows|videos/)(?P<id>[-\w]+)'
     _TESTS = [
         {
             'url': 'https://nebula.app/tom-scott-presents-money',
