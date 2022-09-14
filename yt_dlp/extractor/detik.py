@@ -18,6 +18,7 @@ class DetikEmbedIE(InfoExtractor):
             'subtitle': {},
             'release_timestamp': 1662869995,
             'release_date': '20220911',
+            'uploader': 'REUTERS'
         }
     }, {
         # 20.detik
@@ -37,6 +38,7 @@ class DetikEmbedIE(InfoExtractor):
             'release_date': '20220704',
             'age_limit': 0,
             'subtitle': {},
+            'uploader': 'Ridwan Arifin '  # TODO: strip trailling whitespace at uploader
         }
     }, {
         # pasangmata.detik
@@ -65,6 +67,7 @@ class DetikEmbedIE(InfoExtractor):
             'title': 'Diincar Leonardo DiCaprio, Gigi Hadid Ngaku Tertarik Tapi Belum Cinta',
             'subtitle': {},
             'tags': ['leonardo dicaprio', ' gigi hadid', ' hollywood'],
+            'uploader': '!nsertlive',
         }
     }, {
         # beautynesia embed
@@ -80,6 +83,7 @@ class DetikEmbedIE(InfoExtractor):
             'tags': ['zodiac update', ' zodiak', ' ramalan bintang', ' zodiak beruntung 2022', ' zodiak hoki september 2022', ' zodiak beruntung september 2022'],
             'subtitle': {},
             'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/05/3-zodiak-paling-beruntung-selama-september-2022_169.jpeg?w=600&q=90',
+            'uploader': 'amh',
         }
     }, {
         # cnbcindonesia embed
@@ -126,6 +130,9 @@ class DetikEmbedIE(InfoExtractor):
                 'duration': int_or_none(self._html_search_meta('duration', webpage, fatal=False, default=None)),
                 'release_timestamp': int_or_none(self._html_search_meta('dtk:publishdateunix', webpage, fatal=False, default=None), 1000),
                 'timestamp': int_or_none(self._html_search_meta('dtk:createdateunix', webpage, fatal=False, default=None), 1000),
+                'uploader': self._search_regex(
+                    r'([^-]+)', self._html_search_meta('dtk:author', webpage, default='').strip(), 'uploader',
+                    default=None)
             }
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id)
