@@ -155,9 +155,13 @@ class CNNIndonesiaIE(InfoExtractor):
             'title': 'Alasan Harga BBM di Indonesia Masih Disubsidi',
             'timestamp': 1662859088,
             'duration': 120.0,
-            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/09/thumbnail-ekopedia-alasan-harga-bbm-disubsidi_169.jpeg?w=650',
+            'thumbnail': r're:https://akcdn\.detik\.net\.id/visual/2022/09/09/thumbnail-ekopedia-alasan-harga-bbm-disubsidi_169\.jpeg',
             'tags': ['ekopedia', 'subsidi bbm', 'subsidi', 'bbm', 'bbm subsidi', 'harga pertalite naik'],
             'age_limit': 0,
+            'release_timestamp': 1662859088,
+            'subtitle': {},
+            'release_date': '20220911',
+            'uploader': 'Asfahan Yahsyi',
         }
     }, {
         'url': 'https://www.cnnindonesia.com/internasional/20220911104341-139-846189/video-momen-charles-disambut-meriah-usai-dilantik-jadi-raja-inggris',
@@ -168,10 +172,33 @@ class CNNIndonesiaIE(InfoExtractor):
             'duration': 76.0,
             'timestamp': 1662869995,
             'description': 'md5:ece7b003b3ee7d81c6a5cfede7d5397d',
-            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/11/thumbnail-video-1_169.jpeg?w=650',
+            'thumbnail': r're:https://akcdn\.detik\.net\.id/visual/2022/09/11/thumbnail-video-1_169\.jpeg',
             'title': 'VIDEO: Momen Charles Disambut Meriah usai Dilantik jadi Raja Inggris',
             'tags': ['raja charles', 'raja charles iii', 'ratu elizabeth', 'ratu elizabeth meninggal dunia', 'raja inggris', 'inggris'],
             'age_limit': 0,
+            'release_date': '20220911',
+            'uploader': 'REUTERS',
+            'release_timestamp': 1662869995,
+            'subtitle': {},
+        }
+    }, {
+        # detik short link
+        'url': 'https://dtk.id/N0yLEE',
+        'info_dict': {
+            'id': '847155',
+            'ext': 'mp4',
+            'release_date': '20220913',
+            'uploader': 'Dorna',
+            'tags': ['motorland aragon', 'motogp', 'motogp 2022', 'motogp aragon', 'motogp aragon 2022', 'video highlights motogp'],
+            'description': 'md5:bb635b1a6dcac7eacfe2678d83ce3918',
+            'timestamp': 1663056835,
+            'age_limit': 0,
+            'subtitle': {},
+            'release_timestamp': 1663056835,
+            'upload_date': '20220913',
+            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/13/thumbnail-video-5_169.jpeg?a=1&w=600',
+            'title': 'VIDEO: Fakta Sirkuit Motorland MotoGP Aragon',
+            'duration': 53.0,
         }
     }]
 
