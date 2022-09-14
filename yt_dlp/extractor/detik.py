@@ -125,6 +125,7 @@ class DetikEmbedIE(InfoExtractor):
                 'thumbnail': self._search_regex(r'imageUrl\s*:\s*[\'"]?([^"\']+)', video_data, 'videoUrl'),
                 'duration': int_or_none(self._html_search_meta('duration', webpage, fatal=False, default=None)),
                 'release_timestamp': int_or_none(self._html_search_meta('dtk:publishdateunix', webpage, fatal=False, default=None), 1000),
+                'timestamp': int_or_none(self._html_search_meta('dtk:createdateunix', webpage, fatal=False, default=None), 1000),
             }
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id)
