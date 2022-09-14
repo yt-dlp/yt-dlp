@@ -140,7 +140,7 @@ class DetikEmbedIE(InfoExtractor):
 
         yield merge_dicts(json_ld_data, extra_info_dict, {
             'display_id': display_id,
-            'title': self._html_search_meta(['og:title', 'originalTitle'], webpage),
+            'title': self._html_search_meta(['og:title', 'originalTitle'], webpage) or self._html_extract_title(webpage),
             'description': self._html_search_meta(['og:description', 'twitter:description', 'description'], webpage),
             'formats': formats,
             'subtitle': subtitles,
