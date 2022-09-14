@@ -81,6 +81,19 @@ class DetikEmbedIE(InfoExtractor):
             'subtitle': {},
             'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/05/3-zodiak-paling-beruntung-selama-september-2022_169.jpeg?w=600&q=90',
         }
+    }, {
+        # cnbcindonesia embed
+        'url': 'https://www.cnbcindonesia.com/embed/video/371839',
+        'info_dict': {
+            'id': '371839',
+            'ext': 'mp4',
+            'title': 'Puluhan Pejabat Rusia Tuntut Putin Mundur',
+            'tags': ['putin'],
+            'age_limit': 0,
+            'thumbnail': 'https://awsimages.detik.net.id/visual/2022/09/13/cnbc-indonesia-tv-3_169.png?w=600&q=80',
+            'subtitle': {},
+            'description': 'md5:8b9111e37555fcd95fe549a9b4ae6fdc',
+        }
     }]
 
     def _extract_from_webpage(self, url, webpage):
@@ -110,8 +123,8 @@ class DetikEmbedIE(InfoExtractor):
             extra_info_dict = {
                 'id': self._html_search_meta(['video_id', 'dtk:video_id'], webpage),
                 'thumbnail': self._search_regex(r'imageUrl\s*:\s*[\'"]?([^"\']+)', video_data, 'videoUrl'),
-                'duration': int_or_none(self._html_search_meta('duration', webpage, fatal=False, default=0)),
-                'release_timestamp': int_or_none(self._html_search_meta('dtk:publishdateunix', webpage, fatal=False), 1000),
+                'duration': int_or_none(self._html_search_meta('duration', webpage, fatal=False, default=None)),
+                'release_timestamp': int_or_none(self._html_search_meta('dtk:publishdateunix', webpage, fatal=False, default=None), 1000),
             }
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id)
