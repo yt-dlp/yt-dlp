@@ -98,6 +98,26 @@ class DetikEmbedIE(InfoExtractor):
             'subtitle': {},
             'description': 'md5:8b9111e37555fcd95fe549a9b4ae6fdc',
         }
+    }, {
+        # detik shortlink (we can get it from https://dtk.id/?<url>)
+        'url': 'https://dtk.id/NkISKr',
+        'info_dict': {
+            'id': '220914049',
+            'ext': 'mp4',
+            'release_timestamp': 1663114488,
+            'subtitle': {},
+            'uploader': 'Tim 20Detik',
+            'title': 'Pakar Bicara soal Tim Khusus Jokowi dan Mereka yang Pro ke Bjorka',
+            'age_limit': 0,
+            'thumbnail': 'https://cdnv.detik.com/videoservice/AdminTV/2022/09/14/f15cae71d7b640c58e75b254ecbb1ce1-20220914071613-0s.jpg?w=400&q=80',
+            'display_id': 'pakar-bicara-soal-tim-khusus-jokowi-dan-mereka-yang-pro-ke-bjorka',
+            'upload_date': '20220914',
+            'release_date': '20220914',
+            'description': 'md5:5eb03225f7ee40207dd3a1e18a73f1ff',
+            'timestamp': 1663139688,
+            'duration': 213.0,
+            'tags': ['hacker bjorka', 'bjorka', 'hacker bjorka bocorkan data rahasia presiden jokowi', 'jokowi'],
+        }
     }]
 
     def _extract_from_webpage(self, url, webpage):
