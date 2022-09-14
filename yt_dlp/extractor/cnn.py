@@ -181,25 +181,6 @@ class CNNIndonesiaIE(InfoExtractor):
             'release_timestamp': 1662869995,
             'subtitle': {},
         }
-    }, {
-        # detik short link
-        'url': 'https://dtk.id/N0yLEE',
-        'info_dict': {
-            'id': '847155',
-            'ext': 'mp4',
-            'release_date': '20220913',
-            'uploader': 'Dorna',
-            'tags': ['motorland aragon', 'motogp', 'motogp 2022', 'motogp aragon', 'motogp aragon 2022', 'video highlights motogp'],
-            'description': 'md5:bb635b1a6dcac7eacfe2678d83ce3918',
-            'timestamp': 1663056835,
-            'age_limit': 0,
-            'subtitle': {},
-            'release_timestamp': 1663056835,
-            'upload_date': '20220913',
-            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/13/thumbnail-video-5_169.jpeg?a=1&w=600',
-            'title': 'VIDEO: Fakta Sirkuit Motorland MotoGP Aragon',
-            'duration': 53.0,
-        }
     }]
 
     def _real_extract(self, url):
