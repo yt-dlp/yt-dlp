@@ -4,7 +4,10 @@ import sys
 from hashlib import md5
 from ..compat import compat_ord, compat_chr
 from .common import InfoExtractor
-from ..utils import str_to_int
+from ..utils import (
+    str_to_int,
+    traverse_obj,
+)
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -44,8 +47,8 @@ class DeezerBaseInfoExtractor(InfoExtractor):
             "cid=550330597"
 
         response = self._download_json(url, data_id)
-        api_token = response.get('results', {}).get('checkForm')
-        license_token = response.get('results', {}).get('USER', {}).get('OPTIONS', {}).get('license_token')
+        api_token = traverse_obj(response, ('results', 'checkForm'))
+        license_token = traverse_obj(response, ('results', 'USER', 'OPTIONS', 'license_token'))
 
         return api_token, license_token
 
@@ -74,7 +77,7 @@ class DeezerMusicExtractor(DeezerBaseInfoExtractor):
         response = self._download_json(url, data_id, data=json.dumps(json_data).encode('utf-8'))
 
         entries = []
-        for track in response.get('results', {}).get('data', [{}]):
+        for track in traverse_obj(response, ('results', 'data')):
 
             if 'DIGITAL_RELEASE_DATE' in track:
                 release_date = track.get('DIGITAL_RELEASE_DATE').replace(' ', '')
@@ -123,12 +126,12 @@ class DeezerMusicExtractor(DeezerBaseInfoExtractor):
         for i in range(len(entries)):
             media = response.get('data', [{}])[i].get('media', [{}])[0]
             formats = entries[i].get('formats', [{}])
-            format_id = media.get('format', {})
+            format_id = media.get('format')
 
-            for source in media.get('sources', {}):
+            for source in media.get('sources'):
 
                 format_preference = -1 if '128' in format_id else -2
-                format_url = source.get('url', {})
+                format_url = source.get('url')
                 format_key = calcblowfishkey(entries[i].get('id'))
 
                 formats.append({
@@ -170,9 +173,9 @@ class DeezerPodcastExtractor(DeezerBaseInfoExtractor):
 
         entries = []
         if('data' in response.get('results')):
-            episodes = response.get('results', {}).get('data', [{}])
+            episodes = traverse_obj(response, ('results', 'data'))
         else:
-            episodes = [response.get('results', {})]
+            episodes = [response.get('results')]
 
         for episode in episodes:
 
@@ -253,7 +256,7 @@ class DeezerPlaylistIE(DeezerMusicExtractor):
 
         playlist_id, country, playlist_data = self.get_data(url)
         playlist_title = playlist_data.get('title')
-        playlist_uploader = playlist_data.get('creator', {}).get('name')
+        playlist_uploader = traverse_obj(playlist_data, ('creator', 'name'))
         playlist_thumbnail = playlist_data.get('picture_medium')
 
         json_data = {
@@ -292,7 +295,7 @@ class DeezerAlbumIE(DeezerMusicExtractor):
 
         album_id, country, album_data = self.get_data(url)
         album_title = album_data.get('title')
-        album_uploader = album_data.get('artist', {}).get('name')
+        album_uploader = traverse_obj(album_data, ('artist', 'name'))
         album_thumbnail = album_data.get('cover_medium')
 
         json_data = {
@@ -331,8 +334,8 @@ class DeezerTrackIE(DeezerMusicExtractor):
 
         track_id, country, track_data = self.get_data(url)
         track_title = track_data.get('title')
-        track_uploader = track_data.get('artist', {}).get('name')
-        track_thumbnail = track_data.get('album', {}).get('cover_medium')
+        track_uploader = traverse_obj(track_data, ('artist', 'name'))
+        track_thumbnail = traverse_obj(track_data, ('album', 'cover_medium'))
 
         json_data = {
             'sng_ids': [track_id]
@@ -368,7 +371,7 @@ class DeezerEpisodeIE(DeezerPodcastExtractor):
 
         episode_id, country, episode_data = self.get_data(url)
         episode_title = episode_data.get('title')
-        episode_uploader = episode_data.get('podcast', {}).get('title')
+        episode_uploader = traverse_obj(episode_data, ('podcast', 'title'))
         episode_thumbnail = episode_data.get('picture_medium')
 
         json_data = {
