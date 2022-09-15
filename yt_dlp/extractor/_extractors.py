@@ -277,12 +277,6 @@ from .camwithher import CamWithHerIE
 from .canalalpha import CanalAlphaIE
 from .canalplus import CanalplusIE
 from .canalc2 import Canalc2IE
-from .canvas import (
-    CanvasIE,
-    CanvasEenIE,
-    VrtNUIE,
-    DagelijkseKostIE,
-)
 from .carambatv import (
     CarambaTVIE,
     CarambaTVPageIE,
@@ -844,7 +838,6 @@ from .karaoketv import KaraoketvIE
 from .karrierevideos import KarriereVideosIE
 from .keezmovies import KeezMoviesIE
 from .kelbyone import KelbyOneIE
-from .ketnet import KetnetIE
 from .khanacademy import (
     KhanAcademyIE,
     KhanAcademyUnitIE,
