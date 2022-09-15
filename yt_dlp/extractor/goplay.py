@@ -54,7 +54,7 @@ class GoPlayIE(InfoExtractor):
             raise self.raise_login_required(method='password')
 
     def _real_extract(self, url):
-        url, display_id = self._match_valid_url(url).group(0, 'display_id')
+        display_id = self._match_valid_url(url).group('display_id')
         webpage = self._download_webpage(url, display_id)
         video_data_json = self._html_search_regex(r'<div\s+data-hero="([^"]+)"', webpage, 'video_data')
         video_data = self._parse_json(unescapeHTML(video_data_json), display_id).get('data')
@@ -147,8 +147,8 @@ class AwsIdp:
         self.info_bits = bytearray('Caldera Derived Key', 'utf-8')
 
         self.big_n = self.__hex_to_long(self.n_hex)
-        self.g = self.__hex_to_long(self.g_hex)  # pylint: disable=invalid-name
-        self.k = self.__hex_to_long(self.__hex_hash('00' + self.n_hex + '0' + self.g_hex))  # pylint: disable=invalid-name
+        self.g = self.__hex_to_long(self.g_hex)
+        self.k = self.__hex_to_long(self.__hex_hash('00' + self.n_hex + '0' + self.g_hex))
         self.small_a_value = self.__generate_random_small_a()
         self.large_a_value = self.__calculate_a()
 
@@ -162,15 +162,13 @@ class AwsIdp:
             "Accept-Encoding": "identity",
             "Content-Type": "application/x-amz-json-1.1"
         }
-        auth_response = self.ie._download_webpage(self.url, None, fatal=False, note="Authenticating Part 1", errnote="Invalid username", data=auth_data, headers=auth_headers)
-        if auth_response == False:
-            raise ExtractorError("Invalid username", expected=True)
-        auth_response_json = self.ie._parse_json(auth_response, None)
+        auth_response_json = self.ie._download_json(
+            self.url, None, data=auth_data, headers=auth_headers,
+            note='Authenticating username', errnote='Invalid username')
         challenge_parameters = auth_response_json.get("ChallengeParameters")
 
-        challenge_name = auth_response_json.get("ChallengeName")
-        if not challenge_name == "PASSWORD_VERIFIER":
-            raise AuthenticationException(auth_response_json.get("message"))
+        if auth_response_json.get("ChallengeName") != "PASSWORD_VERIFIER":
+            raise AuthenticationException(auth_response_json["message"])
 
         # Step 2: Respond to the Challenge with a valid ChallengeResponse
         challenge_request = self.__get_challenge_response_request(challenge_parameters, password)
@@ -179,17 +177,16 @@ class AwsIdp:
             "X-Amz-Target": "AWSCognitoIdentityProviderService.RespondToAuthChallenge",
             "Content-Type": "application/x-amz-json-1.1"
         }
-        auth_response = self.ie._download_webpage(self.url, None, fatal=False, note="Authenticating Part 2", errnote="Invalid password", data=challenge_data, headers=challenge_headers)
-        if auth_response == False:
-            raise ExtractorError("Invalid password", expected=True)
-        auth_response_json = self.ie._parse_json(auth_response, None)
+        auth_response_json = self.ie._download_json(
+            self.url, None, data=challenge_data, headers=challenge_headers,
+            note='Authenticating password', errnote='Invalid password')
 
-        if "message" in auth_response_json:
-            raise InvalidLoginException(auth_response_json.get("message"))
-
-        id_token = auth_response_json.get("AuthenticationResult", {}).get("IdToken")
-        refresh_token = auth_response_json.get("AuthenticationResult", {}).get("RefreshToken")
-        return id_token, refresh_token
+        if 'message' in auth_response_json:
+            raise InvalidLoginException(auth_response_json['message'])
+        return (
+            auth_response_json['AuthenticationResult']['IdToken'],
+            auth_response_json['AuthenticationResult']['RefreshToken']
+        )
 
     def __get_authentication_request(self, username):
         """
