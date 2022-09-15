@@ -593,7 +593,6 @@ class VKUserVideosIE(VKBaseIE):
         webpage = self._download_webpage(url, u_id)
 
         if u_id.startswith("@"):
-            u_id = u_id[1:]
             page_id = self._search_regex(r'data-owner-id\s?=\s?"([^"]+)"', webpage, 'page_id')
         elif "_" in u_id:
             page_id, section = u_id.split("_", 1)
