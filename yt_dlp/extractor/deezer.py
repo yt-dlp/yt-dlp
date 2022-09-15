@@ -1,35 +1,26 @@
 import json
 import re
-import sys
 from hashlib import md5
-from ..compat import compat_ord, compat_chr
 from .common import InfoExtractor
 from ..utils import (
     str_to_int,
     traverse_obj,
 )
 
-sys.stdout.reconfigure(encoding='utf-8')
-
-
-def md5hex(data):
-    """ return hex string of md5 of the given string """
-    return md5(data).hexdigest().encode('utf-8')
-
-
-def calcblowfishkey(songid):
-    """ Calculate the Blowfish decrypt key for a given songid """
-    h = md5hex(str(songid).encode('ascii'))
-    key = b"g4el58wc0zvf9na1"
-    return "".join(compat_chr(compat_ord(h[i]) ^ compat_ord(h[i + 16]) ^ compat_ord(key[i])) for i in range(16))
-
 
 class DeezerBaseInfoExtractor(InfoExtractor):
 
     GW_LIGHT_URL = "https://www.deezer.com/ajax/gw-light.php"
     GET_URL = "https://media.deezer.com/v1/get_url"
+    BLOWFISH_KEY = b"g4el58wc0zvf9na1"
+
+    def calcblowfishkey(self, songid):
+
+        h = md5(str(songid).encode('ascii')).hexdigest().encode('utf-8')
+        return "".join(chr(h[i] ^ h[i + 16] ^ self.BLOWFISH_KEY[i]) for i in range(16))
 
     def get_data(self, url):
+
         mobj = re.match(self._VALID_URL, url)
         data_id = mobj.group('id')
         country = mobj.group('country')
@@ -39,7 +30,7 @@ class DeezerBaseInfoExtractor(InfoExtractor):
 
     def get_api_license_tokens(self, data_id):
 
-        url = "https://www.deezer.com/ajax/gw-light.php?" + \
+        url = self.GW_LIGHT_URL + "?" + \
             "api_token=&" + \
             "method=deezer.getUserData&" + \
             "input=3&" + \
@@ -79,11 +70,6 @@ class DeezerMusicExtractor(DeezerBaseInfoExtractor):
         entries = []
         for track in traverse_obj(response, ('results', 'data')):
 
-            if 'DIGITAL_RELEASE_DATE' in track:
-                release_date = track.get('DIGITAL_RELEASE_DATE').replace(' ', '')
-            else:
-                release_date = None
-
             entries.append({
                 'id': track.get('SNG_ID'),
                 'duration': str_to_int(track.get('DURATION')),
@@ -92,7 +78,7 @@ class DeezerMusicExtractor(DeezerBaseInfoExtractor):
                 'artist': track.get('ART_NAME'),
                 'uploader_id': track.get('ART_ID'),
                 'track_number': str_to_int(track.get('TRACK_NUMBER')),
-                'release_date': str_to_int(release_date),
+                'release_date': str_to_int(track.get('DIGITAL_RELEASE_DATE', '').replace(' ', '')),
                 'album': track.get('ALB_TITLE'),
                 'formats': [{
                     'format_id': 'MP3_PREVIEW',
@@ -128,11 +114,11 @@ class DeezerMusicExtractor(DeezerBaseInfoExtractor):
             formats = entries[i].get('formats', [{}])
             format_id = media.get('format')
 
-            for source in media.get('sources'):
+            for source in media.get('sources', {}):
 
                 format_preference = -1 if '128' in format_id else -2
                 format_url = source.get('url')
-                format_key = calcblowfishkey(entries[i].get('id'))
+                format_key = self.calcblowfishkey(entries[i].get('id'))
 
                 formats.append({
                     'format_id': format_id,
