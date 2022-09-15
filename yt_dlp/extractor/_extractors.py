@@ -402,8 +402,12 @@ from .daystar import DaystarClipIE
 from .dbtv import DBTVIE
 from .dctp import DctpTvIE
 from .deezer import (
+    DeezerArtistIE,
     DeezerPlaylistIE,
     DeezerAlbumIE,
+    DeezerTrackIE,
+    DeezerEpisodeIE,
+    DeezerShowIE,
 )
 from .democracynow import DemocracynowIE
 from .detik import Detik20IE

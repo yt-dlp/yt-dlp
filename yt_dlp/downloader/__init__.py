@@ -23,6 +23,7 @@ def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=N
 # Some of these require get_suitable_downloader
 from .common import FileDownloader
 from .dash import DashSegmentsFD
+from .deezer import DeezerFD
 from .external import FFmpegFD, get_external_downloader
 from .f4m import F4mFD
 from .fc2 import FC2LiveFD
@@ -45,6 +46,7 @@ PROTOCOL_MAP = {
     'mms': RtspFD,
     'rtsp': RtspFD,
     'f4m': F4mFD,
+    'deezer': DeezerFD,
     'http_dash_segments': DashSegmentsFD,
     'http_dash_segments_generator': DashSegmentsFD,
     'ism': IsmFD,
