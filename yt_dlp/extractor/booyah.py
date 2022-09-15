@@ -68,6 +68,7 @@ class BooyahClipsIE(BooyahBaseIE):
                 'ext': 'mp4',
                 'format_note': 'Watermarked',
                 'height': video_data.get('resolution'),
+                'preference': -10,
             })
         self._sort_formats(formats)
 
