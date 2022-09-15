@@ -41,7 +41,6 @@ class NOSNLArticleIE(InfoExtractor):
             if item.get('type') == 'video':
                 formats, subtitle = self._extract_m3u8_formats_and_subtitles(
                     traverse_obj(item, ('source', 'url')), display_id, ext='mp4')
-
                 yield {
                     'id': str(item['id']),
                     'title': item.get('title'),
@@ -64,8 +63,8 @@ class NOSNLArticleIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['data']
-        video_generator = self._get_video_generator(nextjs_json, display_id)
         return self.playlist_result(
-            video_generator, str(nextjs_json['id']), nextjs_json.get('title') or self._html_search_meta(['title', 'og:title', 'twitter:title'], webpage),
+            self._get_video_generator(nextjs_json, display_id),
+            str(nextjs_json['id']), nextjs_json.get('title') or self._html_search_meta(['title', 'og:title', 'twitter:title'], webpage),
             nextjs_json.get('description') or self._html_search_meta(['description', 'twitter:description', 'og:description'], webpage),
             tags=nextjs_json.get('keyword'), modified_timestamp=parse_iso8601(nextjs_json.get(nextjs_json.get('modifiedAt'))))
