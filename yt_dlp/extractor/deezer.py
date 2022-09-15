@@ -172,7 +172,7 @@ class DeezerPodcastExtractor(DeezerBaseInfoExtractor):
         response = self._download_json(url, data_id, data=json.dumps(json_data).encode('utf-8'))
 
         entries = []
-        if('data' in response.get('results')):
+        if ('data' in response.get('results')):
             episodes = traverse_obj(response, ('results', 'data'))
         else:
             episodes = [response.get('results')]

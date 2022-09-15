@@ -47,7 +47,7 @@ def writeid3v2(fo, info_dict, ydl):
     try:
         fh = ydl.urlopen(info_dict["thumbnail"])
         id3.append(maketag(b"APIC", makepic(fh.read())))
-    except Exception as e:
+    except Exception:
         pass
 
     id3data = b"".join(id3)
