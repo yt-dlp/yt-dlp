@@ -5641,14 +5641,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
         'expected_warnings': ['Preferring "ja"'],
     }, {
-        # shorts audio pivot for Lyj-MZSAA9o.
-        'url': 'https://www.youtube.com/feed/sfv_audio_pivot?bp=8gUrCikSJwoLTHlqLU1aU0FBOW8SC0x5ai1NWlNBQTlvGgtMeWotTVpTQUE5bw==',
+        # shorts audio pivot for 2GtVksBMYFM.
+        'url': 'https://www.youtube.com/feed/sfv_audio_pivot?bp=8gUrCikSJwoLMkd0VmtzQk1ZRk0SCzJHdFZrc0JNWUZNGgsyR3RWa3NCTVlGTQ==',
         'info_dict': {
             'id': 'sfv_audio_pivot',
             'title': 'sfv_audio_pivot',
             'tags': [],
         },
-        'playlist_mincount': 15,
+        'playlist_mincount': 50,
 
     }]
 
