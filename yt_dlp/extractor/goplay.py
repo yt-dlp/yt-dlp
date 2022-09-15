@@ -61,13 +61,13 @@ class GoPlayIE(InfoExtractor):
 
         movie = video_data.get('movie')
         if movie:
-            video_id = movie.get('videoUuid')
+            video_id = movie['videoUuid']
             info_dict = {
                 'title': movie.get('title')
             }
         else:
-            episode = traverse_obj(video_data, ('playlists', ..., 'episodes', lambda _, v: traverse_obj(v, ('pageInfo', 'url')) == url), get_all=False)
-            video_id = episode.get('videoUuid')
+            episode = traverse_obj(video_data, ('playlists', ..., 'episodes', lambda _, v: v['pageInfo']['url'] == url), get_all=False)
+            video_id = episode['videoUuid']
             info_dict = {
                 'title': episode.get('episodeTitle'),
                 'series': traverse_obj(episode, ('program', 'title')),
