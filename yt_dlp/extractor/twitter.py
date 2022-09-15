@@ -799,11 +799,17 @@ class TwitterSpacesIE(TwitterBaseIE):
             m3u8_url = source.get('noRedirectPlaybackUrl') or source['location']
             m3u8_id = 'live' if info['is_live'] else 'replay'
 
+            # force entry_protocol to m3u8 because m3u8_native is broken
             formats = self._extract_m3u8_formats(
-                m3u8_url, media_key, 'mp4', m3u8_id=m3u8_id)
+                m3u8_url, media_key, 'm4a',
+                m3u8_id=m3u8_id, entry_protocol='m3u8',
+                live=info['is_live'])
             # force audio-only
             for i in range(len(formats)):
-                formats[i].update({'vcodec': 'none'})
+                formats[i].update({
+                    'vcodec': 'none',
+                    'acodec': 'aac',
+                })
 
         return {
             **info,
