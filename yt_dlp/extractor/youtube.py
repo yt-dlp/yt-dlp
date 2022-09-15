@@ -5640,6 +5640,16 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
         'expected_warnings': ['Preferring "ja"'],
+    }, {
+        # shorts audio pivot for Lyj-MZSAA9o.
+        'url': 'https://www.youtube.com/feed/sfv_audio_pivot?bp=8gUrCikSJwoLTHlqLU1aU0FBOW8SC0x5ai1NWlNBQTlvGgtMeWotTVpTQUE5bw==',
+        'info_dict': {
+            'id': 'sfv_audio_pivot',
+            'title': 'sfv_audio_pivot',
+            'tags': [],
+        },
+        'playlist_mincount': 15,
+
     }]
 
     @classmethod
@@ -6310,9 +6320,12 @@ class YoutubeStoriesIE(InfoExtractor):
 class YoutubeShortsAudioPivotIE(InfoExtractor):
     IE_DESC = 'YouTube Shorts audio pivot; "ytshortsap:" prefix'
     IE_NAME = 'youtube:shorts:audiopivot'
-    _VALID_URL = f'(?x)^ytshortsap:{YoutubeIE._VALID_URL[5:]}'
+    _VALID_URL = f'(?x)^ytshortsap:{YoutubeIE._VALID_URL[5:]}'  # TODO: might be better to just restrict this to id and /shorts/
     _TESTS = [{
-        'url': 'ytshortsap:2xZ4lAQcgx4',
+        'url': 'ytshortsap:https://www.youtube.com/shorts/Lyj-MZSAA9o?feature=share',
+        'only_matching': True,
+    }, {
+        'url': 'ytshortsap:Lyj-MZSAA9o',
         'only_matching': True,
     }]
 
@@ -6321,15 +6334,14 @@ class YoutubeShortsAudioPivotIE(InfoExtractor):
         """
         Generates sfv_audio_pivot browse parameter for this video id
         """
-        token = b'\xf2\x05+\n)\x12\'\n\x0b%b\x12\x0b%b\x1a\x0b%b' % (video_id.encode(), video_id.encode(), video_id.encode())
+        token = b'\xf2\x05+\n)\x12\'\n\x0b%b\x12\x0b%b\x1a\x0b%b' % ((video_id.encode(),) * 3)
         return base64.b64encode(token).decode()
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        bp = self._generate_audio_pivot_params(video_id)
         return self.url_result(
-            f'https://www.youtube.com/feed/sfv_audio_pivot?bp={bp}',
-            ie=YoutubeTabIE.ie_key(), url_transparent=True, playlist_title=f'Shorts using audio from {video_id}')
+            f'https://www.youtube.com/feed/sfv_audio_pivot?bp={self._generate_audio_pivot_params(video_id)}',
+            ie=YoutubeTabIE.ie_key())
 
 
 class YoutubeTruncatedURLIE(InfoExtractor):
