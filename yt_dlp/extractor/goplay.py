@@ -162,7 +162,9 @@ class AwsIdp:
             "Accept-Encoding": "identity",
             "Content-Type": "application/x-amz-json-1.1"
         }
-        auth_response = self.ie._download_webpage(self.url, None, note="Authenticating Part 1", data=auth_data, headers=auth_headers)
+        auth_response = self.ie._download_webpage(self.url, None, fatal=False, note="Authenticating Part 1", errnote="Invalid username", data=auth_data, headers=auth_headers)
+        if auth_response == False:
+            raise ExtractorError("Invalid username", expected=True)
         auth_response_json = self.ie._parse_json(auth_response, None)
         challenge_parameters = auth_response_json.get("ChallengeParameters")
 
@@ -177,7 +179,9 @@ class AwsIdp:
             "X-Amz-Target": "AWSCognitoIdentityProviderService.RespondToAuthChallenge",
             "Content-Type": "application/x-amz-json-1.1"
         }
-        auth_response = self.ie._download_webpage(self.url, None, note="Authenticating Part 2", data=challenge_data, headers=challenge_headers)
+        auth_response = self.ie._download_webpage(self.url, None, fatal=False, note="Authenticating Part 2", errnote="Invalid password", data=challenge_data, headers=challenge_headers)
+        if auth_response == False:
+            raise ExtractorError("Invalid password", expected=True)
         auth_response_json = self.ie._parse_json(auth_response, None)
 
         if "message" in auth_response_json:
