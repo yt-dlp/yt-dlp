@@ -6341,7 +6341,7 @@ class YoutubeShortsAudioPivotIE(InfoExtractor):
         video_id = self._match_id(url)
         return self.url_result(
             f'https://www.youtube.com/feed/sfv_audio_pivot?bp={self._generate_audio_pivot_params(video_id)}',
-            ie=YoutubeTabIE.ie_key())
+            ie=YoutubeTabIE)
 
 
 class YoutubeTruncatedURLIE(InfoExtractor):
