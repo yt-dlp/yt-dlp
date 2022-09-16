@@ -22,6 +22,7 @@ import xml.etree.ElementTree
 
 from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
+from ..cookies import LenientSimpleCookie
 from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..utils import (
@@ -3632,7 +3633,7 @@ class InfoExtractor:
 
     def _get_cookies(self, url):
         """ Return a http.cookies.SimpleCookie with the cookies for the url """
-        return http.cookies.SimpleCookie(self._downloader._calc_cookies(url))
+        return LenientSimpleCookie(self._downloader._calc_cookies(url))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """
