@@ -329,8 +329,13 @@ def validate_options(opts):
         for regex in value or []:
             if regex.startswith('*'):
                 for range in regex[1:].split(','):
-                    dur = tuple(map(parse_duration, range.strip().split('-')))
-                    if len(dur) == 2 and any(t is not None for t in dur):
+                    range = range.strip()
+                    dur = tuple(map(parse_duration, range.split('-')))
+                    if len(dur) == 2 and range != '-' and (
+                            # start-end
+                            all(t is not None for t in dur)
+                            # start- or -end
+                            or any(x == '-' for x in (range[0], range[-1]))):
                         ranges.append(dur)
                     else:
                         raise ValueError(f'invalid {name} time range "{regex}". Must be of the form *start-end')
