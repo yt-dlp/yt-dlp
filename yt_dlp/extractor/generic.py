@@ -2621,7 +2621,7 @@ class GenericIE(InfoExtractor):
                     default_search += ':'
                 return self.url_result(default_search + url)
 
-        url, smuggled_data = unsmuggle_url(url)
+        url, smuggled_data = unsmuggle_url(url, {})
         force_videoid = None
         is_intentional = smuggled_data and smuggled_data.get('to_generic')
         if smuggled_data and 'force_videoid' in smuggled_data:
@@ -2638,7 +2638,10 @@ class GenericIE(InfoExtractor):
         # to accept raw bytes and being able to download only a chunk.
         # It may probably better to solve this by checking Content-Type for application/octet-stream
         # after a HEAD request, but not sure if we can rely on this.
-        full_response = self._request_webpage(url, video_id, headers={'Accept-Encoding': '*'})
+        full_response = self._request_webpage(url, video_id, headers={
+            'Accept-Encoding': '*',
+            **smuggled_data.get('http_headers', {})
+        })
         new_url = full_response.geturl()
         if url != new_url:
             self.report_following_redirect(new_url)
@@ -2657,14 +2660,15 @@ class GenericIE(InfoExtractor):
         m = re.match(r'^(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
         if m:
             self.report_detected('direct video link')
+            headers = smuggled_data.get('http_headers', {})
             format_id = str(m.group('format_id'))
             subtitles = {}
             if format_id.endswith('mpegurl'):
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
             elif format_id.endswith('mpd') or format_id.endswith('dash+xml'):
-                formats, subtitles = self._extract_mpd_formats_and_subtitles(url, video_id)
+                formats, subtitles = self._extract_mpd_formats_and_subtitles(url, video_id, headers=headers)
             elif format_id == 'f4m':
-                formats = self._extract_f4m_formats(url, video_id)
+                formats = self._extract_f4m_formats(url, video_id, headers=headers)
             else:
                 formats = [{
                     'format_id': format_id,
@@ -2673,8 +2677,11 @@ class GenericIE(InfoExtractor):
                 }]
                 info_dict['direct'] = True
             self._sort_formats(formats)
-            info_dict['formats'] = formats
-            info_dict['subtitles'] = subtitles
+            info_dict.update({
+                'formats': formats,
+                'subtitles': subtitles,
+                'http_headers': headers,
+            })
             return info_dict
 
         if not self.get_param('test', False) and not is_intentional:
@@ -2919,7 +2926,11 @@ class GenericIE(InfoExtractor):
             self.report_detected('JSON LD')
             return merge_dicts({
                 '_type': 'url_transparent',
-                'url': smuggle_url(json_ld['url'], {'force_videoid': video_id, 'to_generic': True}),
+                'url': smuggle_url(json_ld['url'], {
+                    'force_videoid': video_id,
+                    'to_generic': True,
+                    'http_headers': {'Referer': url},
+                }),
             }, json_ld, info_dict)
 
         def check_video(vurl):
