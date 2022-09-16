@@ -2711,17 +2711,18 @@ class YoutubeDL:
                           (f['format_id'] for f in formats_to_download))
                 if requested_ranges:
                     to_screen(f'Downloading {len(requested_ranges)} time ranges:',
-                              (f'{int(c["start_time"])}-{int(c["end_time"])}' for c in requested_ranges))
+                              (f'{c["start_time"]:.1f}-{c["end_time"]:.1f}' for c in requested_ranges))
             max_downloads_reached = False
 
             for fmt, chapter in itertools.product(formats_to_download, requested_ranges or [{}]):
                 new_info = self._copy_infodict(info_dict)
                 new_info.update(fmt)
                 offset, duration = info_dict.get('section_start') or 0, info_dict.get('duration') or float('inf')
+                end_time = offset + min(chapter.get('end_time', duration), duration)
                 if chapter or offset:
                     new_info.update({
                         'section_start': offset + chapter.get('start_time', 0),
-                        'section_end': offset + min(chapter.get('end_time', duration), duration),
+                        'section_end': end_time if end_time < offset + duration else None,
                         'section_title': chapter.get('title'),
                         'section_number': chapter.get('index'),
                     })

@@ -964,7 +964,7 @@ def create_parser():
             'Download only chapters whose title matches the given regular expression. '
             'Time ranges prefixed by a "*" can also be used in place of chapters to download the specified range. '
             'Needs ffmpeg. This option can be used multiple times to download multiple sections, '
-            'e.g. --download-sections "*10:15-15:00" --download-sections "intro"'))
+            'e.g. --download-sections "*10:15-inf" --download-sections "intro"'))
     downloader.add_option(
         '--downloader', '--external-downloader',
         dest='external_downloader', metavar='[PROTO:]NAME', default={}, type='str',
