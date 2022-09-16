@@ -1,9 +1,12 @@
 import json
 
+from time import (strftime, gmtime)
 from .gigya import GigyaBaseIE
 from ..compat import compat_HTTPError
 from ..utils import (
+    parse_iso8601,
     ExtractorError,
+    int_or_none,
     float_or_none,
     str_or_none,
     url_or_none,
@@ -13,14 +16,27 @@ from ..utils import (
 
 class VRTIE(GigyaBaseIE):
     IE_DESC = 'VRT'
-    _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtnu/a-z/(?P<id>.+)/?'
+    _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtnu/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.vrt.be/vrtnu/a-z/heizel-1985/trailer/heizel-1985-trailer/',
         'info_dict': {
             'id': 'pbs-pub-e1d6e4ec-cbf4-451e-9e87-d835bb65cd28$vid-2ad45eb6-9bc8-40d4-ad72-5f25c0f59d75',
             'title': 'Trailer \'Heizel 1985\'',
             'thumbnail': 'https://images.vrt.be/orig/2022/09/07/6e44ce6f-2eb3-11ed-b07d-02b7b76bf47f.jpg',
-            'duration': 41.05
+            'ext': 'mp4',
+            'duration': 41.05,
+            'release_date': '20220908',
+            'description': 'md5:816dcd9e3be706b16e4e32e3f723a5a1',
+            'display_id': 'heizel-1985-trailer',
+            'episode_number': 0,
+            'timestamp': 1662609600,
+            'series': 'Heizel 1985',
+            'upload_date': '20220908',
+            'channel': 'VRT',
+            'season_id': '1662373764370',
+            'episode_id': '1662373764405',
+            'release_timestamp': 1662609600,
+            'episode': 'Aflevering 0'
         },
     }]
     _NETRC_MACHINE = 'vrtnu'
@@ -84,15 +100,29 @@ class VRTIE(GigyaBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
-        episode_data = self._download_json(f'{url.strip("/")}.model.json', display_id,
-                                           'Downloading asset JSON', 'Unable to download asset JSON')
-        details = episode_data.get('details')
+        model_json = self._download_json(f'{url.strip("/")}.model.json', display_id,
+                                         'Downloading asset JSON', 'Unable to download asset JSON')
+        details = model_json.get('details')
         actions = details.get('actions')
+        title = details.get('title')
         episode_publication_id = actions[2].get('episodePublicationId')
         episode_video_id = actions[2].get('episodeVideoId')
         video_id = f'{episode_publication_id}${episode_video_id}'
+        description = details.get('description')
+        episode = details.get('data').get('episode')
+        display_id = episode.get('name')
+        timestamp = parse_iso8601(episode.get('onTime').get('raw'))
+        upload_date = strftime('%Y%m%d', gmtime(timestamp))
+        series_info = details.get('data')
+        series = series_info.get('program').get('title')
+        season = series_info.get('season').get('title').get('value')
+        season_number = series_info.get('season').get('title').get('raw')
+        season_id = series_info.get('season').get('id')
+        episode = series_info.get('episode').get('number').get('value')
+        episode_number = series_info.get('episode').get('number').get('raw')
+        episode_id = series_info.get('episode').get('id')
 
-        data = None
+        video_info = None
         vrtnutoken = ""
 
         if self._authenticated:
@@ -108,27 +138,23 @@ class VRTIE(GigyaBaseIE):
                 'identityToken': vrtnutoken
             }).encode('utf-8'))['vrtPlayerToken']
 
-        data = self._download_json(
+        video_info = self._download_json(
             '%s/media-items/%s' % (self._REST_API_BASE_VIDEO, video_id),
             video_id, 'Downloading video JSON', query={
                 'vrtPlayerToken': vrtPlayerToken,
                 'client': 'vrtnu-web@PROD',
             }, expected_status=400)
-        if 'title' not in data:
-            code = data.get('code')
+        if 'title' not in video_info:
+            code = video_info.get('code')
             if code == 'AUTHENTICATION_REQUIRED':
                 self.raise_login_required()
             elif code == 'INVALID_LOCATION':
                 self.raise_geo_restricted(countries=['BE'])
-            raise ExtractorError(data.get('message') or code, expected=True)
-
-        # Note: The title may be an empty string
-        title = data['title'] or f'{video_id}'
-        description = data.get('description')
+            raise ExtractorError(video_info.get('message') or code, expected=True)
 
         formats = []
         subtitles = {}
-        for target in data['targetUrls']:
+        for target in video_info['targetUrls']:
             format_url, format_type = url_or_none(target.get('url')), str_or_none(target.get('type'))
             if not format_url or not format_type:
                 continue
@@ -159,7 +185,7 @@ class VRTIE(GigyaBaseIE):
                 })
         self._sort_formats(formats)
 
-        subtitle_urls = data.get('subtitleUrls')
+        subtitle_urls = video_info.get('subtitleUrls')
         if isinstance(subtitle_urls, list):
             for subtitle in subtitle_urls:
                 subtitle_url = subtitle.get('url')
@@ -168,11 +194,23 @@ class VRTIE(GigyaBaseIE):
 
         return {
             'id': video_id,
-            'display_id': video_id,
+            'display_id': display_id,
+            'timestamp': timestamp,
+            'release_timestamp': timestamp,
+            'upload_date': upload_date,
+            'release_date': upload_date,
             'title': title,
             'description': description,
+            'series': series,
+            'season': season,
+            'season_number': int_or_none(season_number),
+            'season_id': season_id,
+            'episode': episode,
+            'episode_number': episode_number,
+            'episode_id': episode_id,
+            'channel': 'VRT',
             'formats': formats,
-            'duration': float_or_none(data.get('duration'), 1000),
-            'thumbnail': data.get('posterImageUrl'),
+            'duration': float_or_none(video_info.get('duration'), 1000),
+            'thumbnail': video_info.get('posterImageUrl'),
             'subtitles': subtitles,
         }
