@@ -509,7 +509,7 @@ class BilibiliSpaceBaseIE(InfoExtractor):
         metadata = get_metadata(first_page)
 
         paged_list = InAdvancePagedList(
-            lambda idx: get_entries(fetch_page(idx) if idx else first_page),
+            lambda idx: get_entries(fetch_page(idx) if idx > 1 else first_page),
             metadata['page_count'], metadata['page_size'])
 
         return metadata, paged_list
