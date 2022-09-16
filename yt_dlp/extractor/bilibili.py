@@ -543,8 +543,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             return {
                 'page_count': math.ceil(entry_count / page_size),
                 'page_size': page_size,
-                'entry_count': entry_count,
-                'title': None
+                'entry_count': entry_count
             }
 
         def get_entries(page_data):
@@ -552,7 +551,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                 yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}', BiliBiliIE, entry['bvid'])
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
-        return self.playlist_result(paged_list, playlist_id, metadata['title'])
+        return self.playlist_result(paged_list, playlist_id)
 
 
 class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
@@ -578,8 +577,7 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
             return {
                 'page_count': page_data['pageCount'],
                 'page_size': page_data['pageSize'],
-                'entry_count': page_data['totalSize'],
-                'title': None
+                'entry_count': page_data['totalSize']
             }
 
         def get_entries(page_data):
@@ -587,7 +585,7 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
                 yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}', BilibiliAudioIE, entry['id'])
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
-        return self.playlist_result(paged_list, playlist_id, metadata['title'])
+        return self.playlist_result(paged_list, playlist_id)
 
 
 class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
