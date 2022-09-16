@@ -993,8 +993,8 @@ def _parse_browser_specification(browser_name, profile=None, keyring=None, conta
 
 
 class LenientSimpleCookie(http.cookies.SimpleCookie):
-    """ More lenient version of http.cookies.SimpleCookie """
-    # Values copied from http.cookies
+    """More lenient version of http.cookies.SimpleCookie"""
+    # From https://github.com/python/cpython/blob/v3.10.7/Lib/http/cookies.py
     _LEGAL_KEY_CHARS = r"\w\d!#%&'~_`><@,:/\$\*\+\-\.\^\|\)\(\?\}\{\="
     _LEGAL_VALUE_CHARS = _LEGAL_KEY_CHARS + r"\[\]"
 
@@ -1037,10 +1037,9 @@ class LenientSimpleCookie(http.cookies.SimpleCookie):
         """, re.ASCII | re.VERBOSE)
 
     def load(self, data):
-        """ Workaround for https://github.com/yt-dlp/yt-dlp/issues/4776 """
+        # Workaround for https://github.com/yt-dlp/yt-dlp/issues/4776
         if not isinstance(data, str):
-            super().load(data)
-            return
+            return super().load(data)
 
         morsel = None
         index = 0

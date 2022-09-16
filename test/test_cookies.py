@@ -146,7 +146,7 @@ class TestLenientSimpleCookie(unittest.TestCase):
             cookie = LenientSimpleCookie(raw_cookie)
 
             with self.subTest(message, expected=expected):
-                self.assertEqual(cookie.keys(), expected.keys())
+                self.assertEqual(cookie.keys(), expected.keys(), message)
 
                 for key, expected_value in expected.items():
                     morsel = cookie[key]
@@ -160,12 +160,13 @@ class TestLenientSimpleCookie(unittest.TestCase):
                         for key, value in dict(morsel).items()
                         if value != ""
                     }
-                    self.assertEqual(attributes, expected_attributes)
+                    self.assertEqual(attributes, expected_attributes, message)
 
-                    self.assertEqual(morsel.value, expected_value)
+                    self.assertEqual(morsel.value, expected_value, message)
 
     def test_parsing(self):
-        self._run_tests(  # Copied from http.cookies
+        self._run_tests(
+            # Copied from https://github.com/python/cpython/blob/v3.10.7/Lib/test/test_http_cookies.py
             (
                 "Test basic cookie",
                 "chips=ahoy; vienna=finger",
@@ -226,15 +227,21 @@ class TestLenientSimpleCookie(unittest.TestCase):
                 'Customer="WILE_E_COYOTE"; Version="1"; Path="/acme"',
                 {"Customer": ("WILE_E_COYOTE", {"version": "1", "path": "/acme"})}
             ),
-        )
-
-    def test_lenient_parsing(self):
-        self._run_tests(
+            # Our own tests that CPython passes
             (
                 "Allow ';' in quoted value",
                 'chips="a;hoy"; vienna=finger',
                 {"chips": "a;hoy", "vienna": "finger"},
             ),
+            (
+                "Keep only the last set value",
+                "a=c; a=b",
+                {"a": "b"},
+            ),
+        )
+
+    def test_lenient_parsing(self):
+        self._run_tests(
             (
                 "Ignore and try to skip invalid cookies",
                 'chips={"ahoy;": 1}; vienna="finger;"',
@@ -264,11 +271,6 @@ class TestLenientSimpleCookie(unittest.TestCase):
                 "Expect quote mending",
                 'a=b; invalid="; c=d',
                 {"a": "b", "c": "d"},
-            ),
-            (
-                "Keep only the last set value",
-                "a=c; a=b",
-                {"a": "b"},
             ),
             (
                 "Reset morsel after invalid to not capture attributes",
