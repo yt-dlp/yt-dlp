@@ -5,6 +5,7 @@ import hashlib
 import http.client
 import http.cookiejar
 import http.cookies
+import inspect
 import itertools
 import json
 import math
@@ -3899,6 +3900,18 @@ class InfoExtractor:
     def _extract_url(cls, webpage):  # TODO: Remove
         """Only for compatibility with some older extractors"""
         return next(iter(cls._extract_embed_urls(None, webpage) or []), None)
+
+    @classmethod
+    def __init_subclass__(cls, *, plugin_name=None, **kwargs):
+        if plugin_name:
+            mro = inspect.getmro(cls)
+            super_class = cls.__wrapped__ = mro[mro.index(cls) + 1]
+            cls.IE_NAME, cls.ie_key = f'{super_class.IE_NAME}+{plugin_name}', super_class.ie_key
+            while getattr(super_class, '__wrapped__', None):
+                super_class = super_class.__wrapped__
+            setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
+
+        return super().__init_subclass__(**kwargs)
 
 
 class SearchInfoExtractor(InfoExtractor):
