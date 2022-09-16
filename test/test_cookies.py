@@ -141,9 +141,31 @@ class TestCookies(unittest.TestCase):
 
 
 class TestLenientSimpleCookie(unittest.TestCase):
-    def test_lenient_parsing(self):
-        _TEST_CASES = [
-            # Base test cases (mostly copied from http.cookies)
+    def _run_tests(self, *cases):
+        for message, raw_cookie, expected in cases:
+            cookie = LenientSimpleCookie(raw_cookie)
+
+            with self.subTest(message, expected=expected):
+                self.assertEqual(cookie.keys(), expected.keys())
+
+                for key, expected_value in expected.items():
+                    morsel = cookie[key]
+                    if isinstance(expected_value, tuple):
+                        expected_value, expected_attributes = expected_value
+                    else:
+                        expected_attributes = {}
+
+                    attributes = {
+                        key: value
+                        for key, value in dict(morsel).items()
+                        if value != ""
+                    }
+                    self.assertEqual(attributes, expected_attributes)
+
+                    self.assertEqual(morsel.value, expected_value)
+
+    def test_parsing(self):
+        self._run_tests(  # Copied from http.cookies
             (
                 "Test basic cookie",
                 "chips=ahoy; vienna=finger",
@@ -204,7 +226,10 @@ class TestLenientSimpleCookie(unittest.TestCase):
                 'Customer="WILE_E_COYOTE"; Version="1"; Path="/acme"',
                 {"Customer": ("WILE_E_COYOTE", {"version": "1", "path": "/acme"})}
             ),
-            # Additional edge cases
+        )
+
+    def test_lenient_parsing(self):
+        self._run_tests(
             (
                 "Allow ';' in quoted value",
                 'chips="a;hoy"; vienna=finger',
@@ -255,26 +280,4 @@ class TestLenientSimpleCookie(unittest.TestCase):
                 "a=b; path; Version=1; c=d",
                 {"a": "b", "c": "d"},
             ),
-        ]
-
-        for message, raw_cookie, expected in _TEST_CASES:
-            cookie = LenientSimpleCookie(raw_cookie)
-
-            with self.subTest(message, expected=expected):
-                self.assertEqual(cookie.keys(), expected.keys())
-
-                for key, expected_value in expected.items():
-                    morsel = cookie[key]
-                    if isinstance(expected_value, tuple):
-                        expected_value, expected_attributes = expected_value
-                    else:
-                        expected_attributes = {}
-
-                    attributes = {
-                        key: value
-                        for key, value in dict(morsel).items()
-                        if value != ""
-                    }
-                    self.assertEqual(attributes, expected_attributes)
-
-                    self.assertEqual(morsel.value, expected_value)
+        )
