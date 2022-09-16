@@ -920,6 +920,7 @@ def _real_main(argv=None):
     # We may need ffmpeg_location without having access to the YoutubeDL instance
     # See https://github.com/yt-dlp/yt-dlp/issues/2191
     if opts.ffmpeg_location:
+        opts.ffmpeg_location = expand_path(opts.ffmpeg_location)
         FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
 
     with YoutubeDL(ydl_opts) as ydl:
