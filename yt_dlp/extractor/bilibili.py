@@ -516,7 +516,7 @@ class BilibiliSpaceBaseIE(InfoExtractor):
 
 
 class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
-    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)(?P<video>/video)?$'
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)(?P<video>/video)?/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/3985676/video',
         'info_dict': {
@@ -526,12 +526,10 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        if not mobj.group('video'):
-            self.to_screen(f'{url} may have multiple media types. This run will only download videos.\n'
-                           + f'For example, use {url}/audio for audios.')
-
-        playlist_id = self._match_id(url)
+        playlist_id, is_video_url = self._match_valid_url(url).group('id', 'video')
+        if not is_video_url:
+            self.to_screen('A channel URL was given. Only the channel\'s videos will be downloaded. '
+                           'To download audios, add a "/audio" to the URL')
 
         def fetch_page(page_idx):
             return self._download_json(
@@ -626,7 +624,7 @@ class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
         def get_entries(page_data):
             for entry in page_data.get('archives', []):
                 yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
-                                      BiliBiliIE.ie_key(), entry['bvid'])
+                                      BiliBiliIE, entry['bvid'])
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id, metadata['title'])
