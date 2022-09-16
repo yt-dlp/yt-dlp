@@ -6318,8 +6318,8 @@ class YoutubeStoriesIE(InfoExtractor):
 
 
 class YoutubeShortsAudioPivotIE(InfoExtractor):
-    IE_DESC = 'YouTube Shorts audio pivot; "ytshortsap:" prefix'
-    IE_NAME = 'youtube:shorts:audiopivot'
+    IE_DESC = 'YouTube Shorts audio pivot (Shorts using audio of a given video); "ytshortsap:" prefix'
+    IE_NAME = 'youtube:shorts:pivot:audio'
     _VALID_URL = f'(?x)^ytshortsap:{YoutubeIE._VALID_URL[5:]}'
     _TESTS = [{
         'url': 'ytshortsap:https://www.youtube.com/shorts/Lyj-MZSAA9o?feature=share',
