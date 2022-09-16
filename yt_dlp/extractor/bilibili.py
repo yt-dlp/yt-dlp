@@ -543,7 +543,6 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             return {
                 'page_count': math.ceil(entry_count / page_size),
                 'page_size': page_size,
-                'entry_count': entry_count
             }
 
         def get_entries(page_data):
@@ -577,7 +576,6 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
             return {
                 'page_count': page_data['pageCount'],
                 'page_size': page_data['pageSize'],
-                'entry_count': page_data['totalSize']
             }
 
         def get_entries(page_data):
@@ -615,7 +613,6 @@ class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
             return {
                 'page_count': math.ceil(entry_count / page_size),
                 'page_size': page_size,
-                'entry_count': entry_count,
                 'title': traverse_obj(page_data, ('meta', 'name'))
             }
 
