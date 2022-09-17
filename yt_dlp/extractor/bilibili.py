@@ -1,5 +1,4 @@
 import base64
-import collections
 import itertools
 import functools
 import math
@@ -84,7 +83,7 @@ class BilibiliBaseIE(InfoExtractor):
         return srt_data
 
     def _get_subtitles(self, video_id, initial_state, cid):
-        subtitles = collections.defaultdict(list)
+        subtitles = dict()
         subtitle_info = traverse_obj(initial_state, ('videoData', 'subtitle')) or {}
 
         for s in subtitle_info.get('list') or []:
