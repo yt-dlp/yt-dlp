@@ -28,14 +28,10 @@ class PlexWatchBaseIE(InfoExtractor):
 
     def _handle_login_error(self, error, error_message='', fatal=True):
         error_json_message = self._parse_json(error.cause.read(), 'login_error')['errors'][0]['message']
-        if error.cause.code == 429:
-            # only non-fatal at error 429
-            if fatal:
-                raise ExtractorError(f'{error_json_message} {error_message}', cause=error.cause)
-            else:
-                self.report_warning(f'There\'s error on login : {error_json_message}, caused by {error.cause} {error_message}')
-        else:
-            raise ExtractorError(f'{error_json_message} {error_message}', cause=error.cause)
+        if not fatal and error.cause.code == 429:
+            self.report_warning(f'Login error : {error_json_message}, caused by {error.cause} {error_message}')
+            return
+        raise ExtractorError(f'{error_json_message} {error_message}', cause=error.cause)
 
     def _initialize_pre_login(self):
         # TO DO: find better way to get cookie
@@ -77,9 +73,7 @@ class PlexWatchBaseIE(InfoExtractor):
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}, format_field={}):
         formats, subtitles = [], {}
         fmts, subs = [], {}
-        if isinstance(selected_media, str):
-            selected_media = [selected_media]
-        for media in selected_media or []:
+        for media in variadic(selected_media):
             if determine_ext(media) == 'm3u8' or media.endswith('hls'):
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
