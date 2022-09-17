@@ -38,27 +38,24 @@ class BilibiliBaseIE(InfoExtractor):
             if 'quality' in r
         }
 
-        info = {'formats': []}
-
         audios = traverse_obj(play_info, ('dash', 'audio')) or []
         flac_audio = traverse_obj(play_info, ('dash', 'flac', 'audio'))
         if flac_audio:
             audios.append(flac_audio)
 
-        for video in traverse_obj(play_info, ('dash', 'video')) or []:
-            info['formats'].append({
-                'url': video.get('baseUrl') or video.get('base_url') or video.get('url'),
-                'ext': mimetype2ext(video.get('mimeType') or video.get('mime_type')),
-                'fps': float_or_none(video.get('frameRate') or video.get('frame_rate')),
-                'width': int_or_none(video.get('width')),
-                'height': int_or_none(video.get('height')),
-                'vcodec': video.get('codecs'),
-                'acodec': 'none' if audios else None,
-                'tbr': float_or_none(video.get('bandwidth'), scale=1000),
-                'filesize': int_or_none(video.get('size')),
-                'quality': video.get('id'),
-                'format_note': format_desc_dict.get(video.get('id')),
-            })
+        info['formats'] = [{
+            'url': video.get('baseUrl') or video.get('base_url') or video.get('url'),
+            'ext': mimetype2ext(video.get('mimeType') or video.get('mime_type')),
+            'fps': float_or_none(video.get('frameRate') or video.get('frame_rate')),
+            'width': int_or_none(video.get('width')),
+            'height': int_or_none(video.get('height')),
+            'vcodec': video.get('codecs'),
+            'acodec': 'none' if audios else None,
+            'tbr': float_or_none(video.get('bandwidth'), scale=1000),
+            'filesize': int_or_none(video.get('size')),
+            'quality': video.get('id'),
+            'format_note': format_desc_dict.get(video.get('id')),
+        } for video in traverse_obj(play_info, ('dash', 'video')) or []]
 
         found_formats = {f['quality'] for f in info['formats']}
         missing_format = {qn: desc for qn, desc in format_desc_dict.items() if qn not in found_formats}
@@ -80,20 +77,20 @@ class BilibiliBaseIE(InfoExtractor):
 
     def json2srt(self, json_data):
         srt_data = ''
-        for idx, line in enumerate(json_data.get('body', [])):
-            srt_data += f'{idx + 1}\n'
-            srt_data += f'{srt_subtitles_timecode(line["from"])} --> {srt_subtitles_timecode(line["to"])}\n'
-            srt_data += f'{line["content"]}\n\n'
+        for idx, line in enumerate(json_data.get('body') or []):
+            srt_data += (f'{idx + 1}\n'
+                         f'{srt_subtitles_timecode(line["from"])} --> {srt_subtitles_timecode(line["to"])}\n'
+                         f'{line["content"]}\n\n')
         return srt_data
 
     def _get_subtitles(self, video_id, initial_state, cid):
         subtitles = collections.defaultdict(list)
         subtitle_info = traverse_obj(initial_state, ('videoData', 'subtitle')) or {}
 
-        for s in subtitle_info.get('list', []):
+        for s in subtitle_info.get('list') or []:
             subtitle_url = s['subtitle_url']
             subtitle_json = self._download_json(subtitle_url, video_id)
-            subtitles[s['lan']].append({
+            subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
                 'data': self.json2srt(subtitle_json)
             })
@@ -222,7 +219,7 @@ class BiliBiliIE(BilibiliBaseIE):
         webpage = self._download_webpage(url, video_id)
         initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=\s*', webpage, 'initial state', video_id)
 
-        video_data = traverse_obj(initial_state, 'videoData') or {}
+        video_data = initial_state['videoData']
         bv_id = video_data['bvid']
         cid = video_data.get('cid')
 
