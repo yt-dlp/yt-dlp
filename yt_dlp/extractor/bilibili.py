@@ -17,6 +17,7 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
+    make_archive_id,
     mimetype2ext,
     parse_count,
     parse_qs,
@@ -267,6 +268,7 @@ class BiliBiliIE(BilibiliBaseIE):
         return {
             **info,
             'id': id_str,
+            '_old_archive_ids': [make_archive_id(self, f'{aid}_part{part_id or 1}')],
             'title': title,
             'description': traverse_obj(initial_state, ('videoData', 'desc')),
             'view_count': traverse_obj(initial_state, ('videoData', 'stat', 'view')),
