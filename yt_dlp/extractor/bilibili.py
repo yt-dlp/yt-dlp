@@ -228,6 +228,7 @@ class BiliBiliIE(BilibiliBaseIE):
         video_data = initial_state['videoData']
         bv_id = video_data['bvid']
         cid = video_data.get('cid')
+        video_id = bv_id
 
         page_list_json = traverse_obj(
             self._download_json(
@@ -264,11 +265,12 @@ class BiliBiliIE(BilibiliBaseIE):
             raise ExtractorError('Unknown webpage schema')
 
         aid = video_data.get('aid')
+        old_video_id = f'{aid}_part{part_id or 1}' if aid else None
 
         return {
             **info,
             'id': id_str,
-            '_old_archive_ids': [make_archive_id(self, f'{aid}_part{part_id or 1}')],
+            '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
             'title': title,
             'description': traverse_obj(initial_state, ('videoData', 'desc')),
             'view_count': traverse_obj(initial_state, ('videoData', 'stat', 'view')),
