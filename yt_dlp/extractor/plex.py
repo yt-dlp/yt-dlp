@@ -105,7 +105,7 @@ class PlexWatchBaseIE(InfoExtractor):
         self.write_debug('Trying to download Extras/trailer')
 
         media_json_list = []
-        for _media in traverse_obj(nextjs_json, ('Extras', 'Metadata', ..., 'key')):
+        for _media in traverse_obj(nextjs_json, ('Extras', 'Metadata', ..., 'key')) or []:
             media_json_list.append(self._download_json(
                 'https://play.provider.plex.tv/playQueues', display_id,
                 query={'uri': f'provider://tv.plex.provider.vod{_media}'}, data=b'',
