@@ -43,7 +43,7 @@ class BilibiliBaseIE(InfoExtractor):
         if flac_audio:
             audios.append(flac_audio)
 
-        info['formats'] = [{
+        formats = [{
             'url': video.get('baseUrl') or video.get('base_url') or video.get('url'),
             'ext': mimetype2ext(video.get('mimeType') or video.get('mime_type')),
             'fps': float_or_none(video.get('frameRate') or video.get('frame_rate')),
@@ -57,23 +57,22 @@ class BilibiliBaseIE(InfoExtractor):
             'format_note': format_desc_dict.get(video.get('id')),
         } for video in traverse_obj(play_info, ('dash', 'video')) or []]
 
-        found_formats = {f['quality'] for f in info['formats']}
+        found_formats = {f['quality'] for f in formats}
         missing_format = {qn: desc for qn, desc in format_desc_dict.items() if qn not in found_formats}
         if len(missing_format) > 0:
             self.to_screen(f'Format [{", ".join(missing_format.values())}] is missing, you have to login or become premium member to download.')
 
-        for audio in audios:
-            info['formats'].append({
+        formats.extend([{
                 'url': audio.get('baseUrl') or audio.get('base_url') or audio.get('url'),
                 'ext': mimetype2ext(audio.get('mimeType') or audio.get('mime_type')),
                 'acodec': audio.get('codecs'),
                 'vcodec': 'none',
                 'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
                 'filesize': int_or_none(audio.get('size'))
-            })
+            } for audio in audios])
 
-        self._sort_formats(info['formats'])
-        return info
+        self._sort_formats(formats)
+        return formats
 
     def json2srt(self, json_data):
         srt_data = ''
@@ -319,8 +318,8 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         title = initial_state.get('h1Title')
 
         play_info = self._search_json(r'window.__playinfo__\s*=\s*', webpage, 'play info', video_id)['data']
-        info = self.extract_formats(play_info)
 
+        info = {'formats': self.extract_formats(play_info)}
         if not info['formats']:
             if '成为大会员抢先看' in webpage and 'dash' not in play_info and 'durl' in play_info:
                 raise ExtractorError(f'VIP is required for {url}', expected=True)
