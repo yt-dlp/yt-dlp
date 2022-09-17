@@ -36,7 +36,8 @@ from .utils import (
 )
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
-SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
+FIREFOX_BASED_BROWSERS = {'firefox', 'firefox-esr', 'librewolf', 'firedragon', 'icecat', 'waterfox', 'palemoon'}
+SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | FIREFOX_BASED_BROWSERS | {'safari'}
 
 
 class YDLLogger:
@@ -112,8 +113,8 @@ def load_cookies(cookie_file, browser_specification, ydl):
 
 
 def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None, container=None):
-    if browser_name == 'firefox':
-        return _extract_firefox_cookies(profile, container, logger)
+    if browser_name in FIREFOX_BASED_BROWSERS:
+        return _extract_firefox_cookies(browser_name, profile, container, logger)
     elif browser_name == 'safari':
         return _extract_safari_cookies(profile, logger)
     elif browser_name in CHROMIUM_BASED_BROWSERS:
@@ -122,23 +123,24 @@ def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(),
         raise ValueError(f'unknown browser: {browser_name}')
 
 
-def _extract_firefox_cookies(profile, container, logger):
-    logger.info('Extracting cookies from firefox')
+def _extract_firefox_cookies(browser_name, profile, container, logger):
+    logger.info(f'Extracting cookies from {browser_name}')
+
     if not sqlite3:
-        logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
+        logger.warning(f'Cannot extract cookies from {browser_name} without sqlite3 support. '
                        'Please use a python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
 
     if profile is None:
-        search_root = _firefox_browser_dir()
+        search_root = _firefox_browser_dir(browser_name)
     elif _is_path(profile):
         search_root = profile
     else:
-        search_root = os.path.join(_firefox_browser_dir(), profile)
+        search_root = os.path.join(_firefox_browser_dir(browser_name), profile)
 
     cookie_database_path = _find_most_recently_used_file(search_root, 'cookies.sqlite', logger)
     if cookie_database_path is None:
-        raise FileNotFoundError(f'could not find firefox cookies database in {search_root}')
+        raise FileNotFoundError(f'could not find {browser_name} cookies database in {search_root}')
     logger.debug(f'Extracting cookies from: "{cookie_database_path}"')
 
     container_id = None
@@ -153,7 +155,7 @@ def _extract_firefox_cookies(profile, container, logger):
             try_call(lambda: re.fullmatch(r'userContext([^\.]+)\.label', context['l10nID']).group())
         )), None)
         if not isinstance(container_id, int):
-            raise ValueError(f'could not find firefox container "{container}" in containers.json')
+            raise ValueError(f'could not find {browser_name} container "{container}" in containers.json')
 
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
@@ -161,7 +163,7 @@ def _extract_firefox_cookies(profile, container, logger):
             cursor = _open_database_copy(cookie_database_path, tmpdir)
             if isinstance(container_id, int):
                 logger.debug(
-                    f'Only loading cookies from firefox container "{container}", ID {container_id}')
+                    f'Only loading cookies from {browser_name} container "{container}", ID {container_id}')
                 cursor.execute(
                     'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes LIKE ? OR originAttributes LIKE ?',
                     (f'%userContextId={container_id}', f'%userContextId={container_id}&%'))
@@ -183,19 +185,44 @@ def _extract_firefox_cookies(profile, container, logger):
                         path=path, path_specified=bool(path), secure=is_secure, expires=expiry, discard=False,
                         comment=None, comment_url=None, rest={})
                     jar.set_cookie(cookie)
-            logger.info(f'Extracted {len(jar)} cookies from firefox')
+            logger.info(f'Extracted {len(jar)} cookies from {browser_name}')
             return jar
         finally:
             if cursor is not None:
                 cursor.connection.close()
 
 
-def _firefox_browser_dir():
+def _firefox_browser_dir(browser_name):
     if sys.platform in ('cygwin', 'win32'):
-        return os.path.expandvars(R'%APPDATA%\Mozilla\Firefox\Profiles')
+        return {
+            'firefox': os.path.expanduser(R'%APPDATA%\Mozilla\Firefox\Profiles'),
+            'firefox-esr': os.path.expanduser(R'%APPDATA%\Mozilla\Firefox-esr\Profiles'),
+            'librewolf': os.path.expanduser(R'%APPDATA%\Librewolf\Profiles'),
+            'firedragon': os.path.expanduser(R'%APPDATA%\Firedragon\Profiles'),
+            'icecat': os.path.expanduser(R'%APPDATA%\Mozilla\Icecat\Profiles'),
+            'waterfox': os.path.expanduser(R'%APPDATA%\Waterfox\Profiles'),
+            'palemoon': os.path.expanduser(R'%APPDATA%\Moonchild Productions/Pale Moon\Profiles'),
+        }[browser_name]
     elif sys.platform == 'darwin':
-        return os.path.expanduser('~/Library/Application Support/Firefox')
-    return os.path.expanduser('~/.mozilla/firefox')
+        return {
+            'firefox': os.path.expanduser('~/Library/Application Support/Firefox'),
+            'firefox-esr': os.path.expanduser('~/Library/Application Support/Firefox-esr'),
+            'librewolf': os.path.expanduser('~/Library/Application Support/Librewolf'),
+            'firedragon': os.path.expanduser('~/Library/Application Support/Firedragon'),
+            'icecat': os.path.expanduser('~/Library/Application Support/Icecat'),
+            'waterfox': os.path.expanduser('~/Library/Application Support/Waterfox'),
+            'palemoon': os.path.expanduser('~/Library/Application Support/Pale Moon'),
+        }[browser_name]
+    else:
+        return {
+            'firefox': os.path.expanduser('~/.mozilla/firefox'),
+            'firefox-esr': os.path.expanduser('~/.mozilla/firefox-esr'),
+            'librewolf': os.path.expanduser('~/.librewolf'),
+            'firedragon': os.path.expanduser('~/.firedragon'),
+            'icecat': os.path.expanduser('~/.mozilla/icecat'),
+            'waterfox': os.path.expanduser('~/.waterfox'),
+            'palemoon': os.path.expanduser('~/.moonchild productions/pale moon'),
+        }[browser_name]
 
 
 def _get_chromium_based_browser_settings(browser_name):
