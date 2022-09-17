@@ -74,7 +74,8 @@ class PlexWatchBaseIE(InfoExtractor):
         formats, subtitles = [], {}
         fmts, subs = [], {}
         for media in variadic(selected_media):
-            if determine_ext(media) == 'm3u8' or media.endswith('hls'):
+            media_ext = determine_ext(media)
+            if media_ext == 'm3u8' or media.endswith('hls'):
                 fmt, subs = self._extract_m3u8_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
                     display_id, query={'X-PLEX-TOKEN': PlexWatchBaseIE._TOKEN})
@@ -82,7 +83,7 @@ class PlexWatchBaseIE(InfoExtractor):
                     fmt_.update(**format_field)
                     fmts.append(fmt_)
 
-            elif determine_ext(media) == 'mpd':
+            elif media_ext == 'mpd':
                 fmt, subs = self._extract_mpd_formats_and_subtitles(
                     f'{self._CDN_ENDPOINT[sites_type]}{media}',
                     display_id, query={'X-PLEX-TOKEN': PlexWatchBaseIE._TOKEN})
