@@ -49,7 +49,7 @@ class BilibiliBaseIE(InfoExtractor):
             info['formats'].append({
                 'url': video.get('baseUrl') or video.get('base_url') or video.get('url'),
                 'ext': mimetype2ext(video.get('mimeType') or video.get('mime_type')),
-                'fps': int_or_none(video.get('frameRate') or video.get('frame_rate')),
+                'fps': float_or_none(video.get('frameRate') or video.get('frame_rate')),
                 'width': int_or_none(video.get('width')),
                 'height': int_or_none(video.get('height')),
                 'vcodec': video.get('codecs'),
