@@ -84,9 +84,7 @@ class BilibiliBaseIE(InfoExtractor):
 
     def _get_subtitles(self, video_id, initial_state, cid):
         subtitles = dict()
-        subtitle_info = traverse_obj(initial_state, ('videoData', 'subtitle')) or {}
-
-        for s in subtitle_info.get('list') or []:
+        for s in traverse_obj(initial_state, ('videoData', 'subtitle', 'list')) or []:
             subtitle_url = s['subtitle_url']
             subtitle_json = self._download_json(subtitle_url, video_id)
             subtitles.setdefault(s['lan'], []).append({
