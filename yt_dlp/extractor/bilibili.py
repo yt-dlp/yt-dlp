@@ -97,7 +97,7 @@ class BilibiliBaseIE(InfoExtractor):
             'ext': 'xml',
             'url': f'https://comment.bilibili.com/{cid}.xml',
         }]
-        return dict(subtitles)
+        return subtitles
 
     def _get_comments(self, aid, commentPageNumber=0):
         for idx in itertools.count(1):
