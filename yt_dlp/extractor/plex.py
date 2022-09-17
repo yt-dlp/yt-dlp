@@ -35,11 +35,9 @@ class PlexWatchBaseIE(InfoExtractor):
         raise ExtractorError(f'{error_json_message} {error_message}', cause=error.cause)
 
     def _initialize_pre_login(self):
-        # TO DO: find better way to get cookie
-        # request to random page in plex.tv to get clientIdentifier in cookie
-        if PlexWatchBaseIE._TOKEN is None:
-            client_id = self._request_webpage(  # noqa: F841
-                'https://watch.plex.tv/', 'client_id', note='Downloading html page to get clientIdentifier')
+        if not self._TOKEN:
+            self._request_webpage(
+                HEADRequest('https://watch.plex.tv/'), None, note='Fetching clientIdentifier')
             cookie_ = {cookie.name: cookie.value for cookie in self.cookiejar}
             self._CLIENT_IDENTIFIER = cookie_.get('clientIdentifier')
 
