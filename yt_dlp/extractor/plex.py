@@ -149,18 +149,28 @@ class PlexWatchBaseIE(InfoExtractor):
             'subtitles': subtitles,
             'title': nextjs_json.get('title') or self._og_search_title(webpage) or json_ld_json.get('title'),
             'alt_title': nextjs_json.get('originalTitle'),
-            'description': nextjs_json.get('summary') or self._og_search_description(webpage) or json_ld_json.get('description'),
-            'thumbnail': traverse_obj(media_json, (media_index, 'thumb')) or nextjs_json.get('thumb') or self._og_search_thumbnail(webpage),
-            'duration': int_or_none(traverse_obj(media_json, (media_index, 'duration')) or nextjs_json.get('duration') or json_ld_json.get('duration'), 1000),
-            'cast': traverse_obj(nextjs_json, ('Role', ..., 'tag')) or traverse_obj(media_json, (media_index, 'Role', ..., 'tag')),
-            'rating': parse_age_limit(traverse_obj(media_json, (media_index, 'contentRating')) or nextjs_json.get('contentRating')),
+            'description': (nextjs_json.get('summary') or self._og_search_description(webpage)
+                            or json_ld_json.get('description')),
+            'thumbnail': (traverse_obj(media_json, (media_index, 'thumb')) or nextjs_json.get('thumb')
+                          or self._og_search_thumbnail(webpage)),
+            'duration': (int_or_none(
+                traverse_obj(media_json, (media_index, 'duration')) or nextjs_json.get('duration')
+                or json_ld_json.get('duration'), 1000)),
+            'cast': (traverse_obj(nextjs_json, ('Role', ..., 'tag'))
+                     or traverse_obj(media_json, (media_index, 'Role', ..., 'tag'))),
+            'rating': (parse_age_limit(
+                traverse_obj(media_json, (media_index, 'contentRating')) or nextjs_json.get('contentRating'))),
             'categories': traverse_obj(nextjs_json, ('Genre', ..., 'tag')),
             'release_date': self._html_search_meta('video:release_date', webpage),
-            'average_rating': float_or_none(traverse_obj(media_json, (media_index, 'rating')) or json_ld_json.get('average_rating')),
+            'average_rating': float_or_none(
+                traverse_obj(media_json, (media_index, 'rating')) or json_ld_json.get('average_rating')),
             'series': json_ld_json.get('series'),
             'episode': json_ld_json.get('episode'),
             'view_count': int_or_none(traverse_obj(media_json, (media_index, 'viewCount'))),
-            'comments': [{'author': review.get('tag'), 'text': review.get('text')} for review in nextjs_json.get('Review') or {}] or None,
+            'comments': [{
+                'author': review.get('tag'),
+                'text': review.get('text')
+            } for review in nextjs_json.get('Review') or {}] or None,
             'comment_count': int_or_none(len(nextjs_json.get('review') or [])),
             **kwargs,
         }
