@@ -127,6 +127,12 @@ class BilibiliBaseIE(InfoExtractor):
         return {
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
             'subtitles': self.extract_subtitles(video_id, initial_state, cid),
+            'timestamp': traverse_obj(initial_state, ('videoData', 'pubdate'),  # for video
+                                                     ('epInfo', 'pub_time')     # for bangumi
+                                      ),
+            'thumbnail': traverse_obj(initial_state, ('videoData', 'pic'),  # for video
+                                                     ('epInfo', 'cover')    # for bangumi
+                                      ),
             '__post_extractor': self.extract_comments(aid),
         }
 
@@ -263,8 +269,6 @@ class BiliBiliIE(BilibiliBaseIE):
             'id': id_str,
             'title': title,
             'description': traverse_obj(initial_state, ('videoData', 'desc')),
-            'timestamp': traverse_obj(initial_state, ('videoData', 'pubdate')),
-            'thumbnail': traverse_obj(initial_state, ('videoData', 'pic')),
             'view_count': traverse_obj(initial_state, ('videoData', 'stat', 'view')),
             'like_count': traverse_obj(initial_state, ('videoData', 'stat', 'like')),
             'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
@@ -341,8 +345,6 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             **info,
             'id': video_id,
             'title': title,
-            'timestamp': traverse_obj(initial_state, ('epInfo', 'pub_time')),
-            'thumbnail': traverse_obj(initial_state, ('epInfo', 'cover')),
             'series': traverse_obj(initial_state, ('mediaInfo', 'series')),
             'season': traverse_obj(initial_state, ('mediaInfo', 'season_title')),
             'season_id': season_id,
