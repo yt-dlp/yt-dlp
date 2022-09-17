@@ -988,8 +988,8 @@ def _parse_browser_specification(browser_name, profile=None, keyring=None, conta
         raise ValueError(f'unsupported browser: "{browser_name}"')
     if keyring not in (None, *SUPPORTED_KEYRINGS):
         raise ValueError(f'unsupported keyring: "{keyring}"')
-    if profile is not None and _is_path(profile):
-        profile = os.path.expanduser(profile)
+    if profile is not None and _is_path(expand_path(profile)):
+        profile = expand_path(profile)
     return browser_name, profile, keyring, container
 
 

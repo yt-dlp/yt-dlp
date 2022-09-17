@@ -762,7 +762,7 @@ def sanitized_Request(url, *args, **kwargs):
 
 
 def expand_path(s):
-    """Expand shell variables and ~"""
+    """Expand $ shell variables and ~"""
     return os.path.expandvars(compat_expanduser(s))
 
 

@@ -411,6 +411,9 @@ def validate_options(opts):
     if opts.download_archive is not None:
         opts.download_archive = expand_path(opts.download_archive)
 
+    if opts.ffmpeg_location is not None:
+        opts.ffmpeg_location = expand_path(opts.ffmpeg_location)
+
     if opts.user_agent is not None:
         opts.headers.setdefault('User-Agent', opts.user_agent)
     if opts.referer is not None:
@@ -920,7 +923,6 @@ def _real_main(argv=None):
     # We may need ffmpeg_location without having access to the YoutubeDL instance
     # See https://github.com/yt-dlp/yt-dlp/issues/2191
     if opts.ffmpeg_location:
-        opts.ffmpeg_location = expand_path(opts.ffmpeg_location)
         FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
 
     with YoutubeDL(ydl_opts) as ydl:
