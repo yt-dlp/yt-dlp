@@ -63,13 +63,13 @@ class BilibiliBaseIE(InfoExtractor):
             self.to_screen(f'Format [{", ".join(missing_format.values())}] is missing, you have to login or become premium member to download.')
 
         formats.extend([{
-                'url': traverse_obj(audio, 'baseUrl', 'base_url', 'url'),
-                'ext': mimetype2ext(traverse_obj(audio, 'mimeType', 'mime_type')),
-                'acodec': audio.get('codecs'),
-                'vcodec': 'none',
-                'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
-                'filesize': int_or_none(audio.get('size'))
-            } for audio in audios])
+                        'url': traverse_obj(audio, 'baseUrl', 'base_url', 'url'),
+                        'ext': mimetype2ext(traverse_obj(audio, 'mimeType', 'mime_type')),
+                        'acodec': audio.get('codecs'),
+                        'vcodec': 'none',
+                        'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
+                        'filesize': int_or_none(audio.get('size'))
+                        } for audio in audios])
 
         self._sort_formats(formats)
         return formats
@@ -313,7 +313,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             raise GeoRestrictedError('This video is restricted')
 
         if ('开通大会员观看' in webpage and '__playinfo__' not in webpage
-            or '正在观看预览，大会员免费看全片' in webpage):
+           or '正在观看预览，大会员免费看全片' in webpage):
             self.raise_login_required('This video is for premium members only')
 
         initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=\s*', webpage, 'initial state', video_id)
