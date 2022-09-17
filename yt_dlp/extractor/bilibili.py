@@ -229,7 +229,7 @@ class BiliBiliIE(BilibiliBaseIE):
                 fatal=False, query={'bvid': bv_id, 'jsonp': 'jsonp'},
                 note='Extracting videos in anthology'),
             'data', expected_type=list) or []
-        has_multi_p = len(page_list_json or []) > 1
+        has_multi_p = len(page_list_json) > 1
         part_id = int_or_none(parse_qs(url).get('p', [None])[-1])
 
         title = video_data.get('title')
@@ -248,7 +248,7 @@ class BiliBiliIE(BilibiliBaseIE):
 
         # Get part title for anthologies
         if part_id is not None and has_multi_p:
-            title = f'{title} p{part_id:02d} {traverse_obj(page_list_json, (part_id - 1, "part")) or ""}'
+            title += f' p{part_id:02d} {traverse_obj(page_list_json, (part_id - 1, "part")) or ""}'
 
         id_str = f'{video_id}{format_field(part_id, template= f"_p%02d", default="")}'
 
@@ -271,7 +271,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
             'uploader': traverse_obj(initial_state, ('upData', 'name')),
             'uploader_id': traverse_obj(initial_state, ('upData', 'mid')),
-            'tags': [t['tag_name'] for t in initial_state.get('tags', []) if 'tag_name' in t],
+            'tags': [t['tag_name'] for t in initial_state.get('tags') or [] if 'tag_name' in t],
             'http_headers': {'Referer': url},
             **self.extract_common_info(video_id, aid, cid, initial_state, play_info)
         }
@@ -375,14 +375,13 @@ class BiliBiliBangumiMediaIE(InfoExtractor):
         initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=\s*', webpage, 'initial_state', media_id)
         episode_list = traverse_obj(
             self._download_json('https://api.bilibili.com/pgc/web/season/section', media_id,
-                                note='Downloading season info',
-                                query={'season_id': initial_state['mediaInfo']['season_id']}
-                                ).get('result', {}),
+                                query={'season_id': initial_state['mediaInfo']['season_id']},
+                                note='Downloading season info').get('result') or {},
             ('main_section', 'episodes')) or []
 
-        return self.playlist_result([self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['aid'])
-                                     for entry in episode_list],
-                                    media_id)
+        return self.playlist_result((
+            self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['aid'])
+            for entry in episode_list), media_id)
 
 
 class BilibiliSpaceBaseIE(InfoExtractor):
