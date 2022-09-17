@@ -241,17 +241,11 @@ class BiliBiliIE(BilibiliBaseIE):
 
         title = video_data.get('title')
 
-        if has_multi_p and part_id is None:
-            # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
-            # If the video has no page argument and it's an anthology, download as a playlist
-            if not self.get_param('noplaylist'):
-                ret = self.playlist_from_matches(page_list_json, bv_id, title, ie=BiliBiliIE,
-                                                 getter=lambda entry: f'https://www.bilibili.com/video/{bv_id}?p={entry["page"]}')
-                if ret is not None:
-                    self.to_screen('Downloading anthology %s - add --no-playlist to just download video' % video_id)
-                    return ret
-            else:
-                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+        # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
+        # If the video has no page argument and it's an anthology, download as a playlist
+        if has_multi_p and part_id is None and self._yes_playlist(bv_id, video_id):
+            return self.playlist_from_matches(page_list_json, bv_id, title, ie=BiliBiliIE,
+                                              getter=lambda entry: f'https://www.bilibili.com/video/{bv_id}?p={entry["page"]}')
 
         # Get part title for anthologies
         if part_id is not None and has_multi_p:
