@@ -3,6 +3,7 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    HEADRequest,
     determine_ext,
     float_or_none,
     int_or_none,
