@@ -252,7 +252,7 @@ class BiliBiliIE(BilibiliBaseIE):
         id_str = f'{video_id}{format_field(part_id, template= f"_p%02d", default="")}'
 
         play_info = self._search_json(r'window.__playinfo__\s*=\s*', webpage, 'play info', video_id)['data']
-        info = self.extract_formats(play_info)
+        info = {'formats': self.extract_formats(play_info)}
         if not info['formats']:
             raise ExtractorError('Unknown webpage schema')
 
