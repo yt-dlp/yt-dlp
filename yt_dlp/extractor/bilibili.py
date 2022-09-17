@@ -149,7 +149,7 @@ class BiliBiliIE(BilibiliBaseIE):
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
         'info_dict': {
-            'id': '13x41117TL',
+            'id': 'BV13x41117TL',
             'title': '阿滴英文｜英文歌分享#6 "Closer',
             'ext': 'mp4',
             'description': '滴妹今天唱Closer給你聽! 有史以来，被推最多次也是最久的歌曲，其实歌词跟我原本想像差蛮多的，不过还是好听！ 微博@阿滴英文',
@@ -172,7 +172,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'ext': 'mp4',
             'uploader': '菊子桑',
             'uploader_id': '156160',
-            'id': '1074402',
+            'id': 'BV11x411K7CN',
             'title': '【金坷垃】金泡沫',
             'duration': 308.36,
             'upload_date': '20140420',
@@ -198,7 +198,7 @@ class BiliBiliIE(BilibiliBaseIE):
         # video has subtitles
         'url': 'https://www.bilibili.com/video/BV12N4y1M7rh',
         'info_dict': {
-            'id': '12N4y1M7rh',
+            'id': 'BV12N4y1M7rh',
             'ext': 'mp4',
             'title': '游戏帧数增加40%？下代联发科天玑芯片或将支持光线追踪！从Immortalis-G715看下代联发科SoC的GPU表现 | Arm: 可以不用咬打火机了！',
             'tags': list,
