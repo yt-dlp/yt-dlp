@@ -201,7 +201,7 @@ def _firefox_browser_dir(browser_name):
             'firedragon': os.path.expanduser(R'%APPDATA%\Firedragon\Profiles'),
             'icecat': os.path.expanduser(R'%APPDATA%\Mozilla\Icecat\Profiles'),
             'waterfox': os.path.expanduser(R'%APPDATA%\Waterfox\Profiles'),
-            'palemoon': os.path.expanduser(R'%APPDATA%\Moonchild Productions/Pale Moon\Profiles'),
+            'palemoon': os.path.expanduser(R'%APPDATA%\Moonchild Productions\Pale Moon\Profiles'),
         }[browser_name]
     elif sys.platform == 'darwin':
         return {
