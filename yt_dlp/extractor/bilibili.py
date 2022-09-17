@@ -44,9 +44,9 @@ class BilibiliBaseIE(InfoExtractor):
             audios.append(flac_audio)
 
         formats = [{
-            'url': video.get('baseUrl') or video.get('base_url') or video.get('url'),
-            'ext': mimetype2ext(video.get('mimeType') or video.get('mime_type')),
-            'fps': float_or_none(video.get('frameRate') or video.get('frame_rate')),
+            'url': traverse_obj(video, 'baseUrl', 'base_url', 'url'),
+            'ext': mimetype2ext(traverse_obj(video, 'mimeType', 'mime_type')),
+            'fps': float_or_none(traverse_obj(video, 'frameRate', 'frame_rate')),
             'width': int_or_none(video.get('width')),
             'height': int_or_none(video.get('height')),
             'vcodec': video.get('codecs'),
@@ -63,8 +63,8 @@ class BilibiliBaseIE(InfoExtractor):
             self.to_screen(f'Format [{", ".join(missing_format.values())}] is missing, you have to login or become premium member to download.')
 
         formats.extend([{
-                'url': audio.get('baseUrl') or audio.get('base_url') or audio.get('url'),
-                'ext': mimetype2ext(audio.get('mimeType') or audio.get('mime_type')),
+                'url': traverse_obj(audio, 'baseUrl', 'base_url', 'url'),
+                'ext': mimetype2ext(traverse_obj(audio, 'mimeType', 'mime_type')),
                 'acodec': audio.get('codecs'),
                 'vcodec': 'none',
                 'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
