@@ -54,7 +54,7 @@ class GoPlayIE(InfoExtractor):
             raise self.raise_login_required(method='password')
 
     def _real_extract(self, url):
-        display_id = self._match_valid_url(url).group('display_id')
+        url, display_id = self._match_valid_url(url).group(0, 'display_id')
         webpage = self._download_webpage(url, display_id)
         video_data_json = self._html_search_regex(r'<div\s+data-hero="([^"]+)"', webpage, 'video_data')
         video_data = self._parse_json(unescapeHTML(video_data_json), display_id).get('data')
