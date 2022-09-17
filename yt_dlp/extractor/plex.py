@@ -51,6 +51,8 @@ class PlexWatchBaseIE(InfoExtractor):
                 headers={'Accept': 'application/json'}, expected_status=429)
             PlexWatchBaseIE._TOKEN = resp_api.get('authToken')
         except ExtractorError as e:
+            if not isinstance(e, urllib.error.HTTPError):
+                raise
             self._handle_login_error(e, fatal=False)
 
     def _real_initialize(self):
@@ -66,6 +68,8 @@ class PlexWatchBaseIE(InfoExtractor):
                         'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER.encode()
                     })
             except ExtractorError as e:
+                if not isinstance(e, urllib.error.HTTPError):
+                    raise
                 self._handle_login_error(e)
 
             PlexWatchBaseIE._TOKEN = resp_api['authToken']
