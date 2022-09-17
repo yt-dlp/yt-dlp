@@ -74,33 +74,29 @@ class PlexWatchBaseIE(InfoExtractor):
         formats, subtitles = [], {}
         fmts, subs = [], {}
         for media in variadic(selected_media):
+            media_url = f'{self._CDN_ENDPOINT[sites_type]}{media}?X-Plex-Token={self._TOKEN}'
             media_ext = determine_ext(media)
+
             if media_ext == 'm3u8' or media.endswith('hls'):
-                fmt, subs = self._extract_m3u8_formats_and_subtitles(
-                    f'{self._CDN_ENDPOINT[sites_type]}{media}',
-                    display_id, query={'X-PLEX-TOKEN': PlexWatchBaseIE._TOKEN})
-                for fmt_ in fmt:
-                    fmt_.update(**format_field)
-                    fmts.append(fmt_)
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(media_url, display_id)
 
             elif media_ext == 'mpd':
-                fmt, subs = self._extract_mpd_formats_and_subtitles(
-                    f'{self._CDN_ENDPOINT[sites_type]}{media}',
-                    display_id, query={'X-PLEX-TOKEN': PlexWatchBaseIE._TOKEN})
-                for fmt_ in fmt:
-                    fmt_.update(**format_field)
-                    fmts.append(fmt_)
+                fmts, subs = self._extract_mpd_formats_and_subtitles(media_url, display_id)
+
             else:
-                formats.append({
+                fmts = [{
                     'url': f'{self._CDN_ENDPOINT[sites_type]}{media}?X-Plex-Token={PlexWatchBaseIE._TOKEN}',
                     'ext': 'mp4',
-                    **metadata_field
-                })
+                }]
+            for f in fmts:
+                if f.get('url'):
+                    f.update(format_field)
 
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
         return formats, subtitles
 
+    # FIXME: change extras path
     def _get_clips(self, nextjs_json, display_id):
         self.write_debug('Trying to download Extras/trailer')
 
