@@ -84,10 +84,8 @@ class PlexWatchBaseIE(InfoExtractor):
                 fmts, subs = self._extract_mpd_formats_and_subtitles(media_url, display_id)
 
             else:
-                fmts = [{
-                    'url': f'{self._CDN_ENDPOINT[sites_type]}{media}?X-Plex-Token={PlexWatchBaseIE._TOKEN}',
-                    'ext': 'mp4',
-                }]
+                fmts = [{'url': media_url, 'ext': 'mp4'}]
+
             for f in fmts:
                 if f.get('url'):
                     f.update(format_field)
