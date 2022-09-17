@@ -310,13 +310,11 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         webpage = self._download_webpage(url, video_id)
 
         if '您所在的地区无法观看本片' in webpage:
-            raise GeoRestrictedError(f'This video ({url}) is restricted')
+            raise GeoRestrictedError('This video is restricted')
 
-        if '开通大会员观看' in webpage and '__playinfo__' not in webpage:
-            raise ExtractorError(f'This video ({url}) is for premium members only.', expected=True)
-
-        if '正在观看预览，大会员免费看全片' in webpage:
-            raise ExtractorError(f'This video ({url}) is for premium members only.', expected=True)
+        if ('开通大会员观看' in webpage and '__playinfo__' not in webpage
+            or '正在观看预览，大会员免费看全片' in webpage):
+            self.raise_login_required('This video is for premium members only')
 
         initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=\s*', webpage, 'initial state', video_id)
         title = initial_state.get('h1Title')
@@ -326,7 +324,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         info = {'formats': self.extract_formats(play_info)}
         if not info['formats']:
             if '成为大会员抢先看' in webpage and 'dash' not in play_info and 'durl' in play_info:
-                raise ExtractorError(f'VIP is required for {url}', expected=True)
+                self.raise_login_required('This video is for premium members only')
             else:
                 raise ExtractorError('Unknown webpage schema')
 
