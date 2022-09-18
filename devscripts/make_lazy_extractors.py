@@ -51,11 +51,13 @@ def get_all_ies():
     PLUGINS_DIRNAME = 'ytdlp_plugins'
     BLOCKED_DIRNAME = f'{PLUGINS_DIRNAME}_blocked'
     if os.path.exists(PLUGINS_DIRNAME):
+        # This fix [Errno 18] Invalid cross-device-link
         shutil.move(PLUGINS_DIRNAME, BLOCKED_DIRNAME)
     try:
         from yt_dlp.extractor.extractors import _ALL_CLASSES
     finally:
         if os.path.exists(BLOCKED_DIRNAME):
+            # This fix [Errno 18] Invalid cross-device-link
             shutil.move(BLOCKED_DIRNAME, PLUGINS_DIRNAME)
     return _ALL_CLASSES
 
