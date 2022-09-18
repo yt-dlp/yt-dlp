@@ -56,23 +56,24 @@ class PlexWatchBaseIE(InfoExtractor):
             self._handle_login_error(e, fatal=False)
 
     def _real_initialize(self):
-        if not PlexWatchBaseIE._TOKEN:
-            try:
-                resp_api = self._download_json(
-                    'https://plex.tv/api/v2/users/anonymous', None, data=b'',
-                    note='Logging in anonymously (Note: rate limited)',
-                    headers={
-                        'X-Plex-Provider-Version': '6.2.0',
-                        'Accept': 'application/json',
-                        'X-Plex-Product': 'Plex Mediaverse',
-                        'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER.encode()
-                    })
-            except ExtractorError as e:
-                if not isinstance(e, urllib.error.HTTPError):
-                    raise
-                self._handle_login_error(e)
+        if self._TOKEN:
+            return
+        try:
+            resp_api = self._download_json(
+                'https://plex.tv/api/v2/users/anonymous', None, data=b'',
+                note='Logging in anonymously (Note: rate limited)',
+                headers={
+                    'X-Plex-Provider-Version': '6.2.0',
+                    'Accept': 'application/json',
+                    'X-Plex-Product': 'Plex Mediaverse',
+                    'X-Plex-Client-Identifier': self._CLIENT_IDENTIFIER.encode()
+                })
+        except ExtractorError as e:
+            if not isinstance(e, urllib.error.HTTPError):
+                raise
+            self._handle_login_error(e)
 
-            PlexWatchBaseIE._TOKEN = resp_api['authToken']
+        PlexWatchBaseIE._TOKEN = resp_api['authToken']
 
     def _get_formats_and_subtitles(self, selected_media, display_id, sites_type='vod', metadata_field={}, format_field={}):
         formats, subtitles = [], {}
