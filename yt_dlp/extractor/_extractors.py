@@ -649,6 +649,7 @@ from .googlepodcasts import (
 )
 from .googlesearch import GoogleSearchIE
 from .gopro import GoProIE
+from .goplay import GoPlayIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
@@ -2021,7 +2022,6 @@ from .vidio import (
     VidioLiveIE
 )
 from .vidlii import VidLiiIE
-from .vier import VierIE, VierVideosIE
 from .viewlift import (
     ViewLiftIE,
     ViewLiftEmbedIE,
