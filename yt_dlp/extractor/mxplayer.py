@@ -1,10 +1,10 @@
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import try_get
+import re
 
 
 class MxplayerIE(InfoExtractor):
-    #_VALID_URL = r'https?://(?:www\.)?mxplayer\.in/(?P<type>movie|show/[-\w]+/[-\w]+)/(?P<display_id>[-\w]+)-(?P<id>\w+)'
     _VALID_URL = r'https?://(?:www\.)?mxplayer\.in/(?P<type>movie|show/[-\w]+/[-\w]+)/(?P<display_id>[-\w]+)-(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.mxplayer.in/movie/watch-kitne-door-kitne-paas-movie-online-a9e9c76c566205955f70d8b2cb88a6a2',
@@ -39,107 +39,62 @@ class MxplayerIE(InfoExtractor):
             'format': 'bv',
             'skip_download': True,
         },
-    },]
+    }]
 
     def _real_extract(self, url):
         video_type, display_id, video_id = self._match_valid_url(url).groups()
-        if 'show' in video_type: video_type = 'episode'
+
+        if 'show' in video_type:
+            video_type = 'episode'
+
         API_URL = f'https://api.mxplay.com/v1/web/detail/video?type={video_type}&id={video_id}'
         STREAM_URL = 'https://llvod.mxplay.com/{}'
+
         data_json = self._download_json(API_URL, display_id)
-        print(API_URL)
+
+        title = data_json['title']
+        duration = data_json.get('duration')
         formats = []
         subtitles = {}
-
-        from pprint import pprint
-
-        description = data_json['description']
+        description = data_json.get('description')
         series, season, season_number, episode_number = None, None, None, None
 
         if video_type == 'episode':
-            series = data_json['container']['container']['title']
-            season = data_json['container']['title']
-            season_number = int(season.split()[1])
-            episode_number = data_json['sequence']
+            series = data_json.get('container').get('container').get('title')
+            season = data_json.get('container').get('title')
+            episode_number = data_json.get('sequence')
+
+            if season:
+                match = re.match(r'Season (?P<season_number>\d+)', season)
+                if match:
+                    season_number = int(match.group('season_number'))
 
         for key in 'dash', 'hls':
             playlist_url = STREAM_URL.format(data_json['stream'][key]['high'])
-            print(playlist_url)
+
             if key == 'dash':
                 frmt, subs = self._extract_mpd_formats_and_subtitles(playlist_url, display_id, fatal=False)
             else:
                 frmt, subs = self._extract_m3u8_formats_and_subtitles(playlist_url, display_id, fatal=False)
+
             formats.extend(frmt)
             subtitles = self._merge_subtitles(subtitles, subs)
+
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'display_id': display_id,
-            'title': data_json['title'],
-            'duration': data_json['duration'],
-            'description': description,
+            'title': title,
             'formats': formats,
             'subtitles': subtitles,
+            'display_id': display_id,
+            'duration': duration,
             'series': series,
+            'description': description,
             'season': season,
             'season_number': season_number,
             'episode_number': episode_number,
         }
-        '''
-        type, display_id, video_id = self._match_valid_url(url).groups()
-        type = 'movie_film' if type == 'movie' else 'tvshow_episode'
-        API_URL = 'https://androidapi.mxplay.com/v1/detail/'
-        headers = {
-            'X-Av-Code': '23',
-            'X-Country': 'IN',
-            'X-Platform': 'android',
-            'X-App-Version': '1370001318',
-            'X-Resolution': '3840x2160',
-        }
-        data_json = self._download_json(f'{API_URL}{type}/{video_id}', display_id, headers=headers)['profile']
-
-        season, series = None, None
-        for dct in data_json.get('levelInfos', []):
-            if dct.get('type') == 'tvshow_season':
-                season = dct.get('name')
-            elif dct.get('type') == 'tvshow_show':
-                series = dct.get('name')
-        thumbnails = []
-        for thumb in data_json.get('poster', []):
-            thumbnails.append({
-                'url': thumb.get('url'),
-                'width': thumb.get('width'),
-                'height': thumb.get('height'),
-            })
-
-        formats = []
-        subtitles = {}
-        for dct in data_json.get('playInfo', []):
-            if dct.get('extension') == 'mpd':
-                frmt, subs = self._extract_mpd_formats_and_subtitles(dct.get('playUrl'), display_id, fatal=False)
-                formats.extend(frmt)
-                subtitles = self._merge_subtitles(subtitles, subs)
-            elif dct.get('extension') == 'm3u8':
-                frmt, subs = self._extract_m3u8_formats_and_subtitles(dct.get('playUrl'), display_id, fatal=False)
-                formats.extend(frmt)
-                subtitles = self._merge_subtitles(subtitles, subs)
-        self._sort_formats(formats)
-        return {
-            'id': video_id,
-            'display_id': display_id,
-            'title': data_json.get('name') or display_id,
-            'description': data_json.get('description'),
-            'season_number': data_json.get('seasonNum'),
-            'episode_number': data_json.get('episodeNum'),
-            'duration': data_json.get('duration'),
-            'season': season,
-            'series': series,
-            'thumbnails': thumbnails,
-            'formats': formats,
-            'subtitles': subtitles,
-        }
-    '''
 
 
 class MxplayerShowIE(InfoExtractor):
