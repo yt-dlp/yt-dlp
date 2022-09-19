@@ -28,7 +28,7 @@ from ..utils import (
     unified_strdate,
     unified_timestamp,
     url_or_none,
-    urlhandle_detect_ext, js_to_json,
+    urlhandle_detect_ext, js_to_json, remove_end,
 )
 
 
@@ -890,18 +890,29 @@ class YoutubeWebArchiveIE(InfoExtractor):
         url_date = url_date or url_date_2
 
         urlh = None
-        try:
-            urlh = self._request_webpage(
-                HEADRequest('https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id),
-                video_id, note='Fetching archived video file url', expected_status=True)
-        except ExtractorError as e:
-            # HTTP Error 404 is expected if the video is not saved.
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
-                self.raise_no_formats(
-                    'The requested video is not archived, indexed, or there is an issue with web.archive.org',
-                    expected=True)
-            else:
-                raise
+        last_error = None
+        count = -1
+        retries = self.get_param('extractor_retries', 3)
+        while count < retries:
+            count += 1
+            if last_error:
+                self.report_warning('%s. Retrying ...' % remove_end(last_error, '.'))
+            try:
+                urlh = self._request_webpage(
+                    HEADRequest('https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id),
+                    video_id, note='Fetching archived video file url', expected_status=True)
+            except ExtractorError as e:
+                last_error = str(e.cause or e.msg)
+                # HTTP Error 404 is expected if the video is not saved.
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                    last_error = 'The requested video is not archived, indexed, or there is an issue with web.archive.org'
+                    if count < retries:
+                        continue
+                    self.raise_no_formats(last_error, expected=True)
+                else:
+                    if count < retries:
+                        continue
+                    raise
 
         capture_dates = self._get_capture_dates(video_id, int_or_none(url_date))
         self.write_debug('Captures to try: ' + join_nonempty(*capture_dates, delim=', '))
