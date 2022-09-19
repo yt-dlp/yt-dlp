@@ -108,6 +108,7 @@ from .utils import (
     get_domain,
     int_or_none,
     iri_to_uri,
+    is_path_like,
     join_nonempty,
     locked_file,
     make_archive_id,
@@ -725,7 +726,7 @@ class YoutubeDL:
             archive = set()
             if fn is None:
                 return archive
-            elif not isinstance(fn, os.PathLike):
+            elif not is_path_like(fn):
                 return fn
 
             self.write_debug(f'Loading archive file {fn!r}')
@@ -1246,9 +1247,11 @@ class YoutubeDL:
                 delim = '\n' if '#' in flags else ', '
                 value, fmt = delim.join(map(str, variadic(value, allowed_types=(str, bytes)))), str_fmt
             elif fmt[-1] == 'j':  # json
-                value, fmt = json.dumps(value, default=_dumpjson_default, indent=4 if '#' in flags else None), str_fmt
+                value, fmt = json.dumps(
+                    value, default=_dumpjson_default,
+                    indent=4 if '#' in flags else None, ensure_ascii=False), str_fmt
             elif fmt[-1] == 'h':  # html
-                value, fmt = escapeHTML(value), str_fmt
+                value, fmt = escapeHTML(str(value)), str_fmt
             elif fmt[-1] == 'q':  # quoted
                 value = map(str, variadic(value) if '#' in flags else [value])
                 value, fmt = ' '.join(map(compat_shlex_quote, value)), str_fmt
@@ -2708,17 +2711,18 @@ class YoutubeDL:
                           (f['format_id'] for f in formats_to_download))
                 if requested_ranges:
                     to_screen(f'Downloading {len(requested_ranges)} time ranges:',
-                              (f'{int(c["start_time"])}-{int(c["end_time"])}' for c in requested_ranges))
+                              (f'{c["start_time"]:.1f}-{c["end_time"]:.1f}' for c in requested_ranges))
             max_downloads_reached = False
 
             for fmt, chapter in itertools.product(formats_to_download, requested_ranges or [{}]):
                 new_info = self._copy_infodict(info_dict)
                 new_info.update(fmt)
                 offset, duration = info_dict.get('section_start') or 0, info_dict.get('duration') or float('inf')
+                end_time = offset + min(chapter.get('end_time', duration), duration)
                 if chapter or offset:
                     new_info.update({
                         'section_start': offset + chapter.get('start_time', 0),
-                        'section_end': offset + min(chapter.get('end_time', duration), duration),
+                        'section_end': end_time if end_time < offset + duration else None,
                         'section_title': chapter.get('title'),
                         'section_number': chapter.get('index'),
                     })
@@ -3481,7 +3485,7 @@ class YoutubeDL:
         assert vid_id
 
         self.write_debug(f'Adding to archive: {vid_id}')
-        if isinstance(fn, os.PathLike):
+        if is_path_like(fn):
             with locked_file(fn, 'a', encoding='utf-8') as archive_file:
                 archive_file.write(vid_id + '\n')
         self.archive.add(vid_id)

@@ -5,6 +5,7 @@ import hashlib
 import http.client
 import http.cookiejar
 import http.cookies
+import inspect
 import itertools
 import json
 import math
@@ -21,6 +22,7 @@ import xml.etree.ElementTree
 
 from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
+from ..cookies import LenientSimpleCookie
 from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..utils import (
@@ -2914,6 +2916,8 @@ class InfoExtractor:
 
                     def prepare_template(template_name, identifiers):
                         tmpl = representation_ms_info[template_name]
+                        if representation_id is not None:
+                            tmpl = tmpl.replace('$RepresentationID$', representation_id)
                         # First of, % characters outside $...$ templates
                         # must be escaped by doubling for proper processing
                         # by % operator string formatting used further (see
@@ -2928,8 +2932,6 @@ class InfoExtractor:
                                 t += c
                         # Next, $...$ templates are translated to their
                         # %(...) counterparts to be used with % operator
-                        if representation_id is not None:
-                            t = t.replace('$RepresentationID$', representation_id)
                         t = re.sub(r'\$(%s)\$' % '|'.join(identifiers), r'%(\1)d', t)
                         t = re.sub(r'\$(%s)%%([^$]+)\$' % '|'.join(identifiers), r'%(\1)\2', t)
                         t.replace('$$', '$')
@@ -3631,7 +3633,7 @@ class InfoExtractor:
 
     def _get_cookies(self, url):
         """ Return a http.cookies.SimpleCookie with the cookies for the url """
-        return http.cookies.SimpleCookie(self._downloader._calc_cookies(url))
+        return LenientSimpleCookie(self._downloader._calc_cookies(url))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """
@@ -3899,6 +3901,18 @@ class InfoExtractor:
     def _extract_url(cls, webpage):  # TODO: Remove
         """Only for compatibility with some older extractors"""
         return next(iter(cls._extract_embed_urls(None, webpage) or []), None)
+
+    @classmethod
+    def __init_subclass__(cls, *, plugin_name=None, **kwargs):
+        if plugin_name:
+            mro = inspect.getmro(cls)
+            super_class = cls.__wrapped__ = mro[mro.index(cls) + 1]
+            cls.IE_NAME, cls.ie_key = f'{super_class.IE_NAME}+{plugin_name}', super_class.ie_key
+            while getattr(super_class, '__wrapped__', None):
+                super_class = super_class.__wrapped__
+            setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
+
+        return super().__init_subclass__(**kwargs)
 
 
 class SearchInfoExtractor(InfoExtractor):

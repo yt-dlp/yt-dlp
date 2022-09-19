@@ -326,14 +326,15 @@ def validate_options(opts):
 
     def parse_chapters(name, value):
         chapters, ranges = [], []
+        parse_timestamp = lambda x: float('inf') if x in ('inf', 'infinite') else parse_duration(x)
         for regex in value or []:
             if regex.startswith('*'):
-                for range in regex[1:].split(','):
-                    dur = tuple(map(parse_duration, range.strip().split('-')))
-                    if len(dur) == 2 and all(t is not None for t in dur):
-                        ranges.append(dur)
-                    else:
+                for range_ in map(str.strip, regex[1:].split(',')):
+                    mobj = range_ != '-' and re.fullmatch(r'([^-]+)?\s*-\s*([^-]+)?', range_)
+                    dur = mobj and (parse_timestamp(mobj.group(1) or '0'), parse_timestamp(mobj.group(2) or 'inf'))
+                    if None in (dur or [None]):
                         raise ValueError(f'invalid {name} time range "{regex}". Must be of the form *start-end')
+                    ranges.append(dur)
                 continue
             try:
                 chapters.append(re.compile(regex))
@@ -409,6 +410,9 @@ def validate_options(opts):
 
     if opts.download_archive is not None:
         opts.download_archive = expand_path(opts.download_archive)
+
+    if opts.ffmpeg_location is not None:
+        opts.ffmpeg_location = expand_path(opts.ffmpeg_location)
 
     if opts.user_agent is not None:
         opts.headers.setdefault('User-Agent', opts.user_agent)
