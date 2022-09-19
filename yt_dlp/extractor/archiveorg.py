@@ -906,13 +906,10 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 # HTTP Error 404 is expected if the video is not saved.
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
                     last_error = 'The requested video is not archived, indexed, or there is an issue with web.archive.org'
-                    if count < retries:
-                        continue
-                    self.raise_no_formats(last_error, expected=True)
-                else:
-                    if count < retries:
-                        continue
-                    raise
+
+                if count < retries:
+                    continue
+                self.raise_no_formats(last_error, expected=True)
 
         capture_dates = self._get_capture_dates(video_id, int_or_none(url_date))
         self.write_debug('Captures to try: ' + join_nonempty(*capture_dates, delim=', '))
