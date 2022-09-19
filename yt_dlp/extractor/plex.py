@@ -42,6 +42,7 @@ class PlexWatchBaseIE(InfoExtractor):
             cookie_ = {cookie.name: cookie.value for cookie in self.cookiejar}
             self._CLIENT_IDENTIFIER = cookie_.get('clientIdentifier')
 
+    # FIXME: Fix the token can't be used to manifest url (need to add request in signin)
     def _perform_login(self, username, password):
         try:
             resp_api = self._download_json(
