@@ -25,7 +25,7 @@ from ..utils import (
 
 
 class TikTokBaseIE(InfoExtractor):
-    _APP_VERSIONS = [('20.9.3', '293'), ('20.4.3', '243'), ('20.2.1', '221'), ('20.1.2', '212'), ('20.0.4', '204')]
+    _APP_VERSIONS = [('26.1.3', '260103'), ('26.1.2', '260102'), ('26.1.1', '260101'), ('25.6.2', '250602')]
     _WORKING_APP_VERSION = None
     _APP_NAME = 'trill'
     _AID = 1180
@@ -46,7 +46,8 @@ class TikTokBaseIE(InfoExtractor):
     def _real_initialize(self):
         if self._session_initialized:
             return
-        self._request_webpage(HEADRequest('https://www.tiktok.com'), None, note='Setting up session', fatal=False)
+        self._request_webpage(HEADRequest('https://www.tiktok.com'), None,
+                              headers={'User-Agent': 'User-Agent:Mozilla/5.0'}, note='Setting up session', fatal=False)
         TikTokBaseIE._session_initialized = True
 
     def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
@@ -531,8 +532,8 @@ class TikTokIE(TikTokBaseIE):
 
     def _extract_aweme_app(self, aweme_id):
         try:
-            aweme_detail = self._call_api('aweme/detail', {'aweme_id': aweme_id}, aweme_id,
-                                          note='Downloading video details', errnote='Unable to download video details').get('aweme_detail')
+            aweme_detail = traverse_obj(self._call_api('feed', {'aweme_id': aweme_id}, aweme_id, note='Downloading video details',
+                                        errnote='Unable to download video details'), ('aweme_list', 0))
             if not aweme_detail:
                 raise ExtractorError('Video not available', video_id=aweme_id)
         except ExtractorError as e:
