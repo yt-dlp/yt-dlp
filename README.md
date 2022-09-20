@@ -1627,7 +1627,7 @@ The metadata obtained by the extractors can be modified by using `--parse-metada
 
 The general syntax of `--parse-metadata FROM:TO` is to give the name of a field or an [output template](#output-template) to extract data from, and the format to interpret it as, separated by a colon `:`. Either a [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) with named capture groups or a similar syntax to the [output template](#output-template) (only `%(field)s` formatting is supported) can be used for `TO`. The option can be used multiple times to parse and modify various fields.
 
-Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--add-metadata`.
+Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--embed-metadata`.
 
 This option also has a few special uses:
 
@@ -1673,11 +1673,11 @@ $ yt-dlp --parse-metadata "description:Artist - (?P<artist>.+)"
 $ yt-dlp --parse-metadata "%(series)s S%(season_number)02dE%(episode_number)02d:%(title)s"
 
 # Prioritize uploader as the "artist" field in video metadata
-$ yt-dlp --parse-metadata "%(uploader|)s:%(meta_artist)s" --add-metadata
+$ yt-dlp --parse-metadata "%(uploader|)s:%(meta_artist)s" --embed-metadata
 
 # Set "comment" field in video metadata using description instead of webpage_url,
 # handling multiple lines correctly
-$ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --add-metadata
+$ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --embed-metadata
 
 # Do not set any "synopsis" in the video metadata
 $ yt-dlp --parse-metadata ":(?P<meta_synopsis>)"
