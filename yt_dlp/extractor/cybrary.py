@@ -1,4 +1,4 @@
-﻿from .common import InfoExtractor
+from .common import InfoExtractor
 
 from ..utils import (
     ExtractorError,
