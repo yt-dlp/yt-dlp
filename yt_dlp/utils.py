@@ -2247,8 +2247,9 @@ def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
     return fmt % (converted, suffix)
 
 
-def format_bytes(bytes):
-    return format_decimal_suffix(bytes, '%.2f%sB', factor=1024) or 'N/A'
+def format_bytes(bytes, *, align=False):
+    format_string = '%6.2f%sB' if align else '%.2f%sB'
+    return format_decimal_suffix(bytes, format_string, factor=1024) or 'N/A'
 
 
 def lookup_unit_table(unit_table, s):

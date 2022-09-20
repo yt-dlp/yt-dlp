@@ -339,7 +339,7 @@ class FileDownloader:
             s.update({
                 'speed': speed,
                 '_speed_str': self.format_speed(speed).strip(),
-                '_total_bytes_str': format_bytes(s.get('total_bytes')),
+                '_total_bytes_str': format_bytes(s.get('total_bytes'), align=True),
                 '_elapsed_str': self.format_seconds(s.get('elapsed')),
                 '_percent_str': self.format_percent(100),
             })
@@ -360,9 +360,9 @@ class FileDownloader:
                 lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
                 lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
                 lambda: s['downloaded_bytes'] == 0 and 0)),
-            '_total_bytes_str': format_bytes(s.get('total_bytes')),
-            '_total_bytes_estimate_str': format_bytes(s.get('total_bytes_estimate')),
-            '_downloaded_bytes_str': format_bytes(s.get('downloaded_bytes')),
+            '_total_bytes_str': format_bytes(s.get('total_bytes'), align=True),
+            '_total_bytes_estimate_str': format_bytes(s.get('total_bytes_estimate'), align=True),
+            '_downloaded_bytes_str': format_bytes(s.get('downloaded_bytes'), align=True),
             '_elapsed_str': self.format_seconds(s.get('elapsed')),
         })
 
