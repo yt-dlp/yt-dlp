@@ -131,6 +131,20 @@ class WistiaIE(WistiaBaseIE):
             'timestamp': 1463607249,
             'duration': 4987.11,
         },
+        'skip': 'webpage 404 not found',
+    }, {
+        'url': 'wistia:5vd7p4bct5',
+        'md5': 'b9676d24bf30945d97060638fbfe77f0',
+        'info_dict': {
+            'id': '5vd7p4bct5',
+            'ext': 'bin',
+            'title': 'md5:eaa9f64c4efd7b5f098b9b6118597679',
+            'description': 'md5:a9bea0315f0616aa5df2dc413ddcdd0f',
+            'upload_date': '20220915',
+            'timestamp': 1663258727,
+            'duration': 623.019,
+            'thumbnail': r're:https?://embed(?:-ssl)?.wistia.com/.+\.(?:jpg|bin)$',
+        },
     }, {
         'url': 'wistia:sh7fpupwlt',
         'only_matching': True,
@@ -156,6 +170,8 @@ class WistiaIE(WistiaBaseIE):
                 ''', webpage):
             urls.append('wistia:%s' % match.group('id'))
         for match in re.finditer(r'(?:data-wistia-?id=["\']|Wistia\.embed\(["\']|id=["\']wistia_)(?P<id>[a-z0-9]{10})', webpage):
+            urls.append('wistia:%s' % match.group('id'))
+        for match in re.finditer(r'(?:wmediaid|wvideo(?:id)?)(?:%5D)?=(?P<id>[a-z0-9]{10})', url):
             urls.append('wistia:%s' % match.group('id'))
         return urls
 
