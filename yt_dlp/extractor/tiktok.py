@@ -558,6 +558,7 @@ class TikTokIE(TikTokBaseIE):
 class TikTokUserIE(TikTokBaseIE):
     IE_NAME = 'tiktok:user'
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\.-]+)/?(?:$|[#?])'
+    _WORKING = False
     _TESTS = [{
         'url': 'https://tiktok.com/@corgibobaa?lang=en',
         'playlist_mincount': 45,
@@ -694,6 +695,7 @@ class TikTokBaseListIE(TikTokBaseIE):
 class TikTokSoundIE(TikTokBaseListIE):
     IE_NAME = 'tiktok:sound'
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/music/[\w\.-]+-(?P<id>[\d]+)[/?#&]?'
+    _WORKING = False
     _QUERY_NAME = 'music_id'
     _API_ENDPOINT = 'music/aweme'
     _TESTS = [{
@@ -717,6 +719,7 @@ class TikTokSoundIE(TikTokBaseListIE):
 class TikTokEffectIE(TikTokBaseListIE):
     IE_NAME = 'tiktok:effect'
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/sticker/[\w\.-]+-(?P<id>[\d]+)[/?#&]?'
+    _WORKING = False
     _QUERY_NAME = 'sticker_id'
     _API_ENDPOINT = 'sticker/aweme'
     _TESTS = [{
@@ -736,6 +739,7 @@ class TikTokEffectIE(TikTokBaseListIE):
 class TikTokTagIE(TikTokBaseListIE):
     IE_NAME = 'tiktok:tag'
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/tag/(?P<id>[^/?#&]+)'
+    _WORKING = False
     _QUERY_NAME = 'ch_id'
     _API_ENDPOINT = 'challenge/aweme'
     _TESTS = [{
