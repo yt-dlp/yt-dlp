@@ -489,7 +489,7 @@ def validate_options(opts):
                     val1=opts.sponskrub and opts.sponskrub_cut)
 
     # Conflicts with --allow-unplayable-formats
-    report_conflict('--add-metadata', 'addmetadata')
+    report_conflict('--embed-metadata', 'addmetadata')
     report_conflict('--embed-chapters', 'addchapters')
     report_conflict('--embed-info-json', 'embed_infojson')
     report_conflict('--embed-subs', 'embedsubtitles')
