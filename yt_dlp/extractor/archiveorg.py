@@ -891,9 +891,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
         url_date = url_date or url_date_2
 
         urlh = None
-        last_error = None
-        rm = self.RetryManager(fatal=False)
-        for retry in self.RetryManager(fatal=False):
+        retry_manager = self.RetryManager(fatal=False)
+        for retry in retry_manager:
             try:
                 urlh = self._request_webpage(
                     HEADRequest('https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id),
@@ -905,8 +904,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
                     retry.error = ExtractorError(
                         'The requested video is not archived, indexed, or there is an issue with web.archive.org', expected=True)
 
-        if rm.error:
-            self.raise_no_formats(last_error, expected=True)
+        if retry_manager.error:
+            self.raise_no_formats(retry_manager.error, expected=True, video_id=video_id)
 
         capture_dates = self._get_capture_dates(video_id, int_or_none(url_date))
         self.write_debug('Captures to try: ' + join_nonempty(*capture_dates, delim=', '))
