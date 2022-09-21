@@ -33,7 +33,6 @@ class TikTokBaseIE(InfoExtractor):
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
-    _session_initialized = False
 
     @staticmethod
     def _create_url(user_id, video_id):
@@ -42,13 +41,6 @@ class TikTokBaseIE(InfoExtractor):
     def _get_sigi_state(self, webpage, display_id):
         return self._parse_json(get_element_by_id(
             'SIGI_STATE|sigi-persisted-data', webpage, escape_value=False), display_id)
-
-    def _real_initialize(self):
-        if self._session_initialized:
-            return
-        self._request_webpage(HEADRequest('https://www.tiktok.com'), None,
-                              headers={'User-Agent': 'User-Agent:Mozilla/5.0'}, note='Setting up session', fatal=False)
-        TikTokBaseIE._session_initialized = True
 
     def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
                        note='Downloading API JSON', errnote='Unable to download API page'):
@@ -531,18 +523,11 @@ class TikTokIE(TikTokBaseIE):
     }]
 
     def _extract_aweme_app(self, aweme_id):
-        try:
-            aweme_detail = traverse_obj(self._call_api('feed', {'aweme_id': aweme_id}, aweme_id, note='Downloading video details',
-                                        errnote='Unable to download video details'), ('aweme_list', 0))
-            if not aweme_detail:
-                raise ExtractorError('Video not available', video_id=aweme_id)
-        except ExtractorError as e:
-            self.report_warning(f'{e.orig_msg}; trying feed workaround')
-            feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
-                                       note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
-            aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
-            if not aweme_detail:
-                raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
+        feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
+                                   note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
+        aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
+        if not aweme_detail:
+            raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
         return self._parse_aweme_video_app(aweme_detail)
 
     def _real_extract(self, url):
