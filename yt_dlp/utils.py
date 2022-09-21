@@ -591,9 +591,14 @@ class LenientJSONDecoder(json.JSONDecoder):
     def decode(self, s):
         if self.transform_source:
             s = self.transform_source(s)
-        if self.ignore_extra:
-            return self.raw_decode(s.lstrip())[0]
-        return super().decode(s)
+        try:
+            if self.ignore_extra:
+                return self.raw_decode(s.lstrip())[0]
+            return super().decode(s)
+        except json.JSONDecodeError as e:
+            if e.pos is not None:
+                raise type(e)(f'{e.msg} in {s[e.pos-10:e.pos+10]!r}', s, e.pos)
+            raise
 
 
 def sanitize_open(filename, open_mode):
@@ -762,7 +767,7 @@ def sanitized_Request(url, *args, **kwargs):
 
 
 def expand_path(s):
-    """Expand $ shell variables and ~"""
+    """Expand shell variables and ~"""
     return os.path.expandvars(compat_expanduser(s))
 
 

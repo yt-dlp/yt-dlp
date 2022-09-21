@@ -1820,14 +1820,14 @@ def create_parser():
         val.replace(r'\,', ',').strip() for val in re.split(r'(?<!\\),', vals)])
     extractor.add_option(
         '--extractor-args',
-        metavar='KEY:ARGS', dest='extractor_args', default={}, type='str',
+        metavar='IE_KEY:ARGS', dest='extractor_args', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
             'multiple_keys': False,
             'process': lambda val: dict(
                 _extractor_arg_parser(*arg.split('=', 1)) for arg in val.split(';'))
         }, help=(
-            'Pass these arguments to the extractor. See "EXTRACTOR ARGUMENTS" for details. '
+            'Pass ARGS arguments to the IE_KEY extractor. See "EXTRACTOR ARGUMENTS" for details. '
             'You can use this option multiple times to give arguments for different extractors'))
     extractor.add_option(
         '--youtube-include-dash-manifest', '--no-youtube-skip-dash-manifest',

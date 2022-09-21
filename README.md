@@ -3,7 +3,7 @@
 
 [![YT-DLP](https://raw.githubusercontent.com/yt-dlp/yt-dlp/master/.github/banner.svg)](#readme)
 
-[![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Download&style=for-the-badge)](##installation "Installation")
+[![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Download&style=for-the-badge)](#installation "Installation")
 [![PyPi](https://img.shields.io/badge/-PyPi-blue.svg?logo=pypi&labelColor=555555&style=for-the-badge)](https://pypi.org/project/yt-dlp "PyPi")
 [![Donate](https://img.shields.io/badge/_-Donate-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)](Collaborators.md#collaborators "Donate")
 [![Matrix](https://img.shields.io/matrix/yt-dlp:matrix.org?color=brightgreen&labelColor=555555&label=&logo=element&style=for-the-badge)](https://matrix.to/#/#yt-dlp:matrix.org "Matrix")
@@ -562,7 +562,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     Needs ffmpeg. This option can be used
                                     multiple times to download multiple
                                     sections, e.g. --download-sections
-                                    "*10:15-15:00" --download-sections "intro"
+                                    "*10:15-inf" --download-sections "intro"
     --downloader [PROTO:]NAME       Name or path of the external downloader to
                                     use (optionally) prefixed by the protocols
                                     (http, ftp, m3u8, dash, rstp, rtmp, mms) to
@@ -1079,9 +1079,9 @@ Make chapter entries for, or remove various segments (sponsor,
     --no-hls-split-discontinuity    Do not split HLS playlists to different
                                     formats at discontinuities such as ad breaks
                                     (default)
-    --extractor-args KEY:ARGS       Pass these arguments to the extractor. See
-                                    "EXTRACTOR ARGUMENTS" for details. You can
-                                    use this option multiple times to give
+    --extractor-args IE_KEY:ARGS    Pass ARGS arguments to the IE_KEY extractor.
+                                    See "EXTRACTOR ARGUMENTS" for details. You
+                                    can use this option multiple times to give
                                     arguments for different extractors
 
 # CONFIGURATION
@@ -1092,14 +1092,14 @@ You can configure yt-dlp by placing any supported command line option to a confi
 1. **Portable Configuration**: `yt-dlp.conf` in the same directory as the bundled binary. If you are running from source-code (`<root dir>/yt_dlp/__main__.py`), the root directory is used instead.
 1. **Home Configuration**: `yt-dlp.conf` in the home path given by `-P`, or in the current directory if no such path is given
 1. **User Configuration**:
-    * `%XDG_CONFIG_HOME%/yt-dlp/config` (recommended on Linux/macOS)
-    * `%XDG_CONFIG_HOME%/yt-dlp.conf`
-    * `%APPDATA%/yt-dlp/config` (recommended on Windows)
-    * `%APPDATA%/yt-dlp/config.txt`
+    * `$XDG_CONFIG_HOME/yt-dlp/config` (recommended on Linux/macOS)
+    * `$XDG_CONFIG_HOME/yt-dlp.conf`
+    * `$APPDATA/yt-dlp/config` (recommended on Windows)
+    * `$APPDATA/yt-dlp/config.txt`
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
     
-    `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined. On windows, `%APPDATA%` generally points to `C:\Users\<user name>\AppData\Roaming` and `~` points to `%HOME%` if present, `%USERPROFILE%` (generally `C:\Users\<user name>`), or `%HOMEDRIVE%%HOMEPATH%`
+    `$XDG_CONFIG_HOME` defaults to `~/.config` if undefined. On windows, `$APPDATA` generally points to `C:\Users\<user name>\AppData\Roaming` and `~` points to `$HOME` if present, `$USERPROFILE` (generally `C:\Users\<user name>`), or `${HOMEDRIVE}${HOMEPATH}`
 
 1. **System Configuration**: `/etc/yt-dlp.conf`
 
@@ -1120,7 +1120,7 @@ E.g. with the following configuration file yt-dlp will always extract the audio,
 -o ~/YouTube/%(title)s.%(ext)s
 ```
 
-Note that options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`.
+Note that options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`. They must also be quoted when necessary as-if it were a UNIX shell.
 
 You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of home, user, and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
 
@@ -1148,7 +1148,7 @@ machine twitch login my_twitch_account_name password my_twitch_password
 ```
 To activate authentication with the `.netrc` file you should pass `--netrc` to yt-dlp or place it in the [configuration file](#configuration).
 
-The default location of the .netrc file is `$HOME` (`~`) in UNIX. On Windows, it is `%HOME%` if present, `%USERPROFILE%` (generally `C:\Users\<user name>`) or `%HOMEDRIVE%%HOMEPATH%`
+The default location of the .netrc file is `$HOME` (`~`). On Windows, if `$HOME` is not present, `$USERPROFILE` (generally `C:\Users\<user name>`) or `${HOMEDRIVE}${HOMEPATH}` is used
 
 # OUTPUT TEMPLATE
 
@@ -1627,7 +1627,7 @@ The metadata obtained by the extractors can be modified by using `--parse-metada
 
 The general syntax of `--parse-metadata FROM:TO` is to give the name of a field or an [output template](#output-template) to extract data from, and the format to interpret it as, separated by a colon `:`. Either a [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) with named capture groups or a similar syntax to the [output template](#output-template) (only `%(field)s` formatting is supported) can be used for `TO`. The option can be used multiple times to parse and modify various fields.
 
-Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--add-metadata`.
+Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--embed-metadata`.
 
 This option also has a few special uses:
 
@@ -1673,11 +1673,11 @@ $ yt-dlp --parse-metadata "description:Artist - (?P<artist>.+)"
 $ yt-dlp --parse-metadata "%(series)s S%(season_number)02dE%(episode_number)02d:%(title)s"
 
 # Prioritize uploader as the "artist" field in video metadata
-$ yt-dlp --parse-metadata "%(uploader|)s:%(meta_artist)s" --add-metadata
+$ yt-dlp --parse-metadata "%(uploader|)s:%(meta_artist)s" --embed-metadata
 
 # Set "comment" field in video metadata using description instead of webpage_url,
 # handling multiple lines correctly
-$ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --add-metadata
+$ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --embed-metadata
 
 # Do not set any "synopsis" in the video metadata
 $ yt-dlp --parse-metadata ":(?P<meta_synopsis>)"
@@ -1697,16 +1697,16 @@ Some extractors accept additional arguments which can be passed using `--extract
 The following extractors use this feature:
 
 #### youtube
+* `lang`: Language code to prefer translated metadata of this language (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube.py](https://github.com/yt-dlp/yt-dlp/blob/c26f9b991a0681fd3ea548d535919cec1fbbd430/yt_dlp/extractor/youtube.py#L381-L390) for list of supported content language codes
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
 * `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (e.g. `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
-* `include_live_dash`: Include live dash formats even without `--live-from-start` (These formats don't download properly)
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
+* `include_live_dash`: Include live dash formats even without `--live-from-start` (These formats don't download properly)
 * `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
 * `innertube_key`: Innertube API key to use for all API requests
-* `lang`: Language code to prefer translated metadata of this language (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube.py](https://github.com/yt-dlp/yt-dlp/blob/c26f9b991a0681fd3ea548d535919cec1fbbd430/yt_dlp/extractor/youtube.py#L381-L390) for list of supported content language codes
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
 * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)

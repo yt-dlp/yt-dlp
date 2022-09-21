@@ -2623,8 +2623,8 @@ class GenericIE(InfoExtractor):
 
         url, smuggled_data = unsmuggle_url(url, {})
         force_videoid = None
-        is_intentional = smuggled_data and smuggled_data.get('to_generic')
-        if smuggled_data and 'force_videoid' in smuggled_data:
+        is_intentional = smuggled_data.get('to_generic')
+        if 'force_videoid' in smuggled_data:
             force_videoid = smuggled_data['force_videoid']
             video_id = force_videoid
         else:
