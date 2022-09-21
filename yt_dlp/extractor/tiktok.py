@@ -460,6 +460,7 @@ class TikTokIE(TikTokBaseIE):
             'uploader_id': '7036055384943690754',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAATh8Vewkn0LYM7Fo03iec3qKdeCUOcBIouRk1mkiag6h3o_pQu_dUXvZ2EZlGST7_',
             'track': 'Promoted Music',
+            'artist': '',
             'timestamp': 1639754738,
             'duration': 30,
             'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
@@ -515,7 +516,7 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-        'expected_warnings': ['trying feed workaround', 'Unable to find video in feed']
+        'skip': 'This video is unavailable',
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
