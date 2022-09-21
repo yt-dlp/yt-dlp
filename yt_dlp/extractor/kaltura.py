@@ -56,6 +56,7 @@ class KalturaIE(InfoExtractor):
                 'thumbnail': 're:^https?://.*/thumbnail/.*',
                 'timestamp': int,
             },
+            'skip': 'The access to this service is forbidden since the specified partner is blocked'
         },
         {
             'url': 'http://www.kaltura.com/index.php/kwidget/cache_st/1300318621/wid/_269692/uiconf_id/3873291/entry_id/1_1jc2y3e4',
@@ -108,6 +109,80 @@ class KalturaIE(InfoExtractor):
             # unavailable source format
             'url': 'kaltura:513551:1_66x4rg7o',
             'only_matching': True,
+        },
+        {
+            # html5lib URL using kwidget player
+            'url': 'https://cdnapisec.kaltura.com/html5/html5lib/v2.46/mwEmbedFrame.php/p/691292/uiconf_id/20499062/entry_id/0_c076mna6?wid=_691292&iframeembed=true&playerId=kaltura_player_1420508608&entry_id=0_c076mna6&flashvars%5BakamaiHD.loadingPolicy%5D=preInitialize&flashvars%5BakamaiHD.asyncInit%5D=true&flashvars%5BstreamerType%5D=hdnetwork',
+            'info_dict': {
+                'id': '0_c076mna6',
+                'ext': 'mp4',
+                'title': 'md5:4883e7acbcbf42583a2dddc97dee4855',
+                'duration': 3608,
+                'uploader_id': 'commons@swinburne.edu.au',
+                'timestamp': 1408086874,
+                'view_count': int,
+                'upload_date': '20140815',
+                'thumbnail': 'http://cfvod.kaltura.com/p/691292/sp/69129200/thumbnail/entry_id/0_c076mna6/version/100022',
+            }
+        },
+        {
+            # html5lib playlist URL using kwidget player
+            'url': 'https://cdnapisec.kaltura.com/html5/html5lib/v2.89/mwEmbedFrame.php/p/2019031/uiconf_id/40436601?wid=1_4j3m32cv&iframeembed=true&playerId=kaltura_player_&flashvars[playlistAPI.kpl0Id]=1_jovey5nu&flashvars[ks]=&&flashvars[imageDefaultDuration]=30&flashvars[localizationCode]=en&flashvars[leadWithHTML5]=true&flashvars[forceMobileHTML5]=true&flashvars[nextPrevBtn.plugin]=true&flashvars[hotspots.plugin]=true&flashvars[sideBarContainer.plugin]=true&flashvars[sideBarContainer.position]=left&flashvars[sideBarContainer.clickToClose]=true&flashvars[chapters.plugin]=true&flashvars[chapters.layout]=vertical&flashvars[chapters.thumbnailRotator]=false&flashvars[streamSelector.plugin]=true&flashvars[EmbedPlayer.SpinnerTarget]=videoHolder&flashvars[dualScreen.plugin]=true&flashvars[playlistAPI.playlistUrl]=https://canvasgatechtest.kaf.kaltura.com/playlist/details/{playlistAPI.kpl0Id}/categoryid/126428551',
+            'info_dict': {
+                'id': '1_jovey5nu',
+                'title': '00-00 Introduction'
+            },
+            'playlist': [
+                {
+                    'info_dict': {
+                        'id': '1_b1y5hlvx',
+                        'ext': 'mp4',
+                        'title': 'CS7646_00-00 Introductio_Introduction',
+                        'duration': 91,
+                        'thumbnail': 'https://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_b1y5hlvx/version/100001',
+                        'view_count': int,
+                        'timestamp': 1533154447,
+                        'upload_date': '20180801',
+                        'uploader_id': 'djoyner3',
+                    }
+                }, {
+                    'info_dict': {
+                        'id': '1_jfb7mdpn',
+                        'ext': 'mp4',
+                        'title': 'CS7646_00-00 Introductio_Three parts to the course',
+                        'duration': 63,
+                        'thumbnail': 'https://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_jfb7mdpn/version/100001',
+                        'view_count': int,
+                        'timestamp': 1533154489,
+                        'upload_date': '20180801',
+                        'uploader_id': 'djoyner3',
+                    }
+                }, {
+                    'info_dict': {
+                        'id': '1_8xflxdp7',
+                        'ext': 'mp4',
+                        'title': 'CS7646_00-00 Introductio_Textbooks',
+                        'duration': 37,
+                        'thumbnail': 'https://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_8xflxdp7/version/100001',
+                        'view_count': int,
+                        'timestamp': 1533154512,
+                        'upload_date': '20180801',
+                        'uploader_id': 'djoyner3',
+                    }
+                }, {
+                    'info_dict': {
+                        'id': '1_3hqew8kn',
+                        'ext': 'mp4',
+                        'title': 'CS7646_00-00 Introductio_Prerequisites',
+                        'duration': 49,
+                        'thumbnail': 'https://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_3hqew8kn/version/100001',
+                        'view_count': int,
+                        'timestamp': 1533154536,
+                        'upload_date': '20180801',
+                        'uploader_id': 'djoyner3',
+                    }
+                }
+            ]
         }
     ]
 
@@ -187,7 +262,14 @@ class KalturaIE(InfoExtractor):
 
         return data
 
-    def _get_video_info(self, video_id, partner_id, service_url=None):
+    def _get_video_info(self, video_id, partner_id, service_url=None, player_type='html5'):
+        if player_type == 'kwidget':
+            return self._get_video_info_kwidget(video_id, partner_id, service_url)
+
+        return self._get_video_info_html5(video_id, partner_id, service_url)
+
+    def _get_video_info_html5(self, video_id, partner_id, service_url=None):
+        widget_id = (partner_id if '_' in partner_id else ('_%s' % partner_id))
         actions = [
             {
                 'apiVersion': '3.3.0',
@@ -200,8 +282,9 @@ class KalturaIE(InfoExtractor):
                 'expiry': 86400,
                 'service': 'session',
                 'action': 'startWidgetSession',
-                'widgetId': '_%s' % partner_id,
+                'widgetId': widget_id,
             },
+            # info
             {
                 'action': 'list',
                 'filter': {'redirectFromEntryId': video_id},
@@ -212,12 +295,14 @@ class KalturaIE(InfoExtractor):
                     'fields': 'createdAt,dataUrl,duration,name,plays,thumbnailUrl,userId',
                 },
             },
+            # flavor_assets
             {
                 'action': 'getbyentryid',
                 'entryId': video_id,
                 'service': 'flavorAsset',
                 'ks': '{1:result:ks}',
             },
+            # captions
             {
                 'action': 'list',
                 'filter:entryIdEqual': video_id,
@@ -226,7 +311,70 @@ class KalturaIE(InfoExtractor):
             },
         ]
         return self._kaltura_api_call(
-            video_id, actions, service_url, note='Downloading video info JSON')
+            video_id, actions, service_url, note='Downloading video info JSON (Kaltura html5 player)')
+
+    def _get_video_info_kwidget(self, video_id, partner_id, service_url=None):
+        widget_id = (partner_id if '_' in partner_id else ('_%s' % partner_id))
+        actions = [
+            {
+                'service': 'multirequest',
+                'apiVersion': '3.1',
+                'expiry': 86400,
+                'clientTag': 'kwidget:v2.89',
+                'format': 1,  # JSON, 2 = XML, 3 = PHP
+                'ignoreNull': 1,
+                'action': 'null',
+            },
+            # header
+            {
+                'expiry': 86400,
+                'service': 'session',
+                'action': 'startWidgetSession',
+                'widgetId': widget_id,
+            },
+            # (empty)
+            {
+                'expiry': 86400,
+                'service': 'session',
+                'action': 'startwidgetsession',
+                'widgetId': widget_id,
+                'format': 9,
+                'apiVersion': '3.1',
+                'clientTag': 'kwidget:v2.89',
+                'ignoreNull': 1,
+                'ks': '{1:result:ks}'
+            },
+            # info
+            {
+                'action': 'list',
+                'filter': {'redirectFromEntryId': video_id},
+                'service': 'baseentry',
+                'ks': '{1:result:ks}',
+                'responseProfile': {
+                    'type': 1,
+                    'fields': 'createdAt,dataUrl,duration,name,plays,thumbnailUrl,userId',
+                },
+            },
+            # flavor_assets
+            {
+                'action': 'getbyentryid',
+                'entryId': video_id,
+                'service': 'flavorAsset',
+                'ks': '{1:result:ks}',
+            },
+            # captions
+            {
+                'action': 'list',
+                'filter:entryIdEqual': video_id,
+                'service': 'caption_captionasset',
+                'ks': '{1:result:ks}',
+            },
+        ]
+        # second object (representing the second start widget session) is None
+        header, _, _info, flavor_assets, captions = self._kaltura_api_call(
+            video_id, actions, service_url, note='Downloading video info JSON (Kaltura kwidget player)')
+        info = _info['objects'][0]
+        return header, info, flavor_assets, captions
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -235,8 +383,11 @@ class KalturaIE(InfoExtractor):
         partner_id, entry_id = mobj.group('partner_id', 'id')
         ks = None
         captions = None
+        player_type = 'html5'
+        if 'html5lib/v2' in url:
+            player_type = 'kwidget'
         if partner_id and entry_id:
-            _, info, flavor_assets, captions = self._get_video_info(entry_id, partner_id, smuggled_data.get('service_url'))
+            _, info, flavor_assets, captions = self._get_video_info(entry_id, partner_id, smuggled_data.get('service_url'), player_type=player_type)
         else:
             path, query = mobj.group('path', 'query')
             if not path and not query:
@@ -248,7 +399,10 @@ class KalturaIE(InfoExtractor):
                 splitted_path = path.split('/')
                 params.update(dict((zip(splitted_path[::2], [[v] for v in splitted_path[1::2]]))))
             if 'wid' in params:
-                partner_id = params['wid'][0][1:]
+                if params['wid'][0].startswith('_'):
+                    partner_id = params['wid'][0][1:]
+                else:
+                    partner_id = params['wid'][0]
             elif 'p' in params:
                 partner_id = params['p'][0]
             elif 'partner_id' in params:
@@ -257,7 +411,7 @@ class KalturaIE(InfoExtractor):
                 raise ExtractorError('Invalid URL', expected=True)
             if 'entry_id' in params:
                 entry_id = params['entry_id'][0]
-                _, info, flavor_assets, captions = self._get_video_info(entry_id, partner_id)
+                _, info, flavor_assets, captions = self._get_video_info(entry_id, partner_id, player_type=player_type)
             elif 'uiconf_id' in params and 'flashvars[referenceId]' in params:
                 reference_id = params['flashvars[referenceId]'][0]
                 webpage = self._download_webpage(url, reference_id)
@@ -272,16 +426,39 @@ class KalturaIE(InfoExtractor):
                 # regular approach since we now know the entry_id
                 try:
                     _, info, flavor_assets, captions = self._get_video_info(
-                        entry_id, partner_id)
+                        entry_id, partner_id, player_type=player_type)
                 except ExtractorError:
                     # Regular scenario failed but we already have everything
                     # extracted apart from captions and can process at least
                     # with this
                     pass
+            elif 'uiconf_id' in params and 'flashvars[playlistAPI.kpl0Id]' in params:
+                playlist_id = params['flashvars[playlistAPI.kpl0Id]'][0]
+                webpage = self._download_webpage(url, playlist_id)
+                playlist_data = self._parse_json(self._search_regex(
+                    r'window\.kalturaIframePackageData\s*=\s*({.*});',
+                    webpage, 'kalturaIframePackageData'),
+                    playlist_id)['playlistResult']
+                playlist_title, playlist_items = playlist_data[playlist_id]['name'], playlist_data[playlist_id]['items']
+                ks = params.get('flashvars[ks]', [None])[0]
+
+                entries = []
+                for info in playlist_items:
+                    entry_id = info['id']
+                    # We already have the metadata info, but need to fetch the asset URLs
+                    _, new_info, flavor_assets, captions = self._get_video_info(
+                        entry_id, partner_id, player_type=player_type)
+
+                    entries.append(self._per_video_extract(smuggled_data, entry_id, info, ks, flavor_assets, captions))
+
+                return self.playlist_result(entries, playlist_id, playlist_title)
             else:
                 raise ExtractorError('Invalid URL', expected=True)
             ks = params.get('flashvars[ks]', [None])[0]
 
+        return self._per_video_extract(smuggled_data, entry_id, info, ks, flavor_assets, captions)
+
+    def _per_video_extract(self, smuggled_data, entry_id, info, ks, flavor_assets, captions):
         source_url = smuggled_data.get('source_url')
         if source_url:
             referrer = base64.b64encode(
