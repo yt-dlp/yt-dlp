@@ -1,20 +1,19 @@
 import re
+import urllib.error
+import urllib.parse
+from base64 import b64decode
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
-    try_call,
-    try_get,
     parse_qs,
     traverse_obj,
+    try_call,
+    try_get,
     update_url_query,
 )
-
-import urllib.parse
-import urllib.error
-from base64 import b64decode
 
 
 class WistiaBaseIE(InfoExtractor):
