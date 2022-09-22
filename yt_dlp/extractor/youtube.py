@@ -4328,7 +4328,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _rich_entries(self, rich_grid_renderer):
         renderer = traverse_obj(
-            rich_grid_renderer, ('content', ['videoRenderer', 'reelItemRenderer']), get_all=False) or {}
+            rich_grid_renderer, ('content', ('videoRenderer', 'reelItemRenderer')), get_all=False) or {}
         video_id = renderer.get('videoId')
         if not video_id:
             return
@@ -6332,10 +6332,10 @@ class YoutubeShortsAudioPivotIE(InfoExtractor):
     @staticmethod
     def _generate_audio_pivot_params(video_id):
         """
-        Generates sfv_audio_pivot browse parameter for this video id
+        Generates sfv_audio_pivot browse params for this video id
         """
-        token = b'\xf2\x05+\n)\x12\'\n\x0b%b\x12\x0b%b\x1a\x0b%b' % ((video_id.encode(),) * 3)
-        return base64.b64encode(token).decode()
+        pb_params = b'\xf2\x05+\n)\x12\'\n\x0b%b\x12\x0b%b\x1a\x0b%b' % ((video_id.encode(),) * 3)
+        return base64.b64encode(pb_params).decode()
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
