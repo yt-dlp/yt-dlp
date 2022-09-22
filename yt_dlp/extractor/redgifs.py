@@ -66,19 +66,16 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
     def _fetch_oauth_token(self, video_id):
         # These pages contain the OAuth token that is necessary to make API calls.
         index_page = self._download_webpage(f'https://www.redgifs.com/watch/{video_id}', video_id)
-        index_js_uri = self._html_search_regex(r'href="(/assets/js/index[.a-z0-9]*.js)"\W',
-                                               index_page, 'index_js_uri')
-        index_js = self._download_webpage('https://www.redgifs.com/' + index_js_uri, video_id)
-
+        index_js_uri = self._html_search_regex(
+            r'href="?(/assets/js/index[.a-z0-9]*.js)"?\W', index_page, 'index_js_uri')
+        index_js = self._download_webpage(f'https://www.redgifs.com/{index_js_uri}', video_id)
         # It turns out that a { followed by any valid JSON punctuation will always result in the
         # first two characters of the base64 encoding being "ey".
-        #
         # Use this fact to find any such string constant of a reasonable length with the correct
         # punctuation for an oauth token
-        oauth_token = self._html_search_regex(r'\w+[=:]"(ey[^"]+\.[^"]*\.[^"]{43,45})"',
-                                              index_js.replace(' ', ''),
-                                              'oauth_token')
-        self._API_HEADERS['authorization'] = "Bearer " + oauth_token
+        oauth_token = self._html_search_regex(
+            r'\w+\s*[=:]\s*"(ey[^"]+\.[^"]*\.[^"]{43,45})"', index_js, 'oauth token')
+        self._API_HEADERS['authorization'] = f'Bearer {oauth_token}'
 
     def _call_api(self, ep, video_id, *args, **kwargs):
         if 'authorization' not in self._API_HEADERS:
