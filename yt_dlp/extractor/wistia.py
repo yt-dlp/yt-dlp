@@ -334,11 +334,11 @@ class WistiaChannelIE(WistiaBaseIE):
         # XXX: the response suggests there can be multiple "series" but I've never seen one
         series = traverse_obj(data, ('series', 0), default={})
 
-        entries = []
-        for video in traverse_obj(series, ('sections', ..., 'videos', ...)) or []:
-            hashed_id = video.get('hashedId')
-            if hashed_id:
-                entries.append(self.url_result(f'wistia:{hashed_id}', 'Wistia', title=video.get('name')))
+        entries = [
+        	self.url_result(f'wistia:{video["hashedId"]}', WistiaIE, title=video.get('name'))
+        	for video in traverse_obj(series, ('sections', ..., 'videos', ...)) or []
+        	if video.get('hashedId')
+        ]
 
         return self.playlist_result(
             entries, channel_id, playlist_title=series.get('title'), playlist_description=series.get('description'))
