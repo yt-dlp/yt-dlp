@@ -18,9 +18,11 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         'hd': None,
     }
 
-    _API_HEADERS = {'referer': 'https://www.redgifs.com/',
-                    'origin': 'https://www.redgifs.com',
-                    'content-type': 'application/json'}
+    _API_HEADERS = {
+        'referer': 'https://www.redgifs.com/',
+        'origin': 'https://www.redgifs.com',
+        'content-type': 'application/json',
+    }
 
     def _parse_gif_data(self, gif_data):
         video_id = gif_data.get('id')
