@@ -6335,7 +6335,7 @@ class YoutubeShortsAudioPivotIE(InfoExtractor):
         Generates sfv_audio_pivot browse params for this video id
         """
         pb_params = b'\xf2\x05+\n)\x12\'\n\x0b%b\x12\x0b%b\x1a\x0b%b' % ((video_id.encode(),) * 3)
-        return base64.b64encode(pb_params).decode()
+        return urllib.parse.quote(base64.b64encode(pb_params).decode())
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
