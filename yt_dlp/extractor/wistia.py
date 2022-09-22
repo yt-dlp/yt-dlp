@@ -10,7 +10,6 @@ from ..utils import (
     int_or_none,
     parse_qs,
     traverse_obj,
-    try_call,
     try_get,
     update_url_query,
 )
@@ -128,12 +127,7 @@ class WistiaBaseIE(InfoExtractor):
         if list(TeachableIE._extract_embed_urls(url, webpage)):
             return
 
-        for entry in super()._extract_from_webpage(url, webpage):
-            yield {
-                **entry,
-                '_type': 'url_transparent',
-                'uploader': try_call(lambda: re.match(r'(?:https?://)?([^/]+)/', url).group(1)),
-            }
+        yield from super()._extract_from_webpage(url, webpage)
 
     @classmethod
     def _extract_wistia_async_embed(cls, webpage):
@@ -143,6 +137,12 @@ class WistiaBaseIE(InfoExtractor):
             r'''(?sx)
                 <(?:div|section)[^>]+class=([\"'])(?:(?!\1).)*?(?P<type>wistia[a-z_0-9]+)\s*\bwistia_async_(?P<id>[a-z0-9]{10})\b(?:(?!\1).)*?\1
             ''', webpage)
+
+    @classmethod
+    def _extract_url_media_id(cls, url):
+        mobj = re.search(r'(?:wmediaid|wvideo(?:id)?)]?=(?P<id>[a-z0-9]{10})', urllib.parse.unquote_plus(url))
+        if mobj:
+            return mobj.group('id')
 
 
 class WistiaIE(WistiaBaseIE):
@@ -211,15 +211,26 @@ class WistiaIE(WistiaBaseIE):
         'info_dict': {
             'id': 'cqwukac3z1',
             'ext': 'bin',
-            'title': 'How Using Wistia Channels Helps Capture More Inbound Value From Your Video Content',
-            'description': 'md5:d7f3ab63b8419a20777b139449a9ba1f',
-            'age_limit': 0,
+            'title': 'How Wistia Channels Can Help Capture Inbound Value From Your Video Content',
             'duration': 158.125,
-            'thumbnail': 'https://www.weidert.com/hubfs/Blog/2021-blog-images/WW_PPC_Wistia_Artwork_N1_V2.png#keepProtocol',
-            'uploader': 'www.weidert.com',
-            'upload_date': str,  # generic uses Last-Modified, so this is subject to change
-            'timestamp': float,
+            'timestamp': 1618974400,
+            'description': 'md5:27abc99a758573560be72600ef95cece',
+            'upload_date': '20210421',
+            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/6c551820ae950cdee2306d6cbe9ef742.bin',
         }
+    }, {
+        'url': 'https://study.com/academy/lesson/north-american-exploration-failed-colonies-of-spain-france-england.html#lesson',
+        'md5': 'b9676d24bf30945d97060638fbfe77f0',
+        'info_dict': {
+            'id': '5vd7p4bct5',
+            'ext': 'bin',
+            'title': 'paywall_north-american-exploration-failed-colonies-of-spain-france-england',
+            'upload_date': '20220915',
+            'timestamp': 1663258727,
+            'duration': 623.019,
+            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/83e6ec693e2c05a0ce65809cbaead86a.bin',
+            'description': 'a Paywall Videos video',
+        },
     }]
 
     def _real_extract(self, url):
@@ -236,8 +247,10 @@ class WistiaIE(WistiaBaseIE):
         for match in re.finditer(r'(?:data-wistia-?id=["\']|Wistia\.embed\(["\']|id=["\']wistia_)(?P<id>[a-z0-9]{10})',
                                  webpage):
             urls.append('wistia:%s' % match.group('id'))
-        for match in re.finditer(r'(?:wmediaid|wvideo(?:id)?)(?:%5D)?=(?P<id>[a-z0-9]{10})', url):
-            urls.append('wistia:%s' % match.group('id'))
+        if not WistiaChannelIE._extract_embed_urls(url, webpage):  # Fallback
+            media_id = cls._extract_url_media_id(url)
+            if media_id:
+                urls.append('wistia:%s' % match.group('id'))
         return urls
 
 
@@ -277,7 +290,7 @@ class WistiaChannelIE(WistiaBaseIE):
             'title': 'Copysmith Tutorials and Education!',
             'description': 'Learn all things Copysmith via short and informative videos!'
         },
-        'playlist_mincount': 10,
+        'playlist_mincount': 7,
         'expected_warnings': ['falling back to webpage'],
     }, {
         'url': 'https://fast.wistia.net/embed/channel/3802iirk0l',
@@ -305,13 +318,8 @@ class WistiaChannelIE(WistiaBaseIE):
         'url': 'https://www.profitwell.com/recur/boxed-out',
         'info_dict': {
             'id': '6jyvmqz6zs',
-            'title': 'Boxed Out | ProfitWell',
-            'description': 'md5:1b1eb10bee670851bf69299aaef2d2a4',
-            'upload_date': str,  # generic uses Last-Modified, which is changed everytime a video is added
-            'timestamp': float,
-            'uploader': 'www.profitwell.com',
-            'thumbnail': 'https://www.profitwell.com/hubfs/Screen%20Shot%202020-11-17%20at%201.01.45%20PM.png#keepProtocol',
-            'age_limit': 0,
+            'title': 'Boxed Out',
+            'description': 'md5:14a8a93a1dbe236718e6a59f8c8c7bae',
         },
         'playlist_mincount': 30,
     }, {
@@ -319,19 +327,28 @@ class WistiaChannelIE(WistiaBaseIE):
         'url': 'https://360learning.com/studio/onboarding-joei/',
         'info_dict': {
             'id': 'z874k93n2o',
-            'title': 'Onboarding Joei - our content director | 360Learning',
-            'description': 'md5:f9de04c83c0ca710aa1ca56d45823c67',
-            'thumbnail': 'https://images.prismic.io/360learning/3d45dbe9-d7ad-41d4-8954-066f4015d0a5_onboardingJoei.png?auto=compress,format',
-            'age_limit': 0,
-            'uploader': '360learning.com',
+            'title': 'Onboarding Joei.',
+            'description': 'Coming to you weekly starting Feb 19th.',
         },
         'playlist_mincount': 20,
+    }, {
+        'url': 'https://amplitude.com/amplify-sessions?amp%5Bwmediaid%5D=pz0m0l0if3&amp%5Bwvideo%5D=pz0m0l0if3&wchannelid=emyjmwjf79&wmediaid=i8um783bdt',
+        'info_dict': {
+            'id': 'pz0m0l0if3',
+            'title': 'A Framework for Improving Product Team Performance',
+            'ext': 'bin',
+            'timestamp': 1653935275,
+            'upload_date': '20220530',
+            'description': 'Learn how to help your company improve and achieve your product related goals.',
+            'duration': 1854.39,
+            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/12fd19e56413d9d6f04e2185c16a6f8854e25226.bin',
+        },
+        'params': {'noplaylist': True, 'skip_download': True},
     }]
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-        params = parse_qs(url)
-        media_id = traverse_obj(params, ('wmediaid', 0))
+        media_id = self._extract_url_media_id(url)
         if not self._yes_playlist(channel_id, media_id, playlist_label='channel'):
             return self.url_result(f'wistia:{media_id}', 'Wistia')
 
@@ -349,9 +366,9 @@ class WistiaChannelIE(WistiaBaseIE):
         series = traverse_obj(data, ('series', 0), default={})
 
         entries = [
-        	self.url_result(f'wistia:{video["hashedId"]}', WistiaIE, title=video.get('name'))
-        	for video in traverse_obj(series, ('sections', ..., 'videos', ...)) or []
-        	if video.get('hashedId')
+            self.url_result(f'wistia:{video["hashedId"]}', WistiaIE, title=video.get('name'))
+            for video in traverse_obj(series, ('sections', ..., 'videos', ...)) or []
+            if video.get('hashedId')
         ]
 
         return self.playlist_result(
