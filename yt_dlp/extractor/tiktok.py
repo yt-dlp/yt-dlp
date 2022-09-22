@@ -279,7 +279,7 @@ class TikTokBaseIE(InfoExtractor):
             'download_count': int_or_none(stats_info.get('download_count')),
             'forward_count': int_or_none(stats_info.get('forward_count')),
             'whatsapp_share_count': int_or_none(stats_info.get('whatsapp_share_count')),
-            'collect_count': int_or_none(stats_info.get('collect_count')),
+            'favorite_count': int_or_none(stats_info.get('collect_count')),
             'lose_count': int_or_none(stats_info.get('lose_count')),
             'lose_comment_count': int_or_none(stats_info.get('lose_comment_count')),
             'uploader': str_or_none(author_info.get('unique_id')),
