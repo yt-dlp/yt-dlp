@@ -21,6 +21,7 @@ from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeYtBeIE,
     YoutubeYtUserIE,
     YoutubeWatchLaterIE,
+    YoutubeShortsAudioPivotIE
 )
 
 from .abc import (

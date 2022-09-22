@@ -4327,8 +4327,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             yield self._extract_video(renderer)
 
     def _rich_entries(self, rich_grid_renderer):
-        renderer = try_get(
-            rich_grid_renderer, lambda x: x['content']['videoRenderer'], dict) or {}
+        renderer = traverse_obj(
+            rich_grid_renderer, ('content', ('videoRenderer', 'reelItemRenderer')), get_all=False) or {}
         video_id = renderer.get('videoId')
         if not video_id:
             return
@@ -5640,6 +5640,16 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
         'expected_warnings': ['Preferring "ja"'],
+    }, {
+        # shorts audio pivot for 2GtVksBMYFM.
+        'url': 'https://www.youtube.com/feed/sfv_audio_pivot?bp=8gUrCikSJwoLMkd0VmtzQk1ZRk0SCzJHdFZrc0JNWUZNGgsyR3RWa3NCTVlGTQ==',
+        'info_dict': {
+            'id': 'sfv_audio_pivot',
+            'title': 'sfv_audio_pivot',
+            'tags': [],
+        },
+        'playlist_mincount': 50,
+
     }]
 
     @classmethod
@@ -6305,6 +6315,33 @@ class YoutubeStoriesIE(InfoExtractor):
         return self.url_result(
             smuggle_url(f'https://www.youtube.com/playlist?list={playlist_id}&playnext=1', {'is_story': True}),
             ie=YoutubeTabIE, video_id=playlist_id)
+
+
+class YoutubeShortsAudioPivotIE(InfoExtractor):
+    IE_DESC = 'YouTube Shorts audio pivot (Shorts using audio of a given video); "ytshortsap:" prefix'
+    IE_NAME = 'youtube:shorts:pivot:audio'
+    _VALID_URL = f'(?x)^ytshortsap:{YoutubeIE._VALID_URL[5:]}'
+    _TESTS = [{
+        'url': 'ytshortsap:https://www.youtube.com/shorts/Lyj-MZSAA9o?feature=share',
+        'only_matching': True,
+    }, {
+        'url': 'ytshortsap:Lyj-MZSAA9o',
+        'only_matching': True,
+    }]
+
+    @staticmethod
+    def _generate_audio_pivot_params(video_id):
+        """
+        Generates sfv_audio_pivot browse params for this video id
+        """
+        pb_params = b'\xf2\x05+\n)\x12\'\n\x0b%b\x12\x0b%b\x1a\x0b%b' % ((video_id.encode(),) * 3)
+        return urllib.parse.quote(base64.b64encode(pb_params).decode())
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self.url_result(
+            f'https://www.youtube.com/feed/sfv_audio_pivot?bp={self._generate_audio_pivot_params(video_id)}',
+            ie=YoutubeTabIE)
 
 
 class YoutubeTruncatedURLIE(InfoExtractor):
