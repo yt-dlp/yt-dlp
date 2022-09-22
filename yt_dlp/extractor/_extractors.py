@@ -84,7 +84,6 @@ from .americastestkitchen import (
     AmericasTestKitchenSeasonIE,
 )
 from .angel import AngelIE
-from .animeondemand import AnimeOnDemandIE
 from .anvato import AnvatoIE
 from .aol import AolIE
 from .allocine import AllocineIE
@@ -191,7 +190,9 @@ from .bilibili import (
     BilibiliAudioIE,
     BilibiliAudioAlbumIE,
     BiliBiliPlayerIE,
-    BilibiliChannelIE,
+    BilibiliSpaceVideoIE,
+    BilibiliSpaceAudioIE,
+    BilibiliSpacePlaylistIE,
     BiliIntlIE,
     BiliIntlSeriesIE,
     BiliLiveIE,
@@ -648,6 +649,7 @@ from .googlepodcasts import (
 )
 from .googlesearch import GoogleSearchIE
 from .gopro import GoProIE
+from .goplay import GoPlayIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
@@ -938,6 +940,7 @@ from .mediasite import (
     MediasiteCatalogIE,
     MediasiteNamedCatalogIE,
 )
+from .mediaworksnz import MediaWorksNZVODIE
 from .medici import MediciIE
 from .megaphone import MegaphoneIE
 from .meipai import MeipaiIE
@@ -2019,7 +2022,6 @@ from .vidio import (
     VidioLiveIE
 )
 from .vidlii import VidLiiIE
-from .vier import VierIE, VierVideosIE
 from .viewlift import (
     ViewLiftIE,
     ViewLiftEmbedIE,

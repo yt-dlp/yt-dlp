@@ -964,7 +964,7 @@ def create_parser():
             'Download only chapters whose title matches the given regular expression. '
             'Time ranges prefixed by a "*" can also be used in place of chapters to download the specified range. '
             'Needs ffmpeg. This option can be used multiple times to download multiple sections, '
-            'e.g. --download-sections "*10:15-15:00" --download-sections "intro"'))
+            'e.g. --download-sections "*10:15-inf" --download-sections "intro"'))
     downloader.add_option(
         '--downloader', '--external-downloader',
         dest='external_downloader', metavar='[PROTO:]NAME', default={}, type='str',
@@ -1417,7 +1417,7 @@ def create_parser():
         help='Do not load cookies from browser (default)')
     filesystem.add_option(
         '--cache-dir', dest='cachedir', default=None, metavar='DIR',
-        help='Location in the filesystem where youtube-dl can store some downloaded information (such as client ids and signatures) permanently. By default $XDG_CACHE_HOME/yt-dlp or ~/.cache/yt-dlp')
+        help='Location in the filesystem where yt-dlp can store some downloaded information (such as client ids and signatures) permanently. By default $XDG_CACHE_HOME/yt-dlp or ~/.cache/yt-dlp')
     filesystem.add_option(
         '--no-cache-dir', action='store_false', dest='cachedir',
         help='Disable filesystem caching')
@@ -1820,14 +1820,14 @@ def create_parser():
         val.replace(r'\,', ',').strip() for val in re.split(r'(?<!\\),', vals)])
     extractor.add_option(
         '--extractor-args',
-        metavar='KEY:ARGS', dest='extractor_args', default={}, type='str',
+        metavar='IE_KEY:ARGS', dest='extractor_args', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
             'multiple_keys': False,
             'process': lambda val: dict(
                 _extractor_arg_parser(*arg.split('=', 1)) for arg in val.split(';'))
         }, help=(
-            'Pass these arguments to the extractor. See "EXTRACTOR ARGUMENTS" for details. '
+            'Pass ARGS arguments to the IE_KEY extractor. See "EXTRACTOR ARGUMENTS" for details. '
             'You can use this option multiple times to give arguments for different extractors'))
     extractor.add_option(
         '--youtube-include-dash-manifest', '--no-youtube-skip-dash-manifest',

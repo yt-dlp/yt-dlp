@@ -3,7 +3,7 @@
 
 [![YT-DLP](https://raw.githubusercontent.com/yt-dlp/yt-dlp/master/.github/banner.svg)](#readme)
 
-[![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Download&style=for-the-badge)](#release-files "Release")
+[![Release version](https://img.shields.io/github/v/release/yt-dlp/yt-dlp?color=brightgreen&label=Download&style=for-the-badge)](#installation "Installation")
 [![PyPi](https://img.shields.io/badge/-PyPi-blue.svg?logo=pypi&labelColor=555555&style=for-the-badge)](https://pypi.org/project/yt-dlp "PyPi")
 [![Donate](https://img.shields.io/badge/_-Donate-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)](Collaborators.md#collaborators "Donate")
 [![Matrix](https://img.shields.io/matrix/yt-dlp:matrix.org?color=brightgreen&labelColor=555555&label=&logo=element&style=for-the-badge)](https://matrix.to/#/#yt-dlp:matrix.org "Matrix")
@@ -25,6 +25,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 * [NEW FEATURES](#new-features)
     * [Differences in default behavior](#differences-in-default-behavior)
 * [INSTALLATION](#installation)
+    * [Detailed instructions](https://github.com/yt-dlp/yt-dlp/wiki/Installation)
     * [Update](#update)
     * [Release Files](#release-files)
     * [Dependencies](#dependencies)
@@ -49,7 +50,6 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 * [CONFIGURATION](#configuration)
     * [Authentication with .netrc file](#authentication-with-netrc-file)
 * [OUTPUT TEMPLATE](#output-template)
-    * [Output template and Windows batch files](#output-template-and-windows-batch-files)
     * [Output template examples](#output-template-examples)
 * [FORMAT SELECTION](#format-selection)
     * [Filtering Formats](#filtering-formats)
@@ -65,7 +65,8 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 * [CONTRIBUTING](CONTRIBUTING.md#contributing-to-yt-dlp)
     * [Opening an Issue](CONTRIBUTING.md#opening-an-issue)
     * [Developer Instructions](CONTRIBUTING.md#developer-instructions)
-* [MORE](#more)
+* [WIKI](https://github.com/yt-dlp/yt-dlp/wiki)
+    * [FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ)
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 
@@ -158,76 +159,26 @@ For ease of use, a few more compat options are available:
 
 # INSTALLATION
 
-You can install yt-dlp using one of the following methods:
-
-### Using the release binary
-
-You can simply download the [correct binary file](#release-files) for your OS
-
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 [![Windows](https://img.shields.io/badge/-Windows_x64-blue.svg?style=for-the-badge&logo=windows)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)
-[![Linux](https://img.shields.io/badge/-Linux/BSD-red.svg?style=for-the-badge&logo=linux)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)
+[![Unix](https://img.shields.io/badge/-Linux/BSD-red.svg?style=for-the-badge&logo=linux)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)
 [![MacOS](https://img.shields.io/badge/-MacOS-lightblue.svg?style=for-the-badge&logo=apple)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)
+[![PyPi](https://img.shields.io/badge/-PyPi-blue.svg?logo=pypi&labelColor=555555&style=for-the-badge)](https://pypi.org/project/yt-dlp)
 [![Source Tarball](https://img.shields.io/badge/-Source_tar-green.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 [![Other variants](https://img.shields.io/badge/-Other-grey.svg?style=for-the-badge)](#release-files)
 [![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases)
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
-Note: The manpages, shell completion files etc. are available in the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
+You can install yt-dlp using [the binaries](#release-files), [PIP](https://pypi.org/project/yt-dlp) or one using a third-party package manager. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) for detailed instructions
 
-<!-- TODO: Move to Wiki -->
-In UNIX-like OSes (MacOS, Linux, BSD), you can also install the same in one of the following ways:
-
-```
-sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-sudo chmod a+rx /usr/local/bin/yt-dlp
-```
-
-```
-sudo wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
-sudo chmod a+rx /usr/local/bin/yt-dlp
-```
-
-```
-sudo aria2c https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp --dir /usr/local/bin -o yt-dlp
-sudo chmod a+rx /usr/local/bin/yt-dlp
-```
-
-
-### With [PIP](https://pypi.org/project/pip)
-
-You can install the [PyPI package](https://pypi.org/project/yt-dlp) with:
-```
-python3 -m pip install -U yt-dlp
-```
-
-You can install without any of the optional dependencies using:
-```
-python3 -m pip install --no-deps -U yt-dlp
-```
-
-If you want to be on the cutting edge, you can also install the master branch with:
-```
-python3 -m pip install --force-reinstall https://github.com/yt-dlp/yt-dlp/archive/master.tar.gz
-```
-
-On some systems, you may need to use `py` or `python` instead of `python3`
-
-<!-- TODO: Add to Wiki, Remove Taps -->
-### With [Homebrew](https://brew.sh)
-
-macOS or Linux users that are using Homebrew can also install it by:
-
-```
-brew install yt-dlp/taps/yt-dlp
-```
 
 ## UPDATE
-You can use `yt-dlp -U` to update if you are [using the provided release](#using-the-release-binary)
+You can use `yt-dlp -U` to update if you are [using the release binaries](#release-files)
 
-If you [installed with pip](#with-pip), simply re-run the same command that was used to install the program
+If you [installed with PIP](https://github.com/yt-dlp/yt-dlp/wiki/Installation#with-pip), simply re-run the same command that was used to install the program
 
-If you [installed using Homebrew](#with-homebrew), run `brew upgrade yt-dlp/taps/yt-dlp`
+For other third-party package managers, see [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) or refer their documentation
+
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 ## RELEASE FILES
@@ -256,10 +207,13 @@ File|Description
 
 File|Description
 :---|:---
-[yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)|Source tarball. Also contains manpages, completions, etc
+[yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)|Source tarball
 [SHA2-512SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS)|GNU-style SHA512 sums
 [SHA2-256SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS)|GNU-style SHA256 sums
 <!-- MANPAGE: END EXCLUDED SECTION -->
+
+
+Note: The manpages, shell completion files etc. are available in the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
 ## DEPENDENCIES
 Python versions 3.7+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
@@ -296,7 +250,7 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 * [**secretstorage**](https://github.com/mitya57/secretstorage) - For `--cookies-from-browser` to access the **Gnome** keyring while decrypting cookies of **Chromium**-based browsers on **Linux**. Licensed under [BSD-3-Clause](https://github.com/mitya57/secretstorage/blob/master/LICENSE)
 * Any external downloader that you want to use with `--downloader`
 
-#### Deprecated
+### Deprecated
 
 * [**avconv** and **avprobe**](https://www.libav.org) - Now **deprecated** alternative to ffmpeg. License [depends on the build](https://libav.org/legal)
 * [**sponskrub**](https://github.com/faissaloo/SponSkrub) - For using the now **deprecated** [sponskrub options](#sponskrub-options). Licensed under [GPLv3+](https://github.com/faissaloo/SponSkrub/blob/master/LICENCE.md)
@@ -326,7 +280,7 @@ Note that pyinstaller with versions below 4.4 [do not support](https://github.co
 **Important**: Running `pyinstaller` directly **without** using `pyinst.py` is **not** officially supported. This may or may not work correctly.
 
 ### Platform-independent Binary (UNIX)
-You will need the build tools `python` (3.6+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
+You will need the build tools `python` (3.7+), `zip`, `make` (GNU), `pandoc`\* and `pytest`\*.
 
 After installing these, simply run `make`.
 
@@ -608,7 +562,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     Needs ffmpeg. This option can be used
                                     multiple times to download multiple
                                     sections, e.g. --download-sections
-                                    "*10:15-15:00" --download-sections "intro"
+                                    "*10:15-inf" --download-sections "intro"
     --downloader [PROTO:]NAME       Name or path of the external downloader to
                                     use (optionally) prefixed by the protocols
                                     (http, ftp, m3u8, dash, rstp, rtmp, mms) to
@@ -722,10 +676,10 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     Currently supported keyrings are: basictext,
                                     gnomekeyring, kwallet
     --no-cookies-from-browser       Do not load cookies from browser (default)
-    --cache-dir DIR                 Location in the filesystem where youtube-dl
-                                    can store some downloaded information (such
-                                    as client ids and signatures) permanently.
-                                    By default $XDG_CACHE_HOME/yt-dlp or
+    --cache-dir DIR                 Location in the filesystem where yt-dlp can
+                                    store some downloaded information (such as
+                                    client ids and signatures) permanently. By
+                                    default $XDG_CACHE_HOME/yt-dlp or
                                     ~/.cache/yt-dlp
     --no-cache-dir                  Disable filesystem caching
     --rm-cache-dir                  Delete all filesystem cache files
@@ -1125,9 +1079,9 @@ Make chapter entries for, or remove various segments (sponsor,
     --no-hls-split-discontinuity    Do not split HLS playlists to different
                                     formats at discontinuities such as ad breaks
                                     (default)
-    --extractor-args KEY:ARGS       Pass these arguments to the extractor. See
-                                    "EXTRACTOR ARGUMENTS" for details. You can
-                                    use this option multiple times to give
+    --extractor-args IE_KEY:ARGS    Pass ARGS arguments to the IE_KEY extractor.
+                                    See "EXTRACTOR ARGUMENTS" for details. You
+                                    can use this option multiple times to give
                                     arguments for different extractors
 
 # CONFIGURATION
@@ -1138,14 +1092,14 @@ You can configure yt-dlp by placing any supported command line option to a confi
 1. **Portable Configuration**: `yt-dlp.conf` in the same directory as the bundled binary. If you are running from source-code (`<root dir>/yt_dlp/__main__.py`), the root directory is used instead.
 1. **Home Configuration**: `yt-dlp.conf` in the home path given by `-P`, or in the current directory if no such path is given
 1. **User Configuration**:
-    * `%XDG_CONFIG_HOME%/yt-dlp/config` (recommended on Linux/macOS)
-    * `%XDG_CONFIG_HOME%/yt-dlp.conf`
-    * `%APPDATA%/yt-dlp/config` (recommended on Windows)
-    * `%APPDATA%/yt-dlp/config.txt`
+    * `$XDG_CONFIG_HOME/yt-dlp/config` (recommended on Linux/macOS)
+    * `$XDG_CONFIG_HOME/yt-dlp.conf`
+    * `$APPDATA/yt-dlp/config` (recommended on Windows)
+    * `$APPDATA/yt-dlp/config.txt`
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
     
-    `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined. On windows, `%APPDATA%` generally points to `C:\Users\<user name>\AppData\Roaming` and `~` points to `%HOME%` if present, `%USERPROFILE%` (generally `C:\Users\<user name>`), or `%HOMEDRIVE%%HOMEPATH%`
+    `$XDG_CONFIG_HOME` defaults to `~/.config` if undefined. On windows, `$APPDATA` generally points to `C:\Users\<user name>\AppData\Roaming` and `~` points to `$HOME` if present, `$USERPROFILE` (generally `C:\Users\<user name>`), or `${HOMEDRIVE}${HOMEPATH}`
 
 1. **System Configuration**: `/etc/yt-dlp.conf`
 
@@ -1166,7 +1120,7 @@ E.g. with the following configuration file yt-dlp will always extract the audio,
 -o ~/YouTube/%(title)s.%(ext)s
 ```
 
-Note that options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`.
+Note that options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`. They must also be quoted when necessary as-if it were a UNIX shell.
 
 You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of home, user, and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
 
@@ -1194,7 +1148,7 @@ machine twitch login my_twitch_account_name password my_twitch_password
 ```
 To activate authentication with the `.netrc` file you should pass `--netrc` to yt-dlp or place it in the [configuration file](#configuration).
 
-The default location of the .netrc file is `$HOME` (`~`) in UNIX. On Windows, it is `%HOME%` if present, `%USERPROFILE%` (generally `C:\Users\<user name>`) or `%HOMEDRIVE%%HOMEPATH%`
+The default location of the .netrc file is `$HOME` (`~`). On Windows, if `$HOME` is not present, `$USERPROFILE` (generally `C:\Users\<user name>`) or `${HOMEDRIVE}${HOMEPATH}` is used
 
 # OUTPUT TEMPLATE
 
@@ -1210,7 +1164,7 @@ It may however also contain special sequences that will be replaced when downloa
 
 The field names themselves (the part inside the parenthesis) can also have some special formatting:
 
-1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. E.g. `%(tags.0)s`, `%(subtitles.en.-1.ext)s`, `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. `%()s` refers to the entire infodict. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
+1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a dot `.` separator; e.g. `%(tags.0)s`, `%(subtitles.en.-1.ext)s`. You can do Python slicing with colon `:`; E.g. `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. Curly braces `{}` can be used to build dictionaries with only specific keys; e.g. `%(formats.:.{format_id,height})#j`. An empty field name `%()s` refers to the entire infodict; e.g. `%(.{id,title})s`. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
 
 1. **Addition**: Addition and subtraction of numeric fields can be done using `+` and `-` respectively. E.g. `%(playlist_index+10)03d`, `%(n_entries+1-playlist_index)d`
 
@@ -1220,7 +1174,7 @@ The field names themselves (the part inside the parenthesis) can also have some 
 
 1. **Replacement**: A replacement value can specified using a `&` separator. If the field is *not* empty, this replacement value will be used instead of the actual field content. This is done after alternate fields are considered; thus the replacement is used if *any* of the alternative fields is *not* empty.
 
-1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-template`. E.g. `%(uploader|Unknown)s`
+1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-placeholder`. E.g. `%(uploader|Unknown)s`
 
 1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing), `h` = HTML escaping, `l` = a comma separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (e.g. 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
 
@@ -1363,12 +1317,6 @@ To use percent literals in an output template use `%%`. To output to stdout use 
 The current default template is `%(title)s [%(id)s].%(ext)s`.
 
 In some cases, you don't want special characters such as 中, spaces, or &, such as when transferring the downloaded filename to a Windows system or the filename through an 8bit-unsafe channel. In these cases, add the `--restrict-filenames` flag to get a shorter title.
-
-<!-- MANPAGE: BEGIN EXCLUDED SECTION -->
-#### Output template and Windows batch files
-
-If you are using an output template inside a Windows batch file then you must escape plain percent characters (`%`) by doubling, so that `-o "%(title)s-%(id)s.%(ext)s"` should become `-o "%%(title)s-%%(id)s.%%(ext)s"`. However you should not touch `%`'s that are not plain characters, e.g. environment variables for expansion should stay intact: `-o "C:\%HOMEPATH%\Desktop\%%(title)s.%%(ext)s"`.
-<!-- MANPAGE: END EXCLUDED SECTION -->
 
 #### Output template examples
 
@@ -1679,7 +1627,7 @@ The metadata obtained by the extractors can be modified by using `--parse-metada
 
 The general syntax of `--parse-metadata FROM:TO` is to give the name of a field or an [output template](#output-template) to extract data from, and the format to interpret it as, separated by a colon `:`. Either a [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) with named capture groups or a similar syntax to the [output template](#output-template) (only `%(field)s` formatting is supported) can be used for `TO`. The option can be used multiple times to parse and modify various fields.
 
-Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--add-metadata`.
+Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--embed-metadata`.
 
 This option also has a few special uses:
 
@@ -1725,11 +1673,11 @@ $ yt-dlp --parse-metadata "description:Artist - (?P<artist>.+)"
 $ yt-dlp --parse-metadata "%(series)s S%(season_number)02dE%(episode_number)02d:%(title)s"
 
 # Prioritize uploader as the "artist" field in video metadata
-$ yt-dlp --parse-metadata "%(uploader|)s:%(meta_artist)s" --add-metadata
+$ yt-dlp --parse-metadata "%(uploader|)s:%(meta_artist)s" --embed-metadata
 
 # Set "comment" field in video metadata using description instead of webpage_url,
 # handling multiple lines correctly
-$ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --add-metadata
+$ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --embed-metadata
 
 # Do not set any "synopsis" in the video metadata
 $ yt-dlp --parse-metadata ":(?P<meta_synopsis>)"
@@ -1749,13 +1697,14 @@ Some extractors accept additional arguments which can be passed using `--extract
 The following extractors use this feature:
 
 #### youtube
+* `lang`: Language code to prefer translated metadata of this language (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube.py](https://github.com/yt-dlp/yt-dlp/blob/c26f9b991a0681fd3ea548d535919cec1fbbd430/yt_dlp/extractor/youtube.py#L381-L390) for list of supported content language codes
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
 * `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (e.g. `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
-* `include_live_dash`: Include live dash formats even without `--live-from-start` (These formats don't download properly)
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
+* `include_live_dash`: Include live dash formats even without `--live-from-start` (These formats don't download properly)
 * `innertube_host`: Innertube API host to use for all API requests; e.g. `studio.youtube.com`, `youtubei.googleapis.com`. Note that cookies exported from one subdomain will not work on others
 * `innertube_key`: Innertube API key to use for all API requests
 
@@ -1816,6 +1765,8 @@ See [ytdlp_plugins](ytdlp_plugins) for example plugins.
 Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. Use plugins at your own risk and only if you trust the code
 
 If you are a plugin author, add [ytdlp-plugins](https://github.com/topics/ytdlp-plugins) as a topic to your repository for discoverability
+
+See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plugins)
 
 
 
@@ -2141,5 +2092,5 @@ These options were deprecated since 2014 and have now been entirely removed
 # CONTRIBUTING
 See [CONTRIBUTING.md](CONTRIBUTING.md#contributing-to-yt-dlp) for instructions on [Opening an Issue](CONTRIBUTING.md#opening-an-issue) and [Contributing code to the project](CONTRIBUTING.md#developer-instructions)
 
-# MORE
-For FAQ see the [youtube-dl README](https://github.com/ytdl-org/youtube-dl#faq)
+# WIKI
+See the [Wiki](https://github.com/yt-dlp/yt-dlp/wiki) for more information

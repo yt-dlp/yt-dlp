@@ -2,8 +2,8 @@ import base64
 import hashlib
 import itertools
 import functools
-import re
 import math
+import re
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
@@ -13,23 +13,24 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    InAdvancePagedList,
+    OnDemandPagedList,
     filter_dict,
-    int_or_none,
     float_or_none,
+    int_or_none,
     mimetype2ext,
+    parse_count,
     parse_iso8601,
     qualities,
-    traverse_obj,
-    parse_count,
     smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
     strip_jsonp,
+    traverse_obj,
     unified_timestamp,
     unsmuggle_url,
     urlencode_postdata,
     url_or_none,
-    OnDemandPagedList
 )
 
 
@@ -505,39 +506,126 @@ class BiliBiliBangumiIE(InfoExtractor):
             season_info.get('bangumi_title'), season_info.get('evaluate'))
 
 
-class BilibiliChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://space.bilibili\.com/(?P<id>\d+)'
-    _API_URL = "https://api.bilibili.com/x/space/arc/search?mid=%s&pn=%d&jsonp=jsonp"
+class BilibiliSpaceBaseIE(InfoExtractor):
+    def _extract_playlist(self, fetch_page, get_metadata, get_entries):
+        first_page = fetch_page(1)
+        metadata = get_metadata(first_page)
+
+        paged_list = InAdvancePagedList(
+            lambda idx: get_entries(fetch_page(idx) if idx > 1 else first_page),
+            metadata['page_count'], metadata['page_size'])
+
+        return metadata, paged_list
+
+
+class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)(?P<video>/video)?/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://space.bilibili.com/3985676/video',
-        'info_dict': {},
-        'playlist_mincount': 112,
+        'info_dict': {
+            'id': '3985676',
+        },
+        'playlist_mincount': 178,
     }]
 
-    def _entries(self, list_id):
-        count, max_count = 0, None
+    def _real_extract(self, url):
+        playlist_id, is_video_url = self._match_valid_url(url).group('id', 'video')
+        if not is_video_url:
+            self.to_screen('A channel URL was given. Only the channel\'s videos will be downloaded. '
+                           'To download audios, add a "/audio" to the URL')
 
-        for page_num in itertools.count(1):
-            data = self._download_json(
-                self._API_URL % (list_id, page_num), list_id, note=f'Downloading page {page_num}')['data']
+        def fetch_page(page_idx):
+            return self._download_json(
+                'https://api.bilibili.com/x/space/arc/search', playlist_id,
+                note=f'Downloading page {page_idx}',
+                query={'mid': playlist_id, 'pn': page_idx, 'jsonp': 'jsonp'})['data']
 
-            max_count = max_count or traverse_obj(data, ('page', 'count'))
+        def get_metadata(page_data):
+            page_size = page_data['page']['ps']
+            entry_count = page_data['page']['count']
+            return {
+                'page_count': math.ceil(entry_count / page_size),
+                'page_size': page_size,
+            }
 
-            entries = traverse_obj(data, ('list', 'vlist'))
-            if not entries:
-                return
-            for entry in entries:
-                yield self.url_result(
-                    'https://www.bilibili.com/video/%s' % entry['bvid'],
-                    BiliBiliIE.ie_key(), entry['bvid'])
+        def get_entries(page_data):
+            for entry in traverse_obj(page_data, ('list', 'vlist')) or []:
+                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}', BiliBiliIE, entry['bvid'])
 
-            count += len(entries)
-            if max_count and count >= max_count:
-                return
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
+        return self.playlist_result(paged_list, playlist_id)
+
+
+class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
+    _VALID_URL = r'https?://space\.bilibili\.com/(?P<id>\d+)/audio'
+    _TESTS = [{
+        'url': 'https://space.bilibili.com/3985676/audio',
+        'info_dict': {
+            'id': '3985676',
+        },
+        'playlist_mincount': 1,
+    }]
 
     def _real_extract(self, url):
-        list_id = self._match_id(url)
-        return self.playlist_result(self._entries(list_id), list_id)
+        playlist_id = self._match_id(url)
+
+        def fetch_page(page_idx):
+            return self._download_json(
+                'https://api.bilibili.com/audio/music-service/web/song/upper', playlist_id,
+                note=f'Downloading page {page_idx}',
+                query={'uid': playlist_id, 'pn': page_idx, 'ps': 30, 'order': 1, 'jsonp': 'jsonp'})['data']
+
+        def get_metadata(page_data):
+            return {
+                'page_count': page_data['pageCount'],
+                'page_size': page_data['pageSize'],
+            }
+
+        def get_entries(page_data):
+            for entry in page_data.get('data', []):
+                yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}', BilibiliAudioIE, entry['id'])
+
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
+        return self.playlist_result(paged_list, playlist_id)
+
+
+class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
+    _VALID_URL = r'https?://space.bilibili\.com/(?P<mid>\d+)/channel/collectiondetail\?sid=(?P<sid>\d+)'
+    _TESTS = [{
+        'url': 'https://space.bilibili.com/2142762/channel/collectiondetail?sid=57445',
+        'info_dict': {
+            'id': '2142762_57445',
+            'title': '《底特律 变人》'
+        },
+        'playlist_mincount': 31,
+    }]
+
+    def _real_extract(self, url):
+        mid, sid = self._match_valid_url(url).group('mid', 'sid')
+        playlist_id = f'{mid}_{sid}'
+
+        def fetch_page(page_idx):
+            return self._download_json(
+                'https://api.bilibili.com/x/polymer/space/seasons_archives_list',
+                playlist_id, note=f'Downloading page {page_idx}',
+                query={'mid': mid, 'season_id': sid, 'page_num': page_idx, 'page_size': 30})['data']
+
+        def get_metadata(page_data):
+            page_size = page_data['page']['page_size']
+            entry_count = page_data['page']['total']
+            return {
+                'page_count': math.ceil(entry_count / page_size),
+                'page_size': page_size,
+                'title': traverse_obj(page_data, ('meta', 'name'))
+            }
+
+        def get_entries(page_data):
+            for entry in page_data.get('archives', []):
+                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
+                                      BiliBiliIE, entry['bvid'])
+
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
+        return self.playlist_result(paged_list, playlist_id, metadata['title'])
 
 
 class BilibiliCategoryIE(InfoExtractor):
@@ -909,7 +997,7 @@ class BiliIntlBaseIE(InfoExtractor):
 
 
 class BiliIntlIE(BiliIntlBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-z]{2}/)?(play/(?P<season_id>\d+)/(?P<ep_id>\d+)|video/(?P<aid>\d+))'
+    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?(play/(?P<season_id>\d+)/(?P<ep_id>\d+)|video/(?P<aid>\d+))'
     _TESTS = [{
         # Bstation page
         'url': 'https://www.bilibili.tv/en/play/34613/341736',
@@ -952,6 +1040,10 @@ class BiliIntlIE(BiliIntlBaseIE):
         # No language in URL
         'url': 'https://www.bilibili.tv/video/2019955076',
         'only_matching': True,
+    }, {
+        # Uppercase language in URL
+        'url': 'https://www.bilibili.tv/EN/video/2019955076',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -975,7 +1067,7 @@ class BiliIntlIE(BiliIntlBaseIE):
 
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-z]{2}/)?play/(?P<id>\d+)$'
+    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?play/(?P<id>\d+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.bilibili.tv/en/play/34613',
         'playlist_mincount': 15,
@@ -992,6 +1084,9 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
         },
     }, {
         'url': 'https://www.biliintl.com/en/play/34613',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.biliintl.com/EN/play/34613',
         'only_matching': True,
     }]
 
