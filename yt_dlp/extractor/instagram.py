@@ -399,7 +399,8 @@ class InstagramIE(InstagramBaseIE):
         if self._get_cookies(url).get('sessionid'):
             info = traverse_obj(self._download_json(
                 f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
-                fatal=False, errnote=False, note='Downloading video info', headers=self._API_HEADERS), ('items', 0))
+                fatal=False, errnote='Video info extraction failed',
+                note='Downloading video info', headers=self._API_HEADERS), ('items', 0))
             if info:
                 media.update(info)
                 return self._extract_product(media)
