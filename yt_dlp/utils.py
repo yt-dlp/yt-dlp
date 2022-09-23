@@ -3298,7 +3298,7 @@ def js_to_json(code, vars={}, *, strict=False):
                     return '"%d":' % i if v.endswith(':') else '%d' % i
 
             if v in vars:
-                return vars[v]
+                return json.dumps(vars[v])
             if strict:
                 raise ValueError(f'Unknown value: {v}')
 
@@ -3310,6 +3310,7 @@ def js_to_json(code, vars={}, *, strict=False):
     code = re.sub(r'new Map\((\[.*?\])?\)', create_map, code)
     if not strict:
         code = re.sub(r'new Date\((".+")\)', r'\g<1>', code)
+        code = re.sub(r'new \w+\((.*?)\)', lambda m: json.dumps(m.group(0)), code)
 
     return re.sub(r'''(?sx)
         "(?:[^"\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^"\\]*"|
