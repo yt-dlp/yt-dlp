@@ -1838,8 +1838,9 @@ from .trovo import (
     TrovoChannelVodIE,
     TrovoChannelClipIE,
 )
+from .trtcocuk import TrtCocukVideoIE
 from .trueid import TrueIDIE
-from .trunews import TruNewsIE
+from .trunews import TruNewsIE 
 from .truth import TruthIE
 from .trutv import TruTVIE
 from .tube8 import Tube8IE
