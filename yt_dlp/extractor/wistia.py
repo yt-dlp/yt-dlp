@@ -362,7 +362,7 @@ class WistiaChannelIE(WistiaBaseIE):
                 self._search_regex(r'wchanneljsonp-%s\'\]\s*=[^\"]*\"([A-Za-z0-9=/]*)' % channel_id, webpage, 'jsonp', channel_id),
                 channel_id, transform_source=lambda x: urllib.parse.unquote_plus(b64decode(x).decode('utf-8')))
 
-        # XXX: the response suggests there can be multiple "series" but I've never seen one
+        # XXX: can there be more than one series?
         series = traverse_obj(data, ('series', 0), default={})
 
         entries = [
