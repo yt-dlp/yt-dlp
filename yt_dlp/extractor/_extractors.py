@@ -2142,6 +2142,7 @@ from .whowatch import WhoWatchIE
 from .wistia import (
     WistiaIE,
     WistiaPlaylistIE,
+    WistiaChannelIE,
 )
 from .worldstarhiphop import WorldStarHipHopIE
 from .wppilot import (
