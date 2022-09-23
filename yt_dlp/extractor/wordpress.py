@@ -35,11 +35,6 @@ class WordpressPlaylistEmbedIE(InfoExtractor):
             playlist_json = self._parse_json(j, self._generic_id(url), fatal=False, ignore_extra=True, errnote='') or {}
             if not playlist_json:
                 continue
-            playlist_json = self._search_json(
-                r'<script[^>]+type="application\/json"\s*class="wp-playlist-script"[^>]*>',
-                webpage, 'wordpress playlist', self._generic_id(url), default=None)
-            if not playlist_json:
-                continue
             entries = []
             for track in playlist_json.get('tracks') or []:
                 if not isinstance(track, dict):
