@@ -8,6 +8,7 @@ class UnscriptedNewsVideoIE(InfoExtractor):
         'url': 'https://www.unscripted.news/videos/a-day-at-the-farmers-protest',
         'info_dict': {
             'id': '60c0a55cd1e99b1079918a57',
+            'display_id': 'a-day-at-the-farmers-protest',
             'ext': 'mp4',
             'title': 'A Day at the Farmers\' Protest',
             'description': 'md5:4b3df22747a03e8f14f746dd72190384',
@@ -19,6 +20,7 @@ class UnscriptedNewsVideoIE(InfoExtractor):
         'url': 'https://www.unscripted.news/videos/you-get-the-politicians-you-deserve-ft-shashi-tharoor',
         'info_dict': {
             'id': '5fb3afbf18ac817d341a74d8',
+            'display_id': 'you-get-the-politicians-you-deserve-ft-shashi-tharoor',
             'ext': 'mp4',
             'cast': ['Avalok Langer', 'Ashwin Mehta'],
             'thumbnail': 'https://s3.unscripted.news/anj2/5fb3afbf18ac817d341a74d8/82bd7942-4f20-4cd8-98ae-83f9e814f998.jpg',
@@ -39,6 +41,7 @@ class UnscriptedNewsVideoIE(InfoExtractor):
 
         return {
             'id': nextjs_data['_id'],
+            'display_id': display_id,
             'title': nextjs_data.get('title') or self._og_search_title(webpage),
             'description': nextjs_data.get('sh_heading') or self._og_search_description(webpage),
             'formats': formats,
