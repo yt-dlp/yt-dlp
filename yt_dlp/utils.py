@@ -5364,9 +5364,9 @@ def traverse_obj(
         result_objs = []
         for key in path:
             if not objs:
-                return has_branched, result_objs
+                return has_branched, objs
 
-            if is_user_input and key == ":":
+            if is_user_input and key == ':':
                 key = ...
 
             if not casesense and isinstance(key, str):
@@ -5409,8 +5409,9 @@ def traverse_obj(
 
                 elif isinstance(key, dict):
                     obj = [(k, _traverse_obj(obj, v)) for k, v in key.items()]
-                    result_objs.append({k: v if v is not None else default for k, v in obj
-                                        if v is not None or (v is None and default is not None)})
+                    iter_obj = ((k, _traverse_obj(obj, v)) for k, v in key.items())
+                    result_objs.append({k: v if v is not None else default for k, v in iter_obj
+                                        if v is not None or default is not None})
 
                 elif isinstance(obj, dict):
                     if casesense:
