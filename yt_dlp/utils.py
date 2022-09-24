@@ -5305,11 +5305,14 @@ def traverse_obj(
                             Returns a list of each of the objects values
                             traversed with the remaining path.
         - `tuple`/`list`:   Branch out and return all matching values.
-                            Read as: `[traverse_obj(obj, branch) for branch in branches]`
+                            Read as: `[traverse_obj(obj, branch) for branch in branches]`.
                             This key supports nested paths and branches.
         - `function`:       Branch out and return all values filtered by the function.
                             Function signature: `(key, value) -> bool`
                             For `Sequence`s `key` is the index of the value.
+        - `dict`            Transform the current object and return a matching dict.
+                            Read as: `{k: traverse_obj(obj, v) for k, v in key.items()}`.
+                            This key supports nested paths and branches.
 
     @params paths           Paths which to traverse by.
     @param default          Value to return if the paths do not match.
@@ -5320,9 +5323,6 @@ def traverse_obj(
 
     The following are only meant to be used by YoutubeDL.prepare_outtmpl and are not part of the API
 
-    @params paths           Additionally the special key can also be a `dict` so that
-                            `{k: v, ...}` will result in `{k: traverse_obj(obj, v), ...}`.
-                            This key supports nested paths and branches.
     @param is_user_input    Whether the keys are generated from user input.
                             If `True` strings get converted to `int`/`slice` if needed
                             and `':'` gets converted to `...`.
