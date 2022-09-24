@@ -5,6 +5,7 @@ import binascii
 import calendar
 import codecs
 import collections
+import collections.abc
 import contextlib
 import datetime
 import email.header
@@ -5284,7 +5285,7 @@ def load_plugins(name, suffix, namespace):
 
 
 def traverse_obj(
-        obj, *path_list, default=None, expected_type=None, get_all=True,
+        obj, *paths, default=None, expected_type=None, get_all=True,
         casesense=True, is_user_input=False, traverse_string=False):
     """ Safely traverse nested `dict`s and `Sequence`s
 
@@ -5292,7 +5293,7 @@ def traverse_obj(
     >>> traverse_obj(obj, (1, "key"))
     "value"
 
-    Each of the provided `path_list` will be tested key by key
+    Each of the provided `paths` will be tested key by key
     and the first producing a valid result will be returned.
     The path will be wrapped if it is not an iterable or if it is a `str`.
 
@@ -5310,7 +5311,7 @@ def traverse_obj(
                             Function signature: `(key, value) -> bool`
                             For `Sequence`s `key` is the index of the value.
 
-    @params path_list       Paths which to traverse by.
+    @params paths           Paths which to traverse by.
     @param default          Value to return if the paths do not match.
     @param expected_type    If a type, only accept final value of this type.
                             If a callable, call the function on each result.
@@ -5319,7 +5320,7 @@ def traverse_obj(
 
     The following are only meant to be used by YoutubeDL.prepare_outtmpl and are not part of the API
 
-    @params path_list       Additionally the special key can also be a `dict` so that
+    @params paths           Additionally the special key can also be a `dict` so that
                             `{k: v, ...}` will result in `{k: traverse_obj(obj, v), ...}`.
                             This key supports nested paths and branches.
     @param is_user_input    Whether the keys are generated from user input.
@@ -5335,80 +5336,122 @@ def traverse_obj(
                             If unsuccessful or the result is `None` it will return `default`.
     """
     if not casesense:
-        _lower = lambda k: (k.lower() if isinstance(k, str) else k)
-        path_list = (map(_lower, variadic(path)) for path in path_list)
-
-    def _traverse_obj(obj, path, _current_depth=0):
-        nonlocal depth
-        path = tuple(variadic(path))
-        for i, key in enumerate(path):
-            if None in (key, obj):
-                return obj
-            if isinstance(key, (list, tuple)):
-                obj = [_traverse_obj(obj, sub_key, _current_depth) for sub_key in key]
-                key = ...
-
-            if key is ...:
-                obj = (obj.values() if isinstance(obj, dict)
-                       else obj if isinstance(obj, (list, tuple, LazyList))
-                       else str(obj) if traverse_string else [])
-                _current_depth += 1
-                depth = max(depth, _current_depth)
-                return [_traverse_obj(inner_obj, path[i + 1:], _current_depth) for inner_obj in obj]
-            elif isinstance(key, dict):
-                obj = filter_dict({k: _traverse_obj(obj, v, _current_depth) for k, v in key.items()})
-            elif callable(key):
-                if isinstance(obj, (list, tuple, LazyList)):
-                    obj = enumerate(obj)
-                elif isinstance(obj, dict):
-                    obj = obj.items()
-                else:
-                    if not traverse_string:
-                        return None
-                    obj = str(obj)
-                _current_depth += 1
-                depth = max(depth, _current_depth)
-                return [_traverse_obj(v, path[i + 1:], _current_depth) for k, v in obj if try_call(key, args=(k, v))]
-            elif isinstance(obj, dict) and not (is_user_input and key == ':'):
-                obj = (obj.get(key) if casesense or (key in obj)
-                       else next((v for k, v in obj.items() if _lower(k) == key), None))
-            else:
-                if is_user_input:
-                    key = (int_or_none(key) if ':' not in key
-                           else slice(*map(int_or_none, key.split(':'))))
-                    if key == slice(None):
-                        return _traverse_obj(obj, (..., *path[i + 1:]), _current_depth)
-                if not isinstance(key, (int, slice)):
-                    return None
-                if not isinstance(obj, (list, tuple, LazyList)):
-                    if not traverse_string:
-                        return None
-                    obj = str(obj)
-                try:
-                    obj = obj[key]
-                except IndexError:
-                    return None
-        return obj
+        _casefold = lambda k: k.casefold() if isinstance(k, str) else k
 
     if isinstance(expected_type, type):
         type_test = lambda val: val if isinstance(val, expected_type) else None
+    elif expected_type is not None:
+        type_test = lambda val: try_call(expected_type, args=(val,))
     else:
-        type_test = expected_type or IDENTITY
+        type_test = IDENTITY
 
-    for path in path_list:
-        depth = 0
-        val = _traverse_obj(obj, path)
-        if val is not None:
-            if depth:
-                for _ in range(depth - 1):
-                    val = itertools.chain.from_iterable(v for v in val if v is not None)
-                val = [v for v in map(type_test, val) if v is not None]
-                if val:
-                    return val if get_all else val[0]
+    is_sequence = lambda x: isinstance(x, collections.abc.Sequence) and not isinstance(x, str)
+
+    def _traverse_obj(start_obj, path):
+        has_branched, results = _traverse_path(obj, path)
+        if results:
+            if get_all and has_branched:
+                return list(map(type_test, results))
             else:
-                val = type_test(val)
-                if val is not None:
-                    return val
+                return type_test(results[0])
+        return None
+
+    def _traverse_path(start_obj, path):
+        path = tuple(variadic(path))
+        objs = [start_obj]
+        has_branched = False
+
+        result_objs = []
+        for key in path:
+            if not objs:
+                return has_branched, result_objs
+
+            if is_user_input and key == ":":
+                key = ...
+
+            if not casesense and isinstance(key, str):
+                key = key.casefold()
+
+            result_objs.clear()
+            for obj in objs:
+                if key is None:
+                    result_objs.append(obj)
+                    continue
+                elif obj is None:
+                    continue
+
+                if isinstance(key, (list, tuple)):
+                    has_branched = True
+                    for branch in key:
+                        _, result = _traverse_path(obj, branch)
+                        result_objs.extend(result)
+
+                elif key is ...:
+                    has_branched = True
+                    if isinstance(obj, collections.abc.Mapping):
+                        result_objs.extend(obj.values())
+                    elif is_sequence(obj):
+                        result_objs.extend(obj)
+                    elif traverse_string:
+                        result_objs.extend(str(obj))
+
+                elif callable(key):
+                    has_branched = True
+                    if is_sequence(obj):
+                        iter_obj = enumerate(obj)
+                    elif isinstance(obj, collections.abc.Mapping):
+                        iter_obj = obj.items()
+                    elif traverse_string:
+                        iter_obj = enumerate(str(obj))
+                    else:
+                        iter_obj = ()
+                    result_objs.extend(v for k, v in iter_obj if try_call(key, args=(k, v)))
+
+                elif isinstance(key, dict):
+                    obj = [(k, _traverse_obj(obj, v)) for k, v in key.items()]
+                    result_objs.append({k: v if v is not None else default for k, v in obj})
+
+                elif isinstance(obj, dict):
+                    if casesense:
+                        result = obj.get(key)
+                    else:
+                        result = next((v for k, v in obj.items() if _casefold(k) == key), None)
+                    if result is not None:
+                        result_objs.append(result)
+
+                else:
+                    if is_user_input:
+                        assert isinstance(key, str)
+                        if ':' not in key:
+                            key = int_or_none(key)
+                        else:
+                            key = slice(*map(int_or_none, key.split(':')))
+
+                    if not isinstance(key, (int, slice)):
+                        return False, ()
+
+                    if not is_sequence(obj):
+                        if not traverse_string:
+                            return False, ()
+
+                        obj = str(obj)
+
+                    try:
+                        result = obj[key]
+                        if result is not None:
+                            result_objs.append(result)
+                    except IndexError:
+                        return False, ()
+
+            objs = [result_obj for result_obj in result_objs if result_obj is not None]
+
+        return has_branched, objs
+
+    for path in paths:
+        result = _traverse_obj(obj, path)
+        if result is not None:
+            return result
+
     return default
 
 

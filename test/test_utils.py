@@ -1906,23 +1906,23 @@ Line 1
         self.assertEqual(traverse_obj(_TEST_DATA, 1.2), 1.2)
 
         # Test Ellipsis behavior
-        # self.assertCountEqual(traverse_obj(_TEST_DATA, ...),
-        #                       (item for item in _TEST_DATA.values() if item is not None),
-        #                       msg='`...` should give all values except `None`')
-        # self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', 0, ...)), _TEST_DATA['urls'][0].values(),
-        #                       msg='`...` selection for dicts should select all values')
+        self.assertCountEqual(traverse_obj(_TEST_DATA, ...),
+                              (item for item in _TEST_DATA.values() if item is not None),
+                              msg='`...` should give all values except `None`')
+        self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', 0, ...)), _TEST_DATA['urls'][0].values(),
+                              msg='`...` selection for dicts should select all values')
         self.assertEqual(traverse_obj(_TEST_DATA, (..., ..., 'url')),
                          ['https://www.example.com/0', 'https://www.example.com/1'],
                          msg='nested `...` queries should work')
-        # self.assertCountEqual(traverse_obj(_TEST_DATA, (..., ..., 'index')), range(4),
-        #                       msg='`...` query result should be flattened')
+        self.assertCountEqual(traverse_obj(_TEST_DATA, (..., ..., 'index')), range(4),
+                              msg='`...` query result should be flattened')
 
         # Test function as key
         self.assertEqual(traverse_obj(_TEST_DATA, lambda x, y: x == 'urls' and isinstance(y, list)),
                          [_TEST_DATA['urls']],
                          msg='function as query key should perform a filter based on (key, value)')
-        # self.assertCountEqual(traverse_obj(_TEST_DATA, lambda _, x: isinstance(x[0], str)), {'str'},
-        #                       msg='exceptions in the query function should be catched')
+        self.assertCountEqual(traverse_obj(_TEST_DATA, lambda _, x: isinstance(x[0], str)), {'str'},
+                              msg='exceptions in the query function should be catched')
 
         # Test alternative paths
         self.assertEqual(traverse_obj(_TEST_DATA, 'fail', 'str'), 'str',
@@ -1939,14 +1939,12 @@ Line 1
                          msg='list as key should be treated as branches')
         self.assertEqual(traverse_obj(_TEST_DATA, ('urls', ((1, 'fail'), (0, 'url')))), ['https://www.example.com/0'],
                          msg='double nesting in path should be treated as paths')
-        # FIXME: infinite nesting should be implemented
-        # self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', ((1, ('fail', 'url')), (0, 'url')))),
-        #                       ['https://www.example.com/0', 'https://www.example.com/1'],
-        #                       msg='tripple nesting in path should be treated as branches')
-        # FIXME: Infinite nesting should flatten properly
-        # self.assertEqual(traverse_obj(_TEST_DATA, ('urls', ('fail', (..., 'url')))),
-        #                  ['https://www.example.com/0', 'https://www.example.com/1'],
-        #                  msg='ellipsis as branch path start gets flattened')
+        self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', ((1, ('fail', 'url')), (0, 'url')))),
+                              ['https://www.example.com/0', 'https://www.example.com/1'],
+                              msg='tripple nesting in path should be treated as branches')
+        self.assertEqual(traverse_obj(_TEST_DATA, ('urls', ('fail', (..., 'url')))),
+                         ['https://www.example.com/0', 'https://www.example.com/1'],
+                         msg='ellipsis as branch path start gets flattened')
 
         # Test dictionary as key
         self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2}), {0: 100, 1: 1.2},
@@ -1954,19 +1952,17 @@ Line 1
         self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', 0, 'url')}),
                          {0: 'https://www.example.com/0'},
                          msg='dict key should allow paths')
-        # FIXME: infinite nesting for dicts should be implemented
-        # self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', (3, 0), 'url')}),
-        #                  {0: ['https://www.example.com/0']},
-        #                  msg='tuple in dict path should be treated as branches')
-        # self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', ((1, 'fail'), (0, 'url')))}),
-        #                  {0: ['https://www.example.com/0']},
-        #                  msg='double nesting in dict path should be treated as paths')
-        # self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', ((1, ('fail', 'url')), (0, 'url')))}),
-        #                  {0: ['https://www.example.com/1', 'https://www.example.com/0']},
-        #                  msg='tripple nesting in dict path should be treated as branches')
-        # FIXME: do not remove None values from dictionary path result
-        # self.assertEqual(traverse_obj({}, {0: 1}, default=...), {0: ...},
-        #                  msg='do not remove `None` values when dict key')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', (3, 0), 'url')}),
+                         {0: ['https://www.example.com/0']},
+                         msg='tuple in dict path should be treated as branches')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', ((1, 'fail'), (0, 'url')))}),
+                         {0: ['https://www.example.com/0']},
+                         msg='double nesting in dict path should be treated as paths')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', ((1, ('fail', 'url')), (0, 'url')))}),
+                         {0: ['https://www.example.com/1', 'https://www.example.com/0']},
+                         msg='tripple nesting in dict path should be treated as branches')
+        self.assertEqual(traverse_obj({}, {0: 1}, default=...), {0: ...},
+                         msg='do not remove `None` values when dict key')
 
         # Testing default parameter behavior
         _DEFAULT_DATA = {'None': None, 'int': 0, 'list': []}
@@ -1993,10 +1989,9 @@ Line 1
                          msg='reject non matching `expected_type` type')
         self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'int', expected_type=lambda x: str(x)), '0',
                          msg='transform type using type function')
-        # FIXME: wrap expected_type function in `try_call`
-        # self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str',
-        #                               expected_type=lambda _: 1 / 0), None,
-        #                  msg='wrap expected_type fuction in try_call')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str',
+                                      expected_type=lambda _: 1 / 0), None,
+                         msg='wrap expected_type fuction in try_call')
 
         # Test get_all behavior
         _GET_ALL_DATA = {'key': [0, 1, 2]}
@@ -2018,13 +2013,12 @@ Line 1
         self.assertEqual(traverse_obj(_CASESENSE_DATA, 'keY',
                                       casesense=False), 'value0',
                          msg='allow non matching key case if `casesense`')
-        # FIXME: recursive case sensitivity
-        # self.assertEqual(traverse_obj(_CASESENSE_DATA, (0, ('keY',)),
-        #                               casesense=False), ['value1'],
-        #                  msg='allow non matching key case in branch if `casesense`')
-        # self.assertEqual(traverse_obj(_CASESENSE_DATA, (0, ((0, 'keY'),)),
-        #                               casesense=False), ['value2'],
-        #                  msg='allow non matching key case in branch path if `casesense`')
+        self.assertEqual(traverse_obj(_CASESENSE_DATA, (0, ('keY',)),
+                                      casesense=False), ['value1'],
+                         msg='allow non matching key case in branch if `casesense`')
+        self.assertEqual(traverse_obj(_CASESENSE_DATA, (0, ((0, 'keY'),)),
+                                      casesense=False), ['value2'],
+                         msg='allow non matching key case in branch path if `casesense`')
 
         # Test traverse_string behavior
         _TRAVERSE_STRING_DATA = {'str': 'str', 1.2: 1.2}
@@ -2042,10 +2036,9 @@ Line 1
         self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', (0, 2)),
                                       traverse_string=True), ['s', 'r'],
                          msg='branching into string should result in list')
-        # FIXME: Pass index as key for function traversal
-        # self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', lambda _, x: x),
-        #                               traverse_string=True), list('str'),
-        #                  msg='function branching into string should result in list')
+        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', lambda _, x: x),
+                                      traverse_string=True), list('str'),
+                         msg='function branching into string should result in list')
 
         # Test is_user_input behavior
         _IS_USER_INPUT_DATA = {'range8': list(range(8))}
