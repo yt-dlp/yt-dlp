@@ -20,136 +20,109 @@ from ..utils import (
 
 class SmotrimIE(InfoExtractor):
     _VALID_URL = r'https?://smotrim\.ru/(?P<type>brand|video|article)/[0-9]+'
-    _TESTS = [
-        {    # video
-            'url': 'https://smotrim.ru/video/1539617',
-            'md5': 'b1923a533c8cab09679789d720d0b1c5',
-            'info_dict': {
-                'id': '1539617',
-                'ext': 'mp4',
-                'title': 'Полиглот. Китайский с нуля за 16 часов! Урок №16',
-                'description': '',
-            }
-        }, {  # article (geo-restricted)
-            'only_matching': True,
-            'url': 'https://smotrim.ru/article/2813445',
-            'md5': 'e0ac453952afbc6a2742e850b4dc8e77',
-            'info_dict': {
-                'id': '2431846',
-                'ext': 'mp4',
-                'title': 'Новости культуры. Съёмки первой программы "Большие и маленькие"',
-                'description': 'md5:94a4a22472da4252bf5587a4ee441b99',
-            }
-        }, {  # brand, redirect
-            'only_matching': True,
-            'url': 'https://smotrim.ru/brand/64356',
-            'md5': '740472999ccff81d7f6df79cecd91c18',
-            'info_dict': {
-                'id': '2354523',
-                'ext': 'mp4',
-                'title': 'Большие и маленькие. Лучшее. 4-й выпуск',
-                'description': 'md5:84089e834429008371ea41ea3507b989',
-            }
-        }, {  # w/o video
-            'only_matching': True,
-            'url': 'https://smotrim.ru/article/2909569',
+    _TESTS = [{    # video
+        'url': 'https://smotrim.ru/video/1539617',
+        'md5': 'b1923a533c8cab09679789d720d0b1c5',
+        'info_dict': {
+            'id': '1539617',
+            'ext': 'mp4',
+            'title': 'Полиглот. Китайский с нуля за 16 часов! Урок №16',
+            'description': '',
         }
-    ]
+    }, {  # article (geo-restricted)
+        'only_matching': True,
+        'url': 'https://smotrim.ru/article/2813445',
+        'md5': 'e0ac453952afbc6a2742e850b4dc8e77',
+        'info_dict': {
+            'id': '2431846',
+            'ext': 'mp4',
+            'title': 'Новости культуры. Съёмки первой программы "Большие и маленькие"',
+            'description': 'md5:94a4a22472da4252bf5587a4ee441b99',
+        }
+    }, {  # brand, redirect
+        'only_matching': True,
+        'url': 'https://smotrim.ru/brand/64356',
+        'md5': '740472999ccff81d7f6df79cecd91c18',
+        'info_dict': {
+            'id': '2354523',
+            'ext': 'mp4',
+            'title': 'Большие и маленькие. Лучшее. 4-й выпуск',
+            'description': 'md5:84089e834429008371ea41ea3507b989',
+        }
+    }, {  # w/o video
+        'only_matching': True,
+        'url': 'https://smotrim.ru/article/2909569',
+    }]
+
+
+    QUALITIES = {
+        '234': 'low-wide',
+        '336': 'low',
+        '360': 'medium-wide',
+        '528': 'high',
+        '540': 'high-wide',
+        '720': 'hd-wide',
+        '1080': 'fhd-wide',
+    }
+    URL_TMPL = 'https://cdn-v.rtr-vesti.ru/_cdn_auth/secure/v/vh/mp4/{quality}/{id_split}.mp4?auth=mh&vid={id}'
 
     def _real_extract(self, url):
-        webpage = self._download_webpage(url, None, 'Downloading webpage')
-        if re.match(self._VALID_URL, url).group('type') == 'brand':
+        video_id, typ = self._match_valid_url(url).group('id', 'type')
+        webpage = self._download_webpage(url, video_id, 'Downloading webpage')
+        if typ == 'brand':
             video_id = self._search_regex(
-                r'"https://player.smotrim.ru/iframe/video/id/(?P<video_id>[0-9]+)/',
+                r'"https://player.smotrim.ru/iframe/video/id/(?P<video_id>\d+)/',
                 webpage, 'video_id', default=None)
             if video_id is None:
-                raise ExtractorError('This page doesn\'t contain video.', expected=True)
-            webpage = self._download_webpage('https://smotrim.ru/video/' + video_id, None, 'Redirect to video')
+                raise ExtractorError('There are no video in this page.', expected=True)
+            webpage = self._download_webpage(f'https://smotrim.ru/video/{video_id}', video_id, 'Redirect to video')
 
-        # Example: https://player.smotrim.ru/iframe/video/id/1539617/start_zoom/true/showZoomBtn/false/sid/smotrim/isPlay/true/mute/true/?acc_video_id=1488382"
-        m = re.search(
-            r'"https://player.smotrim.ru/iframe/video/id/(?P<video_id>[0-9]+)/[^"]*?/\?acc_video_id=(?P<player_id>[0-9]+)"',
-            webpage)
-        if m is None:
-            raise ExtractorError('This page doesn\'t contain video.', expected=True)
-        video_id = m.group('video_id')
-        player_id = m.group('player_id')
+
+
+        player_id = self._search_regex(
+            rf'"https://player.smotrim.ru/iframe/video/id/{re.escape(video_id)}/[^"]*?/\?acc_video_id=(?P<player_id>\d+)"',
+            webpage, 'player id', default=None)
+        if not player_id:
+            raise ExtractorError('There are no video in this page.', expected=True)
         player_id_split = '/'.join(re.findall('...', player_id.zfill(9)))  # 2624356 > 002/624/356
 
-        meta = self._download_json(f'https://player.smotrim.ru/iframe/datavideo/id/{video_id}/sid/smotrim', None,)
-        meta = traverse_obj(meta, ('data', 'playlist', 'medialist'))[0]
-
-        video_quality = {
-            '234': 'low-wide',
-            '336': 'low',
-            '360': 'medium-wide',
-            '528': 'high',
-            '540': 'high-wide',
-            '720': 'hd-wide',
-            '1080': 'fhd-wide',
-        }
-        video_template = 'https://cdn-v.rtr-vesti.ru/_cdn_auth/secure/v/vh/mp4/{quality}/{id_split}.mp4?auth=mh&vid={id}'
+        meta = self._download_json(f'https://player.smotrim.ru/iframe/datavideo/id/{video_id}/sid/smotrim', video_id)
+        medialist = traverse_obj(meta, ('data', 'playlist', 'medialist'), get_all=False)
 
         formats = []
-        if meta.get('errors') == '':
-            for key in traverse_obj(meta, ('sources', 'http')):
-                if key in video_quality:
-                    formats.append({
-                        'format': video_quality[key],
-                        'resolution': key,
-                        'ext': 'mp4',
-                        'acodec': 'AAC',
-                        'vcodec': 'H264',
-                        'url': video_template.format(quality=video_quality[key], id_split=player_id_split, id=player_id)
-                    })
+
+        def add_format(key, format_id=None, url=None, check=False, preference=-1):
+            fmt = {
+                'format_id': format_id or self.QUALITIES[key],
+                'resolution': key,
+                'ext': 'mp4',
+                'acodec': 'aac',
+                'vcodec': 'h264',
+                'preference': preference,
+                'url': url or self.URL_TMPL.format(quality=self.QUALITIES[key], id_split=player_id_split, id=player_id)
+            }
+            if check and not self._check_formats([fmt], video_id):
+                return
+            formats.append(fmt)
+
+        if not medialist.get('errors'):
+            for key in traverse_obj(medialist, ('sources', 'http')):
+                if key in self.QUALITIES:
+                    add_format(key)
                 else:
-                    print(f'\nWARNING: unknown resolution "{key}p".')
-                    print('Please, inform the developers. Open a ticket here:')
-                    print('https://github.com/yt-dlp/yt-dlp/issues')
-                    print('Title: [Smotrim] enhance')
-                    print(f'Text: New resolution "{key}" in the video {url}.\n')
-                    formats.append({
-                        'format': 'unknown',
-                        'resolution': key,
-                        'ext': 'mp4',
-                        'acodec': 'AAC',
-                        'vcodec': 'H264',
-                        'url': traverse_obj(meta, ('sources', 'http', key))
-                    })
-        elif meta.get('errors') == 'Просмотр видео ограничен в вашем регионе':  # geo-restricted
-            print('Video isn\'t available in your region. Trying to identify accessible formats...')
-            for key in video_quality:
-                video_url = video_template.format(quality=video_quality[key], id_split=player_id_split, id=player_id)
-                try:
-                    print(f'   checking {key}p... ', end='')
-                    urllib.request.urlopen(video_url)
-                except urllib.error.HTTPError:
-                    print('fail')
-                    continue
-                print("success")
-                formats.append({
-                    'format': video_quality[key],
-                    'resolution': key,
-                    'ext': 'mp4',
-                    'acodec': 'AAC',
-                    'vcodec': 'H264',
-                    'url': video_url
-                })
+                    self.report_warning(f'Unknown resolution "{key}p". Continuing anyway')
+                    add_format(key, url=traverse_obj(medialist, ('sources', 'http', key)), format_id=key, preference=-2)
+
+        elif medialist.get('errors') == 'Просмотр видео ограничен в вашем регионе':  # geo-restricted
+            self.to_screen('Video is not available in your region. Trying to identify accessible formats...')
+            for key, value in self.QUALITIES.items():
+                add_format(key, format_id=value, check=True)
         else:
-            raise ExtractorError('Unknown error: ' + meta.get('errors'), expected=False)
-
-        # sort formats
-        formats = sorted(formats, key=lambda item: int(item['resolution']))
-        for i in range(len(formats)):
-            formats[i]['format_id'] = str(i + 1)
-            formats[i]['resolution'] += 'p'
-
-        # import hashlib
-        # print('md5:' + hashlib.md5(meta.get('anons').encode('utf-8')).hexdigest())
+            raise ExtractorError(f'Smotrim says: {medialist.get("errors")}', expected=False)
 
         return {
             'id': video_id,
-            'title': meta.get('title'),
-            'description': meta.get('anons'),
+            'title': medialist.get('title'),
+            'description': medialist.get('anons'),
             'formats': formats,
         }
