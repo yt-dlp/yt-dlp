@@ -1939,6 +1939,8 @@ Line 1
                          msg='list as key should be treated as branches')
         self.assertEqual(traverse_obj(_TEST_DATA, ('urls', ((1, 'fail'), (0, 'url')))), ['https://www.example.com/0'],
                          msg='double nesting in path should be treated as paths')
+        self.assertEqual(traverse_obj(['0', [1, 2]], [(0, 1), 0]), [1],
+                         msg='do not fail early on branching')
         self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', ((1, ('fail', 'url')), (0, 'url')))),
                               ['https://www.example.com/0', 'https://www.example.com/1'],
                               msg='tripple nesting in path should be treated as branches')

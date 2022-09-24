@@ -5348,7 +5348,7 @@ def traverse_obj(
     is_sequence = lambda x: isinstance(x, collections.abc.Sequence) and not isinstance(x, str)
 
     def _traverse_obj(start_obj, path):
-        has_branched, results = _traverse_path(obj, path)
+        has_branched, results = _traverse_path(start_obj, path)
         if results:
             if get_all and has_branched:
                 return list(map(type_test, results))
@@ -5428,11 +5428,11 @@ def traverse_obj(
                             key = slice(*map(int_or_none, key.split(':')))
 
                     if not isinstance(key, (int, slice)):
-                        return False, ()
+                        continue
 
                     if not is_sequence(obj):
                         if not traverse_string:
-                            return False, ()
+                            continue
 
                         obj = str(obj)
 
