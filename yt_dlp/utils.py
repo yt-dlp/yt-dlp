@@ -5286,30 +5286,54 @@ def load_plugins(name, suffix, namespace):
 def traverse_obj(
         obj, *path_list, default=None, expected_type=None, get_all=True,
         casesense=True, is_user_input=False, traverse_string=False):
-    ''' Traverse nested list/dict/tuple
-    @param path_list        A list of paths which are checked one by one.
-                            Each path is a list of keys where each key is a:
-                              - None:     Do nothing
-                              - string:   A dictionary key / regex group
-                              - int:      An index into a list
-                              - tuple:    A list of keys all of which will be traversed
-                              - Ellipsis: Fetch all values in the object
-                              - Function: Takes the key and value as arguments
-                                          and returns whether the key matches or not
-    @param default          Default value to return
-    @param expected_type    Only accept final value of this type (Can also be any callable)
-    @param get_all          Return all the values obtained from a path or only the first one
-    @param casesense        Whether to consider dictionary keys as case sensitive
+    """ Safely traverse nested `dict`s and `Sequence`s
 
-    The following are only meant to be used by YoutubeDL.prepare_outtmpl and is not part of the API
+    >>> obj = [{}, {"key": "value"}]
+    >>> traverse_obj(obj, (1, "key"))
+    "value"
 
-    @param path_list        In addition to the above,
-                              - dict:     Given {k:v, ...}; return {k: traverse_obj(obj, v), ...}
-    @param is_user_input    Whether the keys are generated from user input. If True,
-                            strings are converted to int/slice if necessary
-    @param traverse_string  Whether to traverse inside strings. If True, any
-                            non-compatible object will also be converted into a string
-    '''
+    Each of the provided `path_list` will be tested key by key
+    and the first producing a valid result will be returned.
+    The path will be wrapped if it is not an iterable or if it is a `str`.
+
+    `dict`s allow any keys while `Sequence`s allow only `int` or `slice` keys.
+
+    Alternatively, these special keys can also be used:
+        - `None`:           Return the current object.
+        - `Ellipsis`:       Branch out and return all values.
+                            Returns a list of each of the objects values
+                            traversed with the remaining path.
+        - `tuple`/`list`:   Branch out and return all matching values.
+                            Read as: `[traverse_obj(obj, branch) for branch in branches]`
+                            This key supports nested paths and branches.
+        - `function`:       Branch out and return all values filtered by the function.
+                            Function signature: `(key, value) -> bool`
+                            For `Sequence`s `key` is the index of the value.
+
+    @params path_list       Paths which to traverse by.
+    @param default          Value to return if the paths do not match.
+    @param expected_type    If a type, only accept final value of this type.
+                            If a callable, call the function on each result.
+    @param get_all          If `True`, returns all results of branching, otherwise only the first one.
+    @param casesense        If `False`, consider string dictionary keys as case insensitive.
+
+    The following are only meant to be used by YoutubeDL.prepare_outtmpl and are not part of the API
+
+    @params path_list       Additionally the special key can also be a `dict` so that
+                            `{k: v, ...}` will result in `{k: traverse_obj(obj, v), ...}`.
+                            This key supports nested paths and branches.
+    @param is_user_input    Whether the keys are generated from user input.
+                            If `True` strings get converted to `int`/`slice` if needed
+                            and `':'` gets converted to `...`.
+    @param traverse_string  Whether to traverse into objects as strings.
+                            If `True`, any non-compatible object will first be
+                            converted into a string and then traversed into.
+
+    @return                 The result of the object traversal.
+                            If successful, `get_all=True` and the path branches at least once
+                            a list of results is returned instead.
+                            If unsuccessful or the result is `None` it will return `default`.
+    """
     if not casesense:
         _lower = lambda k: (k.lower() if isinstance(k, str) else k)
         path_list = (map(_lower, variadic(path)) for path in path_list)
