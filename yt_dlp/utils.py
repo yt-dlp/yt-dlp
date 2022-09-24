@@ -5408,7 +5408,6 @@ def traverse_obj(
                     result_objs.extend(v for k, v in iter_obj if try_call(key, args=(k, v)))
 
                 elif isinstance(key, dict):
-                    obj = [(k, _traverse_obj(obj, v)) for k, v in key.items()]
                     iter_obj = ((k, _traverse_obj(obj, v)) for k, v in key.items())
                     result_objs.append({k: v if v is not None else default for k, v in iter_obj
                                         if v is not None or default is not None})
