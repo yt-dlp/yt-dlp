@@ -3190,7 +3190,7 @@ def try_call(*funcs, expected_type=None, args=[], kwargs={}):
     for f in funcs:
         try:
             val = f(*args, **kwargs)
-        except (AttributeError, KeyError, TypeError, IndexError, ZeroDivisionError):
+        except (AttributeError, KeyError, TypeError, IndexError, ValueError, ZeroDivisionError):
             pass
         else:
             if expected_type is None or isinstance(val, expected_type):
