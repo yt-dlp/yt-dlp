@@ -53,7 +53,7 @@ class SmotrimIE(InfoExtractor):
             webpage = self._download_webpage(url, video_id, f'Resolving {typ} link')
             # there are two cases matching regex:
             # 1. "embedUrl" in JSON LD (/brand/)
-            # 2. "src" attribute from (/article/)
+            # 2. "src" attribute from iframe (/article/)
             video_id = self._search_regex(
                 r'"https://player.smotrim.ru/iframe/video/id/(?P<video_id>\d+)/',
                 webpage, 'video_id', default=None)
