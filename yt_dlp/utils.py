@@ -5309,7 +5309,7 @@ def traverse_obj(
                             strings are converted to int/slice if necessary
     @param traverse_string  Whether to traverse inside strings. If True, any
                             non-compatible object will also be converted into a string
-    '''  # TODO: Write tests
+    '''
     if not casesense:
         _lower = lambda k: (k.lower() if isinstance(k, str) else k)
         path_list = (map(_lower, variadic(path)) for path in path_list)
