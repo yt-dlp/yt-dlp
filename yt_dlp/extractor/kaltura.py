@@ -379,7 +379,7 @@ class KalturaIE(InfoExtractor):
     def _build_widget_id(self, partner_id):
         return partner_id if '_' in partner_id else f'_{partner_id}'
 
-    IFRAME_PACKAGE_DATA_REGEX = r'window\.kalturaIframePackageData\s*=\s*({.*});'
+    IFRAME_PACKAGE_DATA_REGEX = r'window\.kalturaIframePackageData\s*='
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
