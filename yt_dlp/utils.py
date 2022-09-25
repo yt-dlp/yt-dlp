@@ -5287,53 +5287,52 @@ def load_plugins(name, suffix, namespace):
 def traverse_obj(
         obj, *paths, default=None, expected_type=None, get_all=True,
         casesense=True, is_user_input=False, traverse_string=False):
-    """ Safely traverse nested `dict`s and `Sequence`s
+    """
+    Safely traverse nested `dict`s and `Sequence`s
 
     >>> obj = [{}, {"key": "value"}]
     >>> traverse_obj(obj, (1, "key"))
     "value"
 
-    Each of the provided `paths` will be tested key by key
-    and the first producing a valid result will be returned.
-    The path will be wrapped if it is not an iterable or if it is a `str`.
+    Each of the provided `paths` is tested and the first producing a valid result will be returned.
+    A value of None is treated as the absence of a value.
 
-    `dict`s allow any keys while `Sequence`s allow only `int` or `slice` keys.
+    The paths will be wrapped in `variadic`, so that `'key'` is conveniently the same as `('key', )`.
 
-    Alternatively, these special keys can also be used:
+    The keys in the path can be one of:
         - `None`:           Return the current object.
-        - `Ellipsis`:       Branch out and return all values.
-                            Returns a list of each of the objects values
-                            traversed with the remaining path.
-        - `tuple`/`list`:   Branch out and return all matching values.
+        - `str`/`int`:      Return `obj[key]`.
+        - `slice`:          Branch out and return all values in `obj[key]`.
+        - `Ellipsis`:       Branch out and return a list of all values.
+        - `tuple`/`list`:   Branch out and return a list of all matching values.
                             Read as: `[traverse_obj(obj, branch) for branch in branches]`.
-                            This key supports nested paths and branches.
-        - `function`:       Branch out and return all values filtered by the function.
-                            Function signature: `(key, value) -> bool`
-                            For `Sequence`s `key` is the index of the value.
+        - `function`:       Branch out and return values filtered by the function.
+                            Read as: `[value for key, value in obj if function(key, value)]`.
+                            For `Sequence`s, `key` is the index of the value.
         - `dict`            Transform the current object and return a matching dict.
-                            Read as: `{k: traverse_obj(obj, v) for k, v in key.items()}`.
-                            This key supports nested paths and branches.
+                            Read as: `{key: traverse_obj(obj, path) for key, path in dct.items()}`.
+
+        `tuple`, `list`, and `dict` all support nested paths and branches
 
     @params paths           Paths which to traverse by.
     @param default          Value to return if the paths do not match.
-    @param expected_type    If a type, only accept final value of this type.
-                            If a callable, call the function on each result.
-    @param get_all          If `True`, returns all results of branching, otherwise only the first one.
+    @param expected_type    If a `type`, only accept final values of this type.
+                            If any other callable, try to call the function on each result.
+    @param get_all          If `False`, return the first matching result, otherwise all matching ones.
     @param casesense        If `False`, consider string dictionary keys as case insensitive.
 
     The following are only meant to be used by YoutubeDL.prepare_outtmpl and are not part of the API
 
     @param is_user_input    Whether the keys are generated from user input.
-                            If `True` strings get converted to `int`/`slice` if needed
-                            and `':'` gets converted to `...`.
+                            If `True` strings get converted to `int`/`slice` if needed.
     @param traverse_string  Whether to traverse into objects as strings.
                             If `True`, any non-compatible object will first be
                             converted into a string and then traversed into.
 
-    @return                 The result of the object traversal.
-                            If successful, `get_all=True` and the path branches at least once
-                            a list of results is returned instead.
-                            If unsuccessful or the result is `None` it will return `default`.
+
+    @returns                The result of the object traversal.
+                            If successful, `get_all=True`, and the path branches at least once,
+                            then a list of results is returned instead.
     """
     is_sequence = lambda x: isinstance(x, collections.abc.Sequence) and not isinstance(x, (str, bytes))
     casefold = lambda k: k.casefold() if isinstance(k, str) else k
