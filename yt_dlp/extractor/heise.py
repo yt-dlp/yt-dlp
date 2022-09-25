@@ -167,7 +167,7 @@ class HeiseIE(InfoExtractor):
 
         title = extract_title()
         api_params = urllib.parse.parse_qs(
-            self._search_regex(r'\/videout\/feed\.json\?([^\']+)', webpage, 'feed params', default=None) or '')
+            self._search_regex(r'/videout/feed\.json\?([^\']+)', webpage, 'feed params', default=None) or '')
         if not api_params or 'container' not in api_params or 'sequenz' not in api_params:
             container_id = self._search_regex(
                 r'<div class="videoplayerjw"[^>]+data-container="([0-9]+)"',
