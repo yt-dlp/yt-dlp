@@ -2700,24 +2700,21 @@ class YoutubeDL:
             # Process what we can, even without any available formats.
             formats_to_download = [{}]
 
-        requested_ranges = self.params.get('download_ranges')
-        if requested_ranges:
-            requested_ranges = tuple(requested_ranges(info_dict, self))
-
+        requested_ranges = tuple(self.params.get('download_ranges', lambda *_: [{}])(info_dict, self))
         best_format, downloaded_formats = formats_to_download[-1], []
         if download:
-            if best_format:
+            if best_format and requested_ranges:
                 def to_screen(*msg):
                     self.to_screen(f'[info] {info_dict["id"]}: {" ".join(", ".join(variadic(m)) for m in msg)}')
 
                 to_screen(f'Downloading {len(formats_to_download)} format(s):',
                           (f['format_id'] for f in formats_to_download))
-                if requested_ranges:
+                if requested_ranges != ({}, ):
                     to_screen(f'Downloading {len(requested_ranges)} time ranges:',
                               (f'{c["start_time"]:.1f}-{c["end_time"]:.1f}' for c in requested_ranges))
             max_downloads_reached = False
 
-            for fmt, chapter in itertools.product(formats_to_download, requested_ranges or [{}]):
+            for fmt, chapter in itertools.product(formats_to_download, requested_ranges):
                 new_info = self._copy_infodict(info_dict)
                 new_info.update(fmt)
                 offset, duration = info_dict.get('section_start') or 0, info_dict.get('duration') or float('inf')
