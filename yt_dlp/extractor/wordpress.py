@@ -9,15 +9,17 @@ from ..utils import (
 
 class WordpressPlaylistEmbedIE(InfoExtractor):
     _VALID_URL = False
-
+    IE_NAME = 'wordpress:playlist'
     _WEBPAGE_TESTS = [{
-        # TODO: fix
+        # 5 WordPress playlists. This is using wpse-playlist, which is similar.
+        # See: https://github.com/birgire/wpse-playlist
         'url': 'https://xlino.com/wordpress-playlist-shortcode-with-external-audio-or-video-files/',
         'info_dict': {
             'id': 'wordpress-playlist-shortcode-with-external-audio-or-video-files',
             'title': 'WordPress: Playlist shortcode with external audio or video files – Birgir Erlendsson (birgire)',
+            'age_limit': 0,
         },
-        'playlist_mincount': 5,
+        'playlist_count': 5,
     }, {
         'url': 'https://pianoadventures.com/products/piano-adventures-level-1-lesson-book-enhanced-cd/',
         'info_dict': {
@@ -26,11 +28,26 @@ class WordpressPlaylistEmbedIE(InfoExtractor):
             'thumbnail': 'https://pianoadventures.com/wp-content/uploads/sites/13/2022/01/CD1002cover.jpg',
             'age_limit': 0,
         },
-        'playlist_mincount': 6,
+        'playlist': [{
+            'info_dict': {
+                'id': 'CD1002-21',
+                'ext': 'mp3',
+                'title': '21 Half-Time Show',
+                'thumbnail': 'https://pianoadventures.com/wp-content/plugins/media-library-assistant/images/crystal/audio.png',
+                'album': 'Piano Adventures Level 1 Lesson Book (2nd Edition)',
+                'genre': 'Classical',
+                'duration': 49.0,
+                'artist': 'Nancy and Randall Faber',
+                'description': 'md5:a9f8e9aeabbd2912bc13cc0fab1a4ce8',
+            }
+        }],
+        'playlist_count': 6,
+        'params': {'skip_download': True}
     }]
 
     def _extract_from_webpage(self, url, webpage):
-        # TODO: make work for multiple of these
+        # class should always be "wp-playlist-script"
+        # See: https://core.trac.wordpress.org/browser/trunk/src/wp-includes/media.php#L2930
         for i, j in enumerate(get_elements_by_class('wp-playlist-script', webpage)):
             playlist_json = self._parse_json(j, self._generic_id(url), fatal=False, ignore_extra=True, errnote='') or {}
             if not playlist_json:
