@@ -380,6 +380,7 @@ class KalturaIE(InfoExtractor):
         return partner_id if '_' in partner_id else f'_{partner_id}'
 
     IFRAME_PACKAGE_DATA_REGEX = r'window\.kalturaIframePackageData\s*='
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
@@ -414,8 +415,10 @@ class KalturaIE(InfoExtractor):
             elif 'uiconf_id' in params and 'flashvars[referenceId]' in params:
                 reference_id = params['flashvars[referenceId]'][0]
                 webpage = self._download_webpage(url, reference_id)
-                entry_data = self._search_json(self.IFRAME_PACKAGE_DATA_REGEX,
-                    webpage, 'kalturaIframePackageData',
+                entry_data = self._search_json(
+                    self.IFRAME_PACKAGE_DATA_REGEX,
+                    webpage,
+                    'kalturaIframePackageData',
                     reference_id)['entryResult']
                 info, flavor_assets = entry_data['meta'], entry_data['contextData']['flavorAssets']
                 entry_id = info['id']
@@ -433,8 +436,10 @@ class KalturaIE(InfoExtractor):
             elif 'uiconf_id' in params and 'flashvars[playlistAPI.kpl0Id]' in params:
                 playlist_id = params['flashvars[playlistAPI.kpl0Id]'][0]
                 webpage = self._download_webpage(url, playlist_id)
-                playlist_data = self._search_json(self.IFRAME_PACKAGE_DATA_REGEX,
-                    webpage, 'kalturaIframePackageData',
+                playlist_data = self._search_json(
+                    self.IFRAME_PACKAGE_DATA_REGEX,
+                    webpage,
+                    'kalturaIframePackageData',
                     playlist_id)['playlistResult']
                 playlist_title, playlist_items = playlist_data[playlist_id]['name'], playlist_data[playlist_id]['items']
                 ks = params.get('flashvars[ks]', [None])[0]
