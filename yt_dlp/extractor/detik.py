@@ -15,7 +15,6 @@ class DetikEmbedIE(InfoExtractor):
             'title': 'Video CNN Indonesia - VIDEO: Momen Charles Disambut Meriah usai Dilantik jadi Raja Inggris',
             'age_limit': 0,
             'tags': ['raja charles', ' raja charles iii', ' ratu elizabeth', ' ratu elizabeth meninggal dunia', ' raja inggris', ' inggris'],
-            'subtitle': {},
             'release_timestamp': 1662869995,
             'release_date': '20220911',
             'uploader': 'REUTERS'
@@ -37,7 +36,6 @@ class DetikEmbedIE(InfoExtractor):
             'release_timestamp': 1656926321,
             'release_date': '20220704',
             'age_limit': 0,
-            'subtitle': {},
             'uploader': 'Ridwan Arifin '  # TODO: strip trailling whitespace at uploader
         }
     }, {
@@ -50,7 +48,6 @@ class DetikEmbedIE(InfoExtractor):
             'description': 'md5:7a6580876c8381c454679e028620bea7',
             'age_limit': 0,
             'tags': 'count:17',
-            'subtitle': {},
             'thumbnail': 'https://akcdn.detik.net.id/community/data/media/thumbs-pasangmata/2022/09/08/366649-16626229351533009620.mp4-03.jpg',
         }
     }, {
@@ -65,7 +62,6 @@ class DetikEmbedIE(InfoExtractor):
             'description': 'Aktor Leonardo DiCaprio memang baru saja putus dari kekasihnya yang bernama Camilla Morrone.',
             'release_date': '20220913',
             'title': 'Diincar Leonardo DiCaprio, Gigi Hadid Ngaku Tertarik Tapi Belum Cinta',
-            'subtitle': {},
             'tags': ['leonardo dicaprio', ' gigi hadid', ' hollywood'],
             'uploader': '!nsertlive',
         }
@@ -81,7 +77,6 @@ class DetikEmbedIE(InfoExtractor):
             'title': '3 Zodiak Paling Beruntung Selama September 2022',
             'release_date': '20220905',
             'tags': ['zodiac update', ' zodiak', ' ramalan bintang', ' zodiak beruntung 2022', ' zodiak hoki september 2022', ' zodiak beruntung september 2022'],
-            'subtitle': {},
             'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/05/3-zodiak-paling-beruntung-selama-september-2022_169.jpeg?w=600&q=90',
             'uploader': 'amh',
         }
@@ -95,7 +90,6 @@ class DetikEmbedIE(InfoExtractor):
             'tags': ['putin'],
             'age_limit': 0,
             'thumbnail': 'https://awsimages.detik.net.id/visual/2022/09/13/cnbc-indonesia-tv-3_169.png?w=600&q=80',
-            'subtitle': {},
             'description': 'md5:8b9111e37555fcd95fe549a9b4ae6fdc',
         }
     }, {
@@ -105,7 +99,6 @@ class DetikEmbedIE(InfoExtractor):
             'id': '220914049',
             'ext': 'mp4',
             'release_timestamp': 1663114488,
-            'subtitle': {},
             'uploader': 'Tim 20Detik',
             'title': 'Pakar Bicara soal Tim Khusus Jokowi dan Mereka yang Pro ke Bjorka',
             'age_limit': 0,
@@ -163,7 +156,7 @@ class DetikEmbedIE(InfoExtractor):
             'title': self._html_search_meta(['og:title', 'originalTitle'], webpage) or self._html_extract_title(webpage),
             'description': self._html_search_meta(['og:description', 'twitter:description', 'description'], webpage),
             'formats': formats,
-            'subtitle': subtitles,
+            'subtitles': subtitles,
             'tags': try_call(lambda: self._html_search_meta(
                 ['keywords', 'keyword', 'dtk:keywords'], webpage).split(',')),
         })
