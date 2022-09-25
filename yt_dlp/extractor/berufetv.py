@@ -38,7 +38,7 @@ class BerufeTVIE(InfoExtractor):
         video_sources = traverse_obj(video, ['videoSources', 'html'])
 
         if not video_sources:
-            raise ExtractorError('Failed to obtain video source list', expected=True)
+            raise ExtractorError('Failed to obtain video source list')
 
         formats = []
         subtitles = {}
