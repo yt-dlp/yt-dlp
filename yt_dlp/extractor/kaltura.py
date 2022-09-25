@@ -263,13 +263,14 @@ class KalturaIE(InfoExtractor):
         return data
 
     def _get_video_info(self, video_id, partner_id, service_url=None, player_type='html5'):
+        assert player_type in ('html5', 'kwidget')
         if player_type == 'kwidget':
             return self._get_video_info_kwidget(video_id, partner_id, service_url)
 
         return self._get_video_info_html5(video_id, partner_id, service_url)
 
     def _get_video_info_html5(self, video_id, partner_id, service_url=None):
-        widget_id = (partner_id if '_' in partner_id else ('_%s' % partner_id))
+        widget_id = partner_id if '_' in partner_id else f'_{partner_id}'
         actions = [
             {
                 'apiVersion': '3.3.0',
@@ -383,9 +384,7 @@ class KalturaIE(InfoExtractor):
         partner_id, entry_id = mobj.group('partner_id', 'id')
         ks = None
         captions = None
-        player_type = 'html5'
-        if 'html5lib/v2' in url:
-            player_type = 'kwidget'
+        player_type = 'kwidget' if 'html5lib/v2' in url else 'html5'
         if partner_id and entry_id:
             _, info, flavor_assets, captions = self._get_video_info(entry_id, partner_id, smuggled_data.get('service_url'), player_type=player_type)
         else:
