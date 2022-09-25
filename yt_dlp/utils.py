@@ -5345,108 +5345,94 @@ def traverse_obj(
     else:
         type_test = IDENTITY
 
-    is_sequence = lambda x: isinstance(x, collections.abc.Sequence) and not isinstance(x, str)
+    def apply_key(key, obj):
+        if obj is None:
+            return
 
-    def _traverse_obj(start_obj, path):
-        has_branched, results = _traverse_path(start_obj, path)
-        if results:
-            if get_all and has_branched:
-                return list(map(type_test, results))
+        elif key is None:
+            yield obj
+
+        elif isinstance(key, (list, tuple)):
+            for branch in key:
+                _, result = apply_path(obj, branch)
+                yield from result
+
+        elif key is ...:
+            if isinstance(obj, collections.abc.Mapping):
+                yield from obj.values()
+            elif isinstance(obj, collections.abc.Sequence) and not isinstance(obj, str):
+                yield from obj
+            elif traverse_string:
+                yield from str(obj)
+
+        elif callable(key):
+            if isinstance(obj, collections.abc.Sequence) and not isinstance(obj, str):
+                iter_obj = enumerate(obj)
+            elif isinstance(obj, collections.abc.Mapping):
+                iter_obj = obj.items()
+            elif traverse_string:
+                iter_obj = enumerate(str(obj))
             else:
-                return type_test(results[0])
-        return None
+                return
+            yield from (v for k, v in iter_obj if try_call(key, args=(k, v)))
 
-    def _traverse_path(start_obj, path):
-        path = tuple(variadic(path))
-        objs = [start_obj]
+        elif isinstance(key, dict):
+            iter_obj = ((k, _traverse_obj(obj, v)) for k, v in key.items())
+            yield {k: v if v is not None else default for k, v in iter_obj
+                   if v is not None or default is not None}
+
+        elif isinstance(obj, dict):
+            yield (obj.get(key) if casesense or (key in obj)
+                   else next((v for k, v in obj.items() if _casefold(k) == key), None))
+
+        else:
+            if is_user_input:
+                key = (int_or_none(key) if ':' not in key
+                       else slice(*map(int_or_none, key.split(':'))))
+
+            if not isinstance(key, (int, slice)):
+                return
+
+            if not isinstance(obj, collections.abc.Sequence) or isinstance(obj, str):
+                if not traverse_string:
+                    return
+                obj = str(obj)
+
+            try:
+                yield obj[key]
+            except IndexError:
+                pass
+
+    def apply_path(start_obj, path):
+        objs = (start_obj,)
         has_branched = False
 
-        result_objs = []
-        for key in path:
-            if not objs:
-                return has_branched, objs
-
+        for key in variadic(path):
             if is_user_input and key == ':':
                 key = ...
 
             if not casesense and isinstance(key, str):
                 key = key.casefold()
 
-            result_objs.clear()
-            for obj in objs:
-                if key is None:
-                    result_objs.append(obj)
-                    continue
-                elif obj is None:
-                    continue
+            if key is ... or isinstance(key, (list, tuple)) or callable(key):
+                has_branched = True
 
-                if isinstance(key, (list, tuple)):
-                    has_branched = True
-                    for branch in key:
-                        _, result = _traverse_path(obj, branch)
-                        result_objs.extend(result)
-
-                elif key is ...:
-                    has_branched = True
-                    if isinstance(obj, collections.abc.Mapping):
-                        result_objs.extend(obj.values())
-                    elif is_sequence(obj):
-                        result_objs.extend(obj)
-                    elif traverse_string:
-                        result_objs.extend(str(obj))
-
-                elif callable(key):
-                    has_branched = True
-                    if is_sequence(obj):
-                        iter_obj = enumerate(obj)
-                    elif isinstance(obj, collections.abc.Mapping):
-                        iter_obj = obj.items()
-                    elif traverse_string:
-                        iter_obj = enumerate(str(obj))
-                    else:
-                        iter_obj = ()
-                    result_objs.extend(v for k, v in iter_obj if try_call(key, args=(k, v)))
-
-                elif isinstance(key, dict):
-                    iter_obj = ((k, _traverse_obj(obj, v)) for k, v in key.items())
-                    result_objs.append({k: v if v is not None else default for k, v in iter_obj
-                                        if v is not None or default is not None})
-
-                elif isinstance(obj, dict):
-                    if casesense:
-                        result = obj.get(key)
-                    else:
-                        result = next((v for k, v in obj.items() if _casefold(k) == key), None)
-                    if result is not None:
-                        result_objs.append(result)
-
-                else:
-                    if is_user_input:
-                        assert isinstance(key, str)
-                        if ':' not in key:
-                            key = int_or_none(key)
-                        else:
-                            key = slice(*map(int_or_none, key.split(':')))
-
-                    if not isinstance(key, (int, slice)):
-                        continue
-
-                    if not is_sequence(obj):
-                        if not traverse_string:
-                            continue
-
-                        obj = str(obj)
-
-                    try:
-                        result = obj[key]
-                        if result is not None:
-                            result_objs.append(result)
-                    except IndexError:
-                        return False, ()
-
-            objs = [result_obj for result_obj in result_objs if result_obj is not None]
+            key_func = functools.partial(apply_key, key)
+            objs = itertools.chain.from_iterable(map(key_func, objs))
 
         return has_branched, objs
+
+    def _traverse_obj(obj, path):
+        has_branched, results = apply_path(obj, path)
+        iterator = iter(result for result in results if result is not None)
+        first_item = next(iterator, None)
+        if first_item is None:
+            return None
+
+        if get_all and has_branched:
+            return [type_test(first_item), *map(type_test, iterator)]
+        else:
+            return type_test(first_item)
 
     for path in paths:
         result = _traverse_obj(obj, path)
@@ -5504,7 +5490,7 @@ def jwt_decode_hs256(jwt):
 WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
 
 
-@functools.cache
+@ functools.cache
 def supports_terminal_sequences(stream):
     if compat_os_name == 'nt':
         if not WINDOWS_VT_MODE:
@@ -5654,7 +5640,7 @@ class Config:
             *(f'\n{c}'.replace('\n', '\n| ')[1:] for c in self.configs),
             delim='\n')
 
-    @staticmethod
+    @ staticmethod
     def read_file(filename, default=[]):
         try:
             optionf = open(filename, 'rb')
@@ -5675,7 +5661,7 @@ class Config:
             optionf.close()
         return res
 
-    @staticmethod
+    @ staticmethod
     def hide_login_info(opts):
         PRIVATE_OPTS = {'-p', '--password', '-u', '--username', '--video-password', '--ap-password', '--ap-username'}
         eqre = re.compile('^(?P<key>' + ('|'.join(re.escape(po) for po in PRIVATE_OPTS)) + ')=.+$')
@@ -5699,7 +5685,7 @@ class Config:
         if config.init(*args):
             self.configs.append(config)
 
-    @property
+    @ property
     def all_args(self):
         for config in reversed(self.configs):
             yield from config.all_args
@@ -5746,7 +5732,7 @@ class WebSocketsWrapper():
 
     # taken from https://github.com/python/cpython/blob/3.9/Lib/asyncio/runners.py with modifications
     # for contributors: If there's any new library using asyncio needs to be run in non-async, move these function out of this class
-    @staticmethod
+    @ staticmethod
     def run_with_loop(main, loop):
         if not asyncio.iscoroutine(main):
             raise ValueError(f'a coroutine was expected, got {main!r}')
@@ -5758,7 +5744,7 @@ class WebSocketsWrapper():
             if hasattr(loop, 'shutdown_default_executor'):
                 loop.run_until_complete(loop.shutdown_default_executor())
 
-    @staticmethod
+    @ staticmethod
     def _cancel_all_tasks(loop):
         to_cancel = asyncio.all_tasks(loop)
 
@@ -5792,7 +5778,7 @@ def cached_method(f):
     """Cache a method"""
     signature = inspect.signature(f)
 
-    @functools.wraps(f)
+    @ functools.wraps(f)
     def wrapper(self, *args, **kwargs):
         bound_args = signature.bind(self, *args, **kwargs)
         bound_args.apply_defaults()
@@ -5824,7 +5810,7 @@ class Namespace(types.SimpleNamespace):
     def __iter__(self):
         return iter(self.__dict__.values())
 
-    @property
+    @ property
     def items_(self):
         return self.__dict__.items()
 
@@ -5863,13 +5849,13 @@ class RetryManager:
     def _should_retry(self):
         return self._error is not NO_DEFAULT and self.attempt <= self.retries
 
-    @property
+    @ property
     def error(self):
         if self._error is NO_DEFAULT:
             return None
         return self._error
 
-    @error.setter
+    @ error.setter
     def error(self, value):
         self._error = value
 
@@ -5881,7 +5867,7 @@ class RetryManager:
             if self.error:
                 self.error_callback(self.error, self.attempt, self.retries)
 
-    @staticmethod
+    @ staticmethod
     def report_retry(e, count, retries, *, sleep_func, info, warn, error=None, suffix=None):
         """Utility function for reporting retries"""
         if count > retries:
