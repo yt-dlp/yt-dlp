@@ -891,8 +891,9 @@ class Popen(subprocess.Popen):
     @classmethod
     def run(cls, *args, timeout=None, **kwargs):
         with cls(*args, **kwargs) as proc:
+            default = '' if proc.text_mode else b''
             stdout, stderr = proc.communicate_or_kill(timeout=timeout)
-            return stdout or '', stderr or '', proc.returncode
+            return stdout or default, stderr or default, proc.returncode
 
 
 def get_subprocess_encoding():
