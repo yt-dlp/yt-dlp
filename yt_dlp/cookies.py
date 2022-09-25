@@ -845,12 +845,15 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
 def _get_mac_keyring_password(browser_keyring_name, logger):
     logger.debug('using find-generic-password to obtain password from OSX keychain')
     try:
-        stdout, _, _ = Popen.run(
+        stdout, _, returncode = Popen.run(
             ['security', 'find-generic-password',
              '-w',  # write password to stdout
              '-a', browser_keyring_name,  # match 'account'
              '-s', f'{browser_keyring_name} Safe Storage'],  # match 'service'
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        if returncode:
+            logger.warning('find-generic-password failed')
+            return None
         return stdout.rstrip(b'\n')
     except Exception as e:
         logger.warning(f'exception running find-generic-password: {error_to_str(e)}')
