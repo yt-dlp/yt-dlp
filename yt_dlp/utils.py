@@ -5424,15 +5424,9 @@ def traverse_obj(
 
     def _traverse_obj(obj, path):
         has_branched, results = apply_path(obj, path)
-        iterator = iter(result for result in results if result is not None)
-        first_item = next(iterator, None)
-        if first_item is None:
-            return None
-
-        if get_all and has_branched:
-            return [type_test(first_item), *map(type_test, iterator)]
-        else:
-            return type_test(first_item)
+        results = LazyList(x for x in map(type_test, results) if x is not None)
+        if results:
+            return results.exhaust() if get_all and has_branched else results[0]
 
     for path in paths:
         result = _traverse_obj(obj, path)

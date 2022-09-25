@@ -1994,6 +1994,8 @@ Line 1
         self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str',
                                       expected_type=lambda _: 1 / 0), None,
                          msg='wrap expected_type fuction in try_call')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, ..., expected_type=str), ['str'],
+                         msg='eliminate items that expected_type fails on')
 
         # Test get_all behavior
         _GET_ALL_DATA = {'key': [0, 1, 2]}
