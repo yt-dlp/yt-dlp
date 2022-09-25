@@ -103,13 +103,15 @@ class PlexWatchBaseIE(InfoExtractor):
     # FIXME: change extras path
     def _get_clips(self, nextjs_json, display_id):
         self.write_debug('Trying to download Extras/trailer')
+        show_ratingkey = nextjs_json.get('ratingKey')
 
         media_json_list = []
-        for _media in traverse_obj(nextjs_json, ('Extras', 'Metadata', ..., 'key')) or []:
-            media_json_list.append(self._download_json(
+        for clip_ratingkey in traverse_obj(nextjs_json, ('Extras', 'Metadata', ..., 'ratingKey')) or []:
+            trailer_info = self._download_json(
                 'https://play.provider.plex.tv/playQueues', display_id,
-                query={'uri': f'provider://tv.plex.provider.vod{_media}'}, data=b'',
-                headers={'X-PLEX-TOKEN': PlexWatchBaseIE._TOKEN, 'Accept': 'application/json'}))
+                query={'uri': f'provider://tv.plex.provider.metadata/library/metadata/{show_ratingkey}/extras/{clip_ratingkey}'},
+                data=b'', headers={'X-PLEX-TOKEN': PlexWatchBaseIE._TOKEN, 'Accept': 'application/json'})
+            media_json_list.append(trailer_info)
 
         for media in traverse_obj(media_json_list, (..., 'MediaContainer', 'Metadata', ...)) or []:
             for media_ in traverse_obj(media, ('Media', ..., 'Part', ..., 'key')):
@@ -418,13 +420,13 @@ class PlexAppIE(PlexWatchBaseIE):
         'info_dict': {
             'id': '5ef5ee0d1ce3fd004039976a',
             'title': 'Lightyear',
-            'cast': 'count:34',
+            'cast': 'count:33',
             'thumbnail': r're:https://image\.tmdb\.org/t/p/original/\w+\.jpg',
             'duration': 6000,
             'rating': 10,
             'average_rating': 7.5,
         },
-        'playlist_count': 22,
+        'playlist_count': 24,
     }]
 
     def _real_extract(self, url):
