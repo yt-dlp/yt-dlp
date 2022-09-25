@@ -821,7 +821,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
         if '' in available_formats:
             full_format_langs = set(requested_hardsubs)
         else:
-            full_format_langs = set(available_formats.keys())
+            full_format_langs = set(lang.lower() for lang in available_formats.keys())
 
         formats = []
         for stream_type, format_id, hardsub_lang, stream_url in available_formats.values():
