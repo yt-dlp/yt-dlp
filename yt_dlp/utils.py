@@ -5335,15 +5335,13 @@ def traverse_obj(
                             a list of results is returned instead.
                             If unsuccessful or the result is `None` it will return `default`.
     """
-    if not casesense:
-        _casefold = lambda k: k.casefold() if isinstance(k, str) else k
+    is_sequence = lambda x: isinstance(x, collections.abc.Sequence) and not isinstance(x, (str, bytes))
+    casefold = lambda k: k.casefold() if isinstance(k, str) else k
 
     if isinstance(expected_type, type):
         type_test = lambda val: val if isinstance(val, expected_type) else None
-    elif expected_type is not None:
-        type_test = lambda val: try_call(expected_type, args=(val,))
     else:
-        type_test = IDENTITY
+        type_test = lambda val: try_call(expected_type or IDENTITY, args=(val,))
 
     def apply_key(key, obj):
         if obj is None:
@@ -5360,13 +5358,13 @@ def traverse_obj(
         elif key is ...:
             if isinstance(obj, collections.abc.Mapping):
                 yield from obj.values()
-            elif isinstance(obj, collections.abc.Sequence) and not isinstance(obj, str):
+            elif is_sequence(obj):
                 yield from obj
             elif traverse_string:
                 yield from str(obj)
 
         elif callable(key):
-            if isinstance(obj, collections.abc.Sequence) and not isinstance(obj, str):
+            if is_sequence(obj):
                 iter_obj = enumerate(obj)
             elif isinstance(obj, collections.abc.Mapping):
                 iter_obj = obj.items()
@@ -5383,7 +5381,7 @@ def traverse_obj(
 
         elif isinstance(obj, dict):
             yield (obj.get(key) if casesense or (key in obj)
-                   else next((v for k, v in obj.items() if _casefold(k) == key), None))
+                   else next((v for k, v in obj.items() if casefold(k) == key), None))
 
         else:
             if is_user_input:
@@ -5393,15 +5391,13 @@ def traverse_obj(
             if not isinstance(key, (int, slice)):
                 return
 
-            if not isinstance(obj, collections.abc.Sequence) or isinstance(obj, str):
+            if not is_sequence(obj):
                 if not traverse_string:
                     return
                 obj = str(obj)
 
-            try:
+            with contextlib.suppress(IndexError):
                 yield obj[key]
-            except IndexError:
-                pass
 
     def apply_path(start_obj, path):
         objs = (start_obj,)
