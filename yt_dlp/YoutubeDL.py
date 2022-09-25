@@ -1687,8 +1687,8 @@ class YoutubeDL:
         elif result_type in ('playlist', 'multi_video'):
             # Protect from infinite recursion due to recursively nested playlists
             # (see https://github.com/ytdl-org/youtube-dl/issues/27833)
-            webpage_url = ie_result['webpage_url']
-            if webpage_url in self._playlist_urls:
+            webpage_url = ie_result.get('webpage_url')  # Playlists maynot have webpage_url
+            if webpage_url and webpage_url in self._playlist_urls:
                 self.to_screen(
                     '[download] Skipping already downloaded playlist: %s'
                     % ie_result.get('title') or ie_result.get('id'))
@@ -1742,14 +1742,17 @@ class YoutubeDL:
         }
         if strict:
             return info
+        if ie_result.get('webpage_url'):
+            info.update({
+                'webpage_url': ie_result['webpage_url'],
+                'webpage_url_basename': url_basename(ie_result['webpage_url']),
+                'webpage_url_domain': get_domain(ie_result['webpage_url']),
+            })
         return {
             **info,
             'playlist_index': 0,
             '__last_playlist_index': max(ie_result['requested_entries'] or (0, 0)),
             'extractor': ie_result['extractor'],
-            'webpage_url': ie_result['webpage_url'],
-            'webpage_url_basename': url_basename(ie_result['webpage_url']),
-            'webpage_url_domain': get_domain(ie_result['webpage_url']),
             'extractor_key': ie_result['extractor_key'],
         }
 
