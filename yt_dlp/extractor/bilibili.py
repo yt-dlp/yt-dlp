@@ -1,9 +1,11 @@
 import base64
+import datetime
 import hashlib
 import itertools
 import functools
 import math
 import re
+import time
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
@@ -535,7 +537,22 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             self.to_screen('A channel URL was given. Only the channel\'s videos will be downloaded. '
                            'To download audios, add a "/audio" to the URL')
 
+        default_sleep_time = 1.0
+        request_page_sleep_time = ([float(s) for s in self._configuration_arg('request_page_sleep_time')] + [default_sleep_time])[0]
+        self.to_screen(f'request_page_sleep_time is set to {request_page_sleep_time} seconds, ' +
+                       f'use --extractor-args "BilibiliSpaceVideo:request_page_sleep_time={default_sleep_time}" to change it.')
+        self.request_page_sleep_time = datetime.timedelta(seconds=request_page_sleep_time)
+
+        self.last_request_time = None
+
         def fetch_page(page_idx):
+            if self.last_request_time is not None:
+                passed_time = datetime.datetime.now() - self.last_request_time
+                if passed_time < self.request_page_sleep_time:
+                    sleep_time = (self.request_page_sleep_time - passed_time).total_seconds()
+                    if sleep_time > 2.0:
+                        self.to_screen(f'Wait {sleep_time:.0f} seconds to request next page ...')
+                    time.sleep(sleep_time)
             try:
                 self.last_request_time = datetime.datetime.now()
                 response = self._download_json('https://api.bilibili.com/x/space/arc/search',
@@ -547,6 +564,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                     raise ExtractorError('Request is blocked by server, please add cookies, wait and try later.', expected=True)
                 raise
             if response['code'] == -401:
+                print(response)
                 raise ExtractorError('Request is blocked by server, please add cookies, wait and try later.', expected=True)
             data = response['data']
             return data
@@ -554,8 +572,11 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
         def get_metadata(page_data):
             page_size = page_data['page']['ps']
             entry_count = page_data['page']['count']
+            page_count = math.ceil(entry_count / page_size)
+            if page_count >= 10:
+                self.to_screen(f'This channel has {page_count} pages, please add cookies to avoid being blocked by server.')
             return {
-                'page_count': math.ceil(entry_count / page_size),
+                'page_count': page_count,
                 'page_size': page_size,
             }
 
