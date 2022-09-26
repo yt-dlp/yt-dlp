@@ -25,7 +25,6 @@ class HeiseIE(InfoExtractor):
             'timestamp': 1512734959,
             'upload_date': '20171208',
             'description': 'md5:c934cbfb326c669c2bcabcbe3d3fcd20',
-            'uploader_id': '',
             'thumbnail': 're:^https?://.*/thumbnail/.*',
             'duration': 2845,
             'view_count': int,
@@ -76,7 +75,6 @@ class HeiseIE(InfoExtractor):
             'upload_date': '20171205',
             'duration': 786,
             'view_count': int,
-            'uploader_id': '',
             'thumbnail': 're:^https?://.*/thumbnail/.*',
         },
         'params': {
