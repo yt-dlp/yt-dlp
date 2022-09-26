@@ -126,7 +126,7 @@ class DetikEmbedIE(InfoExtractor):
             return
 
         elif player_type == 'flowplayer':
-            video_json_data = self._parse_json(video_data.replace('\'', '"'), None)
+            video_json_data = self._parse_json(video_data.replace('\'', '"'), display_id)
             video_url = video_json_data['videoUrl']
 
             extra_info_dict = {
