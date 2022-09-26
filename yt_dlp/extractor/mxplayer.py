@@ -1,7 +1,10 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import try_get
-from ..utils import traverse_obj
+from ..utils import (
+    int_or_none,
+    traverse_obj,
+    try_get,
+)
 
 
 class MxplayerIE(InfoExtractor):
@@ -13,7 +16,7 @@ class MxplayerIE(InfoExtractor):
             'display_id': 'episode-1-online',
             'ext': 'mp4',
             'title': 'Episode 1',
-            'description': "Watch Season 1, Episode 1 of the show My Girlfriend Is an Alien (Hindi Dubbed).'",
+            'description': 'md5:62ed43eb9fec5efde5cf3bd1040b7670',
             'season_number': 1,
             'episode_number': 1,
             'duration': 2451,
@@ -32,13 +35,8 @@ class MxplayerIE(InfoExtractor):
             'display_id': 'episode-1-online',
             'ext': 'mp4',
             'title': 'Knock Knock (Hindi Dubbed)',
-            'description': 'Evan, a devoted husband, and father, invites double trouble as he allows two girls to seek shelter at his place. His sweet gesture takes the shape of a dangerous cat and mouse game.',
-            'season_number': None,
-            'episode_number': None,
+            'description': 'md5:4160f2dfc3b87c524261366f6b736329',
             'duration': 5970,
-            'season': None,
-            'series': None,
-            'episode': None
         },
         'params': {
             'format': 'bv',
@@ -51,7 +49,7 @@ class MxplayerIE(InfoExtractor):
             'id': '45055d5bcff169ad48f2ad7552a83d6c',
             'ext': 'mp4',
             'title': 'The infamous taxi gang of Meerut',
-            'description': "A notorious gang of taxi drivers in and around Meerut, engage in a series of brutal homicides across the state. The gang carefully hunts for a vulnerable passenger, preferably a foreigner or a NRI, takes them to a deserted place, murders them and disposes the bodies after looting their possessions. 'Shaitaan' brings you some of the most infamous crimes in the country and probes into the psychology of the minds that commit such crimes.",
+            'description': 'md5:033a0a7e3fd147be4fb7e07a01a3dc28',
             'season_number': 1,
             'episode_number': 1,
             'duration': 2332,
@@ -71,7 +69,7 @@ class MxplayerIE(InfoExtractor):
             'display_id': 'duh-swapna-online',
             'ext': 'mp4',
             'title': 'Duh Swapna',
-            'description': 'Episode 3: Pammi takes Satti on a tour of the Aashram and shows him what Baba has actually done for the poor, that has never been done by anyone. Tension rises in Lochan family as Pammi declares she wants to become a Sadhvi and join the Aashram. Besotted and motivated with the words of righteous postmortem specialist Dr. Natasha, S.I Ujagar Singh decides to pursue the skeleton case along with constable Sadhu.',
+            'description': 'md5:35ff39c4bdac403c53be1e16a04192d8',
             'season_number': 1,
             'episode_number': 3,
             'duration': 2568,
@@ -90,7 +88,7 @@ class MxplayerIE(InfoExtractor):
             'display_id': 'chapter-1-online',
             'ext': 'mp4',
             'title': 'Chapter 1',
-            'description': "Episode 1: Neha begins investigating the kidnapping of her ex-boyfriend Aditya Dhanraj's wife Dia. She finds evidence of a troubled marriage between the two.",
+            'description': 'md5:233886b8598bc91648ac098abe1d288f',
             'season_number': 1,
             'episode_number': 1,
             'duration': 1305,
@@ -108,13 +106,8 @@ class MxplayerIE(InfoExtractor):
             'id': '0452f0d80226c398d63ce7e3ea40fa2d',
             'ext': 'mp4',
             'title': 'The Attacks of 26/11',
-            'description': 'Ten terrorists travel to India and launch several attacks at various places in South Mumbai. Subsequently, the Mumbai Police arrests Ajmal Kasab, one of the terrorists.',
-            'season_number': None,
-            'episode_number': None,
+            'description': 'md5:689bacd29e97b3f31eaf519eb14127e5',
             'duration': 6085,
-            'season': None,
-            'series': None,
-            'episode': None
         },
         'params': {
             'format': 'best',
@@ -129,7 +122,7 @@ class MxplayerIE(InfoExtractor):
             'title': 'Kitne Door Kitne Paas',
             'duration': 8458,
             'ext': 'mp4',
-            'description': 'Jatin and Karishma, who meet each other on a plane to India, are set to marry the partners chosen by their respective parents. However, they find themselves attracted to each other.',
+            'description': 'md5:fb825f3c542513088024dcafef0921b4',
         },
         'params': {
             'format': 'bv',
@@ -143,7 +136,7 @@ class MxplayerIE(InfoExtractor):
             'title': 'Game Of Power',
             'duration': 1845,
             'ext': 'mp4',
-            'description': 'Cops arrest Ashraf assuming a prostitute. But she gets away with her new identity, Leela Paswan. Maqsood dumps Nana Mhatre and appoints Shaqeel Ansari as a new Bombay chief. For society, he is a sophisticated businessman. The rift between the new chief minister, Yashwant Patil and Shaqeel Ansari begins with a failed business deal. Ashwin Surve, a daredevil young gangster challenges established gangs of Maqsood & Bhai Chavan. He wants to enter in the drug business. But the only supplier Nari Khan supplies stuff only to Maqsood gang and no one else. ACP Qureshi arrests Bhai Chavan and turns his focus on people close to Zaheer and Ashraf. Ashraf faces a narrow escape from Qureshi and decides to take up her new identity beyond just fake documents.',
+            'description': 'md5:1d0948d2a5312d7013792d53542407f9',
             'series': 'Ek Thi Begum (Hindi)',
             'season': 'Season 2',
             'season_number': 2,
@@ -157,27 +150,22 @@ class MxplayerIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_type, display_id, video_id = self._match_valid_url(url).groups()
+        video_type, display_id, video_id = self._match_valid_url(url).group('type', 'display_id', 'id')
 
         if 'show' in video_type:
             video_type = 'episode'
 
         data_json = self._download_json(
-            f'https://api.mxplay.com/v1/web/detail/video?type={video_type}&id={video_id}', display_id
-        )
+            f'https://api.mxplay.com/v1/web/detail/video?type={video_type}&id={video_id}', display_id)
 
         formats = []
         subtitles = {}
-        series, season, season_number, episode_number = None, None, None, None
 
-        if video_type == 'episode':
-            series = traverse_obj(data_json, ('container', 'container', 'title'))
-            season = traverse_obj(data_json, ('container', 'title'))
-            episode_number = data_json.get('sequence')
-            season_number = int(self._search_regex(r'Season (\d+)', season, 'Season Number'))
+        season = traverse_obj(data_json, ('container', 'title'))
+        episode_number = data_json.get('sequence')
 
-        for stream_type in 'dash', 'hls':
-            playlist_url = 'https://llvod.mxplay.com/{}'.format(data_json['stream'][stream_type]['high'])
+        for stream_type in ('dash', 'hls'):
+            playlist_url = f'https://llvod.mxplay.com/{data_json["stream"][stream_type]["high"]}'
 
             if stream_type == 'dash':
                 frmts, subs = self._extract_mpd_formats_and_subtitles(playlist_url, display_id, fatal=False)
@@ -191,16 +179,16 @@ class MxplayerIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': data_json['title'],
+            'title': data_json.get('title'),
             'formats': formats,
             'subtitles': subtitles,
             'display_id': display_id,
             'duration': data_json.get('duration'),
-            'series': series,
+            'series': traverse_obj(data_json, ('container', 'container', 'title')),
             'description': data_json.get('description'),
             'season': season,
-            'season_number': season_number,
-            'episode_number': episode_number,
+            'season_number': int_or_none(self._search_regex(r'Season (\d+)', season, 'Season Number', default=None, fatal=False)),
+            'episode_number': episode_number if episode_number else None,
         }
 
 
