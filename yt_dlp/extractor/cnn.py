@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from .turner import TurnerBaseIE
-from ..utils import str_or_none, url_basename
+from ..utils import merge_dicts, try_call, url_basename
 
 
 class CNNIE(TurnerBaseIE):
@@ -190,6 +190,10 @@ class CNNIndonesiaIE(InfoExtractor):
         embed_url = next(
             json_ld.get('embedUrl') for json_ld in json_ld_list if json_ld.get('@type') == 'VideoObject')
 
-        return self.url_result(
-            embed_url, video_id=video_id, upload_date=upload_date, url_transparent=True,
-            tags=str_or_none(self._html_search_meta('keywords', webpage), '').split(', '), **json_ld_data)
+        return merge_dicts(json_ld_data, {
+            '_type': 'url_transparent',
+            'url': embed_url,
+            'id': video_id,
+            'upload_date': upload_date,
+            'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', '))
+        })
