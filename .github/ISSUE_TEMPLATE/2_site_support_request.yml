@@ -33,7 +33,7 @@ body:
     id: region
     attributes:
       label: Region
-      description: Enter the country/region that the site is accessible from
+      description: Enter the country/region that the site is accessible from.  If you are in the United States, please also include the state you reside in. 
       placeholder: India
   - type: textarea
     id: example-urls
