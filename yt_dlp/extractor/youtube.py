@@ -4493,26 +4493,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             # See: https://github.com/ytdl-org/youtube-dl/issues/28702
             visitor_data = self._extract_visitor_data(response) or visitor_data
 
-            known_continuation_renderers = {
-                'playlistVideoListContinuation': self._playlist_entries,
-                'gridContinuation': self._grid_entries,
-                'itemSectionContinuation': self._post_thread_continuation_entries,
-                'sectionListContinuation': extract_entries,  # for feeds
-            }
-            continuation_contents = try_get(
-                response, lambda x: x['continuationContents'], dict) or {}
-            continuation_renderer = None
-            for key, value in continuation_contents.items():
-                if key not in known_continuation_renderers:
-                    continue
-                continuation_renderer = value
-                continuation_list = [None]
-                yield from known_continuation_renderers[key](continuation_renderer)
-                continuation = continuation_list[0] or self._extract_continuation(continuation_renderer)
-                break
-            if continuation_renderer:
-                continue
-
             known_renderers = {
                 'videoRenderer': (self._grid_entries, 'items'),  # for membership tab
                 'gridPlaylistRenderer': (self._grid_entries, 'items'),
@@ -4523,23 +4503,30 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
                 'backstagePostThreadRenderer': (self._post_thread_continuation_entries, 'contents'),
                 'reportHistoryTableRowRenderer': (self._report_history_entries, 'rows'),
+                'playlistVideoListContinuation': (self._playlist_entries, None),
+                'gridContinuation': (self._grid_entries, None),
+                'itemSectionContinuation': (self._post_thread_continuation_entries, None),
+                'sectionListContinuation': (extract_entries, None),  # for feeds
             }
-            on_response_received = dict_get(response, ('onResponseReceivedActions', 'onResponseReceivedEndpoints'))
-            continuation_items = try_get(
-                on_response_received, lambda x: x[0]['appendContinuationItemsAction']['continuationItems'], list)
-            continuation_item = try_get(continuation_items, lambda x: x[0], dict) or {}
+
+            continuation_items = traverse_obj(response, (
+                ('onResponseReceivedActions', 'onResponseReceivedEndpoints'), ...,
+                'appendContinuationItemsAction', 'continuationItems'
+            ), 'continuationContents', get_all=False)
+            continuation_item = traverse_obj(continuation_items, 0, None, expected_type=dict, default={})
+
             video_items_renderer = None
-            for key, value in continuation_item.items():
+            for key in continuation_item.keys():
                 if key not in known_renderers:
                     continue
-                video_items_renderer = {known_renderers[key][1]: continuation_items}
+                func, parent_key = known_renderers[key]
+                video_items_renderer = {parent_key: continuation_items} if parent_key else continuation_items
                 continuation_list = [None]
-                yield from known_renderers[key][0](video_items_renderer)
+                yield from func(video_items_renderer)
                 continuation = continuation_list[0] or self._extract_continuation(video_items_renderer)
+
+            if not video_items_renderer:
                 break
-            if video_items_renderer:
-                continue
-            break
 
     @staticmethod
     def _extract_selected_tab(tabs, fatal=True):
