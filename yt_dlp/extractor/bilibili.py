@@ -7,6 +7,7 @@ import re
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
+    compat_HTTPError,
     compat_parse_qs,
     compat_urlparse,
     compat_urllib_parse_urlparse
@@ -535,10 +536,20 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                            'To download audios, add a "/audio" to the URL')
 
         def fetch_page(page_idx):
-            return self._download_json(
-                'https://api.bilibili.com/x/space/arc/search', playlist_id,
-                note=f'Downloading page {page_idx}',
-                query={'mid': playlist_id, 'pn': page_idx, 'jsonp': 'jsonp'})['data']
+            try:
+                self.last_request_time = datetime.datetime.now()
+                response = self._download_json('https://api.bilibili.com/x/space/arc/search',
+                                           playlist_id, note=f'Downloading page {page_idx}',
+                                           query={'mid': playlist_id, 'pn': page_idx,
+                                                  'jsonp': 'jsonp'})
+            except ExtractorError as e:
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 412:
+                    raise ExtractorError('Request is blocked by server, please add cookies, wait and try later.', expected=True)
+                raise
+            if response['code'] == -401:
+                raise ExtractorError('Request is blocked by server, please add cookies, wait and try later.', expected=True)
+            data = response['data']
+            return data
 
         def get_metadata(page_data):
             page_size = page_data['page']['ps']
