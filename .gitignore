@@ -85,6 +85,7 @@ updates_key.pem
 .tox
 *.class
 *.isorted
+*.stackdump
 
 # Generated
 AUTHORS
