@@ -292,7 +292,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|clip|'
         r'shorts|movies|results|search|shared|hashtag|trending|explore|feed|feeds|'
         r'browse|oembed|get_video_info|iframe_api|s/player|'
-        r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
+        r'storefront|oops|index|account|t/terms|about|upload|signin|logout')
 
     _PLAYLIST_ID_RE = r'(?:(?:PL|LL|EC|UU|FL|RD|UL|TL|PU|OLAK5uy_)[0-9A-Za-z-_]{10,}|RDMM|WL|LL|LM)'
 
@@ -673,7 +673,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             return next_continuation
 
         contents = []
-        for key in ('contents', 'items'):
+        for key in ('contents', 'items', 'rows'):
             contents.extend(try_get(renderer, lambda x: x[key], list) or [])
 
         for content in contents:
@@ -4405,6 +4405,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     yield entry
     '''
 
+    def _report_history_entries(self, renderer):
+        for url in traverse_obj(renderer, (
+                'rows', ..., 'reportHistoryTableRowRenderer', 'cells',  ...,
+                'reportHistoryTableCellRenderer', 'cell', 'reportHistoryTableTextCellRenderer', 'text', 'runs',  ...,
+                'navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url')):
+            yield self.url_result(urljoin('https://www.youtube.com', url), YoutubeIE)
+
     def _extract_entries(self, parent_renderer, continuation_list):
         # continuation_list is modified in-place with continuation_list = [continuation_token]
         continuation_list[:] = [None]
@@ -4416,12 +4423,16 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 content, 'itemSectionRenderer', 'musicShelfRenderer', 'musicShelfContinuation',
                 expected_type=dict)
             if not is_renderer:
-                renderer = content.get('richItemRenderer')
-                if renderer:
-                    for entry in self._rich_entries(renderer):
+                if content.get('richItemRenderer'):
+                    for entry in self._rich_entries(content['richItemRenderer']):
                         yield entry
                     continuation_list[0] = self._extract_continuation(parent_renderer)
+                elif content.get('reportHistorySectionRenderer'):  # https://www.youtube.com/reporthistory
+                    table = traverse_obj(content, ('reportHistorySectionRenderer', 'table', 'tableRenderer'))
+                    yield from self._report_history_entries(table)
+                    continuation_list[0] = self._extract_continuation(table)
                 continue
+
             isr_contents = try_get(is_renderer, lambda x: x['contents'], list) or []
             for isr_content in isr_contents:
                 if not isinstance(isr_content, dict):
@@ -4510,7 +4521,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'playlistVideoRenderer': (self._playlist_entries, 'contents'),
                 'itemSectionRenderer': (extract_entries, 'contents'),  # for feeds
                 'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
-                'backstagePostThreadRenderer': (self._post_thread_continuation_entries, 'contents')
+                'backstagePostThreadRenderer': (self._post_thread_continuation_entries, 'contents'),
+                'reportHistoryTableRowRenderer': (self._report_history_entries, 'rows'),
             }
             on_response_received = dict_get(response, ('onResponseReceivedActions', 'onResponseReceivedEndpoints'))
             continuation_items = try_get(
