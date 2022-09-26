@@ -185,9 +185,10 @@ class CNNIndonesiaIE(InfoExtractor):
         upload_date, video_id, display_id = self._match_valid_url(url).group('upload_date', 'id', 'display_id')
         webpage = self._download_webpage(url, display_id)
 
-        json_ld_data = self._search_json_ld(webpage, display_id)
         json_ld_list = list(self._yield_json_ld(webpage, display_id))
-        embed_url = [json_ld.get('embedUrl') for json_ld in json_ld_list if json_ld.get('@type') == 'VideoObject'][0]
+        json_ld_data = self._json_ld(json_ld_list, display_id)
+        embed_url = next(
+            json_ld.get('embedUrl') for json_ld in json_ld_list if json_ld.get('@type') == 'VideoObject')
 
         return self.url_result(
             embed_url, video_id=video_id, upload_date=upload_date, url_transparent=True,
