@@ -539,30 +539,13 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             self.to_screen('A channel URL was given. Only the channel\'s videos will be downloaded. '
                            'To download audios, add a "/audio" to the URL')
 
-        default_sleep_time = 1.0
-        request_page_sleep_time = ([float(s) for s in self._configuration_arg('request_page_sleep_time')]
-                                   + [default_sleep_time])[0]
-        self.to_screen(f'request_page_sleep_time is set to {request_page_sleep_time} seconds, '
-                       + f'you can use --extractor-args "BilibiliSpaceVideo:request_page_sleep_time={default_sleep_time}" to change it.')
-        self.request_page_sleep_time = datetime.timedelta(seconds=request_page_sleep_time)
-
         start_page = ([int(s) for s in self._configuration_arg('start_page')] + [None])[0]
         end_page = ([int(s) for s in self._configuration_arg('end_page')] + [None])[0]
         self.to_screen(f'start_page is set to {start_page}, end_page is set to {end_page}(inclusive), '
                        + 'you can use --extractor-args "BilibiliSpaceVideo:start_page=1;end_page=1" to change it.')
 
-        self.last_request_time = None
-
         def fetch_page(page_idx):
-            if self.last_request_time is not None:
-                passed_time = datetime.datetime.now() - self.last_request_time
-                if passed_time < self.request_page_sleep_time:
-                    sleep_time = (self.request_page_sleep_time - passed_time).total_seconds()
-                    if sleep_time > 2.0:
-                        self.to_screen(f'Wait {sleep_time:.0f} seconds to request next page ...')
-                    time.sleep(sleep_time)
             try:
-                self.last_request_time = datetime.datetime.now()
                 response = self._download_json('https://api.bilibili.com/x/space/arc/search',
                                                playlist_id, note=f'Downloading page {page_idx}',
                                                query={'mid': playlist_id, 'pn': page_idx, 'jsonp': 'jsonp'})
