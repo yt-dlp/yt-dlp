@@ -291,7 +291,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _RESERVED_NAMES = (
         r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|clip|'
         r'shorts|movies|results|search|shared|hashtag|trending|explore|feed|feeds|'
-        r'browse|oembed|get_video_info|iframe_api|s/player|'
+        r'browse|oembed|get_video_info|iframe_api|s/player|source|'
         r'storefront|oops|index|account|t/terms|about|upload|signin|logout')
 
     _PLAYLIST_ID_RE = r'(?:(?:PL|LL|EC|UU|FL|RD|UL|TL|PU|OLAK5uy_)[0-9A-Za-z-_]{10,}|RDMM|WL|LL|LM)'
@@ -6330,14 +6330,11 @@ class YoutubeStoriesIE(InfoExtractor):
 
 
 class YoutubeShortsAudioPivotIE(InfoExtractor):
-    IE_DESC = 'YouTube Shorts audio pivot (Shorts using audio of a given video); "ytshortsap:" prefix'
+    IE_DESC = 'YouTube Shorts audio pivot (Shorts using audio of a given video)'
     IE_NAME = 'youtube:shorts:pivot:audio'
-    _VALID_URL = f'(?x)^ytshortsap:{YoutubeIE._VALID_URL[5:]}'
+    _VALID_URL = r'https?://(?:www\.)?youtube\.com/source/(?P<id>[\w-]{11})/shorts'
     _TESTS = [{
-        'url': 'ytshortsap:https://www.youtube.com/shorts/Lyj-MZSAA9o?feature=share',
-        'only_matching': True,
-    }, {
-        'url': 'ytshortsap:Lyj-MZSAA9o',
+        'url': 'https://www.youtube.com/source/Lyj-MZSAA9o/shorts',
         'only_matching': True,
     }]
 
