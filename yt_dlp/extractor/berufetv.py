@@ -1,9 +1,9 @@
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import ExtractorError, mimetype2ext, traverse_obj
+from .common import InfoExtractor
+from ..utils import float_or_none, mimetype2ext, traverse_obj
 
 
 class BerufeTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?web\.arbeitsagentur\.de/berufetv/[a-z\-/]+/film;filmId=(?P<id>[a-zA-Z\d\-_]+)'
+    _VALID_URL = r'https?://(?:www\.)?web\.arbeitsagentur\.de/berufetv/[^?#]+/film;filmId=(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://web.arbeitsagentur.de/berufetv/studienberufe/wirtschaftswissenschaften/wirtschaftswissenschaften-volkswirtschaft/film;filmId=DvKC3DUpMKvUZ_6fEnfg3u',
         'md5': '041b6432ec8e6838f84a5c30f31cc795',
@@ -15,7 +15,7 @@ class BerufeTVIE(InfoExtractor):
             'categories': ['Studien&shy;beruf'],
             'tags': ['Studienfilm'],
             'duration': 602.440,
-            'thumbnail': 'https://asset-out-cdn.video-cdn.net/private/videos/DvKC3DUpMKvUZ_6fEnfg3u/thumbnails/active',
+            'thumbnail': 'md5:b0ea03bc4376e47cf3f4c80a7107d2d2',
         }
     }]
 
@@ -27,26 +27,18 @@ class BerufeTVIE(InfoExtractor):
             video_id, 'Downloading JSON metadata',
             headers={'X-API-Key': '79089773-4892-4386-86e6-e8503669f426'}, fatal=False)
 
-        meta = next(
-            item for item in movie_metadata.get('metadaten') if video_id == item.get('miId')
-        ) if movie_metadata else {}
+        meta = traverse_obj(
+            movie_metadata, ('metadaten', lambda _, i: video_id == i['miId']), default=[])
+        meta = meta[0] if len(meta) > 0 else {}
 
         video = self._download_json(
-            'https://d.video-cdn.net/play/player/8YRzUk6pTzmBdrsLe9Y88W/video/%s' % (video_id),
+            f'https://d.video-cdn.net/play/player/8YRzUk6pTzmBdrsLe9Y88W/video/{video_id}',
             video_id, 'Downloading video JSON')
 
-        video_sources = traverse_obj(video, ['videoSources', 'html'])
-
-        if not video_sources:
-            raise ExtractorError('Failed to obtain video source list')
-
-        formats = []
-        subtitles = {}
-
-        for key, source in video_sources.items():
+        formats, subtitles = [], {}
+        for key, source in video['videoSources']['html'].items():
             if key == 'auto':
-                m3u8_url = source[0]['source']
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(source[0]['source'], video_id)
                 formats += fmts
                 subtitles = subs
             else:
@@ -56,23 +48,22 @@ class BerufeTVIE(InfoExtractor):
                     'format_id': key,
                 })
 
-        video_tracks = video.get('videoTracks') or []
-        for track in video_tracks:
+        for track in video.get('videoTracks') or []:
             if track.get('type') != 'SUBTITLES':
                 continue
-            subtitles[track['language']] = [{
+            subtitles.setdefault(track['language'], []).append({
                 'url': track['source'],
-                'name': track['label'],
+                'name': track.get('label'),
                 'ext': 'vtt'
-            }]
+            })
 
         return {
             'id': video_id,
-            'title': meta.get('titel') or traverse_obj(video, ['videoMetaData', 'title']),
+            'title': meta.get('titel') or traverse_obj(video, ('videoMetaData', 'title')),
             'description': meta.get('beschreibung'),
-            'thumbnail': 'https://asset-out-cdn.video-cdn.net/private/videos/%s/thumbnails/active' % (video_id),
-            'duration': video.get('duration') / 1000,
-            'categories': [meta.get('kategorie')],
+            'thumbnail': meta.get('thumbnail') or f'https://asset-out-cdn.video-cdn.net/private/videos/{video_id}/thumbnails/active',
+            'duration': float_or_none(video.get('duration'), scale=1000),
+            'categories': [meta['kategorie']] if meta.get('kategorie') else None,
             'tags': meta.get('themengebiete'),
             'subtitles': subtitles,
             'formats': formats,
