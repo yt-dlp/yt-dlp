@@ -1407,7 +1407,7 @@ You can merge the video and audio of multiple formats into a single file using `
 
 **Deprecation warning**: Since the *below* described behavior is complex and counter-intuitive, this will be removed and multistreams will be enabled by default in the future. A new operator will be instead added to limit formats to single audio/video
 
-Unless `--video-multistreams` is used, all formats with a video stream except the first one are ignored. Similarly, unless `--audio-multistreams` is used, all formats with an audio stream except the first one are ignored. E.g. `-f bestvideo+best+bestaudio --video-multistreams --audio-multistreams` will download and merge all 3 given formats. The resulting file will have 2 video streams and 2 audio streams. But `-f bestvideo+best+bestaudio --no-video-multistreams` will download and merge only `bestvideo` and `bestaudio`. `best` is ignored since another format containing a video stream (`bestvideo`) has already been selected. The order of the formats is therefore important. `-f best+bestaudio --no-audio-multistreams` will download and merge both formats while `-f bestaudio+best --no-audio-multistreams` will ignore `best` and download only `bestaudio`.
+Unless `--video-multistreams` is used, all formats with a video stream except the first one are ignored. Similarly, unless `--audio-multistreams` is used, all formats with an audio stream except the first one are ignored. E.g. `-f bestvideo+best+bestaudio --video-multistreams --audio-multistreams` will download and merge all 3 given formats. The resulting file will have 2 video streams and 2 audio streams. But `-f bestvideo+best+bestaudio --no-video-multistreams` will download and merge only `bestvideo` and `bestaudio`. `best` is ignored since another format containing a video stream (`bestvideo`) has already been selected. The order of the formats is therefore important. `-f best+bestaudio --no-audio-multistreams` will download only `best` while `-f bestaudio+best --no-audio-multistreams` will ignore `best` and download only `bestaudio`.
 
 ## Filtering Formats
 
@@ -1713,11 +1713,11 @@ The following extractors use this feature:
 * `approximate_date`: Extract approximate `upload_date` in flat-playlist. This may cause date-based filters to be slightly off
 
 #### funimation
-* `language`: Languages to extract, e.g. `funimation:language=english,japanese`
+* `language`: Audio languages to extract, e.g. `funimation:language=english,japanese`
 * `version`: The video version to extract - `uncut` or `simulcast`
 
 #### crunchyroll
-* `language`: Languages to extract, e.g. `crunchyroll:language=jaJp`
+* `language`: Audio languages to extract, e.g. `crunchyroll:language=jaJp`
 * `hardsub`: Which hard-sub versions to extract, e.g. `crunchyroll:hardsub=None,enUS`
 
 #### crunchyrollbeta
