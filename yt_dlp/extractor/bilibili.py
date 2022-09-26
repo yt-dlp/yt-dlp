@@ -1,11 +1,9 @@
 import base64
-import datetime
 import hashlib
 import itertools
 import functools
 import math
 import re
-import time
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
