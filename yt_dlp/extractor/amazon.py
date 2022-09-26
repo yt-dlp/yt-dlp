@@ -39,7 +39,7 @@ class AmazonStoreIE(InfoExtractor):
     def _real_extract(self, url):
         id = self._match_id(url)
 
-        for retry in self.RetryManager(fatal=True):
+        for retry in self.RetryManager():
             webpage = self._download_webpage(url, id)
             try:
                 data_json = self._parse_json(self._html_search_regex(r'var\s?obj\s?=\s?jQuery\.parseJSON\(\'(.*)\'\)', webpage, 'data'), id)

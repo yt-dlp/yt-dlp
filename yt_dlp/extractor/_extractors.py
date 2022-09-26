@@ -21,6 +21,7 @@ from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeYtBeIE,
     YoutubeYtUserIE,
     YoutubeWatchLaterIE,
+    YoutubeShortsAudioPivotIE
 )
 
 from .abc import (
@@ -191,7 +192,9 @@ from .bilibili import (
     BilibiliAudioIE,
     BilibiliAudioAlbumIE,
     BiliBiliPlayerIE,
-    BilibiliChannelIE,
+    BilibiliSpaceVideoIE,
+    BilibiliSpaceAudioIE,
+    BilibiliSpacePlaylistIE,
     BiliIntlIE,
     BiliIntlSeriesIE,
     BiliLiveIE,
@@ -648,6 +651,7 @@ from .googlepodcasts import (
 )
 from .googlesearch import GoogleSearchIE
 from .gopro import GoProIE
+from .goplay import GoPlayIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
@@ -1616,6 +1620,7 @@ from .sky import (
 from .slideshare import SlideshareIE
 from .slideslive import SlidesLiveIE
 from .slutload import SlutloadIE
+from .smotrim import SmotrimIE
 from .snotr import SnotrIE
 from .sohu import SohuIE
 from .sonyliv import (
@@ -2020,7 +2025,6 @@ from .vidio import (
     VidioLiveIE
 )
 from .vidlii import VidLiiIE
-from .vier import VierIE, VierVideosIE
 from .viewlift import (
     ViewLiftIE,
     ViewLiftEmbedIE,
@@ -2140,6 +2144,7 @@ from .whowatch import WhoWatchIE
 from .wistia import (
     WistiaIE,
     WistiaPlaylistIE,
+    WistiaChannelIE,
 )
 from .worldstarhiphop import WorldStarHipHopIE
 from .wppilot import (

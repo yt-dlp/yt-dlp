@@ -1,6 +1,7 @@
 import base64
 import contextlib
 import http.cookiejar
+import http.cookies
 import json
 import os
 import re
@@ -844,12 +845,15 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
 def _get_mac_keyring_password(browser_keyring_name, logger):
     logger.debug('using find-generic-password to obtain password from OSX keychain')
     try:
-        stdout, _, _ = Popen.run(
+        stdout, _, returncode = Popen.run(
             ['security', 'find-generic-password',
              '-w',  # write password to stdout
              '-a', browser_keyring_name,  # match 'account'
              '-s', f'{browser_keyring_name} Safe Storage'],  # match 'service'
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        if returncode:
+            logger.warning('find-generic-password failed')
+            return None
         return stdout.rstrip(b'\n')
     except Exception as e:
         logger.warning(f'exception running find-generic-password: {error_to_str(e)}')
@@ -987,6 +991,101 @@ def _parse_browser_specification(browser_name, profile=None, keyring=None, conta
         raise ValueError(f'unsupported browser: "{browser_name}"')
     if keyring not in (None, *SUPPORTED_KEYRINGS):
         raise ValueError(f'unsupported keyring: "{keyring}"')
-    if profile is not None and _is_path(profile):
-        profile = os.path.expanduser(profile)
+    if profile is not None and _is_path(expand_path(profile)):
+        profile = expand_path(profile)
     return browser_name, profile, keyring, container
+
+
+class LenientSimpleCookie(http.cookies.SimpleCookie):
+    """More lenient version of http.cookies.SimpleCookie"""
+    # From https://github.com/python/cpython/blob/v3.10.7/Lib/http/cookies.py
+    _LEGAL_KEY_CHARS = r"\w\d!#%&'~_`><@,:/\$\*\+\-\.\^\|\)\(\?\}\{\="
+    _LEGAL_VALUE_CHARS = _LEGAL_KEY_CHARS + r"\[\]"
+
+    _RESERVED = {
+        "expires",
+        "path",
+        "comment",
+        "domain",
+        "max-age",
+        "secure",
+        "httponly",
+        "version",
+        "samesite",
+    }
+
+    _FLAGS = {"secure", "httponly"}
+
+    # Added 'bad' group to catch the remaining value
+    _COOKIE_PATTERN = re.compile(r"""
+        \s*                            # Optional whitespace at start of cookie
+        (?P<key>                       # Start of group 'key'
+        [""" + _LEGAL_KEY_CHARS + r"""]+?# Any word of at least one letter
+        )                              # End of group 'key'
+        (                              # Optional group: there may not be a value.
+        \s*=\s*                          # Equal Sign
+        (                                # Start of potential value
+        (?P<val>                           # Start of group 'val'
+        "(?:[^\\"]|\\.)*"                    # Any doublequoted string
+        |                                    # or
+        \w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT # Special case for "expires" attr
+        |                                    # or
+        [""" + _LEGAL_VALUE_CHARS + r"""]*     # Any word or empty string
+        )                                  # End of group 'val'
+        |                                  # or
+        (?P<bad>(?:\\;|[^;])*?)            # 'bad' group fallback for invalid values
+        )                                # End of potential value
+        )?                             # End of optional value group
+        \s*                            # Any number of spaces.
+        (\s+|;|$)                      # Ending either at space, semicolon, or EOS.
+        """, re.ASCII | re.VERBOSE)
+
+    def load(self, data):
+        # Workaround for https://github.com/yt-dlp/yt-dlp/issues/4776
+        if not isinstance(data, str):
+            return super().load(data)
+
+        morsel = None
+        index = 0
+        length = len(data)
+
+        while 0 <= index < length:
+            match = self._COOKIE_PATTERN.search(data, index)
+            if not match:
+                break
+
+            index = match.end(0)
+            if match.group("bad"):
+                morsel = None
+                continue
+
+            key, value = match.group("key", "val")
+
+            if key[0] == "$":
+                if morsel is not None:
+                    morsel[key[1:]] = True
+                continue
+
+            lower_key = key.lower()
+            if lower_key in self._RESERVED:
+                if morsel is None:
+                    continue
+
+                if value is None:
+                    if lower_key not in self._FLAGS:
+                        morsel = None
+                        continue
+                    value = True
+                else:
+                    value, _ = self.value_decode(value)
+
+                morsel[key] = value
+
+            elif value is not None:
+                morsel = self.get(key, http.cookies.Morsel())
+                real_value, coded_value = self.value_decode(value)
+                morsel.set(key, real_value, coded_value)
+                self[key] = morsel
+
+            else:
+                morsel = None
