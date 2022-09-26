@@ -159,7 +159,6 @@ class CNNIndonesiaIE(InfoExtractor):
             'tags': ['ekopedia', 'subsidi bbm', 'subsidi', 'bbm', 'bbm subsidi', 'harga pertalite naik'],
             'age_limit': 0,
             'release_timestamp': 1662859088,
-            'subtitle': {},
             'release_date': '20220911',
             'uploader': 'Asfahan Yahsyi',
         }
@@ -179,7 +178,6 @@ class CNNIndonesiaIE(InfoExtractor):
             'release_date': '20220911',
             'uploader': 'REUTERS',
             'release_timestamp': 1662869995,
-            'subtitle': {},
         }
     }]
 
