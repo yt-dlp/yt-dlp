@@ -135,6 +135,7 @@ class ArteTVIE(ArteTVBaseIE):
                 'Video is not available in this language edition of Arte or broadcast rights expired', expected=True)
 
         formats, subtitles = [], {}
+        potential_duplicates = []
         for stream in config['data']['attributes']['streams']:
             # official player contains code like `e.get("versions")[0].eStat.ml5`
             stream_version = stream['versions'][0]
@@ -152,22 +153,26 @@ class ArteTVIE(ArteTVBaseIE):
                     not m.group('sdh_sub'),                 # and we prefer not the hard-of-hearing subtitles if there are subtitles
                 )))
 
+            short_label = traverse_obj(stream_version, "shortLabel", expected_type=str, default='?')
             if stream['protocol'].startswith('HLS'):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     stream['url'], video_id=video_id, ext='mp4', m3u8_id=stream_version_code, fatal=False)
                 for fmt in fmts:
                     fmt.update({
-                        'format_note': f'{stream_version.get("label", "unknown")} [{stream_version.get("shortLabel", "?")}]',
+                        'format_note': f'{stream_version.get("label", "unknown")} [{short_label}]',
                         'language_preference': lang_pref,
                     })
-                formats.extend(fmts)
+                if any(map(short_label.startswith, ('cc', 'OGsub'))):
+                    potential_duplicates.extend(fmts)
+                else:
+                    formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
 
             elif stream['protocol'] in ('HTTPS', 'RTMP'):
                 formats.append({
                     'format_id': f'{stream["protocol"]}-{stream_version_code}',
                     'url': stream['url'],
-                    'format_note': f'{stream_version.get("label", "unknown")} [{stream_version.get("shortLabel", "?")}]',
+                    'format_note': f'{stream_version.get("label", "unknown")} [{short_label}]',
                     'language_preference': lang_pref,
                     # 'ext': 'mp4',  # XXX: may or may not be necessary, at least for HTTPS
                 })
@@ -179,6 +184,12 @@ class ArteTVIE(ArteTVBaseIE):
             # The JS also looks for chapters in config['data']['attributes']['chapters'],
             # but I am yet to find a video having those
 
+        stream_urls = set(traverse_obj(formats, (..., 'url')))
+        for potential_duplicate in potential_duplicates:
+            if potential_duplicate['url'] in stream_urls:
+                self.write_debug(f'Ignoring duplicate format: {traverse_obj(potential_duplicate, "format_note")}')
+            else:
+                formats.append(potential_duplicate)
         self._sort_formats(formats)
 
         metadata = config['data']['attributes']['metadata']
