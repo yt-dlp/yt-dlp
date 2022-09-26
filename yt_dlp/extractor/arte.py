@@ -184,12 +184,8 @@ class ArteTVIE(ArteTVBaseIE):
             # The JS also looks for chapters in config['data']['attributes']['chapters'],
             # but I am yet to find a video having those
 
-        stream_urls = set(traverse_obj(formats, (..., 'url')))
-        for potential_duplicate in potential_duplicates:
-            if potential_duplicate['url'] in stream_urls:
-                self.write_debug(f'Ignoring duplicate format: {traverse_obj(potential_duplicate, "format_note")}')
-            else:
-                formats.append(potential_duplicate)
+        formats.extend(potential_duplicates)
+        self._remove_duplicate_formats(formats)
         self._sort_formats(formats)
 
         metadata = config['data']['attributes']['metadata']
