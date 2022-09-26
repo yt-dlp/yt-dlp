@@ -1009,7 +1009,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _EMBED_REGEX = [
         r'''(?x)
             (?:
-                <iframe[^>]+?src=|
+                <(?:[0-9A-Za-z-]+?)?iframe[^>]+?src=|
                 data-video-url=|
                 <embed[^>]+?src=|
                 embedSWF\(?:\s*|
