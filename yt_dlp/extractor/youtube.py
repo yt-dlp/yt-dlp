@@ -3034,8 +3034,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.report_warning(f'Incomplete chapter {idx}')
             elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
                 chapters.append(chapter)
-            else:
-                self.report_warning(f'Invalid start time for chapter "{chapter["title"]}"')
+            elif chapter not in chapters:
+                self.report_warning(
+                    f'Invalid start time ({chapter["start_time"]} < {chapters[-1]["start_time"]}) for chapter "{chapter["title"]}"')
         return chapters[1:]
 
     def _extract_comment(self, comment_renderer, parent=None):
