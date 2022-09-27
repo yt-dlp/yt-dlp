@@ -1093,7 +1093,7 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * The file given by `--config-location`
 1. **Portable Configuration**: (Recommended for portable installs)
     * If using a binary, `yt-dlp.conf` in the same directory as the binary
-    * If running from source-code, the parent directory of `yt_dlp`
+    * If running from source-code, `yt-dlp.conf` in the parent directory of `yt_dlp`
 1. **Home Configuration**:
     * `yt-dlp.conf` in the home path given by `-P`
     * If `-P` is not given, the current directory is searched
