@@ -68,14 +68,12 @@ class OnDemandKoreaIE(InfoExtractor):
             r'class=["\']episode_title["\'][^>]*>([^<]+)',
             webpage, 'episode_title', fatal=False) or self._og_search_title(webpage)
 
-        jw_config_regexes = [
-            r'(?P<options>{\s*[\'"]tracks[\'"].*?})[)\];]+$',
-            r'playlist\s*=\s*\[(?P<options>.+)];?$',
-            r'odkPlayer\.init.*?(?P<options>{[^;]+}).*?;',
-        ]
         jw_config = self._parse_json(
-            self._search_regex(
-                jw_config_regexes, webpage, 'jw config', flags=re.MULTILINE | re.DOTALL, group='options'),
+            self._search_regex((
+                r'(?P<options>{\s*[\'"]tracks[\'"].*?})[)\];]+$',
+                r'playlist\s*=\s*\[(?P<options>.+)];?$',
+                r'odkPlayer\.init.*?(?P<options>{[^;]+}).*?;',
+            ), webpage, 'jw config', flags=re.MULTILINE | re.DOTALL, group='options'),
             video_id, transform_source=js_to_json)
         info = self._parse_jwplayer_data(
             jw_config, video_id, require_title=False, m3u8_id='hls',
