@@ -509,11 +509,11 @@ class BiliBiliBangumiIE(InfoExtractor):
 
 class BilibiliSpaceBaseIE(InfoExtractor):
     def _extract_playlist(self, fetch_page, get_metadata, get_entries):
-        first_page = fetch_page(1)
+        first_page = fetch_page(0)
         metadata = get_metadata(first_page)
 
         paged_list = InAdvancePagedList(
-            lambda idx: get_entries(fetch_page(idx) if idx > 1 else first_page),
+            lambda idx: get_entries(fetch_page(idx) if idx > 0 else first_page),
             metadata['page_count'], metadata['page_size'])
 
         return metadata, paged_list
@@ -539,12 +539,13 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             try:
                 response = self._download_json('https://api.bilibili.com/x/space/arc/search',
                                                playlist_id, note=f'Downloading page {page_idx}',
-                                               query={'mid': playlist_id, 'pn': page_idx, 'jsonp': 'jsonp'})
+                                               query={'mid': playlist_id, 'pn': page_idx + 1, 'jsonp': 'jsonp'})
             except ExtractorError as e:
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 412:
                     raise ExtractorError('Request is blocked by server, please add cookies, wait and try later.', expected=True)
                 raise
             if response['code'] == -401:
+                self.to_screen(f'response: {response}')
                 raise ExtractorError('Request is blocked by server, please add cookies, wait and try later.', expected=True)
             data = response['data']
             return data
@@ -582,7 +583,7 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
             return self._download_json(
                 'https://api.bilibili.com/audio/music-service/web/song/upper', playlist_id,
                 note=f'Downloading page {page_idx}',
-                query={'uid': playlist_id, 'pn': page_idx, 'ps': 30, 'order': 1, 'jsonp': 'jsonp'})['data']
+                query={'uid': playlist_id, 'pn': page_idx + 1, 'ps': 30, 'order': 1, 'jsonp': 'jsonp'})['data']
 
         def get_metadata(page_data):
             return {
@@ -617,7 +618,7 @@ class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
             return self._download_json(
                 'https://api.bilibili.com/x/polymer/space/seasons_archives_list',
                 playlist_id, note=f'Downloading page {page_idx}',
-                query={'mid': mid, 'season_id': sid, 'page_num': page_idx, 'page_size': 30})['data']
+                query={'mid': mid, 'season_id': sid, 'page_num': page_idx + 1, 'page_size': 30})['data']
 
         def get_metadata(page_data):
             page_size = page_data['page']['page_size']
