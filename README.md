@@ -1096,7 +1096,7 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * If running from source-code, the parent directory of `yt_dlp`
 1. **Home Configuration**:
     * `yt-dlp.conf` in the home path given by `-P`
-    * If not `-P` is given, the current directory is searched
+    * If `-P` is not given, the current directory is searched
 1. **User Configuration**:
     * `${XDG_CONFIG_HOME}/yt-dlp/config` (recommended on Linux/macOS)
     * `${XDG_CONFIG_HOME}/yt-dlp.conf`
@@ -1106,8 +1106,8 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * `~/yt-dlp.conf.txt`
 
     P.S. See [Notes about environment variables](#notes-about-environment-variables)
-
-1. **System Configuration**: `/etc/yt-dlp.conf`
+1. **System Configuration**:
+    * `/etc/yt-dlp.conf`
 
 E.g. with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
 ```
@@ -1157,7 +1157,7 @@ To activate authentication with the `.netrc` file you should pass `--netrc` to y
 The default location of the .netrc file is `${HOME}` (`~`).
 
 ### Notes about environment variables
-* Environment variables are normally specified as `${VARIABLE}`/`${VARIABLE}` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
+* Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
 * yt-dlp also allow using UNIX-style variables on Windows for path-like options; e.g. `--output`, `--config-location`
 * If unset, `${XDG_CONFIG_HOME}` defaults to `~/.config` and `${XDG_CACHE_HOME}` to `~/.cache`
 * On Windows, `~` points to `${HOME}` if present; or, `${USERPROFILE}` or `${HOMEDRIVE}${HOMEPATH}` otherwise
