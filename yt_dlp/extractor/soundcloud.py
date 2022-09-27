@@ -194,7 +194,7 @@ class SoundcloudBaseIE(InfoExtractor):
 
         return out
 
-    def _extract_info_dict(self, info, full_title=None, secret_token=None, extract_flat=True):
+    def _extract_info_dict(self, info, full_title=None, secret_token=None, extract_flat=False):
         track_id = compat_str(info['id'])
         title = info['title']
 
@@ -204,7 +204,7 @@ class SoundcloudBaseIE(InfoExtractor):
         if secret_token:
             query['secret_token'] = secret_token
 
-        if extract_flat and info.get('downloadable') and info.get('has_downloads_left'):
+        if not extract_flat and info.get('downloadable') and info.get('has_downloads_left'):
             download_url = update_url_query(
                 self._API_V2_BASE + 'tracks/' + track_id + '/download', query)
             redirect_url = (self._download_json(download_url, track_id, fatal=False) or {}).get('redirectUri')
@@ -268,7 +268,7 @@ class SoundcloudBaseIE(InfoExtractor):
             if not format_url:
                 continue
             stream = self._download_json(
-                format_url, track_id, query=query, fatal=False, headers=self._HEADERS) if extract_flat else None
+                format_url, track_id, query=query, fatal=False, headers=self._HEADERS) if not extract_flat else None
             if not isinstance(stream, dict):
                 continue
             stream_url = url_or_none(stream.get('url'))
@@ -343,7 +343,7 @@ class SoundcloudBaseIE(InfoExtractor):
             'comment_count': extract_count('comment'),
             'repost_count': extract_count('reposts'),
             'genre': info.get('genre'),
-            'formats': formats
+            'formats': formats if not extract_flat else None
         }
 
     @classmethod
@@ -919,7 +919,7 @@ class SoundcloudSearchIE(SoundcloudBaseIE, SearchInfoExtractor):
             for item in response.get('collection') or []:
                 if item:
                     yield self.url_result(
-                        item['uri'], SoundcloudIE.ie_key(), **self._extract_info_dict(item, extract_flat=False))
+                        item['uri'], SoundcloudIE.ie_key(), **self._extract_info_dict(item, extract_flat=True))
 
             next_url = response.get('next_href')
             if not next_url:
