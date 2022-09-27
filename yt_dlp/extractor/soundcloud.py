@@ -267,8 +267,8 @@ class SoundcloudBaseIE(InfoExtractor):
             format_url = url_or_none(t.get('url'))
             if not format_url:
                 continue
-            stream = self._download_json(
-                format_url, track_id, query=query, fatal=False, headers=self._HEADERS) if not extract_flat else None
+            stream = None if extract_flat else self._download_json(
+                format_url, track_id, query=query, fatal=False, headers=self._HEADERS)
             if not isinstance(stream, dict):
                 continue
             stream_url = url_or_none(stream.get('url'))
