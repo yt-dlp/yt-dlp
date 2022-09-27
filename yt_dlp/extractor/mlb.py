@@ -397,10 +397,11 @@ class MLBArticleIE(InfoExtractor):
         apollo_cache_json = self._search_json(r'window\.initState\s*=\s*', webpage, 'window.initState', display_id)['apolloCache']
 
         root_query_json = apollo_cache_json.get('ROOT_QUERY')
-        content_data = [root_query_json[key] for key in root_query_json if key.startswith('getForgeContent')][0]
+        content_data_id = next(
+            root_query_json[key] for key in root_query_json if key.startswith('getForgeContent'))['id']
 
         # search again in apollo cache
-        content_real_info = apollo_cache_json.get(content_data.get('id'))
+        content_real_info = apollo_cache_json[content_data_id]
 
         content_video_query_id_list = [
             content_video_query_id.get('id') for content_video_query_id in content_real_info.get('parts')
