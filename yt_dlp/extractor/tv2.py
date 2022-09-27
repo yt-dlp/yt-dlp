@@ -16,22 +16,26 @@ from ..utils import (
 
 
 class TV2IE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tv2\.no/v\d*/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tv2\.no/v(?:ideo)?\d*/(?:[^?#]+/)*(?P<id>\d+)'
     _TESTS = [{
-        'url': 'http://www.tv2.no/v/916509/',
+        'url': 'http://www.tv2.no/v/1791207/',
         'info_dict': {
-            'id': '916509',
+            'id': '1791207',
             'ext': 'mp4',
-            'title': 'Se Frode Gryttens hyllest av Steven Gerrard',
-            'description': 'TV 2 Sportens huspoet tar avskjed med Liverpools kaptein Steven Gerrard.',
-            'timestamp': 1431715610,
-            'upload_date': '20150515',
-            'duration': 157,
+            'title': 'Her kolliderer romsonden med asteroiden ',
+            'description': 'En romsonde har krasjet inn i en asteroide i verdensrommet. Kollisjonen skjedde klokken 01:14 natt til tirsdag 27. september norsk tid. \n\nNasa kaller det sitt første forsøk på planetforsvar.',
+            'timestamp': 1664238190,
+            'upload_date': '20220927',
+            'duration': 146,
+            'thumbnail': 'https://sumo.cdn.tv2.no/imageapi/v3/img/633242f5498e036293a310a9-1664238962895',
             'view_count': int,
             'categories': list,
         },
     }, {
         'url': 'http://www.tv2.no/v2/916509',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.tv2.no/video/nyhetene/her-kolliderer-romsonden-med-asteroiden/1791207/',
         'only_matching': True,
     }]
     _PROTOCOLS = ('HLS', 'DASH')
