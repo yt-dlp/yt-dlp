@@ -48,6 +48,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [SponsorBlock Options](#sponsorblock-options)
     * [Extractor Options](#extractor-options)
 * [CONFIGURATION](#configuration)
+    * [Configuration file encoding](#configuration-file-encoding)
     * [Authentication with .netrc file](#authentication-with-netrc-file)
 * [OUTPUT TEMPLATE](#output-template)
     * [Output template examples](#output-template-examples)
@@ -1088,9 +1089,14 @@ Make chapter entries for, or remove various segments (sponsor,
 
 You can configure yt-dlp by placing any supported command line option to a configuration file. The configuration is loaded from the following locations:
 
-1. **Main Configuration**: The file given by `--config-location`
-1. **Portable Configuration**: `yt-dlp.conf` in the same directory as the bundled binary. If you are running from source-code (`<root dir>/yt_dlp/__main__.py`), the root directory is used instead.
-1. **Home Configuration**: `yt-dlp.conf` in the home path given by `-P`, or in the current directory if no such path is given
+1. **Main Configuration**:
+    * The file given by `--config-location`
+1. **Portable Configuration**: (Recommended for portable installs)
+    * If using a binary, `yt-dlp.conf` in the same directory as the binary
+    * If running from source-code, the parent directory of `yt_dlp`
+1. **Home Configuration**:
+    * `yt-dlp.conf` in the home path given by `-P`
+    * If not `-P` is given, the current directory is searched
 1. **User Configuration**:
     * `$XDG_CONFIG_HOME/yt-dlp/config` (recommended on Linux/macOS)
     * `$XDG_CONFIG_HOME/yt-dlp.conf`
@@ -1124,7 +1130,7 @@ Note that options in configuration file are just the same options aka switches u
 
 You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of home, user, and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
 
-### Config file encoding
+### Configuration file encoding
 
 The config files are decoded according to the UTF BOM if present, and in the encoding from system locale otherwise.
 
