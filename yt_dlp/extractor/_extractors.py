@@ -172,6 +172,7 @@ from .beeg import BeegIE
 from .behindkink import BehindKinkIE
 from .bellmedia import BellMediaIE
 from .beatport import BeatportIE
+from .berufetv import BerufeTVIE
 from .bet import BetIE
 from .bfi import BFIPlayerIE
 from .bfmtv import (
