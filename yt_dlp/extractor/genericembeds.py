@@ -1,5 +1,7 @@
+import re
+
 from .common import InfoExtractor
-from ..utils import make_archive_id
+from ..utils import make_archive_id, get_elements_text_and_html_by_attribute
 
 
 class HTML5MediaEmbedIE(InfoExtractor):
@@ -29,3 +31,17 @@ class HTML5MediaEmbedIE(InfoExtractor):
             })
             self._sort_formats(entry['formats'])
             yield entry
+
+from yt_dlp.jsinterp import JSInterpreter
+
+class MbMiniPlayerEmbedIE(InfoExtractor):
+    _VALID_URL = False
+    def _extract_from_webpage(self, url, webpage):
+        js = JSInterpreter(webpage).extract_function_code('initializeMiniAudioPlayer')
+        query_params = self._search_regex(r'jQuery([^;]+)\.mb_miniPlayer', js[1], 'query params')
+        file_exts = re.findall(r'a\[href\*=\'\.([a-zA-Z0-9]+)\'', query_params)
+        css_exclude = re.findall(r'\.not\("([^"]+)', query_params)
+        a = list(get_elements_text_and_html_by_attribute(f'href', rf'(?:[^\"\']+\.(?:{"|".join(file_exts)}))', webpage, escape_value=False))
+
+        print("two")
+        pass
