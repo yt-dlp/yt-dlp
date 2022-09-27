@@ -381,7 +381,7 @@ class MLBArticleIE(InfoExtractor):
                     'ext': 'mp4',
                 })
         self._sort_formats(formats)
-        yield {
+        return {
             'id': video_slug,
             'title': json_api_data.get('title'),
             'description': json_api_data.get('description'),
@@ -408,7 +408,7 @@ class MLBArticleIE(InfoExtractor):
         entries = []
         for video_query in content_video_query_id_list:
             video_slug = traverse_obj(apollo_cache_json, (video_query, 'slug'))
-            entries.extend(list(self.get_single_video(video_slug, display_id)))
+            entries.append(self.get_single_video(video_slug, display_id))
 
         return self.playlist_result(
             entries, content_real_info.get('_translationId'), self._html_search_meta('og:title', webpage),
