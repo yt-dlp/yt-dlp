@@ -508,15 +508,13 @@ class BiliBiliBangumiIE(InfoExtractor):
 
 
 class BilibiliSpaceBaseIE(InfoExtractor):
-    def _extract_playlist(self, fetch_page, get_metadata, get_entries, start_page_idx=None, end_page_idx=None):
-        start_page_idx = start_page_idx or 1
-        first_page = fetch_page(start_page_idx)
+    def _extract_playlist(self, fetch_page, get_metadata, get_entries):
+        first_page = fetch_page(1)
         metadata = get_metadata(first_page)
 
-        end_page_idx = end_page_idx or metadata['page_count']
         paged_list = InAdvancePagedList(
             lambda idx: get_entries(fetch_page(idx) if idx > 1 else first_page),
-            end_page_idx, metadata['page_size'])
+            metadata['page_count'], metadata['page_size'])
 
         return metadata, paged_list
 
@@ -537,11 +535,6 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             self.to_screen('A channel URL was given. Only the channel\'s videos will be downloaded. '
                            'To download audios, add a "/audio" to the URL')
 
-        start_page = ([int(s) for s in self._configuration_arg('start_page')] + [None])[0]
-        end_page = ([int(s) for s in self._configuration_arg('end_page')] + [None])[0]
-        self.to_screen(f'start_page is set to {start_page}, end_page is set to {end_page}(inclusive), '
-                       + 'you can use --extractor-args "BilibiliSpaceVideo:start_page=1;end_page=1" to change it.')
-
         def fetch_page(page_idx):
             try:
                 response = self._download_json('https://api.bilibili.com/x/space/arc/search',
@@ -559,11 +552,8 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
         def get_metadata(page_data):
             page_size = page_data['page']['ps']
             entry_count = page_data['page']['count']
-            page_count = math.ceil(entry_count / page_size)
-            if page_count >= 10:
-                self.to_screen(f'This channel has {page_count} pages, please add cookies to avoid being blocked by server.')
             return {
-                'page_count': page_count,
+                'page_count': math.ceil(entry_count / page_size),
                 'page_size': page_size,
             }
 
@@ -571,8 +561,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             for entry in traverse_obj(page_data, ('list', 'vlist')) or []:
                 yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}', BiliBiliIE, entry['bvid'])
 
-        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries,
-                                                      start_page_idx=start_page, end_page_idx=end_page)
+        metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id)
 
 
