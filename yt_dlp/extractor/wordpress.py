@@ -7,6 +7,7 @@ from ..utils import (
 )
 
 
+# https://codex.wordpress.org/Playlist_Shortcode
 class WordpressPlaylistEmbedIE(InfoExtractor):
     _VALID_URL = False
     IE_NAME = 'wordpress:playlist'
