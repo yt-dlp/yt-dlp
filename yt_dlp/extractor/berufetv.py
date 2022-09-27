@@ -15,7 +15,7 @@ class BerufeTVIE(InfoExtractor):
             'categories': ['Studien&shy;beruf'],
             'tags': ['Studienfilm'],
             'duration': 602.440,
-            'thumbnail': 'md5:b0ea03bc4376e47cf3f4c80a7107d2d2',
+            'thumbnail': r're:^https://asset-out-cdn\.video-cdn\.net/private/videos/DvKC3DUpMKvUZ_6fEnfg3u/thumbnails/793063\?quality=thumbnail&__token__=[^\s]+$',
         }
     }]
 
@@ -28,8 +28,8 @@ class BerufeTVIE(InfoExtractor):
             headers={'X-API-Key': '79089773-4892-4386-86e6-e8503669f426'}, fatal=False)
 
         meta = traverse_obj(
-            movie_metadata, ('metadaten', lambda _, i: video_id == i['miId']), default=[])
-        meta = meta[0] if len(meta) > 0 else {}
+            movie_metadata, ('metadaten', lambda _, i: video_id == i['miId']),
+            get_all=False, default={})
 
         video = self._download_json(
             f'https://d.video-cdn.net/play/player/8YRzUk6pTzmBdrsLe9Y88W/video/{video_id}',
