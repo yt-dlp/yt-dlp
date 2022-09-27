@@ -513,7 +513,7 @@ class BilibiliSpaceBaseIE(InfoExtractor):
         metadata = get_metadata(first_page)
 
         paged_list = InAdvancePagedList(
-            lambda idx: get_entries(fetch_page(idx) if idx > 0 else first_page),
+            lambda idx: get_entries(fetch_page(idx) if idx else first_page),
             metadata['page_count'], metadata['page_size'])
 
         return metadata, paged_list
@@ -547,8 +547,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
             if response['code'] == -401:
                 self.to_screen(f'response: {response}')
                 raise ExtractorError('Request is blocked by server, please add cookies, wait and try later.', expected=True)
-            data = response['data']
-            return data
+            return response['data']
 
         def get_metadata(page_data):
             page_size = page_data['page']['ps']
