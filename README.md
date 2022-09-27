@@ -1457,7 +1457,7 @@ You can change the criteria for being considered the `best` by using `-S` (`--fo
 The available fields are:
 
  - `hasvid`: Gives priority to formats that have a video stream
- - `hasaud`: Gives priority to formats that have a audio stream
+ - `hasaud`: Gives priority to formats that have an audio stream
  - `ie_pref`: The format preference
  - `lang`: The language preference
  - `quality`: The quality of the format
