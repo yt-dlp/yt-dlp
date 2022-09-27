@@ -959,6 +959,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None)
         }
 
+    def extract(self, url):
+        def add_thumbnail(entry):
+            if 'thumbnails' in entry and entry['thumbnails']:
+                entry['thumbnail'] = entry['thumbnails'][-1]['url']
+            return entry
+
+        ie_result = super().extract(url)
+        if '_type' in ie_result and ie_result['_type'] == 'playlist':
+            add_thumbnail(ie_result)
+            ie_result['entries'] = map(add_thumbnail, ie_result['entries'])
+
+        return ie_result
+
 
 class YoutubeIE(YoutubeBaseInfoExtractor):
     IE_DESC = 'YouTube'
