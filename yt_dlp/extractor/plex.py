@@ -434,8 +434,11 @@ class PlexAppIE(PlexWatchBaseIE):
         provider, key, display_id = self._match_valid_url(url).group('provider', 'key', 'id')
         key = urllib.parse.unquote(key)
         media_json = self._download_json(
-            f'{self._CDN_ENDPOINT[provider]}{key}', display_id, query={'uri': f'provider://{provider}{key}', 'X-Plex-Token': PlexWatchBaseIE._TOKEN},
-            headers={'Accept': 'application/json'})['MediaContainer']['Metadata'][0]
+            f'{self._CDN_ENDPOINT[provider]}{key}', display_id, headers={'Accept': 'application/json'},
+            query={
+                'uri': f'provider://{provider}{key}',
+                'X-Plex-Token': PlexWatchBaseIE._TOKEN
+            })['MediaContainer']['Metadata'][0]
 
         # check if publicPagesURL, if exists redirect to PlexWatch*IE, else handle manually
         if media_json.get('publicPagesURL'):
