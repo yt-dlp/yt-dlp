@@ -115,6 +115,8 @@ class PlexWatchBaseIE(InfoExtractor):
         for media in traverse_obj(media_json_list, (..., 'MediaContainer', 'Metadata', ...)) or []:
             for media_ in traverse_obj(media, ('Media', ..., 'Part', ..., 'key')):
                 fmt, sub = self._get_formats_and_subtitles(media_, display_id, format_field={'format_note': 'Extras video'})
+                for f in fmt:
+                    f['preference'] = -10
                 yield {
                     'id': media['ratingKey'],
                     'title': media['title'],
