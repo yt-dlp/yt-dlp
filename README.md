@@ -1132,7 +1132,7 @@ You can use `--ignore-config` if you want to disable all configuration files for
 
 ### Configuration file encoding
 
-The config files are decoded according to the UTF BOM if present, and in the encoding from system locale otherwise.
+The configuration files are decoded according to the UTF BOM if present, and in the encoding from system locale otherwise.
 
 If you want your file to be decoded differently, add `# coding: ENCODING` to the beginning of the file (e.g. `# coding: shift-jis`). There must be no characters before that, even spaces or BOM.
 
@@ -1154,7 +1154,7 @@ machine twitch login my_twitch_account_name password my_twitch_password
 ```
 To activate authentication with the `.netrc` file you should pass `--netrc` to yt-dlp or place it in the [configuration file](#configuration).
 
-The default location of the .netrc file is `${HOME}` (`~`).
+The default location of the .netrc file is `~` (see below).
 
 ### Notes about environment variables
 * Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
