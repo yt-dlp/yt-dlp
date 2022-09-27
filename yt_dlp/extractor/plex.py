@@ -100,7 +100,6 @@ class PlexWatchBaseIE(InfoExtractor):
             self._merge_subtitles(subs, target=subtitles)
         return formats, subtitles
 
-    # FIXME: change extras path
     def _get_clips(self, nextjs_json, display_id):
         self.write_debug('Trying to download Extras/trailer')
         show_ratingkey = nextjs_json.get('ratingKey')
