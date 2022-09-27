@@ -1105,7 +1105,7 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
 
-    PS: See [Notes about environment variables](#notes-about-environment-variables)
+    P.S. See [Notes about environment variables](#notes-about-environment-variables)
 
 1. **System Configuration**: `/etc/yt-dlp.conf`
 
