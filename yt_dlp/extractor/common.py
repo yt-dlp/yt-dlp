@@ -1536,10 +1536,10 @@ class InfoExtractor:
                 info['chapters'] = chapters
 
         def extract_video_object(e):
-            assert is_type(e, 'VideoObject')
             author = e.get('author')
             info.update({
                 'url': url_or_none(e.get('contentUrl')),
+                'ext': mimetype2ext(e.get('encodingFormat')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
                 'thumbnails': [{'url': unescapeHTML(url)}
@@ -1552,12 +1552,19 @@ class InfoExtractor:
                 # however some websites are using 'Text' type instead.
                 # 1. https://schema.org/VideoObject
                 'uploader': author.get('name') if isinstance(author, dict) else author if isinstance(author, str) else None,
+                'artist': traverse_obj(e, ('byArtist', 'name'), expected_type=str),
                 'filesize': int_or_none(float_or_none(e.get('contentSize'))),
                 'tbr': int_or_none(e.get('bitrate')),
                 'width': int_or_none(e.get('width')),
                 'height': int_or_none(e.get('height')),
                 'view_count': int_or_none(e.get('interactionCount')),
+                'tags': try_call(lambda: e.get('keywords').split(',')),
             })
+            if is_type(e, 'AudioObject'):
+                info.update({
+                    'vcodec': 'none',
+                    'abr': int_or_none(e.get('bitrate')),
+                })
             extract_interaction_statistic(e)
             extract_chapter_information(e)
 
@@ -1608,7 +1615,7 @@ class InfoExtractor:
                         extract_video_object(e['video'][0])
                     elif is_type(traverse_obj(e, ('subjectOf', 0)), 'VideoObject'):
                         extract_video_object(e['subjectOf'][0])
-                elif is_type(e, 'VideoObject'):
+                elif is_type(e, 'VideoObject', 'AudioObject'):
                     extract_video_object(e)
                     if expected_type is None:
                         continue

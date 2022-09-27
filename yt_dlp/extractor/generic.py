@@ -2910,7 +2910,7 @@ class GenericIE(InfoExtractor):
         if json_ld.get('url') not in (url, None):
             self.report_detected('JSON LD')
             return merge_dicts({
-                '_type': 'url_transparent',
+                '_type': 'video' if json_ld.get('ext') else 'url_transparent',
                 'url': smuggle_url(json_ld['url'], {
                     'force_videoid': video_id,
                     'to_generic': True,

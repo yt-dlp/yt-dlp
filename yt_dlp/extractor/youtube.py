@@ -30,6 +30,7 @@ from ..utils import (
     clean_html,
     datetime_from_str,
     dict_get,
+    filter_dict,
     float_or_none,
     format_field,
     get_first,
@@ -291,8 +292,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _RESERVED_NAMES = (
         r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|clip|'
         r'shorts|movies|results|search|shared|hashtag|trending|explore|feed|feeds|'
-        r'browse|oembed|get_video_info|iframe_api|s/player|'
-        r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
+        r'browse|oembed|get_video_info|iframe_api|s/player|source|'
+        r'storefront|oops|index|account|t/terms|about|upload|signin|logout')
 
     _PLAYLIST_ID_RE = r'(?:(?:PL|LL|EC|UU|FL|RD|UL|TL|PU|OLAK5uy_)[0-9A-Za-z-_]{10,}|RDMM|WL|LL|LM)'
 
@@ -617,7 +618,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if auth is not None:
             headers['Authorization'] = auth
             headers['X-Origin'] = origin
-        return {h: v for h, v in headers.items() if v is not None}
+        return filter_dict(headers)
 
     def _download_ytcfg(self, client, video_id):
         url = {
@@ -672,20 +673,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if next_continuation:
             return next_continuation
 
-        contents = []
-        for key in ('contents', 'items'):
-            contents.extend(try_get(renderer, lambda x: x[key], list) or [])
-
-        for content in contents:
-            if not isinstance(content, dict):
-                continue
-            continuation_ep = try_get(
-                content, (lambda x: x['continuationItemRenderer']['continuationEndpoint'],
-                          lambda x: x['continuationItemRenderer']['button']['buttonRenderer']['command']),
-                dict)
-            continuation = cls._extract_continuation_ep_data(continuation_ep)
-            if continuation:
-                return continuation
+        return traverse_obj(renderer, (
+            ('contents', 'items', 'rows'), ..., 'continuationItemRenderer',
+            ('continuationEndpoint', ('button', 'buttonRenderer', 'command'))
+        ), get_all=False, expected_type=cls._extract_continuation_ep_data)
 
     @classmethod
     def _extract_alerts(cls, data):
@@ -3034,8 +3025,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.report_warning(f'Incomplete chapter {idx}')
             elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
                 chapters.append(chapter)
-            else:
-                self.report_warning(f'Invalid start time for chapter "{chapter["title"]}"')
+            elif chapter not in chapters:
+                self.report_warning(
+                    f'Invalid start time ({chapter["start_time"]} < {chapters[-1]["start_time"]}) for chapter "{chapter["title"]}"')
         return chapters[1:]
 
     def _extract_comment(self, comment_renderer, parent=None):
@@ -4405,6 +4397,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     yield entry
     '''
 
+    def _report_history_entries(self, renderer):
+        for url in traverse_obj(renderer, (
+                'rows', ..., 'reportHistoryTableRowRenderer', 'cells', ...,
+                'reportHistoryTableCellRenderer', 'cell', 'reportHistoryTableTextCellRenderer', 'text', 'runs', ...,
+                'navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url')):
+            yield self.url_result(urljoin('https://www.youtube.com', url), YoutubeIE)
+
     def _extract_entries(self, parent_renderer, continuation_list):
         # continuation_list is modified in-place with continuation_list = [continuation_token]
         continuation_list[:] = [None]
@@ -4416,12 +4415,16 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 content, 'itemSectionRenderer', 'musicShelfRenderer', 'musicShelfContinuation',
                 expected_type=dict)
             if not is_renderer:
-                renderer = content.get('richItemRenderer')
-                if renderer:
-                    for entry in self._rich_entries(renderer):
+                if content.get('richItemRenderer'):
+                    for entry in self._rich_entries(content['richItemRenderer']):
                         yield entry
                     continuation_list[0] = self._extract_continuation(parent_renderer)
+                elif content.get('reportHistorySectionRenderer'):  # https://www.youtube.com/reporthistory
+                    table = traverse_obj(content, ('reportHistorySectionRenderer', 'table', 'tableRenderer'))
+                    yield from self._report_history_entries(table)
+                    continuation_list[0] = self._extract_continuation(table)
                 continue
+
             isr_contents = try_get(is_renderer, lambda x: x['contents'], list) or []
             for isr_content in isr_contents:
                 if not isinstance(isr_content, dict):
@@ -4482,26 +4485,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             # See: https://github.com/ytdl-org/youtube-dl/issues/28702
             visitor_data = self._extract_visitor_data(response) or visitor_data
 
-            known_continuation_renderers = {
-                'playlistVideoListContinuation': self._playlist_entries,
-                'gridContinuation': self._grid_entries,
-                'itemSectionContinuation': self._post_thread_continuation_entries,
-                'sectionListContinuation': extract_entries,  # for feeds
-            }
-            continuation_contents = try_get(
-                response, lambda x: x['continuationContents'], dict) or {}
-            continuation_renderer = None
-            for key, value in continuation_contents.items():
-                if key not in known_continuation_renderers:
-                    continue
-                continuation_renderer = value
-                continuation_list = [None]
-                yield from known_continuation_renderers[key](continuation_renderer)
-                continuation = continuation_list[0] or self._extract_continuation(continuation_renderer)
-                break
-            if continuation_renderer:
-                continue
-
             known_renderers = {
                 'videoRenderer': (self._grid_entries, 'items'),  # for membership tab
                 'gridPlaylistRenderer': (self._grid_entries, 'items'),
@@ -4510,24 +4493,32 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'playlistVideoRenderer': (self._playlist_entries, 'contents'),
                 'itemSectionRenderer': (extract_entries, 'contents'),  # for feeds
                 'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
-                'backstagePostThreadRenderer': (self._post_thread_continuation_entries, 'contents')
+                'backstagePostThreadRenderer': (self._post_thread_continuation_entries, 'contents'),
+                'reportHistoryTableRowRenderer': (self._report_history_entries, 'rows'),
+                'playlistVideoListContinuation': (self._playlist_entries, None),
+                'gridContinuation': (self._grid_entries, None),
+                'itemSectionContinuation': (self._post_thread_continuation_entries, None),
+                'sectionListContinuation': (extract_entries, None),  # for feeds
             }
-            on_response_received = dict_get(response, ('onResponseReceivedActions', 'onResponseReceivedEndpoints'))
-            continuation_items = try_get(
-                on_response_received, lambda x: x[0]['appendContinuationItemsAction']['continuationItems'], list)
-            continuation_item = try_get(continuation_items, lambda x: x[0], dict) or {}
+
+            continuation_items = traverse_obj(response, (
+                ('onResponseReceivedActions', 'onResponseReceivedEndpoints'), ...,
+                'appendContinuationItemsAction', 'continuationItems'
+            ), 'continuationContents', get_all=False)
+            continuation_item = traverse_obj(continuation_items, 0, None, expected_type=dict, default={})
+
             video_items_renderer = None
-            for key, value in continuation_item.items():
+            for key in continuation_item.keys():
                 if key not in known_renderers:
                     continue
-                video_items_renderer = {known_renderers[key][1]: continuation_items}
+                func, parent_key = known_renderers[key]
+                video_items_renderer = {parent_key: continuation_items} if parent_key else continuation_items
                 continuation_list = [None]
-                yield from known_renderers[key][0](video_items_renderer)
+                yield from func(video_items_renderer)
                 continuation = continuation_list[0] or self._extract_continuation(video_items_renderer)
+
+            if not video_items_renderer:
                 break
-            if video_items_renderer:
-                continue
-            break
 
     @staticmethod
     def _extract_selected_tab(tabs, fatal=True):
@@ -4553,7 +4544,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             uploader['uploader_url'] = urljoin(
                 'https://www.youtube.com/',
                 try_get(owner, lambda x: x['navigationEndpoint']['browseEndpoint']['canonicalBaseUrl'], str))
-        return {k: v for k, v in uploader.items() if v is not None}
+        return filter_dict(uploader)
 
     def _extract_from_tabs(self, item_id, ytcfg, data, tabs):
         playlist_id = title = description = channel_url = channel_name = channel_id = None
@@ -6318,14 +6309,11 @@ class YoutubeStoriesIE(InfoExtractor):
 
 
 class YoutubeShortsAudioPivotIE(InfoExtractor):
-    IE_DESC = 'YouTube Shorts audio pivot (Shorts using audio of a given video); "ytshortsap:" prefix'
+    IE_DESC = 'YouTube Shorts audio pivot (Shorts using audio of a given video)'
     IE_NAME = 'youtube:shorts:pivot:audio'
-    _VALID_URL = f'(?x)^ytshortsap:{YoutubeIE._VALID_URL[5:]}'
+    _VALID_URL = r'https?://(?:www\.)?youtube\.com/source/(?P<id>[\w-]{11})/shorts'
     _TESTS = [{
-        'url': 'ytshortsap:https://www.youtube.com/shorts/Lyj-MZSAA9o?feature=share',
-        'only_matching': True,
-    }, {
-        'url': 'ytshortsap:Lyj-MZSAA9o',
+        'url': 'https://www.youtube.com/source/Lyj-MZSAA9o/shorts',
         'only_matching': True,
     }]
 
