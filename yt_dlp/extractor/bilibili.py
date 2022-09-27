@@ -4,10 +4,10 @@ import itertools
 import functools
 import math
 import re
+import urllib
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
-    compat_HTTPError,
     compat_parse_qs,
     compat_urlparse,
     compat_urllib_parse_urlparse
@@ -541,11 +541,10 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                                                playlist_id, note=f'Downloading page {page_idx}',
                                                query={'mid': playlist_id, 'pn': page_idx + 1, 'jsonp': 'jsonp'})
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 412:
+                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 412:
                     raise ExtractorError('Request is blocked by server, please add cookies, wait and try later.', expected=True)
                 raise
             if response['code'] == -401:
-                self.to_screen(f'response: {response}')
                 raise ExtractorError('Request is blocked by server, please add cookies, wait and try later.', expected=True)
             return response['data']
 
