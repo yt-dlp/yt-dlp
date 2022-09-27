@@ -5484,7 +5484,7 @@ def jwt_decode_hs256(jwt):
 WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
 
 
-@ functools.cache
+@functools.cache
 def supports_terminal_sequences(stream):
     if compat_os_name == 'nt':
         if not WINDOWS_VT_MODE:
@@ -5634,7 +5634,7 @@ class Config:
             *(f'\n{c}'.replace('\n', '\n| ')[1:] for c in self.configs),
             delim='\n')
 
-    @ staticmethod
+    @staticmethod
     def read_file(filename, default=[]):
         try:
             optionf = open(filename, 'rb')
@@ -5655,7 +5655,7 @@ class Config:
             optionf.close()
         return res
 
-    @ staticmethod
+    @staticmethod
     def hide_login_info(opts):
         PRIVATE_OPTS = {'-p', '--password', '-u', '--username', '--video-password', '--ap-password', '--ap-username'}
         eqre = re.compile('^(?P<key>' + ('|'.join(re.escape(po) for po in PRIVATE_OPTS)) + ')=.+$')
@@ -5679,7 +5679,7 @@ class Config:
         if config.init(*args):
             self.configs.append(config)
 
-    @ property
+    @property
     def all_args(self):
         for config in reversed(self.configs):
             yield from config.all_args
@@ -5726,7 +5726,7 @@ class WebSocketsWrapper():
 
     # taken from https://github.com/python/cpython/blob/3.9/Lib/asyncio/runners.py with modifications
     # for contributors: If there's any new library using asyncio needs to be run in non-async, move these function out of this class
-    @ staticmethod
+    @staticmethod
     def run_with_loop(main, loop):
         if not asyncio.iscoroutine(main):
             raise ValueError(f'a coroutine was expected, got {main!r}')
@@ -5738,7 +5738,7 @@ class WebSocketsWrapper():
             if hasattr(loop, 'shutdown_default_executor'):
                 loop.run_until_complete(loop.shutdown_default_executor())
 
-    @ staticmethod
+    @staticmethod
     def _cancel_all_tasks(loop):
         to_cancel = asyncio.all_tasks(loop)
 
@@ -5772,7 +5772,7 @@ def cached_method(f):
     """Cache a method"""
     signature = inspect.signature(f)
 
-    @ functools.wraps(f)
+    @functools.wraps(f)
     def wrapper(self, *args, **kwargs):
         bound_args = signature.bind(self, *args, **kwargs)
         bound_args.apply_defaults()
@@ -5804,7 +5804,7 @@ class Namespace(types.SimpleNamespace):
     def __iter__(self):
         return iter(self.__dict__.values())
 
-    @ property
+    @property
     def items_(self):
         return self.__dict__.items()
 
@@ -5843,13 +5843,13 @@ class RetryManager:
     def _should_retry(self):
         return self._error is not NO_DEFAULT and self.attempt <= self.retries
 
-    @ property
+    @property
     def error(self):
         if self._error is NO_DEFAULT:
             return None
         return self._error
 
-    @ error.setter
+    @error.setter
     def error(self, value):
         self._error = value
 
@@ -5861,7 +5861,7 @@ class RetryManager:
             if self.error:
                 self.error_callback(self.error, self.attempt, self.retries)
 
-    @ staticmethod
+    @staticmethod
     def report_retry(e, count, retries, *, sleep_func, info, warn, error=None, suffix=None):
         """Utility function for reporting retries"""
         if count > retries:

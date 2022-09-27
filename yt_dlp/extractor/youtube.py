@@ -30,6 +30,7 @@ from ..utils import (
     clean_html,
     datetime_from_str,
     dict_get,
+    filter_dict,
     float_or_none,
     format_field,
     get_first,
@@ -617,7 +618,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if auth is not None:
             headers['Authorization'] = auth
             headers['X-Origin'] = origin
-        return {h: v for h, v in headers.items() if v is not None}
+        return filter_dict(headers)
 
     def _download_ytcfg(self, client, video_id):
         url = {
@@ -672,20 +673,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if next_continuation:
             return next_continuation
 
-        contents = []
-        for key in ('contents', 'items', 'rows'):
-            contents.extend(try_get(renderer, lambda x: x[key], list) or [])
-
-        for content in contents:
-            if not isinstance(content, dict):
-                continue
-            continuation_ep = try_get(
-                content, (lambda x: x['continuationItemRenderer']['continuationEndpoint'],
-                          lambda x: x['continuationItemRenderer']['button']['buttonRenderer']['command']),
-                dict)
-            continuation = cls._extract_continuation_ep_data(continuation_ep)
-            if continuation:
-                return continuation
+        return traverse_obj(renderer, (
+            ('contents', 'items', 'rows'), ..., 'continuationItemRenderer',
+            ('continuationEndpoint', ('button', 'buttonRenderer', 'command'))
+        ), get_all=False, expected_type=cls._extract_continuation_ep_data)
 
     @classmethod
     def _extract_alerts(cls, data):
@@ -4408,8 +4399,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _report_history_entries(self, renderer):
         for url in traverse_obj(renderer, (
-                'rows', ..., 'reportHistoryTableRowRenderer', 'cells',  ...,
-                'reportHistoryTableCellRenderer', 'cell', 'reportHistoryTableTextCellRenderer', 'text', 'runs',  ...,
+                'rows', ..., 'reportHistoryTableRowRenderer', 'cells', ...,
+                'reportHistoryTableCellRenderer', 'cell', 'reportHistoryTableTextCellRenderer', 'text', 'runs', ...,
                 'navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url')):
             yield self.url_result(urljoin('https://www.youtube.com', url), YoutubeIE)
 
@@ -4553,7 +4544,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             uploader['uploader_url'] = urljoin(
                 'https://www.youtube.com/',
                 try_get(owner, lambda x: x['navigationEndpoint']['browseEndpoint']['canonicalBaseUrl'], str))
-        return {k: v for k, v in uploader.items() if v is not None}
+        return filter_dict(uploader)
 
     def _extract_from_tabs(self, item_id, ytcfg, data, tabs):
         playlist_id = title = description = channel_url = channel_name = channel_id = None
