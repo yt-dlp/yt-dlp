@@ -907,6 +907,9 @@ class DiscoveryPlusItalyIE(DiscoveryPlusBaseIE):
     _TESTS = [{
         'url': 'https://www.discoveryplus.com/it/video/i-signori-della-neve/stagione-2-episodio-1-i-preparativi',
         'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.com/it/video/super-benny/trailer',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'dplus_us'
@@ -915,6 +918,13 @@ class DiscoveryPlusItalyIE(DiscoveryPlusBaseIE):
         'realm': 'dplay',
         'country': 'it',
     }
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers.update({
+            'x-disco-params': 'realm=%s' % realm,
+            'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:25.2.6',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })
 
 
 class DiscoveryPlusItalyShowIE(DiscoveryPlusShowBaseIE):
