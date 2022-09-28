@@ -53,22 +53,17 @@ class WordpressPlaylistEmbedIE(InfoExtractor):
             playlist_json = self._parse_json(j, self._generic_id(url), fatal=False, ignore_extra=True, errnote='') or {}
             if not playlist_json:
                 continue
-            entries = []
-            for track in playlist_json.get('tracks') or []:
-                if not isinstance(track, dict):
-                    continue
-                entries.append({
-                    'id': self._generic_id(track['src']),
-                    'title': track.get('title'),
-                    'url': track.get('src'),
-                    'thumbnail': traverse_obj(track, ('thumb', 'src')),
-                    'album': traverse_obj(track, ('meta', 'album')),
-                    'artist': traverse_obj(track, ('meta', 'artist')),
-                    'genre': traverse_obj(track, ('meta', 'genre')),
-                    'duration': parse_duration(traverse_obj(track, ('meta', 'length_formatted'))),
-                    'description': track.get('description'),
-                    'height': int_or_none(traverse_obj(track, ('dimensions', 'original', 'height'))),
-                    'width': int_or_none(traverse_obj(track, ('dimensions', 'original', 'width'))),
-                })
-
+            entries = [{
+                'id': self._generic_id(track['src']),
+                'title': track.get('title'),
+                'url': track.get('src'),
+                'thumbnail': traverse_obj(track, ('thumb', 'src')),
+                'album': traverse_obj(track, ('meta', 'album')),
+                'artist': traverse_obj(track, ('meta', 'artist')),
+                'genre': traverse_obj(track, ('meta', 'genre')),
+                'duration': parse_duration(traverse_obj(track, ('meta', 'length_formatted'))),
+                'description': track.get('description'),
+                'height': int_or_none(traverse_obj(track, ('dimensions', 'original', 'height'))),
+                'width': int_or_none(traverse_obj(track, ('dimensions', 'original', 'width'))),
+            } for track in traverse_obj(playlist_json, ('tracks', ...), expected_type=dict)]
             yield self.playlist_result(entries, self._generic_id(url) + f'-wp-playlist-{i+1}', 'Wordpress Playlist')
