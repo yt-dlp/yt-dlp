@@ -73,7 +73,8 @@ class BitChuteIE(InfoExtractor):
             raise self.raise_no_formats('Video is unavailable', expected=True, video_id=video_id)
         self._sort_formats(formats)
 
-        description = self._og_search_description(webpage)
+        # some videos have empty string as description, default suppresses the warning
+        description = self._og_search_description(webpage, default=None)
         thumbnail = self._og_search_thumbnail(webpage)
         uploader = clean_html(get_element_by_class('owner', webpage))
         publish_date = clean_html(get_element_by_class('video-publish-date', webpage))
