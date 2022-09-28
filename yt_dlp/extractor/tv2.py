@@ -118,7 +118,7 @@ class TV2IE(InfoExtractor):
 
 
 class TV2ArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tv2\.no/(?:a|(?:[^?#]{2,}))/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tv2\.no/(?!v(?:ideo)?\d*/)[^?#]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.tv2.no/underholdning/forraeder/katarina-flatland-angrer-etter-forraeder-exit/15095188/',
         'info_dict': {
