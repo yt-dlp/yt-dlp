@@ -1,11 +1,14 @@
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     get_elements_by_class,
     int_or_none,
     parse_duration,
-    traverse_obj,
+    traverse_obj, get_elements_text_and_html_by_attribute, get_element_text_and_html_by_tag, extract_attributes,
 )
 
+from yt_dlp.jsinterp import JSInterpreter
 
 # https://codex.wordpress.org/Playlist_Shortcode
 class WordpressPlaylistEmbedIE(InfoExtractor):
@@ -67,3 +70,61 @@ class WordpressPlaylistEmbedIE(InfoExtractor):
                 'width': int_or_none(traverse_obj(track, ('dimensions', 'original', 'width'))),
             } for track in traverse_obj(playlist_json, ('tracks', ...), expected_type=dict)]
             yield self.playlist_result(entries, self._generic_id(url) + f'-wp-playlist-{i+1}', 'Wordpress Playlist')
+
+
+class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
+    # WordPress MB Mini Player Plugin
+    # https://wordpress.org/plugins/wp-miniaudioplayer/
+    # Note: This is for the WordPress plugin version only.
+    _VALID_URL = False
+    IE_NAME = 'wordpress:mb.miniAudioPlayer'
+    _WEBPAGE_TESTS = [{
+        # Version 1.8.10: https://plugins.trac.wordpress.org/browser/wp-miniaudioplayer/tags/1.8.10
+        'url': 'https://news.samsung.com/global/over-the-horizon-the-evolution-of-the-samsung-galaxy-brand-sound',
+        'info_dict': {
+            'id': 'over-the-horizon-the-evolution-of-the-samsung-galaxy-brand-sound',
+            'title': 'Over the Horizon: The Evolution of the Samsung Galaxy Brand Sound',
+            'age_limit': 0,
+            'thumbnail': 'https://img.global.news.samsung.com/global/wp-content/uploads/2015/04/OTH_Main_Title-e1429612467870.jpg',
+            'description': 'md5:bc3dd738d1f11d9232e94e6629983bf7',
+        },
+        'playlist': [{
+                'info_dict': {
+                    'id': 'over_the_horizon_2013',
+                    'ext': 'mp3',
+                    'title': 'Over the Horizon 2013',
+                    'url': 'http://news.samsung.com/global/wp-content/uploads/ringtones/over_the_horizon_2013.mp3'
+                }
+            }],
+        'playlist_count': 6,
+        'params': {'skip_download': True}
+    }]
+
+    def _extract_from_webpage(self, url, webpage):
+        # Common function for the WordPress plugin version only.
+        mb_player_params = self._search_regex(
+            r'function\s*initializeMiniAudioPlayer\(\){[^}]+jQuery([^;]+)\.mb_miniPlayer',
+            webpage, 'mb player params', default=None)
+        if not mb_player_params:
+            return
+        # v1.55 - 1.9.3 has "a[href*='.mp3'] ,a[href*='.m4a']"
+        # v1.9.4+ has "a[href*='.mp3']" only
+        file_exts = re.findall(r'a\[href\*=\'\.([a-zA-Z\d]+)\'', mb_player_params)
+        if not file_exts:
+            return
+
+        # XXX: this is inefficient, but it works
+        candidates = (
+            get_element_text_and_html_by_tag('a', html)
+            for _, html in get_elements_text_and_html_by_attribute(
+                f'href', rf'(?:[^\"\']+\.(?:{"|".join(file_exts)}))', webpage, escape_value=False))
+
+        for title, html in candidates:
+            attrs = extract_attributes(html)
+            if any(c in (attrs.get('class') or '') for c in re.findall(r'\.not\("\.([^"]+)', mb_player_params)):
+                continue
+            yield {
+                'id': self._generic_id(attrs['href']),
+                'title': title,
+                'url': attrs['href'],
+            }

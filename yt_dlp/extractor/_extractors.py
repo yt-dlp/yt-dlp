@@ -693,7 +693,7 @@ from .hse import (
     HSEShowIE,
     HSEProductIE,
 )
-from .genericembeds import HTML5MediaEmbedIE, MbMiniPlayerEmbedIE
+from .genericembeds import HTML5MediaEmbedIE
 from .huajiao import HuajiaoIE
 from .huya import HuyaLiveIE
 from .huffpost import HuffPostIE
@@ -2146,7 +2146,10 @@ from .wistia import (
     WistiaPlaylistIE,
     WistiaChannelIE,
 )
-from .wordpress import WordpressPlaylistEmbedIE
+from .wordpress import (
+    WordpressPlaylistEmbedIE,
+    WordpressMiniAudioPlayerEmbedIE,
+)
 from .worldstarhiphop import WorldStarHipHopIE
 from .wppilot import (
     WPPilotIE,
