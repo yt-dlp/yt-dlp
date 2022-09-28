@@ -18,7 +18,7 @@ class BitChuteIE(InfoExtractor):
         'url': 'https://www.bitchute.com/video/UGlrF9o9b-Q/',
         'md5': '7e427d7ed7af5a75b5855705ec750e2b',
         'info_dict': {
-            'id': 'szoMrox2JEI',
+            'id': 'UGlrF9o9b-Q',
             'ext': 'mp4',
             'title': 'This is the first video on #BitChute !',
             'description': 'md5:a0337e7b1fe39e32336974af8173a034',
@@ -102,10 +102,10 @@ class BitChuteIE(InfoExtractor):
 class BitChuteChannelIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?bitchute\.com/channel/(?P<id>[^/?#&]+)'
     _TEST = {
-        'url': 'https://www.bitchute.com/channel/victoriaxrave/',
-        'playlist_mincount': 185,
+        'url': 'https://www.bitchute.com/channel/bitchute/',
+        'playlist_mincount': 10,
         'info_dict': {
-            'id': 'victoriaxrave',
+            'id': 'bitchute',
         },
     }
 
