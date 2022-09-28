@@ -69,8 +69,6 @@ class BitChuteIE(InfoExtractor):
             formats = entries[0]['formats']
 
         self._check_formats(formats, video_id)
-        if not formats:
-            raise self.raise_no_formats('Video is unavailable', expected=True, video_id=video_id)
         self._sort_formats(formats)
 
         # some videos have empty string as description, default suppresses the warning
