@@ -84,7 +84,7 @@ class Zee5IE(InfoExtractor):
         'only_matching': True
     }]
     _DETAIL_API_URL = 'https://spapi.zee5.com/singlePlayback/getDetails/secure?content_id={}&device_id={}&platform_name=desktop_web&country=IN&check_parental_control=false'
-    _DEVICE_ID = '1q70TH8Wz0wTyw4buVgg000000000000'
+    _DEVICE_ID = 'g2macC1Hj4uMxXaMI3Vz000000000000'
     _USER_TOKEN = None
     _LOGIN_HINT = 'Use "--username <mobile_number>" to login using otp or "--username token" and "--password <user_token>" to login using user token.'
     _NETRC_MACHINE = 'zee5'
