@@ -9,6 +9,8 @@ from ..utils import (
     get_element_by_class,
     get_elements_html_by_class,
     orderedSet,
+    parse_count,
+    parse_duration,
     unified_strdate,
     urlencode_postdata,
 )
@@ -119,21 +121,28 @@ class BitChuteChannelIE(InfoExtractor):
                     'X-Requested-With': 'XMLHttpRequest',
                     'Cookie': 'csrftoken=%s' % self._TOKEN,
                 })
-            if data.get('success') is False:
+            if data.get('success') is not True:
                 break
             html = data.get('html')
-            if not html:
-                break
-            video_ids = re.findall(
-                r'class=["\']channel-videos-image-container[^>]+>\s*<a\b[^>]+\bhref=["\']/video/([^"\'/]+)',
-                html)
-            if not video_ids:
-                break
-            offset += len(video_ids)
-            for video_id in video_ids:
-                yield self.url_result(
+            results = []
+            for video_html in get_elements_html_by_class('channel-videos-container', html):
+                match = re.search(r'<a\b[^>]+\bhref=["\']/video/(?P<id>[^"\'/]+)', video_html)
+                if not match:
+                    continue
+                video_id = match.group('id')
+                results.append(self.url_result(
                     'https://www.bitchute.com/video/%s' % video_id,
-                    ie=BitChuteIE.ie_key(), video_id=video_id)
+                    ie=BitChuteIE.ie_key(), video_id=video_id, url_transparent=True,
+                    title=clean_html(get_element_by_class('channel-videos-title', video_html)),
+                    description=clean_html(get_element_by_class('channel-videos-text', video_html)),
+                    duration=parse_duration(get_element_by_class('video-duration', video_html)),
+                    view_count=parse_count(clean_html(get_element_by_class('video-views', video_html))),
+                ))
+            if not results:
+                break
+            offset += len(results)
+            for result in results:
+                yield result
 
     def _real_extract(self, url):
         channel_id = self._match_id(url)
