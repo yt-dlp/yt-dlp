@@ -94,31 +94,50 @@ class BitChuteIE(InfoExtractor):
 
 
 class BitChuteChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?bitchute\.com/channel/(?P<id>[^/?#&]+)'
-    _TEST = {
+    _VALID_URL = r'https?://(?:www\.)?bitchute\.com/(?P<type>channel|playlist)/(?P<id>[^/?#&]+)'
+    _TESTS = [{
         'url': 'https://www.bitchute.com/channel/bitchute/',
         'playlist_mincount': 10,
         'info_dict': {
             'id': 'bitchute',
         },
-    }
+    }, {
+        'url': 'https://www.bitchute.com/playlist/wV9Imujxasw9/',
+        'playlist_mincount': 30,
+        'info_dict': {
+            'id': 'wV9Imujxasw9',
+        }
+    }]
 
     _TOKEN = 'zyG6tQcGPE5swyAEFLqKUwMuMMuF6IO2DZ6ZDQjGfsL0e4dcTLwqkTTul05Jdve7'
+    HTML_CLASS_NAMES = {
+        'channel': {
+            'container': 'channel-videos-container',
+            'title': 'channel-videos-title',
+            'description': 'channel-videos-text',
+        },
+        'playlist': {
+            'container': 'playlist-video',
+            'title': 'title',
+            'description': 'description',
+        }
 
-    def _entries(self, channel_id):
-        channel_url = 'https://www.bitchute.com/channel/%s/' % channel_id
+    }
+
+    def _entries(self, playlist_type, playlist_id):
+        playlist_url = 'https://www.bitchute.com/%s/%s/' % (playlist_type, playlist_id)
         offset = 0
         for page_num in itertools.count(1):
             data = self._download_json(
-                '%sextend/' % channel_url, channel_id,
-                'Downloading channel page %d' % page_num,
+                '%sextend/' % playlist_url, playlist_id,
+                'Downloading %s page %d' % (playlist_type, page_num),
                 data=urlencode_postdata({
                     'csrfmiddlewaretoken': self._TOKEN,
                     'name': '',
                     'offset': offset,
                 }), headers={
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                    'Referer': channel_url,
+                    'Referer': playlist_url,
                     'X-Requested-With': 'XMLHttpRequest',
                     'Cookie': 'csrftoken=%s' % self._TOKEN,
                 })
@@ -126,7 +145,8 @@ class BitChuteChannelIE(InfoExtractor):
                 break
             html = data.get('html')
             results = []
-            for video_html in get_elements_html_by_class('channel-videos-container', html):
+            class_name = self.HTML_CLASS_NAMES[playlist_type]
+            for video_html in get_elements_html_by_class(class_name['container'], html):
                 match = re.search(r'<a\b[^>]+\bhref=["\']/video/(?P<id>[^"\'/]+)', video_html)
                 if not match:
                     continue
@@ -134,10 +154,14 @@ class BitChuteChannelIE(InfoExtractor):
                 results.append(self.url_result(
                     'https://www.bitchute.com/video/%s' % video_id,
                     ie=BitChuteIE.ie_key(), video_id=video_id, url_transparent=True,
-                    title=clean_html(get_element_by_class('channel-videos-title', video_html)),
-                    description=clean_html(get_element_by_class('channel-videos-text', video_html)),
+                    title=clean_html(get_element_by_class(class_name['title'], video_html)),
+                    description=clean_html(
+                        get_element_by_class(class_name['description'], video_html)
+                    ),
                     duration=parse_duration(get_element_by_class('video-duration', video_html)),
-                    view_count=parse_count(clean_html(get_element_by_class('video-views', video_html))),
+                    view_count=parse_count(clean_html(
+                        get_element_by_class('video-views', video_html))
+                    ),
                 ))
             if not results:
                 break
@@ -146,6 +170,6 @@ class BitChuteChannelIE(InfoExtractor):
                 yield result
 
     def _real_extract(self, url):
-        channel_id = self._match_id(url)
+        playlist_type, playlist_id = self._match_valid_url(url).groups()
         return self.playlist_result(
-            self._entries(channel_id), playlist_id=channel_id)
+            self._entries(playlist_type, playlist_id), playlist_id=playlist_id)
