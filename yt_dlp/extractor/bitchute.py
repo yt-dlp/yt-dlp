@@ -5,6 +5,9 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
+    clean_html,
+    get_element_by_class,
+    get_elements_html_by_class,
     orderedSet,
     unified_strdate,
     urlencode_postdata,
@@ -42,12 +45,7 @@ class BitChuteIE(InfoExtractor):
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.57 Safari/537.36',
             })
 
-        title = self._html_search_regex(
-            (r'<[^>]+\bid=["\']video-title[^>]+>([^<]+)', r'<title>([^<]+)'),
-            webpage, 'title', default=None) or self._html_search_meta(
-            'description', webpage, 'title',
-            default=None) or self._og_search_description(webpage)
-
+        title = self._html_extract_title(webpage) or self._og_search_title(webpage)
         format_urls = []
         for mobj in re.finditer(
                 r'addWebSeed\s*\(\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage):
@@ -73,20 +71,13 @@ class BitChuteIE(InfoExtractor):
             raise self.raise_no_formats('Video is unavailable', expected=True, video_id=video_id)
         self._sort_formats(formats)
 
-        description = self._html_search_regex(
-            r'(?s)<div\b[^>]+\bclass=["\']full hidden[^>]+>(.+?)</div>',
-            webpage, 'description', fatal=False)
-        thumbnail = self._og_search_thumbnail(
-            webpage, default=None) or self._html_search_meta(
-            'twitter:image:src', webpage, 'thumbnail')
-        uploader = self._html_search_regex(
-            (r'(?s)<div class=["\']channel-banner.*?<p\b[^>]+\bclass=["\']name[^>]+>(.+?)</p>',
-             r'(?s)<p\b[^>]+\bclass=["\']video-author[^>]+>(.+?)</p>'),
-            webpage, 'uploader', fatal=False)
-
+        description = self._og_search_description(webpage)
+        thumbnail = self._og_search_thumbnail(webpage)
+        uploader = clean_html(get_element_by_class('owner', webpage))
+        publish_date = clean_html(get_element_by_class('video-publish-date', webpage))
         upload_date = unified_strdate(self._search_regex(
-            r'class=["\']video-publish-date[^>]+>[^<]+ at \d+:\d+ UTC on (.+?)\.',
-            webpage, 'upload date', fatal=False))
+            r'at \d+:\d+ UTC on (.+?)\.', publish_date, 'upload date', fatal=False)
+        )
 
         return {
             'id': video_id,
