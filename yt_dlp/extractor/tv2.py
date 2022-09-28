@@ -27,7 +27,7 @@ class TV2IE(InfoExtractor):
             'timestamp': 1664238190,
             'upload_date': '20220927',
             'duration': 146,
-            'thumbnail': 'https://sumo.cdn.tv2.no/imageapi/v3/img/633242f5498e036293a310a9-1664238962895',
+            'thumbnail': r're:^https://.*$',
             'view_count': int,
             'categories': list,
         },
