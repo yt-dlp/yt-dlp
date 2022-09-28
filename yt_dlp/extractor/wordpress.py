@@ -147,8 +147,9 @@ class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
             attrs = extract_attributes(html)
             if any(c in (attrs.get('class') or '') for c in re.findall(r'\.not\("\.([^"]+)', mb_player_params)):
                 continue
+            href = attrs['href']
             yield {
-                'id': self._generic_id(attrs['href']),
-                'title': title,
-                'url': attrs['href'],
+                'id': self._generic_id(href),
+                'title': title or self._generic_title(href),
+                'url': href,
             }
