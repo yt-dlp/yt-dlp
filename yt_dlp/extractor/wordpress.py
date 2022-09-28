@@ -98,6 +98,30 @@ class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
             }],
         'playlist_count': 6,
         'params': {'skip_download': True}
+    }, {
+        # Version 1.9.3: https://plugins.trac.wordpress.org/browser/wp-miniaudioplayer/tags/1.9.3
+        'url': 'https://www.booksontape.com/collections/audiobooks-with-teacher-guides/',
+        'info_dict': {
+            'id': 'audiobooks-with-teacher-guides',
+            'title': 'Audiobooks with Teacher Guides | Books on Tape',
+            'age_limit': 0,
+            'thumbnail': 'https://www.booksontape.com/wp-content/uploads/2016/09/bot-logo-1200x630.jpg',
+        },
+        'playlist_mincount': 12
+    }, {
+        # Version 1.9.7: https://plugins.trac.wordpress.org/browser/wp-miniaudioplayer/tags/1.9.7
+        # But has spaces around href filter
+        'url': 'https://www.estudiords.com.br/temas/',
+        'info_dict': {
+            'id': 'temas',
+            'title': 'Temas Variados',
+            'age_limit': 0,
+            'timestamp': 1664255200.0,
+            'upload_date': '20220927',
+            'thumbnail': 'https://www.estudiords.com.br/wp-content/uploads/2021/03/LOGO-TEMAS.png',
+            'description': 'md5:ab24d6a7ed0312ad2d466e721679f5a0',
+        },
+        'playlist_mincount': 30
     }]
 
     def _extract_from_webpage(self, url, webpage):
@@ -109,7 +133,7 @@ class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
             return
         # v1.55 - 1.9.3 has "a[href*='.mp3'] ,a[href*='.m4a']"
         # v1.9.4+ has "a[href*='.mp3']" only
-        file_exts = re.findall(r'a\[href\*=\'\.([a-zA-Z\d]+)\'', mb_player_params)
+        file_exts = re.findall(r'a\[href\s*\*=\s*\'\.([a-zA-Z\d]+)\'', mb_player_params)
         if not file_exts:
             return
 
