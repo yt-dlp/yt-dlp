@@ -5,7 +5,6 @@ import random
 import re
 import time
 
-from .anvato_token_generator import NFLTokenGenerator
 from .common import InfoExtractor
 from ..aes import aes_encrypt
 from ..utils import (
@@ -17,6 +16,7 @@ from ..utils import (
     join_nonempty,
     strip_jsonp,
     smuggle_url,
+    traverse_obj,
     unescapeHTML,
     unsmuggle_url,
 )
@@ -229,8 +229,29 @@ class AnvatoIE(InfoExtractor):
         'telemundo': 'anvato_mcp_telemundo_web_prod_c5278d51ad46fda4b6ca3d0ea44a7846a054f582'
     }
 
+    def _generate_nfl_token(self, anvack, mcp_id):
+        reroute = self._download_json(
+            'https://api.nfl.com/v1/reroute', mcp_id, data=b'grant_type=client_credentials',
+            headers={'X-Domain-Id': 100}, note='Fetching token info')
+        token_type = reroute.get('token_type') or 'Bearer'
+        auth_token = f'{token_type} {reroute["access_token"]}'
+        response = self._download_json(
+            'https://api.nfl.com/v3/shield/', mcp_id, data=json.dumps({
+                'query': '''{
+  viewer {
+    mediaToken(anvack: "%s", id: %s) {
+      token
+    }
+  }
+}''' % (anvack, mcp_id),
+            }).encode(), headers={
+                'Authorization': auth_token,
+                'Content-Type': 'application/json',
+            }, note='Fetching NFL API token')
+        return traverse_obj(response, ('data', 'viewer', 'mediaToken', 'token'))
+
     _TOKEN_GENERATORS = {
-        'GXvEgwyJeWem8KCYXfeoHWknwP48Mboj': NFLTokenGenerator,
+        'GXvEgwyJeWem8KCYXfeoHWknwP48Mboj': _generate_nfl_token,
     }
 
     def _server_time(self, access_key, video_id):
@@ -263,7 +284,7 @@ class AnvatoIE(InfoExtractor):
         if extracted_token is not None:
             api['anvstk2'] = extracted_token
         elif self._TOKEN_GENERATORS.get(access_key) is not None:
-            api['anvstk2'] = self._TOKEN_GENERATORS[access_key].generate(self, access_key, video_id)
+            api['anvstk2'] = self._TOKEN_GENERATORS[access_key](self, access_key, video_id)
         elif self._ANVACK_TABLE.get(access_key) is not None:
             api['anvstk'] = md5_text(f'{access_key}|{anvrid}|{server_time}|{self._ANVACK_TABLE[access_key]}')
         else:
