@@ -859,6 +859,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
                     stream_url, display_id, mpd_id=format_id,
                     fatal=False, note=f'Downloading {format_id} MPD manifest')
             else:
+                self.report_warning(f'Encountered unknown stream_type: {stream_type!r}', display_id, only_once=True)
                 continue
             for f in adaptive_formats:
                 if f.get('acodec') != 'none':
