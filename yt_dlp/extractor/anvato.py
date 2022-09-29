@@ -36,25 +36,40 @@ class AnvatoIE(InfoExtractor):
     _AUTH_KEY = b'\x31\xc2\x42\x84\x9e\x73\xa0\xce'  # from anvplayer.min.js
 
     _TESTS = [{
-        # from https://www.boston25news.com/news/watch-humpback-whale-breaches-right-next-to-fishing-boat-near-nh/817484874
-        'url': 'anvato:8v9BEynrwx8EFLYpgfOWcG1qJqyXKlRM:4465496',
+        # from https://www.nfl.com/videos/baker-mayfield-s-game-changing-plays-from-3-td-game-week-14
+        'url': 'anvato:GXvEgwyJeWem8KCYXfeoHWknwP48Mboj:899441',
+        'md5': '921919dab3cd0b849ff3d624831ae3e2',
         'info_dict': {
-            'id': '4465496',
+            'id': '899441',
             'ext': 'mp4',
-            'title': 'VIDEO: Humpback whale breaches right next to NH boat',
-            'description': 'VIDEO: Humpback whale breaches right next to NH boat. Footage courtesy: Zach Fahey.',
-            'duration': 22,
-            'timestamp': 1534855680,
-            'upload_date': '20180821',
-            'uploader': 'ANV',
-        },
-        'params': {
-            'skip_download': True,
+            'title': 'Baker Mayfield\'s game-changing plays from 3-TD game Week 14',
+            'description': 'md5:85e05a3cc163f8c344340f220521136d',
+            'upload_date': '20201215',
+            'timestamp': 1608009755,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'uploader': 'NFL',
+            'tags': ['Baltimore Ravens at Cleveland Browns (2020-REG-14)', 'Baker Mayfield', 'Game Highlights',
+                     'Player Highlights', 'Cleveland Browns', 'league'],
+            'duration': 157,
+            'categories': ['Entertainment', 'Game', 'Highlights'],
         },
     }, {
-        # from https://sanfrancisco.cbslocal.com/2016/06/17/source-oakland-cop-on-leave-for-having-girlfriend-help-with-police-reports/
-        'url': 'anvato:DVzl9QRzox3ZZsP9bNu5Li3X7obQOnqP:3417601',
-        'only_matching': True,
+        # from https://ktla.com/news/99-year-old-woman-learns-to-fly-in-torrance-checks-off-bucket-list-dream/
+        'url': 'anvato:X8POa4zpGZMmeiq0wqiO8IP5rMqQM9VN:8032455',
+        'md5': '837718bcfb3a7778d022f857f7a9b19e',
+        'info_dict': {
+            'id': '8032455',
+            'ext': 'mp4',
+            'title': '99-year-old woman learns to fly plane in Torrance, checks off bucket list dream',
+            'description': 'md5:0a12bab8159445e78f52a297a35c6609',
+            'upload_date': '20220928',
+            'timestamp': 1664408881,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'uploader': 'LIN',
+            'tags': ['video', 'news', '5live'],
+            'duration': 155,
+            'categories': ['News'],
+        },
     }]
 
     # Copied from anvplayer.min.js
