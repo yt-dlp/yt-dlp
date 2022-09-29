@@ -31,6 +31,32 @@ def md5_text(s):
 class AnvatoIE(InfoExtractor):
     _VALID_URL = r'anvato:(?P<access_key_or_mcp>[^:]+):(?P<id>\d+)'
 
+    _API_BASE_URL = 'https://tkx.mp.lura.live/rest/v2'
+    _ANVP_RE = r'<script[^>]+\bdata-anvp\s*=\s*(["\'])(?P<anvp>(?:(?!\1).)+)\1'
+    _AUTH_KEY = b'\x31\xc2\x42\x84\x9e\x73\xa0\xce'  # from anvplayer.min.js
+
+    _TESTS = [{
+        # from https://www.boston25news.com/news/watch-humpback-whale-breaches-right-next-to-fishing-boat-near-nh/817484874
+        'url': 'anvato:8v9BEynrwx8EFLYpgfOWcG1qJqyXKlRM:4465496',
+        'info_dict': {
+            'id': '4465496',
+            'ext': 'mp4',
+            'title': 'VIDEO: Humpback whale breaches right next to NH boat',
+            'description': 'VIDEO: Humpback whale breaches right next to NH boat. Footage courtesy: Zach Fahey.',
+            'duration': 22,
+            'timestamp': 1534855680,
+            'upload_date': '20180821',
+            'uploader': 'ANV',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # from https://sanfrancisco.cbslocal.com/2016/06/17/source-oakland-cop-on-leave-for-having-girlfriend-help-with-police-reports/
+        'url': 'anvato:DVzl9QRzox3ZZsP9bNu5Li3X7obQOnqP:3417601',
+        'only_matching': True,
+    }]
+
     # Copied from anvplayer.min.js
     _ANVACK_TABLE = {
         'nbcu_nbcd_desktop_web_prod_93d8ead38ce2024f8f544b78306fbd15895ae5e6': 'NNemUkySjxLyPTKvZRiGntBIjEyK8uqicjMakIaQ',
@@ -206,32 +232,6 @@ class AnvatoIE(InfoExtractor):
     _TOKEN_GENERATORS = {
         'GXvEgwyJeWem8KCYXfeoHWknwP48Mboj': NFLTokenGenerator,
     }
-
-    _API_BASE_URL = 'https://tkx.mp.lura.live/rest/v2'
-    _ANVP_RE = r'<script[^>]+\bdata-anvp\s*=\s*(["\'])(?P<anvp>(?:(?!\1).)+)\1'
-    _AUTH_KEY = b'\x31\xc2\x42\x84\x9e\x73\xa0\xce'  # from anvplayer.min.js
-
-    _TESTS = [{
-        # from https://www.boston25news.com/news/watch-humpback-whale-breaches-right-next-to-fishing-boat-near-nh/817484874
-        'url': 'anvato:8v9BEynrwx8EFLYpgfOWcG1qJqyXKlRM:4465496',
-        'info_dict': {
-            'id': '4465496',
-            'ext': 'mp4',
-            'title': 'VIDEO: Humpback whale breaches right next to NH boat',
-            'description': 'VIDEO: Humpback whale breaches right next to NH boat. Footage courtesy: Zach Fahey.',
-            'duration': 22,
-            'timestamp': 1534855680,
-            'upload_date': '20180821',
-            'uploader': 'ANV',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # from https://sanfrancisco.cbslocal.com/2016/06/17/source-oakland-cop-on-leave-for-having-girlfriend-help-with-police-reports/
-        'url': 'anvato:DVzl9QRzox3ZZsP9bNu5Li3X7obQOnqP:3417601',
-        'only_matching': True,
-    }]
 
     def _server_time(self, access_key, video_id):
         server_time = int_or_none(self._download_json(
