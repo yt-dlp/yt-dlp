@@ -20,6 +20,7 @@ from ..utils import (
     unified_timestamp,
     update_url_query,
     url_basename,
+    variadic,
 )
 
 
@@ -630,6 +631,8 @@ class NBCStationsIE(InfoExtractor):
         },
     }]
 
+    _RESOLUTIONS = {'1080': '1920', '720': '1280', '540': '960', '360': '640', '234': '416'}
+
     def _real_extract(self, url):
         channel, video_id = self._match_valid_url(url).group('site', 'id')
         webpage = self._download_webpage(url, video_id)
@@ -642,10 +645,7 @@ class NBCStationsIE(InfoExtractor):
 
         video_data = self._parse_json(self._html_search_regex(
             r'data-videos="([^"]*)"', webpage, 'video data', fatal=False, default='{}'), video_id)
-        if isinstance(video_data, list):
-            video_data = video_data[0]
-        if not isinstance(video_data, dict):
-            video_data = {}
+        video_data = variadic(video_data)[0]
         video_data.update(self._parse_json(self._html_search_regex(
             r'data-meta="([^"]*)"', webpage, 'metadata', fatal=False, default='{}'), video_id))
 
@@ -656,8 +656,6 @@ class NBCStationsIE(InfoExtractor):
             player_id = traverse_obj(
                 video_data, 'mpx_m3upid', ('video', 'meta', 'mpx_m3upid'), 'mpx_pid',
                 ('video', 'meta', 'mpx_pid'), 'pid_streaming_web_medium')
-            title = f'{channel} livestream'
-            entry_protocol = 'm3u8'
             query = {
                 'mbr': 'true',
                 'assetTypes': 'LegacyRelease',
@@ -676,20 +674,15 @@ class NBCStationsIE(InfoExtractor):
                 'schema': '2.0',
                 'SDK': 'PDK+6.1.3',
             }
-            info = {}
+            info = {
+                'title': f'{channel} livestream'
+            }
 
         else:
             live = False
             player_id = traverse_obj(
                 video_data, ('video', 'meta', 'pid_streaming_web_high'), 'pid_streaming_web_high',
                 ('video', 'meta', 'mpx_pid'), 'mpx_pid')
-
-            title = video_data.get('title')
-            if not title:
-                title = traverse_obj(
-                    nbc_data, ('dataLayer', 'contenttitle'), ('dataLayer', 'title'),
-                    ('dataLayer', 'adobe', 'prop22'), ('dataLayer', 'id'))
-            description = traverse_obj(video_data, 'summary', 'excerpt', 'video_hero_text')
 
             date_string = traverse_obj(video_data, 'date_string', 'date_gmt')
             if date_string:
@@ -702,17 +695,15 @@ class NBCStationsIE(InfoExtractor):
 
             video_url = traverse_obj(video_data, ('video', 'meta', 'mp4_url'), 'mp4_url')
             if video_url:
-                resolutions = {'1080': '1920', '720': '1280', '540': '960', '360': '640', '234': '416'}
                 height = url_basename(video_url).split('-')[1].split('p')[0]
                 formats.append({
                     'url': video_url,
                     'ext': 'mp4',
-                    'width': int_or_none(resolutions.get(height)),
+                    'width': int_or_none(self._RESOLUTIONS.get(height)),
                     'height': int_or_none(height),
                     'format_id': f'http-{height}',
                 })
 
-            entry_protocol = 'm3u8_native'
             query = {
                 'mbr': 'true',
                 'assetTypes': 'LegacyRelease',
@@ -725,7 +716,10 @@ class NBCStationsIE(InfoExtractor):
                 'formats': 'MPEG4',
             }
             info = {
-                'description': description,
+                'title': video_data.get('title') or traverse_obj(
+                    nbc_data, ('dataLayer', 'contenttitle'), ('dataLayer', 'title'),
+                    ('dataLayer', 'adobe', 'prop22'), ('dataLayer', 'id')),
+                'description': traverse_obj(video_data, 'summary', 'excerpt', 'video_hero_text'),
                 'upload_date': str_or_none(unified_strdate(date_string)),
                 'timestamp': int_or_none(unified_timestamp(date_string)),
             }
@@ -744,13 +738,12 @@ class NBCStationsIE(InfoExtractor):
             manifest_url = urlh.geturl()
 
         formats.extend(self._extract_m3u8_formats(
-            manifest_url, video_id, 'mp4', entry_protocol=entry_protocol, headers=headers,
-            m3u8_id='hls', fatal=live, live=live, errnote='No HLS formats found'))
+            manifest_url, video_id, 'mp4', headers=headers, m3u8_id='hls',
+            fatal=live, live=live, errnote='No HLS formats found'))
         self._sort_formats(formats)
 
         return {
             'id': str_or_none(video_id),
-            'title': str_or_none(title),
             'channel': channel,
             'uploader': str_or_none(nbc_data.get('on_air_name')),
             'uploader_id': str_or_none(nbc_data.get('callLetters')),
