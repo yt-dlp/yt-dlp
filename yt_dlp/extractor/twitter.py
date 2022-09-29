@@ -754,13 +754,13 @@ class TwitterSpacesIE(TwitterBaseIE):
         }
         live_status = SPACE_SATUS.get(metadata.get('state').lower())
 
-        # partecipants
-        partecipants = join_nonempty(*[p.get('display_name') for p in traverse_obj(data, ('participants', 'speakers'))], delim=', ') or 'nobody yet.'
+        # participants
+        participants = join_nonempty(*[p.get('display_name') for p in traverse_obj(data, ('participants', 'speakers'))], delim=', ') or 'nobody yet.'
 
         return {
             'id': space_id,
             'title': metadata.get('title'),
-            'description': f'Twitter Space partecipated by {partecipants}',
+            'description': f'Twitter Space partecipated by {participants}',
             'media_key': metadata.get('media_key'),
             'uploader': traverse_obj(
                 metadata, ('creator_results', 'result', 'legacy', 'name')),
