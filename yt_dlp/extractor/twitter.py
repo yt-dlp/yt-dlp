@@ -711,13 +711,16 @@ class TwitterSpacesIE(TwitterBaseIE):
         'url': 'https://twitter.com/i/spaces/1RDxlgyvNXzJL',
         'info_dict': {
             'id': '1RDxlgyvNXzJL',
-            'ext': 'mp4',
+            'ext': 'm4a',
             'title': 'King Carlo e la mossa Kansas City per fare il Grande Centro',
             'description': 'Twitter Space partecipated by annarita digiorgio, Signor Ernesto, Raffaello Colosimo, Simone M. Sepe',
-            'uploader': r're:Lucio Di Gaetano.+?',
+            'uploader': r're:Lucio Di Gaetano.*?',
             'uploader_id': 'luciodigaetano',
             'live_status': 'was_live',
             'timestamp': 1659877956397,
+        },
+        'params': {
+            'skip_download': True,
         },
     }, {
         # Twitter Space not started yet
@@ -740,16 +743,13 @@ class TwitterSpacesIE(TwitterBaseIE):
 
     def _parse_spaces_data(self, data, space_id):
         metadata = data.get('metadata')
-        space_status = metadata.get('state').lower()
-        live_status = None
-        if space_status == 'notstarted':
-            live_status = 'is_upcoming'
-        elif space_status == 'ended':
-            live_status = 'was_live'
-        elif space_status == 'running':
-            live_status = 'is_live'
-        elif space_status == 'timedout':
-            live_status = 'post_live'
+        SPACE_SATUS = {
+            'notstarted': 'is_upcoming',
+            'ended': 'was_live',
+            'running': 'is_live',
+            'timedout': 'post_live',
+        }
+        live_status = SPACE_SATUS.get(metadata.get('state').lower())
 
         # partecipants
         partecipants = join_nonempty(*[p.get('display_name') for p in traverse_obj(data, ('participants', 'speakers'))], delim=', ') or 'nobody yet.'
@@ -763,7 +763,7 @@ class TwitterSpacesIE(TwitterBaseIE):
                 metadata, ('creator_results', 'result', 'legacy', 'name')),
             'uploader_id': traverse_obj(
                 metadata, ('creator_results', 'result', 'legacy', 'screen_name')),
-            'is_live': space_status == 'running',
+            'is_live': live_status == 'is_live',
             'live_status': live_status,
             'timestamp': metadata.get('created_at'),
         }
