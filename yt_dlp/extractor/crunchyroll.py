@@ -864,8 +864,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
             for f in adaptive_formats:
                 if f.get('acodec') != 'none':
                     f['language'] = stream_response.get('audio_locale')
-                if requested_hardsubs:
-                    f['quality'] = hardsub_preference(hardsub_lang.lower())
+                f['quality'] = hardsub_preference(hardsub_lang.lower())
             formats.extend(adaptive_formats)
         self._sort_formats(formats)
 
