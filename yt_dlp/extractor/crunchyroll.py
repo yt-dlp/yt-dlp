@@ -779,7 +779,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
             'episode_number': 73,
             'thumbnail': r're:^https://beta.crunchyroll.com/imgsrv/.*\.jpeg$',
         },
-        'params': {'skip_download': 'm3u8'},
+        'params': {'skip_download': 'm3u8', 'format': 'all[format_id~=hardsub]'},
     }, {
         'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y',
         'only_matching': True,
@@ -821,7 +821,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
         if '' in available_formats:
             full_format_langs = set(requested_hardsubs)
         else:
-            full_format_langs = set(lang.lower() for lang in available_formats.keys())
+            full_format_langs = set(map(str.lower, available_formats))
 
         formats = []
         for stream_type, format_id, hardsub_lang, stream_url in available_formats.values():
