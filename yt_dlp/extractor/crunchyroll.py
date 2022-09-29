@@ -818,8 +818,9 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
                 format_id = join_nonempty(stream_type, format_field(stream, 'hardsub_locale', 'hardsub-%s'))
                 available_formats[hardsub_lang] = (stream_type, format_id, hardsub_lang, stream['url'])
 
-        if '' in available_formats:
+        if '' in available_formats and 'all' not in requested_hardsubs:
             full_format_langs = set(requested_hardsubs)
+            self.to_screen('To get all formats for the hardsub variants use "--extractor-args crunchyrollbeta:hardsub=all"')
         else:
             full_format_langs = set(map(str.lower, available_formats))
 
