@@ -781,6 +781,27 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
         },
         'params': {'skip_download': 'm3u8', 'format': 'all[format_id~=hardsub]'},
     }, {
+        'url': 'https://beta.crunchyroll.com/watch/GYE5WKQGR',
+        'info_dict': {
+            'id': 'GYE5WKQGR',
+            'ext': 'mp4',
+            'duration': 366.459,
+            'timestamp': 1476788400,
+            'description': 'md5:74b67283ffddd75f6e224ca7dc031e76',
+            'title': 'SHELTER Episode  – Porter Robinson presents Shelter the Animation',
+            'upload_date': '20161018',
+            'series': 'SHELTER',
+            'series_id': 'GYGG09WWY',
+            'season': 'SHELTER',
+            'season_id': 'GR09MGK4R',
+            'season_number': 1,
+            'episode': 'Porter Robinson presents Shelter the Animation',
+            'episode_number': 0,
+            'thumbnail': r're:^https://beta.crunchyroll.com/imgsrv/.*\.jpeg$',
+        },
+        'params': {'skip_download': True},
+        'skip': 'Video is Premium only',
+    }, {
         'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y',
         'only_matching': True,
     }, {
