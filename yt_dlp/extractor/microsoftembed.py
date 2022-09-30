@@ -6,8 +6,10 @@ from ..utils import (
 )
 from collections import OrderedDict
 
+
 class MicrosoftEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?microsoft\.com/en-us/videoplayer/embed/(?P<id>[a-z0-9A-Z]+)'
+
     _TESTS = [{
         'url': 'https://www.microsoft.com/en-us/videoplayer/embed/RWL07e',
         'info_dict': {
@@ -34,7 +36,7 @@ class MicrosoftEmbedIE(InfoExtractor):
                 formats.extend(self._extract_m3u8_formats(stream_url, video_id))
             elif source_type == 'mPEG_DASH':
                 formats.extend(self._extract_mpd_formats(stream_url, video_id))
-            else: 
+            else:
                 formats.append({
                     'format_id': source_type,
                     'url': stream_url,
