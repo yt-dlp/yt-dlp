@@ -55,7 +55,7 @@ class MicrosoftEmbedIE(InfoExtractor):
         for lang, data in (traverse_obj(metadata, 'captions') or {}).items():
             subtitles[lang] = [{
                 'url': data.get('url'),
-                'ext': 'ttml'
+                'ext': 'vtt'
             }]
 
         thumbnails = []
