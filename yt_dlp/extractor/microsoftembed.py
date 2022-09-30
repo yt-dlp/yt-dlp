@@ -68,7 +68,7 @@ class MicrosoftEmbedIE(InfoExtractor):
                 'http_headers': data.get('link')
             })
 
-        output = {
+        return {
             'id': video_id,
             'title': traverse_obj(metadata, ('snippet', 'title')),
             'thumbnails': thumbnails,
@@ -77,4 +77,3 @@ class MicrosoftEmbedIE(InfoExtractor):
             'age_limit': age_limit,
             'subtitles': subtitles
         }
-        return output
