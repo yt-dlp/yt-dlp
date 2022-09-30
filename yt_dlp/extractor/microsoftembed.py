@@ -21,9 +21,7 @@ class MicrosoftEmbedIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        metadata = self._download_json(
-            self._API_URL + video_id,
-            video_id)
+        metadata = self._download_json(self._API_URL + video_id, video_id)
 
         formats = []
         for source_type, source in metadata['streams'].items():
