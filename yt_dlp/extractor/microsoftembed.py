@@ -7,7 +7,7 @@ from ..utils import (
 
 
 class MicrosoftEmbedIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?microsoft\.com/en-us/videoplayer/embed/(?P<id>[a-z0-9A-Z]+)'
+    _VALID_URL = r'https?://(?:www\.)?microsoft\.com/(?:[^/]+/)?videoplayer/embed/(?P<id>[a-z0-9A-Z]+)'
 
     _TESTS = [{
         'url': 'https://www.microsoft.com/en-us/videoplayer/embed/RWL07e',
