@@ -779,7 +779,28 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
             'episode_number': 73,
             'thumbnail': r're:^https://beta.crunchyroll.com/imgsrv/.*\.jpeg$',
         },
-        'params': {'skip_download': 'm3u8'},
+        'params': {'skip_download': 'm3u8', 'format': 'all[format_id~=hardsub]'},
+    }, {
+        'url': 'https://beta.crunchyroll.com/watch/GYE5WKQGR',
+        'info_dict': {
+            'id': 'GYE5WKQGR',
+            'ext': 'mp4',
+            'duration': 366.459,
+            'timestamp': 1476788400,
+            'description': 'md5:74b67283ffddd75f6e224ca7dc031e76',
+            'title': 'SHELTER Episode  – Porter Robinson presents Shelter the Animation',
+            'upload_date': '20161018',
+            'series': 'SHELTER',
+            'series_id': 'GYGG09WWY',
+            'season': 'SHELTER',
+            'season_id': 'GR09MGK4R',
+            'season_number': 1,
+            'episode': 'Porter Robinson presents Shelter the Animation',
+            'episode_number': 0,
+            'thumbnail': r're:^https://beta.crunchyroll.com/imgsrv/.*\.jpeg$',
+        },
+        'params': {'skip_download': True},
+        'skip': 'Video is Premium only',
     }, {
         'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y',
         'only_matching': True,
@@ -807,30 +828,48 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
         hardsub_preference = qualities(requested_hardsubs[::-1])
         requested_formats = self._configuration_arg('format') or ['adaptive_hls']
 
-        formats = []
+        available_formats = {}
         for stream_type, streams in get_streams('streams'):
             if stream_type not in requested_formats:
                 continue
             for stream in streams.values():
-                hardsub_lang = stream.get('hardsub_locale') or ''
-                if hardsub_lang.lower() not in requested_hardsubs:
-                    continue
-                format_id = join_nonempty(stream_type, format_field(stream, 'hardsub_locale', 'hardsub-%s'))
                 if not stream.get('url'):
                     continue
-                if stream_type.endswith('hls'):
+                hardsub_lang = stream.get('hardsub_locale') or ''
+                format_id = join_nonempty(stream_type, format_field(stream, 'hardsub_locale', 'hardsub-%s'))
+                available_formats[hardsub_lang] = (stream_type, format_id, hardsub_lang, stream['url'])
+
+        if '' in available_formats and 'all' not in requested_hardsubs:
+            full_format_langs = set(requested_hardsubs)
+            self.to_screen(
+                'To get all formats of a hardsub language, use '
+                '"--extractor-args crunchyrollbeta:hardsub=<language_code or all>". '
+                'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta for more info',
+                only_once=True)
+        else:
+            full_format_langs = set(map(str.lower, available_formats))
+
+        formats = []
+        for stream_type, format_id, hardsub_lang, stream_url in available_formats.values():
+            if stream_type.endswith('hls'):
+                if hardsub_lang.lower() in full_format_langs:
                     adaptive_formats = self._extract_m3u8_formats(
-                        stream['url'], display_id, 'mp4', m3u8_id=format_id,
+                        stream_url, display_id, 'mp4', m3u8_id=format_id,
                         fatal=False, note=f'Downloading {format_id} HLS manifest')
-                elif stream_type.endswith('dash'):
-                    adaptive_formats = self._extract_mpd_formats(
-                        stream['url'], display_id, mpd_id=format_id,
-                        fatal=False, note=f'Downloading {format_id} MPD manifest')
-                for f in adaptive_formats:
-                    if f.get('acodec') != 'none':
-                        f['language'] = stream_response.get('audio_locale')
-                    f['quality'] = hardsub_preference(hardsub_lang.lower())
-                formats.extend(adaptive_formats)
+                else:
+                    adaptive_formats = (self._m3u8_meta_format(stream_url, ext='mp4', m3u8_id=format_id),)
+            elif stream_type.endswith('dash'):
+                adaptive_formats = self._extract_mpd_formats(
+                    stream_url, display_id, mpd_id=format_id,
+                    fatal=False, note=f'Downloading {format_id} MPD manifest')
+            else:
+                self.report_warning(f'Encountered unknown stream_type: {stream_type!r}', display_id, only_once=True)
+                continue
+            for f in adaptive_formats:
+                if f.get('acodec') != 'none':
+                    f['language'] = stream_response.get('audio_locale')
+                f['quality'] = hardsub_preference(hardsub_lang.lower())
+            formats.extend(adaptive_formats)
         self._sort_formats(formats)
 
         return {
