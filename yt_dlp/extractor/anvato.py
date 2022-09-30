@@ -270,14 +270,9 @@ class AnvatoIE(InfoExtractor):
     }
 
     def _server_time(self, access_key, video_id):
-        server_time = int_or_none(self._download_json(
+        return int_or_none(self._download_json(
             f'{self._API_BASE_URL}/server_time', video_id, query={'anvack': access_key},
-            note='Fetching server time').get('server_time'))
-
-        if not server_time:
-            self._SERVER_TIME = int(time.time())
-
-        return server_time
+            note='Fetching server time', fatal=False).get('server_time')) or int(time.time())
 
     def _get_video_json(self, access_key, video_id, extracted_token):
         # See et() in anvplayer.min.js, which is an alias of getVideoJSON()
