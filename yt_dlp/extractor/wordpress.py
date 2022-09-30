@@ -8,7 +8,6 @@ from ..utils import (
     traverse_obj, get_elements_text_and_html_by_attribute, get_element_text_and_html_by_tag, extract_attributes,
 )
 
-from yt_dlp.jsinterp import JSInterpreter
 
 # https://codex.wordpress.org/Playlist_Shortcode
 class WordpressPlaylistEmbedIE(InfoExtractor):
@@ -89,13 +88,13 @@ class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
             'description': 'md5:bc3dd738d1f11d9232e94e6629983bf7',
         },
         'playlist': [{
-                'info_dict': {
-                    'id': 'over_the_horizon_2013',
-                    'ext': 'mp3',
-                    'title': 'Over the Horizon 2013',
-                    'url': 'http://news.samsung.com/global/wp-content/uploads/ringtones/over_the_horizon_2013.mp3'
-                }
-            }],
+            'info_dict': {
+                'id': 'over_the_horizon_2013',
+                'ext': 'mp3',
+                'title': 'Over the Horizon 2013',
+                'url': 'http://news.samsung.com/global/wp-content/uploads/ringtones/over_the_horizon_2013.mp3'
+            }
+        }],
         'playlist_count': 6,
         'params': {'skip_download': True}
     }, {
@@ -116,8 +115,8 @@ class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
             'id': 'temas',
             'title': 'Temas Variados',
             'age_limit': 0,
-            'timestamp': 1664255200.0,
-            'upload_date': '20220927',
+            'timestamp': float,
+            'upload_date': str,
             'thumbnail': 'https://www.estudiords.com.br/wp-content/uploads/2021/03/LOGO-TEMAS.png',
             'description': 'md5:ab24d6a7ed0312ad2d466e721679f5a0',
         },
@@ -141,10 +140,11 @@ class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
         candidates = (
             get_element_text_and_html_by_tag('a', html)
             for _, html in get_elements_text_and_html_by_attribute(
-                f'href', rf'(?:[^\"\']+\.(?:{"|".join(file_exts)}))', webpage, escape_value=False))
+                'href', rf'(?:[^\"\']+\.(?:{"|".join(file_exts)}))', webpage, escape_value=False))
 
         for title, html in candidates:
             attrs = extract_attributes(html)
+            # FIXME: not tested, have not found any examples
             if any(c in (attrs.get('class') or '') for c in re.findall(r'\.not\("\.([^"]+)', mb_player_params)):
                 continue
             href = attrs['href']

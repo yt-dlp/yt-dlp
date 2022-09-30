@@ -1,7 +1,5 @@
-import re
-
 from .common import InfoExtractor
-from ..utils import make_archive_id, get_elements_text_and_html_by_attribute
+from ..utils import make_archive_id
 
 
 class HTML5MediaEmbedIE(InfoExtractor):
