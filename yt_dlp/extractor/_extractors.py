@@ -958,6 +958,7 @@ from .microsoftvirtualacademy import (
     MicrosoftVirtualAcademyIE,
     MicrosoftVirtualAcademyCourseIE,
 )
+from .microsoftembed import MicrosoftEmbedIE
 from .mildom import (
     MildomIE,
     MildomVodIE,
