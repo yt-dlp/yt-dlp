@@ -593,13 +593,12 @@ class NBCOlympicsStreamIE(AdobePassIE):
 
 
 class NBCStationsIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                         https?://(?:www\.)?(?P<site>
-                             nbcbayarea|nbcboston|nbcchicago|nbcconnecticut|nbcdfw|nbclosangeles|
-                             nbcmiami|nbcnewyork|nbcphiladelphia|nbcsandiego|nbcwashington|necn|
-                             telemundo52|telemundoarizona|telemundochicago|telemundonuevainglaterra
-                         )\.com/(?:[^/]+/)*(?P<id>[^/?]+)/?(?:$|[#?])
-                    '''
+    _DOMAIN_RE = '|'.join(map(re.escape, (
+        'nbcbayarea', 'nbcboston', 'nbcchicago', 'nbcconnecticut', 'nbcdfw', 'nbclosangeles',
+        'nbcmiami', 'nbcnewyork', 'nbcphiladelphia', 'nbcsandiego', 'nbcwashington',
+        'necn', 'telemundo52', 'telemundoarizona', 'telemundochicago', 'telemundonuevainglaterra',
+    )))
+    _VALID_URL = rf'https?://(?:www\.)?(?P<site>{_DOMAIN_RE})\.com/(?:[^/?#]+/)*(?P<id>[^/?#]+)/?(?:$|[#?])'
 
     _TESTS = [{
         'url': 'https://www.nbclosangeles.com/news/local/large-structure-fire-in-downtown-la-prompts-smoke-odor-advisory/2968618/',
@@ -650,10 +649,10 @@ class NBCStationsIE(InfoExtractor):
         fw_network_id = traverse_obj(nbc_data, ('video', 'fwNetworkID'), default='382114')
 
         video_data = self._parse_json(self._html_search_regex(
-            r'data-videos="([^"]*)"', webpage, 'video data', fatal=False, default='{}'), video_id)
+            r'data-videos="([^"]*)"', webpage, 'video data', default='{}'), video_id)
         video_data = variadic(video_data)[0]
         video_data.update(self._parse_json(self._html_search_regex(
-            r'data-meta="([^"]*)"', webpage, 'metadata', fatal=False, default='{}'), video_id))
+            r'data-meta="([^"]*)"', webpage, 'metadata', default='{}'), video_id))
 
         formats = []
 
