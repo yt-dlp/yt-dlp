@@ -809,8 +809,6 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
         'only_matching': True,
     }]
 
-    showed_hardsub_message = False
-
     def _real_extract(self, url):
         lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'id', 'display_id')
         api_domain, bucket, params = self._get_params(lang)
@@ -843,9 +841,9 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
 
         if '' in available_formats and 'all' not in requested_hardsubs:
             full_format_langs = set(requested_hardsubs)
-            if not CrunchyrollBetaIE.showed_hardsub_message:
-                CrunchyrollBetaIE.showed_hardsub_message = True
-                self.to_screen('To expand certain hardsub formats use "--extractor-args crunchyrollbeta:hardsub=<language_code>". <language_code> can also be "all". See the README for more info.')
+            self.to_screen(
+                'To expand certain hardsub formats use "--extractor-args crunchyrollbeta:hardsub=<language_code>". <language_code> can also be "all". See the README for more info.',
+                only_once=True)
         else:
             full_format_langs = set(map(str.lower, available_formats))
 
