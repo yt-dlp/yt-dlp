@@ -90,7 +90,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * `255kbps` audio is extracted (if available) from YouTube Music when premium cookies are given
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
 
-* **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE]`
+* **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE][::CONTAINER]`
 
 * **Download time range**: Videos can be downloaded partially based on either timestamps or chapters using `--download-sections`
 
@@ -1091,7 +1091,7 @@ You can configure yt-dlp by placing any supported command line option to a confi
 
 1. **Main Configuration**:
     * The file given by `--config-location`
-1. **Portable Configuration**: (Recommended for portable installs)
+1. **Portable Configuration**: (Recommended for portable installations)
     * If using a binary, `yt-dlp.conf` in the same directory as the binary
     * If running from source-code, `yt-dlp.conf` in the parent directory of `yt_dlp`
 1. **Home Configuration**:
