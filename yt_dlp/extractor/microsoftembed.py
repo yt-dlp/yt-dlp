@@ -55,10 +55,10 @@ class MicrosoftEmbedIE(InfoExtractor):
             }] for lang, data in traverse_obj(metadata, 'captions', default={}).items()
         }
 
-        thumbnails = [{
-            'url': data.get('url'),
-            'http_headers': data.get('link')
-        } for thumbnail_size, data in traverse_obj(metadata, ('snippet', 'thumbnails'), default={}).items()]
+        thumbnails = traverse_obj(metadata, ('snippet', 'thumbnails', ..., {
+            'url': 'url',
+            'http_headers': 'link'
+        }))
 
         return {
             'id': video_id,
