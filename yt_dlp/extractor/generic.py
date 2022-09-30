@@ -1004,6 +1004,36 @@ class GenericIE(InfoExtractor):
             },
             'skip': 'All The Daily Show URLs now redirect to http://www.cc.com/shows/',
         },
+        # jwplatform embed iltalehti.fi main_media
+        {
+            'url': 'https://www.iltalehti.fi/ulkomaat/a/9fbd067f-94e4-46cd-8748-9d958eb4dae2',
+            'md5': 'af12d42c539f1f49f0b62d231fe72dcd',
+            'info_dict': {
+                'id': 'gYjjaf1L',
+                'ext': 'mp4',
+                'title': 'Sensuroimaton Päivärinta, jakso 227: Vieraana Suomen Venäjän ex-suurlähettiläs René Nyberg ja Kenraalimajuri evp Pekka Toveri',
+                'description': '',
+                'upload_date': '20220928',
+                'timestamp': 1664360878,
+                'duration': 2089,
+                'thumbnail': r're:^https?://.*\.jpg',
+            },
+        },
+        # jwplatform embed iltalehti.fi body
+        {
+            'url': 'https://www.iltalehti.fi/politiikka/a/1ce49d85-1670-428b-8db8-d2479b9950a4',
+            'md5': '9e50334b8f8330ce8828b567a82a3c65',
+            'info_dict': {
+                'id': '18R6zkLi',
+                'ext': 'mp4',
+                'title': 'Pekka Toverin arvio: Näin Nord Stream -kaasuputken räjäyttäminen on saatettu toteuttaa',
+                'description': 'md5:3d1302c9e17e7ffd564143ff58f8de35',
+                'upload_date': '20220929',
+                'timestamp': 1664435867,
+                'duration': 165.0,
+                'thumbnail': r're:^https?://.*\.jpg',
+            },
+        },
         # jwplayer YouTube
         {
             'url': 'http://media.nationalarchives.gov.uk/index.php/webinar-using-discovery-national-archives-online-catalogue/',

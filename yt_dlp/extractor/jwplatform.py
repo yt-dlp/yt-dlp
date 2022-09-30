@@ -1,7 +1,13 @@
+import json
 import re
 
 from .common import InfoExtractor
-from ..utils import unsmuggle_url
+from ..utils import (
+    js_to_json,
+    traverse_obj,
+    try_call,
+    unsmuggle_url,
+)
 
 
 class JWPlatformIE(InfoExtractor):
@@ -35,6 +41,16 @@ class JWPlatformIE(InfoExtractor):
         mobj = re.search(r'<div\b[^>]* data-video-jw-id="([a-zA-Z0-9]{8})"', webpage)
         if mobj:
             return [f'jwplatform:{mobj.group(1)}']
+        # iltalehti.fi
+        mobj = re.search(r'<script>\s*window.App\s*=\s*({.*})\s*</script>', webpage)
+        if mobj:
+            properties = traverse_obj(
+                try_call(lambda: json.loads(js_to_json(mobj.group(1)))),
+                ('state', 'articles', ..., 'items', (('main_media', 'properties'), ('body', ..., 'properties')))) or []
+            video_ids = list(prop['id'] for prop in properties
+                             if prop.get('provider', '') == 'jwplayer' and 'id' in prop)
+            if video_ids:
+                return list(f'jwplatform:{video_id}' for video_id in video_ids)
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
