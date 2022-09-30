@@ -13,7 +13,7 @@ class MicrosoftEmbedIE(InfoExtractor):
         'url': 'https://www.microsoft.com/en-us/videoplayer/embed/RWL07e',
         'md5': '69a3bff81349094e91b303ff51393de2  Microsoft for Public Health and Social Services [RWL07e].mp4',
         'info_dict': {
-            'id': r'?P<id>[a-z0-9A-Z]+',
+            'id': 'RWL07e',
             'title': '...',
             'ext': 'mp4',
             'thumbnail': r're:^https?://.*\.jpg$'
