@@ -151,44 +151,35 @@ class MxplayerIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_type, display_id, video_id = self._match_valid_url(url).group('type', 'display_id', 'id')
-
         if 'show' in video_type:
             video_type = 'episode'
 
         data_json = self._download_json(
             f'https://api.mxplay.com/v1/web/detail/video?type={video_type}&id={video_id}', display_id)
 
-        formats = []
-        subtitles = {}
+        streams = traverse_obj(data_json, ('stream', {'m3u8': ('hls', 'high'), 'mpd': ('dash', 'high')}))
+        formats, dash_subs = self._extract_mpd_formats_and_subtitles(
+            f'https://llvod.mxplay.com/{streams["mpd"]}', display_id, fatal=False)
+        hls_frmts, hls_subs = self._extract_m3u8_formats_and_subtitles(
+            f'https://llvod.mxplay.com/{streams["m3u8"]}', display_id, fatal=False)
 
-        season = traverse_obj(data_json, ('container', 'title'))
-        episode_number = data_json.get('sequence')
-
-        for stream_type in ('dash', 'hls'):
-            playlist_url = f'https://llvod.mxplay.com/{data_json["stream"][stream_type]["high"]}'
-
-            if stream_type == 'dash':
-                frmts, subs = self._extract_mpd_formats_and_subtitles(playlist_url, display_id, fatal=False)
-            else:
-                frmts, subs = self._extract_m3u8_formats_and_subtitles(playlist_url, display_id, fatal=False)
-
-            formats.extend(frmts)
-            self._merge_subtitles(subs, target=subtitles)
-
+        formats.extend(hls_frmts)
         self._sort_formats(formats)
 
+        season = traverse_obj(data_json, ('container', 'title'))
         return {
             'id': video_id,
             'title': data_json.get('title'),
             'formats': formats,
-            'subtitles': subtitles,
+            'subtitles': self._merge_subtitles(dash_subs, hls_subs),
             'display_id': display_id,
             'duration': data_json.get('duration'),
             'series': traverse_obj(data_json, ('container', 'container', 'title')),
             'description': data_json.get('description'),
             'season': season,
-            'season_number': int_or_none(self._search_regex(r'Season (\d+)', season, 'Season Number', default=None, fatal=False)),
-            'episode_number': episode_number if episode_number else None,
+            'season_number': int_or_none(
+                self._search_regex(r'Season (\d+)', season, 'Season Number', default=None)),
+            'episode_number': data_json.get('sequence') or None,
         }
 
 
