@@ -2,10 +2,13 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    extract_attributes,
+    get_element_text_and_html_by_tag,
     get_elements_by_class,
+    get_elements_text_and_html_by_attribute,
     int_or_none,
     parse_duration,
-    traverse_obj, get_elements_text_and_html_by_attribute, get_element_text_and_html_by_tag, extract_attributes,
+    traverse_obj,
 )
 
 
