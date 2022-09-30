@@ -45,21 +45,17 @@ class MicrosoftEmbedIE(InfoExtractor):
         timestamp = traverse_obj(
             metadata, ('snippet', 'activeStartDate'))
 
-        subtitles = {}
-
-        for lang, data in (traverse_obj(metadata, 'captions') or {}).items():
-            subtitles[lang] = [{
+        subtitles = {
+            lang: [{
                 'url': data.get('url'),
                 'ext': 'vtt'
-            }]
+            }] for lang, data in traverse_obj(metadata, 'captions', default={}).items()
+        }
 
-        thumbnails = []
-
-        for thumbnail_size, data in (traverse_obj(metadata, ('snippet', 'thumbnails')) or {}).items():
-            thumbnails.append({
-                'url': data.get('url'),
-                'http_headers': data.get('link')
-            })
+        thumbnails = [{
+            'url': data.get('url'),
+            'http_headers': data.get('link')
+        } for thumbnail_size, data in traverse_obj(metadata, ('snippet', 'thumbnails'), default={}).items()]
 
         return {
             'id': video_id,
