@@ -122,3 +122,5 @@ ytdlp_plugins/extractor/*
 ytdlp_plugins/postprocessor/*
 !ytdlp_plugins/postprocessor/__init__.py
 !ytdlp_plugins/postprocessor/sample.py
+*.dfxp
+*.tt

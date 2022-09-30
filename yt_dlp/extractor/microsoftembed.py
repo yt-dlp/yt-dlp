@@ -4,6 +4,7 @@ from ..utils import (
     unified_timestamp,
     int_or_none,
 )
+from collections import OrderedDict
 
 class MicrosoftEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?microsoft\.com/en-us/videoplayer/embed/(?P<id>[a-z0-9A-Z]+)'
@@ -49,28 +50,29 @@ class MicrosoftEmbedIE(InfoExtractor):
         age_limit = int_or_none(
             traverse_obj(metadata, ('snippet', 'minimumAge'))) or 0
 
-        # subtitles = {}
-        #     'en-US': [
-        #         {
-        #             'url': '<subtitle url>'
-        #         }
-        #     ]
-        # }
         subtitles = {}
 
         for lang, data in (traverse_obj(metadata, 'captions') or {}).items():
             subtitles[lang] = [{
-                'url': data.get('url')
+                'url': data.get('url'),
+                'ext': 'ttml'
             }]
 
-        # TODO:
-        # - extract subtitles (see expected return format in common.py)
-        # - extract thumbnails (see expected return format in common.py)
+        thumbnails = {}
+
+        for thumbnailSize, data in (traverse_obj(metadata, ('snippet', 'thumbnails')) or {}).items():
+            thumbnails[thumbnailSize] = [
+                OrderedDict({
+                    'url': data.get('url'),
+                    'http_headers': data.get('link')
+                })
+            ]
+
         output = {
             'id': video_id,
             'title': traverse_obj(metadata, ('snippet', 'title')),
-            #'thumbnails': metadata['snippet']['thumbnails'],  # will need to extract into thumbnail list ofrmat
-            'timestamp': unified_timestamp(timestamp),  # use unified_timestamp from utils
+            'thumbnails': thumbnails,
+            'timestamp': unified_timestamp(timestamp),
             'formats': formats,
             'age_limit': age_limit,
             'subtitles': subtitles
