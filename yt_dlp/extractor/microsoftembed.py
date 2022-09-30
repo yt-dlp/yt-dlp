@@ -4,7 +4,6 @@ from ..utils import (
     unified_timestamp,
     int_or_none,
 )
-from collections import OrderedDict
 
 
 class MicrosoftEmbedIE(InfoExtractor):
@@ -52,7 +51,7 @@ class MicrosoftEmbedIE(InfoExtractor):
         age_limit = int_or_none(
             traverse_obj(metadata, ('snippet', 'minimumAge'))) or 0
 
-        subtitles = OrderedDict()
+        subtitles = {}
 
         for lang, data in (traverse_obj(metadata, 'captions') or {}).items():
             subtitles[lang] = [{
