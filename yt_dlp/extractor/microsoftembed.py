@@ -11,12 +11,15 @@ class MicrosoftEmbedIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'https://www.microsoft.com/en-us/videoplayer/embed/RWL07e',
-        'md5': '69a3bff81349094e91b303ff51393de2  Microsoft for Public Health and Social Services [RWL07e].mp4',
+        'md5': 'eb0ae9007f9b305f9acd0a03e74cb1a9',
         'info_dict': {
             'id': 'RWL07e',
-            'title': '...',
+            'title': 'Microsoft for Public Health and Social Services',
             'ext': 'mp4',
-            'thumbnail': r're:^https?://.*\.jpg$'
+            'thumbnail': 'http://img-prod-cms-rt-microsoft-com.akamaized.net/cms/api/am/imageFileData/RWL7Ju?ver=cae5',
+            'age_limit': 0,
+            'timestamp': 1631658316,
+            'upload_date': '20210914'
         }
     }]
     _API_URL = 'https://prod-video-cms-rt-microsoft-com.akamaized.net/vhs/api/videos/'
