@@ -846,7 +846,7 @@ class YoutubeDL:
                                      'Use "YoutubeDL.to_screen" instead')
         self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.out)
 
-    def to_screen(self, message, skip_eol=False, quiet=None):
+    def to_screen(self, message, skip_eol=False, quiet=None, only_once=False):
         """Print message to screen if not in quiet mode"""
         if self.params.get('logger'):
             self.params['logger'].debug(message)
@@ -855,7 +855,7 @@ class YoutubeDL:
             return
         self._write_string(
             '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
-            self._out_files.screen)
+            self._out_files.screen, only_once=only_once)
 
     def to_stderr(self, message, only_once=False):
         """Print message to stderr"""

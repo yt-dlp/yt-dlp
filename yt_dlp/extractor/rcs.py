@@ -337,7 +337,7 @@ class RCSEmbedsIE(RCSBaseIE):
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
-        return cls._sanitize_urls(tuple(super()._extract_embed_urls(url, webpage)))
+        return cls._sanitize_urls(list(super()._extract_embed_urls(url, webpage)))
 
 
 class RCSIE(RCSBaseIE):
