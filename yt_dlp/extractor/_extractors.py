@@ -753,6 +753,9 @@ from .islamchannel import (
     IslamChannelIE,
     IslamChannelSeriesIE,
 )
+from .israelnationalnews import (
+    IsraelNationalNewsIE
+)
 from .itprotv import (
     ITProTVIE,
     ITProTVCourseIE
