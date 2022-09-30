@@ -147,7 +147,7 @@ class YandexVideoIE(InfoExtractor):
 
 
 class YandexVideoPreviewIE(InfoExtractor):
-    _VALID_URL = r'(?x)https?://(?:www\.)?yandex\.\w+(?:\.\w+)?/video/preview(?:/?\?.*?filmId=|/)(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?yandex\.\w{2,3}(?:\.(?:am|ge|il|tr))?/video/preview(?:/?\?.*?filmId=|/)(?P<id>\d+)'
     _TESTS = [{  # Odnoklassniki
         'url': 'https://yandex.ru/video/preview/?filmId=10682852472978372885&text=summer',
         'info_dict': {
