@@ -16,20 +16,7 @@ class FancodeVodIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'https://fancode.com/video/15043/match-preview-pbks-vs-mi',
-        'params': {
-            'skip_download': True,
-        },
-        'info_dict': {
-            'id': '6249806281001',
-            'ext': 'mp4',
-            'title': 'Match Preview: PBKS vs MI',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            "timestamp": 1619081590,
-            'view_count': int,
-            'like_count': int,
-            'upload_date': '20210422',
-            'uploader_id': '6008340455001'
-        }
+        'only_matching': True
     }, {
         'url': 'https://fancode.com/video/15043',
         'only_matching': True,
@@ -42,11 +29,11 @@ class FancodeVodIE(InfoExtractor):
             'id': '35441',
             'ext': 'mp4',
             'title': 'Thriller! India fightback to clinch 2-wicket win',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            "timestamp": 1619081590,
             'view_count': int,
             'like_count': int,
-            'release_timestamp': 1658702382
+            'release_timestamp': 1658702382,
+            'tags': list,
+            'release_date': '20220724'
         }
     }]
 
