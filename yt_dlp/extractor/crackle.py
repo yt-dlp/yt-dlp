@@ -22,29 +22,6 @@ from enum import Enum
 
 class CrackleBaseIE(InfoExtractor):
 
-    class TestData:
-        EPISODE_INFO = {
-            'id': '2510064',
-            'ext': 'mp4',
-            'title': 'Touch Football',
-            'description': 'md5:cfbb513cf5de41e8b56d7ab756cff4df',
-            'duration': 1398,
-            'view_count': int,
-            'average_rating': 0,
-            'age_limit': 17,
-            'genre': 'Comedy',
-            'creator': 'Daniel Powell',
-            'artist': 'Chris Elliott, Amy Sedaris',
-            'release_year': 2016,
-            'series': 'Thanksgiving',
-            'episode': 'Touch Football',
-            'season_number': 1,
-            'episode_number': 1,
-            'season': 'Season 1',
-        }
-        EXPECTED_WARNINGS = ['Trying with a list of known countries']
-        PARAMS_SKIP_DOWNLOAD = {'skip_download': True}
-
     class UrlType(Enum):
         MEDIA = "media"
         CHANNEL = "channel"
@@ -104,7 +81,7 @@ class CrackleBaseIE(InfoExtractor):
 
         return details
 
-    def _download_crackle_details(self, json_type: UrlType, json_id, country):
+    def _download_crackle_details(self, json_type: UrlType, json_id, country=None):
 
         details = {}
 
@@ -150,8 +127,8 @@ class CrackleBaseIE(InfoExtractor):
 
         return details, country
 
-    def _get_video_info(self, video_id, country):
-
+    def _get_video_info(self, video_id, country=None):
+        video_id = str(video_id)
         media, country = self._download_crackle_details(self.UrlType.MEDIA, video_id, country)
 
         ignore_no_formats = self.get_param('ignore_no_formats_error')
@@ -248,7 +225,7 @@ class CrackleBaseIE(InfoExtractor):
                     'height': int(mobj.group(2)),
                 })
 
-        video = {
+        return {
             'id': video_id,
             'title': title,
             'description': description,
@@ -268,32 +245,83 @@ class CrackleBaseIE(InfoExtractor):
             'subtitles': subtitles,
             'formats': formats,
         }
-        return video, country
 
 
 class CrackleVideoIE(CrackleBaseIE):
-
     _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(?:watch/)?(?:\d+|playlist/\d+|(?!playlist|watch)[^/]+)/(?P<video_id>\d+)$'
-
     _TESTS = [
         {
             # Crackle is available in the United States and territories
             'url': 'https://www.crackle.com/thanksgiving/2510064',
-            'info_dict': CrackleBaseIE.TestData.EPISODE_INFO,
-            'params': CrackleBaseIE.TestData.PARAMS_SKIP_DOWNLOAD,
-            'expected_warnings': CrackleBaseIE.TestData.EXPECTED_WARNINGS
+            'info_dict': {
+                'id': '2510064',
+                'ext': 'mp4',
+                'title': 'Touch Football',
+                'description': 'md5:cfbb513cf5de41e8b56d7ab756cff4df',
+                'duration': 1398,
+                'view_count': int,
+                'average_rating': 0,
+                'age_limit': 17,
+                'genre': 'Comedy',
+                'creator': 'Daniel Powell',
+                'artist': 'Chris Elliott, Amy Sedaris',
+                'release_year': 2016,
+                'series': 'Thanksgiving',
+                'episode': 'Touch Football',
+                'season_number': 1,
+                'episode_number': 1,
+                'season': 'Season 1',
+            },
+            'params': {'skip_download': True},
+            'expected_warnings': ['Trying with a list of known countries']
         }, {
             # episode provided with playlist URL
             'url': 'https://www.crackle.com/watch/playlist/2130982/2510064',
-            'info_dict': CrackleBaseIE.TestData.EPISODE_INFO,
-            'params': CrackleBaseIE.TestData.PARAMS_SKIP_DOWNLOAD,
-            'expected_warnings': CrackleBaseIE.TestData.EXPECTED_WARNINGS
+            'info_dict': {
+                'id': '2510064',
+                'ext': 'mp4',
+                'title': 'Touch Football',
+                'description': 'md5:cfbb513cf5de41e8b56d7ab756cff4df',
+                'duration': 1398,
+                'view_count': int,
+                'average_rating': 0,
+                'age_limit': 17,
+                'genre': 'Comedy',
+                'creator': 'Daniel Powell',
+                'artist': 'Chris Elliott, Amy Sedaris',
+                'release_year': 2016,
+                'series': 'Thanksgiving',
+                'episode': 'Touch Football',
+                'season_number': 1,
+                'episode_number': 1,
+                'season': 'Season 1',
+            },
+            'params': {'skip_download': True},
+            'expected_warnings': ['Trying with a list of known countries']
         }, {
             # episode provided with channel URL
             'url': 'https://www.crackle.com/watch/5851/2510064',
-            'info_dict': CrackleBaseIE.TestData.EPISODE_INFO,
-            'params': CrackleBaseIE.TestData.PARAMS_SKIP_DOWNLOAD,
-            'expected_warnings': CrackleBaseIE.TestData.EXPECTED_WARNINGS
+            'info_dict': {
+                'id': '2510064',
+                'ext': 'mp4',
+                'title': 'Touch Football',
+                'description': 'md5:cfbb513cf5de41e8b56d7ab756cff4df',
+                'duration': 1398,
+                'view_count': int,
+                'average_rating': 0,
+                'age_limit': 17,
+                'genre': 'Comedy',
+                'creator': 'Daniel Powell',
+                'artist': 'Chris Elliott, Amy Sedaris',
+                'release_year': 2016,
+                'series': 'Thanksgiving',
+                'episode': 'Touch Football',
+                'season_number': 1,
+                'episode_number': 1,
+                'season': 'Season 1',
+            },
+            'params': {'skip_download': True},
+            'expected_warnings': ['Trying with a list of known countries']
         }, {
             'url': 'https://www.sonycrackle.com/thanksgiving/2510064',
             'only_matching': True,
@@ -301,124 +329,76 @@ class CrackleVideoIE(CrackleBaseIE):
     ]
 
     def _real_extract(self, url):
-
-        mobj = self._match_valid_url(url).groupdict()
-        video_id = mobj.get('video_id')
-
-        country = None
-        # get video of specific page
-        video, country = self._get_video_info(video_id, country)
-        return video
+        return self._get_video_info(self._match_id(url))
 
 
 class CrackleChannelIE(CrackleBaseIE):
-
-    class ChannelType(Enum):
-        MOVIE_PAGE = 1
-        TV_PAGE = 11
-        TV_PAGE_MULTILANGUAGE = 13
-
     _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(?:watch/)?(?P<channel_id>\d+)/?$'
-
-    _TESTS = [
-        {
-            # entire series provided as channel URL
-            'url': 'https://www.crackle.com/watch/5851',
-            'playlist_count': 8,
-            'info_dict': {
-                'id': '5851',
-                'title': 'Thanksgiving',
-            },
-            'expected_warnings': [
-                'Trying with a list of known countries'
-            ],
-        }, {
-            # movie provided as channel URL
-            'url': 'https://www.crackle.com/watch/7484',
-            'info_dict': {
-                'id': '2516266',
-                'title': '1 Mile To You',
-                'release_year': 2017,
-                'ext': 'mp4',
-                'creator': 'Leif Tilden',
-                'age_limit': 14,
-                'description': 'md5:13806df170014c4c9dd7c9b5b8b4921d',
-                'average_rating': float,
-                'duration': 6277,
-                'view_count': int,
-                'artist': 'md5:54868aa9fb6781c75f427da428735df4',
-                'genre': 'Drama, Sports, Romance',
-            },
-            'params': {
-                # m3u8 download
-                'skip_download': True,
-            },
-            'expected_warnings': [
-                'Trying with a list of known countries'
-            ],
-        }
-    ]
+    _TESTS = [{
+        # series
+        'url': 'https://www.crackle.com/watch/5851',
+        'playlist_count': 8,
+        'info_dict': {
+            'id': '5851',
+            'title': 'Thanksgiving',
+        },
+        'expected_warnings': ['Trying with a list of known countries'],
+    }, {
+        # movie
+        'url': 'https://www.crackle.com/watch/7484',
+        'info_dict': {
+            'id': '2516266',
+            'title': '1 Mile To You',
+            'release_year': 2017,
+            'ext': 'mp4',
+            'creator': 'Leif Tilden',
+            'age_limit': 14,
+            'description': 'md5:13806df170014c4c9dd7c9b5b8b4921d',
+            'average_rating': float,
+            'duration': 6277,
+            'view_count': int,
+            'artist': 'md5:54868aa9fb6781c75f427da428735df4',
+            'genre': 'Drama, Sports, Romance',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Trying with a list of known countries'],
+    }]
 
     def _real_extract(self, url):
+        channel_id = self._match_valid_url(url).group('channel_id')
+        channel, country = self._download_crackle_details(CrackleBaseIE.UrlType.CHANNEL, channel_id)
+        channel_type = channel['ChannelTypeId']
 
-        mobj = self._match_valid_url(url).groupdict()
-        channel_id = mobj.get('channel_id')
+        if channel_type == 1:  # Movies
+            return self._get_video_info(traverse_obj['FeaturedMedia']['ID'], country)
 
-        videos = []
-        channel, country = self._download_crackle_details(CrackleBaseIE.UrlType.CHANNEL, channel_id, None)
-
-        channel_type = channel.get('ChannelTypeId')
-
-        if channel_type == self.ChannelType.MOVIE_PAGE.value:
-            # movie channel - get featured media
-            v_id = str(traverse_obj(channel, ('FeaturedMedia', 'ID')))
-            video, country = self._get_video_info(v_id, country)
-            return video
-        elif channel_type in (self.ChannelType.TV_PAGE.value, self.ChannelType.TV_PAGE_MULTILANGUAGE.value):
-            # series channel - enumerate videos in channel
+        elif channel_type in (11, 13):  # TV Shows
             playlist, country = self._download_crackle_details(CrackleBaseIE.UrlType.CHANNEL_PLAYLIST, channel_id, country)
-            for p in playlist.get('Playlists') or []:
-                if p.get('PlaylistName') == 'Episodes':
-                    for x in p.get('Items') or []:
-                        v_id = str(traverse_obj(x, ('MediaInfo', 'Id')))
-                        video, country = self._get_video_info(v_id, country)
-                        videos.append(video)
+            videos = (
+                self._get_video_info(media['MediaInfo']['Id'], country)
+                for media in traverse_obj(
+                    playlist, ('Playlists', lambda _, v: v['PlaylistName'] == 'Episodes', 'Items', ...)))
+            return self.playlist_result(videos, channel_id, channel.get('Name'))
 
-        return self.playlist_result(videos, channel_id, channel.get('Name'))
+        raise ExtractorError(f'Unknown channel type {channel_type}')
 
 
 class CracklePlaylistIE(CrackleBaseIE):
-
-    _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(watch/)?playlist/(?P<playlist_id>\d+)/?$'
-
-    _TESTS = [
-        {
-            # entire series provided as playlist URL
-            'url': 'https://www.crackle.com/watch/playlist/2130982',
-            'playlist_count': 8,
-            'info_dict': {
-                'id': '2130982',
-                'title': 'Episodes',
-            },
-            'expected_warnings': CrackleBaseIE.TestData.EXPECTED_WARNINGS
-        }
-    ]
+    _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(watch/)?playlist/(?P<id>\d+)/?$'
+    _TESTS = [{
+        'url': 'https://www.crackle.com/watch/playlist/2130982',
+        'playlist_count': 8,
+        'info_dict': {
+            'id': '2130982',
+            'title': 'Episodes',
+        },
+        'expected_warnings': ['Trying with a list of known countries']
+    }]
 
     def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        playlist, country = self._download_crackle_details(CrackleBaseIE.UrlType.PLAYLIST, playlist_id)
 
-        mobj = self._match_valid_url(url).groupdict()
-        playlist_id = mobj.get('playlist_id')
-
-        country = None
-
-        if playlist_id is not None:
-            # enumerate videos in playlist
-            videos = []
-            playlist, country = self._download_crackle_details(CrackleBaseIE.UrlType.PLAYLIST, playlist_id, country)
-            result = playlist and playlist.get('Result')
-            for x in (result and result.get('Medias')) or []:
-                v_id = str(traverse_obj(x, ('MediaInfo', 'Id')))
-                video, country = self._get_video_info(v_id, country)
-                videos.append(video)
-
-            return self.playlist_result(videos, playlist_id, result and result.get('Name'))
+        videos = (self._get_video_info(media['MediaInfo']['Id'], country)
+                  for media in traverse_obj(playlist, ('Result', 'Medias', ...)))
+        return self.playlist_result(videos, playlist_id, traverse_obj(playlist, ('Result', 'Name')))
