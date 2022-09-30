@@ -1079,6 +1079,7 @@ from .nbc import (
     NBCSportsIE,
     NBCSportsStreamIE,
     NBCSportsVPlayerIE,
+    NBCStationsIE,
 )
 from .ndr import (
     NDRIE,
