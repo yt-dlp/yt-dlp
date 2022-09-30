@@ -631,7 +631,13 @@ class NBCStationsIE(InfoExtractor):
         },
     }]
 
-    _RESOLUTIONS = {'1080': '1920', '720': '1280', '540': '960', '360': '640', '234': '416'}
+    _RESOLUTIONS = {
+        '1080': '1920',
+        '720': '1280',
+        '540': '960',
+        '360': '640',
+        '234': '416',
+    }
 
     def _real_extract(self, url):
         channel, video_id = self._match_valid_url(url).group('site', 'id')
@@ -675,7 +681,7 @@ class NBCStationsIE(InfoExtractor):
                 'SDK': 'PDK+6.1.3',
             }
             info = {
-                'title': f'{channel} livestream'
+                'title': f'{channel} livestream',
             }
 
         else:
