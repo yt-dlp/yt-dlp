@@ -8,7 +8,6 @@ import time
 from .common import InfoExtractor
 from ..aes import aes_encrypt
 from ..utils import (
-    ExtractorError,
     bytes_to_intlist,
     determine_ext,
     intlist_to_bytes,
@@ -336,12 +335,9 @@ class AnvatoIE(InfoExtractor):
                 })
             elif media_format == 'm3u8-variant' or ext == 'm3u8':
                 # For some videos the initial m3u8 URL returns JSON instead
-                try:
-                    manifest_json = self._download_json(
-                        video_url, video_id, note='Downloading manifest JSON')
-                except ExtractorError:
-                    pass
-                else:
+                manifest_json = self._download_json(
+                    video_url, video_id, note='Downloading manifest JSON', errnote=False)
+                if manifest_json:
                     video_url = manifest_json.get('master_m3u8')
                     if not video_url:
                         continue
