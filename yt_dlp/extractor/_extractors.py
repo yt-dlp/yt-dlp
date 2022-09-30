@@ -1766,6 +1766,8 @@ from .teletask import TeleTaskIE
 from .telewebion import TelewebionIE
 from .tempo import TempoIE
 from .tencent import (
+    IflixEpisodeIE,
+    IflixSeriesIE,
     VQQSeriesIE,
     VQQVideoIE,
     WeTvEpisodeIE,
