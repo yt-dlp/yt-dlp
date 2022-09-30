@@ -60,7 +60,7 @@ class MicrosoftEmbedIE(InfoExtractor):
 
         thumbnails = []
 
-        for thumbnailSize, data in (traverse_obj(metadata, ('snippet', 'thumbnails')) or {}).items():
+        for thumbnail_size, data in (traverse_obj(metadata, ('snippet', 'thumbnails')) or {}).items():
             thumbnails.append({
                 'url': data.get('url'),
                 'http_headers': data.get('link')
