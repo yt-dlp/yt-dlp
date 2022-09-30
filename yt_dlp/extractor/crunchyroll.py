@@ -842,7 +842,9 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
         if '' in available_formats and 'all' not in requested_hardsubs:
             full_format_langs = set(requested_hardsubs)
             self.to_screen(
-                'To expand certain hardsub formats use "--extractor-args crunchyrollbeta:hardsub=<language_code>". <language_code> can also be "all". See the README for more info.',
+                'To get all formats of a hardsub language, use '
+                '"--extractor-args crunchyrollbeta:hardsub=<language_code or all>". '
+                'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta for more info',
                 only_once=True)
         else:
             full_format_langs = set(map(str.lower, available_formats))
