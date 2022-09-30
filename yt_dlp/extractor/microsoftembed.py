@@ -20,10 +20,9 @@ class MicrosoftEmbedIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         metadata = self._download_json(self._API_URL + video_id, video_id)
-
         formats = []
+
         for source_type, source in metadata['streams'].items():
             stream_url = source['url']
 
@@ -45,9 +44,6 @@ class MicrosoftEmbedIE(InfoExtractor):
 
         timestamp = traverse_obj(
             metadata, ('snippet', 'activeStartDate'))
-
-        age_limit = int_or_none(
-            traverse_obj(metadata, ('snippet', 'minimumAge'))) or 0
 
         subtitles = {}
 
@@ -71,6 +67,6 @@ class MicrosoftEmbedIE(InfoExtractor):
             'thumbnails': thumbnails,
             'timestamp': unified_timestamp(timestamp),
             'formats': formats,
-            'age_limit': age_limit,
+            'age_limit': int_or_none(traverse_obj(metadata, ('snippet', 'minimumAge'))) or 0,
             'subtitles': subtitles
         }
