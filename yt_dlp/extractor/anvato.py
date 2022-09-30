@@ -23,9 +23,7 @@ from ..utils import (
 
 
 def md5_text(s):
-    if not isinstance(s, str):
-        s = str(s)
-    return hashlib.md5(s.encode('utf-8')).hexdigest()
+    return hashlib.md5(str(s).encode()).hexdigest()
 
 
 class AnvatoIE(InfoExtractor):
