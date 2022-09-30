@@ -50,7 +50,7 @@ class MicrosoftEmbedIE(InfoExtractor):
         age_limit = int_or_none(
             traverse_obj(metadata, ('snippet', 'minimumAge'))) or 0
 
-        subtitles = {}
+        subtitles = OrderedDict()
 
         for lang, data in (traverse_obj(metadata, 'captions') or {}).items():
             subtitles[lang] = [{
@@ -58,15 +58,13 @@ class MicrosoftEmbedIE(InfoExtractor):
                 'ext': 'ttml'
             }]
 
-        thumbnails = {}
+        thumbnails = []
 
         for thumbnailSize, data in (traverse_obj(metadata, ('snippet', 'thumbnails')) or {}).items():
-            thumbnails[thumbnailSize] = [
-                OrderedDict({
-                    'url': data.get('url'),
-                    'http_headers': data.get('link')
-                })
-            ]
+            thumbnails.append({
+                'url': data.get('url'),
+                'http_headers': data.get('link')
+            })
 
         output = {
             'id': video_id,
