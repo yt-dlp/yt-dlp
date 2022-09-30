@@ -2,18 +2,18 @@ from .common import InfoExtractor
 
 
 class MicrosoftEmbedIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?microsoft\.com/en-us/videoplayer/embed/[a-z0-9A-Z]+'
+    _VALID_URL = r'https?://(?:www\.)?microsoft\.com/en-us/videoplayer/embed/(?P<id>[a-z0-9A-Z]+)'
     _TESTS = [{
         'url': 'https://www.microsoft.com/en-us/videoplayer/embed/RWL07e',
         'only_matching': True
     }]
-    _WEBPAGE_URL = 'https://prod-video-cms-rt-microsoft-com.akamaized.net/vhs/api/videos/'
+    _API_URL = 'https://prod-video-cms-rt-microsoft-com.akamaized.net/vhs/api/videos/'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         metadata = self._download_json(
-            self.WEBPAGE_URL + video_id,
+            self._API_URL + video_id,
             video_id)
 
         formats = []
