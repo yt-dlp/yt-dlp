@@ -326,9 +326,8 @@ class AnvatoIE(InfoExtractor):
 
             vtt_subs, hls_subs = {}, {}
             if media_format == 'vtt':
-                no_fmt, vtt_subs = self._extract_m3u8_formats_and_subtitles(
-                    video_url, video_id, ext='vtt', entry_protocol='m3u8_native',
-                    m3u8_id='vtt', fatal=False)
+                _, vtt_subs = self._extract_m3u8_formats_and_subtitles(
+                    video_url, video_id, m3u8_id='vtt', fatal=False)
                 continue
             elif media_format == 'm3u8' and tbr is not None:
                 a_format.update({
@@ -347,8 +346,7 @@ class AnvatoIE(InfoExtractor):
                     if not video_url:
                         continue
                 hls_fmts, hls_subs = self._extract_m3u8_formats_and_subtitles(
-                    video_url, video_id, ext='mp4', entry_protocol='m3u8_native',
-                    m3u8_id='hls', fatal=False)
+                    video_url, video_id, ext='mp4', m3u8_id='hls', fatal=False)
                 formats.extend(hls_fmts)
                 continue
             elif ext == 'mp3' or media_format == 'mp3':
