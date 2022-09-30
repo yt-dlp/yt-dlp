@@ -42,12 +42,26 @@ class MicrosoftEmbedIE(InfoExtractor):
                 })
 
         self._sort_formats(formats)
-        
+
         timestamp = traverse_obj(
             metadata, ('snippet', 'activeStartDate'))
 
         age_limit = int_or_none(
             traverse_obj(metadata, ('snippet', 'minimumAge'))) or 0
+
+        # subtitles = {}
+        #     'en-US': [
+        #         {
+        #             'url': '<subtitle url>'
+        #         }
+        #     ]
+        # }
+        subtitles = {}
+
+        for lang, data in (traverse_obj(metadata, 'captions') or {}).items():
+            subtitles[lang] = [{
+                'url': data.get('url')
+            }]
 
         # TODO:
         # - extract subtitles (see expected return format in common.py)
@@ -59,6 +73,6 @@ class MicrosoftEmbedIE(InfoExtractor):
             'timestamp': unified_timestamp(timestamp),  # use unified_timestamp from utils
             'formats': formats,
             'age_limit': age_limit,
-            'subtitles': ''
+            'subtitles': subtitles
         }
         return output
