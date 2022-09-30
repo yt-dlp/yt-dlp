@@ -37,7 +37,7 @@ class NOSNLArticleIE(InfoExtractor):
     ]
 
     def _get_video_generator(self, nextjs_json, display_id):
-        for item in nextjs_json.get('items'):
+        for item in nextjs_json['items']:
             if item.get('type') == 'video':
                 formats, subtitle = self._extract_m3u8_formats_and_subtitles(
                     traverse_obj(item, ('source', 'url')), display_id, ext='mp4')
@@ -65,6 +65,8 @@ class NOSNLArticleIE(InfoExtractor):
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['data']
         return self.playlist_result(
             self._get_video_generator(nextjs_json, display_id),
-            str(nextjs_json['id']), nextjs_json.get('title') or self._html_search_meta(['title', 'og:title', 'twitter:title'], webpage),
-            nextjs_json.get('description') or self._html_search_meta(['description', 'twitter:description', 'og:description'], webpage),
-            tags=nextjs_json.get('keyword'), modified_timestamp=parse_iso8601(nextjs_json.get(nextjs_json.get('modifiedAt'))))
+            str(nextjs_json['id']),
+            title=nextjs_json.get('title') or self._html_search_meta(['title', 'og:title', 'twitter:title'], webpage),
+            description=nextjs_json.get('description') or self._html_search_meta(['description', 'twitter:description', 'og:description'], webpage),
+            tags=nextjs_json.get('keyword'),
+            modified_timestamp=parse_iso8601(nextjs_json.get(nextjs_json.get('modifiedAt'))))
