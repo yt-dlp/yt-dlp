@@ -56,8 +56,7 @@ class MicrosoftEmbedIE(InfoExtractor):
         }
 
         thumbnails = traverse_obj(metadata, ('snippet', 'thumbnails', ..., {
-            'url': 'url',
-            'http_headers': 'link'
+            'url': 'url'
         }))
 
         return {
