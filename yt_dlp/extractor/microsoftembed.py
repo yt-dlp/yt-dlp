@@ -19,11 +19,11 @@ class MicrosoftEmbedIE(InfoExtractor):
         formats = []
         streams = metadata['streams']
 
-        for key, value in streams:
+        for key, value in streams.items():
             stream_url = value['url']
 
             if key in ('smoothStreaming', 'apple_HTTP_Live_Streaming', 'mPEG_DASH'):
-                formats.extend(self._extract_ism_formats((stream_url, video_id)))
+                formats.extend(self._extract_ism_formats(stream_url, video_id))
 
             # else:
             #     formats[key] = value
