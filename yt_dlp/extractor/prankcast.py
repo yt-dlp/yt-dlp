@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import parse_iso8601
+from ..utils import parse_iso8601, traverse_obj, try_call
 
 
 class PrankCastIE(InfoExtractor):
@@ -27,25 +27,11 @@ class PrankCastIE(InfoExtractor):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
 
         webpage = self._download_webpage(url, video_id)
-
-        # Extract the JSON
         json_info = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['ssr_data_showreel']
 
-        # Get author (AKA show host)
         uploader = json_info.get('user_name')
-
-        # Get the co-hosts/guests
         guests_json = self._parse_json(json_info.get('guests_json') or '{}', video_id)
-        guests = [] if not uploader else [uploader] + [x.get('name') for x in guests_json if x.get('name') is not None]
-
-        # Get dates
         start_date = parse_iso8601(json_info.get('start_date'))
-        end_date = parse_iso8601(json_info.get('end_date'))
-
-        # Parse the duration of the stream
-        parsed_duration = None
-        if start_date is not None and end_date is not None:
-            parsed_duration = (end_date - start_date)
 
         return {
             'id': video_id,
@@ -55,8 +41,8 @@ class PrankCastIE(InfoExtractor):
             'timestamp': start_date,
             'uploader': uploader,
             'channel_id': json_info.get('user_id'),
-            'duration': parsed_duration,
-            'cast': guests,
+            'duration': try_call(lambda: parse_iso8601(json_info['end_date']) - start_date),
+            'cast': list(filter(None, [uploader] + traverse_obj(guests_json, (..., 'name')))),
             'description': json_info.get('broadcast_description'),
             'categories': [json_info.get('broadcast_category')],
             'tags': self._parse_json(json_info.get('broadcast_tags') or '{}', video_id)
