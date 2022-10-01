@@ -34,12 +34,14 @@ class IsraelNationalNewsIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        video_json = self._download_json(f'https://www.israelnationalnews.com/Generic/NewAPI/Item?type=0&Item={video_id}', video_id)
+        news_article_id = self._match_id(url)
+        article_json = self._download_json(f'https://www.israelnationalnews.com/Generic/NewAPI/Item?type=0&Item={news_article_id}', news_article_id)
 
-        youtube_id = traverse_obj(json, ('Content2', ..., 'content', ..., 'attrs', 'src'), get_all=False)
+        entries = []
+        for item in traverse_obj(article_json, ('Content2', ..., 'content', ..., 'attrs', 'src')) or []:
+            entries.append(self.url_result(item, ie_key='Youtube'))
 
-        if youtube_id is None:
-            raise ExtractorError('Failed to find any youtube video ID')
+        if not entries:
+            raise ExtractorError('This article does not have any videos', expected=True)
 
-        return self.url_result(youtube_id, ie_key='Youtube')
+        return self.playlist_result(entries, news_article_id)
