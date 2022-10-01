@@ -3,7 +3,6 @@ import re
 import urllib.parse
 
 from .common import SelfHostedInfoExtractor
-# from .peertube import PeerTubeIE  # TODO
 from ..utils import (
     ExtractorError,
     clean_html,
@@ -58,8 +57,7 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
             for string, hostname in self._NODEINFO_SOFTWARES.items():
                 if string in webpage:
                     return hostname
-            # if any(s in webpage for s in PeerTubeIE._SH_VALID_CONTENT_STRINGS):
-            #     return 'peertube'
+            # TODO: peertube support
 
         return self._fetch_nodeinfo_software(host)
 
@@ -175,7 +173,7 @@ class MastodonIE(MastodonBaseIE):
         },
     }, {
         # Soapbox, audio file
-        'url': 'mastadon:https://gleasonator.com/notice/9zvJY6h7jJzwopKAIi',
+        'url': 'mastodon:https://gleasonator.com/notice/9zvJY6h7jJzwopKAIi',
         'info_dict': {
             'id': '9zvJY6h7jJzwopKAIi@gleasonator.com',
             'title': '#FEDIBLOCK',
@@ -233,7 +231,7 @@ class MastodonIE(MastodonBaseIE):
     }, {
         'url': 'https://pawoo.net/@iriomote_yamaneko/105370643258491818',
         'only_matching': True,
-    }, ]
+    }]
 
     def _real_extract(self, url):
         video_id, domain = self._match_id(url), self._match_hostname(url)[1]

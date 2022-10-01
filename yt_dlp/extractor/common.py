@@ -4030,7 +4030,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
 
     _NODEINFO_CACHE = {}
 
-    @functools.partial(cached_method, cache=_NODEINFO_CACHE)  # TODO: Cache this to disk?
+    @functools.partial(cached_method, cache=_NODEINFO_CACHE)  # TODO: Cache this to disk
     def _fetch_nodeinfo_software(self, hostname):
         nodeinfo_href = self._download_json(
             f'https://{hostname}/.well-known/nodeinfo', hostname,

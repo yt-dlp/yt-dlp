@@ -78,6 +78,7 @@ def repr_(val):
         return val.__name__
     return repr(val)
 
+
 def extra_ie_code(ie, base=None):
     for var in STATIC_CLASS_PROPERTIES:
         val = getattr(ie, var, NO_ATTR)
