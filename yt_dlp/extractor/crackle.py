@@ -248,7 +248,7 @@ class CrackleBaseIE(InfoExtractor):
 
 
 class CrackleVideoIE(CrackleBaseIE):
-    _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(?:watch/)?(?:\d+|playlist/\d+|(?!playlist|watch)[^/]+)/(?P<video_id>\d+)$'
+    _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(?:watch/)?(?:\d+|playlist/\d+|(?!playlist|watch)[^/]+)/(?P<id>\d+)$'
     _TESTS = [
         {
             # Crackle is available in the United States and territories
@@ -333,7 +333,7 @@ class CrackleVideoIE(CrackleBaseIE):
 
 
 class CrackleChannelIE(CrackleBaseIE):
-    _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(?:watch/)?(?P<channel_id>\d+)/?$'
+    _VALID_URL = CrackleBaseIE._URL_PREFIX + r'(?:watch/)?(?P<id>\d+)/?$'
     _TESTS = [{
         # series
         'url': 'https://www.crackle.com/watch/5851',
@@ -365,12 +365,12 @@ class CrackleChannelIE(CrackleBaseIE):
     }]
 
     def _real_extract(self, url):
-        channel_id = self._match_valid_url(url).group('channel_id')
+        channel_id = self._match_id(url)
         channel, country = self._download_crackle_details(CrackleBaseIE.UrlType.CHANNEL, channel_id)
         channel_type = channel['ChannelTypeId']
 
         if channel_type == 1:  # Movies
-            return self._get_video_info(traverse_obj['FeaturedMedia']['ID'], country)
+            return self._get_video_info(channel['FeaturedMedia']['ID'], country)
 
         elif channel_type in (11, 13):  # TV Shows
             playlist, country = self._download_crackle_details(CrackleBaseIE.UrlType.CHANNEL_PLAYLIST, channel_id, country)
