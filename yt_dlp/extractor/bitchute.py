@@ -134,26 +134,24 @@ class BitChuteChannelIE(InfoExtractor):
             if data.get('success') is not True:
                 break
             html = data.get('html')
-            results = []
             class_name = self.HTML_CLASS_NAMES[playlist_type]
-            for video_html in get_elements_html_by_class(class_name['container'], html):
+            video_containers = get_elements_html_by_class(class_name['container'], html)
+            offset += len(video_containers)
+            if not video_containers:
+                break
+            for video_html in video_containers:
                 match = re.search(r'<a\b[^>]+\bhref=["\']/video/(?P<id>[^"\'/]+)', video_html)
                 if not match:
                     continue
                 video_id = match.group('id')
-                results.append(self.url_result(
+                yield self.url_result(
                     'https://www.bitchute.com/video/%s' % video_id,
                     ie=BitChuteIE.ie_key(), video_id=video_id, url_transparent=True,
                     title=clean_html(get_element_by_class(class_name['title'], video_html)),
                     description=clean_html(get_element_by_class(class_name['description'], video_html)),
                     duration=parse_duration(get_element_by_class('video-duration', video_html)),
                     view_count=parse_count(clean_html(get_element_by_class('video-views', video_html))),
-                ))
-            if not results:
-                break
-            offset += len(results)
-            for result in results:
-                yield result
+                )
 
     def _real_extract(self, url):
         playlist_type, playlist_id = self._match_valid_url(url).groups()
