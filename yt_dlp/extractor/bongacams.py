@@ -30,8 +30,7 @@ class BongaCamsIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
-    }
-    ]
+    }]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
