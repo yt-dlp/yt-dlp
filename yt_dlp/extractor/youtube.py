@@ -2497,6 +2497,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         is_live = not post_live_long
         start_time = time.time()
+
+        for fmt in formats:
+            if fmt.get('is_from_start'):
+                continue
+            fmt['preference'] = (fmt.get('preference') or -1) - 10
+            fmt['format_note'] = join_nonempty(fmt.get('format_note'), '(Last 4 hours)', delim=' ')
+
         formats = [f for f in formats if f.get('is_from_start')]
 
         def refetch_manifest(format_id, delay):
@@ -2541,7 +2548,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['is_from_start'] = False
                 f['fragments'] = list(gen({}))
 
-    def _live_dash_fragments(self, format_id, live_start_time, mpd_feed, plml, ctx):
+    def _live_dash_fragments(self, format_id, live_start_time, mpd_feed, post_live_long, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
 
         mpd_url, stream_number, is_live = None, None, True
@@ -2641,7 +2648,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             except ExtractorError:
                 continue
 
-            if plml:
+            if post_live_long:
                 # Stop at the first iteration if running for post-live manifestless;
                 # fragment count no longer increase since it starts
                 break
@@ -3561,7 +3568,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             skip_manifests.append('dash')
         get_dash = 'dash' not in skip_manifests and (
             not is_live or live_from_start or self._configuration_arg('include_live_dash'))
-        get_hls = not live_from_start and 'hls' not in skip_manifests
+        get_hls = (not live_from_start or post_live_long) and 'hls' not in skip_manifests
 
         def process_manifest_format(f, proto, itag):
             if itag in itags:
