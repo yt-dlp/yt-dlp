@@ -2540,7 +2540,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for f in formats:
             f['is_live'] = is_live
             gen = functools.partial(
-                self._live_dash_fragments, f['format_id'], live_start_time, mpd_feed, post_live_long)
+                self._live_dash_fragments, f['format_id'], live_start_time, mpd_feed, post_live_long and f)
             if is_live:
                 f['protocol'] = 'http_dash_segments_generator'
                 f['fragments'] = gen
@@ -2548,7 +2548,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 f['is_from_start'] = False
                 f['fragments'] = list(gen({}))
 
-    def _live_dash_fragments(self, format_id, live_start_time, mpd_feed, post_live_long, ctx):
+    def _live_dash_fragments(self, format_id, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
 
         mpd_url, stream_number, is_live = None, None, True
@@ -2579,15 +2579,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     return False, last_seq
                 elif old_mpd_url == mpd_url:
                     return True, last_seq
-            try:
-                fmts, _ = self._extract_mpd_formats_and_subtitles(
-                    mpd_url, None, note=False, errnote=False, fatal=False)
-            except ExtractorError:
-                fmts = None
-            if not fmts:
-                no_fragment_score += 2
-                return False, last_seq
-            fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
+            if manifestless_orig_fmt:
+                fmt_info = manifestless_orig_fmt
+            else:
+                try:
+                    fmts, _ = self._extract_mpd_formats_and_subtitles(
+                        mpd_url, None, note=False, errnote=False, fatal=False)
+                except ExtractorError:
+                    fmts = None
+                if not fmts:
+                    no_fragment_score += 2
+                    return False, last_seq
+                fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
             fragments = fmt_info['fragments']
             fragment_base_url = fmt_info['fragment_base_url']
             assert fragment_base_url
@@ -2648,7 +2651,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             except ExtractorError:
                 continue
 
-            if post_live_long:
+            if manifestless_orig_fmt:
                 # Stop at the first iteration if running for post-live manifestless;
                 # fragment count no longer increase since it starts
                 break
