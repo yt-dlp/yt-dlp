@@ -81,7 +81,7 @@ class BooyahClipsIE(BooyahBaseIE):
             'channel_id': traverse_obj(json_data, ('playback', 'channel_id')),
             'uploader': traverse_obj(json_data, ('user', 'nickname')),
             'uploader_id': str_or_none(traverse_obj(json_data, ('user', 'uid'))),
-            'comments': self._get_comment_data(video_id),
             'modified_timestamp': int_or_none(traverse_obj(json_data, ('playback', 'update_time_ms')), 1000),
             'timestamp': int_or_none(traverse_obj(json_data, ('playback', 'create_time_ms')), 1000),
+            '__post_extractor': self.extract_comments(video_id, self._get_comments(video_id)),
         }
