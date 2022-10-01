@@ -35,7 +35,7 @@ class IsraelNationalNewsIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        json = self._download_json('https://www.israelnationalnews.com/Generic/NewAPI/Item?type=0&Item=' + video_id, video_id)
+        video_json = self._download_json(f'https://www.israelnationalnews.com/Generic/NewAPI/Item?type=0&Item={video_id}', video_id)
 
         youtube_id = traverse_obj(json, ('Content2', ..., 'content', ..., 'attrs', 'src'), get_all=False)
 
