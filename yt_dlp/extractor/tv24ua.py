@@ -1,0 +1,57 @@
+import re
+
+from .common import InfoExtractor
+from ..utils import (
+    determine_ext,
+    js_to_json,
+    mimetype2ext,
+    traverse_obj
+)
+
+
+class TV24UAPlayerIE(InfoExtractor):
+    _VALID_URL = r'https?://24tv\.ua/news/showPlayer\.do.*?(?:\?|&)objectId=(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://24tv.ua/news/showPlayer.do?objectId=2074790&videoUrl=2022/07/2074790&w=640&h=360',
+        'info_dict': {
+            'id': '2074790',
+            'ext': 'mp4',
+            'title': 'У Харкові ворожа ракета прилетіла в будинок, де слухали пісні про "офіцерів-росіян"',
+            'thumbnail': 'https://videocdnL.luxnet.ua/tv24/resources/videos/2022/07/2074790_main.mp4.jpeg?v=1661252544000',
+        }
+    }, {
+        'url': 'https://24tv.ua/news/showPlayer.do?videoUrl=2022/07/2074790&objectId=2074790&w=640&h=360',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+
+        formats = []
+        subtitles = {}
+        for j in re.findall(r'vPlayConfig\.sources\s*=\s*(?P<json>\[{\s*(?s:.+?)\s*}])', webpage):
+            sources = self._parse_json(j, video_id, fatal=False, ignore_extra=True, transform_source=js_to_json, errnote='') or []
+            for source in sources:
+                if mimetype2ext(traverse_obj(source, 'type')) == 'm3u8':
+                    f, s = self._extract_m3u8_formats_and_subtitles(source['src'], video_id)
+                    formats.extend(f)
+                    self._merge_subtitles(subtitles, s)
+                else:
+                    formats.append({
+                        'url': source['src'],
+                        'ext': determine_ext(source['src']),
+                    })
+        thumbnail = traverse_obj(
+            self._search_json(
+                r'var\s*vPlayConfig\s*=\s*', webpage, 'thumbnail',
+                video_id, default=None, transform_source=js_to_json), 'poster')
+
+        return {
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            'thumbnail': thumbnail or self._og_search_thumbnail(webpage),
+            'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
+            'description': self._og_search_description(webpage, default=None),
+        }
