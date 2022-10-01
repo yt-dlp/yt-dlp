@@ -1,13 +1,14 @@
-import itertools
 import re
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
+    OnDemandPagedList,
     clean_html,
     get_element_by_class,
     get_elements_html_by_class,
+    int_or_none,
     orderedSet,
     parse_count,
     parse_duration,
@@ -87,19 +88,25 @@ class BitChuteChannelIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?bitchute\.com/(?P<type>channel|playlist)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.bitchute.com/channel/bitchute/',
-        'playlist_mincount': 10,
+        'playlist_mincount': 9,
         'info_dict': {
             'id': 'bitchute',
+            'title': 'BitChute',
+            'description': 'startswith:BitChute is a peer to peer video sharing platform.',
         },
     }, {
         'url': 'https://www.bitchute.com/playlist/wV9Imujxasw9/',
         'playlist_mincount': 20,
         'info_dict': {
             'id': 'wV9Imujxasw9',
+            'title': 'Bruce MacDonald and "The Light of Darkness"',
+            'description': 'BitChute aims to put creators first and provide them with a service '
+                           'that they can use to flourish and express their ideas freely.',
         }
     }]
 
     _TOKEN = 'zyG6tQcGPE5swyAEFLqKUwMuMMuF6IO2DZ6ZDQjGfsL0e4dcTLwqkTTul05Jdve7'
+    PAGE_SIZE = 25
     HTML_CLASS_NAMES = {
         'channel': {
             'container': 'channel-videos-container',
@@ -116,15 +123,15 @@ class BitChuteChannelIE(InfoExtractor):
 
     def _entries(self, playlist_type, playlist_id):
         playlist_url = 'https://www.bitchute.com/%s/%s/' % (playlist_type, playlist_id)
-        offset = 0
-        for page_num in itertools.count(1):
+
+        def fetch_entries(page_num):
             data = self._download_json(
                 '%sextend/' % playlist_url, playlist_id,
                 'Downloading %s page %d' % (playlist_type, page_num),
                 data=urlencode_postdata({
                     'csrfmiddlewaretoken': self._TOKEN,
                     'name': '',
-                    'offset': offset,
+                    'offset': page_num * self.PAGE_SIZE,
                 }), headers={
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                     'Referer': playlist_url,
@@ -132,18 +139,11 @@ class BitChuteChannelIE(InfoExtractor):
                     'Cookie': 'csrftoken=%s' % self._TOKEN,
                 })
             if data.get('success') is not True:
-                break
-            html = data.get('html')
+                return
             class_name = self.HTML_CLASS_NAMES[playlist_type]
-            video_containers = get_elements_html_by_class(class_name['container'], html)
-            offset += len(video_containers)
-            if not video_containers:
-                break
-            for video_html in video_containers:
+            for video_html in get_elements_html_by_class(class_name['container'], data.get('html')):
                 match = re.search(r'<a\b[^>]+\bhref=["\']/video/(?P<id>[^"\'/]+)', video_html)
-                if not match:
-                    continue
-                video_id = match.group('id')
+                video_id = match and match.group('id')
                 yield self.url_result(
                     'https://www.bitchute.com/video/%s' % video_id,
                     ie=BitChuteIE.ie_key(), video_id=video_id, url_transparent=True,
@@ -152,8 +152,22 @@ class BitChuteChannelIE(InfoExtractor):
                     duration=parse_duration(get_element_by_class('video-duration', video_html)),
                     view_count=parse_count(clean_html(get_element_by_class('video-views', video_html))),
                 )
+        return OnDemandPagedList(fetch_entries, self.PAGE_SIZE)
 
     def _real_extract(self, url):
         playlist_type, playlist_id = self._match_valid_url(url).groups()
+
+        webpage = self._download_webpage(
+            'https://www.bitchute.com/%s/%s/' % (playlist_type, playlist_id), video_id=playlist_id)
+        playlist_title = self._html_extract_title(webpage, default=None)
+        playlist_description = self._html_search_meta(
+            ('description', 'og:description', 'twitter:description'), webpage, default=None)
+        playlist_count = int_or_none(self._html_search_regex(
+            r'<span>(\d+) +videos?</span>', webpage, 'playlist count', default=None), default='N/A')
+
         return self.playlist_result(
-            self._entries(playlist_type, playlist_id), playlist_id=playlist_id)
+            self._entries(playlist_type, playlist_id),
+            playlist_id=playlist_id,
+            playlist_title=playlist_title,
+            playlist_description=playlist_description,
+            playlist_count=playlist_count)
