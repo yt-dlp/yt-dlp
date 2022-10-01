@@ -35,13 +35,11 @@ class IsraelNationalNewsIE(InfoExtractor):
 
     def _real_extract(self, url):
         news_article_id = self._match_id(url)
-        article_json = self._download_json(f'https://www.israelnationalnews.com/Generic/NewAPI/Item?type=0&Item={news_article_id}', news_article_id)
+        article_json = self._download_json(
+            f'https://www.israelnationalnews.com/Generic/NewAPI/Item?type=0&Item={news_article_id}', news_article_id)
 
-        entries = []
-        for item in traverse_obj(article_json, ('Content2', ..., 'content', ..., 'attrs', 'src')) or []:
-            entries.append(self.url_result(item, ie_key='Youtube'))
-
-        if not entries:
+        urls = traverse_obj(article_json, ('Content2', ..., 'content', ..., 'attrs', 'src'))
+        if not urls:
             raise ExtractorError('This article does not have any videos', expected=True)
 
-        return self.playlist_result(entries, news_article_id)
+        return self.playlist_from_matches(urls, news_article_id, ie='Youtube')
