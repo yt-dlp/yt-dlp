@@ -71,14 +71,12 @@ class BitChuteIE(InfoExtractor):
         self._check_formats(formats, video_id)
         self._sort_formats(formats)
 
-        # some videos have empty string as description, default suppresses the warning
         description = self._og_search_description(webpage, default=None)
         thumbnail = self._og_search_thumbnail(webpage)
         uploader = clean_html(get_element_by_class('owner', webpage))
         publish_date = clean_html(get_element_by_class('video-publish-date', webpage))
         upload_date = unified_strdate(self._search_regex(
-            r'at \d+:\d+ UTC on (.+?)\.', publish_date, 'upload date', fatal=False)
-        )
+            r'at \d+:\d+ UTC on (.+?)\.', publish_date, 'upload date', fatal=False))
 
         return {
             'id': video_id,
@@ -153,13 +151,9 @@ class BitChuteChannelIE(InfoExtractor):
                     'https://www.bitchute.com/video/%s' % video_id,
                     ie=BitChuteIE.ie_key(), video_id=video_id, url_transparent=True,
                     title=clean_html(get_element_by_class(class_name['title'], video_html)),
-                    description=clean_html(
-                        get_element_by_class(class_name['description'], video_html)
-                    ),
+                    description=clean_html(get_element_by_class(class_name['description'], video_html)),
                     duration=parse_duration(get_element_by_class('video-duration', video_html)),
-                    view_count=parse_count(clean_html(
-                        get_element_by_class('video-views', video_html))
-                    ),
+                    view_count=parse_count(clean_html(get_element_by_class('video-views', video_html))),
                 ))
             if not results:
                 break
