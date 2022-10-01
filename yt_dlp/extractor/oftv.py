@@ -27,3 +27,21 @@ class OfTVIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         extraction = ZypeIE.extract_from_webpage(self._downloader, url, webpage)
         return list(extraction)[0]
+
+
+class OfTVPlaylistIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?of.tv/video/(?P<id>[0-9a-zA-Z]+)'
+    _TESTS = [{
+        'url': ' https://of.tv/creators/this-is-fire/',
+        'md5': '',
+        'info_dict': {
+
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        playlists_match = self._search_regex("var remaining_videos = (?P<json>\[{\s*(?:.+?)\s*}])\s*;", webpage, 'json_group')
+        # remaining_videos = self._search_json(r'', playlists_match, 'remaining_videos', video_id)
+        return self.playlist_result(playlists_match)
