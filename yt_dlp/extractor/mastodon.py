@@ -349,7 +349,6 @@ class MastodonInstancesIE(MastodonBaseIE):
             'thumbnail': 'https://media.mstdn.jp/media_attachments/files/033/830/003/small/e8429d6ee1013c3e.png',
             'duration': 131.598,
         },
-        'params': {'allowed_extractors': ['mastodon:instances', 'default']},  # FIXME: Should be automatic
     }, {
         'note': 'embed video with NSFW',
         'url': 'https://mstdn.jp/@nao20010128nao/105395503690401921',
@@ -367,7 +366,6 @@ class MastodonInstancesIE(MastodonBaseIE):
             'title': 'Mastodonダウンローダーのテストケース用なので別に注意要素無いよ',
             'age_limit': 18,  # TODO
         },
-        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }, {
         'note': 'uploader_id not present in URL',
         'url': 'https://mstdn.jp/web/statuses/105395503690401921',
@@ -385,7 +383,6 @@ class MastodonInstancesIE(MastodonBaseIE):
             'title': 'Mastodonダウンローダーのテストケース用なので別に注意要素無いよ',
             'age_limit': 18,
         },
-        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }, {
         'note': 'has YouTube as card',
         'url': 'https://mstdn.jp/@vaporeon/105389634797745542',
@@ -418,7 +415,6 @@ class MastodonInstancesIE(MastodonBaseIE):
             'upload_date': '20201216',
             'repost_count': int,
         },
-        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }, {  # FIXME
         'note': 'uploader_id has only one character',
         'url': 'https://mstdn.kemono-friends.info/@m/103997543924688111',
@@ -427,7 +423,6 @@ class MastodonInstancesIE(MastodonBaseIE):
             'ext': 'mp4',
             'uploader_id': 'm',
         },
-        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }, {
         # mastodon, video description
         'url': 'https://mastodon.technology/@BadAtNames/104254332187004304',
@@ -444,7 +439,6 @@ class MastodonInstancesIE(MastodonBaseIE):
             'duration': 12.72,
             'uploader_url': 'https://mastodon.technology/@BadAtNames',
         },
-        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }, {
         # pleroma, multiple videos in single post
         'url': 'https://donotsta.re/notice/9xN1v6yM7WhzE7aIIC',
@@ -458,7 +452,6 @@ class MastodonInstancesIE(MastodonBaseIE):
             'uploader': 'lauren',
             'like_count': int,
         },
-        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
         'playlist': [{
             'info_dict': {
                 'id': '1264363435@donotsta.re',
@@ -489,7 +482,6 @@ class MastodonInstancesIE(MastodonBaseIE):
             'thumbnail': 'https://outerheaven.club/media/e478abfb-8dc2-4249-bd0e-81bee9b008b1/Husky_1637445043856_JS39YH64JB.mp4',
             'uploader_url': 'https://outerheaven.club/users/Talloran',
         },
-        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }, {
         # mastodon, card to youtube
         'url': 'https://mstdn.social/@polamatysiak/106183574509332910',
@@ -520,5 +512,4 @@ class MastodonInstancesIE(MastodonBaseIE):
             'location': 'SEJM RZECZYPOSPOLITEJ POLSKIEJ',
             'channel_follower_count': int,
         },
-        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }]

@@ -3679,6 +3679,7 @@ class InfoExtractor:
         tests = getattr(cls, '_WEBPAGE_TESTS', [])
         for t in tests:
             t['name'] = cls.ie_key()
+            t.setdefault('params', {}).setdefault('allowed_extractors', [re.escape(cls.IE_NAME), 'default'])
         return tests
 
     @classproperty
