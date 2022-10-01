@@ -6,15 +6,13 @@ class BooyahBaseIE(InfoExtractor):
     _BOOYAH_SESSION_KEY = None
 
     def _real_initialize(self):
-        if not BooyahBaseIE._BOOYAH_SESSION_KEY:
-            initial_request = self._request_webpage(
-                'https://booyah.live/api/v3/auths/sessions', None, data="".encode())
-            BooyahBaseIE._BOOYAH_SESSION_KEY = initial_request.getheader('booyah-session-key')
+        BooyahBaseIE._BOOYAH_SESSION_KEY = self._request_webpage(
+            'https://booyah.live/api/v3/auths/sessions', None, data=b'').getheader('booyah-session-key')
 
-    def _get_comment_data(self, video_id):
+    def _get_comments(self, video_id):
         comment_json = self._download_json(
             f'https://booyah.live/api/v3/playbacks/{video_id}/comments/tops', video_id,
-            headers={'Booyah-Session-Key': BooyahBaseIE._BOOYAH_SESSION_KEY}, fatal=False) or {}
+            headers={'Booyah-Session-Key': self._BOOYAH_SESSION_KEY}, fatal=False) or {}
 
         return [{
             'id': comment.get('comment_id'),
@@ -54,22 +52,21 @@ class BooyahClipsIE(BooyahBaseIE):
         video_id = self._match_id(url)
         json_data = self._download_json(
             f'https://booyah.live/api/v3/playbacks/{video_id}', video_id,
-            headers={'Booyah-Session-key': BooyahBaseIE._BOOYAH_SESSION_KEY})
+            headers={'Booyah-Session-key': self._BOOYAH_SESSION_KEY})
 
         formats = []
         for video_data in json_data['playback']['endpoint_list']:
-            formats.append({
+            formats.extend(({
                 'url': video_data.get('stream_url'),
                 'ext': 'mp4',
                 'height': video_data.get('resolution'),
-            })
-            formats.append({
+            }, {
                 'url': video_data.get('download_url'),
                 'ext': 'mp4',
                 'format_note': 'Watermarked',
                 'height': video_data.get('resolution'),
                 'preference': -10,
-            })
+            }))
         self._sort_formats(formats)
 
         return {
