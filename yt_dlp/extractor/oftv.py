@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from .zype import ZypeIE
 
+
 class OfTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?of.tv/video/(?P<id>[0-9a-zA-Z]+)'
     _TESTS = [{
