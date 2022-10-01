@@ -252,6 +252,10 @@ class Aria2cFD(ExternalFD):
         check_results = (not re.search(feature, manifest) for feature in UNSUPPORTED_FEATURES)
         return all(check_results)
 
+    @staticmethod
+    def _aria2c_filename(fn):
+        return fn if os.path.isabs(fn) else f'.{os.path.sep}{fn}'
+
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
@@ -280,11 +284,9 @@ class Aria2cFD(ExternalFD):
         # https://github.com/aria2/aria2/issues/1373
         dn = os.path.dirname(tmpfilename)
         if dn:
-            if not os.path.isabs(dn):
-                dn = f'.{os.path.sep}{dn}'
-            cmd += ['--dir', dn + os.path.sep]
+            cmd += ['--dir', self._aria2c_filename(dn) + os.path.sep]
         if 'fragments' not in info_dict:
-            cmd += ['--out', f'.{os.path.sep}{os.path.basename(tmpfilename)}']
+            cmd += ['--out', self._aria2c_filename(os.path.basename(tmpfilename))]
         cmd += ['--auto-file-renaming=false']
 
         if 'fragments' in info_dict:
@@ -293,11 +295,11 @@ class Aria2cFD(ExternalFD):
             url_list = []
             for frag_index, fragment in enumerate(info_dict['fragments']):
                 fragment_filename = '%s-Frag%d' % (os.path.basename(tmpfilename), frag_index)
-                url_list.append('%s\n\tout=%s' % (fragment['url'], fragment_filename))
+                url_list.append('%s\n\tout=%s' % (fragment['url'], self._aria2c_filename(fragment_filename)))
             stream, _ = self.sanitize_open(url_list_file, 'wb')
             stream.write('\n'.join(url_list).encode())
             stream.close()
-            cmd += ['-i', url_list_file]
+            cmd += ['-i', self._aria2c_filename(url_list_file)]
         else:
             cmd += ['--', info_dict['url']]
         return cmd
