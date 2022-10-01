@@ -3,14 +3,22 @@ from ..utils import parse_iso8601
 
 
 class PrankCastIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?prankcast\.com/.*/showreel/(?P<id>\d+)-(?P<display_id>.+)'
+    _VALID_URL = r'https?://(?:www\.)?prankcast\.com/[^/?#]+/showreel/(?P<id>\d+)-(?P<display_id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://prankcast.com/Devonanustart/showreel/1561-Beverly-is-back-like-a-heart-attack-',
         'info_dict': {
             'id': '1561',
             'ext': 'mp3',
             'title': 'Beverly is back like a heart attack!',
+            'display_id': 'Beverly-is-back-like-a-heart-attack-',
+            'timestamp': 1661391575,
             'uploader': 'Devonanustart',
+            'channel_id': 4,
+            'duration': 7918,
+            'cast': ['Devonanustart', 'Phonelosers'],
+            'description': '',
+            'categories': ['prank'],
+            'tags': ['prank call', 'prank'],
             'upload_date': '20220825'
         }
     }]
