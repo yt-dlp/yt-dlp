@@ -14,6 +14,7 @@ class NOSNLArticleIE(InfoExtractor):
                 'description': 'md5:5f83185d902ac97af3af4bed7ece3db5',
                 'title': '\'We hebben een huis vol met scheuren\'',
                 'duration': 95.0,
+                'thumbnail': 'https://cdn.nos.nl/image/2022/08/12/887149/3840x2160a.jpg',
             }
         }, {
             # more than 1 video
@@ -48,6 +49,16 @@ class NOSNLArticleIE(InfoExtractor):
         }
     ]
 
+    def _get_video_thumbnails(self, image_data):
+        thumb_data = []
+        for image in image_data.get('16:9') or []:
+            thumb_data.append({
+                'url': traverse_obj(image, ('url', ...), get_all=False),
+                'width': image.get('width'),
+                'height': image.get('height')
+            })
+        return thumb_data
+
     def _get_video_generator(self, nextjs_json, display_id):
         for item in nextjs_json['items']:
             if item.get('type') == 'video':
@@ -60,6 +71,7 @@ class NOSNLArticleIE(InfoExtractor):
                     'formats': formats,
                     'subtitles': subtitle,
                     'duration': parse_duration(item.get('duration')),
+                    'thumbnails': self._get_video_thumbnails(item.get('imagesByRatio'))
                 }
 
             elif item.get('type') == 'audio':
