@@ -93,7 +93,7 @@ class BitChuteChannelIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.bitchute.com/playlist/wV9Imujxasw9/',
-        'playlist_mincount': 30,
+        'playlist_mincount': 20,
         'info_dict': {
             'id': 'wV9Imujxasw9',
         }
