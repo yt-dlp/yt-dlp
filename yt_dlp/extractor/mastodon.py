@@ -49,14 +49,7 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
         r'<script id=[\'"]initial-state[\'"] type=[\'"]application/json[\'"]>{"meta":{"streaming_api_base_url":"wss://',
     )
     _KNOWN_INSTANCES = {
-        # DO NOT DELETE THE FOLLOWING TWO
         'gab.com', 'truthsocial.com',
-
-        # Fallback instances  # TODO: Which of these are actually needed?
-        'mstdn.jp', 'pawoo.net', 'mstdn.kemono-friends.info',
-        'mastodon.technology', 'donotsta.re', 'outerheaven.club',
-        'stereophonic.space', 'mstdn.social',
-        # 'gleasonator.com',
     }
     _login_info = {}
 
@@ -161,6 +154,87 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
             'authorization': f"{actual_token['token_type']} {actual_token['access_token']}",
         }
 
+
+class MastodonIE(MastodonBaseIE):
+    # TODO: Add md5s
+    _TESTS = [{
+        'note': 'short form, compatible with haruhi-dl\'s usage',
+        'url': 'mastodon:mstdn.jp:105395495018076252',
+        'info_dict': {
+            'id': '105395495018076252@mstdn.jp',
+            'ext': 'mp4',
+            'uploader_id': 'nao20010128nao',
+            'like_count': int,
+            'comment_count': int,
+            'duration': 131.598,
+            'thumbnail': 'https://media.mstdn.jp/media_attachments/files/033/830/003/small/e8429d6ee1013c3e.png',
+            'title': 'てすや\nhttps://www.youtube.com/watch?v=jx0fBBkaF1w',
+            'uploader': 'Lesmiscore',
+            'uploader_url': 'https://mstdn.jp/@nao20010128nao',
+            'repost_count': int,
+        },
+    }, {
+        # Soapbox, audio file
+        'url': 'mastadon:https://gleasonator.com/notice/9zvJY6h7jJzwopKAIi',
+        'info_dict': {
+            'id': '9zvJY6h7jJzwopKAIi@gleasonator.com',
+            'title': '#FEDIBLOCK',
+            'ext': 'oga',
+            'comment_count': int,
+            'repost_count': int,
+            'uploader_url': 'https://gleasonator.com/users/alex',
+            'uploader': 'Alex Gleason',
+            'uploader_id': 'alex',
+            'like_count': int,
+        },
+    }, {
+        # gab social
+        'url': 'https://gab.com/ACT1TV/posts/104450493441154721',
+        'info_dict': {
+            'id': '104450493441154721@gab.com',
+            'ext': 'mp4',
+            'comment_count': int,
+            'uploader': 'Bill Blaze',
+            'uploader_url': 'https://gab.com/ACT1TV',
+            'uploader_id': 'ACT1TV',
+            'repost_count': int,
+            'duration': 12.422667,
+            'thumbnail': 'https://media.gab.com/system/media_attachments/files/056/821/863/small/0b5645cee32909e9.png',
+            'title': 'He shoots, he scores and the crowd went wild.... #Animal #Sports',
+            'like_count': int,
+        },
+    }, {
+        'url': 'https://gab.com/SomeBitchIKnow/posts/107163961867310434',
+        'md5': '8ca34fb00f1e1033b5c5988d79ec531d',
+        'info_dict': {
+            'id': '107163961867310434@gab.com',
+            'ext': 'mp4',
+            'comment_count': int,
+            'repost_count': int,
+            'title': 'md5:204055fafd5e1a519f5d6db953567ca3',
+            'uploader_id': 'SomeBitchIKnow',
+            'duration': 104.213333,
+            'uploader_url': 'https://gab.com/SomeBitchIKnow',
+            'like_count': int,
+            'uploader': 'L',
+            'thumbnail': 'https://media.gab.com/system/media_attachments/files/088/718/344/small/fded4ef06989f1bb.png',
+        }
+    }, {  # FIXME
+        'url': 'https://gab.com/TheLonelyProud/posts/107045884469287653',
+        'md5': 'f9cefcfdff6418e392611a828d47839d',
+        'info_dict': {
+            'id': '107045884469287653@gab.com',
+            'ext': 'mp4',
+        }
+    }, {
+        'note': 'has radiko as card',
+        'url': 'https://mstdn.jp/@vaporeon/105389280534065010',
+        'only_matching': True,
+    }, {
+        'url': 'https://pawoo.net/@iriomote_yamaneko/105370643258491818',
+        'only_matching': True,
+    }, ]
+
     def _real_extract(self, url):
         video_id, domain = self._match_id(url), self._match_hostname(url)[1]
         display_id = self._make_video_id(video_id, domain)
@@ -238,7 +312,7 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
             if not card:
                 raise ExtractorError('No audio/video attachments', expected=True)
             return {
-                '_type': 'url_transparent',  # TODO: Sure it should be transparent?
+                '_type': 'url_transparent',
                 'url': card['url'],
                 'title': title,
                 'thumbnail': url_or_none(card.get('image')),
@@ -257,9 +331,9 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
         return info_dict
 
 
-class MastodonIE(MastodonBaseIE):
-    _TESTS = [{
-        # TODO: Add md5s
+class MastodonInstancesIE(MastodonBaseIE):
+    _BASE_IES = (MastodonIE, )
+    _WEBPAGE_TESTS = [{
         'note': 'embed video without NSFW',
         'url': 'https://mstdn.jp/@nao20010128nao/105395495018076252',
         'info_dict': {
@@ -275,6 +349,7 @@ class MastodonIE(MastodonBaseIE):
             'thumbnail': 'https://media.mstdn.jp/media_attachments/files/033/830/003/small/e8429d6ee1013c3e.png',
             'duration': 131.598,
         },
+        'params': {'allowed_extractors': ['mastodon:instances', 'default']},  # FIXME: Should be automatic
     }, {
         'note': 'embed video with NSFW',
         'url': 'https://mstdn.jp/@nao20010128nao/105395503690401921',
@@ -292,6 +367,7 @@ class MastodonIE(MastodonBaseIE):
             'title': 'Mastodonダウンローダーのテストケース用なので別に注意要素無いよ',
             'age_limit': 18,  # TODO
         },
+        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }, {
         'note': 'uploader_id not present in URL',
         'url': 'https://mstdn.jp/web/statuses/105395503690401921',
@@ -309,6 +385,7 @@ class MastodonIE(MastodonBaseIE):
             'title': 'Mastodonダウンローダーのテストケース用なので別に注意要素無いよ',
             'age_limit': 18,
         },
+        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }, {
         'note': 'has YouTube as card',
         'url': 'https://mstdn.jp/@vaporeon/105389634797745542',
@@ -341,13 +418,7 @@ class MastodonIE(MastodonBaseIE):
             'upload_date': '20201216',
             'repost_count': int,
         },
-    }, {
-        'note': 'has radiko as card',
-        'url': 'https://mstdn.jp/@vaporeon/105389280534065010',
-        'only_matching': True,
-    }, {
-        'url': 'https://pawoo.net/@iriomote_yamaneko/105370643258491818',
-        'only_matching': True,
+        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }, {  # FIXME
         'note': 'uploader_id has only one character',
         'url': 'https://mstdn.kemono-friends.info/@m/103997543924688111',
@@ -356,22 +427,7 @@ class MastodonIE(MastodonBaseIE):
             'ext': 'mp4',
             'uploader_id': 'm',
         },
-    }, {
-        'note': 'short form, compatible with haruhi-dl\'s usage',
-        'url': 'mastodon:mstdn.jp:105395495018076252',
-        'info_dict': {
-            'id': '105395495018076252@mstdn.jp',
-            'ext': 'mp4',
-            'uploader_id': 'nao20010128nao',
-            'like_count': int,
-            'comment_count': int,
-            'duration': 131.598,
-            'thumbnail': 'https://media.mstdn.jp/media_attachments/files/033/830/003/small/e8429d6ee1013c3e.png',
-            'title': 'てすや\nhttps://www.youtube.com/watch?v=jx0fBBkaF1w',
-            'uploader': 'Lesmiscore',
-            'uploader_url': 'https://mstdn.jp/@nao20010128nao',
-            'repost_count': int,
-        },
+        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }, {
         # mastodon, video description
         'url': 'https://mastodon.technology/@BadAtNames/104254332187004304',
@@ -388,6 +444,7 @@ class MastodonIE(MastodonBaseIE):
             'duration': 12.72,
             'uploader_url': 'https://mastodon.technology/@BadAtNames',
         },
+        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }, {
         # pleroma, multiple videos in single post
         'url': 'https://donotsta.re/notice/9xN1v6yM7WhzE7aIIC',
@@ -401,6 +458,7 @@ class MastodonIE(MastodonBaseIE):
             'uploader': 'lauren',
             'like_count': int,
         },
+        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
         'playlist': [{
             'info_dict': {
                 'id': '1264363435@donotsta.re',
@@ -415,7 +473,7 @@ class MastodonIE(MastodonBaseIE):
                 'title': 'Santi 🇨🇴 - @mhizgoldbedding same guy but i liked this one better-1259242534557167617.mp4',
                 'thumbnail': 'https://donotsta.re/media/4cf3beffd7836b336ab986952c69c2016d0352d50245a2bf1f844efeba194aab.mp4',
             },
-        }]
+        }],
     }, {
         # pleroma, with /objects/
         'url': 'https://outerheaven.club/objects/a5046e74-07b4-49a3-9f1c-da11cf97e939',
@@ -431,13 +489,7 @@ class MastodonIE(MastodonBaseIE):
             'thumbnail': 'https://outerheaven.club/media/e478abfb-8dc2-4249-bd0e-81bee9b008b1/Husky_1637445043856_JS39YH64JB.mp4',
             'uploader_url': 'https://outerheaven.club/users/Talloran',
         },
-    }, {
-        # gab social
-        'url': 'https://gab.com/ACT1TV/posts/104450493441154721',  # FIXME: 404
-        'info_dict': {
-            'id': '104450493441154721@gab.com',
-            'ext': 'mp4',
-        },
+        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }, {
         # mastodon, card to youtube
         'url': 'https://mstdn.social/@polamatysiak/106183574509332910',
@@ -453,7 +505,7 @@ class MastodonIE(MastodonBaseIE):
             'comment_count': int,
             'age_limit': 0,
             'duration': 87,
-            'uploader_url': 'https://mstdn.social/@polamatysiak',  # FIXME: L241
+            'uploader_url': 'https://mstdn.social/@polamatysiak',  # FIXME: url_transparent?
             'like_count': int,
             'uploader': 'polamatysiak',
             'availability': 'public',
@@ -468,47 +520,5 @@ class MastodonIE(MastodonBaseIE):
             'location': 'SEJM RZECZYPOSPOLITEJ POLSKIEJ',
             'channel_follower_count': int,
         },
-    }, {
-        'url': 'https://gab.com/SomeBitchIKnow/posts/107163961867310434',
-        'md5': '8ca34fb00f1e1033b5c5988d79ec531d',
-        'info_dict': {
-            'id': '107163961867310434@gab.com',
-            'ext': 'mp4',
-            'comment_count': int,
-            'repost_count': int,
-            'title': 'md5:204055fafd5e1a519f5d6db953567ca3',
-            'uploader_id': 'SomeBitchIKnow',
-            'duration': 104.213333,
-            'uploader_url': 'https://gab.com/SomeBitchIKnow',
-            'like_count': int,
-            'uploader': 'L',
-            'thumbnail': 'https://media.gab.com/system/media_attachments/files/088/718/344/small/fded4ef06989f1bb.png',
-        }
-    }, {  # FIXME
-        'url': 'https://gab.com/TheLonelyProud/posts/107045884469287653',
-        'md5': 'f9cefcfdff6418e392611a828d47839d',
-        'info_dict': {
-            'id': '107045884469287653@gab.com',
-            'ext': 'mp4',
-        }
-    }]
-
-
-class MastodonInstancesIE(MastodonBaseIE):
-    _BASE_IES = (MastodonIE, )
-    _WEBPAGE_TESTS = [{
-        # Soapbox, audio file
-        'url': 'https://gleasonator.com/notice/9zvJY6h7jJzwopKAIi',
-        'info_dict': {
-            'id': '9zvJY6h7jJzwopKAIi@gleasonator.com',
-            'title': '#FEDIBLOCK',
-            'ext': 'oga',
-            'comment_count': int,
-            'repost_count': int,
-            'uploader_url': 'https://gleasonator.com/users/alex',
-            'uploader': 'Alex Gleason',
-            'uploader_id': 'alex',
-            'like_count': int,
-        },
-        'params': {'allowed_extractors': ['mastodon:instances', 'default']},  # FIXME: Should be automatic
+        'params': {'allowed_extractors': ['mastodon:instances', 'default']},
     }]
