@@ -262,6 +262,41 @@ class WeTvBaseIE(TencentBaseIE):
             traverse_obj(self._search_nextjs_data(webpage, video_id), ('props', 'pageProps', 'data')),
             video_id, fatal=False)
 
+    def _extract_episode(self, url):
+        video_id, series_id = self._match_valid_url(url).group('id', 'series_id')
+        webpage = self._download_webpage(url, video_id)
+        webpage_metadata = self._get_webpage_metadata(webpage, video_id)
+
+        formats, subtitles = self._extract_all_video_formats_and_subtitles(url, video_id, series_id)
+        return {
+            'id': video_id,
+            'title': self._get_clean_title(self._og_search_title(webpage)
+                                           or traverse_obj(webpage_metadata, ('coverInfo', 'title'))),
+            'description': (traverse_obj(webpage_metadata, ('coverInfo', 'description'))
+                            or self._og_search_description(webpage)),
+            'formats': formats,
+            'subtitles': subtitles,
+            'thumbnail': self._og_search_thumbnail(webpage),
+            'duration': int_or_none(traverse_obj(webpage_metadata, ('videoInfo', 'duration'))),
+            'series': traverse_obj(webpage_metadata, ('coverInfo', 'title')),
+            'episode_number': int_or_none(traverse_obj(webpage_metadata, ('videoInfo', 'episode'))),
+        }
+
+    def _extract_series(self, url, ie):
+        series_id = self._match_id(url)
+        webpage = self._download_webpage(url, series_id)
+        webpage_metadata = self._get_webpage_metadata(webpage, series_id)
+
+        episode_paths = ([f'/play/{series_id}/{episode["vid"]}' for episode in webpage_metadata.get('videoList')]
+                         or re.findall(r'<a[^>]+class="play-video__link"[^>]+href="(?P<path>[^"]+)', webpage))
+
+        return self.playlist_from_matches(
+            episode_paths, series_id, ie=ie, getter=functools.partial(urljoin, url),
+            title=self._get_clean_title(traverse_obj(webpage_metadata, ('coverInfo', 'title'))
+                                        or self._og_search_title(webpage)),
+            description=(traverse_obj(webpage_metadata, ('coverInfo', 'description'))
+                         or self._og_search_description(webpage)))
+
 
 class WeTvEpisodeIE(WeTvBaseIE):
     IE_NAME = 'wetv:episode'
@@ -312,24 +347,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id, series_id = self._match_valid_url(url).group('id', 'series_id')
-        webpage = self._download_webpage(url, video_id)
-        webpage_metadata = self._get_webpage_metadata(webpage, video_id)
-
-        formats, subtitles = self._extract_all_video_formats_and_subtitles(url, video_id, series_id)
-        return {
-            'id': video_id,
-            'title': self._get_clean_title(self._og_search_title(webpage)
-                                           or traverse_obj(webpage_metadata, ('coverInfo', 'title'))),
-            'description': (traverse_obj(webpage_metadata, ('coverInfo', 'description'))
-                            or self._og_search_description(webpage)),
-            'formats': formats,
-            'subtitles': subtitles,
-            'thumbnail': self._og_search_thumbnail(webpage),
-            'duration': int_or_none(traverse_obj(webpage_metadata, ('videoInfo', 'duration'))),
-            'series': traverse_obj(webpage_metadata, ('coverInfo', 'title')),
-            'episode_number': int_or_none(traverse_obj(webpage_metadata, ('videoInfo', 'episode'))),
-        }
+        return self._extract_episode(url)
 
 
 class WeTvSeriesIE(WeTvBaseIE):
@@ -354,16 +372,77 @@ class WeTvSeriesIE(WeTvBaseIE):
     }]
 
     def _real_extract(self, url):
-        series_id = self._match_id(url)
-        webpage = self._download_webpage(url, series_id)
-        webpage_metadata = self._get_webpage_metadata(webpage, series_id)
+        return self._extract_series(url, WeTvEpisodeIE)
 
-        episode_paths = ([f'/play/{series_id}/{episode["vid"]}' for episode in webpage_metadata.get('videoList')]
-                         or re.findall(r'<a[^>]+class="play-video__link"[^>]+href="(?P<path>[^"]+)', webpage))
 
-        return self.playlist_from_matches(
-            episode_paths, series_id, ie=WeTvEpisodeIE, getter=functools.partial(urljoin, url),
-            title=self._get_clean_title(traverse_obj(webpage_metadata, ('coverInfo', 'title'))
-                                        or self._og_search_title(webpage)),
-            description=(traverse_obj(webpage_metadata, ('coverInfo', 'description'))
-                         or self._og_search_description(webpage)))
+class IflixBaseIE(WeTvBaseIE):
+    _VALID_URL_BASE = r'https?://(?:www\.)?iflix\.com/(?:[^?#]+/)?play'
+
+    _API_URL = 'https://vplay.iflix.com/getvinfo'
+    _APP_VERSION = '3.5.57'
+    _PLATFORM = '330201'
+    _HOST = 'www.iflix.com'
+    _REFERER = 'www.iflix.com'
+
+
+class IflixEpisodeIE(IflixBaseIE):
+    IE_NAME = 'iflix:episode'
+    _VALID_URL = IflixBaseIE._VALID_URL_BASE + r'/(?P<series_id>\w+)(?:-[^?#]+)?/(?P<id>\w+)(?:-[^?#]+)?'
+
+    _TESTS = [{
+        'url': 'https://www.iflix.com/en/play/daijrxu03yypu0s/a0040kvgaza',
+        'md5': '9740f9338c3a2105290d16b68fb3262f',
+        'info_dict': {
+            'id': 'a0040kvgaza',
+            'ext': 'mp4',
+            'title': 'EP1: Put Your Head On My Shoulder 2021',
+            'description': 'md5:c095a742d3b7da6dfedd0c8170727a42',
+            'thumbnail': r're:^https?://[^?#]+daijrxu03yypu0s',
+            'series': 'Put Your Head On My Shoulder 2021',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'duration': 2639,
+        },
+    }, {
+        'url': 'https://www.iflix.com/en/play/fvvrcc3ra9lbtt1-Take-My-Brother-Away/i0029sd3gm1-EP1%EF%BC%9ATake-My-Brother-Away',
+        'md5': '375c9b8478fdedca062274b2c2f53681',
+        'info_dict': {
+            'id': 'i0029sd3gm1',
+            'ext': 'mp4',
+            'title': 'EP1：Take My Brother Away',
+            'description': 'md5:f0f7be1606af51cd94d5627de96b0c76',
+            'thumbnail': r're:^https?://[^?#]+fvvrcc3ra9lbtt1',
+            'series': 'Take My Brother Away',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'duration': 228,
+        },
+    }]
+
+    def _real_extract(self, url):
+        return self._extract_episode(url)
+
+
+class IflixSeriesIE(IflixBaseIE):
+    _VALID_URL = IflixBaseIE._VALID_URL_BASE + r'/(?P<id>\w+)(?:-[^/?#]+)?/?(?:[?#]|$)'
+
+    _TESTS = [{
+        'url': 'https://www.iflix.com/en/play/g21a6qk4u1s9x22-You-Are-My-Hero',
+        'info_dict': {
+            'id': 'g21a6qk4u1s9x22',
+            'title': 'You Are My Hero',
+            'description': 'md5:9c4d844bc0799cd3d2b5aed758a2050a',
+        },
+        'playlist_count': 40,
+    }, {
+        'url': 'https://www.iflix.com/play/0s682hc45t0ohll',
+        'info_dict': {
+            'id': '0s682hc45t0ohll',
+            'title': 'Miss Gu Who Is Silent',
+            'description': 'md5:a9651d0236f25af06435e845fa2f8c78',
+        },
+        'playlist_count': 20,
+    }]
+
+    def _real_extract(self, url):
+        return self._extract_series(url, IflixEpisodeIE)
