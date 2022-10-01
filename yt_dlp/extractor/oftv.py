@@ -26,6 +26,4 @@ class OfTVIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         extraction = ZypeIE.extract_from_webpage(self._downloader, url, webpage)
-        output = list(extraction)
-        print(f'extractor: {output[0]}')
-        return output[0]
+        return list(extraction)[0]
