@@ -2492,10 +2492,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._code_cache = {}
         self._player_cache = {}
 
-    def _prepare_live_from_start_formats(self, formats, video_id, live_start_time, url, webpage_url, smuggled_data):
+    def _prepare_live_from_start_formats(self, formats, video_id, live_start_time, url, webpage_url, smuggled_data, plml):
+        # plml = Post-live manifestless
         lock = threading.Lock()
 
-        is_live = True
+        is_live = not plml
         start_time = time.time()
         formats = [f for f in formats if f.get('is_from_start')]
 
@@ -2531,12 +2532,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return f['manifest_url'], f['manifest_stream_number'], is_live
 
         for f in formats:
-            f['is_live'] = True
+            f['is_live'] = is_live
             f['protocol'] = 'http_dash_segments_generator'
             f['fragments'] = functools.partial(
-                self._live_dash_fragments, f['format_id'], live_start_time, mpd_feed)
+                self._live_dash_fragments, f['format_id'], live_start_time, mpd_feed, plml)
 
-    def _live_dash_fragments(self, format_id, live_start_time, mpd_feed, ctx):
+    def _live_dash_fragments(self, format_id, live_start_time, mpd_feed, plml, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
 
         mpd_url, stream_number, is_live = None, None, True
@@ -2635,6 +2636,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 known_idx = last_seq
             except ExtractorError:
                 continue
+
+            if plml:
+                # Stop at the first iteration if running for post-live manifestless;
+                # fragment count no longer increase since it starts
+                break
 
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
@@ -3396,7 +3402,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(last_error)
         return prs, player_url
 
-    def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, is_live, duration):
+    def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, is_live, plml, duration):
         itags, stream_ids = {}, []
         itag_qualities, res_qualities = {}, {0: None}
         q = qualities([
@@ -3543,7 +3549,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     dct['container'] = dct['ext'] + '_dash'
             yield dct
 
-        live_from_start = is_live and self.get_param('live_from_start')
+        live_from_start = is_live and self.get_param('live_from_start') or plml
         skip_manifests = self._configuration_arg('skip')
         if not self.get_param('youtube_include_hls_manifest', True):
             skip_manifests.append('hls')
@@ -3647,14 +3653,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return webpage, master_ytcfg, player_responses, player_url
 
-    def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
+    def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, plml=False, duration=None):
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
         is_live = get_first(video_details, 'isLive')
         if is_live is None:
             is_live = get_first(live_broadcast_details, 'isLiveNow')
 
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
-        *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, is_live, duration)
+        *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, is_live, plml, duration)
 
         return live_broadcast_details, is_live, streaming_data, formats, subtitles
 
@@ -3748,8 +3754,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or get_first(microformats, 'lengthSeconds')
             or parse_duration(search_meta('duration'))) or None
 
+        post_live = get_first(video_details, 'isPostLiveDvr')
+        plml = post_live and (duration or 0) > 4 * 3600
+
         live_broadcast_details, is_live, streaming_data, formats, automatic_captions = \
-            self._list_formats(video_id, microformats, video_details, player_responses, player_url)
+            self._list_formats(video_id, microformats, video_details, player_responses, player_url, plml=plml)
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
@@ -3835,8 +3844,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not duration and live_end_time and live_start_time:
             duration = live_end_time - live_start_time
 
-        if is_live and self.get_param('live_from_start'):
-            self._prepare_live_from_start_formats(formats, video_id, live_start_time, url, webpage_url, smuggled_data)
+        if is_live and self.get_param('live_from_start') or plml:
+            self._prepare_live_from_start_formats(formats, video_id, live_start_time, url, webpage_url, smuggled_data, plml)
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 
@@ -3879,13 +3888,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'release_timestamp': live_start_time,
         }
 
-        if get_first(video_details, 'isPostLiveDvr'):
+        if post_live:
             self.write_debug('Video is in Post-Live Manifestless mode')
             info['live_status'] = 'post_live'
-            if (duration or 0) > 4 * 3600:
-                self.report_warning(
-                    'The livestream has not finished processing. Only 4 hours of the video can be currently downloaded. '
-                    'This is a known issue and patches are welcome')
 
         subtitles = {}
         pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
