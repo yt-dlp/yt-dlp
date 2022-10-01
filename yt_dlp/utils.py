@@ -5923,6 +5923,15 @@ def orderedSet_from_options(options, alias_dict, *, use_regex=False, start=None)
     return orderedSet(requested)
 
 
+def scheme_host_only(url, origin=False):
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme in ('data',):
+        return None
+    url = urllib.parse.urlunsplit(parts._replace(
+        path='' if origin else '/', query='', fragment=''))
+    return url
+
+
 # Deprecated
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)

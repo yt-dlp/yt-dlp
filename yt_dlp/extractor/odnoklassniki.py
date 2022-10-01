@@ -8,10 +8,13 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     float_or_none,
+    scheme_host_only,
+    smuggle_url,
     unified_strdate,
     int_or_none,
     qualities,
     unescapeHTML,
+    unsmuggle_url,
     urlencode_postdata,
 )
 
@@ -160,6 +163,10 @@ class OdnoklassnikiIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        yield from (smuggle_url(x, {'referrer': scheme_host_only(url)}) for x in super()._extract_embed_urls(url, webpage))
+
     def _real_extract(self, url):
         try:
             return self._extract_desktop(url)
@@ -174,16 +181,25 @@ class OdnoklassnikiIE(InfoExtractor):
         start_time = int_or_none(compat_parse_qs(
             compat_urllib_parse_urlparse(url).query).get('fromTime', [None])[0])
 
+        url, smuggled = unsmuggle_url(url, {})
+
         video_id = self._match_id(url)
 
+        mode = 'videoembed' if '/videoembed/' in url else 'video'
+
         webpage = self._download_webpage(
-            'http://ok.ru/video/%s' % video_id, video_id,
-            note='Downloading desktop webpage')
+            f'http://ok.ru/{mode}/{video_id}', video_id,
+            note='Downloading desktop webpage',
+            headers={
+                'Referer': smuggled['referrer'],
+            } if smuggled.get('referrer') else {})
 
         error = self._search_regex(
             r'[^>]+class="vp_video_stub_txt"[^>]*>([^<]+)<',
             webpage, 'error', default=None)
-        if error:
+        if error == "The author of this video has not been found or is blocked" and not smuggled.get('referrer') and mode == 'videoembed':
+            return self._extract_desktop(smuggle_url(url, {'referrer': "https://boosty.to"}))
+        elif error:
             raise ExtractorError(error, expected=True)
 
         player = self._parse_json(
