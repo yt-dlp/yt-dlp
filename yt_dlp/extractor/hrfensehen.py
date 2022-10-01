@@ -6,6 +6,7 @@ from .common import InfoExtractor
 
 
 class HRFernsehenIE(InfoExtractor):
+    IE_NAME = 'hrfernsehen'
     _VALID_URL = r'^https?://www\.(?:hr-fernsehen|hessenschau)\.de/.*,video-(?P<id>[0-9]{6})\.html'
     _TESTS = [{
         'url': 'https://www.hessenschau.de/tv-sendung/hessenschau-vom-26082020,video-130546.html',
@@ -32,23 +33,13 @@ class HRFernsehenIE(InfoExtractor):
 
     _GEO_COUNTRIES = ['DE']
 
-    def extract_datetime(self, webpage):
-        datetime = self._search_regex(r'<time\sdatetime=\"(\d{4}\W\d{1,2}\W\d{1,2})', webpage, 'datetime', fatal=False)
-
-        return unified_timestamp(datetime)
-
-    def extract_duration(self, loader_data):
-        duration = traverse_obj(loader_data, ('playerConfig', 'pluginData', 'trackingAti@all', 'richMedia', 'duration'))
-
-        return int_or_none(duration)
-
     def extract_formats(self, loader_data):
         stream_formats = []
-        data = loader_data["mediaCollection"]["streams"][0]["media"]
+        data = loader_data['mediaCollection']['streams'][0]['media']
         for inner in data[1:]:
             stream_format = {
-                'format_id': str(inner['maxHResolutionPx']) + "p",
-                'height': inner['maxHResolutionPx'],
+                'format_id': str(traverse_obj(inner, ('maxHResolutionPx'))) + "p",
+                'height': traverse_obj(inner, ('maxHResolutionPx')),
                 'url': inner['url'],
             }
 
@@ -77,28 +68,25 @@ class HRFernsehenIE(InfoExtractor):
         loader_str = unescapeHTML(self._search_regex(r"data-(?:new-)?hr-mediaplayer-loader='([^']*)'", webpage, "ardloader"))
         loader_data = json.loads(loader_str)
 
+        subtitle = traverse_obj(loader_data, ('mediaCollection', 'subTitles', 0, 'sources', 0, 'url'))
+
+        datetime = self._search_regex(r'<time\sdatetime=\"(\d{4}\W\d{1,2}\W\d{1,2})', webpage, 'datetime', fatal=False)
+        timestamp = unified_timestamp(datetime)
+
+        duration = int_or_none(traverse_obj(loader_data, ('playerConfig', 'pluginData', 'trackingAti@all', 'richMedia', 'duration')))
+        # info['duration'] = int_or_none(duration)
+
+        thumbnail = self._search_regex(r'(thumbnailUrl\W*)([^\"]*)', webpage, 'thumbnail', group=2, default=None)
+
         info = {
             'id': video_id,
             'title': title,
             'description': description,
             'formats': self.extract_formats(loader_data),
-            'duration': self.extract_duration(loader_data),
-            'timestamp': self.extract_datetime(webpage)
+            'subtitles': {'de': [{'url': subtitle}]},
+            'timestamp': timestamp,
+            'duration': duration,
+            'thumbnail': thumbnail,
         }
-
-        if "subTitles" in loader_data['mediaCollection']:
-            subt = traverse_obj(loader_data, ('mediaCollection', 'subTitles'))
-            if subt is not None:
-                subtitle = subt[0]['sources'][0]['url']
-                info["subtitles"] = {"de": [{"url": subtitle}]}
-
-        thumbnail = re.search(r'(thumbnailUrl\W*)(\S+)', webpage)
-        tnails = []
-        if thumbnail is not None:
-            tnails.append(thumbnail.group(2).strip('",'))
-
-        thumbnails = list(set([t for t in tnails]))
-        if len(thumbnails) > 0:
-            info["thumbnails"] = [{"url": t} for t in thumbnails]
 
         return info
