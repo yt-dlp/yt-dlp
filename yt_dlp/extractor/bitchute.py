@@ -47,7 +47,6 @@ class BitChuteIE(InfoExtractor):
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.57 Safari/537.36',
             })
 
-        title = self._html_extract_title(webpage) or self._og_search_title(webpage)
         format_urls = []
         for mobj in re.finditer(
                 r'addWebSeed\s*\(\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage):
@@ -70,21 +69,16 @@ class BitChuteIE(InfoExtractor):
 
         self._check_formats(formats, video_id)
         self._sort_formats(formats)
-
-        description = self._og_search_description(webpage, default=None)
-        thumbnail = self._og_search_thumbnail(webpage)
-        uploader = clean_html(get_element_by_class('owner', webpage))
         publish_date = clean_html(get_element_by_class('video-publish-date', webpage))
-        upload_date = unified_strdate(self._search_regex(
-            r'at \d+:\d+ UTC on (.+?)\.', publish_date, 'upload date', fatal=False))
 
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'uploader': uploader,
-            'upload_date': upload_date,
+            'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
+            'description': self._og_search_description(webpage, default=None),
+            'thumbnail': self._og_search_thumbnail(webpage),
+            'uploader': clean_html(get_element_by_class('owner', webpage)),
+            'upload_date': unified_strdate(self._search_regex(
+                r'at \d+:\d+ UTC on (.+?)\.', publish_date, 'upload date', fatal=False)),
             'formats': formats,
         }
 
