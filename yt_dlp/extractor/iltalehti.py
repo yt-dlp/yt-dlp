@@ -49,11 +49,6 @@ class IltalehtiIE(InfoExtractor):
         props = traverse_obj(info, (
             'state', 'articles', ..., 'items', (('main_media', 'properties'), ('body', ..., 'properties'))))
         video_ids = traverse_obj(props, (lambda _, v: v['provider'] == 'jwplayer', 'id'))
-        return {
-            '_type': 'playlist',
-            'id': article_id,
-            'title': traverse_obj(
-                info, ('state', 'articles', ..., 'items', 'canonical_title'), get_all=False),
-            'entries': list(
-                self.url_result(f'jwplatform:{video_id}', ie='JWPlatform') for video_id in video_ids),
-        }
+        return self.playlist_from_matches(
+            video_ids, article_id, ie=JWPlatform, getter=lambda id: f'jwplatform:{id}',
+            title=traverse_obj(info, ('state', 'articles', ..., 'items', 'canonical_title'), get_all=False))
