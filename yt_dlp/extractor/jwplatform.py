@@ -48,7 +48,7 @@ class JWPlatformIE(InfoExtractor):
             'description': 'BRD 1966, Will Tremper',
             'duration': 5146.0,
         },
-        'params': {'force_generic_extractor': True, 'allowed_extractors': ['generic', 'jwplatform']},
+        'params': {'allowed_extractors': ['generic', 'jwplatform']},
     }]
 
     @classmethod
