@@ -50,7 +50,8 @@ class AmazonStoreIE(InfoExtractor):
         for retry in self.RetryManager():
             webpage = self._download_webpage(url, id)
             try:
-                data_json = self._search_json(r'var\s?obj\s?=\s?jQuery\.parseJSON\(\'', webpage, 'data', id)
+                data_json = self._search_json(r'var\s?obj\s?=\s?jQuery\.parseJSON\(\'', webpage, 'data', id,
+                                              transform_source=lambda x: x.replace('\\\\u', '\\u'))
             except ExtractorError as e:
                 retry.error = e
 
@@ -63,4 +64,4 @@ class AmazonStoreIE(InfoExtractor):
             'height': int_or_none(video.get('videoHeight')),
             'width': int_or_none(video.get('videoWidth')),
         } for video in (data_json.get('videos') or []) if video.get('isVideo') and video.get('url')]
-        return self.playlist_result(entries, playlist_id=id, playlist_title=data_json['title'])
+        return self.playlist_result(entries, playlist_id=id, playlist_title=data_json.get('title'))
