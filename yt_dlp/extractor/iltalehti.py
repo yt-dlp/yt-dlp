@@ -46,9 +46,8 @@ class IltalehtiIE(InfoExtractor):
         info = self._search_json(
             r'<script>\s*window.App\s*=\s*', webpage, 'json', article_id,
             transform_source=js_to_json)
-        props = traverse_obj(
-            info, ('state', 'articles', ..., 'items',
-                   (('main_media', 'properties'), ('body', ..., 'properties')))) or []
+        props = traverse_obj(info, (
+            'state', 'articles', ..., 'items', (('main_media', 'properties'), ('body', ..., 'properties'))))
         video_ids = (
             prop['id'] for prop in props if prop.get('provider', '') == 'jwplayer' and 'id' in prop)
         return {
