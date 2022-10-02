@@ -1,12 +1,7 @@
-import re
 import uuid
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_duration,
-    ExtractorError,
-)
+from ..utils import ExtractorError, int_or_none, parse_duration
 
 
 class WyborczaVideoIE(InfoExtractor):
@@ -50,16 +45,13 @@ class WyborczaVideoIE(InfoExtractor):
                 'format_id': quality,
             })
         if meta['files'].get('dash'):
-            formats.extend(
-                self._extract_mpd_formats(
-                    base_url + meta['files']['dash'], video_id))
+            formats.extend(self._extract_mpd_formats(base_url + meta['files']['dash'], video_id))
 
         self._sort_formats(formats)
-
         return {
             'id': video_id,
             'formats': formats,
-            'title': meta['title'],
+            'title': meta.get('title'),
             'description': meta.get('lead'),
             'uploader': meta.get('signature'),
             'thumbnail': meta.get('imageUrl'),
@@ -117,20 +109,15 @@ class WyborczaPodcastIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        podcast_id = mobj.group('id')
+        podcast_id = self._match_id(url)
 
-        # linking to the playlist and not specific episode
-        if not podcast_id:
-            return {
-                '_type': 'url',
-                'url': 'tokfm:audition:%s' % ('395' if 'wysokieobcasy.pl/' in url else '334'),
-                'ie_key': 'TokFMAudition',
-            }
+        if not podcast_id:  # playlist
+            podcast_id = '395' if 'wysokieobcasy.pl/' in url else '334'
+            return self.url_result(TokFMAuditionIE._create_url(podcast_id), TokFMAuditionIE, podcast_id)
 
-        meta = self._download_json('https://wyborcza.pl/api/podcast?guid=%s%s' % (podcast_id,
-                                                                                  '&type=wo' if 'wysokieobcasy.pl/' in url else ''),
-                                   podcast_id)
+        meta = self._download_json('https://wyborcza.pl/api/podcast', podcast_id,
+                                   query={'guid': podcast_id, 'type': 'wo' if 'wysokieobcasy.pl/' in url else None})
+
         published_date = meta['publishedDate'].split(' ')
         upload_date = '%s%s%s' % (published_date[2], {
             'stycznia': '01',
@@ -146,6 +133,7 @@ class WyborczaPodcastIE(InfoExtractor):
             'listopada': '11',
             'grudnia': '12',
         }.get(published_date[1]), ('0' + published_date[0])[-2:])
+
         return {
             'id': podcast_id,
             'title': meta['title'],
@@ -175,13 +163,12 @@ class TokFMPodcastIE(InfoExtractor):
     def _real_extract(self, url):
         media_id = self._match_id(url)
 
+        # in case it breaks see this but it returns a lot of useless data
+        # https://api.podcast.radioagora.pl/api4/getPodcasts?podcast_id=100091&with_guests=true&with_leaders_for_mobile=true
         metadata = self._download_json(
-            # in case it breaks see this but it returns a lot of useless data
-            # https://api.podcast.radioagora.pl/api4/getPodcasts?podcast_id=100091&with_guests=true&with_leaders_for_mobile=true
-            f'https://audycje.tokfm.pl/getp/3{media_id}',
-            media_id, 'Downloading podcast metadata')
-        if len(metadata) == 0:
-            raise ExtractorError('No such podcast')
+            f'https://audycje.tokfm.pl/getp/3{media_id}', media_id, 'Downloading podcast metadata')
+        if not metadata:
+            raise ExtractorError('No such podcast', expected=True)
         metadata = metadata[0]
 
         formats = []
@@ -194,14 +181,17 @@ class TokFMPodcastIE(InfoExtractor):
                 formats.append({
                     'url': url_data['link_ssl'],
                     'ext': ext,
+                    'vcodec': 'none',
+                    'acodec': ext,
                 })
 
+        self._sort_formats(formats)
         return {
             'id': media_id,
             'formats': formats,
-            'title': metadata['podcast_name'],
+            'title': metadata.get('podcast_name'),
             'series': metadata.get('series_name'),
-            'episode': metadata['podcast_name'],
+            'episode': metadata.get('podcast_name'),
         }
 
 
@@ -218,20 +208,24 @@ class TokFMAuditionIE(InfoExtractor):
         'playlist_count': 1635,
     }]
 
+    _HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 9; Redmi 3S Build/PQ3A.190801.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/87.0.4280.101 Mobile Safari/537.36',
+    }
+
+    @staticmethod
+    def _create_url(id):
+        return f'https://audycje.tokfm.pl/audycja/{id}'
+
     def _real_extract(self, url):
         audition_id = self._match_id(url)
 
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 9; Redmi 3S Build/PQ3A.190801.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/87.0.4280.101 Mobile Safari/537.36',
-        }
-
         data = self._download_json(
-            'https://api.podcast.radioagora.pl/api4/getSeries?series_id=%s' % (audition_id),
-            audition_id, 'Downloading audition metadata', headers=headers)
-
-        if len(data) == 0:
-            raise ExtractorError('No such audition')
+            f'https://api.podcast.radioagora.pl/api4/getSeries?series_id={audition_id}',
+            audition_id, 'Downloading audition metadata', headers=self._HEADERS)
+        if not data:
+            raise ExtractorError('No such audition', expected=True)
         data = data[0]
+
         entries = []
         for page in range(0, (int(data['total_podcasts']) // 30) + 1):
             podcast_page = False
@@ -242,25 +236,26 @@ class TokFMAuditionIE(InfoExtractor):
                     audition_id, 'Downloading podcast list (page #%d%s)' % (
                         page + 1,
                         (', try %d' % retries) if retries > 0 else ''),
-                    headers=headers)
+                    headers=self._HEADERS)
                 retries += 1
-            if podcast_page is False:
-                raise ExtractorError('Agora returned shit 5 times in a row', expected=True)
+            if not podcast_page:
+                raise ExtractorError('Agora returned empty page 5 times in a row', expected=True)
+
             for podcast in podcast_page:
                 entries.append({
                     '_type': 'url_transparent',
                     'url': podcast['podcast_sharing_url'],
-                    'title': podcast['podcast_name'],
-                    'episode': podcast['podcast_name'],
+                    'title': podcast.get('podcast_name'),
+                    'episode': podcast.get('podcast_name'),
                     'description': podcast.get('podcast_description'),
                     'timestamp': int_or_none(podcast.get('podcast_timestamp')),
-                    'series': data['series_name'],
+                    'series': data.get('series_name'),
                 })
 
         return {
             '_type': 'playlist',
             'id': audition_id,
-            'title': data['series_name'],
-            'series': data['series_name'],
+            'title': data.get('series_name'),
+            'series': data.get('series_name'),
             'entries': entries,
         }
