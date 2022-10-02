@@ -48,8 +48,7 @@ class IltalehtiIE(InfoExtractor):
             transform_source=js_to_json)
         props = traverse_obj(info, (
             'state', 'articles', ..., 'items', (('main_media', 'properties'), ('body', ..., 'properties'))))
-        video_ids = (
-            prop['id'] for prop in props if prop.get('provider', '') == 'jwplayer' and 'id' in prop)
+        video_ids = traverse_obj(props, (lambda _, v: v['provider'] == 'jwplayer', 'id'))
         return {
             '_type': 'playlist',
             'id': article_id,
