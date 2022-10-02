@@ -2495,12 +2495,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _prepare_live_from_start_formats(self, formats, video_id, live_start_time, url, webpage_url, smuggled_data, is_live):
         lock = threading.Lock()
         start_time = time.time()
-
-        for fmt in formats:
-            if not fmt.get('is_from_start'):
-                fmt['preference'] = (fmt.get('preference') or -1) - 10
-                fmt['format_note'] = join_nonempty(fmt.get('format_note'), '(Last 4 hours)', delim=' ')
-
         formats = [f for f in formats if f.get('is_from_start')]
 
         def refetch_manifest(format_id, delay):
@@ -3567,14 +3561,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         live_from_start = live_status == 'is_live' and self.get_param('live_from_start')
         post_live_long = self._needs_post_live_processing(live_status, duration)
-        skip_manifests = self._configuration_arg('skip')
-        if not self.get_param('youtube_include_hls_manifest', True):
-            skip_manifests.append('hls')
+        skip_bad_formats = not self._configuration_arg('include_incomplete_formats')
+
+        skip_manifests = set(self._configuration_arg('skip'))
+        if (not self.get_param('youtube_include_hls_manifest', True)
+                or live_from_start  # These will be filtered out by YoutubeDL anyway
+                or (live_from_start or post_live_long) and skip_bad_formats):
+            skip_manifests.add('hls')
+
         if not self.get_param('youtube_include_dash_manifest', True):
-            skip_manifests.append('dash')
-        get_dash = 'dash' not in skip_manifests and (
-            live_status != 'is_live' or live_from_start or self._configuration_arg('include_live_dash'))
-        get_hls = not live_from_start and 'hls' not in skip_manifests
+            skip_manifests.add('dash')
+        if self._configuration_arg('include_live_dash'):
+            self._downloader.deprecated_feature('[youtube] include_live_dash extractor argument is deprecated. '
+                                                'Use include_incomplete_formats extractor argument instead')
+        elif skip_bad_formats and not live_from_start:
+            skip_manifests.add('dash')
 
         def process_manifest_format(f, proto, itag):
             if itag in itags:
@@ -3592,7 +3593,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         subtitles = {}
         for sd in streaming_data:
-            hls_manifest_url = get_hls and sd.get('hlsManifestUrl')
+            hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
@@ -3602,7 +3603,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             r'/itag/(\d+)', f['url'], 'itag', default=None)):
                         yield f
 
-            dash_manifest_url = get_dash and sd.get('dashManifestUrl')
+            dash_manifest_url = 'dash' not in skip_manifests and sd.get('dashManifestUrl')
             if dash_manifest_url:
                 formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
                 subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
@@ -3868,6 +3869,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         live_from_start = live_status == 'is_live' and self.get_param('live_from_start')
         post_live_long = self._needs_post_live_processing(live_status, duration)
+
+        def is_bad_format(fmt):
+            if (live_from_start or post_live_long) and not fmt.get('is_from_start'):
+                return True
+            elif (live_status == 'is_live' and not live_from_start
+                    and fmt.get('protocol') == 'http_dash_segments'):
+                return True
+
+        for fmt in filter(is_bad_format, formats):
+            fmt['preference'] = (fmt.get('preference') or -1) - 10
+            fmt['format_note'] = join_nonempty(fmt.get('format_note'), '(Last 4 hours)', delim=' ')
+
         if live_from_start or post_live_long:
             self._prepare_live_from_start_formats(
                 formats, video_id, live_start_time, url, webpage_url, smuggled_data, live_from_start)
