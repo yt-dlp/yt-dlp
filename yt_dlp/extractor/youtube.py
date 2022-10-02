@@ -2492,17 +2492,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._code_cache = {}
         self._player_cache = {}
 
-    def _prepare_live_from_start_formats(self, formats, video_id, live_start_time, url, webpage_url, smuggled_data, post_live_long):
+    def _prepare_live_from_start_formats(self, formats, video_id, live_start_time, url, webpage_url, smuggled_data, is_live):
         lock = threading.Lock()
-
-        is_live = not post_live_long
         start_time = time.time()
 
         for fmt in formats:
-            if fmt.get('is_from_start'):
-                continue
-            fmt['preference'] = (fmt.get('preference') or -1) - 10
-            fmt['format_note'] = join_nonempty(fmt.get('format_note'), '(Last 4 hours)', delim=' ')
+            if not fmt.get('is_from_start'):
+                fmt['preference'] = (fmt.get('preference') or -1) - 10
+                fmt['format_note'] = join_nonempty(fmt.get('format_note'), '(Last 4 hours)', delim=' ')
 
         formats = [f for f in formats if f.get('is_from_start')]
 
@@ -2517,7 +2514,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
                 expected_type=dict, default=[])
-            _, is_live, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
+            _, live_status, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
+            is_live = live_status == 'is_live'
             start_time = time.time()
 
         def mpd_feed(format_id, delay):
@@ -2540,12 +2538,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for f in formats:
             f['is_live'] = is_live
             gen = functools.partial(
-                self._live_dash_fragments, f['format_id'], live_start_time, mpd_feed, post_live_long and f)
+                self._live_dash_fragments, f['format_id'], live_start_time, mpd_feed, not is_live and f)
             if is_live:
                 f['protocol'] = 'http_dash_segments_generator'
                 f['fragments'] = gen
             else:
-                f['is_from_start'] = False
+                f['is_from_start'] = None
                 f['fragments'] = list(gen({}))
 
     def _live_dash_fragments(self, format_id, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
@@ -3416,7 +3414,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(last_error)
         return prs, player_url
 
-    def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, is_live, post_live_long, duration):
+    @staticmethod
+    def _needs_post_live_processing(live_status, duration):
+        return live_status == 'post_live' and (duration or 0) > 4 * 3600
+
+    def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, live_status, duration):
         itags, stream_ids = {}, []
         itag_qualities, res_qualities = {}, {0: None}
         q = qualities([
@@ -3563,15 +3565,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     dct['container'] = dct['ext'] + '_dash'
             yield dct
 
-        live_from_start = is_live and self.get_param('live_from_start') or post_live_long
+        live_from_start = live_status == 'is_live' and self.get_param('live_from_start')
+        post_live_long = self._needs_post_live_processing(live_status, duration)
         skip_manifests = self._configuration_arg('skip')
         if not self.get_param('youtube_include_hls_manifest', True):
             skip_manifests.append('hls')
         if not self.get_param('youtube_include_dash_manifest', True):
             skip_manifests.append('dash')
         get_dash = 'dash' not in skip_manifests and (
-            not is_live or live_from_start or self._configuration_arg('include_live_dash'))
-        get_hls = (not live_from_start or post_live_long) and 'hls' not in skip_manifests
+            live_status != 'is_live' or live_from_start or self._configuration_arg('include_live_dash'))
+        get_hls = not live_from_start and 'hls' not in skip_manifests
 
         def process_manifest_format(f, proto, itag):
             if itag in itags:
@@ -3591,7 +3594,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for sd in streaming_data:
             hls_manifest_url = get_hls and sd.get('hlsManifestUrl')
             if hls_manifest_url:
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(hls_manifest_url, video_id, 'mp4', fatal=False, live=is_live)
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
                 subtitles = self._merge_subtitles(subs, subtitles)
                 for f in fmts:
                     if process_manifest_format(f, 'hls', self._search_regex(
@@ -3606,7 +3610,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if process_manifest_format(f, 'dash', f['format_id']):
                         f['filesize'] = int_or_none(self._search_regex(
                             r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
-                        if live_from_start:
+                        if live_from_start or post_live_long:
                             f['is_from_start'] = True
 
                         yield f
@@ -3667,16 +3671,28 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return webpage, master_ytcfg, player_responses, player_url
 
-    def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, post_live_long=False, duration=None):
+    def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
         is_live = get_first(video_details, 'isLive')
         if is_live is None:
             is_live = get_first(live_broadcast_details, 'isLiveNow')
+        live_content = get_first(video_details, 'isLiveContent')
+        is_upcoming = get_first(video_details, 'isUpcoming')
+        if is_live is None and is_upcoming or live_content is False:
+            is_live = False
+        if is_upcoming is None and (live_content or is_live):
+            is_upcoming = False
+        post_live = get_first(video_details, 'isPostLiveDvr')
+        live_status = ('post_live' if post_live
+                       else 'is_live' if is_live
+                       else 'is_upcoming' if is_upcoming
+                       else 'was_live' if None not in (is_live, is_upcoming)
+                       else None)
 
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
-        *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, is_live, post_live_long, duration)
+        *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, live_status, duration)
 
-        return live_broadcast_details, is_live, streaming_data, formats, subtitles
+        return live_broadcast_details, live_status, streaming_data, formats, subtitles
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -3768,11 +3784,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or get_first(microformats, 'lengthSeconds')
             or parse_duration(search_meta('duration'))) or None
 
-        post_live = get_first(video_details, 'isPostLiveDvr')
-        post_live_long = post_live and (duration or 0) > 4 * 3600
-
-        live_broadcast_details, is_live, streaming_data, formats, automatic_captions = \
-            self._list_formats(video_id, microformats, video_details, player_responses, player_url, post_live_long=post_live_long)
+        live_broadcast_details, live_status, streaming_data, formats, automatic_captions = \
+            self._list_formats(video_id, microformats, video_details, player_responses, player_url, duration)
+        if live_status == 'post_live':
+            self.write_debug(f'{video_id}: Video is in Post-Live Manifestless mode')
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
@@ -3831,7 +3846,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         thumbnails.extend({
             'url': 'https://i.ytimg.com/vi{webp}/{video_id}/{name}{live}.{ext}'.format(
                 video_id=video_id, name=name, ext=ext,
-                webp='_webp' if ext == 'webp' else '', live='_live' if is_live else ''),
+                webp='_webp' if ext == 'webp' else '', live='_live' if live_status == 'is_live' else ''),
         } for name in thumbnail_names for ext in ('webp', 'jpg'))
         for thumb in thumbnails:
             i = next((i for i, t in enumerate(thumbnail_names) if f'/{video_id}/{t}' in thumb['url']), n_thumbnail_names)
@@ -3846,20 +3861,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or search_meta('channelId'))
         owner_profile_url = get_first(microformats, 'ownerProfileUrl')
 
-        live_content = get_first(video_details, 'isLiveContent')
-        is_upcoming = get_first(video_details, 'isUpcoming')
-        if is_live is None:
-            if is_upcoming or live_content is False:
-                is_live = False
-        if is_upcoming is None and (live_content or is_live):
-            is_upcoming = False
         live_start_time = parse_iso8601(get_first(live_broadcast_details, 'startTimestamp'))
         live_end_time = parse_iso8601(get_first(live_broadcast_details, 'endTimestamp'))
         if not duration and live_end_time and live_start_time:
             duration = live_end_time - live_start_time
 
-        if is_live and self.get_param('live_from_start') or post_live_long:
-            self._prepare_live_from_start_formats(formats, video_id, live_start_time, url, webpage_url, smuggled_data, post_live_long)
+        live_from_start = live_status == 'is_live' and self.get_param('live_from_start')
+        post_live_long = self._needs_post_live_processing(live_status, duration)
+        if live_from_start or post_live_long:
+            self._prepare_live_from_start_formats(
+                formats, video_id, live_start_time, url, webpage_url, smuggled_data, live_from_start)
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 
@@ -3894,17 +3905,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'categories': [category] if category else None,
             'tags': keywords,
             'playable_in_embed': get_first(playability_statuses, 'playableInEmbed'),
-            'is_live': is_live,
-            'was_live': (False if is_live or is_upcoming or live_content is False
-                         else None if is_live is None or is_upcoming is None
-                         else live_content),
-            'live_status': 'is_upcoming' if is_upcoming else None,  # rest will be set by YoutubeDL
+            'live_status': live_status,
             'release_timestamp': live_start_time,
         }
-
-        if post_live:
-            self.write_debug('Video is in Post-Live Manifestless mode')
-            info['live_status'] = 'post_live'
 
         subtitles = {}
         pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
@@ -4035,7 +4038,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'url': f'https://www.youtube.com/watch?v={video_id}&bpctr=9999999999&has_verified=1',
                 'video_id': video_id,
                 'ext': 'json',
-                'protocol': 'youtube_live_chat' if is_live or is_upcoming else 'youtube_live_chat_replay',
+                'protocol': ('youtube_live_chat' if live_status in ('is_live', 'is_upcoming')
+                             else 'youtube_live_chat_replay'),
             }]
 
         if initial_data:
@@ -4142,9 +4146,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             unified_strdate(get_first(microformats, 'uploadDate'))
             or unified_strdate(search_meta('uploadDate')))
         if not upload_date or (
-            not info.get('is_live')
-            and not info.get('was_live')
-            and info.get('live_status') != 'is_upcoming'
+            live_status in ('not_live', None)
             and 'no-youtube-prefer-utc-upload-date' not in self.get_param('compat_opts', [])
         ):
             upload_date = strftime_or_none(
