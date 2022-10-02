@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    js_to_json,
-    traverse_obj,
-)
+from ..utils import js_to_json, traverse_obj
 
 
 class IltalehtiIE(InfoExtractor):
