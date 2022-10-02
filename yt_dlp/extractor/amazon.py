@@ -51,7 +51,7 @@ class AmazonStoreIE(InfoExtractor):
             webpage = self._download_webpage(url, id)
             try:
                 data_json = self._search_json(r'var\s?obj\s?=\s?jQuery\.parseJSON\(\'', webpage, 'data', id,
-                                              transform_source=lambda x: x.replace('\\\\u', '\\u'))
+                                              transform_source=lambda x: x.replace(R'\\u', R'\u'))
             except ExtractorError as e:
                 retry.error = e
 
