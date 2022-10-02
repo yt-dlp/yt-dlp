@@ -3408,9 +3408,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(last_error)
         return prs, player_url
 
-    @staticmethod
-    def _needs_post_live_processing(live_status, duration):
-        return live_status == 'post_live' and (duration or 0) > 4 * 3600
+    def _needs_live_processing(self, live_status, duration):
+        if (live_status == 'is_live' and self.get_param('live_from_start')
+                or live_status == 'post_live' and (duration or 0) > 4 * 3600):
+            return live_status
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, live_status, duration):
         itags, stream_ids = {}, []
@@ -3559,14 +3560,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     dct['container'] = dct['ext'] + '_dash'
             yield dct
 
-        live_from_start = live_status == 'is_live' and self.get_param('live_from_start')
-        post_live_long = self._needs_post_live_processing(live_status, duration)
+        needs_live_processing = self._needs_live_processing(live_status, duration)
         skip_bad_formats = not self._configuration_arg('include_incomplete_formats')
 
         skip_manifests = set(self._configuration_arg('skip'))
         if (not self.get_param('youtube_include_hls_manifest', True)
-                or live_from_start  # These will be filtered out by YoutubeDL anyway
-                or (live_from_start or post_live_long) and skip_bad_formats):
+                or needs_live_processing == 'is_live'  # These will be filtered out by YoutubeDL anyway
+                or needs_live_processing and skip_bad_formats):
             skip_manifests.add('hls')
 
         if not self.get_param('youtube_include_dash_manifest', True):
@@ -3574,7 +3574,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if self._configuration_arg('include_live_dash'):
             self._downloader.deprecated_feature('[youtube] include_live_dash extractor argument is deprecated. '
                                                 'Use include_incomplete_formats extractor argument instead')
-        elif skip_bad_formats and not live_from_start:
+        elif skip_bad_formats and live_status == 'is_live' and needs_live_processing != 'is_live':
             skip_manifests.add('dash')
 
         def process_manifest_format(f, proto, itag):
@@ -3611,7 +3611,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if process_manifest_format(f, 'dash', f['format_id']):
                         f['filesize'] = int_or_none(self._search_regex(
                             r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
-                        if live_from_start or post_live_long:
+                        if needs_live_processing:
                             f['is_from_start'] = True
 
                         yield f
@@ -3867,13 +3867,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not duration and live_end_time and live_start_time:
             duration = live_end_time - live_start_time
 
-        live_from_start = live_status == 'is_live' and self.get_param('live_from_start')
-        post_live_long = self._needs_post_live_processing(live_status, duration)
+        needs_live_processing = self._needs_live_processing(live_status, duration)
 
         def is_bad_format(fmt):
-            if (live_from_start or post_live_long) and not fmt.get('is_from_start'):
+            if needs_live_processing and not fmt.get('is_from_start'):
                 return True
-            elif (live_status == 'is_live' and not live_from_start
+            elif (live_status == 'is_live' and needs_live_processing != 'is_live'
                     and fmt.get('protocol') == 'http_dash_segments'):
                 return True
 
@@ -3881,9 +3880,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             fmt['preference'] = (fmt.get('preference') or -1) - 10
             fmt['format_note'] = join_nonempty(fmt.get('format_note'), '(Last 4 hours)', delim=' ')
 
-        if live_from_start or post_live_long:
+        if needs_live_processing:
             self._prepare_live_from_start_formats(
-                formats, video_id, live_start_time, url, webpage_url, smuggled_data, live_from_start)
+                formats, video_id, live_start_time, url, webpage_url, smuggled_data, live_status == 'is_live')
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 
