@@ -6,7 +6,7 @@ from ..utils import (
 
 
 class IltalehtiIE(InfoExtractor):
-    _VALID_URL = r'''(?x)https?://(?:www\.)?iltalehti\.fi/[^/]+/a/(?P<id>.+)'''
+    _VALID_URL = r'https?://(?:www\.)?iltalehti\.fi/[^/?#]+/a/(?P<id>[^/?#])'
     _TESTS = [
         # jwplatform embed main_media
         {
