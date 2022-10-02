@@ -32,7 +32,7 @@ class AmazonStoreIE(InfoExtractor):
         'url': 'https://www.amazon.com/dp/B0845NXCXF/',
         'info_dict': {
             'id': 'B0845NXCXF',
-            'title': 'md5:bc326d312f60341be949cbd148464568',
+            'title': 'md5:f3fa12779bf62ddb6a6ec86a360a858e',
         },
         'playlist-mincount': 1,
     }, {
@@ -50,8 +50,9 @@ class AmazonStoreIE(InfoExtractor):
         for retry in self.RetryManager():
             webpage = self._download_webpage(url, id)
             try:
-                data_json = self._search_json(r'var\s?obj\s?=\s?jQuery\.parseJSON\(\'', webpage, 'data', id,
-                                              transform_source=lambda x: x.replace(R'\\u', R'\u'))
+                data_json = self._search_json(
+                    r'var\s?obj\s?=\s?jQuery\.parseJSON\(\'', webpage, 'data', id,
+                    transform_source=lambda x: x.replace(R'\\u', R'\u'))
             except ExtractorError as e:
                 retry.error = e
 
