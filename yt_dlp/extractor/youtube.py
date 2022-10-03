@@ -2531,14 +2531,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         for f in formats:
             f['is_live'] = is_live
-            gen = functools.partial(
-                self._live_dash_fragments, f['format_id'], live_start_time, mpd_feed, not is_live and f)
+            f['fragments'] = functools.partial(
+                self._live_dash_fragments, f['format_id'], live_start_time, mpd_feed, post_live_long and f)
             if is_live:
                 f['protocol'] = 'http_dash_segments_generator'
-                f['fragments'] = gen
             else:
-                f['is_from_start'] = None
-                f['fragments'] = list(gen({}))
+                f['is_from_start'] = False
 
     def _live_dash_fragments(self, format_id, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
