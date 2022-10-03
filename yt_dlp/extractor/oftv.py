@@ -26,13 +26,14 @@ class OfTVIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         extraction = ZypeIE.extract_from_webpage(self._downloader, url, webpage)
-        return list(extraction)[0]
+        output = list(extraction)[0]
+        return output
 
 
 class OfTVPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?of.tv/video/(?P<id>[0-9a-zA-Z]+)'
+    _VALID_URL = r'https?://(?:www\.)?of.tv/creators/(?P<id>[a-zA-Z0-9-]+)/.?'
     _TESTS = [{
-        'url': ' https://of.tv/creators/this-is-fire/',
+        'url': 'https://of.tv/creators/this-is-fire/',
         'md5': '',
         'info_dict': {
 
@@ -42,6 +43,6 @@ class OfTVPlaylistIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        playlists_match = self._search_regex("var remaining_videos = (?P<json>\[{\s*(?:.+?)\s*}])\s*;", webpage, 'json_group')
-        # remaining_videos = self._search_json(r'', playlists_match, 'remaining_videos', video_id)
-        return self.playlist_result(playlists_match)
+        playlists_match =  self._search_regex("var\s*remaining_videos\s*=\s*(\[\s*(?:.+?)\s*])\s*;", webpage, 'oftv playlists')
+        remaining_videos = self._parse_json(playlists_match, video_id)
+        return self.playlist_from_matches(remaining_videos)
