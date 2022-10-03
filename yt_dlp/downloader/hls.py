@@ -8,7 +8,13 @@ from .external import FFmpegFD
 from .fragment import FragmentFD
 from .. import webvtt
 from ..dependencies import Cryptodome_AES
-from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
+from ..utils import ExtractorError, bug_reports_message, parse_m3u8_attributes, update_url_query
+
+
+class InitializationFragmentError(ExtractorError):
+    def __init__(self):
+        super().__init__(
+            'Initialization fragment found after media fragments, unable to download', expected=True)
 
 
 class HlsMediaManifest:
@@ -90,9 +96,7 @@ class HlsMediaManifest:
                     if format_index and discontinuity_count != format_index:
                         continue
                     if frag_index > 0:
-                        # self.report_error(
-                        #    'Initialization fragment found after media fragments, unable to download')
-                        return False
+                        raise InitializationFragmentError()
                     frag_index += 1
                     map_info = parse_m3u8_attributes(line[11:])
                     frag_url = (
