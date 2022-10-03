@@ -24,6 +24,7 @@ from ..jsinterp import JSInterpreter
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
+    LazyList,
     UserNotLive,
     bug_reports_message,
     classproperty,
@@ -2531,14 +2532,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         for f in formats:
             f['is_live'] = is_live
-            f['fragments'] = functools.partial(
-                self._live_dash_fragments, f['format_id'], live_start_time, mpd_feed, post_live_long and f)
+            gen = functools.partial(self._live_dash_fragments, video_id, f['format_id'],
+                                    live_start_time, mpd_feed, not is_live and f.copy())
             if is_live:
+                f['fragments'] = gen
                 f['protocol'] = 'http_dash_segments_generator'
             else:
-                f['is_from_start'] = False
+                f['fragments'] = LazyList(gen({}))
+                del f['is_from_start']
 
-    def _live_dash_fragments(self, format_id, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
+    def _live_dash_fragments(self, video_id, format_id, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
 
         mpd_url, stream_number, is_live = None, None, True
@@ -2588,6 +2591,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             _last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
             return True, _last_seq
 
+        self.write_debug(f'[{video_id}] Generating fragments for format {format_id}')
         while is_live:
             fetch_time = time.time()
             if no_fragment_score > 30:
