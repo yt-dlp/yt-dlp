@@ -141,5 +141,5 @@ class TV24UAGenericPassthroughIE(InfoExtractor):
         if not data_urls:
             return self.url_result(url, 'Generic')
         return self.playlist_from_matches(
-            [smuggle_url(url, {'to_generic': True}) for url in data_urls],
-            display_id, ie='Generic', playlist_title=self._og_search_title(webpage) or self._html_extract_title(webpage))
+            [smuggle_url(url, {'to_generic': True}) for url in data_urls], display_id, ie='Generic',
+            playlist_title=self._og_search_title(webpage) or self._html_extract_title(webpage))
