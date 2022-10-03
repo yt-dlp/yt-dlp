@@ -3,6 +3,7 @@ import itertools
 from .common import InfoExtractor
 from .cbs import CBSBaseIE
 from ..utils import (
+    ExtractorError,
     int_or_none,
     url_or_none,
 )
@@ -81,7 +82,7 @@ class ParamountPlusIE(CBSBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
-        'expected_warnings': ['Ignoring subtitle tracks'],
+        'skip': 'DRM',
     }, {
         'url': 'https://www.paramountplus.com/movies/video/5EKDXPOzdVf9voUqW6oRuocyAEeJGbEc/',
         'info_dict': {
@@ -100,7 +101,7 @@ class ParamountPlusIE(CBSBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
-        'expected_warnings': ['Ignoring subtitle tracks'],
+        'skip': 'DRM',
     }, {
         'url': 'https://www.paramountplus.com/shows/the-real-world/video/mOVeHeL9ub9yWdyzSZFYz8Uj4ZBkVzQg/the-real-world-reunion/',
         'only_matching': True,
@@ -123,18 +124,37 @@ class ParamountPlusIE(CBSBaseIE):
         asset_types = {
             item.get('assetType'): {
                 'format': 'SMIL',
-                'formats': 'MPEG-DASH+none,M3U,MPEG4',
+                'formats': 'M3U+none,MPEG4',  # '+none' specifies ProtectionScheme (no DRM)
             } for item in items_data['itemList']
         }
         item = items_data['itemList'][-1]
-        return self._extract_common_video_info(content_id, asset_types, mpx_acc, extra_info={
-            'title': item.get('title'),
-            'series': item.get('seriesTitle'),
-            'season_number': int_or_none(item.get('seasonNum')),
-            'episode_number': int_or_none(item.get('episodeNum')),
-            'duration': int_or_none(item.get('duration')),
-            'thumbnail': url_or_none(item.get('thumbnail')),
-        })
+
+        try:
+            info = self._extract_common_video_info(content_id, asset_types, mpx_acc, extra_info={
+                'title': item.get('title'),
+                'series': item.get('seriesTitle'),
+                'season_number': int_or_none(item.get('seasonNum')),
+                'episode_number': int_or_none(item.get('episodeNum')),
+                'duration': int_or_none(item.get('duration')),
+                'thumbnail': url_or_none(item.get('thumbnail')),
+            })
+        except ExtractorError as e:
+            if 'ProtectionScheme' not in e.orig_msg:
+                raise ExtractorError(e.orig_msg, expected=True)
+            info = {'formats': []}
+        finally:
+            # Check for DRM formats to give appropriate error
+            if not info['formats']:
+                asset_types = {
+                    item.get('assetType'): {
+                        'format': 'SMIL',
+                        'formats': 'MPEG-DASH,M3U,MPEG4',
+                    }
+                }
+                if self._extract_common_video_info(content_id, asset_types, mpx_acc, extra_info={})['formats']:
+                    raise ExtractorError('This video is DRM protected.', expected=True)
+
+        return info
 
 
 class ParamountPlusSeriesIE(InfoExtractor):
