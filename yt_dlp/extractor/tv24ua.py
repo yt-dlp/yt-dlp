@@ -1,11 +1,16 @@
+import base64
 import re
+from urllib.parse import unquote
 
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    extract_attributes,
+    get_elements_html_by_class,
     js_to_json,
     mimetype2ext,
-    traverse_obj
+    smuggle_url,
+    traverse_obj,
 )
 
 
@@ -45,7 +50,8 @@ class TV24UAPlayerIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Випалюють наші міста та села, – моторошні наслідки обстрілів на Чернігівщині',
                 'thumbnail': r're:^https?://.*\.jpe?g',
-            }
+            },
+            'params': {'allowed_extractors': ['Generic', 'TV24UAPlayer']},
         }
     ]
 
@@ -80,3 +86,55 @@ class TV24UAPlayerIE(InfoExtractor):
             'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
             'description': self._og_search_description(webpage, default=None),
         }
+
+
+class TV24UAGenericPassthroughIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:[a-zA-Z0-9]+?\.)?24tv\.ua/(?P<id>[^/]+?_n\d+)'
+
+    _TESTS = [{
+        # Generic iframe, not within media_embed
+        'url': 'https://24tv.ua/vipalyuyut-nashi-mista-sela-dsns-pokazali-motoroshni-naslidki_n1883966',
+        'info_dict': {
+            'id': '1883966',
+            'ext': 'mp4',
+            'title': 'Випалюють наші міста та села, – моторошні наслідки обстрілів на Чернігівщині',
+            'thumbnail': r're:^https?://.*\.jpe?g',
+        }
+    }, {
+        # Generic iframe embed of TV24UAPlayerIE, within media_embed
+        'url': 'https://24tv.ua/harkivyani-zgaduyut-misto-do-viyni-shhemlive-video_n1887584',
+        'info_dict': {
+            'id': 'harkivyani-zgaduyut-misto-do-viyni-shhemlive-video_n1887584',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': '1887584',
+                'ext': 'mp4',
+                'title': 'Харків\'яни згадують місто до війни: щемливе відео',
+                'thumbnail': r're:^https?://.*\.jpe?g',
+            },
+        }]
+    }, {
+        # 2 YouTube videos within media_embed
+        'url': 'https://24tv.ua/bronetransporteri-ozbroyenni-zsu-shho-vidomo-pro-bronovik-wolfhound_n2167966',
+        'info_dict': {
+            'id': 'bronetransporteri-ozbroyenni-zsu-shho-vidomo-pro-bronovik-wolfhound_n2167966',
+        },
+        'playlist_count': 2
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        data_urls = []
+        # The site contains escaped iframe embeds within an attribute.
+        # Once escaped, generic can handle them, so we use a data url to pass the escaped html back.
+        for html in get_elements_html_by_class('media_embed', webpage):
+            data = unquote(extract_attributes(html).get('data-html'))
+            data_urls.append(f'data:text/html;base64,{base64.b64encode(data.encode("utf-8")).decode("utf-8")}')
+
+        if not data_urls:
+            return self.url_result(url, 'Generic')
+        return self.playlist_from_matches(
+            [smuggle_url(url, {'to_generic': True}) for url in data_urls],
+            display_id, ie='Generic', playlist_title=self._generic_title(url))
