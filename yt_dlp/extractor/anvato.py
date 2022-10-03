@@ -390,7 +390,7 @@ class AnvatoIE(InfoExtractor):
             if not (video_id or '').isdigit() or not access_key:
                 continue
             url = f'anvato:{access_key}:{video_id}'
-            if anvplayer_data.get('token') is not None:
+            if anvplayer_data.get('token'):
                 url = smuggle_url(url, {'token': anvplayer_data['token']})
             yield cls.url_result(url, AnvatoIE, video_id)
 
