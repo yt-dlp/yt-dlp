@@ -1,7 +1,15 @@
+import functools
+import re
 import uuid
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, int_or_none, parse_duration
+from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
+    int_or_none,
+    month_by_name,
+    parse_duration,
+)
 
 
 class WyborczaVideoIE(InfoExtractor):
@@ -118,21 +126,13 @@ class WyborczaPodcastIE(InfoExtractor):
         meta = self._download_json('https://wyborcza.pl/api/podcast', podcast_id,
                                    query={'guid': podcast_id, 'type': 'wo' if 'wysokieobcasy.pl/' in url else None})
 
-        published_date = meta['publishedDate'].split(' ')
-        upload_date = '%s%s%s' % (published_date[2], {
-            'stycznia': '01',
-            'lutego': '02',
-            'marca': '03',
-            'kwietnia': '04',
-            'maja': '05',
-            'czerwca': '06',
-            'lipca': '07',
-            'sierpnia': '08',
-            'września': '09',
-            'października': '10',
-            'listopada': '11',
-            'grudnia': '12',
-        }.get(published_date[1]), ('0' + published_date[0])[-2:])
+        upload_date = None
+        if meta.get('publishedDate') is not None:
+            parsed_date = re.match(r'^(\d\d?) (\w+) (\d{4})$', meta['publishedDate'])
+            if parsed_date is not None:
+                (day, month_name, year) = parsed_date.group(1, 2, 3)
+                month = month_by_name(month_name, lang='pl')
+                upload_date = f'{year}{month:0>2}{day:0>2}'
 
         return {
             'id': podcast_id,
@@ -208,6 +208,7 @@ class TokFMAuditionIE(InfoExtractor):
         'playlist_count': 1635,
     }]
 
+    _PAGE_SIZE = 30
     _HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 9; Redmi 3S Build/PQ3A.190801.002; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/87.0.4280.101 Mobile Safari/537.36',
     }
@@ -226,31 +227,8 @@ class TokFMAuditionIE(InfoExtractor):
             raise ExtractorError('No such audition', expected=True)
         data = data[0]
 
-        entries = []
-        for page in range(0, (int(data['total_podcasts']) // 30) + 1):
-            podcast_page = False
-            retries = 0
-            while retries <= 5 and podcast_page is False:
-                podcast_page = self._download_json(
-                    'https://api.podcast.radioagora.pl/api4/getPodcasts?series_id=%s&limit=30&offset=%d&with_guests=true&with_leaders_for_mobile=true' % (audition_id, page),
-                    audition_id, 'Downloading podcast list (page #%d%s)' % (
-                        page + 1,
-                        (', try %d' % retries) if retries > 0 else ''),
-                    headers=self._HEADERS)
-                retries += 1
-            if not podcast_page:
-                raise ExtractorError('Agora returned empty page 5 times in a row', expected=True)
-
-            for podcast in podcast_page:
-                entries.append({
-                    '_type': 'url_transparent',
-                    'url': podcast['podcast_sharing_url'],
-                    'title': podcast.get('podcast_name'),
-                    'episode': podcast.get('podcast_name'),
-                    'description': podcast.get('podcast_description'),
-                    'timestamp': int_or_none(podcast.get('podcast_timestamp')),
-                    'series': data.get('series_name'),
-                })
+        entries = OnDemandPagedList(functools.partial(
+            self._fetch_page, audition_id, data), self._PAGE_SIZE)
 
         return {
             '_type': 'playlist',
@@ -259,3 +237,25 @@ class TokFMAuditionIE(InfoExtractor):
             'series': data.get('series_name'),
             'entries': entries,
         }
+
+    def _fetch_page(self, audition_id, data, page):
+        podcast_page = False
+        for retry in self.RetryManager():
+            podcast_page = self._download_json(
+                f'https://api.podcast.radioagora.pl/api4/getPodcasts?series_id={audition_id}&limit=30&offset={page}&with_guests=true&with_leaders_for_mobile=true',
+                audition_id, f'Downloading podcast list (page #{page + 1})',
+                headers=self._HEADERS)
+            if podcast_page is False:
+                retry.error = ExtractorError('Agora returns shit', expected=True)
+
+        for podcast in podcast_page:
+            yield {
+                '_type': 'url_transparent',
+                'url': podcast['podcast_sharing_url'],
+                'ie_key': 'TokFMPodcast',
+                'title': podcast.get('podcast_name'),
+                'episode': podcast.get('podcast_name'),
+                'description': podcast.get('podcast_description'),
+                'timestamp': int_or_none(podcast.get('podcast_timestamp')),
+                'series': data.get('series_name'),
+            }
