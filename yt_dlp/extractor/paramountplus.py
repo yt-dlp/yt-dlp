@@ -129,30 +129,35 @@ class ParamountPlusIE(CBSBaseIE):
         }
         item = items_data['itemList'][-1]
 
+        info, error = {}, None
+        metadata = {
+            'title': item.get('title'),
+            'series': item.get('seriesTitle'),
+            'season_number': int_or_none(item.get('seasonNum')),
+            'episode_number': int_or_none(item.get('episodeNum')),
+            'duration': int_or_none(item.get('duration')),
+            'thumbnail': url_or_none(item.get('thumbnail')),
+        }
         try:
-            info = self._extract_common_video_info(content_id, asset_types, mpx_acc, extra_info={
-                'title': item.get('title'),
-                'series': item.get('seriesTitle'),
-                'season_number': int_or_none(item.get('seasonNum')),
-                'episode_number': int_or_none(item.get('episodeNum')),
-                'duration': int_or_none(item.get('duration')),
-                'thumbnail': url_or_none(item.get('thumbnail')),
-            })
+            info = self._extract_common_video_info(content_id, asset_types, mpx_acc, extra_info=metadata)
         except ExtractorError as e:
-            if 'ProtectionScheme' not in e.orig_msg:
-                raise ExtractorError(e.orig_msg, expected=True)
-            info = {'formats': []}
-        finally:
-            # Check for DRM formats to give appropriate error
-            if not info['formats']:
-                asset_types = {
-                    item.get('assetType'): {
-                        'format': 'SMIL',
-                        'formats': 'MPEG-DASH,M3U,MPEG4',
-                    }
-                }
-                if self._extract_common_video_info(content_id, asset_types, mpx_acc, extra_info={})['formats']:
-                    raise ExtractorError('This video is DRM protected.', expected=True)
+            error = e
+
+        # Check for DRM formats to give appropriate error
+        if not info.get('formats'):
+            for query in asset_types.values():
+                query['formats'] = 'MPEG-DASH,M3U,MPEG4'  # allows DRM formats
+
+            try:
+                drm_info = self._extract_common_video_info(content_id, asset_types, mpx_acc, extra_info=metadata)
+            except ExtractorError:
+                if error:
+                    raise error from None
+                raise
+            if drm_info['formats']:
+                self.report_drm(content_id)
+            elif error:
+                raise error
 
         return info
 
