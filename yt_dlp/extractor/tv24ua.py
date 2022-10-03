@@ -17,13 +17,14 @@ from ..utils import (
 class TV24UAVideoIE(InfoExtractor):
     _VALID_URL = r'https?://24tv\.ua/news/showPlayer\.do.*?(?:\?|&)objectId=(?P<id>\d+)'
     _EMBED_REGEX = [rf'<iframe[^>]+?src=["\']?(?P<url>{_VALID_URL})["\']?']
+    IE_NAME = '24tv.ua'
     _TESTS = [{
         'url': 'https://24tv.ua/news/showPlayer.do?objectId=2074790&videoUrl=2022/07/2074790&w=640&h=360',
         'info_dict': {
             'id': '2074790',
             'ext': 'mp4',
             'title': 'У Харкові ворожа ракета прилетіла в будинок, де слухали пісні про "офіцерів-росіян"',
-            'thumbnail': 'https://videocdnL.luxnet.ua/tv24/resources/videos/2022/07/2074790_main.mp4.jpeg?v=1661252544000',
+            'thumbnail': r're:^https?://.*\.jpe?g',
         }
     }, {
         'url': 'https://24tv.ua/news/showPlayer.do?videoUrl=2022/07/2074790&objectId=2074790&w=640&h=360',
@@ -51,7 +52,7 @@ class TV24UAVideoIE(InfoExtractor):
                 'title': 'Випалюють наші міста та села, – моторошні наслідки обстрілів на Чернігівщині',
                 'thumbnail': r're:^https?://.*\.jpe?g',
             },
-            'params': {'allowed_extractors': ['Generic', 'TV24UAVideo']},
+            'params': {'allowed_extractors': ['Generic', '24tv.ua']},
         }
     ]
 
