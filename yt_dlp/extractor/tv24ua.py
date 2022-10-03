@@ -11,6 +11,7 @@ from ..utils import (
 
 class TV24UAPlayerIE(InfoExtractor):
     _VALID_URL = r'https?://24tv\.ua/news/showPlayer\.do.*?(?:\?|&)objectId=(?P<id>\d+)'
+    _EMBED_REGEX = [rf'<iframe[^>]+?src=["\']?(?P<url>{_VALID_URL})["\']?']
     _TESTS = [{
         'url': 'https://24tv.ua/news/showPlayer.do?objectId=2074790&videoUrl=2022/07/2074790&w=640&h=360',
         'info_dict': {
@@ -23,6 +24,21 @@ class TV24UAPlayerIE(InfoExtractor):
         'url': 'https://24tv.ua/news/showPlayer.do?videoUrl=2022/07/2074790&objectId=2074790&w=640&h=360',
         'only_matching': True,
     }]
+
+    _WEBPAGE_TESTS = [
+        {
+            # iframe embed created from share menu.
+            'url': 'data:text/html,%3Ciframe%20src=%22https://24tv.ua/news/showPlayer.do?objectId=1886193&videoUrl'
+                   '=2022/03/1886193&w=640&h=360%22%20width=%22640%22%20height=%22360%22%20frameborder=%220%22'
+                   '%20scrolling=%22no%22%3E%3C/iframe%3E',
+            'info_dict': {
+                'id': '1886193',
+                'ext': 'mp4',
+                'title': 'Росіяни руйнують Бородянку на Київщині та стріляють з літаків по мешканцях: шокуючі фото',
+                'thumbnail': r're:^https?://.*\.jpe?g',
+            }
+        }
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
