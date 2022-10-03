@@ -31,6 +31,4 @@ class BundesligaIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        return self.url_result(
-            f'jwplatform:{video_id}', ie=JWPlatformIE.ie_key(),
-            video_id=video_id)
+        return self.url_result(f'jwplatform:{video_id}', JWPlatformIE, video_id)
