@@ -1,7 +1,13 @@
 import json
 import re
 
-from ..utils import int_or_none, traverse_obj, unescapeHTML, unified_timestamp
+from ..utils import (
+    int_or_none,
+    traverse_obj,
+    try_call,
+    unescapeHTML,
+    unified_timestamp,
+)
 from .common import InfoExtractor
 
 
@@ -38,8 +44,8 @@ class HRFernsehenIE(InfoExtractor):
         data = loader_data['mediaCollection']['streams'][0]['media']
         for inner in data[1:]:
             stream_format = {
-                'format_id': str(traverse_obj(inner, ('maxHResolutionPx'))) + "p",
-                'height': traverse_obj(inner, ('maxHResolutionPx')),
+                'format_id': try_call(lambda: f'{inner["maxHResolutionPx"]}p'),
+                'height': inner.get('maxHResolutionPx'),
                 'url': inner['url'],
             }
 
@@ -65,18 +71,10 @@ class HRFernsehenIE(InfoExtractor):
         description = self._html_search_meta(
             ['description'], webpage)
 
-        loader_str = unescapeHTML(self._search_regex(r"data-(?:new-)?hr-mediaplayer-loader='([^']*)'", webpage, "ardloader"))
+        loader_str = unescapeHTML(self._search_regex(r"data-(?:new-)?hr-mediaplayer-loader='([^']*)'", webpage, 'ardloader'))
         loader_data = json.loads(loader_str)
 
         subtitle = traverse_obj(loader_data, ('mediaCollection', 'subTitles', 0, 'sources', 0, 'url'))
-
-        datetime = self._search_regex(r'<time\sdatetime=\"(\d{4}\W\d{1,2}\W\d{1,2})', webpage, 'datetime', fatal=False)
-        timestamp = unified_timestamp(datetime)
-
-        duration = int_or_none(traverse_obj(loader_data, ('playerConfig', 'pluginData', 'trackingAti@all', 'richMedia', 'duration')))
-        # info['duration'] = int_or_none(duration)
-
-        thumbnail = self._search_regex(r'(thumbnailUrl\W*)([^\"]*)', webpage, 'thumbnail', group=2, default=None)
 
         info = {
             'id': video_id,
@@ -84,9 +82,11 @@ class HRFernsehenIE(InfoExtractor):
             'description': description,
             'formats': self.extract_formats(loader_data),
             'subtitles': {'de': [{'url': subtitle}]},
-            'timestamp': timestamp,
-            'duration': duration,
-            'thumbnail': thumbnail,
+            'timestamp': unified_timestamp(self._search_regex(
+                r'<time\sdatetime="(\d{4}\W\d{1,2}\W\d{1,2})', webpage, 'datetime', fatal=False)),
+            'duration': int_or_none(traverse_obj(
+                loader_data, ('playerConfig', 'pluginData', 'trackingAti@all', 'richMedia', 'duration'))),
+            'thumbnail': self._search_regex(r'thumbnailUrl\W*([^"]+)', webpage, 'thumbnail', default=None),
         }
 
         return info
