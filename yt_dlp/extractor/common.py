@@ -1227,7 +1227,7 @@ class InfoExtractor:
             return None
 
     def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='',
-                     contains_pattern='(?s:.+)', fatal=True, default=NO_DEFAULT, **kwargs):
+                     contains_pattern=r'{(?s:.+)}', fatal=True, default=NO_DEFAULT, **kwargs):
         """Searches string for the JSON object specified by start_pattern"""
         # NB: end_pattern is only used to reduce the size of the initial match
         if default is NO_DEFAULT:
@@ -1236,7 +1236,7 @@ class InfoExtractor:
             fatal, has_default = False, True
 
         json_string = self._search_regex(
-            rf'(?:{start_pattern})\s*(?P<json>{{\s*(?:{contains_pattern})\s*}})\s*(?:{end_pattern})',
+            rf'(?:{start_pattern})\s*(?P<json>{contains_pattern})\s*(?:{end_pattern})',
             string, name, group='json', fatal=fatal, default=None if has_default else NO_DEFAULT)
         if not json_string:
             return default
