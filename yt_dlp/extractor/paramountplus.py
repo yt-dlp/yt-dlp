@@ -99,7 +99,7 @@ class ParamountPlusIE(CBSBaseIE):
         asset_types = {
             item.get('assetType'): {
                 'format': 'SMIL',
-                'formats': 'MPEG4,M3U',
+                'formats': 'MPEG-DASH+none,M3U,MPEG4',
             } for item in items_data['itemList']
         }
         item = items_data['itemList'][-1]
