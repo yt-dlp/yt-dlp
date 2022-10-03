@@ -24,6 +24,7 @@ from ..utils import (
     encodeFilename,
     format_bytes,
     join_nonempty,
+    remove_start,
     sanitize_open,
     shell_quote,
     timeconvert,
@@ -120,11 +121,11 @@ class FileDownloader:
         time = timetuple_from_msec(seconds * 1000)
         if time.hours > 99:
             return '--:--:--'
-        if not time.hours:
-            return '   %02d:%02d' % time[1:-1]
         return '%02d:%02d:%02d' % time[:-1]
 
-    format_eta = format_seconds
+    @classmethod
+    def format_eta(cls, seconds):
+        return f'{remove_start(cls.format_seconds(seconds), "00:"):>8s}'
 
     @staticmethod
     def calc_percent(byte_counter, data_len):
@@ -332,6 +333,8 @@ class FileDownloader:
                     return tmpl
             return default
 
+        _formats_bytes = lambda k: f'{format_bytes(s.get(k)):>10s}'
+
         if s['status'] == 'finished':
             if self.params.get('noprogress'):
                 self.to_screen('[download] Download completed')
@@ -339,7 +342,7 @@ class FileDownloader:
             s.update({
                 'speed': speed,
                 '_speed_str': self.format_speed(speed).strip(),
-                '_total_bytes_str': format_bytes(s.get('total_bytes')),
+                '_total_bytes_str': _formats_bytes('total_bytes'),
                 '_elapsed_str': self.format_seconds(s.get('elapsed')),
                 '_percent_str': self.format_percent(100),
             })
@@ -354,15 +357,15 @@ class FileDownloader:
             return
 
         s.update({
-            '_eta_str': self.format_eta(s.get('eta')),
+            '_eta_str': self.format_eta(s.get('eta')).strip(),
             '_speed_str': self.format_speed(s.get('speed')),
             '_percent_str': self.format_percent(try_call(
                 lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
                 lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
                 lambda: s['downloaded_bytes'] == 0 and 0)),
-            '_total_bytes_str': format_bytes(s.get('total_bytes')),
-            '_total_bytes_estimate_str': format_bytes(s.get('total_bytes_estimate')),
-            '_downloaded_bytes_str': format_bytes(s.get('downloaded_bytes')),
+            '_total_bytes_str': _formats_bytes('total_bytes'),
+            '_total_bytes_estimate_str': _formats_bytes('total_bytes_estimate'),
+            '_downloaded_bytes_str': _formats_bytes('downloaded_bytes'),
             '_elapsed_str': self.format_seconds(s.get('elapsed')),
         })
 

@@ -2426,6 +2426,8 @@ class YoutubeDL:
             for key in live_keys:
                 if info_dict.get(key) is None:
                     info_dict[key] = (live_status == key)
+        if live_status == 'post_live':
+            info_dict['was_live'] = True
 
         # Auto generate title fields corresponding to the *_number fields when missing
         # in order to always have clean titles. This is very common for TV series.
@@ -3683,6 +3685,8 @@ class YoutubeDL:
         if not self.params.get('verbose'):
             return
 
+        from . import _IN_CLI  # Must be delayed import
+
         # These imports can be slow. So import them only as needed
         from .extractor.extractors import _LAZY_LOADER
         from .extractor.extractors import _PLUGIN_CLASSES as plugin_extractors
@@ -3719,6 +3723,7 @@ class YoutubeDL:
             __version__,
             f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
+            '' if _IN_CLI else 'API',
             delim=' '))
         if not _LAZY_LOADER:
             if os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):

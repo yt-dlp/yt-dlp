@@ -390,6 +390,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'si', 'th', 'lo', 'my', 'ka', 'am', 'km', 'zh-CN', 'zh-TW', 'zh-HK', 'ja', 'ko'
     ]
 
+    _IGNORED_WARNINGS = {'Unavailable videos will be hidden during playback'}
+
     @functools.cached_property
     def _preferred_lang(self):
         """
@@ -692,12 +694,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     yield alert_type, message
 
     def _report_alerts(self, alerts, expected=True, fatal=True, only_once=False):
-        errors = []
-        warnings = []
+        errors, warnings = [], []
         for alert_type, alert_message in alerts:
             if alert_type.lower() == 'error' and fatal:
                 errors.append([alert_type, alert_message])
-            else:
+            elif alert_message not in self._IGNORED_WARNINGS:
                 warnings.append([alert_type, alert_message])
 
         for alert_type, alert_message in (warnings + errors[:-1]):

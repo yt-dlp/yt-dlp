@@ -1862,7 +1862,7 @@ class InfoExtractor:
                     alias, field = field, self._get_field_setting(field, 'field')
                     if self._get_field_setting(alias, 'deprecated'):
                         self.ydl.deprecated_feature(f'Format sorting alias {alias} is deprecated and may '
-                                                    'be removed in a future version. Please use {field} instead')
+                                                    f'be removed in a future version. Please use {field} instead')
                 reverse = match.group('reverse') is not None
                 closest = match.group('separator') == '~'
                 limit_text = match.group('limit')
