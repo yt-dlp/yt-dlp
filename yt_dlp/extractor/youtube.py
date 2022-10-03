@@ -3689,8 +3689,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         live_status = ('post_live' if post_live
                        else 'is_live' if is_live
                        else 'is_upcoming' if is_upcoming
-                       else 'was_live' if None not in (is_live, is_upcoming)
-                       else None)
+                       else None if None in (is_live, is_upcoming, live_content)
+                       else 'was_live' if live_content else 'not_live')
 
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
         *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, live_status, duration)
