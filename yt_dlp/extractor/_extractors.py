@@ -233,6 +233,7 @@ from .brightcove import (
     BrightcoveNewIE,
 )
 from .businessinsider import BusinessInsiderIE
+from .bundesliga import BundesligaIE
 from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
 from .c56 import C56IE
