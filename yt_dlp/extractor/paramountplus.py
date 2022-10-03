@@ -24,14 +24,24 @@ class ParamountPlusIE(CBSBaseIE):
             'ext': 'mp4',
             'title': 'CatDog - Climb Every CatDog/The Canine Mutiny',
             'description': 'md5:7ac835000645a69933df226940e3c859',
-            'duration': 1418,
+            'duration': 1426,
             'timestamp': 920264400,
             'upload_date': '19990301',
             'uploader': 'CBSI-NEW',
+            'episode_number': 5,
+            'thumbnail': r're:https?://.+\.jpg$',
+            'season': 'Season 2',
+            'chapters': [{'start_time': 0.0, 'end_time': 714.0, 'title': '<Untitled Chapter 1>'},
+                {'start_time': 714.0, 'end_time': 1377.0, 'title': '<Untitled Chapter 2>'},
+                {'start_time': 1377.0, 'end_time': 1418.0, 'title': '<Untitled Chapter 3>'}],
+            'episode': 'Episode 5',
+            'season_number': 2,
+            'series': 'CatDog',
         },
         'params': {
             'skip_download': 'm3u8',
         },
+        'expected_warnings': ['Ignoring subtitle tracks'],  # TODO: Investigate this
     }, {
         'url': 'https://www.paramountplus.com/shows/video/6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd/',
         'info_dict': {
@@ -43,10 +53,21 @@ class ParamountPlusIE(CBSBaseIE):
             'timestamp': 1627063200,
             'upload_date': '20210723',
             'uploader': 'CBSI-NEW',
+            'episode_number': 81,
+            'thumbnail': r're:https?://.+\.jpg$',
+            'season': 'Season 2',
+            'chapters': [{'start_time': 0, 'end_time': 745.0, 'title': '<Untitled Chapter 1>'},
+                {'start_time': 745.0, 'end_time': 1364.0, 'title': '<Untitled Chapter 2>'},
+                {'start_time': 1364.0, 'end_time': 1892.0, 'title': '<Untitled Chapter 3>'},
+                {'start_time': 1892.0, 'end_time': 2506.0, 'title': '<Untitled Chapter 4>'}],
+            'episode': 'Episode 81',
+            'season_number': 2,
+            'series': 'Tooning Out The News',
         },
         'params': {
             'skip_download': 'm3u8',
         },
+        'expected_warnings': ['Ignoring subtitle tracks'],
     }, {
         'url': 'https://www.paramountplus.com/movies/video/vM2vm0kE6vsS2U41VhMRKTOVHyQAr6pC/',
         'info_dict': {
@@ -54,14 +75,18 @@ class ParamountPlusIE(CBSBaseIE):
             'ext': 'mp4',
             'title': 'Daddy\'s Home',
             'upload_date': '20151225',
-            'description': 'md5:a0beaf24e8d3b0e81b2ee41d47c06f33',
+            'description': 'md5:9a6300c504d5e12000e8707f20c54745',
             'uploader': 'CBSI-NEW',
             'timestamp': 1451030400,
+            'thumbnail': r're:https?://.+\.jpg$',
+            'chapters': [],
+            'duration': 5761,
+            'series': 'Paramount+ Movies',
         },
         'params': {
             'skip_download': 'm3u8',
         },
-        'expected_warnings': ['Ignoring subtitle tracks'],  # TODO: Investigate this
+        'expected_warnings': ['Ignoring subtitle tracks'],
     }, {
         'url': 'https://www.paramountplus.com/movies/video/5EKDXPOzdVf9voUqW6oRuocyAEeJGbEc/',
         'info_dict': {
@@ -72,6 +97,10 @@ class ParamountPlusIE(CBSBaseIE):
             'timestamp': 1577865600,
             'title': 'Sonic the Hedgehog',
             'upload_date': '20200101',
+            'thumbnail': r're:https?://.+\.jpg$',
+            'chapters': [],
+            'duration': 5932,
+            'series': 'Paramount+ Movies',
         },
         'params': {
             'skip_download': 'm3u8',
