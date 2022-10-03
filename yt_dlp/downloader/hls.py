@@ -7,7 +7,7 @@ from .external import FFmpegFD
 from .fragment import FragmentFD
 from .. import webvtt
 from ..dependencies import Cryptodome_AES
-from ..utils import HlsMediaManifest, bug_reports_message
+from ..utils import HlsMediaManifest, InitializationFragmentError, bug_reports_message
 
 
 class HlsFD(FragmentFD):
@@ -120,7 +120,11 @@ class HlsFD(FragmentFD):
         if extra_param_to_segment_url:
             extra_query = urllib.parse.parse_qs(extra_param_to_segment_url)
 
-        fragments = media_manifest.get_fragments(info_dict.get('format_index'), ctx['fragment_index'], extra_query)
+        try:
+            fragments = media_manifest.get_fragments(info_dict.get('format_index'), ctx['fragment_index'], extra_query)
+        except InitializationFragmentError as e:
+            self.report_error(e.msg)
+            return False
 
         # We only download the first fragment during the test
         if self.params.get('test', False):
