@@ -6,7 +6,7 @@ from ..utils import traverse_obj
 class HolodexIE(InfoExtractor):
     _VALID_URL = r'''(?x)https?://(?:www\.|staging\.)?holodex\.net/(?:
             api/v2/playlist/(?P<playlist>\d+)|
-            watch/(?P<id>\w+)(?:\?(?:[^#]+&)?playlist=(?P<playlist2>\d+))?
+            watch/(?P<id>[\w-]{11})(?:\?(?:[^#]+&)?playlist=(?P<playlist2>\d+))?
         )'''
     _TESTS = [{
         'url': 'https://holodex.net/watch/9kQ2GtvDV3s',
