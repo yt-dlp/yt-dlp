@@ -37,6 +37,15 @@ class TV24UAPlayerIE(InfoExtractor):
                 'title': 'Росіяни руйнують Бородянку на Київщині та стріляють з літаків по мешканцях: шокуючі фото',
                 'thumbnail': r're:^https?://.*\.jpe?g',
             }
+        },
+        {
+            'url': 'https://24tv.ua/vipalyuyut-nashi-mista-sela-dsns-pokazali-motoroshni-naslidki_n1883966',
+            'info_dict': {
+                'id': '1883966',
+                'ext': 'mp4',
+                'title': 'Випалюють наші міста та села, – моторошні наслідки обстрілів на Чернігівщині',
+                'thumbnail': r're:^https?://.*\.jpe?g',
+            }
         }
     ]
 
