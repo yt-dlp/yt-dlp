@@ -35,9 +35,9 @@ class OfTVPlaylistIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?of.tv/creators/(?P<id>[a-zA-Z0-9-]+)/.?'
     _TESTS = [{
         'url': 'https://of.tv/creators/this-is-fire/',
-        'md5': '',
+        'playlist_count': 8,
         'info_dict': {
-
+            'id': 'this-is-fire'
         }
     }]
 
@@ -46,5 +46,5 @@ class OfTVPlaylistIE(InfoExtractor):
         webpage = self._download_webpage(url, playlist_id)
         playlists_match = self._search_regex(r'var\s*remaining_videos\s*=\s*(\[\s*(?:.+?)\s*])\s*;', webpage, 'oftv playlists')
         remaining_videos = self._parse_json(playlists_match, playlist_id)
-        filtered = traverse_obj(remaining_videos, (..., "discovery_url"))
-        return self.playlist_from_matches(filtered)
+        filtered = traverse_obj(remaining_videos, (..., "discovery_url", ))
+        return self.playlist_from_matches(filtered, playlist_id)
