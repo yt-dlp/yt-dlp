@@ -1870,7 +1870,7 @@ from .tv2 import (
     MTVUutisetArticleIE,
 )
 from .tv24ua import (
-    TV24UAPlayerIE,
+    TV24UAVideoIE,
     TV24UAGenericPassthroughIE
 )
 from .tv2dk import (
