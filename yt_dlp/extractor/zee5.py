@@ -179,8 +179,7 @@ class Zee5SeriesIE(InfoExtractor):
                      (?:
                         zee5:series:|
                         https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
-                        (?:tv-shows|web-series|kids|zee5originals)/(?:details|kids-shows)/
-                        ([^#/?]+)/
+                        (?:tv-shows|web-series|kids|zee5originals)/(?:details|kids-shows)/([^#/?]+)/
                      )
                      (?P<id>[^#/?]+)(?:/episodes)?/?(?:$|[?#])
                      '''
