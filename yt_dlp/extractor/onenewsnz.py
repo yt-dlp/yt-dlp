@@ -85,9 +85,8 @@ class OneNewsNZIE(InfoExtractor):
                 entries.append(self.url_result(brightcove_url, BrightcoveNewIE))
             elif item_type == 'youtube':
                 video_id_or_url = traverse_obj(item, ('referent', 'id'), ('raw_oembed', '_id'))
-                if not video_id_or_url:
-                    continue
-                entries.append(self.url_result(video_id_or_url, ie='Youtube'))
+                if video_id_or_url:
+                    entries.append(self.url_result(video_id_or_url, ie='Youtube'))
 
         if not entries:
             raise ExtractorError('This article does not have a video.', expected=True)
