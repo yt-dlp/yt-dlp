@@ -542,10 +542,12 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
                                                query={'mid': playlist_id, 'pn': page_idx + 1, 'jsonp': 'jsonp'})
             except ExtractorError as e:
                 if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 412:
-                    raise ExtractorError('Request is blocked by server, please add cookies, wait and try later.', expected=True)
+                    raise ExtractorError(
+                        'Request is blocked by server (412), please add cookies, wait and try later.', expected=True)
                 raise
             if response['code'] == -401:
-                raise ExtractorError('Request is blocked by server, please add cookies, wait and try later.', expected=True)
+                raise ExtractorError(
+                    'Request is blocked by server (401), please add cookies, wait and try later.', expected=True)
             return response['data']
 
         def get_metadata(page_data):
