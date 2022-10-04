@@ -26,7 +26,6 @@ class VikiBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'viki'
 
     _token = None
-    _retrying_login = False
 
     _ERRORS = {
         'geo': 'Sorry, this content is not available in your region.',
@@ -74,12 +73,12 @@ class VikiBaseIE(InfoExtractor):
                      else self._stream_headers(timestamp, sig) if query is None
                      else None), expected_status=400) or {}
 
-        if resp.get('vcode') == 11 and not self._retrying_login:
-            self.report_warning('Cached token expired, logging in again')
+        if self._token and resp.get('vcode') == 11:
+            self.to_screen('Cached token expired, logging in again')
             self._token = None
-            self._retrying_login = True
-            self._login()
-            return self._call_api(path, video_id, note, data, query, fatal)
+            self._perform_login(*self._get_login_info(), use_cache=False)
+            if self._token:
+                return self._call_api(path, video_id, note, data, query, fatal)
 
         self._raise_error(resp.get('error'), fatal)
         return resp
@@ -105,31 +104,16 @@ class VikiBaseIE(InfoExtractor):
                     self.raise_login_required(message)
                 self._raise_error(message)
 
-    def _perform_login(self, username, password):
-        if not self._retrying_login:
-            self._token = self._downloader.cache.load('viki', 'session_token')
-            if self._token:
-                return
-
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
-        cache = self._downloader.cache.load('viki', 'session_token') or {}
-
-        if not self._retrying_login:
-            self._token = cache.get(username)
-            if self._token:
-                return
-
-        self._token = self._call_api(
+    def _perform_login(self, username, password, use_cache=True):
+        cache = self.cache.load('viki', 'session_token') or {}
+        self._token = (use_cache and cache.get(username)) or self._call_api(
             'sessions.json', None, 'Logging in', fatal=False,
             data={'username': username, 'password': password}).get('token')
         if not self._token:
             self.report_warning('Login Failed: Unable to get session token')
 
         cache[username] = self._token
-        self._downloader.cache.store('viki', 'session_token', cache)
+        self.cache.store('viki', 'session_token', cache)
 
     @staticmethod
     def dict_selection(dict_obj, preferred_key):
