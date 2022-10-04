@@ -61,7 +61,7 @@ class VikiBaseIE(InfoExtractor):
         return timestamp, sig, self._API_URL_TEMPLATE % query
 
     def _call_api(self, path, video_id, note='Downloading JSON metadata',
-                  data=None, query=None, fatal=True, relogin=False):
+                  data=None, query=None, fatal=True, relogin=True):
         if query is None:
             timestamp, sig, url = self._sign_query(path)
         else:
