@@ -60,8 +60,8 @@ class VikiBaseIE(InfoExtractor):
             self._APP_SECRET.encode('ascii'), f'{query}&t={timestamp}'.encode('ascii'), hashlib.sha1).hexdigest()
         return timestamp, sig, self._API_URL_TEMPLATE % query
 
-    def _call_api(
-            self, path, video_id, note='Downloading JSON metadata', data=None, query=None, fatal=True):
+    def _call_api(self, path, video_id, note='Downloading JSON metadata',
+                  data=None, query=None, fatal=True, relogin=False):
         if query is None:
             timestamp, sig, url = self._sign_query(path)
         else:
@@ -73,12 +73,11 @@ class VikiBaseIE(InfoExtractor):
                      else self._stream_headers(timestamp, sig) if query is None
                      else None), expected_status=400) or {}
 
-        if self._token and resp.get('vcode') == 11:
+        if relogin and self._token and resp.get('vcode') == 11:
             self.to_screen('Cached token expired, logging in again')
-            self._token = None
             self._perform_login(*self._get_login_info(), use_cache=False)
             if self._token:
-                return self._call_api(path, video_id, note, data, query, fatal)
+                return self._call_api(path, video_id, note, data, query, fatal, False)
 
         self._raise_error(resp.get('error'), fatal)
         return resp
