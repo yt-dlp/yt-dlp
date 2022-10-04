@@ -49,6 +49,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Extractor Options](#extractor-options)
 * [CONFIGURATION](#configuration)
     * [Authentication with .netrc file](#authentication-with-netrc-file)
+    * [Notes about environment variables](#notes-about-environment-variables)
 * [OUTPUT TEMPLATE](#output-template)
     * [Output template examples](#output-template-examples)
 * [FORMAT SELECTION](#format-selection)
@@ -679,8 +680,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --cache-dir DIR                 Location in the filesystem where yt-dlp can
                                     store some downloaded information (such as
                                     client ids and signatures) permanently. By
-                                    default $XDG_CACHE_HOME/yt-dlp or
-                                    ~/.cache/yt-dlp
+                                    default ${XDG_CACHE_HOME}/yt-dlp
     --no-cache-dir                  Disable filesystem caching
     --rm-cache-dir                  Delete all filesystem cache files
 
@@ -1088,20 +1088,25 @@ Make chapter entries for, or remove various segments (sponsor,
 
 You can configure yt-dlp by placing any supported command line option to a configuration file. The configuration is loaded from the following locations:
 
-1. **Main Configuration**: The file given by `--config-location`
-1. **Portable Configuration**: `yt-dlp.conf` in the same directory as the bundled binary. If you are running from source-code (`<root dir>/yt_dlp/__main__.py`), the root directory is used instead.
-1. **Home Configuration**: `yt-dlp.conf` in the home path given by `-P`, or in the current directory if no such path is given
+1. **Main Configuration**:
+    * The file given by `--config-location`
+1. **Portable Configuration**: (Recommended for portable installations)
+    * If using a binary, `yt-dlp.conf` in the same directory as the binary
+    * If running from source-code, `yt-dlp.conf` in the parent directory of `yt_dlp`
+1. **Home Configuration**:
+    * `yt-dlp.conf` in the home path given by `-P`
+    * If `-P` is not given, the current directory is searched
 1. **User Configuration**:
-    * `$XDG_CONFIG_HOME/yt-dlp/config` (recommended on Linux/macOS)
-    * `$XDG_CONFIG_HOME/yt-dlp.conf`
-    * `$APPDATA/yt-dlp/config` (recommended on Windows)
-    * `$APPDATA/yt-dlp/config.txt`
+    * `${XDG_CONFIG_HOME}/yt-dlp/config` (recommended on Linux/macOS)
+    * `${XDG_CONFIG_HOME}/yt-dlp.conf`
+    * `${APPDATA}/yt-dlp/config` (recommended on Windows)
+    * `${APPDATA}/yt-dlp/config.txt`
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
-    
-    `$XDG_CONFIG_HOME` defaults to `~/.config` if undefined. On windows, `$APPDATA` generally points to `C:\Users\<user name>\AppData\Roaming` and `~` points to `$HOME` if present, `$USERPROFILE` (generally `C:\Users\<user name>`), or `${HOMEDRIVE}${HOMEPATH}`
 
-1. **System Configuration**: `/etc/yt-dlp.conf`
+    See also: [Notes about environment variables](#notes-about-environment-variables)
+1. **System Configuration**:
+    * `/etc/yt-dlp.conf`
 
 E.g. with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
 ```
@@ -1134,8 +1139,8 @@ If you want your file to be decoded differently, add `# coding: ENCODING` to the
 
 You may also want to configure automatic credentials storage for extractors that support authentication (by providing login and password with `--username` and `--password`) in order not to pass credentials as command line arguments on every yt-dlp execution and prevent tracking plain text passwords in the shell command history. You can achieve this using a [`.netrc` file](https://stackoverflow.com/tags/.netrc/info) on a per extractor basis. For that you will need to create a `.netrc` file in `--netrc-location` and restrict permissions to read/write by only you:
 ```
-touch $HOME/.netrc
-chmod a-rwx,u+rw $HOME/.netrc
+touch ${HOME}/.netrc
+chmod a-rwx,u+rw ${HOME}/.netrc
 ```
 After that you can add credentials for an extractor in the following format, where *extractor* is the name of the extractor in lowercase:
 ```
@@ -1148,7 +1153,14 @@ machine twitch login my_twitch_account_name password my_twitch_password
 ```
 To activate authentication with the `.netrc` file you should pass `--netrc` to yt-dlp or place it in the [configuration file](#configuration).
 
-The default location of the .netrc file is `$HOME` (`~`). On Windows, if `$HOME` is not present, `$USERPROFILE` (generally `C:\Users\<user name>`) or `${HOMEDRIVE}${HOMEPATH}` is used
+The default location of the .netrc file is `~` (see below).
+
+### Notes about environment variables
+* Environment variables are normally specified as `${VARIABLE}`/`$VARIABLE` on UNIX and `%VARIABLE%` on Windows; but is always shown as `${VARIABLE}` in this documentation
+* yt-dlp also allow using UNIX-style variables on Windows for path-like options; e.g. `--output`, `--config-location`
+* If unset, `${XDG_CONFIG_HOME}` defaults to `~/.config` and `${XDG_CACHE_HOME}` to `~/.cache`
+* On Windows, `~` points to `${HOME}` if present; or, `${USERPROFILE}` or `${HOMEDRIVE}${HOMEPATH}` otherwise
+* On Windows, `${USERPROFILE}` generally points to `C:\Users\<user name>` and `${APPDATA}` to `${USERPROFILE}\AppData\Roaming`
 
 # OUTPUT TEMPLATE
 
