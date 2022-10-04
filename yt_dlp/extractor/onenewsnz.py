@@ -14,50 +14,62 @@ class OneNewsNZIE(InfoExtractor):
         {   # Brightcove video
             'url': 'https://www.1news.co.nz/2022/09/29/cows-painted-green-on-parliament-lawn-in-climate-protest/',
             'info_dict': {
-                'id': '6312993358112',
-                'title': 'Activists dressed as cows painted green outside Parliament in climate protest',
-                'ext': 'mp4',
-                'tags': 'count:6',
-                'uploader_id': '963482464001',
-                'timestamp': 1664416255,
-                'upload_date': '20220929',
-                'duration': 38.272,
-                'thumbnail': r're:^https?://.*\.jpg$',
-                'description': 'Greenpeace accused the Government of "greenwashing" instead of taking climate action.',
-
+                'id': 'cows-painted-green-on-parliament-lawn-in-climate-protest',
+                'title': '\'Cows\' painted green on Parliament lawn in climate protest',
             },
+            'playlist': [{
+                'info_dict': {
+                    'id': '6312993358112',
+                    'title': 'Activists dressed as cows painted green outside Parliament in climate protest',
+                    'ext': 'mp4',
+                    'tags': 'count:6',
+                    'uploader_id': '963482464001',
+                    'timestamp': 1664416255,
+                    'upload_date': '20220929',
+                    'duration': 38.272,
+                    'thumbnail': r're:^https?://.*\.jpg$',
+                    'description': 'Greenpeace accused the Government of "greenwashing" instead of taking climate action.',
+                }
+            }]
         }, {
             # YouTube video
             'url': 'https://www.1news.co.nz/2022/09/30/now-is-the-time-to-care-about-womens-rugby/',
             'info_dict': {
-                'id': 's4wEB9neTfU',
-                'title': 'Why I love women’s rugby: Black Fern Ruahei Demant',
-                'ext': 'mp4',
-                'channel_follower_count': int,
-                'channel_url': 'https://www.youtube.com/channel/UC2BQ3U9IxoYIJyulv0bN5PQ',
-                'tags': 'count:12',
-                'uploader': 'Re: News',
-                'upload_date': '20211215',
-                'uploader_id': 'UC2BQ3U9IxoYIJyulv0bN5PQ',
-                'uploader_url': 'http://www.youtube.com/channel/UC2BQ3U9IxoYIJyulv0bN5PQ',
-                'channel_id': 'UC2BQ3U9IxoYIJyulv0bN5PQ',
-                'channel': 'Re: News',
-                'like_count': int,
-                'thumbnail': 'https://i.ytimg.com/vi/s4wEB9neTfU/maxresdefault.jpg',
-                'age_limit': 0,
-                'view_count': int,
-                'categories': ['Sports'],
-                'duration': 222,
-                'description': 'md5:8874410e5740ed1d8fd0df839f849813',
-                'availability': 'public',
-                'playable_in_embed': True,
-                'live_status': 'not_live',
-            }
+                'id': 'now-is-the-time-to-care-about-womens-rugby',
+                'title': 'Now is the time to care about women\'s rugby',
+            },
+            'playlist': [{
+                'info_dict': {
+                    'id': 's4wEB9neTfU',
+                    'title': 'Why I love women’s rugby: Black Fern Ruahei Demant',
+                    'ext': 'mp4',
+                    'channel_follower_count': int,
+                    'channel_url': 'https://www.youtube.com/channel/UC2BQ3U9IxoYIJyulv0bN5PQ',
+                    'tags': 'count:12',
+                    'uploader': 'Re: News',
+                    'upload_date': '20211215',
+                    'uploader_id': 'UC2BQ3U9IxoYIJyulv0bN5PQ',
+                    'uploader_url': 'http://www.youtube.com/channel/UC2BQ3U9IxoYIJyulv0bN5PQ',
+                    'channel_id': 'UC2BQ3U9IxoYIJyulv0bN5PQ',
+                    'channel': 'Re: News',
+                    'like_count': int,
+                    'thumbnail': 'https://i.ytimg.com/vi/s4wEB9neTfU/maxresdefault.jpg',
+                    'age_limit': 0,
+                    'view_count': int,
+                    'categories': ['Sports'],
+                    'duration': 222,
+                    'description': 'md5:8874410e5740ed1d8fd0df839f849813',
+                    'availability': 'public',
+                    'playable_in_embed': True,
+                    'live_status': 'not_live',
+                }
+            }]
         }, {
             # 2 Brightcove videos
             'url': 'https://www.1news.co.nz/2022/09/29/raw-videos-capture-hurricane-ians-fury-as-it-slams-florida/',
             'info_dict': {
                 'id': 'raw-videos-capture-hurricane-ians-fury-as-it-slams-florida',
+                'title': 'Raw videos capture Hurricane Ian\'s fury as it slams Florida',
             },
             'playlist_mincount': 2,
         }, {
@@ -91,4 +103,9 @@ class OneNewsNZIE(InfoExtractor):
         if not entries:
             raise ExtractorError('This article does not have a video.', expected=True)
 
-        return self.playlist_result(entries, display_id)
+        playlist_title = (
+            traverse_obj(fusion_metadata, ('headlines', 'basic'))
+            or self._og_search_title(webpage)
+            or self._html_extract_title(webpage)
+        )
+        return self.playlist_result(entries, display_id, playlist_title)
