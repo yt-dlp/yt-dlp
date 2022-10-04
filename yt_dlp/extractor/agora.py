@@ -9,6 +9,7 @@ from ..utils import (
     int_or_none,
     month_by_name,
     parse_duration,
+    try_call,
 )
 
 
@@ -126,23 +127,17 @@ class WyborczaPodcastIE(InfoExtractor):
         meta = self._download_json('https://wyborcza.pl/api/podcast', podcast_id,
                                    query={'guid': podcast_id, 'type': 'wo' if 'wysokieobcasy.pl/' in url else None})
 
-        upload_date = None
-        if meta.get('publishedDate') is not None:
-            parsed_date = re.match(r'^(\d\d?) (\w+) (\d{4})$', meta['publishedDate'])
-            if parsed_date is not None:
-                (day, month_name, year) = parsed_date.group(1, 2, 3)
-                month = month_by_name(month_name, lang='pl')
-                upload_date = f'{year}{month:0>2}{day:0>2}'
-
+        day, month, year = self._search_regex(r'^(\d\d?) (\w+) (\d{4})$', meta.get('publishedDate'),
+                                              'upload date', group=(1, 2, 3), default=(None, None, None))
         return {
             'id': podcast_id,
-            'title': meta['title'],
             'url': meta['url'],
+            'title': meta.get('title'),
             'description': meta.get('description'),
             'thumbnail': meta.get('imageUrl'),
             'duration': parse_duration(meta.get('duration')),
             'uploader': meta.get('author'),
-            'upload_date': upload_date,
+            'upload_date': try_call(lambda: f'{year}{month_by_name(month, lang="pl"):0>2}{day:0>2}'),
         }
 
 
