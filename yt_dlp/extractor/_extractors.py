@@ -1234,6 +1234,7 @@ from .olympics import OlympicsReplayIE
 from .on24 import On24IE
 from .ondemandkorea import OnDemandKoreaIE
 from .onefootball import OneFootballIE
+from .onenewsnz import OneNewsNZIE
 from .onet import (
     OnetIE,
     OnetChannelIE,
