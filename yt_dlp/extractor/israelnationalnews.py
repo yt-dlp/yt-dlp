@@ -3,7 +3,7 @@ from ..utils import ExtractorError, traverse_obj
 
 
 class IsraelNationalNewsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?israelnationalnews\.com/news/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?israelnationalnews\.com/news/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.israelnationalnews.com/news/354520',
         'info_dict': {
