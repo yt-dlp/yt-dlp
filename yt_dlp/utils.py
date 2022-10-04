@@ -3180,10 +3180,6 @@ def multipart_encode(data, boundary=None):
     return out, content_type
 
 
-def variadic(x, allowed_types=(str, bytes, dict)):
-    return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
-
-
 def dict_get(d, key_or_keys, default=None, skip_false_values=True):
     for val in map(d.get, variadic(key_or_keys)):
         if val is not None and (val or not skip_false_values):
@@ -3550,7 +3546,7 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
     COMPATIBLE_CODECS = {
         'mp4': {
             'av1', 'hevc', 'avc1', 'mp4a',  # fourcc (m3u8, mpd)
-            'h264', 'aacl', 'ec-3',  # Set in ISM
+            'h264', 'aacl',  # Set in ISM
         },
         'webm': {
             'av1', 'vp9', 'vp8', 'opus', 'vrbs',
@@ -5448,6 +5444,10 @@ def traverse_dict(dictn, keys, casesense=True):
 
 def get_first(obj, keys, **kwargs):
     return traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
+
+
+def variadic(x, allowed_types=(str, bytes, dict)):
+    return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
 
 
 def time_seconds(**kwargs):

@@ -33,14 +33,13 @@ cookies
 *.jpeg
 *.jpg
 *.m4a
+*.mpga
 *.m4v
 *.mhtml
 *.mkv
 *.mov
 *.mp3
 *.mp4
-*.mpga
-*.oga
 *.ogg
 *.opus
 *.png
@@ -48,7 +47,6 @@ cookies
 *.srt
 *.swf
 *.swp
-*.tt
 *.ttml
 *.url
 *.vtt
@@ -87,7 +85,6 @@ updates_key.pem
 .tox
 *.class
 *.isorted
-*.stackdump
 
 # Generated
 AUTHORS

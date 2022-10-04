@@ -9,7 +9,6 @@ from ..utils import (
     format_field,
     int_or_none,
     str_or_none,
-    traverse_obj,
     try_get,
 )
 
@@ -27,7 +26,7 @@ class TrovoBaseIE(InfoExtractor):
         resp = self._download_json(
             url, video_id, data=json.dumps([data]).encode(), headers={'Accept': 'application/json'},
             query={
-                'qid': ''.join(random.choices(string.ascii_uppercase + string.digits, k=16)),
+                'qid': ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)),
             })[0]
         if 'errors' in resp:
             raise ExtractorError(f'Trovo said: {resp["errors"][0]["message"]}')
@@ -147,26 +146,7 @@ class TrovoVodIE(TrovoBaseIE):
             'upload_date': '20220611',
             'comment_count': int,
             'categories': ['Minecraft'],
-        },
-        'skip': 'Not available',
-    }, {
-        'url': 'https://trovo.live/s/Trovo/549756886599?vid=ltv-100264059_100264059_387702304241698583',
-        'info_dict': {
-            'id': 'ltv-100264059_100264059_387702304241698583',
-            'ext': 'mp4',
-            'timestamp': 1661479563,
-            'thumbnail': 'http://vod.trovo.live/be5ae591vodtransusw1301120758/cccb9915387702304241698583/coverBySnapshot/coverBySnapshot_10_0.jpg',
-            'uploader_id': '100264059',
-            'uploader': 'Trovo',
-            'title': 'Dev Corner 8/25',
-            'uploader_url': 'https://trovo.live/Trovo',
-            'duration': 3753,
-            'view_count': int,
-            'like_count': int,
-            'upload_date': '20220826',
-            'comment_count': int,
-            'categories': ['Talk Shows'],
-        },
+        }
     }, {
         'url': 'https://trovo.live/video/ltv-100095501_100095501_1609596043',
         'only_matching': True,
@@ -182,20 +162,22 @@ class TrovoVodIE(TrovoBaseIE):
         # however that seems unreliable - sometimes it randomly doesn't return the data,
         # at least when using a non-residential IP.
         resp = self._call_api(vid, data={
-            'operationName': 'vod_VodReaderService_BatchGetVodDetailInfo',
+            'operationName': 'batchGetVodDetailInfo',
             'variables': {
                 'params': {
                     'vids': [vid],
                 },
             },
-            'extensions': {},
+            'extensions': {
+                'persistedQuery': {
+                    'version': 1,
+                    'sha256Hash': 'ceae0355d66476e21a1dd8e8af9f68de95b4019da2cda8b177c9a2255dad31d0',
+                },
+            },
         })
-
-        vod_detail_info = traverse_obj(resp, ('VodDetailInfos', vid), expected_type=dict)
-        if not vod_detail_info:
-            raise ExtractorError('This video not found or not available anymore', expected=True)
-        vod_info = vod_detail_info.get('vodInfo')
-        title = vod_info.get('title')
+        vod_detail_info = resp['VodDetailInfos'][vid]
+        vod_info = vod_detail_info['vodInfo']
+        title = vod_info['title']
 
         if try_get(vod_info, lambda x: x['playbackRights']['playbackRights'] != 'Normal'):
             playback_rights_setting = vod_info['playbackRights']['playbackRightsSetting']
@@ -246,7 +228,7 @@ class TrovoVodIE(TrovoBaseIE):
     def _get_comments(self, vid):
         for page in itertools.count(1):
             comments_json = self._call_api(vid, data={
-                'operationName': 'public_CommentProxyService_GetCommentList',
+                'operationName': 'getCommentList',
                 'variables': {
                     'params': {
                         'appInfo': {
@@ -258,7 +240,10 @@ class TrovoVodIE(TrovoBaseIE):
                     },
                 },
                 'extensions': {
-                    'singleReq': 'true',
+                    'persistedQuery': {
+                        'version': 1,
+                        'sha256Hash': 'be8e5f9522ddac7f7c604c0d284fd22481813263580849926c4c66fb767eed25',
+                    },
                 },
             })
             for comment in comments_json['commentList']:
@@ -281,37 +266,33 @@ class TrovoVodIE(TrovoBaseIE):
 
 
 class TrovoChannelBaseIE(TrovoBaseIE):
-    def _entries(self, spacename):
+    def _get_vod_json(self, page, uid):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
+    def _entries(self, uid):
         for page in itertools.count(1):
-            vod_json = self._call_api(spacename, data={
-                'operationName': self._OPERATION,
-                'variables': {
-                    'params': {
-                        'terminalSpaceID': {
-                            'spaceName': spacename,
-                        },
-                        'currPage': page,
-                        'pageSize': 99,
-                    },
-                },
-                'extensions': {
-                    'singleReq': 'true',
-                },
-            })
+            vod_json = self._get_vod_json(page, uid)
             vods = vod_json.get('vodInfos', [])
             for vod in vods:
-                vid = vod.get('vid')
-                room = traverse_obj(vod, ('spaceInfo', 'roomID'))
                 yield self.url_result(
-                    f'https://trovo.live/s/{spacename}/{room}?vid={vid}',
+                    'https://trovo.live/%s/%s' % (self._TYPE, vod.get('vid')),
                     ie=TrovoVodIE.ie_key())
-            has_more = vod_json.get('hasMore')
+            has_more = vod_json['hasMore']
             if not has_more:
                 break
 
     def _real_extract(self, url):
-        spacename = self._match_id(url)
-        return self.playlist_result(self._entries(spacename), playlist_id=spacename)
+        id = self._match_id(url)
+        live_info = self._call_api(id, data={
+            'operationName': 'live_LiveReaderService_GetLiveInfo',
+            'variables': {
+                'params': {
+                    'userName': id,
+                },
+            },
+        })
+        uid = str(live_info['streamerInfo']['uid'])
+        return self.playlist_result(self._entries(uid), playlist_id=uid)
 
 
 class TrovoChannelVodIE(TrovoChannelBaseIE):
@@ -322,11 +303,29 @@ class TrovoChannelVodIE(TrovoChannelBaseIE):
         'url': 'trovovod:OneTappedYou',
         'playlist_mincount': 24,
         'info_dict': {
-            'id': 'OneTappedYou',
+            'id': '100719456',
         },
     }]
 
-    _OPERATION = 'vod_VodReaderService_GetChannelLtvVideoInfos'
+    _TYPE = 'video'
+
+    def _get_vod_json(self, page, uid):
+        return self._call_api(uid, data={
+            'operationName': 'getChannelLtvVideoInfos',
+            'variables': {
+                'params': {
+                    'channelID': int(uid),
+                    'pageSize': 99,
+                    'currPage': page,
+                },
+            },
+            'extensions': {
+                'persistedQuery': {
+                    'version': 1,
+                    'sha256Hash': '78fe32792005eab7e922cafcdad9c56bed8bbc5f5df3c7cd24fcb84a744f5f78',
+                },
+            },
+        })
 
 
 class TrovoChannelClipIE(TrovoChannelBaseIE):
@@ -337,8 +336,26 @@ class TrovoChannelClipIE(TrovoChannelBaseIE):
         'url': 'trovoclip:OneTappedYou',
         'playlist_mincount': 29,
         'info_dict': {
-            'id': 'OneTappedYou',
+            'id': '100719456',
         },
     }]
 
-    _OPERATION = 'vod_VodReaderService_GetChannelClipVideoInfos'
+    _TYPE = 'clip'
+
+    def _get_vod_json(self, page, uid):
+        return self._call_api(uid, data={
+            'operationName': 'getChannelClipVideoInfos',
+            'variables': {
+                'params': {
+                    'channelID': int(uid),
+                    'pageSize': 99,
+                    'currPage': page,
+                },
+            },
+            'extensions': {
+                'persistedQuery': {
+                    'version': 1,
+                    'sha256Hash': 'e7924bfe20059b5c75fc8ff9e7929f43635681a7bdf3befa01072ed22c8eff31',
+                },
+            },
+        })

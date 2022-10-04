@@ -16,26 +16,22 @@ from ..utils import (
 
 
 class TV2IE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tv2\.no/v(?:ideo)?\d*/(?:[^?#]+/)*(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tv2\.no/v\d*/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'http://www.tv2.no/v/1791207/',
+        'url': 'http://www.tv2.no/v/916509/',
         'info_dict': {
-            'id': '1791207',
+            'id': '916509',
             'ext': 'mp4',
-            'title': 'Her kolliderer romsonden med asteroiden ',
-            'description': 'En romsonde har krasjet inn i en asteroide i verdensrommet. Kollisjonen skjedde klokken 01:14 natt til tirsdag 27. september norsk tid. \n\nNasa kaller det sitt første forsøk på planetforsvar.',
-            'timestamp': 1664238190,
-            'upload_date': '20220927',
-            'duration': 146,
-            'thumbnail': r're:^https://.*$',
+            'title': 'Se Frode Gryttens hyllest av Steven Gerrard',
+            'description': 'TV 2 Sportens huspoet tar avskjed med Liverpools kaptein Steven Gerrard.',
+            'timestamp': 1431715610,
+            'upload_date': '20150515',
+            'duration': 157,
             'view_count': int,
             'categories': list,
         },
     }, {
         'url': 'http://www.tv2.no/v2/916509',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.tv2.no/video/nyhetene/her-kolliderer-romsonden-med-asteroiden/1791207/',
         'only_matching': True,
     }]
     _PROTOCOLS = ('HLS', 'DASH')
@@ -118,13 +114,13 @@ class TV2IE(InfoExtractor):
 
 
 class TV2ArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tv2\.no/(?!v(?:ideo)?\d*/)[^?#]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tv2\.no/(?:a|\d{4}/\d{2}/\d{2}(/[^/]+)+)/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://www.tv2.no/underholdning/forraeder/katarina-flatland-angrer-etter-forraeder-exit/15095188/',
+        'url': 'http://www.tv2.no/2015/05/16/nyheter/alesund/krim/pingvin/6930542',
         'info_dict': {
-            'id': '15095188',
-            'title': 'Katarina Flatland angrer etter Forræder-exit',
-            'description': 'SANDEFJORD (TV 2): Katarina Flatland (33) måtte følge i sine fars fotspor, da hun ble forvist fra Forræder.',
+            'id': '6930542',
+            'title': 'Russen hetses etter pingvintyveri - innrømmer å ha åpnet luken på buret',
+            'description': 'De fire siktede nekter fortsatt for å ha stjålet pingvinbabyene, men innrømmer å ha åpnet luken til de små kyllingene.',
         },
         'playlist_count': 2,
     }, {
@@ -142,7 +138,7 @@ class TV2ArticleIE(InfoExtractor):
 
         if not assets:
             # New embed pattern
-            for v in re.findall(r'(?s)(?:TV2ContentboxVideo|TV2\.TV2Video)\(({.+?})\)', webpage):
+            for v in re.findall(r'(?s)TV2ContentboxVideo\(({.+?})\)', webpage):
                 video = self._parse_json(
                     v, playlist_id, transform_source=js_to_json, fatal=False)
                 if not video:

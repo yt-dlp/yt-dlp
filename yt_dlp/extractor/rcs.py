@@ -2,10 +2,10 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
-    base_url,
     clean_html,
+    ExtractorError,
     js_to_json,
+    base_url,
     url_basename,
     urljoin,
 )
