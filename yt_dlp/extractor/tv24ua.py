@@ -1,6 +1,6 @@
 import base64
 import re
-from urllib.parse import unquote
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -136,7 +136,7 @@ class TV24UAGenericPassthroughIE(InfoExtractor):
         # The site contains escaped iframe embeds within an attribute.
         # Once escaped, generic can handle them, so we use a data url to pass the escaped html back.
         for html in get_elements_html_by_class('media_embed', webpage):
-            data = unquote(extract_attributes(html).get('data-html'))
+            data = urllib.parse.unquote(extract_attributes(html).get('data-html'))
             data_urls.append(f'data:text/html;base64,{base64.b64encode(data.encode("utf-8")).decode("utf-8")}')
 
         if not data_urls:
