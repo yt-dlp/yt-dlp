@@ -148,7 +148,7 @@ class TokFMPodcastIE(InfoExtractor):
         'url': 'https://audycje.tokfm.pl/podcast/91275,-Systemowy-rasizm-Czy-zamieszki-w-USA-po-morderstwie-w-Minneapolis-doprowadza-do-zmian-w-sluzbach-panstwowych',
         'info_dict': {
             'id': '91275',
-            'ext': 'mp3',
+            'ext': 'aac',
             'title': 'md5:a9b15488009065556900169fb8061cce',
             'episode': 'md5:a9b15488009065556900169fb8061cce',
             'series': 'Analizy',
