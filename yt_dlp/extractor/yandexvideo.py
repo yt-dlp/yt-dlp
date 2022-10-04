@@ -6,9 +6,9 @@ from ..utils import (
     determine_ext,
     extract_attributes,
     int_or_none,
+    lowercase_escape,
     try_get,
     url_or_none,
-    lowercase_escape,
 )
 
 

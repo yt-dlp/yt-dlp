@@ -1417,7 +1417,9 @@ def create_parser():
         help='Do not load cookies from browser (default)')
     filesystem.add_option(
         '--cache-dir', dest='cachedir', default=None, metavar='DIR',
-        help='Location in the filesystem where yt-dlp can store some downloaded information (such as client ids and signatures) permanently. By default $XDG_CACHE_HOME/yt-dlp or ~/.cache/yt-dlp')
+        help=(
+            'Location in the filesystem where yt-dlp can store some downloaded information '
+            '(such as client ids and signatures) permanently. By default ${XDG_CACHE_HOME}/yt-dlp'))
     filesystem.add_option(
         '--no-cache-dir', action='store_false', dest='cachedir',
         help='Disable filesystem caching')
