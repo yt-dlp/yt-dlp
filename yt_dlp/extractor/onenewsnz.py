@@ -82,7 +82,7 @@ class OneNewsNZIE(InfoExtractor):
                     traverse_obj(brightcove_config, 'brightcoveAccount') or '963482464001',
                     traverse_obj(brightcove_config, 'brightcoveVideoId')
                 )
-                entries.append(self.url_result(brightcove_url, ie='BrightcoveNew'))
+                entries.append(self.url_result(brightcove_url, BrightcoveNewIE))
             elif item_type == 'youtube':
                 video_id_or_url = traverse_obj(item, ('referent', 'id'), ('raw_oembed', '_id'))
                 if not video_id_or_url:
