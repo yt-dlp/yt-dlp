@@ -26,9 +26,7 @@ class OfTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        extraction = ZypeIE.extract_from_webpage(self._downloader, url, webpage)
-        output = list(extraction)[0]
-        return output
+        return next(ZypeIE.extract_from_webpage(self._downloader, url, webpage))
 
 
 class OfTVPlaylistIE(InfoExtractor):
