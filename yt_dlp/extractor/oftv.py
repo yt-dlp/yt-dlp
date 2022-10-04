@@ -42,7 +42,8 @@ class OfTVPlaylistIE(InfoExtractor):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
         webpage = self._download_webpage(url, playlist_id)
-        playlists_match = self._search_regex(r'var\s*remaining_videos\s*=\s*(\[.+?\])\s*;', webpage, 'oftv playlists')
-        remaining_videos = self._parse_json(playlists_match, playlist_id)
+        
+        remaining_videos = self._search_json(
+            r'var\s*remaining_videos\s*=', webpage, 'oftv playlists', playlist_id, end_pattern=r';', contains_pattern=r'\[.+?\]')
         filtered = traverse_obj(remaining_videos, (..., "discovery_url", ))
         return self.playlist_from_matches(filtered, playlist_id)
