@@ -71,7 +71,7 @@ class OneNewsNZIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        fusion_metadata = self._search_json(r'Fusion\.globalContent\s*=\s*', webpage, 'fusion metadata', display_id)
+        fusion_metadata = self._search_json(r'Fusion\.globalContent\s*=', webpage, 'fusion metadata', display_id)
 
         entries = []
         for item in traverse_obj(fusion_metadata, 'content_elements') or []:
