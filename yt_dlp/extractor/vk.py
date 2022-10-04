@@ -592,12 +592,12 @@ class VKUserVideosIE(VKBaseIE):
         u_id, section = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, u_id)
 
-        if u_id.startswith("@"):
+        if u_id.startswith('@'):
             page_id = self._search_regex(r'data-owner-id\s?=\s?"([^"]+)"', webpage, 'page_id')
-        elif "_" in u_id:
-            page_id, section = u_id.split("_", 1)
+        elif '_' in u_id:
+            page_id, section = u_id.split('_', 1)
         else:
-            raise ExtractorError("Invalid URL", expected=True)
+            raise ExtractorError('Invalid URL', expected=True)
 
         if not section:
             section = 'all'
