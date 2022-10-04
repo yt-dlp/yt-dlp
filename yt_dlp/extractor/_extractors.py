@@ -333,6 +333,7 @@ from .cnn import (
     CNNIE,
     CNNBlogsIE,
     CNNArticleIE,
+    CNNIndonesiaIE,
 )
 from .coub import CoubIE
 from .comedycentral import (
@@ -411,7 +412,7 @@ from .deezer import (
     DeezerAlbumIE,
 )
 from .democracynow import DemocracynowIE
-from .detik import Detik20IE
+from .detik import DetikEmbedIE
 from .dfb import DFBIE
 from .dhm import DHMIE
 from .digg import DiggIE
