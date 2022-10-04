@@ -1875,6 +1875,10 @@ from .tv2 import (
     KatsomoIE,
     MTVUutisetArticleIE,
 )
+from .tv24ua import (
+    TV24UAVideoIE,
+    TV24UAGenericPassthroughIE
+)
 from .tv2dk import (
     TV2DKIE,
     TV2DKBornholmPlayIE,
