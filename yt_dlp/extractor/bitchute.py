@@ -92,7 +92,7 @@ class BitChuteChannelIE(InfoExtractor):
         'info_dict': {
             'id': 'bitchute',
             'title': 'BitChute',
-            'description': 'startswith:BitChute is a peer to peer video sharing platform.',
+            'description': 'md5:5329fb3866125afa9446835594a9b138',
         },
     }, {
         'url': 'https://www.bitchute.com/playlist/wV9Imujxasw9/',
@@ -100,8 +100,7 @@ class BitChuteChannelIE(InfoExtractor):
         'info_dict': {
             'id': 'wV9Imujxasw9',
             'title': 'Bruce MacDonald and "The Light of Darkness"',
-            'description': 'BitChute aims to put creators first and provide them with a service '
-                           'that they can use to flourish and express their ideas freely.',
+            'description': 'md5:04913227d2714af1d36d804aa2ab6b1e',
         }
     }]
 
@@ -146,7 +145,7 @@ class BitChuteChannelIE(InfoExtractor):
                 video_id = match and match.group('id')
                 yield self.url_result(
                     'https://www.bitchute.com/video/%s' % video_id,
-                    ie=BitChuteIE.ie_key(), video_id=video_id, url_transparent=True,
+                    ie=BitChuteIE, video_id=video_id, url_transparent=True,
                     title=clean_html(get_element_by_class(class_name['title'], video_html)),
                     description=clean_html(get_element_by_class(class_name['description'], video_html)),
                     duration=parse_duration(get_element_by_class('video-duration', video_html)),
@@ -155,19 +154,16 @@ class BitChuteChannelIE(InfoExtractor):
         return OnDemandPagedList(fetch_entries, self.PAGE_SIZE)
 
     def _real_extract(self, url):
-        playlist_type, playlist_id = self._match_valid_url(url).groups()
+        playlist_type, playlist_id = self._match_valid_url(url).group('type', 'id')
 
         webpage = self._download_webpage(
             'https://www.bitchute.com/%s/%s/' % (playlist_type, playlist_id), video_id=playlist_id)
-        playlist_title = self._html_extract_title(webpage, default=None)
-        playlist_description = self._html_search_meta(
+        title = self._html_extract_title(webpage, default=None)
+        description = self._html_search_meta(
             ('description', 'og:description', 'twitter:description'), webpage, default=None)
         playlist_count = int_or_none(self._html_search_regex(
             r'<span>(\d+) +videos?</span>', webpage, 'playlist count', default=None), default='N/A')
 
         return self.playlist_result(
             self._entries(playlist_type, playlist_id),
-            playlist_id=playlist_id,
-            playlist_title=playlist_title,
-            playlist_description=playlist_description,
-            playlist_count=playlist_count)
+            playlist_id, title, description, playlist_count=playlist_count)
