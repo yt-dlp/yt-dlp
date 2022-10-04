@@ -9,6 +9,7 @@ from ..utils import (
     get_element_by_class,
     get_elements_html_by_class,
     int_or_none,
+    match_filter_func,
     orderedSet,
     parse_count,
     parse_duration,
@@ -88,12 +89,33 @@ class BitChuteChannelIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?bitchute\.com/(?P<type>channel|playlist)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.bitchute.com/channel/bitchute/',
-        'playlist_mincount': 9,
         'info_dict': {
             'id': 'bitchute',
             'title': 'BitChute',
             'description': 'md5:5329fb3866125afa9446835594a9b138',
         },
+        'playlist': [
+            {
+                'md5': '7e427d7ed7af5a75b5855705ec750e2b',
+                'info_dict': {
+                    'id': 'UGlrF9o9b-Q',
+                    'ext': 'mp4',
+                    'title': 'This is the first video on #BitChute !',
+                    'description': 'md5:a0337e7b1fe39e32336974af8173a034',
+                    'thumbnail': r're:^https?://.*\.jpg$',
+                    'uploader': 'BitChute',
+                    'upload_date': '20170103',
+                    'duration': 16,
+                    'view_count': int,
+                },
+            }
+        ],
+        'params': {
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+            'match_filter': match_filter_func('id=UGlrF9o9b-Q'),
+        },
+        'expected_warnings': ['No video formats found!', 'Requested format is not available'],
     }, {
         'url': 'https://www.bitchute.com/playlist/wV9Imujxasw9/',
         'playlist_mincount': 20,
