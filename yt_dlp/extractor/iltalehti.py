@@ -41,7 +41,7 @@ class IltalehtiIE(InfoExtractor):
         article_id = self._match_id(url)
         webpage = self._download_webpage(url, article_id)
         info = self._search_json(
-            r'<script>\s*window.App\s*=\s*', webpage, 'json', article_id,
+            r'<script>\s*window.App\s*=', webpage, 'json', article_id,
             transform_source=js_to_json)
         props = traverse_obj(info, (
             'state', 'articles', ..., 'items', (('main_media', 'properties'), ('body', ..., 'properties'))))
