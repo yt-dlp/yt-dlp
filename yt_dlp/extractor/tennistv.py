@@ -148,7 +148,7 @@ class TennisTVIE(InfoExtractor):
                 webpage, 'description', fatal=False),
             'thumbnail': f'https://open.http.mp.streamamg.com/p/{self._PARTNER_ID}/sp/{self._PARTNER_ID}00/thumbnail/entry_id/{entryid}/version/100001/height/1920',
             'timestamp': unified_timestamp(self._html_search_regex(
-                r'<span itemprop="description" content=["\']([^"\']+)["\']>', webpage, 'upload time')),
+                r'<span itemprop="uploadDate" content=["\']([^"\']+)["\']>', webpage, 'upload time', fatal=False)),
             'series': self._html_search_regex(r'data-series\s*?=\s*?"(.*?)"', webpage, 'series', fatal=False) or None,
             'season': self._html_search_regex(r'data-tournament-city\s*?=\s*?"(.*?)"', webpage, 'season', fatal=False) or None,
             'episode': self._html_search_regex(r'data-round\s*?=\s*?"(.*?)"', webpage, 'round', fatal=False) or None,

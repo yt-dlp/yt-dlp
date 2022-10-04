@@ -32,7 +32,6 @@ def packages():
 
     return [
         'yt_dlp', 'yt_dlp.extractor', 'yt_dlp.downloader', 'yt_dlp.postprocessor', 'yt_dlp.compat',
-        'yt_dlp.extractor.anvato_token_generator',
     ]
 
 

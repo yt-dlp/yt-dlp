@@ -84,7 +84,7 @@ class FranceCultureIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         # _search_json_ld doesn't correctly handle this. See https://github.com/yt-dlp/yt-dlp/pull/3874#discussion_r891903846
-        video_data = self._search_json('', webpage, 'audio data', display_id, contains_pattern=r'\s*"@type"\s*:\s*"AudioObject"\s*.+')
+        video_data = self._search_json('', webpage, 'audio data', display_id, contains_pattern=r'{\s*"@type"\s*:\s*"AudioObject".+}')
 
         return {
             'id': video_id,

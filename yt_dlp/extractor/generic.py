@@ -1072,18 +1072,6 @@ class GenericIE(InfoExtractor):
             }
         },
         {
-            # JWPlatform iframe
-            'url': 'https://www.covermagazine.co.uk/feature/2465255/business-protection-involved',
-            'info_dict': {
-                'id': 'AG26UQXM',
-                'ext': 'mp4',
-                'upload_date': '20160719',
-                'timestamp': 468923808,
-                'title': '2016_05_18 Cover L&G Business Protection V1 FINAL.mp4',
-            },
-            'add_ie': ['JWPlatform'],
-        },
-        {
             # Video.js embed, multiple formats
             'url': 'http://ortcam.com/solidworks-урок-6-настройка-чертежа_33f9b7351.html',
             'info_dict': {

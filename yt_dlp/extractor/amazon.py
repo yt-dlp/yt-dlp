@@ -9,7 +9,7 @@ class AmazonStoreIE(InfoExtractor):
         'url': 'https://www.amazon.co.uk/dp/B098XNCHLD/',
         'info_dict': {
             'id': 'B098XNCHLD',
-            'title': 'md5:5f3194dbf75a8dcfc83079bd63a2abed',
+            'title': 'md5:dae240564cbb2642170c02f7f0d7e472',
         },
         'playlist_mincount': 1,
         'playlist': [{
@@ -18,22 +18,30 @@ class AmazonStoreIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'mcdodo usb c cable 100W 5a',
                 'thumbnail': r're:^https?://.*\.jpg$',
+                'duration': 34,
             },
         }]
     }, {
         'url': 'https://www.amazon.in/Sony-WH-1000XM4-Cancelling-Headphones-Bluetooth/dp/B0863TXGM3',
         'info_dict': {
             'id': 'B0863TXGM3',
-            'title': 'md5:b0bde4881d3cfd40d63af19f7898b8ff',
+            'title': 'md5:d1d3352428f8f015706c84b31e132169',
         },
         'playlist_mincount': 4,
     }, {
         'url': 'https://www.amazon.com/dp/B0845NXCXF/',
         'info_dict': {
             'id': 'B0845NXCXF',
-            'title': 'md5:2145cd4e3c7782f1ee73649a3cff1171',
+            'title': 'md5:f3fa12779bf62ddb6a6ec86a360a858e',
         },
         'playlist-mincount': 1,
+    }, {
+        'url': 'https://www.amazon.es/Samsung-Smartphone-s-AMOLED-Quad-c%C3%A1mara-espa%C3%B1ola/dp/B08WX337PQ',
+        'info_dict': {
+            'id': 'B08WX337PQ',
+            'title': 'md5:f3fa12779bf62ddb6a6ec86a360a858e',
+        },
+        'playlist_mincount': 1,
     }]
 
     def _real_extract(self, url):
@@ -42,7 +50,9 @@ class AmazonStoreIE(InfoExtractor):
         for retry in self.RetryManager():
             webpage = self._download_webpage(url, id)
             try:
-                data_json = self._parse_json(self._html_search_regex(r'var\s?obj\s?=\s?jQuery\.parseJSON\(\'(.*)\'\)', webpage, 'data'), id)
+                data_json = self._search_json(
+                    r'var\s?obj\s?=\s?jQuery\.parseJSON\(\'', webpage, 'data', id,
+                    transform_source=lambda x: x.replace(R'\\u', R'\u'))
             except ExtractorError as e:
                 retry.error = e
 
@@ -55,4 +65,4 @@ class AmazonStoreIE(InfoExtractor):
             'height': int_or_none(video.get('videoHeight')),
             'width': int_or_none(video.get('videoWidth')),
         } for video in (data_json.get('videos') or []) if video.get('isVideo') and video.get('url')]
-        return self.playlist_result(entries, playlist_id=id, playlist_title=data_json['title'])
+        return self.playlist_result(entries, playlist_id=id, playlist_title=data_json.get('title'))

@@ -1227,7 +1227,7 @@ class InfoExtractor:
             return None
 
     def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='',
-                     contains_pattern='(?s:.+)', fatal=True, default=NO_DEFAULT, **kwargs):
+                     contains_pattern=r'{(?s:.+)}', fatal=True, default=NO_DEFAULT, **kwargs):
         """Searches string for the JSON object specified by start_pattern"""
         # NB: end_pattern is only used to reduce the size of the initial match
         if default is NO_DEFAULT:
@@ -1236,7 +1236,7 @@ class InfoExtractor:
             fatal, has_default = False, True
 
         json_string = self._search_regex(
-            rf'(?:{start_pattern})\s*(?P<json>{{\s*(?:{contains_pattern})\s*}})\s*(?:{end_pattern})',
+            rf'(?:{start_pattern})\s*(?P<json>{contains_pattern})\s*(?:{end_pattern})',
             string, name, group='json', fatal=fatal, default=None if has_default else NO_DEFAULT)
         if not json_string:
             return default
@@ -1862,7 +1862,7 @@ class InfoExtractor:
                     alias, field = field, self._get_field_setting(field, 'field')
                     if self._get_field_setting(alias, 'deprecated'):
                         self.ydl.deprecated_feature(f'Format sorting alias {alias} is deprecated and may '
-                                                    'be removed in a future version. Please use {field} instead')
+                                                    f'be removed in a future version. Please use {field} instead')
                 reverse = match.group('reverse') is not None
                 closest = match.group('separator') == '~'
                 limit_text = match.group('limit')
@@ -3587,7 +3587,8 @@ class InfoExtractor:
                     'url': source_url,
                     'width': int_or_none(source.get('width')),
                     'height': height,
-                    'tbr': int_or_none(source.get('bitrate')),
+                    'tbr': int_or_none(source.get('bitrate'), scale=1000),
+                    'filesize': int_or_none(source.get('filesize')),
                     'ext': ext,
                 }
                 if source_url.startswith('rtmp'):
