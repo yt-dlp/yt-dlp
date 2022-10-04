@@ -53,8 +53,7 @@ class NFLBaseIE(InfoExtractor):
                             )
                         )/
                     '''
-    _VIDEO_CONFIG_REGEX = r'<script[^>]+id="[^"]*video-config-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}[^"]*"[^>]*>\s*({.+})'
-    _WORKING = False
+    _VIDEO_CONFIG_REGEX = r'<script[^>]+id="[^"]*video-config-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}[^"]*"[^>]*>\s*({.+});?\s*</script>'
 
     def _parse_video_config(self, video_config, display_id):
         video_config = self._parse_json(video_config, display_id)
@@ -66,7 +65,7 @@ class NFLBaseIE(InfoExtractor):
                 'Anvato', mcp_id)
         else:
             media_id = item.get('id') or item['entityId']
-            title = item['title']
+            title = item.get('title')
             item_url = item['url']
             info = {'id': media_id}
             ext = determine_ext(item_url)
@@ -108,6 +107,9 @@ class NFLIE(NFLBaseIE):
             'timestamp': 1608009755,
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'NFL',
+            'tags': 'count:6',
+            'duration': 157,
+            'categories': 'count:3',
         }
     }, {
         'url': 'https://www.chiefs.com/listen/patrick-mahomes-travis-kelce-react-to-win-over-dolphins-the-breakdown',
@@ -117,7 +119,8 @@ class NFLIE(NFLBaseIE):
             'ext': 'mp3',
             'title': 'Patrick Mahomes, Travis Kelce React to Win Over Dolphins | The Breakdown',
             'description': 'md5:12ada8ee70e6762658c30e223e095075',
-        }
+        },
+        'skip': 'HTTP Error 404: Not Found',
     }, {
         'url': 'https://www.buffalobills.com/video/buffalo-bills-military-recognition-week-14',
         'only_matching': True,

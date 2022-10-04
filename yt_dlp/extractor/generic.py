@@ -873,22 +873,6 @@ class GenericIE(InfoExtractor):
                 'thumbnail': r're:^https?://.*\.jpg$',
             },
         },
-        # Wistia embed
-        {
-            'url': 'http://study.com/academy/lesson/north-american-exploration-failed-colonies-of-spain-france-england.html#lesson',
-            'md5': '1953f3a698ab51cfc948ed3992a0b7ff',
-            'info_dict': {
-                'id': '6e2wtrbdaf',
-                'ext': 'mov',
-                'title': 'paywall_north-american-exploration-failed-colonies-of-spain-france-england',
-                'description': 'a Paywall Videos video from Remilon',
-                'duration': 644.072,
-                'uploader': 'study.com',
-                'timestamp': 1459678540,
-                'upload_date': '20160403',
-                'filesize': 24687186,
-            },
-        },
         # Wistia standard embed (async)
         {
             'url': 'https://www.getdrip.com/university/brennan-dunn-drip-workshop/',
@@ -903,7 +887,8 @@ class GenericIE(InfoExtractor):
             },
             'params': {
                 'skip_download': True,
-            }
+            },
+            'skip': 'webpage 404 not found',
         },
         # Soundcloud embed
         {
@@ -1085,18 +1070,6 @@ class GenericIE(InfoExtractor):
             'params': {
                 'skip_download': True,
             }
-        },
-        {
-            # JWPlatform iframe
-            'url': 'https://www.covermagazine.co.uk/feature/2465255/business-protection-involved',
-            'info_dict': {
-                'id': 'AG26UQXM',
-                'ext': 'mp4',
-                'upload_date': '20160719',
-                'timestamp': 468923808,
-                'title': '2016_05_18 Cover L&G Business Protection V1 FINAL.mp4',
-            },
-            'add_ie': ['JWPlatform'],
         },
         {
             # Video.js embed, multiple formats
@@ -2623,8 +2596,8 @@ class GenericIE(InfoExtractor):
 
         url, smuggled_data = unsmuggle_url(url, {})
         force_videoid = None
-        is_intentional = smuggled_data and smuggled_data.get('to_generic')
-        if smuggled_data and 'force_videoid' in smuggled_data:
+        is_intentional = smuggled_data.get('to_generic')
+        if 'force_videoid' in smuggled_data:
             force_videoid = smuggled_data['force_videoid']
             video_id = force_videoid
         else:
@@ -2925,7 +2898,7 @@ class GenericIE(InfoExtractor):
         if json_ld.get('url') not in (url, None):
             self.report_detected('JSON LD')
             return merge_dicts({
-                '_type': 'url_transparent',
+                '_type': 'video' if json_ld.get('ext') else 'url_transparent',
                 'url': smuggle_url(json_ld['url'], {
                     'force_videoid': video_id,
                     'to_generic': True,
