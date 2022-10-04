@@ -49,7 +49,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         return {
             'id': video_id,
             'webpage_url': f'https://redgifs.com/watch/{video_id}',
-            'ie_key': RedGifsIE.ie_key(),
+            'extractor_key': RedGifsIE.ie_key(),
             'extractor': 'RedGifs',
             'title': ' '.join(gif_data.get('tags') or []) or 'RedGifs',
             'timestamp': int_or_none(gif_data.get('createDate')),
@@ -128,7 +128,6 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'like_count': int,
             'categories': list,
             'age_limit': 18,
-            'ie_key': 'RedGifs',
             'tags': list,
         }
     }, {
@@ -145,6 +144,7 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'like_count': int,
             'categories': list,
             'age_limit': 18,
+            'tags': list,
         }
     }]
 
