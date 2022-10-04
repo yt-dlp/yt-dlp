@@ -70,10 +70,10 @@ class WyborczaVideoIE(InfoExtractor):
 
 class WyborczaPodcastIE(InfoExtractor):
     _VALID_URL = r'''(?x)
-        https?://(?:www\.)?
-            (?:wyborcza\.pl/podcast(?:/0,172673\.html)?
-            |wysokieobcasy\.pl/wysokie-obcasy/0,176631\.html)
-        (?:\?(?:[^&]+?&)*?podcast=(?P<id>\d+))?
+        https?://(?:www\.)?(?:
+            wyborcza\.pl/podcast(?:/0,172673\.html)?|
+            wysokieobcasy\.pl/wysokie-obcasy/0,176631\.html
+        )(?:\?(?:[^&#]+?&)*podcast=(?P<id>\d+))?
     '''
     _TESTS = [{
         'url': 'https://wyborcza.pl/podcast/0,172673.html?podcast=100720#S.main_topic-K.C-B.6-L.1.podcast',
@@ -234,20 +234,18 @@ class TokFMAuditionIE(InfoExtractor):
         }
 
     def _fetch_page(self, audition_id, data, page):
-        podcast_page = False
         for retry in self.RetryManager():
             podcast_page = self._download_json(
                 f'https://api.podcast.radioagora.pl/api4/getPodcasts?series_id={audition_id}&limit=30&offset={page}&with_guests=true&with_leaders_for_mobile=true',
-                audition_id, f'Downloading podcast list (page #{page + 1})',
-                headers=self._HEADERS)
-            if podcast_page is False:
-                retry.error = ExtractorError('Agora returns shit', expected=True)
+                audition_id, f'Downloading podcast list page {page + 1}', headers=self._HEADERS)
+            if not podcast_page:
+                retry.error = ExtractorError('Agora returned empty page', expected=True)
 
         for podcast in podcast_page:
             yield {
                 '_type': 'url_transparent',
                 'url': podcast['podcast_sharing_url'],
-                'ie_key': 'TokFMPodcast',
+                'ie_key': TokFMPodcastIE.ie_key(),
                 'title': podcast.get('podcast_name'),
                 'episode': podcast.get('podcast_name'),
                 'description': podcast.get('podcast_description'),
