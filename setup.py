@@ -35,38 +35,38 @@ def packages():
     ]
 
 
-def py2exe_params():
-    import py2exe  # noqa: F401
+def py2exe_build():
+    from py2exe import freeze  # noqa: F401
 
     warnings.warn(
         'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
         'The recommended way is to use "pyinst.py" to build using pyinstaller')
 
-    return {
-        'console': [{
+    freeze(
+        console=[{
             'script': './yt_dlp/__main__.py',
             'dest_base': 'yt-dlp',
+            'icon_resources': [(1, 'devscripts/logo.ico')],
+        }],
+        version_info={
             'version': VERSION,
             'description': DESCRIPTION,
             'comments': LONG_DESCRIPTION.split('\n')[0],
             'product_name': 'yt-dlp',
             'product_version': VERSION,
-            'icon_resources': [(1, 'devscripts/logo.ico')],
-        }],
-        'options': {
-            'py2exe': {
-                'bundle_files': 0,
-                'compressed': 1,
-                'optimize': 2,
-                'dist_dir': './dist',
-                'excludes': ['Crypto', 'Cryptodome'],  # py2exe cannot import Crypto
-                'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
-                # Modules that are only imported dynamically must be added here
-                'includes': ['yt_dlp.compat._legacy'],
-            }
         },
-        'zipfile': None
-    }
+        options={
+            'bundle_files': 0,
+            'compressed': 1,
+            'optimize': 2,
+            'dist_dir': './dist',
+            'excludes': ['Crypto', 'Cryptodome'],  # py2exe cannot import Crypto
+            'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
+            # Modules that are only imported dynamically must be added here
+            'includes': ['yt_dlp.compat._legacy'],
+        },
+        zipfile=None,
+    )
 
 
 def build_params():
@@ -113,41 +113,48 @@ class build_lazy_extractors(Command):
         subprocess.run([sys.executable, 'devscripts/make_lazy_extractors.py'])
 
 
-params = py2exe_params() if sys.argv[1:2] == ['py2exe'] else build_params()
-setup(
-    name='yt-dlp',
-    version=VERSION,
-    maintainer='pukkandan',
-    maintainer_email='pukkandan.ytdlp@gmail.com',
-    description=DESCRIPTION,
-    long_description=LONG_DESCRIPTION,
-    long_description_content_type='text/markdown',
-    url='https://github.com/yt-dlp/yt-dlp',
-    packages=packages(),
-    install_requires=REQUIREMENTS,
-    python_requires='>=3.7',
-    project_urls={
-        'Documentation': 'https://github.com/yt-dlp/yt-dlp#readme',
-        'Source': 'https://github.com/yt-dlp/yt-dlp',
-        'Tracker': 'https://github.com/yt-dlp/yt-dlp/issues',
-        'Funding': 'https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators',
-    },
-    classifiers=[
-        'Topic :: Multimedia :: Video',
-        'Development Status :: 5 - Production/Stable',
-        'Environment :: Console',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: Implementation',
-        'Programming Language :: Python :: Implementation :: CPython',
-        'Programming Language :: Python :: Implementation :: PyPy',
-        'License :: Public Domain',
-        'Operating System :: OS Independent',
-    ],
-    cmdclass={'build_lazy_extractors': build_lazy_extractors},
-    **params
-)
+def setup_internal():
+    params = build_params()
+    setup(
+        name='yt-dlp',
+        version=VERSION,
+        maintainer='pukkandan',
+        maintainer_email='pukkandan.ytdlp@gmail.com',
+        description=DESCRIPTION,
+        long_description=LONG_DESCRIPTION,
+        long_description_content_type='text/markdown',
+        url='https://github.com/yt-dlp/yt-dlp',
+        packages=packages(),
+        install_requires=REQUIREMENTS,
+        python_requires='>=3.7',
+        project_urls={
+            'Documentation': 'https://github.com/yt-dlp/yt-dlp#readme',
+            'Source': 'https://github.com/yt-dlp/yt-dlp',
+            'Tracker': 'https://github.com/yt-dlp/yt-dlp/issues',
+            'Funding': 'https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators',
+        },
+        classifiers=[
+            'Topic :: Multimedia :: Video',
+            'Development Status :: 5 - Production/Stable',
+            'Environment :: Console',
+            'Programming Language :: Python',
+            'Programming Language :: Python :: 3.7',
+            'Programming Language :: Python :: 3.8',
+            'Programming Language :: Python :: 3.9',
+            'Programming Language :: Python :: 3.10',
+            'Programming Language :: Python :: 3.11',
+            'Programming Language :: Python :: Implementation',
+            'Programming Language :: Python :: Implementation :: CPython',
+            'Programming Language :: Python :: Implementation :: PyPy',
+            'License :: Public Domain',
+            'Operating System :: OS Independent',
+        ],
+        cmdclass={'build_lazy_extractors': build_lazy_extractors},
+        **params
+    )
+
+
+if sys.argv[1:2] == ['py2exe']:
+    py2exe_build()
+else:
+    setup_internal()
