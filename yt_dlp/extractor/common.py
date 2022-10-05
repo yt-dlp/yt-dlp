@@ -1463,13 +1463,9 @@ class InfoExtractor:
     def _json_ld(self, json_ld, video_id, fatal=True, expected_type=None):
         if isinstance(json_ld, str):
             json_ld = self._parse_json(json_ld, video_id, fatal=fatal)
-        if not json_ld:
+        if not json_ld or not isinstance(json_ld, (list, dict)):
             return {}
         info = {}
-        if not isinstance(json_ld, (list, tuple, dict)):
-            return info
-        if isinstance(json_ld, dict):
-            json_ld = [json_ld]
 
         INTERACTION_TYPE_MAP = {
             'CommentAction': 'comment',
@@ -1569,11 +1565,18 @@ class InfoExtractor:
             extract_chapter_information(e)
 
         def traverse_json_ld(json_ld, at_top_level=True):
+            if isinstance(json_ld, dict):
+                json_ld = [json_ld]
+            if not isinstance(json_ld, list):
+                return
+
             for e in json_ld:
+                if not isinstance(e, dict):
+                    continue
                 if at_top_level and '@context' not in e:
                     continue
                 if at_top_level and set(e.keys()) == {'@context', '@graph'}:
-                    traverse_json_ld(variadic(e['@graph'], allowed_types=(dict,)), at_top_level=False)
+                    traverse_json_ld(e['@graph'], at_top_level=False)
                     break
                 if expected_type is not None and not is_type(e, expected_type):
                     continue
