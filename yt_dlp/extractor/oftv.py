@@ -27,7 +27,7 @@ class OfTVIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         output = next(ZypeIE.extract_from_webpage(self._downloader, url, webpage))
-        output['creator'] = self._search_regex(r'<a class=\"creator-name\" href=\".+?\">(?P<artist>[a-zA-Z0-9\s].+)<\/a>', webpage, 'creator')
+        output['creator'] = self._search_regex(r'<a[^>]+class=\"creator-name\"[^>]+>(?P<artist>[^<]+)', webpage, 'creator')
         return output
 
 
