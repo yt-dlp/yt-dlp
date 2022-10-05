@@ -33,15 +33,16 @@ class OdnoklassnikiIE(InfoExtractor):
                     (?P<id>[\d-]+)
                 '''
     _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:odnoklassniki|ok)\.ru/videoembed/.+?)\1']
-    _TESTS = [{
-        'note': 'Coub embedded',
-        'url': 'http://ok.ru/video/1484130554189',
+    _TESTS = [
+    # Coub embedded
+    {
+        'url': 'https://ok.ru/video/1484130554189',
         'info_dict': {
             'id': '1keok9',
             'ext': 'mp4',
             'timestamp': 1545580896,
             'view_count': int,
-            'thumbnail': 'https://coub-anubis-a.akamaized.net/coub_storage/coub/simple/cw_image/c5ac87553bd/608e806a1239c210ab692/1545580913_00026.jpg',
+            'thumbnail': 'https://coub-attachments.akamaized.net/coub_storage/coub/simple/cw_image/c5ac87553bd/608e806a1239c210ab692/1545580913_00026.jpg',
             'title': 'Народная забава',
             'uploader': 'Nevata',
             'upload_date': '20181223',
@@ -51,8 +52,9 @@ class OdnoklassnikiIE(InfoExtractor):
             'duration': 8.08,
             'repost_count': int,
         },
-    }, {
-        'note': 'vk.com embedded',
+    }, 
+    # vk.com embedded
+    {
         'url': 'https://ok.ru/video/3568183087575',
         'info_dict': {
             'id': '-165101755_456243749',
@@ -65,14 +67,16 @@ class OdnoklassnikiIE(InfoExtractor):
             'title': str,
             'uploader': str,
         },
-    }, {
-        # metadata in JSON
-        'url': 'http://ok.ru/video/20079905452',
-        'md5': '0b62089b479e06681abaaca9d204f152',
+    }, 
+    # metadata in JSON# metadata in JSON
+    {
+        'url': 'https://ok.ru/video/20079905452',
+        'md5': '5d2b64756e2af296e3b383a0bc02a6aa',
         'info_dict': {
             'id': '20079905452',
             'ext': 'mp4',
             'title': 'Культура меняет нас (прекрасный ролик!))',
+            'thumbnail': str,
             'duration': 100,
             'upload_date': '20141207',
             'uploader_id': '330537914540',
@@ -80,14 +84,16 @@ class OdnoklassnikiIE(InfoExtractor):
             'like_count': int,
             'age_limit': 0,
         },
-    }, {
-        # metadataUrl
-        'url': 'http://ok.ru/video/63567059965189-0?fromTime=5',
-        'md5': '6ff470ea2dd51d5d18c295a355b0b6bc',
+    }, 
+    {
+    # metadataUrl
+        'url': 'https://ok.ru/video/63567059965189-0?fromTime=5',
+        'md5': 'f8c951122516af72e6e6ffdd3c41103b',
         'info_dict': {
             'id': '63567059965189-0',
             'ext': 'mp4',
             'title': 'Девушка без комплексов ...',
+            'thumbnail': str,
             'duration': 191,
             'upload_date': '20150518',
             'uploader_id': '534380003155',
@@ -96,24 +102,41 @@ class OdnoklassnikiIE(InfoExtractor):
             'age_limit': 0,
             'start_time': 5,
         },
-    }, {
-        # YouTube embed (metadataUrl, provider == USER_YOUTUBE)
-        'url': 'http://ok.ru/video/64211978996595-1',
-        'md5': '2f206894ffb5dbfcce2c5a14b909eea5',
+    }, 
+    # YouTube embed (metadataUrl, provider == USER_YOUTUBE)
+    {
+        'url': 'https://ok.ru/video/3952212382174',
+        'md5': '91749d0bd20763a28d083fa335bbd37a',
         'info_dict': {
-            'id': 'V_VztHT5BzY',
+            'id': '5axVgHHDBvU',
             'ext': 'mp4',
-            'title': 'Космическая среда от 26 августа 2015',
-            'description': 'md5:848eb8b85e5e3471a3a803dae1343ed0',
-            'duration': 440,
-            'upload_date': '20150826',
-            'uploader_id': 'tvroscosmos',
-            'uploader': 'Телестудия Роскосмоса',
+            'title': 'Youtube-dl 101: What is it and HOW to use it! Full Download Walkthrough and Guide',
+            'description': 'md5:b57209eeb9d5c2f20c984dfb58862097',
+            'uploader': 'Lod Mer',
+            'uploader_id': '575186401502',
+            'duration': 1529,
             'age_limit': 0,
+            'upload_date': '20210405',
+
+            'comment_count': int,
+            'live_status': 'not_live',
+            'view_count': int,
+            'thumbnail': 'https://i.mycdn.me/i?r=AEHujHvw2RjEbemUCNEorZbxYpb_p_9AcN2FmGik64Krkcmz37YtlY093oAM5-HIEAt7Zi9s0CiBOSDmbngC-I-k&fn=external_8',
+            'uploader_url': 'http://www.youtube.com/user/MrKewlkid94',
+            'channel_follower_count': int,
+            'tags': ['youtube-dl', 'youtube playlists', 'download videos', 'download audio'],
+            'channel_id': 'UCVGtvURtEURYHtJFUegdSug',
+            'like_count': int,
+            'availability': 'public',
+            'channel_url': 'https://www.youtube.com/channel/UCVGtvURtEURYHtJFUegdSug',
+            'categories': ['Education'],
+            'playable_in_embed': True,
+            'channel': 'BornToReact',
         },
-    }, {
-        # YouTube embed (metadata, provider == USER_YOUTUBE, no metadata.movie.title field)
-        'url': 'http://ok.ru/video/62036049272859-0',
+    }, 
+    # YouTube embed (metadata, provider == USER_YOUTUBE, no metadata.movie.title field)
+    {
+        'url': 'https://ok.ru/video/62036049272859-0',
         'info_dict': {
             'id': '62036049272859-0',
             'ext': 'mp4',
@@ -128,40 +151,76 @@ class OdnoklassnikiIE(InfoExtractor):
             'skip_download': True,
         },
         'skip': 'Video has not been found',
-    }, {
-        'note': 'Only available in mobile webpage',
-        'url': 'https://m.ok.ru/video/2361249957145',
-        'info_dict': {
-            'id': '2361249957145',
-            'title': 'Быковское крещение',
-            'duration': 3038.181,
-        },
-    }, {
-        'url': 'http://ok.ru/web-api/video/moviePlayer/20079905452',
+    }, 
+    # TODO HTTP Error 400: Bad Request, it only works if there's no cookies when downloading
+    # # Only available in mobile webpage
+    # {
+    #     'url': 'https://m.ok.ru/video/2361249957145',
+    #     'info_dict': {
+    #         'id': '2361249957145',
+    #         'ext': 'mp4',
+    #         'title': 'Быковское крещение',
+    #         'duration': 3038.181,
+    #     },
+    # }, 
+    {
+        'url': 'https://ok.ru/web-api/video/moviePlayer/20079905452',
         'only_matching': True,
-    }, {
+    }, 
+    {
         'url': 'http://www.ok.ru/video/20648036891',
         'only_matching': True,
-    }, {
+    }, 
+    {
         'url': 'http://www.ok.ru/videoembed/20648036891',
         'only_matching': True,
-    }, {
+    }, 
+    {
         'url': 'http://m.ok.ru/video/20079905452',
         'only_matching': True,
-    }, {
+    }, 
+    {
         'url': 'http://mobile.ok.ru/video/20079905452',
         'only_matching': True,
-    }, {
+    }, 
+    {
         'url': 'https://www.ok.ru/live/484531969818',
         'only_matching': True,
-    }, {
+    }, 
+    {
         'url': 'https://m.ok.ru/dk?st.cmd=movieLayer&st.discId=863789452017&st.retLoc=friend&st.rtu=%2Fdk%3Fst.cmd%3DfriendMovies%26st.mode%3Down%26st.mrkId%3D%257B%2522uploadedMovieMarker%2522%253A%257B%2522marker%2522%253A%25221519410114503%2522%252C%2522hasMore%2522%253Atrue%257D%252C%2522sharedMovieMarker%2522%253A%257B%2522marker%2522%253Anull%252C%2522hasMore%2522%253Afalse%257D%257D%26st.friendId%3D561722190321%26st.frwd%3Don%26_prevCmd%3DfriendMovies%26tkn%3D7257&st.discType=MOVIE&st.mvId=863789452017&_prevCmd=friendMovies&tkn=3648#lst#',
         'only_matching': True,
-    }, {
-        # Paid video
+    }, 
+    # Paid video
+    {
         'url': 'https://ok.ru/video/954886983203',
         'only_matching': True,
-    }]
+    },
+    {
+        'url': 'https://ok.ru/videoembed/2932705602075',
+        'info_dict': {
+            'id': '2932705602075',
+            'ext': 'mp4',
+            'thumbnail': 'https://i.mycdn.me/videoPreview?id=1369902483995&type=37&idx=2&tkn=fqlnoQD_xwq5ovIlKfgNyU08qmM&fn=external_8',
+            'title': 'Boosty для тебя!',
+            'uploader_id': '597811038747',
+            'like_count': 0,
+            'duration': 35,
+        },
+    },
+    {
+        'url': 'https://boosty.to/ikakprosto/posts/56cedaca-b56a-4dfd-b3ed-98c79cfa0167',
+        'info_dict': {
+            'id': '3950343629563',
+            'ext': 'mp4',
+            'thumbnail': 'https://i.mycdn.me/videoPreview?id=2776238394107&type=37&idx=11&tkn=F3ejkUFcpuI4DnMRxrDGcH5YcmM&fn=external_8',
+            'title': 'Заяц Бусти.mp4',
+            'uploader_id': '571368965883',
+            'like_count': 0,
+            'duration': 10444,
+        },
+    }
+    ]
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -188,7 +247,7 @@ class OdnoklassnikiIE(InfoExtractor):
         mode = 'videoembed' if '/videoembed/' in url else 'video'
 
         webpage = self._download_webpage(
-            f'http://ok.ru/{mode}/{video_id}', video_id,
+            f'https://ok.ru/{mode}/{video_id}', video_id,
             note='Downloading desktop webpage',
             headers={
                 'Referer': smuggled['referrer'],
@@ -197,6 +256,7 @@ class OdnoklassnikiIE(InfoExtractor):
         error = self._search_regex(
             r'[^>]+class="vp_video_stub_txt"[^>]*>([^<]+)<',
             webpage, 'error', default=None)
+        # Direct link from boosty
         if error == "The author of this video has not been found or is blocked" and not smuggled.get('referrer') and mode == 'videoembed':
             return self._extract_desktop(smuggle_url(url, {'referrer': "https://boosty.to"}))
         elif error:
@@ -230,7 +290,7 @@ class OdnoklassnikiIE(InfoExtractor):
         movie = metadata['movie']
 
         # Some embedded videos may not contain title in movie dict (e.g.
-        # http://ok.ru/video/62036049272859-0) thus we allow missing title
+        # https://ok.ru/video/62036049272859-0) thus we allow missing title
         # here and it's going to be extracted later by an extractor that
         # will process the actual embed.
         provider = metadata.get('provider')
