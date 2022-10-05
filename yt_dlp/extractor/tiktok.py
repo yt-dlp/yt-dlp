@@ -249,6 +249,10 @@ class TikTokBaseIE(InfoExtractor):
         stats_info = aweme_detail.get('statistics', {})
         author_info = aweme_detail.get('author', {})
         music_info = aweme_detail.get('music', {})
+        music_url_info = music_info.get('play_url', {})
+        status_info = aweme_detail.get('status', {})
+        hashtag_info = aweme_detail.get('text_extra', {})
+        control_info = aweme_detail.get('video_control', {})
         user_url = self._UPLOADER_URL_FORMAT % (traverse_obj(author_info,
                                                              'sec_uid', 'id', 'uid', 'unique_id',
                                                              expected_type=str_or_none, get_all=False))
@@ -285,7 +289,7 @@ class TikTokBaseIE(InfoExtractor):
             'uploader_url': user_url,
             'track': music_track,
             'album': str_or_none(music_info.get('album')) or None,
-            'audio_thumbnail': str_or_none(music_info.get('album')) or None,
+            'bg_audio_url': str_or_none(music_url_info.get('uri'})) or None,
             'artist': music_author or None,
             'timestamp': int_or_none(aweme_detail.get('create_time')),
             'formats': formats,
