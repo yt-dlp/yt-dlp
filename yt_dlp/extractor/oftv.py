@@ -14,7 +14,7 @@ class OfTVIE(InfoExtractor):
             'title': 'E1: Jacky vs Eric',
             'thumbnail': r're:^https?://.*\.jpg',
             'average_rating': 0,
-            'description': 'Singer Jacky Romero and actor Eric Guilmette must step out of their comfort zones in order to take on the ultimate comfort food: the Monte Cristo sandwich. With only 30 minutes to deliver the perfect blend of sweet and savory,\xa0Jacky and Eric need all the help they can get to impress Chef JoJo and move on to the next round.\xa0\r\n\r\nSubscribe to the cast on OF:\r\nof.com/jackyromero \r\nof.com/eric_g \r\nof.com/grandmasterchefjojo',
+            'description': 'md5:dd16e3e2a8d27d922e7a989f85986853',
             'display_id': '',
             'duration': 1423,
             'timestamp': 1652391300,
