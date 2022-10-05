@@ -19,8 +19,7 @@ class OfTVIE(InfoExtractor):
             'duration': 1423,
             'timestamp': 1652391300,
             'upload_date': '20220512',
-            'view_count': 0,
-            'md5': None
+            'view_count': 0
         }
     }]
 
