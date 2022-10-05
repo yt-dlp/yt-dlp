@@ -45,7 +45,7 @@ class OfTVPlaylistIE(InfoExtractor):
         webpage = self._download_webpage(url, playlist_id)
 
         remaining_videos = self._search_json(
-            r'var\s*remaining_videos\s*=', webpage, 'oftv playlists', playlist_id, end_pattern=r';', contains_pattern=r'\[.+?\]')
+            r'var\s*remaining_videos\s*=', webpage, 'oftv playlists', playlist_id, contains_pattern=r'\[.+\]')
 
         return self.playlist_from_matches(
             traverse_obj(remaining_videos, (..., 'discovery_url')), playlist_id)
