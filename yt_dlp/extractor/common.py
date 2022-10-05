@@ -1621,9 +1621,11 @@ class InfoExtractor:
                         continue
                     else:
                         break
-                video = e.get('video')
-                if is_type(video, 'VideoObject'):
-                    extract_video_object(video)
+                e_list = e if isinstance(e, list) else [e]
+                for el in e_list:
+                    video = el.get('video')
+                    if is_type(video, 'VideoObject'):
+                        extract_video_object(video)
                 if expected_type is None:
                     continue
                 else:
