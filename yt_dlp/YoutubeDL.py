@@ -1402,7 +1402,7 @@ class YoutubeDL:
             return None
 
         if self.in_download_archive(info_dict):
-            reason = '%s has already been recorded in the archive' % video_title
+            reason = f'{self._format_screen(video_title, self.Styles.FILENAME)} has already been recorded in the archive'
             break_opt, break_err = 'break_on_existing', ExistingVideoReached
         else:
             reason = check_filter()
