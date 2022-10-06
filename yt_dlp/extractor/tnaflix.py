@@ -19,6 +19,7 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
         r'config\s*=\s*(["\'])(?P<url>(?:https?:)?//(?:(?!\1).)+)\1',
     ]
     _HOST = 'tna'
+    _VIDEO_XML_URL = 'https://www.tnaflix.com/cdn/cdn.php?file={}.fid&key={}&VID={}&nomp4=1&catID=0&rollover=1&startThumb=12&embed=0&utm_source=0&multiview=0&premium=1&country=0user=0&vip=1&cd=0&ref=0&alpha'
     _VKEY_SUFFIX = ''
     _TITLE_REGEX = r'<input[^>]+name="title" value="([^"]+)"'
     _DESCRIPTION_REGEX = r'<input[^>]+name="description" value="([^"]+)"'
@@ -71,6 +72,10 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
+
+        def extract_field(pattern, name):
+            return self._html_search_regex(pattern, webpage, name, default=None) if pattern else None
+
         for display_id_key in ('display_id', 'display_id_2'):
             if display_id_key in mobj.groupdict():
                 display_id = mobj.group(display_id_key)
@@ -84,6 +89,13 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
         cfg_url = self._proto_relative_url(self._html_search_regex(
             self._CONFIG_REGEX, webpage, 'flashvars.config', default=None,
             group='url'), 'http:')
+
+        if not cfg_url:
+            vkey = extract_field(r'<input\b[^>]+\bid="vkey"\b[^>]+\bvalue="([^"]+)"', 'vkey')
+            nkey = extract_field(r'<input\b[^>]+\bid="nkey"\b[^>]+\bvalue="([^"]+)"', 'nkey')
+            vid = extract_field(r'<input\b[^>]+\bid="VID"\b[^>]+\bvalue="([^"]+)"', 'vid')
+            if vkey and nkey and vid:
+                cfg_url = self._proto_relative_url(self._VIDEO_XML_URL.format(vkey, nkey, vid), 'http:')
 
         if not cfg_url:
             inputs = self._hidden_inputs(webpage)
@@ -138,9 +150,6 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
 
         duration = parse_duration(self._html_search_meta(
             'duration', webpage, 'duration', default=None))
-
-        def extract_field(pattern, name):
-            return self._html_search_regex(pattern, webpage, name, default=None) if pattern else None
 
         description = extract_field(self._DESCRIPTION_REGEX, 'description')
         uploader = extract_field(self._UPLOADER_REGEX, 'uploader')
