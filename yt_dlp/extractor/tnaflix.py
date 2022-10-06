@@ -19,15 +19,11 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
         r'config\s*=\s*(["\'])(?P<url>(?:https?:)?//(?:(?!\1).)+)\1',
     ]
     _HOST = 'tna'
-    _VIDEO_XML_URL = "https://www.tnaflix.com/cdn/cdn.php?file={}.fid&key={}&VID={}&nomp4=1&catID=0&rollover=1&" \
-                     "startThumb=12&embed=0&utm_source=0&multiview=0&premium=1&country=0user=0&vip=1&cd=0&ref=0&alpha"
+    _VIDEO_XML_URL = 'https://www.tnaflix.com/cdn/cdn.php?file={}.fid&key={}&VID={}&nomp4=1&catID=0&rollover=1&startThumb=12&embed=0&utm_source=0&multiview=0&premium=1&country=0user=0&vip=1&cd=0&ref=0&alpha'
     _VKEY_SUFFIX = ''
     _TITLE_REGEX = r'<input[^>]+name="title" value="([^"]+)"'
     _DESCRIPTION_REGEX = r'<input[^>]+name="description" value="([^"]+)"'
     _UPLOADER_REGEX = r'<input[^>]+name="username" value="([^"]+)"'
-    _VKEY_REGEX = r'<input id="vkey" type="hidden" value="(?P<vkey>[^"]+)" />'
-    _NKEY_REGEX = r'<input id="nkey" type="hidden" value="(?P<nkey>[^"]+)" />'
-    _VID_REGEX = r'<input id="VID" type="hidden" value="(?P<VID>[^"]+)" />'
     _VIEW_COUNT_REGEX = None
     _COMMENT_COUNT_REGEX = None
     _AVERAGE_RATING_REGEX = None
@@ -95,9 +91,9 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
             group='url'), 'http:')
 
         if not cfg_url:
-            vkey = extract_field(self._VKEY_REGEX, 'vkey')
-            nkey = extract_field(self._NKEY_REGEX, 'nkey')
-            vid = extract_field(self._VID_REGEX, 'vid')
+            vkey = extract_field(r'<input id="vkey" type="hidden" value="(?P<vkey>[^"]+)" />', 'vkey')
+            nkey = extract_field(r'<input id="nkey" type="hidden" value="(?P<nkey>[^"]+)" />', 'nkey')
+            vid = extract_field(r'<input id="VID" type="hidden" value="(?P<VID>[^"]+)" />', 'vid')
             if vkey and nkey and vid:
                 cfg_url = self._proto_relative_url(self._VIDEO_XML_URL.format(vkey, nkey, vid), 'http:')
 
