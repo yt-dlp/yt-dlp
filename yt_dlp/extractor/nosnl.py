@@ -71,7 +71,11 @@ class NOSNLArticleIE(InfoExtractor):
                     'formats': formats,
                     'subtitles': subtitle,
                     'duration': parse_duration(item.get('duration')),
-                    'thumbnails': self._get_video_thumbnails(item.get('imagesByRatio'))
+                    'thumbnails': [{
+                        'url': traverse_obj(image, ('url', ...), get_all=False),
+                        'width': image.get('width'),
+                        'height': image.get('height')
+                    } for image in traverse_obj(item, ('imagesByRatio', ...))],
                 }
 
             elif item.get('type') == 'audio':
