@@ -166,7 +166,7 @@ class RedditIE(InfoExtractor):
             hls_playlist_url = playlist_urls[1] or f'https://v.redd.it/{video_id}/HLSPlaylist.m3u8'
 
             formats = [{
-                'url': reddit_video['fallback_url'],
+                'url': unescapeHTML(reddit_video['fallback_url']),
                 'height': int_or_none(reddit_video.get('height')),
                 'width': int_or_none(reddit_video.get('width')),
                 'vbr': int_or_none(reddit_video.get('bitrate_kbps')),
