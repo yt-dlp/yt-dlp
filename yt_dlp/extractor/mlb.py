@@ -363,34 +363,6 @@ class MLBArticleIE(InfoExtractor):
         'playlist_count': 2,
     }]
 
-    def get_single_video(self, video_slug, display_id):
-        json_api_data = self._download_json(
-            f'https://www.mlb.com/data-service/en/videos/{video_slug}', display_id)
-
-        formats, subtitles = [], {}
-        for playback_url in traverse_obj(json_api_data, ('playbacks', ..., 'url')) or []:
-            if determine_ext(playback_url) == 'm3u8':
-                fmt, sub = self._extract_m3u8_formats_and_subtitles(playback_url, display_id, ext='mp4')
-                formats.extend(fmt)
-                self._merge_subtitles(sub, target=subtitles)
-            elif determine_ext(playback_url) == 'jpg':
-                continue
-            else:
-                formats.append({
-                    'url': playback_url,
-                    'ext': 'mp4',
-                })
-        self._sort_formats(formats)
-        return {
-            'id': video_slug,
-            'title': json_api_data.get('title'),
-            'description': json_api_data.get('description'),
-            'formats': formats,
-            'subtitles': subtitles,
-            'duration': parse_duration(json_api_data.get('duration')),
-            'timestamp': parse_iso8601(json_api_data.get('timestamp'))
-        }
-
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
@@ -408,7 +380,7 @@ class MLBArticleIE(InfoExtractor):
         entries = []
         for video_query in content_video_query_id_list:
             video_slug = traverse_obj(apollo_cache_json, (video_query, 'slug'))
-            entries.append(self.get_single_video(video_slug, display_id))
+            entries.append(self.url_result(f'https://www.mlb.com/video/{video_slug}', ie=MLBVideoIE))
 
         return self.playlist_result(
             entries, content_real_info.get('_translationId'), self._html_search_meta('og:title', webpage),
