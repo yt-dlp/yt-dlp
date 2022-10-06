@@ -117,8 +117,8 @@ _OPERATORS = {  # None => Defined in JSInterpreter._operator
     '-': _js_arith_op(operator.sub),
 
     '*': _js_arith_op(operator.mul),
-    '/': _js_div,
     '%': _js_mod,
+    '/': _js_div,
     '**': _js_exp,
 }
 

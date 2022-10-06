@@ -18,6 +18,12 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         'hd': None,
     }
 
+    _API_HEADERS = {
+        'referer': 'https://www.redgifs.com/',
+        'origin': 'https://www.redgifs.com',
+        'content-type': 'application/json',
+    }
+
     def _parse_gif_data(self, gif_data):
         video_id = gif_data.get('id')
         quality = qualities(tuple(self._FORMATS.keys()))
@@ -43,7 +49,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         return {
             'id': video_id,
             'webpage_url': f'https://redgifs.com/watch/{video_id}',
-            'ie_key': RedGifsIE.ie_key(),
+            'extractor_key': RedGifsIE.ie_key(),
             'extractor': 'RedGifs',
             'title': ' '.join(gif_data.get('tags') or []) or 'RedGifs',
             'timestamp': int_or_none(gif_data.get('createDate')),
@@ -57,9 +63,29 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
             'formats': formats,
         }
 
+    def _fetch_oauth_token(self, video_id):
+        # These pages contain the OAuth token that is necessary to make API calls.
+        index_page = self._download_webpage(f'https://www.redgifs.com/watch/{video_id}', video_id)
+        index_js_uri = self._html_search_regex(
+            r'href="?(/assets/js/index[.a-z0-9]*.js)"?\W', index_page, 'index_js_uri')
+        index_js = self._download_webpage(f'https://www.redgifs.com/{index_js_uri}', video_id)
+        # It turns out that a { followed by any valid JSON punctuation will always result in the
+        # first two characters of the base64 encoding being "ey".
+        # Use this fact to find any such string constant of a reasonable length with the correct
+        # punctuation for an oauth token
+        oauth_token = self._html_search_regex(
+            r'\w+\s*[=:]\s*"(ey[^"]+\.[^"]*\.[^"]{43,45})"', index_js, 'oauth token')
+        self._API_HEADERS['authorization'] = f'Bearer {oauth_token}'
+
     def _call_api(self, ep, video_id, *args, **kwargs):
+        if 'authorization' not in self._API_HEADERS:
+            self._fetch_oauth_token(video_id)
+        assert 'authorization' in self._API_HEADERS
+
+        headers = dict(self._API_HEADERS)
+        headers['x-customheader'] = f'https://www.redgifs.com/watch/{video_id}'
         data = self._download_json(
-            f'https://api.redgifs.com/v2/{ep}', video_id, *args, **kwargs)
+            f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, *args, **kwargs)
         if 'error' in data:
             raise ExtractorError(f'RedGifs said: {data["error"]}', expected=True, video_id=video_id)
         return data
@@ -102,6 +128,7 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'like_count': int,
             'categories': list,
             'age_limit': 18,
+            'tags': list,
         }
     }, {
         'url': 'https://thumbs2.redgifs.com/SqueakyHelplessWisent-mobile.mp4#t=0',
@@ -117,13 +144,14 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'like_count': int,
             'categories': list,
             'age_limit': 18,
+            'tags': list,
         }
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url).lower()
         video_info = self._call_api(
-            f'gifs/{video_id}', video_id, note='Downloading video info')
+            f'gifs/{video_id}?views=yes', video_id, note='Downloading video info')
         return self._parse_gif_data(video_info['gif'])
 
 

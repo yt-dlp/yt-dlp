@@ -5,16 +5,16 @@ import time
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    KNOWN_EXTENSIONS,
     ExtractorError,
     float_or_none,
     int_or_none,
-    KNOWN_EXTENSIONS,
     parse_filesize,
     str_or_none,
     try_get,
-    update_url_query,
     unified_strdate,
     unified_timestamp,
+    update_url_query,
     url_or_none,
     urljoin,
 )

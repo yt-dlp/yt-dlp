@@ -3,11 +3,12 @@
  - **0000studio:clip**
  - **17live**
  - **17live:clip**
+ - **1News**: 1news.co.nz article videos
  - **1tv**: Первый канал
- - **20.detik.com**
  - **20min**
  - **23video**
  - **247sports**
+ - **24tv.ua**
  - **24video**
  - **3qsdn**: 3Q SDN
  - **3sat**
@@ -66,7 +67,6 @@
  - **anderetijden**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **Angel**
  - **AnimalPlanet**
- - **AnimeOnDemand**: [<abbr title="netrc machine"><em>animeondemand</em></abbr>]
  - **ant1newsgr:article**: ant1news.gr articles
  - **ant1newsgr:embed**: ant1news.gr embedded videos
  - **ant1newsgr:watch**: ant1news.gr videos
@@ -135,6 +135,7 @@
  - **BehindKink**
  - **Bellator**
  - **BellMedia**
+ - **BerufeTV**
  - **Bet**
  - **bfi:player**
  - **bfmtv**
@@ -148,9 +149,11 @@
  - **Bilibili category extractor**
  - **BilibiliAudio**
  - **BilibiliAudioAlbum**
- - **BilibiliChannel**
  - **BiliBiliPlayer**
  - **BiliBiliSearch**: Bilibili video search; "bilisearch:" prefix
+ - **BilibiliSpaceAudio**
+ - **BilibiliSpacePlaylist**
+ - **BilibiliSpaceVideo**
  - **BiliIntl**: [<abbr title="netrc machine"><em>biliintl</em></abbr>]
  - **BiliIntlSeries**: [<abbr title="netrc machine"><em>biliintl</em></abbr>]
  - **BiliLive**
@@ -168,6 +171,7 @@
  - **Bloomberg**
  - **BokeCC**
  - **BongaCams**
+ - **BooyahClips**
  - **BostonGlobe**
  - **Box**
  - **Bpb**: Bundeszentrale für politische Bildung
@@ -180,6 +184,7 @@
  - **BRMediathek**: Bayerischer Rundfunk Mediathek
  - **bt:article**: Bergens Tidende Articles
  - **bt:vestlendingen**: Bergens Tidende - Vestlendingen
+ - **Bundesliga**
  - **BusinessInsider**
  - **BuzzFeed**
  - **BYUtv**
@@ -248,6 +253,7 @@
  - **CNN**
  - **CNNArticle**
  - **CNNBlogs**
+ - **CNNIndonesia**
  - **ComedyCentral**
  - **ComedyCentralTV**
  - **CondeNast**: Condé Nast media group: Allure, Architectural Digest, Ars Technica, Bon Appétit, Brides, Condé Nast, Condé Nast Traveler, Details, Epicurious, GQ, Glamour, Golf Digest, SELF, Teen Vogue, The New Yorker, Vanity Fair, Vogue, W Magazine, WIRED
@@ -304,6 +310,7 @@
  - **defense.gouv.fr**
  - **democracynow**
  - **DestinationAmerica**
+ - **DetikEmbed**
  - **DHM**: Filmarchiv - Deutsches Historisches Museum
  - **Digg**
  - **DigitalConcertHall**: [<abbr title="netrc machine"><em>digitalconcerthall</em></abbr>] DigitalConcertHall extractor
@@ -479,6 +486,7 @@
  - **google:podcasts:feed**
  - **GoogleDrive**
  - **GoogleDrive:Folder**
+ - **GoPlay**: [<abbr title="netrc machine"><em>goplay</em></abbr>]
  - **GoPro**
  - **Goshgay**
  - **GoToStage**
@@ -528,11 +536,14 @@
  - **Hypem**
  - **Hytale**
  - **Icareus**
+ - **iflix:episode**
+ - **IflixSeries**
  - **ign.com**
  - **IGNArticle**
  - **IGNVideo**
  - **IHeartRadio**
  - **iheartradio:podcast**
+ - **Iltalehti**
  - **imdb**: Internet Movie Database trailers
  - **imdb:list**: Internet Movie Database lists
  - **Imgur**
@@ -557,6 +568,7 @@
  - **iqiyi**: [<abbr title="netrc machine"><em>iqiyi</em></abbr>] 爱奇艺
  - **IslamChannel**
  - **IslamChannelSeries**
+ - **IsraelNationalNews**
  - **ITProTV**
  - **ITProTVCourse**
  - **ITTF**
@@ -689,6 +701,7 @@
  - **Mediasite**
  - **MediasiteCatalog**
  - **MediasiteNamedCatalog**
+ - **MediaWorksNZVOD**
  - **Medici**
  - **megaphone.fm**: megaphone.fm embedded players
  - **megatvcom**: megatv.com videos
@@ -701,6 +714,7 @@
  - **mewatch**
  - **Mgoon**
  - **MiaoPai**
+ - **MicrosoftEmbed**
  - **microsoftstream**: Microsoft Stream
  - **mildom**: Record ongoing live by specific user in Mildom
  - **mildom:clip**: Clip in Mildom
@@ -800,6 +814,7 @@
  - **NBCSports**
  - **NBCSportsStream**
  - **NBCSportsVPlayer**
+ - **NBCStations**
  - **ndr**: NDR.de - Norddeutscher Rundfunk
  - **ndr:embed**
  - **ndr:embed:base**
@@ -834,8 +849,8 @@
  - **NexxEmbed**
  - **NFB**
  - **NFHSNetwork**
- - **nfl.com**: (**Currently broken**)
- - **nfl.com:article**: (**Currently broken**)
+ - **nfl.com**
+ - **nfl.com:article**
  - **NhkForSchoolBangumi**
  - **NhkForSchoolProgramList**
  - **NhkForSchoolSubject**: Portal page for each school subjects, like Japanese (kokugo, 国語) or math (sansuu/suugaku or 算数・数学)
@@ -1013,6 +1028,7 @@
  - **PornoVoisines**
  - **PornoXO**
  - **PornTube**
+ - **PrankCast**
  - **PremiershipRugby**
  - **PressTV**
  - **ProjectVeritas**
@@ -1193,6 +1209,7 @@
  - **Slideshare**
  - **SlidesLive**
  - **Slutload**
+ - **Smotrim**
  - **Snotr**
  - **Sohu**
  - **SonyLIV**: [<abbr title="netrc machine"><em>sonyliv</em></abbr>]
@@ -1222,8 +1239,8 @@
  - **Sport5**
  - **SportBox**
  - **SportDeutschland**
- - **spotify**: Spotify episodes
- - **spotify:show**: Spotify shows
+ - **spotify**: Spotify episodes (**Currently broken**)
+ - **spotify:show**: Spotify shows (**Currently broken**)
  - **Spreaker**
  - **SpreakerPage**
  - **SpreakerShow**
@@ -1317,10 +1334,10 @@
  - **ThreeSpeak**
  - **ThreeSpeakUser**
  - **TikTok**
- - **tiktok:effect**
- - **tiktok:sound**
- - **tiktok:tag**
- - **tiktok:user**
+ - **tiktok:effect**: (**Currently broken**)
+ - **tiktok:sound**: (**Currently broken**)
+ - **tiktok:tag**: (**Currently broken**)
+ - **tiktok:user**: (**Currently broken**)
  - **tinypic**: tinypic.com videos
  - **TLC**
  - **TMZ**
@@ -1361,6 +1378,7 @@
  - **Turbo**
  - **tv.dfb.de**
  - **TV2**
+ - **TV24UAGenericPassthrough**
  - **TV2Article**
  - **TV2DK**
  - **TV2DKBornholmPlay**
@@ -1423,6 +1441,7 @@
  - **umg:de**: Universal Music Deutschland
  - **Unistra**
  - **Unity**
+ - **UnscriptedNewsVideo**
  - **uol.com.br**
  - **uplynk**
  - **uplynk:preplay**
@@ -1467,8 +1486,6 @@
  - **VidioLive**: [<abbr title="netrc machine"><em>vidio</em></abbr>]
  - **VidioPremier**: [<abbr title="netrc machine"><em>vidio</em></abbr>]
  - **VidLii**
- - **vier**: [<abbr title="netrc machine"><em>vier</em></abbr>] vier.be and vijf.be
- - **vier:videos**
  - **viewlift**
  - **viewlift:embed**
  - **Viidea**
@@ -1564,8 +1581,10 @@
  - **Willow**
  - **WimTV**
  - **Wistia**
+ - **WistiaChannel**
  - **WistiaPlaylist**
  - **wnl**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
+ - **wordpress:playlist**
  - **WorldStarHipHop**
  - **wppilot**
  - **wppilot:channels**
@@ -1629,6 +1648,7 @@
  - **youtube:search**: YouTube search; "ytsearch:" prefix
  - **youtube:search:date**: YouTube search, newest videos first; "ytsearchdate:" prefix
  - **youtube:search_url**: YouTube search URLs with sorting and filter support
+ - **youtube:shorts:pivot:audio**: YouTube Shorts audio pivot (Shorts using audio of a given video)
  - **youtube:stories**: YouTube channel stories; "ytstories:" prefix
  - **youtube:subscriptions**: YouTube subscriptions feed; ":ytsubs" keyword (requires cookies)
  - **youtube:tab**: YouTube Tabs

@@ -193,7 +193,7 @@ jobs:
           python-version: '3.8'
     - name: Install Requirements
       run: |  # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
-          python -m pip install --upgrade pip setuptools wheel py2exe
+          python -m pip install --upgrade pip setuptools wheel "py2exe<0.12"
           pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.3-py3-none-any.whl" -r requirements.txt
 
     - name: Prepare
