@@ -91,9 +91,9 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
             group='url'), 'http:')
 
         if not cfg_url:
-            vkey = extract_field(r'<input id="vkey" type="hidden" value="(?P<vkey>[^"]+)" />', 'vkey')
-            nkey = extract_field(r'<input id="nkey" type="hidden" value="(?P<nkey>[^"]+)" />', 'nkey')
-            vid = extract_field(r'<input id="VID" type="hidden" value="(?P<VID>[^"]+)" />', 'vid')
+            vkey = extract_field(r'<input id="vkey" type="hidden" value="([^"]+)"', 'vkey')
+            nkey = extract_field(r'<input id="nkey" type="hidden" value="([^"]+)"', 'nkey')
+            vid = extract_field(r'<input id="VID" type="hidden" value="([^"]+)"', 'vid')
             if vkey and nkey and vid:
                 cfg_url = self._proto_relative_url(self._VIDEO_XML_URL.format(vkey, nkey, vid), 'http:')
 
