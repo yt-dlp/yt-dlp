@@ -744,6 +744,7 @@ class MotorTrendIE(DiscoveryPlusBaseIE):
         'country': 'us',
     }
 
+
 class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?motortrendondemand\.com/detail' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
