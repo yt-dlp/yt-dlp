@@ -83,7 +83,7 @@ class NOSNLArticleIE(InfoExtractor):
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['data']
         return {
             '_type': 'playlist',
-            'entries': self._get_video_generator(nextjs_json, display_id),
+            '_entries': self._get_video_generator(nextjs_json, display_id),
             'id': str(nextjs_json['id']),
             'title': nextjs_json.get('title') or self._html_search_meta(['title', 'og:title', 'twitter:title'], webpage),
             'description': (nextjs_json.get('description')
