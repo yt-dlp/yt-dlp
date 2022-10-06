@@ -408,7 +408,7 @@ def get_elements_html_by_attribute(*args, **kwargs):
     return [whole for _, whole in get_elements_text_and_html_by_attribute(*args, **kwargs)]
 
 
-def get_elements_text_and_html_by_attribute(attribute, value, html, tag=r'[a-zA-Z0-9:._-]+', escape_value=True):
+def get_elements_text_and_html_by_attribute(attribute, value, html, *, tag=r'[\w:.-]+', escape_value=True):
     """
     Return the text (content) and the html (whole) of the tag with the specified
     attribute in the passed HTML document
