@@ -49,16 +49,6 @@ class NOSNLArticleIE(InfoExtractor):
         }
     ]
 
-    def _get_video_thumbnails(self, image_data):
-        thumb_data = []
-        for image in image_data.get('16:9') or []:
-            thumb_data.append({
-                'url': traverse_obj(image, ('url', ...), get_all=False),
-                'width': image.get('width'),
-                'height': image.get('height')
-            })
-        return thumb_data
-
     def _get_video_generator(self, nextjs_json, display_id):
         for item in nextjs_json['items']:
             if item.get('type') == 'video':
@@ -75,7 +65,7 @@ class NOSNLArticleIE(InfoExtractor):
                         'url': traverse_obj(image, ('url', ...), get_all=False),
                         'width': image.get('width'),
                         'height': image.get('height')
-                    } for image in traverse_obj(item, ('imagesByRatio', ...))],
+                    } for image in traverse_obj(item, ('imagesByRatio', ...))[0]],
                 }
 
             elif item.get('type') == 'audio':
