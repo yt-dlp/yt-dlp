@@ -3,7 +3,6 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
-    get_element_text_and_html_by_tag,
     get_elements_by_class,
     get_elements_text_and_html_by_attribute,
     int_or_none,
@@ -118,8 +117,8 @@ class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
             'id': 'temas',
             'title': 'Temas Variados',
             'age_limit': 0,
-            'timestamp': int,
-            'upload_date': int,
+            'timestamp': float,
+            'upload_date': str,
             'thumbnail': 'https://www.estudiords.com.br/wp-content/uploads/2021/03/LOGO-TEMAS.png',
             'description': 'md5:ab24d6a7ed0312ad2d466e721679f5a0',
         },
@@ -139,15 +138,12 @@ class WordpressMiniAudioPlayerEmbedIE(InfoExtractor):
         if not file_exts:
             return
 
-        # XXX: this is inefficient, but it works
-        candidates = (
-            get_element_text_and_html_by_tag('a', html)
-            for _, html in get_elements_text_and_html_by_attribute(
-                'href', rf'(?:[^\"\']+\.(?:{"|".join(file_exts)}))', webpage, escape_value=False))
+        candidates = get_elements_text_and_html_by_attribute(
+            'href', rf'(?:[^\"\']+\.(?:{"|".join(file_exts)}))', webpage, escape_value=False, tag='a')
 
         for title, html in candidates:
             attrs = extract_attributes(html)
-            # FIXME: not tested, have not found any examples
+            # XXX: not tested - have not found any example of it being used
             if any(c in (attrs.get('class') or '') for c in re.findall(r'\.not\("\.([^"]+)', mb_player_params)):
                 continue
             href = attrs['href']
