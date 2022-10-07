@@ -5428,16 +5428,18 @@ def traverse_obj(
 
         return has_branched, objs
 
-    def _traverse_obj(obj, path, last=True):
+    def _traverse_obj(obj, path, use_list=True):
         has_branched, results = apply_path(obj, path)
         results = LazyList(x for x in map(type_test, results) if x is not None)
-        if not results:
-            return [] if has_branched and last and default is NO_DEFAULT else None
 
-        return results.exhaust() if get_all and has_branched else results[0]
+        if get_all and has_branched:
+            return results.exhaust() if results or use_list else None
+
+        return results[0] if results else None
 
     for index, path in enumerate(paths, 1):
-        result = _traverse_obj(obj, path, index == len(paths))
+        use_list = default is NO_DEFAULT and index == len(paths)
+        result = _traverse_obj(obj, path, use_list)
         if result is not None:
             return result
 
