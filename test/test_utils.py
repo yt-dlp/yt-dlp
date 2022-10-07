@@ -2,6 +2,7 @@
 
 # Allow direct execution
 import os
+import re
 import sys
 import unittest
 
@@ -2060,6 +2061,25 @@ Line 1
                               msg='`:` should be treated as `...` if `is_user_input`')
         with self.assertRaises(TypeError, msg='too many params should result in error'):
             traverse_obj(_IS_USER_INPUT_DATA, ('range8', ':::'), is_user_input=True)
+
+        # Test re.Match as input obj
+        mobj = re.fullmatch(r'0(12)(?P<group>3)(4)?', '0123')
+        self.assertEqual(traverse_obj(mobj, ...), [x for x in mobj.groups() if x is not None],
+                         msg='`...` on a `re.Match` should give its `groups()`')
+        self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 2)), ['0123', '3'],
+                         msg='function on a `re.Match` should give groupno, value starting at 0')
+        self.assertEqual(traverse_obj(mobj, 'group'), '3',
+                         msg='str key on a `re.Match` should give group with that name')
+        self.assertEqual(traverse_obj(mobj, 2), '3',
+                         msg='int key on a `re.Match` should give group with that name')
+        self.assertEqual(traverse_obj(mobj, 'gRoUp', casesense=False), '3',
+                         msg='str key on a `re.Match` should respect casesense')
+        self.assertEqual(traverse_obj(mobj, 'fail'), None,
+                         msg='failing str key on a `re.Match` should return `default`')
+        self.assertEqual(traverse_obj(mobj, 'gRoUpS', casesense=False), None,
+                         msg='failing str key on a `re.Match` should return `default`')
+        self.assertEqual(traverse_obj(mobj, 8), None,
+                         msg='failing int key on a `re.Match` should return `default`')
 
 
 if __name__ == '__main__':
