@@ -62,7 +62,7 @@ class PrankCastIE(InfoExtractor):
             'uploader': uploader,
             'channel_id': json_info.get('user_id'),
             'duration': try_call(lambda: parse_iso8601(json_info['end_date']) - start_date),
-            'cast': list(filter(None, [uploader] + (try_call(lambda: traverse_obj(guests_json, (..., 'name'))) or []))),
+            'cast': list(filter(None, [uploader] + traverse_obj(guests_json, (..., 'name'), default=[]))),
             'description': json_info.get('broadcast_description'),
             'categories': [json_info.get('broadcast_category')],
             'tags': self._parse_json(json_info.get('broadcast_tags') or '{}', video_id)
