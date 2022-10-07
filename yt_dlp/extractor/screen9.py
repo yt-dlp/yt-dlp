@@ -53,7 +53,7 @@ class Screen9IE(InfoExtractor):
                 raise ExtractorError('Could not extract video formats', video_id=video_id)
 
         self._sort_formats(formats)
-        info = {
+        return {
             'id': video_id,
             'title': traverse_obj(config, ('plugins', (
                 ('title', 'title'), ('googleAnalytics', 'title'), ('share', 'mediaTitle'))),
@@ -63,4 +63,3 @@ class Screen9IE(InfoExtractor):
             "formats": formats,
             "subtitles": subtitles,
         }
-        return info
