@@ -52,8 +52,9 @@ class Screen9IE(InfoExtractor):
         self._sort_formats(formats)
         return {
             'id': video_id,
-            'title': traverse_obj(config, ('plugins', (
-                ('title', 'title'), ('googleAnalytics', 'title'), ('share', 'mediaTitle'))),
+            'title': traverse_obj(
+                config,
+                ('plugins', (('title', 'title'), ('googleAnalytics', 'title'), ('share', 'mediaTitle'))),
                 get_all=False),
             "description": traverse_obj(config, ("plugins", "title", "description")),
             "thumbnail": traverse_obj(config, ("poster")),
