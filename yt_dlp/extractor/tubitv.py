@@ -100,7 +100,7 @@ class TubiTvIE(InfoExtractor):
 
         if not formats and drm_formats:
             self.report_drm(video_id)
-        elif not formats and not video_data['policy_match']:  # policy_match is False if content was removed
+        elif not formats and not video_data.get('policy_match'):  # policy_match is False if content was removed
             raise ExtractorError('This content is currently unavailable', expected=True)
 
         self._sort_formats(formats)
