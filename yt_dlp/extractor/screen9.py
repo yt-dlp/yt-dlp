@@ -43,7 +43,7 @@ class Screen9IE(InfoExtractor):
         config = self._search_json(r'var\s+config\s*=', webpage, 'config', video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             traverse_obj(config, ('src', lambda _, v: v['type'] == 'application/x-mpegURL', 'src'), get_all=False),
-            video_id)
+            video_id, ext='mp4')
         if not formats:
             formats, subtitles = ({
                 'url': traverse_obj(config, ('src', lambda _, v: v['type'] == 'video/mp4', 'src'), get_all=False),
