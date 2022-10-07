@@ -40,7 +40,7 @@ class Screen9IE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(f'https://api.screen9.com/embed/{video_id}', video_id)
-        config = self._search_json(r'var\s+config\s*=\s*', webpage, 'json', video_id)
+        config = self._search_json(r'var\s+config\s*=', webpage, 'config', video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             traverse_obj(config, ('src', lambda _, v: v['type'] == 'application/x-mpegURL', 'src'), get_all=False),
             video_id)
