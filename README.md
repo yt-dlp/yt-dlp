@@ -1226,6 +1226,7 @@ The available fields are:
  - `duration` (numeric): Length of the video in seconds
  - `duration_string` (string): Length of the video (HH:mm:ss)
  - `view_count` (numeric): How many users have watched the video on the platform
+ - `concurrent_view_count` (numeric): How many users are currently watching the video on the platform.
  - `like_count` (numeric): Number of positive ratings of the video
  - `dislike_count` (numeric): Number of negative ratings of the video
  - `repost_count` (numeric): Number of reposts of the video

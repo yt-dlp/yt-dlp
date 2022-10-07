@@ -912,8 +912,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label'), default='', expected_type=str),
                 video_id, default=None, group='duration'))
 
-        view_count = self._get_count(renderer, 'viewCountText')
-
+        view_count = self._get_count(renderer, 'viewCountText', 'shortViewCountText')
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
         channel_id = traverse_obj(
             renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'),
@@ -932,6 +931,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if overlay_style == 'SHORTS' or '/shorts/' in navigation_url:
             url = f'https://www.youtube.com/shorts/{video_id}'
 
+        live_status = (
+            'is_upcoming' if scheduled_timestamp is not None
+            else 'was_live' if 'streamed' in time_text.lower()
+            else 'is_live' if overlay_style == 'LIVE' or self._has_badge(badges, BadgeType.LIVE_NOW)
+            else None)
+
         return {
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
@@ -940,16 +945,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'title': title,
             'description': description,
             'duration': duration,
-            'view_count': view_count,
             'uploader': uploader,
             'channel_id': channel_id,
             'thumbnails': thumbnails,
             'upload_date': (strftime_or_none(self._parse_time_text(time_text), '%Y%m%d')
                             if self._configuration_arg('approximate_date', ie_key='youtubetab')
-                            else None),
-            'live_status': ('is_upcoming' if scheduled_timestamp is not None
-                            else 'was_live' if 'streamed' in time_text.lower()
-                            else 'is_live' if overlay_style == 'LIVE' or self._has_badge(badges, BadgeType.LIVE_NOW)
                             else None),
             'release_timestamp': scheduled_timestamp,
             'availability':
@@ -958,7 +958,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     is_private=self._has_badge(badges, BadgeType.AVAILABILITY_PRIVATE) or None,
                     needs_premium=self._has_badge(badges, BadgeType.AVAILABILITY_PREMIUM) or None,
                     needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
-                    is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None)
+                    is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None),
+            'concurrent_view_count' if live_status in ('is_live', 'is_upcoming') else 'view_count': view_count,
         }
 
 
@@ -2328,6 +2329,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'view_count': int,
                 'playable_in_embed': True,
                 'description': 'md5:2ef1d002cad520f65825346e2084e49d',
+                'concurrent_view_count': int,
             },
             'params': {'skip_download': True}
         }, {
@@ -4115,6 +4117,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'like_count': str_to_int(like_count),
                     'dislike_count': str_to_int(dislike_count),
                 })
+            vcr = traverse_obj(vpir, ('viewCount', 'videoViewCountRenderer'))
+            if vcr:
+                vc = self._get_count(vcr, 'viewCount')
+                # Upcoming premieres with waiting count are treated as live here
+                if vcr.get('isLive'):
+                    info['concurrent_view_count'] = vc
+                elif info.get('view_count') is None:
+                    info['view_count'] = vc
+
         vsir = get_first(contents, 'videoSecondaryInfoRenderer')
         if vsir:
             vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))

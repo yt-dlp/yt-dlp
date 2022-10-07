@@ -284,6 +284,7 @@ class InfoExtractor:
                     captions instead of normal subtitles
     duration:       Length of the video in seconds, as an integer or float.
     view_count:     How many users have watched the video on the platform.
+    concurrent_view_count: How many users are currently watching the video on the platform.
     like_count:     Number of positive ratings of the video
     dislike_count:  Number of negative ratings of the video
     repost_count:   Number of reposts of the video
