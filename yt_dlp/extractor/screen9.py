@@ -3,7 +3,7 @@ from ..utils import ExtractorError, traverse_obj
 
 
 class Screen9IE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:api\.)?screen9\.com|[^\.]+\.screen9\.tv|play\.su\.se)/(?:embed|media)/(?P<id>[^"\'?/]+)'
+    _VALID_URL = r'https?://(?:\w+\.screen9\.(?:tv|com)|play\.su\.se)/(?:embed|media)/(?P<id>[^?#/]+)'
     _TESTS = [
         {
             'url': 'https://api.screen9.com/embed/8kTNEjvoXGM33dmWwF0uDA',
