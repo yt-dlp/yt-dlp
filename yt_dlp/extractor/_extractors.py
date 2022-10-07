@@ -65,6 +65,7 @@ from .aenetworks import (
     HistoryPlayerIE,
     BiographyIE,
 )
+from .aeonco import AeonCoIE
 from .afreecatv import (
     AfreecaTVIE,
     AfreecaTVLiveIE,
