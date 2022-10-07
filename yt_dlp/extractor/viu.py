@@ -164,12 +164,17 @@ class ViuOTTIE(InfoExtractor):
         },
         'skip': 'Geo-restricted to Singapore',
     }, {
-        'url': 'http://www.viu.com/ott/hk/zh-hk/vod/7123/%E5%A4%A7%E4%BA%BA%E5%A5%B3%E5%AD%90',
+        'url': 'https://www.viu.com/ott/hk/zh-hk/vod/430078/%E7%AC%AC%E5%85%AD%E6%84%9F-3',
         'info_dict': {
-            'id': '7123',
+            'id': '430078',
             'ext': 'mp4',
-            'title': '這就是我的生活之道',
-            'description': 'md5:4eb0d8b08cf04fcdc6bbbeb16043434f',
+            'title': '大韓民國的1%',
+            'description': 'md5:74d6db47ddd9ddb9c89a05739103ccdb',
+            'episode_number': 1,
+            'duration': 6614,
+            'episode': '大韓民國的1%',
+            'series': '第六感 3',
+            'thumbnail': 'https://d2anahhhmp1ffz.cloudfront.net/1313295781/d2b14f48d008ef2f3a9200c98d8e9b63967b9cc2',
         },
         'params': {
             'skip_download': 'm3u8 download',
@@ -177,11 +182,12 @@ class ViuOTTIE(InfoExtractor):
         },
         'skip': 'Geo-restricted to Hong Kong',
     }, {
-        'url': 'https://www.viu.com/ott/hk/zh-hk/vod/68776/%E6%99%82%E5%B0%9A%E5%AA%BD%E5%92%AA',
-        'playlist_count': 12,
+        'url': 'https://www.viu.com/ott/hk/zh-hk/vod/447972/%E8%AA%AA%E5%87%BA%E4%BD%A0%E7%9A%84%E9%A1%98%E6%9C%9B',
+        'playlist_count': 16,
         'info_dict': {
-            'id': '3916',
-            'title': '時尚媽咪',
+            'id': '24441',
+            'title': '說出你的願望',
+            'description': 'md5:b17b0e2cea0c034302eae3bba437fbff',
         },
         'params': {
             'skip_download': 'm3u8 download',
@@ -364,10 +370,17 @@ class ViuOTTIE(InfoExtractor):
         subtitles = {}
         for sub in video_data.get('subtitle') or []:
             sub_url = sub.get('url')
+            sec_sub_url = sub.get('second_subtitle_url')
             if not sub_url:
                 continue
             subtitles.setdefault(sub.get('name'), []).append({
                 'url': sub_url,
+                'ext': 'srt',
+            })
+            if not sec_sub_url:
+                continue
+            subtitles.setdefault(sub.get('name') + "Second", []).append({
+                'url': sec_sub_url,
                 'ext': 'srt',
             })
 
