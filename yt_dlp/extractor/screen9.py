@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, traverse_obj
+from ..utils import traverse_obj
 
 
 class Screen9IE(InfoExtractor):
@@ -44,13 +44,10 @@ class Screen9IE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             traverse_obj(config, ('src', lambda _, v: v['type'] == 'application/x-mpegURL', 'src'), get_all=False),
             video_id, ext='mp4')
-        if not formats:
-            formats, subtitles = ({
-                'url': traverse_obj(config, ('src', lambda _, v: v['type'] == 'video/mp4', 'src'), get_all=False),
-                'format': 'mp4',
-            }, None)
-            if formats['url'] is None:
-                raise ExtractorError('Could not extract video formats', video_id=video_id)
+        formats.append({
+            'url': traverse_obj(config, ('src', lambda _, v: v['type'] == 'video/mp4', 'src'), get_all=False),
+            'format': 'mp4',
+        })
 
         self._sort_formats(formats)
         return {
