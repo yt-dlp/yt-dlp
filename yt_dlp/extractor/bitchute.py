@@ -2,17 +2,15 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
-    GeoRestrictedError,
     OnDemandPagedList,
     clean_html,
     get_element_by_class,
     get_elements_html_by_class,
     int_or_none,
     match_filter_func,
-    orderedSet,
     parse_count,
     parse_duration,
+    traverse_obj,
     unified_strdate,
     urlencode_postdata,
 )
@@ -34,6 +32,24 @@ class BitChuteIE(InfoExtractor):
             'upload_date': '20170103',
         },
     }, {
+        # video not downloadable
+        'url': 'https://www.bitchute.com/video/2s6B3nZjAk7R/',
+        'info_dict': {
+            'id': '2s6B3nZjAk7R',
+            'ext': None,
+            'title': 'STYXHEXENHAMMER666 - Election Fraud, Clinton 2020, EU Armies, and Gun Control',
+            'description': 'md5:228ee93bd840a24938f536aeac9cf749',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'BitChute',
+            'upload_date': '20181113',
+        },
+        'params': {
+            'skip_download': True,
+            'check_formats': 'selected',
+            'ignore_no_formats_error': True
+        },
+        'expected_warnings': ['Requested format is not available'],
+    }, {
         'url': 'https://www.bitchute.com/embed/lbb5G1hjPhw/',
         'only_matching': True,
     }, {
@@ -43,35 +59,16 @@ class BitChuteIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         webpage = self._download_webpage(
             'https://www.bitchute.com/video/%s' % video_id, video_id, headers={
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.57 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) '
+                              'AppleWebKit/537.36 (KHTML, like Gecko) '
+                              'Chrome/69.0.3497.57 Safari/537.36',
             })
 
-        format_urls = []
-        for mobj in re.finditer(
-                r'addWebSeed\s*\(\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage):
-            format_urls.append(mobj.group('url'))
-        format_urls.extend(re.findall(r'as=(https?://[^&"\']+)', webpage))
-
-        formats = [
-            {'url': format_url}
-            for format_url in orderedSet(format_urls)]
-
-        if not formats:
-            entries = self._parse_html5_media_entries(
-                url, webpage, video_id)
-            if not entries:
-                error = self._html_search_regex(r'<h1 class="page-title">([^<]+)</h1>', webpage, 'error', default='Cannot find video')
-                if error == 'Video Unavailable':
-                    raise GeoRestrictedError(error)
-                raise ExtractorError(error, expected=True)
-            formats = entries[0]['formats']
-
-        self._check_formats(formats, video_id)
-        self._sort_formats(formats)
         publish_date = clean_html(get_element_by_class('video-publish-date', webpage))
+        entries = self._parse_html5_media_entries(url, webpage, video_id)
+        formats = traverse_obj(entries, (0, 'formats'), default=[])
 
         return {
             'id': video_id,
@@ -115,7 +112,6 @@ class BitChuteChannelIE(InfoExtractor):
             'ignore_no_formats_error': True,
             'match_filter': match_filter_func('id=UGlrF9o9b-Q'),
         },
-        'expected_warnings': ['No video formats found!', 'Requested format is not available'],
     }, {
         'url': 'https://www.bitchute.com/playlist/wV9Imujxasw9/',
         'playlist_mincount': 20,
