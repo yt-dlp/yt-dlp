@@ -169,7 +169,7 @@ class RedditIE(InfoExtractor):
                 'url': unescapeHTML(reddit_video['fallback_url']),
                 'height': int_or_none(reddit_video.get('height')),
                 'width': int_or_none(reddit_video.get('width')),
-                'vbr': int_or_none(reddit_video.get('bitrate_kbps')),
+                'tbr': int_or_none(reddit_video.get('bitrate_kbps')),
                 'acodec': 'none',
                 'ext': 'mp4',
                 'format_id': 'fallback',
