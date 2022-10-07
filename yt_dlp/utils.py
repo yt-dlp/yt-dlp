@@ -5343,7 +5343,7 @@ def traverse_obj(
     @returns                The result of the object traversal.
                             If successful, `get_all=True`, and the path branches at least once,
                             then a list of results is returned instead.
-                            A list is always returned if the last path branches.
+                            A list is always returned if the last path branches and no `default` is given.
     """
     is_sequence = lambda x: isinstance(x, collections.abc.Sequence) and not isinstance(x, (str, bytes))
     casefold = lambda k: k.casefold() if isinstance(k, str) else k
