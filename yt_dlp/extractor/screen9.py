@@ -56,8 +56,8 @@ class Screen9IE(InfoExtractor):
                 config,
                 ('plugins', (('title', 'title'), ('googleAnalytics', 'title'), ('share', 'mediaTitle'))),
                 get_all=False),
-            "description": traverse_obj(config, ("plugins", "title", "description")),
-            "thumbnail": traverse_obj(config, ("poster")),
-            "formats": formats,
-            "subtitles": subtitles,
+            'description': traverse_obj(config, ('plugins', 'title', 'description')),
+            'thumbnail': traverse_obj(config, ('poster')),
+            'formats': formats,
+            'subtitles': subtitles,
         }
