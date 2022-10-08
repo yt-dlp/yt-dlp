@@ -3874,6 +3874,9 @@ class InfoExtractor:
     def RetryManager(self, **kwargs):
         return RetryManager(self.get_param('extractor_retries', 3), self._error_or_warning, **kwargs)
 
+    def _extract_generic_embeds(self, *args, **kwargs):
+        return self._downloader.get_info_extractor('Generic')._extract_embeds(*args, **kwargs)
+
     @classmethod
     def extract_from_webpage(cls, ydl, url, webpage):
         ie = (cls if isinstance(cls._extract_from_webpage, types.MethodType)
