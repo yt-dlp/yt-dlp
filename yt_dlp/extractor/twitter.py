@@ -1,6 +1,7 @@
 import re
 
 from .common import InfoExtractor
+from .periscope import PeriscopeBaseIE, PeriscopeIE
 from ..compat import (
     compat_HTTPError,
     compat_parse_qs,
@@ -8,23 +9,18 @@ from ..compat import (
     compat_urllib_parse_urlparse,
 )
 from ..utils import (
-    dict_get,
     ExtractorError,
-    format_field,
+    dict_get,
     float_or_none,
+    format_field,
     int_or_none,
+    strip_or_none,
     traverse_obj,
     try_get,
-    strip_or_none,
     unified_timestamp,
     update_url_query,
     url_or_none,
     xpath_text,
-)
-
-from .periscope import (
-    PeriscopeBaseIE,
-    PeriscopeIE,
 )
 
 
@@ -85,7 +81,7 @@ class TwitterBaseIE(InfoExtractor):
 
     def _call_api(self, path, video_id, query={}):
         headers = {
-            'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw',
+            'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
         }
         token = self._get_cookies(self._API_BASE).get('ct0')
         if token:
@@ -403,6 +399,46 @@ class TwitterIE(TwitterBaseIE):
             'skip_download': True,
         },
     }, {
+        'url': 'https://twitter.com/oshtru/status/1577855540407197696',
+        'info_dict': {
+            'id': '1577855540407197696',
+            'ext': 'mp4',
+            'title': 'oshtru \U0001faac\U0001f47d - gm \u2728\ufe0f now I can post image and video. nice update.',
+            'description': 'gm \u2728\ufe0f now I can post image and video. nice update. https://t.co/cG7XgiINOm',
+            'upload_date': '20221006',
+            'uploader': 'oshtru \U0001faac\U0001f47d',
+            'uploader_id': 'oshtru',
+            'uploader_url': 'https://twitter.com/oshtru',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 30.03,
+            'timestamp': 1665025050.0,
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': [],
+            'age_limit': 0,
+        },
+        'params': {'skip_download': True},
+    }, {
+        'url': 'https://twitter.com/UltimaShadowX/status/1577719286659006464',
+        'info_dict': {
+            'id': '1577719286659006464',
+            'title': 'Ultima | #\u0432\u029f\u043c - Test',
+            'description': 'Test https://t.co/Y3KEZD7Dad',
+            'uploader': 'Ultima | #\u0432\u029f\u043c',
+            'uploader_id': 'UltimaShadowX',
+            'uploader_url': 'https://twitter.com/UltimaShadowX',
+            'upload_date': '20221005',
+            'timestamp': 1664992565.0,
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': [],
+            'age_limit': 0,
+        },
+        'playlist_count': 4,
+        'params': {'skip_download': True},
+    }, {
         # Twitch Clip Embed
         'url': 'https://twitter.com/GunB1g/status/1163218564784017422',
         'only_matching': True,
@@ -479,6 +515,9 @@ class TwitterIE(TwitterBaseIE):
         }
 
         def extract_from_video_info(media):
+            media_id = (traverse_obj(media, 'id_str', expected_type=str)
+                        or traverse_obj(media, 'id', expected_type=lambda x: str(x)))
+            self.write_debug(f"Extracting from video info: {media_id}")
             video_info = media.get('video_info') or {}
 
             formats = []
@@ -503,90 +542,114 @@ class TwitterIE(TwitterBaseIE):
                     add_thumbnail(name, size)
                 add_thumbnail('orig', media.get('original_info') or {})
 
-            info.update({
+            return {
+                'id': media_id,
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
                 'duration': float_or_none(video_info.get('duration_millis'), 1000),
-            })
+            }
 
-        media = traverse_obj(status, ((None, 'quoted_status'), 'extended_entities', 'media', 0), get_all=False)
-        if media and media.get('type') != 'photo':
-            extract_from_video_info(media)
-        else:
-            card = status.get('card')
-            if card:
-                binding_values = card['binding_values']
+        def extract_from_card_info(card):
+            self.write_debug(f'Extracting from card info: {card.get("url")}')
+            binding_values = card['binding_values']
 
-                def get_binding_value(k):
-                    o = binding_values.get(k) or {}
-                    return try_get(o, lambda x: x[x['type'].lower() + '_value'])
+            def get_binding_value(k):
+                o = binding_values.get(k) or {}
+                return try_get(o, lambda x: x[x['type'].lower() + '_value'])
 
-                card_name = card['name'].split(':')[-1]
-                if card_name == 'player':
-                    info.update({
-                        '_type': 'url',
-                        'url': get_binding_value('player_url'),
-                    })
-                elif card_name == 'periscope_broadcast':
-                    info.update({
-                        '_type': 'url',
-                        'url': get_binding_value('url') or get_binding_value('player_url'),
-                        'ie_key': PeriscopeIE.ie_key(),
-                    })
-                elif card_name == 'broadcast':
-                    info.update({
-                        '_type': 'url',
-                        'url': get_binding_value('broadcast_url'),
-                        'ie_key': TwitterBroadcastIE.ie_key(),
-                    })
-                elif card_name == 'summary':
-                    info.update({
-                        '_type': 'url',
-                        'url': get_binding_value('card_url'),
-                    })
-                elif card_name == 'unified_card':
-                    media_entities = self._parse_json(get_binding_value('unified_card'), twid)['media_entities']
-                    extract_from_video_info(next(iter(media_entities.values())))
-                # amplify, promo_video_website, promo_video_convo, appplayer,
-                # video_direct_message, poll2choice_video, poll3choice_video,
-                # poll4choice_video, ...
-                else:
-                    is_amplify = card_name == 'amplify'
-                    vmap_url = get_binding_value('amplify_url_vmap') if is_amplify else get_binding_value('player_stream_url')
-                    content_id = get_binding_value('%s_content_id' % (card_name if is_amplify else 'player'))
-                    formats, subtitles = self._extract_formats_from_vmap_url(vmap_url, content_id or twid)
-                    self._sort_formats(formats)
-
-                    thumbnails = []
-                    for suffix in ('_small', '', '_large', '_x_large', '_original'):
-                        image = get_binding_value('player_image' + suffix) or {}
-                        image_url = image.get('url')
-                        if not image_url or '/player-placeholder' in image_url:
-                            continue
-                        thumbnails.append({
-                            'id': suffix[1:] if suffix else 'medium',
-                            'url': image_url,
-                            'width': int_or_none(image.get('width')),
-                            'height': int_or_none(image.get('height')),
-                        })
-
-                    info.update({
-                        'formats': formats,
-                        'subtitles': subtitles,
-                        'thumbnails': thumbnails,
-                        'duration': int_or_none(get_binding_value(
-                            'content_duration_seconds')),
-                    })
-            else:
-                expanded_url = try_get(status, lambda x: x['entities']['urls'][0]['expanded_url'])
-                if not expanded_url:
-                    raise ExtractorError("There's no video in this tweet.")
-                info.update({
+            card_name = card['name'].split(':')[-1]
+            if card_name == 'player':
+                return {
                     '_type': 'url',
-                    'url': expanded_url,
-                })
-        return info
+                    'url': get_binding_value('player_url'),
+                }
+            elif card_name == 'periscope_broadcast':
+                return {
+                    '_type': 'url',
+                    'url': get_binding_value('url') or get_binding_value('player_url'),
+                    'ie_key': PeriscopeIE.ie_key(),
+                }
+            elif card_name == 'broadcast':
+                return {
+                    '_type': 'url',
+                    'url': get_binding_value('broadcast_url'),
+                    'ie_key': TwitterBroadcastIE.ie_key(),
+                }
+            elif card_name == 'summary':
+                return {
+                    '_type': 'url',
+                    'url': get_binding_value('card_url'),
+                }
+            elif card_name == 'unified_card':
+                media_entities = self._parse_json(get_binding_value('unified_card'), twid)['media_entities']
+                media = traverse_obj(media_entities, ..., expected_type=dict, get_all=False)
+                return extract_from_video_info(media)
+            # amplify, promo_video_website, promo_video_convo, appplayer,
+            # video_direct_message, poll2choice_video, poll3choice_video,
+            # poll4choice_video, ...
+            else:
+                is_amplify = card_name == 'amplify'
+                vmap_url = get_binding_value('amplify_url_vmap') if is_amplify else get_binding_value('player_stream_url')
+                content_id = get_binding_value('%s_content_id' % (card_name if is_amplify else 'player'))
+                formats, subtitles = self._extract_formats_from_vmap_url(vmap_url, content_id or twid)
+                self._sort_formats(formats)
+
+                thumbnails = []
+                for suffix in ('_small', '', '_large', '_x_large', '_original'):
+                    image = get_binding_value('player_image' + suffix) or {}
+                    image_url = image.get('url')
+                    if not image_url or '/player-placeholder' in image_url:
+                        continue
+                    thumbnails.append({
+                        'id': suffix[1:] if suffix else 'medium',
+                        'url': image_url,
+                        'width': int_or_none(image.get('width')),
+                        'height': int_or_none(image.get('height')),
+                    })
+
+                return {
+                    'formats': formats,
+                    'subtitles': subtitles,
+                    'thumbnails': thumbnails,
+                    'duration': int_or_none(get_binding_value(
+                        'content_duration_seconds')),
+                }
+
+        entries = []
+        media_path = ((None, 'quoted_status'), 'extended_entities', 'media', ...)
+        medias = traverse_obj(status, media_path, expected_type=dict, default=[])
+        for media in medias:
+            if not media or media.get('type') == 'photo':
+                continue
+
+            data = extract_from_video_info(media)
+            if data:
+                entries.append({**info, **data, 'display_id': twid})
+            continue
+
+        card = status.get('card')
+        if card:
+            data = extract_from_card_info(card)
+            if data:
+                entries.append({**info, **data, 'display_id': twid})
+
+        if not entries:
+            expanded_url = traverse_obj(status, ('entities', 'urls', 0, 'expanded_url'))
+            if not expanded_url or expanded_url == url:
+                raise ExtractorError('No video could be found in this tweet')
+
+            transparent_result = self.url_result(expanded_url, transparent=True, display_id=twid, **info)
+            if not url_or_none(transparent_result.get('url')) and not transparent_result.get('formats'):
+                raise ExtractorError('No video could be found in this tweet')
+
+            return transparent_result
+
+        if len(entries) == 1:
+            # compat: tweet id was previously used instead of media id
+            return {**entries[0], 'id': twid}
+
+        return self.playlist_result(entries, multi_video=True, **info)
 
 
 class TwitterAmplifyIE(TwitterBaseIE):
