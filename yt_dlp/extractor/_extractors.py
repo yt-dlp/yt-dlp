@@ -1434,6 +1434,7 @@ from .reuters import ReutersIE
 from .reverbnation import ReverbNationIE
 from .rice import RICEIE
 from .rmcdecouverte import RMCDecouverteIE
+from .roblox import RobloxIE
 from .rockstargames import RockstarGamesIE
 from .rokfin import (
     RokfinIE,
