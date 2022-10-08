@@ -2786,8 +2786,6 @@ class GenericIE(InfoExtractor):
         self._downloader.write_debug('Looking for embeds')
         embeds = []
         for ie in self._downloader._ies.values():
-            if ie == type(self):  # Prevent recursion
-                continue
             gen = ie.extract_from_webpage(self._downloader, url, webpage)
             current_embeds = []
             try:
