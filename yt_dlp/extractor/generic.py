@@ -2746,6 +2746,7 @@ class GenericIE(InfoExtractor):
             'age_limit': self._rta_search(webpage),
         })
 
+        self._downloader.write_debug('Looking for embeds')
         embeds = list(self._extract_embeds(url, webpage, urlh=full_response, info_dict=info_dict))
         if len(embeds) == 1:
             return {**info_dict, **embeds[0]}
@@ -2756,7 +2757,7 @@ class GenericIE(InfoExtractor):
     def _extract_embeds(self, url, webpage, *, urlh=None, info_dict={}):
         """Returns an iterator of video entries"""
         info_dict = types.MappingProxyType(info_dict)  # Prevents accidental mutation
-        video_id = info_dict.get('id') or self._generic_id(url)
+        video_id = traverse_obj(info_dict, 'display_id', 'id') or self._generic_id(url)
         actual_url = urlh.geturl() if urlh else url
 
         # Sometimes embedded video player is hidden behind percent encoding
@@ -2773,7 +2774,6 @@ class GenericIE(InfoExtractor):
             lambda x: unescapeHTML(x.group(0)), webpage)
 
         # TODO: Move to respective extractors
-        self._downloader.write_debug('Looking for Brightcove embeds')
         bc_urls = BrightcoveLegacyIE._extract_brightcove_urls(webpage)
         if bc_urls:
             return [self.url_result(smuggle_url(bc_url, {'Referer': url}), BrightcoveLegacyIE)
@@ -2783,7 +2783,6 @@ class GenericIE(InfoExtractor):
             return [self.url_result(smuggle_url(bc_url, {'Referer': url}), BrightcoveNewIE)
                     for bc_url in bc_urls]
 
-        self._downloader.write_debug('Looking for embeds')
         embeds = []
         for ie in self._downloader._ies.values():
             gen = ie.extract_from_webpage(self._downloader, url, webpage)
@@ -2813,7 +2812,7 @@ class GenericIE(InfoExtractor):
                     jwplayer_data, video_id, require_title=False, base_url=url)
                 if traverse_obj(info, 'formats', ('entries', ..., 'formats')):
                     self.report_detected('JW Player data')
-                    return [merge_dicts(info, info_dict)]
+                    return [info]
             except ExtractorError:
                 # See https://github.com/ytdl-org/youtube-dl/pull/16735
                 pass

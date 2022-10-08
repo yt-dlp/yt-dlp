@@ -3874,7 +3874,9 @@ class InfoExtractor:
     def RetryManager(self, **kwargs):
         return RetryManager(self.get_param('extractor_retries', 3), self._error_or_warning, **kwargs)
 
-    def _extract_generic_embeds(self, *args, **kwargs):
+    def _extract_generic_embeds(self, *args, info_dict={}, note='Extracting generic embeds', **kwargs):
+        display_id = traverse_obj(info_dict, 'display_id', 'id')
+        self.to_screen(f'{format_field(display_id, None, "%s: ")}{note}')
         return self._downloader.get_info_extractor('Generic')._extract_embeds(*args, **kwargs)
 
     @classmethod
