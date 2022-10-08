@@ -24,6 +24,8 @@ from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeShortsAudioPivotIE
 )
 
+from .statsnz import StatsNZGenericPassthroughIE
+from .sqaurespace import SqaurespaceGenericPassthroughIE
 from .abc import (
     ABCIE,
     ABCIViewIE,

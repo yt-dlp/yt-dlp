@@ -90,9 +90,9 @@ class TV24UAVideoIE(InfoExtractor):
 
 
 class TV24UAGenericPassthroughIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:[a-zA-Z0-9]+?\.)?24tv\.ua/(?P<id>[^/]+?_n\d+)'
-
-    _TESTS = [{
+    #_VALID_URL = r'https?://(?:[a-zA-Z0-9]+?\.)?24tv\.ua/(?P<id>[^/]+?_n\d+)'
+    _VALID_URL = False
+    _WEBPAGE_TESTS = [{
         # Generic iframe, not within media_embed
         'url': 'https://24tv.ua/vipalyuyut-nashi-mista-sela-dsns-pokazali-motoroshni-naslidki_n1883966',
         'info_dict': {
@@ -129,18 +129,24 @@ class TV24UAGenericPassthroughIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        data_urls = []
+    # def _real_extract(self, url):
+    #     display_id = self._match_id(url)
+    #     webpage = self._download_webpage(url, display_id)
+
+
+    def _extract_from_webpage(self, url, webpage):
+        if not re.compile(r'https?://(?:[a-zA-Z0-9]+?\.)?24tv\.ua/(?P<id>[^/]+?_n\d+)').match(url):
+            return
+        #data_urls = []
         # The site contains escaped iframe embeds within an attribute.
         # Once escaped, generic can handle them, so we use a data url to pass the escaped html back.
         for html in get_elements_html_by_class('media_embed', webpage):
             data = urllib.parse.unquote(extract_attributes(html).get('data-html'))
-            data_urls.append(f'data:text/html;base64,{base64.b64encode(data.encode("utf-8")).decode("utf-8")}')
-
-        if not data_urls:
-            return self.url_result(url, 'Generic')
-        return self.playlist_from_matches(
-            [smuggle_url(url, {'to_generic': True}) for url in data_urls], display_id, ie='Generic',
-            playlist_title=self._og_search_title(webpage) or self._html_extract_title(webpage))
+            yield from self._extract_generic_embeds(url, data)
+        #     data_urls.append(f'data:text/html;base64,{base64.b64encode(data.encode("utf-8")).decode("utf-8")}')
+        #
+        # if not data_urls:
+        #     return self.url_result(url, 'Generic')
+        # return self.playlist_from_matches(
+        #     [smuggle_url(url, {'to_generic': True}) for url in data_urls], display_id, ie='Generic',
+        #     playlist_title=self._og_search_title(webpage) or self._html_extract_title(webpage))

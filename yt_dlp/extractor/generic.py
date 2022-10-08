@@ -2769,9 +2769,9 @@ class GenericIE(InfoExtractor):
 
         # Unescape squarespace embeds to be detected by generic extractor,
         # see https://github.com/ytdl-org/youtube-dl/issues/21294
-        webpage = re.sub(
-            r'<div[^>]+class=[^>]*?\bsqs-video-wrapper\b[^>]*>',
-            lambda x: unescapeHTML(x.group(0)), webpage)
+        # webpage = re.sub(
+        #     r'<div[^>]+class=[^>]*?\bsqs-video-wrapper\b[^>]*>',
+        #     lambda x: unescapeHTML(x.group(0)), webpage)
 
         # TODO: Move to respective extractors
         bc_urls = BrightcoveLegacyIE._extract_brightcove_urls(webpage)
