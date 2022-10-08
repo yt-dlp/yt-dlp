@@ -2746,17 +2746,18 @@ class GenericIE(InfoExtractor):
             'age_limit': self._rta_search(webpage),
         })
 
-        embeds = list(self._extract_embeds(url, webpage, full_response, info_dict=info_dict))
+        embeds = list(self._extract_embeds(url, webpage, urlh=full_response, info_dict=info_dict))
         if len(embeds) == 1:
             return {**info_dict, **embeds[0]}
         elif embeds:
             return self.playlist_result(embeds, **info_dict)
         raise UnsupportedError(url)
 
-    def _extract_embeds(self, url, webpage, urlh, info_dict={}):
+    def _extract_embeds(self, url, webpage, *, urlh=None, info_dict={}):
         """Returns an iterator of video entries"""
         info_dict = types.MappingProxyType(info_dict)  # Prevents accidental mutation
         video_id = info_dict.get('id') or self._generic_id(url)
+        actual_url = urlh.geturl() if urlh else url
 
         # Sometimes embedded video player is hidden behind percent encoding
         # (e.g. https://github.com/ytdl-org/youtube-dl/issues/2448)
@@ -2860,7 +2861,7 @@ class GenericIE(InfoExtractor):
                         'ext': (mimetype2ext(src_type)
                                 or ext if ext in KNOWN_EXTENSIONS else 'mp4'),
                         'http_headers': {
-                            'Referer': urlh.geturl(),
+                            'Referer': actual_url,
                         },
                     })
             # https://docs.videojs.com/player#addRemoteTextTrack
@@ -2875,7 +2876,7 @@ class GenericIE(InfoExtractor):
                     'url': urllib.parse.urljoin(url, src),
                     'name': sub.get('label'),
                     'http_headers': {
-                        'Referer': urlh.geturl(),
+                        'Referer': actual_url,
                     },
                 })
             if formats or subtitles:
@@ -3025,7 +3026,7 @@ class GenericIE(InfoExtractor):
                 webpage)
             if not found:
                 # Look also in Refresh HTTP header
-                refresh_header = urlh.headers.get('Refresh')
+                refresh_header = urlh and urlh.headers.get('Refresh')
                 if refresh_header:
                     found = re.search(REDIRECT_REGEX, refresh_header)
             if found:
@@ -3064,7 +3065,7 @@ class GenericIE(InfoExtractor):
 
             video_id = os.path.splitext(video_id)[0]
             headers = {
-                'referer': urlh.geturl()
+                'referer': actual_url
             }
 
             entry_info_dict = {
