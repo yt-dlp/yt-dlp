@@ -5304,13 +5304,14 @@ def traverse_obj(
     "value"
 
     Each of the provided `paths` is tested and the first producing a valid result will be returned.
+    Supported values for traversal are `Mapping`, `Sequence` and `re.Match`.
     A value of None is treated as the absence of a value.
 
     The paths will be wrapped in `variadic`, so that `'key'` is conveniently the same as `('key', )`.
 
     The keys in the path can be one of:
         - `None`:           Return the current object.
-        - `str`/`int`:      Return `obj[key]`.
+        - `str`/`int`:      Return `obj[key]`. For `re.Match, return `obj.group(key)`.
         - `slice`:          Branch out and return all values in `obj[key]`.
         - `Ellipsis`:       Branch out and return a list of all values.
         - `tuple`/`list`:   Branch out and return a list of all matching values.
@@ -5321,7 +5322,7 @@ def traverse_obj(
         - `dict`            Transform the current object and return a matching dict.
                             Read as: `{key: traverse_obj(obj, path) for key, path in dct.items()}`.
 
-        `tuple`, `list`, and `dict` all support nested paths and branches
+        `tuple`, `list`, and `dict` all support nested paths and branches.
 
     @params paths           Paths which to traverse by.
     @param default          Value to return if the paths do not match.
@@ -5391,7 +5392,7 @@ def traverse_obj(
             yield {k: v if v is not None else default for k, v in iter_obj
                    if v is not None or default is not None}
 
-        elif isinstance(obj, dict):
+        elif isinstance(obj, collections.abc.Mapping):
             yield (obj.get(key) if casesense or (key in obj)
                    else next((v for k, v in obj.items() if casefold(k) == key), None))
 
