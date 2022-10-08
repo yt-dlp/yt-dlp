@@ -182,12 +182,12 @@ class ViuOTTIE(InfoExtractor):
         },
         'skip': 'Geo-restricted to Hong Kong',
     }, {
-        'url': 'https://www.viu.com/ott/hk/zh-hk/vod/447972/%E8%AA%AA%E5%87%BA%E4%BD%A0%E7%9A%84%E9%A1%98%E6%9C%9B',
+        'url': 'https://www.viu.com/ott/hk/zh-hk/vod/444666/%E6%88%91%E7%9A%84%E5%AE%A4%E5%8F%8B%E6%98%AF%E4%B9%9D%E5%B0%BE%E7%8B%90',
         'playlist_count': 16,
         'info_dict': {
-            'id': '24441',
-            'title': '說出你的願望',
-            'description': 'md5:b17b0e2cea0c034302eae3bba437fbff',
+            'id': '23807',
+            'title': '我的室友是九尾狐',
+            'description': 'md5:b42c95f2b4a316cdd6ae14ca695f33b9',
         },
         'params': {
             'skip_download': 'm3u8 download',
