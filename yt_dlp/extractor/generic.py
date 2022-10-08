@@ -2595,6 +2595,7 @@ class GenericIE(InfoExtractor):
                     default_search += ':'
                 return self.url_result(default_search + url)
 
+        original_url = url
         url, smuggled_data = unsmuggle_url(url, {})
         force_videoid = None
         is_intentional = smuggled_data.get('to_generic')
@@ -2747,7 +2748,7 @@ class GenericIE(InfoExtractor):
         })
 
         self._downloader.write_debug('Looking for embeds')
-        embeds = list(self._extract_embeds(url, webpage, urlh=full_response, info_dict=info_dict))
+        embeds = list(self._extract_embeds(original_url, webpage, urlh=full_response, info_dict=info_dict))
         if len(embeds) == 1:
             return {**info_dict, **embeds[0]}
         elif embeds:
@@ -2758,6 +2759,7 @@ class GenericIE(InfoExtractor):
         """Returns an iterator of video entries"""
         info_dict = types.MappingProxyType(info_dict)  # Prevents accidental mutation
         video_id = traverse_obj(info_dict, 'display_id', 'id') or self._generic_id(url)
+        url, smuggled_data = unsmuggle_url(url, {})
         actual_url = urlh.geturl() if urlh else url
 
         # Sometimes embedded video player is hidden behind percent encoding
@@ -2785,6 +2787,8 @@ class GenericIE(InfoExtractor):
 
         embeds = []
         for ie in self._downloader._ies.values():
+            if ie.ie_key() in smuggled_data.get('block_ies', []):
+                continue
             gen = ie.extract_from_webpage(self._downloader, url, webpage)
             current_embeds = []
             try:

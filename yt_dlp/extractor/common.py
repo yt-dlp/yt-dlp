@@ -66,6 +66,7 @@ from ..utils import (
     sanitize_filename,
     sanitize_url,
     sanitized_Request,
+    smuggle_url,
     str_or_none,
     str_to_int,
     strip_or_none,
@@ -3874,10 +3875,11 @@ class InfoExtractor:
     def RetryManager(self, **kwargs):
         return RetryManager(self.get_param('extractor_retries', 3), self._error_or_warning, **kwargs)
 
-    def _extract_generic_embeds(self, *args, info_dict={}, note='Extracting generic embeds', **kwargs):
+    def _extract_generic_embeds(self, url, *args, info_dict={}, note='Extracting generic embeds', **kwargs):
         display_id = traverse_obj(info_dict, 'display_id', 'id')
         self.to_screen(f'{format_field(display_id, None, "%s: ")}{note}')
-        return self._downloader.get_info_extractor('Generic')._extract_embeds(*args, **kwargs)
+        return self._downloader.get_info_extractor('Generic')._extract_embeds(
+            smuggle_url(url, {'block_ies': [self.ie_key()]}), *args, **kwargs)
 
     @classmethod
     def extract_from_webpage(cls, ydl, url, webpage):
