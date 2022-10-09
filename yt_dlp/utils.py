@@ -5294,7 +5294,7 @@ def load_plugins(name, suffix, namespace):
 
 
 def traverse_obj(
-        obj, *paths, default=None, expected_type=None, get_all=True,
+        obj, *paths, default=NO_DEFAULT, expected_type=None, get_all=True,
         casesense=True, is_user_input=False, traverse_string=False):
     """
     Safely traverse nested `dict`s and `Sequence`s
@@ -5304,13 +5304,15 @@ def traverse_obj(
     "value"
 
     Each of the provided `paths` is tested and the first producing a valid result will be returned.
+    The next path will also be tested if the path branched but no results could be found.
+    Supported values for traversal are `Mapping`, `Sequence` and `re.Match`.
     A value of None is treated as the absence of a value.
 
     The paths will be wrapped in `variadic`, so that `'key'` is conveniently the same as `('key', )`.
 
     The keys in the path can be one of:
         - `None`:           Return the current object.
-        - `str`/`int`:      Return `obj[key]`.
+        - `str`/`int`:      Return `obj[key]`. For `re.Match, return `obj.group(key)`.
         - `slice`:          Branch out and return all values in `obj[key]`.
         - `Ellipsis`:       Branch out and return a list of all values.
         - `tuple`/`list`:   Branch out and return a list of all matching values.
@@ -5321,7 +5323,7 @@ def traverse_obj(
         - `dict`            Transform the current object and return a matching dict.
                             Read as: `{key: traverse_obj(obj, path) for key, path in dct.items()}`.
 
-        `tuple`, `list`, and `dict` all support nested paths and branches
+        `tuple`, `list`, and `dict` all support nested paths and branches.
 
     @params paths           Paths which to traverse by.
     @param default          Value to return if the paths do not match.
@@ -5342,6 +5344,7 @@ def traverse_obj(
     @returns                The result of the object traversal.
                             If successful, `get_all=True`, and the path branches at least once,
                             then a list of results is returned instead.
+                            A list is always returned if the last path branches and no `default` is given.
     """
     is_sequence = lambda x: isinstance(x, collections.abc.Sequence) and not isinstance(x, (str, bytes))
     casefold = lambda k: k.casefold() if isinstance(k, str) else k
@@ -5368,6 +5371,8 @@ def traverse_obj(
                 yield from obj.values()
             elif is_sequence(obj):
                 yield from obj
+            elif isinstance(obj, re.Match):
+                yield from obj.groups()
             elif traverse_string:
                 yield from str(obj)
 
@@ -5376,6 +5381,8 @@ def traverse_obj(
                 iter_obj = enumerate(obj)
             elif isinstance(obj, collections.abc.Mapping):
                 iter_obj = obj.items()
+            elif isinstance(obj, re.Match):
+                iter_obj = enumerate((obj.group(), *obj.groups()))
             elif traverse_string:
                 iter_obj = enumerate(str(obj))
             else:
@@ -5385,11 +5392,22 @@ def traverse_obj(
         elif isinstance(key, dict):
             iter_obj = ((k, _traverse_obj(obj, v)) for k, v in key.items())
             yield {k: v if v is not None else default for k, v in iter_obj
-                   if v is not None or default is not None}
+                   if v is not None or default is not NO_DEFAULT}
 
-        elif isinstance(obj, dict):
+        elif isinstance(obj, collections.abc.Mapping):
             yield (obj.get(key) if casesense or (key in obj)
                    else next((v for k, v in obj.items() if casefold(k) == key), None))
+
+        elif isinstance(obj, re.Match):
+            if isinstance(key, int) or casesense:
+                with contextlib.suppress(IndexError):
+                    yield obj.group(key)
+                    return
+
+            if not isinstance(key, str):
+                return
+
+            yield next((v for k, v in obj.groupdict().items() if casefold(k) == key), None)
 
         else:
             if is_user_input:
@@ -5426,18 +5444,22 @@ def traverse_obj(
 
         return has_branched, objs
 
-    def _traverse_obj(obj, path):
+    def _traverse_obj(obj, path, use_list=True):
         has_branched, results = apply_path(obj, path)
         results = LazyList(x for x in map(type_test, results) if x is not None)
-        if results:
-            return results.exhaust() if get_all and has_branched else results[0]
 
-    for path in paths:
-        result = _traverse_obj(obj, path)
+        if get_all and has_branched:
+            return results.exhaust() if results or use_list else None
+
+        return results[0] if results else None
+
+    for index, path in enumerate(paths, 1):
+        use_list = default is NO_DEFAULT and index == len(paths)
+        result = _traverse_obj(obj, path, use_list)
         if result is not None:
             return result
 
-    return default
+    return None if default is NO_DEFAULT else default
 
 
 def traverse_dict(dictn, keys, casesense=True):
