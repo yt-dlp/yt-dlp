@@ -1181,6 +1181,7 @@ from .noodlemagazine import NoodleMagazineIE
 from .noovo import NoovoIE
 from .normalboots import NormalbootsIE
 from .nosvideo import NosVideoIE
+from .nosnl import NOSNLArticleIE
 from .nova import (
     NovaEmbedIE,
     NovaIE,
