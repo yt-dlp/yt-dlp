@@ -14,6 +14,7 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
+    str_or_none,
     strip_or_none,
     traverse_obj,
     try_get,
@@ -198,7 +199,8 @@ class TwitterIE(TwitterBaseIE):
     _TESTS = [{
         'url': 'https://twitter.com/freethenipple/status/643211948184596480',
         'info_dict': {
-            'id': '643211948184596480',
+            'id': '643211870443208704',
+            'display_id': '643211948184596480',
             'ext': 'mp4',
             'title': 'FREE THE NIPPLE - FTN supporters on Hollywood Blvd today!',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -234,6 +236,7 @@ class TwitterIE(TwitterBaseIE):
         'url': 'https://twitter.com/starwars/status/665052190608723968',
         'info_dict': {
             'id': '665052190608723968',
+            'display_id': '665052190608723968',
             'ext': 'mp4',
             'title': 'Star Wars - A new beginning is coming December 18. Watch the official 60 second #TV spot for #StarWars: #TheForceAwakens.',
             'description': 'A new beginning is coming December 18. Watch the official 60 second #TV spot for #StarWars: #TheForceAwakens. https://t.co/OkSqT2fjWJ',
@@ -274,7 +277,8 @@ class TwitterIE(TwitterBaseIE):
     }, {
         'url': 'https://twitter.com/jaydingeer/status/700207533655363584',
         'info_dict': {
-            'id': '700207533655363584',
+            'id': '700207414000242688',
+            'display_id': '700207533655363584',
             'ext': 'mp4',
             'title': 'jaydin donte geer - BEAT PROD: @suhmeduh #Damndaniel',
             'description': 'BEAT PROD: @suhmeduh  https://t.co/HBrQ4AfpvZ #Damndaniel https://t.co/byBooq2ejZ',
@@ -313,7 +317,8 @@ class TwitterIE(TwitterBaseIE):
     }, {
         'url': 'https://twitter.com/captainamerica/status/719944021058060289',
         'info_dict': {
-            'id': '719944021058060289',
+            'id': '717462543795523584',
+            'display_id': '719944021058060289',
             'ext': 'mp4',
             'title': 'Captain America - @King0fNerd Are you sure you made the right choice? Find out in theaters.',
             'description': '@King0fNerd Are you sure you made the right choice? Find out in theaters. https://t.co/GpgYi9xMJI',
@@ -361,7 +366,8 @@ class TwitterIE(TwitterBaseIE):
     }, {
         'url': 'https://twitter.com/i/web/status/910031516746514432',
         'info_dict': {
-            'id': '910031516746514432',
+            'id': '910030238373089285',
+            'display_id': '910031516746514432',
             'ext': 'mp4',
             'title': 'Préfet de Guadeloupe - [Direct] #Maria Le centre se trouve actuellement au sud de Basse-Terre. Restez confinés. Réfugiez-vous dans la pièce la + sûre.',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -385,7 +391,8 @@ class TwitterIE(TwitterBaseIE):
         # card via api.twitter.com/1.1/videos/tweet/config
         'url': 'https://twitter.com/LisPower1/status/1001551623938805763',
         'info_dict': {
-            'id': '1001551623938805763',
+            'id': '1001551417340022785',
+            'display_id': '1001551623938805763',
             'ext': 'mp4',
             'title': 're:.*?Shep is on a roll today.*?',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -408,7 +415,8 @@ class TwitterIE(TwitterBaseIE):
     }, {
         'url': 'https://twitter.com/foobar/status/1087791357756956680',
         'info_dict': {
-            'id': '1087791357756956680',
+            'id': '1087791272830607360',
+            'display_id': '1087791357756956680',
             'ext': 'mp4',
             'title': 'Twitter - A new is coming.  Some of you got an opt-in to try it now. Check out the emoji button, quick keyboard shortcuts, upgraded trends, advanced search, and more. Let us know your thoughts!',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -443,7 +451,8 @@ class TwitterIE(TwitterBaseIE):
         # unified card
         'url': 'https://twitter.com/BrooklynNets/status/1349794411333394432?s=20',
         'info_dict': {
-            'id': '1349794411333394432',
+            'id': '1349774757969989634',
+            'display_id': '1349794411333394432',
             'ext': 'mp4',
             'title': 'md5:d1c4941658e4caaa6cb579260d85dcba',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -466,7 +475,8 @@ class TwitterIE(TwitterBaseIE):
     }, {
         'url': 'https://twitter.com/oshtru/status/1577855540407197696',
         'info_dict': {
-            'id': '1577855540407197696',
+            'id': '1577855447914409984',
+            'display_id': '1577855540407197696',
             'ext': 'mp4',
             'title': 'oshtru \U0001faac\U0001f47d - gm \u2728\ufe0f now I can post image and video. nice update.',
             'description': 'gm \u2728\ufe0f now I can post image and video. nice update. https://t.co/cG7XgiINOm',
@@ -580,9 +590,8 @@ class TwitterIE(TwitterBaseIE):
         }
 
         def extract_from_video_info(media):
-            media_id = (traverse_obj(media, 'id_str', expected_type=str)
-                        or traverse_obj(media, 'id', expected_type=lambda x: str(x)))
-            self.write_debug(f"Extracting from video info: {media_id}")
+            media_id = traverse_obj(media, 'id_str', 'id', expected_type=str_or_none)
+            self.write_debug(f'Extracting from video info: {media_id}')
             video_info = media.get('video_info') or {}
 
             formats = []
@@ -616,6 +625,9 @@ class TwitterIE(TwitterBaseIE):
             }
 
         def extract_from_card_info(card):
+            if card is None:
+                return None
+
             self.write_debug(f'Extracting from card info: {card.get("url")}')
             binding_values = card['binding_values']
 
@@ -681,40 +693,33 @@ class TwitterIE(TwitterBaseIE):
                         'content_duration_seconds')),
                 }
 
-        entries = []
-        media_path = ((None, 'quoted_status'), 'extended_entities', 'media', ...)
-        medias = traverse_obj(status, media_path, expected_type=dict, default=[])
-        for media in medias:
-            if not media or media.get('type') == 'photo':
-                continue
+        media_path = ((None, 'quoted_status'), 'extended_entities', 'media', lambda _, m: m['type'] != 'photo')
+        videos = map(extract_from_video_info, traverse_obj(status, media_path, expected_type=dict))
+        entries = [{**info, **data, 'display_id': twid} for data in videos if data]
 
-            data = extract_from_video_info(media)
-            if data:
-                entries.append({**info, **data, 'display_id': twid})
-            continue
-
-        card = status.get('card')
-        if card:
-            data = extract_from_card_info(card)
-            if data:
-                entries.append({**info, **data, 'display_id': twid})
+        data = extract_from_card_info(status.get('card'))
+        if data:
+            entries.append({**info, **data, 'display_id': twid})
 
         if not entries:
-            expanded_url = traverse_obj(status, ('entities', 'urls', 0, 'expanded_url'))
+            expanded_url = traverse_obj(status, ('entities', 'urls', 0, 'expanded_url'), expected_type=url_or_none)
             if not expanded_url or expanded_url == url:
-                raise ExtractorError('No video could be found in this tweet')
+                raise ExtractorError('No video could be found in this tweet', expected=True)
 
-            transparent_result = self.url_result(expanded_url, transparent=True, display_id=twid, **info)
-            if not url_or_none(transparent_result.get('url')) and not transparent_result.get('formats'):
-                raise ExtractorError('No video could be found in this tweet')
+            return self.url_result(expanded_url, display_id=twid, **info)
 
-            return transparent_result
+        # compat: tweet id was previously used instead of media id.
+        #         Since only one result was extracted before,
+        #         apply only to first result as well.
+        entries[0]['_old_archive_ids'] = [twid]
 
         if len(entries) == 1:
-            # compat: tweet id was previously used instead of media id
-            return {**entries[0], 'id': twid}
+            return entries[0]
 
-        return self.playlist_result(entries, multi_video=True, **info)
+        for index, entry in enumerate(entries, 1):
+            entry['title'] += f' #{index}'
+
+        return self.playlist_result(entries, **info)
 
 
 class TwitterAmplifyIE(TwitterBaseIE):
