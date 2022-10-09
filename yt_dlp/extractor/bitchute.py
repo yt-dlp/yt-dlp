@@ -2,6 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    HEADRequest,
     OnDemandPagedList,
     clean_html,
     get_element_by_class,
@@ -15,6 +16,8 @@ from ..utils import (
     urlencode_postdata,
 )
 
+BITCHUTE_REFERER = 'https://www.bitchute.com/'
+
 
 class BitChuteIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?bitchute\.com/(?:video|embed|torrent/[^/]+)/(?P<id>[^/?#&]+)'
@@ -25,30 +28,30 @@ class BitChuteIE(InfoExtractor):
         'info_dict': {
             'id': 'UGlrF9o9b-Q',
             'ext': 'mp4',
+            'filesize': None,
             'title': 'This is the first video on #BitChute !',
             'description': 'md5:a0337e7b1fe39e32336974af8173a034',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'BitChute',
             'upload_date': '20170103',
         },
+        'params': {'check_formats': False},
     }, {
-        # video not downloadable
+        # video not downloadable in browser, but we can recover it
         'url': 'https://www.bitchute.com/video/2s6B3nZjAk7R/',
+        'md5': '05c12397d5354bf24494885b08d24ed1',
         'info_dict': {
             'id': '2s6B3nZjAk7R',
-            'ext': None,
+            'ext': 'mp4',
+            'filesize': 71537926,
             'title': 'STYXHEXENHAMMER666 - Election Fraud, Clinton 2020, EU Armies, and Gun Control',
             'description': 'md5:228ee93bd840a24938f536aeac9cf749',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'BitChute',
             'upload_date': '20181113',
         },
-        'params': {
-            'skip_download': True,
-            'check_formats': 'selected',
-            'ignore_no_formats_error': True
-        },
-        'expected_warnings': ['Requested format is not available'],
+        'params': {'check_formats': None},
+        'expected_warnings': ['HTTP Error'],
     }, {
         'url': 'https://www.bitchute.com/embed/lbb5G1hjPhw/',
         'only_matching': True,
@@ -57,18 +60,56 @@ class BitChuteIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) '
+                      'AppleWebKit/537.36 (KHTML, like Gecko) '
+                      'Chrome/69.0.3497.57 Safari/537.36',
+        'Referer': BITCHUTE_REFERER,
+    }
+
+    def _check_video(self, video_url, video_id):
+        hostnames = ('seed150', 'seed151', 'seed152', 'seed153')
+        urls = [video_url]
+
+        match = re.match(r'https?://(?P<hostname>seed\d{3})\.bitchute\.com/', video_url)
+        if match:
+            given_hostname = match.group('hostname')
+            urls.extend(video_url.replace(given_hostname, hostname)
+                        for hostname in hostnames if hostname != given_hostname)
+
+        for url in urls:
+            response = self._request_webpage(
+                HEADRequest(url), video_id=video_id,
+                note='Checking %s' % url, errnote=url, fatal=False, headers=self.HEADERS)
+            if not response:
+                continue
+            return {'url': url, 'filesize': int_or_none(response.headers.get('Content-Length'))}
+
+        return None
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
-            'https://www.bitchute.com/video/%s' % video_id, video_id, headers={
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) '
-                              'AppleWebKit/537.36 (KHTML, like Gecko) '
-                              'Chrome/69.0.3497.57 Safari/537.36',
-            })
+            '%svideo/%s' % (BITCHUTE_REFERER, video_id), video_id, headers=self.HEADERS)
 
         publish_date = clean_html(get_element_by_class('video-publish-date', webpage))
         entries = self._parse_html5_media_entries(url, webpage, video_id)
-        formats = traverse_obj(entries, (0, 'formats'), default=[])
+
+        formats = []
+        for _format in traverse_obj(entries, (0, 'formats'), default=[]):
+            if self.get_param('check_formats') is not False:
+                info = self._check_video(_format['url'], video_id)
+                if info is None:
+                    continue
+                _format.update(info)
+            formats.append(_format)
+
+        if not formats:
+            self.raise_no_formats(
+                'Video is unavailable. Please make sure this video is playable in the browser '
+                'before reporting this issue.', expected=True, video_id=video_id)
+
+        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -97,6 +138,7 @@ class BitChuteChannelIE(InfoExtractor):
                 'info_dict': {
                     'id': 'UGlrF9o9b-Q',
                     'ext': 'mp4',
+                    'filesize': None,
                     'title': 'This is the first video on #BitChute !',
                     'description': 'md5:a0337e7b1fe39e32336974af8173a034',
                     'thumbnail': r're:^https?://.*\.jpg$',
@@ -109,7 +151,7 @@ class BitChuteChannelIE(InfoExtractor):
         ],
         'params': {
             'skip_download': True,
-            'ignore_no_formats_error': True,
+            'check_formats': False,
             'match_filter': match_filter_func('id=UGlrF9o9b-Q'),
         },
     }, {
@@ -139,7 +181,7 @@ class BitChuteChannelIE(InfoExtractor):
     }
 
     def _entries(self, playlist_type, playlist_id):
-        playlist_url = 'https://www.bitchute.com/%s/%s/' % (playlist_type, playlist_id)
+        playlist_url = '%s%s/%s/' % (BITCHUTE_REFERER, playlist_type, playlist_id)
 
         def fetch_entries(page_num):
             data = self._download_json(
@@ -162,7 +204,7 @@ class BitChuteChannelIE(InfoExtractor):
                 match = re.search(r'<a\b[^>]+\bhref=["\']/video/(?P<id>[^"\'/]+)', video_html)
                 video_id = match and match.group('id')
                 yield self.url_result(
-                    'https://www.bitchute.com/video/%s' % video_id,
+                    '%svideo/%s' % (BITCHUTE_REFERER, video_id),
                     ie=BitChuteIE, video_id=video_id, url_transparent=True,
                     title=clean_html(get_element_by_class(class_name['title'], video_html)),
                     description=clean_html(get_element_by_class(class_name['description'], video_html)),
@@ -175,7 +217,7 @@ class BitChuteChannelIE(InfoExtractor):
         playlist_type, playlist_id = self._match_valid_url(url).group('type', 'id')
 
         webpage = self._download_webpage(
-            'https://www.bitchute.com/%s/%s/' % (playlist_type, playlist_id), video_id=playlist_id)
+            '%s%s/%s/' % (BITCHUTE_REFERER, playlist_type, playlist_id), video_id=playlist_id)
         title = self._html_extract_title(webpage, default=None)
         description = self._html_search_meta(
             ('description', 'og:description', 'twitter:description'), webpage, default=None)
