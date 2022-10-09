@@ -16,6 +16,7 @@ from ..utils import (
     get_element_by_id,
     int_or_none,
     join_nonempty,
+    js_to_json,
     merge_dicts,
     mimetype2ext,
     orderedSet,
@@ -28,7 +29,7 @@ from ..utils import (
     unified_strdate,
     unified_timestamp,
     url_or_none,
-    urlhandle_detect_ext, js_to_json, remove_end,
+    urlhandle_detect_ext,
 )
 
 
@@ -469,6 +470,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_url': 'https://www.youtube.com/user/MachinimaETC',
                 'channel_url': 'https://www.youtube.com/channel/UCdIaNUarhzLSXGoItz7BHVA',
                 'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'uploader': 'ETC News',
             },
             'expected_warnings': [
                 r'unable to download capture webpage \(it may not be archived\)'
@@ -716,22 +718,20 @@ class YoutubeWebArchiveIE(InfoExtractor):
         for j in re.findall(r'yt\.setConfig\(\s*(?P<json>{\s*(?s:.+?)\s*})\s*\);', webpage):  # ~June 2010
             ytcfg.update(self._parse_json(j, video_id, fatal=False, ignore_extra=True, transform_source=js_to_json, errnote='') or {})
 
-        # XXX: this also may contain a 'ptchn' key. I'm not sure if that is channel name or uploader
+        # XXX: this also may contain a 'ptchn' key
         player_config = (
             self._search_json(
                 r'(?:yt.playerConfig|ytplayer.config|swfConfig)\s*=\s*',
                 webpage, 'player config', video_id, default=None)
             or ytcfg.get('PLAYER_CONFIG') or {})
 
-        # XXX: this also contains a 'creator' key. I'm not sure if it's the uploader or uploader id
+        # XXX: this may also contain a 'creator' key.
         swf_args = self._search_json(r'swfArgs\s*=\s*', webpage, 'swf config', video_id, default={})
         if swf_args and not traverse_obj(player_config, ('args',)):
             player_config['args'] = swf_args
 
         if not player_response:
             # April 2020
-            # TODO: with this full player response being available earlier than we thought,
-            #  maybe we should introduce another time period preference
             player_response = self._parse_json(
                 traverse_obj(player_config, ('args', 'player_response')) or '{}', video_id, fatal=False)
 
@@ -754,7 +754,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or search_meta(['og:title', 'twitter:title', 'title']))
 
         def id_from_url(url, type_):
-            return self._search_regex(  # TODO: more strict regex
+            return self._search_regex(
                 rf'(?:{type_})/([^/#&?]+)', url or '', f'{type_} id', default=None)
 
         # XXX: would the get_elements_by_... functions be better suited here?
@@ -762,7 +762,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         _CHANNEL_URL_HREF_RE = r'href=\"[^\"]*(?P<url>https?://www\.youtube\.com/(?:user|channel)/[^\"]+)\"'
         upch_url = self._search_regex(
             [fr'<(?:link\s*itemprop=\"url\"|a\s*id=\"watch-username\").*?\b{_CHANNEL_URL_HREF_RE}>',  # @fd05024
-             fr'<div\s*id=\"(?:watch-channel-stats|watch-headline-user-info)\"[^>]*>\s*<a[^>]*\b{_CHANNEL_URL_HREF_RE}'], # ~ May 2009, ~June 2012
+             fr'<div\s*id=\"(?:watch-channel-stats|watch-headline-user-info)\"[^>]*>\s*<a[^>]*\b{_CHANNEL_URL_HREF_RE}'],  # ~ May 2009, ~June 2012
             webpage, 'uploader or channel url', default=None)
 
         owner_profile_url = url_or_none(microformats.get('ownerProfileUrl'))  # @a6211d2
@@ -901,7 +901,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 retry.error = e
                 # HTTP Error 404 is expected if the video is not saved.
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
-                    retry.error = ExtractorError(
+                    self.raise_no_formats(
                         'The requested video is not archived, indexed, or there is an issue with web.archive.org', expected=True)
 
         if retry_manager.error:
