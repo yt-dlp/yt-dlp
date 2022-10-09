@@ -112,5 +112,7 @@ class QuotedHTMLGenericPassthroughIE(InfoExtractor):
             if unquoted_html == html:
                 continue
             combined += unquoted_html
+        if not combined:
+            return
         yield from self._extract_generic_embeds(url, combined)
 
