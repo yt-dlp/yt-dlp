@@ -24,8 +24,6 @@ from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeShortsAudioPivotIE
 )
 
-from .statsnz import StatsNZGenericPassthroughIE
-from .sqaurespace import SqaurespaceGenericPassthroughIE
 from .abc import (
     ABCIE,
     ABCIViewIE,
@@ -698,7 +696,7 @@ from .hse import (
     HSEShowIE,
     HSEProductIE,
 )
-from .genericembeds import HTML5MediaEmbedIE
+from .genericembeds import HTML5MediaEmbedIE, QuotedHTMLGenericPassthroughIE
 from .huajiao import HuajiaoIE
 from .huya import HuyaLiveIE
 from .huffpost import HuffPostIE
@@ -1881,7 +1879,6 @@ from .tv2 import (
 )
 from .tv24ua import (
     TV24UAVideoIE,
-    TV24UAGenericPassthroughIE
 )
 from .tv2dk import (
     TV2DKIE,
