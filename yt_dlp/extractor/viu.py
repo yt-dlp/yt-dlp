@@ -369,20 +369,19 @@ class ViuOTTIE(InfoExtractor):
 
         subtitles = {}
         for sub in video_data.get('subtitle') or []:
-            sub_url = sub.get('url')
-            sec_sub_url = sub.get('second_subtitle_url')
-            if not sub_url:
-                continue
-            subtitles.setdefault(sub.get('name'), []).append({
-                'url': sub_url,
-                'ext': 'srt',
-            })
-            if not sec_sub_url:
-                continue
-            subtitles.setdefault(sub.get('name') + "Second", []).append({
-                'url': sec_sub_url,
-                'ext': 'srt',
-            })
+            lang = sub.get('name') or 'und'
+            if sub.get('url'):
+                subtitles.setdefault(lang, []).append({
+                    'url': sub['url'],
+                    'ext': 'srt',
+                    'name': f'Spoken text for {lang}',
+                })
+            if sub.get('second_subtitle_url'):
+                subtitles.setdefault(f'{lang}_ost', []).append({
+                    'url': sub['second_subtitle_url'],
+                    'ext': 'srt',
+                    'name': f'On-screen text for {lang}',
+                })
 
         title = strip_or_none(video_data.get('synopsis'))
         return {
