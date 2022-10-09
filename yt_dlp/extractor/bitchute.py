@@ -4,10 +4,12 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    GeoRestrictedError,
     HEADRequest,
     OnDemandPagedList,
     clean_html,
     get_element_by_class,
+    get_element_by_id,
     get_elements_html_by_class,
     int_or_none,
     orderedSet,
@@ -50,6 +52,16 @@ class BitChuteIE(InfoExtractor):
         },
         'params': {'check_formats': None},
     }, {
+        # restricted video
+        'url': 'https://www.bitchute.com/video/WEnQU7XGcTdl/',
+        'info_dict': {
+            'id': 'WEnQU7XGcTdl',
+            'ext': 'mp4',
+            'title': 'Impartial Truth - Ein Letzter Appell an die Vernunft',
+        },
+        'params': {'skip_download': True},
+        'skip': 'Georestricted in DE',
+    }, {
         'url': 'https://www.bitchute.com/embed/lbb5G1hjPhw/',
         'only_matching': True,
     }, {
@@ -78,11 +90,19 @@ class BitChuteIE(InfoExtractor):
                 'filesize': int_or_none(response.headers.get('Content-Length'))
             }
 
+    @staticmethod
+    def _raise_if_restricted(webpage):
+        page_title = clean_html(get_element_by_class('page-title', webpage))
+        if page_title and re.fullmatch(r'(?:Channel|Video) Restricted', page_title):
+            reason = clean_html(get_element_by_id('page-detail', webpage)) or page_title
+            raise GeoRestrictedError(reason)
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
             f'https://www.bitchute.com/video/{video_id}', video_id, headers=self._HEADERS)
 
+        self._raise_if_restricted(webpage)
         publish_date = clean_html(get_element_by_class('video-publish-date', webpage))
         entries = self._parse_html5_media_entries(url, webpage, video_id)
 
