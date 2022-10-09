@@ -2,6 +2,7 @@
 
 # Allow direct execution
 import os
+import re
 import sys
 import unittest
 
@@ -1890,6 +1891,7 @@ Line 1
                 {'index': 2},
                 {'index': 3},
             ),
+            'dict': {},
         }
 
         # Test base functionality
@@ -1926,11 +1928,15 @@ Line 1
 
         # Test alternative paths
         self.assertEqual(traverse_obj(_TEST_DATA, 'fail', 'str'), 'str',
-                         msg='multiple `path_list` should be treated as alternative paths')
+                         msg='multiple `paths` should be treated as alternative paths')
         self.assertEqual(traverse_obj(_TEST_DATA, 'str', 100), 'str',
                          msg='alternatives should exit early')
         self.assertEqual(traverse_obj(_TEST_DATA, 'fail', 'fail'), None,
                          msg='alternatives should return `default` if exhausted')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., 'fail'), 100), 100,
+                         msg='alternatives should track their own branching return')
+        self.assertEqual(traverse_obj(_TEST_DATA, ('dict', ...), ('data', ...)), list(_TEST_DATA['data']),
+                         msg='alternatives on empty objects should search further')
 
         # Test branch and path nesting
         self.assertEqual(traverse_obj(_TEST_DATA, ('urls', (3, 0), 'url')), ['https://www.example.com/0'],
@@ -1963,8 +1969,16 @@ Line 1
         self.assertEqual(traverse_obj(_TEST_DATA, {0: ('urls', ((1, ('fail', 'url')), (0, 'url')))}),
                          {0: ['https://www.example.com/1', 'https://www.example.com/0']},
                          msg='tripple nesting in dict path should be treated as branches')
-        self.assertEqual(traverse_obj({}, {0: 1}, default=...), {0: ...},
-                         msg='do not remove `None` values when dict key')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'fail'}), {},
+                         msg='remove `None` values when dict key')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'fail'}, default=...), {0: ...},
+                         msg='do not remove `None` values if `default`')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}), {0: {}},
+                         msg='do not remove empty values when dict key')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}, default=...), {0: {}},
+                         msg='do not remove empty values when dict key and a default')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('dict', ...)}), {0: []},
+                         msg='if branch in dict key not successful, return `[]`')
 
         # Testing default parameter behavior
         _DEFAULT_DATA = {'None': None, 'int': 0, 'list': []}
@@ -1981,7 +1995,13 @@ Line 1
         self.assertEqual(traverse_obj(_DEFAULT_DATA, ('list', 10)), None,
                          msg='`IndexError` should result in `default`')
         self.assertEqual(traverse_obj(_DEFAULT_DATA, (..., 'fail'), default=1), 1,
-                         msg='if branched but not successfull return `default`, not `[]`')
+                         msg='if branched but not successful return `default` if defined, not `[]`')
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, (..., 'fail'), default=None), None,
+                         msg='if branched but not successful return `default` even if `default` is `None`')
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, (..., 'fail')), [],
+                         msg='if branched but not successful return `[]`, not `default`')
+        self.assertEqual(traverse_obj(_DEFAULT_DATA, ('list', ...)), [],
+                         msg='if branched but object is empty return `[]`, not `default`')
 
         # Testing expected_type behavior
         _EXPECTED_TYPE_DATA = {'str': 'str', 'int': 0}
@@ -2060,6 +2080,25 @@ Line 1
                               msg='`:` should be treated as `...` if `is_user_input`')
         with self.assertRaises(TypeError, msg='too many params should result in error'):
             traverse_obj(_IS_USER_INPUT_DATA, ('range8', ':::'), is_user_input=True)
+
+        # Test re.Match as input obj
+        mobj = re.fullmatch(r'0(12)(?P<group>3)(4)?', '0123')
+        self.assertEqual(traverse_obj(mobj, ...), [x for x in mobj.groups() if x is not None],
+                         msg='`...` on a `re.Match` should give its `groups()`')
+        self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 2)), ['0123', '3'],
+                         msg='function on a `re.Match` should give groupno, value starting at 0')
+        self.assertEqual(traverse_obj(mobj, 'group'), '3',
+                         msg='str key on a `re.Match` should give group with that name')
+        self.assertEqual(traverse_obj(mobj, 2), '3',
+                         msg='int key on a `re.Match` should give group with that name')
+        self.assertEqual(traverse_obj(mobj, 'gRoUp', casesense=False), '3',
+                         msg='str key on a `re.Match` should respect casesense')
+        self.assertEqual(traverse_obj(mobj, 'fail'), None,
+                         msg='failing str key on a `re.Match` should return `default`')
+        self.assertEqual(traverse_obj(mobj, 'gRoUpS', casesense=False), None,
+                         msg='failing str key on a `re.Match` should return `default`')
+        self.assertEqual(traverse_obj(mobj, 8), None,
+                         msg='failing int key on a `re.Match` should return `default`')
 
 
 if __name__ == '__main__':
