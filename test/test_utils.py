@@ -1679,6 +1679,9 @@ Line 1
         self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'foo', html)), [])
         self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html)), [])
 
+        self.assertEqual(list(get_elements_text_and_html_by_attribute(
+            'class', 'foo', '<a class="foo">nice</a><span class="foo">nice</span>', tag='a')), [('nice', '<a class="foo">nice</a>')])
+
     GET_ELEMENT_BY_TAG_TEST_STRING = '''
     random text lorem ipsum</p>
     <div>

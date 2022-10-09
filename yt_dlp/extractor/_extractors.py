@@ -2165,7 +2165,10 @@ from .wistia import (
     WistiaPlaylistIE,
     WistiaChannelIE,
 )
-from .wordpress import WordpressPlaylistEmbedIE
+from .wordpress import (
+    WordpressPlaylistEmbedIE,
+    WordpressMiniAudioPlayerEmbedIE,
+)
 from .worldstarhiphop import WorldStarHipHopIE
 from .wppilot import (
     WPPilotIE,
