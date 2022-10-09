@@ -721,7 +721,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         # XXX: this also may contain a 'ptchn' key
         player_config = (
             self._search_json(
-                r'(?:yt.playerConfig|ytplayer.config|swfConfig)\s*=\s*',
+                r'(?:yt.playerConfig|ytplayer.config|swfConfig)\s*=',
                 webpage, 'player config', video_id, default=None)
             or ytcfg.get('PLAYER_CONFIG') or {})
 
@@ -759,7 +759,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
         # XXX: would the get_elements_by_... functions be better suited here?
         # Uploader ID and URL
-        _CHANNEL_URL_HREF_RE = r'href=\"[^\"]*(?P<url>https?://www\.youtube\.com/(?:user|channel)/[^\"]+)\"'
+        _CHANNEL_URL_HREF_RE = r'href="[^"]*(?P<url>https?://www\.youtube\.com/(?:user|channel)/[^"]+)"'
         upch_url = self._search_regex(
             [fr'<(?:link\s*itemprop=\"url\"|a\s*id=\"watch-username\").*?\b{_CHANNEL_URL_HREF_RE}>',  # @fd05024
              fr'<div\s*id=\"(?:watch-channel-stats|watch-headline-user-info)\"[^>]*>\s*<a[^>]*\b{_CHANNEL_URL_HREF_RE}'],  # ~ May 2009, ~June 2012
@@ -790,8 +790,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 r'<button\s*href=\"\/user\/[^>]*>\s*<span[^>]*>\s*(.+?)\s*<',  # April 2012
                 get_element_by_id('watch-headline-user-info', webpage), 'uploader', default=None)
             or traverse_obj(player_config, ('args', 'creator'))
-            or video_details.get('author')
-        )
+            or video_details.get('author'))
 
         channel_id = str_or_none(
             video_details.get('channelId')
@@ -808,7 +807,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         duration = int_or_none(
             video_details.get('lengthSeconds')
             or microformats.get('lengthSeconds')
-            or traverse_obj(player_config, ('args', ['length_seconds', 'l']), get_all=False)
+            or traverse_obj(player_config, ('args', ('length_seconds', 'l')), get_all=False)
             or parse_duration(search_meta('duration')))
         description = (
             video_details.get('shortDescription')
@@ -820,9 +819,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
             dict_get(microformats, ('uploadDate', 'publishDate'))
             or search_meta(['uploadDate', 'datePublished'])
             or self._search_regex(
-                [r'(?s)id=\"eow-date.*?>\s*(.*?)\s*</span>',
+                [r'(?s)id="eow-date.*?>\s*(.*?)\s*</span>',
                  r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']',  # @7998520
-                 r'class\s*=\s*\"(?:watch-video-date|watch-video-added post-date)\"[^>]*>\s*([^<]+?)\s*<'],  # ~June 2010, ~Jan 2009 (respectively)
+                 r'class\s*=\s*"(?:watch-video-date|watch-video-added post-date)"[^>]*>\s*([^<]+?)\s*<'],  # ~June 2010, ~Jan 2009 (respectively)
                 webpage, 'upload date', default=None))
 
         return {
@@ -898,11 +897,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
                     HEADRequest('https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id),
                     video_id, note='Fetching archived video file url', expected_status=True)
             except ExtractorError as e:
-                retry.error = e
                 # HTTP Error 404 is expected if the video is not saved.
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
                     self.raise_no_formats(
                         'The requested video is not archived, indexed, or there is an issue with web.archive.org', expected=True)
+                else:
+                    retry.error = e
 
         if retry_manager.error:
             self.raise_no_formats(retry_manager.error, expected=True, video_id=video_id)
