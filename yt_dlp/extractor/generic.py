@@ -1,5 +1,6 @@
 import os
 import re
+import types
 import urllib.parse
 import xml.etree.ElementTree
 
@@ -2609,6 +2610,7 @@ class GenericIE(InfoExtractor):
                     default_search += ':'
                 return self.url_result(default_search + url)
 
+        original_url = url
         url, smuggled_data = unsmuggle_url(url, {})
         force_videoid = None
         is_intentional = smuggled_data.get('to_generic')
@@ -2760,7 +2762,20 @@ class GenericIE(InfoExtractor):
             'age_limit': self._rta_search(webpage),
         })
 
-        domain_name = self._search_regex(r'^(?:https?://)?([^/]*)/.*', url, 'video uploader', default=None)
+        self._downloader.write_debug('Looking for embeds')
+        embeds = list(self._extract_embeds(original_url, webpage, urlh=full_response, info_dict=info_dict))
+        if len(embeds) == 1:
+            return {**info_dict, **embeds[0]}
+        elif embeds:
+            return self.playlist_result(embeds, **info_dict)
+        raise UnsupportedError(url)
+
+    def _extract_embeds(self, url, webpage, *, urlh=None, info_dict={}):
+        """Returns an iterator of video entries"""
+        info_dict = types.MappingProxyType(info_dict)  # Prevents accidental mutation
+        video_id = traverse_obj(info_dict, 'display_id', 'id') or self._generic_id(url)
+        url, smuggled_data = unsmuggle_url(url, {})
+        actual_url = urlh.geturl() if urlh else url
 
         # Sometimes embedded video player is hidden behind percent encoding
         # (e.g. https://github.com/ytdl-org/youtube-dl/issues/2448)
@@ -2776,31 +2791,19 @@ class GenericIE(InfoExtractor):
             lambda x: unescapeHTML(x.group(0)), webpage)
 
         # TODO: Move to respective extractors
-        self._downloader.write_debug('Looking for Brightcove embeds')
         bc_urls = BrightcoveLegacyIE._extract_brightcove_urls(webpage)
         if bc_urls:
-            entries = [{
-                '_type': 'url',
-                'url': smuggle_url(bc_url, {'Referer': url}),
-                'ie_key': 'BrightcoveLegacy'
-            } for bc_url in bc_urls]
-
-            return {
-                '_type': 'playlist',
-                'title': info_dict['title'],
-                'id': video_id,
-                'entries': entries,
-            }
+            return [self.url_result(smuggle_url(bc_url, {'Referer': url}), BrightcoveLegacyIE)
+                    for bc_url in bc_urls]
         bc_urls = BrightcoveNewIE._extract_brightcove_urls(self, webpage)
         if bc_urls:
-            return self.playlist_from_matches(
-                bc_urls, video_id, info_dict['title'],
-                getter=lambda x: smuggle_url(x, {'referrer': url}),
-                ie='BrightcoveNew')
+            return [self.url_result(smuggle_url(bc_url, {'Referer': url}), BrightcoveNewIE)
+                    for bc_url in bc_urls]
 
-        self._downloader.write_debug('Looking for embeds')
         embeds = []
         for ie in self._downloader._ies.values():
+            if ie.ie_key() in smuggled_data.get('block_ies', []):
+                continue
             gen = ie.extract_from_webpage(self._downloader, url, webpage)
             current_embeds = []
             try:
@@ -2809,35 +2812,26 @@ class GenericIE(InfoExtractor):
             except self.StopExtraction:
                 self.report_detected(f'{ie.IE_NAME} exclusive embed', len(current_embeds),
                                      embeds and 'discarding other embeds')
-                embeds = current_embeds
-                break
+                return current_embeds
             except StopIteration:
                 self.report_detected(f'{ie.IE_NAME} embed', len(current_embeds))
                 embeds.extend(current_embeds)
 
-        del current_embeds
-        if len(embeds) == 1:
-            return {**info_dict, **embeds[0]}
-        elif embeds:
-            return self.playlist_result(embeds, **info_dict)
+        if embeds:
+            return embeds
 
         jwplayer_data = self._find_jwplayer_data(
             webpage, video_id, transform_source=js_to_json)
         if jwplayer_data:
             if isinstance(jwplayer_data.get('playlist'), str):
                 self.report_detected('JW Player playlist')
-                return {
-                    **info_dict,
-                    '_type': 'url',
-                    'ie_key': 'JWPlatform',
-                    'url': jwplayer_data['playlist'],
-                }
+                return [self.url_result(jwplayer_data['playlist'], 'JWPlatform')]
             try:
                 info = self._parse_jwplayer_data(
                     jwplayer_data, video_id, require_title=False, base_url=url)
                 if traverse_obj(info, 'formats', ('entries', ..., 'formats')):
                     self.report_detected('JW Player data')
-                    return merge_dicts(info, info_dict)
+                    return [info]
             except ExtractorError:
                 # See https://github.com/ytdl-org/youtube-dl/pull/16735
                 pass
@@ -2865,7 +2859,7 @@ class GenericIE(InfoExtractor):
                     src_type = src_type.lower()
                 ext = determine_ext(src).lower()
                 if src_type == 'video/youtube':
-                    return self.url_result(src, YoutubeIE.ie_key())
+                    return [self.url_result(src, YoutubeIE.ie_key())]
                 if src_type == 'application/dash+xml' or ext == 'mpd':
                     fmts, subs = self._extract_mpd_formats_and_subtitles(
                         src, video_id, mpd_id='dash', fatal=False)
@@ -2883,7 +2877,7 @@ class GenericIE(InfoExtractor):
                         'ext': (mimetype2ext(src_type)
                                 or ext if ext in KNOWN_EXTENSIONS else 'mp4'),
                         'http_headers': {
-                            'Referer': full_response.geturl(),
+                            'Referer': actual_url,
                         },
                     })
             # https://docs.videojs.com/player#addRemoteTextTrack
@@ -2898,28 +2892,26 @@ class GenericIE(InfoExtractor):
                     'url': urllib.parse.urljoin(url, src),
                     'name': sub.get('label'),
                     'http_headers': {
-                        'Referer': full_response.geturl(),
+                        'Referer': actual_url,
                     },
                 })
             if formats or subtitles:
                 self.report_detected('video.js embed')
                 self._sort_formats(formats)
-                info_dict['formats'] = formats
-                info_dict['subtitles'] = subtitles
-                return info_dict
+                return [{'formats': formats, 'subtitles': subtitles}]
 
         # Looking for http://schema.org/VideoObject
         json_ld = self._search_json_ld(webpage, video_id, default={})
         if json_ld.get('url') not in (url, None):
             self.report_detected('JSON LD')
-            return merge_dicts({
+            return [merge_dicts({
                 '_type': 'video' if json_ld.get('ext') else 'url_transparent',
                 'url': smuggle_url(json_ld['url'], {
                     'force_videoid': video_id,
                     'to_generic': True,
                     'http_headers': {'Referer': url},
                 }),
-            }, json_ld, info_dict)
+            }, json_ld)]
 
         def check_video(vurl):
             if YoutubeIE.suitable(vurl):
@@ -2990,13 +2982,13 @@ class GenericIE(InfoExtractor):
 
                 self._sort_formats(formats)
 
-                return {
+                return [{
                     'id': flashvars['video_id'],
                     'display_id': display_id,
                     'title': title,
                     'thumbnail': thumbnail,
                     'formats': formats,
-                }
+                }]
         if not found:
             # Broaden the search a little bit
             found = filter_video(re.findall(r'[^A-Za-z0-9]?(?:file|source)=(http[^\'"&]*)', webpage))
@@ -3050,17 +3042,14 @@ class GenericIE(InfoExtractor):
                 webpage)
             if not found:
                 # Look also in Refresh HTTP header
-                refresh_header = full_response.headers.get('Refresh')
+                refresh_header = urlh and urlh.headers.get('Refresh')
                 if refresh_header:
                     found = re.search(REDIRECT_REGEX, refresh_header)
             if found:
                 new_url = urllib.parse.urljoin(url, unescapeHTML(found.group(1)))
                 if new_url != url:
                     self.report_following_redirect(new_url)
-                    return {
-                        '_type': 'url',
-                        'url': new_url,
-                    }
+                    return [self.url_result(new_url)]
                 else:
                     found = None
 
@@ -3071,10 +3060,12 @@ class GenericIE(InfoExtractor):
             embed_url = self._html_search_meta('twitter:player', webpage, default=None)
             if embed_url and embed_url != url:
                 self.report_detected('twitter:player iframe')
-                return self.url_result(embed_url)
+                return [self.url_result(embed_url)]
 
         if not found:
-            raise UnsupportedError(url)
+            return []
+
+        domain_name = self._search_regex(r'^(?:https?://)?([^/]*)/.*', url, 'video uploader', default=None)
 
         entries = []
         for video_url in orderedSet(found):
@@ -3090,7 +3081,7 @@ class GenericIE(InfoExtractor):
 
             video_id = os.path.splitext(video_id)[0]
             headers = {
-                'referer': full_response.geturl()
+                'referer': actual_url
             }
 
             entry_info_dict = {
@@ -3114,7 +3105,7 @@ class GenericIE(InfoExtractor):
             if ext == 'smil':
                 entry_info_dict = {**self._extract_smil_info(video_url, video_id), **entry_info_dict}
             elif ext == 'xspf':
-                return self.playlist_result(self._extract_xspf_playlist(video_url, video_id), video_id)
+                return [self._extract_xspf_playlist(video_url, video_id)]
             elif ext == 'm3u8':
                 entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4', headers=headers)
             elif ext == 'mpd':
@@ -3144,14 +3135,9 @@ class GenericIE(InfoExtractor):
 
             entries.append(entry_info_dict)
 
-        if len(entries) == 1:
-            return merge_dicts(entries[0], info_dict)
-        else:
+        if len(entries) > 1:
             for num, e in enumerate(entries, start=1):
                 # 'url' results don't have a title
                 if e.get('title') is not None:
                     e['title'] = '%s (%d)' % (e['title'], num)
-            return {
-                '_type': 'playlist',
-                'entries': entries,
-            }
+        return entries
