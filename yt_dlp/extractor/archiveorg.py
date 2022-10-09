@@ -721,12 +721,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
         # XXX: this also may contain a 'ptchn' key
         player_config = (
             self._search_json(
-                r'(?:yt.playerConfig|ytplayer.config|swfConfig)\s*=',
+                r'(?:yt\.playerConfig|ytplayer\.config|swfConfig)\s*=',
                 webpage, 'player config', video_id, default=None)
             or ytcfg.get('PLAYER_CONFIG') or {})
 
         # XXX: this may also contain a 'creator' key.
-        swf_args = self._search_json(r'swfArgs\s*=\s*', webpage, 'swf config', video_id, default={})
+        swf_args = self._search_json(r'swfArgs\s*=', webpage, 'swf config', video_id, default={})
         if swf_args and not traverse_obj(player_config, ('args',)):
             player_config['args'] = swf_args
 
@@ -777,17 +777,17 @@ class YoutubeWebArchiveIE(InfoExtractor):
         # TODO: sort out what uploader means
         uploader = (
             self._search_regex(
-                [r'<a\s*id=\"watch-username\".*\">\s*<strong[^>]?>([^<]+)</strong>',
+                [r'<a\s*id="watch-username".*">\s*<strong[^>]?>([^<]+)</strong>',
                  r'var\s*watchUsername\s*=\s*\'(.+)\';',  # ~May 2009
-                 r'<div\s*\bid=\"watch-channel-stats\"[^>]*>\s*<a[^>]*>\s*(.+?)\s*</a',  # ~May 2009
-                 r'<a\s*id=\"watch-userbanner\"[^>]*title=\"\s*(.+?)\s*\"'],  # ~June 2012
+                 r'<div\s*\bid=\"watch-channel-stats"[^>]*>\s*<a[^>]*>\s*(.+?)\s*</a',  # ~May 2009
+                 r'<a\s*id="watch-userbanner"[^>]*title="\s*(.+?)\s*"'],  # ~June 2012
                 webpage, 'uploader', default=None)
             or self._html_search_regex(
-                [r'(?s)<div\s*class=\"yt-user-info\".*?<a[^>]*[^>]*>\s*(.*?)\s*<\/a',  # March 2016
-                 r'(?s)<a[^>]*yt-user-name[^>]*>\s*(.*?)\s*<\/a'],  # july 2013
+                [r'(?s)<div\s*class="yt-user-info".*?<a[^>]*[^>]*>\s*(.*?)\s*</a',  # March 2016
+                 r'(?s)<a[^>]*yt-user-name[^>]*>\s*(.*?)\s*</a'],  # july 2013
                 get_element_by_id('watch7-user-header', webpage), 'uploader', default=None)
             or self._html_search_regex(
-                r'<button\s*href=\"\/user\/[^>]*>\s*<span[^>]*>\s*(.+?)\s*<',  # April 2012
+                r'<button\s*href="/user/[^>]*>\s*<span[^>]*>\s*(.+?)\s*<',  # April 2012
                 get_element_by_id('watch-headline-user-info', webpage), 'uploader', default=None)
             or traverse_obj(player_config, ('args', 'creator'))
             or video_details.get('author'))
