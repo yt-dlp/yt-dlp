@@ -249,6 +249,9 @@ class TikTokBaseIE(InfoExtractor):
         stats_info = aweme_detail.get('statistics', {})
         author_info = aweme_detail.get('author', {})
         music_info = aweme_detail.get('music', {})
+        status_info = aweme_detail.get('status', {})
+        hashtag_info = aweme_detail.get('text_extra', {})
+        control_info = aweme_detail.get('video_control', {})
         user_url = self._UPLOADER_URL_FORMAT % (traverse_obj(author_info,
                                                              'sec_uid', 'id', 'uid', 'unique_id',
                                                              expected_type=str_or_none, get_all=False))
@@ -279,14 +282,24 @@ class TikTokBaseIE(InfoExtractor):
             'download_count': int_or_none(stats_info.get('download_count')),
             'repost_count': int_or_none(stats_info.get('forward_count')),
             'save_count': int_or_none(stats_info.get('collect_count')),
+            'whatsapp_share_count': int_or_none(stats_info.get('whatsapp_share_count')),
             'uploader': str_or_none(author_info.get('unique_id')),
             'creator': str_or_none(author_info.get('nickname')),
             'uploader_id': str_or_none(author_info.get('uid')),
             'uploader_url': user_url,
             'track': music_track,
             'album': str_or_none(music_info.get('album')) or None,
-            'audio_thumbnail': str_or_none(music_info.get('album')) or None,
             'artist': music_author or None,
+            'origin_comment': str_or_none(aweme_detail.get('origin_comment_ids')),
+            'is_advertisement': aweme_detail.get('is_ads'),
+            'audio_start_time': aweme_detail.get('music_begin_time_in_ms'),
+            'comments_enabled': str_or_none(status_info.get('allow_comment')),
+            'sharing_enabled': str_or_none(status_info.get('allow_share')),
+            'ratings_enabled': str_or_none(control_info.get('allow_react')),
+            'music_enabled': str_or_none(control_info.get('allow_music')),
+            'duets_enabled': str_or_none(control_info.get('allow_duet')),
+            'clips_enabled': str_or_none(control_info.get('allow_stitch')),
+            'onsite_downloading_enabled': str_or_none(control_info.get('allow_download')),
             'timestamp': int_or_none(aweme_detail.get('create_time')),
             'formats': formats,
             'subtitles': self.extract_subtitles(aweme_detail, aweme_id),
