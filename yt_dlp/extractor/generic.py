@@ -2470,7 +2470,7 @@ class GenericIE(InfoExtractor):
                 'id': 'porsche-911-gt3-rs-rij-impressie-2',
                 'ext': 'mp4',
                 'title': 'Test: Porsche 911 GT3 RS',
-                'description': 'md5:1a3ca1ec872e13ddae6409fcb2ff23fb',
+                'description': 'Je ziet het niet, maar het is er wel. Downforce, hebben we het dan over. En in de nieuwe Porsche 911 GT3 RS is er zelfs heel veel downforce.',
                 'timestamp': 1664920902,
                 'upload_date': '20221004',
                 'thumbnail': r're:^https://media.autoweek.nl/m/.+\.jpg$',

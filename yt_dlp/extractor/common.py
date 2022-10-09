@@ -1463,7 +1463,7 @@ class InfoExtractor:
     def _json_ld(self, json_ld, video_id, fatal=True, expected_type=None):
         if isinstance(json_ld, str):
             json_ld = self._parse_json(json_ld, video_id, fatal=fatal)
-        if not json_ld or not isinstance(json_ld, (list, dict)):
+        if not json_ld:
             return {}
         info = {}
 
@@ -1565,12 +1565,7 @@ class InfoExtractor:
             extract_chapter_information(e)
 
         def traverse_json_ld(json_ld, at_top_level=True):
-            if isinstance(json_ld, dict):
-                json_ld = [json_ld]
-            if not isinstance(json_ld, list):
-                return
-
-            for e in json_ld:
+            for e in variadic(json_ld):
                 if not isinstance(e, dict):
                     continue
                 if at_top_level and '@context' not in e:
@@ -1631,8 +1626,8 @@ class InfoExtractor:
                     continue
                 else:
                     break
-        traverse_json_ld(json_ld)
 
+        traverse_json_ld(json_ld)
         return filter_dict(info)
 
     def _search_nextjs_data(self, webpage, video_id, *, transform_source=None, fatal=True, **kw):
