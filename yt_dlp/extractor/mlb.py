@@ -373,15 +373,10 @@ class MLBArticleIE(InfoExtractor):
 
         content_real_info = apollo_cache_json[content_data_id]
 
-        content_video_query_id_list = traverse_obj(
-            content_real_info, ('parts', lambda _, v: v['typename'] == 'Video', 'id'))
-
-        # search again in apollo cache
-        entries = []
-        for video_query in content_video_query_id_list:
-            video_slug = traverse_obj(apollo_cache_json, (video_query, 'slug'))
-            entries.append(self.url_result(f'https://www.mlb.com/video/{video_slug}', ie=MLBVideoIE))
-
-        return self.playlist_result(
-            entries, content_real_info.get('_translationId'), self._html_search_meta('og:title', webpage),
-            content_real_info.get('summary'), modified_timestamp=parse_iso8601(content_real_info.get('lastUpdatedDate')))
+        return self.playlist_from_matches(
+            traverse_obj(content_real_info, ('parts', lambda _, v: v['typename'] == 'Video', 'id')),
+            getter=lambda x: f'https://www.mlb.com/video/{apollo_cache_json[x]["slug"]}',
+            ie=MLBVideoIE, playlist_id=content_real_info.get('_translationId'),
+            title=self._html_search_meta('og:title', webpage),
+            description=content_real_info.get('summary'),
+            modified_timestamp=parse_iso8601(content_real_info.get('lastUpdatedDate'))))
