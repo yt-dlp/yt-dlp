@@ -1,6 +1,7 @@
 import re
 
 from .common import InfoExtractor
+from .periscope import PeriscopeBaseIE, PeriscopeIE
 from ..compat import (
     compat_HTTPError,
     compat_parse_qs,
@@ -8,23 +9,20 @@ from ..compat import (
     compat_urllib_parse_urlparse,
 )
 from ..utils import (
-    dict_get,
     ExtractorError,
-    format_field,
+    dict_get,
     float_or_none,
+    format_field,
     int_or_none,
+    make_archive_id,
+    str_or_none,
+    strip_or_none,
     traverse_obj,
     try_get,
-    strip_or_none,
     unified_timestamp,
     update_url_query,
     url_or_none,
     xpath_text,
-)
-
-from .periscope import (
-    PeriscopeBaseIE,
-    PeriscopeIE,
 )
 
 
@@ -85,7 +83,7 @@ class TwitterBaseIE(InfoExtractor):
 
     def _call_api(self, path, video_id, query={}):
         headers = {
-            'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw',
+            'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
         }
         token = self._get_cookies(self._API_BASE).get('ct0')
         if token:
@@ -202,7 +200,8 @@ class TwitterIE(TwitterBaseIE):
     _TESTS = [{
         'url': 'https://twitter.com/freethenipple/status/643211948184596480',
         'info_dict': {
-            'id': '643211948184596480',
+            'id': '643211870443208704',
+            'display_id': '643211948184596480',
             'ext': 'mp4',
             'title': 'FREE THE NIPPLE - FTN supporters on Hollywood Blvd today!',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -212,6 +211,12 @@ class TwitterIE(TwitterBaseIE):
             'duration': 12.922,
             'timestamp': 1442188653,
             'upload_date': '20150913',
+            'age_limit': 18,
+            'uploader_url': 'https://twitter.com/freethenipple',
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': [],
             'age_limit': 18,
         },
     }, {
@@ -232,6 +237,7 @@ class TwitterIE(TwitterBaseIE):
         'url': 'https://twitter.com/starwars/status/665052190608723968',
         'info_dict': {
             'id': '665052190608723968',
+            'display_id': '665052190608723968',
             'ext': 'mp4',
             'title': 'Star Wars - A new beginning is coming December 18. Watch the official 60 second #TV spot for #StarWars: #TheForceAwakens.',
             'description': 'A new beginning is coming December 18. Watch the official 60 second #TV spot for #StarWars: #TheForceAwakens. https://t.co/OkSqT2fjWJ',
@@ -239,6 +245,12 @@ class TwitterIE(TwitterBaseIE):
             'uploader': 'Star Wars',
             'timestamp': 1447395772,
             'upload_date': '20151113',
+            'uploader_url': 'https://twitter.com/starwars',
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': ['TV', 'StarWars', 'TheForceAwakens'],
+            'age_limit': 0,
         },
     }, {
         'url': 'https://twitter.com/BTNBrentYarina/status/705235433198714880',
@@ -251,6 +263,12 @@ class TwitterIE(TwitterBaseIE):
             'uploader': 'Brent Yarina',
             'timestamp': 1456976204,
             'upload_date': '20160303',
+            'uploader_url': 'https://twitter.com/BTNBrentYarina',
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': [],
+            'age_limit': 0,
         },
         'params': {
             # The same video as https://twitter.com/i/videos/tweet/705235433198714880
@@ -260,16 +278,23 @@ class TwitterIE(TwitterBaseIE):
     }, {
         'url': 'https://twitter.com/jaydingeer/status/700207533655363584',
         'info_dict': {
-            'id': '700207533655363584',
+            'id': '700207414000242688',
+            'display_id': '700207533655363584',
             'ext': 'mp4',
-            'title': 'simon vertugo - BEAT PROD: @suhmeduh #Damndaniel',
+            'title': 'jaydin donte geer - BEAT PROD: @suhmeduh #Damndaniel',
             'description': 'BEAT PROD: @suhmeduh  https://t.co/HBrQ4AfpvZ #Damndaniel https://t.co/byBooq2ejZ',
             'thumbnail': r're:^https?://.*\.jpg',
-            'uploader': 'simon vertugo',
-            'uploader_id': 'simonvertugo',
+            'uploader': 'jaydin donte geer',
+            'uploader_id': 'jaydingeer',
             'duration': 30.0,
             'timestamp': 1455777459,
             'upload_date': '20160218',
+            'uploader_url': 'https://twitter.com/jaydingeer',
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': ['Damndaniel'],
+            'age_limit': 0,
         },
     }, {
         'url': 'https://twitter.com/Filmdrunk/status/713801302971588609',
@@ -282,12 +307,19 @@ class TwitterIE(TwitterBaseIE):
             'uploader_id': '1004126642786242560',
             'timestamp': 1402826626,
             'upload_date': '20140615',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'alt_title': 'Vine by TAKUMA',
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'view_count': int,
         },
         'add_ie': ['Vine'],
     }, {
         'url': 'https://twitter.com/captainamerica/status/719944021058060289',
         'info_dict': {
-            'id': '719944021058060289',
+            'id': '717462543795523584',
+            'display_id': '719944021058060289',
             'ext': 'mp4',
             'title': 'Captain America - @King0fNerd Are you sure you made the right choice? Find out in theaters.',
             'description': '@King0fNerd Are you sure you made the right choice? Find out in theaters. https://t.co/GpgYi9xMJI',
@@ -296,6 +328,13 @@ class TwitterIE(TwitterBaseIE):
             'duration': 3.17,
             'timestamp': 1460483005,
             'upload_date': '20160412',
+            'uploader_url': 'https://twitter.com/CaptainAmerica',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': [],
+            'age_limit': 0,
         },
     }, {
         'url': 'https://twitter.com/OPP_HSD/status/779210622571536384',
@@ -307,6 +346,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader_id': '1PmKqpJdOJQoY',
             'uploader': 'Sgt Kerry Schmidt - Ontario Provincial Police',
             'timestamp': 1474613214,
+            'thumbnail': r're:^https?://.*\.jpg',
         },
         'add_ie': ['Periscope'],
     }, {
@@ -327,7 +367,8 @@ class TwitterIE(TwitterBaseIE):
     }, {
         'url': 'https://twitter.com/i/web/status/910031516746514432',
         'info_dict': {
-            'id': '910031516746514432',
+            'id': '910030238373089285',
+            'display_id': '910031516746514432',
             'ext': 'mp4',
             'title': 'Préfet de Guadeloupe - [Direct] #Maria Le centre se trouve actuellement au sud de Basse-Terre. Restez confinés. Réfugiez-vous dans la pièce la + sûre.',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -337,6 +378,12 @@ class TwitterIE(TwitterBaseIE):
             'duration': 47.48,
             'timestamp': 1505803395,
             'upload_date': '20170919',
+            'uploader_url': 'https://twitter.com/Prefet971',
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': ['Maria'],
+            'age_limit': 0,
         },
         'params': {
             'skip_download': True,  # requires ffmpeg
@@ -345,7 +392,8 @@ class TwitterIE(TwitterBaseIE):
         # card via api.twitter.com/1.1/videos/tweet/config
         'url': 'https://twitter.com/LisPower1/status/1001551623938805763',
         'info_dict': {
-            'id': '1001551623938805763',
+            'id': '1001551417340022785',
+            'display_id': '1001551623938805763',
             'ext': 'mp4',
             'title': 're:.*?Shep is on a roll today.*?',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -355,6 +403,12 @@ class TwitterIE(TwitterBaseIE):
             'duration': 111.278,
             'timestamp': 1527623489,
             'upload_date': '20180529',
+            'uploader_url': 'https://twitter.com/LisPower1',
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': [],
+            'age_limit': 0,
         },
         'params': {
             'skip_download': True,  # requires ffmpeg
@@ -362,7 +416,8 @@ class TwitterIE(TwitterBaseIE):
     }, {
         'url': 'https://twitter.com/foobar/status/1087791357756956680',
         'info_dict': {
-            'id': '1087791357756956680',
+            'id': '1087791272830607360',
+            'display_id': '1087791357756956680',
             'ext': 'mp4',
             'title': 'Twitter - A new is coming.  Some of you got an opt-in to try it now. Check out the emoji button, quick keyboard shortcuts, upgraded trends, advanced search, and more. Let us know your thoughts!',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -372,6 +427,12 @@ class TwitterIE(TwitterBaseIE):
             'duration': 61.567,
             'timestamp': 1548184644,
             'upload_date': '20190122',
+            'uploader_url': 'https://twitter.com/Twitter',
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': [],
+            'age_limit': 0,
         },
     }, {
         # not available in Periscope
@@ -382,13 +443,17 @@ class TwitterIE(TwitterBaseIE):
             'title': 'Vivi - Vivi founder @lior_rauchy announcing our new student feedback tool live at @EduTECH_AU #EduTECH2019',
             'uploader': 'Vivi',
             'uploader_id': '1eVjYOLGkGrQL',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'tags': ['EduTECH2019'],
+            'view_count': int,
         },
         'add_ie': ['TwitterBroadcast'],
     }, {
         # unified card
         'url': 'https://twitter.com/BrooklynNets/status/1349794411333394432?s=20',
         'info_dict': {
-            'id': '1349794411333394432',
+            'id': '1349774757969989634',
+            'display_id': '1349794411333394432',
             'ext': 'mp4',
             'title': 'md5:d1c4941658e4caaa6cb579260d85dcba',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -398,10 +463,57 @@ class TwitterIE(TwitterBaseIE):
             'duration': 324.484,
             'timestamp': 1610651040,
             'upload_date': '20210114',
+            'uploader_url': 'https://twitter.com/BrooklynNets',
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': [],
+            'age_limit': 0,
         },
         'params': {
             'skip_download': True,
         },
+    }, {
+        'url': 'https://twitter.com/oshtru/status/1577855540407197696',
+        'info_dict': {
+            'id': '1577855447914409984',
+            'display_id': '1577855540407197696',
+            'ext': 'mp4',
+            'title': 'oshtru \U0001faac\U0001f47d - gm \u2728\ufe0f now I can post image and video. nice update.',
+            'description': 'gm \u2728\ufe0f now I can post image and video. nice update. https://t.co/cG7XgiINOm',
+            'upload_date': '20221006',
+            'uploader': 'oshtru \U0001faac\U0001f47d',
+            'uploader_id': 'oshtru',
+            'uploader_url': 'https://twitter.com/oshtru',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 30.03,
+            'timestamp': 1665025050.0,
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': [],
+            'age_limit': 0,
+        },
+        'params': {'skip_download': True},
+    }, {
+        'url': 'https://twitter.com/UltimaShadowX/status/1577719286659006464',
+        'info_dict': {
+            'id': '1577719286659006464',
+            'title': 'Ultima | #\u0432\u029f\u043c - Test',
+            'description': 'Test https://t.co/Y3KEZD7Dad',
+            'uploader': 'Ultima | #\u0432\u029f\u043c',
+            'uploader_id': 'UltimaShadowX',
+            'uploader_url': 'https://twitter.com/UltimaShadowX',
+            'upload_date': '20221005',
+            'timestamp': 1664992565.0,
+            'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': [],
+            'age_limit': 0,
+        },
+        'playlist_count': 4,
+        'params': {'skip_download': True},
     }, {
         # Twitch Clip Embed
         'url': 'https://twitter.com/GunB1g/status/1163218564784017422',
@@ -479,6 +591,8 @@ class TwitterIE(TwitterBaseIE):
         }
 
         def extract_from_video_info(media):
+            media_id = traverse_obj(media, 'id_str', 'id', expected_type=str_or_none)
+            self.write_debug(f'Extracting from video info: {media_id}')
             video_info = media.get('video_info') or {}
 
             formats = []
@@ -503,90 +617,107 @@ class TwitterIE(TwitterBaseIE):
                     add_thumbnail(name, size)
                 add_thumbnail('orig', media.get('original_info') or {})
 
-            info.update({
+            return {
+                'id': media_id,
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
                 'duration': float_or_none(video_info.get('duration_millis'), 1000),
-            })
+            }
 
-        media = traverse_obj(status, ((None, 'quoted_status'), 'extended_entities', 'media', 0), get_all=False)
-        if media and media.get('type') != 'photo':
-            extract_from_video_info(media)
-        else:
-            card = status.get('card')
-            if card:
-                binding_values = card['binding_values']
+        def extract_from_card_info(card):
+            if not card:
+                return
 
-                def get_binding_value(k):
-                    o = binding_values.get(k) or {}
-                    return try_get(o, lambda x: x[x['type'].lower() + '_value'])
+            self.write_debug(f'Extracting from card info: {card.get("url")}')
+            binding_values = card['binding_values']
 
-                card_name = card['name'].split(':')[-1]
-                if card_name == 'player':
-                    info.update({
-                        '_type': 'url',
-                        'url': get_binding_value('player_url'),
-                    })
-                elif card_name == 'periscope_broadcast':
-                    info.update({
-                        '_type': 'url',
-                        'url': get_binding_value('url') or get_binding_value('player_url'),
-                        'ie_key': PeriscopeIE.ie_key(),
-                    })
-                elif card_name == 'broadcast':
-                    info.update({
-                        '_type': 'url',
-                        'url': get_binding_value('broadcast_url'),
-                        'ie_key': TwitterBroadcastIE.ie_key(),
-                    })
-                elif card_name == 'summary':
-                    info.update({
-                        '_type': 'url',
-                        'url': get_binding_value('card_url'),
-                    })
-                elif card_name == 'unified_card':
-                    media_entities = self._parse_json(get_binding_value('unified_card'), twid)['media_entities']
-                    extract_from_video_info(next(iter(media_entities.values())))
-                # amplify, promo_video_website, promo_video_convo, appplayer,
-                # video_direct_message, poll2choice_video, poll3choice_video,
-                # poll4choice_video, ...
-                else:
-                    is_amplify = card_name == 'amplify'
-                    vmap_url = get_binding_value('amplify_url_vmap') if is_amplify else get_binding_value('player_stream_url')
-                    content_id = get_binding_value('%s_content_id' % (card_name if is_amplify else 'player'))
-                    formats, subtitles = self._extract_formats_from_vmap_url(vmap_url, content_id or twid)
-                    self._sort_formats(formats)
+            def get_binding_value(k):
+                o = binding_values.get(k) or {}
+                return try_get(o, lambda x: x[x['type'].lower() + '_value'])
 
-                    thumbnails = []
-                    for suffix in ('_small', '', '_large', '_x_large', '_original'):
-                        image = get_binding_value('player_image' + suffix) or {}
-                        image_url = image.get('url')
-                        if not image_url or '/player-placeholder' in image_url:
-                            continue
-                        thumbnails.append({
-                            'id': suffix[1:] if suffix else 'medium',
-                            'url': image_url,
-                            'width': int_or_none(image.get('width')),
-                            'height': int_or_none(image.get('height')),
-                        })
-
-                    info.update({
-                        'formats': formats,
-                        'subtitles': subtitles,
-                        'thumbnails': thumbnails,
-                        'duration': int_or_none(get_binding_value(
-                            'content_duration_seconds')),
-                    })
-            else:
-                expanded_url = try_get(status, lambda x: x['entities']['urls'][0]['expanded_url'])
-                if not expanded_url:
-                    raise ExtractorError("There's no video in this tweet.")
-                info.update({
+            card_name = card['name'].split(':')[-1]
+            if card_name == 'player':
+                return {
                     '_type': 'url',
-                    'url': expanded_url,
-                })
-        return info
+                    'url': get_binding_value('player_url'),
+                }
+            elif card_name == 'periscope_broadcast':
+                return {
+                    '_type': 'url',
+                    'url': get_binding_value('url') or get_binding_value('player_url'),
+                    'ie_key': PeriscopeIE.ie_key(),
+                }
+            elif card_name == 'broadcast':
+                return {
+                    '_type': 'url',
+                    'url': get_binding_value('broadcast_url'),
+                    'ie_key': TwitterBroadcastIE.ie_key(),
+                }
+            elif card_name == 'summary':
+                return {
+                    '_type': 'url',
+                    'url': get_binding_value('card_url'),
+                }
+            elif card_name == 'unified_card':
+                media_entities = self._parse_json(get_binding_value('unified_card'), twid)['media_entities']
+                media = traverse_obj(media_entities, ..., expected_type=dict, get_all=False)
+                return extract_from_video_info(media)
+            # amplify, promo_video_website, promo_video_convo, appplayer,
+            # video_direct_message, poll2choice_video, poll3choice_video,
+            # poll4choice_video, ...
+            else:
+                is_amplify = card_name == 'amplify'
+                vmap_url = get_binding_value('amplify_url_vmap') if is_amplify else get_binding_value('player_stream_url')
+                content_id = get_binding_value('%s_content_id' % (card_name if is_amplify else 'player'))
+                formats, subtitles = self._extract_formats_from_vmap_url(vmap_url, content_id or twid)
+                self._sort_formats(formats)
+
+                thumbnails = []
+                for suffix in ('_small', '', '_large', '_x_large', '_original'):
+                    image = get_binding_value('player_image' + suffix) or {}
+                    image_url = image.get('url')
+                    if not image_url or '/player-placeholder' in image_url:
+                        continue
+                    thumbnails.append({
+                        'id': suffix[1:] if suffix else 'medium',
+                        'url': image_url,
+                        'width': int_or_none(image.get('width')),
+                        'height': int_or_none(image.get('height')),
+                    })
+
+                return {
+                    'formats': formats,
+                    'subtitles': subtitles,
+                    'thumbnails': thumbnails,
+                    'duration': int_or_none(get_binding_value(
+                        'content_duration_seconds')),
+                }
+
+        media_path = ((None, 'quoted_status'), 'extended_entities', 'media', lambda _, m: m['type'] != 'photo')
+        videos = map(extract_from_video_info, traverse_obj(status, media_path, expected_type=dict))
+        entries = [{**info, **data, 'display_id': twid} for data in videos if data]
+
+        data = extract_from_card_info(status.get('card'))
+        if data:
+            entries.append({**info, **data, 'display_id': twid})
+
+        if not entries:
+            expanded_url = traverse_obj(status, ('entities', 'urls', 0, 'expanded_url'), expected_type=url_or_none)
+            if not expanded_url or expanded_url == url:
+                raise ExtractorError('No video could be found in this tweet', expected=True)
+
+            return self.url_result(expanded_url, display_id=twid, **info)
+
+        entries[0]['_old_archive_ids'] = [make_archive_id(self, twid)]
+
+        if len(entries) == 1:
+            return entries[0]
+
+        for index, entry in enumerate(entries, 1):
+            entry['title'] += f' #{index}'
+
+        return self.playlist_result(entries, **info)
 
 
 class TwitterAmplifyIE(TwitterBaseIE):
