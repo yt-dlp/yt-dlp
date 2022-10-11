@@ -3,7 +3,7 @@ from .vimeo import VimeoIE
 
 
 class AeonCoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?aeon\.co/videos/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?aeon\.co/videos/(?P<id>[^/?]+)'
     _TESTS = [{
         'url': 'https://aeon.co/videos/raw-solar-storm-footage-is-the-punk-rock-antidote-to-sleek-james-webb-imagery',
         'md5': 'e5884d80552c9b6ea8d268a258753362',
