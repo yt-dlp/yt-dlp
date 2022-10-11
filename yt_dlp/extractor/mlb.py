@@ -379,4 +379,4 @@ class MLBArticleIE(InfoExtractor):
             ie=MLBVideoIE, playlist_id=content_real_info.get('_translationId'),
             title=self._html_search_meta('og:title', webpage),
             description=content_real_info.get('summary'),
-            modified_timestamp=parse_iso8601(content_real_info.get('lastUpdatedDate'))))
+            modified_timestamp=parse_iso8601(content_real_info.get('lastUpdatedDate')))
