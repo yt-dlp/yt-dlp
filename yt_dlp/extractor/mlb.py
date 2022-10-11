@@ -366,7 +366,7 @@ class MLBArticleIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        apollo_cache_json = self._search_json(r'window\.initState\s*=\s*', webpage, 'window.initState', display_id)['apolloCache']
+        apollo_cache_json = self._search_json(r'window\.initState\s*=', webpage, 'window.initState', display_id)['apolloCache']
 
         content_data_id = traverse_obj(
             apollo_cache_json, ('ROOT_QUERY', lambda k, _: k.startswith('getForgeContent'), 'id'), get_all=False)
