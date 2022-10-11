@@ -14,6 +14,7 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
+    make_archive_id,
     str_or_none,
     strip_or_none,
     traverse_obj,
@@ -625,8 +626,8 @@ class TwitterIE(TwitterBaseIE):
             }
 
         def extract_from_card_info(card):
-            if card is None:
-                return None
+            if not card:
+                return
 
             self.write_debug(f'Extracting from card info: {card.get("url")}')
             binding_values = card['binding_values']
@@ -708,10 +709,7 @@ class TwitterIE(TwitterBaseIE):
 
             return self.url_result(expanded_url, display_id=twid, **info)
 
-        # compat: tweet id was previously used instead of media id.
-        #         Since only one result was extracted before,
-        #         apply only to first result as well.
-        entries[0]['_old_archive_ids'] = [twid]
+        entries[0]['_old_archive_ids'] = [make_archive_id(self, twid)]
 
         if len(entries) == 1:
             return entries[0]
