@@ -392,6 +392,11 @@ class TestJSInterpreter(unittest.TestCase):
         ''')
         self.assertEqual(jsi.call_function('x').pattern, r',][}",],()}(\[)')
 
+        jsi = JSInterpreter(R'''
+        function x() { let a=[/[)\\]/]; return a[0]; }
+        ''')
+        self.assertEqual(jsi.call_function('x').pattern, r'[)\\]')
+
     def test_char_code_at(self):
         jsi = JSInterpreter('function x(i){return "test".charCodeAt(i)}')
         self.assertEqual(jsi.call_function('x', 0), 116)

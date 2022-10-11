@@ -2832,7 +2832,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(
                 f'Native nsig extraction failed: Trying with PhantomJS\n'
                 f'         n = {s} ; player = {player_url}', video_id)
-            self.write_debug(e)
+            self.write_debug(e, only_once=True)
 
             args, func_body = func_code
             ret = jsi.execute(
