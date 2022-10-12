@@ -1,5 +1,5 @@
 import re
-from urllib.parse import unquote
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import make_archive_id, unescapeHTML
@@ -107,13 +107,9 @@ class QuotedHTMLGenericExtensionIE(InfoExtractor):
     def _extract_from_webpage(self, url, webpage):
         combined = ''
         for _, html in re.findall(r'(?s)data-html=(["\'])((?:(?!\1).)+)\1', webpage):
-            if not html:
-                continue
             # unescapeHTML can handle &quot; etc., unquote can handle percent encoding
-            unquoted_html = unescapeHTML(unquote(html))
-            if unquoted_html == html:
-                continue
-            combined += unquoted_html
-        if not combined:
-            return
-        yield from self._extract_generic_embeds(url, combined)
+            unquoted_html = unescapeHTML(urllib.parse.unquote(html))
+            if unquoted_html != html:
+                combined += unquoted_html
+        if combined:
+            yield from self._extract_generic_embeds(url, combined)
