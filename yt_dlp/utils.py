@@ -3275,14 +3275,23 @@ def strip_jsonp(code):
 
 def js_to_json(code, vars={}, *, strict=False):
     # vars is a dict of var, val pairs to substitute
-    STRING_QUOTES = '\'\"'
-    STRING_RE = '|'.join(rf'''{q}(?:[^{q}\\]*(?:\\.))*[^{q}\\]*{q}''' for q in STRING_QUOTES)
+    STRING_QUOTES = '\'"'
+    STRING_RE = '|'.join(rf'{q}(?:\\.|[^\\{q}])*{q}' for q in STRING_QUOTES)
     COMMENT_RE = r'/\*(?:(?!\*/).)*?\*/|//[^\n]*\n'
     SKIP_RE = fr'\s*(?:{COMMENT_RE})?\s*'
     INTEGER_TABLE = (
         (fr'(?s)^(0[xX][0-9a-fA-F]+){SKIP_RE}:?$', 16),
         (fr'(?s)^(0+[0-7]+){SKIP_RE}:?$', 8),
     )
+
+    def process_escape(match):
+        JSON_PASSTHROUGH_ESCAPES = R'"\bfnrtu'
+        escape = match.group(1) or match.group(2)
+
+        return (Rf'\{escape}' if escape in JSON_PASSTHROUGH_ESCAPES
+                else R'\u00' if escape == 'x'
+                else '' if escape == '\n'
+                else escape)
 
     def fix_kv(m):
         v = m.group(0)
@@ -3294,15 +3303,6 @@ def js_to_json(code, vars={}, *, strict=False):
             return ''
 
         if v[0] in STRING_QUOTES:
-            def process_escape(match):
-                JSON_PASSTHROUGH_ESCAPES = R'"\bfnrtu'
-                escape = match.group(1) or match.group(2)
-
-                return (Rf'\{escape}' if escape in JSON_PASSTHROUGH_ESCAPES
-                        else R'\u00' if escape == 'x'
-                        else '' if escape == '\n'
-                        else escape)
-
             escaped = re.sub(r'(?s)(")|\\(.)', process_escape, v[1:-1])
             return f'"{escaped}"'
 
