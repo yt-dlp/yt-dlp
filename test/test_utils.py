@@ -1101,10 +1101,10 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(json.loads(on), [1, 2])
 
         on = js_to_json(R'"\^\$\#"')
-        self.assertEqual(json.loads(on), R"^$#", msg="Unneccesary escapes should be stripped")
+        self.assertEqual(json.loads(on), R'^$#', msg='Unnecessary escapes should be stripped')
 
         on = js_to_json('\'"\\""\'')
-        self.assertEqual(json.loads(on), '"""', msg="Unneccesary quote escape should be escaped")
+        self.assertEqual(json.loads(on), '"""', msg='Unnecessary quote escape should be escaped')
 
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
