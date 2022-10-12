@@ -516,7 +516,8 @@ class TwitterIE(TwitterBaseIE):
         'params': {'skip_download': True},
     }, {
         # onion route
-        'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273'
+        'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
+        'only_matching': True,
     }, {
         # Twitch Clip Embed
         'url': 'https://twitter.com/GunB1g/status/1163218564784017422',
