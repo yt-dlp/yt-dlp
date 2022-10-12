@@ -35,7 +35,7 @@ class BBCCoUkIE(InfoExtractor):
     _ID_REGEX = r'(?:[pbml][\da-z]{7}|w[\da-z]{7,14})'
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:www\.)?bbc\.co\.uk/
+                        (?:www\.)?(bbc\.co\.uk|bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd\.onion|bbcweb3hytmzhn5d532owbu6oqadra5z3ar726vq5kgwwn6aucdccrad\.onion)/
                         (?:
                             programmes/(?!articles/)|
                             iplayer(?:/[^/]+)?/(?:episode/|playlist/)|
@@ -232,6 +232,9 @@ class BBCCoUkIE(InfoExtractor):
                 # rtmp download
                 'skip_download': True,
             }
+        }, {
+            'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion',
+            'only_matching': True,
         }, {
             'url': 'http://www.bbc.co.uk/iplayer/playlist/p01dvks4',
             'only_matching': True,
