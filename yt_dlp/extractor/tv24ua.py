@@ -1,15 +1,10 @@
-import base64
 import re
-import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
-    extract_attributes,
-    get_elements_html_by_class,
     js_to_json,
     mimetype2ext,
-    smuggle_url,
     traverse_obj,
 )
 
