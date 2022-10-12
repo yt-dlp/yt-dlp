@@ -35,6 +35,6 @@ class AeonCoIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        vimeo_id = self._search_regex(r'hosterId\":\w*\"(?P<id>[0-9]+)', webpage, 'id')
-        vimeo_url = f'https://player.vimeo.com/video/{vimeo_id}'
-        return self.url_result(VimeoIE._smuggle_referrer(vimeo_url, "https://aeon.co"))
+        vimeo_id = self._search_regex(r'hosterId":\s*"(?P<id>[0-9]+)', webpage, 'vimeo id')
+        vimeo_url = VimeoIE._smuggle_referrer(f'https://player.vimeo.com/video/{vimeo_id}', 'https://aeon.co')
+        return self.url_result(vimeo_url, VimeoIE)
