@@ -493,8 +493,8 @@ def get_element_text_and_html_by_tag(tag, html):
     content_start += whole_start + 1
     with HTMLBreakOnClosingTagParser() as parser:
         parser.feed(html[whole_start:content_start])
-        # if not parser.tagstack or parser.tagstack[0] != tag:
-        #     raise compat_HTMLParseError(f'parser did not match opening {tag} tag')
+        if not parser.tagstack or parser.tagstack[0] != tag:
+            raise compat_HTMLParseError(f'parser did not match opening {tag} tag')
         offset = content_start
         while offset < len(html):
             next_closing_tag_start = find_or_raise(
