@@ -1,8 +1,8 @@
 import re
+from urllib.parse import unquote
 
 from .common import InfoExtractor
 from ..utils import make_archive_id, unescapeHTML
-from urllib.parse import unquote
 
 
 class HTML5MediaEmbedIE(InfoExtractor):
@@ -117,4 +117,3 @@ class QuotedHTMLGenericExtensionIE(InfoExtractor):
         if not combined:
             return
         yield from self._extract_generic_embeds(url, combined)
-
