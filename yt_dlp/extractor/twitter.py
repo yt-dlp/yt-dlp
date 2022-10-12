@@ -28,7 +28,7 @@ from ..utils import (
 
 class TwitterBaseIE(InfoExtractor):
     _API_BASE = 'https://api.twitter.com/1.1/'
-    _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?twitter\.com/'
+    _BASE_REGEX = r'https?://(?:(?:www|m(?:obile)?)\.)?(?:twitter\.com|twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid\.onion)/'
     _GUEST_TOKEN = None
 
     def _extract_variant_formats(self, variant, video_id):
@@ -514,6 +514,10 @@ class TwitterIE(TwitterBaseIE):
         },
         'playlist_count': 4,
         'params': {'skip_download': True},
+    }, {
+        # onion route
+        'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
+        'only_matching': True,
     }, {
         # Twitch Clip Embed
         'url': 'https://twitter.com/GunB1g/status/1163218564784017422',
