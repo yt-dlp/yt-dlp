@@ -948,9 +948,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'uploader': uploader,
             'channel_id': channel_id,
             'thumbnails': thumbnails,
-            'upload_date': (strftime_or_none(self._parse_time_text(time_text), '%Y%m%d')
-                            if self._configuration_arg('approximate_date', ie_key='youtubetab')
-                            else None),
+            'timestamp': (self._parse_time_text(time_text)
+                          if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
+                          else None),
             'release_timestamp': scheduled_timestamp,
             'availability':
                 'public' if self._has_badge(badges, BadgeType.AVAILABILITY_PUBLIC)
@@ -6105,9 +6105,9 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
         title = self._search_regex(
             rf'{re.escape(channel or "")}[^:]+: (.+)', notification_title,
             'video title', default=None)
-        upload_date = (strftime_or_none(self._parse_time_text(self._get_text(notification, 'sentTimeText')), '%Y%m%d')
-                       if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE.ie_key())
-                       else None)
+        timestamp = (self._parse_time_text(self._get_text(notification, 'sentTimeText'))
+                     if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
+                     else None)
         return {
             '_type': 'url',
             'url': url,
@@ -6117,7 +6117,7 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
             'channel_id': channel_id,
             'channel': channel,
             'thumbnails': self._extract_thumbnails(notification, 'videoThumbnail'),
-            'upload_date': upload_date,
+            'timestamp': timestamp,
         }
 
     def _notification_menu_entries(self, ytcfg):
