@@ -34,18 +34,19 @@ class HTML5MediaEmbedIE(InfoExtractor):
             yield entry
 
 
-class QuotedHTMLGenericPassthroughIE(InfoExtractor):
+class QuotedHTMLGenericExtensionIE(InfoExtractor):
     _VALID_URL = False
     IE_NAME = 'generic:quoted-html'
+    IE_DESC = False  # Do not list
     _WEBPAGE_TESTS = [{
         # 2 YouTube embeds
         'url': 'https://24tv.ua/bronetransporteri-ozbroyenni-zsu-shho-vidomo-pro-bronovik-wolfhound_n2167966',
         'info_dict': {
             'id': 'bronetransporteri-ozbroyenni-zsu-shho-vidomo-pro-bronovik-wolfhound_n2167966',
             'title': 'Броньовик Wolfhound: гігант, який допомагає ЗСУ знищувати окупантів на фронті',
-            'thumbnail': 'https://24tv.ua/resources/photos/news/1200x675_DIR/202209/2167966.jpg?v=1664461299000',
-            'timestamp': 1664461299.0,
-            'upload_date': '20220929',
+            'thumbnail': r're:^https?://.*\.jpe?g',
+            'timestamp': float,
+            'upload_date': str,
             'description': 'md5:6816e1e5a65304bd7898e4c7eb1b26f7',
             'age_limit': 0,
         },
@@ -71,36 +72,36 @@ class QuotedHTMLGenericPassthroughIE(InfoExtractor):
         },
         'playlist_mincount': 26
     }, {
-            # Squarespace video embed, 2019-08-28
-            'url': 'http://ootboxford.com',
-            'info_dict': {
-                'id': 'Tc7b_JGdZfw',
-                'title': 'Out of the Blue, at Childish Things 10',
-                'ext': 'mp4',
-                'description': 'md5:a83d0026666cf5ee970f8bd1cfd69c7f',
-                'uploader_id': 'helendouglashouse',
-                'uploader': 'Helen & Douglas House',
-                'upload_date': '20140328',
-                'availability': 'public',
-                'view_count': int,
-                'channel': 'Helen & Douglas House',
-                'comment_count': int,
-                'uploader_url': 'http://www.youtube.com/user/helendouglashouse',
-                'duration': 253,
-                'channel_url': 'https://www.youtube.com/channel/UCTChGezrZVmlYlpMlkmulPA',
-                'playable_in_embed': True,
-                'age_limit': 0,
-                'channel_follower_count': int,
-                'channel_id': 'UCTChGezrZVmlYlpMlkmulPA',
-                'tags': 'count:6',
-                'categories': ['Nonprofits & Activism'],
-                'like_count': int,
-                'thumbnail': 'https://i.ytimg.com/vi/Tc7b_JGdZfw/hqdefault.jpg',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        }]
+        # Squarespace video embed, 2019-08-28
+        'url': 'http://ootboxford.com',
+        'info_dict': {
+            'id': 'Tc7b_JGdZfw',
+            'title': 'Out of the Blue, at Childish Things 10',
+            'ext': 'mp4',
+            'description': 'md5:a83d0026666cf5ee970f8bd1cfd69c7f',
+            'uploader_id': 'helendouglashouse',
+            'uploader': 'Helen & Douglas House',
+            'upload_date': '20140328',
+            'availability': 'public',
+            'view_count': int,
+            'channel': 'Helen & Douglas House',
+            'comment_count': int,
+            'uploader_url': 'http://www.youtube.com/user/helendouglashouse',
+            'duration': 253,
+            'channel_url': 'https://www.youtube.com/channel/UCTChGezrZVmlYlpMlkmulPA',
+            'playable_in_embed': True,
+            'age_limit': 0,
+            'channel_follower_count': int,
+            'channel_id': 'UCTChGezrZVmlYlpMlkmulPA',
+            'tags': 'count:6',
+            'categories': ['Nonprofits & Activism'],
+            'like_count': int,
+            'thumbnail': 'https://i.ytimg.com/vi/Tc7b_JGdZfw/hqdefault.jpg',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
 
     def _extract_from_webpage(self, url, webpage):
         combined = ''

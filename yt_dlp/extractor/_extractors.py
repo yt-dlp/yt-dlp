@@ -697,7 +697,10 @@ from .hse import (
     HSEShowIE,
     HSEProductIE,
 )
-from .genericembeds import HTML5MediaEmbedIE, QuotedHTMLGenericPassthroughIE
+from .genericembeds import (
+    HTML5MediaEmbedIE,
+    QuotedHTMLGenericExtensionIE,
+)
 from .huajiao import HuajiaoIE
 from .huya import HuyaLiveIE
 from .huffpost import HuffPostIE
