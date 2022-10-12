@@ -440,6 +440,7 @@ from .dplay import (
     AnimalPlanetIE,
     TLCIE,
     MotorTrendIE,
+    MotorTrendOnDemandIE,
     DiscoveryPlusIndiaIE,
     DiscoveryNetworksDeIE,
     DiscoveryPlusItalyIE,
@@ -1180,6 +1181,7 @@ from .noodlemagazine import NoodleMagazineIE
 from .noovo import NoovoIE
 from .normalboots import NormalbootsIE
 from .nosvideo import NosVideoIE
+from .nosnl import NOSNLArticleIE
 from .nova import (
     NovaEmbedIE,
     NovaIE,
@@ -1343,6 +1345,7 @@ from .pluralsight import (
     PluralsightIE,
     PluralsightCourseIE,
 )
+from .podbayfm import PodbayFMIE, PodbayFMChannelIE
 from .podchaser import PodchaserIE
 from .podomatic import PodomaticIE
 from .pokemon import (
@@ -1564,6 +1567,7 @@ from .samplefocus import SampleFocusIE
 from .sapo import SapoIE
 from .savefrom import SaveFromIE
 from .sbs import SBSIE
+from .screen9 import Screen9IE
 from .screencast import ScreencastIE
 from .screencastomatic import ScreencastOMaticIE
 from .scrippsnetworks import (
@@ -2161,7 +2165,10 @@ from .wistia import (
     WistiaPlaylistIE,
     WistiaChannelIE,
 )
-from .wordpress import WordpressPlaylistEmbedIE
+from .wordpress import (
+    WordpressPlaylistEmbedIE,
+    WordpressMiniAudioPlayerEmbedIE,
+)
 from .worldstarhiphop import WorldStarHipHopIE
 from .wppilot import (
     WPPilotIE,

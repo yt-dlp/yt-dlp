@@ -278,8 +278,23 @@ class TestLenientSimpleCookie(unittest.TestCase):
                 {"a": "b", "c": "d"},
             ),
             (
+                "Reset morsel after invalid to not capture attributes",
+                "a=b; $invalid; $Version=1; c=d",
+                {"a": "b", "c": "d"},
+            ),
+            (
                 "Continue after non-flag attribute without value",
                 "a=b; path; Version=1; c=d",
                 {"a": "b", "c": "d"},
+            ),
+            (
+                "Allow cookie attributes with `$` prefix",
+                'Customer="WILE_E_COYOTE"; $Version=1; $Secure; $Path=/acme',
+                {"Customer": ("WILE_E_COYOTE", {"version": "1", "secure": True, "path": "/acme"})},
+            ),
+            (
+                "Invalid Morsel keys should not result in an error",
+                "Key=Value; [Invalid]=Value; Another=Value",
+                {"Key": "Value", "Another": "Value"},
             ),
         )
