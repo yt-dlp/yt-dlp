@@ -35,6 +35,7 @@ class HTML5MediaEmbedIE(InfoExtractor):
 
 
 class QuotedHTMLGenericExtensionIE(InfoExtractor):
+    """For common cases of quoted/escaped html parts in the webpage"""
     _VALID_URL = False
     IE_NAME = 'generic:quoted-html'
     IE_DESC = False  # Do not list
@@ -105,7 +106,7 @@ class QuotedHTMLGenericExtensionIE(InfoExtractor):
 
     def _extract_from_webpage(self, url, webpage):
         combined = ''
-        for _, html in re.findall(r'(?s)\bdata-html\s*=\s*(["\'])(.+?)\1', webpage):
+        for _, html in re.findall(r'(?s)data-html=(["\'])((?:(?!\1).)+)\1', webpage):
             if not html:
                 continue
             # unescapeHTML can handle &quot; etc., unquote can handle percent encoding
