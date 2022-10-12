@@ -35,7 +35,7 @@ class BBCCoUkIE(InfoExtractor):
     _ID_REGEX = r'(?:[pbml][\da-z]{7}|w[\da-z]{7,14})'
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:www\.)?(bbc\.co\.uk|bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd\.onion|bbcweb3hytmzhn5d532owbu6oqadra5z3ar726vq5kgwwn6aucdccrad\.onion)/
+                        (?:www\.)?bbc\.co\.uk/
                         (?:
                             programmes/(?!articles/)|
                             iplayer(?:/[^/]+)?/(?:episode/|playlist/)|
@@ -232,9 +232,6 @@ class BBCCoUkIE(InfoExtractor):
                 # rtmp download
                 'skip_download': True,
             }
-        }, {
-            'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion',
-            'only_matching': True,
         }, {
             'url': 'http://www.bbc.co.uk/iplayer/playlist/p01dvks4',
             'only_matching': True,
@@ -594,7 +591,7 @@ class BBCCoUkIE(InfoExtractor):
 class BBCIE(BBCCoUkIE):
     IE_NAME = 'bbc'
     IE_DESC = 'BBC'
-    _VALID_URL = r'https?://(?:www\.)?bbc\.(?:com|co\.uk)/(?:[^/]+/)+(?P<id>[^/#?]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:bbc(?:com|\.co\.uk)|bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd\.onion|bbcweb3hytmzhn5d532owbu6oqadra5z3ar726vq5kgwwn6aucdccrad\.onion)/(?:[^/]+/)+(?P<id>[^/#?]+)'
 
     _MEDIA_SETS = [
         'pc',
@@ -844,6 +841,12 @@ class BBCIE(BBCCoUkIE):
             'upload_date': '20190604',
             'categories': ['Psychology'],
         },
+    }, { # onion routes
+        'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/news/av/world-europe-63208576',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.bbcweb3hytmzhn5d532owbu6oqadra5z3ar726vq5kgwwn6aucdccrad.onion/sport/av/football/63195681',
+        'only_matching': True,
     }]
 
     @classmethod
