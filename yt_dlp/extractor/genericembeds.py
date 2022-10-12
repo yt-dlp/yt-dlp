@@ -40,7 +40,7 @@ class QuotedHTMLGenericExtensionIE(InfoExtractor):
     IE_NAME = 'generic:quoted-html'
     IE_DESC = False  # Do not list
     _WEBPAGE_TESTS = [{
-        # 2 YouTube embeds
+        # 2 YouTube embeds in data-html
         'url': 'https://24tv.ua/bronetransporteri-ozbroyenni-zsu-shho-vidomo-pro-bronovik-wolfhound_n2167966',
         'info_dict': {
             'id': 'bronetransporteri-ozbroyenni-zsu-shho-vidomo-pro-bronovik-wolfhound_n2167966',
@@ -53,7 +53,7 @@ class QuotedHTMLGenericExtensionIE(InfoExtractor):
         },
         'playlist_count': 2
     }, {
-        # Generic iframe embed of TV24UAPlayerIE, within media_embed
+        # Generic iframe embed of TV24UAPlayerIE within data-html
         'url': 'https://24tv.ua/harkivyani-zgaduyut-misto-do-viyni-shhemlive-video_n1887584',
         'info_dict': {
             'id': '1887584',
@@ -63,7 +63,7 @@ class QuotedHTMLGenericExtensionIE(InfoExtractor):
         },
         'params': {'skip_download': True}
     }, {
-        # YouTube embeds on Squarespace: https://github.com/ytdl-org/youtube-dl/issues/21294
+        # YouTube embeds on Squarespace (data-html): https://github.com/ytdl-org/youtube-dl/issues/21294
         'url': 'https://www.harvardballetcompany.org/past-productions',
         'info_dict': {
             'id': 'past-productions',
@@ -73,7 +73,7 @@ class QuotedHTMLGenericExtensionIE(InfoExtractor):
         },
         'playlist_mincount': 26
     }, {
-        # Squarespace video embed, 2019-08-28
+        # Squarespace video embed, 2019-08-28, data-html
         'url': 'http://ootboxford.com',
         'info_dict': {
             'id': 'Tc7b_JGdZfw',
