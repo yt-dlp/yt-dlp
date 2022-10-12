@@ -591,7 +591,8 @@ class BBCCoUkIE(InfoExtractor):
 class BBCIE(BBCCoUkIE):
     IE_NAME = 'bbc'
     IE_DESC = 'BBC'
-    _VALID_URL = r'''https?://(?:www\.)?(?:(?:bbc\.(?:com|co\.uk))|
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?(?:(?:bbc\.(?:com|co\.uk))|
         bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd\.onion|
         bbcweb3hytmzhn5d532owbu6oqadra5z3ar726vq5kgwwn6aucdccrad\.onion)/
         (?:[^/]+/)+(?P<id>[^/#?]+)'''
