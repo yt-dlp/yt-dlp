@@ -23,6 +23,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         'origin': 'https://www.redgifs.com',
         'content-type': 'application/json',
     }
+    _TOKEN_BASE_URL = "https://www.redgifs.com/watch/"
 
     def _parse_gif_data(self, gif_data):
         video_id = gif_data.get('id')
@@ -65,7 +66,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
 
     def _fetch_oauth_token(self, video_id):
         # These pages contain the OAuth token that is necessary to make API calls.
-        index_page = self._download_webpage(f'https://www.redgifs.com/watch/{video_id}', video_id)
+        index_page = self._download_webpage(f'{self._TOKEN_BASE_URL}{video_id}', video_id)
         index_js_uri = self._html_search_regex(
             r'href="?(/assets/js/index[.a-z0-9]*.js)"?\W', index_page, 'index_js_uri')
         index_js = self._download_webpage(f'https://www.redgifs.com/{index_js_uri}', video_id)
@@ -242,6 +243,7 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
             'playlist_mincount': 100,
         }
     ]
+    _TOKEN_BASE_URL = "https://www.redgifs.com/users/"
 
     def _real_extract(self, url):
         username, query_str = self._match_valid_url(url).group('username', 'query')
