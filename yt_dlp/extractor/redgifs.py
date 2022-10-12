@@ -65,6 +65,8 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         }
 
     def _fetch_oauth_token(self, video_id):
+        if not hasattr(self, "_TOKEN_BASE_URL"):
+            raise ExtractorError(f"Can't get OAUTH token, _TOKEN_BASE_URL doesn't exist", expected=True, video_id=video_id)
         # These pages contain the OAuth token that is necessary to make API calls.
         index_page = self._download_webpage(f'{self._TOKEN_BASE_URL}{video_id}', video_id)
         index_js_uri = self._html_search_regex(
@@ -148,6 +150,7 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'tags': list,
         }
     }]
+    _TOKEN_BASE_URL = "https://www.redgifs.com/watch/"
 
     def _real_extract(self, url):
         video_id = self._match_id(url).lower()
@@ -189,6 +192,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
             'playlist_count': 80,
         }
     ]
+    _TOKEN_BASE_URL = "https://www.redgifs.com/browse?"
 
     def _real_extract(self, url):
         query_str = self._match_valid_url(url).group('query')
