@@ -3275,6 +3275,8 @@ def strip_jsonp(code):
 
 def js_to_json(code, vars={}, *, strict=False):
     # vars is a dict of var, val pairs to substitute
+    STRING_QUOTES = '\'\"'
+    STRING_RE = '|'.join(rf'''{q}(?:[^{q}\\]*(?:\\.))*[^{q}\\]*{q}''' for q in STRING_QUOTES)
     COMMENT_RE = r'/\*(?:(?!\*/).)*?\*/|//[^\n]*\n'
     SKIP_RE = fr'\s*(?:{COMMENT_RE})?\s*'
     INTEGER_TABLE = (
@@ -3289,28 +3291,34 @@ def js_to_json(code, vars={}, *, strict=False):
         elif v in ('undefined', 'void 0'):
             return 'null'
         elif v.startswith('/*') or v.startswith('//') or v.startswith('!') or v == ',':
-            return ""
+            return ''
 
-        if v[0] in ("'", '"'):
-            v = re.sub(r'(?s)\\.|"', lambda m: {
-                '"': '\\"',
-                "\\'": "'",
-                '\\\n': '',
-                '\\x': '\\u00',
-            }.get(m.group(0), m.group(0)), v[1:-1])
-        else:
-            for regex, base in INTEGER_TABLE:
-                im = re.match(regex, v)
-                if im:
-                    i = int(im.group(1), base)
-                    return '"%d":' % i if v.endswith(':') else '%d' % i
+        if v[0] in STRING_QUOTES:
+            def process_escape(match):
+                JSON_PASSTHROUGH_ESCAPES = R'"\bfnrtu'
+                escape = match.group(1) or match.group(2)
 
-            if v in vars:
-                return json.dumps(vars[v])
-            if strict:
-                raise ValueError(f'Unknown value: {v}')
+                return (Rf'\{escape}' if escape in JSON_PASSTHROUGH_ESCAPES
+                        else R'\u00' if escape == 'x'
+                        else '' if escape == '\n'
+                        else escape)
 
-        return '"%s"' % v
+            escaped = re.sub(r'(?s)(")|\\(.)', process_escape, v[1:-1])
+            return f'"{escaped}"'
+
+        for regex, base in INTEGER_TABLE:
+            im = re.match(regex, v)
+            if im:
+                i = int(im.group(1), base)
+                return f'"{i}":' if v.endswith(':') else str(i)
+
+        if v in vars:
+            return json.dumps(vars[v])
+
+        if not strict:
+            return f'"{v}"'
+
+        raise ValueError(f'Unknown value: {v}')
 
     def create_map(mobj):
         return json.dumps(dict(json.loads(js_to_json(mobj.group(1) or '[]', vars=vars))))
@@ -3320,15 +3328,14 @@ def js_to_json(code, vars={}, *, strict=False):
         code = re.sub(r'new Date\((".+")\)', r'\g<1>', code)
         code = re.sub(r'new \w+\((.*?)\)', lambda m: json.dumps(m.group(0)), code)
 
-    return re.sub(r'''(?sx)
-        "(?:[^"\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^"\\]*"|
-        '(?:[^'\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^'\\]*'|
-        {comment}|,(?={skip}[\]}}])|
+    return re.sub(rf'''(?sx)
+        {STRING_RE}|
+        {COMMENT_RE}|,(?={SKIP_RE}[\]}}])|
         void\s0|(?:(?<![0-9])[eE]|[a-df-zA-DF-Z_$])[.a-zA-Z_$0-9]*|
-        \b(?:0[xX][0-9a-fA-F]+|0+[0-7]+)(?:{skip}:)?|
-        [0-9]+(?={skip}:)|
+        \b(?:0[xX][0-9a-fA-F]+|0+[0-7]+)(?:{SKIP_RE}:)?|
+        [0-9]+(?={SKIP_RE}:)|
         !+
-        '''.format(comment=COMMENT_RE, skip=SKIP_RE), fix_kv, code)
+        ''', fix_kv, code)
 
 
 def qualities(quality_ids):
