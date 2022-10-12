@@ -841,7 +841,7 @@ class BBCIE(BBCCoUkIE):
             'upload_date': '20190604',
             'categories': ['Psychology'],
         },
-    }, { # onion routes
+    }, {  # onion routes
         'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/news/av/world-europe-63208576',
         'only_matching': True,
     }, {
