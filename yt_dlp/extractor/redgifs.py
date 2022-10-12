@@ -23,7 +23,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         'origin': 'https://www.redgifs.com',
         'content-type': 'application/json',
     }
-    _TOKEN_BASE_URL = "https://www.redgifs.com/watch/"
+    _TOKEN_BASE_URL = ""
 
     def _parse_gif_data(self, gif_data):
         video_id = gif_data.get('id')
@@ -65,8 +65,8 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         }
 
     def _fetch_oauth_token(self, video_id):
-        if not hasattr(self, "_TOKEN_BASE_URL"):
-            raise ExtractorError("Can't get OAUTH token, _TOKEN_BASE_URL doesn't exist", expected=True, video_id=video_id)
+        if self._TOKEN_BASE_URL == "":
+            raise ExtractorError("Can't get OAUTH token, _TOKEN_BASE_URL is empty", expected=True, video_id=video_id)
         # These pages contain the OAuth token that is necessary to make API calls.
         index_page = self._download_webpage(f'{self._TOKEN_BASE_URL}{video_id}', video_id)
         index_js_uri = self._html_search_regex(
