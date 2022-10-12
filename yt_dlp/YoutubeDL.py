@@ -1621,6 +1621,7 @@ class YoutubeDL:
                 self.add_default_extra_info(info_copy, ie, ie_result['url'])
                 self.add_extra_info(info_copy, extra_info)
                 info_copy, _ = self.pre_process(info_copy)
+                self._fill_common_fields(info_copy, False)
                 self.__forced_printings(info_copy, self.prepare_filename(info_copy), incomplete=True)
                 self._raise_pending_errors(info_copy)
                 if self.params.get('force_write_download_archive', False):
@@ -2379,10 +2380,9 @@ class YoutubeDL:
         else:
             info_dict['thumbnails'] = thumbnails
 
-    def _fill_common_fields(self, info_dict, is_video=True):
+    def _fill_common_fields(self, info_dict, final=True):
         # TODO: move sanitization here
-        if is_video:
-            # playlists are allowed to lack "title"
+        if final:
             title = info_dict.get('title', NO_DEFAULT)
             if title is NO_DEFAULT:
                 raise ExtractorError('Missing "title" field in extractor result',
@@ -2432,7 +2432,7 @@ class YoutubeDL:
         # Auto generate title fields corresponding to the *_number fields when missing
         # in order to always have clean titles. This is very common for TV series.
         for field in ('chapter', 'season', 'episode'):
-            if info_dict.get('%s_number' % field) is not None and not info_dict.get(field):
+            if final and info_dict.get('%s_number' % field) is not None and not info_dict.get(field):
                 info_dict[field] = '%s %d' % (field.capitalize(), info_dict['%s_number' % field])
 
     def _raise_pending_errors(self, info):
