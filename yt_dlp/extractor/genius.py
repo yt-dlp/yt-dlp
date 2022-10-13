@@ -5,6 +5,7 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     traverse_obj,
+    unescapeHTML,
 )
 
 
@@ -46,8 +47,8 @@ class GeniusIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        metadata = self._parse_json(self._html_search_regex(
-            r'<meta content="({[^"]*})"', webpage, 'metadata'), display_id)
+        metadata = self._search_json(
+            r'<meta content="', webpage, 'metadata', display_id, transform_source=unescapeHTML)
         video_id = traverse_obj(
             metadata, ('video', 'provider_id'),
             ('dfp_kv', lambda _, x: x['name'] == 'brightcove_video_id', 'values', 0), get_all=False)
@@ -119,11 +120,7 @@ class GeniusLyricsIE(InfoExtractor):
         for m in media:
             if m.get('type') in ('video', 'audio') and m.get('url'):
                 if m.get('provider') == 'spotify':
-                    continue
-                elif m.get('provider') == 'youtube':
-                    entries.append(self.url_result(m['url'], 'Youtube', song_id))
-                elif m.get('provider') == 'soundcloud':
-                    entries.append(self.url_result(m['url'], 'Soundcloud', song_id))
+                    self.to_screen(f'{song_id}: Skipping Spotify audio embed')
                 else:
                     entries.append(self.url_result(m['url']))
 
