@@ -99,10 +99,10 @@ class GeniusLyricsIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        escaped_json = self._search_regex(
-            r'window\.__PRELOADED_STATE__\s*=\s*JSON\.parse\((.*)\);', webpage, 'escaped json', display_id)
-        unescaped_json = self._parse_json(escaped_json, display_id, transform_source=js_to_json)
-        song_info = self._parse_json(unescaped_json, display_id)
+        json_string = self._search_json(
+            r'window\.__PRELOADED_STATE__\s*=\s*JSON\.parse\(', webpage, 'json string',
+            display_id, transform_source=js_to_json, contains_pattern=r'\'{(?s:.+)}\'')
+        song_info = self._parse_json(json_string, display_id)
         song_id = str_or_none(traverse_obj(song_info, ('songPage', 'song')))
         if not song_id:
             raise ExtractorError('Song id not found in webpage')
