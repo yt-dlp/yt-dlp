@@ -3684,17 +3684,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_live = get_first(live_broadcast_details, 'isLiveNow')
         live_content = get_first(video_details, 'isLiveContent')
         is_upcoming = get_first(video_details, 'isUpcoming')
-        if is_live is None and is_upcoming or live_content is False:
-            is_live = False
-        if is_upcoming is None and (live_content or is_live):
-            is_upcoming = False
         post_live = get_first(video_details, 'isPostLiveDvr')
         live_status = ('post_live' if post_live
                        else 'is_live' if is_live
                        else 'is_upcoming' if is_upcoming
-                       else None if None in (is_live, is_upcoming, live_content)
-                       else 'was_live' if live_content else 'not_live')
-
+                       else 'was_live' if live_content
+                       else 'not_live' if False in (is_live, live_content)
+                       else None)
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
         *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, live_status, duration)
 
