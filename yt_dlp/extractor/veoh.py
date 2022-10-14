@@ -160,61 +160,50 @@ class VeohUserIE(VeohIE):
     def _get_authtoken(self, page, uploader=None):
         webpage = self._download_webpage(page, uploader)
         return self._search_regex(
-            r'csrfToken: "(?P<token>[0-9a-zA-Z]{40})"', webpage,
+            r'csrfToken:\s*(["\'])(?P<token>[0-9a-zA-Z]{40})\1', webpage,
             'request token', group='token')
 
     def _get_videos(self, uploader, authtoken=None):
         if authtoken is None:
             authtoken = self._get_authtoken(f'https://www.veoh.com/users/{uploader}', uploader)
-        totalVids = 0
+        total_vids = 0
         for i in itertools.count():
             payload = json.dumps({'username': uploader, 'maxResults': 16, 'page': i + 1, 'requestName': 'userPage'}).encode('utf-8')
             headers = {
                 'x-csrf-token': authtoken,
                 'content-type': 'application/json;charset=UTF-8'
             }
-            for retry in self.RetryManager():
-                try:
-                    response = self._download_json(
-                        self._USERSINFO_ENDPOINT, uploader, data=payload, headers=headers,
-                        note=f'Downloading videos page {i + 1}')
-                    if not response['success']:
-                        raise ExtractorError('unsuccessful veoh user videos request')
-                    break
-                except ExtractorError as e:
-                    raise e
+            response = self._download_json(
+                self._USERSINFO_ENDPOINT, uploader, data=payload, headers=headers,
+                note=f'Downloading videos page {i + 1}')
+            if not response['success']:
+                raise ExtractorError('unsuccessful veoh user videos request')
 
             def resolve_entry(*candidates):
                 for cand in candidates:
                     if not isinstance(cand, dict):
                         continue
-                    permalink_url = url_or_none(self._VIDEO_BASEURL + cand['permalinkId'])
+                    permalink_url = url_or_none(self._VIDEO_BASEURL + cand.get('permalinkId'))
                     if permalink_url:
                         return self.url_result(
                             permalink_url,
-                            VeohIE.ie_key() if VeohIE.suitable(permalink_url) else None,
-                            str_or_none(cand['permalinkId']), cand['title'])
+                            VeohIE.ie_key(),
+                            str_or_none(cand.get('permalinkId'), cand.get('title'))
 
             for e in response['videos'] or []:
                 yield resolve_entry(e)
 
-            totalVids += len(response['videos'])
-            if (totalVids == response['totalRecords']) or (len(response['videos']) == 0):
+            total_vids += len(response['videos'])
+            if (total_vids == response['totalRecords']) or (len(response['videos']) == 0):
                 break
-
-    def _extract_videos(self, uploader, playlist_title, playlist_id):
-        return {
-            '_type': 'playlist',
-            'id': playlist_id,
-            'title': playlist_title,
-            'entries': self._get_videos(uploader)
-        }
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         uploader = mobj.group('user')
 
-        return self._extract_videos(
-            uploader,
-            f'{str_or_none(uploader)} (Uploads)',
-            str_or_none(uploader))
+        return {
+            '_type': 'playlist',
+            'id': uploader,
+            'title': f'{uploader} (Uploads)',
+            'entries': self._get_videos(uploader)
+        }
