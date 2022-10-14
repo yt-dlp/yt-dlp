@@ -1,6 +1,5 @@
 import itertools
 import json
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -16,7 +15,7 @@ from ..utils import (
 
 class VeohIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?veoh\.com/(?:watch|videos|embed|iphone/#_Watch)/(?P<id>(?:v|e|yapi-)[\da-zA-Z]+)'
-    
+
     IE_NAME = 'veoh'
     _TESTS = [{
         'url': 'http://www.veoh.com/watch/v56314296nk7Zdmz3',
@@ -132,87 +131,90 @@ class VeohIE(InfoExtractor):
             'tags': tags.split(', ') if tags else None,
         }
 
+
 class VeohUserIE(VeohIE):
     _VALID_URL = r'https?://(?:www\.)?veoh\.com/users/(?P<user>([\da-zA-Z_\-]+))'
-    
     IE_NAME = 'veoh:user'
-    
-    _TESTS = [{
-        'url': 'https://www.veoh.com/users/valentinazoe',
-        'info_dict': {
-            'id': 'valentinazoe',
-            'title': 'valentinazoe (Uploads)'
-        },
-        'playlist_mincount': 75
+
+    _TESTS = [
+        {
+            'url': 'https://www.veoh.com/users/valentinazoe',
+            'info_dict': {
+                'id': 'valentinazoe',
+                'title': 'valentinazoe (Uploads)'
+            },
+            'playlist_mincount': 75
         },
         {
-        'url': 'https://www.veoh.com/users/PiensaLibre',
-        'info_dict': {
-            'id': 'PiensaLibre',
-            'title': 'PiensaLibre (Uploads)'
-        },
-        'playlist_mincount': 2
-    }]
-    
-    _USERSINFO_ENDPOINT = "https://www.veoh.com/users/published/videos"
-    _VIDEO_BASEURL = "https://www.veoh.com/watch/"
-    
+            'url': 'https://www.veoh.com/users/PiensaLibre',
+            'info_dict': {
+                'id': 'PiensaLibre',
+                'title': 'PiensaLibre (Uploads)'
+            },
+            'playlist_mincount': 2
+        }]
+
+    _USERSINFO_ENDPOINT = 'https://www.veoh.com/users/published/videos'
+    _VIDEO_BASEURL = 'https://www.veoh.com/watch/'
+
     def _get_authtoken(self, page, uploader=None):
         webpage = self._download_webpage(page, uploader)
-        try: token = re.search(r"csrfToken: \"([0-9a-zA-Z]{40})\"", webpage)[1]
-        except KeyError:
-            raise ExtractorError('Unable to extract request token')
-        return token
-    
+        return self._search_regex(
+            r'csrfToken: "(?P<token>[0-9a-zA-Z]{40})"', webpage,
+            'request token', group='token')
+
     def _get_videos(self, uploader, authtoken=None):
-        if authtoken is None: authtoken = self._get_authtoken(f'https://www.veoh.com/users/{uploader}', uploader)
-        totalVids=0
+        if authtoken is None:
+            authtoken = self._get_authtoken(f'https://www.veoh.com/users/{uploader}', uploader)
+        totalVids = 0
         for i in itertools.count():
-            payload = json.dumps({"username":uploader,"maxResults":16,"page":i+1,"requestName":"userPage"}).encode('utf-8')
+            payload = json.dumps({'username': uploader, 'maxResults': 16, 'page': i + 1, 'requestName': 'userPage'}).encode('utf-8')
             headers = {
                 'x-csrf-token': authtoken,
-                'content-type': 'application/json;charset=UTF-8'}
+                'content-type': 'application/json;charset=UTF-8'
+            }
             for retry in self.RetryManager():
                 try:
                     response = self._download_json(
                         self._USERSINFO_ENDPOINT, uploader, data=payload, headers=headers,
                         note=f'Downloading videos page {i + 1}')
-                    if not response['success']: raise ExtractorError("unsuccessful veoh user videos request")
+                    if not response['success']:
+                        raise ExtractorError('unsuccessful veoh user videos request')
                     break
                 except ExtractorError as e:
                     raise e
-            
+
             def resolve_entry(*candidates):
                 for cand in candidates:
                     if not isinstance(cand, dict):
                         continue
-                    permalink_url = url_or_none(self._VIDEO_BASEURL+cand.get('permalinkId'))
+                    permalink_url = url_or_none(self._VIDEO_BASEURL + cand['permalinkId'])
                     if permalink_url:
                         return self.url_result(
                             permalink_url,
-                            VeohIE.ie_key() if VeohIE.suitable(permalink_url) else None, # check if VeohIE can process this video (should)
-                            str_or_none(cand.get('permalinkId')), cand.get('title'))
-            
+                            VeohIE.ie_key() if VeohIE.suitable(permalink_url) else None,
+                            str_or_none(cand['permalinkId']), cand['title'])
+
             for e in response['videos'] or []:
                 yield resolve_entry(e)
-            
-            totalVids+=len(response['videos'])
-            if (totalVids==response['totalRecords']) or (len(response['videos'])==0): break
-    
+
+            totalVids += len(response['videos'])
+            if (totalVids == response['totalRecords']) or (len(response['videos']) == 0):
+                break
+
     def _extract_videos(self, uploader, playlist_title, playlist_id):
         return {
             '_type': 'playlist',
             'id': playlist_id,
             'title': playlist_title,
-            'entries': self._get_videos(uploader),
+            'entries': self._get_videos(uploader)
         }
-    
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         uploader = mobj.group('user')
-        
+
         return self._extract_videos(
             uploader,
             f'{str_or_none(uploader)} (Uploads)',
-            str_or_none(uploader)
-        )
+            str_or_none(uploader))
