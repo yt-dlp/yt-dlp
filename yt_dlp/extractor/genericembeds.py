@@ -106,7 +106,7 @@ class QuotedHTMLIE(InfoExtractor):
 
     def _extract_from_webpage(self, url, webpage):
         combined = ''
-        for _, html in re.findall(r'(?s)data-html=(["\'])((?:(?!\1).)+)\1', webpage):
+        for _, html in re.findall(r'(?s)\bdata-html=(["\'])((?:(?!\1).)+)\1', webpage):
             # unescapeHTML can handle &quot; etc., unquote can handle percent encoding
             unquoted_html = unescapeHTML(urllib.parse.unquote(html))
             if unquoted_html != html:
