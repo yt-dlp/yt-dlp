@@ -165,7 +165,7 @@ class VeohUserIE(VeohIE):
         return token
     
     def _get_videos(self, uploader, authtoken=None):
-        if authtoken==None: authtoken = self._get_authtoken(f'https://www.veoh.com/users/{uploader}', uploader)
+        if authtoken is None: authtoken = self._get_authtoken(f'https://www.veoh.com/users/{uploader}', uploader)
         totalVids=0
         for i in itertools.count():
             payload = json.dumps({"username":uploader,"maxResults":16,"page":i+1,"requestName":"userPage"}).encode('utf-8')
@@ -180,7 +180,7 @@ class VeohUserIE(VeohIE):
                     if not response['success']: raise ExtractorError("unsuccessful veoh user videos request")
                     break
                 except ExtractorError as e:
-                    raise
+                    raise e
             
             def resolve_entry(*candidates):
                 for cand in candidates:
