@@ -1968,6 +1968,7 @@ from .twitter import (
     TwitterBroadcastIE,
     TwitterShortenerIE,
 )
+from .txxx import TxxxIE
 from .udemy import (
     UdemyIE,
     UdemyCourseIE
