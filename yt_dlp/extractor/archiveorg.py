@@ -758,9 +758,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 rf'(?:{type_})/([^/#&?]+)', url or '', f'{type_} id', default=None)
 
         # XXX: would the get_elements_by_... functions be better suited here?
-        # Uploader ID and URL
         _CHANNEL_URL_HREF_RE = r'href="[^"]*(?P<url>https?://www\.youtube\.com/(?:user|channel)/[^"]+)"'
-        upch_url = self._search_regex(
+        uploader_or_channel_url = self._search_regex(
             [fr'<(?:link\s*itemprop=\"url\"|a\s*id=\"watch-username\").*?\b{_CHANNEL_URL_HREF_RE}>',  # @fd05024
              fr'<div\s*id=\"(?:watch-channel-stats|watch-headline-user-info)\"[^>]*>\s*<a[^>]*\b{_CHANNEL_URL_HREF_RE}'],  # ~ May 2009, ~June 2012
             webpage, 'uploader or channel url', default=None)
@@ -770,7 +769,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         # Uploader refers to the /user/ id ONLY
         uploader_id = (
             id_from_url(owner_profile_url, 'user')
-            or id_from_url(upch_url, 'user')
+            or id_from_url(uploader_or_channel_url, 'user')
             or ytcfg.get('VIDEO_USERNAME'))
         uploader_url = f'https://www.youtube.com/user/{uploader_id}' if uploader_id else None
 
@@ -800,7 +799,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 r'data-channel-external-id=(["\'])(?P<id>(?:(?!\1).)+)\1',  # @b45a9e6
                 webpage, 'channel id', default=None, group='id')
             or id_from_url(owner_profile_url, 'channel')
-            or id_from_url(upch_url, 'channel')
+            or id_from_url(uploader_or_channel_url, 'channel')
             or traverse_obj(player_config, ('args', 'ucid')))
 
         channel_url = f'https://www.youtube.com/channel/{channel_id}' if channel_id else None
