@@ -74,6 +74,7 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 18,
         }
     }, {
         'url': 'https://vxxx.com/video-68925/',
@@ -87,6 +88,7 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 18,
         }
     }, {
         'url': 'https://hclips.com/videos/6291073/malena-morgan-masturbates-her-sweet/',
@@ -100,6 +102,7 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 18,
         }
     }, {
         'url': 'https://hdzog.com/videos/67063/gorgeous-malena-morgan-will-seduce-you-at-the-first-glance/',
@@ -113,6 +116,7 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 18,
         }
     }, {
         'url': 'https://hotmovs.com/videos/8789287/unbelievable-malena-morgan-performing-in-incredible-masturantion/',
@@ -126,6 +130,7 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 18,
         }
     }, {
         'url': 'https://inporn.com/video/517897/malena-morgan-solo/',
@@ -139,6 +144,7 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 18,
         }
     }, {
         'url': 'https://privatehomeclips.com/videos/3630599/malena-morgan-cam-show/',
@@ -152,6 +158,7 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 18,
         }
     }, {
         'url': 'https://tubepornclassic.com/videos/1015455/mimi-rogers-full-body-massage-nude-compilation/',
@@ -165,6 +172,7 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 18,
         }
     }, {
         'url': 'https://upornia.com/videos/1498858/twistys-malena-morgan-starring-at-dr-morgan-baller/',
@@ -178,6 +186,7 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 18,
         }
     }, {
         'url': 'https://vjav.com/videos/11761/yui-hatano-in-if-yui-was-my-girlfriend2/',
@@ -191,6 +200,7 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 18,
         }
     }, {
         'url': 'https://voyeurhit.com/videos/332875/charlotte-stokely-elle-alexandra-malena-morgan-lingerie/',
@@ -204,6 +214,7 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 18,
         }
     }, {
         'url': 'https://voyeurhit.tube/videos/332875/charlotte-stokely-elle-alexandra-malena-morgan-lingerie/',
@@ -217,6 +228,7 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
+            'age_limit': 18,
         }
     }]
 
@@ -275,5 +287,6 @@ class TxxxIE(TxxxBaseIE):
             'view_count': int_or_none(stat_json.get('viewed')),
             'like_count': int_or_none(stat_json.get('likes')),
             'dislike_count': int_or_none(stat_json.get('dislikes')),
+            'age_limit': 18,
             'formats': formats,
         }
