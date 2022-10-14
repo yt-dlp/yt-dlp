@@ -37,7 +37,7 @@ class FOXIE(InfoExtractor):
             'series': 'Gotham',
             'age_limit': 14,
             'episode': 'Aftermath: Bruce Wayne Develops Into The Dark Knight',
-            'thumbnail': 'https://static-media.fox.com/dcg/img/Fox_Networks_DCG_-_FOX_Broadcasting/401/329/GTH_Aftermath_Bruce_Wayne_NoBP_stitch_1504295140753_1037786179720_mp4_video_1280x720_4500000_primary_audio_eng_10_1280x720_1037789763998.jpg',
+            'thumbnail': r're:^https?://.*\.jpg$',
         },
         'params': {
             'skip_download': True,
