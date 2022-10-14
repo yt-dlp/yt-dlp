@@ -1762,6 +1762,8 @@ The following extractors use this feature:
 #### rokfinchannel
 * `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`
 
+#### twitter
+* `force_graphql`: Force usage of the GraphQL-API. By default it will only be used if login cookies are provided.
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
