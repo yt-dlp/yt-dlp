@@ -34,7 +34,7 @@ class HTML5MediaEmbedIE(InfoExtractor):
             yield entry
 
 
-class QuotedHTMLGenericExtensionIE(InfoExtractor):
+class QuotedHTMLIE(InfoExtractor):
     """For common cases of quoted/escaped html parts in the webpage"""
     _VALID_URL = False
     IE_NAME = 'generic:quoted-html'
