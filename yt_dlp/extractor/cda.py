@@ -17,8 +17,8 @@ from ..utils import (
     parse_duration,
     random_birthday,
     traverse_obj,
-    try_get,
     try_call,
+    try_get,
     urljoin,
 )
 
@@ -29,7 +29,7 @@ class CDAIE(InfoExtractor):
 
     _BASE_URL = 'http://www.cda.pl/'
     _BASE_API_URL = 'https://api.cda.pl'
-    _BASE_API_HEADERS = {
+    _API_HEADERS = {
         'Accept': 'application/vnd.cda.public+json',
         'User-Agent': 'pl.cda 1.0 (version 1.2.88 build 15306; Android 9; Xiaomi Redmi 3S)',
     }
@@ -101,45 +101,42 @@ class CDAIE(InfoExtractor):
             }, **kwargs)
 
     def _perform_login(self, username, password):
-        cached_bearer = self.cache.load(self._BEARER_CACHE, username)
-        if cached_bearer is not None and \
-                cached_bearer.get('valid_until') > datetime.datetime.now().timestamp() + 5:
-            self._BASE_API_HEADERS['Authorization'] = f'Bearer {cached_bearer["token"]}'
+        cached_bearer = self.cache.load(self._BEARER_CACHE, username) or {}
+        if cached_bearer.get('valid_until', 0) > datetime.datetime.now().timestamp() + 5:
+            self._API_HEADERS['Authorization'] = f'Bearer {cached_bearer["token"]}'
             return
 
         password_hash = base64.urlsafe_b64encode(hmac.new(
-            's01m1Oer5IANoyBXQETzSOLWXgWs01m1Oer5bMg5xrTMMxRZ9Pi4fIPeFgIVRZ9PeXL8mPfXQETZGUAN5StRZ9P'.encode('utf-8'),
-            ''.join((
-                '{:0>2}'.format(bytes((bt & 255, )).hex())
-                for bt in hashlib.md5(password.encode('utf-8')).digest()
-            )).encode('utf-8'), hashlib.sha256).digest(),
-        ).decode('utf-8').replace('=', '')
+            b's01m1Oer5IANoyBXQETzSOLWXgWs01m1Oer5bMg5xrTMMxRZ9Pi4fIPeFgIVRZ9PeXL8mPfXQETZGUAN5StRZ9P',
+            ''.join(f'{bytes((bt & 255, )).hex():0>2}'
+                    for bt in hashlib.md5(password.encode()).digest()).encode(),
+            hashlib.sha256).digest()).decode().replace('=', '')
 
-        token_res = self._download_json(f'{self._BASE_API_URL}/oauth/token',
-                                        None, 'Logging in', data=b'',
-                                        query={
-                                            'grant_type': 'password',
-                                            'login': username,
-                                            'password': password_hash,
-                                        },
-                                        headers={**self._BASE_API_HEADERS, 'Authorization': self._LOGIN_REQUEST_AUTH})
+        token_res = self._download_json(
+            f'{self._BASE_API_URL}/oauth/token', None, 'Logging in', data=b'',
+            headers={**self._API_HEADERS, 'Authorization': self._LOGIN_REQUEST_AUTH},
+            query={
+                'grant_type': 'password',
+                'login': username,
+                'password': password_hash,
+            })
         self.cache.store(self._BEARER_CACHE, username, {
             'token': token_res['access_token'],
             'valid_until': token_res['expires_in'] + datetime.datetime.now().timestamp(),
         })
-        self._BASE_API_HEADERS['Authorization'] = f'Bearer {token_res["access_token"]}'
+        self._API_HEADERS['Authorization'] = f'Bearer {token_res["access_token"]}'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        if 'Authorization' in self._BASE_API_HEADERS:
+        if 'Authorization' in self._API_HEADERS:
             return self._api_extract(video_id)
         else:
             return self._web_extract(video_id, url)
 
     def _api_extract(self, video_id):
         meta = self._download_json(
-            f'{self._BASE_API_URL}/video/{video_id}', video_id, headers=self._BASE_API_HEADERS)['video']
+            f'{self._BASE_API_URL}/video/{video_id}', video_id, headers=self._API_HEADERS)['video']
 
         if meta.get('premium') and not meta.get('premium_free'):
             self.report_drm(video_id)
