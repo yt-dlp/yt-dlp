@@ -699,7 +699,7 @@ from .hse import (
 )
 from .genericembeds import (
     HTML5MediaEmbedIE,
-    QuotedHTMLGenericExtensionIE,
+    QuotedHTMLIE,
 )
 from .huajiao import HuajiaoIE
 from .huya import HuyaLiveIE
