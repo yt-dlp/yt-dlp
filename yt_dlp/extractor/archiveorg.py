@@ -777,7 +777,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         uploader = (
             self._search_regex(
                 [r'<a\s*id="watch-username".*">\s*<strong[^>]?>([^<]+)</strong>',
-                 r'var\s*watchUsername\s*=\s*\'(.+)\';',  # ~May 2009
+                 r'var\s*watchUsername\s*=\s*\'(.+?)\';',  # ~May 2009
                  r'<div\s*\bid=\"watch-channel-stats"[^>]*>\s*<a[^>]*>\s*(.+?)\s*</a',  # ~May 2009
                  r'<a\s*id="watch-userbanner"[^>]*title="\s*(.+?)\s*"'],  # ~June 2012
                 webpage, 'uploader', default=None)
