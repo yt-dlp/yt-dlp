@@ -1249,7 +1249,7 @@ class YoutubeDL:
             elif fmt[-1] == 'j':  # json
                 value, fmt = json.dumps(
                     value, default=_dumpjson_default,
-                    indent=4 if '#' in flags else None, ensure_ascii=False), str_fmt
+                    indent=4 if '#' in flags else None, ensure_ascii='+' not in flags), str_fmt
             elif fmt[-1] == 'h':  # html
                 value, fmt = escapeHTML(str(value)), str_fmt
             elif fmt[-1] == 'q':  # quoted
