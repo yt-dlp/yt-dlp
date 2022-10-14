@@ -188,7 +188,7 @@ class VeohUserIE(VeohIE):
                         return self.url_result(
                             permalink_url,
                             VeohIE.ie_key(),
-                            str_or_none(cand.get('permalinkId'), cand.get('title'))
+                            str_or_none(cand.get('permalinkId'), cand.get('title')))
 
             for e in response['videos'] or []:
                 yield resolve_entry(e)
