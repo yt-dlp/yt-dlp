@@ -143,8 +143,11 @@ class TwitterBaseIE(InfoExtractor):
                     'Twitter API gave 404 response, retrying with deprecated token. '
                     'This means only one media item can be extracted.')
 
-        error_message = ' '.join(traverse_obj(result, ('errors', ..., 'message')))
-        if error_message:
+        errors = traverse_obj(result, 'errors')
+        if errors:
+            error_message = ', '.join(set(traverse_obj(errors, (..., 'message'), expected_type=str)))
+            if not error_message:
+                error_message = 'Unknown error.'
             raise ExtractorError(f'Error(s) while querying api: {error_message}', expected=True)
 
         assert result is not None
