@@ -766,7 +766,7 @@ class TwitterIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         twid = self._match_id(url)
-        use_graphql = self.is_logged_in() or True
+        use_graphql = self.is_logged_in()
 
         force_graphql = bool(self._configuration_arg('force_graphql'))
         if force_graphql and not use_graphql:
