@@ -22,53 +22,92 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 <!-- MANPAGE: MOVE "USAGE AND OPTIONS" SECTION HERE -->
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
-* [NEW FEATURES](#new-features)
-    * [Differences in default behavior](#differences-in-default-behavior)
-* [INSTALLATION](#installation)
-    * [Detailed instructions](https://github.com/yt-dlp/yt-dlp/wiki/Installation)
-    * [Update](#update)
-    * [Release Files](#release-files)
-    * [Dependencies](#dependencies)
-    * [Compile](#compile)
-* [USAGE AND OPTIONS](#usage-and-options)
-    * [General Options](#general-options)
-    * [Network Options](#network-options)
-    * [Geo-restriction](#geo-restriction)
-    * [Video Selection](#video-selection)
-    * [Download Options](#download-options)
-    * [Filesystem Options](#filesystem-options)
-    * [Thumbnail Options](#thumbnail-options)
-    * [Internet Shortcut Options](#internet-shortcut-options)
-    * [Verbosity and Simulation Options](#verbosity-and-simulation-options)
-    * [Workarounds](#workarounds)
-    * [Video Format Options](#video-format-options)
-    * [Subtitle Options](#subtitle-options)
-    * [Authentication Options](#authentication-options)
-    * [Post-processing Options](#post-processing-options)
-    * [SponsorBlock Options](#sponsorblock-options)
-    * [Extractor Options](#extractor-options)
-* [CONFIGURATION](#configuration)
-    * [Configuration file encoding](#configuration-file-encoding)
-    * [Authentication with .netrc file](#authentication-with-netrc-file)
-    * [Notes about environment variables](#notes-about-environment-variables)
-* [OUTPUT TEMPLATE](#output-template)
-    * [Output template examples](#output-template-examples)
-* [FORMAT SELECTION](#format-selection)
-    * [Filtering Formats](#filtering-formats)
-    * [Sorting Formats](#sorting-formats)
-    * [Format Selection examples](#format-selection-examples)
-* [MODIFYING METADATA](#modifying-metadata)
-    * [Modifying metadata examples](#modifying-metadata-examples)
-* [EXTRACTOR ARGUMENTS](#extractor-arguments)
-* [PLUGINS](#plugins)
-* [EMBEDDING YT-DLP](#embedding-yt-dlp)
-    * [Embedding examples](#embedding-examples)
-* [DEPRECATED OPTIONS](#deprecated-options)
-* [CONTRIBUTING](CONTRIBUTING.md#contributing-to-yt-dlp)
-    * [Opening an Issue](CONTRIBUTING.md#opening-an-issue)
-    * [Developer Instructions](CONTRIBUTING.md#developer-instructions)
-* [WIKI](https://github.com/yt-dlp/yt-dlp/wiki)
-    * [FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ)
+- [NEW FEATURES](#new-features)
+    - [Differences in default behavior](#differences-in-default-behavior)
+- [INSTALLATION](#installation)
+  - [UPDATE](#update)
+  - [RELEASE FILES](#release-files)
+      - [Recommended](#recommended)
+      - [Alternatives](#alternatives)
+      - [Misc](#misc)
+  - [DEPENDENCIES](#dependencies)
+    - [Strongly recommended](#strongly-recommended)
+    - [Networking](#networking)
+    - [Metadata](#metadata)
+    - [Misc](#misc-1)
+    - [Deprecated](#deprecated)
+  - [COMPILE](#compile)
+    - [Standalone PyInstaller Builds](#standalone-pyinstaller-builds)
+    - [Platform-independent Binary (UNIX)](#platform-independent-binary-unix)
+    - [Standalone Py2Exe Builds (Windows)](#standalone-py2exe-builds-windows)
+    - [Related scripts](#related-scripts)
+- [USAGE AND OPTIONS](#usage-and-options)
+  - [General Options:](#general-options)
+  - [Network Options:](#network-options)
+  - [Geo-restriction:](#geo-restriction)
+  - [Video Selection:](#video-selection)
+  - [Download Options:](#download-options)
+  - [Filesystem Options:](#filesystem-options)
+  - [Thumbnail Options:](#thumbnail-options)
+  - [Internet Shortcut Options:](#internet-shortcut-options)
+  - [Verbosity and Simulation Options:](#verbosity-and-simulation-options)
+  - [Workarounds:](#workarounds)
+  - [Video Format Options:](#video-format-options)
+  - [Subtitle Options:](#subtitle-options)
+  - [Authentication Options:](#authentication-options)
+  - [Post-Processing Options:](#post-processing-options)
+  - [SponsorBlock Options:](#sponsorblock-options)
+  - [Extractor Options:](#extractor-options)
+- [CONFIGURATION](#configuration)
+    - [Configuration file encoding](#configuration-file-encoding)
+    - [Authentication with `.netrc` file](#authentication-with-netrc-file)
+    - [Notes about environment variables](#notes-about-environment-variables)
+- [OUTPUT TEMPLATE](#output-template)
+      - [Output template examples](#output-template-examples)
+- [FORMAT SELECTION](#format-selection)
+  - [Format selection syntax](#format-selection-syntax)
+  - [Meta fields](#meta-fields)
+    - [Numeric fields](#numeric-fields)
+    - [Literal fields](#literal-fields)
+  - [Filtering Formats](#filtering-formats)
+  - [Sorting Formats](#sorting-formats)
+  - [Format Selection examples](#format-selection-examples)
+- [MODIFYING METADATA](#modifying-metadata)
+  - [Modifying metadata examples](#modifying-metadata-examples)
+- [EXTRACTOR ARGUMENTS](#extractor-arguments)
+      - [youtube](#youtube)
+      - [youtubetab (YouTube playlists, channels, feeds, etc.)](#youtubetab-youtube-playlists-channels-feeds-etc)
+      - [funimation](#funimation)
+      - [crunchyroll](#crunchyroll)
+      - [crunchyrollbeta](#crunchyrollbeta)
+      - [vikichannel](#vikichannel)
+      - [niconico](#niconico)
+      - [youtubewebarchive](#youtubewebarchive)
+      - [gamejolt](#gamejolt)
+      - [hotstar](#hotstar)
+      - [tiktok](#tiktok)
+      - [rokfinchannel](#rokfinchannel)
+- [PLUGINS](#plugins)
+- [EMBEDDING YT-DLP](#embedding-yt-dlp)
+  - [Embedding examples](#embedding-examples)
+      - [Extracting information](#extracting-information)
+      - [Download using an info-json](#download-using-an-info-json)
+      - [Extract audio](#extract-audio)
+      - [Filter videos](#filter-videos)
+      - [Adding logger and progress hook](#adding-logger-and-progress-hook)
+      - [Add a custom PostProcessor](#add-a-custom-postprocessor)
+      - [Use a custom format selector](#use-a-custom-format-selector)
+- [DEPRECATED OPTIONS](#deprecated-options)
+      - [Almost redundant options](#almost-redundant-options)
+      - [Redundant options](#redundant-options)
+      - [Not recommended](#not-recommended)
+      - [Developer options](#developer-options)
+      - [Old aliases](#old-aliases)
+      - [Sponskrub Options](#sponskrub-options)
+      - [No longer supported](#no-longer-supported)
+      - [Removed](#removed)
+- [CONTRIBUTING](#contributing)
+- [WIKI](#wiki)
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 
@@ -1375,16 +1414,17 @@ $ yt-dlp -o - BaW_jenozKc
 
 # FORMAT SELECTION
 
-By default, yt-dlp tries to download the best available quality if you **don't** pass any options.
-This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, if multiple audiostreams is enabled (`--audio-multistreams`), the default format changes to `-f bestvideo+bestaudio/best`. Similarly, if ffmpeg is unavailable, or if you use yt-dlp to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
+What is considered "best" (and thus worst) and how to modify it is explained in the [Sorting Formats](#sorting-formats) section.
+
+By default, yt-dlp tries to download the best available quality if you **don't** pass any options. This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, if multiple audiostreams is enabled (`--audio-multistreams`), the default format changes to `-f bestvideo+bestaudio/best`. Similarly, if ffmpeg is unavailable (as it's needed for the multistreams option), or if you use yt-dlp to stream to `stdout` (`-o -`), the default becomes `-f best/bestvideo+bestaudio`.
 
 **Deprecation warning**: Latest versions of yt-dlp can stream multiple formats to the stdout simultaneously using ffmpeg. So, in future versions, the default for this will be set to `-f bv*+ba/b` similar to normal downloads. If you want to preserve the `-f b/bv+ba` setting, it is recommended to explicitly specify it in the configuration options.
-
-The general syntax for format selection is `-f FORMAT` (or `--format FORMAT`) where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
-
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 **tl;dr:** [navigate me to examples](#format-selection-examples).
 <!-- MANPAGE: END EXCLUDED SECTION -->
+
+## Format selection syntax
+The general syntax for format selection is `-f FORMAT` (or `--format FORMAT`) where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
 
 The simplest case is requesting a specific format; e.g. with `-f 22` you can download the format with format code equal to 22. You can get the list of available format codes for particular video using `--list-formats` or `-F`. Note that these format codes are extractor specific.
 
@@ -1396,65 +1436,62 @@ You can also use special names to select particular edge case formats:
 
  - `all`: Select **all formats** separately
  - `mergeall`: Select and **merge all formats** (Must be used with `--audio-multistreams`, `--video-multistreams` or both)
- - `b*`, `best*`: Select the best quality format that **contains either** a video or an audio or both (ie; `vcodec!=none or acodec!=none`)
- - `b`, `best`: Select the best quality format that **contains both** video and audio. Equivalent to `best*[vcodec!=none][acodec!=none]`
- - `bv`, `bestvideo`: Select the best quality **video-only** format. Equivalent to `best*[acodec=none]`
- - `bv*`, `bestvideo*`: Select the best quality format that **contains video**. It may also contain audio. Equivalent to `best*[vcodec!=none]`
- - `ba`, `bestaudio`: Select the best quality **audio-only** format. Equivalent to `best*[vcodec=none]`
- - `ba*`, `bestaudio*`: Select the best quality format that **contains audio**. It may also contain video. Equivalent to `best*[acodec!=none]` ([Do not use!](https://github.com/yt-dlp/yt-dlp/issues/979#issuecomment-919629354))
- - `w*`, `worst*`: Select the worst quality format that contains either a video or an audio
- - `w`, `worst`: Select the worst quality format that contains both video and audio. Equivalent to `worst*[vcodec!=none][acodec!=none]`
- - `wv`, `worstvideo`: Select the worst quality video-only format. Equivalent to `worst*[acodec=none]`
- - `wv*`, `worstvideo*`: Select the worst quality format that contains video. It may also contain audio. Equivalent to `worst*[vcodec!=none]`
- - `wa`, `worstaudio`: Select the worst quality audio-only format. Equivalent to `worst*[vcodec=none]`
- - `wa*`, `worstaudio*`: Select the worst quality format that contains audio. It may also contain video. Equivalent to `worst*[acodec!=none]`
+ - `b`, `best`: Select the best quality format that contains the specified type of stream (audio or video). If no stream is specified, select the best quality format that **contains either** a video or an audio or both
+ - `w`, `worst`: Select the best quality format that contains the specified type of stream (audio or video). If no stream is specified, select the worst quality format that contains both video and audio
+ - `v`, `video`: Specify the video stream type. To use with either `b` or `w`.
+ - `a`, `audio`: Specify the audio stream type. To use with either `b` or `w`.
+ - `*`: Select the quality type chosen of the specified type of stream. It can contain the other stream type.
+ - `/`: Specify the order of preference (from left to right) whenyou specify multiple format. e.g. `-f 22/17/18`
+ - `,`: Specify all the format of the same video you want to download. e.g. `-f 22,17,18`
+ - `.`: Specify the nth format. e.g. `best.2` will select the 2nd best combined format
+ - `+`: Combine the audio and video of different format (requires ffmpeg). e.g. `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg.
+ - `+?`: Similar to `+` but will always work as-if multistreams is disabled. For instance, with`-f bestvideo+bestaudio` the best audio will only be added to the best video if the best video has no audio.
+ - <meta_field>: Operator "of each" to specify you want the quality and stream type selected for each of the meta_field specified. e.g. bv<height>, ba<language> will select the best video format of each height and best audio of each language
 
-For example, to download the worst quality video-only format you can use `-f worstvideo`. It is however recommended not to use `worst` and related options. When your format selector is `worst`, the format which is worst in all respects is selected. Most of the time, what you actually want is the video with the smallest filesize instead. So it is generally better to use `-S +size` or more rigorously, `-S +size,+br,+res,+fps` instead of `-f worst`. See [Sorting Formats](#sorting-formats) for more details.
+**Tip**: To download the worst quality video-only format you can use `-f worstvideo`. It is however recommended not to use `worst` as most of the time you actually want the lightest one instead. So it is generally better to use `-S +size` or more rigorously, `-S +size,+br,+res,+fps` instead of `-f worst` (See [Sorting Formats](#sorting-formats) for more details).
 
-You can select the n'th best format of a type by using `best<type>.<n>`. For example, `best.2` will select the 2nd best combined format. Similarly, `bv*.3` will select the 3rd best format that contains a video stream.
-
-If you want to download multiple videos, and they don't have the same formats available, you can specify the order of preference using slashes. Note that formats on the left hand side are preferred; e.g. `-f 22/17/18` will download format 22 if it's available, otherwise it will download format 17 if it's available, otherwise it will download format 18 if it's available, otherwise it will complain that no suitable formats are available for download.
-
-If you want to download several formats of the same video use a comma as a separator, e.g. `-f 22,17,18` will download all these three formats, of course if they are available. Or a more sophisticated example combined with the precedence feature: `-f 136/137/mp4/bestvideo,140/m4a/bestaudio`.
-
-You can merge the video and audio of multiple formats into a single file using `-f <format1>+<format2>+...` (requires ffmpeg installed); e.g. `-f bestvideo+bestaudio` will download the best video-only format, the best audio-only format and mux them together with ffmpeg.
+You can combine all previous expressions. e.g. a more sophisticated example: `-f 136/137/mp4/bestvideo,140/m4a/bestaudio`.
 
 **Deprecation warning**: Since the *below* described behavior is complex and counter-intuitive, this will be removed and multistreams will be enabled by default in the future. A new operator will be instead added to limit formats to single audio/video
 
 Unless `--video-multistreams` is used, all formats with a video stream except the first one are ignored. Similarly, unless `--audio-multistreams` is used, all formats with an audio stream except the first one are ignored. E.g. `-f bestvideo+best+bestaudio --video-multistreams --audio-multistreams` will download and merge all 3 given formats. The resulting file will have 2 video streams and 2 audio streams. But `-f bestvideo+best+bestaudio --no-video-multistreams` will download and merge only `bestvideo` and `bestaudio`. `best` is ignored since another format containing a video stream (`bestvideo`) has already been selected. The order of the formats is therefore important. `-f best+bestaudio --no-audio-multistreams` will download only `best` while `-f bestaudio+best --no-audio-multistreams` will ignore `best` and download only `bestaudio`.
 
+## Meta fields
+Each media have the following meta fields. Some can be empty if unkown. They can be used to select and filter formats.
+### Numeric fields
+
+- `filesize`: The number of bytes, if known in advance
+- `filesize_approx`: An estimate for the number of bytes
+- `width`: Width of the video, if known
+- `height`: Height of the video, if known
+- `tbr`: Average bitrate of audio and video in KBit/s
+- `abr`: Average audio bitrate in KBit/s
+- `vbr`: Average video bitrate in KBit/s
+- `asr`: Audio sampling rate in Hertz
+- `fps`: Frame rate
+- `audio_channels`: The number of audio channels
+- `stretched_ratio`: `width:height` of the video's pixels, if not square
+### Literal fields
+- `url`: Video URL
+- `ext`: File extension
+- `acodec`: Name of the audio codec in use
+- `vcodec`: Name of the video codec in use
+- `container`: Name of the container format
+- `protocol`: The protocol that will be used for the actual download, lower-case (`http`, `https`, `rtsp`, `rtmp`, `rtmpe`, `mms`, `f4m`, `ism`, `http_dash_segments`, `m3u8`, or `m3u8_native`)
+- `language`: Language code
+- `dynamic_range`: The dynamic range of the video
+- `format_id`: A short description of the format
+- `format`: A human-readable description of the format
+- `format_note`: Additional info about the format
+- `resolution`: Textual description of width and height
+
 ## Filtering Formats
 
-You can also filter the video formats by putting a condition in brackets, as in `-f "best[height=720]"` (or `-f "[filesize>10M]"`).
+- You can filter the video formats by putting a condition in brackets, as in `-f "best[height=720]"` (or `-f "[filesize>10M]"`). When using it with multiple stream type it distributes the filter to each stream type. e.g. `(bv*+ba)[filesize<1G]` is the same as bv*[filesize<1G]+ba[filesize<1G].
+- If you don't want the filter to be distributive you can use brackets `{}`. To reuse the previous exemple, say you want to get the best format under 1G. `{bv*+ba}[filesize<1G]` will give you that. Whereas `(bv*+ba)[filesize<1G]` will give you the best video under 1G and the best audio under 1G but both combined are only limited to be 2G when added up, not 1G.
 
-The following numeric meta fields can be used with comparisons `<`, `<=`, `>`, `>=`, `=` (equals), `!=` (not equals):
-
- - `filesize`: The number of bytes, if known in advance
- - `filesize_approx`: An estimate for the number of bytes
- - `width`: Width of the video, if known
- - `height`: Height of the video, if known
- - `tbr`: Average bitrate of audio and video in KBit/s
- - `abr`: Average audio bitrate in KBit/s
- - `vbr`: Average video bitrate in KBit/s
- - `asr`: Audio sampling rate in Hertz
- - `fps`: Frame rate
- - `audio_channels`: The number of audio channels
- - `stretched_ratio`: `width:height` of the video's pixels, if not square
-
-Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends with), `*=` (contains), `~=` (matches regex) and following string meta fields:
-
- - `url`: Video URL
- - `ext`: File extension
- - `acodec`: Name of the audio codec in use
- - `vcodec`: Name of the video codec in use
- - `container`: Name of the container format
- - `protocol`: The protocol that will be used for the actual download, lower-case (`http`, `https`, `rtsp`, `rtmp`, `rtmpe`, `mms`, `f4m`, `ism`, `http_dash_segments`, `m3u8`, or `m3u8_native`)
- - `language`: Language code
- - `dynamic_range`: The dynamic range of the video
- - `format_id`: A short description of the format
- - `format`: A human-readable description of the format
- - `format_note`: Additional info about the format
- - `resolution`: Textual description of width and height
+Numeric meta fields can be used with comparisons `<`, `<=`, `>`, `>=`, `=` (equals), `!=` (not equals).
+Literal meta fields can be filtered with comparisons `=` (equals), `^=` (starts with), `$=` (ends with), `*=` (contains), `~=` (matches regex) and following string meta fields.
 
 Any string comparison may be prefixed with negation `!` in order to produce an opposite comparison, e.g. `!*=` (does not contain). The comparand of a string comparison needs to be quoted with either double or single quotes if it contains spaces or special characters other than `._-`.
 
