@@ -6,7 +6,7 @@ from .common import InfoExtractor
 
 
 class DoodStreamIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?dood\.(?:to|watch|so|pm|wf)/[ed]/(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?dood\.(?:to|watch|so|pm|wf)/(?P<type>[ed])/(?P<id>[a-z0-9]+)'
     _TESTS = [{
         'url': 'http://dood.to/e/5s1wmbdacezb',
         'md5': '4568b83b31e13242b3f1ff96c55f0595',
@@ -44,6 +44,10 @@ class DoodStreamIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        if self._match_group(url, 'type') == 'd':
+            webpage = self._download_webpage(url, None)
+            video_id = self._html_search_regex(r'<iframe src=\"/e/([a-z0-9]+)\"', webpage, 'video_id')
+
         url = f'https://dood.to/e/{video_id}'
         webpage = self._download_webpage(url, video_id)
 
