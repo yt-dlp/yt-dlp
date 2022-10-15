@@ -10,12 +10,12 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     int_or_none,
-    url_or_none,
     parse_age_limit,
     parse_duration,
+    traverse_obj,
     try_get,
     unified_timestamp,
-    traverse_obj,
+    url_or_none,
 )
 
 
