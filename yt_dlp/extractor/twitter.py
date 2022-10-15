@@ -1,6 +1,6 @@
 import json
 import re
-from urllib.error import HTTPError
+import urllib.error
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
@@ -135,7 +135,7 @@ class TwitterBaseIE(InfoExtractor):
                 if error:
                     raise error
 
-                if not isinstance(e.cause, HTTPError) or e.cause.code != 404:
+                if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 404:
                     raise
 
                 error = e
@@ -573,9 +573,9 @@ class TwitterIE(TwitterBaseIE):
             'id': '1575559336759263233',
             'display_id': '1575560063510810624',
             'ext': 'mp4',
-            'title': 'Max Olson - Absolutely heartbreaking footage captured by our surge probe of catastrophic storm surge washing away homes. I have never seen anything like this. We have now left the area as hoards of emergency crew have arrived. #HurricaneIan   FULL VIDEO -',
+            'title': 'md5:eec26382babd0f7c18f041db8ae1c9c9',
             'thumbnail': r're:^https?://.*\.jpg',
-            'description': 'Absolutely heartbreaking footage captured by our surge probe of catastrophic storm surge washing away homes. I have never seen anything like this. We have now left the area as hoards of emergency crew have arrived. #HurricaneIan   FULL VIDEO - https://t.co/DOJJn2VThV https://t.co/iPBUyVKw4s',
+            'description': 'md5:95aea692fda36a12081b9629b02daa92',
             'uploader': 'Max Olson',
             'uploader_id': 'MesoMax919',
             'uploader_url': 'https://twitter.com/MesoMax919',
@@ -720,7 +720,7 @@ class TwitterIE(TwitterBaseIE):
             'quoted_status': ('quoted_status_result', 'result', 'legacy'),
         }, expected_type=dict, default={}))
 
-        # extra transformations are needed bc LeGaCy cOmPaTiBiLiTy
+        # extra transformation is needed since result does not match legacy format
         binding_values = {
             binding_value.get('key'): binding_value.get('value')
             for binding_value in traverse_obj(status, ('card', 'binding_values', ...), expected_type=dict)
@@ -766,11 +766,11 @@ class TwitterIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         twid = self._match_id(url)
-        use_graphql = self.is_logged_in()
+        use_graphql = self.is_logged_in() or True
 
-        force_graphql = bool(self._configuration_arg('force_graphql', ie_key=self.ie_key()))
+        force_graphql = bool(self._configuration_arg('force_graphql'))
         if force_graphql and not use_graphql:
-            self.report_warning('Forced usage of GraphQL API', only_once=True)
+            self.write_debug('Forced usage of GraphQL API')
             use_graphql = True
 
         if use_graphql:
@@ -854,7 +854,7 @@ class TwitterIE(TwitterBaseIE):
 
         def extract_from_card_info(card):
             if not card:
-                return []
+                return
 
             self.write_debug(f'Extracting from card info: {card.get("url")}')
             binding_values = card['binding_values']
@@ -865,30 +865,30 @@ class TwitterIE(TwitterBaseIE):
 
             card_name = card['name'].split(':')[-1]
             if card_name == 'player':
-                return [{
+                yield {
                     '_type': 'url',
                     'url': get_binding_value('player_url'),
-                }]
+                }
             elif card_name == 'periscope_broadcast':
-                return [{
+                yield {
                     '_type': 'url',
                     'url': get_binding_value('url') or get_binding_value('player_url'),
                     'ie_key': PeriscopeIE.ie_key(),
-                }]
+                }
             elif card_name == 'broadcast':
-                return [{
+                yield {
                     '_type': 'url',
                     'url': get_binding_value('broadcast_url'),
                     'ie_key': TwitterBroadcastIE.ie_key(),
-                }]
+                }
             elif card_name == 'summary':
-                return [{
+                yield {
                     '_type': 'url',
                     'url': get_binding_value('card_url'),
-                }]
+                }
             elif card_name == 'unified_card':
                 unified_card = self._parse_json(get_binding_value('unified_card'), twid)
-                return list(map(extract_from_video_info, traverse_obj(unified_card, ('media_entities', ...), expected_type=dict)))
+                yield from map(extract_from_video_info, traverse_obj(unified_card, ('media_entities', ...), expected_type=dict))
             # amplify, promo_video_website, promo_video_convo, appplayer,
             # video_direct_message, poll2choice_video, poll3choice_video,
             # poll4choice_video, ...
@@ -912,13 +912,13 @@ class TwitterIE(TwitterBaseIE):
                         'height': int_or_none(image.get('height')),
                     })
 
-                return [{
+                yield {
                     'formats': formats,
                     'subtitles': subtitles,
                     'thumbnails': thumbnails,
                     'duration': int_or_none(get_binding_value(
                         'content_duration_seconds')),
-                }]
+                }
 
         media_path = ((None, 'quoted_status'), 'extended_entities', 'media', lambda _, m: m['type'] != 'photo')
         videos = map(extract_from_video_info, traverse_obj(status, media_path, expected_type=dict))
