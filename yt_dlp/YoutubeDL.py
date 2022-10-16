@@ -2720,7 +2720,7 @@ class YoutubeDL:
                 if chapter or offset:
                     new_info.update({
                         'section_start': offset + chapter.get('start_time', 0),
-                        'section_end': end_time if end_time < offset + duration else None,
+                        'section_end': end_time if end_time <= offset + duration else None,
                         'section_title': chapter.get('title'),
                         'section_number': chapter.get('index'),
                     })
