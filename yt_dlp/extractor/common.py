@@ -544,12 +544,8 @@ class InfoExtractor:
         return cls._match_valid_url(url) is not None
 
     @classmethod
-    def _match_group(cls, url, group):
-        return cls._match_valid_url(url).group(group)
-
-    @classmethod
     def _match_id(cls, url):
-        return cls._match_group(url, 'id')
+        return cls._match_valid_url(url).group('id')
 
     @classmethod
     def get_temp_id(cls, url):

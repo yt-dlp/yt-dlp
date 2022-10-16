@@ -38,15 +38,25 @@ class DoodStreamIE(InfoExtractor):
             'thumbnail': 'https://img.doodcdn.com/snaps/8edqd5nppkac3x8u.jpg',
         }
     }, {
+        'url': 'https://dood.wf/d/whnhimxle634njcagq70gbcemsxetnph',
+        'md5': 'f5a091c30ae5420d31d1eac894979f9b',
+        'info_dict': {
+            'id': 'f3ivss8ct9woqkdbonbai1g5y06e7wpn',
+            'ext': 'mp4',
+            'title': 'Rick Astley - Never Gonna Give You Up - DoodStream',
+            'description': 'Rick Astley - Never Gonna Give You Up - DoodStream',
+            'thumbnail': 'https://img.doodcdn.co/splash/hsebus0la2mqtzdh.jpg',
+        }
+    }, {
         'url': 'https://dood.so/d/jzrxn12t2s7n',
         'only_matching': True
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        if self._match_group(url, 'type') == 'd':
-            webpage = self._download_webpage(url, None)
-            video_id = self._html_search_regex(r'<iframe src=\"/e/([a-z0-9]+)\"', webpage, 'video_id')
+        video_id, url_type = self._match_valid_url(url).group('id', 'type')
+        if url_type == 'd':
+            webpage = self._download_webpage(url, video_id)
+            video_id = self._html_search_regex(r'<iframe src="/e/(\w+)"', webpage, 'video_id')
 
         url = f'https://dood.to/e/{video_id}'
         webpage = self._download_webpage(url, video_id)
@@ -56,7 +66,7 @@ class DoodStreamIE(InfoExtractor):
         thumb = self._html_search_meta(['og:image', 'twitter:image'], webpage, default=None)
         token = self._html_search_regex(r'[?&]token=([a-z0-9]+)[&\']', webpage, 'token')
         description = self._html_search_meta(
-            ['og:description', 'description', 'twitter:description'], webpage, default=None)
+            ['og:description', 'description', 'twitter:description'], webpage, default=title)
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:53.0) Gecko/20100101 Firefox/66.0',

@@ -17,7 +17,7 @@ STATIC_CLASS_PROPERTIES = [
     'IE_NAME', 'IE_DESC', 'SEARCH_KEY', '_VALID_URL', '_WORKING', '_ENABLED', '_NETRC_MACHINE', 'age_limit'
 ]
 CLASS_METHODS = [
-    'ie_key', 'working', 'description', 'suitable', '_match_valid_url', '_match_id', '_match_group', 'get_temp_id', 'is_suitable'
+    'ie_key', 'working', 'description', 'suitable', '_match_valid_url', '_match_id', 'get_temp_id', 'is_suitable'
 ]
 IE_TEMPLATE = '''
 class {name}({bases}):
