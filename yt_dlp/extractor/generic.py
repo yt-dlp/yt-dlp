@@ -1073,6 +1073,21 @@ class GenericIE(InfoExtractor):
             }
         },
         {
+            # JWPlayer video url passed as div class
+            'url': 'https://mytaratata.com/taratata/253/kevin-michael-yael-naim-lean-on-me-2008',
+            'info_dict': {
+                'id': 'kevin-michael-yael-naim-lean-on-me-2008',
+                'ext': 'mp4',
+                'title': 'TARATATA N°253',
+                'description': 'Kevin Michael / Yael Naim "Lean On Me" (2008)',
+                'thumbnail': 'https://static.taratata.net/content/image/00/00/00/24/2480.jpeg',
+                'age_limit': 0
+            },
+            'params': {
+                'skip_download': True,
+            }
+        },
+        {
             # Video.js embed, multiple formats
             'url': 'http://ortcam.com/solidworks-урок-6-настройка-чертежа_33f9b7351.html',
             'info_dict': {
@@ -2813,6 +2828,18 @@ class GenericIE(InfoExtractor):
             except ExtractorError:
                 # See https://github.com/ytdl-org/youtube-dl/pull/16735
                 pass
+
+        mobj = re.search(
+            r'<div [^>]*?class="jwplayer"[^>]*data-source=(?P<quote>[\'"])(?P<video_url>[^" >]+)(?P=quote)',
+            webpage)
+        if mobj is not None:
+            return [{
+                '_type': 'video',
+                'url': mobj.group('video_url'),
+                'http_headers': {
+                    'Referer': actual_url,
+                },
+            }]
 
         # Video.js embed
         mobj = re.search(
