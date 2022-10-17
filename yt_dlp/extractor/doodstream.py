@@ -66,7 +66,7 @@ class DoodStreamIE(InfoExtractor):
         thumb = self._html_search_meta(['og:image', 'twitter:image'], webpage, default=None)
         token = self._html_search_regex(r'[?&]token=([a-z0-9]+)[&\']', webpage, 'token')
         description = self._html_search_meta(
-            ['og:description', 'description', 'twitter:description'], webpage, default=title)
+            ['og:description', 'description', 'twitter:description'], webpage, default=None)
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:53.0) Gecko/20100101 Firefox/66.0',
