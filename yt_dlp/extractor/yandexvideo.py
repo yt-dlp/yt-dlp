@@ -188,28 +188,15 @@ class YandexVideoPreviewIE(InfoExtractor):
 
 
 class ZenYandexIE(InfoExtractor):
-    _VALID_URL = r'https?://zen\.yandex\.ru(?:/video)?/(media|watch)/(?:(?:id/[^/]+/|[^/]+/)(?:[a-z0-9-]+)-)?(?P<id>[a-z0-9-]+)'
+    _VALID_URL = r'https?://dzen\.ru(?:/video)?/(media|watch)/(?:(?:id/[^/]+/|[^/]+/)(?:[a-z0-9-]+)-)?(?P<id>[a-z0-9-]+)'
     _TESTS = [{
-        'url': 'https://zen.yandex.ru/media/popmech/izverjenie-vulkana-iz-spichek-zreliscnyi-opyt-6002240ff8b1af50bb2da5e3',
-        'info_dict': {
-            'id': '6002240ff8b1af50bb2da5e3',
-            'ext': 'mp4',
-            'title': 'Извержение вулкана из спичек: зрелищный опыт',
-            'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
-            'thumbnail': 're:^https://avatars.mds.yandex.net/',
-            'uploader': 'Популярная механика',
-        },
-        'params': {
-            'skip_download': 'm3u8',
-        },
-    }, {
-        'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/vot-eto-focus-dedy-morozy-na-gidrociklah-60c7c443da18892ebfe85ed7',
+        'url': 'https://dzen.ru/media/id/606fd806cc13cb3c58c05cf5/vot-eto-focus-dedy-morozy-na-gidrociklah-60c7c443da18892ebfe85ed7',
         'info_dict': {
             'id': '60c7c443da18892ebfe85ed7',
             'ext': 'mp4',
             'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
             'description': 'md5:f3db3d995763b9bbb7b56d4ccdedea89',
-            'thumbnail': 're:^https://avatars.mds.yandex.net/',
+            'thumbnail': 're:^https://avatars.dzeninfra.ru/',
             'uploader': 'AcademeG DailyStream'
         },
         'params': {
@@ -217,24 +204,26 @@ class ZenYandexIE(InfoExtractor):
             'format': 'bestvideo',
         },
     }, {
-        'url': 'https://zen.yandex.ru/video/watch/6002240ff8b1af50bb2da5e3',
+        'url': 'https://dzen.ru/video/watch/6002240ff8b1af50bb2da5e3',
         'info_dict': {
             'id': '6002240ff8b1af50bb2da5e3',
             'ext': 'mp4',
             'title': 'Извержение вулкана из спичек: зрелищный опыт',
             'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
-            'uploader': 'Популярная механика',
+            'thumbnail': 're:^https://avatars.dzeninfra.ru/',
+            'uploader': 'TechInsider',
         },
         'params': {
             'skip_download': 'm3u8',
         },
     }, {
-        'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/novyi-samsung-fold-3-moskvich-barahlit-612f93b7f8d48e7e945792a2?from=channel&rid=2286618386.482.1630817595976.42360',
+        'url': 'https://dzen.ru/media/id/606fd806cc13cb3c58c05cf5/novyi-samsung-fold-3-moskvich-barahlit-612f93b7f8d48e7e945792a2?from=channel&rid=2286618386.482.1630817595976.42360',
         'only_matching': True,
     }]
 
     def _real_extract(self, url):
         id = self._match_id(url)
+        webpage = self._download_webpage(url, id)
         webpage = self._download_webpage(url, id)
         data_json = self._parse_json(
             self._search_regex(r'data\s*=\s*({["\']_*serverState_*video.+?});', webpage, 'metadata'), id)
@@ -266,15 +255,15 @@ class ZenYandexIE(InfoExtractor):
 
 
 class ZenYandexChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://zen\.yandex\.ru/(?!media|video)(?:id/)?(?P<id>[a-z0-9-_]+)'
+    _VALID_URL = r'https?://dzen\.ru/(?!media|video)(?:id/)?(?P<id>[a-z0-9-_]+)'
     _TESTS = [{
-        'url': 'https://zen.yandex.ru/tok_media',
+        'url': 'https://dzen.ru/tok_media',
         'info_dict': {
             'id': 'tok_media',
         },
         'playlist_mincount': 169,
     }, {
-        'url': 'https://zen.yandex.ru/id/606fd806cc13cb3c58c05cf5',
+        'url': 'https://dzen.ru/id/606fd806cc13cb3c58c05cf5',
         'info_dict': {
             'id': '606fd806cc13cb3c58c05cf5',
         },
@@ -282,6 +271,7 @@ class ZenYandexChannelIE(InfoExtractor):
     }]
 
     def _entries(self, id, url):
+        webpage = self._download_webpage(url, id)
         webpage = self._download_webpage(url, id)
         data_json = self._parse_json(re.findall(r'var\s?data\s?=\s?({.+?})\s?;', webpage)[-1], id)
         for key in data_json.keys():
