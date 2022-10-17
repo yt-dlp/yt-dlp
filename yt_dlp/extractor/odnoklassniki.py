@@ -207,7 +207,9 @@ class OdnoklassnikiIE(InfoExtractor):
                 'like_count': 0,
                 'duration': 35,
             },
-        },
+        }]
+
+    _WEBPAGE_TESTS = [
         {
             'url': 'https://boosty.to/ikakprosto/posts/56cedaca-b56a-4dfd-b3ed-98c79cfa0167',
             'info_dict': {
