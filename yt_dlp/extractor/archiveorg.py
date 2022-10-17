@@ -899,7 +899,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 # HTTP Error 404 is expected if the video is not saved.
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
                     self.raise_no_formats(
-                        'The requested video is not archived, indexed, or there is an issue with web.archive.org', expected=True)
+                        'The requested video is not archived, indexed, or there is an issue with web.archive.org (try again later)', expected=True)
                 else:
                     retry.error = e
 
