@@ -773,10 +773,10 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or ytcfg.get('VIDEO_USERNAME'))
         uploader_url = f'https://www.youtube.com/user/{uploader_id}' if uploader_id else None
 
-        # TODO: sort out what uploader means
+        # XXX: do we want to differentiate uploader and channel?
         uploader = (
             self._search_regex(
-                [r'<a\s*id="watch-username".*">\s*<strong[^>]?>([^<]+)</strong>',
+                [r'<a\s*id="watch-username"[^>]*>\s*<strong>([^<]+)</strong>',  # June 2010
                  r'var\s*watchUsername\s*=\s*\'(.+?)\';',  # ~May 2009
                  r'<div\s*\bid=\"watch-channel-stats"[^>]*>\s*<a[^>]*>\s*(.+?)\s*</a',  # ~May 2009
                  r'<a\s*id="watch-userbanner"[^>]*title="\s*(.+?)\s*"'],  # ~June 2012
