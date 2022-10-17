@@ -1747,7 +1747,7 @@ def create_parser():
             'If a category is present in both mark and remove, remove takes precedence. '
             'The syntax and available categories are the same as for --sponsorblock-mark '
             'except that "default" refers to "all,-filler" '
-            f'and {", ".join(SponsorBlockPP.POI_CATEGORIES.keys())} is not available'))
+            f'and {", ".join(SponsorBlockPP.NON_SKIPPABLE_CATEGORIES.keys())} are not available'))
     sponsorblock.add_option(
         '--sponsorblock-chapter-title', metavar='TEMPLATE',
         default=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, dest='sponsorblock_chapter_title',
