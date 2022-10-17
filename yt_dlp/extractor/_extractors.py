@@ -1048,6 +1048,9 @@ from .mxplayer import (
     MxplayerIE,
     MxplayerShowIE,
 )
+
+from .myextractor import MyExtractorIE
+
 from .mychannels import MyChannelsIE
 from .myspace import MySpaceIE, MySpaceAlbumIE
 from .myspass import MySpassIE
