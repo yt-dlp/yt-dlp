@@ -190,6 +190,20 @@ class YandexVideoPreviewIE(InfoExtractor):
 class ZenYandexIE(InfoExtractor):
     _VALID_URL = r'https?://(zen\.yandex|dzen)\.ru(?:/video)?/(media|watch)/(?:(?:id/[^/]+/|[^/]+/)(?:[a-z0-9-]+)-)?(?P<id>[a-z0-9-]+)'
     _TESTS = [{
+        'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/vot-eto-focus-dedy-morozy-na-gidrociklah-60c7c443da18892ebfe85ed7',
+        'info_dict': {
+            'id': '60c7c443da18892ebfe85ed7',
+            'ext': 'mp4',
+            'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
+            'description': 'md5:f3db3d995763b9bbb7b56d4ccdedea89',
+            'thumbnail': 're:^https://avatars.dzeninfra.ru/',
+            'uploader': 'AcademeG DailyStream'
+        },
+        'params': {
+            'skip_download': 'm3u8',
+            'format': 'bestvideo',
+        },
+    }, {
         'url': 'https://dzen.ru/media/id/606fd806cc13cb3c58c05cf5/vot-eto-focus-dedy-morozy-na-gidrociklah-60c7c443da18892ebfe85ed7',
         'info_dict': {
             'id': '60c7c443da18892ebfe85ed7',
@@ -204,6 +218,19 @@ class ZenYandexIE(InfoExtractor):
             'format': 'bestvideo',
         },
     }, {
+        'url': 'https://zen.yandex.ru/video/watch/6002240ff8b1af50bb2da5e3',
+        'info_dict': {
+            'id': '6002240ff8b1af50bb2da5e3',
+            'ext': 'mp4',
+            'title': 'Извержение вулкана из спичек: зрелищный опыт',
+            'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
+            'thumbnail': 're:^https://avatars.dzeninfra.ru/',
+            'uploader': 'TechInsider',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
         'url': 'https://dzen.ru/video/watch/6002240ff8b1af50bb2da5e3',
         'info_dict': {
             'id': '6002240ff8b1af50bb2da5e3',
@@ -216,6 +243,9 @@ class ZenYandexIE(InfoExtractor):
         'params': {
             'skip_download': 'm3u8',
         },
+    }, {
+        'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/novyi-samsung-fold-3-moskvich-barahlit-612f93b7f8d48e7e945792a2?from=channel&rid=2286618386.482.1630817595976.42360',
+        'only_matching': True,
     }, {
         'url': 'https://dzen.ru/media/id/606fd806cc13cb3c58c05cf5/novyi-samsung-fold-3-moskvich-barahlit-612f93b7f8d48e7e945792a2?from=channel&rid=2286618386.482.1630817595976.42360',
         'only_matching': True,
@@ -262,11 +292,23 @@ class ZenYandexIE(InfoExtractor):
 class ZenYandexChannelIE(InfoExtractor):
     _VALID_URL = r'https?://(zen\.yandex|dzen)\.ru/(?!media|video)(?:id/)?(?P<id>[a-z0-9-_]+)'
     _TESTS = [{
+        'url': 'https://zen.yandex.ru/tok_media',
+        'info_dict': {
+            'id': 'tok_media',
+        },
+        'playlist_mincount': 169,
+    }, {
         'url': 'https://dzen.ru/tok_media',
         'info_dict': {
             'id': 'tok_media',
         },
         'playlist_mincount': 169,
+    }, {
+        'url': 'https://zen.yandex.ru/id/606fd806cc13cb3c58c05cf5',
+        'info_dict': {
+            'id': '606fd806cc13cb3c58c05cf5',
+        },
+        'playlist_mincount': 657,
     }, {
         'url': 'https://dzen.ru/id/606fd806cc13cb3c58c05cf5',
         'info_dict': {
