@@ -37,6 +37,9 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         info['chapters'], cuts = self._remove_marked_arrange_sponsors(chapters + sponsor_chapters)
         if not cuts:
             return [], info
+        elif not info['chapters']:
+            self.report_warning('You have requested to remove the entire video, which is not possible')
+            return [], info
 
         original_duration, info['duration'] = info.get('duration'), info['chapters'][-1]['end_time']
         if self._duration_mismatch(real_duration, original_duration, 1):
