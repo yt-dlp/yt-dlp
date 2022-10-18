@@ -220,7 +220,7 @@ def generator(test_case, tname):
                     expected_minsize = tc.get('file_minsize', 10000)
                     if expected_minsize is not None:
                         if params.get('test'):
-                            expected_minsize = max(expected_minsize, 10000)
+                            expected_minsize = max(expected_minsize, 500)
                         got_fsize = os.path.getsize(tc_filename)
                         assertGreaterEqual(
                             self, got_fsize, expected_minsize,
