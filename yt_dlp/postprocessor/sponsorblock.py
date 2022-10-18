@@ -78,7 +78,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
                 'end_time': end,
                 'category': cat,
                 'title': title,
-                '_titles': [(title, start, end)]
+                '_categories': [(title, start, end)]
             }
 
         sponsor_chapters = [to_chapter(s) for s in duration_match]

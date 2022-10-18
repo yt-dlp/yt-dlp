@@ -99,7 +99,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             'start_time': start,
             'end_time': end,
             'category': 'manually_removed',
-            '_titles': [('manually_removed', start, end)],
+            '_categories': [('manually_removed', start, end)],
             'remove': True,
         } for start, end in self._ranges_to_remove)
 
@@ -205,16 +205,16 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                     continue
                 # Current chapter contains the cut within it. If the current chapter is
                 # a sponsor chapter, check whether the categories before and after the cut differ.
-                if '_titles' in cur_chapter:
-                    after_c = dict(cur_chapter, start_time=c['end_time'], _titles=[])
+                if '_categories' in cur_chapter:
+                    after_c = dict(cur_chapter, start_time=c['end_time'], _categories=[])
                     cur_cats = []
-                    for cat_start_end in cur_chapter['_titles']:
+                    for cat_start_end in cur_chapter['_categories']:
                         if cat_start_end[1] < c['start_time']:
                             cur_cats.append(cat_start_end)
                         if cat_start_end[2] > c['end_time']:
-                            after_c['_titles'].append(cat_start_end)
-                    cur_chapter['_titles'] = cur_cats
-                    if cur_chapter['_titles'] != after_c['_titles']:
+                            after_c['_categories'].append(cat_start_end)
+                    cur_chapter['_categories'] = cur_cats
+                    if cur_chapter['_categories'] != after_c['_categories']:
                         # Categories before and after the cut differ: push the after part to PQ.
                         heapq.heappush(chapters, (after_c['start_time'], cur_i, after_c))
                         cur_chapter['end_time'] = c['start_time']
@@ -227,14 +227,14 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 cur_chapter.setdefault('cut_idx', append_cut(c))
             # (sponsor, normal): if a normal chapter is not completely overlapped,
             # chop the beginning of it and push it to PQ.
-            elif '_titles' in cur_chapter and '_titles' not in c:
+            elif '_categories' in cur_chapter and '_categories' not in c:
                 if cur_chapter['end_time'] < c['end_time']:
                     c['start_time'] = cur_chapter['end_time']
                     c['_was_cut'] = True
                     heapq.heappush(chapters, (c['start_time'], i, c))
             # (normal, sponsor) and (sponsor, sponsor)
             else:
-                assert '_titles' in c, 'Normal chapters overlap'
+                assert '_categories' in c, 'Normal chapters overlap'
                 cur_chapter['_was_cut'] = True
                 c['_was_cut'] = True
                 # Push the part after the sponsor to PQ.
@@ -248,8 +248,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                     heapq.heappush(chapters, (after_cur['start_time'], cur_i, after_cur))
                     c['end_time'] = cur_chapter['end_time']
                 # (sponsor, sponsor): merge categories in the overlap.
-                if '_titles' in cur_chapter:
-                    c['_titles'] = cur_chapter['_titles'] + c['_titles']
+                if '_categories' in cur_chapter:
+                    c['_categories'] = cur_chapter['_categories'] + c['_categories']
                 # Inherit the cuts that the current chapter has accumulated within it.
                 if 'cut_idx' in cur_chapter:
                     c['cut_idx'] = cur_chapter['cut_idx']
@@ -265,7 +265,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             # Merge with the previous/next if the chapter is tiny.
             # Only tiny chapters resulting from a cut can be skipped.
             # Chapters that were already tiny in the original list will be preserved.
-            if (('_was_cut' in c or '_titles' in c)
+            if (('_was_cut' in c or '_categories' in c)
                     and c['end_time'] - c['start_time'] < _TINY_CHAPTER_DURATION):
                 if not new_chapters:
                     # Prepend tiny chapter to the next one if possible.
@@ -278,17 +278,17 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                         next_c = chapters[i + 1]
                         # Not a typo: key names in old_c and next_c are really different.
                         prev_is_sponsor = 'categories' in old_c
-                        next_is_sponsor = '_titles' in next_c
+                        next_is_sponsor = '_categories' in next_c
                         # Preferentially prepend tiny normals to normals and sponsors to sponsors.
-                        if (('_titles' not in c and prev_is_sponsor and not next_is_sponsor)
-                                or ('_titles' in c and not prev_is_sponsor and next_is_sponsor)):
+                        if (('_categories' not in c and prev_is_sponsor and not next_is_sponsor)
+                                or ('_categories' in c and not prev_is_sponsor and next_is_sponsor)):
                             next_c['start_time'] = c['start_time']
                             continue
                     old_c['end_time'] = c['end_time']
                     continue
 
             c.pop('_was_cut', None)
-            cats = c.pop('_titles', None)
+            cats = c.pop('_categories', None)
             if cats:
                 category = min(cats, key=lambda c: c[2] - c[1])[0]
                 cats = orderedSet(x[0] for x in cats)
