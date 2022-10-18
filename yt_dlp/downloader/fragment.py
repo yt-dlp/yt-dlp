@@ -433,9 +433,7 @@ class FragmentFD(FileDownloader):
         if not interrupt_trigger:
             interrupt_trigger = (True, )
 
-        is_fatal = (
-            ((lambda _: False) if info_dict.get('is_live') else (lambda idx: idx == 0))
-            if self.params.get('skip_unavailable_fragments', True) else (lambda _: True))
+        fatal = not self.params.get('skip_unavailable_fragments', True)
 
         if not pack_func:
             pack_func = lambda frag_content, _: frag_content
@@ -450,9 +448,6 @@ class FragmentFD(FileDownloader):
             byte_range = fragment.get('byte_range')
             if byte_range:
                 headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
-
-            # Never skip the first fragment
-            fatal = is_fatal(fragment.get('index') or (frag_index - 1))
 
             def error_callback(err, count, retries):
                 if fatal and count > retries:
@@ -475,7 +470,7 @@ class FragmentFD(FileDownloader):
         def append_fragment(frag_content, frag_index, ctx):
             if frag_content:
                 self._append_fragment(ctx, pack_func(frag_content, frag_index))
-            elif not is_fatal(frag_index - 1):
+            elif not fatal:
                 self.report_skip_fragment(frag_index, 'fragment not found')
             else:
                 ctx['dest_stream'].close()
@@ -523,6 +518,11 @@ class FragmentFD(FileDownloader):
                     raise
                 if not result:
                     return False
+
+        if ctx['complete_frags_downloaded_bytes'] == 0:
+            ctx['dest_stream'].close()
+            self.report_error("0 bytes found")
+            return False
 
         if finish_func is not None:
             ctx['dest_stream'].write(finish_func())
