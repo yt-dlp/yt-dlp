@@ -34,7 +34,7 @@ class YleAreenaIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'url': f'kaltura:1955031:{kaltura_id}',
-            'ie_key': 'Kaltura',
+            'ie_key': KalturaIE.ie_key(),
             'title': info.get('title'),
             'thumbnail': traverse_obj(info, ('thumbnails', 0, 'url')),
         }
