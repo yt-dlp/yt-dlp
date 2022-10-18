@@ -21,6 +21,23 @@ class PrankCastIE(InfoExtractor):
             'tags': ['prank call', 'prank'],
             'upload_date': '20220825'
         }
+    }, {
+        'url': 'https://prankcast.com/phonelosers/showreel/2048-NOT-COOL',
+        'info_dict': {
+            'id': '2048',
+            'ext': 'mp3',
+            'title': 'NOT COOL',
+            'display_id': 'NOT-COOL',
+            'timestamp': 1665028364,
+            'uploader': 'phonelosers',
+            'channel_id': 6,
+            'duration': 4044,
+            'cast': ['phonelosers'],
+            'description': '',
+            'categories': ['prank'],
+            'tags': ['prank call', 'prank'],
+            'upload_date': '20221006'
+        }
     }]
 
     def _real_extract(self, url):

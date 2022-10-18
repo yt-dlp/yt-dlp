@@ -85,7 +85,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
 
         sponsor_chapters = [to_chapter(s) for s in duration_match]
         if not sponsor_chapters:
-            self.to_screen('No segments were found in the SponsorBlock database')
+            self.to_screen('No matching segments were found in the SponsorBlock database')
         else:
             self.to_screen(f'Found {len(sponsor_chapters)} segments in the SponsorBlock database')
         return sponsor_chapters

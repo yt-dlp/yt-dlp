@@ -1,12 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    js_to_json,
-    mimetype2ext,
-    traverse_obj,
-)
+from ..utils import determine_ext, js_to_json, mimetype2ext, traverse_obj
 
 
 class TV24UAVideoIE(InfoExtractor):

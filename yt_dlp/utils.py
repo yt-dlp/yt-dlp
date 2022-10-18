@@ -5724,7 +5724,7 @@ class Config:
         return self.parser.parse_args(self.all_args)
 
 
-class WebSocketsWrapper():
+class WebSocketsWrapper:
     """Wraps websockets module to use in non-async scopes"""
     pool = None
 
@@ -5808,11 +5808,9 @@ def cached_method(f):
     def wrapper(self, *args, **kwargs):
         bound_args = signature.bind(self, *args, **kwargs)
         bound_args.apply_defaults()
-        key = tuple(bound_args.arguments.values())
+        key = tuple(bound_args.arguments.values())[1:]
 
-        if not hasattr(self, '__cached_method__cache'):
-            self.__cached_method__cache = {}
-        cache = self.__cached_method__cache.setdefault(f.__name__, {})
+        cache = vars(self).setdefault('__cached_method__cache', {}).setdefault(f.__name__, {})
         if key not in cache:
             cache[key] = f(self, *args, **kwargs)
         return cache[key]
