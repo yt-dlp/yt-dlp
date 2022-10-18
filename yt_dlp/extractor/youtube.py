@@ -2955,7 +2955,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # these seem to mark watchtime "history" in the real world
                 # they're required, so send in a single value
                 qs.update({
-                    'st': video_length,
+                    'st': 0,
                     'et': video_length,
                 })
 
