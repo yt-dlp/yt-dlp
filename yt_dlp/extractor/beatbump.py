@@ -5,8 +5,9 @@ from .common import InfoExtractor
 
 
 class BeatBumpIE(InfoExtractor):
-    _VALID_URL = r'https:\/\/beatbump\.ml\/(?:(?:listen\?id=)|(?:playlist\/)|(?:artist\/))(?P<id>.*)'
+    _VALID_URL = r'https:\/\/beatbump\.ml\/(?:(?:listen\?id=)|(?:playlist\/)|(?:artist\/)|(?:release\?id=))(?P<id>.*)'
     _TESTS = [{
+        # Single video
         'url': 'https://beatbump.ml/listen?id=BciS5krYL80',
         'md5': '7f6c65ee0955228bcbb81066080fb46c',
         'info_dict': {
@@ -39,6 +40,7 @@ class BeatBumpIE(InfoExtractor):
             'availability': 'public',
         }
     }, {
+        # Artist url
         'url': 'https://beatbump.ml/artist/UCfSIVkF2grhFG80NnJQAiwQ',
         'playlist_count': 1,
         'info_dict': {
@@ -55,6 +57,7 @@ class BeatBumpIE(InfoExtractor):
             'description': '',
         },
     }, {
+        # Playlist url
         'url': 'https://beatbump.ml/playlist/VLPL79MVRBRzH7weNKRSAVNwzCjZZThfBtEt',
         'playlist_count': 7,
         'info_dict': {
@@ -72,6 +75,22 @@ class BeatBumpIE(InfoExtractor):
             'tags': [],
             'view_count': int
         }
+    }, {
+        # Album url
+        'url': 'https://beatbump.ml/release?id=MPREb_VypETWxvz0t',
+        'playlist_count': 12,
+        'info_dict': {
+            'id': 'OLAK5uy_n12ZWiPrkz1lZMvCkYSYFWGxuE3R7645E',
+            'title': 'Album - Adyto',
+            'description': '',
+            'webpage_url': 'https://music.youtube.com/playlist?list=OLAK5uy_n12ZWiPrkz1lZMvCkYSYFWGxuE3R7645E',
+            'webpage_url_basename': 'playlist',
+            'webpage_url_domain': 'music.youtube.com',
+            'availability': str,
+            'modified_date': str,
+            'tags': [],
+            'view_count': int
+        }
     }]
 
     def _real_extract(self, url):
@@ -83,8 +102,11 @@ class BeatBumpIE(InfoExtractor):
         elif re.search('playlist', url) is not None:
             # Playlist id
             return self.url_result(f'https://music.youtube.com/browse/{item_id}')
-        elif re.search('artist', url):
+        elif re.search('artist', url) is not None:
             # Artist id
             return self.url_result(f'https://youtube.com/channel/{item_id}')
+        elif re.search('release', url) is not None:
+            # Album id
+            return self.url_result(f'https://music.youtube.com/browse/{item_id}')
         else:
             raise ExtractorError('Not a supported beatbump.ml url', expected=True)
