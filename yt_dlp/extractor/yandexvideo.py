@@ -224,6 +224,11 @@ class ZenYandexIE(InfoExtractor):
     def _real_extract(self, url):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
+        data_json = self._parse_json(
+            self._search_regex(r'it\s*=\s*({["\']host.+?});', webpage, 'pagelink'), id)
+        url = data_json['retpath']
+        id = self._match_id(url)
+
         webpage = self._download_webpage(url, id)
         data_json = self._parse_json(
             self._search_regex(r'data\s*=\s*({["\']_*serverState_*video.+?});', webpage, 'metadata'), id)
@@ -272,6 +277,10 @@ class ZenYandexChannelIE(InfoExtractor):
 
     def _entries(self, id, url):
         webpage = self._download_webpage(url, id)
+        data_json = self._parse_json(
+            self._search_regex(r'it\s*=\s*({["\']host.+?});', webpage, 'pagelink'), id)
+        url = data_json['retpath']
+
         webpage = self._download_webpage(url, id)
         data_json = self._parse_json(re.findall(r'var\s?data\s?=\s?({.+?})\s?;', webpage)[-1], id)
         for key in data_json.keys():
