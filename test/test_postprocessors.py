@@ -83,7 +83,7 @@ class TestModifyChaptersPP(unittest.TestCase):
         return {
             'start_time': start,
             'end_time': end,
-            '_categories': [cat, start, end, title],
+            '_categories': [(cat, start, end, title)],
             **({'remove': True} if remove else {}),
         }
 
