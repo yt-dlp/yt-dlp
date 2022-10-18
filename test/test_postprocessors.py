@@ -16,7 +16,7 @@ from yt_dlp.postprocessor import (
     MetadataFromFieldPP,
     MetadataParserPP,
     ModifyChaptersPP,
-    SponsorBlockPP
+    SponsorBlockPP,
 )
 
 
@@ -77,11 +77,13 @@ class TestModifyChaptersPP(unittest.TestCase):
         self._pp = ModifyChaptersPP(YoutubeDL())
 
     @staticmethod
-    def _sponsor_chapter(start, end, cat_or_title, remove=False):
+    def _sponsor_chapter(start, end, cat, remove=False, title=None):
+        if title is None:
+            title = SponsorBlockPP.CATEGORIES[cat]
         return {
             'start_time': start,
             'end_time': end,
-            '_categories': [(SponsorBlockPP.CATEGORIES.get(cat_or_title, cat_or_title), start, end)],
+            '_categories': [cat, start, end, title],
             **({'remove': True} if remove else {}),
         }
 
@@ -135,8 +137,8 @@ class TestModifyChaptersPP(unittest.TestCase):
 
     def test_remove_marked_arrange_sponsors_SponsorBlockChapters(self):
         chapters = self._chapters([70], ['c']) + [
-            self._sponsor_chapter(10, 20, 'sb c1'),
-            self._sponsor_chapter(15, 16, 'sb c2'),
+            self._sponsor_chapter(10, 20, 'chapter', title='sb c1'),
+            self._sponsor_chapter(15, 16, 'chapter', title='sb c2'),
             self._sponsor_chapter(30, 40, 'preview'),
             self._sponsor_chapter(50, 60, 'filler')]
         expected = self._chapters(
