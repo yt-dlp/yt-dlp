@@ -3,6 +3,7 @@ from .kaltura import KalturaIE
 from ..utils import (
     int_or_none,
     str_or_none,
+    url_or_none,
     traverse_obj
 )
 
@@ -28,6 +29,7 @@ class YleAreenaIE(InfoExtractor):
             'view_count': int,
             'upload_date': '20181204',
             'timestamp': 1543916210,
+            'subtitles': {'fin': [{'url': r're:^https?://.*$', 'ext': 'unknown_video'}]},
             'age_limit': 7,
         }
     }]
@@ -68,6 +70,15 @@ class YleAreenaIE(InfoExtractor):
         if episode_number is None:
             episode_number = int_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'episode_number', group='episode_number'))
 
+        subtitles = {}
+        subtitles_data = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'subtitles', ...), list)
+        for subtitles_track in subtitles_data:
+            subtitels_language = subtitles_track.get('language')
+            if subtitels_language in subtitles:
+                subtitles[subtitels_language].append({'url': subtitles_track.get('uri')})
+                continue
+            subtitles[subtitels_language] = [{'url': subtitles_track.get('uri')}]
+    
         return {
             '_type': 'url_transparent',
             'url': f'kaltura:1955031:{kaltura_id}',
@@ -79,5 +90,6 @@ class YleAreenaIE(InfoExtractor):
             'episode_number': episode_number,
             'thumbnail': False,
             'thumbnails': traverse_obj(info, ('thumbnails', ..., {'url': 'url'})),
+            'subtitles': subtitles,
             'age_limit': traverse_obj(video_data, ('data', 'ongoing_ondemand', 'content_rating', 'age_restriction'), expected_type=int_or_none),
         }
