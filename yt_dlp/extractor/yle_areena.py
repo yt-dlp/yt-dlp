@@ -48,37 +48,37 @@ class YleAreenaIE(InfoExtractor):
         # raw_title example:'K1, J2: Pouchit | Modernit miehet',
         _RAW_TITLE_RE = r'K(?P<season_number>[\d]+), J(?P<episode_number>[\d]+): (?P<episode_title>[^|]*) | (?P<series_title>.*)$'
 
-        title = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'title', 'fin'), expected_type=str_or_none)
-        if title is None:
-            title = str_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'episode_title', group='episode_title'))
-        if title is None:
-            title = raw_title or ''
+        title = (
+            traverse_obj(video_data, ('data', 'ongoing_ondemand', 'title', 'fin'), expected_type=str_or_none)
+            or str_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'episode_title', fatal=False, group='episode_title'))
+            or raw_title or '')
 
         description = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'description', 'fin'), expected_type=str_or_none)
 
-        series = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'series', 'title', 'fin'), expected_type=str_or_none)
-        if series is None:
-            series = str_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'series_title', group='series_title'))
+        series = (
+            traverse_obj(video_data, ('data', 'ongoing_ondemand', 'series', 'title', 'fin'), expected_type=str_or_none)
+            or str_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'series_title', fatal=False, group='series_title')))
 
-        season_number = int_or_none(self._search_regex(
-            r'Kausi (?P<season_number>[\d]+)',
-            description, 'season_number', group='season_number'))
-        if season_number is None:
-            season_number = int_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'season_number', group='season_number'))
+        season_number = (
+            int_or_none(self._search_regex(r'Kausi (?P<season_number>[\d]+)', description, 'season_number', fatal=False, group='season_number'))
+            or int_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'season_number', fatal=False, group='season_number')))
 
-        episode_number = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'episode_number'), expected_type=int_or_none)
-        if episode_number is None:
-            episode_number = int_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'episode_number', group='episode_number'))
+        episode_number = (
+            traverse_obj(video_data, ('data', 'ongoing_ondemand', 'episode_number'), expected_type=int_or_none)
+            or int_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'episode_number', fatal=False, group='episode_number')))
 
         subtitles = {}
         subtitles_data = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'subtitles', ...), list)
         for subtitles_track in subtitles_data:
-            subtitels_language = subtitles_track.get('language')
-            if subtitels_language in subtitles:
-                subtitles[subtitels_language].append({'url': subtitles_track.get('uri')})
+            subtitles_language = subtitles_track.get('language')
+            subtitles_url = url_or_none(subtitles_track.get('uri'))
+            if subtitles_url is None:
                 continue
-            subtitles[subtitels_language] = [{'url': subtitles_track.get('uri')}]
-    
+            if subtitles_language in subtitles:
+                subtitles[subtitles_language].append({'url': subtitles_url})
+                continue
+            subtitles[subtitles_language] = [{'url': subtitles_url}]
+
         return {
             '_type': 'url_transparent',
             'url': f'kaltura:1955031:{kaltura_id}',
