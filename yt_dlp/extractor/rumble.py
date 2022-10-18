@@ -118,7 +118,7 @@ class RumbleChannelIE(InfoExtractor):
         },
     }, {
         'url': 'https://rumble.com/user/goldenpoodleharleyeuna',
-        'playlist_count': 4,
+        'playlist_mincount': 4,
         'info_dict': {
             'id': 'goldenpoodleharleyeuna',
         },
