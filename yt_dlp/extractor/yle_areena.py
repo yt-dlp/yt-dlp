@@ -3,6 +3,7 @@ from .kaltura import KalturaIE
 from ..utils import (
     int_or_none,
     str_or_none,
+    url_or_none,
     traverse_obj
 )
 
@@ -77,7 +78,7 @@ class YleAreenaIE(InfoExtractor):
                 subtitles[subtitels_language].append({'url': subtitles_track.get('uri')})
                 continue
             subtitles[subtitels_language] = [{'url': subtitles_track.get('uri')}]
-
+    
         return {
             '_type': 'url_transparent',
             'url': f'kaltura:1955031:{kaltura_id}',
