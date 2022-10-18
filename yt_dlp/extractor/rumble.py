@@ -51,6 +51,10 @@ class RumbleEmbedIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    @staticmethod
+    def hls_dvr_url(video_id):
+        return 'https://rumble.com/live-hls-dvr/{}/playlist.m3u8'.format(video_id[1:])
+
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         embeds = tuple(super()._extract_embed_urls(url, webpage))
@@ -66,6 +70,18 @@ class RumbleEmbedIE(InfoExtractor):
             query={'request': 'video', 'v': video_id})
 
         formats = []
+        is_live = False
+        if video.get('livestream_has_dvr') and not video.get('live_placeholder'):
+            hls_fmts = self._extract_m3u8_formats(
+                self.hls_dvr_url(video_id), video_id,
+                ext='mp4', m3u8_id='hls', fatal=False)
+            if hls_fmts:
+                formats.extend(hls_fmts)
+                if video.get('live'):
+                    is_live = video['live'] == 2
+                    video['ua'] = {}
+                    video['duration'] = None
+
         for height, ua in (video.get('ua') or {}).items():
             for i in range(2):
                 f_url = try_get(ua, lambda x: x[i], compat_str)
@@ -103,6 +119,7 @@ class RumbleEmbedIE(InfoExtractor):
             'channel_url': author.get('url'),
             'duration': int_or_none(video.get('duration')),
             'uploader': author.get('name'),
+            'is_live': is_live,
         }
 
 
