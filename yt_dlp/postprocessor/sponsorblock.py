@@ -78,6 +78,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
                 'end_time': end,
                 'category': cat,
                 'title': title,
+                'type': s['actionType'],
                 '_categories': [(cat, start, end, title)],
             }
 

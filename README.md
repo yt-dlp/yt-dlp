@@ -1311,10 +1311,11 @@ Available only in `--sponsorblock-chapter-title`:
 
  - `start_time` (numeric): Start time of the chapter in seconds
  - `end_time` (numeric): End time of the chapter in seconds
- - `categories` (list): The SponsorBlock categories the chapter belongs to
+ - `categories` (list): The [SponsorBlock categories](https://wiki.sponsor.ajay.app/w/Types#Category) the chapter belongs to
  - `category` (string): The smallest SponsorBlock category the chapter belongs to
  - `category_names` (list): Friendly names of the categories
  - `name` (string): Friendly name of the smallest category
+ - `type` (string): The [SponsorBlock action type](https://wiki.sponsor.ajay.app/w/Types#Action_Type) of the chapter
 
 Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. E.g. for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `BaW_jenozKc`, this will result in a `yt-dlp test video-BaW_jenozKc.mp4` file created in the current directory.
 
