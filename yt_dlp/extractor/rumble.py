@@ -64,7 +64,6 @@ class RumbleEmbedIE(InfoExtractor):
         video = self._download_json(
             'https://rumble.com/embedJS/', video_id,
             query={'request': 'video', 'v': video_id})
-        title = unescapeHTML(video['title'])
 
         formats = []
         for height, ua in (video.get('ua') or {}).items():
@@ -95,7 +94,7 @@ class RumbleEmbedIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
+            'title': unescapeHTML(video['title']),
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': video.get('i'),
