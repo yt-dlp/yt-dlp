@@ -64,7 +64,8 @@ class SponsorBlockPP(FFmpegPostProcessor):
             if duration and duration - start_end[1] <= 1:
                 start_end[1] = duration
             # SponsorBlock duration may be absent or it may deviate from the real one.
-            return s['videoDuration'] == 0 or not duration or abs(duration - s['videoDuration']) <= 1
+            diff = abs(duration - s['videoDuration']) if s['videoDuration'] else 0
+            return diff < 1 or (diff < 5 and diff / (start_end[1] - start_end[0]) < 0.05)
 
         duration_match = [s for s in segments if duration_filter(s)]
         if len(duration_match) != len(segments):
