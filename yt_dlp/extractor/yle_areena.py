@@ -1,11 +1,9 @@
 from .common import InfoExtractor
-from ..utils import (
-    traverse_obj,
-)
+from ..utils import traverse_obj
 
 
 class YleAreenaIE(InfoExtractor):
-    _VALID_URL = r'https?://areena\.yle\.fi/(?P<id>[0-9-]+)'
+    _VALID_URL = r'https?://areena\.yle\.fi/(?P<id>[\d-]+)'
     _TESTS = [{
         'url': 'https://areena.yle.fi/1-4371942',
         'md5': '932edda0ecf5dfd6423804182d32f8ac',
@@ -25,8 +23,9 @@ class YleAreenaIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        video_data_url = f'https://player.api.yle.fi/v1/preview/{video_id}.json?app_id=player_static_prod&app_key=8930d72170e48303cf5f3867780d549b'
-        video_data = self._download_json(video_data_url, video_id)
+        video_data = self._download_json(
+            f'https://player.api.yle.fi/v1/preview/{video_id}.json?app_id=player_static_prod&app_key=8930d72170e48303cf5f3867780d549b',
+            video_id)
         kaltura_id = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'kaltura', 'id'))
 
         webpage = self._download_webpage(url, video_id)
