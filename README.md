@@ -1042,7 +1042,7 @@ Make chapter entries for, or remove various segments (sponsor,
                                     for, separated by commas. Available
                                     categories are sponsor, intro, outro,
                                     selfpromo, preview, filler, interaction,
-                                    music_offtopic, poi_highlight, all and
+                                    music_offtopic, poi_highlight, chapter, all and
                                     default (=all). You can prefix the category
                                     with a "-" to exclude it. See [1] for
                                     description of the categories. E.g.
@@ -1054,8 +1054,8 @@ Make chapter entries for, or remove various segments (sponsor,
                                     remove takes precedence. The syntax and
                                     available categories are the same as for
                                     --sponsorblock-mark except that "default"
-                                    refers to "all,-filler" and poi_highlight is
-                                    not available
+                                    refers to "all,-filler" and poi_highlight and
+                                    chapter are not available
     --sponsorblock-chapter-title TEMPLATE
                                     An output template for the title of the
                                     SponsorBlock chapters created by

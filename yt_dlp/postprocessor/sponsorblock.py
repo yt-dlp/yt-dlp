@@ -14,6 +14,10 @@ class SponsorBlockPP(FFmpegPostProcessor):
     POI_CATEGORIES = {
         'poi_highlight': 'Highlight',
     }
+    NON_SKIPPABLE_CATEGORIES = {
+        **POI_CATEGORIES,
+        'chapter': 'Chapter',
+    }
     CATEGORIES = {
         'sponsor': 'Sponsor',
         'intro': 'Intermission/Intro Animation',
@@ -23,7 +27,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
         'filler': 'Filler Tangent',
         'interaction': 'Interaction Reminder',
         'music_offtopic': 'Non-Music Section',
-        **POI_CATEGORIES,
+        **NON_SKIPPABLE_CATEGORIES
     }
 
     def __init__(self, downloader, categories=None, api='https://sponsor.ajay.app'):
@@ -68,12 +72,13 @@ class SponsorBlockPP(FFmpegPostProcessor):
 
         def to_chapter(s):
             (start, end), cat = s['segment'], s['category']
+            title = s['description'] if cat == 'chapter' else self.CATEGORIES[cat]
             return {
                 'start_time': start,
                 'end_time': end,
                 'category': cat,
-                'title': self.CATEGORIES[cat],
-                '_categories': [(cat, start, end)]
+                'title': title,
+                '_categories': [(cat, start, end, title)],
             }
 
         sponsor_chapters = [to_chapter(s) for s in duration_match]
@@ -89,7 +94,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
         url = f'{self._API_URL}/api/skipSegments/{hash[:4]}?' + urllib.parse.urlencode({
             'service': service,
             'categories': json.dumps(self._categories),
-            'actionTypes': json.dumps(['skip', 'poi'])
+            'actionTypes': json.dumps(['skip', 'poi', 'chapter'])
         })
         for d in self._download_json(url) or []:
             if d['videoID'] == video_id:
