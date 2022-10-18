@@ -188,7 +188,7 @@ class YandexVideoPreviewIE(InfoExtractor):
 
 
 class ZenYandexIE(InfoExtractor):
-    _VALID_URL = r'https?://dzen\.ru(?:/video)?/(media|watch)/(?:(?:id/[^/]+/|[^/]+/)(?:[a-z0-9-]+)-)?(?P<id>[a-z0-9-]+)'
+    _VALID_URL = r'https?://(zen\.yandex|dzen)\.ru(?:/video)?/(media|watch)/(?:(?:id/[^/]+/|[^/]+/)(?:[a-z0-9-]+)-)?(?P<id>[a-z0-9-]+)'
     _TESTS = [{
         'url': 'https://dzen.ru/media/id/606fd806cc13cb3c58c05cf5/vot-eto-focus-dedy-morozy-na-gidrociklah-60c7c443da18892ebfe85ed7',
         'info_dict': {
@@ -260,7 +260,7 @@ class ZenYandexIE(InfoExtractor):
 
 
 class ZenYandexChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://dzen\.ru/(?!media|video)(?:id/)?(?P<id>[a-z0-9-_]+)'
+    _VALID_URL = r'https?://(zen\.yandex|dzen)\.ru/(?!media|video)(?:id/)?(?P<id>[a-z0-9-_]+)'
     _TESTS = [{
         'url': 'https://dzen.ru/tok_media',
         'info_dict': {
