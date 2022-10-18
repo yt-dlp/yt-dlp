@@ -21,7 +21,6 @@ class RTSIE(SRGSSRIE):
         {
             'url': 'http://www.rts.ch/archives/tv/divers/3449373-les-enfants-terribles.html',
             'md5': '6ab2a551f356f9eb1f437e85685b34a4',
-            'file_minsize': 500,
             'info_dict': {
                 'id': '3449373',
                 'display_id': 'les-enfants-terribles',
@@ -35,6 +34,7 @@ class RTSIE(SRGSSRIE):
                 'thumbnail': r're:^https?://.*\.image',
                 'view_count': int,
             },
+            'params': {'skip_download': 'm3u8'},
             'expected_warnings': ['Unable to download f4m manifest', 'Failed to download m3u8 information'],
         },
         {
@@ -71,7 +71,6 @@ class RTSIE(SRGSSRIE):
         {
             'url': 'http://www.rts.ch/video/info/journal-continu/5745356-londres-cachee-par-un-epais-smog.html',
             'md5': '2b9939428ad643e64d465658900105fa',
-            'file_minsize': 500,
             'info_dict': {
                 'id': '5745356',
                 'display_id': 'londres-cachee-par-un-epais-smog',
@@ -85,6 +84,7 @@ class RTSIE(SRGSSRIE):
                 'thumbnail': r're:^https?://.*\.image',
                 'view_count': int,
             },
+            'params': {'skip_download': 'm3u8'},
             'expected_warnings': ['Unable to download f4m manifest', 'Failed to download m3u8 information'],
         },
         {
