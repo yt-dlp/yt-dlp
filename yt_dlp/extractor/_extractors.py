@@ -171,6 +171,7 @@ from .bbc import (
 from .beeg import BeegIE
 from .behindkink import BehindKinkIE
 from .bellmedia import BellMediaIE
+from .beatbump import BeatBumpIE
 from .beatport import BeatportIE
 from .berufetv import BerufeTVIE
 from .bet import BetIE
