@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from .kaltura import KalturaIE
 from ..utils import traverse_obj
 
 
