@@ -1737,7 +1737,7 @@ def create_parser():
         '--sponsorblock-remove', metavar='CATS',
         dest='sponsorblock_remove', default=set(), action='callback', type='str',
         callback=_set_from_options_callback, callback_kwargs={
-            'allowed_values': set(SponsorBlockPP.CATEGORIES.keys()) - set(SponsorBlockPP.POI_CATEGORIES.keys()),
+            'allowed_values': set(SponsorBlockPP.CATEGORIES.keys()) - set(SponsorBlockPP.NON_SKIPPABLE_CATEGORIES.keys()),
             # Note: From https://wiki.sponsor.ajay.app/w/Types:
             # The filler category is very aggressive.
             # It is strongly recommended to not use this in a client by default.
