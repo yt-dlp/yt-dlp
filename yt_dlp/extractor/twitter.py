@@ -4,7 +4,6 @@ import urllib.error
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
-
 from ..compat import functools  # isort: split
 from ..compat import (
     compat_parse_qs,
@@ -17,11 +16,12 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
-    join_nonempty,
     make_archive_id,
     str_or_none,
     strip_or_none,
+    join_nonempty,
     traverse_obj,
+    try_call,
     try_get,
     unified_timestamp,
     update_url_query,
@@ -501,6 +501,23 @@ class TwitterIE(TwitterBaseIE):
         },
         'add_ie': ['TwitterBroadcast'],
     }, {
+        # Twitter Spaces
+        'url': 'https://twitter.com/MoniqueCamarra/status/1550101959377551360',
+        'info_dict': {
+            'id': '1lPJqmBeeNAJb',
+            'ext': 'm4a',
+            'title': 'EuroFile@6 Ukraine Up-date-Draghi Defenestration-the West',
+            'uploader': r're:Monique Camarra.+?',
+            'uploader_id': 'MoniqueCamarra',
+            'live_status': 'was_live',
+            'description': 'md5:c62fc4c35ce2e0e977d5a72fc3418594',
+            'timestamp': 1658407771464,
+        },
+        'add_ie': ['TwitterSpaces'],
+        'params': {
+            'skip_download': True,  # requires ffmpeg
+        },
+    }, {
         # unified card
         'url': 'https://twitter.com/BrooklynNets/status/1349794411333394432?s=20',
         'info_dict': {
@@ -588,30 +605,27 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 0,
         },
     }, {
-        # Adult content, uses old token
-        # Fails if not logged in (GraphQL)
-        'url': 'https://twitter.com/Rizdraws/status/1575199173472927762',
+        'url': 'https://twitter.com/i/web/status/1579846363218870272',
         'info_dict': {
-            'id': '1575199163847000068',
-            'display_id': '1575199173472927762',
+            'id': '1579846355576659970',
+            'display_id': '1579846363218870272',
             'ext': 'mp4',
-            'title': str,
-            'description': str,
-            'uploader': str,
-            'uploader_id': 'Rizdraws',
-            'uploader_url': 'https://twitter.com/Rizdraws',
-            'upload_date': '20220928',
-            'timestamp': 1664391723,
-            'thumbnail': 're:^https?://.*\\.jpg',
-            'like_count': int,
-            'repost_count': int,
+            'title': 'PokiLewd \U0001f51e - @Rizdraws',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'description': '@Rizdraws https://t.co/oSl56cgKKD',
+            'uploader': 'PokiLewd \U0001f51e',
+            'uploader_id': 'pokilewd',
+            'uploader_url': 'https://twitter.com/pokilewd',
+            'timestamp': 1665499699,
+            'upload_date': '20221011',
             'comment_count': int,
+            'repost_count': int,
+            'like_count': int,
+            'tags': [],
             'age_limit': 18,
-            'tags': []
         },
         'expected_warnings': ['404'],
     }, {
-        # Description is missing one https://t.co url (GraphQL)
         'url': 'https://twitter.com/Srirachachau/status/1395079556562706435',
         'playlist_mincount': 2,
         'info_dict': {
@@ -630,7 +644,6 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1621447860,
         },
     }, {
-        # Description is missing one https://t.co url (GraphQL)
         'url': 'https://twitter.com/DavidToons_/status/1578353380363501568',
         'playlist_mincount': 2,
         'info_dict': {
@@ -665,23 +678,6 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
             'like_count': int,
             'tags': ['TheRingsOfPower'],
-        },
-    }, {
-        # Twitter Spaces
-        'url': 'https://twitter.com/MoniqueCamarra/status/1550101959377551360',
-        'info_dict': {
-            'id': '1lPJqmBeeNAJb',
-            'ext': 'm4a',
-            'title': 'EuroFile@6 Ukraine Up-date-Draghi Defenestration-the West',
-            'uploader': r're:Monique Camarra.+?',
-            'uploader_id': 'MoniqueCamarra',
-            'live_status': 'was_live',
-            'description': 'md5:c62fc4c35ce2e0e977d5a72fc3418594',
-            'timestamp': 1658407771464,
-        },
-        'add_ie': ['TwitterSpaces'],
-        'params': {
-            'skip_download': True,  # requires ffmpeg
         },
     }, {
         # onion route
@@ -895,11 +891,11 @@ class TwitterIE(TwitterBaseIE):
                     'ie_key': TwitterBroadcastIE.ie_key(),
                 }
             elif card_name == 'audiospace':
-                info.update({
+                yield {
                     '_type': 'url',
                     'url': f'https://twitter.com/i/spaces/{get_binding_value("id")}',
                     'ie_key': TwitterSpacesIE.ie_key(),
-                })
+                }
             elif card_name == 'summary':
                 yield {
                     '_type': 'url',
@@ -1094,32 +1090,12 @@ class TwitterSpacesIE(TwitterBaseIE):
         'expected_warnings': ['Twitter Space not started yet', 'No video formats found', 'Requested format is not available'],
     }]
 
-    def _parse_spaces_data(self, data, space_id):
-        metadata = data.get('metadata')
-        SPACE_STATUS = {
-            'notstarted': 'is_upcoming',
-            'ended': 'was_live',
-            'running': 'is_live',
-            'timedout': 'post_live',
-        }
-        live_status = SPACE_STATUS.get(metadata.get('state').lower())
-
-        # participants
-        participants = join_nonempty(*[p.get('display_name') for p in traverse_obj(data, ('participants', 'speakers'))], delim=', ') or 'nobody yet.'
-
-        return {
-            'id': space_id,
-            'title': metadata.get('title'),
-            'description': f'Twitter Space partecipated by {participants}',
-            'media_key': metadata.get('media_key'),
-            'uploader': traverse_obj(
-                metadata, ('creator_results', 'result', 'legacy', 'name')),
-            'uploader_id': traverse_obj(
-                metadata, ('creator_results', 'result', 'legacy', 'screen_name')),
-            'is_live': live_status == 'is_live',
-            'live_status': live_status,
-            'timestamp': metadata.get('created_at'),
-        }
+    SPACE_STATUS = {
+        'notstarted': 'is_upcoming',
+        'ended': 'was_live',
+        'running': 'is_live',
+        'timedout': 'post_live',
+    }
 
     def _build_graphql_query(self, space_id):
         return {
@@ -1150,39 +1126,40 @@ class TwitterSpacesIE(TwitterBaseIE):
     def _real_extract(self, url):
         space_id = self._match_id(url)
         space_data = self._call_graphql_api('HPEisOmj1epUNLCWTYhUWw/AudioSpaceById', space_id)
-
         if not space_data:
-            self.raise_no_formats('Twitter Space not found', expected=True)
+            raise ExtractorError('Twitter Space not found', expected=True)
 
-        info = self._parse_spaces_data(space_data.get('audioSpace'), space_id)
+        metadata = space_data['audioSpace']['metadata']
+        live_status = try_call(lambda: self.SPACE_STATUS[metadata['state'].lower()])
 
         formats = []
-        media_key = info.pop('media_key')
-
-        if info['live_status'] == 'is_upcoming':
+        if live_status == 'is_upcoming':
             self.raise_no_formats('Twitter Space not started yet', expected=True)
-        elif info['live_status'] == 'post_live':
+        elif live_status == 'post_live':
             self.raise_no_formats('Twitter Space ended but not downloadable yet', expected=True)
         else:
             source = self._call_api(
-                f'live_video_stream/status/{media_key}', media_key)['source']
-            m3u8_url = source.get('noRedirectPlaybackUrl') or source['location']
-            m3u8_id = 'live' if info['is_live'] else 'replay'
+                f'live_video_stream/status/{metadata["media_key"]}', metadata['media_key'])['source']
 
-            # force entry_protocol to m3u8 because m3u8_native is broken
+            # XXX: Native downloader does not work
             formats = self._extract_m3u8_formats(
-                m3u8_url, media_key, 'm4a',
-                m3u8_id=m3u8_id, entry_protocol='m3u8',
-                live=info['is_live'])
-            # force audio-only
+                traverse_obj(source, 'noRedirectPlaybackUrl', 'location'),
+                metadata['media_key'], 'm4a', 'm3u8', live=live_status == 'is_live')
             for fmt in formats:
-                fmt.update({
-                    'vcodec': 'none',
-                    'acodec': 'aac',
-                })
+                fmt.update({'vcodec': 'none', 'acodec': 'aac'})
 
+        participants = ', '.join(traverse_obj(
+            space_data, ('audioSpace', 'participants', 'speakers', ..., 'display_name'))) or 'nobody yet'
         return {
-            **info,
+            'id': space_id,
+            'title': metadata.get('title'),
+            'description': f'Twitter Space participated by {participants}',
+            'uploader': traverse_obj(
+                metadata, ('creator_results', 'result', 'legacy', 'name')),
+            'uploader_id': traverse_obj(
+                metadata, ('creator_results', 'result', 'legacy', 'screen_name')),
+            'live_status': live_status,
+            'timestamp': metadata.get('created_at'),
             'formats': formats,
         }
 
