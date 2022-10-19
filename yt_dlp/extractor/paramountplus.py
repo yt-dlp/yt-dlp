@@ -40,7 +40,6 @@ class ParamountPlusIE(CBSBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
-        'expected_warnings': ['Ignoring subtitle tracks'],  # TODO: Investigate this
     }, {
         'url': 'https://www.paramountplus.com/shows/video/6hSWYWRrR9EUTz7IEe5fJKBhYvSUfexd/',
         'info_dict': {
@@ -63,7 +62,6 @@ class ParamountPlusIE(CBSBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
-        'expected_warnings': ['Ignoring subtitle tracks'],
     }, {
         'url': 'https://www.paramountplus.com/movies/video/vM2vm0kE6vsS2U41VhMRKTOVHyQAr6pC/',
         'info_dict': {
@@ -118,8 +116,11 @@ class ParamountPlusIE(CBSBaseIE):
 
     def _extract_video_info(self, content_id, mpx_acc=2198311517):
         items_data = self._download_json(
-            'https://www.paramountplus.com/apps-api/v2.0/androidtv/video/cid/%s.json' % content_id,
-            content_id, query={'locale': 'en-us', 'at': 'ABCqWNNSwhIqINWIIAG+DFzcFUvF8/vcN6cNyXFFfNzWAIvXuoVgX+fK4naOC7V8MLI='}, headers=self.geo_verification_headers())
+            f'https://www.paramountplus.com/apps-api/v2.0/androidtv/video/cid/{content_id}.json',
+            content_id, query={
+                'locale': 'en-us',
+                'at': 'ABCXgPuoStiPipsK0OHVXIVh68zNys+G4f7nW9R6qH68GDOcneW6Kg89cJXGfiQCsj0=',
+            }, headers=self.geo_verification_headers())
 
         asset_types = {
             item.get('assetType'): {
