@@ -29,9 +29,7 @@ class StripchatIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(
-            'https://stripchat.com/%s/' % video_id, video_id,
-            headers=self.geo_verification_headers())
+        webpage = self._download_webpage(url, video_id, headers=self.geo_verification_headers())
 
         data = self._parse_json(
             self._search_regex(

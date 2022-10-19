@@ -12,6 +12,7 @@ class SBSIE(InfoExtractor):
             ondemand(?:
                 /video/(?:single/)?|
                 /movie/[^/]+/|
+                /(?:tv|news)-series/(?:[^/]+/){3}|
                 .*?\bplay=|/watch/
             )|news/(?:embeds/)?video/
         )(?P<id>[0-9]+)'''
@@ -62,6 +63,12 @@ class SBSIE(InfoExtractor):
     }, {
         'note': 'Live stream',
         'url': 'https://www.sbs.com.au/ondemand/video/1726824003663/sbs-24x7-live-stream-nsw',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.sbs.com.au/ondemand/news-series/dateline/dateline-2022/dateline-s2022-ep26/2072245827515',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.sbs.com.au/ondemand/tv-series/the-handmaids-tale/season-5/the-handmaids-tale-s5-ep1/2065631811776',
         'only_matching': True,
     }]
 

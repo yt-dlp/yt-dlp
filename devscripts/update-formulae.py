@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+"""
+Usage: python3 ./devscripts/update-formulae.py <path-to-formulae-rb> <version>
+version can be either 0-aligned (yt-dlp version) or normalized (PyPi version)
+"""
+
 # Allow direct execution
 import os
 import sys
@@ -11,8 +16,7 @@ import json
 import re
 import urllib.request
 
-# usage: python3 ./devscripts/update-formulae.py <path-to-formulae-rb> <version>
-# version can be either 0-aligned (yt-dlp version) or normalized (PyPl version)
+from devscripts.utils import read_file, write_file
 
 filename, version = sys.argv[1:]
 
@@ -27,11 +31,9 @@ tarball_file = next(x for x in pypi_release['urls'] if x['filename'].endswith('.
 sha256sum = tarball_file['digests']['sha256']
 url = tarball_file['url']
 
-with open(filename) as r:
-    formulae_text = r.read()
+formulae_text = read_file(filename)
 
 formulae_text = re.sub(r'sha256 "[0-9a-f]*?"', 'sha256 "%s"' % sha256sum, formulae_text, count=1)
 formulae_text = re.sub(r'url "[^"]*?"', 'url "%s"' % url, formulae_text, count=1)
 
-with open(filename, 'w') as w:
-    w.write(formulae_text)
+write_file(filename, formulae_text)

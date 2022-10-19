@@ -138,6 +138,8 @@ def write_piff_header(stream, params):
 
         if fourcc == 'AACL':
             sample_entry_box = box(b'mp4a', sample_entry_payload)
+        if fourcc == 'EC-3':
+            sample_entry_box = box(b'ec-3', sample_entry_payload)
     elif stream_type == 'video':
         sample_entry_payload += u16.pack(0)  # pre defined
         sample_entry_payload += u16.pack(0)  # reserved
@@ -278,5 +280,4 @@ class IsmFD(FragmentFD):
                     return False
                 self.report_skip_fragment(frag_index)
 
-        self._finish_frag_download(ctx, info_dict)
-        return True
+        return self._finish_frag_download(ctx, info_dict)

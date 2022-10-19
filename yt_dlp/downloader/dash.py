@@ -51,7 +51,7 @@ class DashSegmentsFD(FragmentFD):
 
             args.append([ctx, fragments_to_download, fmt])
 
-        return self.download_and_append_fragments_multiple(*args)
+        return self.download_and_append_fragments_multiple(*args, is_fatal=lambda idx: idx == 0)
 
     def _resolve_fragments(self, fragments, ctx):
         fragments = fragments(ctx) if callable(fragments) else fragments

@@ -15,6 +15,7 @@ from ..utils import (
     Popen,
     PostProcessingError,
     _get_exe_version_output,
+    deprecation_warning,
     detect_exe_version,
     determine_ext,
     dfxp2srt,
@@ -30,7 +31,6 @@ from ..utils import (
     traverse_obj,
     variadic,
     write_json_file,
-    write_string,
 )
 
 EXT_TO_OUT_FORMATS = {
@@ -109,18 +109,24 @@ class FFmpegPostProcessor(PostProcessor):
             return {p: p for p in programs}
 
         if not os.path.exists(location):
-            self.report_warning(f'ffmpeg-location {location} does not exist! Continuing without ffmpeg')
+            self.report_warning(
+                f'ffmpeg-location {location} does not exist! Continuing without ffmpeg', only_once=True)
             return {}
         elif os.path.isdir(location):
-            dirname, basename = location, None
+            dirname, basename, filename = location, None, None
         else:
-            basename = os.path.splitext(os.path.basename(location))[0]
-            basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
+            filename = os.path.basename(location)
+            basename = next((p for p in programs if p in filename), 'ffmpeg')
             dirname = os.path.dirname(os.path.abspath(location))
             if basename in self._ffmpeg_to_avconv.keys():
                 self._prefer_ffmpeg = True
 
         paths = {p: os.path.join(dirname, p) for p in programs}
+        if basename and basename in filename:
+            for p in programs:
+                path = os.path.join(dirname, filename.replace(basename, p))
+                if os.path.exists(path):
+                    paths[p] = path
         if basename:
             paths[basename] = location
         return paths
@@ -171,9 +177,9 @@ class FFmpegPostProcessor(PostProcessor):
         return self.probe_basename
 
     def _get_version(self, kind):
-        executables = (kind, self._ffmpeg_to_avconv[kind])
+        executables = (kind, )
         if not self._prefer_ffmpeg:
-            executables = reversed(executables)
+            executables = (kind, self._ffmpeg_to_avconv[kind])
         basename, version, features = next(filter(
             lambda x: x[1], ((p, *self._get_ffmpeg_version(p)) for p in executables)), (None, None, {}))
         if kind == 'ffmpeg':
@@ -181,8 +187,8 @@ class FFmpegPostProcessor(PostProcessor):
         else:
             self.probe_basename = basename
         if basename == self._ffmpeg_to_avconv[kind]:
-            self.deprecation_warning(
-                f'Support for {self._ffmpeg_to_avconv[kind]} is deprecated and may be removed in a future version. Use {kind} instead')
+            self.deprecated_feature(f'Support for {self._ffmpeg_to_avconv[kind]} is deprecated and '
+                                    f'may be removed in a future version. Use {kind} instead')
         return version
 
     @functools.cached_property
@@ -1058,7 +1064,7 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
 
     @classmethod
     def is_webp(cls, path):
-        write_string(f'DeprecationWarning: {cls.__module__}.{cls.__name__}.is_webp is deprecated')
+        deprecation_warning(f'{cls.__module__}.{cls.__name__}.is_webp is deprecated')
         return imghdr.what(path) == 'webp'
 
     def fixup_webp(self, info, idx=-1):
@@ -1099,6 +1105,7 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
                 continue
             has_thumbnail = True
             self.fixup_webp(info, idx)
+            original_thumbnail = thumbnail_dict['filepath']  # Path can change during fixup
             thumbnail_ext = os.path.splitext(original_thumbnail)[1][1:].lower()
             if thumbnail_ext == 'jpeg':
                 thumbnail_ext = 'jpg'

@@ -772,3 +772,30 @@ class FacebookRedirectURLIE(InfoExtractor):
         if not redirect_url:
             raise ExtractorError('Invalid facebook redirect URL', expected=True)
         return self.url_result(redirect_url)
+
+
+class FacebookReelIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/reel/(?P<id>\d+)'
+    IE_NAME = 'facebook:reel'
+
+    _TESTS = [{
+        'url': 'https://www.facebook.com/reel/1195289147628387',
+        'md5': 'c4ff9a7182ff9ff7d6f7a83603bae831',
+        'info_dict': {
+            'id': '1195289147628387',
+            'ext': 'mp4',
+            'title': 'md5:9f5b142921b2dc57004fa13f76005f87',
+            'description': 'md5:24ea7ef062215d295bdde64e778f5474',
+            'uploader': 'Beast Camp Training',
+            'uploader_id': '1738535909799870',
+            'duration': 9.536,
+            'thumbnail': r're:^https?://.*',
+            'upload_date': '20211121',
+            'timestamp': 1637502604,
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self.url_result(
+            f'https://m.facebook.com/watch/?v={video_id}&_rdr', FacebookIE, video_id)
