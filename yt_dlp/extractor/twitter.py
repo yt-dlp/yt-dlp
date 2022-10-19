@@ -19,7 +19,6 @@ from ..utils import (
     make_archive_id,
     str_or_none,
     strip_or_none,
-    join_nonempty,
     traverse_obj,
     try_call,
     try_get,
@@ -166,7 +165,7 @@ class TwitterCardIE(InfoExtractor):
             'url': 'https://twitter.com/i/cards/tfw/v1/560070183650213889',
             # MD5 checksums are different in different places
             'info_dict': {
-                'id': '560070183650213889',
+                'id': '560070131976392705',
                 'ext': 'mp4',
                 'title': "Twitter - You can now shoot, edit and share video on Twitter. Capture life's most moving moments from your perspective.",
                 'description': 'md5:18d3e24bb4f6e5007487dd546e53bd96',
@@ -176,6 +175,13 @@ class TwitterCardIE(InfoExtractor):
                 'duration': 30.033,
                 'timestamp': 1422366112,
                 'upload_date': '20150127',
+                'age_limit': 0,
+                'comment_count': int,
+                'tags': [],
+                'repost_count': int,
+                'like_count': int,
+                'display_id': '560070183650213889',
+                'uploader_url': 'https://twitter.com/Twitter',
             },
         },
         {
@@ -190,7 +196,14 @@ class TwitterCardIE(InfoExtractor):
                 'uploader_id': 'NASA',
                 'timestamp': 1437408129,
                 'upload_date': '20150720',
+                'uploader_url': 'https://twitter.com/NASA',
+                'age_limit': 0,
+                'comment_count': int,
+                'like_count': int,
+                'repost_count': int,
+                'tags': ['PlutoFlyby'],
             },
+            'params': {'format': '[protocol=https]'}
         },
         {
             'url': 'https://twitter.com/i/cards/tfw/v1/654001591733886977',
@@ -203,12 +216,27 @@ class TwitterCardIE(InfoExtractor):
                 'upload_date': '20111013',
                 'uploader': 'OMG! UBUNTU!',
                 'uploader_id': 'omgubuntu',
+                'channel_url': 'https://www.youtube.com/channel/UCIiSwcm9xiFb3Y4wjzR41eQ',
+                'channel_id': 'UCIiSwcm9xiFb3Y4wjzR41eQ',
+                'channel_follower_count': int,
+                'chapters': 'count:8',
+                'uploader_url': 'http://www.youtube.com/user/omgubuntu',
+                'duration': 138,
+                'categories': ['Film & Animation'],
+                'age_limit': 0,
+                'comment_count': int,
+                'availability': 'public',
+                'like_count': int,
+                'thumbnail': 'https://i.ytimg.com/vi/dq4Oj5quskI/maxresdefault.jpg',
+                'view_count': int,
+                'tags': 'count:12',
+                'channel': 'OMG! UBUNTU!',
+                'playable_in_embed': True,
             },
             'add_ie': ['Youtube'],
         },
         {
             'url': 'https://twitter.com/i/cards/tfw/v1/665289828897005568',
-            'md5': '6dabeaca9e68cbb71c99c322a4b42a11',
             'info_dict': {
                 'id': 'iBb2x00UVlv',
                 'ext': 'mp4',
@@ -217,9 +245,17 @@ class TwitterCardIE(InfoExtractor):
                 'uploader': 'ArsenalTerje',
                 'title': 'Vine by ArsenalTerje',
                 'timestamp': 1447451307,
+                'alt_title': 'Vine by ArsenalTerje',
+                'comment_count': int,
+                'like_count': int,
+                'thumbnail': r're:^https?://[^?#]+\.jpg',
+                'view_count': int,
+                'repost_count': int,
             },
             'add_ie': ['Vine'],
-        }, {
+            'params': {'skip_download': 'm3u8'},
+        },
+        {
             'url': 'https://twitter.com/i/videos/tweet/705235433198714880',
             'md5': '884812a2adc8aaf6fe52b15ccbfa3b88',
             'info_dict': {
@@ -233,7 +269,8 @@ class TwitterCardIE(InfoExtractor):
                 'upload_date': '20160303',
             },
             'skip': 'This content is no longer available.',
-        }, {
+        },
+        {
             'url': 'https://twitter.com/i/videos/752274308186120192',
             'only_matching': True,
         },
@@ -291,10 +328,10 @@ class TwitterIE(TwitterBaseIE):
             'id': '665052190608723968',
             'display_id': '665052190608723968',
             'ext': 'mp4',
-            'title': 'Star Wars - A new beginning is coming December 18. Watch the official 60 second #TV spot for #StarWars: #TheForceAwakens.',
+            'title': 'md5:3f57ab5d35116537a2ae7345cd0060d8',
             'description': 'A new beginning is coming December 18. Watch the official 60 second #TV spot for #StarWars: #TheForceAwakens. https://t.co/OkSqT2fjWJ',
             'uploader_id': 'starwars',
-            'uploader': 'Star Wars',
+            'uploader': r're:Star Wars.*',
             'timestamp': 1447395772,
             'upload_date': '20151113',
             'uploader_url': 'https://twitter.com/starwars',
@@ -501,23 +538,6 @@ class TwitterIE(TwitterBaseIE):
         },
         'add_ie': ['TwitterBroadcast'],
     }, {
-        # Twitter Spaces
-        'url': 'https://twitter.com/MoniqueCamarra/status/1550101959377551360',
-        'info_dict': {
-            'id': '1lPJqmBeeNAJb',
-            'ext': 'm4a',
-            'title': 'EuroFile@6 Ukraine Up-date-Draghi Defenestration-the West',
-            'uploader': r're:Monique Camarra.+?',
-            'uploader_id': 'MoniqueCamarra',
-            'live_status': 'was_live',
-            'description': 'md5:c62fc4c35ce2e0e977d5a72fc3418594',
-            'timestamp': 1658407771464,
-        },
-        'add_ie': ['TwitterSpaces'],
-        'params': {
-            'skip_download': True,  # requires ffmpeg
-        },
-    }, {
         # unified card
         'url': 'https://twitter.com/BrooklynNets/status/1349794411333394432?s=20',
         'info_dict': {
@@ -624,7 +644,7 @@ class TwitterIE(TwitterBaseIE):
             'tags': [],
             'age_limit': 18,
         },
-        'expected_warnings': ['404'],
+        'skip': '404',
     }, {
         'url': 'https://twitter.com/Srirachachau/status/1395079556562706435',
         'playlist_mincount': 2,
@@ -679,6 +699,21 @@ class TwitterIE(TwitterBaseIE):
             'like_count': int,
             'tags': ['TheRingsOfPower'],
         },
+    }, {
+        # Twitter Spaces
+        'url': 'https://twitter.com/MoniqueCamarra/status/1550101959377551360',
+        'info_dict': {
+            'id': '1lPJqmBeeNAJb',
+            'ext': 'm4a',
+            'title': 'EuroFile@6 Ukraine Up-date-Draghi Defenestration-the West',
+            'uploader': r're:Monique Camarra.+?',
+            'uploader_id': 'MoniqueCamarra',
+            'live_status': 'was_live',
+            'description': 'md5:acce559345fd49f129c20dbcda3f1201',
+            'timestamp': 1658407771464,
+        },
+        'add_ie': ['TwitterSpaces'],
+        'params': {'skip_download': 'm3u8'},
     }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
@@ -965,13 +1000,14 @@ class TwitterAmplifyIE(TwitterBaseIE):
 
     _TEST = {
         'url': 'https://amp.twimg.com/v/0ba0c3c7-0af3-4c0a-bed5-7efd1ffa2951',
-        'md5': '7df102d0b9fd7066b86f3159f8e81bf6',
+        'md5': 'fec25801d18a4557c5c9f33d2c379ffa',
         'info_dict': {
             'id': '0ba0c3c7-0af3-4c0a-bed5-7efd1ffa2951',
             'ext': 'mp4',
             'title': 'Twitter Video',
             'thumbnail': 're:^https?://.*',
         },
+        'params': {'format': '[protocol=https]'},
     }
 
     def _real_extract(self, url):
@@ -980,7 +1016,7 @@ class TwitterAmplifyIE(TwitterBaseIE):
 
         vmap_url = self._html_search_meta(
             'twitter:amplify:vmap', webpage, 'vmap url')
-        formats = self._extract_formats_from_vmap_url(vmap_url, video_id)
+        formats, _ = self._extract_formats_from_vmap_url(vmap_url, video_id)
 
         thumbnails = []
         thumbnail = self._html_search_meta(
@@ -1028,6 +1064,8 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
             'title': 'Andrea May Sahouri - Periscope Broadcast',
             'uploader': 'Andrea May Sahouri',
             'uploader_id': '1PXEdBZWpGwKe',
+            'thumbnail': r're:^https?://[^?#]+\.jpg\?token=',
+            'view_count': int,
         },
     }
 
@@ -1062,22 +1100,20 @@ class TwitterSpacesIE(TwitterBaseIE):
             'id': '1RDxlgyvNXzJL',
             'ext': 'm4a',
             'title': 'King Carlo e la mossa Kansas City per fare il Grande Centro',
-            'description': 'Twitter Space partecipated by annarita digiorgio, Signor Ernesto, Raffaello Colosimo, Simone M. Sepe',
+            'description': 'Twitter Space participated by annarita digiorgio, Signor Ernesto, Raffaello Colosimo, Simone M. Sepe',
             'uploader': r're:Lucio Di Gaetano.*?',
             'uploader_id': 'luciodigaetano',
             'live_status': 'was_live',
             'timestamp': 1659877956397,
         },
-        'params': {
-            'skip_download': True,  # requires ffmpeg
-        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         # Twitter Space not started yet
         'url': 'https://twitter.com/i/spaces/1mnGeRyljQPJX',
         'info_dict': {
             'id': '1mnGeRyljQPJX',
             'title': '@staderlabs x Hedera AMA w/ @defigirlxoxo, @bmgentile, & @thehbarbull',
-            'description': 'Twitter Space partecipated by nobody yet.',
+            'description': 'Twitter Space participated by nobody yet',
             'uploader': 'Hedera',
             'uploader_id': 'hedera',
             'live_status': 'is_upcoming',
@@ -1085,7 +1121,7 @@ class TwitterSpacesIE(TwitterBaseIE):
         },
         'params': {
             'ignore_no_formats_error': True,
-            'skip_download': True,  # requires ffmpeg
+            'skip_download': True,
         },
         'expected_warnings': ['Twitter Space not started yet', 'No video formats found', 'Requested format is not available'],
     }]
