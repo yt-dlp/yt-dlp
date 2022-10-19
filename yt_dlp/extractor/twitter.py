@@ -1115,23 +1115,40 @@ class TwitterSpacesIE(TwitterBaseIE):
             'timestamp': metadata.get('created_at'),
         }
 
+    def _build_graphql_query(self, space_id):
+        return {
+            'variables': {
+                'id': space_id,
+                'isMetatagsQuery': True,
+                'withDownvotePerspective': False,
+                'withReactionsMetadata': False,
+                'withReactionsPerspective': False,
+                'withReplays': True,
+                'withSuperFollowsUserFields': True,
+                'withSuperFollowsTweetFields': True,
+            },
+            'features': {
+                'dont_mention_me_view_api_enabled': True,
+                'interactive_text_enabled': True,
+                'responsive_web_edit_tweet_api_enabled': True,
+                'responsive_web_enhance_cards_enabled': True,
+                'responsive_web_uc_gql_enabled': True,
+                'spaces_2022_h2_clipping': True,
+                'spaces_2022_h2_spaces_communities': False,
+                'standardized_nudges_misinfo': True,
+                'tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled': False,
+                'vibe_api_enabled': True,
+            },
+        }
+
     def _real_extract(self, url):
         space_id = self._match_id(url)
-
-        space_data = self._call_api(
-            'AudioSpaceById',
-            space_id,
-            query={
-                'variables': f'{{"id":"{space_id}","isMetatagsQuery":true,"withSuperFollowsUserFields":true,"withDownvotePerspective":false,"withReactionsMetadata":false,"withReactionsPerspective":false,"withSuperFollowsTweetFields":true,"withReplays":true}}',
-                'features': '{"spaces_2022_h2_clipping":true,"spaces_2022_h2_spaces_communities":false,"dont_mention_me_view_api_enabled":true,"interactive_text_enabled":true,"responsive_web_uc_gql_enabled":true,"vibe_api_enabled":true,"responsive_web_edit_tweet_api_enabled":true,"standardized_nudges_misinfo":true,"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled":false,"responsive_web_enhance_cards_enabled":true}'
-            },
-            api_base_url=self._TWITTER_GRAPHQL
-        )['data']['audioSpace']
+        space_data = self._call_graphql_api('HPEisOmj1epUNLCWTYhUWw/AudioSpaceById', space_id)
 
         if not space_data:
             self.raise_no_formats('Twitter Space not found', expected=True)
 
-        info = self._parse_spaces_data(space_data, space_id)
+        info = self._parse_spaces_data(space_data.get('audioSpace'), space_id)
 
         formats = []
         media_key = info.pop('media_key')
