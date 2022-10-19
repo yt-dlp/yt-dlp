@@ -649,6 +649,13 @@ class YoutubeDL:
         else:
             self.params['nooverwrites'] = not self.params['overwrites']
 
+        if self.params.get('simulate') is None and any([
+            self.params.get('list_thumbnails'),
+            self.params.get('listformats'),
+            self.params.get('listsubtitles'),
+        ]):
+            self.params['simulate'] = True
+
         self.params.setdefault('forceprint', {})
         self.params.setdefault('print_to_file', {})
 
@@ -2642,7 +2649,7 @@ class YoutubeDL:
         # The pre-processors may have modified the formats
         formats = self._get_formats(info_dict)
 
-        list_only = self.params.get('simulate') is None and (
+        list_only = self.params.get('simulate') and (
             self.params.get('list_thumbnails') or self.params.get('listformats') or self.params.get('listsubtitles'))
         interactive_format_selection = not list_only and self.format_selector == '-'
         if self.params.get('list_thumbnails'):
