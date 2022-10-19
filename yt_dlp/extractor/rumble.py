@@ -2,12 +2,10 @@ import itertools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str, compat_HTTPError
+from ..compat import compat_HTTPError
 from ..utils import (
-    determine_ext,
     int_or_none,
     parse_iso8601,
-    try_get,
     unescapeHTML,
     ExtractorError,
 )
@@ -50,10 +48,8 @@ class RumbleEmbedIE(InfoExtractor):
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def hls_dvr_url(video_id):
-        return 'https://rumble.com/live-hls-dvr/{}/playlist.m3u8'.format(video_id[1:])
+    FORMAT_MAPPING = {'bitrate': 'tbr', 'size': 'filesize', 'w': 'width', 'h': 'height'}
+    THUMBNAIL_MAPPING = {'i': 'url', 'w': 'width', 'h': 'height'}
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -66,37 +62,45 @@ class RumbleEmbedIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video = self._download_json(
-            'https://rumble.com/embedJS/', video_id,
-            query={'request': 'video', 'v': video_id})
+            'https://rumble.com/embedJS/u3/', video_id,
+            query={'request': 'video', 'ver': 2, 'v': video_id})
+
+        if not video.get('livestream_has_dvr'):
+            live_status = 'not_live'
+        elif video.get('live') == 0:
+            live_status = 'was_live'
+        elif video.get('live') == 2:
+            live_status = 'is_live'
+        elif video.get('live') == 1:
+            live_status = 'is_upcoming' if video.get('live_placeholder') else 'post_live'
+        else:
+            live_status = None
 
         formats = []
-        is_live = False
-        if video.get('livestream_has_dvr') and not video.get('live_placeholder'):
-            hls_fmts = self._extract_m3u8_formats(
-                self.hls_dvr_url(video_id), video_id,
-                ext='mp4', m3u8_id='hls', fatal=False)
-            if hls_fmts:
-                formats.extend(hls_fmts)
-                if video.get('live'):
-                    is_live = video['live'] == 2
-                    video['ua'] = {}
-                    video['duration'] = None
-
-        for height, ua in (video.get('ua') or {}).items():
-            for i in range(2):
-                f_url = try_get(ua, lambda x: x[i], compat_str)
-                if f_url:
-                    ext = determine_ext(f_url)
-                    f = {
-                        'ext': ext,
-                        'format_id': '%s-%sp' % (ext, height),
-                        'height': int_or_none(height),
-                        'url': f_url,
-                    }
-                    bitrate = try_get(ua, lambda x: x[i + 2]['bitrate'])
-                    if bitrate:
-                        f['tbr'] = int_or_none(bitrate)
-                    formats.append(f)
+        for ext, ext_info in video.get('ua', {}).items():
+            if not ext_info:
+                continue
+            for height, video_info in ext_info.items():
+                meta = video_info.get('meta', {})
+                if 'url' not in video_info:
+                    continue
+                if ext == 'hls':
+                    formats.extend(
+                        self._extract_m3u8_formats(
+                            video_info['url'], video_id, ext='mp4', m3u8_id='hls', fatal=False))
+                    if not video.get('livestream_has_dvr') and meta.get('live'):
+                        live_status = 'is_live'
+                    continue
+                fmt = {
+                    'ext': ext,
+                    'url': video_info['url'],
+                    'format_id': '%s-%sp' % (ext, height),
+                    'height': int_or_none(height)
+                }
+                fmt.update(
+                    {key: meta[meta_key] for meta_key, key in self.FORMAT_MAPPING.items()
+                     if meta_key in meta})
+                formats.append(fmt)
         self._sort_formats(formats)
 
         subtitles = {
@@ -106,20 +110,29 @@ class RumbleEmbedIE(InfoExtractor):
             }] for lang, sub_info in (video.get('cc') or {}).items() if sub_info.get('path')
         }
 
-        author = video.get('author') or {}
+        author = video.get('author', {})
+        thumbnails = [{key: mapping[t_key] for t_key, key in self.THUMBNAIL_MAPPING.items()
+                       if t_key in mapping} for mapping in video.get('t', ())]
+        if not thumbnails and 'i' in video:
+            thumbnails.append({'url': video['i']})
+
+        if live_status in {'is_live', 'post_live'}:
+            duration = None
+        else:
+            duration = int_or_none(video.get('duration'))
 
         return {
             'id': video_id,
             'title': unescapeHTML(video['title']),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': video.get('i'),
+            'thumbnails': thumbnails,
             'timestamp': parse_iso8601(video.get('pubDate')),
             'channel': author.get('name'),
             'channel_url': author.get('url'),
-            'duration': int_or_none(video.get('duration')),
+            'duration': duration,
             'uploader': author.get('name'),
-            'is_live': is_live,
+            'live_status': live_status,
         }
 
 
