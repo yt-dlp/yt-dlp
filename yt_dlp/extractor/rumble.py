@@ -28,6 +28,7 @@ class RumbleEmbedIE(InfoExtractor):
             'thumbnail': 'https://sp.rmbl.ws/s8/1/5/M/z/1/5Mz1a.OvCc-small-WMAR-2-News-Latest-Headline.jpg',
             'duration': 234,
             'uploader': 'WMAR',
+            'live_status': 'not_live',
         }
     }, {
         'url': 'https://rumble.com/embed/vslb7v',
@@ -43,7 +44,49 @@ class RumbleEmbedIE(InfoExtractor):
             'thumbnail': 'https://sp.rmbl.ws/s8/6/7/i/9/h/7i9hd.OvCc.jpg',
             'duration': 901,
             'uploader': 'CTNews',
+            'live_status': 'not_live',
         }
+    }, {
+        'url': 'https://rumble.com/embed/vunh1h',
+        'info_dict': {
+            'id': 'vunh1h',
+            'ext': 'mp4',
+            'title': '‘Gideon, op zoek naar de waarheid’ including ENG SUBS',
+            'timestamp': 1647197663,
+            'upload_date': '20220313',
+            'channel_url': 'https://rumble.com/user/BLCKBX',
+            'channel': 'BLCKBX',
+            'thumbnail': r're:https://.+\.jpg',
+            'duration': 5069,
+            'uploader': 'BLCKBX',
+            'live_status': 'not_live',
+            'subtitles': {
+                'en': [
+                    {
+                        'url': r're:https://.+\.vtt',
+                        'name': 'English',
+                        'ext': 'vtt'
+                    }
+                ]
+            },
+        },
+        'params': {'skip_download': True}
+    }, {
+        'url': 'https://rumble.com/embed/v1essrt',
+        'info_dict': {
+            'id': 'v1essrt',
+            'ext': 'mp4',
+            'title': 'startswith:lofi hip hop radio - beats to relax/study',
+            'timestamp': 1661519399,
+            'upload_date': '20220826',
+            'channel_url': 'https://rumble.com/c/LofiGirl',
+            'channel': 'Lofi Girl',
+            'thumbnail': r're:https://.+\.jpg',
+            'duration': None,
+            'uploader': 'Lofi Girl',
+            'live_status': 'is_live',
+        },
+        'params': {'skip_download': True}
     }, {
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
         'only_matching': True,
