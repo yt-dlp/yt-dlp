@@ -625,27 +625,30 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 0,
         },
     }, {
-        'url': 'https://twitter.com/i/web/status/1579846363218870272',
+        # Adult content, uses old token
+        # Fails if not logged in (GraphQL)
+        'url': 'https://twitter.com/Rizdraws/status/1575199173472927762',
         'info_dict': {
-            'id': '1579846355576659970',
-            'display_id': '1579846363218870272',
+            'id': '1575199163847000068',
+            'display_id': '1575199173472927762',
             'ext': 'mp4',
-            'title': 'PokiLewd \U0001f51e - @Rizdraws',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'description': '@Rizdraws https://t.co/oSl56cgKKD',
-            'uploader': 'PokiLewd \U0001f51e',
-            'uploader_id': 'pokilewd',
-            'uploader_url': 'https://twitter.com/pokilewd',
-            'timestamp': 1665499699,
-            'upload_date': '20221011',
-            'comment_count': int,
-            'repost_count': int,
+            'title': str,
+            'description': str,
+            'uploader': str,
+            'uploader_id': 'Rizdraws',
+            'uploader_url': 'https://twitter.com/Rizdraws',
+            'upload_date': '20220928',
+            'timestamp': 1664391723,
+            'thumbnail': 're:^https?://.*\\.jpg',
             'like_count': int,
-            'tags': [],
+            'repost_count': int,
+            'comment_count': int,
             'age_limit': 18,
+            'tags': []
         },
-        'skip': '404',
+        'expected_warnings': ['404'],
     }, {
+        # Description is missing one https://t.co url (GraphQL)
         'url': 'https://twitter.com/Srirachachau/status/1395079556562706435',
         'playlist_mincount': 2,
         'info_dict': {
@@ -664,6 +667,7 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1621447860,
         },
     }, {
+        # Description is missing one https://t.co url (GraphQL)
         'url': 'https://twitter.com/DavidToons_/status/1578353380363501568',
         'playlist_mincount': 2,
         'info_dict': {
