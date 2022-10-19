@@ -1111,23 +1111,6 @@ class TwitterSpacesIE(TwitterBaseIE):
             'timestamp': 1659877956397,
         },
         'params': {'skip_download': 'm3u8'},
-    }, {
-        # Twitter Space not started yet
-        'url': 'https://twitter.com/i/spaces/1mnGeRyljQPJX',
-        'info_dict': {
-            'id': '1mnGeRyljQPJX',
-            'title': '@staderlabs x Hedera AMA w/ @defigirlxoxo, @bmgentile, & @thehbarbull',
-            'description': 'Twitter Space participated by nobody yet',
-            'uploader': 'Hedera',
-            'uploader_id': 'hedera',
-            'live_status': 'is_upcoming',
-            'timestamp': 1662394668924,
-        },
-        'params': {
-            'ignore_no_formats_error': True,
-            'skip_download': True,
-        },
-        'expected_warnings': ['Twitter Space not started yet', 'No video formats found', 'Requested format is not available'],
     }]
 
     SPACE_STATUS = {
@@ -1165,11 +1148,11 @@ class TwitterSpacesIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         space_id = self._match_id(url)
-        space_data = self._call_graphql_api('HPEisOmj1epUNLCWTYhUWw/AudioSpaceById', space_id)
+        space_data = self._call_graphql_api('HPEisOmj1epUNLCWTYhUWw/AudioSpaceById', space_id)['audioSpace']
         if not space_data:
             raise ExtractorError('Twitter Space not found', expected=True)
 
-        metadata = space_data['audioSpace']['metadata']
+        metadata = space_data['metadata']
         live_status = try_call(lambda: self.SPACE_STATUS[metadata['state'].lower()])
 
         formats = []
@@ -1189,7 +1172,7 @@ class TwitterSpacesIE(TwitterBaseIE):
                 fmt.update({'vcodec': 'none', 'acodec': 'aac'})
 
         participants = ', '.join(traverse_obj(
-            space_data, ('audioSpace', 'participants', 'speakers', ..., 'display_name'))) or 'nobody yet'
+            space_data, ('participants', 'speakers', ..., 'display_name'))) or 'nobody yet'
         return {
             'id': space_id,
             'title': metadata.get('title'),
