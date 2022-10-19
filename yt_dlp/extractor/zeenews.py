@@ -32,8 +32,7 @@ class ZeeNewsIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        match = self._match_valid_url(url).groupdict()
-        content_id, display_id = match['id'], match['display_id']
+        content_id, display_id = self._match_valid_url(url).group('id', 'display_id')
         webpage = self._download_webpage(url, content_id)
         json_ld_list = list(self._yield_json_ld(webpage, display_id))
         info = next(json_ld for json_ld in json_ld_list if json_ld.get('@type') == 'VideoObject')
