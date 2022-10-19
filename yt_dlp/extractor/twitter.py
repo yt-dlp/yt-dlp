@@ -4,6 +4,7 @@ import urllib.error
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
+from ..compat import functools  # isort: split
 from ..compat import (
     compat_parse_qs,
     compat_urllib_parse_unquote,
@@ -86,42 +87,38 @@ class TwitterBaseIE(InfoExtractor):
                 'height': int(m.group('height')),
             })
 
+    @functools.cached_property
     def is_logged_in(self):
         return bool(self._get_cookies(self._API_BASE).get('auth_token'))
 
     def _call_api(self, path, video_id, query={}, graphql=False):
         cookies = self._get_cookies(self._API_BASE)
-        base_headers = {}
+        headers = {}
 
         csrf_cookie = cookies.get('ct0')
         if csrf_cookie:
-            base_headers['x-csrf-token'] = csrf_cookie.value
+            headers['x-csrf-token'] = csrf_cookie.value
 
-        is_logged_in = self.is_logged_in()
-        if is_logged_in:
-            base_headers.update({
+        if self.is_logged_in:
+            headers.update({
                 'x-twitter-auth-type': 'OAuth2Session',
                 'x-twitter-client-language': 'en',
                 'x-twitter-active-user': 'yes',
             })
 
-        error = None
-        result = None
+        result, last_error = None, None
         for bearer_token in self._TOKENS:
-            headers = base_headers.copy()
             headers['Authorization'] = f'Bearer {bearer_token}'
 
-            if not is_logged_in:
+            if not self.is_logged_in:
                 if not self._TOKENS[bearer_token]:
                     guest_token_response = self._download_json(
                         self._API_BASE + 'guest/activate.json', video_id,
                         'Downloading guest token', data=b'', headers=headers)
 
-                    guest_token = guest_token_response.get('guest_token')
-                    if not guest_token:
+                    self._TOKENS[bearer_token] = guest_token_response.get('guest_token')
+                    if not self._TOKENS[bearer_token]:
                         raise ExtractorError('Could not retrieve guest token')
-
-                    self._TOKENS[bearer_token] = guest_token
                 headers['x-guest-token'] = self._TOKENS[bearer_token]
 
             try:
@@ -132,22 +129,18 @@ class TwitterBaseIE(InfoExtractor):
                 break
 
             except ExtractorError as e:
-                if error:
-                    raise error
-
-                if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 404:
+                if last_error:
+                    raise last_error
+                elif not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 404:
                     raise
-
-                error = e
+                last_error = e
                 self.report_warning(
                     'Twitter API gave 404 response, retrying with deprecated token. '
-                    'This means only one media item can be extracted.')
+                    'Only one media item can be extracted')
 
-        errors = traverse_obj(result, 'errors')
-        if errors:
-            error_message = ', '.join(set(traverse_obj(errors, (..., 'message'), expected_type=str)))
-            if not error_message:
-                error_message = 'Unknown error.'
+        if result.get('errors'):
+            error_message = ', '.join(set(traverse_obj(
+                result, ('errors', ..., 'message'), expected_type=str))) or 'Unknown error'
             raise ExtractorError(f'Error(s) while querying api: {error_message}', expected=True)
 
         assert result is not None
@@ -705,16 +698,15 @@ class TwitterIE(TwitterBaseIE):
     }]
 
     def _graphql_to_legacy(self, data, twid):
-        def filter_tweet(_, obj):
-            return obj['entryId'] == f'tweet-{twid}'
-
-        path = ('threaded_conversation_with_injections_v2', 'instructions', 0, 'entries',
-                filter_tweet, 'content', 'itemContent', 'tweet_results', 'result')
-        result = traverse_obj(data, path, expected_type=dict, default={}, get_all=False)
+        result = traverse_obj(data, (
+            'threaded_conversation_with_injections_v2', 'instructions', 0, 'entries',
+            lambda _, v: v['entryId'] == f'tweet-{twid}', 'content', 'itemContent',
+            'tweet_results', 'result'
+        ), expected_type=dict, default={}, get_all=False)
 
         if 'tombstone' in result:
-            cause = traverse_obj(result, ('tombstone', 'text', 'text'), expected_type=str, default='')
-            raise ExtractorError(f'Twitter API says: {cause}', expected=True)
+            cause = traverse_obj(result, ('tombstone', 'text', 'text'), expected_type=str)
+            raise ExtractorError(f'Twitter API says: {cause or "Unknown error"}', expected=True)
 
         status = result.get('legacy', {})
         status.update(traverse_obj(result, {
@@ -769,14 +761,8 @@ class TwitterIE(TwitterBaseIE):
 
     def _real_extract(self, url):
         twid = self._match_id(url)
-        use_graphql = self.is_logged_in()
-
-        force_graphql = bool(self._configuration_arg('force_graphql'))
-        if force_graphql and not use_graphql:
-            self.write_debug('Forced usage of GraphQL API')
-            use_graphql = True
-
-        if use_graphql:
+        if self.is_logged_in or self._configuration_arg('force_graphql'):
+            self.write_debug(f'Using GraphQL API (Auth = {self.logged_in}')
             result = self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid)
             status = self._graphql_to_legacy(result, twid)
 
@@ -891,7 +877,8 @@ class TwitterIE(TwitterBaseIE):
                 }
             elif card_name == 'unified_card':
                 unified_card = self._parse_json(get_binding_value('unified_card'), twid)
-                yield from map(extract_from_video_info, traverse_obj(unified_card, ('media_entities', ...), expected_type=dict))
+                yield from map(extract_from_video_info, traverse_obj(
+                    unified_card, ('media_entities', ...), expected_type=dict))
             # amplify, promo_video_website, promo_video_convo, appplayer,
             # video_direct_message, poll2choice_video, poll3choice_video,
             # poll4choice_video, ...
