@@ -113,31 +113,29 @@ class RumbleEmbedIE(InfoExtractor):
         if sys_msg:
             self.report_warning(sys_msg, video_id=video_id)
 
-        if not video.get('livestream_has_dvr'):
-            live_status = 'not_live'
-        elif video.get('live') == 0:
-            live_status = 'was_live'
+        if video.get('live') == 0:
+            live_status = 'not_live' if video.get('livestream_has_dvr') is None else 'was_live'
+        elif video.get('live') == 1:
+            live_status = 'is_upcoming' if video.get('livestream_has_dvr') else 'was_live'
         elif video.get('live') == 2:
             live_status = 'is_live'
-        elif video.get('live') == 1:
-            live_status = 'is_upcoming' if video.get('live_placeholder') else 'post_live'
         else:
             live_status = None
 
         formats = []
-        for ext, ext_info in video.get('ua', {}).items():
+        for ext, ext_info in (video.get('ua') or {}).items():
             if not ext_info:
                 continue
-            for height, video_info in ext_info.items():
-                meta = video_info.get('meta', {})
+            for height, video_info in (ext_info or {}).items():
+                meta = video_info.get('meta') or {}
                 if 'url' not in video_info:
                     continue
                 if ext == 'hls':
                     formats.extend(
                         self._extract_m3u8_formats(
                             video_info['url'], video_id, ext='mp4', m3u8_id='hls', fatal=False))
-                    if not video.get('livestream_has_dvr') and meta.get('live'):
-                        live_status = 'is_live'
+                    if meta.get('live') is True and video.get('live') == 1:
+                        live_status = 'post_live'
                     continue
                 fmt = {
                     'ext': ext,
@@ -159,7 +157,7 @@ class RumbleEmbedIE(InfoExtractor):
             }] for lang, sub_info in (video.get('cc') or {}).items() if sub_info.get('path')
         }
 
-        author = video.get('author', {})
+        author = video.get('author') or {}
         thumbnails = [{key: mapping[t_key] for t_key, key in self.THUMBNAIL_MAPPING.items()
                        if t_key in mapping} for mapping in video.get('t', ())]
         if not thumbnails and 'i' in video:
