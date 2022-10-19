@@ -89,6 +89,23 @@ class RumbleEmbedIE(InfoExtractor):
         },
         'params': {'skip_download': True}
     }, {
+        'url': 'https://rumble.com/embed/v1amumr',
+        'info_dict': {
+            'id': 'v1amumr',
+            'ext': 'webm',
+            'fps': 60,
+            'title': 'Turning Point USA 2022 Student Action Summit DAY 1  - Rumble Exclusive Live',
+            'timestamp': 1658518457,
+            'upload_date': '20220722',
+            'channel_url': 'https://rumble.com/c/RumbleEvents',
+            'channel': 'Rumble Events',
+            'thumbnail': r're:https://.+\.jpg',
+            'duration': 16427,
+            'uploader': 'Rumble Events',
+            'live_status': 'was_live',
+        },
+        'params': {'skip_download': True}
+    }, {
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
         'only_matching': True,
     }]
