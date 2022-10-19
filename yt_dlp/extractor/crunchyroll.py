@@ -1,40 +1,19 @@
 import base64
-import json
-import re
-import urllib.request
-import xml.etree.ElementTree
-import zlib
-from hashlib import sha1
-from math import floor, pow, sqrt
 
 from .common import InfoExtractor
-from .vrv import VRVBaseIE
-from ..aes import aes_cbc_decrypt
 from ..compat import (
-    compat_b64decode,
-    compat_etree_fromstring,
-    compat_str,
     compat_urllib_parse_urlencode,
     compat_urlparse,
 )
 from ..utils import (
     ExtractorError,
-    bytes_to_intlist,
-    extract_attributes,
     float_or_none,
     format_field,
-    int_or_none,
-    intlist_to_bytes,
     join_nonempty,
-    lowercase_escape,
-    merge_dicts,
     parse_iso8601,
     qualities,
-    remove_end,
-    sanitized_Request,
     traverse_obj,
     try_get,
-    xpath_text,
 )
 
 
@@ -114,7 +93,6 @@ class CrunchyrollBaseIE(InfoExtractor):
                 headers={
                     'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']
                 })
-            #cms = traverse_obj(policy_response, 'cms_beta', 'cms')
             cms = policy_response.get('cms')
             bucket = cms['bucket']
             params = {
