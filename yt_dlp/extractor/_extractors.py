@@ -366,9 +366,7 @@ from .crowdbunker import (
 )
 from .crunchyroll import (
     CrunchyrollIE,
-    CrunchyrollShowPlaylistIE,
-    CrunchyrollBetaIE,
-    CrunchyrollBetaShowIE,
+    CrunchyrollPlaylistIE,
 )
 from .cspan import CSpanIE, CSpanCongressIE
 from .ctsnews import CtsNewsIE
