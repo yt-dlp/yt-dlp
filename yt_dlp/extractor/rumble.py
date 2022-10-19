@@ -138,7 +138,8 @@ class RumbleEmbedIE(InfoExtractor):
                     'ext': ext,
                     'url': video_info['url'],
                     'format_id': '%s-%sp' % (ext, height),
-                    'height': int_or_none(height)
+                    'height': int_or_none(height),
+                    'fps': video.get('fps'),
                 }
                 fmt.update(
                     {key: meta[meta_key] for meta_key, key in self.FORMAT_MAPPING.items()
