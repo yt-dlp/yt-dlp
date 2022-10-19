@@ -377,6 +377,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?piped\.mha\.fi',
         r'(?:www\.)?piped\.mint\.lgbt',
         r'(?:www\.)?piped\.privacy\.com\.de',
+        r'(?:www\.)?piped\.garudalinux\.org',
     )
 
     # extracted from account/account_menu ep
