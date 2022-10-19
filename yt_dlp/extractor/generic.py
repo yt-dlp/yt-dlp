@@ -2414,6 +2414,7 @@ class GenericIE(InfoExtractor):
                 'channel_url': 'https://rumble.com/c/c-546523',
                 'thumbnail': 'https://sp.rmbl.ws/s8/1/5/f/x/x/5fxxb.OvCc.1-small-Moose-The-Dog-Helps-Girls-D.jpg',
                 'duration': 103,
+                'live_status': 'not_live',
             }
         },
         {
@@ -2431,6 +2432,7 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1654892716,
                 'uploader': 'Mr Producer Media',
                 'upload_date': '20220610',
+                'live_status': 'not_live',
             }
         },
         {
