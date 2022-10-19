@@ -762,7 +762,7 @@ class TwitterIE(TwitterBaseIE):
     def _real_extract(self, url):
         twid = self._match_id(url)
         if self.is_logged_in or self._configuration_arg('force_graphql'):
-            self.write_debug(f'Using GraphQL API (Auth = {self.logged_in}')
+            self.write_debug(f'Using GraphQL API (Auth = {self.is_logged_in}')
             result = self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid)
             status = self._graphql_to_legacy(result, twid)
 
