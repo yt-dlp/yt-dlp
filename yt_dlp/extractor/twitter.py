@@ -4,6 +4,7 @@ import urllib.error
 
 from .common import InfoExtractor
 from .periscope import PeriscopeBaseIE, PeriscopeIE
+
 from ..compat import functools  # isort: split
 from ..compat import (
     compat_parse_qs,
@@ -16,10 +17,10 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
+    join_nonempty,
     make_archive_id,
     str_or_none,
     strip_or_none,
-    join_nonempty,
     traverse_obj,
     try_get,
     unified_timestamp,
@@ -113,6 +114,7 @@ class TwitterBaseIE(InfoExtractor):
 
             if not self.is_logged_in:
                 if not self._TOKENS[bearer_token]:
+                    headers.pop('x-guest-token', None)
                     guest_token_response = self._download_json(
                         self._API_BASE + 'guest/activate.json', video_id,
                         'Downloading guest token', data=b'', headers=headers)
@@ -499,23 +501,6 @@ class TwitterIE(TwitterBaseIE):
         },
         'add_ie': ['TwitterBroadcast'],
     }, {
-        # Twitter Spaces
-        'url': 'https://twitter.com/MoniqueCamarra/status/1550101959377551360',
-        'info_dict': {
-            'id': '1lPJqmBeeNAJb',
-            'ext': 'm4a',
-            'title': 'EuroFile@6 Ukraine Up-date-Draghi Defenestration-the West',
-            'uploader': r're:Monique Camarra.+?',
-            'uploader_id': 'MoniqueCamarra',
-            'live_status': 'was_live',
-            'description': 'md5:c62fc4c35ce2e0e977d5a72fc3418594',
-            'timestamp': 1658407771464,
-        },
-        'add_ie': ['TwitterSpaces'],
-        'params': {
-            'skip_download': True,  # requires ffmpeg
-        },
-    }, {
         # unified card
         'url': 'https://twitter.com/BrooklynNets/status/1349794411333394432?s=20',
         'info_dict': {
@@ -603,27 +588,30 @@ class TwitterIE(TwitterBaseIE):
             'age_limit': 0,
         },
     }, {
-        'url': 'https://twitter.com/i/web/status/1579846363218870272',
+        # Adult content, uses old token
+        # Fails if not logged in (GraphQL)
+        'url': 'https://twitter.com/Rizdraws/status/1575199173472927762',
         'info_dict': {
-            'id': '1579846355576659970',
-            'display_id': '1579846363218870272',
+            'id': '1575199163847000068',
+            'display_id': '1575199173472927762',
             'ext': 'mp4',
-            'title': 'PokiLewd \U0001f51e - @Rizdraws',
-            'thumbnail': r're:^https?://.*\.jpg',
-            'description': '@Rizdraws https://t.co/oSl56cgKKD',
-            'uploader': 'PokiLewd \U0001f51e',
-            'uploader_id': 'pokilewd',
-            'uploader_url': 'https://twitter.com/pokilewd',
-            'timestamp': 1665499699,
-            'upload_date': '20221011',
-            'comment_count': int,
-            'repost_count': int,
+            'title': str,
+            'description': str,
+            'uploader': str,
+            'uploader_id': 'Rizdraws',
+            'uploader_url': 'https://twitter.com/Rizdraws',
+            'upload_date': '20220928',
+            'timestamp': 1664391723,
+            'thumbnail': 're:^https?://.*\\.jpg',
             'like_count': int,
-            'tags': [],
+            'repost_count': int,
+            'comment_count': int,
             'age_limit': 18,
+            'tags': []
         },
         'expected_warnings': ['404'],
     }, {
+        # Description is missing one https://t.co url (GraphQL)
         'url': 'https://twitter.com/Srirachachau/status/1395079556562706435',
         'playlist_mincount': 2,
         'info_dict': {
@@ -642,6 +630,7 @@ class TwitterIE(TwitterBaseIE):
             'timestamp': 1621447860,
         },
     }, {
+        # Description is missing one https://t.co url (GraphQL)
         'url': 'https://twitter.com/DavidToons_/status/1578353380363501568',
         'playlist_mincount': 2,
         'info_dict': {
@@ -676,6 +665,23 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
             'like_count': int,
             'tags': ['TheRingsOfPower'],
+        },
+    }, {
+        # Twitter Spaces
+        'url': 'https://twitter.com/MoniqueCamarra/status/1550101959377551360',
+        'info_dict': {
+            'id': '1lPJqmBeeNAJb',
+            'ext': 'm4a',
+            'title': 'EuroFile@6 Ukraine Up-date-Draghi Defenestration-the West',
+            'uploader': r're:Monique Camarra.+?',
+            'uploader_id': 'MoniqueCamarra',
+            'live_status': 'was_live',
+            'description': 'md5:c62fc4c35ce2e0e977d5a72fc3418594',
+            'timestamp': 1658407771464,
+        },
+        'add_ie': ['TwitterSpaces'],
+        'params': {
+            'skip_download': True,  # requires ffmpeg
         },
     }, {
         # onion route
@@ -780,7 +786,7 @@ class TwitterIE(TwitterBaseIE):
     def _real_extract(self, url):
         twid = self._match_id(url)
         if self.is_logged_in or self._configuration_arg('force_graphql'):
-            self.write_debug(f'Using GraphQL API (Auth = {self.is_logged_in}')
+            self.write_debug(f'Using GraphQL API (Auth = {self.is_logged_in})')
             result = self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid)
             status = self._graphql_to_legacy(result, twid)
 
@@ -1090,13 +1096,13 @@ class TwitterSpacesIE(TwitterBaseIE):
 
     def _parse_spaces_data(self, data, space_id):
         metadata = data.get('metadata')
-        SPACE_SATUS = {
+        SPACE_STATUS = {
             'notstarted': 'is_upcoming',
             'ended': 'was_live',
             'running': 'is_live',
             'timedout': 'post_live',
         }
-        live_status = SPACE_SATUS.get(metadata.get('state').lower())
+        live_status = SPACE_STATUS.get(metadata.get('state').lower())
 
         # participants
         participants = join_nonempty(*[p.get('display_name') for p in traverse_obj(data, ('participants', 'speakers'))], delim=', ') or 'nobody yet.'
