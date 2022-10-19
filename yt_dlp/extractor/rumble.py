@@ -6,6 +6,7 @@ from ..compat import compat_HTTPError
 from ..utils import (
     int_or_none,
     parse_iso8601,
+    traverse_obj,
     unescapeHTML,
     ExtractorError,
 )
@@ -107,6 +108,10 @@ class RumbleEmbedIE(InfoExtractor):
         video = self._download_json(
             'https://rumble.com/embedJS/u3/', video_id,
             query={'request': 'video', 'ver': 2, 'v': video_id})
+
+        sys_msg = traverse_obj(video, ('sys', 'msg'), default=None)
+        if sys_msg:
+            self.report_warning(sys_msg, video_id=video_id)
 
         if not video.get('livestream_has_dvr'):
             live_status = 'not_live'
