@@ -3,8 +3,7 @@ from ..utils import unified_strdate
 
 
 class ZeeNewsIE(InfoExtractor):
-
-    _VALID_URL = r'https?://zeenews\.india\.com/[^#?]+/video/(?P<display_id>[^#/?]+)/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://zeenews\.india\.com/[^#?]+/video/(?P<display_id>[^#/?]+)/(?P<id>\d+)'
     _TESTS = [
         {
             'url': 'https://zeenews.india.com/hindi/india/delhi-ncr-haryana/delhi-ncr/video/greater-noida-video-viral-on-social-media-attackers-beat-businessman-and-his-son-oppose-market-closed-atdnh/1402138',
