@@ -157,13 +157,21 @@ class MxplayerIE(InfoExtractor):
         data_json = self._download_json(
             f'https://api.mxplay.com/v1/web/detail/video?type={video_type}&id={video_id}', display_id)
 
-        streams = traverse_obj(data_json, ('stream', {'m3u8': ('hls', 'high'), 'mpd': ('dash', 'high')}))
-        formats, dash_subs = self._extract_mpd_formats_and_subtitles(
-            f'https://llvod.mxplay.com/{streams["mpd"]}', display_id, fatal=False)
-        hls_frmts, hls_subs = self._extract_m3u8_formats_and_subtitles(
-            f'https://llvod.mxplay.com/{streams["m3u8"]}', display_id, fatal=False)
+        if traverse_obj(data_json, ('stream', 'provider')) == 'thirdParty':
+            streams = traverse_obj(data_json, ('stream', {'m3u8': ('thirdParty', 'hlsUrl'), 'mpd': ('thirdParty', 'dashUrl') }))
+        else:
+            streams = traverse_obj(data_json, ('stream', {'m3u8': ('hls', 'high'), 'mpd': ('dash', 'high') }))
+            for stream in streams:
+                streams[stream] = 'https://llvod.mxplay.com/' + streams[stream]
 
-        formats.extend(hls_frmts)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            streams["m3u8"], display_id, fatal=False)
+
+        if 'mpd' in streams:
+            dash_frmts, dash_subs = self._extract_mpd_formats_and_subtitles(
+                streams["mpd"], display_id, fatal=False)
+            formats.extend(dash_frmts)
+            subtitles.update(dash_subs)
         self._sort_formats(formats)
 
         season = traverse_obj(data_json, ('container', 'title'))
@@ -171,7 +179,7 @@ class MxplayerIE(InfoExtractor):
             'id': video_id,
             'title': data_json.get('title'),
             'formats': formats,
-            'subtitles': self._merge_subtitles(dash_subs, hls_subs),
+            'subtitles': subtitles,
             'display_id': display_id,
             'duration': data_json.get('duration'),
             'series': traverse_obj(data_json, ('container', 'container', 'title')),
