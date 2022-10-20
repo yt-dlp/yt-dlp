@@ -739,7 +739,7 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
                 headers={
                     'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']
                 })
-            cms = traverse_obj(policy_response, 'cms_beta', 'cms')
+            cms = policy_response.get('cms_web')
             bucket = cms['bucket']
             params = {
                 'Policy': cms['policy'],
