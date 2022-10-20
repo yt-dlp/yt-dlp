@@ -147,6 +147,20 @@ class MxplayerIE(InfoExtractor):
             'format': 'bv',
             'skip_download': True,
         },
+    },{
+        'url': 'https://www.mxplayer.in/movie/watch-deewane-huye-paagal-movie-online-4f9175c40a11c3994182a65afdd37ec6?watch=true',
+        'info_dict': {
+            'id': '4f9175c40a11c3994182a65afdd37ec6',
+            'display_id': 'watch-deewane-huye-paagal-movie-online',
+            'title': 'Deewane Huye Paagal',
+            'duration': 9037,
+            'ext': 'mp4',
+            'description': 'md5:d17bd5c651016c4ed2e6f8a4ace15534',
+        },
+        'params': {
+            'format': 'bv',
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
