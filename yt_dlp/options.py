@@ -1002,6 +1002,13 @@ def create_parser():
         dest='encoding', metavar='ENCODING',
         help='Force the specified encoding (experimental)')
     workarounds.add_option(
+        '--no-copystat',
+        action='store_true', dest='no_copystat', default=False,
+        help=(
+            'Do not copy file metadata (mode, timestamps, etc.) when moving between volumes'
+            'This option has no effect if the original file and the target location are on the same volume.'
+            'Note: This option will override some other features such as "--mtime" and "--xattrs". Use with caution.'))
+    workarounds.add_option(
         '--legacy-server-connect',
         action='store_true', dest='legacy_server_connect', default=False,
         help='Explicitly allow HTTPS connection to servers that do not support RFC 5746 secure renegotiation')

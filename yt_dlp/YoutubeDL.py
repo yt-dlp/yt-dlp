@@ -3070,7 +3070,8 @@ class YoutubeDL:
             info_dict['filepath'] = temp_filename
             info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
             info_dict['__files_to_move'] = files_to_move
-            replace_info_dict(self.run_pp(MoveFilesAfterDownloadPP(self, False), info_dict))
+            move_files = MoveFilesAfterDownloadPP(self, False, self.params.get('no_copystat', False))
+            replace_info_dict(self.run_pp(move_files, info_dict))
             info_dict['__write_download_archive'] = self.params.get('force_write_download_archive')
         else:
             # Download
@@ -3444,7 +3445,7 @@ class YoutubeDL:
         info['filepath'] = filename
         info['__files_to_move'] = files_to_move or {}
         info = self.run_all_pps('post_process', info, additional_pps=info.get('__postprocessors'))
-        info = self.run_pp(MoveFilesAfterDownloadPP(self), info)
+        info = self.run_pp(MoveFilesAfterDownloadPP(self, True, self.params.get('no_copystat', False)), info)
         del info['__files_to_move']
         return self.run_all_pps('after_move', info)
 
