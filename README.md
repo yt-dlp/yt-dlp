@@ -368,6 +368,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --flat-playlist                 Do not extract the videos of a playlist,
                                     only list them
     --no-flat-playlist              Extract the videos of a playlist
+    --extract-single-video          Extract single video from a playlist
     --live-from-start               Download livestreams from the start.
                                     Currently only supported for YouTube
                                     (Experimental)

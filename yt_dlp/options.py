@@ -405,6 +405,10 @@ def create_parser():
         action='store_false', dest='extract_flat',
         help='Extract the videos of a playlist')
     general.add_option(
+        '--extract-single-video',
+        action='store_true', dest='extract_flat',
+        help='Extract single video from a playlist')
+    general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
         help='Download livestreams from the start. Currently only supported for YouTube (Experimental)')
