@@ -147,7 +147,7 @@ class MxplayerIE(InfoExtractor):
             'format': 'bv',
             'skip_download': True,
         },
-    },{
+    }, {
         'url': 'https://www.mxplayer.in/movie/watch-deewane-huye-paagal-movie-online-4f9175c40a11c3994182a65afdd37ec6?watch=true',
         'info_dict': {
             'id': '4f9175c40a11c3994182a65afdd37ec6',
@@ -172,9 +172,9 @@ class MxplayerIE(InfoExtractor):
             f'https://api.mxplay.com/v1/web/detail/video?type={video_type}&id={video_id}', display_id)
 
         if traverse_obj(data_json, ('stream', 'provider')) == 'thirdParty':
-            streams = traverse_obj(data_json, ('stream', {'m3u8': ('thirdParty', 'hlsUrl'), 'mpd': ('thirdParty', 'dashUrl') }))
+            streams = traverse_obj(data_json, ('stream', {'m3u8': ('thirdParty', 'hlsUrl'), 'mpd': ('thirdParty', 'dashUrl')}))
         else:
-            streams = traverse_obj(data_json, ('stream', {'m3u8': ('hls', 'high'), 'mpd': ('dash', 'high') }))
+            streams = traverse_obj(data_json, ('stream', {'m3u8': ('hls', 'high'), 'mpd': ('dash', 'high')}))
             for stream in streams:
                 streams[stream] = 'https://llvod.mxplay.com/' + streams[stream]
 
