@@ -29,7 +29,7 @@ API_URL = f'https://api.github.com/repos/{REPOSITORY}/releases'
 @functools.cache
 def _get_variant_and_executable_path():
     """@returns (variant, executable_path)"""
-    if hasattr(sys, 'frozen'):
+    if getattr(sys, 'frozen', False):
         path = sys.executable
         if not hasattr(sys, '_MEIPASS'):
             return 'py2exe', path
