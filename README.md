@@ -277,6 +277,8 @@ To build the standalone executable, you must have Python and `pyinstaller` (plus
 
 On some systems, you may need to use `py` or `python` instead of `python3`.
 
+`pyinst.py` accepts any arguments that can be passed to `pyinstaller`, such as `--onefile/-F` or `--onedir/-D`, which is further [documented here](https://pyinstaller.org/en/stable/usage.html#what-to-generate).
+
 Note that pyinstaller with versions below 4.4 [do not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment.
 
 **Important**: Running `pyinstaller` directly **without** using `pyinst.py` is **not** officially supported. This may or may not work correctly.
@@ -1042,7 +1044,7 @@ Make chapter entries for, or remove various segments (sponsor,
                                     for, separated by commas. Available
                                     categories are sponsor, intro, outro,
                                     selfpromo, preview, filler, interaction,
-                                    music_offtopic, poi_highlight, all and
+                                    music_offtopic, poi_highlight, chapter, all and
                                     default (=all). You can prefix the category
                                     with a "-" to exclude it. See [1] for
                                     description of the categories. E.g.
@@ -1054,8 +1056,8 @@ Make chapter entries for, or remove various segments (sponsor,
                                     remove takes precedence. The syntax and
                                     available categories are the same as for
                                     --sponsorblock-mark except that "default"
-                                    refers to "all,-filler" and poi_highlight is
-                                    not available
+                                    refers to "all,-filler" and poi_highlight and
+                                    chapter are not available
     --sponsorblock-chapter-title TEMPLATE
                                     An output template for the title of the
                                     SponsorBlock chapters created by
@@ -1189,9 +1191,9 @@ The field names themselves (the part inside the parenthesis) can also have some 
 
 1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-placeholder`. E.g. `%(uploader|Unknown)s`
 
-1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing), `h` = HTML escaping, `l` = a comma separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (e.g. 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
+1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, yt-dlp additionally supports converting to `B` = **B**ytes, `j` = **j**son (flag `#` for pretty-printing, `+` for Unicode), `h` = HTML escaping, `l` = a comma separated **l**ist (flag `#` for `\n` newline-separated), `q` = a string **q**uoted for the terminal (flag `#` to split a list into different arguments), `D` = add **D**ecimal suffixes (e.g. 10M) (flag `#` to use 1024 as factor), and `S` = **S**anitize as filename (flag `#` for restricted)
 
-1. **Unicode normalization**: The format type `U` can be used for NFC [unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. E.g. `%(title)+.100U` is NFKC
+1. **Unicode normalization**: The format type `U` can be used for NFC [Unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. E.g. `%(title)+.100U` is NFKC
 
 To summarize, the general syntax for a field is:
 ```
@@ -1311,10 +1313,11 @@ Available only in `--sponsorblock-chapter-title`:
 
  - `start_time` (numeric): Start time of the chapter in seconds
  - `end_time` (numeric): End time of the chapter in seconds
- - `categories` (list): The SponsorBlock categories the chapter belongs to
+ - `categories` (list): The [SponsorBlock categories](https://wiki.sponsor.ajay.app/w/Types#Category) the chapter belongs to
  - `category` (string): The smallest SponsorBlock category the chapter belongs to
  - `category_names` (list): Friendly names of the categories
  - `name` (string): Friendly name of the smallest category
+ - `type` (string): The [SponsorBlock action type](https://wiki.sponsor.ajay.app/w/Types#Action_Type) of the chapter
 
 Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. E.g. for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `BaW_jenozKc`, this will result in a `yt-dlp test video-BaW_jenozKc.mp4` file created in the current directory.
 
@@ -1724,7 +1727,7 @@ The following extractors use this feature:
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
 * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
-* `approximate_date`: Extract approximate `upload_date` in flat-playlist. This may cause date-based filters to be slightly off
+* `approximate_date`: Extract approximate `upload_date` and `timestamp` in flat-playlist. This may cause date-based filters to be slightly off
 
 #### funimation
 * `language`: Audio languages to extract, e.g. `funimation:language=english,japanese`
@@ -1762,6 +1765,8 @@ The following extractors use this feature:
 #### rokfinchannel
 * `tab`: Which tab to download - one of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`
 
+#### twitter
+* `force_graphql`: Force usage of the GraphQL API. By default it will only be used if login cookies are provided
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 

@@ -548,7 +548,7 @@ class YoutubeDL:
         # NB: Keep in sync with the docstring of extractor/common.py
         'url', 'manifest_url', 'manifest_stream_number', 'ext', 'format', 'format_id', 'format_note',
         'width', 'height', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
-        'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx',
+        'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
         'preference', 'language', 'language_preference', 'quality', 'source_preference',
         'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'downloader_options',
@@ -1249,7 +1249,7 @@ class YoutubeDL:
             elif fmt[-1] == 'j':  # json
                 value, fmt = json.dumps(
                     value, default=_dumpjson_default,
-                    indent=4 if '#' in flags else None, ensure_ascii=False), str_fmt
+                    indent=4 if '#' in flags else None, ensure_ascii='+' not in flags), str_fmt
             elif fmt[-1] == 'h':  # html
                 value, fmt = escapeHTML(str(value)), str_fmt
             elif fmt[-1] == 'q':  # quoted
@@ -1621,6 +1621,7 @@ class YoutubeDL:
                 self.add_default_extra_info(info_copy, ie, ie_result['url'])
                 self.add_extra_info(info_copy, extra_info)
                 info_copy, _ = self.pre_process(info_copy)
+                self._fill_common_fields(info_copy, False)
                 self.__forced_printings(info_copy, self.prepare_filename(info_copy), incomplete=True)
                 self._raise_pending_errors(info_copy)
                 if self.params.get('force_write_download_archive', False):
@@ -2379,10 +2380,9 @@ class YoutubeDL:
         else:
             info_dict['thumbnails'] = thumbnails
 
-    def _fill_common_fields(self, info_dict, is_video=True):
+    def _fill_common_fields(self, info_dict, final=True):
         # TODO: move sanitization here
-        if is_video:
-            # playlists are allowed to lack "title"
+        if final:
             title = info_dict.get('title', NO_DEFAULT)
             if title is NO_DEFAULT:
                 raise ExtractorError('Missing "title" field in extractor result',
@@ -2432,7 +2432,7 @@ class YoutubeDL:
         # Auto generate title fields corresponding to the *_number fields when missing
         # in order to always have clean titles. This is very common for TV series.
         for field in ('chapter', 'season', 'episode'):
-            if info_dict.get('%s_number' % field) is not None and not info_dict.get(field):
+            if final and info_dict.get('%s_number' % field) is not None and not info_dict.get(field):
                 info_dict[field] = '%s %d' % (field.capitalize(), info_dict['%s_number' % field])
 
     def _raise_pending_errors(self, info):
@@ -2720,7 +2720,8 @@ class YoutubeDL:
                 if chapter or offset:
                     new_info.update({
                         'section_start': offset + chapter.get('start_time', 0),
-                        'section_end': end_time if end_time < offset + duration else None,
+                        # duration may not be accurate. So allow deviations <1sec
+                        'section_end': end_time if end_time <= offset + duration + 1 else None,
                         'section_title': chapter.get('title'),
                         'section_number': chapter.get('index'),
                     })
@@ -3585,7 +3586,7 @@ class YoutubeDL:
                     format_field(f, 'ext'),
                     self.format_resolution(f),
                     self._format_note(f)
-                ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
+                ] for f in formats if (f.get('preference') or 0) >= -1000]
             return render_table(['format code', 'extension', 'resolution', 'note'], table, extra_gap=1)
 
         def simplified_codec(f, field):

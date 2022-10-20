@@ -65,6 +65,7 @@ from .aenetworks import (
     HistoryPlayerIE,
     BiographyIE,
 )
+from .aeonco import AeonCoIE
 from .afreecatv import (
     AfreecaTVIE,
     AfreecaTVLiveIE,
@@ -698,7 +699,10 @@ from .hse import (
     HSEShowIE,
     HSEProductIE,
 )
-from .genericembeds import HTML5MediaEmbedIE
+from .genericembeds import (
+    HTML5MediaEmbedIE,
+    QuotedHTMLIE,
+)
 from .huajiao import HuajiaoIE
 from .huya import HuyaLiveIE
 from .huffpost import HuffPostIE
@@ -1346,6 +1350,7 @@ from .pluralsight import (
     PluralsightIE,
     PluralsightCourseIE,
 )
+from .podbayfm import PodbayFMIE, PodbayFMChannelIE
 from .podchaser import PodchaserIE
 from .podomatic import PodomaticIE
 from .pokemon import (
@@ -1883,7 +1888,6 @@ from .tv2 import (
 )
 from .tv24ua import (
     TV24UAVideoIE,
-    TV24UAGenericPassthroughIE
 )
 from .tv2dk import (
     TV2DKIE,
@@ -1965,6 +1969,7 @@ from .twitter import (
     TwitterIE,
     TwitterAmplifyIE,
     TwitterBroadcastIE,
+    TwitterSpacesIE,
     TwitterShortenerIE,
 )
 from .udemy import (
@@ -2292,6 +2297,7 @@ from .zee5 import (
     Zee5IE,
     Zee5SeriesIE,
 )
+from .zeenews import ZeeNewsIE
 from .zhihu import ZhihuIE
 from .zingmp3 import (
     ZingMp3IE,

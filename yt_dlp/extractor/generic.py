@@ -32,6 +32,7 @@ from ..utils import (
     unified_timestamp,
     unsmuggle_url,
     url_or_none,
+    variadic,
     xpath_attr,
     xpath_text,
     xpath_with_ns,
@@ -1980,22 +1981,6 @@ class GenericIE(InfoExtractor):
             },
             'playlist_count': 6,
         },
-        {
-            # Squarespace video embed, 2019-08-28
-            'url': 'http://ootboxford.com',
-            'info_dict': {
-                'id': 'Tc7b_JGdZfw',
-                'title': 'Out of the Blue, at Childish Things 10',
-                'ext': 'mp4',
-                'description': 'md5:a83d0026666cf5ee970f8bd1cfd69c7f',
-                'uploader_id': 'helendouglashouse',
-                'uploader': 'Helen & Douglas House',
-                'upload_date': '20140328',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
         # {
         #     # Zype embed
         #     'url': 'https://www.cookscountry.com/episode/554-smoky-barbecue-favorites',
@@ -2784,12 +2769,6 @@ class GenericIE(InfoExtractor):
         # There probably should be a second run of generic extractor on unescaped webpage.
         # webpage = urllib.parse.unquote(webpage)
 
-        # Unescape squarespace embeds to be detected by generic extractor,
-        # see https://github.com/ytdl-org/youtube-dl/issues/21294
-        webpage = re.sub(
-            r'<div[^>]+class=[^>]*?\bsqs-video-wrapper\b[^>]*>',
-            lambda x: unescapeHTML(x.group(0)), webpage)
-
         # TODO: Move to respective extractors
         bc_urls = BrightcoveLegacyIE._extract_brightcove_urls(webpage)
         if bc_urls:
@@ -2842,11 +2821,8 @@ class GenericIE(InfoExtractor):
             webpage)
         if mobj is not None:
             varname = mobj.group(1)
-            sources = self._parse_json(
-                mobj.group(2), video_id, transform_source=js_to_json,
-                fatal=False) or []
-            if not isinstance(sources, list):
-                sources = [sources]
+            sources = variadic(self._parse_json(
+                mobj.group(2), video_id, transform_source=js_to_json, fatal=False) or [])
             formats = []
             subtitles = {}
             for source in sources:
