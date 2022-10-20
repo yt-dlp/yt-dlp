@@ -769,6 +769,14 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
 
 ## Workarounds:
     --encoding ENCODING             Force the specified encoding (experimental)
+    --no-copystat                   Do not copy file metadata (mode, timestamps,
+                                    etc.) when moving between volumes
+                                    This option has no effect if the original
+                                    file and the target location are on the same
+                                    volume.
+                                    Note: This option will override some other
+                                    features such as "--mtime" and "--xattrs".
+                                    Use with caution.
     --legacy-server-connect         Explicitly allow HTTPS connection to servers
                                     that do not support RFC 5746 secure
                                     renegotiation

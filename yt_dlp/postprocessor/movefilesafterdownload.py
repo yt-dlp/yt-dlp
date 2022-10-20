@@ -40,6 +40,7 @@ class MoveFilesAfterDownloadPP(PostProcessor):
 
         # when no_copystat is true, don't copy any metadata at all
         copy_func = copy2_no_copystat if self._no_copystat else shutil.copy2
+        extra = ' without copying metadata' if self._no_copystat else ''
         make_newfilename = lambda old: decodeFilename(os.path.join(finaldir, os.path.basename(encodeFilename(old))))
         for oldfile, newfile in info['__files_to_move'].items():
             if not newfile:
@@ -59,7 +60,7 @@ class MoveFilesAfterDownloadPP(PostProcessor):
                         % (oldfile, newfile))
                     continue
             make_dir(newfile, PostProcessingError)
-            self.to_screen(f'Moving file "{oldfile}" to "{newfile}"')
+            self.to_screen(f'Moving file "{oldfile}" to "{newfile}"{extra}')
             shutil.move(oldfile, newfile, copy_func)  # os.rename cannot move between volumes
 
         info['filepath'] = finalpath
