@@ -3,7 +3,7 @@ import re
 
 
 class ListenNotesIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?listennotes\.com/podcasts/(.+)/(?P<id>.+)'
+    _VALID_URL = r'https?://(?:www\.)?listennotes\.com/podcasts/[^/]+/[^/]+-(?P<id>.+)/'
     _TESTS = [{
         'url': 'https://www.listennotes.com/podcasts/thriving-on-overload/tim-oreilly-on-noticing-KrDgvNb_u1n/',
         'md5': '5b91a32f841e5788fb82b72a1a8af7f7',
@@ -25,15 +25,15 @@ class ListenNotesIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url).replace('/', '').rsplit('-', 1)[1]
-        webpage = self._download_webpage(url, id)
-        data_json = self._parse_json(self._search_regex(r'<script id="original-content" type="application/json">\s*({"uuid".+})', webpage, 'content'), id)
+        audio_id = self._match_id(url)
+        webpage = self._download_webpage(url, audio_id)
+        data_json = self._parse_json(self._search_regex(r'<script id="original-content" type="application/json">\s*({"uuid".+})', webpage, 'content'), audio_id)
         audio_url = data_json['audio']
         description = re.sub(r"""\s{2,}""", " ", self._og_search_description(webpage))
         title = self._html_search_regex(r'<h1\s*class=".+?">\s*<a\s*href=".+?"\s*title="(.+?)"\s*class=".+?">\s*.+\s*</a>\s*</h1>', webpage, 'title')
 
         return {
-            'id': id,
+            'id': audio_id,
             'title': title,
             'description': description,
             'url': audio_url,
