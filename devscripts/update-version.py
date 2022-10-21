@@ -50,5 +50,7 @@ UPDATE_HINT = None
 '''
 
 write_file('yt_dlp/version.py', VERSION_FILE)
-write_file(os.getenv('GITHUB_OUTPUT'), f'ytdlp_version={VERSION}\n', 'a')
+github_output = os.getenv('GITHUB_OUTPUT')
+if github_output:
+    write_file(github_output, f'ytdlp_version={VERSION}\n', 'a')
 print(f'\nVersion = {VERSION}, Git HEAD = {GIT_HEAD}')
