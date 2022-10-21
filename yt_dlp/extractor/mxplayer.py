@@ -174,9 +174,8 @@ class MxplayerIE(InfoExtractor):
         if traverse_obj(data_json, ('stream', 'provider')) == 'thirdParty':
             streams = traverse_obj(data_json, ('stream', {'m3u8': ('thirdParty', 'hlsUrl'), 'mpd': ('thirdParty', 'dashUrl')}))
         else:
-            streams = traverse_obj(data_json, ('stream', {'m3u8': ('hls', 'high'), 'mpd': ('dash', 'high')}))
-            for stream in streams:
-                streams[stream] = 'https://llvod.mxplay.com/' + streams[stream]
+            streams = {type: f'https://llvod.mxplay.com/{path}' for type, path in
+                        traverse_obj(data_json, ('stream', {'m3u8': ('hls', 'high'), 'mpd': ('dash', 'high')})).items()}
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             streams["m3u8"], display_id, fatal=False)
