@@ -698,7 +698,10 @@ from .hse import (
     HSEShowIE,
     HSEProductIE,
 )
-from .genericembeds import HTML5MediaEmbedIE
+from .genericembeds import (
+    HTML5MediaEmbedIE,
+    QuotedHTMLIE,
+)
 from .huajiao import HuajiaoIE
 from .huya import HuyaLiveIE
 from .huffpost import HuffPostIE
@@ -1884,7 +1887,6 @@ from .tv2 import (
 )
 from .tv24ua import (
     TV24UAVideoIE,
-    TV24UAGenericPassthroughIE
 )
 from .tv2dk import (
     TV2DKIE,
@@ -1966,6 +1968,7 @@ from .twitter import (
     TwitterIE,
     TwitterAmplifyIE,
     TwitterBroadcastIE,
+    TwitterSpacesIE,
     TwitterShortenerIE,
 )
 from .txxx import TxxxIE
@@ -2294,6 +2297,7 @@ from .zee5 import (
     Zee5IE,
     Zee5SeriesIE,
 )
+from .zeenews import ZeeNewsIE
 from .zhihu import ZhihuIE
 from .zingmp3 import (
     ZingMp3IE,

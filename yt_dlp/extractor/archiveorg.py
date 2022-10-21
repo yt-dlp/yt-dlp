@@ -16,6 +16,7 @@ from ..utils import (
     get_element_by_id,
     int_or_none,
     join_nonempty,
+    js_to_json,
     merge_dicts,
     mimetype2ext,
     orderedSet,
@@ -367,7 +368,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'channel_id': 'UCukCyHaD-bK3in_pKpfH9Eg',
                 'duration': 32,
                 'uploader_id': 'Zeurel',
-                'uploader_url': 'http://www.youtube.com/user/Zeurel'
+                'uploader_url': 'https://www.youtube.com/user/Zeurel',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'channel_url': 'https://www.youtube.com/channel/UCukCyHaD-bK3in_pKpfH9Eg',
             }
         }, {
             # Internal link
@@ -382,7 +385,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'channel_id': 'UCHnyfMqiRRG1u-2MsSQLbXA',
                 'duration': 771,
                 'uploader_id': '1veritasium',
-                'uploader_url': 'http://www.youtube.com/user/1veritasium'
+                'uploader_url': 'https://www.youtube.com/user/1veritasium',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'channel_url': 'https://www.youtube.com/channel/UCHnyfMqiRRG1u-2MsSQLbXA',
             }
         }, {
             # Video from 2012, webm format itag 45. Newest capture is deleted video, with an invalid description.
@@ -396,7 +401,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 398,
                 'description': 'md5:ff4de6a7980cb65d951c2f6966a4f2f3',
                 'uploader_id': 'machinima',
-                'uploader_url': 'http://www.youtube.com/user/machinima'
+                'uploader_url': 'https://www.youtube.com/user/machinima',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'uploader': 'machinima'
             }
         }, {
             # FLV video. Video file URL does not provide itag information
@@ -410,7 +417,10 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 19,
                 'description': 'md5:10436b12e07ac43ff8df65287a56efb4',
                 'uploader_id': 'jawed',
-                'uploader_url': 'http://www.youtube.com/user/jawed'
+                'uploader_url': 'https://www.youtube.com/user/jawed',
+                'channel_url': 'https://www.youtube.com/channel/UC4QobU6STFB0P71PMvOGN5A',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'uploader': 'jawed',
             }
         }, {
             'url': 'https://web.archive.org/web/20110712231407/http://www.youtube.com/watch?v=lTx3G6h2xyA',
@@ -424,7 +434,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'duration': 204,
                 'description': 'md5:f7535343b6eda34a314eff8b85444680',
                 'uploader_id': 'itsmadeon',
-                'uploader_url': 'http://www.youtube.com/user/itsmadeon'
+                'uploader_url': 'https://www.youtube.com/user/itsmadeon',
+                'channel_url': 'https://www.youtube.com/channel/UCqMDNf3Pn5L7pcNkuSEeO3w',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
             }
         }, {
             # First capture is of dead video, second is the oldest from CDX response.
@@ -435,10 +447,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'Fake Teen Doctor Strikes AGAIN! - Weekly Weird News',
                 'upload_date': '20160218',
                 'channel_id': 'UCdIaNUarhzLSXGoItz7BHVA',
-                'duration': 1236,
+                'duration': 1235,
                 'description': 'md5:21032bae736421e89c2edf36d1936947',
                 'uploader_id': 'MachinimaETC',
-                'uploader_url': 'http://www.youtube.com/user/MachinimaETC'
+                'uploader_url': 'https://www.youtube.com/user/MachinimaETC',
+                'channel_url': 'https://www.youtube.com/channel/UCdIaNUarhzLSXGoItz7BHVA',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'uploader': 'ETC News',
             }
         }, {
             # First capture of dead video, capture date in link links to dead capture.
@@ -449,10 +464,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'WTF: Video Games Still Launch BROKEN?! - T.U.G.S.',
                 'upload_date': '20160219',
                 'channel_id': 'UCdIaNUarhzLSXGoItz7BHVA',
-                'duration': 798,
+                'duration': 797,
                 'description': 'md5:a1dbf12d9a3bd7cb4c5e33b27d77ffe7',
                 'uploader_id': 'MachinimaETC',
-                'uploader_url': 'http://www.youtube.com/user/MachinimaETC'
+                'uploader_url': 'https://www.youtube.com/user/MachinimaETC',
+                'channel_url': 'https://www.youtube.com/channel/UCdIaNUarhzLSXGoItz7BHVA',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'uploader': 'ETC News',
             },
             'expected_warnings': [
                 r'unable to download capture webpage \(it may not be archived\)'
@@ -472,12 +490,11 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'It\'s Bootleg AirPods Time.',
                 'upload_date': '20211021',
                 'channel_id': 'UC7Jwj9fkrf1adN4fMmTkpug',
-                'channel_url': 'http://www.youtube.com/channel/UC7Jwj9fkrf1adN4fMmTkpug',
+                'channel_url': 'https://www.youtube.com/channel/UC7Jwj9fkrf1adN4fMmTkpug',
                 'duration': 810,
                 'description': 'md5:7b567f898d8237b256f36c1a07d6d7bc',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
                 'uploader': 'DankPods',
-                'uploader_id': 'UC7Jwj9fkrf1adN4fMmTkpug',
-                'uploader_url': 'http://www.youtube.com/channel/UC7Jwj9fkrf1adN4fMmTkpug'
             }
         }, {
             # player response contains '};' See: https://github.com/ytdl-org/youtube-dl/issues/27093
@@ -488,12 +505,135 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'bitch lasagna',
                 'upload_date': '20181005',
                 'channel_id': 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
-                'channel_url': 'http://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'channel_url': 'https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
                 'duration': 135,
                 'description': 'md5:2dbe4051feeff2dab5f41f82bb6d11d0',
                 'uploader': 'PewDiePie',
                 'uploader_id': 'PewDiePie',
-                'uploader_url': 'http://www.youtube.com/user/PewDiePie'
+                'uploader_url': 'https://www.youtube.com/user/PewDiePie',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+            }
+        }, {
+            # ~June 2010 Capture. swfconfig
+            'url': 'https://web.archive.org/web/0/https://www.youtube.com/watch?v=8XeW5ilk-9Y',
+            'info_dict': {
+                'id': '8XeW5ilk-9Y',
+                'ext': 'flv',
+                'title': 'Story of Stuff, The Critique Part 4 of 4',
+                'duration': 541,
+                'description': 'md5:28157da06f2c5e94c97f7f3072509972',
+                'uploader': 'HowTheWorldWorks',
+                'uploader_id': 'HowTheWorldWorks',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'uploader_url': 'https://www.youtube.com/user/HowTheWorldWorks',
+                'upload_date': '20090520',
+            }
+        }, {
+            # Jan 2011: watch-video-date/eow-date surrounded by whitespace
+            'url': 'https://web.archive.org/web/20110126141719/http://www.youtube.com/watch?v=Q_yjX80U7Yc',
+            'info_dict': {
+                'id': 'Q_yjX80U7Yc',
+                'ext': 'flv',
+                'title': 'Spray Paint Art by Clay Butler: Purple Fantasy Forest',
+                'uploader_id': 'claybutlermusic',
+                'description': 'md5:4595264559e3d0a0ceb3f011f6334543',
+                'upload_date': '20090803',
+                'uploader': 'claybutlermusic',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'duration': 132,
+                'uploader_url': 'https://www.youtube.com/user/claybutlermusic',
+            }
+        }, {
+            # ~May 2009 swfArgs. ytcfg is spread out over various vars
+            'url': 'https://web.archive.org/web/0/https://www.youtube.com/watch?v=c5uJgG05xUY',
+            'info_dict': {
+                'id': 'c5uJgG05xUY',
+                'ext': 'webm',
+                'title': 'Story of Stuff, The Critique Part 1 of 4',
+                'uploader_id': 'HowTheWorldWorks',
+                'uploader': 'HowTheWorldWorks',
+                'uploader_url': 'https://www.youtube.com/user/HowTheWorldWorks',
+                'upload_date': '20090513',
+                'description': 'md5:4ca77d79538064e41e4cc464e93f44f0',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'duration': 754,
+            }
+        }, {
+            # ~June 2012. Upload date is in another lang so cannot extract.
+            'url': 'https://web.archive.org/web/20120607174520/http://www.youtube.com/watch?v=xWTLLl-dQaA',
+            'info_dict': {
+                'id': 'xWTLLl-dQaA',
+                'ext': 'mp4',
+                'title': 'Black Nerd eHarmony Video Bio Parody (SPOOF)',
+                'uploader_url': 'https://www.youtube.com/user/BlackNerdComedy',
+                'description': 'md5:e25f0133aaf9e6793fb81c18021d193e',
+                'uploader_id': 'BlackNerdComedy',
+                'uploader': 'BlackNerdComedy',
+                'duration': 182,
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+            }
+        }, {
+            # ~July 2013
+            'url': 'https://web.archive.org/web/*/https://www.youtube.com/watch?v=9eO1aasHyTM',
+            'info_dict': {
+                'id': '9eO1aasHyTM',
+                'ext': 'mp4',
+                'title': 'Polar-oid',
+                'description': 'Cameras and bears are dangerous!',
+                'uploader_url': 'https://www.youtube.com/user/punkybird',
+                'uploader_id': 'punkybird',
+                'duration': 202,
+                'channel_id': 'UC62R2cBezNBOqxSerfb1nMQ',
+                'channel_url': 'https://www.youtube.com/channel/UC62R2cBezNBOqxSerfb1nMQ',
+                'upload_date': '20060428',
+                'uploader': 'punkybird',
+            }
+        }, {
+            # April 2020: Player response in player config
+            'url': 'https://web.archive.org/web/20200416034815/https://www.youtube.com/watch?v=Cf7vS8jc7dY&gl=US&hl=en',
+            'info_dict': {
+                'id': 'Cf7vS8jc7dY',
+                'ext': 'mp4',
+                'title': 'A Dramatic Pool Story (by Jamie Spicer-Lewis) - Game Grumps Animated',
+                'duration': 64,
+                'upload_date': '20200408',
+                'uploader_id': 'GameGrumps',
+                'uploader': 'GameGrumps',
+                'channel_url': 'https://www.youtube.com/channel/UC9CuvdOVfMPvKCiwdGKL3cQ',
+                'channel_id': 'UC9CuvdOVfMPvKCiwdGKL3cQ',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'description': 'md5:c625bb3c02c4f5fb4205971e468fa341',
+                'uploader_url': 'https://www.youtube.com/user/GameGrumps',
+            }
+        }, {
+            # watch7-user-header with yt-user-info
+            'url': 'ytarchive:kbh4T_b4Ixw:20160307085057',
+            'info_dict': {
+                'id': 'kbh4T_b4Ixw',
+                'ext': 'mp4',
+                'title': 'Shovel Knight OST - Strike the Earth! Plains of Passage 16 bit SNES style remake / remix',
+                'channel_url': 'https://www.youtube.com/channel/UCnTaGvsHmMy792DWeT6HbGA',
+                'uploader': 'Nelward music',
+                'duration': 213,
+                'description': 'md5:804b4a9ce37b050a5fefdbb23aeba54d',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'upload_date': '20150503',
+                'channel_id': 'UCnTaGvsHmMy792DWeT6HbGA',
+            }
+        }, {
+            # April 2012
+            'url': 'https://web.archive.org/web/0/https://www.youtube.com/watch?v=SOm7mPoPskU',
+            'info_dict': {
+                'id': 'SOm7mPoPskU',
+                'ext': 'mp4',
+                'title': 'Boyfriend - Justin Bieber Parody',
+                'uploader_url': 'https://www.youtube.com/user/thecomputernerd01',
+                'uploader': 'thecomputernerd01',
+                'thumbnail': r're:https?://.*\.(jpg|webp)',
+                'description': 'md5:dd7fa635519c2a5b4d566beaecad7491',
+                'duration': 200,
+                'upload_date': '20120407',
+                'uploader_id': 'thecomputernerd01',
             }
         }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
@@ -574,6 +714,27 @@ class YoutubeWebArchiveIE(InfoExtractor):
         initial_data = self._search_json(
             self._YT_INITIAL_DATA_RE, webpage, 'initial data', video_id, default={})
 
+        ytcfg = {}
+        for j in re.findall(r'yt\.setConfig\(\s*(?P<json>{\s*(?s:.+?)\s*})\s*\);', webpage):  # ~June 2010
+            ytcfg.update(self._parse_json(j, video_id, fatal=False, ignore_extra=True, transform_source=js_to_json, errnote='') or {})
+
+        # XXX: this also may contain a 'ptchn' key
+        player_config = (
+            self._search_json(
+                r'(?:yt\.playerConfig|ytplayer\.config|swfConfig)\s*=',
+                webpage, 'player config', video_id, default=None)
+            or ytcfg.get('PLAYER_CONFIG') or {})
+
+        # XXX: this may also contain a 'creator' key.
+        swf_args = self._search_json(r'swfArgs\s*=', webpage, 'swf config', video_id, default={})
+        if swf_args and not traverse_obj(player_config, ('args',)):
+            player_config['args'] = swf_args
+
+        if not player_response:
+            # April 2020
+            player_response = self._parse_json(
+                traverse_obj(player_config, ('args', 'player_response')) or '{}', video_id, fatal=False)
+
         initial_data_video = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'videoPrimaryInfoRenderer'),
             expected_type=dict, get_all=False, default={})
@@ -588,8 +749,47 @@ class YoutubeWebArchiveIE(InfoExtractor):
             video_details.get('title')
             or YoutubeBaseInfoExtractor._get_text(microformats, 'title')
             or YoutubeBaseInfoExtractor._get_text(initial_data_video, 'title')
+            or traverse_obj(player_config, ('args', 'title'))
             or self._extract_webpage_title(webpage)
             or search_meta(['og:title', 'twitter:title', 'title']))
+
+        def id_from_url(url, type_):
+            return self._search_regex(
+                rf'(?:{type_})/([^/#&?]+)', url or '', f'{type_} id', default=None)
+
+        # XXX: would the get_elements_by_... functions be better suited here?
+        _CHANNEL_URL_HREF_RE = r'href="[^"]*(?P<url>https?://www\.youtube\.com/(?:user|channel)/[^"]+)"'
+        uploader_or_channel_url = self._search_regex(
+            [fr'<(?:link\s*itemprop=\"url\"|a\s*id=\"watch-username\").*?\b{_CHANNEL_URL_HREF_RE}>',  # @fd05024
+             fr'<div\s*id=\"(?:watch-channel-stats|watch-headline-user-info)\"[^>]*>\s*<a[^>]*\b{_CHANNEL_URL_HREF_RE}'],  # ~ May 2009, ~June 2012
+            webpage, 'uploader or channel url', default=None)
+
+        owner_profile_url = url_or_none(microformats.get('ownerProfileUrl'))  # @a6211d2
+
+        # Uploader refers to the /user/ id ONLY
+        uploader_id = (
+            id_from_url(owner_profile_url, 'user')
+            or id_from_url(uploader_or_channel_url, 'user')
+            or ytcfg.get('VIDEO_USERNAME'))
+        uploader_url = f'https://www.youtube.com/user/{uploader_id}' if uploader_id else None
+
+        # XXX: do we want to differentiate uploader and channel?
+        uploader = (
+            self._search_regex(
+                [r'<a\s*id="watch-username"[^>]*>\s*<strong>([^<]+)</strong>',  # June 2010
+                 r'var\s*watchUsername\s*=\s*\'(.+?)\';',  # ~May 2009
+                 r'<div\s*\bid=\"watch-channel-stats"[^>]*>\s*<a[^>]*>\s*(.+?)\s*</a',  # ~May 2009
+                 r'<a\s*id="watch-userbanner"[^>]*title="\s*(.+?)\s*"'],  # ~June 2012
+                webpage, 'uploader', default=None)
+            or self._html_search_regex(
+                [r'(?s)<div\s*class="yt-user-info".*?<a[^>]*[^>]*>\s*(.*?)\s*</a',  # March 2016
+                 r'(?s)<a[^>]*yt-user-name[^>]*>\s*(.*?)\s*</a'],  # july 2013
+                get_element_by_id('watch7-user-header', webpage), 'uploader', default=None)
+            or self._html_search_regex(
+                r'<button\s*href="/user/[^>]*>\s*<span[^>]*>\s*(.+?)\s*<',  # April 2012
+                get_element_by_id('watch-headline-user-info', webpage), 'uploader', default=None)
+            or traverse_obj(player_config, ('args', 'creator'))
+            or video_details.get('author'))
 
         channel_id = str_or_none(
             video_details.get('channelId')
@@ -597,12 +797,16 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or search_meta('channelId')
             or self._search_regex(
                 r'data-channel-external-id=(["\'])(?P<id>(?:(?!\1).)+)\1',  # @b45a9e6
-                webpage, 'channel id', default=None, group='id'))
-        channel_url = f'http://www.youtube.com/channel/{channel_id}' if channel_id else None
+                webpage, 'channel id', default=None, group='id')
+            or id_from_url(owner_profile_url, 'channel')
+            or id_from_url(uploader_or_channel_url, 'channel')
+            or traverse_obj(player_config, ('args', 'ucid')))
 
+        channel_url = f'https://www.youtube.com/channel/{channel_id}' if channel_id else None
         duration = int_or_none(
             video_details.get('lengthSeconds')
             or microformats.get('lengthSeconds')
+            or traverse_obj(player_config, ('args', ('length_seconds', 'l')), get_all=False)
             or parse_duration(search_meta('duration')))
         description = (
             video_details.get('shortDescription')
@@ -610,26 +814,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or clean_html(get_element_by_id('eow-description', webpage))  # @9e6dd23
             or search_meta(['description', 'og:description', 'twitter:description']))
 
-        uploader = video_details.get('author')
-
-        # Uploader ID and URL
-        uploader_mobj = re.search(
-            r'<link itemprop="url" href="(?P<uploader_url>https?://www\.youtube\.com/(?:user|channel)/(?P<uploader_id>[^"]+))">',  # @fd05024
-            webpage)
-        if uploader_mobj is not None:
-            uploader_id, uploader_url = uploader_mobj.group('uploader_id'), uploader_mobj.group('uploader_url')
-        else:
-            # @a6211d2
-            uploader_url = url_or_none(microformats.get('ownerProfileUrl'))
-            uploader_id = self._search_regex(
-                r'(?:user|channel)/([^/]+)', uploader_url or '', 'uploader id', default=None)
-
         upload_date = unified_strdate(
             dict_get(microformats, ('uploadDate', 'publishDate'))
             or search_meta(['uploadDate', 'datePublished'])
             or self._search_regex(
-                [r'(?s)id="eow-date.*?>(.*?)</span>',
-                 r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']'],  # @7998520
+                [r'(?s)id="eow-date.*?>\s*(.*?)\s*</span>',
+                 r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']',  # @7998520
+                 r'class\s*=\s*"(?:watch-video-date|watch-video-added post-date)"[^>]*>\s*([^<]+?)\s*<'],  # ~June 2010, ~Jan 2009 (respectively)
                 webpage, 'upload date', default=None))
 
         return {
@@ -698,18 +889,22 @@ class YoutubeWebArchiveIE(InfoExtractor):
         url_date = url_date or url_date_2
 
         urlh = None
-        try:
-            urlh = self._request_webpage(
-                HEADRequest('https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id),
-                video_id, note='Fetching archived video file url', expected_status=True)
-        except ExtractorError as e:
-            # HTTP Error 404 is expected if the video is not saved.
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
-                self.raise_no_formats(
-                    'The requested video is not archived, indexed, or there is an issue with web.archive.org',
-                    expected=True)
-            else:
-                raise
+        retry_manager = self.RetryManager(fatal=False)
+        for retry in retry_manager:
+            try:
+                urlh = self._request_webpage(
+                    HEADRequest('https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id),
+                    video_id, note='Fetching archived video file url', expected_status=True)
+            except ExtractorError as e:
+                # HTTP Error 404 is expected if the video is not saved.
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                    self.raise_no_formats(
+                        'The requested video is not archived, indexed, or there is an issue with web.archive.org (try again later)', expected=True)
+                else:
+                    retry.error = e
+
+        if retry_manager.error:
+            self.raise_no_formats(retry_manager.error, expected=True, video_id=video_id)
 
         capture_dates = self._get_capture_dates(video_id, int_or_none(url_date))
         self.write_debug('Captures to try: ' + join_nonempty(*capture_dates, delim=', '))
