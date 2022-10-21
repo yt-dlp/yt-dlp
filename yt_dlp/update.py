@@ -281,7 +281,7 @@ class Updater:
         # There is no sys.orig_argv in py < 3.10. Also, it can be [] when frozen
         if getattr(sys, 'orig_argv', None):
             return sys.orig_argv
-        elif hasattr(sys, 'frozen'):
+        if getattr(sys, 'frozen', False):
             return sys.argv
 
     def restart(self):
