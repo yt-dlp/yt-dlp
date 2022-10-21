@@ -55,6 +55,7 @@ class TxxxIE(TxxxBaseIE):
                      privatehomeclips\.com|
                      tubepornclassic\.com|
                      txxx\.com|
+                     txxx\.tube|
                      upornia\.com|
                      vjav\.com|
                      vxxx\.com|
@@ -64,6 +65,20 @@ class TxxxIE(TxxxBaseIE):
                   '''
     _TESTS = [{
         'url': 'https://txxx.com/videos/16574965/digital-desire-malena-morgan/',
+        'md5': 'c54e4ace54320aaf8e2a72df87859391',
+        'info_dict': {
+            'id': '16574965',
+            'ext': 'mp4',
+            'title': 'Digital Desire - Malena Morgan',
+            'uploader': 'Lois Argentum',
+            'duration': 694,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
+        }
+    }, {
+        'url': 'https://txxx.tube/videos/16574965/digital-desire-malena-morgan/',
         'md5': 'c54e4ace54320aaf8e2a72df87859391',
         'info_dict': {
             'id': '16574965',
