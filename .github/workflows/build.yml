@@ -26,8 +26,6 @@ jobs:
       id: bump_version
       run: |
         python devscripts/update-version.py ${{ steps.version_suffix.outputs.version_suffix }}
-        echo "$GITHUB_OUTPUT"
-        cat "$GITHUB_OUTPUT"
         make issuetemplates
 
     - name: Push to release
