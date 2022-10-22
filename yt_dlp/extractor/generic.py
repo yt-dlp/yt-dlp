@@ -32,6 +32,7 @@ from ..utils import (
     unified_timestamp,
     unsmuggle_url,
     url_or_none,
+    variadic,
     xpath_attr,
     xpath_text,
     xpath_with_ns,
@@ -2820,11 +2821,8 @@ class GenericIE(InfoExtractor):
             webpage)
         if mobj is not None:
             varname = mobj.group(1)
-            sources = self._parse_json(
-                mobj.group(2), video_id, transform_source=js_to_json,
-                fatal=False) or []
-            if not isinstance(sources, list):
-                sources = [sources]
+            sources = variadic(self._parse_json(
+                mobj.group(2), video_id, transform_source=js_to_json, fatal=False) or [])
             formats = []
             subtitles = {}
             for source in sources:

@@ -150,7 +150,7 @@ class IPrimaIE(InfoExtractor):
                         manifest_url, video_id, mpd_id='dash', fatal=False)
             self._sort_formats(formats)
 
-        final_result = self._search_json_ld(webpage, video_id) or {}
+        final_result = self._search_json_ld(webpage, video_id, default={})
         final_result.update({
             'id': video_id,
             'title': title,

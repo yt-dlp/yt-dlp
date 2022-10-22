@@ -1721,7 +1721,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'live_status': 'not_live',
                 'playable_in_embed': True,
                 'comment_count': int,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'chapters': list,
             },
             'params': {
                 'skip_download': True,
@@ -1754,7 +1755,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'live_status': 'not_live',
                 'channel_url': 'https://www.youtube.com/channel/UCH1dpzjCEiGAt8CXkryhkZg',
                 'comment_count': int,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'chapters': list,
             },
             'params': {
                 'skip_download': True,
@@ -2019,7 +2021,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'duration': 522,
                 'channel': 'kudvenkat',
                 'comment_count': int,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'chapters': list,
             },
             'params': {
                 'skip_download': True,
@@ -2169,7 +2172,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'like_count': int,
                 'live_status': 'not_live',
                 'playable_in_embed': True,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'chapters': list,
             },
             'params': {
                 'format': '17',  # 3gp format available on android
@@ -2213,7 +2217,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'duration': 248,
                 'categories': ['Education'],
                 'age_limit': 0,
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'chapters': list,
             }, 'params': {'format': 'mhtml', 'skip_download': True}
         }, {
             # Ensure video upload_date is in UTC timezone (video was uploaded 1641170939)
@@ -2950,7 +2955,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # these seem to mark watchtime "history" in the real world
                 # they're required, so send in a single value
                 qs.update({
-                    'st': video_length,
+                    'st': 0,
                     'et': video_length,
                 })
 
