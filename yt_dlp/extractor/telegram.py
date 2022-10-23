@@ -18,7 +18,7 @@ class TelegramEmbedIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        is_single = ("?single" in url);
+        is_single = "?single" in url
         webpage = self._download_webpage(url, video_id, query={'embed': 0, 'single': is_single})
         webpage_embed = self._download_webpage(url, video_id, query={'embed': 1, 'single': is_single}, note='Downloading embed page')
 
