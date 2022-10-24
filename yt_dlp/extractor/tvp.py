@@ -10,7 +10,6 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     js_to_json,
-    orderedSet,
     str_or_none,
     traverse_obj,
     try_get,
