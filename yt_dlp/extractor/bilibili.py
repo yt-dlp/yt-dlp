@@ -239,7 +239,7 @@ class BiliBiliIE(BilibiliBaseIE):
         if part_id is None:
             cid = video_data.get('cid')
         else:
-            cid = traverse_obj(video_data, ('pages', part_id-1, 'cid'))
+            cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid'))
 
         title = video_data.get('title')
 
