@@ -6,11 +6,14 @@ import random
 import re
 import time
 
-from ..minicurses import (
-    BreaklineStatusPrinter,
-    MultilineLogger,
-    MultilinePrinter,
-    QuietMultilinePrinter,
+from ..output import (
+    Color,
+    LogLevel,
+    Progress,
+    TermCode,
+    Typeface,
+    console,
+    logger,
 )
 from ..utils import (
     IDENTITY,
@@ -90,6 +93,7 @@ class FileDownloader:
     def _set_ydl(self, ydl):
         self.ydl = ydl
 
+        # TODO(logging): Implement them regularly through the logger
         for func in (
             'deprecation_warning',
             'deprecated_feature',
@@ -104,10 +108,8 @@ class FileDownloader:
             if not hasattr(self, func):
                 setattr(self, func, getattr(ydl, func))
 
-    def to_screen(self, *args, **kargs):
-        self.ydl.to_screen(*args, quiet=self.params.get('quiet'), **kargs)
-
-    __to_screen = to_screen
+    def to_screen(self, message, skip_eol=False, only_once=False):
+        logger.info(message, newline=not skip_eol, quiet=self.params.get('quiet'), once=only_once)
 
     @classproperty
     def FD_NAME(cls):
@@ -220,7 +222,7 @@ class FileDownloader:
     def wrap_file_access(action, *, fatal=False):
         def error_callback(err, count, retries, *, fd):
             return RetryManager.report_retry(
-                err, count, retries, info=fd.__to_screen,
+                err, count, retries, info=fd.to_screen,
                 warn=lambda e: (time.sleep(0.01), fd.to_screen(f'[download] Unable to {action} file: {e}')),
                 error=None if fatal else lambda e: fd.report_error(f'Unable to {action} file: {e}'),
                 sleep_func=fd.params.get('retry_sleep_functions', {}).get('file_access'))
@@ -278,25 +280,19 @@ class FileDownloader:
         self.to_screen('[download] Destination: ' + filename)
 
     def _prepare_multiline_status(self, lines=1):
-        if self.params.get('noprogress'):
-            self._multiline = QuietMultilinePrinter()
-        elif self.ydl.params.get('logger'):
-            self._multiline = MultilineLogger(self.ydl.params['logger'], lines)
-        elif self.params.get('progress_with_newline'):
-            self._multiline = BreaklineStatusPrinter(self.ydl._out_files.out, lines)
-        else:
-            self._multiline = MultilinePrinter(self.ydl._out_files.out, lines, not self.params.get('quiet'))
-        self._multiline.allow_colors = self._multiline._HAVE_FULLCAP and not self.params.get('no_color')
+        self._progress = Progress.make_progress(
+            lines=lines, newline=bool(self.params.get('progress_with_newline')),
+            preserve=not self.params.get('quiet'))
 
     def _finish_multiline_status(self):
-        self._multiline.end()
+        self._progress.close()
 
     ProgressStyles = Namespace(
-        downloaded_bytes='light blue',
-        percent='light blue',
-        eta='yellow',
-        speed='green',
-        elapsed='bold white',
+        downloaded_bytes=TermCode(Color.LIGHT | Color.BLUE),
+        percent=TermCode(Color.LIGHT | Color.BLUE),
+        eta=TermCode(Color.YELLOW),
+        speed=TermCode(Color.GREEN),
+        elapsed=TermCode(Typeface.BOLD, Color.WHITE),
         total_bytes='',
         total_bytes_estimate='',
     )
@@ -314,16 +310,15 @@ class FileDownloader:
         progress_dict = {'info': s['info_dict'], 'progress': progress_dict}
 
         progress_template = self.params.get('progress_template', {})
-        self._multiline.print_at_line(self.ydl.evaluate_outtmpl(
+        self._progress.print_at_line(self.ydl.evaluate_outtmpl(
             progress_template.get('download') or '[download] %(progress._default_template)s',
             progress_dict), s.get('progress_idx') or 0)
-        self.to_console_title(self.ydl.evaluate_outtmpl(
+        console.change_title(self.ydl.evaluate_outtmpl(
             progress_template.get('download-title') or 'yt-dlp %(progress._default_template)s',
             progress_dict))
 
     def _format_progress(self, *args, **kwargs):
-        return self.ydl._format_text(
-            self._multiline.stream, self._multiline.allow_colors, *args, **kwargs)
+        return logger.format(LogLevel.INFO, *args, **kwargs)
 
     def report_progress(self, s):
         def with_fields(*tups, default=''):
@@ -386,8 +381,8 @@ class FileDownloader:
         """Report retry"""
         is_frag = False if frag_index is NO_DEFAULT else 'fragment'
         RetryManager.report_retry(
-            err, count, retries, info=self.__to_screen,
-            warn=lambda msg: self.__to_screen(f'[download] Got error: {msg}'),
+            err, count, retries, info=self.to_screen,
+            warn=lambda msg: self.to_screen(f'[download] Got error: {msg}'),
             error=IDENTITY if not fatal else lambda e: self.report_error(f'\r[download] Got error: {e}'),
             sleep_func=self.params.get('retry_sleep_functions', {}).get(is_frag or 'http'),
             suffix=f'fragment{"s" if frag_index is None else f" {frag_index}"}' if is_frag else None)

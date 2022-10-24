@@ -8,12 +8,12 @@ import io
 import itertools
 import json
 import locale
+import logging
 import operator
 import os
 import random
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 import time
@@ -31,7 +31,15 @@ from .downloader.rtmp import rtmpdump_version
 from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
-from .minicurses import format_text
+from .output import (
+    LogLevel,
+    StreamOutput,
+    Style,
+    Verbosity,
+    console,
+    logger,
+    progress,
+)
 from .postprocessor import _PLUGIN_CLASSES as plugin_postprocessors
 from .postprocessor import (
     EmbedThumbnailPP,
@@ -76,7 +84,6 @@ from .utils import (
     PagedList,
     PerRequestProxyHandler,
     PlaylistEntries,
-    Popen,
     PostProcessingError,
     ReExtractInfo,
     RejectedVideoReached,
@@ -90,7 +97,6 @@ from .utils import (
     args_to_str,
     bug_reports_message,
     date_from_str,
-    deprecation_warning,
     determine_ext,
     determine_protocol,
     encode_compat_str,
@@ -123,7 +129,6 @@ from .utils import (
     preferredencoding,
     prepend_extension,
     register_socks_protocols,
-    remove_terminal_sequences,
     render_table,
     replace_extension,
     sanitize_filename,
@@ -146,12 +151,8 @@ from .utils import (
     version_tuple,
     windows_enable_vt_mode,
     write_json_file,
-    write_string,
 )
 from .version import RELEASE_GIT_HEAD, VARIANT, __version__
-
-if compat_os_name == 'nt':
-    import ctypes
 
 
 class YoutubeDL:
@@ -584,18 +585,30 @@ class YoutubeDL:
         self.cache = Cache(self)
 
         windows_enable_vt_mode()
-        stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
-        self._out_files = Namespace(
-            out=stdout,
-            error=sys.stderr,
-            screen=sys.stderr if self.params.get('quiet') else stdout,
-            console=None if compat_os_name == 'nt' else next(
-                filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None)
-        )
-        self._allow_colors = Namespace(**{
-            type_: not self.params.get('no_color') and supports_terminal_sequences(stream)
-            for type_, stream in self._out_files.items_ if type_ != 'console'
-        })
+        screen = sys.stderr if self.params.get('logtostderr') else sys.stdout
+        stdout = sys.stderr if self.params.get('quiet') else screen
+        verbosity = (
+            Verbosity.VERBOSE if self.params.get('verbose')
+            else Verbosity.QUIET if self.params.get('quiet')
+            else Verbosity.NORMAL)
+        logger.init(
+            screen, verbosity, ignore_errors=bool(self.params.get('ignoreerrors')),
+            encoding=self.params.get('encoding'), allow_color=not self.params.get('nocolor', False))
+
+        logger_param = self.params.get('logger')
+        if logger_param:
+            if logger_param == logging:
+                logger.setup_logging()
+            else:
+                logger.setup_class_logger(logger_param)
+        else:
+            logger.setup_streams(stdout, sys.stderr, no_warnings=self.params.get('no_warnings', False))
+
+        console.init(
+            windows=compat_os_name == 'nt', encoding=self.params.get('encoding'),
+            allow_title_change=bool(self.params.get('consoletitle')))
+
+        progress.disable = bool(self.params.get('noprogress'))
 
         # The code is left like this to be reused for future deprecations
         MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
@@ -610,11 +623,13 @@ class YoutubeDL:
                 f'{msg}! Please update to Python %d.%d or above' % (*current_version, *MIN_RECOMMENDED))
 
         if self.params.get('allow_unplayable_formats'):
+            unplayable = logger.format(LogLevel.ERROR, "UNPLAYABLE", Style.EMPHASIS)
+            do_not = logger.format(LogLevel.ERROR, "DO NOT", Style.ERROR)
             self.report_warning(
-                f'You have asked for {self._format_err("UNPLAYABLE", self.Styles.EMPHASIS)} formats to be listed/downloaded. '
+                f'You have asked for {unplayable} formats to be listed/downloaded. '
                 'This is a developer option intended for debugging. \n'
                 '         If you experience any issues while using this option, '
-                f'{self._format_err("DO NOT", self.Styles.ERROR)} open a bug report')
+                f'{do_not} open a bug report')
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
@@ -658,23 +673,18 @@ class YoutubeDL:
 
         if self.params.get('bidi_workaround', False):
             try:
-                import pty
-                master, slave = pty.openpty()
-                width = shutil.get_terminal_size().columns
-                width_args = [] if width is None else ['-w', str(width)]
-                sp_kwargs = {'stdin': subprocess.PIPE, 'stdout': slave, 'stderr': self._out_files.error}
-                try:
-                    self._output_process = Popen(['bidiv'] + width_args, **sp_kwargs)
-                except OSError:
-                    self._output_process = Popen(['fribidi', '-c', 'UTF-8'] + width_args, **sp_kwargs)
-                self._output_channel = os.fdopen(master, 'rb')
+                logger.init_bidi_workaround()
+
             except OSError as ose:
-                if ose.errno == errno.ENOENT:
-                    self.report_warning(
-                        'Could not find fribidi executable, ignoring --bidi-workaround. '
-                        'Make sure that  fribidi  is an executable file in one of the directories in your $PATH.')
-                else:
+                if ose.errno != errno.ENOENT:
                     raise
+
+                self.report_warning(
+                    'Could not find any bidi executable, ignoring --bidi-workaround. '
+                    'Make sure that either bidiv or fribidi are available as executables in your $PATH.')
+
+            except ImportError:
+                self.report_warning('Could not import pty (perhaps not on *nix?), ignoring --bidi-workaround.')
 
         if auto_init:
             if auto_init != 'no_verbose_header':
@@ -816,81 +826,30 @@ class YoutubeDL:
             for pp in pps:
                 pp.add_progress_hook(ph)
 
-    def _bidi_workaround(self, message):
-        if not hasattr(self, '_output_channel'):
-            return message
-
-        assert hasattr(self, '_output_process')
-        assert isinstance(message, str)
-        line_count = message.count('\n') + 1
-        self._output_process.stdin.write((message + '\n').encode())
-        self._output_process.stdin.flush()
-        res = ''.join(self._output_channel.readline().decode()
-                      for _ in range(line_count))
-        return res[:-len('\n')]
-
-    def _write_string(self, message, out=None, only_once=False):
-        if only_once:
-            if message in self._printed_messages:
-                return
-            self._printed_messages.add(message)
-        write_string(message, out=out, encoding=self.params.get('encoding'))
-
-    def to_stdout(self, message, skip_eol=False, quiet=None):
+    def to_stdout(self, message):
         """Print message to stdout"""
-        if quiet is not None:
-            self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument quiet. '
-                                     'Use "YoutubeDL.to_screen" instead')
-        if skip_eol is not False:
-            self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument skip_eol. '
-                                     'Use "YoutubeDL.to_screen" instead')
-        self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.out)
+        logger.screen(message)
 
     def to_screen(self, message, skip_eol=False, quiet=None, only_once=False):
         """Print message to screen if not in quiet mode"""
-        if self.params.get('logger'):
-            self.params['logger'].debug(message)
-            return
-        if (self.params.get('quiet') if quiet is None else quiet) and not self.params.get('verbose'):
-            return
-        self._write_string(
-            '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
-            self._out_files.screen, only_once=only_once)
+        logger.info(message, newline=not skip_eol, quiet=quiet, once=only_once)
 
     def to_stderr(self, message, only_once=False):
         """Print message to stderr"""
-        assert isinstance(message, str)
-        if self.params.get('logger'):
-            self.params['logger'].error(message)
-        else:
-            self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.error, only_once=only_once)
-
-    def _send_console_code(self, code):
-        if compat_os_name == 'nt' or not self._out_files.console:
-            return
-        self._write_string(code, self._out_files.console)
+        logger.error(message, once=only_once)
 
     def to_console_title(self, message):
-        if not self.params.get('consoletitle', False):
-            return
-        message = remove_terminal_sequences(message)
-        if compat_os_name == 'nt':
-            if ctypes.windll.kernel32.GetConsoleWindow():
-                # c_wchar_p() might not be necessary if `message` is
-                # already of type unicode()
-                ctypes.windll.kernel32.SetConsoleTitleW(ctypes.c_wchar_p(message))
-        else:
-            self._send_console_code(f'\033]0;{message}\007')
+        console.change_title(message)
 
     def save_console_title(self):
         if not self.params.get('consoletitle') or self.params.get('simulate'):
             return
-        self._send_console_code('\033[22;0t')  # Save the title on stack
+        console.save_title()
 
     def restore_console_title(self):
         if not self.params.get('consoletitle') or self.params.get('simulate'):
             return
-        self._send_console_code('\033[23;0t')  # Restore the title from stack
+        console.restore_title()
 
     def __enter__(self):
         self.save_console_title()
@@ -912,98 +871,31 @@ class YoutubeDL:
         @param tb          If given, is additional traceback information
         @param is_error    Whether to raise error according to ignorerrors
         """
-        if message is not None:
-            self.to_stderr(message)
-        if self.params.get('verbose'):
-            if tb is None:
-                if sys.exc_info()[0]:  # if .trouble has been called from an except block
-                    tb = ''
-                    if hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
-                        tb += ''.join(traceback.format_exception(*sys.exc_info()[1].exc_info))
-                    tb += encode_compat_str(traceback.format_exc())
-                else:
-                    tb_data = traceback.format_list(traceback.extract_stack())
-                    tb = ''.join(tb_data)
-            if tb:
-                self.to_stderr(tb)
-        if not is_error:
-            return
-        if not self.params.get('ignoreerrors'):
-            if sys.exc_info()[0] and hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
-                exc_info = sys.exc_info()[1].exc_info
-            else:
-                exc_info = sys.exc_info()
-            raise DownloadError(message, exc_info)
-        self._download_retcode = 1
-
-    Styles = Namespace(
-        HEADERS='yellow',
-        EMPHASIS='light blue',
-        FILENAME='green',
-        ID='green',
-        DELIM='blue',
-        ERROR='red',
-        WARNING='yellow',
-        SUPPRESS='light black',
-    )
-
-    def _format_text(self, handle, allow_colors, text, f, fallback=None, *, test_encoding=False):
-        text = str(text)
-        if test_encoding:
-            original_text = text
-            # handle.encoding can be None. See https://github.com/yt-dlp/yt-dlp/issues/2711
-            encoding = self.params.get('encoding') or getattr(handle, 'encoding', None) or 'ascii'
-            text = text.encode(encoding, 'ignore').decode(encoding)
-            if fallback is not None and text != original_text:
-                text = fallback
-        return format_text(text, f) if allow_colors else text if fallback is None else fallback
-
-    def _format_out(self, *args, **kwargs):
-        return self._format_text(self._out_files.out, self._allow_colors.out, *args, **kwargs)
-
-    def _format_screen(self, *args, **kwargs):
-        return self._format_text(self._out_files.screen, self._allow_colors.screen, *args, **kwargs)
-
-    def _format_err(self, *args, **kwargs):
-        return self._format_text(self._out_files.error, self._allow_colors.error, *args, **kwargs)
+        logger.handle_error(message, trace=tb, is_error=is_error, prefix=False)
 
     def report_warning(self, message, only_once=False):
         '''
         Print the message to stderr, it will be prefixed with 'WARNING:'
         If stderr is a tty file the 'WARNING:' will be colored
         '''
-        if self.params.get('logger') is not None:
-            self.params['logger'].warning(message)
-        else:
-            if self.params.get('no_warnings'):
-                return
-            self.to_stderr(f'{self._format_err("WARNING:", self.Styles.WARNING)} {message}', only_once)
+        logger.warning(message, once=only_once)
 
     def deprecation_warning(self, message, *, stacklevel=0):
-        deprecation_warning(
-            message, stacklevel=stacklevel + 1, printer=self.report_error, is_error=False)
+        logger.deprecation_warning(message, stacklevel=stacklevel + 1)
 
     def deprecated_feature(self, message):
-        if self.params.get('logger') is not None:
-            self.params['logger'].warning(f'Deprecated Feature: {message}')
-        self.to_stderr(f'{self._format_err("Deprecated Feature:", self.Styles.ERROR)} {message}', True)
+        logger.deprecated_feature(message)
 
-    def report_error(self, message, *args, **kwargs):
+    def report_error(self, message, tb=None, is_error=True):
         '''
         Do the same as trouble, but prefixes the message with 'ERROR:', colored
         in red if stderr is a tty file.
         '''
-        self.trouble(f'{self._format_err("ERROR:", self.Styles.ERROR)} {message}', *args, **kwargs)
+        logger.handle_error(message, trace=tb, is_error=is_error)
 
     def write_debug(self, message, only_once=False):
         '''Log debug message or Print message to stderr'''
-        if not self.params.get('verbose', False):
-            return
-        message = f'[debug] {message}'
-        if self.params.get('logger'):
-            self.params['logger'].debug(message)
-        else:
-            self.to_stderr(message, only_once)
+        logger.debug(message, once=only_once)
 
     def report_file_already_downloaded(self, file_name):
         """Report file has already been fully downloaded."""
@@ -1390,9 +1282,12 @@ class YoutubeDL:
                     ret = None if incomplete else match_filter(info_dict)
                 if ret is NO_DEFAULT:
                     while True:
-                        filename = self._format_screen(self.prepare_filename(info_dict), self.Styles.FILENAME)
-                        reply = input(self._format_screen(
-                            f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS)).lower().strip()
+                        filename = logger.format(
+                            LogLevel.INFO, self.prepare_filename(info_dict), Style.FILENAME)
+                        query = logger.format(
+                            LogLevel.INFO, f'Download "{filename}"? (Y/n): ', Style.EMPHASIS)
+                        # TODO(logging): XXX: use logger, then call input plain?
+                        reply = input(query).lower().strip()
                         if reply in {'y', ''}:
                             return None
                         elif reply == 'n':
@@ -1537,7 +1432,8 @@ class YoutubeDL:
                 if diff <= 0:
                     progress('')
                     raise ReExtractInfo('[wait] Wait period ended', expected=True)
-                progress(f'[wait] Remaining time until next attempt: {self._format_screen(format_dur(diff), self.Styles.EMPHASIS)}')
+                format_time = logger.format(LogLevel.INFO, format_dur(diff), Style.EMPHASIS)
+                progress(f'[wait] Remaining time until next attempt: {format_time}')
                 time.sleep(1)
         except KeyboardInterrupt:
             progress('')
@@ -1840,8 +1736,9 @@ class YoutubeDL:
                 resolved_entries[i] = (playlist_index, NO_DEFAULT)
                 continue
 
-            self.to_screen('[download] Downloading video %s of %s' % (
-                self._format_screen(i + 1, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
+            current = logger.format(LogLevel.SCREEN, i + 1, Style.ID)
+            total = logger.format(LogLevel.SCREEN, n_entries, Style.EMPHASIS)
+            self.to_screen(f'[download] Downloading video {current} of {total}')
 
             extra.update({
                 'playlist_index': playlist_index,
@@ -2669,8 +2566,9 @@ class YoutubeDL:
 
         while True:
             if interactive_format_selection:
-                req_format = input(
-                    self._format_screen('\nEnter format selector: ', self.Styles.EMPHASIS))
+                # TODO(logging): XXX: use logger, then call input plain?
+                req_format = input(logger.format(
+                    LogLevel.INFO, '\nEnter format selector: ', Style.EMPHASIS))
                 try:
                     format_selector = self.build_format_selector(req_format)
                 except SyntaxError as err:
@@ -3506,7 +3404,7 @@ class YoutubeDL:
 
     def _list_format_headers(self, *headers):
         if self.params.get('listformats_table', True) is not False:
-            return [self._format_out(header, self.Styles.HEADERS) for header in headers]
+            return [logger.format(LogLevel.SCREEN, header, Style.HEADER) for header in headers]
         return headers
 
     def _format_note(self, fdict):
@@ -3596,13 +3494,18 @@ class YoutubeDL:
                 return 'images'
             elif field == 'acodec' and f.get('vcodec') == 'none':
                 return ''
-            return self._format_out('audio only' if field == 'vcodec' else 'video only',
-                                    self.Styles.SUPPRESS)
+            return logger.format(
+                LogLevel.SCREEN, 'audio only' if field == 'vcodec' else 'video only',
+                Style.SUPPRESS)
 
-        delim = self._format_out('\u2502', self.Styles.DELIM, '|', test_encoding=True)
+        def make_delim(delim, fallback):
+            delim = logger.try_encoding(LogLevel.SCREEN, delim, fallback, self.params.get('encoding'))
+            return logger.format(LogLevel.SCREEN, delim, Style.DELIM)
+
+        delim = make_delim('\u2502', '|')
         table = [
             [
-                self._format_out(format_field(f, 'format_id'), self.Styles.ID),
+                logger.format(LogLevel.SCREEN, format_field(f, 'format_id'), Style.ID),
                 format_field(f, 'ext'),
                 format_field(f, func=self.format_resolution, ignore=('audio only', 'images')),
                 format_field(f, 'fps', '\t%d', func=round),
@@ -3619,7 +3522,7 @@ class YoutubeDL:
                 format_field(f, 'abr', '\t%dk', func=round),
                 format_field(f, 'asr', '\t%s', func=format_decimal_suffix),
                 join_nonempty(
-                    self._format_out('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
+                    logger.format(LogLevel.SCREEN, 'UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
                     format_field(f, 'language', '[%s]'),
                     join_nonempty(format_field(f, 'format_note'),
                                   format_field(f, 'container', ignore=(None, f.get('ext'))),
@@ -3630,9 +3533,7 @@ class YoutubeDL:
             'ID', 'EXT', 'RESOLUTION', '\tFPS', 'HDR', 'CH', delim, '\tFILESIZE', '\tTBR', 'PROTO',
             delim, 'VCODEC', '\tVBR', 'ACODEC', '\tABR', '\tASR', 'MORE INFO')
 
-        return render_table(
-            header_line, table, hide_empty=True,
-            delim=self._format_out('\u2500', self.Styles.DELIM, '-', test_encoding=True))
+        return render_table(header_line, table, hide_empty=True, delim=make_delim('\u2500', '-'))
 
     def render_thumbnails_table(self, info_dict):
         thumbnails = list(info_dict.get('thumbnails') or [])
@@ -3688,28 +3589,26 @@ class YoutubeDL:
         from .extractor.extractors import _PLUGIN_CLASSES as plugin_extractors
 
         def get_encoding(stream):
-            ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
+            ret = str(getattr(stream, 'encoding', f'missing ({type(stream).__name__})'))
             if not supports_terminal_sequences(stream):
                 from .utils import WINDOWS_VT_MODE  # Must be imported locally
                 ret += ' (No VT)' if WINDOWS_VT_MODE is False else ' (No ANSI)'
             return ret
 
-        encoding_str = 'Encodings: locale %s, fs %s, pref %s, %s' % (
-            locale.getpreferredencoding(),
-            sys.getfilesystemencoding(),
-            self.get_encoding(),
-            ', '.join(
-                f'{key} {get_encoding(stream)}' for key, stream in self._out_files.items_
-                if stream is not None and key != 'console')
-        )
+        encodings = (
+            ('locale', locale.getpreferredencoding()),
+            ('fs', sys.getfilesystemencoding()),
+            ('pref', self.get_encoding()))
 
-        logger = self.params.get('logger')
-        if logger:
-            write_debug = lambda msg: logger.debug(f'[debug] {msg}')
-            write_debug(encoding_str)
-        else:
-            write_string(f'[debug] {encoding_str}\n', encoding=None)
-            write_debug = lambda msg: self._write_string(f'[debug] {msg}\n')
+        levels = (LogLevel.SCREEN, LogLevel.INFO, LogLevel.ERROR)
+        outputs = (logger.mapping[level] for level in levels)
+        logger_encodings = (
+            (level.name.lower(), get_encoding(output._stream))
+            for level, output in zip(levels, outputs)
+            if isinstance(output, StreamOutput))
+
+        write_debug = functools.partial(logger.log, LogLevel.DEBUG, prefix='[debug]')
+        write_debug('Encodings: ' + ', '.join(map(' '.join, (*encodings, *logger_encodings))))
 
         source = detect_variant()
         if VARIANT not in (None, 'pip'):
@@ -3784,7 +3683,7 @@ class YoutubeDL:
         opts_cookiefile = self.params.get('cookiefile')
         opts_proxy = self.params.get('proxy')
 
-        self.cookiejar = load_cookies(opts_cookiefile, opts_cookiesfrombrowser, self)
+        self.cookiejar = load_cookies(opts_cookiefile, opts_cookiesfrombrowser)
 
         cookie_processor = YoutubeDLCookieProcessor(self.cookiejar)
         if opts_proxy is not None:
