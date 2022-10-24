@@ -27,10 +27,10 @@ class ListenNotesIE(InfoExtractor):
     def _real_extract(self, url):
         audio_id = self._match_id(url)
         webpage = self._download_webpage(url, audio_id)
-        data_json = self._parse_json(self._search_regex(r'<script id="original-content" type="application/json">\s*({"uuid".+})', webpage, 'content'), audio_id)
-        audio_url = data_json['audio']
         description = re.sub(r"""\s{2,}""", " ", self._og_search_description(webpage))
         title = self._html_search_regex(r'<h1\s*class=".+?">\s*<a\s*href=".+?"\s*title="(.+?)"\s*class=".+?">\s*.+\s*</a>\s*</h1>', webpage, 'title')
+        audio_url = self._search_json(
+            r'<script id="original-content" type="application/json">\s*', webpage, 'content', audio_id).get('audio')
 
         return {
             'id': audio_id,
