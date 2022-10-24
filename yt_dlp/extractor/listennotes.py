@@ -19,7 +19,7 @@ class ListenNotesIE(InfoExtractor):
         'info_dict': {
             'id': 'lwEA3154JzG',
             'ext': 'mp3',
-            'title': 'Episode 177: WireGuard with Jason Donenfeld',
+            'title': 'Episode 177: WireGuard with Jason Donenfeld - Ask Noah Show (podcast)',
             'description': '01:04:21 - Jason Donenfeld lead developer joins us this hour to discuss WireGuard, an extremely simple yet fast and modern VPN that utilizes state-of-the-art c…'
         }
     }]
@@ -34,6 +34,10 @@ class ListenNotesIE(InfoExtractor):
             ['og:description', 'description', 'twitter:description'], webpage, 'description', default=None)
         if description is not None:
             description = re.sub(r'\s{2,}', ' ', description)
+        title = (self._html_search_meta(['og:title', 'title', 'twitter:title'], webpage, 'title', default=None)
+                 or self._html_search_regex(
+                     r'<h1\s*class=".+?">\s*<a\s*href=".+?"\s*title="(.+?)"\s*class=".+?">\s*.+\s*</a>\s*</h1>',
+                     webpage, 'title'))
 
         return {
             'id': audio_id,
