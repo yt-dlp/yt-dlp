@@ -14,6 +14,14 @@ class TelegramEmbedIE(InfoExtractor):
             'description': '6ce2d7e8d56eda16d80607b23db7b252',
             'thumbnail': r're:^https?:\/\/cdn.*?telesco\.pe\/file\/\w+',
         },
+    }, {
+        'url': 'https://t.me/vorposte/29343?single',
+        'info_dict': {
+            'ext': 'mp4',
+            # Must match the url we passed to the extractor
+            # Previosly: it didnt (except for the first video).
+            'page_url': 'https://t.me/vorposte/29343?single',
+        },
     }]
 
     def _real_extract(self, url):
@@ -31,6 +39,9 @@ class TelegramEmbedIE(InfoExtractor):
 
         return {
             'id': video_id,
+            'page_url': self._search_regex(
+                r'tgme_widget_message_video_player[^>]+href="([^"]*)',
+                webpage_embed, 'href'),
             'title': self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None),
             'description': self._html_search_meta(
                 ['og:description', 'twitter:description'], webpage,
