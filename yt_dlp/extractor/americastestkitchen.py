@@ -124,7 +124,6 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
         season_number = int(season_number)
 
         slug = 'cco' if show_path == '/cookscountry' else 'atk'
-        show_path = '' if not show_path else show_path
 
         season = 'Season %d' % season_number
 
@@ -152,7 +151,7 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
                     continue
                 yield {
                     '_type': 'url',
-                    'url': f'https://www.americastestkitchen.com{show_path}{search_url}',
+                    'url': f'https://www.americastestkitchen.com{show_path or ""}{search_url}',
                     'id': try_get(episode, lambda e: e['objectID'].split('_')[-1]),
                     'title': episode.get('title'),
                     'description': episode.get('description'),
