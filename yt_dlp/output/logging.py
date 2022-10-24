@@ -337,12 +337,5 @@ class Logger:
         result = b"".join(self._bidi_reader.readlines(line_count)).decode()
         return result[:-1]
 
-    def __deepcopy__(self, _):
-        copied = copy.copy(self)
-        print(dir(copied))
-        copied.mapping = {key: copy.copy(value) for key, value in self.mapping.items()}
-
-        return copied
-
 
 logger = Logger()
