@@ -158,7 +158,7 @@ class MxplayerIE(InfoExtractor):
             'description': 'md5:d17bd5c651016c4ed2e6f8a4ace15534',
         },
         'params': {
-            'format': 'bv',
+            'format': 'b',
             'skip_download': True,
         },
     }]
