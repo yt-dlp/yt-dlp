@@ -2448,6 +2448,31 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'note': '6 channel audio',
             'url': 'https://www.youtube.com/watch?v=zgdo7-RRjgo',
             'only_matching': True,
+        }, {
+            'url': 'https://www.youtube.com/watch?v=wCslYcJhHDw',
+            'info_dict': {
+                'id': 'OG_wJZ-8l90',
+                'ext': 'mp4',
+                'title': 'trailer',
+                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'uploader_url': 'http://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/OG_wJZ-8l90/maxresdefault.webp',
+                'like_count': int,
+                'description': '',
+                'uploader': 'cole-dlp-test-acc',
+                'availability': 'unlisted',
+                'age_limit': 0,
+                'upload_date': '20221024',
+                'categories': ['People & Blogs'],
+                'playable_in_embed': True,
+                'view_count': int,
+                'live_status': 'not_live',
+                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'tags': [],
+                'channel': 'cole-dlp-test-acc',
+                'duration': 29,
+            },
         }
     ]
 
@@ -3715,11 +3740,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         trailer_video_id = get_first(
             playability_statuses,
-            ('errorScreen', 'playerLegacyDesktopYpcTrailerRenderer', 'trailerVideoId'),
+            ('errorScreen', 'ypcTrailerRenderer', 'unserializedPlayerResponse', 'videoDetails', 'videoId'),
             expected_type=str)
         if trailer_video_id:
-            return self.url_result(
-                trailer_video_id, self.ie_key(), trailer_video_id)
+            if not self._configuration_arg('ignore_trailers'):
+                self.to_screen(
+                    f'Downloading trailer {trailer_video_id} - pass --extractor-args youtube:ignore-trailers to skip')
+                return self.url_result(
+                    trailer_video_id, self.ie_key(), trailer_video_id)
+            else:
+                self.to_screen(f'Ignoring trailer {trailer_video_id}')
 
         search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None))
                        if webpage else (lambda x: None))
