@@ -225,7 +225,6 @@ class BiliBiliIE(BilibiliBaseIE):
 
         video_data = initial_state['videoData']
         bv_id = video_data['bvid']
-        cid = video_data.get('cid')
         video_id = bv_id
 
         page_list_json = traverse_obj(
@@ -236,6 +235,11 @@ class BiliBiliIE(BilibiliBaseIE):
             'data', expected_type=list) or []
         has_multi_p = len(page_list_json) > 1
         part_id = int_or_none(parse_qs(url).get('p', [None])[-1])
+
+        if part_id is None:
+            cid = video_data.get('cid')
+        else:
+            cid = traverse_obj(video_data, ('pages', part_id-1, 'cid'))
 
         title = video_data.get('title')
 
