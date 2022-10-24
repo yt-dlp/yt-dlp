@@ -2449,6 +2449,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'url': 'https://www.youtube.com/watch?v=zgdo7-RRjgo',
             'only_matching': True,
         }, {
+            # Download trailers if extractor argument is set
             'url': 'https://www.youtube.com/watch?v=wCslYcJhHDw',
             'info_dict': {
                 'id': 'OG_wJZ-8l90',
@@ -2473,6 +2474,37 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel': 'cole-dlp-test-acc',
                 'duration': 29,
             },
+            'params': {'extractor_args': {'youtube': {'download_trailers': 'True'}}, 'skip_download': True},
+        }, {
+            # Do not download trailers if extractor argument is not set
+            'url': 'https://www.youtube.com/watch?v=wCslYcJhHDw',
+            'info_dict': {
+                'id': 'wCslYcJhHDw',
+                'ext': None,
+                'title': 'Test Premiere With Trailer',
+                'live_status': 'is_upcoming',
+                'concurrent_view_count': int,
+                'categories': ['People & Blogs'],
+                'thumbnail': 'https://i.ytimg.com/vi_webp/wCslYcJhHDw/maxresdefault.webp',
+                'channel': 'cole-dlp-test-acc',
+                'release_timestamp': 1720569600,
+                'view_count': int,
+                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'uploader': 'cole-dlp-test-acc',
+                'upload_date': '20221023',
+                'release_date': '20240710',
+                'description': 'fgg',
+                'uploader_url': 'http://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'age_limit': 0,
+                'tags': [],
+                'like_count': int,
+                'playable_in_embed': True,
+                'availability': 'public',
+            },
+            'params': {'ignore_no_formats_error': True, 'skip_download': True},
+            'expected_warnings': [r'Premieres in \d+ days', 'No video formats found', 'Requested format is not available'],
         }
     ]
 
@@ -3743,13 +3775,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             ('errorScreen', 'ypcTrailerRenderer', 'unserializedPlayerResponse', 'videoDetails', 'videoId'),
             expected_type=str)
         if trailer_video_id:
-            if not self._configuration_arg('ignore_trailers'):
+            if self._configuration_arg('download_trailers'):
                 self.to_screen(
-                    f'Downloading trailer {trailer_video_id} - pass --extractor-args youtube:ignore-trailers to skip')
+                    f'Downloading trailer {trailer_video_id} due to download-trailers extractor argument')
                 return self.url_result(
                     trailer_video_id, self.ie_key(), trailer_video_id)
             else:
-                self.to_screen(f'Ignoring trailer {trailer_video_id}')
+                self.to_screen(f'Ignoring trailer {trailer_video_id}; pass --extractor-args youtube:download_trailers to download')
 
         search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None))
                        if webpage else (lambda x: None))
