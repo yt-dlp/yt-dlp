@@ -134,7 +134,7 @@ class BilibiliBaseIE(InfoExtractor):
             'uploader_id': traverse_obj(initial_state, ('upData', 'mid')),
             'like_count': traverse_obj(initial_state, ('videoData', 'stat', 'like')),
             'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
-            'tags': traverse_obj(initial_state, ('tags', ..., 'tag_name')),
+            'tags': traverse_obj(initial_state, ('tags', ..., 'tag_name')) or None,
             'thumbnail': traverse_obj(
                 initial_state, ('videoData', 'pic'), ('epInfo', 'cover')),
             'timestamp': traverse_obj(
@@ -194,15 +194,52 @@ class BiliBiliIE(BilibiliBaseIE):
             'skip_download': True,
         },
     }, {
-        # Anthology
+        'note': 'Anthology',
         'url': 'https://www.bilibili.com/video/BV1bK411W797',
         'info_dict': {
             'id': 'BV1bK411W797',
             'title': '物语中的人物是如何吐槽自己的OP的'
         },
-        'playlist_count': 18,  # TODO: Test entries
+        'playlist_count': 18,
+        'playlist': [{
+            'info_dict': {
+                'id': 'BV1bK411W797_p1',
+                'ext': 'mp4',
+                'title': '物语中的人物是如何吐槽自己的OP的 p01 Staple Stable/战场原+羽川',
+                'tags': 'count:11',
+                'timestamp': 1589601697,
+                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'uploader': '打牌还是打桩',
+                'uploader_id': '150259984',
+                'like_count': int,
+                'comment_count': int,
+                'upload_date': '20200516',
+                'view_count': int,
+                'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
+                'duration': 90.314,
+            }
+        }]
     }, {
-        # video has subtitles
+        'note': 'Specific page of Anthology',
+        'url': 'https://www.bilibili.com/video/BV1bK411W797?p=1',
+        'info_dict': {
+            'id': 'BV1bK411W797_p1',
+            'ext': 'mp4',
+            'title': '物语中的人物是如何吐槽自己的OP的 p01 Staple Stable/战场原+羽川',
+            'tags': 'count:11',
+            'timestamp': 1589601697,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'uploader': '打牌还是打桩',
+            'uploader_id': '150259984',
+            'like_count': int,
+            'comment_count': int,
+            'upload_date': '20200516',
+            'view_count': int,
+            'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
+            'duration': 90.314,
+        }
+    }, {
+        'note': 'video has subtitles',
         'url': 'https://www.bilibili.com/video/BV12N4y1M7rh',
         'info_dict': {
             'id': 'BV12N4y1M7rh',
@@ -219,10 +256,9 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'like_count': int,
             'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'subtitles': 'count:2'
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'listsubtitles': True},
     }]
 
     def _real_extract(self, url):
