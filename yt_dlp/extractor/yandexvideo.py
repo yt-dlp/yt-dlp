@@ -239,6 +239,9 @@ class ZenYandexIE(InfoExtractor):
     def _real_extract(self, url):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
+        redirect = self._search_json(r'var it\s*=\s*', webpage, 'redirect', id, default={}).get('retpath')
+        if redirect:
+            webpage = self._download_webpage(redirect, id, note='Redirecting')
         data_json = self._search_json(
             r'data\s*=', webpage, 'metadata', id, contains_pattern=r'{["\']_*serverState_*video.+}')
         serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
@@ -343,8 +346,12 @@ class ZenYandexChannelIE(InfoExtractor):
     def _real_extract(self, url):
         item_id = self._match_id(url)
         webpage = self._download_webpage(url, item_id)
+        redirect = self._search_json(
+            r'var it\s*=\s*', webpage, 'redirect', item_id, default={}).get('retpath')
+        if redirect:
+            webpage = self._download_webpage(redirect, id, note='Redirecting')
         data = self._search_json(
-            r'var\s+data\s*=', webpage, 'channel data', item_id, contains_pattern=r'\"__serverState__.+')
+            r'var\s+data\s*=', webpage, 'channel data', item_id, contains_pattern=r'{\"__serverState__.+}')
         server_state_json = traverse_obj(data, lambda k, _: k.startswith('__serverState__'), get_all=False)
         server_settings_json = traverse_obj(data, lambda k, _: k.startswith('__serverSettings__'), get_all=False)
 
