@@ -22,7 +22,7 @@ from ..utils import (
 class KalturaIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                 (?:
-                    kaltura:(?P<partner_id>\d+):(?P<id>[0-9a-z_]+)|
+                    kaltura:(?P<partner_id>\w+):(?P<id>\w+)(?::(?P<player_type>\w+))?|
                     https?://
                         (:?(?:www|cdnapi(?:sec)?)\.)?kaltura\.com(?::\d+)?/
                         (?:
@@ -140,7 +140,7 @@ class KalturaIE(InfoExtractor):
                         'ext': 'mp4',
                         'title': 'CS7646_00-00 Introductio_Introduction',
                         'duration': 91,
-                        'thumbnail': 'https://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_b1y5hlvx/version/100001',
+                        'thumbnail': 'http://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_b1y5hlvx/version/100001',
                         'view_count': int,
                         'timestamp': 1533154447,
                         'upload_date': '20180801',
@@ -152,7 +152,7 @@ class KalturaIE(InfoExtractor):
                         'ext': 'mp4',
                         'title': 'CS7646_00-00 Introductio_Three parts to the course',
                         'duration': 63,
-                        'thumbnail': 'https://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_jfb7mdpn/version/100001',
+                        'thumbnail': 'http://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_jfb7mdpn/version/100001',
                         'view_count': int,
                         'timestamp': 1533154489,
                         'upload_date': '20180801',
@@ -164,7 +164,7 @@ class KalturaIE(InfoExtractor):
                         'ext': 'mp4',
                         'title': 'CS7646_00-00 Introductio_Textbooks',
                         'duration': 37,
-                        'thumbnail': 'https://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_8xflxdp7/version/100001',
+                        'thumbnail': 'http://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_8xflxdp7/version/100001',
                         'view_count': int,
                         'timestamp': 1533154512,
                         'upload_date': '20180801',
@@ -176,7 +176,7 @@ class KalturaIE(InfoExtractor):
                         'ext': 'mp4',
                         'title': 'CS7646_00-00 Introductio_Prerequisites',
                         'duration': 49,
-                        'thumbnail': 'https://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_3hqew8kn/version/100001',
+                        'thumbnail': 'http://cfvod.kaltura.com/p/2019031/sp/201903100/thumbnail/entry_id/1_3hqew8kn/version/100001',
                         'view_count': int,
                         'timestamp': 1533154536,
                         'upload_date': '20180801',
@@ -385,10 +385,10 @@ class KalturaIE(InfoExtractor):
         url, smuggled_data = unsmuggle_url(url, {})
 
         mobj = self._match_valid_url(url)
-        partner_id, entry_id = mobj.group('partner_id', 'id')
-        ks = None
-        captions = None
-        player_type = 'kwidget' if 'html5lib/v2' in url else 'html5'
+        partner_id, entry_id, player_type = mobj.group('partner_id', 'id', 'player_type')
+        ks, captions = None, None
+        if not player_type:
+            player_type = 'kwidget' if 'html5lib/v2' in url else 'html5'
         if partner_id and entry_id:
             _, info, flavor_assets, captions = self._get_video_info(entry_id, partner_id, smuggled_data.get('service_url'), player_type=player_type)
         else:
@@ -416,10 +416,8 @@ class KalturaIE(InfoExtractor):
                 reference_id = params['flashvars[referenceId]'][0]
                 webpage = self._download_webpage(url, reference_id)
                 entry_data = self._search_json(
-                    self.IFRAME_PACKAGE_DATA_REGEX,
-                    webpage,
-                    'kalturaIframePackageData',
-                    reference_id)['entryResult']
+                    self.IFRAME_PACKAGE_DATA_REGEX, webpage,
+                    'kalturaIframePackageData', reference_id)['entryResult']
                 info, flavor_assets = entry_data['meta'], entry_data['contextData']['flavorAssets']
                 entry_id = info['id']
                 # Unfortunately, data returned in kalturaIframePackageData lacks
@@ -437,23 +435,12 @@ class KalturaIE(InfoExtractor):
                 playlist_id = params['flashvars[playlistAPI.kpl0Id]'][0]
                 webpage = self._download_webpage(url, playlist_id)
                 playlist_data = self._search_json(
-                    self.IFRAME_PACKAGE_DATA_REGEX,
-                    webpage,
-                    'kalturaIframePackageData',
-                    playlist_id)['playlistResult']
-                playlist_title, playlist_items = playlist_data[playlist_id]['name'], playlist_data[playlist_id]['items']
-                ks = params.get('flashvars[ks]', [None])[0]
-
-                entries = []
-                for info in playlist_items:
-                    entry_id = info['id']
-                    # We already have the metadata info, but need to fetch the asset URLs
-                    _, new_info, flavor_assets, captions = self._get_video_info(
-                        entry_id, partner_id, player_type=player_type)
-
-                    entries.append(self._per_video_extract(smuggled_data, entry_id, info, ks, flavor_assets, captions))
-
-                return self.playlist_result(entries, playlist_id, playlist_title)
+                    self.IFRAME_PACKAGE_DATA_REGEX, webpage,
+                    'kalturaIframePackageData', playlist_id)['playlistResult']
+                return self.playlist_from_matches(
+                    traverse_obj(playlist_data, (playlist_id, 'items', ..., 'id')),
+                    playlist_id, traverse_obj(playlist_data, (playlist_id, 'name')),
+                    ie=KalturaIE, getter=lambda x: f'kaltura:{partner_id}:{x}:{player_type}')
             else:
                 raise ExtractorError('Invalid URL', expected=True)
             ks = params.get('flashvars[ks]', [None])[0]
