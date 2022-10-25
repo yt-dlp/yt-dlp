@@ -14,6 +14,7 @@ from ..utils import (
 # The temporary token may expire. Make only one attempt to refresh it.
 MAX_TOKEN_REFRESH_ATTEMPTS = 1
 
+
 class RedGifsBaseInfoExtractor(InfoExtractor):
     _FORMATS = {
         'gif': 250,
