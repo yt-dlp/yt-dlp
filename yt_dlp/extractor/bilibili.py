@@ -259,6 +259,27 @@ class BiliBiliIE(BilibiliBaseIE):
             'subtitles': 'count:2'
         },
         'params': {'listsubtitles': True},
+    }, {
+        'url': 'https://www.bilibili.com/video/av8903802/',
+        'info_dict': {
+            'id': 'BV13x41117TL',
+            'ext': 'mp4',
+            'title': '阿滴英文｜英文歌分享#6 "Closer',
+            'upload_date': '20170301',
+            'description': '滴妹今天唱Closer給你聽! 有史以来，被推最多次也是最久的歌曲，其实歌词跟我原本想像差蛮多的，不过还是好听！ 微博@阿滴英文',
+            'timestamp': 1488353834,
+            'uploader_id': '65880958',
+            'uploader': '阿滴英文',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'duration': 554.117,
+            'tags': list,
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
