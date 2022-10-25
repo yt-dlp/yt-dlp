@@ -93,6 +93,16 @@ class BilibiliBaseIE(InfoExtractor):
             })
         return subtitles
 
+    def _get_chapters(self, aid, cid):
+        chapters = aid and cid and self._download_json(
+            'https://api.bilibili.com/x/player/v2', aid, query={'aid': aid, 'cid': cid},
+            note='Extracting chapters', fatal=False)
+        return traverse_obj(chapters, ('data', 'view_points', ..., {
+            'title': 'content',
+            'start_time': 'from',
+            'end_time': 'to',
+        })) or None
+
     def _get_comments(self, aid):
         for idx in itertools.count(1):
             replies = traverse_obj(
@@ -116,38 +126,6 @@ class BilibiliBaseIE(InfoExtractor):
         }
         for children in map(self._get_all_children, traverse_obj(reply, ('replies', ...))):
             yield from children
-
-    def extract_common_info(self, video_id, initial_state, play_info, aid, cid):
-        season_id = traverse_obj(initial_state, ('mediaInfo', 'season_id'))
-        season_number = season_id and next((
-            idx + 1 for idx, e in enumerate(
-                traverse_obj(initial_state, ('mediaInfo', 'seasons', ...)))
-            if e.get('season_id') == season_id
-        ), None)
-
-        return {
-            'title': traverse_obj(initial_state, 'h1Title'),
-            'description': traverse_obj(initial_state, ('videoData', 'desc')),
-            'duration': float_or_none(play_info.get('timelength'), scale=1000),
-            'view_count': traverse_obj(initial_state, ('videoData', 'stat', 'view')),
-            'uploader': traverse_obj(initial_state, ('upData', 'name')),
-            'uploader_id': traverse_obj(initial_state, ('upData', 'mid')),
-            'like_count': traverse_obj(initial_state, ('videoData', 'stat', 'like')),
-            'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
-            'tags': traverse_obj(initial_state, ('tags', ..., 'tag_name')) or None,
-            'thumbnail': traverse_obj(
-                initial_state, ('videoData', 'pic'), ('epInfo', 'cover')),
-            'timestamp': traverse_obj(
-                initial_state, ('videoData', 'pubdate'), ('epInfo', 'pub_time')),
-            'episode': traverse_obj(initial_state, ('epInfo', 'long_title')),
-            'episode_number': int_or_none(traverse_obj(initial_state, ('epInfo', 'title'))),
-            'series': traverse_obj(initial_state, ('mediaInfo', 'series')),
-            'season': traverse_obj(initial_state, ('mediaInfo', 'season_title')),
-            'season_id': season_id,
-            'season_number': season_number,
-            'subtitles': self.extract_subtitles(video_id, initial_state, cid),
-            '__post_extractor': self.extract_comments(aid),
-        }
 
 
 class BiliBiliIE(BilibiliBaseIE):
@@ -190,9 +168,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'view_count': int,
             'tags': list,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': True},
     }, {
         'note': 'Anthology',
         'url': 'https://www.bilibili.com/video/BV1bK411W797',
@@ -244,7 +220,7 @@ class BiliBiliIE(BilibiliBaseIE):
         'info_dict': {
             'id': 'BV12N4y1M7rh',
             'ext': 'mp4',
-            'title': '游戏帧数增加40%？下代联发科天玑芯片或将支持光线追踪！从Immortalis-G715看下代联发科SoC的GPU表现 | Arm: 可以不用咬打火机了！',
+            'title': 'md5:96e8bb42c2b432c0d4ce3434a61479c1',
             'tags': list,
             'description': 'md5:afde2b7ba9025c01d9e3dde10de221e4',
             'duration': 313.557,
@@ -266,7 +242,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'ext': 'mp4',
             'title': '阿滴英文｜英文歌分享#6 "Closer',
             'upload_date': '20170301',
-            'description': '滴妹今天唱Closer給你聽! 有史以来，被推最多次也是最久的歌曲，其实歌词跟我原本想像差蛮多的，不过还是好听！ 微博@阿滴英文',
+            'description': 'md5:3b1b9e25b78da4ef87e9b548b88ee76a',
             'timestamp': 1488353834,
             'uploader_id': '65880958',
             'uploader': '阿滴英文',
@@ -280,13 +256,34 @@ class BiliBiliIE(BilibiliBaseIE):
         'params': {
             'skip_download': True,
         },
+    }, {
+        'note': 'video has chapter',
+        'url': 'https://www.bilibili.com/video/BV1vL411G7N7/',
+        'info_dict': {
+            'id': 'BV1vL411G7N7',
+            'ext': 'mp4',
+            'title': '如何为你的B站视频添加进度条分段',
+            'timestamp': 1634554558,
+            'upload_date': '20211018',
+            'description': 'md5:a9a3d6702b3a94518d419b2e9c320a6d',
+            'tags': list,
+            'uploader': '爱喝咖啡的当麻',
+            'duration': 669.482,
+            'uploader_id': '1680903',
+            'chapters': 'count:6',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
-        play_info = self._search_json(r'window.__playinfo__\s*=', webpage, 'play info', video_id)['data']
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
+        play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
 
         video_data = initial_state['videoData']
         video_id, title = video_data['bvid'], video_data.get('title')
@@ -312,15 +309,27 @@ class BiliBiliIE(BilibiliBaseIE):
         aid = video_data.get('aid')
         old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
 
+        cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
+
         return {
             'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
             'formats': self.extract_formats(play_info),
             '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
-            'http_headers': {'Referer': url},
-            **self.extract_common_info(video_id, initial_state, play_info, aid, cid=(
-                traverse_obj(video_data, ('pages', part_id - 1, 'cid'))
-                if part_id else video_data.get('cid'))),
             'title': title,
+            'description': traverse_obj(initial_state, ('videoData', 'desc')),
+            'view_count': traverse_obj(initial_state, ('videoData', 'stat', 'view')),
+            'uploader': traverse_obj(initial_state, ('upData', 'name')),
+            'uploader_id': traverse_obj(initial_state, ('upData', 'mid')),
+            'like_count': traverse_obj(initial_state, ('videoData', 'stat', 'like')),
+            'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
+            'tags': traverse_obj(initial_state, ('tags', ..., 'tag_name')),
+            'thumbnail': traverse_obj(initial_state, ('videoData', 'pic')),
+            'timestamp': traverse_obj(initial_state, ('videoData', 'pubdate')),
+            'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            'chapters': self._get_chapters(aid, cid),
+            'subtitles': self.extract_subtitles(video_id, initial_state, cid),
+            '__post_extractor': self.extract_comments(aid),
+            'http_headers': {'Referer': url},
         }
 
 
@@ -359,22 +368,38 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 or '正在观看预览，大会员免费看全片' in webpage):
             self.raise_login_required('This video is for premium members only')
 
-        play_info = self._search_json(r'window.__playinfo__\s*=\s*', webpage, 'play info', video_id)['data']
+        play_info = self._search_json(r'window\.__playinfo__\s*=\s*', webpage, 'play info', video_id)['data']
         formats = self.extract_formats(play_info)
         if (not formats and '成为大会员抢先看' in webpage
                 and play_info.get('durl') and not play_info.get('dash')):
             self.raise_login_required('This video is for premium members only')
 
-        initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
+
+        season_id = traverse_obj(initial_state, ('mediaInfo', 'season_id'))
+        season_number = season_id and next((
+            idx + 1 for idx, e in enumerate(
+                traverse_obj(initial_state, ('mediaInfo', 'seasons', ...)))
+            if e.get('season_id') == season_id
+        ), None)
 
         return {
             'id': video_id,
             'formats': formats,
+            'title': traverse_obj(initial_state, 'h1Title'),
+            'episode': traverse_obj(initial_state, ('epInfo', 'long_title')),
+            'episode_number': int_or_none(traverse_obj(initial_state, ('epInfo', 'title'))),
+            'series': traverse_obj(initial_state, ('mediaInfo', 'series')),
+            'season': traverse_obj(initial_state, ('mediaInfo', 'season_title')),
+            'season_id': season_id,
+            'season_number': season_number,
+            'thumbnail': traverse_obj(initial_state, ('epInfo', 'cover')),
+            'timestamp': traverse_obj(initial_state, ('epInfo', 'pub_time')),
+            'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            'subtitles': self.extract_subtitles(
+                video_id, initial_state, traverse_obj(initial_state, ('epInfo', 'cid'))),
+            '__post_extractor': self.extract_comments(traverse_obj(initial_state, ('epInfo', 'aid'))),
             'http_headers': {'Referer': url, **self.geo_verification_headers()},
-            **self.extract_common_info(
-                video_id, initial_state, play_info,
-                aid=traverse_obj(initial_state, ('epInfo', 'aid')),
-                cid=traverse_obj(initial_state, ('epInfo', 'cid')))
         }
 
 
@@ -392,7 +417,7 @@ class BiliBiliBangumiMediaIE(InfoExtractor):
         media_id = self._match_id(url)
         webpage = self._download_webpage(url, media_id)
 
-        initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)
         episode_list = self._download_json(
             'https://api.bilibili.com/pgc/web/season/section', media_id,
             query={'season_id': initial_state['mediaInfo']['season_id']},
