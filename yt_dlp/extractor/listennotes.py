@@ -27,7 +27,6 @@ class ListenNotesIE(InfoExtractor):
     def _real_extract(self, url):
         audio_id = self._match_id(url)
         webpage = self._download_webpage(url, audio_id)
-        title = self._html_search_regex(r'<h1\s*class=".+?">\s*<a\s*href=".+?"\s*title="(.+?)"\s*class=".+?">\s*.+\s*</a>\s*</h1>', webpage, 'title')
         json_data = self._search_json(
             r'<script id="original-content" type="application/json">\s*', webpage, 'content', audio_id)
         description = self._html_search_meta(
