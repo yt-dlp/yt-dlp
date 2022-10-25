@@ -253,13 +253,14 @@ class ZenYandexIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         redirect = self._search_json(r'var it\s*=\s*', webpage, 'redirect', id, default={}).get('retpath')
         if redirect:
-            webpage = self._download_webpage(redirect, id, note='Redirecting')
+            video_id = self._match_id(redirect)
+            webpage = self._download_webpage(redirect, video_id, note='Redirecting')
         data_json = self._search_json(
-            r'data\s*=', webpage, 'metadata', id, contains_pattern=r'{["\']_*serverState_*video.+}')
+            r'data\s*=', webpage, 'metadata', video_id, contains_pattern=r'{["\']_*serverState_*video.+}')
         serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
                                          webpage, 'server state').replace('State', 'Settings')
         uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
@@ -276,7 +277,7 @@ class ZenYandexIE(InfoExtractor):
                 formats.extend(self._extract_m3u8_formats(s_url, id, 'mp4'))
         self._sort_formats(formats)
         return {
-            'id': id,
+            'id': video_id,
             'title': video_json.get('title') or self._og_search_title(webpage),
             'formats': formats,
             'duration': int_or_none(video_json.get('duration')),
@@ -374,6 +375,7 @@ class ZenYandexChannelIE(InfoExtractor):
         redirect = self._search_json(
             r'var it\s*=\s*', webpage, 'redirect', item_id, default={}).get('retpath')
         if redirect:
+            item_id = self._match_id(redirect)
             webpage = self._download_webpage(redirect, item_id, note='Redirecting')
         data = self._search_json(
             r'var\s+data\s*=', webpage, 'channel data', item_id, contains_pattern=r'{\"__serverState__.+}')
