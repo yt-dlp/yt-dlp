@@ -1,13 +1,11 @@
 import base64
-import itertools
 import functools
+import itertools
 import math
-import urllib
+import urllib.error
+import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse
-)
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
@@ -25,26 +23,32 @@ from ..utils import (
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
-    urlencode_postdata,
     url_or_none,
+    urlencode_postdata,
 )
 
 
 class BilibiliBaseIE(InfoExtractor):
-
     def extract_formats(self, play_info):
-        format_desc_dict = {
+        format_names = {
             r['quality']: traverse_obj(r, 'new_description', 'display_desc')
-            for r in traverse_obj(play_info, 'support_formats', expected_type=list) or []
-            if 'quality' in r
+            for r in traverse_obj(play_info, ('support_formats', lambda _, v: v['quality']))
         }
 
-        audios = traverse_obj(play_info, ('dash', 'audio')) or []
+        audios = traverse_obj(play_info, ('dash', 'audio', ...))
         flac_audio = traverse_obj(play_info, ('dash', 'flac', 'audio'))
         if flac_audio:
             audios.append(flac_audio)
-
         formats = [{
+            'url': traverse_obj(audio, 'baseUrl', 'base_url', 'url'),
+            'ext': mimetype2ext(traverse_obj(audio, 'mimeType', 'mime_type')),
+            'acodec': audio.get('codecs'),
+            'vcodec': 'none',
+            'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
+            'filesize': int_or_none(audio.get('size'))
+        } for audio in audios]
+
+        formats.extend({
             'url': traverse_obj(video, 'baseUrl', 'base_url', 'url'),
             'ext': mimetype2ext(traverse_obj(video, 'mimeType', 'mime_type')),
             'fps': float_or_none(traverse_obj(video, 'frameRate', 'frame_rate')),
@@ -54,23 +58,14 @@ class BilibiliBaseIE(InfoExtractor):
             'acodec': 'none' if audios else None,
             'tbr': float_or_none(video.get('bandwidth'), scale=1000),
             'filesize': int_or_none(video.get('size')),
-            'quality': video.get('id'),
-            'format_note': format_desc_dict.get(video.get('id')),
-        } for video in traverse_obj(play_info, ('dash', 'video')) or []]
+            'quality': int_or_none(video.get('id')),
+            'format': format_names.get(video.get('id')),
+        } for video in traverse_obj(play_info, ('dash', 'video', ...)))
 
-        found_formats = {f['quality'] for f in formats}
-        missing_format = {qn: desc for qn, desc in format_desc_dict.items() if qn not in found_formats}
-        if len(missing_format) > 0:
-            self.to_screen(f'Format [{", ".join(missing_format.values())}] is missing, you have to login or become premium member to download.')
-
-        formats.extend([{
-                        'url': traverse_obj(audio, 'baseUrl', 'base_url', 'url'),
-                        'ext': mimetype2ext(traverse_obj(audio, 'mimeType', 'mime_type')),
-                        'acodec': audio.get('codecs'),
-                        'vcodec': 'none',
-                        'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
-                        'filesize': int_or_none(audio.get('size'))
-                        } for audio in audios])
+        missing_formats = format_names.keys() - set(traverse_obj(formats, (..., 'quality')))
+        if missing_formats:
+            self.to_screen(f'Format(s) {", ".join(format_names[i] for i in missing_formats)} are missing; '
+                           'you have to login or become premium member to download them')
 
         self._sort_formats(formats)
         return formats
@@ -84,21 +79,21 @@ class BilibiliBaseIE(InfoExtractor):
         return srt_data
 
     def _get_subtitles(self, video_id, initial_state, cid):
-        subtitles = dict()
+        subtitles = {
+            'danmaku': [{
+                'ext': 'xml',
+                'url': f'https://comment.bilibili.com/{cid}.xml',
+            }]
+        }
+
         for s in traverse_obj(initial_state, ('videoData', 'subtitle', 'list')) or []:
-            subtitle_url = s['subtitle_url']
-            subtitle_json = self._download_json(subtitle_url, video_id)
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
-                'data': self.json2srt(subtitle_json)
+                'data': self.json2srt(self._download_json(s['subtitle_url'], video_id))
             })
-        subtitles['danmaku'] = [{
-            'ext': 'xml',
-            'url': f'https://comment.bilibili.com/{cid}.xml',
-        }]
         return subtitles
 
-    def _get_comments(self, aid, commentPageNumber=0):
+    def _get_comments(self, aid):
         for idx in itertools.count(1):
             replies = traverse_obj(
                 self._download_json(
@@ -119,30 +114,44 @@ class BilibiliBaseIE(InfoExtractor):
             'timestamp': reply.get('ctime'),
             'parent': reply.get('parent') or 'root',
         }
-        for children in map(self._get_all_children, reply.get('replies') or []):
+        for children in map(self._get_all_children, traverse_obj(reply, ('replies', ...))):
             yield from children
 
-    def extract_common_info(self, video_id, aid, cid, initial_state, play_info):
+    def extract_common_info(self, video_id, initial_state, play_info, aid, cid):
+        season_id = traverse_obj(initial_state, ('mediaInfo', 'season_id'))
+        season_number = season_id and next((
+            idx + 1 for idx, e in enumerate(
+                traverse_obj(initial_state, ('mediaInfo', 'seasons', ...)))
+            if e.get('season_id') == season_id
+        ), None)
+
         return {
+            'title': traverse_obj(initial_state, 'h1Title'),
+            'description': traverse_obj(initial_state, ('videoData', 'desc')),
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            'view_count': traverse_obj(initial_state, ('videoData', 'stat', 'view')),
+            'uploader': traverse_obj(initial_state, ('upData', 'name')),
+            'uploader_id': traverse_obj(initial_state, ('upData', 'mid')),
+            'like_count': traverse_obj(initial_state, ('videoData', 'stat', 'like')),
+            'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
+            'tags': traverse_obj(initial_state, ('tags', ..., 'tag_name')),
+            'thumbnail': traverse_obj(
+                initial_state, ('videoData', 'pic'), ('epInfo', 'cover')),
+            'timestamp': traverse_obj(
+                initial_state, ('videoData', 'pubdate'), ('epInfo', 'pub_time')),
+            'episode': traverse_obj(initial_state, ('epInfo', 'long_title')),
+            'episode_number': int_or_none(traverse_obj(initial_state, ('epInfo', 'title'))),
+            'series': traverse_obj(initial_state, ('mediaInfo', 'series')),
+            'season': traverse_obj(initial_state, ('mediaInfo', 'season_title')),
+            'season_id': season_id,
+            'season_number': season_number,
             'subtitles': self.extract_subtitles(video_id, initial_state, cid),
-            'timestamp': traverse_obj(initial_state, ('videoData', 'pubdate'),  # for video
-                                                     ('epInfo', 'pub_time')     # for bangumi
-                                      ),
-            'thumbnail': traverse_obj(initial_state, ('videoData', 'pic'),  # for video
-                                                     ('epInfo', 'cover')    # for bangumi
-                                      ),
             '__post_extractor': self.extract_comments(aid),
         }
 
 
 class BiliBiliIE(BilibiliBaseIE):
-    _VALID_URL = r'''(?x)https?://www\.bilibili\.com/video/
-                        (?:
-                            [aA][vV](?P<aid>[^/?#&]+)
-                           |[bB][vV](?P<bv_id>[^/?#&]+)
-                        )
-                  '''
+    _VALID_URL = r'https?://www\.bilibili\.com/video/[aAbB][vV](?P<id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'https://www.bilibili.com/video/BV13x41117TL',
@@ -191,7 +200,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'id': 'BV1bK411W797',
             'title': '物语中的人物是如何吐槽自己的OP的'
         },
-        'playlist_count': 18,
+        'playlist_count': 18,  # TODO: Test entries
     }, {
         # video has subtitles
         'url': 'https://www.bilibili.com/video/BV12N4y1M7rh',
@@ -217,66 +226,44 @@ class BiliBiliIE(BilibiliBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('bv_id') or mobj.group('aid')
-
+        video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=\s*', webpage, 'initial state', video_id)
+        initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
+        play_info = self._search_json(r'window.__playinfo__\s*=', webpage, 'play info', video_id)['data']
 
         video_data = initial_state['videoData']
-        bv_id = video_data['bvid']
-        video_id = bv_id
+        video_id, title = video_data['bvid'], video_data.get('title')
 
+        # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
         page_list_json = traverse_obj(
             self._download_json(
                 'https://api.bilibili.com/x/player/pagelist', video_id,
-                fatal=False, query={'bvid': bv_id, 'jsonp': 'jsonp'},
+                fatal=False, query={'bvid': video_id, 'jsonp': 'jsonp'},
                 note='Extracting videos in anthology'),
             'data', expected_type=list) or []
-        has_multi_p = len(page_list_json) > 1
+        is_anthology = len(page_list_json) > 1
+
         part_id = int_or_none(parse_qs(url).get('p', [None])[-1])
+        if is_anthology and not part_id and self._yes_playlist(video_id, video_id):
+            return self.playlist_from_matches(
+                page_list_json, video_id, title, ie=BiliBiliIE,
+                getter=lambda entry: f'https://www.bilibili.com/video/{video_id}?p={entry["page"]}')
 
-        if part_id is None:
-            cid = video_data.get('cid')
-        else:
-            cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid'))
-
-        title = video_data.get('title')
-
-        # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
-        # If the video has no page argument and it's an anthology, download as a playlist
-        if has_multi_p and part_id is None and self._yes_playlist(bv_id, video_id):
-            return self.playlist_from_matches(page_list_json, bv_id, title, ie=BiliBiliIE,
-                                              getter=lambda entry: f'https://www.bilibili.com/video/{bv_id}?p={entry["page"]}')
-
-        # Get part title for anthologies
-        if part_id is not None and has_multi_p:
-            title += f' p{part_id:02d} {traverse_obj(page_list_json, (part_id - 1, "part")) or ""}'
-
-        id_str = f'{video_id}{format_field(part_id, template= f"_p%02d", default="")}'
-
-        play_info = self._search_json(r'window.__playinfo__\s*=\s*', webpage, 'play info', video_id)['data']
-        info = {'formats': self.extract_formats(play_info)}
-        if not info['formats']:
-            raise ExtractorError('Unknown webpage schema')
+        if is_anthology:
+            title += f' p{part_id:02d} {traverse_obj(page_list_json, ((part_id or 1) - 1, "part")) or ""}'
 
         aid = video_data.get('aid')
-        old_video_id = f'{aid}_part{part_id or 1}' if aid else None
+        old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
 
         return {
-            **info,
-            'id': id_str,
+            'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
+            'formats': self.extract_formats(play_info),
             '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
-            'title': title,
-            'description': traverse_obj(initial_state, ('videoData', 'desc')),
-            'view_count': traverse_obj(initial_state, ('videoData', 'stat', 'view')),
-            'like_count': traverse_obj(initial_state, ('videoData', 'stat', 'like')),
-            'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
-            'uploader': traverse_obj(initial_state, ('upData', 'name')),
-            'uploader_id': traverse_obj(initial_state, ('upData', 'mid')),
-            'tags': [t['tag_name'] for t in initial_state.get('tags') or [] if 'tag_name' in t],
             'http_headers': {'Referer': url},
-            **self.extract_common_info(video_id, aid, cid, initial_state, play_info)
+            **self.extract_common_info(video_id, initial_state, play_info, aid, cid=(
+                traverse_obj(video_data, ('pages', part_id - 1, 'cid'))
+                if part_id else video_data.get('cid'))),
+            'title': title,
         }
 
 
@@ -311,49 +298,26 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
 
         if '您所在的地区无法观看本片' in webpage:
             raise GeoRestrictedError('This video is restricted')
-
-        if ('开通大会员观看' in webpage and '__playinfo__' not in webpage
-           or '正在观看预览，大会员免费看全片' in webpage):
+        elif ('开通大会员观看' in webpage and '__playinfo__' not in webpage
+                or '正在观看预览，大会员免费看全片' in webpage):
             self.raise_login_required('This video is for premium members only')
 
-        initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=\s*', webpage, 'initial state', video_id)
-        title = initial_state.get('h1Title')
-
         play_info = self._search_json(r'window.__playinfo__\s*=\s*', webpage, 'play info', video_id)['data']
+        formats = self.extract_formats(play_info)
+        if (not formats and '成为大会员抢先看' in webpage
+                and play_info.get('durl') and not play_info.get('dash')):
+            self.raise_login_required('This video is for premium members only')
 
-        info = {'formats': self.extract_formats(play_info)}
-        if not info['formats']:
-            if '成为大会员抢先看' in webpage and 'dash' not in play_info and 'durl' in play_info:
-                self.raise_login_required('This video is for premium members only')
-            else:
-                raise ExtractorError('Unknown webpage schema')
-
-        season_id = traverse_obj(initial_state, ('mediaInfo', 'season_id'))
-
-        season_number = season_id and next((
-            idx + 1 for idx, e in enumerate(
-                traverse_obj(initial_state, ('mediaInfo', 'seasons')) or [])
-            if e.get('season_id') == season_id
-        ), None)
-
-        aid = traverse_obj(initial_state, ('epInfo', 'aid'))
-        cid = traverse_obj(initial_state, ('epInfo', 'cid'))
+        initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
 
         return {
-            **info,
             'id': video_id,
-            'title': title,
-            'series': traverse_obj(initial_state, ('mediaInfo', 'series')),
-            'season': traverse_obj(initial_state, ('mediaInfo', 'season_title')),
-            'season_id': season_id,
-            'season_number': season_number,
-            'episode': traverse_obj(initial_state, ('epInfo', 'long_title')),
-            'episode_number': int_or_none(traverse_obj(initial_state, ('epInfo', 'title'))),
-            'http_headers': {
-                'Referer': url,
-                **self.geo_verification_headers()
-            },
-            **self.extract_common_info(video_id, aid, cid, initial_state, play_info)
+            'formats': formats,
+            'http_headers': {'Referer': url, **self.geo_verification_headers()},
+            **self.extract_common_info(
+                video_id, initial_state, play_info,
+                aid=traverse_obj(initial_state, ('epInfo', 'aid')),
+                cid=traverse_obj(initial_state, ('epInfo', 'cid')))
         }
 
 
@@ -369,13 +333,13 @@ class BiliBiliBangumiMediaIE(InfoExtractor):
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
-
         webpage = self._download_webpage(url, media_id)
-        initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=\s*', webpage, 'initial_state', media_id)
-        season_info_json = self._download_json('https://api.bilibili.com/pgc/web/season/section', media_id,
-                                               query={'season_id': initial_state['mediaInfo']['season_id']},
-                                               note='Downloading season info').get('result') or {}
-        episode_list = traverse_obj(season_info_json, ('main_section', 'episodes')) or []
+
+        initial_state = self._search_json(r'window.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)
+        episode_list = self._download_json(
+            'https://api.bilibili.com/pgc/web/season/section', media_id,
+            query={'season_id': initial_state['mediaInfo']['season_id']},
+            note='Downloading season info')['result']['main_section']['episodes']
 
         return self.playlist_result((
             self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['aid'])
@@ -575,8 +539,7 @@ class BilibiliCategoryIE(InfoExtractor):
             self._fetch_page, api_url, num_pages, query), size)
 
     def _real_extract(self, url):
-        u = compat_urllib_parse_urlparse(url)
-        category, subcategory = u.path.split('/')[2:4]
+        category, subcategory = urllib.parse.urlparse(url).path.split('/')[2:4]
         query = '%s: %s' % (category, subcategory)
 
         return self.playlist_result(self._entries(category, subcategory, query), query, query)
