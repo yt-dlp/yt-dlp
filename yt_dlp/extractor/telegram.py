@@ -96,7 +96,7 @@ class TelegramEmbedIE(InfoExtractor):
             query['single'] = True
         elif self.get_param('noplaylist') is False:
             pass
-        elif '?single' in url:  # param 'noplaylist' is None
+        elif '?single' in url or '&single' in url:  # param 'noplaylist' is None
             query['single'] = True
         url = update_url_query(url, {'single': []})  # strip 'single' from original URL query
         embed = self._download_webpage(url, msg_id, query=query, note='Downloading embed frame')
