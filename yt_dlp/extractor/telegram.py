@@ -3,8 +3,10 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
+    format_field,
     get_element_by_class,
     parse_duration,
+    parse_qs,
     traverse_obj,
     unified_timestamp,
     update_url_query,
@@ -49,6 +51,7 @@ class TelegramEmbedIE(InfoExtractor):
             'id': '29343',
             'ext': 'mp4',
             'title': 'Форпост',
+            'description': 'md5:4d573fd641c3a21f58ad6bb5f16fe526',
             'uploader': 'vorposte',
             'thumbnail': r're:^https?://.+',
             'timestamp': 1666384480,
@@ -73,33 +76,13 @@ class TelegramEmbedIE(InfoExtractor):
             'upload_date': '20221021',
             'duration': 33,
         },
-    }, {
-        # 2-video post with 'single' query param and --yes-playlist
-        'url': 'https://t.me/vorposte/29343?single',
-        'info_dict': {
-            'id': 'vorposte-29343',
-            'title': 'Форпост 29343',
-            'description': 'md5:4d573fd641c3a21f58ad6bb5f16fe526',
-        },
-        'playlist_count': 2,
-        'params': {
-            'noplaylist': False,
-            'skip_download': True,
-        }
     }]
 
     def _real_extract(self, url):
         uploader, msg_id = self._match_valid_url(url).group('uploader', 'id')
-
-        query = {'embed': '1'}
-        if self.get_param('noplaylist'):
-            query['single'] = True
-        elif self.get_param('noplaylist') is False:
-            pass
-        elif '?single' in url or '&single' in url:  # param 'noplaylist' is None
-            query['single'] = True
-        url = update_url_query(url, {'single': []})  # strip 'single' from original URL query
-        embed = self._download_webpage(url, msg_id, query=query, note='Downloading embed frame')
+        embed = self._download_webpage(
+            update_url_query(url, {'single': []}),  # strip 'single' from query
+            msg_id, query={'embed': '1'}, note='Downloading embed frame')
 
         message = {
             'title': clean_html(get_element_by_class('tgme_widget_message_author', embed)),
@@ -125,6 +108,7 @@ class TelegramEmbedIE(InfoExtractor):
             self._sort_formats(formats)
             videos.append({
                 'id': url_basename(webpage_url),
+                'webpage_url': update_url_query(webpage_url, {'single': True}),
                 'duration': parse_duration(self._search_regex(
                     r'<time[^>]+duration[^>]*>([\d:]+)</time>', video, 'duration', fatal=False)),
                 'thumbnail': self._search_regex(
@@ -134,8 +118,13 @@ class TelegramEmbedIE(InfoExtractor):
                 **message,
             })
 
-        if query.get('single') or len(videos) < 2:
-            return traverse_obj(videos, lambda _, x: x['id'] == msg_id, get_all=False)
-        else:
+        playlist_id = None
+        if len(videos) > 1 and 'single' not in parse_qs(url, keep_blank_values=True):
+            playlist_id = f'{uploader}-{msg_id}'
+
+        if self._yes_playlist(playlist_id, msg_id):
             return self.playlist_result(
-                videos, f'{uploader}-{msg_id}', f'{message["title"]} {msg_id}', message['description'])
+                videos, playlist_id, format_field(message, 'title', f'%s {msg_id}'),
+                message['description'])
+        else:
+            return traverse_obj(videos, lambda _, x: x['id'] == msg_id, get_all=False)
