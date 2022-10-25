@@ -11,8 +11,10 @@ from ..utils import (
     int_or_none,
     js_to_json,
     str_or_none,
+    strip_or_none,
     traverse_obj,
     try_get,
+    url_or_none,
 )
 
 
@@ -229,10 +231,9 @@ class TVPIE(InfoExtractor):
 
         # The URL may redirect to a VOD
         # example: https://vod.tvp.pl/48463890/wadowickie-spotkania-z-janem-pawlem-ii
-        if TVPVODSeriesIE.suitable(urlh.url):
-            return self.url_result(urlh.url, ie=TVPVODSeriesIE.ie_key(), video_id=page_id)
-        if TVPVODVideoIE.suitable(urlh.url):
-            return self.url_result(urlh.url, ie=TVPVODVideoIE.ie_key(), video_id=page_id)
+        for ie_cls in (TVPVODSeriesIE, TVPVODVideoIE):
+            if ie_cls.suitable(urlh.url):
+                return self.url_result(urlh.url, ie=ie_cls.ie_key(), video_id=page_id)
 
         if re.search(
                 r'window\.__(?:video|news|website|directory)Data\s*=',
@@ -311,6 +312,8 @@ class TVPStreamIE(InfoExtractor):
 class TVPEmbedIE(InfoExtractor):
     IE_NAME = 'tvp:embed'
     IE_DESC = 'Telewizja Polska'
+    # XFF is not effective
+    _GEO_BYPASS = False
     _VALID_URL = r'''(?x)
         (?:
             tvp:
@@ -384,50 +387,53 @@ class TVPEmbedIE(InfoExtractor):
         # stripping JSONP padding
         datastr = webpage[15 + len(callback):-3]
         if datastr.startswith('null,'):
-            error = self._parse_json(datastr[5:], video_id)
-            error_desc = error[0]['desc']
+            error = self._parse_json(datastr[5:], video_id, fatal=False)
+            error_desc = traverse_obj(error, (0, 'desc'))
 
             if error_desc == 'Obiekt wymaga płatności':
                 raise ExtractorError('Video requires payment and log-in, but log-in is not implemented')
 
-            raise ExtractorError(error_desc)
+            raise ExtractorError(error_desc or 'unexpected JSON error')
 
         content = self._parse_json(datastr, video_id)['content']
         info = content['info']
         is_live = try_get(info, lambda x: x['isLive'], bool)
 
+        if info.get('isGeoBlocked'):
+            self.raise_geo_restricted()
+
         formats = []
         for file in content['files']:
-            video_url = file.get('url')
+            video_url = url_or_none(file.get('url'))
             if not video_url:
                 continue
-            if video_url.endswith('.m3u8'):
+            ext = determine_ext(video_url)
+            if ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(video_url, video_id, m3u8_id='hls', fatal=False, live=is_live))
-            elif video_url.endswith('.mpd'):
+            elif ext == 'mpd':
                 if is_live:
                     # doesn't work with either ffmpeg or native downloader
                     continue
                 formats.extend(self._extract_mpd_formats(video_url, video_id, mpd_id='dash', fatal=False))
-            elif video_url.endswith('.f4m'):
+            elif ext == 'f4m':
                 formats.extend(self._extract_f4m_formats(video_url, video_id, f4m_id='hds', fatal=False))
             elif video_url.endswith('.ism/manifest'):
                 formats.extend(self._extract_ism_formats(video_url, video_id, ism_id='mss', fatal=False))
             else:
                 # mp4, wmv or something
                 quality = file.get('quality', {})
+                # API started returning 0 in some formats???
+                if not isinstance(quality, dict):
+                    quality = {}
                 formats.append({
                     'format_id': 'direct',
                     'url': video_url,
-                    'ext': determine_ext(video_url, file['type']),
+                    'ext': (file.get('type') or ext) if ext.startswith('unknown') else ext,
                     'fps': int_or_none(quality.get('fps')),
-                    'tbr': int_or_none(quality.get('bitrate')),
+                    'tbr': int_or_none(quality.get('bitrate'), scale=1000),
                     'width': int_or_none(quality.get('width')),
                     'height': int_or_none(quality.get('height')),
                 })
-
-        # https://s.tvp.pl/files/player/video/material_niedostepny.mp4
-        if any(('/material_niedostepny.mp4' in fmt['url'] for fmt in formats)):
-            self.raise_geo_restricted()
 
         self._sort_formats(formats)
 
@@ -573,9 +579,9 @@ class TVPVODSeriesIE(TVPVODBaseIE):
         seasons = self._api_request(
             f'vods/serials/{playlist_id}/seasons', playlist_id,
             note='Downloading season list')
-        return {
-            '_type': 'playlist',
-            'title': metadata['title'],
-            'description': clean_html(traverse_obj(metadata, ('description', 'lead'))),
-            'entries': self._entries(seasons, playlist_id),
-        }
+        return self.playlist_result(
+            self._entries(seasons, playlist_id), playlist_id, strip_or_none(metadata.get('title')),
+            clean_html(traverse_obj(metadata, ('description', 'lead'), expected_type=strip_or_none)),
+            categories=[traverse_obj(metadata, ('mainCategory', 'name'))],
+            age_limit=int_or_none(metadata.get('rating')),
+        )
