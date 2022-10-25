@@ -43,5 +43,5 @@ class ListenNotesIE(InfoExtractor):
             'id': audio_id,
             'title': title,
             'description': description,
-            'url': audio_url,
+            'url': json_data['audio'],
         }
