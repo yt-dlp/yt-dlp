@@ -616,6 +616,30 @@ class YoutubeDL:
                 '         If you experience any issues while using this option, '
                 f'{self._format_err("DO NOT", self.Styles.ERROR)} open a bug report')
 
+        if self.params.get('bidi_workaround', False):
+            try:
+                import pty
+                master, slave = pty.openpty()
+                width = shutil.get_terminal_size().columns
+                width_args = [] if width is None else ['-w', str(width)]
+                sp_kwargs = {'stdin': subprocess.PIPE, 'stdout': slave, 'stderr': self._out_files.error}
+                try:
+                    self._output_process = Popen(['bidiv'] + width_args, **sp_kwargs)
+                except OSError:
+                    self._output_process = Popen(['fribidi', '-c', 'UTF-8'] + width_args, **sp_kwargs)
+                self._output_channel = os.fdopen(master, 'rb')
+            except OSError as ose:
+                if ose.errno == errno.ENOENT:
+                    self.report_warning(
+                        'Could not find fribidi executable, ignoring --bidi-workaround. '
+                        'Make sure that  fribidi  is an executable file in one of the directories in your $PATH.')
+                else:
+                    raise
+
+        self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
+        if auto_init and auto_init != 'no_verbose_header':
+            self.print_debug_header()
+
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
                 self.report_warning(f'{option} is deprecated. Use {suggestion} instead')
@@ -635,7 +659,6 @@ class YoutubeDL:
         for msg in self.params.get('_deprecation_warnings', []):
             self.deprecated_feature(msg)
 
-        self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         if 'list-formats' in self.params['compat_opts']:
             self.params['listformats_table'] = False
 
@@ -663,29 +686,7 @@ class YoutubeDL:
         if not isinstance(params['forceprint'], dict):
             self.params['forceprint'] = {'video': params['forceprint']}
 
-        if self.params.get('bidi_workaround', False):
-            try:
-                import pty
-                master, slave = pty.openpty()
-                width = shutil.get_terminal_size().columns
-                width_args = [] if width is None else ['-w', str(width)]
-                sp_kwargs = {'stdin': subprocess.PIPE, 'stdout': slave, 'stderr': self._out_files.error}
-                try:
-                    self._output_process = Popen(['bidiv'] + width_args, **sp_kwargs)
-                except OSError:
-                    self._output_process = Popen(['fribidi', '-c', 'UTF-8'] + width_args, **sp_kwargs)
-                self._output_channel = os.fdopen(master, 'rb')
-            except OSError as ose:
-                if ose.errno == errno.ENOENT:
-                    self.report_warning(
-                        'Could not find fribidi executable, ignoring --bidi-workaround. '
-                        'Make sure that  fribidi  is an executable file in one of the directories in your $PATH.')
-                else:
-                    raise
-
         if auto_init:
-            if auto_init != 'no_verbose_header':
-                self.print_debug_header()
             self.add_default_info_extractors()
 
         if (sys.platform != 'win32'
@@ -3734,6 +3735,10 @@ class YoutubeDL:
             '' if source == 'unknown' else f'({source})',
             '' if _IN_CLI else 'API',
             delim=' '))
+
+        if not _IN_CLI:
+            write_debug(f'params: {self.params}')
+
         if not _LAZY_LOADER:
             if os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
                 write_debug('Lazy loading extractors is forcibly disabled')

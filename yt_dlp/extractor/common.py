@@ -1576,7 +1576,7 @@ class InfoExtractor:
                     continue
                 if at_top_level and set(e.keys()) == {'@context', '@graph'}:
                     traverse_json_ld(e['@graph'], at_top_level=False)
-                    break
+                    continue
                 if expected_type is not None and not is_type(e, expected_type):
                     continue
                 rating = traverse_obj(e, ('aggregateRating', 'ratingValue'), expected_type=float_or_none)

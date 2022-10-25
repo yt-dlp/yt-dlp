@@ -348,3 +348,36 @@ class MLBTVIE(InfoExtractor):
             'subtitles': subtitles,
             'http_headers': {'Authorization': f'Bearer {self._access_token}'},
         }
+
+
+class MLBArticleIE(InfoExtractor):
+    _VALID_URL = r'https?://www\.mlb\.com/news/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://www.mlb.com/news/manny-machado-robs-guillermo-heredia-reacts',
+        'info_dict': {
+            'id': '36db7394-343c-4ea3-b8ca-ead2e61bca9a',
+            'title': 'Machado\'s grab draws hilarious irate reaction',
+            'modified_timestamp': 1650130737,
+            'description': 'md5:a19d4eb0487b2cb304e9a176f6b67676',
+            'modified_date': '20220416',
+        },
+        'playlist_count': 2,
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        apollo_cache_json = self._search_json(r'window\.initState\s*=', webpage, 'window.initState', display_id)['apolloCache']
+
+        content_data_id = traverse_obj(
+            apollo_cache_json, ('ROOT_QUERY', lambda k, _: k.startswith('getForgeContent'), 'id'), get_all=False)
+
+        content_real_info = apollo_cache_json[content_data_id]
+
+        return self.playlist_from_matches(
+            traverse_obj(content_real_info, ('parts', lambda _, v: v['typename'] == 'Video', 'id')),
+            getter=lambda x: f'https://www.mlb.com/video/{apollo_cache_json[x]["slug"]}',
+            ie=MLBVideoIE, playlist_id=content_real_info.get('_translationId'),
+            title=self._html_search_meta('og:title', webpage),
+            description=content_real_info.get('summary'),
+            modified_timestamp=parse_iso8601(content_real_info.get('lastUpdatedDate')))

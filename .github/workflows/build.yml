@@ -21,7 +21,7 @@ jobs:
       env:
         PUSH_VERSION_COMMIT: ${{ secrets.PUSH_VERSION_COMMIT }}
       if: "env.PUSH_VERSION_COMMIT == ''"
-      run: echo ::set-output name=version_suffix::$(date -u +"%H%M%S")
+      run: echo "version_suffix=$(date -u +"%H%M%S")" >> "$GITHUB_OUTPUT"
     - name: Bump version
       id: bump_version
       run: |
@@ -36,7 +36,7 @@ jobs:
         git add -u
         git commit -m "[version] update" -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all :ci run dl"
         git push origin --force ${{ github.event.ref }}:release
-        echo ::set-output name=head_sha::$(git rev-parse HEAD)
+        echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
     - name: Update master
       env:
         PUSH_VERSION_COMMIT: ${{ secrets.PUSH_VERSION_COMMIT }}
