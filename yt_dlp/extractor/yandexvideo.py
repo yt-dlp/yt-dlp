@@ -24,7 +24,6 @@ class YandexVideoIE(InfoExtractor):
                     '''
     _TESTS = [{
         'url': 'https://yandex.ru/portal/video?stream_id=4dbb36ec4e0526d58f9f2dc8f0ecf374',
-        'md5': 'e02a05bfaf0d9615ef07ae3a10f4faf4',
         'info_dict': {
             'id': '4dbb36ec4e0526d58f9f2dc8f0ecf374',
             'ext': 'mp4',
@@ -39,6 +38,7 @@ class YandexVideoIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://yandex.ru/portal/efir?stream_id=4dbb262b4fe5cf15a215de4f34eee34d&from=morda',
         'only_matching': True,
@@ -203,6 +203,7 @@ class ZenYandexIE(InfoExtractor):
         'params': {
             'skip_download': 'm3u8',
         },
+        'skip': 'The page does not exist',
     }, {
         'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/vot-eto-focus-dedy-morozy-na-gidrociklah-60c7c443da18892ebfe85ed7',
         'info_dict': {
@@ -210,7 +211,7 @@ class ZenYandexIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
             'description': 'md5:f3db3d995763b9bbb7b56d4ccdedea89',
-            'thumbnail': 're:^https://avatars.mds.yandex.net/',
+            'thumbnail': r're:^https://avatars\.',
             'uploader': 'AcademeG DailyStream',
             'upload_date': '20191111',
             'timestamp': 1573465585,
@@ -226,7 +227,10 @@ class ZenYandexIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Извержение вулкана из спичек: зрелищный опыт',
             'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
-            'uploader': 'Популярная механика',
+            'uploader': 'TechInsider',
+            'timestamp': 1611378221,
+            'upload_date': '20210123',
+            'thumbnail': r're:https://avatars\.',
         },
         'params': {
             'skip_download': 'm3u8',
@@ -278,8 +282,8 @@ class ZenYandexChannelIE(InfoExtractor):
         'url': 'https://zen.yandex.ru/tok_media',
         'info_dict': {
             'id': 'tok_media',
-            'description': 'md5:84d2fb177e478e44690f131805d7c842',
-            'title': 'ТОК',
+            'description': 'md5:a9e5b3c247b7fe29fd21371a428bcf56',
+            'title': 'СПЕКТР',
         },
         'playlist_mincount': 169,
     }, {
@@ -291,22 +295,18 @@ class ZenYandexChannelIE(InfoExtractor):
         },
         'playlist_mincount': 657,
     }, {
-        # Test that the playlist extractor finishes extracting
-        # when the channel has only a few entries, less than one page
+        # Test that the playlist extractor finishes extracting when the
+        # channel has less than one page
         'url': 'https://zen.yandex.ru/jony_me',
         'info_dict': {
             'id': 'jony_me',
-            'description': 'md5:50d5d275333b4b5735872e6bc5c5b1da',
+            'description': 'md5:a2c62b4ef5cf3e3efb13d25f61f739e1',
             'title': 'JONY ',
         },
-        'playlist_maxcount': 1000,
+        'playlist_count': 20,
     }, {
-        # Test that the playlist extractor finishes extracting
-        # when the channel has more than one page of entries
-        #
-        # For the test to be valid the maxcount value specified in
-        # 'entries': 'maxcount:***' must be strictly less than the value specified for
-        # 'playlist_maxcount': ***,
+        # Test that the playlist extractor finishes extracting when the
+        # channel has more than one page of entries
         'url': 'https://zen.yandex.ru/tatyanareva',
         'info_dict': {
             'id': 'tatyanareva',
@@ -314,10 +314,7 @@ class ZenYandexChannelIE(InfoExtractor):
             'title': 'Татьяна Рева',
             'entries': 'maxcount:200',
         },
-        # Adding a playlist_maxcount field as well to ensure that the test
-        # eventually stops in case the playlist extractor is broken and loops forever.
-        'playlist_mincount': 2,
-        'playlist_maxcount': 250,
+        'playlist_count': 46,
     }]
 
     def _entries(self, item_id, server_state_json, server_settings_json):
