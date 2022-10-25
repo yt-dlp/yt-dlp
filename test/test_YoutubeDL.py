@@ -662,13 +662,17 @@ class TestYoutubeDL(unittest.TestCase):
         'playlist_autonumber': 2,
         '__last_playlist_index': 100,
         'n_entries': 10,
-        'formats': [{'id': 'id 1'}, {'id': 'id 2'}, {'id': 'id 3'}]
+        'formats': [
+            {'id': 'id 1', 'height': 1080, 'width': 1920},
+            {'id': 'id 2', 'height': 720},
+            {'id': 'id 3'}
+        ]
     }
 
     def test_prepare_outtmpl_and_filename(self):
         def test(tmpl, expected, *, info=None, **params):
             params['outtmpl'] = tmpl
-            ydl = YoutubeDL(params)
+            ydl = FakeYDL(params)
             ydl._num_downloads = 1
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
@@ -722,13 +726,14 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)s', '-abcd', info={'id': '-abcd'})
         test('%(id)s', '.abcd', info={'id': '.abcd'})
         test('%(id)s', 'ab__cd', info={'id': 'ab__cd'})
-        test('%(id)s', ('ab:cd', 'ab -cd'), info={'id': 'ab:cd'})
+        test('%(id)s', ('ab:cd', 'ab：cd'), info={'id': 'ab:cd'})
         test('%(id.0)s', '-', info={'id': '--'})
 
         # Invalid templates
         self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%(title)'), ValueError))
         test('%(invalid@tmpl|def)s', 'none', outtmpl_na_placeholder='none')
         test('%(..)s', 'NA')
+        test('%(formats.{id)s', 'NA')
 
         # Entire info_dict
         def expect_same_infodict(out):
@@ -770,7 +775,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('a%(width|)d', 'a', outtmpl_na_placeholder='none')
 
         FORMATS = self.outtmpl_info['formats']
-        sanitize = lambda x: x.replace(':', ' -').replace('"', "'").replace('\n', ' ')
+        sanitize = lambda x: x.replace(':', '：').replace('"', "＂").replace('\n', ' ')
 
         # Custom type casting
         test('%(formats.:.id)l', 'id 1, id 2, id 3')
@@ -788,13 +793,13 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(filesize)#D', '1Ki')
         test('%(height)5.2D', ' 1.08k')
         test('%(title4)#S', 'foo_bar_test')
-        test('%(title4).10S', ('foo \'bar\' ', 'foo \'bar\'' + ('#' if compat_os_name == 'nt' else ' ')))
+        test('%(title4).10S', ('foo ＂bar＂ ', 'foo ＂bar＂' + ('#' if compat_os_name == 'nt' else ' ')))
         if compat_os_name == 'nt':
-            test('%(title4)q', ('"foo \\"bar\\" test"', "'foo _'bar_' test'"))
-            test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', "'id 1' 'id 2' 'id 3'"))
-            test('%(formats.0.id)#q', ('"id 1"', "'id 1'"))
+            test('%(title4)q', ('"foo \\"bar\\" test"', "＂foo ⧹＂bar⧹＂ test＂"))
+            test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', '＂id 1＂ ＂id 2＂ ＂id 3＂'))
+            test('%(formats.0.id)#q', ('"id 1"', '＂id 1＂'))
         else:
-            test('%(title4)q', ('\'foo "bar" test\'', "'foo 'bar' test'"))
+            test('%(title4)q', ('\'foo "bar" test\'', '\'foo ＂bar＂ test\''))
             test('%(formats.:.id)#q', "'id 1' 'id 2' 'id 3'")
             test('%(formats.0.id)#q', "'id 1'")
 
@@ -813,6 +818,12 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats.:2:-1)r', repr(FORMATS[:2:-1]))
         test('%(formats.0.id.-1+id)f', '1235.000000')
         test('%(formats.0.id.-1+formats.1.id.-1)d', '3')
+        out = json.dumps([{'id': f['id'], 'height.:2': str(f['height'])[:2]}
+                          if 'height' in f else {'id': f['id']}
+                          for f in FORMATS])
+        test('%(formats.:.{id,height.:2})j', (out, sanitize(out)))
+        test('%(formats.:.{id,height}.id)l', ', '.join(f['id'] for f in FORMATS))
+        test('%(.{id,title})j', ('{"id": "1234"}', '{＂id＂： ＂1234＂}'))
 
         # Alternates
         test('%(title,id)s', '1234')
@@ -852,8 +863,8 @@ class TestYoutubeDL(unittest.TestCase):
         # Path expansion and escaping
         test('Hello %(title1)s', 'Hello $PATH')
         test('Hello %(title2)s', 'Hello %PATH%')
-        test('%(title3)s', ('foo/bar\\test', 'foo_bar_test'))
-        test('folder/%(title3)s', ('folder/foo/bar\\test', 'folder%sfoo_bar_test' % os.path.sep))
+        test('%(title3)s', ('foo/bar\\test', 'foo⧸bar⧹test'))
+        test('folder/%(title3)s', ('folder/foo/bar\\test', 'folder%sfoo⧸bar⧹test' % os.path.sep))
 
     def test_format_note(self):
         ydl = YoutubeDL()

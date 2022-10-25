@@ -77,13 +77,13 @@ class GoogleDriveIE(InfoExtractor):
     _caption_formats_ext = []
     _captions_xml = None
 
-    @staticmethod
-    def _extract_url(webpage):
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
         mobj = re.search(
             r'<iframe[^>]+src="https?://(?:video\.google\.com/get_player\?.*?docid=|(?:docs|drive)\.google\.com/file/d/)(?P<id>[a-zA-Z0-9_-]{28,})',
             webpage)
         if mobj:
-            return 'https://drive.google.com/file/d/%s' % mobj.group('id')
+            yield 'https://drive.google.com/file/d/%s' % mobj.group('id')
 
     def _download_subtitles_xml(self, video_id, subtitles_id, hl):
         if self._captions_xml:

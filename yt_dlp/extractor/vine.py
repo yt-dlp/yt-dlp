@@ -10,6 +10,7 @@ from ..utils import (
 
 class VineIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?vine\.co/(?:v|oembed)/(?P<id>\w+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=[\'"](?P<url>(?:https?:)?//(?:www\.)?vine\.co/v/[^/]+/embed/(?:simple|postcard))']
     _TESTS = [{
         'url': 'https://vine.co/v/b9KOOWX7HUx',
         'md5': '2f36fed6235b16da96ce9b4dc890940d',

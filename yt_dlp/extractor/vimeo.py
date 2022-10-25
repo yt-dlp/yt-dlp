@@ -30,7 +30,6 @@ from ..utils import (
     unsmuggle_url,
     urlencode_postdata,
     urljoin,
-    unescapeHTML,
     urlhandle_detect_ext,
 )
 
@@ -328,6 +327,14 @@ class VimeoIE(VimeoBaseInfoExtractor):
                         /?(?:[?&].*)?(?:[#].*)?$
                     '''
     IE_NAME = 'vimeo'
+    _EMBED_REGEX = [
+        # iframe
+        r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//player\.vimeo\.com/video/\d+.*?)\1',
+        # Embedded (swf embed) Vimeo player
+        r'<embed[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?vimeo\.com/moogaloop\.swf.+?)\1',
+        # Non-standard embedded Vimeo player
+        r'<video[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?vimeo\.com/[0-9]+)\1',
+    ]
     _TESTS = [
         {
             'url': 'http://vimeo.com/56015672#at=0',
@@ -729,29 +736,14 @@ class VimeoIE(VimeoBaseInfoExtractor):
         # vimeo embed with check-password page protected by Referer header
     ]
 
-    @staticmethod
-    def _extract_urls(url, webpage):
-        urls = []
-        # Look for embedded (iframe) Vimeo player
-        for mobj in re.finditer(
-                r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//player\.vimeo\.com/video/\d+.*?)\1',
-                webpage):
-            urls.append(VimeoIE._smuggle_referrer(unescapeHTML(mobj.group('url')), url))
-        PLAIN_EMBED_RE = (
-            # Look for embedded (swf embed) Vimeo player
-            r'<embed[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?vimeo\.com/moogaloop\.swf.+?)\1',
-            # Look more for non-standard embedded Vimeo player
-            r'<video[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?vimeo\.com/[0-9]+)\1',
-        )
-        for embed_re in PLAIN_EMBED_RE:
-            for mobj in re.finditer(embed_re, webpage):
-                urls.append(mobj.group('url'))
-        return urls
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        for embed_url in super()._extract_embed_urls(url, webpage):
+            yield cls._smuggle_referrer(embed_url, url)
 
-    @staticmethod
-    def _extract_url(url, webpage):
-        urls = VimeoIE._extract_urls(url, webpage)
-        return urls[0] if urls else None
+    @classmethod
+    def _extract_url(cls, url, webpage):
+        return next(cls._extract_embed_urls(url, webpage), None)
 
     def _verify_player_video_password(self, url, video_id, headers):
         password = self._get_video_password()
@@ -1139,7 +1131,7 @@ class VimeoChannelIE(VimeoBaseInfoExtractor):
 
 class VimeoUserIE(VimeoChannelIE):
     IE_NAME = 'vimeo:user'
-    _VALID_URL = r'https://vimeo\.com/(?!(?:[0-9]+|watchlater)(?:$|[?#/]))(?P<id>[^/]+)(?:/videos|[#?]|$)'
+    _VALID_URL = r'https://vimeo\.com/(?!(?:[0-9]+|watchlater)(?:$|[?#/]))(?P<id>[^/]+)(?:/videos)?/?(?:$|[?#])'
     _TITLE_RE = r'<a[^>]+?class="user">([^<>]+?)</a>'
     _TESTS = [{
         'url': 'https://vimeo.com/nkistudio/videos',
@@ -1148,6 +1140,9 @@ class VimeoUserIE(VimeoChannelIE):
             'id': 'nkistudio',
         },
         'playlist_mincount': 66,
+    }, {
+        'url': 'https://vimeo.com/nkistudio/',
+        'only_matching': True,
     }]
     _BASE_URL_TEMPL = 'https://vimeo.com/%s'
 
@@ -1386,12 +1381,12 @@ class VimeoLikesIE(VimeoChannelIE):
 class VHXEmbedIE(VimeoBaseInfoExtractor):
     IE_NAME = 'vhx:embed'
     _VALID_URL = r'https?://embed\.vhx\.tv/videos/(?P<id>\d+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://embed\.vhx\.tv/videos/\d+[^"]*)"']
 
-    @staticmethod
-    def _extract_url(url, webpage):
-        mobj = re.search(
-            r'<iframe[^>]+src="(https?://embed\.vhx\.tv/videos/\d+[^"]*)"', webpage)
-        return VimeoIE._smuggle_referrer(unescapeHTML(mobj.group(1)), url) if mobj else None
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        for embed_url in super()._extract_embed_urls(url, webpage):
+            yield cls._smuggle_referrer(embed_url, url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

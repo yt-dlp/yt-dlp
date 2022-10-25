@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class StripchatIE(InfoExtractor):
-    _VALID_URL = r'https?://stripchat\.com/(?P<id>[0-9A-Za-z-_]+)'
+    _VALID_URL = r'https?://stripchat\.com/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://stripchat.com/feel_me',
         'info_dict': {
@@ -22,13 +22,14 @@ class StripchatIE(InfoExtractor):
             'age_limit': 18,
         },
         'skip': 'Room is offline',
+    }, {
+        'url': 'https://stripchat.com/Rakhijaan@xh',
+        'only_matching': True
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(
-            'https://stripchat.com/%s/' % video_id, video_id,
-            headers=self.geo_verification_headers())
+        webpage = self._download_webpage(url, video_id, headers=self.geo_verification_headers())
 
         data = self._parse_json(
             self._search_regex(

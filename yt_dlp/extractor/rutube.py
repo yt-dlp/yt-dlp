@@ -1,4 +1,3 @@
-import re
 import itertools
 
 from .common import InfoExtractor
@@ -94,6 +93,7 @@ class RutubeIE(RutubeBaseIE):
     IE_NAME = 'rutube'
     IE_DESC = 'Rutube videos'
     _VALID_URL = r'https?://rutube\.ru/(?:video|(?:play/)?embed)/(?P<id>[\da-z]{32})'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//rutube\.ru/(?:play/)?embed/[\da-z]{32}.*?)\1']
 
     _TESTS = [{
         'url': 'http://rutube.ru/video/3eac3b4561676c17df9132a9a1e62e3e/',
@@ -127,12 +127,6 @@ class RutubeIE(RutubeBaseIE):
     @classmethod
     def suitable(cls, url):
         return False if RutubePlaylistIE.suitable(url) else super(RutubeIE, cls).suitable(url)
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [mobj.group('url') for mobj in re.finditer(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//rutube\.ru/embed/[\da-z]{32}.*?)\1',
-            webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

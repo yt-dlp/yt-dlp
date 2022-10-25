@@ -17,8 +17,8 @@ pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
 clean-test:
 	rm -rf test/testdata/sigs/player-*.js tmp/ *.annotations.xml *.aria2 *.description *.dump *.frag \
 	*.frag.aria2 *.frag.urls *.info.json *.live_chat.json *.meta *.part* *.tmp *.temp *.unknown_video *.ytdl \
-	*.3gp *.ape *.ass *.avi *.desktop *.flac *.flv *.jpeg *.jpg *.m4a *.m4v *.mhtml *.mkv *.mov *.mp3 \
-	*.mp4 *.ogg *.opus *.png *.sbv *.srt *.swf *.swp *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp
+	*.3gp *.ape *.ass *.avi *.desktop *.f4v *.flac *.flv *.jpeg *.jpg *.m4a *.m4v *.mhtml *.mkv *.mov *.mp3 *.mp4 \
+	*.mpga *.oga *.ogg *.opus *.png *.sbv *.srt *.swf *.swp *.tt *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp
 clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
 	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
@@ -33,7 +33,6 @@ completion-zsh: completions/zsh/_yt-dlp
 lazy-extractors: yt_dlp/extractor/lazy_extractors.py
 
 PREFIX ?= /usr/local
-DESTDIR ?= .
 BINDIR ?= $(PREFIX)/bin
 MANDIR ?= $(PREFIX)/man
 SHAREDIR ?= $(PREFIX)/share
@@ -75,17 +74,16 @@ offlinetest: codetest
 	$(PYTHON) -m pytest -k "not download"
 
 # XXX: This is hard to maintain
-CODE_FOLDERS = yt_dlp yt_dlp/downloader yt_dlp/extractor yt_dlp/postprocessor yt_dlp/compat \
-               yt_dlp/extractor/anvato_token_generator
+CODE_FOLDERS = yt_dlp yt_dlp/downloader yt_dlp/extractor yt_dlp/postprocessor yt_dlp/compat
 yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip
 	for d in $(CODE_FOLDERS) ; do \
 	  mkdir -p zip/$$d ;\
 	  cp -pPR $$d/*.py zip/$$d/ ;\
 	done
-	touch -t 200001010101 zip/yt_dlp/*.py zip/yt_dlp/*/*.py zip/yt_dlp/*/*/*.py
+	touch -t 200001010101 zip/yt_dlp/*.py zip/yt_dlp/*/*.py
 	mv zip/yt_dlp/__main__.py zip/
-	cd zip ; zip -q ../yt-dlp yt_dlp/*.py yt_dlp/*/*.py yt_dlp/*/*/*.py __main__.py
+	cd zip ; zip -q ../yt-dlp yt_dlp/*.py yt_dlp/*/*.py __main__.py
 	rm -rf zip
 	echo '#!$(PYTHON)' > yt-dlp
 	cat yt-dlp.zip >> yt-dlp
@@ -134,7 +132,7 @@ yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscrip
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 
 yt-dlp.tar.gz: all
-	@tar -czf $(DESTDIR)/yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
+	@tar -czf yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
 		--exclude '*.DS_Store' \
 		--exclude '*.kate-swp' \
 		--exclude '*.pyc' \

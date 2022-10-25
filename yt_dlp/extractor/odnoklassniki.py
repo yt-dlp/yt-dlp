@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..compat import (
     compat_etree_fromstring,
@@ -31,6 +29,7 @@ class OdnoklassnikiIE(InfoExtractor):
                     )
                     (?P<id>[\d-]+)
                 '''
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:odnoklassniki|ok)\.ru/videoembed/.+?)\1']
     _TESTS = [{
         'note': 'Coub embedded',
         'url': 'http://ok.ru/video/1484130554189',
@@ -160,13 +159,6 @@ class OdnoklassnikiIE(InfoExtractor):
         'url': 'https://ok.ru/video/954886983203',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:odnoklassniki|ok)\.ru/videoembed/.+?)\1', webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         try:

@@ -9,8 +9,8 @@ in RFC 8216 §3.5 <https://tools.ietf.org/html/rfc8216#section-3.5>.
 """
 
 import io
+import re
 
-from .compat import re
 from .utils import int_or_none, timetuple_from_msec
 
 
@@ -140,7 +140,6 @@ class HeaderBlock(Block):
     A WebVTT block that may only appear in the header part of the file,
     i.e. before any cue blocks.
     """
-
     pass
 
 
@@ -160,6 +159,12 @@ class Magic(HeaderBlock):
     _REGEX_TSMAP_LOCAL = re.compile(r'LOCAL:')
     _REGEX_TSMAP_MPEGTS = re.compile(r'MPEGTS:([0-9]+)')
     _REGEX_TSMAP_SEP = re.compile(r'[ \t]*,[ \t]*')
+
+    # This was removed from the spec in the 2017 revision;
+    # the last spec draft to describe this syntax element is
+    # <https://www.w3.org/TR/2015/WD-webvtt1-20151208/#webvtt-metadata-header>.
+    # Nevertheless, YouTube keeps serving those
+    _REGEX_META = re.compile(r'(?:(?!-->)[^\r\n])+:(?:(?!-->)[^\r\n])+(?:\r\n|[\r\n])')
 
     @classmethod
     def __parse_tsmap(cls, parser):
@@ -200,13 +205,18 @@ class Magic(HeaderBlock):
             raise ParseError(parser)
 
         extra = m.group(1)
-        local, mpegts = None, None
-        if parser.consume(cls._REGEX_TSMAP):
-            local, mpegts = cls.__parse_tsmap(parser)
-        if not parser.consume(_REGEX_NL):
+        local, mpegts, meta = None, None, ''
+        while not parser.consume(_REGEX_NL):
+            if parser.consume(cls._REGEX_TSMAP):
+                local, mpegts = cls.__parse_tsmap(parser)
+                continue
+            m = parser.consume(cls._REGEX_META)
+            if m:
+                meta += m.group(0)
+                continue
             raise ParseError(parser)
         parser.commit()
-        return cls(extra=extra, mpegts=mpegts, local=local)
+        return cls(extra=extra, mpegts=mpegts, local=local, meta=meta)
 
     def write_into(self, stream):
         stream.write('WEBVTT')
@@ -219,6 +229,8 @@ class Magic(HeaderBlock):
             stream.write(',MPEGTS:')
             stream.write(str(self.mpegts if self.mpegts is not None else 0))
             stream.write('\n')
+        if self.meta:
+            stream.write(self.meta)
         stream.write('\n')
 
 

@@ -1,12 +1,6 @@
-import functools
-
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
-from ..utils import (
-    InAdvancePagedList,
-    smuggle_url,
-    traverse_obj,
-)
+from ..utils import smuggle_url, traverse_obj
 
 
 class NetverseBaseIE(InfoExtractor):
@@ -14,16 +8,13 @@ class NetverseBaseIE(InfoExtractor):
         'watch': 'watchvideo',
         'video': 'watchvideo',
         'webseries': 'webseries',
+        'season': 'webseason_videos',
     }
 
-    def _call_api(self, url, query={}):
-        display_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
-
-        json_data = self._download_json(
-            f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[sites_type]}/{display_id}',
-            display_id, query=query)
-
-        return display_id, json_data
+    def _call_api(self, slug, endpoint, query={}, season_id='', display_id=None):
+        return self._download_json(
+            f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[endpoint]}/{slug}/{season_id}',
+            display_id or slug, query=query)
 
 
 class NetverseIE(NetverseBaseIE):
@@ -36,10 +27,9 @@ class NetverseIE(NetverseBaseIE):
             'title': 'Waktu Indonesia Bercanda - Edisi Spesial Lebaran 2016',
             'ext': 'mp4',
             'season': 'Season 2016',
-            'description': 'md5:fc27747c0aa85067b6967c816f01617c',
-            'thumbnail': 'https://vplayed-uat.s3-ap-southeast-1.amazonaws.com/images/webseries/thumbnails/2021/11/619cfce45c827.jpeg',
+            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/T7aV31Y0eGRWBbwkK/x1080',
             'episode_number': 22,
-            'series': 'Waktu Indonesia Bercanda',
             'episode': 'Episode 22',
             'uploader_id': 'x2ir3vq',
             'age_limit': 0,
@@ -60,10 +50,9 @@ class NetverseIE(NetverseBaseIE):
             'title': 'Jadoo Seorang Model',
             'ext': 'mp4',
             'season': 'Season 2',
-            'description': 'md5:c616e8e59d3edf2d3d506e3736120d99',
-            'thumbnail': 'https://storage.googleapis.com/netprime-live/images/webseries/thumbnails/2021/11/619cf63f105d3.jpeg',
+            'description': 'md5:8a74f70812cca267e19ee0635f0af835',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/Thwuy1YURicFmGu0v/x1080',
             'episode_number': 2,
-            'series': 'Hello Jadoo',
             'episode': 'Episode 2',
             'view_count': int,
             'like_count': int,
@@ -85,10 +74,9 @@ class NetverseIE(NetverseBaseIE):
             'ext': 'mp4',
             'title': 'Tetangga Baru',
             'season': 'Season 1',
-            'description': 'md5:ed6dd355bed84d139b1154c3d8d65957',
-            'thumbnail': 'https://vplayed-uat.s3-ap-southeast-1.amazonaws.com/images/webseries/thumbnails/2021/11/619cfd9d32c5f.jpeg',
+            'description': 'md5:23fcf70e97d461d3029d25d59b2ccfb9',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/T3Ogm1YEnnyjVKAFF/x1080',
             'episode_number': 1,
-            'series': 'Tetangga Masa Gitu',
             'episode': 'Episode 1',
             'timestamp': 1624538169,
             'view_count': int,
@@ -108,12 +96,11 @@ class NetverseIE(NetverseBaseIE):
         'info_dict': {
             'id': 'x887jzz',
             'ext': 'mp4',
-            'thumbnail': 'https://storage.googleapis.com/netprime-live/images/webseries/thumbnails/2021/11/619cf63f105d3.jpeg',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/TfuZ_1Y6PboJ5An_s/x1080',
             'season': 'Season 1',
             'episode_number': 1,
-            'description': 'md5:c616e8e59d3edf2d3d506e3736120d99',
+            'description': 'md5:d4f627b3e7a3f9acdc55f6cdd5ea41d5',
             'title': 'Namaku Choi Jadoo',
-            'series': 'Hello Jadoo',
             'episode': 'Episode 1',
             'age_limit': 0,
             'like_count': int,
@@ -130,7 +117,8 @@ class NetverseIE(NetverseBaseIE):
     }]
 
     def _real_extract(self, url):
-        display_id, program_json = self._call_api(url)
+        display_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
+        program_json = self._call_api(display_id, sites_type)
         videos = program_json['response']['videos']
 
         return {
@@ -143,34 +131,46 @@ class NetverseIE(NetverseBaseIE):
             'thumbnail': traverse_obj(videos, ('program_detail', 'thumbnail_image')),
             'description': traverse_obj(videos, ('program_detail', 'description')),
             'episode_number': videos.get('episode_order'),
-            'series': traverse_obj(videos, ('program_detail', 'title')),
         }
 
 
 class NetversePlaylistIE(NetverseBaseIE):
     _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>webseries)/(?P<display_id>[^/?#&]+)'
-    _TEST = {
+    _TESTS = [{
+        # multiple season
         'url': 'https://netverse.id/webseries/tetangga-masa-gitu',
         'info_dict': {
             'id': 'tetangga-masa-gitu',
             'title': 'Tetangga Masa Gitu',
         },
-        'playlist_count': 46,
-    }
+        'playlist_count': 519,
+    }, {
+        # single season
+        'url': 'https://netverse.id/webseries/kelas-internasional',
+        'info_dict': {
+            'id': 'kelas-internasional',
+            'title': 'Kelas Internasional',
+        },
+        'playlist_count': 203,
+    }]
 
-    def parse_playlist(self, url, page_num):
-        _, playlist_json = self._call_api(url, query={'page': page_num + 1})
-        for slug in traverse_obj(playlist_json, ('response', 'related', 'data', ..., 'slug')):
-            yield self.url_result(f'https://www.netverse.id/video/{slug}', NetverseIE)
+    def parse_playlist(self, json_data, playlist_id):
+        slug_sample = traverse_obj(json_data, ('related', 'data', ..., 'slug'))[0]
+        for season in traverse_obj(json_data, ('seasons', ..., 'id')):
+            playlist_json = self._call_api(
+                slug_sample, 'season', display_id=playlist_id, season_id=season)
+
+            for current_page in range(playlist_json['response']['season_list']['last_page']):
+                playlist_json = self._call_api(slug_sample, 'season', query={'page': current_page + 1},
+                                               season_id=season, display_id=playlist_id)
+                for slug in traverse_obj(playlist_json, ('response', ..., 'data', ..., 'slug')):
+                    yield self.url_result(f'https://www.netverse.id/video/{slug}', NetverseIE)
 
     def _real_extract(self, url):
-        _, playlist_data = self._call_api(url)
-        webseries_related_info = playlist_data['response']['related']
-        # TODO: get video from other season
-        # The season has id and the next season video is located at api_url/<season_id>?page=<page>
+        playlist_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
+        playlist_data = self._call_api(playlist_id, sites_type)
+
         return self.playlist_result(
-            InAdvancePagedList(functools.partial(self.parse_playlist, url),
-                               webseries_related_info['last_page'],
-                               webseries_related_info['to'] - webseries_related_info['from'] + 1),
+            self.parse_playlist(playlist_data['response'], playlist_id),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'slug')),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'title')))

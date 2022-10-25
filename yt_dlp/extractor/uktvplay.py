@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class UKTVPlayIE(InfoExtractor):
-    _VALID_URL = r'https?://uktvplay\.uktv\.co\.uk/(?:.+?\?.*?\bvideo=|([^/]+/)*watch-online/)(?P<id>\d+)'
+    _VALID_URL = r'https?://uktvplay\.(?:uktv\.)?co\.uk/(?:.+?\?.*?\bvideo=|([^/]+/)*watch-online/)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://uktvplay.uktv.co.uk/shows/world-at-war/c/200/watch-online/?video=2117008346001',
         'info_dict': {

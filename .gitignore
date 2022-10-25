@@ -27,6 +27,7 @@ cookies
 *.ass
 *.avi
 *.desktop
+*.f4v
 *.flac
 *.flv
 *.jpeg
@@ -38,6 +39,8 @@ cookies
 *.mov
 *.mp3
 *.mp4
+*.mpga
+*.oga
 *.ogg
 *.opus
 *.png
@@ -45,6 +48,7 @@ cookies
 *.srt
 *.swf
 *.swp
+*.tt
 *.ttml
 *.url
 *.vtt
@@ -83,6 +87,7 @@ updates_key.pem
 .tox
 *.class
 *.isorted
+*.stackdump
 
 # Generated
 AUTHORS

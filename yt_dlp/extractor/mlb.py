@@ -1,11 +1,15 @@
 import re
+import urllib.parse
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     int_or_none,
+    join_nonempty,
     parse_duration,
     parse_iso8601,
+    traverse_obj,
     try_get,
 )
 
@@ -92,6 +96,10 @@ class MLBIE(MLBBaseIE):
                             (?P<id>\d+)
                         )
                     '''
+    _EMBED_REGEX = [
+        r'<iframe[^>]+?src=(["\'])(?P<url>https?://m(?:lb)?\.mlb\.com/shared/video/embed/embed\.html\?.+?)\1',
+        r'data-video-link=["\'](?P<url>http://m\.mlb\.com/video/[^"\']+)',
+    ]
     _TESTS = [
         {
             'url': 'https://www.mlb.com/mariners/video/ackleys-spectacular-catch/c-34698933',
@@ -263,3 +271,80 @@ class MLBVideoIE(MLBBaseIE):
   }
 }''' % display_id,
             })['data']['mediaPlayback'][0]
+
+
+class MLBTVIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?mlb\.com/tv/g(?P<id>\d{6})'
+    _NETRC_MACHINE = 'mlb'
+
+    _TESTS = [{
+        'url': 'https://www.mlb.com/tv/g661581/vee2eff5f-a7df-4c20-bdb4-7b926fa12638',
+        'info_dict': {
+            'id': '661581',
+            'ext': 'mp4',
+            'title': '2022-07-02 - St. Louis Cardinals @ Philadelphia Phillies',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+    _access_token = None
+
+    def _real_initialize(self):
+        if not self._access_token:
+            self.raise_login_required(
+                'All videos are only available to registered users', method='password')
+
+    def _perform_login(self, username, password):
+        data = f'grant_type=password&username={urllib.parse.quote(username)}&password={urllib.parse.quote(password)}&scope=openid offline_access&client_id=0oa3e1nutA1HLzAKG356'
+        access_token = self._download_json(
+            'https://ids.mlb.com/oauth2/aus1m088yK07noBfh356/v1/token', None,
+            headers={
+                'User-Agent': 'okhttp/3.12.1',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }, data=data.encode())['access_token']
+
+        entitlement = self._download_webpage(
+            f'https://media-entitlement.mlb.com/api/v3/jwt?os=Android&appname=AtBat&did={str(uuid.uuid4())}', None,
+            headers={
+                'User-Agent': 'okhttp/3.12.1',
+                'Authorization': f'Bearer {access_token}'
+            })
+
+        data = f'grant_type=urn:ietf:params:oauth:grant-type:token-exchange&subject_token={entitlement}&subject_token_type=urn:ietf:params:oauth:token-type:jwt&platform=android-tv'
+        self._access_token = self._download_json(
+            'https://us.edge.bamgrid.com/token', None,
+            headers={
+                'Accept': 'application/json',
+                'Authorization': 'Bearer bWxidHYmYW5kcm9pZCYxLjAuMA.6LZMbH2r--rbXcgEabaDdIslpo4RyZrlVfWZhsAgXIk',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }, data=data.encode())['access_token']
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        airings = self._download_json(
+            f'https://search-api-mlbtv.mlb.com/svc/search/v2/graphql/persisted/query/core/Airings?variables=%7B%22partnerProgramIds%22%3A%5B%22{video_id}%22%5D%2C%22applyEsniMediaRightsLabels%22%3Atrue%7D',
+            video_id)['data']['Airings']
+
+        formats, subtitles = [], {}
+        for airing in airings:
+            m3u8_url = self._download_json(
+                airing['playbackUrls'][0]['href'].format(scenario='browser~csai'), video_id,
+                headers={
+                    'Authorization': self._access_token,
+                    'Accept': 'application/vnd.media-service+json; version=2'
+                })['stream']['complete']
+            f, s = self._extract_m3u8_formats_and_subtitles(
+                m3u8_url, video_id, 'mp4', m3u8_id=join_nonempty(airing.get('feedType'), airing.get('feedLanguage')))
+            formats.extend(f)
+            self._merge_subtitles(s, target=subtitles)
+
+        self._sort_formats(formats)
+        return {
+            'id': video_id,
+            'title': traverse_obj(airings, (..., 'titles', 0, 'episodeName'), get_all=False),
+            'is_live': traverse_obj(airings, (..., 'mediaConfig', 'productType'), get_all=False) == 'LIVE',
+            'formats': formats,
+            'subtitles': subtitles,
+            'http_headers': {'Authorization': f'Bearer {self._access_token}'},
+        }

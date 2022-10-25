@@ -10,6 +10,7 @@ from ..utils import (
     determine_ext,
     dict_get,
     int_or_none,
+    traverse_obj,
     unified_strdate,
     unified_timestamp,
 )
@@ -281,25 +282,39 @@ class ESPNCricInfoIE(InfoExtractor):
 
 
 class WatchESPNIE(AdobePassIE):
-    _VALID_URL = r'https://www.espn.com/watch/player/_/id/(?P<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'
+    _VALID_URL = r'https?://(?:www\.)?espn\.com/(?:watch|espnplus)/player/_/id/(?P<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'
     _TESTS = [{
-        'url': 'https://www.espn.com/watch/player/_/id/ba7d17da-453b-4697-bf92-76a99f61642b',
+        'url': 'https://www.espn.com/watch/player/_/id/dbbc6b1d-c084-4b47-9878-5f13c56ce309',
         'info_dict': {
-            'id': 'ba7d17da-453b-4697-bf92-76a99f61642b',
+            'id': 'dbbc6b1d-c084-4b47-9878-5f13c56ce309',
             'ext': 'mp4',
-            'title': 'Serbia vs. Turkey',
-            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/ba7d17da-453b-4697-bf92-76a99f61642b/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
+            'title': 'Huddersfield vs. Burnley',
+            'duration': 7500,
+            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/dbbc6b1d-c084-4b47-9878-5f13c56ce309/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        'url': 'https://www.espn.com/watch/player/_/id/4e9b5bd1-4ceb-4482-9d28-1dd5f30d2f34',
+        'url': 'https://www.espn.com/watch/player/_/id/a049a56e-a7ce-477e-aef3-c7e48ef8221c',
         'info_dict': {
-            'id': '4e9b5bd1-4ceb-4482-9d28-1dd5f30d2f34',
+            'id': 'a049a56e-a7ce-477e-aef3-c7e48ef8221c',
             'ext': 'mp4',
-            'title': 'Real Madrid vs. Real Betis (LaLiga)',
+            'title': 'Dynamo Dresden vs. VfB Stuttgart (Round #1) (German Cup)',
+            'duration': 8335,
             'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/bd1f3d12-0654-47d9-852e-71b85ea695c7/16x9.jpg?timestamp=202201112217&showBadge=true&cb=12&package=ESPN_PLUS',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.espn.com/espnplus/player/_/id/317f5fd1-c78a-4ebe-824a-129e0d348421',
+        'info_dict': {
+            'id': '317f5fd1-c78a-4ebe-824a-129e0d348421',
+            'ext': 'mp4',
+            'title': 'The Wheel - Episode 10',
+            'duration': 3352,
+            'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/317f5fd1-c78a-4ebe-824a-129e0d348421/16x9.jpg?timestamp=202205031523&showBadge=true&cb=12&package=ESPN_PLUS',
         },
         'params': {
             'skip_download': True,
@@ -317,9 +332,10 @@ class WatchESPNIE(AdobePassIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_data = self._download_json(
+        cdn_data = self._download_json(
             f'https://watch-cdn.product.api.espn.com/api/product/v3/watchespn/web/playback/event?id={video_id}',
-            video_id)['playbackState']
+            video_id)
+        video_data = cdn_data['playbackState']
 
         # ESPN+ subscription required, through cookies
         if 'DTC' in video_data.get('sourceId'):
@@ -388,6 +404,7 @@ class WatchESPNIE(AdobePassIE):
 
         return {
             'id': video_id,
+            'duration': traverse_obj(cdn_data, ('tracking', 'duration')),
             'title': video_data.get('name'),
             'formats': formats,
             'subtitles': subtitles,

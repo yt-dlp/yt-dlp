@@ -8,6 +8,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+import collections
 import hashlib
 import http.client
 import json
@@ -20,6 +21,7 @@ from test.helper import (
     expect_warnings,
     get_params,
     gettestcases,
+    getwebpagetestcases,
     is_download_test,
     report_warning,
     try_rm,
@@ -32,6 +34,7 @@ from yt_dlp.utils import (
     ExtractorError,
     UnavailableVideoError,
     format_bytes,
+    join_nonempty,
 )
 
 RETRIES = 3
@@ -57,7 +60,9 @@ def _file_md5(fn):
         return hashlib.md5(f.read()).hexdigest()
 
 
-defs = gettestcases()
+normal_test_cases = gettestcases()
+webpage_test_cases = getwebpagetestcases()
+tests_counter = collections.defaultdict(collections.Counter)
 
 
 @is_download_test
@@ -72,24 +77,13 @@ class TestDownload(unittest.TestCase):
 
     def __str__(self):
         """Identify each test with the `add_ie` attribute, if available."""
+        cls, add_ie = type(self), getattr(self, self._testMethodName).add_ie
+        return f'{self._testMethodName} ({cls.__module__}.{cls.__name__}){f" [{add_ie}]" if add_ie else ""}:'
 
-        def strclass(cls):
-            """From 2.7's unittest; 2.6 had _strclass so we can't import it."""
-            return f'{cls.__module__}.{cls.__name__}'
-
-        add_ie = getattr(self, self._testMethodName).add_ie
-        return '%s (%s)%s:' % (self._testMethodName,
-                               strclass(self.__class__),
-                               ' [%s]' % add_ie if add_ie else '')
-
-    def setUp(self):
-        self.defs = defs
 
 # Dynamically generate tests
 
-
 def generator(test_case, tname):
-
     def test_template(self):
         if self.COMPLETED_TESTS.get(tname):
             return
@@ -111,11 +105,11 @@ def generator(test_case, tname):
             info_dict = tc.get('info_dict', {})
             params = tc.get('params', {})
             if not info_dict.get('id'):
-                raise Exception('Test definition incorrect. \'id\' key is not present')
+                raise Exception(f'Test {tname} definition incorrect - "id" key is not present')
             elif not info_dict.get('ext'):
                 if params.get('skip_download') and params.get('ignore_no_formats_error'):
                     continue
-                raise Exception('Test definition incorrect. The output file cannot be known. \'ext\' key is not present')
+                raise Exception(f'Test {tname} definition incorrect - "ext" key must be present to define the output file')
 
         if 'skip' in test_case:
             print_skipping(test_case['skip'])
@@ -167,7 +161,9 @@ def generator(test_case, tname):
                         force_generic_extractor=params.get('force_generic_extractor', False))
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
-                    if not err.exc_info[0] in (urllib.error.URLError, socket.timeout, UnavailableVideoError, http.client.BadStatusLine) or (err.exc_info[0] == urllib.error.HTTPError and err.exc_info[1].code == 503):
+                    if (err.exc_info[0] not in (urllib.error.URLError, socket.timeout, UnavailableVideoError, http.client.BadStatusLine)
+                            or (err.exc_info[0] == urllib.error.HTTPError and err.exc_info[1].code == 503)):
+                        err.msg = f'{getattr(err, "msg", err)} ({tname})'
                         raise
 
                     if try_num == RETRIES:
@@ -255,39 +251,43 @@ def generator(test_case, tname):
 
 
 # And add them to TestDownload
-tests_counter = {}
-for test_case in defs:
-    name = test_case['name']
-    i = tests_counter.get(name, 0)
-    tests_counter[name] = i + 1
-    tname = f'test_{name}_{i}' if i else f'test_{name}'
-    test_method = generator(test_case, tname)
-    test_method.__name__ = str(tname)
-    ie_list = test_case.get('add_ie')
-    test_method.add_ie = ie_list and ','.join(ie_list)
-    setattr(TestDownload, test_method.__name__, test_method)
-    del test_method
+def inject_tests(test_cases, label=''):
+    for test_case in test_cases:
+        name = test_case['name']
+        tname = join_nonempty('test', name, label, tests_counter[name][label], delim='_')
+        tests_counter[name][label] += 1
+
+        test_method = generator(test_case, tname)
+        test_method.__name__ = tname
+        test_method.add_ie = ','.join(test_case.get('add_ie', []))
+        setattr(TestDownload, test_method.__name__, test_method)
 
 
-def batch_generator(name, num_tests):
+inject_tests(normal_test_cases)
 
+# TODO: disable redirection to the IE to ensure we are actually testing the webpage extraction
+inject_tests(webpage_test_cases, 'webpage')
+
+
+def batch_generator(name):
     def test_template(self):
-        for i in range(num_tests):
-            test_name = f'test_{name}_{i}' if i else f'test_{name}'
-            try:
-                getattr(self, test_name)()
-            except unittest.SkipTest:
-                print(f'Skipped {test_name}')
+        for label, num_tests in tests_counter[name].items():
+            for i in range(num_tests):
+                test_name = join_nonempty('test', name, label, i, delim='_')
+                try:
+                    getattr(self, test_name)()
+                except unittest.SkipTest:
+                    print(f'Skipped {test_name}')
 
     return test_template
 
 
-for name, num_tests in tests_counter.items():
-    test_method = batch_generator(name, num_tests)
+for name in tests_counter:
+    test_method = batch_generator(name)
     test_method.__name__ = f'test_{name}_all'
     test_method.add_ie = ''
     setattr(TestDownload, test_method.__name__, test_method)
-    del test_method
+del test_method
 
 
 if __name__ == '__main__':

@@ -28,14 +28,17 @@ class AENetworksBaseIE(ThePlatformIE):
     }
 
     def _extract_aen_smil(self, smil_url, video_id, auth=None):
-        query = {'mbr': 'true'}
+        query = {
+            'mbr': 'true',
+            'formats': 'M3U+none,MPEG-DASH+none,MPEG4,MP3',
+        }
         if auth:
             query['auth'] = auth
         TP_SMIL_QUERY = [{
             'assetTypes': 'high_video_ak',
-            'switch': 'hls_high_ak'
+            'switch': 'hls_high_ak',
         }, {
-            'assetTypes': 'high_video_s3'
+            'assetTypes': 'high_video_s3',
         }, {
             'assetTypes': 'high_video_s3',
             'switch': 'hls_high_fastly',

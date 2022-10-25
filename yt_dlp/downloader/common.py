@@ -1,5 +1,6 @@
 import contextlib
 import errno
+import functools
 import os
 import random
 import re
@@ -12,16 +13,18 @@ from ..minicurses import (
     QuietMultilinePrinter,
 )
 from ..utils import (
+    IDENTITY,
+    NO_DEFAULT,
     NUMBER_RE,
     LockingUnsupportedError,
     Namespace,
+    RetryManager,
     classproperty,
     decodeArgument,
     encodeFilename,
-    error_to_compat_str,
-    float_or_none,
     format_bytes,
     join_nonempty,
+    remove_start,
     sanitize_open,
     shell_quote,
     timeconvert,
@@ -90,6 +93,7 @@ class FileDownloader:
 
         for func in (
             'deprecation_warning',
+            'deprecated_feature',
             'report_error',
             'report_file_already_downloaded',
             'report_warning',
@@ -117,11 +121,11 @@ class FileDownloader:
         time = timetuple_from_msec(seconds * 1000)
         if time.hours > 99:
             return '--:--:--'
-        if not time.hours:
-            return '%02d:%02d' % time[1:-1]
         return '%02d:%02d:%02d' % time[:-1]
 
-    format_eta = format_seconds
+    @classmethod
+    def format_eta(cls, seconds):
+        return f'{remove_start(cls.format_seconds(seconds), "00:"):>8s}'
 
     @staticmethod
     def calc_percent(byte_counter, data_len):
@@ -215,27 +219,24 @@ class FileDownloader:
         return filename + '.ytdl'
 
     def wrap_file_access(action, *, fatal=False):
-        def outer(func):
-            def inner(self, *args, **kwargs):
-                file_access_retries = self.params.get('file_access_retries', 0)
-                retry = 0
-                while True:
-                    try:
-                        return func(self, *args, **kwargs)
-                    except OSError as err:
-                        retry = retry + 1
-                        if retry > file_access_retries or err.errno not in (errno.EACCES, errno.EINVAL):
-                            if not fatal:
-                                self.report_error(f'unable to {action} file: {err}')
-                                return
-                            raise
-                        self.to_screen(
-                            f'[download] Unable to {action} file due to file access error. '
-                            f'Retrying (attempt {retry} of {self.format_retries(file_access_retries)}) ...')
-                        if not self.sleep_retry('file_access', retry):
-                            time.sleep(0.01)
-            return inner
-        return outer
+        def error_callback(err, count, retries, *, fd):
+            return RetryManager.report_retry(
+                err, count, retries, info=fd.__to_screen,
+                warn=lambda e: (time.sleep(0.01), fd.to_screen(f'[download] Unable to {action} file: {e}')),
+                error=None if fatal else lambda e: fd.report_error(f'Unable to {action} file: {e}'),
+                sleep_func=fd.params.get('retry_sleep_functions', {}).get('file_access'))
+
+        def wrapper(self, func, *args, **kwargs):
+            for retry in RetryManager(self.params.get('file_access_retries'), error_callback, fd=self):
+                try:
+                    return func(self, *args, **kwargs)
+                except OSError as err:
+                    if err.errno in (errno.EACCES, errno.EINVAL):
+                        retry.error = err
+                        continue
+                    retry.error_callback(err, 1, 0)
+
+        return functools.partial(functools.partialmethod, wrapper)
 
     @wrap_file_access('open', fatal=True)
     def sanitize_open(self, filename, open_mode):
@@ -332,11 +333,16 @@ class FileDownloader:
                     return tmpl
             return default
 
+        _format_bytes = lambda k: f'{format_bytes(s.get(k)):>10s}'
+
         if s['status'] == 'finished':
             if self.params.get('noprogress'):
                 self.to_screen('[download] Download completed')
+            speed = try_call(lambda: s['total_bytes'] / s['elapsed'])
             s.update({
-                '_total_bytes_str': format_bytes(s.get('total_bytes')),
+                'speed': speed,
+                '_speed_str': self.format_speed(speed).strip(),
+                '_total_bytes_str': _format_bytes('total_bytes'),
                 '_elapsed_str': self.format_seconds(s.get('elapsed')),
                 '_percent_str': self.format_percent(100),
             })
@@ -344,21 +350,22 @@ class FileDownloader:
                 '100%%',
                 with_fields(('total_bytes', 'of %(_total_bytes_str)s')),
                 with_fields(('elapsed', 'in %(_elapsed_str)s')),
+                with_fields(('speed', 'at %(_speed_str)s')),
                 delim=' '))
 
         if s['status'] != 'downloading':
             return
 
         s.update({
-            '_eta_str': self.format_eta(s.get('eta')),
+            '_eta_str': self.format_eta(s.get('eta')).strip(),
             '_speed_str': self.format_speed(s.get('speed')),
             '_percent_str': self.format_percent(try_call(
                 lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
                 lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
                 lambda: s['downloaded_bytes'] == 0 and 0)),
-            '_total_bytes_str': format_bytes(s.get('total_bytes')),
-            '_total_bytes_estimate_str': format_bytes(s.get('total_bytes_estimate')),
-            '_downloaded_bytes_str': format_bytes(s.get('downloaded_bytes')),
+            '_total_bytes_str': _format_bytes('total_bytes'),
+            '_total_bytes_estimate_str': _format_bytes('total_bytes_estimate'),
+            '_downloaded_bytes_str': _format_bytes('downloaded_bytes'),
             '_elapsed_str': self.format_seconds(s.get('elapsed')),
         })
 
@@ -378,24 +385,19 @@ class FileDownloader:
         """Report attempt to resume at given byte."""
         self.to_screen('[download] Resuming download at byte %s' % resume_len)
 
-    def report_retry(self, err, count, retries):
-        """Report retry in case of HTTP error 5xx"""
-        self.__to_screen(
-            '[download] Got server HTTP error: %s. Retrying (attempt %d of %s) ...'
-            % (error_to_compat_str(err), count, self.format_retries(retries)))
-        self.sleep_retry('http', count)
+    def report_retry(self, err, count, retries, frag_index=NO_DEFAULT, fatal=True):
+        """Report retry"""
+        is_frag = False if frag_index is NO_DEFAULT else 'fragment'
+        RetryManager.report_retry(
+            err, count, retries, info=self.__to_screen,
+            warn=lambda msg: self.__to_screen(f'[download] Got error: {msg}'),
+            error=IDENTITY if not fatal else lambda e: self.report_error(f'\r[download] Got error: {e}'),
+            sleep_func=self.params.get('retry_sleep_functions', {}).get(is_frag or 'http'),
+            suffix=f'fragment{"s" if frag_index is None else f" {frag_index}"}' if is_frag else None)
 
     def report_unable_to_resume(self):
         """Report it was impossible to resume download."""
         self.to_screen('[download] Unable to resume')
-
-    def sleep_retry(self, retry_type, count):
-        sleep_func = self.params.get('retry_sleep_functions', {}).get(retry_type)
-        delay = float_or_none(sleep_func(n=count - 1)) if sleep_func else None
-        if delay:
-            self.__to_screen(f'Sleeping {delay:.2f} seconds ...')
-            time.sleep(delay)
-        return sleep_func is not None
 
     @staticmethod
     def supports_manifest(manifest):

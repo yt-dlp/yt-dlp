@@ -10,6 +10,7 @@ from ..compat import functools
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
     Popen,
+    RetryManager,
     _configuration_args,
     check_executable,
     classproperty,
@@ -134,29 +135,22 @@ class ExternalFD(FragmentFD):
                 self.to_stderr(stderr)
             return returncode
 
-        fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
 
-        count = 0
-        while count <= fragment_retries:
+        retry_manager = RetryManager(self.params.get('fragment_retries'), self.report_retry,
+                                     frag_index=None, fatal=not skip_unavailable_fragments)
+        for retry in retry_manager:
             _, stderr, returncode = Popen.run(cmd, text=True, stderr=subprocess.PIPE)
             if not returncode:
                 break
-
             # TODO: Decide whether to retry based on error code
             # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
             if stderr:
                 self.to_stderr(stderr)
-            count += 1
-            if count <= fragment_retries:
-                self.to_screen(
-                    '[%s] Got error. Retrying fragments (attempt %d of %s)...'
-                    % (self.get_basename(), count, self.format_retries(fragment_retries)))
-                self.sleep_retry('fragment', count)
-        if count > fragment_retries:
-            if not skip_unavailable_fragments:
-                self.report_error('Giving up after %s fragment retries' % fragment_retries)
-                return -1
+            retry.error = Exception()
+            continue
+        if not skip_unavailable_fragments and retry_manager.error:
+            return -1
 
         decrypt_fragment = self.decrypter(info_dict)
         dest, _ = self.sanitize_open(tmpfilename, 'wb')
@@ -258,6 +252,10 @@ class Aria2cFD(ExternalFD):
         check_results = (not re.search(feature, manifest) for feature in UNSUPPORTED_FEATURES)
         return all(check_results)
 
+    @staticmethod
+    def _aria2c_filename(fn):
+        return fn if os.path.isabs(fn) else f'.{os.path.sep}{fn}'
+
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
@@ -286,11 +284,9 @@ class Aria2cFD(ExternalFD):
         # https://github.com/aria2/aria2/issues/1373
         dn = os.path.dirname(tmpfilename)
         if dn:
-            if not os.path.isabs(dn):
-                dn = f'.{os.path.sep}{dn}'
-            cmd += ['--dir', dn + os.path.sep]
+            cmd += ['--dir', self._aria2c_filename(dn) + os.path.sep]
         if 'fragments' not in info_dict:
-            cmd += ['--out', f'.{os.path.sep}{os.path.basename(tmpfilename)}']
+            cmd += ['--out', self._aria2c_filename(os.path.basename(tmpfilename))]
         cmd += ['--auto-file-renaming=false']
 
         if 'fragments' in info_dict:
@@ -299,11 +295,11 @@ class Aria2cFD(ExternalFD):
             url_list = []
             for frag_index, fragment in enumerate(info_dict['fragments']):
                 fragment_filename = '%s-Frag%d' % (os.path.basename(tmpfilename), frag_index)
-                url_list.append('%s\n\tout=%s' % (fragment['url'], fragment_filename))
+                url_list.append('%s\n\tout=%s' % (fragment['url'], self._aria2c_filename(fragment_filename)))
             stream, _ = self.sanitize_open(url_list_file, 'wb')
             stream.write('\n'.join(url_list).encode())
             stream.close()
-            cmd += ['-i', url_list_file]
+            cmd += ['-i', self._aria2c_filename(url_list_file)]
         else:
             cmd += ['--', info_dict['url']]
         return cmd
@@ -521,16 +517,14 @@ _BY_NAME = {
     if name.endswith('FD') and name not in ('ExternalFD', 'FragmentFD')
 }
 
-_BY_EXE = {klass.EXE_NAME: klass for klass in _BY_NAME.values()}
-
 
 def list_external_downloaders():
     return sorted(_BY_NAME.keys())
 
 
 def get_external_downloader(external_downloader):
-    """ Given the name of the executable, see whether we support the given
-        downloader . """
-    # Drop .exe extension on Windows
+    """ Given the name of the executable, see whether we support the given downloader """
     bn = os.path.splitext(os.path.basename(external_downloader))[0]
-    return _BY_NAME.get(bn, _BY_EXE.get(bn))
+    return _BY_NAME.get(bn) or next((
+        klass for klass in _BY_NAME.values() if klass.EXE_NAME in bn
+    ), None)

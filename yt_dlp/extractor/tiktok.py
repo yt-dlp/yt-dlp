@@ -1,7 +1,6 @@
 import itertools
 import json
 import random
-import re
 import string
 import time
 
@@ -26,7 +25,7 @@ from ..utils import (
 
 
 class TikTokBaseIE(InfoExtractor):
-    _APP_VERSIONS = [('20.9.3', '293'), ('20.4.3', '243'), ('20.2.1', '221'), ('20.1.2', '212'), ('20.0.4', '204')]
+    _APP_VERSIONS = [('26.1.3', '260103'), ('26.1.2', '260102'), ('26.1.1', '260101'), ('25.6.2', '250602')]
     _WORKING_APP_VERSION = None
     _APP_NAME = 'trill'
     _AID = 1180
@@ -34,7 +33,6 @@ class TikTokBaseIE(InfoExtractor):
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
-    _session_initialized = False
 
     @staticmethod
     def _create_url(user_id, video_id):
@@ -43,12 +41,6 @@ class TikTokBaseIE(InfoExtractor):
     def _get_sigi_state(self, webpage, display_id):
         return self._parse_json(get_element_by_id(
             'SIGI_STATE|sigi-persisted-data', webpage, escape_value=False), display_id)
-
-    def _real_initialize(self):
-        if self._session_initialized:
-            return
-        self._request_webpage(HEADRequest('https://www.tiktok.com'), None, note='Setting up session', fatal=False)
-        TikTokBaseIE._session_initialized = True
 
     def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
                        note='Downloading API JSON', errnote='Unable to download API page'):
@@ -290,7 +282,7 @@ class TikTokBaseIE(InfoExtractor):
             'uploader_url': user_url,
             'track': music_track,
             'album': str_or_none(music_info.get('album')) or None,
-            'artist': music_author,
+            'artist': music_author or None,
             'timestamp': int_or_none(aweme_detail.get('create_time')),
             'formats': formats,
             'subtitles': self.extract_subtitles(aweme_detail, aweme_id),
@@ -379,6 +371,7 @@ class TikTokBaseIE(InfoExtractor):
 
 class TikTokIE(TikTokBaseIE):
     _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)/video)/(?P<id>\d+)'
+    _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
 
     _TESTS = [{
         'url': 'https://www.tiktok.com/@leenabhushan/video/6748451240264420610',
@@ -522,31 +515,19 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-        'expected_warnings': ['trying feed workaround', 'Unable to find video in feed']
+        'skip': 'This video is unavailable',
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
         'only_matching': True
     }]
 
-    @classmethod
-    def _extract_urls(cls, webpage):
-        return [mobj.group('url') for mobj in re.finditer(
-            rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{cls._VALID_URL})', webpage)]
-
     def _extract_aweme_app(self, aweme_id):
-        try:
-            aweme_detail = self._call_api('aweme/detail', {'aweme_id': aweme_id}, aweme_id,
-                                          note='Downloading video details', errnote='Unable to download video details').get('aweme_detail')
-            if not aweme_detail:
-                raise ExtractorError('Video not available', video_id=aweme_id)
-        except ExtractorError as e:
-            self.report_warning(f'{e.orig_msg}; trying feed workaround')
-            feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
-                                       note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
-            aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
-            if not aweme_detail:
-                raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
+        feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
+                                   note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
+        aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
+        if not aweme_detail:
+            raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
         return self._parse_aweme_video_app(aweme_detail)
 
     def _real_extract(self, url):
@@ -577,6 +558,7 @@ class TikTokIE(TikTokBaseIE):
 class TikTokUserIE(TikTokBaseIE):
     IE_NAME = 'tiktok:user'
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\.-]+)/?(?:$|[#?])'
+    _WORKING = False
     _TESTS = [{
         'url': 'https://tiktok.com/@corgibobaa?lang=en',
         'playlist_mincount': 45,
@@ -635,19 +617,17 @@ class TikTokUserIE(TikTokBaseIE):
             'device_id': ''.join(random.choice(string.digits) for _ in range(19)),  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
         }
 
-        max_retries = self.get_param('extractor_retries', 3)
         for page in itertools.count(1):
-            for retries in itertools.count():
+            for retry in self.RetryManager():
                 try:
-                    post_list = self._call_api('aweme/post', query, username,
-                                               note='Downloading user video list page %d%s' % (page, f' (attempt {retries})' if retries != 0 else ''),
-                                               errnote='Unable to download user video list')
+                    post_list = self._call_api(
+                        'aweme/post', query, username, note=f'Downloading user video list page {page}',
+                        errnote='Unable to download user video list')
                 except ExtractorError as e:
-                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0 and retries != max_retries:
-                        self.report_warning('%s. Retrying...' % str(e.cause or e.msg))
+                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
+                        retry.error = e
                         continue
                     raise
-                break
             yield from post_list.get('aweme_list', [])
             if not post_list.get('has_more'):
                 break
@@ -685,19 +665,17 @@ class TikTokBaseListIE(TikTokBaseIE):
             'device_id': ''.join(random.choice(string.digits) for i in range(19))
         }
 
-        max_retries = self.get_param('extractor_retries', 3)
         for page in itertools.count(1):
-            for retries in itertools.count():
+            for retry in self.RetryManager():
                 try:
-                    post_list = self._call_api(self._API_ENDPOINT, query, display_id,
-                                               note='Downloading video list page %d%s' % (page, f' (attempt {retries})' if retries != 0 else ''),
-                                               errnote='Unable to download video list')
+                    post_list = self._call_api(
+                        self._API_ENDPOINT, query, display_id, note=f'Downloading video list page {page}',
+                        errnote='Unable to download video list')
                 except ExtractorError as e:
-                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0 and retries != max_retries:
-                        self.report_warning('%s. Retrying...' % str(e.cause or e.msg))
+                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
+                        retry.error = e
                         continue
                     raise
-                break
             for video in post_list.get('aweme_list', []):
                 yield {
                     **self._parse_aweme_video_app(video),
@@ -717,6 +695,7 @@ class TikTokBaseListIE(TikTokBaseIE):
 class TikTokSoundIE(TikTokBaseListIE):
     IE_NAME = 'tiktok:sound'
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/music/[\w\.-]+-(?P<id>[\d]+)[/?#&]?'
+    _WORKING = False
     _QUERY_NAME = 'music_id'
     _API_ENDPOINT = 'music/aweme'
     _TESTS = [{
@@ -740,6 +719,7 @@ class TikTokSoundIE(TikTokBaseListIE):
 class TikTokEffectIE(TikTokBaseListIE):
     IE_NAME = 'tiktok:effect'
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/sticker/[\w\.-]+-(?P<id>[\d]+)[/?#&]?'
+    _WORKING = False
     _QUERY_NAME = 'sticker_id'
     _API_ENDPOINT = 'sticker/aweme'
     _TESTS = [{
@@ -759,6 +739,7 @@ class TikTokEffectIE(TikTokBaseListIE):
 class TikTokTagIE(TikTokBaseListIE):
     IE_NAME = 'tiktok:tag'
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/tag/(?P<id>[^/?#&]+)'
+    _WORKING = False
     _QUERY_NAME = 'ch_id'
     _API_ENDPOINT = 'challenge/aweme'
     _TESTS = [{

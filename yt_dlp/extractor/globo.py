@@ -178,12 +178,12 @@ class GloboArticleIE(InfoExtractor):
     _VALID_URL = r'https?://.+?\.globo\.com/(?:[^/]+/)*(?P<id>[^/.]+)(?:\.html)?'
 
     _VIDEOID_REGEXES = [
-        r'\bdata-video-id=["\'](\d{7,})',
-        r'\bdata-player-videosids=["\'](\d{7,})',
+        r'\bdata-video-id=["\'](\d{7,})["\']',
+        r'\bdata-player-videosids=["\'](\d{7,})["\']',
         r'\bvideosIDs\s*:\s*["\']?(\d{7,})',
-        r'\bdata-id=["\'](\d{7,})',
-        r'<div[^>]+\bid=["\'](\d{7,})',
-        r'<bs-player[^>]+\bvideoid=["\'](\d{8,})',
+        r'\bdata-id=["\'](\d{7,})["\']',
+        r'<div[^>]+\bid=["\'](\d{7,})["\']',
+        r'<bs-player[^>]+\bvideoid=["\'](\d{8,})["\']',
     ]
 
     _TESTS = [{
@@ -219,6 +219,14 @@ class GloboArticleIE(InfoExtractor):
             'description': 'md5:2d089d036c4c9675117d3a56f8c61739',
         },
         'playlist_count': 1,
+    }, {
+        'url': 'https://redeglobo.globo.com/rpc/meuparana/noticia/a-producao-de-chocolates-no-parana.ghtml',
+        'info_dict': {
+            'id': 'a-producao-de-chocolates-no-parana',
+            'title': 'A produção de chocolates no Paraná',
+            'description': 'md5:f2e3daf00ffd1dc0e9a8a6c7cfb0a89e',
+        },
+        'playlist_count': 2,
     }]
 
     @classmethod
@@ -234,6 +242,6 @@ class GloboArticleIE(InfoExtractor):
         entries = [
             self.url_result('globo:%s' % video_id, GloboIE.ie_key())
             for video_id in orderedSet(video_ids)]
-        title = self._og_search_title(webpage)
+        title = self._og_search_title(webpage).strip()
         description = self._html_search_meta('description', webpage)
         return self.playlist_result(entries, display_id, title, description)

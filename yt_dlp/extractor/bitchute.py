@@ -13,6 +13,7 @@ from ..utils import (
 
 class BitChuteIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?bitchute\.com/(?:video|embed|torrent/[^/]+)/(?P<id>[^/?#&]+)'
+    _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://www.bitchute.com/video/UGlrF9o9b-Q/',
         'md5': '7e427d7ed7af5a75b5855705ec750e2b',
@@ -32,14 +33,6 @@ class BitChuteIE(InfoExtractor):
         'url': 'https://www.bitchute.com/torrent/Zee5BE49045h/szoMrox2JEI.webtorrent',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>%s)' % BitChuteIE._VALID_URL,
-                webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -72,10 +65,12 @@ class BitChuteIE(InfoExtractor):
                 error = self._html_search_regex(r'<h1 class="page-title">([^<]+)</h1>', webpage, 'error', default='Cannot find video')
                 if error == 'Video Unavailable':
                     raise GeoRestrictedError(error)
-                raise ExtractorError(error)
+                raise ExtractorError(error, expected=True)
             formats = entries[0]['formats']
 
         self._check_formats(formats, video_id)
+        if not formats:
+            raise self.raise_no_formats('Video is unavailable', expected=True, video_id=video_id)
         self._sort_formats(formats)
 
         description = self._html_search_regex(

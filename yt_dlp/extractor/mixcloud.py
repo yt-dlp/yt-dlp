@@ -159,6 +159,7 @@ class MixcloudIE(MixcloudBaseIE):
                 formats.append({
                     'format_id': 'http',
                     'url': decrypted,
+                    'vcodec': 'none',
                     'downloader_options': {
                         # Mixcloud starts throttling at >~5M
                         'http_chunk_size': 5242880,

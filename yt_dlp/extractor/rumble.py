@@ -15,6 +15,7 @@ from ..utils import (
 
 class RumbleEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rumble\.com/embed/(?:[0-9a-z]+\.)?(?P<id>[0-9a-z]+)'
+    _EMBED_REGEX = [fr'(?:<(?:script|iframe)[^>]+\bsrc=|["\']embedUrl["\']\s*:\s*)["\'](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://rumble.com/embed/v5pv5f',
         'md5': '36a18a049856720189f30977ccbb2c34',
@@ -51,11 +52,10 @@ class RumbleEmbedIE(InfoExtractor):
     }]
 
     @classmethod
-    def _extract_urls(cls, webpage):
-        embeds = tuple(re.finditer(
-            fr'(?:<(?:script|iframe)[^>]+\bsrc=|["\']embedUrl["\']\s*:\s*)["\'](?P<url>{cls._VALID_URL})', webpage))
+    def _extract_embed_urls(cls, url, webpage):
+        embeds = tuple(super()._extract_embed_urls(url, webpage))
         if embeds:
-            return [mobj.group('url') for mobj in embeds]
+            return embeds
         return [f'https://rumble.com/embed/{mobj.group("id")}' for mobj in re.finditer(
             r'<script>\s*Rumble\(\s*"play"\s*,\s*{\s*[\'"]video[\'"]\s*:\s*[\'"](?P<id>[0-9a-z]+)[\'"]', webpage)]
 

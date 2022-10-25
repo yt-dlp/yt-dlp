@@ -163,7 +163,7 @@ class CSpanIE(InfoExtractor):
                 video_id = m.group('id')
                 video_type = 'program' if m.group('type') == 'prog' else 'clip'
             else:
-                senate_isvp_url = SenateISVPIE._search_iframe_url(webpage)
+                senate_isvp_url = SenateISVPIE._extract_url(webpage)
                 if senate_isvp_url:
                     title = self._og_search_title(webpage)
                     surl = smuggle_url(senate_isvp_url, {'force_title': title})

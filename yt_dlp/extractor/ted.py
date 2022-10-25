@@ -215,6 +215,7 @@ class TedPlaylistIE(TedBaseIE):
 
 class TedEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://embed(?:-ssl)?\.ted\.com/'
+    _EMBED_REGEX = [rf'<iframe[^>]+?src=(["\'])(?P<url>{_VALID_URL}.+?)\1']
 
     _TESTS = [{
         'url': 'https://embed.ted.com/talks/janet_stovall_how_to_get_serious_about_diversity_and_inclusion_in_the_workplace',
@@ -232,11 +233,6 @@ class TedEmbedIE(InfoExtractor):
             'thumbnail': r're:http.*\.jpg',
         },
     }]
-
-    @classmethod
-    def _extract_urls(cls, webpage):
-        return [mobj.group('url') for mobj in re.finditer(
-            fr'<iframe[^>]+?src=(["\'])(?P<url>{cls._VALID_URL}.+?)\1', webpage)]
 
     def _real_extract(self, url):
         return self.url_result(re.sub(r'://embed(-ssl)?', '://www', url), TedTalkIE.ie_key())

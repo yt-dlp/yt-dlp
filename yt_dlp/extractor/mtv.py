@@ -331,6 +331,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
 class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
     IE_NAME = 'mtvservices:embedded'
     _VALID_URL = r'https?://media\.mtvnservices\.com/embed/(?P<mgid>.+?)(\?|/|$)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1']
 
     _TEST = {
         # From http://www.thewrap.com/peter-dinklage-sums-up-game-of-thrones-in-45-seconds-video/
@@ -345,13 +346,6 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
             'upload_date': '20140515',
         },
     }
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1', webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _get_feed_url(self, uri, url=None):
         video_id = self._id_from_uri(uri)

@@ -8,12 +8,14 @@ class TestURLIE(InfoExtractor):
     """ Allows addressing of the test cases as test:yout.*be_1 """
 
     IE_DESC = False  # Do not list
-    _VALID_URL = r'test(?:url)?:(?P<extractor>.+?)(?:_(?P<num>[0-9]+))?$'
+    _VALID_URL = r'test(?:url)?:(?P<extractor>.*?)(?:_(?P<num>[0-9]+))?$'
 
     def _real_extract(self, url):
         from . import gen_extractor_classes
 
         extractor_id, num = self._match_valid_url(url).group('extractor', 'num')
+        if not extractor_id:
+            return {'id': ':test', 'title': '', 'url': url}
 
         rex = re.compile(extractor_id, flags=re.IGNORECASE)
         matching_extractors = [e for e in gen_extractor_classes() if rex.search(e.IE_NAME)]

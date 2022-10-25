@@ -95,7 +95,7 @@ class WASDTVStreamIE(WASDTVBaseIE):
 
 class WASDTVRecordIE(WASDTVBaseIE):
     IE_NAME = 'wasdtv:record'
-    _VALID_URL = r'https?://wasd\.tv/[^/#?]+/videos\?record=(?P<id>\d+)$'
+    _VALID_URL = r'https?://wasd\.tv/[^/#?]+(?:/videos)?\?record=(?P<id>\d+)$'
     _TESTS = [{
         'url': 'https://wasd.tv/spacemita/videos?record=907755',
         'md5': 'c9899dd85be4cc997816ff9f9ca516ce',
@@ -110,6 +110,9 @@ class WASDTVRecordIE(WASDTVBaseIE):
             'is_live': False,
             'view_count': int,
         },
+    }, {
+        'url': 'https://wasd.tv/spacemita?record=907755',
+        'only_matching': True,
     }]
 
     def _get_container(self, url):

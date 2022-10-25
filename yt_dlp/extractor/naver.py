@@ -11,7 +11,6 @@ from ..utils import (
     merge_dicts,
     parse_duration,
     traverse_obj,
-    try_call,
     try_get,
     unified_timestamp,
     update_url_query,
@@ -257,14 +256,13 @@ class NaverLiveIE(InfoExtractor):
 
 class NaverNowIE(NaverBaseIE):
     IE_NAME = 'navernow'
-    _VALID_URL = r'https?://now\.naver\.com/show/(?P<id>[0-9]+)'
-    _PAGE_SIZE = 30
-    _API_URL = 'https://apis.naver.com/now_web/nowcms-api-xhmac/cms/v1'
+    _VALID_URL = r'https?://now\.naver\.com/s/now\.(?P<id>[0-9]+)'
+    _API_URL = 'https://apis.naver.com/now_web/oldnow_web/v4'
     _TESTS = [{
-        'url': 'https://now.naver.com/show/4759?shareReplayId=5901#replay=',
+        'url': 'https://now.naver.com/s/now.4759?shareReplayId=26331132#replay=',
         'md5': 'e05854162c21c221481de16b2944a0bc',
         'info_dict': {
-            'id': '4759-5901',
+            'id': '4759-26331132',
             'title': '아이키X노제\r\n💖꽁냥꽁냥💖(1)',
             'ext': 'mp4',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -272,52 +270,56 @@ class NaverNowIE(NaverBaseIE):
             'upload_date': '20220419',
             'uploader_id': 'now',
             'view_count': int,
+            'uploader_url': 'https://now.naver.com/show/4759',
+            'uploader': '아이키의 떰즈업',
         },
         'params': {
             'noplaylist': True,
         }
     }, {
-        'url': 'https://now.naver.com/show/4759?shareHightlight=1078#highlight=',
+        'url': 'https://now.naver.com/s/now.4759?shareHightlight=26601461#highlight=',
         'md5': '9f6118e398aa0f22b2152f554ea7851b',
         'info_dict': {
-            'id': '4759-1078',
+            'id': '4759-26601461',
             'title': '아이키: 나 리정한테 흔들렸어,,, 질투 폭발하는 노제 여보😾 [아이키의 떰즈업]ㅣ네이버 NOW.',
             'ext': 'mp4',
             'thumbnail': r're:^https?://.*\.jpg',
             'upload_date': '20220504',
-            'timestamp': 1651648042,
+            'timestamp': 1651648311,
             'uploader_id': 'now',
             'view_count': int,
+            'uploader_url': 'https://now.naver.com/show/4759',
+            'uploader': '아이키의 떰즈업',
         },
         'params': {
             'noplaylist': True,
         },
     }, {
-        'url': 'https://now.naver.com/show/4759',
+        'url': 'https://now.naver.com/s/now.4759',
         'info_dict': {
             'id': '4759',
             'title': '아이키의 떰즈업',
         },
-        'playlist_mincount': 48
+        'playlist_mincount': 101
     }, {
-        'url': 'https://now.naver.com/show/4759?shareReplayId=5901#replay',
+        'url': 'https://now.naver.com/s/now.4759?shareReplayId=26331132#replay',
         'info_dict': {
             'id': '4759',
             'title': '아이키의 떰즈업',
         },
-        'playlist_mincount': 48,
+        'playlist_mincount': 101,
     }, {
-        'url': 'https://now.naver.com/show/4759?shareHightlight=1078#highlight=',
+        'url': 'https://now.naver.com/s/now.4759?shareHightlight=26601461#highlight=',
         'info_dict': {
             'id': '4759',
             'title': '아이키의 떰즈업',
         },
-        'playlist_mincount': 48,
+        'playlist_mincount': 101,
     }]
 
     def _extract_replay(self, show_id, replay_id):
-        vod_info = self._download_json(f'{self._API_URL}/shows/{show_id}/vod/{replay_id}', replay_id)
-        in_key = self._download_json(f'{self._API_URL}/shows/{show_id}/vod/{replay_id}/inkey', replay_id)['inKey']
+        vod_info = self._download_json(f'{self._API_URL}/shows/now.{show_id}/vod/{replay_id}', replay_id)
+        in_key = self._download_json(f'{self._API_URL}/shows/now.{show_id}/vod/{replay_id}/inkey', replay_id)['inKey']
         return merge_dicts({
             'id': f'{show_id}-{replay_id}',
             'title': traverse_obj(vod_info, ('episode', 'title')),
@@ -326,39 +328,41 @@ class NaverNowIE(NaverBaseIE):
         }, self._extract_video_info(replay_id, vod_info['video_id'], in_key))
 
     def _extract_show_replays(self, show_id):
-        page = 0
+        page_size = 15
+        page = 1
         while True:
             show_vod_info = self._download_json(
-                f'{self._API_URL}/vod-shows/{show_id}', show_id,
-                query={'offset': page * self._PAGE_SIZE, 'limit': self._PAGE_SIZE},
+                f'{self._API_URL}/vod-shows/now.{show_id}', show_id,
+                query={'page': page, 'page_size': page_size},
                 note=f'Downloading JSON vod list for show {show_id} - page {page}'
             )['response']['result']
             for v in show_vod_info.get('vod_list') or []:
                 yield self._extract_replay(show_id, v['id'])
 
-            if try_call(lambda: show_vod_info['count'] <= self._PAGE_SIZE * (page + 1)):
+            if len(show_vod_info.get('vod_list') or []) < page_size:
                 break
             page += 1
 
     def _extract_show_highlights(self, show_id, highlight_id=None):
-        page = 0
+        page_size = 10
+        page = 1
         while True:
             highlights_videos = self._download_json(
-                f'{self._API_URL}/shows/{show_id}/highlights/videos/', show_id,
-                query={'offset': page * self._PAGE_SIZE, 'limit': self._PAGE_SIZE},
+                f'{self._API_URL}/shows/now.{show_id}/highlights/videos/', show_id,
+                query={'page': page, 'page_size': page_size},
                 note=f'Downloading JSON highlights for show {show_id} - page {page}')
 
             for highlight in highlights_videos.get('results') or []:
-                if highlight_id and highlight.get('id') != int(highlight_id):
+                if highlight_id and highlight.get('clip_no') != int(highlight_id):
                     continue
                 yield merge_dicts({
-                    'id': f'{show_id}-{highlight["id"]}',
+                    'id': f'{show_id}-{highlight["clip_no"]}',
                     'title': highlight.get('title'),
                     'timestamp': unified_timestamp(highlight.get('regdate')),
                     'thumbnail': highlight.get('thumbnail_url'),
-                }, self._extract_video_info(highlight['id'], highlight['video_id'], highlight['video_inkey']))
+                }, self._extract_video_info(highlight['clip_no'], highlight['video_id'], highlight['video_inkey']))
 
-            if try_call(lambda: highlights_videos['count'] <= self._PAGE_SIZE * (page + 1)):
+            if len(highlights_videos.get('results') or []) < page_size:
                 break
             page += 1
 
@@ -378,7 +382,7 @@ class NaverNowIE(NaverBaseIE):
             return self._extract_replay(show_id, qs['shareReplayId'][0])
 
         show_info = self._download_json(
-            f'{self._API_URL}/shows/{show_id}', show_id,
+            f'{self._API_URL}/shows/now.{show_id}/', show_id,
             note=f'Downloading JSON vod list for show {show_id}')
 
         return self.playlist_result(

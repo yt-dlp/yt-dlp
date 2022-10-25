@@ -2,6 +2,7 @@ name: Feature request
 description: Request a new functionality unrelated to any particular site or extractor
 labels: [triage, enhancement]
 body:
+  %(no_skip)s
   - type: checkboxes
     id: checklist
     attributes:
