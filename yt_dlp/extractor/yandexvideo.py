@@ -240,6 +240,8 @@ class ZenYandexIE(InfoExtractor):
             'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
             'thumbnail': 're:^https://avatars.dzeninfra.ru/',
             'uploader': 'TechInsider',
+            'upload_date': '20210123',
+            'timestamp': 1611378221,
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -292,14 +294,16 @@ class ZenYandexChannelIE(InfoExtractor):
         'url': 'https://zen.yandex.ru/tok_media',
         'info_dict': {
             'id': 'tok_media',
-            'description': 'md5:a9e5b3c247b7fe29fd21371a428bcf56',
             'title': 'СПЕКТР',
+            'description': 'md5:a9e5b3c247b7fe29fd21371a428bcf56',
         },
         'playlist_mincount': 169,
     }, {
         'url': 'https://dzen.ru/tok_media',
         'info_dict': {
             'id': 'tok_media',
+            'title': 'СПЕКТР',
+            'description': 'md5:a9e5b3c247b7fe29fd21371a428bcf56',
         },
         'playlist_mincount': 169,
     }, {
@@ -335,6 +339,8 @@ class ZenYandexChannelIE(InfoExtractor):
         'url': 'https://dzen.ru/id/606fd806cc13cb3c58c05cf5',
         'info_dict': {
             'id': '606fd806cc13cb3c58c05cf5',
+            'title': 'AcademeG DailyStream',
+            'description': 'md5:517b7c97d8ca92e940f5af65448fd928',
         },
         'playlist_mincount': 657,
     }]
@@ -368,7 +374,7 @@ class ZenYandexChannelIE(InfoExtractor):
         redirect = self._search_json(
             r'var it\s*=\s*', webpage, 'redirect', item_id, default={}).get('retpath')
         if redirect:
-            webpage = self._download_webpage(redirect, id, note='Redirecting')
+            webpage = self._download_webpage(redirect, item_id, note='Redirecting')
         data = self._search_json(
             r'var\s+data\s*=', webpage, 'channel data', item_id, contains_pattern=r'{\"__serverState__.+}')
         server_state_json = traverse_obj(data, lambda k, _: k.startswith('__serverState__'), get_all=False)
