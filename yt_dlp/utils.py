@@ -3073,8 +3073,8 @@ def escape_url(url):
     ).geturl()
 
 
-def parse_qs(url):
-    return urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+def parse_qs(url, **kwargs):
+    return urllib.parse.parse_qs(urllib.parse.urlparse(url).query, **kwargs)
 
 
 def read_batch_urls(batch_fd):
