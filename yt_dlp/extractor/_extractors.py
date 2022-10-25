@@ -65,6 +65,7 @@ from .aenetworks import (
     HistoryPlayerIE,
     BiographyIE,
 )
+from .aeonco import AeonCoIE
 from .afreecatv import (
     AfreecaTVIE,
     AfreecaTVLiveIE,
@@ -441,6 +442,7 @@ from .dplay import (
     AnimalPlanetIE,
     TLCIE,
     MotorTrendIE,
+    MotorTrendOnDemandIE,
     DiscoveryPlusIndiaIE,
     DiscoveryNetworksDeIE,
     DiscoveryPlusItalyIE,
@@ -697,7 +699,10 @@ from .hse import (
     HSEShowIE,
     HSEProductIE,
 )
-from .genericembeds import HTML5MediaEmbedIE
+from .genericembeds import (
+    HTML5MediaEmbedIE,
+    QuotedHTMLIE,
+)
 from .huajiao import HuajiaoIE
 from .huya import HuyaLiveIE
 from .huffpost import HuffPostIE
@@ -1181,6 +1186,7 @@ from .noodlemagazine import NoodleMagazineIE
 from .noovo import NoovoIE
 from .normalboots import NormalbootsIE
 from .nosvideo import NosVideoIE
+from .nosnl import NOSNLArticleIE
 from .nova import (
     NovaEmbedIE,
     NovaIE,
@@ -1235,6 +1241,7 @@ from .olympics import OlympicsReplayIE
 from .on24 import On24IE
 from .ondemandkorea import OnDemandKoreaIE
 from .onefootball import OneFootballIE
+from .onenewsnz import OneNewsNZIE
 from .onet import (
     OnetIE,
     OnetChannelIE,
@@ -1343,6 +1350,7 @@ from .pluralsight import (
     PluralsightIE,
     PluralsightCourseIE,
 )
+from .podbayfm import PodbayFMIE, PodbayFMChannelIE
 from .podchaser import PodchaserIE
 from .podomatic import PodomaticIE
 from .pokemon import (
@@ -1383,6 +1391,7 @@ from .puhutv import (
     PuhuTVIE,
     PuhuTVSerieIE,
 )
+from .prankcast import PrankCastIE
 from .premiershiprugby import PremiershipRugbyIE
 from .presstv import PressTVIE
 from .projectveritas import ProjectVeritasIE
@@ -1563,6 +1572,7 @@ from .samplefocus import SampleFocusIE
 from .sapo import SapoIE
 from .savefrom import SaveFromIE
 from .sbs import SBSIE
+from .screen9 import Screen9IE
 from .screencast import ScreencastIE
 from .screencastomatic import ScreencastOMaticIE
 from .scrippsnetworks import (
@@ -1878,7 +1888,6 @@ from .tv2 import (
 )
 from .tv24ua import (
     TV24UAVideoIE,
-    TV24UAGenericPassthroughIE
 )
 from .tv2dk import (
     TV2DKIE,
@@ -1960,6 +1969,7 @@ from .twitter import (
     TwitterIE,
     TwitterAmplifyIE,
     TwitterBroadcastIE,
+    TwitterSpacesIE,
     TwitterShortenerIE,
 )
 from .udemy import (
@@ -2161,7 +2171,10 @@ from .wistia import (
     WistiaPlaylistIE,
     WistiaChannelIE,
 )
-from .wordpress import WordpressPlaylistEmbedIE
+from .wordpress import (
+    WordpressPlaylistEmbedIE,
+    WordpressMiniAudioPlayerEmbedIE,
+)
 from .worldstarhiphop import WorldStarHipHopIE
 from .wppilot import (
     WPPilotIE,
@@ -2284,6 +2297,7 @@ from .zee5 import (
     Zee5IE,
     Zee5SeriesIE,
 )
+from .zeenews import ZeeNewsIE
 from .zhihu import ZhihuIE
 from .zingmp3 import (
     ZingMp3IE,

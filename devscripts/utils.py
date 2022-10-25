@@ -7,8 +7,8 @@ def read_file(fname):
         return f.read()
 
 
-def write_file(fname, content):
-    with open(fname, 'w', encoding='utf-8') as f:
+def write_file(fname, content, mode='w'):
+    with open(fname, mode, encoding='utf-8') as f:
         return f.write(content)
 
 

@@ -114,18 +114,15 @@ class DetikEmbedIE(InfoExtractor):
     }]
 
     def _extract_from_webpage(self, url, webpage):
-        display_id = url_basename(url)
         player_type, video_data = self._search_regex(
             r'<script\s*[^>]+src="https?://(aws)?cdn\.detik\.net\.id/(?P<type>flowplayer|detikVideo)[^>]+>\s*(?P<video_data>{[^}]+})',
             webpage, 'playerjs', group=('type', 'video_data'), default=(None, ''))
-
-        json_ld_data = self._search_json_ld(webpage, display_id, default={})
-        extra_info_dict = {}
-
         if not player_type:
             return
 
-        elif player_type == 'flowplayer':
+        display_id, extra_info_dict = url_basename(url), {}
+
+        if player_type == 'flowplayer':
             video_json_data = self._parse_json(video_data.replace('\'', '"'), display_id)
             video_url = video_json_data['videoUrl']
 
@@ -151,6 +148,7 @@ class DetikEmbedIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id)
         self._sort_formats(formats)
 
+        json_ld_data = self._search_json_ld(webpage, display_id, default={})
         yield merge_dicts(json_ld_data, extra_info_dict, {
             'display_id': display_id,
             'title': self._html_search_meta(['og:title', 'originalTitle'], webpage) or self._html_extract_title(webpage),

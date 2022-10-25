@@ -7,9 +7,9 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     format_field,
-    traverse_obj,
     int_or_none,
     str_or_none,
+    traverse_obj,
     try_get,
 )
 

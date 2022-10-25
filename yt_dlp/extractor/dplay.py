@@ -745,6 +745,45 @@ class MotorTrendIE(DiscoveryPlusBaseIE):
     }
 
 
+class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?motortrendondemand\.com/detail' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.motortrendondemand.com/detail/wheelstanding-dump-truck-stubby-bobs-comeback/37699/784',
+        'info_dict': {
+            'id': '37699',
+            'display_id': 'wheelstanding-dump-truck-stubby-bobs-comeback/37699',
+            'ext': 'mp4',
+            'title': 'Wheelstanding Dump Truck! Stubby Bob’s Comeback',
+            'description': 'md5:996915abe52a1c3dfc83aecea3cce8e7',
+            'season_number': 5,
+            'episode_number': 52,
+            'episode': 'Episode 52',
+            'season': 'Season 5',
+            'thumbnail': r're:^https?://.+\.jpe?g$',
+            'timestamp': 1388534401,
+            'duration': 1887.345,
+            'creator': 'Originals',
+            'series': 'Roadkill',
+            'upload_date': '20140101',
+            'tags': [],
+        },
+    }]
+
+    _PRODUCT = 'MTOD'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.motortrendondemand.com',
+        'realm': 'motortrend',
+        'country': 'us',
+    }
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers.update({
+            'x-disco-params': f'realm={realm}',
+            'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:4.39.1-gi1',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })
+
+
 class DiscoveryPlusIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:\w{2}/)?video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{

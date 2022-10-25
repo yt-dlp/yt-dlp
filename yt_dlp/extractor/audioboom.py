@@ -1,10 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    float_or_none,
-    unescapeHTML,
-    traverse_obj,
-)
+from ..utils import clean_html, float_or_none, traverse_obj, unescapeHTML
 
 
 class AudioBoomIE(InfoExtractor):

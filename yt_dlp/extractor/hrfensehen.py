@@ -1,6 +1,7 @@
 import json
 import re
 
+from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     traverse_obj,
@@ -8,7 +9,6 @@ from ..utils import (
     unescapeHTML,
     unified_timestamp,
 )
-from .common import InfoExtractor
 
 
 class HRFernsehenIE(InfoExtractor):

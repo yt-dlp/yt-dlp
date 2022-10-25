@@ -408,7 +408,7 @@ def get_elements_html_by_attribute(*args, **kwargs):
     return [whole for _, whole in get_elements_text_and_html_by_attribute(*args, **kwargs)]
 
 
-def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value=True):
+def get_elements_text_and_html_by_attribute(attribute, value, html, *, tag=r'[\w:.-]+', escape_value=True):
     """
     Return the text (content) and the html (whole) of the tag with the specified
     attribute in the passed HTML document
@@ -419,7 +419,7 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value
     value = re.escape(value) if escape_value else value
 
     partial_element_re = rf'''(?x)
-        <(?P<tag>[a-zA-Z0-9:._-]+)
+        <(?P<tag>{tag})
          (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
          \s{re.escape(attribute)}\s*=\s*(?P<_q>['"]{quote})(?-x:{value})(?P=_q)
         '''
@@ -2574,7 +2574,9 @@ def strftime_or_none(timestamp, date_format, default=None):
     datetime_object = None
     try:
         if isinstance(timestamp, (int, float)):  # unix timestamp
-            datetime_object = datetime.datetime.utcfromtimestamp(timestamp)
+            # Using naive datetime here can break timestamp() in Windows
+            # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/94414
+            datetime_object = datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
         elif isinstance(timestamp, str):  # assume YYYYMMDD
             datetime_object = datetime.datetime.strptime(timestamp, '%Y%m%d')
         date_format = re.sub(  # Support %s on windows
@@ -3180,6 +3182,10 @@ def multipart_encode(data, boundary=None):
     return out, content_type
 
 
+def variadic(x, allowed_types=(str, bytes, dict)):
+    return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
+
+
 def dict_get(d, key_or_keys, default=None, skip_false_values=True):
     for val in map(d.get, variadic(key_or_keys)):
         if val is not None and (val or not skip_false_values):
@@ -3269,12 +3275,23 @@ def strip_jsonp(code):
 
 def js_to_json(code, vars={}, *, strict=False):
     # vars is a dict of var, val pairs to substitute
+    STRING_QUOTES = '\'"'
+    STRING_RE = '|'.join(rf'{q}(?:\\.|[^\\{q}])*{q}' for q in STRING_QUOTES)
     COMMENT_RE = r'/\*(?:(?!\*/).)*?\*/|//[^\n]*\n'
     SKIP_RE = fr'\s*(?:{COMMENT_RE})?\s*'
     INTEGER_TABLE = (
         (fr'(?s)^(0[xX][0-9a-fA-F]+){SKIP_RE}:?$', 16),
         (fr'(?s)^(0+[0-7]+){SKIP_RE}:?$', 8),
     )
+
+    def process_escape(match):
+        JSON_PASSTHROUGH_ESCAPES = R'"\bfnrtu'
+        escape = match.group(1) or match.group(2)
+
+        return (Rf'\{escape}' if escape in JSON_PASSTHROUGH_ESCAPES
+                else R'\u00' if escape == 'x'
+                else '' if escape == '\n'
+                else escape)
 
     def fix_kv(m):
         v = m.group(0)
@@ -3283,28 +3300,25 @@ def js_to_json(code, vars={}, *, strict=False):
         elif v in ('undefined', 'void 0'):
             return 'null'
         elif v.startswith('/*') or v.startswith('//') or v.startswith('!') or v == ',':
-            return ""
+            return ''
 
-        if v[0] in ("'", '"'):
-            v = re.sub(r'(?s)\\.|"', lambda m: {
-                '"': '\\"',
-                "\\'": "'",
-                '\\\n': '',
-                '\\x': '\\u00',
-            }.get(m.group(0), m.group(0)), v[1:-1])
-        else:
-            for regex, base in INTEGER_TABLE:
-                im = re.match(regex, v)
-                if im:
-                    i = int(im.group(1), base)
-                    return '"%d":' % i if v.endswith(':') else '%d' % i
+        if v[0] in STRING_QUOTES:
+            escaped = re.sub(r'(?s)(")|\\(.)', process_escape, v[1:-1])
+            return f'"{escaped}"'
 
-            if v in vars:
-                return json.dumps(vars[v])
-            if strict:
-                raise ValueError(f'Unknown value: {v}')
+        for regex, base in INTEGER_TABLE:
+            im = re.match(regex, v)
+            if im:
+                i = int(im.group(1), base)
+                return f'"{i}":' if v.endswith(':') else str(i)
 
-        return '"%s"' % v
+        if v in vars:
+            return json.dumps(vars[v])
+
+        if not strict:
+            return f'"{v}"'
+
+        raise ValueError(f'Unknown value: {v}')
 
     def create_map(mobj):
         return json.dumps(dict(json.loads(js_to_json(mobj.group(1) or '[]', vars=vars))))
@@ -3314,15 +3328,14 @@ def js_to_json(code, vars={}, *, strict=False):
         code = re.sub(r'new Date\((".+")\)', r'\g<1>', code)
         code = re.sub(r'new \w+\((.*?)\)', lambda m: json.dumps(m.group(0)), code)
 
-    return re.sub(r'''(?sx)
-        "(?:[^"\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^"\\]*"|
-        '(?:[^'\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^'\\]*'|
-        {comment}|,(?={skip}[\]}}])|
+    return re.sub(rf'''(?sx)
+        {STRING_RE}|
+        {COMMENT_RE}|,(?={SKIP_RE}[\]}}])|
         void\s0|(?:(?<![0-9])[eE]|[a-df-zA-DF-Z_$])[.a-zA-Z_$0-9]*|
-        \b(?:0[xX][0-9a-fA-F]+|0+[0-7]+)(?:{skip}:)?|
-        [0-9]+(?={skip}:)|
+        \b(?:0[xX][0-9a-fA-F]+|0+[0-7]+)(?:{SKIP_RE}:)?|
+        [0-9]+(?={SKIP_RE}:)|
         !+
-        '''.format(comment=COMMENT_RE, skip=SKIP_RE), fix_kv, code)
+        ''', fix_kv, code)
 
 
 def qualities(quality_ids):
@@ -5290,7 +5303,7 @@ def load_plugins(name, suffix, namespace):
 
 
 def traverse_obj(
-        obj, *paths, default=None, expected_type=None, get_all=True,
+        obj, *paths, default=NO_DEFAULT, expected_type=None, get_all=True,
         casesense=True, is_user_input=False, traverse_string=False):
     """
     Safely traverse nested `dict`s and `Sequence`s
@@ -5300,13 +5313,15 @@ def traverse_obj(
     "value"
 
     Each of the provided `paths` is tested and the first producing a valid result will be returned.
+    The next path will also be tested if the path branched but no results could be found.
+    Supported values for traversal are `Mapping`, `Sequence` and `re.Match`.
     A value of None is treated as the absence of a value.
 
     The paths will be wrapped in `variadic`, so that `'key'` is conveniently the same as `('key', )`.
 
     The keys in the path can be one of:
         - `None`:           Return the current object.
-        - `str`/`int`:      Return `obj[key]`.
+        - `str`/`int`:      Return `obj[key]`. For `re.Match, return `obj.group(key)`.
         - `slice`:          Branch out and return all values in `obj[key]`.
         - `Ellipsis`:       Branch out and return a list of all values.
         - `tuple`/`list`:   Branch out and return a list of all matching values.
@@ -5317,7 +5332,7 @@ def traverse_obj(
         - `dict`            Transform the current object and return a matching dict.
                             Read as: `{key: traverse_obj(obj, path) for key, path in dct.items()}`.
 
-        `tuple`, `list`, and `dict` all support nested paths and branches
+        `tuple`, `list`, and `dict` all support nested paths and branches.
 
     @params paths           Paths which to traverse by.
     @param default          Value to return if the paths do not match.
@@ -5338,6 +5353,7 @@ def traverse_obj(
     @returns                The result of the object traversal.
                             If successful, `get_all=True`, and the path branches at least once,
                             then a list of results is returned instead.
+                            A list is always returned if the last path branches and no `default` is given.
     """
     is_sequence = lambda x: isinstance(x, collections.abc.Sequence) and not isinstance(x, (str, bytes))
     casefold = lambda k: k.casefold() if isinstance(k, str) else k
@@ -5364,6 +5380,8 @@ def traverse_obj(
                 yield from obj.values()
             elif is_sequence(obj):
                 yield from obj
+            elif isinstance(obj, re.Match):
+                yield from obj.groups()
             elif traverse_string:
                 yield from str(obj)
 
@@ -5372,6 +5390,8 @@ def traverse_obj(
                 iter_obj = enumerate(obj)
             elif isinstance(obj, collections.abc.Mapping):
                 iter_obj = obj.items()
+            elif isinstance(obj, re.Match):
+                iter_obj = enumerate((obj.group(), *obj.groups()))
             elif traverse_string:
                 iter_obj = enumerate(str(obj))
             else:
@@ -5381,11 +5401,22 @@ def traverse_obj(
         elif isinstance(key, dict):
             iter_obj = ((k, _traverse_obj(obj, v)) for k, v in key.items())
             yield {k: v if v is not None else default for k, v in iter_obj
-                   if v is not None or default is not None}
+                   if v is not None or default is not NO_DEFAULT}
 
-        elif isinstance(obj, dict):
+        elif isinstance(obj, collections.abc.Mapping):
             yield (obj.get(key) if casesense or (key in obj)
                    else next((v for k, v in obj.items() if casefold(k) == key), None))
+
+        elif isinstance(obj, re.Match):
+            if isinstance(key, int) or casesense:
+                with contextlib.suppress(IndexError):
+                    yield obj.group(key)
+                    return
+
+            if not isinstance(key, str):
+                return
+
+            yield next((v for k, v in obj.groupdict().items() if casefold(k) == key), None)
 
         else:
             if is_user_input:
@@ -5422,18 +5453,22 @@ def traverse_obj(
 
         return has_branched, objs
 
-    def _traverse_obj(obj, path):
+    def _traverse_obj(obj, path, use_list=True):
         has_branched, results = apply_path(obj, path)
         results = LazyList(x for x in map(type_test, results) if x is not None)
-        if results:
-            return results.exhaust() if get_all and has_branched else results[0]
 
-    for path in paths:
-        result = _traverse_obj(obj, path)
+        if get_all and has_branched:
+            return results.exhaust() if results or use_list else None
+
+        return results[0] if results else None
+
+    for index, path in enumerate(paths, 1):
+        use_list = default is NO_DEFAULT and index == len(paths)
+        result = _traverse_obj(obj, path, use_list)
         if result is not None:
             return result
 
-    return default
+    return None if default is NO_DEFAULT else default
 
 
 def traverse_dict(dictn, keys, casesense=True):
@@ -5444,10 +5479,6 @@ def traverse_dict(dictn, keys, casesense=True):
 
 def get_first(obj, keys, **kwargs):
     return traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
-
-
-def variadic(x, allowed_types=(str, bytes, dict)):
-    return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
 
 
 def time_seconds(**kwargs):
@@ -5477,7 +5508,8 @@ def jwt_encode_hs256(payload_data, key, headers={}):
 # can be extended in future to verify the signature and parse header and return the algorithm used if it's not HS256
 def jwt_decode_hs256(jwt):
     header_b64, payload_b64, signature_b64 = jwt.split('.')
-    payload_data = json.loads(base64.urlsafe_b64decode(payload_b64))
+    # add trailing ='s that may have been stripped, superfluous ='s are ignored
+    payload_data = json.loads(base64.urlsafe_b64decode(f'{payload_b64}==='))
     return payload_data
 
 
@@ -5692,7 +5724,7 @@ class Config:
         return self.parser.parse_args(self.all_args)
 
 
-class WebSocketsWrapper():
+class WebSocketsWrapper:
     """Wraps websockets module to use in non-async scopes"""
     pool = None
 
@@ -5776,11 +5808,9 @@ def cached_method(f):
     def wrapper(self, *args, **kwargs):
         bound_args = signature.bind(self, *args, **kwargs)
         bound_args.apply_defaults()
-        key = tuple(bound_args.arguments.values())
+        key = tuple(bound_args.arguments.values())[1:]
 
-        if not hasattr(self, '__cached_method__cache'):
-            self.__cached_method__cache = {}
-        cache = self.__cached_method__cache.setdefault(f.__name__, {})
+        cache = vars(self).setdefault('__cached_method__cache', {}).setdefault(f.__name__, {})
         if key not in cache:
             cache[key] = f(self, *args, **kwargs)
         return cache[key]
