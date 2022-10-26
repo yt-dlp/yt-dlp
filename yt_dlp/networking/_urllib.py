@@ -437,10 +437,10 @@ class UrllibRH(RequestHandler):
         opener = urllib.request.OpenerDirector()
         handlers = [
             YDLProxyHandler(proxies),
-            HTTPCookieProcessor(self.cookiejar),
             YoutubeDLHandler(
                 self.ydl.params, debuglevel=int(bool(self.ydl.params.get('debug_printtraffic'))),
                 context=self.make_sslcontext()),
+            HTTPCookieProcessor(self.cookiejar),
             DataHandler(),
             UnknownHandler(),
             HTTPDefaultErrorHandler(),
