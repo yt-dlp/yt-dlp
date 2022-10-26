@@ -1098,6 +1098,10 @@ class XAttrUnavailableError(YoutubeDLError):
     pass
 
 
+def is_path_like(f):
+    return isinstance(f, (str, bytes, os.PathLike))
+
+
 def extract_timezone(date_str):
     m = re.search(
         r'''(?x)
