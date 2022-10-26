@@ -343,6 +343,7 @@ class MLBTVIE(InfoExtractor):
         return {
             'id': video_id,
             'title': traverse_obj(airings, (..., 'titles', 0, 'episodeName'), get_all=False),
+            'is_live': traverse_obj(airings, (..., 'mediaConfig', 'productType'), get_all=False) == 'LIVE',
             'formats': formats,
             'subtitles': subtitles,
             'http_headers': {'Authorization': f'Bearer {self._access_token}'},

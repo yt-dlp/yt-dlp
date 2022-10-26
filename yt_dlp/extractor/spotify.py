@@ -16,6 +16,7 @@ from ..utils import (
 
 
 class SpotifyBaseIE(InfoExtractor):
+    _WORKING = False
     _ACCESS_TOKEN = None
     _OPERATION_HASHES = {
         'Episode': '8276d4423d709ae9b68ec1b74cc047ba0f7479059a37820be730f125189ac2bf',

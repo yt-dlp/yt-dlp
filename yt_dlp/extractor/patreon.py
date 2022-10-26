@@ -277,6 +277,7 @@ class PatreonIE(PatreonBaseIE):
                 }
             elif name == 'video':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(post_file['url'], video_id)
+                self._sort_formats(formats)
                 return {
                     **info,
                     'formats': formats,

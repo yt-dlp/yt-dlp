@@ -557,8 +557,7 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
     }
 
     def _call_api(self, list_id, resource, query):
-        "Implement this in child class"
-        pass
+        raise NotImplementedError('Must be implemented in subclasses')
 
     @staticmethod
     def _parse_owner(item):

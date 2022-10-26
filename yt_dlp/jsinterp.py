@@ -236,7 +236,7 @@ class JSInterpreter:
 
     @staticmethod
     def _separate(expr, delim=',', max_split=None):
-        OP_CHARS = '+-*/%&|^=<>!,;{}:'
+        OP_CHARS = '+-*/%&|^=<>!,;{}:['
         if not expr:
             return
         counters = {k: 0 for k in _MATCHING_PARENS.values()}
@@ -246,7 +246,9 @@ class JSInterpreter:
             if not in_quote and char in _MATCHING_PARENS:
                 counters[_MATCHING_PARENS[char]] += 1
             elif not in_quote and char in counters:
-                counters[char] -= 1
+                # Something's wrong if we get negative, but ignore it anyway
+                if counters[char]:
+                    counters[char] -= 1
             elif not escaping:
                 if char in _QUOTES and in_quote in (char, None):
                     if in_quote or after_op or char != '/':
