@@ -16,16 +16,17 @@ from ..utils import (
 
 class TelegramEmbedIE(InfoExtractor):
     IE_NAME = 'telegram:embed'
-    _VALID_URL = r'https?://t\.me/(?P<uploader>[^/]+)/(?P<id>\d+)'
+    _VALID_URL = r'https?://t\.me/(?P<channel_id>[^/]+)/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://t.me/europa_press/613',
         'md5': 'dd707708aea958c11a590e8068825f22',
         'info_dict': {
             'id': '613',
             'ext': 'mp4',
-            'title': 'Europa Press ✔',
+            'title': 'md5:6ce2d7e8d56eda16d80607b23db7b252',
             'description': 'md5:6ce2d7e8d56eda16d80607b23db7b252',
-            'uploader': 'europa_press',
+            'channel_id': 'europa_press',
+            'channel': 'Europa Press ✔',
             'thumbnail': r're:^https?://.+',
             'timestamp': 1635631203,
             'upload_date': '20211030',
@@ -37,7 +38,7 @@ class TelegramEmbedIE(InfoExtractor):
         'info_dict': {
             'id': 'vorposte-29342',
             'title': 'Форпост 29342',
-            'description': 'md5:4d573fd641c3a21f58ad6bb5f16fe526',
+            'description': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
         },
         'playlist_count': 2,
         'params': {
@@ -50,9 +51,10 @@ class TelegramEmbedIE(InfoExtractor):
         'info_dict': {
             'id': '29343',
             'ext': 'mp4',
-            'title': 'Форпост',
-            'description': 'md5:4d573fd641c3a21f58ad6bb5f16fe526',
-            'uploader': 'vorposte',
+            'title': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
+            'description': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
+            'channel_id': 'vorposte',
+            'channel': 'Форпост',
             'thumbnail': r're:^https?://.+',
             'timestamp': 1666384480,
             'upload_date': '20221021',
@@ -68,9 +70,10 @@ class TelegramEmbedIE(InfoExtractor):
         'info_dict': {
             'id': '29342',
             'ext': 'mp4',
-            'title': 'Форпост',
-            'description': 'md5:4d573fd641c3a21f58ad6bb5f16fe526',
-            'uploader': 'vorposte',
+            'title': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
+            'description': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
+            'channel_id': 'vorposte',
+            'channel': 'Форпост',
             'thumbnail': r're:^https?://.+',
             'timestamp': 1666384480,
             'upload_date': '20221021',
@@ -79,15 +82,19 @@ class TelegramEmbedIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        uploader, msg_id = self._match_valid_url(url).group('uploader', 'id')
+        channel_id, msg_id = self._match_valid_url(url).group('channel_id', 'id')
         embed = self._download_webpage(
             update_url_query(url, {'single': []}),  # strip 'single' from query
             msg_id, query={'embed': '1'}, note='Downloading embed frame')
 
+        def clean_text(html_class, html):
+            text = clean_html(get_element_by_class(html_class, html))
+            return text.replace('\n', ' ') if text else None
+
         message = {
-            'title': clean_html(get_element_by_class('tgme_widget_message_author', embed)),
-            'description': clean_html(get_element_by_class('tgme_widget_message_text', embed)),
-            'uploader': uploader,
+            'title': clean_text('tgme_widget_message_text', embed),
+            'channel': clean_text('tgme_widget_message_author', embed),
+            'channel_id': channel_id,
             'timestamp': unified_timestamp(self._search_regex(
                 r'<time[^>]*datetime="([^"]*)"', embed, 'timestamp', fatal=False)),
         }
@@ -115,16 +122,17 @@ class TelegramEmbedIE(InfoExtractor):
                     r'tgme_widget_message_video_thumb"[^>]+background-image:url\(\'([^\']+)\'\)',
                     video, 'thumbnail', fatal=False),
                 'formats': formats,
+                'description': message['title'],
                 **message,
             })
 
         playlist_id = None
         if len(videos) > 1 and 'single' not in parse_qs(url, keep_blank_values=True):
-            playlist_id = f'{uploader}-{msg_id}'
+            playlist_id = f'{channel_id}-{msg_id}'
 
         if self._yes_playlist(playlist_id, msg_id):
             return self.playlist_result(
-                videos, playlist_id, format_field(message, 'title', f'%s {msg_id}'),
-                message['description'])
+                videos, playlist_id, format_field(message, 'channel', f'%s {msg_id}'),
+                message['title'])
         else:
             return traverse_obj(videos, lambda _, x: x['id'] == msg_id, get_all=False)
