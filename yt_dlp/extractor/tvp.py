@@ -400,7 +400,8 @@ class TVPEmbedIE(InfoExtractor):
         is_live = try_get(info, lambda x: x['isLive'], bool)
 
         if info.get('isGeoBlocked'):
-            self.raise_geo_restricted()
+            # actual country list is not provided, we just assume it's always available in PL
+            self.raise_geo_restricted(countries=['PL'])
 
         formats = []
         for file in content['files']:
