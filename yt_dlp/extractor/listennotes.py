@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from ..utils import parse_duration
 import re
 
 
@@ -11,7 +12,8 @@ class ListenNotesIE(InfoExtractor):
             'id': 'KrDgvNb_u1n',
             'ext': 'mp3',
             'title': 'Tim O’Reilly on noticing things other people don’t notice, the value of soft focus, framing open source and Web 2.0, and patience in building narratives (Ep1)',
-            'description': '00:35:48 - ‘’We shape reality by what we notice and choose to pa…'
+            'duration': 2148.0,
+            'description': '‘’We shape reality by what we notice and choose to pa…',
         }
     }, {
         'url': 'https://www.listennotes.com/podcasts/ask-noah-show/episode-177-wireguard-with-lwEA3154JzG/',
@@ -20,7 +22,8 @@ class ListenNotesIE(InfoExtractor):
             'id': 'lwEA3154JzG',
             'ext': 'mp3',
             'title': 'Episode 177: WireGuard with Jason Donenfeld - Ask Noah Show (podcast)',
-            'description': '01:04:21 - Jason Donenfeld lead developer joins us this hour to discuss WireGuard, an extremely simple yet fast and modern VPN that utilizes state-of-the-art c…'
+            'duration': 3861.0,
+            'description': 'Jason Donenfeld lead developer joins us this hour to discuss WireGuard, an extremely simple yet fast and modern VPN that utilizes state-of-the-art c…',
         }
     }]
 
@@ -29,8 +32,10 @@ class ListenNotesIE(InfoExtractor):
         webpage = self._download_webpage(url, audio_id)
         json_data = self._search_json(
             r'<script id="original-content" type="application/json">\s*', webpage, 'content', audio_id)
-        description = self._html_search_meta(
-            ['og:description', 'description', 'twitter:description'], webpage, 'description', default=None)
+        description_raw = self._html_search_meta(
+            ['og:description', 'description', 'twitter:description'], webpage, 'description_raw')
+        duration_raw, description = self._search_regex(
+            r'(?P<duration>[\d:]+)\s*-\s*(?P<description>.+)', description_raw, 'description', fatal=False, group=('duration', 'description'))
         if description is not None:
             description = re.sub(r'\s{2,}', ' ', description)
         title = (self._html_search_meta(['og:title', 'title', 'twitter:title'], webpage, 'title', default=None)
@@ -42,5 +47,6 @@ class ListenNotesIE(InfoExtractor):
             'id': audio_id,
             'title': title,
             'description': description,
+            'duration': parse_duration(duration_raw),
             'url': json_data['audio'],
         }
