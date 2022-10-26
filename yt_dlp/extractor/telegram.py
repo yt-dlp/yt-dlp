@@ -23,7 +23,7 @@ class TelegramEmbedIE(InfoExtractor):
         'info_dict': {
             'id': '613',
             'ext': 'mp4',
-            'title': 'md5:6ce2d7e8d56eda16d80607b23db7b252',
+            'title': 'md5:ae4359657c344a3c7b09d0f6c0fa7829',
             'description': 'md5:6ce2d7e8d56eda16d80607b23db7b252',
             'channel_id': 'europa_press',
             'channel': 'Europa Press ✔',
@@ -51,7 +51,7 @@ class TelegramEmbedIE(InfoExtractor):
         'info_dict': {
             'id': '29343',
             'ext': 'mp4',
-            'title': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
+            'title': 'md5:922c99739691bfe6f052cab5f2d099ae',
             'description': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
             'channel_id': 'vorposte',
             'channel': 'Форпост',
@@ -70,7 +70,7 @@ class TelegramEmbedIE(InfoExtractor):
         'info_dict': {
             'id': '29342',
             'ext': 'mp4',
-            'title': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
+            'title': 'md5:922c99739691bfe6f052cab5f2d099ae',
             'description': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
             'channel_id': 'vorposte',
             'channel': 'Форпост',
@@ -91,8 +91,10 @@ class TelegramEmbedIE(InfoExtractor):
             text = clean_html(get_element_by_class(html_class, html))
             return text.replace('\n', ' ') if text else None
 
+        description = clean_text('tgme_widget_message_text', embed)
         message = {
-            'title': clean_text('tgme_widget_message_text', embed),
+            'title': description[:64] if description else f'Video by {channel_id}',
+            'description': description,
             'channel': clean_text('tgme_widget_message_author', embed),
             'channel_id': channel_id,
             'timestamp': unified_timestamp(self._search_regex(
@@ -122,7 +124,6 @@ class TelegramEmbedIE(InfoExtractor):
                     r'tgme_widget_message_video_thumb"[^>]+background-image:url\(\'([^\']+)\'\)',
                     video, 'thumbnail', fatal=False),
                 'formats': formats,
-                'description': message['title'],
                 **message,
             })
 
@@ -132,7 +133,6 @@ class TelegramEmbedIE(InfoExtractor):
 
         if self._yes_playlist(playlist_id, msg_id):
             return self.playlist_result(
-                videos, playlist_id, format_field(message, 'channel', f'%s {msg_id}'),
-                message['title'])
+                videos, playlist_id, format_field(message, 'channel', f'%s {msg_id}'), description)
         else:
             return traverse_obj(videos, lambda _, x: x['id'] == msg_id, get_all=False)
