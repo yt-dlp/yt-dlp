@@ -1737,6 +1737,7 @@ from .svt import (
     SVTPlayIE,
     SVTSeriesIE,
 )
+from .swearnet import SwearnetShowIE
 from .swrmediathek import SWRMediathekIE
 from .syvdk import SYVDKIE
 from .syfy import SyfyIE
