@@ -3,11 +3,12 @@ import re
 from ..utils import (
     ExtractorError,
     clean_html,
-    float_or_none,
     int_or_none,
     join_nonempty,
+    parse_qs,
     smuggle_url,
     traverse_obj,
+    try_call,
     unsmuggle_url
 )
 from .common import InfoExtractor
@@ -153,10 +154,10 @@ class ShugiinItvVodIE(ShugiinItvBaseIE):
 
         # NOTE: chapters are sparse, because of how the website serves the video
         chapters = []
-        for chp in re.finditer(r'<A\s+HREF=".+?php\?.+?&deli_id=\d+&time=([\d\.]+)"\s*class="play_vod">(?!<img)(.+)</[Aa]>', webpage):
+        for chp in re.finditer(r'(?i)<A\s+HREF="([^"]+?)"\s*class="play_vod">(?!<img)(.+)</[Aa]>', webpage):
             chapters.append({
                 'title': clean_html(chp.group(2)).strip(),
-                'start_time': float_or_none(chp.group(1).strip()),
+                'start_time': try_call(lambda: float(parse_qs(chp.group(1))['time'][0].strip())),
             })
         # the exact duration for the last chapter is unknown! (we can get at most minutes of granularity)
         last_tr = re.findall(r'(?s)<TR\s*class="s14_24">(.+?)</TR>', webpage)[-1]
