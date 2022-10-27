@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, traverse_obj
 
 
 class SwearnetShowIE(InfoExtractor):
@@ -16,10 +16,12 @@ class SwearnetShowIE(InfoExtractor):
             'season': 'Season 1',
             'title': 'Episode 1 - Grilled Cheese Sammich',
             'season_number': 1,
+            'thumbnail': 'https://cdn.vidyard.com/thumbnails/232819/_RX04IKIq60a2V6rIRqq_Q_small.jpg',
         }
     }]
 
     def _get_formats_and_subtitle(self, video_source, video_id):
+        video_source = video_source or {}
         formats, subtitles = [], {}
         for key, value in video_source.items():
             if key == 'mp4':
@@ -37,25 +39,40 @@ class SwearnetShowIE(InfoExtractor):
                     self._merge_subtitles(subs, target=subtitles)
         return formats, subtitles
 
+    def _get_more_subtitle(self, caption_json):
+        subs = {}
+        for caption in caption_json:
+            short_lang_code = caption.get('language')
+            if subs.get(short_lang_code) is None:
+                subs[short_lang_code] = []
+
+            if short_lang_code:
+                subs[short_lang_code] = [{'url': caption.get('vttUrl'), 'name': caption.get('name')}]
+
+        return subs
+
     def _real_extract(self, url):
         display_id, season_number, episode_number = self._match_valid_url(url).group('id', 'season_num', 'episode_num')
         webpage = self._download_webpage(url, display_id)
 
         external_id = self._search_regex(r'externalid\s*=\s*"([^"]+)', webpage, 'externalid')
 
-        # vidyard player request
         json_data = self._download_json(
             f'https://play.vidyard.com/player/{external_id}.json', display_id)['payload']['chapters'][0]
 
         formats, subtitles = self._get_formats_and_subtitle(json_data['sources'], display_id)
 
+        self._merge_subtitles(self._get_more_subtitle(json_data.get('captions')), target=subtitles)
+
         return {
             'id': str(json_data['videoId']),
-            'title': json_data.get('name'),
-            'description': json_data.get('description'),
+            'title': json_data.get('name') or self._html_search_meta(['og:title', 'twitter:title'], webpage),
+            'description': (json_data.get('description')
+                            or self._html_search_meta(['og:description', 'twitter:description'])),
             'duration': int_or_none(json_data.get('seconds')),
             'formats': formats,
             'subtitles': subtitles,
             'season_number': int_or_none(season_number),
             'episode_number': int_or_none(episode_number),
+            'thumbnails': [{'url': thumbnail_url} for thumbnail_url in traverse_obj(json_data, ('thumbnailUrls', ...))]
         }
