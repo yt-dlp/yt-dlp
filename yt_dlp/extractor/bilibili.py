@@ -1,426 +1,114 @@
 import base64
-import hashlib
-import itertools
 import functools
+import itertools
 import math
-import re
-import urllib
+import urllib.error
+import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urlparse,
-    compat_urllib_parse_urlparse
-)
 from ..utils import (
     ExtractorError,
+    GeoRestrictedError,
     InAdvancePagedList,
     OnDemandPagedList,
     filter_dict,
     float_or_none,
+    format_field,
     int_or_none,
+    make_archive_id,
     mimetype2ext,
     parse_count,
-    parse_iso8601,
+    parse_qs,
     qualities,
-    smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
-    strip_jsonp,
     traverse_obj,
-    unified_timestamp,
-    unsmuggle_url,
-    urlencode_postdata,
     url_or_none,
+    urlencode_postdata,
 )
 
 
-class BiliBiliIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                    https?://
-                        (?:(?:www|bangumi)\.)?
-                        bilibili\.(?:tv|com)/
-                        (?:
-                            (?:
-                                video/[aA][vV]|
-                                anime/(?P<anime_id>\d+)/play\#
-                            )(?P<id>\d+)|
-                            (s/)?video/[bB][vV](?P<id_bv>[^/?#&]+)
-                        )
-                        (?:/?\?p=(?P<page>\d+))?
-                    '''
-
-    _TESTS = [{
-        'url': 'http://www.bilibili.com/video/av1074402/',
-        'md5': '7ac275ec84a99a6552c5d229659a0fe1',
-        'info_dict': {
-            'id': '1074402_part1',
-            'ext': 'mp4',
-            'title': '【金坷垃】金泡沫',
-            'uploader_id': '156160',
-            'uploader': '菊子桑',
-            'upload_date': '20140420',
-            'description': 'md5:ce18c2a2d2193f0df2917d270f2e5923',
-            'timestamp': 1398012678,
-            'tags': ['顶上去报复社会', '该来的总会来的', '金克拉是检验歌曲的唯一标准', '坷垃教主', '金坷垃', '邓紫棋', '治愈系坷垃'],
-            'bv_id': 'BV11x411K7CN',
-            'cid': '1554319',
-            'thumbnail': 'http://i2.hdslb.com/bfs/archive/c79a8cf0347cd7a897c53a2f756e96aead128e8c.jpg',
-            'duration': 308.36,
-        },
-    }, {
-        # Tested in BiliBiliBangumiIE
-        'url': 'http://bangumi.bilibili.com/anime/1869/play#40062',
-        'only_matching': True,
-    }, {
-        # bilibili.tv
-        'url': 'http://www.bilibili.tv/video/av1074402/',
-        'only_matching': True,
-    }, {
-        'url': 'http://bangumi.bilibili.com/anime/5802/play#100643',
-        'md5': '3f721ad1e75030cc06faf73587cfec57',
-        'info_dict': {
-            'id': '100643_part1',
-            'ext': 'mp4',
-            'title': 'CHAOS;CHILD',
-            'description': '如果你是神明，并且能够让妄想成为现实。那你会进行怎么样的妄想？是淫靡的世界？独裁社会？毁灭性的制裁？还是……2015年，涩谷。从6年前发生的大灾害“涩谷地震”之后复兴了的这个街区里新设立的私立高中...',
-        },
-        'skip': 'Geo-restricted to China',
-    }, {
-        'url': 'http://www.bilibili.com/video/av8903802/',
-        'info_dict': {
-            'id': '8903802_part1',
-            'ext': 'mp4',
-            'title': '阿滴英文｜英文歌分享#6 "Closer',
-            'upload_date': '20170301',
-            'description': '滴妹今天唱Closer給你聽! 有史以来，被推最多次也是最久的歌曲，其实歌词跟我原本想像差蛮多的，不过还是好听！ 微博@阿滴英文',
-            'timestamp': 1488382634,
-            'uploader_id': '65880958',
-            'uploader': '阿滴英文',
-            'thumbnail': 'http://i2.hdslb.com/bfs/archive/49267ce20bc246be6304bf369a3ded0256854c23.jpg',
-            'cid': '14694589',
-            'duration': 554.117,
-            'bv_id': 'BV13x41117TL',
-            'tags': ['人文', '英语', '文化', '公开课', '阿滴英文'],
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # new BV video id format
-        'url': 'https://www.bilibili.com/video/BV1JE411F741',
-        'only_matching': True,
-    }, {
-        # Anthology
-        'url': 'https://www.bilibili.com/video/BV1bK411W797',
-        'info_dict': {
-            'id': 'BV1bK411W797',
-            'title': '物语中的人物是如何吐槽自己的OP的'
-        },
-        'playlist_count': 17,
-    }, {
-        # Correct matching of single and double quotes in title
-        'url': 'https://www.bilibili.com/video/BV1NY411E7Rx/',
-        'info_dict': {
-            'id': '255513412_part1',
-            'ext': 'mp4',
-            'title': 'Vid"eo" Te\'st',
-            'cid': '570602418',
-            'thumbnail': 'http://i2.hdslb.com/bfs/archive/0c0de5a90b6d5b991b8dcc6cde0afbf71d564791.jpg',
-            'upload_date': '20220408',
-            'timestamp': 1649436552,
-            'description': 'Vid"eo" Te\'st',
-            'uploader_id': '1630758804',
-            'bv_id': 'BV1NY411E7Rx',
-            'duration': 60.394,
-            'uploader': 'bili_31244483705',
-            'tags': ['VLOG'],
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }]
-
-    _APP_KEY = 'iVGUTjsxvpLeuDCf'
-    _BILIBILI_KEY = 'aHRmhWMLkdeMuILqORnYZocwMBpMEOdt'
-
-    def _report_error(self, result):
-        if 'message' in result:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, result['message']), expected=True)
-        elif 'code' in result:
-            raise ExtractorError('%s returns error %d' % (self.IE_NAME, result['code']), expected=True)
-        else:
-            raise ExtractorError('Can\'t extract Bangumi episode ID')
-
-    def _real_extract(self, url):
-        url, smuggled_data = unsmuggle_url(url, {})
-
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('id_bv') or mobj.group('id')
-
-        av_id, bv_id = self._get_video_id_set(video_id, mobj.group('id_bv') is not None)
-        video_id = av_id
-
-        info = {}
-        anime_id = mobj.group('anime_id')
-        page_id = mobj.group('page')
-        webpage = self._download_webpage(url, video_id)
-
-        # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
-        # If the video has no page argument, check to see if it's an anthology
-        if page_id is None:
-            if not self.get_param('noplaylist'):
-                r = self._extract_anthology_entries(bv_id, video_id, webpage)
-                if r is not None:
-                    self.to_screen('Downloading anthology %s - add --no-playlist to just download video' % video_id)
-                    return r
-            else:
-                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
-
-        if 'anime/' not in url:
-            cid = self._search_regex(
-                r'\bcid(?:["\']:|=)(\d+),["\']page(?:["\']:|=)' + str(page_id), webpage, 'cid',
-                default=None
-            ) or self._search_regex(
-                r'\bcid(?:["\']:|=)(\d+)', webpage, 'cid',
-                default=None
-            ) or compat_parse_qs(self._search_regex(
-                [r'EmbedPlayer\([^)]+,\s*"([^"]+)"\)',
-                 r'EmbedPlayer\([^)]+,\s*\\"([^"]+)\\"\)',
-                 r'<iframe[^>]+src="https://secure\.bilibili\.com/secure,([^"]+)"'],
-                webpage, 'player parameters'))['cid'][0]
-        else:
-            if 'no_bangumi_tip' not in smuggled_data:
-                self.to_screen('Downloading episode %s. To download all videos in anime %s, re-run yt-dlp with %s' % (
-                    video_id, anime_id, compat_urlparse.urljoin(url, '//bangumi.bilibili.com/anime/%s' % anime_id)))
-            headers = {
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'Referer': url
-            }
-            headers.update(self.geo_verification_headers())
-
-            js = self._download_json(
-                'http://bangumi.bilibili.com/web_api/get_source', video_id,
-                data=urlencode_postdata({'episode_id': video_id}),
-                headers=headers)
-            if 'result' not in js:
-                self._report_error(js)
-            cid = js['result']['cid']
-
-        headers = {
-            'Accept': 'application/json',
-            'Referer': url
+class BilibiliBaseIE(InfoExtractor):
+    def extract_formats(self, play_info):
+        format_names = {
+            r['quality']: traverse_obj(r, 'new_description', 'display_desc')
+            for r in traverse_obj(play_info, ('support_formats', lambda _, v: v['quality']))
         }
-        headers.update(self.geo_verification_headers())
 
-        video_info = self._parse_json(
-            self._search_regex(r'window.__playinfo__\s*=\s*({.+?})</script>', webpage, 'video info', default=None) or '{}',
-            video_id, fatal=False)
-        video_info = video_info.get('data') or {}
-
-        durl = traverse_obj(video_info, ('dash', 'video'))
-        audios = traverse_obj(video_info, ('dash', 'audio')) or []
-        flac_audio = traverse_obj(video_info, ('dash', 'flac', 'audio'))
+        audios = traverse_obj(play_info, ('dash', 'audio', ...))
+        flac_audio = traverse_obj(play_info, ('dash', 'flac', 'audio'))
         if flac_audio:
             audios.append(flac_audio)
-        entries = []
+        formats = [{
+            'url': traverse_obj(audio, 'baseUrl', 'base_url', 'url'),
+            'ext': mimetype2ext(traverse_obj(audio, 'mimeType', 'mime_type')),
+            'acodec': audio.get('codecs'),
+            'vcodec': 'none',
+            'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
+            'filesize': int_or_none(audio.get('size'))
+        } for audio in audios]
 
-        RENDITIONS = ('qn=80&quality=80&type=', 'quality=2&type=mp4')
-        for num, rendition in enumerate(RENDITIONS, start=1):
-            payload = 'appkey=%s&cid=%s&otype=json&%s' % (self._APP_KEY, cid, rendition)
-            sign = hashlib.md5((payload + self._BILIBILI_KEY).encode('utf-8')).hexdigest()
-            if not video_info:
-                video_info = self._download_json(
-                    'http://interface.bilibili.com/v2/playurl?%s&sign=%s' % (payload, sign),
-                    video_id, note='Downloading video info page',
-                    headers=headers, fatal=num == len(RENDITIONS))
-                if not video_info:
-                    continue
+        formats.extend({
+            'url': traverse_obj(video, 'baseUrl', 'base_url', 'url'),
+            'ext': mimetype2ext(traverse_obj(video, 'mimeType', 'mime_type')),
+            'fps': float_or_none(traverse_obj(video, 'frameRate', 'frame_rate')),
+            'width': int_or_none(video.get('width')),
+            'height': int_or_none(video.get('height')),
+            'vcodec': video.get('codecs'),
+            'acodec': 'none' if audios else None,
+            'tbr': float_or_none(video.get('bandwidth'), scale=1000),
+            'filesize': int_or_none(video.get('size')),
+            'quality': int_or_none(video.get('id')),
+            'format': format_names.get(video.get('id')),
+        } for video in traverse_obj(play_info, ('dash', 'video', ...)))
 
-            if not durl and 'durl' not in video_info:
-                if num < len(RENDITIONS):
-                    continue
-                self._report_error(video_info)
-
-            formats = []
-            for idx, durl in enumerate(durl or video_info['durl']):
-                formats.append({
-                    'url': durl.get('baseUrl') or durl.get('base_url') or durl.get('url'),
-                    'ext': mimetype2ext(durl.get('mimeType') or durl.get('mime_type')),
-                    'fps': int_or_none(durl.get('frameRate') or durl.get('frame_rate')),
-                    'width': int_or_none(durl.get('width')),
-                    'height': int_or_none(durl.get('height')),
-                    'vcodec': durl.get('codecs'),
-                    'acodec': 'none' if audios else None,
-                    'tbr': float_or_none(durl.get('bandwidth'), scale=1000),
-                    'filesize': int_or_none(durl.get('size')),
-                })
-                for backup_url in traverse_obj(durl, 'backup_url', expected_type=list) or []:
-                    formats.append({
-                        'url': backup_url,
-                        'quality': -2 if 'hd.mp4' in backup_url else -3,
-                    })
-
-            for audio in audios:
-                formats.append({
-                    'url': audio.get('baseUrl') or audio.get('base_url') or audio.get('url'),
-                    'ext': mimetype2ext(audio.get('mimeType') or audio.get('mime_type')),
-                    'fps': int_or_none(audio.get('frameRate') or audio.get('frame_rate')),
-                    'width': int_or_none(audio.get('width')),
-                    'height': int_or_none(audio.get('height')),
-                    'acodec': audio.get('codecs'),
-                    'vcodec': 'none',
-                    'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
-                    'filesize': int_or_none(audio.get('size'))
-                })
-                for backup_url in traverse_obj(audio, 'backup_url', expected_type=list) or []:
-                    formats.append({
-                        'url': backup_url,
-                        # backup URLs have lower priorities
-                        'quality': -3,
-                    })
-
-            info.update({
-                'id': video_id,
-                'duration': float_or_none(durl.get('length'), 1000),
-                'formats': formats,
-                'http_headers': {
-                    'Referer': url,
-                },
-            })
-            break
+        missing_formats = format_names.keys() - set(traverse_obj(formats, (..., 'quality')))
+        if missing_formats:
+            self.to_screen(f'Format(s) {", ".join(format_names[i] for i in missing_formats)} are missing; '
+                           'you have to login or become premium member to download them')
 
         self._sort_formats(formats)
+        return formats
 
-        title = self._html_search_regex((
-            r'<h1[^>]+title=(["])(?P<content>[^"]+)',
-            r'<h1[^>]+title=([\'])(?P<content>[^\']+)',
-            r'(?s)<h1[^>]*>(?P<content>.+?)</h1>',
-            self._meta_regex('title')
-        ), webpage, 'title', group='content', fatal=False)
+    def json2srt(self, json_data):
+        srt_data = ''
+        for idx, line in enumerate(json_data.get('body') or []):
+            srt_data += (f'{idx + 1}\n'
+                         f'{srt_subtitles_timecode(line["from"])} --> {srt_subtitles_timecode(line["to"])}\n'
+                         f'{line["content"]}\n\n')
+        return srt_data
 
-        # Get part title for anthologies
-        if page_id is not None:
-            # TODO: The json is already downloaded by _extract_anthology_entries. Don't redownload for each video.
-            part_info = traverse_obj(self._download_json(
-                f'https://api.bilibili.com/x/player/pagelist?bvid={bv_id}&jsonp=jsonp',
-                video_id, note='Extracting videos in anthology'), 'data', expected_type=list)
-            title = title if len(part_info) == 1 else traverse_obj(part_info, (int(page_id) - 1, 'part')) or title
-
-        description = self._html_search_meta('description', webpage)
-        timestamp = unified_timestamp(self._html_search_regex(
-            r'<time[^>]+datetime="([^"]+)"', webpage, 'upload time',
-            default=None) or self._html_search_meta(
-            'uploadDate', webpage, 'timestamp', default=None))
-        thumbnail = self._html_search_meta(['og:image', 'thumbnailUrl'], webpage)
-
-        # TODO 'view_count' requires deobfuscating Javascript
-        info.update({
-            'id': f'{video_id}_part{page_id or 1}',
-            'cid': cid,
-            'title': title,
-            'description': description,
-            'timestamp': timestamp,
-            'thumbnail': thumbnail,
-            'duration': float_or_none(video_info.get('timelength'), scale=1000),
-        })
-
-        uploader_mobj = re.search(
-            r'<a[^>]+href="(?:https?:)?//space\.bilibili\.com/(?P<id>\d+)"[^>]*>\s*(?P<name>[^<]+?)\s*<',
-            webpage)
-        if uploader_mobj:
-            info.update({
-                'uploader': uploader_mobj.group('name').strip(),
-                'uploader_id': uploader_mobj.group('id'),
-            })
-
-        if not info.get('uploader'):
-            info['uploader'] = self._html_search_meta(
-                'author', webpage, 'uploader', default=None)
-
-        top_level_info = {
-            'tags': traverse_obj(self._download_json(
-                f'https://api.bilibili.com/x/tag/archive/tags?aid={video_id}',
-                video_id, fatal=False, note='Downloading tags'), ('data', ..., 'tag_name')),
-        }
-
-        info['subtitles'] = {
+    def _get_subtitles(self, video_id, initial_state, cid):
+        subtitles = {
             'danmaku': [{
                 'ext': 'xml',
                 'url': f'https://comment.bilibili.com/{cid}.xml',
             }]
         }
 
-        r'''
-        # Requires https://github.com/m13253/danmaku2ass which is licenced under GPL3
-        # See https://github.com/animelover1984/youtube-dl
+        for s in traverse_obj(initial_state, ('videoData', 'subtitle', 'list')) or []:
+            subtitles.setdefault(s['lan'], []).append({
+                'ext': 'srt',
+                'data': self.json2srt(self._download_json(s['subtitle_url'], video_id))
+            })
+        return subtitles
 
-        raw_danmaku = self._download_webpage(
-            f'https://comment.bilibili.com/{cid}.xml', video_id, fatal=False, note='Downloading danmaku comments')
-        danmaku = NiconicoIE.CreateDanmaku(raw_danmaku, commentType='Bilibili', x=1024, y=576)
-        entries[0]['subtitles'] = {
-            'danmaku': [{
-                'ext': 'ass',
-                'data': danmaku
-            }]
-        }
-        '''
+    def _get_chapters(self, aid, cid):
+        chapters = aid and cid and self._download_json(
+            'https://api.bilibili.com/x/player/v2', aid, query={'aid': aid, 'cid': cid},
+            note='Extracting chapters', fatal=False)
+        return traverse_obj(chapters, ('data', 'view_points', ..., {
+            'title': 'content',
+            'start_time': 'from',
+            'end_time': 'to',
+        })) or None
 
-        top_level_info['__post_extractor'] = self.extract_comments(video_id)
-
-        for entry in entries:
-            entry.update(info)
-
-        if len(entries) == 1:
-            entries[0].update(top_level_info)
-            return entries[0]
-
-        for idx, entry in enumerate(entries):
-            entry['id'] = '%s_part%d' % (video_id, (idx + 1))
-
-        return {
-            'id': str(video_id),
-            'bv_id': bv_id,
-            'title': title,
-            'description': description,
-            **info, **top_level_info
-        }
-
-    def _extract_anthology_entries(self, bv_id, video_id, webpage):
-        title = self._html_search_regex(
-            (r'<h1[^>]+\btitle=(["\'])(?P<title>(?:(?!\1).)+)\1',
-             r'(?s)<h1[^>]*>(?P<title>.+?)</h1>',
-             r'<title>(?P<title>.+?)</title>'), webpage, 'title',
-            group='title')
-        json_data = self._download_json(
-            f'https://api.bilibili.com/x/player/pagelist?bvid={bv_id}&jsonp=jsonp',
-            video_id, note='Extracting videos in anthology')
-
-        if json_data['data']:
-            return self.playlist_from_matches(
-                json_data['data'], bv_id, title, ie=BiliBiliIE.ie_key(),
-                getter=lambda entry: 'https://www.bilibili.com/video/%s?p=%d' % (bv_id, entry['page']))
-
-    def _get_video_id_set(self, id, is_bv):
-        query = {'bvid': id} if is_bv else {'aid': id}
-        response = self._download_json(
-            "http://api.bilibili.cn/x/web-interface/view",
-            id, query=query,
-            note='Grabbing original ID via API')
-
-        if response['code'] == -400:
-            raise ExtractorError('Video ID does not exist', expected=True, video_id=id)
-        elif response['code'] != 0:
-            raise ExtractorError(f'Unknown error occurred during API check (code {response["code"]})',
-                                 expected=True, video_id=id)
-        return response['data']['aid'], response['data']['bvid']
-
-    def _get_comments(self, video_id, commentPageNumber=0):
+    def _get_comments(self, aid):
         for idx in itertools.count(1):
             replies = traverse_obj(
                 self._download_json(
-                    f'https://api.bilibili.com/x/v2/reply?pn={idx}&oid={video_id}&type=1&jsonp=jsonp&sort=2&_=1567227301685',
-                    video_id, note=f'Extracting comments from page {idx}', fatal=False),
+                    f'https://api.bilibili.com/x/v2/reply?pn={idx}&oid={aid}&type=1&jsonp=jsonp&sort=2&_=1567227301685',
+                    aid, note=f'Extracting comments from page {idx}', fatal=False),
                 ('data', 'replies'))
             if not replies:
                 return
@@ -436,75 +124,308 @@ class BiliBiliIE(InfoExtractor):
             'timestamp': reply.get('ctime'),
             'parent': reply.get('parent') or 'root',
         }
-        for children in map(self._get_all_children, reply.get('replies') or []):
+        for children in map(self._get_all_children, traverse_obj(reply, ('replies', ...))):
             yield from children
 
 
-class BiliBiliBangumiIE(InfoExtractor):
-    _VALID_URL = r'https?://bangumi\.bilibili\.com/anime/(?P<id>\d+)'
-
-    IE_NAME = 'bangumi.bilibili.com'
-    IE_DESC = 'BiliBili番剧'
+class BiliBiliIE(BilibiliBaseIE):
+    _VALID_URL = r'https?://www\.bilibili\.com/video/[aAbB][vV](?P<id>[^/?#&]+)'
 
     _TESTS = [{
-        'url': 'http://bangumi.bilibili.com/anime/1869',
+        'url': 'https://www.bilibili.com/video/BV13x41117TL',
         'info_dict': {
-            'id': '1869',
-            'title': '混沌武士',
-            'description': 'md5:6a9622b911565794c11f25f81d6a97d2',
+            'id': 'BV13x41117TL',
+            'title': '阿滴英文｜英文歌分享#6 "Closer',
+            'ext': 'mp4',
+            'description': '滴妹今天唱Closer給你聽! 有史以来，被推最多次也是最久的歌曲，其实歌词跟我原本想像差蛮多的，不过还是好听！ 微博@阿滴英文',
+            'uploader_id': '65880958',
+            'uploader': '阿滴英文',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'duration': 554.117,
+            'tags': list,
+            'comment_count': int,
+            'upload_date': '20170301',
+            'timestamp': 1488353834,
+            'like_count': int,
+            'view_count': int,
         },
-        'playlist_count': 26,
     }, {
-        'url': 'http://bangumi.bilibili.com/anime/1869',
+        # old av URL version
+        'url': 'http://www.bilibili.com/video/av1074402/',
         'info_dict': {
-            'id': '1869',
-            'title': '混沌武士',
-            'description': 'md5:6a9622b911565794c11f25f81d6a97d2',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg)$',
+            'ext': 'mp4',
+            'uploader': '菊子桑',
+            'uploader_id': '156160',
+            'id': 'BV11x411K7CN',
+            'title': '【金坷垃】金泡沫',
+            'duration': 308.36,
+            'upload_date': '20140420',
+            'timestamp': 1397983878,
+            'description': 'md5:ce18c2a2d2193f0df2917d270f2e5923',
+            'like_count': int,
+            'comment_count': int,
+            'view_count': int,
+            'tags': list,
         },
+        'params': {'skip_download': True},
+    }, {
+        'note': 'Anthology',
+        'url': 'https://www.bilibili.com/video/BV1bK411W797',
+        'info_dict': {
+            'id': 'BV1bK411W797',
+            'title': '物语中的人物是如何吐槽自己的OP的'
+        },
+        'playlist_count': 18,
         'playlist': [{
-            'md5': '91da8621454dd58316851c27c68b0c13',
             'info_dict': {
-                'id': '40062',
+                'id': 'BV1bK411W797_p1',
                 'ext': 'mp4',
-                'title': '混沌武士',
-                'description': '故事发生在日本的江户时代。风是一个小酒馆的打工女。一日，酒馆里来了一群恶霸，虽然他们的举动令风十分不满，但是毕竟风只是一届女流，无法对他们采取什么行动，只能在心里嘟哝。这时，酒家里又进来了个“不良份子...',
-                'timestamp': 1414538739,
-                'upload_date': '20141028',
-                'episode': '疾风怒涛 Tempestuous Temperaments',
-                'episode_number': 1,
-            },
-        }],
-        'params': {
-            'playlist_items': '1',
+                'title': '物语中的人物是如何吐槽自己的OP的 p01 Staple Stable/战场原+羽川',
+                'tags': 'count:11',
+                'timestamp': 1589601697,
+                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+                'uploader': '打牌还是打桩',
+                'uploader_id': '150259984',
+                'like_count': int,
+                'comment_count': int,
+                'upload_date': '20200516',
+                'view_count': int,
+                'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
+                'duration': 90.314,
+            }
+        }]
+    }, {
+        'note': 'Specific page of Anthology',
+        'url': 'https://www.bilibili.com/video/BV1bK411W797?p=1',
+        'info_dict': {
+            'id': 'BV1bK411W797_p1',
+            'ext': 'mp4',
+            'title': '物语中的人物是如何吐槽自己的OP的 p01 Staple Stable/战场原+羽川',
+            'tags': 'count:11',
+            'timestamp': 1589601697,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'uploader': '打牌还是打桩',
+            'uploader_id': '150259984',
+            'like_count': int,
+            'comment_count': int,
+            'upload_date': '20200516',
+            'view_count': int,
+            'description': 'md5:e3c401cf7bc363118d1783dd74068a68',
+            'duration': 90.314,
+        }
+    }, {
+        'note': 'video has subtitles',
+        'url': 'https://www.bilibili.com/video/BV12N4y1M7rh',
+        'info_dict': {
+            'id': 'BV12N4y1M7rh',
+            'ext': 'mp4',
+            'title': 'md5:96e8bb42c2b432c0d4ce3434a61479c1',
+            'tags': list,
+            'description': 'md5:afde2b7ba9025c01d9e3dde10de221e4',
+            'duration': 313.557,
+            'upload_date': '20220709',
+            'uploader': '小夫Tech',
+            'timestamp': 1657347907,
+            'uploader_id': '1326814124',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'subtitles': 'count:2'
         },
+        'params': {'listsubtitles': True},
+    }, {
+        'url': 'https://www.bilibili.com/video/av8903802/',
+        'info_dict': {
+            'id': 'BV13x41117TL',
+            'ext': 'mp4',
+            'title': '阿滴英文｜英文歌分享#6 "Closer',
+            'upload_date': '20170301',
+            'description': 'md5:3b1b9e25b78da4ef87e9b548b88ee76a',
+            'timestamp': 1488353834,
+            'uploader_id': '65880958',
+            'uploader': '阿滴英文',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            'duration': 554.117,
+            'tags': list,
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'note': 'video has chapter',
+        'url': 'https://www.bilibili.com/video/BV1vL411G7N7/',
+        'info_dict': {
+            'id': 'BV1vL411G7N7',
+            'ext': 'mp4',
+            'title': '如何为你的B站视频添加进度条分段',
+            'timestamp': 1634554558,
+            'upload_date': '20211018',
+            'description': 'md5:a9a3d6702b3a94518d419b2e9c320a6d',
+            'tags': list,
+            'uploader': '爱喝咖啡的当麻',
+            'duration': 669.482,
+            'uploader_id': '1680903',
+            'chapters': 'count:6',
+            'comment_count': int,
+            'view_count': int,
+            'like_count': int,
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+        'params': {'skip_download': True},
     }]
 
-    @classmethod
-    def suitable(cls, url):
-        return False if BiliBiliIE.suitable(url) else super(BiliBiliBangumiIE, cls).suitable(url)
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
+        play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
+
+        video_data = initial_state['videoData']
+        video_id, title = video_data['bvid'], video_data.get('title')
+
+        # Bilibili anthologies are similar to playlists but all videos share the same video ID as the anthology itself.
+        page_list_json = traverse_obj(
+            self._download_json(
+                'https://api.bilibili.com/x/player/pagelist', video_id,
+                fatal=False, query={'bvid': video_id, 'jsonp': 'jsonp'},
+                note='Extracting videos in anthology'),
+            'data', expected_type=list) or []
+        is_anthology = len(page_list_json) > 1
+
+        part_id = int_or_none(parse_qs(url).get('p', [None])[-1])
+        if is_anthology and not part_id and self._yes_playlist(video_id, video_id):
+            return self.playlist_from_matches(
+                page_list_json, video_id, title, ie=BiliBiliIE,
+                getter=lambda entry: f'https://www.bilibili.com/video/{video_id}?p={entry["page"]}')
+
+        if is_anthology:
+            title += f' p{part_id:02d} {traverse_obj(page_list_json, ((part_id or 1) - 1, "part")) or ""}'
+
+        aid = video_data.get('aid')
+        old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
+
+        cid = traverse_obj(video_data, ('pages', part_id - 1, 'cid')) if part_id else video_data.get('cid')
+
+        return {
+            'id': f'{video_id}{format_field(part_id, None, "_p%d")}',
+            'formats': self.extract_formats(play_info),
+            '_old_archive_ids': [make_archive_id(self, old_video_id)] if old_video_id else None,
+            'title': title,
+            'description': traverse_obj(initial_state, ('videoData', 'desc')),
+            'view_count': traverse_obj(initial_state, ('videoData', 'stat', 'view')),
+            'uploader': traverse_obj(initial_state, ('upData', 'name')),
+            'uploader_id': traverse_obj(initial_state, ('upData', 'mid')),
+            'like_count': traverse_obj(initial_state, ('videoData', 'stat', 'like')),
+            'comment_count': traverse_obj(initial_state, ('videoData', 'stat', 'reply')),
+            'tags': traverse_obj(initial_state, ('tags', ..., 'tag_name')),
+            'thumbnail': traverse_obj(initial_state, ('videoData', 'pic')),
+            'timestamp': traverse_obj(initial_state, ('videoData', 'pubdate')),
+            'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            'chapters': self._get_chapters(aid, cid),
+            'subtitles': self.extract_subtitles(video_id, initial_state, cid),
+            '__post_extractor': self.extract_comments(aid),
+            'http_headers': {'Referer': url},
+        }
+
+
+class BiliBiliBangumiIE(BilibiliBaseIE):
+    _VALID_URL = r'(?x)https?://www\.bilibili\.com/bangumi/play/(?P<id>(?:ss|ep)\d+)'
+
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/bangumi/play/ss897',
+        'info_dict': {
+            'id': 'ss897',
+            'ext': 'mp4',
+            'series': '神的记事本',
+            'season': '神的记事本',
+            'season_id': 897,
+            'season_number': 1,
+            'episode': '你与旅行包',
+            'episode_number': 2,
+            'title': '神的记事本：第2话 你与旅行包',
+            'duration': 1428.487,
+            'timestamp': 1310809380,
+            'upload_date': '20110716',
+            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+        },
+    }, {
+        'url': 'https://www.bilibili.com/bangumi/play/ep508406',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
-        bangumi_id = self._match_id(url)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
 
-        # Sometimes this API returns a JSONP response
-        season_info = self._download_json(
-            'http://bangumi.bilibili.com/jsonp/seasoninfo/%s.ver' % bangumi_id,
-            bangumi_id, transform_source=strip_jsonp)['result']
+        if '您所在的地区无法观看本片' in webpage:
+            raise GeoRestrictedError('This video is restricted')
+        elif ('开通大会员观看' in webpage and '__playinfo__' not in webpage
+                or '正在观看预览，大会员免费看全片' in webpage):
+            self.raise_login_required('This video is for premium members only')
 
-        entries = [{
-            '_type': 'url_transparent',
-            'url': smuggle_url(episode['webplay_url'], {'no_bangumi_tip': 1}),
-            'ie_key': BiliBiliIE.ie_key(),
-            'timestamp': parse_iso8601(episode.get('update_time'), delimiter=' '),
-            'episode': episode.get('index_title'),
-            'episode_number': int_or_none(episode.get('index')),
-        } for episode in season_info['episodes']]
+        play_info = self._search_json(r'window\.__playinfo__\s*=\s*', webpage, 'play info', video_id)['data']
+        formats = self.extract_formats(play_info)
+        if (not formats and '成为大会员抢先看' in webpage
+                and play_info.get('durl') and not play_info.get('dash')):
+            self.raise_login_required('This video is for premium members only')
 
-        entries = sorted(entries, key=lambda entry: entry.get('episode_number'))
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state', video_id)
 
-        return self.playlist_result(
-            entries, bangumi_id,
-            season_info.get('bangumi_title'), season_info.get('evaluate'))
+        season_id = traverse_obj(initial_state, ('mediaInfo', 'season_id'))
+        season_number = season_id and next((
+            idx + 1 for idx, e in enumerate(
+                traverse_obj(initial_state, ('mediaInfo', 'seasons', ...)))
+            if e.get('season_id') == season_id
+        ), None)
+
+        return {
+            'id': video_id,
+            'formats': formats,
+            'title': traverse_obj(initial_state, 'h1Title'),
+            'episode': traverse_obj(initial_state, ('epInfo', 'long_title')),
+            'episode_number': int_or_none(traverse_obj(initial_state, ('epInfo', 'title'))),
+            'series': traverse_obj(initial_state, ('mediaInfo', 'series')),
+            'season': traverse_obj(initial_state, ('mediaInfo', 'season_title')),
+            'season_id': season_id,
+            'season_number': season_number,
+            'thumbnail': traverse_obj(initial_state, ('epInfo', 'cover')),
+            'timestamp': traverse_obj(initial_state, ('epInfo', 'pub_time')),
+            'duration': float_or_none(play_info.get('timelength'), scale=1000),
+            'subtitles': self.extract_subtitles(
+                video_id, initial_state, traverse_obj(initial_state, ('epInfo', 'cid'))),
+            '__post_extractor': self.extract_comments(traverse_obj(initial_state, ('epInfo', 'aid'))),
+            'http_headers': {'Referer': url, **self.geo_verification_headers()},
+        }
+
+
+class BiliBiliBangumiMediaIE(InfoExtractor):
+    _VALID_URL = r'https?://www\.bilibili\.com/bangumi/media/md(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.bilibili.com/bangumi/media/md24097891',
+        'info_dict': {
+            'id': '24097891',
+        },
+        'playlist_mincount': 25,
+    }]
+
+    def _real_extract(self, url):
+        media_id = self._match_id(url)
+        webpage = self._download_webpage(url, media_id)
+
+        initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)
+        episode_list = self._download_json(
+            'https://api.bilibili.com/pgc/web/season/section', media_id,
+            query={'season_id': initial_state['mediaInfo']['season_id']},
+            note='Downloading season info')['result']['main_section']['episodes']
+
+        return self.playlist_result((
+            self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['aid'])
+            for entry in episode_list), media_id)
 
 
 class BilibiliSpaceBaseIE(InfoExtractor):
@@ -700,8 +621,7 @@ class BilibiliCategoryIE(InfoExtractor):
             self._fetch_page, api_url, num_pages, query), size)
 
     def _real_extract(self, url):
-        u = compat_urllib_parse_urlparse(url)
-        category, subcategory = u.path.split('/')[2:4]
+        category, subcategory = urllib.parse.urlparse(url).path.split('/')[2:4]
         query = '%s: %s' % (category, subcategory)
 
         return self.playlist_result(self._entries(category, subcategory, query), query, query)
