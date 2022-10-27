@@ -616,46 +616,6 @@ class YoutubeDL:
                 '         If you experience any issues while using this option, '
                 f'{self._format_err("DO NOT", self.Styles.ERROR)} open a bug report')
 
-        def check_deprecated(param, option, suggestion):
-            if self.params.get(param) is not None:
-                self.report_warning(f'{option} is deprecated. Use {suggestion} instead')
-                return True
-            return False
-
-        if check_deprecated('cn_verification_proxy', '--cn-verification-proxy', '--geo-verification-proxy'):
-            if self.params.get('geo_verification_proxy') is None:
-                self.params['geo_verification_proxy'] = self.params['cn_verification_proxy']
-
-        check_deprecated('autonumber', '--auto-number', '-o "%(autonumber)s-%(title)s.%(ext)s"')
-        check_deprecated('usetitle', '--title', '-o "%(title)s-%(id)s.%(ext)s"')
-        check_deprecated('useid', '--id', '-o "%(id)s.%(ext)s"')
-
-        for msg in self.params.get('_warnings', []):
-            self.report_warning(msg)
-        for msg in self.params.get('_deprecation_warnings', []):
-            self.deprecated_feature(msg)
-
-        self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
-        if 'list-formats' in self.params['compat_opts']:
-            self.params['listformats_table'] = False
-
-        if 'overwrites' not in self.params and self.params.get('nooverwrites') is not None:
-            # nooverwrites was unnecessarily changed to overwrites
-            # in 0c3d0f51778b153f65c21906031c2e091fcfb641
-            # This ensures compatibility with both keys
-            self.params['overwrites'] = not self.params['nooverwrites']
-        elif self.params.get('overwrites') is None:
-            self.params.pop('overwrites', None)
-        else:
-            self.params['nooverwrites'] = not self.params['overwrites']
-
-        self.params.setdefault('forceprint', {})
-        self.params.setdefault('print_to_file', {})
-
-        # Compatibility with older syntax
-        if not isinstance(params['forceprint'], dict):
-            self.params['forceprint'] = {'video': params['forceprint']}
-
         if self.params.get('bidi_workaround', False):
             try:
                 import pty
@@ -676,9 +636,50 @@ class YoutubeDL:
                 else:
                     raise
 
+        self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
+        if auto_init and auto_init != 'no_verbose_header':
+            self.print_debug_header()
+
+        def check_deprecated(param, option, suggestion):
+            if self.params.get(param) is not None:
+                self.report_warning(f'{option} is deprecated. Use {suggestion} instead')
+                return True
+            return False
+
+        if check_deprecated('cn_verification_proxy', '--cn-verification-proxy', '--geo-verification-proxy'):
+            if self.params.get('geo_verification_proxy') is None:
+                self.params['geo_verification_proxy'] = self.params['cn_verification_proxy']
+
+        check_deprecated('autonumber', '--auto-number', '-o "%(autonumber)s-%(title)s.%(ext)s"')
+        check_deprecated('usetitle', '--title', '-o "%(title)s-%(id)s.%(ext)s"')
+        check_deprecated('useid', '--id', '-o "%(id)s.%(ext)s"')
+
+        for msg in self.params.get('_warnings', []):
+            self.report_warning(msg)
+        for msg in self.params.get('_deprecation_warnings', []):
+            self.deprecated_feature(msg)
+
+        if 'list-formats' in self.params['compat_opts']:
+            self.params['listformats_table'] = False
+
+        if 'overwrites' not in self.params and self.params.get('nooverwrites') is not None:
+            # nooverwrites was unnecessarily changed to overwrites
+            # in 0c3d0f51778b153f65c21906031c2e091fcfb641
+            # This ensures compatibility with both keys
+            self.params['overwrites'] = not self.params['nooverwrites']
+        elif self.params.get('overwrites') is None:
+            self.params.pop('overwrites', None)
+        else:
+            self.params['nooverwrites'] = not self.params['overwrites']
+
+        self.params.setdefault('forceprint', {})
+        self.params.setdefault('print_to_file', {})
+
+        # Compatibility with older syntax
+        if not isinstance(params['forceprint'], dict):
+            self.params['forceprint'] = {'video': params['forceprint']}
+
         if auto_init:
-            if auto_init != 'no_verbose_header':
-                self.print_debug_header()
             self.add_default_info_extractors()
 
         if (sys.platform != 'win32'
@@ -3728,6 +3729,10 @@ class YoutubeDL:
             '' if source == 'unknown' else f'({source})',
             '' if _IN_CLI else 'API',
             delim=' '))
+
+        if not _IN_CLI:
+            write_debug(f'params: {self.params}')
+
         if not _LAZY_LOADER:
             if os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
                 write_debug('Lazy loading extractors is forcibly disabled')

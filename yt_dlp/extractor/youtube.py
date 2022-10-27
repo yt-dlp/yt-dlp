@@ -960,6 +960,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
                     is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None),
             'concurrent_view_count' if live_status in ('is_live', 'is_upcoming') else 'view_count': view_count,
+            'live_status': live_status
         }
 
 
