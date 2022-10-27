@@ -159,14 +159,11 @@ class ShugiinItvVodIE(ShugiinItvBaseIE):
                 'start_time': float_or_none(chp.group(1).strip()),
             })
         # the exact duration for the last chapter is unknown! (we can get at most minutes of granularity)
-        for idx in range(len(chapters) - 1):
-            chapters[idx]['end_time'] = chapters[idx + 1]['start_time']
-
         last_tr = re.findall(r'(?s)<TR\s*class="s14_24">(.+?)</TR>', webpage)[-1]
         if last_tr and chapters:
-            last_td = re.findall(r'<TD.+?</TD>', last_tr.group(0))[-1]
+            last_td = re.findall(r'<TD.+?</TD>', last_tr)[-1]
             if last_td:
-                chapters[-1]['end_time'] = chapters[-1]['start_time'] + self._parse_japanese_duration(clean_html(last_td.group(0)))
+                chapters[-1]['end_time'] = chapters[-1]['start_time'] + self._parse_japanese_duration(clean_html(last_td))
 
         return {
             'id': video_id,
