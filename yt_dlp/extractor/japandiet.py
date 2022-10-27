@@ -22,7 +22,7 @@ class ShugiinItvBaseIE(InfoExtractor):
             'title': clean_html(x.group(2)).strip(),
             'url': smuggle_url(f'https://www.shugiintv.go.jp/jp/index.php?room_id={x.group(1)}', x.groups()),
             'ie_key': ShugiinItvLiveIE.ie_key(),
-        } for x in re.finditer(r'<a\s+href=".+?\?room_id=(room\d+)"\s*class="play_live".+?class="s12_14">(.+?)</td>', webpage)]
+        } for x in re.finditer(r'<a\s+href="[^"]+\?room_id=(room\d+)"\s*class="play_live".+?class="s12_14">(.+?)</td>', webpage)]
 
     @staticmethod
     def _parse_japanese_date(text):
@@ -77,7 +77,8 @@ class ShugiinItvLiveIE(ShugiinItvBaseIE):
         return super().suitable(url) and not any(x.suitable(url) for x in (ShugiinItvLiveRoomIE, ShugiinItvVodIE))
 
     def _real_extract(self, url):
-        self.report_warning('Listing up all running proceedings as of now. To specify one proceedings to record, use link direct from the website.')
+        self.to_screen(
+            'Downloading all running proceedings. To specify one proceeding, use direct link from the website')
         webpage = self._download_webpage(
             'https://www.shugiintv.go.jp/jp/index.php', None,
             encoding='euc-jp')
@@ -96,7 +97,7 @@ class ShugiinItvLiveRoomIE(ShugiinItvBaseIE):
             room_id = self._match_id(url)
             webpage = self._download_webpage(
                 'https://www.shugiintv.go.jp/jp/index.php', room_id,
-                encoding='euc-jp', note='Looking up for the title')
+                encoding='euc-jp', note='Looking up stream title')
             title = traverse_obj(self._find_rooms(webpage), (lambda k, v: v['id'] == room_id, 'title'), get_all=False)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
