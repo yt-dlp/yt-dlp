@@ -4,10 +4,7 @@ from ..utils import traverse_obj
 
 
 class QingTingIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                     (?:https?://)?(?:www\.)?
-                         (?P<m>m\.)?(?:qingting\.fm|qtfm\.cn)/(?(m)v|)
-                         channels/\d+/programs/(?P<id>\d+)'''
+    _VALID_URL = r'https?://(?:www\.|m\.)?(?:qingting\.fm|qtfm\.cn)/v?channels/(?P<channel>\d+)/programs/(?P<id>\d+)'
     _TEST = {
         'url': 'https://www.qingting.fm/channels/378005/programs/22257411/',
         'md5': '47e6a94f4e621ed832c316fd1888fb3c',
