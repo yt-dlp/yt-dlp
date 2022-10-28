@@ -21,9 +21,9 @@ class ShugiinItvBaseIE(InfoExtractor):
             '_type': 'url',
             'id': x.group(1),
             'title': clean_html(x.group(2)).strip(),
-            'url': smuggle_url(f'https://www.shugiintv.go.jp/jp/index.php?room_id={x.group(1)}', x.groups()),
+            'url': smuggle_url(f'https://www.shugiintv.go.jp/jp/index.php?room_id={x.group(1)}', {'g': x.groups()}),
             'ie_key': ShugiinItvLiveIE.ie_key(),
-        } for x in re.finditer(r'<a\s+href="[^"]+\?room_id=(room\d+)"\s*class="play_live".+?class="s12_14">(.+?)</td>', webpage)]
+        } for x in re.finditer(r'(?s)<a\s+href="[^"]+\?room_id=(room\d+)"\s*class="play_live".+?class="s12_14">(.+?)</td>', webpage)]
 
     @staticmethod
     def _parse_japanese_date(text):
@@ -90,10 +90,26 @@ class ShugiinItvLiveRoomIE(ShugiinItvBaseIE):
     _VALID_URL = r'https?://(?:www\.)?shugiintv\.go\.jp/(?:jp|en)/index\.php\?room_id=(?P<id>room\d+)'
     IE_DESC = '衆議院インターネット審議中継 (中継)'
 
+    _TESTS = [{
+        'url': 'https://www.shugiintv.go.jp/jp/index.php?room_id=room01',
+        'info_dict': {
+            'id': 'room01',
+            'title': '内閣委員会',
+        },
+        'skip': 'this runs for a time and not every day',
+    }, {
+        'url': 'https://www.shugiintv.go.jp/jp/index.php?room_id=room11',
+        'info_dict': {
+            'id': 'room11',
+            'title': '外務委員会',
+        },
+        'skip': 'this runs for a time and not every day',
+    }]
+
     def _real_extract(self, url):
         url, smug = unsmuggle_url(url)
-        if smug:
-            room_id, title = smug
+        if smug and smug.get('g'):
+            room_id, title = smug['g']
         else:
             room_id = self._match_id(url)
             webpage = self._download_webpage(
