@@ -4584,21 +4584,28 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 raise ExtractorError('Unable to find selected tab')
 
     def _extract_from_tabs(self, item_id, ytcfg, data, tabs):
+        playlist_id = title = description = channel_url = channel_name = channel_id = None
+        tags = []
+
         selected_tab = self._extract_selected_tab(tabs)
-
-        # Deprecated
+        # Deprecated - remove when layout discontinued
         primary_sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')
-
         playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer'), expected_type=dict)
+        metadata_renderer = try_get(
+            data, lambda x: x['metadata']['channelMetadataRenderer'], dict)
+        if metadata_renderer:
+            channel_name = metadata_renderer.get('title')
+            channel_url = metadata_renderer.get('channelUrl')
+            channel_id = metadata_renderer.get('externalId')
+        else:
+            metadata_renderer = try_get(
+                data, lambda x: x['metadata']['playlistMetadataRenderer'], dict)
 
-        metadata_renderer = traverse_obj(
-            data, ('metadata', ('channelMetadataRenderer', 'playlistMetadataRenderer')), expected_type=dict, get_all=False) or {}
-        channel_name = metadata_renderer.get('title')
-        channel_url = metadata_renderer.get('channelUrl')
-        playlist_id = channel_id = metadata_renderer.get('externalId')
-        title = metadata_renderer.get('title')
-        description = metadata_renderer.get('description', '')
-        tags = metadata_renderer.get('keywords', '').split()
+        if metadata_renderer:
+            title = metadata_renderer.get('title')
+            description = metadata_renderer.get('description', '')
+            playlist_id = channel_id
+            tags = metadata_renderer.get('keywords', '').split()
 
         # We can get the uncropped banner/avatar by replacing the crop params with '=s0'
         # See: https://github.com/yt-dlp/yt-dlp/issues/2237#issuecomment-1013694714
