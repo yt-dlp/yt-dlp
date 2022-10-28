@@ -5321,6 +5321,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/user/Computerphile',
             'channel': 'Computerphile',
             'availability': 'public',
+            'modified_date': '20190712',
         },
         'playlist_mincount': 11,
     }, {
@@ -5656,6 +5657,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'cole-dlp-test-acc',
             'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel': 'cole-dlp-test-acc',
+            'channel_follower_count': int,
         },
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
