@@ -29,9 +29,10 @@ class QingTingIE(InfoExtractor):
             test_url = utils.url_or_none(url)
             if not test_url:
                 raise utils.ExtractorError('Invalid audio URL %s' % (url,))
-            return {
-                'id': video_id,
-                'title': title,
-                'ext': 'mp3',
-                'url': test_url,
-            }
+        return {
+            'id': pid,
+            'title': traverse_obj(info, ('ProgramStore', 'programInfo', 'title')),
+            'channel_id': channel_id,
+            'url': traverse_obj(info, ('ProgramStore', 'programInfo', 'audioUrl')),
+            'ext': 'm4a',
+        }
