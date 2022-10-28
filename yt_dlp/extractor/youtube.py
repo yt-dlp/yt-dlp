@@ -4583,28 +4583,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if fatal:
                 raise ExtractorError('Unable to find selected tab')
 
-    def _extract_uploader(self, data):
-        uploader = {}
-        renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarSecondaryInfoRenderer') or {}
-        owner = try_get(
-            renderer, lambda x: x['videoOwner']['videoOwnerRenderer']['title']['runs'][0], dict)
-        if owner:
-            owner_text = owner.get('text')
-            uploader['uploader'] = self._search_regex(
-                r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text)
-            uploader['uploader_id'] = try_get(
-                owner, lambda x: x['navigationEndpoint']['browseEndpoint']['browseId'], str)
-            uploader['uploader_url'] = urljoin(
-                'https://www.youtube.com/',
-                try_get(owner, lambda x: x['navigationEndpoint']['browseEndpoint']['canonicalBaseUrl'], str))
-        return filter_dict(uploader)
-
     def _extract_from_tabs(self, item_id, ytcfg, data, tabs):
         playlist_id = title = description = channel_url = channel_name = channel_id = None
         tags = []
 
         selected_tab = self._extract_selected_tab(tabs)
-        primary_sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')
+        primary_sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')  # FIXME: REMOVE
+        playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer'), expected_type=dict)
         renderer = try_get(
             data, lambda x: x['metadata']['channelMetadataRenderer'], dict)
         if renderer:
@@ -4679,7 +4664,15 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
         }
         if not channel_id:
-            metadata.update(self._extract_uploader(data))
+            owner = traverse_obj(playlist_header_renderer, 'ownerText')
+            owner_text = self._get_text(owner)
+            browse_ep = traverse_obj(owner, ('runs', 0, 'navigationEndpoint', 'browseEndpoint')) or {}
+            metadata.update(filter_dict({
+                'uploader': self._search_regex(r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text),
+                'uploader_id': browse_ep.get('browseId'),
+                'uploader_url': urljoin('https://www.youtube.com', browse_ep.get('canonicalBaseUrl'))
+            }))
+
         metadata.update({
             'channel': metadata['uploader'],
             'channel_id': metadata['uploader_id'],
