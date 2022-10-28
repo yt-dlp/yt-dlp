@@ -911,13 +911,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 r'(?i)(ago)(?!.*\1)\s+(?P<duration>[a-z0-9 ,]+?)(?:\s+[\d,]+\s+views)?(?:\s+-\s+play\s+short)?$',
                 traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label'), default='', expected_type=str),
                 video_id, default=None, group='duration'))
-
-        view_count = self._get_count(renderer, 'viewCountText', 'shortViewCountText')
+        # videoInfo is a string like '50K views • 10 years ago'.
+        view_count = self._get_count(renderer, 'viewCountText', 'shortViewCountText', 'videoInfo')
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
         channel_id = traverse_obj(
             renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'),
             expected_type=str, get_all=False)
-        time_text = self._get_text(renderer, 'publishedTimeText') or ''
+        time_text = self._get_text(renderer, 'publishedTimeText', 'videoInfo') or ''
         scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
