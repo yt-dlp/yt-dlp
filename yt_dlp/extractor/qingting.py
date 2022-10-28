@@ -5,7 +5,7 @@ from ..utils import traverse_obj
 
 class QingTingIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.|m\.)?(?:qingting\.fm|qtfm\.cn)/v?channels/(?P<channel>\d+)/programs/(?P<id>\d+)'
-    _TESTS = {
+    _TESTS = [{
         'url': 'https://www.qingting.fm/channels/378005/programs/22257411/',
         'md5': '47e6a94f4e621ed832c316fd1888fb3c',
         'info_dict': {
@@ -13,7 +13,7 @@ class QingTingIE(InfoExtractor):
             'ext': 'mp3',
             'title': '用了十年才修改，谁在乎教科书？-睡前消息-蜻蜓FM听头条',
         }
-    }
+    }]
 
     def _real_extract(self, url):
         channel_id, pid = self._match_valid_url(url).groups()
