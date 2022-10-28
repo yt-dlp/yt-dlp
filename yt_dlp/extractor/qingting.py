@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 
-from yt_dlp import utils
+from ..utils import traverse_obj
 
 
 class QingTingIE(InfoExtractor):
