@@ -19,8 +19,6 @@ class QingTingIE(InfoExtractor):
         channel_id, pid = self._match_valid_url(url).groups()
         webpage = self._download_webpage(
             f'https://m.qtfm.cn/vchannels/{channel_id}/programs/{pid}/', pid)
-        title = self._html_search_regex(r'(?s)<title\b[^>]*>(.*)</title>', webpage, 'title',
-                                        default=None) or self._og_search_title(webpage)
         urlType = self._search_regex(
             self._VALID_URL,
             url, 'audio URL', group="m")
