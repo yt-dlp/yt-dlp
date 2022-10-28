@@ -73,6 +73,13 @@ class ShugiinItvLiveIE(ShugiinItvBaseIE):
     _VALID_URL = r'https?://(?:www\.)?shugiintv\.go\.jp/(?:jp|en)(?:/index\.php)?$'
     IE_DESC = '衆議院インターネット審議中継'
 
+    _TESTS = [{
+        'url': 'https://www.shugiintv.go.jp/jp/index.php',
+        # expect at least one proceedings is running
+        'playlist_mincount': 1,
+        'only_matching': True,
+    }]
+
     @classmethod
     def suitable(cls, url):
         return super().suitable(url) and not any(x.suitable(url) for x in (ShugiinItvLiveRoomIE, ShugiinItvVodIE))
