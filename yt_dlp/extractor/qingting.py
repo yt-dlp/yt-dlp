@@ -35,11 +35,3 @@ class QingTingIE(InfoExtractor):
                 'ext': 'mp3',
                 'url': test_url,
             }
-        else:
-            url = self._search_regex(
-                r'''("|')alternate\1\s*:\s*("|')(?P<url>(?:(?!\2).)*)\2''',
-                webpage, 'alternate URL', group="url")
-            test_url = utils.url_or_none(url)
-            if not test_url:
-                raise utils.ExtractorError('Invalid audio URL %s' % (url,))
-            return self.url_result(url=test_url, video_id=video_id, video_title=title)
