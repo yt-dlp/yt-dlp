@@ -4764,17 +4764,16 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         Note: Unless YouTube tells us explicitly, we do not assume it is public
         @param data: response
         """
-        renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer') or {}
+        sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer') or {}
+        playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer'))
+        player_header_privacy = playlist_header_renderer.get('privacy')
 
-        player_header_privacy = traverse_obj(
-            data, ('header', 'playlistHeaderRenderer', 'privacy'), expected_type=str)
-
-        badges = self._extract_badges(renderer)
+        badges = self._extract_badges(sidebar_renderer)
 
         # Personal playlists, when authenticated, have a dropdown visibility selector instead of a badge
         privacy_setting_icon = traverse_obj(
-            renderer, (
-                'privacyForm', 'dropdownFormFieldRenderer', 'dropdown', 'dropdownRenderer', 'entries',
+            (playlist_header_renderer, sidebar_renderer), (
+                ..., 'privacyForm', 'dropdownFormFieldRenderer', 'dropdown', 'dropdownRenderer', 'entries',
                 lambda _, v: v['privacyDropdownItemRenderer']['isSelected'], 'privacyDropdownItemRenderer', 'icon', 'iconType'),
             get_all=False, expected_type=str)
 
