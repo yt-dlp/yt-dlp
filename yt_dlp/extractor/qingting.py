@@ -16,8 +16,9 @@ class QingTingIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        channel_id, pid = self._match_valid_url(url).groups()
+        webpage = self._download_webpage(
+            f'https://m.qtfm.cn/vchannels/{channel_id}/programs/{pid}/', pid)
         title = self._html_search_regex(r'(?s)<title\b[^>]*>(.*)</title>', webpage, 'title',
                                         default=None) or self._og_search_title(webpage)
         urlType = self._search_regex(
