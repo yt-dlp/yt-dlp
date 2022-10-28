@@ -904,13 +904,17 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         video_id = renderer.get('videoId')
         title = self._get_text(renderer, 'title')
         description = self._get_text(renderer, 'descriptionSnippet')
-        duration = parse_duration(self._get_text(
-            renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
+
+        duration = int_or_none(renderer.get('lengthSeconds'))
+        if duration is None:
+            duration = parse_duration(self._get_text(
+                renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
         if duration is None:
             duration = parse_duration(self._search_regex(
                 r'(?i)(ago)(?!.*\1)\s+(?P<duration>[a-z0-9 ,]+?)(?:\s+[\d,]+\s+views)?(?:\s+-\s+play\s+short)?$',
                 traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label'), default='', expected_type=str),
                 video_id, default=None, group='duration'))
+
         # videoInfo is a string like '50K views • 10 years ago'.
         view_count = self._get_count(renderer, 'viewCountText', 'shortViewCountText', 'videoInfo')
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
