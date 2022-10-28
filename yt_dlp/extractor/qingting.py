@@ -4,7 +4,6 @@ from ..utils import traverse_obj
 
 
 class QingTingIE(InfoExtractor):
-    IE_NAME = 'QingTing'
     _VALID_URL = r'''(?x)
                      (?:https?://)?(?:www\.)?
                          (?P<m>m\.)?(?:qingting\.fm|qtfm\.cn)/(?(m)v|)
