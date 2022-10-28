@@ -3788,8 +3788,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     entries, video_id, video_title, video_description)
 
         duration = int_or_none(
-            get_first(video_details, 'lengthSeconds')
-            or get_first(microformats, 'lengthSeconds')
+            get_first(microformats, 'lengthSeconds')
+            or get_first(video_details, 'lengthSeconds')
             or parse_duration(search_meta('duration'))) or None
 
         live_broadcast_details, live_status, streaming_data, formats, automatic_captions = \
