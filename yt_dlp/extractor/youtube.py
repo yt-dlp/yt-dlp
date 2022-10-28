@@ -4584,34 +4584,28 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 raise ExtractorError('Unable to find selected tab')
 
     def _extract_from_tabs(self, item_id, ytcfg, data, tabs):
-        playlist_id = title = description = channel_url = channel_name = channel_id = None
-        tags = []
-
         selected_tab = self._extract_selected_tab(tabs)
-        primary_sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')  # FIXME: REMOVE
-        playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer'), expected_type=dict)
-        renderer = try_get(
-            data, lambda x: x['metadata']['channelMetadataRenderer'], dict)
-        if renderer:
-            channel_name = renderer.get('title')
-            channel_url = renderer.get('channelUrl')
-            channel_id = renderer.get('externalId')
-        else:
-            renderer = try_get(
-                data, lambda x: x['metadata']['playlistMetadataRenderer'], dict)
 
-        if renderer:
-            title = renderer.get('title')
-            description = renderer.get('description', '')
-            playlist_id = channel_id
-            tags = renderer.get('keywords', '').split()
+        # Deprecated
+        primary_sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')
+
+        playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer'), expected_type=dict)
+
+        metadata_renderer = traverse_obj(
+            data, ('metadata', ('channelMetadataRenderer', 'playlistMetadataRenderer')), expected_type=dict, get_all=False) or {}
+        channel_name = metadata_renderer.get('title')
+        channel_url = metadata_renderer.get('channelUrl')
+        playlist_id = channel_id = metadata_renderer.get('externalId')
+        title = metadata_renderer.get('title')
+        description = metadata_renderer.get('description', '')
+        tags = metadata_renderer.get('keywords', '').split()
 
         # We can get the uncropped banner/avatar by replacing the crop params with '=s0'
         # See: https://github.com/yt-dlp/yt-dlp/issues/2237#issuecomment-1013694714
         def _get_uncropped(url):
             return url_or_none((url or '').split('=')[0] + '=s0')
 
-        avatar_thumbnails = self._extract_thumbnails(renderer, 'avatar')
+        avatar_thumbnails = self._extract_thumbnails(metadata_renderer, 'avatar')
         if avatar_thumbnails:
             uncropped_avatar = _get_uncropped(avatar_thumbnails[0]['url'])
             if uncropped_avatar:
@@ -4635,19 +4629,38 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'preference': -5
                 })
 
+        # Deprecated - remove when old layout is discontinued
         primary_thumbnails = self._extract_thumbnails(
             primary_sidebar_renderer, ('thumbnailRenderer', ('playlistVideoThumbnailRenderer', 'playlistCustomThumbnailRenderer'), 'thumbnail'))
+
+        playlist_thumbnails = self._extract_thumbnails(
+            playlist_header_renderer, ('playlistHeaderBanner', 'heroPlaylistThumbnailRenderer', 'thumbnail'))
 
         if playlist_id is None:
             playlist_id = item_id
 
-        playlist_stats = traverse_obj(primary_sidebar_renderer, 'stats')
-        last_updated_unix = self._parse_time_text(self._get_text(playlist_stats, 2))
+        # Deprecated - remove primary_sidebar_renderer and last_updated_unix handling when old layout discontinued
+        # Playlist stats is a text runs array containing [video count, view count, last updated].
+        # last updated or view count and last updated may be missing.
+        playlist_stats = traverse_obj(
+            (primary_sidebar_renderer, playlist_header_renderer), (..., ('stats', 'briefStats', 'numVideosText')), get_all=False)
+        last_updated_unix = self._parse_time_text(
+            self._get_text(playlist_stats, 2)
+            or self._get_text(playlist_header_renderer, ('byline', 1, 'playlistBylineRenderer', 'text'))
+        )
+
+        view_count = self._get_count(playlist_stats, 1)
+        if view_count is None:
+            view_count = self._get_count(playlist_header_renderer, 'viewCountText')
+
+        playlist_count = self._get_count(playlist_stats, 0)
+        if playlist_count is None:
+            playlist_count = self._get_count(playlist_header_renderer, ('byline', 0, 'playlistBylineRenderer', 'text'))
+
         if title is None:
             title = self._get_text(data, ('header', 'hashtagHeaderRenderer', 'hashtag')) or playlist_id
         title += format_field(selected_tab, 'title', ' - %s')
         title += format_field(selected_tab, 'expandedText', ' - %s')
-
         metadata = {
             'playlist_id': playlist_id,
             'playlist_title': title,
@@ -4655,12 +4668,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'uploader': channel_name,
             'uploader_id': channel_id,
             'uploader_url': channel_url,
-            'thumbnails': primary_thumbnails + avatar_thumbnails + channel_banners,
+            'thumbnails': primary_thumbnails + playlist_thumbnails + avatar_thumbnails + channel_banners,
             'tags': tags,
-            'view_count': self._get_count(playlist_stats, 1),
+            'view_count': view_count,
             'availability': self._extract_availability(data),
             'modified_date': strftime_or_none(last_updated_unix, '%Y%m%d'),
-            'playlist_count': self._get_count(playlist_stats, 0),
+            'playlist_count': playlist_count,
             'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
         }
         if not channel_id:
