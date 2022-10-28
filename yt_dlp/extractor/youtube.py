@@ -4807,39 +4807,23 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _reload_with_unavailable_videos(self, item_id, data, ytcfg):
         """
-        Get playlist with unavailable videos if the 'show unavailable videos' button exists.
+        Reload playlists with unavailable videos (e.g. private videos, region blocked, etc.)
         """
-        browse_id = params = None
-        renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')
-        if not renderer:
+        is_playlist = bool(traverse_obj(
+            data, ('metadata', 'playlistMetadataRenderer'), ('header', 'playlistHeaderRenderer')))
+        if not is_playlist:
             return
-        menu_renderer = try_get(
-            renderer, lambda x: x['menu']['menuRenderer']['items'], list) or []
-        for menu_item in menu_renderer:
-            if not isinstance(menu_item, dict):
-                continue
-            nav_item_renderer = menu_item.get('menuNavigationItemRenderer')
-            text = try_get(
-                nav_item_renderer, lambda x: x['text']['simpleText'], str)
-            if not text or text.lower() != 'show unavailable videos':
-                continue
-            browse_endpoint = try_get(
-                nav_item_renderer, lambda x: x['navigationEndpoint']['browseEndpoint'], dict) or {}
-            browse_id = browse_endpoint.get('browseId')
-            params = browse_endpoint.get('params')
-            break
-
         headers = self.generate_api_headers(
             ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
             visitor_data=self._extract_visitor_data(data, ytcfg))
         query = {
-            'params': params or 'wgYCCAA=',
-            'browseId': browse_id or 'VL%s' % item_id
+            'params': 'wgYCCAA=',
+            'browseId': f'VL{item_id}'
         }
         return self._extract_response(
             item_id=item_id, headers=headers, query=query,
             check_get_keys='contents', fatal=False, ytcfg=ytcfg,
-            note='Downloading API JSON with unavailable videos')
+            note='Redownloading playlist API JSON with unavailable videos')
 
     @functools.cached_property
     def skip_webpage(self):
