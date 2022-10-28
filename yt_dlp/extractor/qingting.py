@@ -19,16 +19,7 @@ class QingTingIE(InfoExtractor):
         channel_id, pid = self._match_valid_url(url).groups()
         webpage = self._download_webpage(
             f'https://m.qtfm.cn/vchannels/{channel_id}/programs/{pid}/', pid)
-        urlType = self._search_regex(
-            self._VALID_URL,
-            url, 'audio URL', group="m")
-        if urlType == 'm.':
-            url = self._search_regex(
-                r'''("|')audioUrl\1\s*:\s*("|')(?P<url>(?:(?!\2).)*)\2''',
-                webpage, 'audio URL', group="url")
-            test_url = utils.url_or_none(url)
-            if not test_url:
-                raise utils.ExtractorError('Invalid audio URL %s' % (url,))
+        info = self._search_json(r'window\.__initStores\s*=', webpage, 'program info', pid)
         return {
             'id': pid,
             'title': traverse_obj(info, ('ProgramStore', 'programInfo', 'title')),
