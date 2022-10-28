@@ -175,7 +175,7 @@ class ShugiinItvVodIE(ShugiinItvBaseIE):
             r'開会日</td>\s*<td.+?/td>\s*<TD>(.+?)</TD>',
             webpage, 'title', fatal=False))
 
-        # NOTE: chapters are sparse, because of how the website serves the video
+        # NOTE: there are blank at the first and the end of the videos
         chapters = []
         for chp in re.finditer(r'(?i)<A\s+HREF="([^"]+?)"\s*class="play_vod">(?!<img)(.+)</[Aa]>', webpage):
             chapters.append({
