@@ -4646,15 +4646,14 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if playlist_id is None:
             playlist_id = item_id
 
-        # Deprecated - remove primary_sidebar_renderer and last_updated_unix handling when old layout discontinued
+        # Deprecated - remove primary_sidebar_renderer when old layout discontinued
         # Playlist stats is a text runs array containing [video count, view count, last updated].
-        # last updated or view count and last updated may be missing.
+        # last updated or (view count and last updated) may be missing.
         playlist_stats = traverse_obj(
             (primary_sidebar_renderer, playlist_header_renderer), (..., ('stats', 'briefStats', 'numVideosText')), get_all=False)
         last_updated_unix = self._parse_time_text(
-            self._get_text(playlist_stats, 2)
-            or self._get_text(playlist_header_renderer, ('byline', 1, 'playlistBylineRenderer', 'text'))
-        )
+            self._get_text(playlist_stats, 2)  # deprecated, remove when old layout discontinued
+            or self._get_text(playlist_header_renderer, ('byline', 1, 'playlistBylineRenderer', 'text')))
 
         view_count = self._get_count(playlist_stats, 1)
         if view_count is None:
@@ -4668,6 +4667,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             title = self._get_text(data, ('header', 'hashtagHeaderRenderer', 'hashtag')) or playlist_id
         title += format_field(selected_tab, 'title', ' - %s')
         title += format_field(selected_tab, 'expandedText', ' - %s')
+
         metadata = {
             'playlist_id': playlist_id,
             'playlist_title': title,
