@@ -1,5 +1,8 @@
 from .common import InfoExtractor
-from ..utils import url_or_none
+from ..utils import (
+    url_or_none,
+    traverse_obj
+)
 
 
 class DeuxMIE(InfoExtractor):
@@ -28,22 +31,20 @@ class DeuxMIE(InfoExtractor):
         info = self._download_json(
             'https://2m.ma/api/watchDetail/%s' % (video_id),
             video_id, "Downloading media JSON") or {}
-        title = info.get('response').get('News').get('titre')
-        thumbnail = url_or_none(info.get('response').get('News').get('image'))
+        video = traverse_obj(info, ('response', 'News')) 
+        title = video.get('titre')
+        thumbnail = url_or_none(video.get('image'))
         return {
             'id': video_id,
             'title': title,
-            'formats': [{
-                        'url': info.get('response').get('News').get('url'),
-                        'format_id': 'mp4'
-                        }],
-            'description': info.get('response').get('News').get('description'),
+            'url': video.get('url'),
+            'description': video.get('description'),
             'thumbnail': thumbnail
         }
 
 
 class DeuxMNewsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?2m\.ma/(?P<lang>(?:[a-z])+)/news/(?P<id>(?:.)+)'
+    _VALID_URL = r'https?://(?:www\.)?2m\.ma/[^/]+/news/(?P<id>(?:.)+)'
 
     _TESTS = [{
         'url': 'https://2m.ma/fr/news/Sahara-la-r%C3%A9solution-2654-de-l-ONU-une-confirmation-de-l-appui-%C3%A0-l-initiative-d-autonomie-Vid%C3%A9o--20221028',
@@ -65,21 +66,18 @@ class DeuxMNewsIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        lang = self._match_valid_url(url).group('lang')
+        lang = self._search_regex(r'https?://(?:www\.)?2m\.ma/(?P<lang>(?:[a-z])+)/.*', url, 'lang')
         news_id = self._match_id(url)
         info = self._download_json(
             'https://2m.ma/api/articlesByUrl?lang=%s&url=/news/%s' % (lang, news_id),
             news_id, "Downloading media JSON") or {}
-        article = info.get('response').get('article')[0]
+        article = traverse_obj(info, ('response', 'article'))[0]
         title = article.get('title')
         thumbnail = url_or_none(article.get('cover'))
         return {
             'id': article.get('id'),
             'title': title,
-            'formats': [{
-                        'url': article.get('image')[0],
-                        'format_id': 'mp4'
-                        }],
+            'url': article.get('image')[0],
             'description': article.get('content'),
             'thumbnail': thumbnail
         }
