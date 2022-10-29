@@ -38,6 +38,16 @@ class DoodStreamIE(InfoExtractor):
             'thumbnail': 'https://img.doodcdn.com/snaps/8edqd5nppkac3x8u.jpg',
         }
     }, {
+        'url': 'https://dood.re/d/3ce8floblo03',
+        'md5': '3207e199426eca7c2aa23c2872e6728a',
+        'info_dict': {
+            'id': '3ce8floblo03',
+            'ext': 'mp4',
+            'title': 'Dildo Episode 2 (2022) Voovi Web Series www kookuweb cyou',
+            'description': 'Dildo Episode 2 (2022) Voovi Web Series www kookuweb cyou',
+            'thumbnail': 'https://img.doodcdn.com/snaps/8edqd5nppkac3x8u.jpg',
+        }
+    }, {
         'url': 'https://dood.so/d/jzrxn12t2s7n',
         'only_matching': True
     }]
