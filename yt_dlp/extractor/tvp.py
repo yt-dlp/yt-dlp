@@ -40,12 +40,13 @@ class TVPIE(InfoExtractor):
         ],
     }, {
         # TVPlayer legacy
-        'url': 'http://www.tvp.pl/there-can-be-anything-so-i-shortened-it/17916176',
+        'url': 'https://www.tvp.pl/polska-press-video-uploader/wideo/62042351',
         'info_dict': {
-            'id': '17916176',
+            'id': '62042351',
             'ext': 'mp4',
-            'title': 'TVP Gorzów pokaże filmy studentów z podroży dookoła świata',
-            'description': 'TVP Gorzów pokaże filmy studentów z podroży dookoła świata',
+            'title': 'Wideo',
+            'description': 'Wideo Kamera',
+            'duration': 24,
             'age_limit': 0,
             'thumbnail': r're:https://.+',
         },
@@ -73,7 +74,8 @@ class TVPIE(InfoExtractor):
             'age_limit': 0,
             'duration': 20,
             'thumbnail': r're:https://.+',
-        }
+        },
+        'skip': 'Geo-blocked outside PL',
     }, {
         # TVPlayer 2 in client-side rendered website (tvp.info; window.__videoData)
         'url': 'https://www.tvp.info/52880236/09042021-0800',
@@ -84,6 +86,7 @@ class TVPIE(InfoExtractor):
             'age_limit': 0,
             'thumbnail': r're:https://.+',
         },
+        'skip': 'Geo-blocked outside PL',
     }, {
         # client-side rendered (regional) program (playlist) page
         'url': 'https://opole.tvp.pl/9660819/rozmowa-dnia',
@@ -555,8 +558,11 @@ class TVPVODSeriesIE(TVPVODBaseIE):
         'url': 'https://vod.tvp.pl/seriale,18/ranczo-odcinki,316445',
         'info_dict': {
             'id': '316445',
+            'title': 'Ranczo',
+            'age_limit': 12,
+            'categories': ['seriale'],
         },
-        'playlist_count': 312,
+        'playlist_count': 129,
     }, {
         'url': 'https://vod.tvp.pl/programy,88/rolnik-szuka-zony-odcinki,284514',
         'only_matching': True,
