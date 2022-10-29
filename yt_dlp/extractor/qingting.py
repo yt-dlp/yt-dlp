@@ -41,5 +41,7 @@ class QingTingIE(InfoExtractor):
             'channel_name': traverse_obj(info, ('ProgramStore', 'channelInfo', 'title')),
             'podcaster': traverse_obj(info, ('ProgramStore', 'podcasterInfo', 'podcaster', 'nickname')),
             'url': traverse_obj(info, ('ProgramStore', 'programInfo', 'audioUrl')),
+            'vcodec': 'none',
+            'acodec': 'm4a',
             'ext': 'm4a',
         }
