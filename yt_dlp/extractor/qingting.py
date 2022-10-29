@@ -30,10 +30,10 @@ class QingTingIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        channel_id, pid = self._match_valid_url(url).groups()
-        web_page = self._download_webpage(
+        channel_id, pid = self._match_valid_url(url).group('channel', 'id')
+        webpage = self._download_webpage(
             f'https://m.qtfm.cn/vchannels/{channel_id}/programs/{pid}/', pid)
-        info = self._search_json(r'window\.__initStores\s*=', web_page, 'program info', pid)
+        info = self._search_json(r'window\.__initStores\s*=', webpage, 'program info', pid)
         return {
             'id': pid,
             'title': traverse_obj(info, ('ProgramStore', 'programInfo', 'title')),
