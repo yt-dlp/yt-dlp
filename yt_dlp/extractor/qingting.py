@@ -12,8 +12,8 @@ class QingTingIE(InfoExtractor):
             'id': '22257411',
             'title': '用了十年才修改，谁在乎教科书？',
             'channel_id': '378005',
-            'channel_name': '睡前消息',
-            'podcaster': '马督工',
+            'channel': '睡前消息',
+            'uploader': '马督工',
             'ext': 'm4a',
         }
     }, {
@@ -23,8 +23,8 @@ class QingTingIE(InfoExtractor):
             'id': '23023573',
             'title': '【睡前消息488】重庆山火之后，有图≠真相',
             'channel_id': '378005',
-            'channel_name': '睡前消息',
-            'podcaster': '马督工',
+            'channel': '睡前消息',
+            'uploader': '马督工',
             'ext': 'm4a',
         }
     }]
@@ -38,8 +38,8 @@ class QingTingIE(InfoExtractor):
             'id': pid,
             'title': traverse_obj(info, ('ProgramStore', 'programInfo', 'title')),
             'channel_id': channel_id,
-            'channel_name': traverse_obj(info, ('ProgramStore', 'channelInfo', 'title')),
-            'podcaster': traverse_obj(info, ('ProgramStore', 'podcasterInfo', 'podcaster', 'nickname')),
+            'channel': traverse_obj(info, ('ProgramStore', 'channelInfo', 'title')),
+            'uploader': traverse_obj(info, ('ProgramStore', 'podcasterInfo', 'podcaster', 'nickname')),
             'url': traverse_obj(info, ('ProgramStore', 'programInfo', 'audioUrl')),
             'vcodec': 'none',
             'acodec': 'm4a',
