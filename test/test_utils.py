@@ -1604,8 +1604,9 @@ Line 1
         self.assertEqual(urshift(-3, 1), 2147483646)
 
     GET_ELEMENT_BY_CLASS_TEST_STRING = '''
-        <span class="foo bar">nice</span>
+        <span class\xA0="foo bar">not nice</span><span class="foo bar">nice</span>
     '''
+    GET_ELEMENT_BY_CLASS_TEST_STRING_MATCH = '<span class="foo bar">nice</span>'
 
     def test_get_element_by_class(self):
         html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
@@ -1616,7 +1617,8 @@ Line 1
     def test_get_element_html_by_class(self):
         html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
-        self.assertEqual(get_element_html_by_class('foo', html), html.strip())
+        self.assertEqual(get_element_html_by_class('foo', html),
+                         self.GET_ELEMENT_BY_CLASS_TEST_STRING_MATCH)
         self.assertEqual(get_element_by_class('no-such-class', html), None)
 
     GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING = '''
@@ -1637,7 +1639,8 @@ Line 1
     def test_get_element_html_by_attribute(self):
         html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
-        self.assertEqual(get_element_html_by_attribute('class', 'foo bar', html), html.strip())
+        self.assertEqual(get_element_html_by_attribute('class', 'foo bar', html),
+                         self.GET_ELEMENT_BY_CLASS_TEST_STRING_MATCH)
         self.assertEqual(get_element_html_by_attribute('class', 'foo', html), None)
         self.assertEqual(get_element_html_by_attribute('class', 'no-such-foo', html), None)
 
@@ -1646,7 +1649,7 @@ Line 1
         self.assertEqual(get_element_html_by_attribute('itemprop', 'author', html), html.strip())
 
     GET_ELEMENTS_BY_CLASS_TEST_STRING = '''
-        <span class="foo bar">nice</span><span class="foo bar">also nice</span>
+        <span class="foo bar">nice</span><span class="foo bar">also nice</span><span class\xA0="foo bar">not nice</span>
     '''
     GET_ELEMENTS_BY_CLASS_RES = ['<span class="foo bar">nice</span>', '<span class="foo bar">also nice</span>']
 

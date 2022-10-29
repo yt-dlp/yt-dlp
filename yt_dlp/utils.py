@@ -236,6 +236,8 @@ JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>\s*(?P<
 
 NUMBER_RE = r'\d+(?:\.\d+)?'
 
+HTML_WS = r'\t\n\f\r\x20'
+
 
 @functools.cache
 def preferredencoding():
@@ -387,14 +389,14 @@ def get_element_html_by_attribute(attribute, value, html, **kargs):
 def get_elements_by_class(class_name, html, **kargs):
     """Return the content of all tags with the specified class in the passed HTML document as a list"""
     return get_elements_by_attribute(
-        'class', r'[^\'"]*(?<=[\'"\s])%s(?=[\'"\s])[^\'"]*' % re.escape(class_name),
+        'class', rf'[^\'"]*(?<=[\'"{HTML_WS}])%s(?=[\'"{HTML_WS}])[^\'"]*' % re.escape(class_name),
         html, escape_value=False)
 
 
 def get_elements_html_by_class(class_name, html):
     """Return the html of all tags with the specified class in the passed HTML document as a list"""
     return get_elements_html_by_attribute(
-        'class', r'[^\'"]*(?<=[\'"\s])%s(?=[\'"\s])[^\'"]*' % re.escape(class_name),
+        'class', rf'[^\'"]*(?<=[\'"{HTML_WS}])%s(?=[\'"{HTML_WS}])[^\'"]*' % re.escape(class_name),
         html, escape_value=False)
 
 
@@ -414,14 +416,15 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, *, tag=r'[\w
     attribute in the passed HTML document
     """
 
-    quote = '' if re.match(r'''[\s"'`=<>]''', value) else '?'
+    quote = '' if re.match(rf'''[{HTML_WS}"'`=<>]''', value) else '?'
 
     value = re.escape(value) if escape_value else value
 
     partial_element_re = rf'''(?x)
         <(?P<tag>{tag})
-         (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
-         \s{re.escape(attribute)}\s*=\s*(?P<_q>['"]{quote})(?-x:{value})(?P=_q)
+         (?:[{HTML_WS}](?:[^>"']|"[^"]*"|'[^']*')*)?
+         [{HTML_WS}]{re.escape(attribute)}[{HTML_WS}]*=[{HTML_WS}]*
+         (?P<_q>['"]{quote})(?-x:{value})(?P=_q)
         '''
 
     for m in re.finditer(partial_element_re, html):
@@ -574,9 +577,9 @@ def clean_html(html):
     if html is None:  # Convenience for sanitizing descriptions etc.
         return html
 
-    html = re.sub(r'\s+', ' ', html)
-    html = re.sub(r'(?u)\s?<\s?br\s?/?\s?>\s?', '\n', html)
-    html = re.sub(r'(?u)<\s?/\s?p\s?>\s?<\s?p[^>]*>', '\n', html)
+    html = re.sub(rf'[{HTML_WS}]+', ' ', html)
+    html = re.sub(rf'(?u)\s?<[{HTML_WS}]?br[{HTML_WS}]?/?[{HTML_WS}]?>\s?', '\n', html)
+    html = re.sub(rf'(?u)<[{HTML_WS}]?/[{HTML_WS}]?p[{HTML_WS}]?>[{HTML_WS}]?<[{HTML_WS}]?p[^>]*>', '\n', html)
     # Strip html tags
     html = re.sub('<.*?>', '', html)
     # Replace html entities
