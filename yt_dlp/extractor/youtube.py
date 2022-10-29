@@ -4649,8 +4649,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         # Deprecated - remove primary_sidebar_renderer when old layout discontinued
         # Playlist stats is a text runs array containing [video count, view count, last updated].
         # last updated or (view count and last updated) may be missing.
-        playlist_stats = traverse_obj(
-            (primary_sidebar_renderer, playlist_header_renderer), (..., ('stats', 'briefStats', 'numVideosText')), get_all=False)
+        playlist_stats = get_first(
+            (primary_sidebar_renderer, playlist_header_renderer), (('stats', 'briefStats', 'numVideosText'),))
         last_updated_unix = self._parse_time_text(
             self._get_text(playlist_stats, 2)  # deprecated, remove when old layout discontinued
             or self._get_text(playlist_header_renderer, ('byline', 1, 'playlistBylineRenderer', 'text')))
@@ -4771,11 +4771,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         badges = self._extract_badges(sidebar_renderer)
 
         # Personal playlists, when authenticated, have a dropdown visibility selector instead of a badge
-        privacy_setting_icon = traverse_obj(
-            (playlist_header_renderer, sidebar_renderer), (
-                ..., 'privacyForm', 'dropdownFormFieldRenderer', 'dropdown', 'dropdownRenderer', 'entries',
+        privacy_setting_icon = get_first(
+            (playlist_header_renderer, sidebar_renderer), ('privacyForm', 'dropdownFormFieldRenderer', 'dropdown', 'dropdownRenderer', 'entries',
                 lambda _, v: v['privacyDropdownItemRenderer']['isSelected'], 'privacyDropdownItemRenderer', 'icon', 'iconType'),
-            get_all=False, expected_type=str)
+            expected_type=str)
 
         microformats_is_unlisted = traverse_obj(
             data, ('microformat', 'microformatDataRenderer', 'unlisted'), expected_type=bool)
