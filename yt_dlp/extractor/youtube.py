@@ -4772,8 +4772,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
         # Personal playlists, when authenticated, have a dropdown visibility selector instead of a badge
         privacy_setting_icon = get_first(
-            (playlist_header_renderer, sidebar_renderer), ('privacyForm', 'dropdownFormFieldRenderer', 'dropdown', 'dropdownRenderer', 'entries',
-                lambda _, v: v['privacyDropdownItemRenderer']['isSelected'], 'privacyDropdownItemRenderer', 'icon', 'iconType'),
+            (playlist_header_renderer, sidebar_renderer),
+            ('privacyForm', 'dropdownFormFieldRenderer', 'dropdown', 'dropdownRenderer', 'entries',
+             lambda _, v: v['privacyDropdownItemRenderer']['isSelected'], 'privacyDropdownItemRenderer', 'icon', 'iconType'),
             expected_type=str)
 
         microformats_is_unlisted = traverse_obj(
