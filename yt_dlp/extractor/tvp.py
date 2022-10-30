@@ -423,19 +423,14 @@ class TVPEmbedIE(InfoExtractor):
             elif video_url.endswith('.ism/manifest'):
                 formats.extend(self._extract_ism_formats(video_url, video_id, ism_id='mss', fatal=False))
             else:
-                # mp4, wmv or something
-                quality = file.get('quality', {})
-                # API started returning 0 in some formats???
-                if not isinstance(quality, dict):
-                    quality = {}
                 formats.append({
                     'format_id': 'direct',
                     'url': video_url,
                     'ext': (file.get('type') or ext) if ext.startswith('unknown') else ext,
-                    'fps': int_or_none(quality.get('fps')),
-                    'tbr': int_or_none(quality.get('bitrate'), scale=1000),
-                    'width': int_or_none(quality.get('width')),
-                    'height': int_or_none(quality.get('height')),
+                    'fps': int_or_none(traverse_obj(file, ('quality', 'fps'))),
+                    'tbr': int_or_none(traverse_obj(file, ('quality', 'bitrate')), scale=1000),
+                    'width': int_or_none(traverse_obj(file, ('quality', 'width'))),
+                    'height': int_or_none(traverse_obj(file, ('quality', 'height'))),
                 })
 
         self._sort_formats(formats)
