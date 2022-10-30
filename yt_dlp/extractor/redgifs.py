@@ -83,9 +83,9 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
                     f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, *args, **kwargs)
                 break
             except ExtractorError as e:
-                if attempt or not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 401:
-                    raise
-                del self._API_HEADERS['authorization']  # refresh the token
+                if not attempt and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                    del self._API_HEADERS['authorization']  # refresh the token
+                raise
 
         if 'error' in data:
             raise ExtractorError(f'RedGifs said: {data["error"]}', expected=True, video_id=video_id)
