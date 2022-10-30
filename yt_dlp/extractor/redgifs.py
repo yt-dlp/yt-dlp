@@ -11,10 +11,6 @@ from ..utils import (
     OnDemandPagedList,
 )
 
-# The temporary token may expire. Make only one attempt to refresh it.
-MAX_TOKEN_REFRESH_ATTEMPTS = 1
-
-
 class RedGifsBaseInfoExtractor(InfoExtractor):
     _FORMATS = {
         'gif': 250,
@@ -76,11 +72,12 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         self._API_HEADERS['authorization'] = f'Bearer {auth["token"]}'
 
     def _call_api(self, ep, video_id, *args, **kwargs):
-        if 'authorization' not in self._API_HEADERS:
-            self._fetch_oauth_token(video_id)
-        assert 'authorization' in self._API_HEADERS
-
-        for _ in range(MAX_TOKEN_REFRESH_ATTEMPTS + 1):
+        # Possibly repeat if re-authorization is needed
+        attempts = 0
+        while True:
+            if 'authorization' not in self._API_HEADERS:
+                self._fetch_oauth_token(video_id)
+                
             try:
                 headers = dict(self._API_HEADERS)
                 headers['x-customheader'] = f'https://www.redgifs.com/watch/{video_id}'
@@ -92,9 +89,12 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
                 if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 401:
                     raise
 
-                # Likely the temporary token has expired
+                attempts += 1
+                if attempts > 1:
+                    raise
+
+                # Likely the temporary token has expired. Remove it to re-fetch.
                 del self._API_HEADERS['authorization']
-                self._fetch_oauth_token(video_id)
 
         if 'error' in data:
             raise ExtractorError(f'RedGifs said: {data["error"]}', expected=True, video_id=video_id)
