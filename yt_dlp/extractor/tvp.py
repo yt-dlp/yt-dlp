@@ -177,7 +177,7 @@ class TVPIE(InfoExtractor):
             '_type': 'url_transparent',
             'id': str_or_none(video_data.get('_id') or page_id),
             'url': url,
-            'ie_key': 'TVPEmbed' if not is_website else 'TVP',
+            'ie_key': (TVPIE if is_website else TVPEmbedIE).ie_key(),
             'title': str_or_none(video_data.get('title')),
             'description': str_or_none(video_data.get('lead')),
             'timestamp': int_or_none(video_data.get('release_date_long')),
@@ -315,7 +315,6 @@ class TVPStreamIE(InfoExtractor):
 class TVPEmbedIE(InfoExtractor):
     IE_NAME = 'tvp:embed'
     IE_DESC = 'Telewizja Polska'
-    # XFF is not effective
     _GEO_BYPASS = False
     _VALID_URL = r'''(?x)
         (?:
@@ -496,7 +495,8 @@ class TVPVODBaseIE(InfoExtractor):
 
     def _api_request(self, resource, video_id, **kwargs):
         return self._download_json(
-            self._API_BASE_URL + '/' + resource, video_id, query={'lang': 'pl', 'platform': 'BROWSER'}, **kwargs)
+            f'{self._API_BASE_URL}/{resource}', video_id,
+            query={'lang': 'pl', 'platform': 'BROWSER'}, **kwargs)
 
     def _parse_video(self, video):
         return {
@@ -576,7 +576,7 @@ class TVPVODSeriesIE(TVPVODBaseIE):
             episodes = self._api_request(
                 f'vods/serials/{playlist_id}/seasons/{season["id"]}/episodes', playlist_id,
                 note=f'Downloading episode list for {season["title"]}')
-            yield from (self._parse_video(episode) for episode in episodes)
+            yield from map(self._parse_video, episodes)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
