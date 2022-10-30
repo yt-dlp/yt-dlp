@@ -11,6 +11,7 @@ from ..utils import (
     OnDemandPagedList,
 )
 
+
 class RedGifsBaseInfoExtractor(InfoExtractor):
     _FORMATS = {
         'gif': 250,
@@ -77,7 +78,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         while True:
             if 'authorization' not in self._API_HEADERS:
                 self._fetch_oauth_token(video_id)
-                
+
             try:
                 headers = dict(self._API_HEADERS)
                 headers['x-customheader'] = f'https://www.redgifs.com/watch/{video_id}'
