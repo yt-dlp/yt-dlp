@@ -519,6 +519,7 @@ class HTMLAttributeParser(html.parser.HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         self.attrs = dict(attrs)
+        raise compat_HTMLParseError('done')
 
 
 class HTMLListAttrsParser(html.parser.HTMLParser):

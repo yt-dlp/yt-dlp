@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from ..utils import extract_attributes, get_element_html_by_id
 
 
 class EpochIE(InfoExtractor):
@@ -42,12 +43,7 @@ class EpochIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        html_ws = r'\t\n\f\r\x20'
-        html_attr_val = r'(?:"[^"]*"|\'[^\']*\'|[{html_ws}]*[^"\'{html_ws}>][^{html_ws}>]*)'
-        youmaker_video_id = next(id for id in self._search_regex(
-            fr'[{html_ws}]data-trailer={html_attr_val}[{html_ws}]+data-id=(?:(["\'])(?P<id_quoted>[\w-]+)\1|(?P<id_unquoted>[\w-]+))',
-            webpage, 'url', group=('id_quoted', 'id_unquoted'))
-            if id is not None)
+        youmaker_video_id = extract_attributes(get_element_html_by_id('videobox', webpage))['data-id']
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'http://vs1.youmaker.com/assets/{youmaker_video_id}/playlist.m3u8', video_id, 'mp4', m3u8_id='hls')
 
