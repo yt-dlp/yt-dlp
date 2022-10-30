@@ -73,29 +73,19 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         self._API_HEADERS['authorization'] = f'Bearer {auth["token"]}'
 
     def _call_api(self, ep, video_id, *args, **kwargs):
-        # Possibly repeat if re-authorization is needed
-        attempts = 0
-        while True:
+        for attempt in range(2):
             if 'authorization' not in self._API_HEADERS:
                 self._fetch_oauth_token(video_id)
-
             try:
                 headers = dict(self._API_HEADERS)
                 headers['x-customheader'] = f'https://www.redgifs.com/watch/{video_id}'
-
                 data = self._download_json(
                     f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, *args, **kwargs)
                 break
             except ExtractorError as e:
-                if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 401:
+                if attempt or not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 401:
                     raise
-
-                attempts += 1
-                if attempts > 1:
-                    raise
-
-                # Likely the temporary token has expired. Remove it to re-fetch.
-                del self._API_HEADERS['authorization']
+                del self._API_HEADERS['authorization']  # refresh the token
 
         if 'error' in data:
             raise ExtractorError(f'RedGifs said: {data["error"]}', expected=True, video_id=video_id)
