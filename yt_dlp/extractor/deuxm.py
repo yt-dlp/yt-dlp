@@ -31,15 +31,14 @@ class DeuxMIE(InfoExtractor):
         info = self._download_json(
             'https://2m.ma/api/watchDetail/%s' % (video_id),
             video_id, "Downloading media JSON") or {}
-        video = traverse_obj(info, ('response', 'News'))
-        title = video.get('titre')
-        thumbnail = url_or_none(video.get('image'))
+        video = self._download_json(
+            f'https://2m.ma/api/watchDetail/{video_id}', video_id)['response']['News']
         return {
             'id': video_id,
-            'title': title,
-            'url': video.get('url'),
+            'title': video.get('titre'),
+            'url': video['url'],
             'description': video.get('description'),
-            'thumbnail': thumbnail
+            'thumbnail': url_or_none(video.get('image')),
         }
 
 
