@@ -1,6 +1,6 @@
 import re
 
-from yt_dlp.utils import ExtractorError
+from ..utils import ExtractorError
 from .common import InfoExtractor
 
 
