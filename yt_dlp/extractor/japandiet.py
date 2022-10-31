@@ -15,6 +15,8 @@ from .common import InfoExtractor
 
 
 class ShugiinItvBaseIE(InfoExtractor):
+    _INDEX_ROOMS = None
+
     @classmethod
     def _find_rooms(cls, webpage):
         return [{
@@ -56,6 +58,14 @@ class ShugiinItvBaseIE(InfoExtractor):
         days, hours, mins, secs = [int_or_none(x, default=0) for x in mobj.groups()]
         return secs + mins * 60 + hours * 60 * 60 + days * 24 * 60 * 60
 
+    def _fetch_rooms(self):
+        if not self._INDEX_ROOMS:
+            webpage = self._download_webpage(
+                'https://www.shugiintv.go.jp/jp/index.php', None,
+                encoding='euc-jp', note='Downloading proceedings info')
+            ShugiinItvBaseIE._INDEX_ROOMS = self._find_rooms(webpage)
+        return self._INDEX_ROOMS
+
 
 class ShugiinItvLiveIE(ShugiinItvBaseIE):
     _VALID_URL = r'https?://(?:www\.)?shugiintv\.go\.jp/(?:jp|en)(?:/index\.php)?$'
@@ -63,9 +73,12 @@ class ShugiinItvLiveIE(ShugiinItvBaseIE):
 
     _TESTS = [{
         'url': 'https://www.shugiintv.go.jp/jp/index.php',
+        'info_dict': {
+            '_type': 'playlist',
+            'title': 'All proceedings for today',
+        },
         # expect at least one proceedings is running
         'playlist_mincount': 1,
-        'only_matching': True,
     }]
 
     @classmethod
@@ -75,10 +88,7 @@ class ShugiinItvLiveIE(ShugiinItvBaseIE):
     def _real_extract(self, url):
         self.to_screen(
             'Downloading all running proceedings. To specify one proceeding, use direct link from the website')
-        webpage = self._download_webpage(
-            'https://www.shugiintv.go.jp/jp/index.php', None,
-            encoding='euc-jp')
-        return self.playlist_result(self._find_rooms(webpage))
+        return self.playlist_result(self._fetch_rooms(), playlist_title='All proceedings for today')
 
 
 class ShugiinItvLiveRoomIE(ShugiinItvBaseIE):
@@ -107,10 +117,7 @@ class ShugiinItvLiveRoomIE(ShugiinItvBaseIE):
             room_id, title = smug['g']
         else:
             room_id = self._match_id(url)
-            webpage = self._download_webpage(
-                'https://www.shugiintv.go.jp/jp/index.php', room_id,
-                encoding='euc-jp', note='Looking up stream title')
-            title = traverse_obj(self._find_rooms(webpage), (lambda k, v: v['id'] == room_id, 'title'), get_all=False)
+            title = traverse_obj(self._fetch_rooms(), (lambda k, v: v['id'] == room_id, 'title'), get_all=False)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'https://hlslive.shugiintv.go.jp/{room_id}/amlst:{room_id}/playlist.m3u8',
@@ -163,14 +170,15 @@ class ShugiinItvVodIE(ShugiinItvBaseIE):
             r'開会日</td>\s*<td.+?/td>\s*<TD>(.+?)</TD>',
             webpage, 'title', fatal=False))
 
-        # NOTE: there are blank at the first and the end of the videos
         chapters = []
         for chp in re.finditer(r'(?i)<A\s+HREF="([^"]+?)"\s*class="play_vod">(?!<img)(.+)</[Aa]>', webpage):
             chapters.append({
                 'title': clean_html(chp.group(2)).strip(),
                 'start_time': try_call(lambda: float(parse_qs(chp.group(1))['time'][0].strip())),
             })
-        # the exact duration for the last chapter is unknown! (we can get at most minutes of granularity)
+        # NOTE: there are blanks at the first and the end of the videos,
+        # so getting/providing the video duration is not possible
+        # also, the exact end_time for the last chapter is unknown (we can get at most minutes of granularity)
         last_tr = re.findall(r'(?s)<TR\s*class="s14_24">(.+?)</TR>', webpage)[-1]
         if last_tr and chapters:
             last_td = re.findall(r'<TD.+?</TD>', last_tr)[-1]
