@@ -10,6 +10,7 @@ from ..compat import (
     compat_urlparse
 )
 from ..utils import (
+    determine_ext,
     extract_attributes,
     ExtractorError,
     InAdvancePagedList,
@@ -17,6 +18,7 @@ from ..utils import (
     js_to_json,
     parse_iso8601,
     strip_or_none,
+    traverse_obj,
     unified_timestamp,
     unescapeHTML,
     url_or_none,
@@ -48,28 +50,11 @@ class PolskieRadioBaseExtractor(InfoExtractor):
             yield entry
 
 
-class PolskieRadioIE(PolskieRadioBaseExtractor):
-    _VALID_URL = r'https?://(?:www\.)?polskieradio(?:24)?\.pl/\d+/\d+/Artykul/(?P<id>[0-9]+)'
-    _TESTS = [{  # Old-style single broadcast.
-        'url': 'http://www.polskieradio.pl/7/5102/Artykul/1587943,Prof-Andrzej-Nowak-o-historii-nie-da-sie-myslec-beznamietnie',
-        'info_dict': {
-            'id': '1587943',
-            'title': 'Prof. Andrzej Nowak: o historii nie da się myśleć beznamiętnie',
-            'description': 'md5:12f954edbf3120c5e7075e17bf9fc5c5',
-        },
-        'playlist': [{
-            'md5': '2984ee6ce9046d91fc233bc1a864a09a',
-            'info_dict': {
-                'id': '1540576',
-                'ext': 'mp3',
-                'title': 'md5:d4623290d4ac983bf924061c75c23a0d',
-                'timestamp': 1456594200,
-                'upload_date': '20160227',
-                'duration': 2364,
-                'thumbnail': r're:^https?://static\.prsa\.pl/images/.*\.jpg$'
-            },
-        }],
-    }, {  # New-style single broadcast.
+class PolskieRadioLegacyIE(PolskieRadioBaseExtractor):
+    # legacy sites
+    IE_NAME = 'polskieradio:legacy'
+    _VALID_URL = r'https?://(?:www\.)?polskieradio(?:24)?\.pl/\d+/\d+/[Aa]rtykul/(?P<id>[0-9]+)'
+    _TESTS = [{
         'url': 'https://www.polskieradio.pl/8/2382/Artykul/2534482,Zagarysci-Poezja-jak-spoiwo',
         'info_dict': {
             'id': '2534482',
@@ -97,16 +82,6 @@ class PolskieRadioIE(PolskieRadioBaseExtractor):
             'title': 'Pogłos 29 października godz. 23:01',
         },
     }, {
-        'url': 'http://polskieradio.pl/9/305/Artykul/1632955,Bardzo-popularne-slowo-remis',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.polskieradio.pl/7/5102/Artykul/1587943',
-        'only_matching': True,
-    }, {
-        # with mp4 video
-        'url': 'http://www.polskieradio.pl/9/299/Artykul/1634903,Brexit-Leszek-Miller-swiat-sie-nie-zawali-Europa-bedzie-trwac-dalej',
-        'only_matching': True,
-    }, {
         'url': 'https://polskieradio24.pl/130/4503/Artykul/2621876,Narusza-nasza-suwerennosc-Publicysci-o-uzaleznieniu-funduszy-UE-od-praworzadnosci',
         'only_matching': True,
     }]
@@ -114,7 +89,10 @@ class PolskieRadioIE(PolskieRadioBaseExtractor):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, playlist_id)
+        webpage, urlh = self._download_webpage_handle(url, playlist_id)
+        # follow redirect if old url was supplied
+        if PolskieRadioIE.suitable(urlh.url):
+            return self.url_result(urlh.url, ie=PolskieRadioIE.ie_key(), video_id=playlist_id)
 
         content = self._search_regex(
             r'(?s)<div[^>]+class="\s*this-article\s*"[^>]*>(.+?)<div[^>]+class="tags"[^>]*>',
@@ -153,23 +131,168 @@ class PolskieRadioIE(PolskieRadioBaseExtractor):
         return self.playlist_result(entries, playlist_id, title, description)
 
 
-class PolskieRadioCategoryIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?polskieradio\.pl/\d+(?:,[^/]+)?/(?P<id>\d+)'
+class PolskieRadioIE(InfoExtractor):
+    # new next.js sites, excluding radiokierowcow.pl
+    _VALID_URL = r'https?://(?:[^/]+\.)?polskieradio(?:24)?\.pl/artykul/(?P<id>[0-9]+)'
     _TESTS = [{
-        'url': 'http://www.polskieradio.pl/7/5102,HISTORIA-ZYWA',
+        'url': 'https://jedynka.polskieradio.pl/artykul/1587943',
+        'info_dict': {
+            'id': '1587943',
+            'title': 'Prof. Andrzej Nowak: o historii nie da się myśleć beznamiętnie',
+            'description': 'md5:12f954edbf3120c5e7075e17bf9fc5c5',
+        },
+        'playlist': [{
+            'md5': '2984ee6ce9046d91fc233bc1a864a09a',
+            'info_dict': {
+                'id': '7a85d429-5356-4def-a347-925e4ae7406b',
+                'ext': 'mp3',
+                'title': 'md5:d4623290d4ac983bf924061c75c23a0d',
+            },
+        }],
+    }, {
+        'url': 'https://trojka.polskieradio.pl/artykul/1632955',
+        'only_matching': True,
+    }, {
+        # with mp4 video
+        'url': 'https://trojka.polskieradio.pl/artykul/1634903',
+        'only_matching': True,
+    }, {
+        'url': 'https://jedynka.polskieradio.pl/artykul/3042436,Polityka-wschodnia-ojca-i-syna-Wladyslawa-Lokietka-i-Kazimierza-Wielkiego',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, playlist_id)
+
+        article_data = traverse_obj(
+            self._search_nextjs_data(webpage, playlist_id), ('props', 'pageProps', 'data', 'articleData'))
+
+        title = strip_or_none(article_data['title'])
+
+        description = strip_or_none(article_data.get('lead'))
+
+        entries = [{
+            'url': entry['file'],
+            'ext': determine_ext(entry.get('fileName')),
+            'id': self._search_regex(
+                r'([a-f\d]{8}-(?:[a-f\d]{4}-){3}[a-f\d]{12})', entry['file'], 'entry id'),
+            'title': strip_or_none(entry.get('description')) or title,
+        } for entry in article_data.get('attachments') or () if entry['fileType'] in ('Audio', )]
+
+        return self.playlist_result(entries, playlist_id, title, description)
+
+
+class PolskieRadioAuditionIE(InfoExtractor):
+    # new next.js sites
+    IE_NAME = 'polskieradio:audition'
+    _VALID_URL = r'https?://(?:[^/]+\.)?polskieradio\.pl/audycj[ae]/(?P<id>\d+)'
+    _TESTS = [{
+        # articles, PR1
+        'url': 'https://jedynka.polskieradio.pl/audycje/5102',
         'info_dict': {
             'id': '5102',
-            'title': 'HISTORIA ŻYWA',
+            'title': 'Historia żywa',
+            'thumbnail': r're:https://static\.prsa\.pl/images/.+',
         },
         'playlist_mincount': 38,
     }, {
-        'url': 'http://www.polskieradio.pl/7/4807',
+        # episodes, PR1
+        'url': 'https://jedynka.polskieradio.pl/audycje/5769',
         'info_dict': {
-            'id': '4807',
-            'title': 'Vademecum 1050. rocznicy Chrztu Polski'
+            'id': '5769',
+            'title': 'AgroFakty',
+            'thumbnail': r're:https://static\.prsa\.pl/images/.+',
         },
-        'playlist_mincount': 5
+        'playlist_mincount': 269,
     }, {
+        # both episodes and articles, PR3
+        'url': 'https://trojka.polskieradio.pl/audycja/8906',
+        'info_dict': {
+            'id': '8906',
+            'title': 'Trójka budzi',
+            'thumbnail': r're:https://static\.prsa\.pl/images/.+',
+        },
+        'playlist_mincount': 722,
+    }]
+
+    def _call_lp3(self, path, query, video_id, note):
+        return self._download_json(
+            f'https://lp3test.polskieradio.pl/{path}', video_id, note,
+            query=query, headers={'x-api-key': '9bf6c5a2-a7d0-4980-9ed7-a3f7291f2a81'})
+
+    def _entries(self, playlist_id, has_episodes, has_articles):
+        if has_episodes:
+            not_empty = True
+            i = 0
+            while not_empty:
+                page = self._call_lp3(
+                    'AudioArticle/GetListByCategoryId', {
+                        'categoryId': playlist_id,
+                        'PageSize': 10,
+                        'skip': i,
+                        'format': 400,
+                    }, playlist_id, f'Downloading episode list (page #{i})')
+                for episode in page['data']:
+                    yield {
+                        'id': str(episode['id']),
+                        'title': episode['title'],
+                        'url': episode['file'],
+                        'duration': int_or_none(episode.get('duration')),
+                        'timestamp': parse_iso8601(episode.get('datePublic')),
+                    }
+                not_empty = len(page['data']) > 0
+                i += 1
+
+        if has_articles:
+            not_empty = True
+            i = 0
+            while not_empty:
+                page = self._call_lp3(
+                    'Article/GetListByCategoryId', {
+                        'categoryId': playlist_id,
+                        'PageSize': 9,
+                        'skip': i,
+                        'format': 400,
+                    }, playlist_id, f'Downloading article list (page #{i})')
+                for article in page['data']:
+                    yield {
+                        '_type': 'url_transparent',
+                        'id': str(article['id']),
+                        'title': article['shortTitle'],
+                        'url': article['url'],
+                        'ie_key': PolskieRadioIE,
+                        'description': traverse_obj(article, ('description', 'lead')),
+                        'timestamp': parse_iso8601(article.get('datePublic')),
+                    }
+                not_empty = len(page['data']) > 0
+                i += 1
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+
+        page_props = traverse_obj(
+            self._search_nextjs_data(self._download_webpage(url, playlist_id), playlist_id),
+            ('props', 'pageProps'))
+        if page_props.get('data'):
+            page_props = page_props['data']
+        details = page_props.get('details', {})
+
+        has_episodes = len(page_props.get('episodes', ())) > 0 or len(page_props.get('audios', ())) > 0
+        has_articles = len(page_props.get('articles', ())) > 0
+
+        return self.playlist_result(
+            self._entries(playlist_id, has_episodes, has_articles), playlist_id,
+            details.get('name'), traverse_obj(details, ('description', 'lead')),
+            thumbnail=details.get('photo'))
+
+
+class PolskieRadioCategoryIE(InfoExtractor):
+    # legacy sites
+    IE_NAME = 'polskieradio:category'
+    _VALID_URL = r'https?://(?:www\.)?polskieradio\.pl/\d+(?:,[^/]+)?/(?P<id>\d+)'
+    _TESTS = [{
         'url': 'http://www.polskieradio.pl/7/129,Sygnaly-dnia?ref=source',
         'only_matching': True
     }, {
@@ -186,9 +309,6 @@ class PolskieRadioCategoryIE(InfoExtractor):
             'title': 'Muzyka',
         },
         'playlist_mincount': 61
-    }, {
-        'url': 'http://www.polskieradio.pl/7,Jedynka/5102,HISTORIA-ZYWA',
-        'only_matching': True,
     }, {
         'url': 'http://www.polskieradio.pl/8,Dwojka/196,Publicystyka',
         'only_matching': True,
@@ -222,7 +342,10 @@ class PolskieRadioCategoryIE(InfoExtractor):
 
     def _real_extract(self, url):
         category_id = self._match_id(url)
-        webpage = self._download_webpage(url, category_id)
+        webpage, urlh = self._download_webpage_handle(url, category_id)
+        # follow redirect if old url was supplied
+        if PolskieRadioAuditionIE.suitable(urlh.url):
+            return self.url_result(urlh.url, ie=PolskieRadioAuditionIE.ie_key(), video_id=category_id)
         title = self._html_search_regex(
             r'<title>([^<]+) - [^<]+ - [^<]+</title>',
             webpage, 'title', fatal=False)
