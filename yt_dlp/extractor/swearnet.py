@@ -24,17 +24,19 @@ class SwearnetShowIE(InfoExtractor):
         video_source = video_source or {}
         formats, subtitles = [], {}
         for key, value in video_source.items():
-            if key == 'mp4':
+            if key == 'hls':
+                for video_hls in value:
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(video_hls.get('url'), video_id)
+                    formats.extend(fmts)
+                    self._merge_subtitles(subs, target=subtitles)
+
+            # assume else is mp4 format
+            else:
                 formats.extend({
                     'url': video_mp4.get('url'),
                     'ext': 'mp4'
                 } for video_mp4 in value)
 
-            elif key == 'hls':
-                for video_hls in value:
-                    fmts, subs = self._extract_m3u8_formats_and_subtitles(video_hls.get('url'), video_id)
-                    formats.extend(fmts)
-                    self._merge_subtitles(subs, target=subtitles)
         return formats, subtitles
 
     def _get_direct_subtitle(self, caption_json):
