@@ -74,6 +74,6 @@ class TV24UAVideoIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': thumbnail or self._og_search_thumbnail(webpage),
-            'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
+            'title': self._generic_title('', webpage),
             'description': self._og_search_description(webpage, default=None),
         }

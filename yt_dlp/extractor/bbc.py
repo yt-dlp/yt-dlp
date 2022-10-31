@@ -898,12 +898,8 @@ class BBCIE(BBCCoUkIE):
         json_ld_info = self._search_json_ld(webpage, playlist_id, default={})
         timestamp = json_ld_info.get('timestamp')
 
-        playlist_title = json_ld_info.get('title')
-        if not playlist_title:
-            playlist_title = (self._og_search_title(webpage, default=None)
-                              or self._html_extract_title(webpage, 'playlist title', default=None))
-            if playlist_title:
-                playlist_title = re.sub(r'(.+)\s*-\s*BBC.*?$', r'\1', playlist_title).strip()
+        playlist_title = json_ld_info.get('title') or re.sub(
+            r'(.+)\s*-\s*BBC.*?$', r'\1', self._generic_title('', webpage, default='')).strip() or None
 
         playlist_description = json_ld_info.get(
             'description') or self._og_search_description(webpage, default=None)
