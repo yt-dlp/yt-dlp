@@ -50,23 +50,11 @@ class ShugiinItvBaseIE(InfoExtractor):
 
     @staticmethod
     def _parse_japanese_duration(text):
-        if not text:
-            return None
-        mobj = re.search(r'(?:(\d+)日間?)?(?:(\d+)時間?)?(?:(\d+)分)?(?:(\d+)秒)?', re.sub(r'[\s\u3000]+', '', text))
+        mobj = re.search(r'(?:(\d+)日間?)?(?:(\d+)時間?)?(?:(\d+)分)?(?:(\d+)秒)?', re.sub(r'[\s\u3000]+', '', text or ''))
         if not mobj:
-            return None
-        days, hours, mins, secs = map(int_or_none, mobj.groups())
-
-        duration = 0
-        if secs:
-            duration += float(secs)
-        if mins:
-            duration += float(mins) * 60
-        if hours:
-            duration += float(hours) * 60 * 60
-        if days:
-            duration += float(days) * 24 * 60 * 60
-        return duration
+            return
+        days, hours, mins, secs = [int_or_none(x, default=0) for x in mobj.groups()]
+        return secs + mins * 60 + hours * 60 * 60 + days * 24 * 60 * 60
 
 
 class ShugiinItvLiveIE(ShugiinItvBaseIE):
