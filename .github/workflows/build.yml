@@ -1,8 +1,14 @@
 name: Build
 on: workflow_dispatch
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
 jobs:
   prepare:
+    permissions:
+      contents: write  #  for git push
+
     runs-on: ubuntu-latest
     outputs:
       version_suffix: ${{ steps.version_suffix.outputs.version_suffix }}
@@ -248,6 +254,9 @@ jobs:
 
 
   publish_release:
+    permissions:
+      contents: write  #  to create release
+
     runs-on: ubuntu-latest
     needs: [prepare, build_unix, build_windows, build_windows32, build_macos, build_macos_legacy]
 
