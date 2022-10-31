@@ -19,6 +19,7 @@ class PolsatGoIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Świat według Kiepskich - Odcinek 1',
             'age_limit': 12,
+            'subtitles': 'count:1',
         },
         'params': {
             'listsubtitles': True,
@@ -27,7 +28,6 @@ class PolsatGoIE(InfoExtractor):
 
     _CLIENTS = {
         'android_pg': {
-            'name': 'android_pg',
             'domain': 'b2c-mobile.redefine.pl',
             'client': {
                 'deviceType': 'mobile',
@@ -40,7 +40,6 @@ class PolsatGoIE(InfoExtractor):
             },
         },
         'web_pg': {
-            'name': 'web_pg',
             'domain': 'b2c.redefine.pl',
             'client': {
                 'application': 'firefox',
