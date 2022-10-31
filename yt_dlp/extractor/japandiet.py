@@ -114,8 +114,8 @@ class ShugiinItvLiveRoomIE(ShugiinItvBaseIE):
     }]
 
     def _real_extract(self, url):
-        url, smug = unsmuggle_url(url)
-        if smug and smug.get('g'):
+        url, smug = unsmuggle_url(url, default={})
+        if smug.get('g'):
             room_id, title = smug['g']
         else:
             room_id = self._match_id(url)
