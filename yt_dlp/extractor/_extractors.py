@@ -792,6 +792,13 @@ from .jamendo import (
     JamendoIE,
     JamendoAlbumIE,
 )
+from .japandiet import (
+    ShugiinItvLiveIE,
+    ShugiinItvLiveRoomIE,
+    ShugiinItvVodIE,
+    SangiinInstructionIE,
+    SangiinIE,
+)
 from .jeuxvideo import JeuxVideoIE
 from .jove import JoveIE
 from .joj import JojIE
