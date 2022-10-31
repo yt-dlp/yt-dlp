@@ -21,6 +21,7 @@ class DeuxMIE(InfoExtractor):
             'id': '635c0aeab4eec832622356da',
             'ext': 'mp4',
             'title': 'Journal  Amazigh : Vendredi 28 Octobre 2022',
+            'thumbnail': r're:^https?://2msoread-ww.amagi.tv/mediasfiles/videos/images/.*\.png$',
         }
     }]
 
@@ -58,6 +59,7 @@ class DeuxMNewsIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Interview: Casablanca hors des sentiers battus avec Abderrahim KASSOU (Replay) ',
             'description': 'md5:3b8e78111de9fcc6ef7f7dd6cff2430c'
+            'thumbnail': r're:^https?://2msoread-ww.amagi.tv/mediasfiles/videos/images/.*\.png$',
         }
     }]
 
