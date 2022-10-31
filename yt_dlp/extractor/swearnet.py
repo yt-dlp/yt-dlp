@@ -25,12 +25,10 @@ class SwearnetShowIE(InfoExtractor):
         formats, subtitles = [], {}
         for key, value in video_source.items():
             if key == 'mp4':
-                for video_mp4 in value:
-                    fmts = [{
-                        'url': video_mp4.get('url'),
-                        'ext': 'mp4'
-                    }]
-                    formats.extend(fmts)
+                formats.extend({
+                    'url': video_mp4.get('url'),
+                    'ext': 'mp4'
+                } for video_mp4 in value)
 
             elif key == 'hls':
                 for video_hls in value:
@@ -42,12 +40,10 @@ class SwearnetShowIE(InfoExtractor):
     def _get_more_subtitle(self, caption_json):
         subs = {}
         for caption in caption_json:
-            short_lang_code = caption.get('language')
-            if subs.get(short_lang_code) is None:
-                subs[short_lang_code] = []
-
-            if short_lang_code:
-                subs[short_lang_code] = [{'url': caption.get('vttUrl'), 'name': caption.get('name')}]
+            subs.setdefault(caption.get('language') or 'und', []).append({
+                'url': caption.get('vttUrl'),
+                'name': caption.get('name')
+            })
 
         return subs
 
