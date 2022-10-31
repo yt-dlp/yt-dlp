@@ -310,6 +310,7 @@ from .chirbit import (
     ChirbitIE,
     ChirbitProfileIE,
 )
+from .churchofjesuschrist import ChurchOfJesusChristIE
 from .cinchcast import CinchcastIE
 from .cinemax import CinemaxIE
 from .ciscolive import (
