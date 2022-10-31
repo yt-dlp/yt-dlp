@@ -43,10 +43,10 @@ class WistiaBaseIE(InfoExtractor):
         def get_real_ext(url):
             res = self._request_webpage(HEADRequest(url), None, note=False, errnote=False)
             if res:
-                info = dict(res.info())
-                if 'x-amz-meta-name' in info:  # original filename available for some URLs
-                    return info['x-amz-meta-name'].split('.')[-1]
-                content_type = traverse_obj(info, 'content-type', casesense=False, default=None)
+                meta_ext = res.headers.get('x-amz-meta-name', '').rpartition('.')[2]
+                if meta_ext:
+                    return meta_ext
+                content_type = res.headers.get('content-type')
                 if content_type in ('video/mp4', 'video/quicktime'):
                     return 'mp4'
                 elif content_type == 'image/png':
