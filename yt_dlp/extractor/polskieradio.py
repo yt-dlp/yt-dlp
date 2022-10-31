@@ -316,7 +316,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if PolskieRadioIE.suitable(url) else super(PolskieRadioCategoryIE, cls).suitable(url)
+        return False if PolskieRadioLegacyIE.suitable(url) else super(PolskieRadioCategoryIE, cls).suitable(url)
 
     def _entries(self, url, page, category_id):
         content = page
