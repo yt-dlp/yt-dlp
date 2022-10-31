@@ -410,7 +410,7 @@ class TVPEmbedIE(InfoExtractor):
             video_url = url_or_none(file.get('url'))
             if not video_url:
                 continue
-            ext = determine_ext(video_url)
+            ext = determine_ext(video_url, None)
             if ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(video_url, video_id, m3u8_id='hls', fatal=False, live=is_live))
             elif ext == 'mpd':
@@ -426,7 +426,7 @@ class TVPEmbedIE(InfoExtractor):
                 formats.append({
                     'format_id': 'direct',
                     'url': video_url,
-                    'ext': (file.get('type') or ext) if ext.startswith('unknown') else ext,
+                    'ext': ext or file.get('type'),
                     'fps': int_or_none(traverse_obj(file, ('quality', 'fps'))),
                     'tbr': int_or_none(traverse_obj(file, ('quality', 'bitrate')), scale=1000),
                     'width': int_or_none(traverse_obj(file, ('quality', 'width'))),
@@ -488,7 +488,7 @@ class TVPEmbedIE(InfoExtractor):
 class TVPVODBaseIE(InfoExtractor):
     _API_BASE_URL = 'https://vod.tvp.pl/api/products'
 
-    def _api_request(self, resource, video_id, **kwargs):
+    def _call_api(self, resource, video_id, **kwargs):
         return self._download_json(
             f'{self._API_BASE_URL}/{resource}', video_id,
             query={'lang': 'pl', 'platform': 'BROWSER'}, **kwargs)
@@ -542,7 +542,7 @@ class TVPVODVideoIE(TVPVODBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        return self._parse_video(self._api_request(f'vods/{video_id}', video_id))
+        return self._parse_video(self._call_api(f'vods/{video_id}', video_id))
 
 
 class TVPVODSeriesIE(TVPVODBaseIE):
@@ -568,17 +568,17 @@ class TVPVODSeriesIE(TVPVODBaseIE):
 
     def _entries(self, seasons, playlist_id):
         for season in seasons:
-            episodes = self._api_request(
+            episodes = self._call_api(
                 f'vods/serials/{playlist_id}/seasons/{season["id"]}/episodes', playlist_id,
                 note=f'Downloading episode list for {season["title"]}')
             yield from map(self._parse_video, episodes)
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        metadata = self._api_request(
+        metadata = self._call_api(
             f'vods/serials/{playlist_id}', playlist_id,
             note='Downloading serial metadata')
-        seasons = self._api_request(
+        seasons = self._call_api(
             f'vods/serials/{playlist_id}/seasons', playlist_id,
             note='Downloading season list')
         return self.playlist_result(
