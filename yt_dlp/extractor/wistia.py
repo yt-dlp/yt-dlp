@@ -322,9 +322,9 @@ class WistiaChannelIE(WistiaBaseIE):
         'url': 'https://fast.wistia.net/embed/channel/3802iirk0l?wchannelid=3802iirk0l&wmediaid=sp5dqjzw3n',
         'info_dict': {
             'id': 'sp5dqjzw3n',
-            'ext': 'bin',
+            'ext': 'mp4',
             'title': 'The Roof S2: The Modern CRO',
-            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/dadfa9233eaa505d5e0c85c23ff70741.bin',
+            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/dadfa9233eaa505d5e0c85c23ff70741.png',
             'duration': 86.487,
             'description': 'A sales leader on The Roof? Man, they really must be letting anyone up here this season.\n',
             'timestamp': 1619790290,
@@ -354,12 +354,12 @@ class WistiaChannelIE(WistiaBaseIE):
         'info_dict': {
             'id': 'pz0m0l0if3',
             'title': 'A Framework for Improving Product Team Performance',
-            'ext': 'bin',
+            'ext': 'mp4',
             'timestamp': 1653935275,
             'upload_date': '20220530',
             'description': 'Learn how to help your company improve and achieve your product related goals.',
             'duration': 1854.39,
-            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/12fd19e56413d9d6f04e2185c16a6f8854e25226.bin',
+            'thumbnail': 'https://embed-ssl.wistia.com/deliveries/12fd19e56413d9d6f04e2185c16a6f8854e25226.png',
         },
         'params': {'noplaylist': True, 'skip_download': True},
     }]
