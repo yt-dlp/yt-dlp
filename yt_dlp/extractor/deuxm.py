@@ -3,7 +3,7 @@ from ..utils import url_or_none
 
 
 class DeuxMIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?2m\.ma/[^/]+/replay/single/(?P<id>(?:[A-Za-z0-9_.]{1,24})+)'
+    _VALID_URL = r'https?://(?:www\.)?2m\.ma/[^/]+/replay/single/(?P<id>([\w.]{1,24})+)'
 
     _TESTS = [{
         'url': 'https://2m.ma/fr/replay/single/6351d439b15e1a613b3debe8',
@@ -39,7 +39,7 @@ class DeuxMIE(InfoExtractor):
 
 
 class DeuxMNewsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?2m\.ma/(?P<lang>(?:[a-z])+)/news/(?P<id>(?:.)+)'
+    _VALID_URL = r'https?://(?:www\.)?2m\.ma/(?P<lang>\w+)/news/(?P<id>[^/#?]+)'
 
     _TESTS = [{
         'url': 'https://2m.ma/fr/news/Kan-Ya-Mkan-d%C3%A9poussi%C3%A8re-l-histoire-du-phare-du-Cap-Beddouza-20221028',
@@ -64,12 +64,11 @@ class DeuxMNewsIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        lang = self._search_regex(self._VALID_URL, url, 'lang')
-        article_name = self._match_id(url)
+        article_name, lang = self._match_valid_url(url).group('id', 'lang')
         video = self._download_json(
             f'https://2m.ma/api/articlesByUrl?lang={lang}&url=/news/{article_name}', article_name)['response']['article'][0]
         return {
-            'id': video.get('id'),
+            'id': video['id'],
             'title': video.get('title'),
             'url': video['image'][0],
             'description': video.get('content'),
