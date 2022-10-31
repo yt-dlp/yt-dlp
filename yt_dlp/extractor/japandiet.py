@@ -14,6 +14,37 @@ from ..utils import (
 from .common import InfoExtractor
 
 
+def _parse_japanese_date(text):
+    if not text:
+        return None
+    ERA_TABLE = {
+        '明治': 1868,
+        '大正': 1912,
+        '昭和': 1926,
+        '平成': 1989,
+        '令和': 2019,
+    }
+    ERA_RE = '|'.join(map(re.escape, ERA_TABLE.keys()))
+    mobj = re.search(rf'({ERA_RE})?(\d+)年(\d+)月(\d+)日', re.sub(r'[\s\u3000]+', '', text))
+    if not mobj:
+        return None
+    era, year, month, day = mobj.groups()
+    year, month, day = map(int, (year, month, day))
+    if era:
+        # example input: 令和5年3月34日
+        # even though each era have their end, don't check here
+        year += ERA_TABLE[era]
+    return '%04d%02d%02d' % (year, month, day)
+
+
+def _parse_japanese_duration(text):
+    mobj = re.search(r'(?:(\d+)日間?)?(?:(\d+)時間?)?(?:(\d+)分)?(?:(\d+)秒)?', re.sub(r'[\s\u3000]+', '', text or ''))
+    if not mobj:
+        return
+    days, hours, mins, secs = [int_or_none(x, default=0) for x in mobj.groups()]
+    return secs + mins * 60 + hours * 60 * 60 + days * 24 * 60 * 60
+
+
 class ShugiinItvBaseIE(InfoExtractor):
     _INDEX_ROOMS = None
 
@@ -26,37 +57,6 @@ class ShugiinItvBaseIE(InfoExtractor):
             'url': smuggle_url(f'https://www.shugiintv.go.jp/jp/index.php?room_id={x.group(1)}', {'g': x.groups()}),
             'ie_key': ShugiinItvLiveIE.ie_key(),
         } for x in re.finditer(r'(?s)<a\s+href="[^"]+\?room_id=(room\d+)"\s*class="play_live".+?class="s12_14">(.+?)</td>', webpage)]
-
-    @staticmethod
-    def _parse_japanese_date(text):
-        if not text:
-            return None
-        ERA_TABLE = {
-            '明治': 1868,
-            '大正': 1912,
-            '昭和': 1926,
-            '平成': 1989,
-            '令和': 2019,
-        }
-        ERA_RE = '|'.join(map(re.escape, ERA_TABLE.keys()))
-        mobj = re.search(rf'({ERA_RE})?(\d+)年(\d+)月(\d+)日', re.sub(r'[\s\u3000]+', '', text))
-        if not mobj:
-            return None
-        era, year, month, day = mobj.groups()
-        year, month, day = map(int, (year, month, day))
-        if era:
-            # example input: 令和5年3月34日
-            # even though each era have their end, don't check here
-            year += ERA_TABLE[era]
-        return '%04d%02d%02d' % (year, month, day)
-
-    @staticmethod
-    def _parse_japanese_duration(text):
-        mobj = re.search(r'(?:(\d+)日間?)?(?:(\d+)時間?)?(?:(\d+)分)?(?:(\d+)秒)?', re.sub(r'[\s\u3000]+', '', text or ''))
-        if not mobj:
-            return
-        days, hours, mins, secs = [int_or_none(x, default=0) for x in mobj.groups()]
-        return secs + mins * 60 + hours * 60 * 60 + days * 24 * 60 * 60
 
     def _fetch_rooms(self):
         if not self._INDEX_ROOMS:
@@ -166,7 +166,7 @@ class ShugiinItvVodIE(ShugiinItvBaseIE):
             (r'<td\s+align="left">(.+)\s*\(\d+分\)',
              r'<TD.+?<IMG\s*src=".+?/spacer\.gif".+?height="15">(.+?)<IMG'), webpage, 'title', fatal=False)
 
-        release_date = self._parse_japanese_date(self._html_search_regex(
+        release_date = _parse_japanese_date(self._html_search_regex(
             r'開会日</td>\s*<td.+?/td>\s*<TD>(.+?)</TD>',
             webpage, 'title', fatal=False))
 
@@ -183,7 +183,7 @@ class ShugiinItvVodIE(ShugiinItvBaseIE):
         if last_tr and chapters:
             last_td = re.findall(r'<TD.+?</TD>', last_tr)[-1]
             if last_td:
-                chapters[-1]['end_time'] = chapters[-1]['start_time'] + self._parse_japanese_duration(clean_html(last_td))
+                chapters[-1]['end_time'] = chapters[-1]['start_time'] + _parse_japanese_duration(clean_html(last_td))
 
         return {
             'id': video_id,
@@ -243,7 +243,7 @@ class SangiinIE(InfoExtractor):
         date = self._html_search_regex(
             r'<dt[^>]*>\s*開会日\s*</dt>\s*<dd[^>]*>\s*(.+?)\s*</dd>', webpage,
             'date', fatal=False)
-        upload_date = ShugiinItvBaseIE._parse_japanese_date(date)
+        upload_date = _parse_japanese_date(date)
 
         title = self._html_search_regex(
             r'<dt[^>]*>\s*会議名\s*</dt>\s*<dd[^>]*>\s*(.+?)\s*</dd>', webpage,
