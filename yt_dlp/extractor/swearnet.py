@@ -37,7 +37,7 @@ class SwearnetShowIE(InfoExtractor):
                     self._merge_subtitles(subs, target=subtitles)
         return formats, subtitles
 
-    def _get_more_subtitle(self, caption_json):
+    def _get_direct_subtitle(self, caption_json):
         subs = {}
         for caption in caption_json:
             subs.setdefault(caption.get('language') or 'und', []).append({
@@ -56,7 +56,7 @@ class SwearnetShowIE(InfoExtractor):
             f'https://play.vidyard.com/player/{external_id}.json', display_id)['payload']['chapters'][0]
 
         formats, subtitles = self._get_formats_and_subtitle(json_data['sources'], display_id)
-        self._merge_subtitles(self._get_more_subtitle(json_data.get('captions')), target=subtitles)
+        self._merge_subtitles(self._get_direct_subtitle(json_data.get('captions')), target=subtitles)
 
         return {
             'id': str(json_data['videoId']),
