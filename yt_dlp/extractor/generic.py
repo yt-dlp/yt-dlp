@@ -2830,7 +2830,7 @@ class GenericIE(InfoExtractor):
                 pass
 
         mobj = re.search(
-            r'<div [^>]*?class="jwplayer"[^>]*data-source=(?P<quote>[\'"])(?P<video_url>[^" >]+)(?P=quote)',
+            r'<div[^>]+\bclass=[\"\']jwplayer[\"\'][^>]+\bdata-source=([\"\'])(?P<video_url>(?:(?!\1).)+)\1',
             webpage)
         if mobj is not None:
             return [{
