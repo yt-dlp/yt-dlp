@@ -2,7 +2,7 @@ from .common import InfoExtractor
 from ..utils import int_or_none, traverse_obj
 
 
-class SwearnetShowIE(InfoExtractor):
+class SwearnetEpisodeIE(InfoExtractor):
     _VALID_URL = r'https?://www\.swearnet\.com/shows/(?P<id>[\w-]+)/seasons/(?P<season_num>\d+)/episodes/(?P<episode_num>\d+)'
     _TESTS = [{
         'url': 'https://www.swearnet.com/shows/gettin-learnt-with-ricky/seasons/1/episodes/1',
