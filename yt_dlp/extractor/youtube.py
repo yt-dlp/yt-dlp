@@ -4675,7 +4675,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'uploader': channel_name,
             'uploader_id': channel_id,
             'uploader_url': channel_url,
-            'thumbnails': primary_thumbnails + playlist_thumbnails + avatar_thumbnails + channel_banners,
+            'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
             'tags': tags,
             'view_count': view_count,
             'availability': self._extract_availability(data),
@@ -4685,6 +4685,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         }
         if not channel_id:
             owner = traverse_obj(playlist_header_renderer, 'ownerText')
+            if not owner:
+                # Deprecated
+                owner = traverse_obj(
+                    self._extract_sidebar_info_renderer(data, 'playlistSidebarSecondaryInfoRenderer'),
+                    ('videoOwner', 'videoOwnerRenderer', 'title'))
             owner_text = self._get_text(owner)
             browse_ep = traverse_obj(owner, ('runs', 0, 'navigationEndpoint', 'browseEndpoint')) or {}
             metadata.update(filter_dict({
