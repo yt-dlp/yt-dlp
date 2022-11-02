@@ -5785,6 +5785,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
             if selected_tab_name == 'home':
                 selected_tab_name = 'featured'
+            elif selected_tab_name == 'live':
+                selected_tab_name = 'streams'
             requested_tab_name = mobj['tab'][1:]
 
             if 'no-youtube-channel-redirect' not in compat_opts:
