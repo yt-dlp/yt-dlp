@@ -24,10 +24,14 @@ class LBRYBaseIE(InfoExtractor):
     _SUPPORTED_STREAM_TYPES = ['video', 'audio']
 
     def _call_api_proxy(self, method, display_id, params, resource):
+        headers = {'Content-Type': 'application/json-rpc'}
+        cookies = self._get_cookies('https://odysee.com')
+        if 'auth_token' in cookies:
+            headers['x-lbry-auth-token'] = cookies['auth_token'].value
         response = self._download_json(
             'https://api.lbry.tv/api/v1/proxy',
             display_id, 'Downloading %s JSON metadata' % resource,
-            headers={'Content-Type': 'application/json-rpc'},
+            headers=headers,
             data=json.dumps({
                 'method': method,
                 'params': params,
