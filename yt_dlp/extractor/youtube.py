@@ -377,7 +377,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?piped\.rivo\.lol',
         r'(?:www\.)?piped-libre\.kavin\.rocks',
         r'(?:www\.)?yt\.jae\.fi',
-        r'(?:www\.)?mint\.lgbt',
+        r'(?:www\.)?piped\.mint\.lgbt',
         r'(?:www\.)?il\.ax',
         r'(?:www\.)?piped\.esmailelbob\.xyz',
         r'(?:www\.)?piped\.projectsegfau\.lt',
