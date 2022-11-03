@@ -5830,7 +5830,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             self.write_debug('requested tab id: %s' % requested_tab_id)
             self.write_debug('original tab id: %s' % original_tab_id)
             if 'no-youtube-channel-redirect' not in compat_opts and is_channel:
-                if requested_tab_id == 'live':  # Live tab should have redirected to the video
+                # exception: https://www.youtube.com/channel/UCEH7P7kyJIkS_gJf93VYbmg/live
+                if requested_tab_id == 'live' and selected_tab_id != 'live':  # Live tab should have redirected to the video
                     raise UserNotLive(video_id=mobj['id'])
 
                 if not original_tab_id and selected_tab_name:
@@ -5857,8 +5858,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                             else:
                                 item_id, url, selected_tab_name = pl_id, pl_url, requested_tab_id
                                 redirect_warning += f'. Redirecting to playlist {pl_id} instead'
-                elif requested_tab_id != selected_tab_id and selected_tab_name:
-                    raise ExtractorError(f'This channel does not have a {requested_tab_id} tab.', expected=True)
+                elif requested_tab_id != selected_tab_id:
+                    if selected_tab_name:
+                        raise ExtractorError(f'This channel does not have a {requested_tab_id} tab.', expected=True)
+                    # For channels such as https://www.youtube.com/channel/UCtFRv9O2AHqOZjjynzrv-xg
+                    url = ''.join((pre, f'/{selected_tab_id}' if selected_tab_id else '', post))
                 # if requested_tab_id not in ('', selected_tab_name):
                 #     redirect_warning = f'The channel does not have a {requested_tab_id} tab'
                 #     if not original_tab_id:
@@ -5876,6 +5880,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         if 'no-youtube-unavailable-videos' not in compat_opts:
             data = self._reload_with_unavailable_videos(item_id, data, ytcfg) or data
         self._extract_and_report_alerts(data, only_once=True)
+        tabs = self._extract_tab_renderers(data)
         if tabs:
             results.append(self._extract_from_tabs(item_id, ytcfg, data, tabs))
 
