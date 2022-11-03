@@ -17,7 +17,6 @@ import traceback
 import urllib.error
 import urllib.parse
 
-from string import ascii_letters
 from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
 from ..compat import functools
@@ -5826,7 +5825,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             base_url, traverse_obj(tab, ('endpoint', 'commandMetadata', 'webCommandMetadata', 'url')))
 
         tab_id = (traverse_obj(tab, ('tabRenderer', 'tabIdentifier'), expected_type=str)
-                    or tab_url and self._get_url_mobj(tab_url)['tab'][1:])
+                  or tab_url and self._get_url_mobj(tab_url)['tab'][1:])
         tab_name = self._extract_tab_name(tab)
         if not tab_id:
             # Fallback to tab name if we cannot get the tab id.
@@ -5938,7 +5937,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                         results.append(self.url_result(''.join((pre, '/shorts', post))))
 
                     if not results and selected_tab_id != 'videos':
-                        redirect_warning = f'The channel does not have a videos, shorts or live tab'
+                        redirect_warning = 'The channel does not have a videos, shorts or live tab'
                         # Channel does not have any videos tab (live, shorts and videos)
                         if item_id[:2] == 'UC':
                             # Topic channels don't have /videos. Use the equivalent playlist instead
@@ -5983,13 +5982,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         if video_id:
             if mobj['tab'] != '/live':  # live tab is expected to redirect to video
                 self.report_warning(f'Unable to recognize playlist. Downloading just video {video_id}')
-            results.append(self.url_result(f'https://www.youtube.com/watch?v={video_id}',
-                                   ie=YoutubeIE.ie_key(), video_id=video_id))
+            results.append(
+                self.url_result(f'https://www.youtube.com/watch?v={video_id}', ie=YoutubeIE.ie_key(), video_id=video_id))
 
         if len(results) == 1:
             return results[0]
         elif len(results) > 1:
-            return self.playlist_result(results, item_id+'__yt_dlp_intermediary', title='Uploads for '+item_id)
+            return self.playlist_result(results, f'{item_id}__yt_dlp_intermediary', title=f'Uploads for {item_id}')
 
         raise ExtractorError('Unable to recognize tab page')
 
