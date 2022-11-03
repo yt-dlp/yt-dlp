@@ -84,9 +84,8 @@ jobs:
     - name: Build Unix standalone binary
       shell: bash -l {0}
       run: |
-          # get rid of this stuff from actions/setup-python@v4
-          unset pythonLocation PKG_CONFIG_PATH Python_ROOT_DIR \
-            Python2_ROOT_DIR Python3_ROOT_DIR LD_LIBRARY_PATH
+          # considered harmful and set by actions/setup-python@v4
+          unset LD_LIBRARY_PATH
           conda activate build
           python pyinst.py --onedir
           (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
