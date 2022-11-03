@@ -980,13 +980,16 @@ def make_HTTPS_handler(params, **kwargs):
         context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
         # Allow use of weaker ciphers in Python 3.10+. See https://bugs.python.org/issue43998
         context.set_ciphers('DEFAULT')
-    elif sys.version_info < (3, 10):
-        # Backport the default SSL ciphers and minimum TLS version settings from 3.10. [1]
+    elif sys.version_info < (3, 10) and ssl.OPENSSL_VERSION_INFO >= (1, 1, 1):
+        # Backport the default SSL ciphers and minimum TLS version settings from 3.10 [1].
         # This is to ensure consistent behavior across Python versions, and help avoid fingerprinting
-        # in some situations.[2][3]
+        # in some situations [2][3].
+        # Python 3.10 only supports OpenSSL 1.1.1+ [4]. Because this change is likely
+        # untested on older versions, we only apply this to OpenSSL 1.1.1+ to be safe.
         # [1] https://github.com/python/cpython/commit/e983252b516edb15d4338b0a47631b59ef1e2536
         # [2] https://github.com/yt-dlp/yt-dlp/issues/4627
         # [3] https://github.com/yt-dlp/yt-dlp/pull/5294
+        # [4] https://peps.python.org/pep-0644/
         context.set_ciphers('@SECLEVEL=2:ECDH+AESGCM:ECDH+CHACHA20:ECDH+AES:DHE+AES:!aNULL:!eNULL:!aDSS:!SHA1:!AESCCM')
         context.minimum_version = ssl.TLSVersion.TLSv1_2
 
