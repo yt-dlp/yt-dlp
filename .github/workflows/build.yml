@@ -68,10 +68,9 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel twine
           python -m pip install Pyinstaller -r requirements.txt
           reqs=$(mktemp)
-          echo -e 'python=3.10\npyinstaller' >$reqs
+          echo -e 'python=3.10.*\npyinstaller' >$reqs
           sed 's/^brotli.*/brotli-python/' <requirements.txt >>$reqs
-          mamba create -n build
-          mamba install -n build --file $reqs
+          mamba create -n build --file $reqs
 
     - name: Prepare
       run: |
