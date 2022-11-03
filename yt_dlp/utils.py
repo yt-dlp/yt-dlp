@@ -981,7 +981,7 @@ def make_HTTPS_handler(params, **kwargs):
         # Allow use of weaker ciphers in Python 3.10+. See https://bugs.python.org/issue43998
         context.set_ciphers('DEFAULT')
     elif sys.version_info < (3, 10) and ssl.OPENSSL_VERSION_INFO >= (1, 1, 1):
-        # Backport the default SSL ciphers and minimum TLS version settings from 3.10 [1].
+        # Backport the default SSL ciphers and minimum TLS version settings from Python 3.10 [1].
         # This is to ensure consistent behavior across Python versions, and help avoid fingerprinting
         # in some situations [2][3].
         # Python 3.10 only supports OpenSSL 1.1.1+ [4]. Because this change is likely
