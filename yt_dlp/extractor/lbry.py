@@ -201,9 +201,9 @@ class LBRYIE(LBRYBaseIE):
         display_id = compat_urllib_parse_unquote(display_id)
         uri = 'lbry://' + display_id
         result = self._resolve_url(uri, display_id, 'stream')
+        headers = {'Referer': 'https://odysee.com/'}
         if result['value'].get('stream_type') in self._SUPPORTED_STREAM_TYPES:
             claim_id, is_live = result['claim_id'], False
-            headers = {'Referer': 'https://odysee.com/'}
             streaming_url = self._call_api_proxy(
                 'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
             final_url = self._request_webpage(
@@ -212,14 +212,15 @@ class LBRYIE(LBRYBaseIE):
                 note='Downloading streaming redirect url info').geturl()
         elif result.get('value_type') == 'stream':
             claim_id, is_live = result['signing_channel']['claim_id'], True
-            headers = {'referer': 'https://player.odysee.live/'}
             live_data = self._download_json(
                 'https://api.odysee.live/livestream/is_live', claim_id,
                 query={'channel_claim_id': claim_id},
                 note='Downloading livestream JSON metadata')['data']
-            streaming_url = final_url = live_data.get('VideoURL')
-            if not final_url and not live_data.get('Live'):
+            if 'VideoURL' not in live_data or live_data.get('Live') is False:
+                streaming_url = final_url = None
                 self.raise_no_formats('This stream is not live', True, claim_id)
+            else:
+                streaming_url = final_url = live_data.get('VideoURL')
         else:
             raise UnsupportedError(url)
 
