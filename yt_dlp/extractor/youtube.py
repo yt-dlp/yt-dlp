@@ -5516,16 +5516,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         ],
         'playlist_mincount': 101,
     }, {
-        'note': 'Topic without a UU playlist',
+        # Destination channel with only a hidden self tab (tab id is UCtFRv9O2AHqOZjjynzrv-xg)
+        # Treat as a general feed
         'url': 'https://www.youtube.com/channel/UCtFRv9O2AHqOZjjynzrv-xg',
         'info_dict': {
             'id': 'UCtFRv9O2AHqOZjjynzrv-xg',
             'title': 'UCtFRv9O2AHqOZjjynzrv-xg',
             'tags': [],
         },
-        'expected_warnings': [
-            'the playlist redirect gave error',
-        ],
         'playlist_mincount': 9,
     }, {
         'note': 'Youtube music Album',
@@ -5824,7 +5822,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         tab_url = urljoin(
             base_url, traverse_obj(tab, ('endpoint', 'commandMetadata', 'webCommandMetadata', 'url')))
 
-        tab_id = (traverse_obj(tab, ('tabRenderer', 'tabIdentifier'), expected_type=str)
+        tab_id = (traverse_obj(tab, 'tabIdentifier', expected_type=str)
                   or tab_url and self._get_url_mobj(tab_url)['tab'][1:])
         tab_name = self._extract_tab_name(tab)
         if not tab_id:
