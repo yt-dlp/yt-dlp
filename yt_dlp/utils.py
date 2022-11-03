@@ -986,10 +986,10 @@ def make_HTTPS_handler(params, **kwargs):
         # in some situations [2][3].
         # Python 3.10 only supports OpenSSL 1.1.1+ [4]. Because this change is likely
         # untested on older versions, we only apply this to OpenSSL 1.1.1+ to be safe.
-        # [1] https://github.com/python/cpython/commit/e983252b516edb15d4338b0a47631b59ef1e2536
-        # [2] https://github.com/yt-dlp/yt-dlp/issues/4627
-        # [3] https://github.com/yt-dlp/yt-dlp/pull/5294
-        # [4] https://peps.python.org/pep-0644/
+        # 1. https://github.com/python/cpython/commit/e983252b516edb15d4338b0a47631b59ef1e2536
+        # 2. https://github.com/yt-dlp/yt-dlp/issues/4627
+        # 3. https://github.com/yt-dlp/yt-dlp/pull/5294
+        # 4. https://peps.python.org/pep-0644/
         context.set_ciphers('@SECLEVEL=2:ECDH+AESGCM:ECDH+CHACHA20:ECDH+AES:DHE+AES:!aNULL:!eNULL:!aDSS:!SHA1:!AESCCM')
         context.minimum_version = ssl.TLSVersion.TLSv1_2
 
