@@ -4878,7 +4878,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             webpage, data = self._extract_webpage(url, item_id, fatal=webpage_fatal)
             ytcfg = ytcfg or self.extract_ytcfg(item_id, webpage)
             # Reject webpage data if redirected to home page without explicitly requesting
-            selected_tab = self._extract_selected_tab(self._extract_tab_renderers(data)) or {}
+            selected_tab = self._extract_selected_tab(self._extract_tab_renderers(data), fatal=False) or {}
             if (url != 'https://www.youtube.com/feed/recommended'
                     and selected_tab.get('tabIdentifier') == 'FEwhat_to_watch'  # Home page
                     and 'no-youtube-channel-redirect' not in self.get_param('compat_opts', [])):
@@ -5835,7 +5835,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                     raise UserNotLive(video_id=mobj['id'])
 
                 if not original_tab_id and selected_tab_name:
-                    self.report_warning('Extracting videos, live and shorts tab as no channel tab was requested')
+                    self.to_screen('Extracting videos, live and shorts tab as no channel tab was requested')
                     if self._has_tab(tabs, 'streams'):
                         self.write_debug('Has streams tab')
                         results.append(self.url_result(''.join((pre, '/streams', post))))
