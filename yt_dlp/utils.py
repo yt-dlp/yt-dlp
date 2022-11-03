@@ -981,8 +981,12 @@ def make_HTTPS_handler(params, **kwargs):
         # Allow use of weaker ciphers in Python 3.10+. See https://bugs.python.org/issue43998
         context.set_ciphers('DEFAULT')
     elif sys.version_info < (3, 10):
-        # Backport default SSL configuration from 3.10 to ensure consistency and help with avoiding fingerprinting.
-        # https://github.com/python/cpython/commit/e983252b516edb15d4338b0a47631b59ef1e2536
+        # Backport the default SSL ciphers and minimum TLS version settings from 3.10. [1]
+        # This is to ensure consistent behavior across Python versions, and help avoid fingerprinting
+        # in some situations.[2][3]
+        # [1] https://github.com/python/cpython/commit/e983252b516edb15d4338b0a47631b59ef1e2536
+        # [2] https://github.com/yt-dlp/yt-dlp/issues/4627
+        # [3] https://github.com/yt-dlp/yt-dlp/pull/5294
         context.set_ciphers('@SECLEVEL=2:ECDH+AESGCM:ECDH+CHACHA20:ECDH+AES:DHE+AES:!aNULL:!eNULL:!aDSS:!SHA1:!AESCCM')
         context.minimum_version = ssl.TLSVersion.TLSv1_2
 
