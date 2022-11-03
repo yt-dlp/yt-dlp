@@ -84,8 +84,7 @@ jobs:
     - name: Build Unix standalone binary
       shell: bash -l {0}
       run: |
-          # considered harmful and set by actions/setup-python@v4
-          unset LD_LIBRARY_PATH
+          unset LD_LIBRARY_PATH # considered harmful, set by setup-python@v4
           conda activate build
           python pyinst.py --onedir
           (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
