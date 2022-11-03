@@ -164,6 +164,29 @@ class LBRYIE(LBRYBaseIE):
             'license': 'Copyrighted (contact publisher)',
         }
     }, {
+        # HLS live stream (might expire)
+        'url': 'https://odysee.com/@RT:fd/livestream_RT:d',
+        'info_dict': {
+            'id': 'fdd11cb3ab75f95efb7b3bc2d726aa13ac915b66',
+            'ext': 'mp4',
+            'live_status': 'is_live',
+            'title': 'startswith:RT News | Livestream 24/7',
+            'description': 'md5:fe68d0056dfe79c1a6b8ce8c34d5f6fa',
+            'timestamp': int,
+            'upload_date': str,
+            'release_timestamp': int,
+            'release_date': str,
+            'tags': list,
+            'duration': None,
+            'channel': 'RT',
+            'channel_id': 'fdd11cb3ab75f95efb7b3bc2d726aa13ac915b66',
+            'channel_url': 'https://odysee.com/@RT:fdd11cb3ab75f95efb7b3bc2d726aa13ac915b66',
+            'formats': 'mincount:1',
+            'thumbnail': 'startswith:https://thumb',
+            'license': 'None',
+        },
+        'params': {'skip_download': True}
+    }, {
         'url': 'https://odysee.com/@BrodieRobertson:5/apple-is-tracking-everything-you-do-on:e',
         'only_matching': True,
     }, {
