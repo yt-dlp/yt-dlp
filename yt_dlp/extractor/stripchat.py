@@ -45,7 +45,7 @@ class StripchatIE(InfoExtractor):
             raise ExtractorError('Model is offline', expected=True)
 
         server = try_get(data, lambda x: x['viewCam']['viewServers']['flashphoner-hls'], compat_str)
-        host = try_get(data, lambda x: x['config']['data']['hlsStreamHost'], compat_str)
+        host = try_get(data, lambda x: x['config']['data']['featuresV2']['hlsFallback']['fallbackDomains'][0], compat_str)
         model_id = try_get(data, lambda x: x['viewCam']['model']['id'], int)
 
         formats = self._extract_m3u8_formats(
