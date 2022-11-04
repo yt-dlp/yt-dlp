@@ -299,7 +299,7 @@ jobs:
 
   publish_release:
     runs-on: ubuntu-latest
-    needs: [prepare, build_unix, build_windows, build_windows32, build_macos, build_macos_legacy]
+    needs: [prepare, build_unix, build_unix_arm, build_windows, build_windows32, build_macos, build_macos_legacy]
 
     steps:
     - uses: actions/checkout@v3
