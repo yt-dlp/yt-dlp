@@ -162,8 +162,12 @@ class Updater:
     def release_name(self):
         """The release filename"""
         label = _FILE_SUFFIXES[detect_variant()]
-        if label and platform.architecture()[0][:2] == '32':
-            label = f'_x86{label}'
+        if label:
+            machine = platform.machine().lower()
+            if machine == 'aarch64' or machine.startswith("arm"):
+                label = f'_{machine}{label}'
+            elif platform.architecture()[0][:2] == '32':
+                label = f'_x86{label}'
         return f'yt-dlp{label}'
 
     @functools.cached_property
