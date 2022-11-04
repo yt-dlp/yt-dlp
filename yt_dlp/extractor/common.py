@@ -66,6 +66,7 @@ from ..utils import (
     sanitize_filename,
     sanitize_url,
     sanitized_Request,
+    smuggle_url,
     str_or_none,
     str_to_int,
     strip_or_none,
@@ -284,6 +285,7 @@ class InfoExtractor:
                     captions instead of normal subtitles
     duration:       Length of the video in seconds, as an integer or float.
     view_count:     How many users have watched the video on the platform.
+    concurrent_view_count: How many users are currently watching the video on the platform.
     like_count:     Number of positive ratings of the video
     dislike_count:  Number of negative ratings of the video
     repost_count:   Number of reposts of the video
@@ -1106,7 +1108,9 @@ class InfoExtractor:
             return self._downloader.params.get(name, default, *args, **kwargs)
         return default
 
-    def report_drm(self, video_id, partial=False):
+    def report_drm(self, video_id, partial=NO_DEFAULT):
+        if partial is not NO_DEFAULT:
+            self._downloader.deprecation_warning('InfoExtractor.report_drm no longer accepts the argument partial')
         self.raise_no_formats('This video is DRM protected', expected=True, video_id=video_id)
 
     def report_extraction(self, id_or_name):
@@ -1227,7 +1231,7 @@ class InfoExtractor:
             return None
 
     def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='',
-                     contains_pattern='(?s:.+)', fatal=True, default=NO_DEFAULT, **kwargs):
+                     contains_pattern=r'{(?s:.+)}', fatal=True, default=NO_DEFAULT, **kwargs):
         """Searches string for the JSON object specified by start_pattern"""
         # NB: end_pattern is only used to reduce the size of the initial match
         if default is NO_DEFAULT:
@@ -1236,7 +1240,7 @@ class InfoExtractor:
             fatal, has_default = False, True
 
         json_string = self._search_regex(
-            rf'(?:{start_pattern})\s*(?P<json>{{\s*(?:{contains_pattern})\s*}})\s*(?:{end_pattern})',
+            rf'(?:{start_pattern})\s*(?P<json>{contains_pattern})\s*(?:{end_pattern})',
             string, name, group='json', fatal=fatal, default=None if has_default else NO_DEFAULT)
         if not json_string:
             return default
@@ -1466,10 +1470,6 @@ class InfoExtractor:
         if not json_ld:
             return {}
         info = {}
-        if not isinstance(json_ld, (list, tuple, dict)):
-            return info
-        if isinstance(json_ld, dict):
-            json_ld = [json_ld]
 
         INTERACTION_TYPE_MAP = {
             'CommentAction': 'comment',
@@ -1569,12 +1569,14 @@ class InfoExtractor:
             extract_chapter_information(e)
 
         def traverse_json_ld(json_ld, at_top_level=True):
-            for e in json_ld:
+            for e in variadic(json_ld):
+                if not isinstance(e, dict):
+                    continue
                 if at_top_level and '@context' not in e:
                     continue
                 if at_top_level and set(e.keys()) == {'@context', '@graph'}:
-                    traverse_json_ld(variadic(e['@graph'], allowed_types=(dict,)), at_top_level=False)
-                    break
+                    traverse_json_ld(e['@graph'], at_top_level=False)
+                    continue
                 if expected_type is not None and not is_type(e, expected_type):
                     continue
                 rating = traverse_obj(e, ('aggregateRating', 'ratingValue'), expected_type=float_or_none)
@@ -1628,8 +1630,8 @@ class InfoExtractor:
                     continue
                 else:
                     break
-        traverse_json_ld(json_ld)
 
+        traverse_json_ld(json_ld)
         return filter_dict(info)
 
     def _search_nextjs_data(self, webpage, video_id, *, transform_source=None, fatal=True, **kw):
@@ -1862,7 +1864,7 @@ class InfoExtractor:
                     alias, field = field, self._get_field_setting(field, 'field')
                     if self._get_field_setting(alias, 'deprecated'):
                         self.ydl.deprecated_feature(f'Format sorting alias {alias} is deprecated and may '
-                                                    'be removed in a future version. Please use {field} instead')
+                                                    f'be removed in a future version. Please use {field} instead')
                 reverse = match.group('reverse') is not None
                 closest = match.group('separator') == '~'
                 limit_text = match.group('limit')
@@ -3124,9 +3126,10 @@ class InfoExtractor:
             stream_name = stream.get('Name')
             stream_language = stream.get('Language', 'und')
             for track in stream.findall('QualityLevel'):
-                fourcc = track.get('FourCC') or ('AACL' if track.get('AudioTag') == '255' else None)
+                KNOWN_TAGS = {'255': 'AACL', '65534': 'EC-3'}
+                fourcc = track.get('FourCC') or KNOWN_TAGS.get(track.get('AudioTag'))
                 # TODO: add support for WVC1 and WMAP
-                if fourcc not in ('H264', 'AVC1', 'AACL', 'TTML'):
+                if fourcc not in ('H264', 'AVC1', 'AACL', 'TTML', 'EC-3'):
                     self.report_warning('%s is not a supported codec' % fourcc)
                     continue
                 tbr = int(track.attrib['Bitrate']) // 1000
@@ -3586,7 +3589,8 @@ class InfoExtractor:
                     'url': source_url,
                     'width': int_or_none(source.get('width')),
                     'height': height,
-                    'tbr': int_or_none(source.get('bitrate')),
+                    'tbr': int_or_none(source.get('bitrate'), scale=1000),
+                    'filesize': int_or_none(source.get('filesize')),
                     'ext': ext,
                 }
                 if source_url.startswith('rtmp'):
@@ -3816,9 +3820,11 @@ class InfoExtractor:
     def _generic_id(url):
         return urllib.parse.unquote(os.path.splitext(url.rstrip('/').split('/')[-1])[0])
 
-    @staticmethod
-    def _generic_title(url):
-        return urllib.parse.unquote(os.path.splitext(url_basename(url))[0])
+    def _generic_title(self, url='', webpage='', *, default=None):
+        return (self._og_search_title(webpage, default=None)
+                or self._html_extract_title(webpage, default=None)
+                or urllib.parse.unquote(os.path.splitext(url_basename(url))[0])
+                or default)
 
     @staticmethod
     def _availability(is_private=None, needs_premium=None, needs_subscription=None, needs_auth=None, is_unlisted=None):
@@ -3841,8 +3847,8 @@ class InfoExtractor:
         @param default      The default value to return when the key is not present (default: [])
         @param casesense    When false, the values are converted to lower case
         '''
-        val = traverse_obj(
-            self._downloader.params, ('extractor_args', (ie_key or self.ie_key()).lower(), key))
+        ie_key = ie_key if isinstance(ie_key, str) else (ie_key or self).ie_key()
+        val = traverse_obj(self._downloader.params, ('extractor_args', ie_key.lower(), key))
         if val is None:
             return [] if default is NO_DEFAULT else default
         return list(val) if casesense else [x.lower() for x in val]
@@ -3871,6 +3877,12 @@ class InfoExtractor:
 
     def RetryManager(self, **kwargs):
         return RetryManager(self.get_param('extractor_retries', 3), self._error_or_warning, **kwargs)
+
+    def _extract_generic_embeds(self, url, *args, info_dict={}, note='Extracting generic embeds', **kwargs):
+        display_id = traverse_obj(info_dict, 'display_id', 'id')
+        self.to_screen(f'{format_field(display_id, None, "%s: ")}{note}')
+        return self._downloader.get_info_extractor('Generic')._extract_embeds(
+            smuggle_url(url, {'block_ies': [self.ie_key()]}), *args, **kwargs)
 
     @classmethod
     def extract_from_webpage(cls, ydl, url, webpage):

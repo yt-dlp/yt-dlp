@@ -16,7 +16,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                  *, sponsorblock_chapter_title=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, force_keyframes=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._remove_chapters_patterns = set(remove_chapters_patterns or [])
-        self._remove_sponsor_segments = set(remove_sponsor_segments or []) - set(SponsorBlockPP.POI_CATEGORIES.keys())
+        self._remove_sponsor_segments = set(remove_sponsor_segments or []) - set(SponsorBlockPP.NON_SKIPPABLE_CATEGORIES.keys())
         self._ranges_to_remove = set(remove_ranges or [])
         self._sponsorblock_chapter_title = sponsorblock_chapter_title
         self._force_keyframes = force_keyframes
@@ -36,6 +36,9 @@ class ModifyChaptersPP(FFmpegPostProcessor):
 
         info['chapters'], cuts = self._remove_marked_arrange_sponsors(chapters + sponsor_chapters)
         if not cuts:
+            return [], info
+        elif not info['chapters']:
+            self.report_warning('You have requested to remove the entire video, which is not possible')
             return [], info
 
         original_duration, info['duration'] = info.get('duration'), info['chapters'][-1]['end_time']
@@ -99,7 +102,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             'start_time': start,
             'end_time': end,
             'category': 'manually_removed',
-            '_categories': [('manually_removed', start, end)],
+            '_categories': [('manually_removed', start, end, 'Manually removed')],
             'remove': True,
         } for start, end in self._ranges_to_remove)
 
@@ -290,13 +293,12 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             c.pop('_was_cut', None)
             cats = c.pop('_categories', None)
             if cats:
-                category = min(cats, key=lambda c: c[2] - c[1])[0]
-                cats = orderedSet(x[0] for x in cats)
+                category, _, _, category_name = min(cats, key=lambda c: c[2] - c[1])
                 c.update({
                     'category': category,
-                    'categories': cats,
-                    'name': SponsorBlockPP.CATEGORIES[category],
-                    'category_names': [SponsorBlockPP.CATEGORIES[c] for c in cats]
+                    'categories': orderedSet(x[0] for x in cats),
+                    'name': category_name,
+                    'category_names': orderedSet(x[3] for x in cats),
                 })
                 c['title'] = self._downloader.evaluate_outtmpl(self._sponsorblock_chapter_title, c.copy())
                 # Merge identically named sponsors.

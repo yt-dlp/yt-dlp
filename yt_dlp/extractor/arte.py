@@ -303,9 +303,7 @@ class ArteTVCategoryIE(ArteTVBaseIE):
             if any(ie.suitable(video) for ie in (ArteTVIE, ArteTVPlaylistIE, )):
                 items.append(video)
 
-        title = (self._og_search_title(webpage, default=None)
-                 or self._html_search_regex(r'<title\b[^>]*>([^<]+)</title>', default=None))
-        title = strip_or_none(title.rsplit('|', 1)[0]) or self._generic_title(url)
+        title = strip_or_none(self._generic_title('', webpage, default='').rsplit('|', 1)[0]) or None
 
         return self.playlist_from_matches(items, playlist_id=playlist_id, playlist_title=title,
                                           description=self._og_search_description(webpage, default=None))

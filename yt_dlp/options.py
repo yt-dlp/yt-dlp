@@ -1417,7 +1417,9 @@ def create_parser():
         help='Do not load cookies from browser (default)')
     filesystem.add_option(
         '--cache-dir', dest='cachedir', default=None, metavar='DIR',
-        help='Location in the filesystem where yt-dlp can store some downloaded information (such as client ids and signatures) permanently. By default $XDG_CACHE_HOME/yt-dlp or ~/.cache/yt-dlp')
+        help=(
+            'Location in the filesystem where yt-dlp can store some downloaded information '
+            '(such as client ids and signatures) permanently. By default ${XDG_CACHE_HOME}/yt-dlp'))
     filesystem.add_option(
         '--no-cache-dir', action='store_false', dest='cachedir',
         help='Disable filesystem caching')
@@ -1735,7 +1737,7 @@ def create_parser():
         '--sponsorblock-remove', metavar='CATS',
         dest='sponsorblock_remove', default=set(), action='callback', type='str',
         callback=_set_from_options_callback, callback_kwargs={
-            'allowed_values': set(SponsorBlockPP.CATEGORIES.keys()) - set(SponsorBlockPP.POI_CATEGORIES.keys()),
+            'allowed_values': set(SponsorBlockPP.CATEGORIES.keys()) - set(SponsorBlockPP.NON_SKIPPABLE_CATEGORIES.keys()),
             # Note: From https://wiki.sponsor.ajay.app/w/Types:
             # The filler category is very aggressive.
             # It is strongly recommended to not use this in a client by default.
@@ -1745,7 +1747,7 @@ def create_parser():
             'If a category is present in both mark and remove, remove takes precedence. '
             'The syntax and available categories are the same as for --sponsorblock-mark '
             'except that "default" refers to "all,-filler" '
-            f'and {", ".join(SponsorBlockPP.POI_CATEGORIES.keys())} is not available'))
+            f'and {", ".join(SponsorBlockPP.NON_SKIPPABLE_CATEGORIES.keys())} are not available'))
     sponsorblock.add_option(
         '--sponsorblock-chapter-title', metavar='TEMPLATE',
         default=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, dest='sponsorblock_chapter_title',

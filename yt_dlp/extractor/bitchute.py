@@ -28,14 +28,12 @@ class BitChuteIE(InfoExtractor):
         'info_dict': {
             'id': 'UGlrF9o9b-Q',
             'ext': 'mp4',
-            'filesize': None,
             'title': 'This is the first video on #BitChute !',
             'description': 'md5:a0337e7b1fe39e32336974af8173a034',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'BitChute',
             'upload_date': '20170103',
         },
-        'params': {'check_formats': False},
     }, {
         # video not downloadable in browser, but we can recover it
         'url': 'https://www.bitchute.com/video/2s6B3nZjAk7R/',
@@ -51,7 +49,6 @@ class BitChuteIE(InfoExtractor):
             'upload_date': '20181113',
         },
         'params': {'check_formats': None},
-        'expected_warnings': ['HTTP Error'],
     }, {
         'url': 'https://www.bitchute.com/embed/lbb5G1hjPhw/',
         'only_matching': True,

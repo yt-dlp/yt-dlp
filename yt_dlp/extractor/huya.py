@@ -54,7 +54,7 @@ class HuyaLiveIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id=video_id)
-        stream_data = self._search_json(r'stream:\s+', webpage, 'stream', video_id=video_id, default=None)
+        stream_data = self._search_json(r'stream:\s', webpage, 'stream', video_id=video_id, default=None)
         room_info = try_get(stream_data, lambda x: x['data'][0]['gameLiveInfo'])
         if not room_info:
             raise ExtractorError('Can not extract the room info', expected=True)

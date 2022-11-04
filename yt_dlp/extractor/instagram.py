@@ -452,7 +452,7 @@ class InstagramIE(InstagramBaseIE):
                 webpage = self._download_webpage(
                     f'{url}/embed/', video_id, note='Downloading embed webpage', fatal=False)
                 additional_data = self._search_json(
-                    r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
+                    r'window\.__additionalDataLoaded\s*\(\s*[^,]+,', webpage, 'additional data', video_id, fatal=False)
                 if not additional_data and not media:
                     self.raise_login_required('Requested content is not available, rate-limit reached or login required')
 

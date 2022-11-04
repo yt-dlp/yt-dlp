@@ -962,6 +962,8 @@ def _real_main(argv=None):
 
 
 def main(argv=None):
+    global _IN_CLI
+    _IN_CLI = True
     try:
         _exit(*variadic(_real_main(argv)))
     except DownloadError:
