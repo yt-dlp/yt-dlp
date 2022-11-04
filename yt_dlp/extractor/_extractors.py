@@ -636,6 +636,10 @@ from .gazeta import GazetaIE
 from .gdcvault import GDCVaultIE
 from .gedidigital import GediDigitalIE
 from .generic import GenericIE
+from .genius import (
+    GeniusIE,
+    GeniusLyricsIE,
+)
 from .gettr import (
     GettrIE,
     GettrStreamingIE,
