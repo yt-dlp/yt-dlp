@@ -2,6 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     HEADRequest,
     OnDemandPagedList,
     clean_html,
@@ -9,14 +10,13 @@ from ..utils import (
     get_elements_html_by_class,
     int_or_none,
     match_filter_func,
+    orderedSet,
     parse_count,
     parse_duration,
     traverse_obj,
     unified_strdate,
     urlencode_postdata,
 )
-
-BITCHUTE_REFERER = 'https://www.bitchute.com/'
 
 
 class BitChuteIE(InfoExtractor):
@@ -60,55 +60,47 @@ class BitChuteIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    HEADERS = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) '
-                      'AppleWebKit/537.36 (KHTML, like Gecko) '
-                      'Chrome/69.0.3497.57 Safari/537.36',
-        'Referer': BITCHUTE_REFERER,
+    _HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.57 Safari/537.36',
+        'Referer': 'https://www.bitchute.com/',
     }
 
-    def _check_video(self, video_url, video_id):
-        hostnames = ('seed150', 'seed151', 'seed152', 'seed153')
-        urls = [video_url]
-
-        match = re.match(r'https?://(?P<hostname>seed\d{3})\.bitchute\.com/', video_url)
-        if match:
-            given_hostname = match.group('hostname')
-            urls.extend(video_url.replace(given_hostname, hostname)
-                        for hostname in hostnames if hostname != given_hostname)
-
+    def _check_format(self, video_url, video_id):
+        urls = orderedSet(
+            re.sub(r'(^https?://)(seed\d+)(?=\.bitchute\.com)', fr'\g<1>{host}', video_url)
+            for host in (r'\g<2>', 'seed150', 'seed151', 'seed152', 'seed153'))
         for url in urls:
-            response = self._request_webpage(
-                HEADRequest(url), video_id=video_id,
-                note='Checking %s' % url, errnote=url, fatal=False, headers=self.HEADERS)
-            if not response:
+            try:
+                response = self._request_webpage(
+                    HEADRequest(url), video_id=video_id, note=f'Checking {url}', headers=self._HEADERS)
+            except ExtractorError as e:
+                self.to_screen(f'{video_id}: URL is invalid, skipping: {e.cause}')
                 continue
-            return {'url': url, 'filesize': int_or_none(response.headers.get('Content-Length'))}
-
-        return None
+            return {
+                'url': url,
+                'filesize': int_or_none(response.headers.get('Content-Length'))
+            }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(
-            '%svideo/%s' % (BITCHUTE_REFERER, video_id), video_id, headers=self.HEADERS)
+            f'https://www.bitchute.com/video/{video_id}', video_id, headers=self._HEADERS)
 
         publish_date = clean_html(get_element_by_class('video-publish-date', webpage))
         entries = self._parse_html5_media_entries(url, webpage, video_id)
 
         formats = []
-        for _format in traverse_obj(entries, (0, 'formats'), default=[]):
+        for format_ in traverse_obj(entries, (0, 'formats', ...)):
             if self.get_param('check_formats') is not False:
-                info = self._check_video(_format['url'], video_id)
-                if info is None:
+                format_.update(self._check_format(format_.pop('url'), video_id) or {})
+                if 'url' not in format_:
                     continue
-                _format.update(info)
-            formats.append(_format)
+            formats.append(format_)
 
         if not formats:
             self.raise_no_formats(
                 'Video is unavailable. Please make sure this video is playable in the browser '
                 'before reporting this issue.', expected=True, video_id=video_id)
-
         self._sort_formats(formats)
 
         return {
@@ -181,7 +173,7 @@ class BitChuteChannelIE(InfoExtractor):
     }
 
     def _entries(self, playlist_type, playlist_id):
-        playlist_url = '%s%s/%s/' % (BITCHUTE_REFERER, playlist_type, playlist_id)
+        playlist_url = f'https://www.bitchute.com/{playlist_type}/{playlist_id}/'
 
         def fetch_entries(page_num):
             data = self._download_json(
@@ -204,7 +196,7 @@ class BitChuteChannelIE(InfoExtractor):
                 match = re.search(r'<a\b[^>]+\bhref=["\']/video/(?P<id>[^"\'/]+)', video_html)
                 video_id = match and match.group('id')
                 yield self.url_result(
-                    '%svideo/%s' % (BITCHUTE_REFERER, video_id),
+                    f'https://www.bitchute.com/video/{video_id}',
                     ie=BitChuteIE, video_id=video_id, url_transparent=True,
                     title=clean_html(get_element_by_class(class_name['title'], video_html)),
                     description=clean_html(get_element_by_class(class_name['description'], video_html)),
@@ -217,7 +209,7 @@ class BitChuteChannelIE(InfoExtractor):
         playlist_type, playlist_id = self._match_valid_url(url).group('type', 'id')
 
         webpage = self._download_webpage(
-            '%s%s/%s/' % (BITCHUTE_REFERER, playlist_type, playlist_id), video_id=playlist_id)
+            f'https://www.bitchute.com/{playlist_type}/{playlist_id}/', video_id=playlist_id)
         title = self._html_extract_title(webpage, default=None)
         description = self._html_search_meta(
             ('description', 'og:description', 'twitter:description'), webpage, default=None)
