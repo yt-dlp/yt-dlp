@@ -154,7 +154,7 @@ jobs:
             python3.8 devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
             python3.8 devscripts/make_lazy_extractors.py
             python3.8 pyinst.py
-            cp dist/yt-dlp_linux* ../artifacts/yt-dlp_${{ matrix.architecture }}_linux
+            cp dist/yt-dlp_linux* ../artifacts/yt-dlp_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}_linux
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
