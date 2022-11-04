@@ -5766,6 +5766,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         # FIXME: how to test?
         'url': 'https://www.youtube.com/channel/UC2yXPzFejc422buOIzn_0CA',
         'only_matching': True,
+    }, {  # No uploads and no UCID given. Should fail with no uploads error
+        'url': 'https://www.youtube.com/news',
+        'only_matching': True
     }, {
         # No videos tab but has a shorts tab
         'url': 'https://www.youtube.com/c/TKFShorts',
@@ -5935,19 +5938,22 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                         tab_results.append(self.url_result(''.join((pre, '/shorts', post))))
 
                     if not tab_results and selected_tab_id != 'videos':
-                        redirect_warning = 'The channel does not have a videos, shorts or live tab'
                         # Channel does not have any videos tab (live, shorts and videos)
+                        redirect_warning = ''
                         if item_id[:2] == 'UC':
                             # Topic channels don't have /videos. Use the equivalent playlist instead
                             pl_id = f'UU{item_id[2:]}'
                             pl_url = f'https://www.youtube.com/playlist?list={pl_id}'
                             try:
                                 data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True, webpage_fatal=True)
-                            except ExtractorError:
-                                raise ExtractorError(redirect_warning + ' and the uploads playlist redirect gave error', expected=True)
-                            else:
                                 item_id, url, selected_tab_name = pl_id, pl_url, requested_tab_id
-                                redirect_warning += f'. Redirecting to playlist {pl_id} instead'
+                                redirect_warning = f'The channel does not have a videos, shorts or live tab. Redirecting to playlist {pl_id} instead'
+                            except ExtractorError:
+                                pass
+
+                        if not redirect_warning:
+                            raise ExtractorError('This channel has no uploads', expected=True)
+
                     elif tab_results and selected_tab_id != 'videos':
                         # When there are shorts/live tabs but not videos tab
                         data = None
@@ -5969,12 +5975,12 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         tabs = self._extract_tab_renderers(data)
         if tabs:
             tab_results.append(self._extract_from_tabs(item_id, ytcfg, data, tabs))
-        
+
         if len(tab_results) == 1:
             return tab_results[0]
         elif len(tab_results) > 1:
             return self.playlist_result(tab_results, f'{item_id}__yt_dlp_intermediary', title=f'Uploads for {item_id}')
-        
+
         playlist = traverse_obj(
             data, ('contents', 'twoColumnWatchNextResults', 'playlist', 'playlist'), expected_type=dict)
         if playlist:
