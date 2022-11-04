@@ -130,7 +130,6 @@ jobs:
       - name: Virtualized Install, Prepare & Build
         uses: uraimo/run-on-arch-action@v2
         with:
-          githubToken: ${{ github.token }} # This option can be removed, but the built docker image won't be cached to the repository then (slowing down build times)
           arch: ${{ matrix.architecture }}
           distro: ubuntu18.04
 
@@ -326,6 +325,8 @@ jobs:
           sha256sum artifact/yt-dlp_macos | awk '{print $1 "  yt-dlp_macos"}' >> SHA2-256SUMS
           sha256sum artifact/yt-dlp_macos.zip | awk '{print $1 "  yt-dlp_macos.zip"}' >> SHA2-256SUMS
           sha256sum artifact/yt-dlp_macos_legacy | awk '{print $1 "  yt-dlp_macos_legacy"}' >> SHA2-256SUMS
+          sha256sum artifact/yt-dlp_armv7l_linux | awk '{print $1 "  yt-dlp_armv7l_linux"}' >> SHA2-256SUMS
+          sha256sum artifact/yt-dlp_aarch64_linux | awk '{print $1 "  yt-dlp_aarch64_linux"}' >> SHA2-256SUMS
           sha256sum artifact/dist/yt-dlp_linux | awk '{print $1 "  yt-dlp_linux"}' >> SHA2-256SUMS
           sha256sum artifact/dist/yt-dlp_linux.zip | awk '{print $1 "  yt-dlp_linux.zip"}' >> SHA2-256SUMS
           sha512sum artifact/yt-dlp | awk '{print $1 "  yt-dlp"}' >> SHA2-512SUMS
@@ -337,10 +338,10 @@ jobs:
           sha512sum artifact/yt-dlp_macos | awk '{print $1 "  yt-dlp_macos"}' >> SHA2-512SUMS
           sha512sum artifact/yt-dlp_macos.zip | awk '{print $1 "  yt-dlp_macos.zip"}' >> SHA2-512SUMS
           sha512sum artifact/yt-dlp_macos_legacy | awk '{print $1 "  yt-dlp_macos_legacy"}' >> SHA2-512SUMS
+          sha512sum artifact/yt-dlp_armv7l_linux | awk '{print $1 "  yt-dlp_armv7l_linux"}' >> SHA2-512SUMS
+          sha512sum artifact/yt-dlp_aarch64_linux | awk '{print $1 "  yt-dlp_aarch64_linux"}' >> SHA2-512SUMS
           sha512sum artifact/dist/yt-dlp_linux | awk '{print $1 "  yt-dlp_linux"}' >> SHA2-512SUMS
           sha512sum artifact/dist/yt-dlp_linux.zip | awk '{print $1 "  yt-dlp_linux.zip"}' >> SHA2-512SUMS
-          sha512sum artifact/dist/yt-dlp_armv7l_linux | awk '{print $1 "  yt-dlp_armv7l_linux"}' >> SHA2-512SUMS
-          sha512sum artifact/dist/yt-dlp_aarch64_linux | awk '{print $1 "  yt-dlp_aarch64_linux"}' >> SHA2-512SUMS
 
     - name: Publish Release
       uses: yt-dlp/action-gh-release@v1
@@ -371,8 +372,8 @@ jobs:
           artifact/yt-dlp_macos
           artifact/yt-dlp_macos.zip
           artifact/yt-dlp_macos_legacy
+          artifact/yt-dlp_armv7l_linux
+          artifact/yt-dlp_aarch64_linux
           artifact/dist/yt-dlp_linux
           artifact/dist/yt-dlp_linux.zip
-          artifact/dist/yt-dlp_armv7l_linux
-          artifact/dist/yt-dlp_aarch64_linux
           _update_spec
