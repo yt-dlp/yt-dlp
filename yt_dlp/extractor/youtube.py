@@ -3027,9 +3027,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             for contents in content_list)), [])
 
     def _extract_chapters_from_description(self, description, duration):
+        duration_re = r'(?:\d+:)?\d{1,2}:\d{2}'
+        sep_re = r'(?m)^\s*(%s)\b\W*\s(%s)\s*$'
         return self._extract_chapters(
-            re.findall(r'(?m)^((?:\d+:)?\d{1,2}:\d{2})\b\W*\s(.+?)\s*$', description or ''),
+            re.findall(sep_re % (duration_re, r'.+?'), description or ''),
             chapter_time=lambda x: parse_duration(x[0]), chapter_title=lambda x: x[1],
+            duration=duration, strict=False) or self._extract_chapters(
+            re.findall(sep_re % (r'.+?', duration_re), description or ''),
+            chapter_time=lambda x: parse_duration(x[1]), chapter_title=lambda x: x[0],
             duration=duration, strict=False)
 
     def _extract_chapters(self, chapter_list, chapter_time, chapter_title, duration, strict=True):
