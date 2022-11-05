@@ -1,3 +1,4 @@
+import base64
 import itertools
 import re
 
@@ -74,6 +75,16 @@ class TwitCastingIE(InfoExtractor):
         'playlist_mincount': 2,
     }]
 
+    def _parse_data_movie_playlist(self, dmp, video_id):
+        # attempt 1: parse as JSON directly
+        try:
+            return self._parse_json(dmp, video_id)
+        except ExtractorError:
+            pass
+        # attempt 2: decode reversed base64
+        decoded = base64.b64decode(dmp[::-1])
+        return self._parse_json(decoded, video_id)
+
     def _real_extract(self, url):
         uploader_id, video_id = self._match_valid_url(url).groups()
 
@@ -100,7 +111,7 @@ class TwitCastingIE(InfoExtractor):
 
         video_js_data = try_get(
             webpage,
-            lambda x: self._parse_json(self._search_regex(
+            lambda x: self._parse_data_movie_playlist(self._search_regex(
                 r'data-movie-playlist=\'([^\']+?)\'',
                 x, 'movie playlist', default=None), video_id)['2'], list)
 
