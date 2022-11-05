@@ -26,9 +26,9 @@ class OfTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        output = next(ZypeIE.extract_from_webpage(self._downloader, url, webpage))
-        output['creator'] = self._search_regex(r'<a[^>]+class=\"creator-name\"[^>]+>([^<]+)', webpage, 'creator')
-        return output
+        info = next(ZypeIE.extract_from_webpage(self._downloader, url, webpage))
+        info['creator'] = self._search_regex(r'<a[^>]+class=\"creator-name\"[^>]+>([^<]+)', webpage, 'creator')
+        return info
 
 
 class OfTVPlaylistIE(InfoExtractor):
