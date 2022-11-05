@@ -238,11 +238,11 @@ class LBRYIE(LBRYBaseIE):
                 'https://api.odysee.live/livestream/is_live', claim_id,
                 query={'channel_claim_id': claim_id},
                 note='Downloading livestream JSON metadata')['data']
-            if 'VideoURL' not in live_data or live_data.get('Live') is False:
+            streaming_url = final_url = live_data.get('VideoURL')
+            # Upcoming videos may still give VideoURL
+            if not live_data.get('Live'):
                 streaming_url = final_url = None
                 self.raise_no_formats('This stream is not live', True, claim_id)
-            else:
-                streaming_url = final_url = live_data.get('VideoURL')
         else:
             raise UnsupportedError(url)
 
