@@ -25,9 +25,9 @@ class LBRYBaseIE(InfoExtractor):
 
     def _call_api_proxy(self, method, display_id, params, resource):
         headers = {'Content-Type': 'application/json-rpc'}
-        cookies = self._get_cookies('https://odysee.com')
-        if 'auth_token' in cookies:
-            headers['x-lbry-auth-token'] = cookies['auth_token'].value
+        token = try_get(self._get_cookies('https://odysee.com'), lambda x: x['auth_token'].value)
+        if token:
+            headers['x-lbry-auth-token'] = token
         response = self._download_json(
             'https://api.lbry.tv/api/v1/proxy',
             display_id, 'Downloading %s JSON metadata' % resource,
@@ -230,8 +230,7 @@ class LBRYIE(LBRYBaseIE):
             streaming_url = self._call_api_proxy(
                 'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
             final_url = self._request_webpage(
-                HEADRequest(streaming_url), display_id,
-                headers=headers,
+                HEADRequest(streaming_url), display_id, headers=headers,
                 note='Downloading streaming redirect url info').geturl()
         elif result.get('value_type') == 'stream':
             claim_id, is_live = result['signing_channel']['claim_id'], True
