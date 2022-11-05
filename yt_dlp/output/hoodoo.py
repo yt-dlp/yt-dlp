@@ -15,8 +15,8 @@ class Color(enum.IntFlag):
     CYAN = 6
     WHITE = 7
 
-    LIGHT = 8
-    BG = 8 << 1
+    LIGHT = 1 << 3
+    BG = 1 << 4
 
 
 class Typeface(enum.Enum):
@@ -27,7 +27,10 @@ class Typeface(enum.Enum):
 
 class TermCode(str):
     def __new__(cls, *text_formats):
-        return super().__new__(cls, make_color_code(*text_formats))
+        code = ''.join(
+            text_format if isinstance(text_format, str) else make_color_code(text_format)
+            for text_format in text_formats)
+        return super().__new__(cls, code)
 
     def __repr__(self):
         return f'{type(self).__name__}({str(self)!r})'
@@ -61,14 +64,3 @@ def make_color_code(*text_formats):
 
 def format_text(message, *text_formats):
     return f'{make_color_code(*text_formats)}{message}{CSI}0m'
-
-
-class Style:
-    HEADER = TermCode(Color.YELLOW)
-    EMPHASIS = TermCode(Color.LIGHT | Color.BLUE)
-    FILENAME = TermCode(Color.GREEN)
-    ID = TermCode(Color.GREEN)
-    DELIM = TermCode(Color.BLUE)
-    ERROR = TermCode(Color.RED)
-    WARNING = TermCode(Color.YELLOW)
-    SUPPRESS = TermCode(Color.LIGHT | Color.BLACK)

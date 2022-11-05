@@ -2,16 +2,15 @@ import functools
 from threading import Lock
 
 from .hoodoo import CSI
-from .logging import NULL_OUTPUT, LogLevel, StreamOutput, logger
+from .logging import NULL_OUTPUT, LogLevel, StreamOutput, default_logger
 
 ERASE_LINE = f'{CSI}K'
 MOVE_UP = f'{CSI}A'
-
-disable = False
+MOVE_DOWN = '\n'
 
 
 def move_cursor(distance):
-    return f'{CSI}A' * -distance if distance < 0 else distance * '\n'
+    return -distance * MOVE_UP if distance < 0 else distance * MOVE_DOWN
 
 
 def _synchronized(func=None, /):
@@ -29,10 +28,11 @@ def _synchronized(func=None, /):
     return wrapped
 
 
+# TODO(logging): Allow passing of progress dict
 class Progress:
     @classmethod
-    def make_progress(cls, level=LogLevel.INFO, *, lines=1, preserve=True, newline=False):
-        if disable:
+    def make_progress(cls, logger=default_logger, level=LogLevel.INFO, *, lines=1, preserve=True, newline=False):
+        if logger.no_progress:
             output = NULL_OUTPUT
 
         else:

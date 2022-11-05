@@ -25,7 +25,7 @@ from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..cookies import LenientSimpleCookie
 from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media
-from ..output import LogLevel, Style, logger
+from ..output.logging import LogLevel, Style, default_logger
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,
@@ -722,6 +722,12 @@ class InfoExtractor:
         self._downloader = downloader
 
     @property
+    def logger(self):
+        if self._downloader is None:
+            return default_logger
+        return self._downloader.logger
+
+    @property
     def cache(self):
         return self._downloader.cache
 
@@ -1209,7 +1215,7 @@ class InfoExtractor:
                 if mobj:
                     break
 
-        _name = logger.format(LogLevel.ERROR, name, Style.EMPHASIS)
+        _name = self.logger.format(LogLevel.ERROR, name, Style.EMPHASIS)
 
         if mobj:
             if group is None:
@@ -1242,7 +1248,7 @@ class InfoExtractor:
         if not json_string:
             return default
 
-        _name = logger.format(LogLevel.ERROR, name, Style.EMPHASIS)
+        _name = self.logger.format(LogLevel.ERROR, name, Style.EMPHASIS)
         try:
             return self._parse_json(json_string, video_id, ignore_extra=True, **kwargs)
         except ExtractorError as e:

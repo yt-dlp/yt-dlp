@@ -1,57 +1,74 @@
-import ctypes
 import sys
 
-from .hoodoo import BEL, CSI
+from .hoodoo import BEL, CSI, TermCode
 from ..utils import supports_terminal_sequences, write_string
 
-_console_initialized = False
-_console_allow_title_change = False
-_console = None
-_console_encoding = None
 
+class Console:
+    SAVE_TITLE = TermCode(f'{CSI}22;0t')
+    RESTORE_TITLE = TermCode(f'{CSI}23;0t')
 
-def init(windows, encoding=None, allow_title_change=False):
-    global _console_initialized
-    global _console_allow_title_change
-    global _console
-    global _console_encoding
+    def __init__(self, encoding=None, allow_title_change=False):
+        self.initialized = False
+        self.stream = None
+        self._stream_encoding = encoding
 
-    _console_allow_title_change = allow_title_change
+        for stream in (sys.stderr, sys.stdout):
+            if supports_terminal_sequences(stream):
+                self.stream = stream
+                self.initialized = True
 
-    for stream in (sys.stderr, sys.stdout):
-        if supports_terminal_sequences(stream):
-            _console_initialized = True
-            _console = stream
-            _console_encoding = encoding
+        self.allow_title_change = allow_title_change
+        self._title_func = None
+
+        if not allow_title_change:
             return
 
-    if windows:
-        _console_initialized = True
-        _console = False
+        if self.initialized:
+            self._title_func = self._change_title_term_sequence
+            return
 
+        if sys.platform != 'win32':
+            return
 
-def send_code(code):
-    if not _console_initialized or not _console:
-        return
+        import ctypes
+        if not hasattr(ctypes, 'windll'):
+            return
 
-    write_string(code, _console, _console_encoding)
+        # XXX: This might be overkill. SetConsoleTitle will not fail.
+        if not ctypes.windll.kernel32.GetConsoleWindow():
+            return
 
+        self._title_func = self._change_title_win_api
 
-def change_title(message):
-    if not _console_initialized or not _console_allow_title_change:
-        return
+    def change_title(self, title):
+        if self._title_func is None:
+            return
 
-    if _console:
-        send_code(f'{CSI}0;{message}{BEL}')
-        return
+        self._title_func(title)
 
-    if hasattr(ctypes, 'windll') and ctypes.windll.kernel32.GetConsoleWindow():
-        ctypes.windll.kernel32.SetConsoleTitleW(message)
+    def send_code(self, code):
+        if not self.initialized:
+            return
 
+        write_string(code, self.stream, self._stream_encoding)
 
-def save_title():
-    send_code(f'{CSI}22;0t')
+    def save_title(self):
+        if not self.allow_title_change:
+            return
 
+        self.send_code(self.SAVE_TITLE)
 
-def restore_title():
-    send_code(f'{CSI}23;0t')
+    def restore_title(self):
+        if not self.allow_title_change:
+            return
+
+        self.send_code(self.RESTORE_TITLE)
+
+    def _change_title_term_sequence(self, title):
+        self.send_code(f'{CSI}0;{title}{BEL}')
+
+    def _change_title_win_api(self, title):
+        import ctypes
+
+        ctypes.windll.kernel32.SetConsoleTitleW(title)

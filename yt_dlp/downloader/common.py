@@ -6,15 +6,9 @@ import random
 import re
 import time
 
-from ..output import (
-    Color,
-    LogLevel,
-    Progress,
-    TermCode,
-    Typeface,
-    console,
-    logger,
-)
+from ..output.hoodoo import Color, TermCode, Typeface
+from ..output.logging import LogLevel, default_logger
+from ..output.progress import Progress
 from ..utils import (
     IDENTITY,
     NO_DEFAULT,
@@ -109,7 +103,7 @@ class FileDownloader:
                 setattr(self, func, getattr(ydl, func))
 
     def to_screen(self, message, skip_eol=False, only_once=False):
-        logger.info(message, newline=not skip_eol, quiet=self.params.get('quiet'), once=only_once)
+        self.ydl.logger.info(message, newline=not skip_eol, quiet=self.params.get('quiet'), once=only_once)
 
     @classproperty
     def FD_NAME(cls):
@@ -281,7 +275,8 @@ class FileDownloader:
 
     def _prepare_multiline_status(self, lines=1):
         self._progress = Progress.make_progress(
-            lines=lines, newline=bool(self.params.get('progress_with_newline')),
+            logger=self.ydl.logger, lines=lines,
+            newline=bool(self.params.get('progress_with_newline')),
             preserve=not self.params.get('quiet'))
 
     def _finish_multiline_status(self):
@@ -313,12 +308,12 @@ class FileDownloader:
         self._progress.print_at_line(self.ydl.evaluate_outtmpl(
             progress_template.get('download') or '[download] %(progress._default_template)s',
             progress_dict), s.get('progress_idx') or 0)
-        console.change_title(self.ydl.evaluate_outtmpl(
+        self.ydl.console.change_title(self.ydl.evaluate_outtmpl(
             progress_template.get('download-title') or 'yt-dlp %(progress._default_template)s',
             progress_dict))
 
     def _format_progress(self, *args, **kwargs):
-        return logger.format(LogLevel.INFO, *args, **kwargs)
+        return default_logger.format(LogLevel.INFO, *args, **kwargs)
 
     def report_progress(self, s):
         def with_fields(*tups, default=''):

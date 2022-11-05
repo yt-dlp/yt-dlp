@@ -3,7 +3,6 @@ import json
 import os
 import urllib.error
 
-from ..output import console, logger
 from ..utils import (
     PostProcessingError,
     RetryManager,
@@ -190,7 +189,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
             self._downloader.to_screen(
                 self._downloader.evaluate_outtmpl(tmpl, progress_dict), skip_eol=True, quiet=False)
 
-        console.change_title(self._downloader.evaluate_outtmpl(
+        self._downloader.console.change_title(self._downloader.evaluate_outtmpl(
             progress_template.get('postprocess-title') or 'yt-dlp %(progress._default_template)s',
             progress_dict))
 

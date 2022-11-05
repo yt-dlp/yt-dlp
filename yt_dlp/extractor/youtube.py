@@ -21,7 +21,7 @@ from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
 from ..compat import functools
 from ..jsinterp import JSInterpreter
-from ..output import LogLevel, Style, logger
+from ..output.logging import LogLevel, Style
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -3467,7 +3467,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 except ExtractorError as e:
                     phantomjs_hint = ''
                     if isinstance(e, JSInterpreter.Exception):
-                        phantomjs_f = logger.format(LogLevel.WARNING, "PhantomJS", Style.EMPHASIS)
+                        phantomjs_f = self.logger.format(LogLevel.WARNING, "PhantomJS", Style.EMPHASIS)
                         phantomjs_hint = (f'         Install {phantomjs_f} to workaround the issue. {PhantomJSwrapper.INSTALL_HINT}\n')
                     if player_url:
                         self.report_warning(

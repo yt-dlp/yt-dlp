@@ -1,4 +1,4 @@
-import copy
+import logging
 import os
 import shutil
 import subprocess
@@ -7,10 +7,9 @@ import traceback
 from enum import Enum
 from typing import Protocol
 
-from .hoodoo import Style, format_text
+from .hoodoo import Color, TermCode, format_text
 from ..compat import functools
 from ..utils import (
-    DownloadError,
     deprecation_warning,
     supports_terminal_sequences,
     variadic,
@@ -79,7 +78,6 @@ class NullOutput:
 
 
 NULL_OUTPUT = NullOutput()
-LAST_RESORT = StreamOutput(sys.stderr, None, None)
 
 
 class _LoggerProtocol(Protocol):
@@ -90,53 +88,64 @@ class _LoggerProtocol(Protocol):
         ...
 
 
+class _LoggerProxy:
+    def __init__(self, obj, **kwargs):
+        functools.update_wrapper(self, obj)
+        for k, v in kwargs.items():
+            original = getattr(obj, k)
+            # TODO(logging): XXX: This should not need `_LoggerProxy.self`
+            override = v(obj, original)
+            functools.update_wrapper(override, original)
+            setattr(self, k, override)
+
+        self.__obj = obj
+
+    def __getattr__(self, name):
+        return getattr(self.__obj, name)
+
+
+class Style:
+    HEADER = TermCode(Color.YELLOW)
+    EMPHASIS = TermCode(Color.LIGHT | Color.BLUE)
+    FILENAME = TermCode(Color.GREEN)
+    ID = TermCode(Color.GREEN)
+    DELIM = TermCode(Color.BLUE)
+    ERROR = TermCode(Color.RED)
+    WARNING = TermCode(Color.YELLOW)
+    SUPPRESS = TermCode(Color.LIGHT | Color.BLACK)
+
+
 class Logger:
     """
     A YoutubeDL output/logging facility
 
-    Defines a public, global logging interface to be consumed from anywhere.
-
-    `init()` and at least one of the setup functions have to be called
-    to produce any output for each of the logging functions.
-    `init()` MUST be called before one of the setup functions.
-
+    After instancing, one of the following functions MUST be called:
+    - `setup_stream_logger`
+    - `setup_class_logger`
+    - `setup_logging_logger`
     You are free to call any of the setup functions more than once.
-    You MUST NOT call `init_...` more than once per call to `init()`.
 
-    The logger for LogLevel.SCREEN will always be a `StreamLogger`,
-    provided `init()` has been called at least once.
+    To enable the bidirectional workaround, call `init_bidi_workaround()`.
+    You SHOULD NOT call `init_bidi_workaround` more than once.
+
+    The logger for LogLevel.SCREEN will always be a `StreamLogger`.
     """
 
-    def __init__(self):
+    def __init__(self, screen, verbosity=Verbosity.NORMAL,
+                 *, ignore_errors=False, encoding=None, allow_color=False, no_progress=False):
         self._bidi_initalized = False
-        self._console_initialized = False
         self._message_cache = set()
-        self._verbosity = Verbosity.QUIET
+        self._pref_encoding = encoding
+        self._allow_color = allow_color
+        self._verbosity = verbosity
+        self._raise_errors = not ignore_errors
 
+        self.no_progress = no_progress
+        screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, allow_color, encoding)
         # TODO(logging): remove type hint
-        self.mapping: dict[LogLevel, _LoggerProtocol] = {
-            LogLevel.SCREEN: NULL_OUTPUT,
-            LogLevel.DEBUG: NULL_OUTPUT,
-            LogLevel.INFO: NULL_OUTPUT,
-            LogLevel.WARNING: LAST_RESORT,
-            LogLevel.ERROR: LAST_RESORT,
-        }
+        self.mapping: dict[LogLevel, _LoggerProtocol] = {LogLevel.SCREEN: screen_output}
 
     def make_derived(self, screen=None, debug=None, info=None, warning=None, error=None, handle_error=None) -> 'Logger':
-        class Derived:
-            def __init__(self, obj, **kwargs):
-                functools.update_wrapper(self, obj)
-                for k, v in kwargs.items():
-                    original = getattr(obj, k)
-                    override = v(self, original)
-                    functools.update_wrapper(override, original)
-                    setattr(self, k, override)
-
-                self.__obj = obj
-
-            def __getattr__(self, name):
-                return getattr(self.__obj, name)
-
         kwargs = {
             'screen': screen,
             'debug': debug,
@@ -146,30 +155,19 @@ class Logger:
             'handle_error': handle_error,
         }
 
-        return Derived(self, **{key: value for key, value in kwargs.items() if value})
+        return _LoggerProxy(self, **{key: value for key, value in kwargs.items() if value})
 
-    def init(self, screen, verbosity, *, ignore_errors=False, encoding=None, allow_color=False):
-        self._bidi_initalized = False
-        self._console_initialized = False
-        self._message_cache = set()
-
-        self._pref_encoding = encoding
-        self._allow_color = allow_color
-        self._verbosity = verbosity
-        self._raise_errors = not ignore_errors
-        self.mapping[LogLevel.SCREEN] = StreamOutput(screen, allow_color, encoding)
-
-    def setup_streams(self, stdout, stderr, *, no_warnings=False):
-        stdout_logger = StreamOutput(stdout, self._allow_color, self._pref_encoding)
-        stderr_logger = StreamOutput(stderr, self._allow_color, self._pref_encoding)
+    def setup_stream_logger(self, stdout, stderr, *, no_warnings=False):
+        stdout_output = NULL_OUTPUT if stdout is None else StreamOutput(stdout, self._allow_color, self._pref_encoding)
+        stderr_output = NULL_OUTPUT if stderr is None else StreamOutput(stderr, self._allow_color, self._pref_encoding)
 
         self.mapping.update({
             LogLevel.DEBUG: (
-                stderr_logger if self._verbosity is Verbosity.VERBOSE
+                stderr_output if self._verbosity is Verbosity.VERBOSE
                 else NULL_OUTPUT),
-            LogLevel.INFO: stdout_logger,
-            LogLevel.WARNING: NULL_OUTPUT if no_warnings else stderr_logger,
-            LogLevel.ERROR: stderr_logger,
+            LogLevel.INFO: stdout_output,
+            LogLevel.WARNING: NULL_OUTPUT if no_warnings else stderr_output,
+            LogLevel.ERROR: stderr_output,
         })
 
     def setup_class_logger(self, logger):
@@ -184,8 +182,9 @@ class Logger:
             LogLevel.ERROR: error_logger,
         })
 
-    def setup_logging(self):
+    def setup_logging_logger(self):
         # TODO(logging): implement LoggingLogger
+        logger = LoggingOutput(logging.INFO)
         self.mapping.update({
             LogLevel.DEBUG: NULL_OUTPUT,
             LogLevel.INFO: NULL_OUTPUT,
@@ -270,8 +269,8 @@ class Logger:
         Print a message to stderr, prefixed with 'WARNING:'
         If stderr is a tty file the prefix will be colored
         """
-        logger.log(LogLevel.WARNING, message, once=once,
-                   prefix=logger.format(LogLevel.WARNING, "WARNING:", Style.WARNING))
+        default_logger.log(LogLevel.WARNING, message, once=once,
+                           prefix=default_logger.format(LogLevel.WARNING, "WARNING:", Style.WARNING))
 
     def deprecation_warning(self, message, *, stacklevel=0):
         deprecation_warning(
@@ -292,24 +291,12 @@ class Logger:
         If stderr is a tty the prefix will be colored.
 
         @param trace       If given, is additional traceback information
-        @param is_error    Whether to raise error according to ignorerrors
+        @param is_error    Useful only in a derived logger
         """
         if prefix:
             prefix = self.format(LogLevel.ERROR, "ERROR:", Style.ERROR)
 
         self.log(LogLevel.ERROR, message, trace=trace, prefix=prefix)
-        if not is_error:
-            return
-
-        if self._raise_errors:
-            if sys.exc_info()[0] and hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
-                exc_info = sys.exc_info()[1].exc_info
-            else:
-                exc_info = sys.exc_info()
-            raise DownloadError(message, exc_info)
-
-        # TODO(logging): Find a way to propagate this
-        # self._download_retcode = 1
 
     def init_bidi_workaround(self):
         import pty
@@ -332,10 +319,11 @@ class Logger:
         # `init_bidi_workaround()` MUST have been called prior.
         line_count = message.count('\n') + 1
 
-        self._bidi_writer.write(f"{message}\n")
+        self._bidi_writer.write(f'{message}\n')
         self._bidi_writer.flush()
-        result = b"".join(self._bidi_reader.readlines(line_count)).decode()
+        result = b''.join(self._bidi_reader.readlines(line_count)).decode()
         return result[:-1]
 
 
-logger = Logger()
+default_logger = Logger(None, Verbosity.QUIET)
+default_logger.setup_stream_logger(None, sys.stderr)

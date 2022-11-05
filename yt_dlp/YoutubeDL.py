@@ -24,22 +24,15 @@ import urllib.request
 from string import ascii_letters
 
 from .cache import Cache
-from .compat import compat_os_name, compat_shlex_quote
+from .compat import compat_shlex_quote
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
 from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
-from .output import (
-    LogLevel,
-    StreamOutput,
-    Style,
-    Verbosity,
-    console,
-    logger,
-    progress,
-)
+from .output.console import Console
+from .output.logging import Logger, LogLevel, StreamOutput, Style, Verbosity
 from .postprocessor import _PLUGIN_CLASSES as plugin_postprocessors
 from .postprocessor import (
     EmbedThumbnailPP,
@@ -80,7 +73,6 @@ from .utils import (
     ISO3166Utils,
     LazyList,
     MaxDownloadsReached,
-    Namespace,
     PagedList,
     PerRequestProxyHandler,
     PlaylistEntries,
@@ -584,31 +576,7 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
 
-        windows_enable_vt_mode()
-        screen = sys.stderr if self.params.get('logtostderr') else sys.stdout
-        stdout = sys.stderr if self.params.get('quiet') else screen
-        verbosity = (
-            Verbosity.VERBOSE if self.params.get('verbose')
-            else Verbosity.QUIET if self.params.get('quiet')
-            else Verbosity.NORMAL)
-        logger.init(
-            screen, verbosity, ignore_errors=bool(self.params.get('ignoreerrors')),
-            encoding=self.params.get('encoding'), allow_color=not self.params.get('nocolor', False))
-
-        logger_param = self.params.get('logger')
-        if logger_param:
-            if logger_param == logging:
-                logger.setup_logging()
-            else:
-                logger.setup_class_logger(logger_param)
-        else:
-            logger.setup_streams(stdout, sys.stderr, no_warnings=self.params.get('no_warnings', False))
-
-        console.init(
-            windows=compat_os_name == 'nt', encoding=self.params.get('encoding'),
-            allow_title_change=bool(self.params.get('consoletitle')))
-
-        progress.disable = bool(self.params.get('noprogress'))
+        self._setup_output(params)
 
         # The code is left like this to be reused for future deprecations
         MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
@@ -623,8 +591,8 @@ class YoutubeDL:
                 f'{msg}! Please update to Python %d.%d or above' % (*current_version, *MIN_RECOMMENDED))
 
         if self.params.get('allow_unplayable_formats'):
-            unplayable = logger.format(LogLevel.ERROR, "UNPLAYABLE", Style.EMPHASIS)
-            do_not = logger.format(LogLevel.ERROR, "DO NOT", Style.ERROR)
+            unplayable = self.logger.format(LogLevel.ERROR, "UNPLAYABLE", Style.EMPHASIS)
+            do_not = self.logger.format(LogLevel.ERROR, "DO NOT", Style.ERROR)
             self.report_warning(
                 f'You have asked for {unplayable} formats to be listed/downloaded. '
                 'This is a developer option intended for debugging. \n'
@@ -670,21 +638,6 @@ class YoutubeDL:
         # Compatibility with older syntax
         if not isinstance(params['forceprint'], dict):
             self.params['forceprint'] = {'video': params['forceprint']}
-
-        if self.params.get('bidi_workaround', False):
-            try:
-                logger.init_bidi_workaround()
-
-            except OSError as ose:
-                if ose.errno != errno.ENOENT:
-                    raise
-
-                self.report_warning(
-                    'Could not find any bidi executable, ignoring --bidi-workaround. '
-                    'Make sure that either bidiv or fribidi are available as executables in your $PATH.')
-
-            except ImportError:
-                self.report_warning('Could not import pty (perhaps not on *nix?), ignoring --bidi-workaround.')
 
         if auto_init:
             if auto_init != 'no_verbose_header':
@@ -750,6 +703,55 @@ class YoutubeDL:
             return archive
 
         self.archive = preload_download_archive(self.params.get('download_archive'))
+
+    @staticmethod
+    def make_logger(params):
+
+        screen = sys.stderr if params.get('logtostderr') else sys.stdout
+        stdout = sys.stderr if params.get('quiet') else screen
+        verbosity = (
+            Verbosity.VERBOSE if params.get('verbose')
+            else Verbosity.QUIET if params.get('quiet')
+            else Verbosity.NORMAL)
+
+        logger = Logger(
+            screen, verbosity, ignore_errors=bool(params.get('ignoreerrors')),
+            encoding=params.get('encoding'), allow_color=not params.get('nocolor', False),
+            no_progress=bool(params.get('noprogress')))
+
+        logger_param = params.get('logger')
+        if logger_param:
+            if logger_param == logging:
+                logger.setup_logging_logger()
+            else:
+                logger.setup_class_logger(logger_param)
+        else:
+            logger.setup_stream_logger(stdout, sys.stderr, no_warnings=params.get('no_warnings', False))
+
+        return logger
+
+    def _setup_output(self, params):
+        windows_enable_vt_mode()
+
+        self.logger = self.make_logger(params)
+        if params.get('bidi_workaround', False):
+            try:
+                self.logger.init_bidi_workaround()
+
+            except OSError as ose:
+                if ose.errno != errno.ENOENT:
+                    raise
+
+                self.logger.warning(
+                    'Could not find any bidi executable, ignoring --bidi-workaround. '
+                    'Make sure that either bidiv or fribidi are available as executables in your $PATH.')
+
+            except ImportError:
+                self.logger.warning('Could not import pty (perhaps not on *nix?), ignoring --bidi-workaround.')
+
+        self.console = Console(
+            encoding=self.params.get('encoding'),
+            allow_title_change=bool(self.params.get('consoletitle') and not self.params.get('simulate')))
 
     def warn_if_short_id(self, argv):
         # short YouTube ID starting with dash?
@@ -828,28 +830,24 @@ class YoutubeDL:
 
     def to_stdout(self, message):
         """Print message to stdout"""
-        logger.screen(message)
+        self.logger.screen(message)
 
     def to_screen(self, message, skip_eol=False, quiet=None, only_once=False):
         """Print message to screen if not in quiet mode"""
-        logger.info(message, newline=not skip_eol, quiet=quiet, once=only_once)
+        self.logger.info(message, newline=not skip_eol, quiet=quiet, once=only_once)
 
     def to_stderr(self, message, only_once=False):
         """Print message to stderr"""
-        logger.error(message, once=only_once)
+        self.logger.error(message, once=only_once)
 
     def to_console_title(self, message):
-        console.change_title(message)
+        self.console.change_title(message)
 
     def save_console_title(self):
-        if not self.params.get('consoletitle') or self.params.get('simulate'):
-            return
-        console.save_title()
+        self.console.save_title()
 
     def restore_console_title(self):
-        if not self.params.get('consoletitle') or self.params.get('simulate'):
-            return
-        console.restore_title()
+        self.console.restore_title()
 
     def __enter__(self):
         self.save_console_title()
@@ -871,31 +869,31 @@ class YoutubeDL:
         @param tb          If given, is additional traceback information
         @param is_error    Whether to raise error according to ignorerrors
         """
-        logger.handle_error(message, trace=tb, is_error=is_error, prefix=False)
+        self.logger.handle_error(message, trace=tb, is_error=is_error, prefix=False)
 
     def report_warning(self, message, only_once=False):
         '''
         Print the message to stderr, it will be prefixed with 'WARNING:'
         If stderr is a tty file the 'WARNING:' will be colored
         '''
-        logger.warning(message, once=only_once)
+        self.logger.warning(message, once=only_once)
 
     def deprecation_warning(self, message, *, stacklevel=0):
-        logger.deprecation_warning(message, stacklevel=stacklevel + 1)
+        self.logger.deprecation_warning(message, stacklevel=stacklevel + 1)
 
     def deprecated_feature(self, message):
-        logger.deprecated_feature(message)
+        self.logger.deprecated_feature(message)
 
     def report_error(self, message, tb=None, is_error=True):
         '''
         Do the same as trouble, but prefixes the message with 'ERROR:', colored
         in red if stderr is a tty file.
         '''
-        logger.handle_error(message, trace=tb, is_error=is_error)
+        self.logger.handle_error(message, trace=tb, is_error=is_error)
 
     def write_debug(self, message, only_once=False):
         '''Log debug message or Print message to stderr'''
-        logger.debug(message, once=only_once)
+        self.logger.debug(message, once=only_once)
 
     def report_file_already_downloaded(self, file_name):
         """Report file has already been fully downloaded."""
@@ -1282,9 +1280,9 @@ class YoutubeDL:
                     ret = None if incomplete else match_filter(info_dict)
                 if ret is NO_DEFAULT:
                     while True:
-                        filename = logger.format(
+                        filename = self.logger.format(
                             LogLevel.INFO, self.prepare_filename(info_dict), Style.FILENAME)
-                        query = logger.format(
+                        query = self.logger.format(
                             LogLevel.INFO, f'Download "{filename}"? (Y/n): ', Style.EMPHASIS)
                         # TODO(logging): XXX: use logger, then call input plain?
                         reply = input(query).lower().strip()
@@ -1432,7 +1430,7 @@ class YoutubeDL:
                 if diff <= 0:
                     progress('')
                     raise ReExtractInfo('[wait] Wait period ended', expected=True)
-                format_time = logger.format(LogLevel.INFO, format_dur(diff), Style.EMPHASIS)
+                format_time = self.logger.format(LogLevel.INFO, format_dur(diff), Style.EMPHASIS)
                 progress(f'[wait] Remaining time until next attempt: {format_time}')
                 time.sleep(1)
         except KeyboardInterrupt:
@@ -1736,8 +1734,8 @@ class YoutubeDL:
                 resolved_entries[i] = (playlist_index, NO_DEFAULT)
                 continue
 
-            current = logger.format(LogLevel.SCREEN, i + 1, Style.ID)
-            total = logger.format(LogLevel.SCREEN, n_entries, Style.EMPHASIS)
+            current = self.logger.format(LogLevel.SCREEN, i + 1, Style.ID)
+            total = self.logger.format(LogLevel.SCREEN, n_entries, Style.EMPHASIS)
             self.to_screen(f'[download] Downloading video {current} of {total}')
 
             extra.update({
@@ -2567,7 +2565,7 @@ class YoutubeDL:
         while True:
             if interactive_format_selection:
                 # TODO(logging): XXX: use logger, then call input plain?
-                req_format = input(logger.format(
+                req_format = input(self.logger.format(
                     LogLevel.INFO, '\nEnter format selector: ', Style.EMPHASIS))
                 try:
                     format_selector = self.build_format_selector(req_format)
@@ -3404,7 +3402,7 @@ class YoutubeDL:
 
     def _list_format_headers(self, *headers):
         if self.params.get('listformats_table', True) is not False:
-            return [logger.format(LogLevel.SCREEN, header, Style.HEADER) for header in headers]
+            return [self.logger.format(LogLevel.SCREEN, header, Style.HEADER) for header in headers]
         return headers
 
     def _format_note(self, fdict):
@@ -3494,18 +3492,18 @@ class YoutubeDL:
                 return 'images'
             elif field == 'acodec' and f.get('vcodec') == 'none':
                 return ''
-            return logger.format(
+            return self.logger.format(
                 LogLevel.SCREEN, 'audio only' if field == 'vcodec' else 'video only',
                 Style.SUPPRESS)
 
         def make_delim(delim, fallback):
-            delim = logger.try_encoding(LogLevel.SCREEN, delim, fallback, self.params.get('encoding'))
-            return logger.format(LogLevel.SCREEN, delim, Style.DELIM)
+            delim = self.logger.try_encoding(LogLevel.SCREEN, delim, fallback, self.params.get('encoding'))
+            return self.logger.format(LogLevel.SCREEN, delim, Style.DELIM)
 
         delim = make_delim('\u2502', '|')
         table = [
             [
-                logger.format(LogLevel.SCREEN, format_field(f, 'format_id'), Style.ID),
+                self.logger.format(LogLevel.SCREEN, format_field(f, 'format_id'), Style.ID),
                 format_field(f, 'ext'),
                 format_field(f, func=self.format_resolution, ignore=('audio only', 'images')),
                 format_field(f, 'fps', '\t%d', func=round),
@@ -3522,7 +3520,7 @@ class YoutubeDL:
                 format_field(f, 'abr', '\t%dk', func=round),
                 format_field(f, 'asr', '\t%s', func=format_decimal_suffix),
                 join_nonempty(
-                    logger.format(LogLevel.SCREEN, 'UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
+                    self.logger.format(LogLevel.SCREEN, 'UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
                     format_field(f, 'language', '[%s]'),
                     join_nonempty(format_field(f, 'format_note'),
                                   format_field(f, 'container', ignore=(None, f.get('ext'))),
@@ -3601,13 +3599,13 @@ class YoutubeDL:
             ('pref', self.get_encoding()))
 
         levels = (LogLevel.SCREEN, LogLevel.INFO, LogLevel.ERROR)
-        outputs = (logger.mapping[level] for level in levels)
+        outputs = (self.logger.mapping[level] for level in levels)
         logger_encodings = (
             (level.name.lower(), get_encoding(output._stream))
             for level, output in zip(levels, outputs)
             if isinstance(output, StreamOutput))
 
-        write_debug = functools.partial(logger.log, LogLevel.DEBUG, prefix='[debug]')
+        write_debug = functools.partial(self.logger.log, LogLevel.DEBUG, prefix='[debug]')
         write_debug('Encodings: ' + ', '.join(map(' '.join, (*encodings, *logger_encodings))))
 
         source = detect_variant()
@@ -3683,7 +3681,7 @@ class YoutubeDL:
         opts_cookiefile = self.params.get('cookiefile')
         opts_proxy = self.params.get('proxy')
 
-        self.cookiejar = load_cookies(opts_cookiefile, opts_cookiesfrombrowser)
+        self.cookiejar = load_cookies(opts_cookiefile, opts_cookiesfrombrowser, self.logger)
 
         cookie_processor = YoutubeDLCookieProcessor(self.cookiejar)
         if opts_proxy is not None:
