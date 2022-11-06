@@ -132,7 +132,7 @@ class Logger:
     """
 
     def __init__(self, screen, verbosity=Verbosity.NORMAL,
-                 *, ignore_errors=False, encoding=None, allow_color=False, no_progress=False):
+                 *, ignore_errors=False, encoding=None, allow_color=False):
         self._bidi_initalized = False
         self._message_cache = set()
         self._pref_encoding = encoding
@@ -140,7 +140,6 @@ class Logger:
         self._verbosity = verbosity
         self._raise_errors = not ignore_errors
 
-        self.no_progress = no_progress
         screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, allow_color, encoding)
         # TODO(logging): remove type hint
         self.mapping: dict[LogLevel, _LoggerProtocol] = {LogLevel.SCREEN: screen_output}
@@ -231,7 +230,7 @@ class Logger:
 
     def format(self, level, text, *text_formats):
         logger = self.mapping.get(level)
-        if not logger or not logger.allow_color:
+        if not logger or not getattr(logger, 'allow_color', False):
             return text
 
         return format_text(str(text), *text_formats)

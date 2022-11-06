@@ -1,7 +1,8 @@
+import enum
 import functools
 from threading import Lock
 
-from .hoodoo import CSI
+from .hoodoo import CSI, Color, TermCode, Typeface
 from .logging import NULL_OUTPUT, LogLevel, StreamOutput, default_logger
 
 ERASE_LINE = f'{CSI}K'
@@ -30,9 +31,19 @@ def _synchronized(func=None, /):
 
 # TODO(logging): Allow passing of progress dict
 class Progress:
+    class Style(enum.Enum):
+        DOWNLOADED_BYTES = TermCode(Color.LIGHT | Color.BLUE)
+        PERCENT = TermCode(Color.LIGHT | Color.BLUE)
+        ETA = TermCode(Color.YELLOW)
+        SPEED = TermCode(Color.GREEN)
+        ELAPSED = TermCode(Typeface.BOLD, Color.WHITE)
+        TOTAL_BYTES = TermCode()
+        TOTAL_BYTES_ESTIMATE = TermCode()
+
     @classmethod
-    def make_progress(cls, logger=default_logger, level=LogLevel.INFO, *, lines=1, preserve=True, newline=False):
-        if logger.no_progress:
+    def make_progress(cls, logger=default_logger, level=LogLevel.INFO, console=None,
+                      *, lines=1, preserve=True, newline=False, disable=False):
+        if disable:
             output = NULL_OUTPUT
 
         else:
@@ -40,10 +51,11 @@ class Progress:
             if not isinstance(output, StreamOutput):
                 newline = True
 
-        return cls(output, lines=lines, preserve=preserve, newline=newline)
+        return cls(output, lines=lines, preserve=preserve, newline=newline, console=console)
 
-    def __init__(self, output, lines=1, preserve=True, newline=False):
+    def __init__(self, output, lines=1, preserve=True, newline=False, console=None):
         self.output = output
+        self.console = console
         self.maximum = lines - 1
         self.preserve = preserve
         self.newline = newline
