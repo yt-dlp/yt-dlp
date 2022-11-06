@@ -85,10 +85,7 @@ class SkyItVideoIE(SkyItPlayerIE):
             'duration': 26,
             'thumbnail': 'https://video.sky.it/captures/thumbs/631227/631227_thumb_880x494.jpg',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://xfactor.sky.it/video/x-factor-2020-replay-audizioni-1-615820',
         'only_matching': True,
@@ -144,10 +141,7 @@ class SkyItIE(SkyItPlayerIE):
             'duration': 22,
             'thumbnail': 'https://videoplatform.sky.it/still/2022/11/03/1667480526353_brozovic_videostill_1.jpg',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://tg24.sky.it/mondo/2020/11/22/australia-squalo-uccide-uomo',
         'md5': 'fe5c91e59a84a3437eaa0bca6e134ccd',
@@ -160,10 +154,7 @@ class SkyItIE(SkyItPlayerIE):
             'duration': 26,
             'thumbnail': 'https://video.sky.it/captures/thumbs/631227/631227_thumb_880x494.jpg',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
     }]
     _VIDEO_ID_REGEX = r'data-videoid="(\d+)"'
 
@@ -190,10 +181,7 @@ class SkyItArteIE(SkyItIE):
             'duration': 12,
             'thumbnail': 'https://videoplatform.sky.it/still/2022/11/02/1667396388552_oliviero-toscani-torino-galleria-mazzoleni_videostill_1.jpg',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
     }]
     _DOMAIN = 'skyarte'
     _VIDEO_ID_REGEX = r'"embedUrl"\s*:\s*"(?:https:)?//player\.sky\.it/player/external\.html\?[^"]*\bid=(\d+)'
@@ -214,10 +202,7 @@ class CieloTVItIE(SkyItIE):
             'duration': 30,
             'thumbnail': 'https://videoplatform.sky.it/still/2019/03/29/1553858575610_lunedi_dramma_mant_videostill_1.jpg',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
     }]
     _DOMAIN = 'cielo'
     _VIDEO_ID_REGEX = r'videoId\s*=\s*"(\d+)"'
@@ -238,9 +223,6 @@ class TV8ItIE(SkyItVideoIE):
             'duration': 114,
             'thumbnail': 'https://videoplatform.sky.it/still/2020/11/18/1605717753954_ogni-mattina-ucciso-asino-di-andrea-lo-cicero_videostill_1.jpg',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
     }]
     _DOMAIN = 'mtv8'
