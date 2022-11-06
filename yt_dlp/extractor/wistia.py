@@ -7,12 +7,14 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     HEADRequest,
+    determine_ext,
     float_or_none,
     int_or_none,
     parse_qs,
     traverse_obj,
     try_get,
     update_url_query,
+    urlhandle_detect_ext,
 )
 
 
@@ -36,21 +38,13 @@ class WistiaBaseIE(InfoExtractor):
         return embed_config
 
     def _get_real_ext(self, url):
-        res = self._request_webpage(
+        ext = determine_ext(url, default_ext=None)
+        urlh = self._request_webpage(
             HEADRequest(url), None, note='Checking media extension',
             errnote='HEAD request returned error', fatal=False)
-        if res:
-            meta_ext = res.headers.get('x-amz-meta-name', '').rpartition('.')[2]
-            if meta_ext:
-                return meta_ext
-            content_type = res.headers.get('content-type')
-            if content_type in ('video/mp4', 'video/quicktime'):
-                return 'mp4'
-            elif content_type == 'image/png':
-                return 'png'
-            elif content_type == 'image/jpeg':
-                return 'jpg'
-        return 'bin'
+        if urlh:
+            ext = urlhandle_detect_ext(urlh, default=None)
+        return 'mp4' if ext == 'mov' else ext or 'bin'
 
     def _extract_media(self, embed_config):
         data = embed_config['media']
