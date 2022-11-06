@@ -5752,7 +5752,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': 'count:12',
             'uploader': 'Not Just Bikes',
             'channel_url': 'https://www.youtube.com/channel/UC0intLFzLaudFG-xAvUEO-A',
-            'description': 'md5:28a19afdfa3e1cd273974454153b6bcc',
+            'description': 'md5:7513148b1f02b924783157d84c4ea555',
             'channel_follower_count': int,
             'uploader_id': 'UC0intLFzLaudFG-xAvUEO-A',
             'channel_id': 'UC0intLFzLaudFG-xAvUEO-A',
