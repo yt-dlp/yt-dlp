@@ -912,6 +912,7 @@ from .linkedin import (
 )
 from .linuxacademy import LinuxAcademyIE
 from .liputan6 import Liputan6IE
+from .listennotes import ListenNotesIE
 from .litv import LiTVIE
 from .livejournal import LiveJournalIE
 from .livestream import (
