@@ -904,20 +904,24 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         video_id = renderer.get('videoId')
         title = self._get_text(renderer, 'title')
         description = self._get_text(renderer, 'descriptionSnippet')
-        duration = parse_duration(self._get_text(
-            renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
+
+        duration = int_or_none(renderer.get('lengthSeconds'))
+        if duration is None:
+            duration = parse_duration(self._get_text(
+                renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
         if duration is None:
             duration = parse_duration(self._search_regex(
                 r'(?i)(ago)(?!.*\1)\s+(?P<duration>[a-z0-9 ,]+?)(?:\s+[\d,]+\s+views)?(?:\s+-\s+play\s+short)?$',
                 traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label'), default='', expected_type=str),
                 video_id, default=None, group='duration'))
 
-        view_count = self._get_count(renderer, 'viewCountText', 'shortViewCountText')
+        # videoInfo is a string like '50K views • 10 years ago'.
+        view_count = self._get_count(renderer, 'viewCountText', 'shortViewCountText', 'videoInfo')
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
         channel_id = traverse_obj(
             renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'),
             expected_type=str, get_all=False)
-        time_text = self._get_text(renderer, 'publishedTimeText') or ''
+        time_text = self._get_text(renderer, 'publishedTimeText', 'videoInfo') or ''
         scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
@@ -4583,50 +4587,36 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if fatal:
                 raise ExtractorError('Unable to find selected tab')
 
-    def _extract_uploader(self, data):
-        uploader = {}
-        renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarSecondaryInfoRenderer') or {}
-        owner = try_get(
-            renderer, lambda x: x['videoOwner']['videoOwnerRenderer']['title']['runs'][0], dict)
-        if owner:
-            owner_text = owner.get('text')
-            uploader['uploader'] = self._search_regex(
-                r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text)
-            uploader['uploader_id'] = try_get(
-                owner, lambda x: x['navigationEndpoint']['browseEndpoint']['browseId'], str)
-            uploader['uploader_url'] = urljoin(
-                'https://www.youtube.com/',
-                try_get(owner, lambda x: x['navigationEndpoint']['browseEndpoint']['canonicalBaseUrl'], str))
-        return filter_dict(uploader)
-
     def _extract_from_tabs(self, item_id, ytcfg, data, tabs):
         playlist_id = title = description = channel_url = channel_name = channel_id = None
         tags = []
 
         selected_tab = self._extract_selected_tab(tabs)
+        # Deprecated - remove when layout discontinued
         primary_sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')
-        renderer = try_get(
+        playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer'), expected_type=dict)
+        metadata_renderer = try_get(
             data, lambda x: x['metadata']['channelMetadataRenderer'], dict)
-        if renderer:
-            channel_name = renderer.get('title')
-            channel_url = renderer.get('channelUrl')
-            channel_id = renderer.get('externalId')
+        if metadata_renderer:
+            channel_name = metadata_renderer.get('title')
+            channel_url = metadata_renderer.get('channelUrl')
+            channel_id = metadata_renderer.get('externalId')
         else:
-            renderer = try_get(
+            metadata_renderer = try_get(
                 data, lambda x: x['metadata']['playlistMetadataRenderer'], dict)
 
-        if renderer:
-            title = renderer.get('title')
-            description = renderer.get('description', '')
+        if metadata_renderer:
+            title = metadata_renderer.get('title')
+            description = metadata_renderer.get('description', '')
             playlist_id = channel_id
-            tags = renderer.get('keywords', '').split()
+            tags = metadata_renderer.get('keywords', '').split()
 
         # We can get the uncropped banner/avatar by replacing the crop params with '=s0'
         # See: https://github.com/yt-dlp/yt-dlp/issues/2237#issuecomment-1013694714
         def _get_uncropped(url):
             return url_or_none((url or '').split('=')[0] + '=s0')
 
-        avatar_thumbnails = self._extract_thumbnails(renderer, 'avatar')
+        avatar_thumbnails = self._extract_thumbnails(metadata_renderer, 'avatar')
         if avatar_thumbnails:
             uncropped_avatar = _get_uncropped(avatar_thumbnails[0]['url'])
             if uncropped_avatar:
@@ -4650,14 +4640,33 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'preference': -5
                 })
 
+        # Deprecated - remove when old layout is discontinued
         primary_thumbnails = self._extract_thumbnails(
             primary_sidebar_renderer, ('thumbnailRenderer', ('playlistVideoThumbnailRenderer', 'playlistCustomThumbnailRenderer'), 'thumbnail'))
+
+        playlist_thumbnails = self._extract_thumbnails(
+            playlist_header_renderer, ('playlistHeaderBanner', 'heroPlaylistThumbnailRenderer', 'thumbnail'))
 
         if playlist_id is None:
             playlist_id = item_id
 
-        playlist_stats = traverse_obj(primary_sidebar_renderer, 'stats')
-        last_updated_unix = self._parse_time_text(self._get_text(playlist_stats, 2))
+        # Deprecated - remove primary_sidebar_renderer when old layout discontinued
+        # Playlist stats is a text runs array containing [video count, view count, last updated].
+        # last updated or (view count and last updated) may be missing.
+        playlist_stats = get_first(
+            (primary_sidebar_renderer, playlist_header_renderer), (('stats', 'briefStats', 'numVideosText'),))
+        last_updated_unix = self._parse_time_text(
+            self._get_text(playlist_stats, 2)  # deprecated, remove when old layout discontinued
+            or self._get_text(playlist_header_renderer, ('byline', 1, 'playlistBylineRenderer', 'text')))
+
+        view_count = self._get_count(playlist_stats, 1)
+        if view_count is None:
+            view_count = self._get_count(playlist_header_renderer, 'viewCountText')
+
+        playlist_count = self._get_count(playlist_stats, 0)
+        if playlist_count is None:
+            playlist_count = self._get_count(playlist_header_renderer, ('byline', 0, 'playlistBylineRenderer', 'text'))
+
         if title is None:
             title = self._get_text(data, ('header', 'hashtagHeaderRenderer', 'hashtag')) or playlist_id
         title += format_field(selected_tab, 'title', ' - %s')
@@ -4670,16 +4679,29 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'uploader': channel_name,
             'uploader_id': channel_id,
             'uploader_url': channel_url,
-            'thumbnails': primary_thumbnails + avatar_thumbnails + channel_banners,
+            'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
             'tags': tags,
-            'view_count': self._get_count(playlist_stats, 1),
+            'view_count': view_count,
             'availability': self._extract_availability(data),
             'modified_date': strftime_or_none(last_updated_unix, '%Y%m%d'),
-            'playlist_count': self._get_count(playlist_stats, 0),
+            'playlist_count': playlist_count,
             'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
         }
         if not channel_id:
-            metadata.update(self._extract_uploader(data))
+            owner = traverse_obj(playlist_header_renderer, 'ownerText')
+            if not owner:
+                # Deprecated
+                owner = traverse_obj(
+                    self._extract_sidebar_info_renderer(data, 'playlistSidebarSecondaryInfoRenderer'),
+                    ('videoOwner', 'videoOwnerRenderer', 'title'))
+            owner_text = self._get_text(owner)
+            browse_ep = traverse_obj(owner, ('runs', 0, 'navigationEndpoint', 'browseEndpoint')) or {}
+            metadata.update(filter_dict({
+                'uploader': self._search_regex(r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text),
+                'uploader_id': browse_ep.get('browseId'),
+                'uploader_url': urljoin('https://www.youtube.com', browse_ep.get('canonicalBaseUrl'))
+            }))
+
         metadata.update({
             'channel': metadata['uploader'],
             'channel_id': metadata['uploader_id'],
@@ -4751,19 +4773,21 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         Note: Unless YouTube tells us explicitly, we do not assume it is public
         @param data: response
         """
-        renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer') or {}
+        sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer') or {}
+        playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer')) or {}
+        player_header_privacy = playlist_header_renderer.get('privacy')
 
-        player_header_privacy = traverse_obj(
-            data, ('header', 'playlistHeaderRenderer', 'privacy'), expected_type=str)
-
-        badges = self._extract_badges(renderer)
+        badges = self._extract_badges(sidebar_renderer)
 
         # Personal playlists, when authenticated, have a dropdown visibility selector instead of a badge
-        privacy_setting_icon = traverse_obj(
-            renderer, (
-                'privacyForm', 'dropdownFormFieldRenderer', 'dropdown', 'dropdownRenderer', 'entries',
-                lambda _, v: v['privacyDropdownItemRenderer']['isSelected'], 'privacyDropdownItemRenderer', 'icon', 'iconType'),
-            get_all=False, expected_type=str)
+        privacy_setting_icon = get_first(
+            (playlist_header_renderer, sidebar_renderer),
+            ('privacyForm', 'dropdownFormFieldRenderer', 'dropdown', 'dropdownRenderer', 'entries',
+             lambda _, v: v['privacyDropdownItemRenderer']['isSelected'], 'privacyDropdownItemRenderer', 'icon', 'iconType'),
+            expected_type=str)
+
+        microformats_is_unlisted = traverse_obj(
+            data, ('microformat', 'microformatDataRenderer', 'unlisted'), expected_type=bool)
 
         return (
             'public' if (
@@ -4778,7 +4802,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 is_unlisted=(
                     self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED)
                     or player_header_privacy == 'UNLISTED' if player_header_privacy is not None
-                    else privacy_setting_icon == 'PRIVACY_UNLISTED' if privacy_setting_icon is not None else None),
+                    else privacy_setting_icon == 'PRIVACY_UNLISTED' if privacy_setting_icon is not None
+                    else microformats_is_unlisted if microformats_is_unlisted is not None else None),
                 needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
                 needs_premium=self._has_badge(badges, BadgeType.AVAILABILITY_PREMIUM) or None,
                 needs_auth=False))
@@ -4794,39 +4819,23 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _reload_with_unavailable_videos(self, item_id, data, ytcfg):
         """
-        Get playlist with unavailable videos if the 'show unavailable videos' button exists.
+        Reload playlists with unavailable videos (e.g. private videos, region blocked, etc.)
         """
-        browse_id = params = None
-        renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')
-        if not renderer:
+        is_playlist = bool(traverse_obj(
+            data, ('metadata', 'playlistMetadataRenderer'), ('header', 'playlistHeaderRenderer')))
+        if not is_playlist:
             return
-        menu_renderer = try_get(
-            renderer, lambda x: x['menu']['menuRenderer']['items'], list) or []
-        for menu_item in menu_renderer:
-            if not isinstance(menu_item, dict):
-                continue
-            nav_item_renderer = menu_item.get('menuNavigationItemRenderer')
-            text = try_get(
-                nav_item_renderer, lambda x: x['text']['simpleText'], str)
-            if not text or text.lower() != 'show unavailable videos':
-                continue
-            browse_endpoint = try_get(
-                nav_item_renderer, lambda x: x['navigationEndpoint']['browseEndpoint'], dict) or {}
-            browse_id = browse_endpoint.get('browseId')
-            params = browse_endpoint.get('params')
-            break
-
         headers = self.generate_api_headers(
             ytcfg=ytcfg, account_syncid=self._extract_account_syncid(ytcfg, data),
             visitor_data=self._extract_visitor_data(data, ytcfg))
         query = {
-            'params': params or 'wgYCCAA=',
-            'browseId': browse_id or 'VL%s' % item_id
+            'params': 'wgYCCAA=',
+            'browseId': f'VL{item_id}'
         }
         return self._extract_response(
             item_id=item_id, headers=headers, query=query,
             check_get_keys='contents', fatal=False, ytcfg=ytcfg,
-            note='Downloading API JSON with unavailable videos')
+            note='Redownloading playlist API JSON with unavailable videos')
 
     @functools.cached_property
     def skip_webpage(self):
@@ -5324,6 +5333,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'channel_url': 'https://www.youtube.com/user/Computerphile',
             'channel': 'Computerphile',
             'availability': 'public',
+            'modified_date': '20190712',
         },
         'playlist_mincount': 11,
     }, {
@@ -5659,6 +5669,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'cole-dlp-test-acc',
             'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel': 'cole-dlp-test-acc',
+            'channel_follower_count': int,
         },
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
