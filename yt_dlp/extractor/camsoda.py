@@ -7,7 +7,7 @@ from ..utils import ExtractorError, traverse_obj
 class CamsodaIE(InfoExtractor):
     _VALID_URL = r'https?://www\.camsoda\.com/(?P<id>[0-9A-Za-z-]+)'
     _TESTS = [{
-        'url': 'https://camsoda.com/lizzhopf',
+        'url': 'https://www.camsoda.com/lizzhopf',
         'info_dict': {
             'id': 'lizzhopf',
             'ext': 'mp4',
