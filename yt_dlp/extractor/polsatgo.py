@@ -89,9 +89,12 @@ class PolsatGoIE(InfoExtractor):
         return subtitles
 
     def _call_api(self, endpoint, media_id, method, params=None):
-        client_name = self._configuration_arg('player_client', default='web')
-        client = self._CLIENTS[client_name]
         rand_uuid = str(uuid4())
+        client_name = self._configuration_arg('player_client', default='web')
+        client = self._CLIENTS.get(client_name)
+        if not client:
+            raise ExtractorError(f'Unsupported player_client {client_name}', expected=True)
+
         res = self._download_json(
             f'https://{client["domain"]}/rpc/{endpoint}/', media_id,
             note=f'Downloading {method} JSON metadata as {client_name}',
