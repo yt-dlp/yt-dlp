@@ -1733,11 +1733,7 @@ The following extractors use this feature:
 * `language`: Audio languages to extract, e.g. `funimation:language=english,japanese`
 * `version`: The video version to extract - `uncut` or `simulcast`
 
-#### crunchyroll
-* `language`: Audio languages to extract, e.g. `crunchyroll:language=jaJp`
-* `hardsub`: Which hard-sub versions to extract, e.g. `crunchyroll:hardsub=None,enUS`
-
-#### crunchyrollbeta
+#### crunchyrollbeta (Crunchyroll)
 * `format`: Which stream type(s) to extract (default: `adaptive_hls`). Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `download_dash`, `multitrack_adaptive_hls_v2`
 * `hardsub`: Preference order for which hardsub versions to extract, or `all` (default: `None` = no hardsubs), e.g. `crunchyrollbeta:hardsub=en-US,None`
 
