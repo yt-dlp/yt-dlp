@@ -48,6 +48,7 @@ def compat_setenv(key, value, env=os.environ):
 
 
 compat_basestring = str
+compat_casefold = str.casefold
 compat_chr = chr
 compat_collections_abc = collections.abc
 compat_cookiejar = http.cookiejar
