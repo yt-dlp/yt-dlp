@@ -64,20 +64,12 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         }
 
     def _fetch_oauth_token(self, video_id):
-        # These pages contain the OAuth token that is necessary to make API calls.
-        index_page = self._download_webpage(
-            'https://www.redgifs.com', video_id, note='Downloading home page')
-        index_js_uri = self._html_search_regex(
-            r'href="?(/assets/js/index[.a-z0-9]*.js)"?\W', index_page, 'index_js_uri')
-        index_js = self._download_webpage(
-            f'https://www.redgifs.com/{index_js_uri}', video_id, note='Downloading index.js')
-        # It turns out that a { followed by any valid JSON punctuation will always result in the
-        # first two characters of the base64 encoding being "ey".
-        # Use this fact to find any such string constant of a reasonable length with the correct
-        # punctuation for an oauth token
-        oauth_token = self._html_search_regex(
-            r'\w+\s*[=:]\s*"(ey[^"]+\.[^"]*\.[^"]{43,45})"', index_js, 'oauth token')
-        self._API_HEADERS['authorization'] = f'Bearer {oauth_token}'
+        # https://github.com/Redgifs/api/wiki/Temporary-tokens
+        auth = self._download_json('https://api.redgifs.com/v2/auth/temporary',
+                                   video_id, note='Fetching temporary token')
+        if not auth.get('token'):
+            raise ExtractorError('Unable to get temporary token')
+        self._API_HEADERS['authorization'] = f'Bearer {auth["token"]}'
 
     def _call_api(self, ep, video_id, *args, **kwargs):
         if 'authorization' not in self._API_HEADERS:

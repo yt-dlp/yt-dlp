@@ -106,7 +106,6 @@ class OneNewsNZIE(InfoExtractor):
 
         playlist_title = (
             traverse_obj(fusion_metadata, ('headlines', 'basic'))
-            or self._og_search_title(webpage)
-            or self._html_extract_title(webpage)
+            or self._generic_title('', webpage)
         )
         return self.playlist_result(entries, display_id, playlist_title)

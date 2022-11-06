@@ -71,6 +71,12 @@ from .afreecatv import (
     AfreecaTVLiveIE,
     AfreecaTVUserIE,
 )
+from .agora import (
+    TokFMAuditionIE,
+    TokFMPodcastIE,
+    WyborczaPodcastIE,
+    WyborczaVideoIE,
+)
 from .airmozilla import AirMozillaIE
 from .aljazeera import AlJazeeraIE
 from .alphaporno import AlphaPornoIE
@@ -187,9 +193,10 @@ from .bigo import BigoIE
 from .bild import BildIE
 from .bilibili import (
     BiliBiliIE,
+    BiliBiliBangumiIE,
+    BiliBiliBangumiMediaIE,
     BiliBiliSearchIE,
     BilibiliCategoryIE,
-    BiliBiliBangumiIE,
     BilibiliAudioIE,
     BilibiliAudioAlbumIE,
     BiliBiliPlayerIE,
@@ -629,6 +636,10 @@ from .gazeta import GazetaIE
 from .gdcvault import GDCVaultIE
 from .gedidigital import GediDigitalIE
 from .generic import GenericIE
+from .genius import (
+    GeniusIE,
+    GeniusLyricsIE,
+)
 from .gettr import (
     GettrIE,
     GettrStreamingIE,
@@ -790,6 +801,13 @@ from .jable import (
 from .jamendo import (
     JamendoIE,
     JamendoAlbumIE,
+)
+from .japandiet import (
+    ShugiinItvLiveIE,
+    ShugiinItvLiveRoomIE,
+    ShugiinItvVodIE,
+    SangiinInstructionIE,
+    SangiinIE,
 )
 from .jeuxvideo import JeuxVideoIE
 from .jove import JoveIE
@@ -1003,6 +1021,7 @@ from .mlb import (
     MLBIE,
     MLBVideoIE,
     MLBTVIE,
+    MLBArticleIE,
 )
 from .mlssoccer import MLSSoccerIE
 from .mnet import MnetIE
@@ -1235,6 +1254,10 @@ from .nzherald import NZHeraldIE
 from .nzz import NZZIE
 from .odatv import OdaTVIE
 from .odnoklassniki import OdnoklassnikiIE
+from .oftv import (
+    OfTVIE,
+    OfTVPlaylistIE
+)
 from .oktoberfesttv import OktoberfestTVIE
 from .olympics import OlympicsReplayIE
 from .on24 import On24IE

@@ -4,8 +4,12 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    GeoRestrictedError,
+    HEADRequest,
+    clean_html,
+    get_element_by_class,
+    int_or_none,
     orderedSet,
+    traverse_obj,
     unified_strdate,
     urlencode_postdata,
 )
@@ -18,7 +22,7 @@ class BitChuteIE(InfoExtractor):
         'url': 'https://www.bitchute.com/video/UGlrF9o9b-Q/',
         'md5': '7e427d7ed7af5a75b5855705ec750e2b',
         'info_dict': {
-            'id': 'szoMrox2JEI',
+            'id': 'UGlrF9o9b-Q',
             'ext': 'mp4',
             'title': 'This is the first video on #BitChute !',
             'description': 'md5:a0337e7b1fe39e32336974af8173a034',
@@ -27,6 +31,21 @@ class BitChuteIE(InfoExtractor):
             'upload_date': '20170103',
         },
     }, {
+        # video not downloadable in browser, but we can recover it
+        'url': 'https://www.bitchute.com/video/2s6B3nZjAk7R/',
+        'md5': '05c12397d5354bf24494885b08d24ed1',
+        'info_dict': {
+            'id': '2s6B3nZjAk7R',
+            'ext': 'mp4',
+            'filesize': 71537926,
+            'title': 'STYXHEXENHAMMER666 - Election Fraud, Clinton 2020, EU Armies, and Gun Control',
+            'description': 'md5:228ee93bd840a24938f536aeac9cf749',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'BitChute',
+            'upload_date': '20181113',
+        },
+        'params': {'check_formats': None},
+    }, {
         'url': 'https://www.bitchute.com/embed/lbb5G1hjPhw/',
         'only_matching': True,
     }, {
@@ -34,67 +53,57 @@ class BitChuteIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.57 Safari/537.36',
+        'Referer': 'https://www.bitchute.com/',
+    }
+
+    def _check_format(self, video_url, video_id):
+        urls = orderedSet(
+            re.sub(r'(^https?://)(seed\d+)(?=\.bitchute\.com)', fr'\g<1>{host}', video_url)
+            for host in (r'\g<2>', 'seed150', 'seed151', 'seed152', 'seed153'))
+        for url in urls:
+            try:
+                response = self._request_webpage(
+                    HEADRequest(url), video_id=video_id, note=f'Checking {url}', headers=self._HEADERS)
+            except ExtractorError as e:
+                self.to_screen(f'{video_id}: URL is invalid, skipping: {e.cause}')
+                continue
+            return {
+                'url': url,
+                'filesize': int_or_none(response.headers.get('Content-Length'))
+            }
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         webpage = self._download_webpage(
-            'https://www.bitchute.com/video/%s' % video_id, video_id, headers={
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.57 Safari/537.36',
-            })
+            f'https://www.bitchute.com/video/{video_id}', video_id, headers=self._HEADERS)
 
-        title = self._html_search_regex(
-            (r'<[^>]+\bid=["\']video-title[^>]+>([^<]+)', r'<title>([^<]+)'),
-            webpage, 'title', default=None) or self._html_search_meta(
-            'description', webpage, 'title',
-            default=None) or self._og_search_description(webpage)
+        publish_date = clean_html(get_element_by_class('video-publish-date', webpage))
+        entries = self._parse_html5_media_entries(url, webpage, video_id)
 
-        format_urls = []
-        for mobj in re.finditer(
-                r'addWebSeed\s*\(\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage):
-            format_urls.append(mobj.group('url'))
-        format_urls.extend(re.findall(r'as=(https?://[^&"\']+)', webpage))
-
-        formats = [
-            {'url': format_url}
-            for format_url in orderedSet(format_urls)]
+        formats = []
+        for format_ in traverse_obj(entries, (0, 'formats', ...)):
+            if self.get_param('check_formats') is not False:
+                format_.update(self._check_format(format_.pop('url'), video_id) or {})
+                if 'url' not in format_:
+                    continue
+            formats.append(format_)
 
         if not formats:
-            entries = self._parse_html5_media_entries(
-                url, webpage, video_id)
-            if not entries:
-                error = self._html_search_regex(r'<h1 class="page-title">([^<]+)</h1>', webpage, 'error', default='Cannot find video')
-                if error == 'Video Unavailable':
-                    raise GeoRestrictedError(error)
-                raise ExtractorError(error, expected=True)
-            formats = entries[0]['formats']
-
-        self._check_formats(formats, video_id)
-        if not formats:
-            raise self.raise_no_formats('Video is unavailable', expected=True, video_id=video_id)
+            self.raise_no_formats(
+                'Video is unavailable. Please make sure this video is playable in the browser '
+                'before reporting this issue.', expected=True, video_id=video_id)
         self._sort_formats(formats)
-
-        description = self._html_search_regex(
-            r'(?s)<div\b[^>]+\bclass=["\']full hidden[^>]+>(.+?)</div>',
-            webpage, 'description', fatal=False)
-        thumbnail = self._og_search_thumbnail(
-            webpage, default=None) or self._html_search_meta(
-            'twitter:image:src', webpage, 'thumbnail')
-        uploader = self._html_search_regex(
-            (r'(?s)<div class=["\']channel-banner.*?<p\b[^>]+\bclass=["\']name[^>]+>(.+?)</p>',
-             r'(?s)<p\b[^>]+\bclass=["\']video-author[^>]+>(.+?)</p>'),
-            webpage, 'uploader', fatal=False)
-
-        upload_date = unified_strdate(self._search_regex(
-            r'class=["\']video-publish-date[^>]+>[^<]+ at \d+:\d+ UTC on (.+?)\.',
-            webpage, 'upload date', fatal=False))
 
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'uploader': uploader,
-            'upload_date': upload_date,
+            'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
+            'description': self._og_search_description(webpage, default=None),
+            'thumbnail': self._og_search_thumbnail(webpage),
+            'uploader': clean_html(get_element_by_class('owner', webpage)),
+            'upload_date': unified_strdate(self._search_regex(
+                r'at \d+:\d+ UTC on (.+?)\.', publish_date, 'upload date', fatal=False)),
             'formats': formats,
         }
 
