@@ -10,9 +10,9 @@ del passthrough_module
 import sys
 
 if sys.platform.startswith('freebsd'):
-    import shutil
     import errno
     import os
+    import shutil
 
     # Workaround for PermissionError when using restricted ACL mode on FreeBSD
     def copy2(src, dst, *args, **kwargs):

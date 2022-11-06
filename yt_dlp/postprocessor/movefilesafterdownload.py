@@ -1,8 +1,7 @@
 import os
 
-from ..compat import shutil
-
 from .common import PostProcessor
+from ..compat import shutil
 from ..utils import (
     PostProcessingError,
     decodeFilename,
