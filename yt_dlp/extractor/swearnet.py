@@ -29,8 +29,6 @@ class SwearnetEpisodeIE(InfoExtractor):
                     fmts, subs = self._extract_m3u8_formats_and_subtitles(video_hls.get('url'), video_id)
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
-
-            # assume else is mp4 format
             else:
                 formats.extend({
                     'url': video_mp4.get('url'),
@@ -70,5 +68,6 @@ class SwearnetEpisodeIE(InfoExtractor):
             'subtitles': subtitles,
             'season_number': int_or_none(season_number),
             'episode_number': int_or_none(episode_number),
-            'thumbnails': [{'url': thumbnail_url} for thumbnail_url in traverse_obj(json_data, ('thumbnailUrls', ...))]
+            'thumbnails': [{'url': thumbnail_url}
+                           for thumbnail_url in traverse_obj(json_data, ('thumbnailUrls', ...))]
         }
