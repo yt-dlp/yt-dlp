@@ -1,7 +1,6 @@
-import errno
 import os
-import shutil
-import sys
+
+from ..compat import shutil
 
 from .common import PostProcessor
 from ..utils import (
@@ -10,23 +9,6 @@ from ..utils import (
     encodeFilename,
     make_dir,
 )
-
-
-def copy2_workaround(src, dst, *, follow_symlinks=True):
-    """Workaround for 'PermissionError' when using restricted ACL mode on FreeBSD"""
-    if os.path.isdir(dst):
-        dst = os.path.join(dst, os.path.basename(src))
-    shutil.copyfile(src, dst, follow_symlinks=follow_symlinks)
-    try:
-        shutil.copystat(src, dst, follow_symlinks=follow_symlinks)
-    except PermissionError as e:
-        if (sys.platform.startswith('freebsd') and hasattr(errno, 'EPERM')
-                and e.errno == getattr(errno, 'EPERM')):
-            # mode and flags will not be copied
-            pass
-        else:
-            raise
-    return dst
 
 
 class MoveFilesAfterDownloadPP(PostProcessor):
@@ -66,7 +48,7 @@ class MoveFilesAfterDownloadPP(PostProcessor):
                     continue
             make_dir(newfile, PostProcessingError)
             self.to_screen(f'Moving file "{oldfile}" to "{newfile}"')
-            shutil.move(oldfile, newfile, copy2_workaround)  # os.rename cannot move between volumes
+            shutil.move(oldfile, newfile)  # os.rename cannot move between volumes
 
         info['filepath'] = finalpath
         return [], info
