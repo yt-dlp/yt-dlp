@@ -75,6 +75,29 @@ class FoxNewsIE(AMPIE):
         return info
 
 
+class FoxNewsVideoIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?foxnews\.com/video/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.foxnews.com/video/6313058664112',
+        'info_dict': {
+            'id': '6313058664112',
+            'ext': 'mp4',
+            'thumbnail': r're:https://.+/1280x720/match/image\.jpg',
+            'upload_date': '20220930',
+            'description': 'New York City, Kids Therapy, Biden',
+            'duration': 2415,
+            'title': 'Gutfeld! - Thursday, September 29',
+            'timestamp': 1664527538,
+        },
+        'expected_warnings': ['Ignoring subtitle tracks'],
+        'params': {'skip_download': 'm3u8'},
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self.url_result(f'https://video.foxnews.com/v/{video_id}', FoxNewsIE, video_id)
+
+
 class FoxNewsArticleIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:insider\.)?foxnews\.com/(?!v)([^/]+/)+(?P<id>[a-z-]+)'
     IE_NAME = 'foxnews:article'
