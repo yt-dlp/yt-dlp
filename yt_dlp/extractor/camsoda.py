@@ -33,17 +33,14 @@ class CamsodaIE(InfoExtractor):
         if not data:
             raise ExtractorError('Unable to find configuration for stream.')
 
-        private_servers = traverse_obj(data, ('private_servers'), expected_type=list)
-        if private_servers:
+        if data.get('private_servers'):
             raise ExtractorError(self._ROOM_PRIVATE, expected=True)
-
-        stream_name = traverse_obj(data, ('stream_name'), expected_type=str)
-        if not stream_name:
+        elif not data.get('stream_name'):
             raise ExtractorError(self._ROOM_OFFLINE, expected=True)
 
-        token = traverse_obj(data, ('token'), expected_type=str)
-
-        for server in traverse_obj(data, ('edge_servers'), expected_type=list):
+        token = traverse_obj(data, 'token', expected_type=str)
+        
+        for server in traverse_obj(data, ('edge_servers', ...)):
             formats = self._extract_m3u8_formats(
                 f'https://{server}/{stream_name}_v1/index.m3u8?token={token}',
                 video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
@@ -58,6 +55,5 @@ class CamsodaIE(InfoExtractor):
             'description': self._html_search_meta('description', webpage, default=None),
             'is_live': True,
             'formats': formats,
-            # Camsoda does not declare the RTA meta-tag
             'age_limit': 18,
         }
