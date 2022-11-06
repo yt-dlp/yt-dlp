@@ -1,12 +1,5 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
-from ..utils import (
-    ExtractorError,
-    lowercase_escape,
-    traverse_obj,
-)
+from ..utils import ExtractorError, lowercase_escape, traverse_obj
 
 
 class StripchatIE(InfoExtractor):
@@ -44,13 +37,13 @@ class StripchatIE(InfoExtractor):
         elif not traverse_obj(data, ('viewCam', 'model', 'isLive'), expected_type=bool):
             raise ExtractorError('Model is offline', expected=True)
 
-        server = traverse_obj(data, ('viewCam', 'viewServers', 'flashphoner-hls'), expected_type=compat_str)
+        server = traverse_obj(data, ('viewCam', 'viewServers', 'flashphoner-hls'), expected_type=str)
         model_id = traverse_obj(data, ('viewCam', 'model', 'id'), expected_type=int)
-        hosts = traverse_obj(data, ('config', 'data', 'featuresV2', 'hlsFallback', 'fallbackDomains'), expected_type=list)
 
-        for host in hosts:
+        formats = []
+        for host in traverse_obj(data, ('config', 'data', 'featuresV2', 'hlsFallback', 'fallbackDomains', ...)):
             formats = self._extract_m3u8_formats(
-                'https://b-%s.%s/hls/%d/%d.m3u8' % (server, host, model_id, model_id),
+                f'https://b-{server}.{host}/hls/{model_id}/{model_id}.m3u8',
                 video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
             if formats:
                 break
