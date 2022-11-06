@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from ..utils import extract_attributes, get_element_html_by_id
 
 
 class EpochIE(InfoExtractor):
@@ -28,13 +29,21 @@ class EpochIE(InfoExtractor):
                 'title': 'Kash Patel: A ‘6-Year-Saga’ of Government Corruption, From Russiagate to Mar-a-Lago',
             }
         },
+        {
+            'url': 'https://www.theepochtimes.com/dick-morris-discusses-his-book-the-return-trumps-big-2024-comeback_4819205.html',
+            'info_dict': {
+                'id': '9489f994-2a20-4812-b233-ac0e5c345632',
+                'ext': 'mp4',
+                'title': 'Dick Morris Discusses His Book ‘The Return: Trump’s Big 2024 Comeback’',
+            }
+        },
     ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        youmaker_video_id = self._search_regex(r'data-trailer="[\w-]+" data-id="([\w-]+)"', webpage, 'url')
+        youmaker_video_id = extract_attributes(get_element_html_by_id('videobox', webpage))['data-id']
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'http://vs1.youmaker.com/assets/{youmaker_video_id}/playlist.m3u8', video_id, 'mp4', m3u8_id='hls')
 
