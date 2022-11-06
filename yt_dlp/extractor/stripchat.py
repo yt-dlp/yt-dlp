@@ -12,11 +12,11 @@ from ..utils import (
 class StripchatIE(InfoExtractor):
     _VALID_URL = r'https?://stripchat\.com/(?P<id>[^/?#]+)'
     _TESTS = [{
-        'url': 'https://stripchat.com/feel_me',
+        'url': 'https://stripchat.com/Joselin_Flower',
         'info_dict': {
-            'id': 'feel_me',
+            'id': 'Joselin_Flower',
             'ext': 'mp4',
-            'title': 're:^feel_me [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'title': 're:^Joselin_Flower [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'description': str,
             'is_live': True,
             'age_limit': 18,
