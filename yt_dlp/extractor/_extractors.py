@@ -1431,6 +1431,7 @@ from .prx import (
 )
 from .puls4 import Puls4IE
 from .pyvideo import PyvideoIE
+from .qingting import QingTingIE
 from .qqmusic import (
     QQMusicIE,
     QQMusicSingerIE,
