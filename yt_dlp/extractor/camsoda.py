@@ -19,7 +19,6 @@ class CamsodaIE(InfoExtractor):
         'skip': 'Room is offline',
     }]
 
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         user_id = f'guest_{random.randrange(10000, 99999)}'
