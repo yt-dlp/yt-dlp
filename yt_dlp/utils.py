@@ -480,6 +480,7 @@ class HTMLBreakOnClosingTagParser(html.parser.HTMLParser):
             raise self.HTMLBreakOnClosingTagException()
 
 
+# XXX: This should be far less strict
 def get_element_text_and_html_by_tag(tag, html):
     """
     For the first element with the specified tag in the passed HTML document

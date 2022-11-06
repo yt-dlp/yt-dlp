@@ -68,7 +68,7 @@ class ManyVidsIE(InfoExtractor):
         )
 
         def txt_or_none(s, default=None):
-            return (s.strip() or default) if isinstance(s, compat_str) else default
+            return (s.strip() or default) if isinstance(s, str) else default
 
         uploader = txt_or_none(info.get('data-meta-author'))
 

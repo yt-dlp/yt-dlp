@@ -1,3 +1,4 @@
+import itertools
 import json
 import re
 import time
@@ -39,8 +40,7 @@ class NetEaseMusicBaseIE(InfoExtractor):
         result = b64encode(m.digest()).decode('ascii')
         return result.replace('/', '_').replace('+', '-')
 
-    @classmethod
-    def make_player_api_request_data_and_headers(cls, song_id, bitrate):
+    def make_player_api_request_data_and_headers(self, song_id, bitrate):
         KEY = b'e82ckenh8dichen8'
         URL = '/api/song/enhance/player/url'
         now = int(time.time() * 1000)

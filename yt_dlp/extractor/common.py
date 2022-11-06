@@ -3725,7 +3725,8 @@ class InfoExtractor:
         if not cls.working():
             desc += ' (**Currently broken**)' if markdown else ' (Currently broken)'
 
-        name = f' - **{cls.IE_NAME}**' if markdown else cls.IE_NAME
+        # Escape emojis. Ref: https://github.com/github/markup/issues/1153
+        name = (' - **%s**' % re.sub(r':(\w+:)', ':\u200B\\g<1>', cls.IE_NAME)) if markdown else cls.IE_NAME
         return f'{name}:{desc}' if desc else name
 
     def extract_subtitles(self, *args, **kwargs):

@@ -255,7 +255,7 @@ class ZenYandexIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        redirect = self._search_json(r'var it\s*=\s*', webpage, 'redirect', id, default={}).get('retpath')
+        redirect = self._search_json(r'var it\s*=', webpage, 'redirect', id, default={}).get('retpath')
         if redirect:
             video_id = self._match_id(redirect)
             webpage = self._download_webpage(redirect, video_id, note='Redirecting')
@@ -373,7 +373,7 @@ class ZenYandexChannelIE(InfoExtractor):
         item_id = self._match_id(url)
         webpage = self._download_webpage(url, item_id)
         redirect = self._search_json(
-            r'var it\s*=\s*', webpage, 'redirect', item_id, default={}).get('retpath')
+            r'var it\s*=', webpage, 'redirect', item_id, default={}).get('retpath')
         if redirect:
             item_id = self._match_id(redirect)
             webpage = self._download_webpage(redirect, item_id, note='Redirecting')
