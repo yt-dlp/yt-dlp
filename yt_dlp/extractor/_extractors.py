@@ -470,6 +470,10 @@ from .duboku import (
 )
 from .dumpert import DumpertIE
 from .defense import DefenseGouvFrIE
+from .deuxm import (
+    DeuxMIE,
+    DeuxMNewsIE
+)
 from .digitalconcerthall import DigitalConcertHallIE
 from .discovery import DiscoveryIE
 from .disney import DisneyIE
