@@ -1641,7 +1641,6 @@ from .skyit import (
     SkyItVideoIE,
     SkyItVideoLiveIE,
     SkyItIE,
-    SkyItAcademyIE,
     SkyItArteIE,
     CieloTVItIE,
     TV8ItIE,
