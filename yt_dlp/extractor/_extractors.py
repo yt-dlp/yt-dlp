@@ -372,8 +372,6 @@ from .crowdbunker import (
     CrowdBunkerChannelIE,
 )
 from .crunchyroll import (
-    CrunchyrollIE,
-    CrunchyrollShowPlaylistIE,
     CrunchyrollBetaIE,
     CrunchyrollBetaShowIE,
 )
