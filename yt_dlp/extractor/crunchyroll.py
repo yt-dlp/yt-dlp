@@ -1,7 +1,7 @@
 import base64
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_urlencode, compat_urlparse
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -39,7 +39,7 @@ class CrunchyrollBaseIE(InfoExtractor):
 
         login_response = self._download_json(
             f'{self._API_BASE}/login.1.json', None, 'Logging in',
-            data=compat_urllib_parse_urlencode({
+            data=urllib.parse.urlencode({
                 'account': username,
                 'password': password,
                 'session_id': session_id
