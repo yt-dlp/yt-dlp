@@ -23,7 +23,7 @@ class ChurchOfJesusChristIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        brightcove_id = self._html_search_regex(r'@videoPlayer":"(?P<id>\d*?)"', webpage, 'brightcove id')
+        brightcove_id = self._html_search_regex(r'@videoPlayer":"(\d+)', webpage, 'brightcove id')
         brightcove_account = self._html_search_regex(r'"account":"(\d*?)"', webpage, 'brightcove account')
 
         target_url = f'http://players.brightcove.net/{brightcove_account}/default_default/index.html?videoId={brightcove_id}'
