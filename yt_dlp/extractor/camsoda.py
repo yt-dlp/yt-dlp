@@ -36,8 +36,9 @@ class CamsodaIE(InfoExtractor):
         elif not data.get('stream_name'):
             raise ExtractorError('Model is offline.', expected=True)
 
+        stream_name = traverse_obj(data, 'stream_name', expected_type=str)
         token = traverse_obj(data, 'token', expected_type=str)
-        
+
         for server in traverse_obj(data, ('edge_servers', ...)):
             formats = self._extract_m3u8_formats(
                 f'https://{server}/{stream_name}_v1/index.m3u8?token={token}',
