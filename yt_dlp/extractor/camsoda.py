@@ -19,8 +19,6 @@ class CamsodaIE(InfoExtractor):
         'skip': 'Room is offline',
     }]
 
-    _ROOM_OFFLINE = 'Model is offline.'
-    _ROOM_PRIVATE = 'Model is in private show.'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -34,9 +32,9 @@ class CamsodaIE(InfoExtractor):
             raise ExtractorError('Unable to find configuration for stream.')
 
         if data.get('private_servers'):
-            raise ExtractorError(self._ROOM_PRIVATE, expected=True)
+            raise ExtractorError('Model is in private show.', expected=True)
         elif not data.get('stream_name'):
-            raise ExtractorError(self._ROOM_OFFLINE, expected=True)
+            raise ExtractorError('Model is offline.', expected=True)
 
         token = traverse_obj(data, 'token', expected_type=str)
         
