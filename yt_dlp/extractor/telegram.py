@@ -23,7 +23,7 @@ class TelegramEmbedIE(InfoExtractor):
         'info_dict': {
             'id': '613',
             'ext': 'mp4',
-            'title': 'md5:ae4359657c344a3c7b09d0f6c0fa7829',
+            'title': 'md5:6ce2d7e8d56eda16d80607b23db7b252',
             'description': 'md5:6ce2d7e8d56eda16d80607b23db7b252',
             'channel_id': 'europa_press',
             'channel': 'Europa Press ✔',
@@ -51,7 +51,7 @@ class TelegramEmbedIE(InfoExtractor):
         'info_dict': {
             'id': '29343',
             'ext': 'mp4',
-            'title': 'md5:922c99739691bfe6f052cab5f2d099ae',
+            'title': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
             'description': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
             'channel_id': 'vorposte',
             'channel': 'Форпост',
@@ -70,7 +70,7 @@ class TelegramEmbedIE(InfoExtractor):
         'info_dict': {
             'id': '29342',
             'ext': 'mp4',
-            'title': 'md5:922c99739691bfe6f052cab5f2d099ae',
+            'title': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
             'description': 'md5:9d92e22169a3e136d5d69df25f82c3dc',
             'channel_id': 'vorposte',
             'channel': 'Форпост',
@@ -84,8 +84,7 @@ class TelegramEmbedIE(InfoExtractor):
     def _real_extract(self, url):
         channel_id, msg_id = self._match_valid_url(url).group('channel_id', 'id')
         embed = self._download_webpage(
-            update_url_query(url, {'single': []}),  # strip 'single' from query
-            msg_id, query={'embed': '1'}, note='Downloading embed frame')
+            url, msg_id, query={'embed': '1', 'single': []}, note='Downloading embed frame')
 
         def clean_text(html_class, html):
             text = clean_html(get_element_by_class(html_class, html))
@@ -93,7 +92,7 @@ class TelegramEmbedIE(InfoExtractor):
 
         description = clean_text('tgme_widget_message_text', embed)
         message = {
-            'title': description[:64] if description else f'Video by {channel_id}',
+            'title': description or '',
             'description': description,
             'channel': clean_text('tgme_widget_message_author', embed),
             'channel_id': channel_id,
