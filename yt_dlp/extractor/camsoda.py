@@ -22,7 +22,7 @@ class CamsodaIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        user_id = 'guest_%u' % random.randrange(10000, 99999)
+        user_id = f'guest_{random.randrange(10000, 99999)}'
         webpage = self._download_webpage(url, video_id, headers=self.geo_verification_headers())
 
         data = self._download_json(
