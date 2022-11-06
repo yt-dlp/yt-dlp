@@ -45,12 +45,16 @@ class StripchatIE(InfoExtractor):
             raise ExtractorError('Model is offline', expected=True)
 
         server = traverse_obj(data, ('viewCam', 'viewServers', 'flashphoner-hls'), expected_type=compat_str)
-        host = traverse_obj(data, ('config', 'data', 'featuresV2', 'hlsFallback', 'fallbackDomains', 0), expected_type=compat_str)
         model_id = traverse_obj(data, ('viewCam', 'model', 'id'), expected_type=int)
+        hosts = traverse_obj(data, ('config', 'data', 'featuresV2', 'hlsFallback', 'fallbackDomains'), expected_type=list)
 
-        formats = self._extract_m3u8_formats(
-            'https://b-%s.%s/hls/%d/%d.m3u8' % (server, host, model_id, model_id),
-            video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
+        for host in hosts:
+            formats = self._extract_m3u8_formats(
+                'https://b-%s.%s/hls/%d/%d.m3u8' % (server, host, model_id, model_id),
+                video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
+            if formats:
+                break
+
         self._sort_formats(formats)
 
         return {
