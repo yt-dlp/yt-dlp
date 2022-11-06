@@ -35,25 +35,27 @@ class WistiaBaseIE(InfoExtractor):
 
         return embed_config
 
+    def _get_real_ext(self, url):
+        res = self._request_webpage(
+            HEADRequest(url), None, note='Checking media extension',
+            errnote='HEAD request returned error', fatal=False)
+        if res:
+            meta_ext = res.headers.get('x-amz-meta-name', '').rpartition('.')[2]
+            if meta_ext:
+                return meta_ext
+            content_type = res.headers.get('content-type')
+            if content_type in ('video/mp4', 'video/quicktime'):
+                return 'mp4'
+            elif content_type == 'image/png':
+                return 'png'
+            elif content_type == 'image/jpeg':
+                return 'jpg'
+        return 'bin'
+
     def _extract_media(self, embed_config):
         data = embed_config['media']
         video_id = data['hashedId']
         title = data['name']
-
-        def get_real_ext(url):
-            res = self._request_webpage(HEADRequest(url), None, note=False, errnote=False)
-            if res:
-                meta_ext = res.headers.get('x-amz-meta-name', '').rpartition('.')[2]
-                if meta_ext:
-                    return meta_ext
-                content_type = res.headers.get('content-type')
-                if content_type in ('video/mp4', 'video/quicktime'):
-                    return 'mp4'
-                elif content_type == 'image/png':
-                    return 'png'
-                elif content_type == 'image/jpeg':
-                    return 'jpg'
-            return 'bin'
 
         formats = []
         thumbnails = []
@@ -67,15 +69,13 @@ class WistiaBaseIE(InfoExtractor):
                 continue
             elif atype in ('still', 'still_image'):
                 thumbnails.append({
-                    'url': aurl.replace('.bin', f'.{get_real_ext(aurl)}'),
+                    'url': aurl.replace('.bin', f'.{self._get_real_ext(aurl)}'),
                     'width': int_or_none(a.get('width')),
                     'height': int_or_none(a.get('height')),
                     'filesize': int_or_none(a.get('size')),
                 })
             else:
-                aext = a.get('ext')
-                if not aext:
-                    aext = get_real_ext(aurl)
+                aext = a.get('ext') or self._get_real_ext(aurl)
                 display_name = a.get('display_name')
                 format_id = atype
                 if atype and atype.endswith('_video') and display_name:
