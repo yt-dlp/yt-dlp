@@ -996,7 +996,7 @@ def make_HTTPS_handler(params, **kwargs):
         # in some situations [2][3].
         # Python 3.10 only supports OpenSSL 1.1.1+ [4]. Because this change is likely
         # untested on older versions, we only apply this to OpenSSL 1.1.1+ to be safe.
-        # LibreSSL is excluded for the time being due to cipher support issues [5][6].
+        # LibreSSL is excluded until further investigation due to cipher support issues [5][6].
         # 1. https://github.com/python/cpython/commit/e983252b516edb15d4338b0a47631b59ef1e2536
         # 2. https://github.com/yt-dlp/yt-dlp/issues/4627
         # 3. https://github.com/yt-dlp/yt-dlp/pull/5294
