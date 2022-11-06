@@ -5,7 +5,7 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     lowercase_escape,
-    try_get,
+    traverse_obj,
 )
 
 
@@ -39,14 +39,14 @@ class StripchatIE(InfoExtractor):
         if not data:
             raise ExtractorError('Unable to find configuration for stream.')
 
-        if try_get(data, lambda x: x['viewCam']['show'], dict):
+        if traverse_obj(data, ('viewCam', 'show'), expected_type=dict):
             raise ExtractorError('Model is in private show', expected=True)
-        elif not try_get(data, lambda x: x['viewCam']['model']['isLive'], bool):
+        elif not traverse_obj(data, ('viewCam', 'model', 'isLive'), expected_type=bool):
             raise ExtractorError('Model is offline', expected=True)
 
-        server = try_get(data, lambda x: x['viewCam']['viewServers']['flashphoner-hls'], compat_str)
-        host = try_get(data, lambda x: x['config']['data']['featuresV2']['hlsFallback']['fallbackDomains'][0], compat_str)
-        model_id = try_get(data, lambda x: x['viewCam']['model']['id'], int)
+        server = traverse_obj(data, ('viewCam', 'viewServers', 'flashphoner-hls'), expected_type=compat_str)
+        host = traverse_obj(data, ('config', 'data', 'featuresV2', 'hlsFallback', 'fallbackDomains', 0), expected_type=compat_str)
+        model_id = traverse_obj(data, ('viewCam', 'model', 'id'), expected_type=int)
 
         formats = self._extract_m3u8_formats(
             'https://b-%s.%s/hls/%d/%d.m3u8' % (server, host, model_id, model_id),
