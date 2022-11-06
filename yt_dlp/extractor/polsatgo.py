@@ -27,7 +27,7 @@ class PolsatGoIE(InfoExtractor):
     }]
 
     _CLIENTS = {
-        'android_pg': {
+        'android': {
             'domain': 'b2c-mobile.redefine.pl',
             'client': {
                 'deviceType': 'mobile',
@@ -39,7 +39,7 @@ class PolsatGoIE(InfoExtractor):
                 'player': 'cpplayer',
             },
         },
-        'web_pg': {
+        'web': {
             'domain': 'b2c.redefine.pl',
             'client': {
                 'application': 'firefox',
@@ -52,29 +52,24 @@ class PolsatGoIE(InfoExtractor):
         }
     }
 
-    def _extract_formats(self, sources, video_id, client):
+    def _extract_formats(self, sources, video_id):
         for source in sources or []:
             if not source.get('id'):
                 continue
             url = url_or_none(self._call_api(
-                'drm', video_id, 'getPseudoLicense',
-                {'mediaId': video_id, 'sourceId': source['id']},
-                client).get('url'))
-            if not url:
-                continue
-            yield {
-                'url': url,
-                'height': int_or_none(try_get(source, lambda x: x['quality'][:-1]))
-            }
+                'drm', video_id, 'getPseudoLicense', {'sourceId': source['id']}).get('url'))
+            if url:
+                yield {
+                    'url': url,
+                    'height': int_or_none(try_get(source, lambda x: x['quality'][:-1]))
+                }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        client_name = self._configuration_arg('player_client', default='web_pg')
-        media = self._call_api(
-            'navigation', video_id, 'prePlayData', {'mediaId': video_id}, client_name)['mediaItem']
+        media = self._call_api('navigation', video_id, 'prePlayData')['mediaItem']
 
         formats = list(self._extract_formats(
-            try_get(media, lambda x: x['playback']['mediaSources']), video_id, client_name))
+            try_get(media, lambda x: x['playback']['mediaSources']), video_id))
         self._sort_formats(formats)
 
         return {
@@ -82,19 +77,19 @@ class PolsatGoIE(InfoExtractor):
             'title': media['displayInfo']['title'],
             'formats': formats,
             'age_limit': int_or_none(media['displayInfo']['ageGroup']),
-            'subtitles': self.extract_subtitles(video_id, client_name),
+            'subtitles': self.extract_subtitles(video_id),
         }
 
-    def _get_subtitles(self, video_id, client_name):
+    def _get_subtitles(self, video_id):
         subtitles = {}
-        for subtitle in self._call_api(
-                'navigation', video_id, 'getMedia', {'mediaId': video_id}, client_name)['subtitles']:
+        for subtitle in self._call_api('navigation', video_id, 'getMedia')['subtitles']:
             subtitles.setdefault(subtitle['name'], []).append({
                 'url': subtitle['src'],
             })
         return subtitles
 
-    def _call_api(self, endpoint, media_id, method, params, client_name):
+    def _call_api(self, endpoint, media_id, method, params=None):
+        client_name = self._configuration_arg('player_client', default='web')
         client = self._CLIENTS[client_name]
         rand_uuid = str(uuid4())
         res = self._download_json(
@@ -105,7 +100,8 @@ class PolsatGoIE(InfoExtractor):
                 'id': '2137',
                 'jsonrpc': '2.0',
                 'params': {
-                    **params,
+                    **(params or {}),
+                    'mediaId': media_id,
                     'userAgentData': client['client'],
                     'deviceId': {
                         'type': 'other',

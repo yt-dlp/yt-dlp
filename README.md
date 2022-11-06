@@ -1799,7 +1799,7 @@ The following extractors use this feature:
 * `force_graphql`: Force usage of the GraphQL API. By default it will only be used if login cookies are provided
 
 #### polsatgo
-* `player_client`: Client to extract metadata as - one of `web_pg` (default), `android_pg`
+* `player_client`: Client to extract metadata as - one of `web` (default), `android`
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
