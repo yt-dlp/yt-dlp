@@ -48,8 +48,8 @@ class PolsatGoIE(InfoExtractor):
                 'os': 'linux',
                 'player': 'html',
                 'portal': 'pg'
-            }
-        }
+            },
+        },
     }
 
     def _extract_formats(self, sources, video_id):
@@ -90,7 +90,7 @@ class PolsatGoIE(InfoExtractor):
 
     def _call_api(self, endpoint, media_id, method, params=None):
         rand_uuid = str(uuid4())
-        client_name = self._configuration_arg('player_client', default='web')
+        client_name = self._configuration_arg('player_client', default=['web'])[0]
         client = self._CLIENTS.get(client_name)
         if not client:
             raise ExtractorError(f'Unsupported player_client {client_name}', expected=True)
