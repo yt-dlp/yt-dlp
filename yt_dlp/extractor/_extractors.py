@@ -1964,7 +1964,8 @@ from .tvp import (
     TVPEmbedIE,
     TVPIE,
     TVPStreamIE,
-    TVPWebsiteIE,
+    TVPVODSeriesIE,
+    TVPVODVideoIE,
 )
 from .tvplay import (
     TVPlayIE,
