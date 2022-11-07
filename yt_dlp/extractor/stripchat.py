@@ -47,6 +47,8 @@ class StripchatIE(InfoExtractor):
                 video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
             if formats:
                 break
+        if not formats:
+            self.raise_no_formats('No active streams found', expected=True)
 
         self._sort_formats(formats)
 
