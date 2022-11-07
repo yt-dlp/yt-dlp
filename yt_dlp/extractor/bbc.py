@@ -591,7 +591,12 @@ class BBCCoUkIE(InfoExtractor):
 class BBCIE(BBCCoUkIE):
     IE_NAME = 'bbc'
     IE_DESC = 'BBC'
-    _VALID_URL = r'https?://(?:www\.)?bbc\.(?:com|co\.uk)/(?:[^/]+/)+(?P<id>[^/#?]+)'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?(?:
+            bbc\.(?:com|co\.uk)|
+            bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd\.onion|
+            bbcweb3hytmzhn5d532owbu6oqadra5z3ar726vq5kgwwn6aucdccrad\.onion
+        )/(?:[^/]+/)+(?P<id>[^/#?]+)'''
 
     _MEDIA_SETS = [
         'pc',
@@ -841,6 +846,12 @@ class BBCIE(BBCCoUkIE):
             'upload_date': '20190604',
             'categories': ['Psychology'],
         },
+    }, {  # onion routes
+        'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/news/av/world-europe-63208576',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.bbcweb3hytmzhn5d532owbu6oqadra5z3ar726vq5kgwwn6aucdccrad.onion/sport/av/football/63195681',
+        'only_matching': True,
     }]
 
     @classmethod
@@ -898,12 +909,8 @@ class BBCIE(BBCCoUkIE):
         json_ld_info = self._search_json_ld(webpage, playlist_id, default={})
         timestamp = json_ld_info.get('timestamp')
 
-        playlist_title = json_ld_info.get('title')
-        if not playlist_title:
-            playlist_title = (self._og_search_title(webpage, default=None)
-                              or self._html_extract_title(webpage, 'playlist title', default=None))
-            if playlist_title:
-                playlist_title = re.sub(r'(.+)\s*-\s*BBC.*?$', r'\1', playlist_title).strip()
+        playlist_title = json_ld_info.get('title') or re.sub(
+            r'(.+)\s*-\s*BBC.*?$', r'\1', self._generic_title('', webpage, default='')).strip() or None
 
         playlist_description = json_ld_info.get(
             'description') or self._og_search_description(webpage, default=None)

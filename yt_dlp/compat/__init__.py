@@ -14,7 +14,7 @@ passthrough_module(__name__, '._legacy', callback=lambda attr: warnings.warn(
 # HTMLParseError has been deprecated in Python 3.3 and removed in
 # Python 3.5. Introducing dummy exception for Python >3.5 for compatible
 # and uniform cross-version exception handling
-class compat_HTMLParseError(Exception):
+class compat_HTMLParseError(ValueError):
     pass
 
 

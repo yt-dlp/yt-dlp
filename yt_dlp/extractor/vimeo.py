@@ -870,7 +870,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
 
         if '://player.vimeo.com/video/' in url:
             config = self._parse_json(self._search_regex(
-                r'\bconfig\s*=\s*({.+?})\s*;', webpage, 'info section'), video_id)
+                r'\b(?:playerC|c)onfig\s*=\s*({.+?})\s*;', webpage, 'info section'), video_id)
             if config.get('view') == 4:
                 config = self._verify_player_video_password(
                     redirect_url, video_id, headers)

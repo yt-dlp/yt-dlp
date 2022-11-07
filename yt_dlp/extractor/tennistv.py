@@ -142,7 +142,7 @@ class TennisTVIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
+            'title': self._generic_title('', webpage),
             'description': self._html_search_regex(
                 (r'<span itemprop="description" content=["\']([^"\']+)["\']>', *self._og_regexes('description')),
                 webpage, 'description', fatal=False),
