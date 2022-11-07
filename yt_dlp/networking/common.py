@@ -373,6 +373,9 @@ class RequestHandler:
             except ssl.SSLError:
                 raise YoutubeDLError('Unable to load client certificate')
 
+            if getattr(context, 'post_handshake_auth', None) is not None:
+                context.post_handshake_auth = True
+
         return context
 
     def _check_scheme(self, request: Request):
