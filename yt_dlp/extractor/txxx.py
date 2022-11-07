@@ -12,22 +12,22 @@ from ..utils import (
 class TxxxBaseIE(InfoExtractor):
     # some non-standard characters are used in the base64 string
     _BASE64_CHAR_REPL_MAP = {
-        "\u0405": "S",
-        "\u0406": "I",
-        "\u0408": "J",
-        "\u0410": "A",
-        "\u0412": "B",
-        "\u0415": "E",
-        "\u041a": "K",
-        "\u041c": "M",
-        "\u041d": "H",
-        "\u041e": "O",
-        "\u0420": "P",
-        "\u0421": "C",
-        "\u0425": "X",
-        ",": "/",
-        ".": "+",
-        "~": "=",
+        '\u0405': 'S',
+        '\u0406': 'I',
+        '\u0408': 'J',
+        '\u0410': 'A',
+        '\u0412': 'B',
+        '\u0415': 'E',
+        '\u041a': 'K',
+        '\u041c': 'M',
+        '\u041d': 'H',
+        '\u041e': 'O',
+        '\u0420': 'P',
+        '\u0421': 'C',
+        '\u0425': 'X',
+        ',': '/',
+        '.': '+',
+        '~': '=',
     }
 
     def _decode_base64(self, text):
