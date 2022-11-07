@@ -268,15 +268,12 @@ class TxxxIE(TxxxBaseIE):
             'X-Requested-With': 'XMLHttpRequest',
         }
 
-        video_info = self._download_json(f'https://{host}/api/json/video/86400/{group_2}/{group_1}/{video_id}.json',
-                                         video_id, 'Downloading video info', headers=headers)
-        if 'error' in video_info:
-            raise ExtractorError(f'Txxx said: {video_info["error"]}', expected=True, video_id=video_id)
-
-        video_file = self._download_json(f'https://{host}/api/videofile.php?video_id={video_id}&lifetime=8640000',
-                                         video_id, 'Downloading video file info', headers=headers)
-        if 'error' in video_file:
-            raise ExtractorError(f'Txxx said: {video_file["error"]}', expected=True, video_id=video_id)
+        video_info = self._call_api(
+            f'https://{host}/api/json/video/86400/{group_2}/{group_1}/{video_id}.json',
+            video_id, 'Downloading video info', headers)
+        video_file = self._call_api(
+            f'https://{host}/api/videofile.php?video_id={video_id}&lifetime=8640000',
+            video_id, 'Downloading video file info', headers)
 
         formats = []
         for index, video in enumerate(video_file):
@@ -306,3 +303,9 @@ class TxxxIE(TxxxBaseIE):
             'age_limit': 18,
             'formats': formats,
         }
+
+    def _call_api(self, url, video_id, note='Downloading JSON metadata', headers=None):
+        content = self._download_json(url, video_id, note=note, headers=headers)
+        if 'error' in content:
+            raise ExtractorError(f'Txxx said: {content["error"]}', expected=True, video_id=video_id)
+        return content
