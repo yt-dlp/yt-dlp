@@ -1,4 +1,5 @@
 import functools
+import urllib
 
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
@@ -72,14 +73,20 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         self._API_HEADERS['authorization'] = f'Bearer {auth["token"]}'
 
     def _call_api(self, ep, video_id, *args, **kwargs):
-        if 'authorization' not in self._API_HEADERS:
-            self._fetch_oauth_token(video_id)
-        assert 'authorization' in self._API_HEADERS
+        for attempt in range(2):
+            if 'authorization' not in self._API_HEADERS:
+                self._fetch_oauth_token(video_id)
+            try:
+                headers = dict(self._API_HEADERS)
+                headers['x-customheader'] = f'https://www.redgifs.com/watch/{video_id}'
+                data = self._download_json(
+                    f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, *args, **kwargs)
+                break
+            except ExtractorError as e:
+                if not attempt and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                    del self._API_HEADERS['authorization']  # refresh the token
+                raise
 
-        headers = dict(self._API_HEADERS)
-        headers['x-customheader'] = f'https://www.redgifs.com/watch/{video_id}'
-        data = self._download_json(
-            f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, *args, **kwargs)
         if 'error' in data:
             raise ExtractorError(f'RedGifs said: {data["error"]}', expected=True, video_id=video_id)
         return data

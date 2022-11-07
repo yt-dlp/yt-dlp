@@ -73,6 +73,11 @@ MONTH_NAMES = {
     'fr': [
         'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
         'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'],
+    # these follow the genitive grammatical case (dopełniacz)
+    # some websites might be using nominative, which will require another month list
+    # https://en.wikibooks.org/wiki/Polish/Noun_cases
+    'pl': ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+           'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'],
 }
 
 # From https://github.com/python/cpython/blob/3.11/Lib/email/_parseaddr.py#L36-L42
@@ -399,6 +404,7 @@ class HTMLBreakOnClosingTagParser(html.parser.HTMLParser):
             raise self.HTMLBreakOnClosingTagException()
 
 
+# XXX: This should be far less strict
 def get_element_text_and_html_by_tag(tag, html):
     """
     For the first element with the specified tag in the passed HTML document
@@ -443,6 +449,7 @@ class HTMLAttributeParser(html.parser.HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         self.attrs = dict(attrs)
+        raise compat_HTMLParseError('done')
 
 
 class HTMLListAttrsParser(html.parser.HTMLParser):
@@ -603,7 +610,8 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
             return '\0_'
         return char
 
-    if restricted and is_id is NO_DEFAULT:
+    # Replace look-alike Unicode glyphs
+    if restricted and (is_id is NO_DEFAULT or not is_id):
         s = unicodedata.normalize('NFKC', s)
     s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)  # Handle timestamps
     result = ''.join(map(replace_insane, s))
@@ -1368,13 +1376,13 @@ def system_identifier():
     with contextlib.suppress(OSError):  # We may not have access to the executable
         libc_ver = platform.libc_ver()
 
-    return 'Python %s (%s %s, %s) - %s %s' % (
+    return 'Python %s (%s %s) - %s (%s%s)' % (
         platform.python_version(),
         python_implementation,
         platform.architecture()[0],
-        ssl.OPENSSL_VERSION,
         platform.platform(),
-        format_field(join_nonempty(*libc_ver, delim=' '), None, '(%s)'),
+        ssl.OPENSSL_VERSION,
+        format_field(join_nonempty(*libc_ver, delim=' '), None, ', %s'),
     )
 
 
@@ -2448,8 +2456,8 @@ def escape_url(url):
     ).geturl()
 
 
-def parse_qs(url):
-    return urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+def parse_qs(url, **kwargs):
+    return urllib.parse.parse_qs(urllib.parse.urlparse(url).query, **kwargs)
 
 
 def read_batch_urls(batch_fd):

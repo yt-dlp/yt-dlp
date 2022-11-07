@@ -321,8 +321,7 @@ class NhkForSchoolProgramListIE(InfoExtractor):
 
         webpage = self._download_webpage(f'https://www.nhk.or.jp/school/{program_id}/', program_id)
 
-        title = (self._og_search_title(webpage)
-                 or self._html_extract_title(webpage)
+        title = (self._generic_title('', webpage)
                  or self._html_search_regex(r'<h3>([^<]+?)とは？\s*</h3>', webpage, 'title', fatal=False))
         title = re.sub(r'\s*\|\s*NHK\s+for\s+School\s*$', '', title) if title else None
         description = self._html_search_regex(

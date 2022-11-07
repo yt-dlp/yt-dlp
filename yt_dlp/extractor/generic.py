@@ -2740,8 +2740,7 @@ class GenericIE(InfoExtractor):
             #   Site Name | Video Title
             #   Video Title - Tagline | Site Name
             # and so on and so forth; it's just not practical
-            'title': (self._og_search_title(webpage, default=None)
-                      or self._html_extract_title(webpage, 'video title', default='video')),
+            'title': self._generic_title('', webpage, default='video'),
             'description': self._og_search_description(webpage, default=None),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'age_limit': self._rta_search(webpage),
