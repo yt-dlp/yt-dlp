@@ -7,7 +7,6 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
-    base_url,
     float_or_none,
     int_or_none,
     qualities,
@@ -208,7 +207,7 @@ class OdnoklassnikiIE(InfoExtractor):
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         for x in super()._extract_embed_urls(url, webpage):
-            yield smuggle_url(x, {'referrer': base_url(url)})
+            yield smuggle_url(x, {'referrer': url})
 
     def _real_extract(self, url):
         try:
