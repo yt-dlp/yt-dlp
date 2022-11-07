@@ -1,4 +1,5 @@
 import base64
+import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -309,3 +310,90 @@ class TxxxIE(TxxxBaseIE):
         if 'error' in content:
             raise ExtractorError(f'Txxx said: {content["error"]}', expected=True, video_id=video_id)
         return content
+
+
+class PornTopIE(TxxxBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?porntop\.com/video/(?P<id>\d+)/(?P<display_id>([^/]+)?)'
+    _TESTS = [{
+        'url': 'https://porntop.com/video/101569/triple-threat-with-lia-lor-malena-morgan-and-dani-daniels/',
+        'md5': '612ba7b3cb99455b382972948e200b08',
+        'info_dict': {
+            'id': '101569',
+            'display_id': 'triple-threat-with-lia-lor-malena-morgan-and-dani-daniels',
+            'ext': 'mp4',
+            'title': 'Triple Threat With Lia Lor, Malena Morgan And Dani Daniels',
+            'description': 'md5:c511b7de2d6135c14868f0e6b0940c41',
+            'uploader': 'PatrickBush',
+            'duration': 480,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
+
+        webpage = self._download_webpage(url, video_id)
+
+        # find the VideoObject json object
+        video_obj_text = self._search_regex(
+            r'<script[^>]*>[^<]*schemaJson\s*=\s*(?P<json_ld>[^<]+VideoObject[^<]+)\s*;\s*var\s+script\s*=[^<]*</script>',
+            webpage, 'VideoObject', group='json_ld')
+        # there are javascript code within the declaration that would break json parsing
+        # the statistics values look like this: parseInt("2697"). remove the parseInt() function
+        video_obj_text = re.sub(r'parseInt\([^\d]+(\d+)[^\d]+\)', r'\1', video_obj_text)
+        # remove the function at "duration"
+        video_obj_text = re.sub(r'\(function\(duration\).*\(([^)]+)\)(\s*,\s*"thumbnailUrl")', r'\1\2', video_obj_text)
+        # change single quote to double quote
+        video_obj_text = video_obj_text.replace("'", '"')
+        # parse the string
+        video_obj = self._parse_json(video_obj_text, video_id, fatal=True)
+
+        views = 0
+        likes = 0
+        dislikes = 0
+        stats_obj = traverse_obj(video_obj, 'interactionStatistic', ...)
+        for stat in stats_obj:
+            if stat['interactionType'] == 'http://schema.org/WatchAction':
+                views = stat['userInteractionCount']
+            elif stat['interactionType'] == 'http://schema.org/LikeAction':
+                likes = stat['userInteractionCount']
+            elif stat['interactionType'] == 'http://schema.org/DislikeAction':
+                dislikes = stat['userInteractionCount']
+
+        # actual urls are in this scrambled json object
+        urls_json_text = self._decode_base64(self._search_regex(
+            r"window\.initPlayer\(.*}}},\s*'(?P<json_b64c>[^']+)'",
+            webpage, 'json_urls', group='json_b64c'))
+        video_file = self._parse_json(urls_json_text, video_id, fatal=True)
+
+        formats = []
+        for index, video in enumerate(video_file):
+            format_id = self._get_format_id(video.get('format'))
+            video_url = self._decode_base64(video.get('video_url'))
+            if not video_url:
+                continue
+            if video_url.startswith('/'):
+                video_url = urljoin('https://porntop.com', video_url)
+            formats.append({
+                'url': video_url,
+                'format_id': format_id,
+                'quality': index,
+            })
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'display_id': display_id,
+            'title': video_obj.get('name') or self._html_search_meta('og:title', webpage, 'title', fatal=True),
+            'description': video_obj.get('description') or self._html_search_meta('description', webpage, 'description'),
+            'uploader': video_obj.get('author'),
+            'duration': parse_duration(video_obj.get('duration')),
+            'view_count': int_or_none(views),
+            'like_count': int_or_none(likes),
+            'dislike_count': int_or_none(dislikes),
+            'age_limit': 18,
+            'formats': formats,
+        }
