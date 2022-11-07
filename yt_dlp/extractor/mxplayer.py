@@ -4,7 +4,7 @@ from ..utils import (
     int_or_none,
     traverse_obj,
     try_get,
-    urljoin
+    urljoin,
 )
 
 
@@ -158,10 +158,7 @@ class MxplayerIE(InfoExtractor):
             'ext': 'mp4',
             'description': 'md5:d17bd5c651016c4ed2e6f8a4ace15534',
         },
-        'params': {
-            'format': 'b',
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
