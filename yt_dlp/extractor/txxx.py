@@ -5,7 +5,6 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_duration,
-    qualities,
     traverse_obj,
     try_call,
     urljoin,
@@ -47,19 +46,19 @@ class TxxxIE(TxxxBaseIE):
     _VALID_URL = r'''(?x)
                      https?://
                      (?:(?:www\.)?(?P<host>
-                     hclips\.com|
-                     hdzog\.com|
-                     hotmovs\.com|
-                     inporn\.com|
-                     privatehomeclips\.com|
-                     tubepornclassic\.com|
-                     txxx\.com|
-                     txxx\.tube|
-                     upornia\.com|
-                     vjav\.com|
-                     vxxx\.com|
-                     voyeurhit\.com|
-                     voyeurhit\.tube))
+                         hclips\.com|
+                         hdzog\.com|
+                         hotmovs\.com|
+                         inporn\.com|
+                         privatehomeclips\.com|
+                         tubepornclassic\.com|
+                         txxx\.com|
+                         txxx\.tube|
+                         upornia\.com|
+                         vjav\.com|
+                         vxxx\.com|
+                         voyeurhit\.com|
+                         voyeurhit\.tube))
                      (?:/(?:video/|videos/|video-|embed/)(?P<id>\d+)/(?P<display_id>([^/]+)?))
                   '''
     _TESTS = [{
@@ -280,13 +279,7 @@ class TxxxIE(TxxxBaseIE):
             raise ExtractorError(f'Txxx said: {video_file["error"]}', expected=True, video_id=video_id)
 
         formats = []
-        for video in video_file:
-            format_id = self._get_format_id(video.get('format'))
-            formats.append(format_id)
-        quality = qualities(formats)
-
-        formats = []
-        for video in video_file:
+        for index, video in enumerate(video_file):
             format_id = self._get_format_id(video.get('format'))
             video_url = self._decode_base64(video.get('video_url'))
             if not video_url:
@@ -297,7 +290,7 @@ class TxxxIE(TxxxBaseIE):
             formats.append({
                 'url': video_url,
                 'format_id': format_id,
-                'quality': quality(format_id),
+                'quality': index,
             })
         self._sort_formats(formats)
 
