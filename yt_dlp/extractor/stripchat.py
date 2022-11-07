@@ -41,7 +41,7 @@ class StripchatIE(InfoExtractor):
         model_id = traverse_obj(data, ('viewCam', 'model', 'id'), expected_type=int)
 
         formats = []
-        for host in traverse_obj(data or [], (
+        for host in traverse_obj(data, (
                 'config', 'data', (('featuresV2', 'hlsFallback', 'fallbackDomains', ...), 'hlsStreamHost'))):
             formats = self._extract_m3u8_formats(
                 f'https://b-{server}.{host}/hls/{model_id}/{model_id}.m3u8',
