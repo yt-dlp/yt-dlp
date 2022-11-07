@@ -38,13 +38,14 @@ class WistiaBaseIE(InfoExtractor):
         return embed_config
 
     def _get_real_ext(self, url):
-        ext = determine_ext(url, default_ext=None)
-        urlh = self._request_webpage(
-            HEADRequest(url), None, note='Checking media extension',
-            errnote='HEAD request returned error', fatal=False)
-        if urlh:
-            ext = urlhandle_detect_ext(urlh, default=None)
-        return 'mp4' if ext == 'mov' else ext or 'bin'
+        ext = determine_ext(url, default_ext='bin')
+        if ext == 'bin':
+            urlh = self._request_webpage(
+                HEADRequest(url), None, note='Checking media extension',
+                errnote='HEAD request returned error', fatal=False)
+            if urlh:
+                ext = urlhandle_detect_ext(urlh, default='bin')
+        return 'mp4' if ext == 'mov' else ext
 
     def _extract_media(self, embed_config):
         data = embed_config['media']
