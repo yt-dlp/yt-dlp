@@ -35,7 +35,7 @@ class OdnoklassnikiIE(InfoExtractor):
     _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//(?:odnoklassniki|ok)\.ru/videoembed/.+?)\1']
     _TESTS = [{
         'note': 'Coub embedded',
-        'url': 'https://ok.ru/video/1484130554189',
+        'url': 'http://ok.ru/video/1484130554189',
         'info_dict': {
             'id': '1keok9',
             'ext': 'mp4',
@@ -67,7 +67,7 @@ class OdnoklassnikiIE(InfoExtractor):
         },
     }, {
         # metadata in JSON
-        'url': 'https://ok.ru/video/20079905452',
+        'url': 'http://ok.ru/video/20079905452',
         'md5': '5d2b64756e2af296e3b383a0bc02a6aa',
         'info_dict': {
             'id': '20079905452',
@@ -83,7 +83,7 @@ class OdnoklassnikiIE(InfoExtractor):
         },
     }, {
         # metadataUrl
-        'url': 'https://ok.ru/video/63567059965189-0?fromTime=5',
+        'url': 'http://ok.ru/video/63567059965189-0?fromTime=5',
         'md5': 'f8c951122516af72e6e6ffdd3c41103b',
         'info_dict': {
             'id': '63567059965189-0',
@@ -129,7 +129,7 @@ class OdnoklassnikiIE(InfoExtractor):
         },
     }, {
         # YouTube embed (metadata, provider == USER_YOUTUBE, no metadata.movie.title field)
-        'url': 'https://ok.ru/video/62036049272859-0',
+        'url': 'http://ok.ru/video/62036049272859-0',
         'info_dict': {
             'id': '62036049272859-0',
             'ext': 'mp4',
@@ -155,7 +155,7 @@ class OdnoklassnikiIE(InfoExtractor):
             'duration': 3038.181,
         },
     }, {
-        'url': 'https://ok.ru/web-api/video/moviePlayer/20079905452',
+        'url': 'http://ok.ru/web-api/video/moviePlayer/20079905452',
         'only_matching': True,
     }, {
         'url': 'http://www.ok.ru/video/20648036891',
