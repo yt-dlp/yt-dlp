@@ -60,7 +60,7 @@ class TxxxIE(TxxxBaseIE):
                          vxxx\.com|
                          voyeurhit\.com|
                          voyeurhit\.tube))
-                     (?:/(?:video/|videos/|video-|embed/)(?P<id>\d+)/(?P<display_id>([^/]+)?))
+                     (?:/(?:video/|videos/|video-|embed/)(?P<id>\d+)/(?P<display_id>([^/?]+)?))
                   '''
     _TESTS = [{
         'url': 'https://txxx.com/videos/16574965/digital-desire-malena-morgan/',
@@ -313,7 +313,7 @@ class TxxxIE(TxxxBaseIE):
 
 
 class PornTopIE(TxxxBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?porntop\.com/video/(?P<id>\d+)/(?P<display_id>([^/]+)?)'
+    _VALID_URL = r'https?://(?:www\.)?porntop\.com/video/(?P<id>\d+)/(?P<display_id>([^/?]+)?)'
     _TESTS = [{
         'url': 'https://porntop.com/video/101569/triple-threat-with-lia-lor-malena-morgan-and-dani-daniels/',
         'md5': '612ba7b3cb99455b382972948e200b08',
@@ -397,3 +397,31 @@ class PornTopIE(TxxxBaseIE):
             'age_limit': 18,
             'formats': formats,
         }
+
+
+class PornZogIE(TxxxBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?pornzog\.com/video/(?P<id>\d+)/'
+    _TESTS = [{
+        'url': 'https://pornzog.com/video/9125519/michelle-malone-dreamgirls-wild-wet-3/',
+        'info_dict': {
+            'id': '5119660',
+            'display_id': '',
+            'ext': 'mp4',
+            'title': 'Michelle Malone - Dreamgirls - Wild Wet 3',
+            'uploader': 'FallenAngel12',
+            'duration': 402,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
+        }
+    }]
+
+    def _real_extract(self, url):
+        # this host just embed videos from other hosts in the txxx network
+        # so just redirect
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+
+        new_url = self._html_search_regex(r'<iframe\s+src="([^"]*)"', webpage, 'newurl')
+        return self.url_result(new_url)
