@@ -307,6 +307,7 @@ class YoutubeDL:
                        and the container name, e.g. ('chrome', ) or
                        ('vivaldi', 'default', 'BASICTEXT') or ('firefox', 'default', None, 'Meta')
     legacyserverconnect: Explicitly allow HTTPS connection to servers that do not
+    cipher_list:       OpenSSL cipher list to use
                        support RFC 5746 secure renegotiation
     nocheckcertificate:  Do not verify SSL certificates
     client_certificate:  Path to client certificate file in PEM format. May include the private key

@@ -414,6 +414,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     -6, --force-ipv6                Make all connections via IPv6
     --enable-file-urls              Enable file:// URLs. This is disabled by
                                     default for security reasons.
+    --cipher-list CIPHER LIST       OpenSSL cipher list to use
 
 ## Geo-restriction:
     --geo-verification-proxy URL    Use this proxy to verify the IP address for

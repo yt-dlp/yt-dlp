@@ -52,10 +52,10 @@ class IncompleteRead(TransportError, http.client.IncompleteRead):
 class SSLError(TransportError):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for ssl_err_str in ('SSLV3_ALERT_HANDSHAKE_FAILURE', 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED'):
-            if ssl_err_str in str(self.msg):
-                self.msg = f'{ssl_err_str}: Try using --legacy-server-connect'
-                break
+        if 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(self):
+            self.msg = f'SSLV3_ALERT_HANDSHAKE_FAILURE: Try using --legacy-server-connect'
+        elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(self.msg):
+            self.msg = f'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. Try using --cipher-list DEFAULT'
 
 
 class ProxyError(TransportError):

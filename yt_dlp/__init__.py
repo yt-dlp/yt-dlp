@@ -853,6 +853,7 @@ def parse_options(argv=None):
         'cookiesfrombrowser': opts.cookiesfrombrowser,
         'legacyserverconnect': opts.legacy_server_connect,
         'nocheckcertificate': opts.no_check_certificate,
+        'cipher_list': opts.cipher_list,
         'prefer_insecure': opts.prefer_insecure,
         'enable_file_urls': opts.enable_file_urls,
         'http_headers': opts.headers,
