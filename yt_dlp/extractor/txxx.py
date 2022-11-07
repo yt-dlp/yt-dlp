@@ -6,6 +6,10 @@ from ..utils import (
     int_or_none,
     parse_duration,
     qualities,
+    traverse_obj,
+    try_call,
+    urljoin,
+    variadic,
 )
 
 
@@ -36,12 +40,7 @@ class TxxxBaseIE(InfoExtractor):
         return base64.b64decode(text).decode('utf-8')
 
     def _get_format_id(self, format_id):
-        if not format_id:
-            return None
-        elif isinstance(format_id, list):
-            return '' if len(format_id) == 0 else format_id[0].lstrip('_')
-        else:
-            return format_id.lstrip('_')
+        return try_call(lambda: variadic(format_id)[0].lstrip('_'))
 
 
 class TxxxIE(TxxxBaseIE):
@@ -264,25 +263,21 @@ class TxxxIE(TxxxBaseIE):
         video_id, host, display_id = self._match_valid_url(url).group('id', 'host', 'display_id')
         group_1 = str(1000 * (int(video_id) // 1000))
         group_2 = str(1000000 * (int(video_id) // 1000000))
-        video_info_url = 'https://%s/api/json/video/86400/%s/%s/%s.json' % (host, group_2, group_1, video_id)
-        video_path_url = 'https://%s/api/videofile.php?video_id=%s&lifetime=8640000' % (host, video_id)
 
         headers = {
             'Referer': url,
             'X-Requested-With': 'XMLHttpRequest',
         }
 
-        video_info = self._download_json(video_info_url, video_id, 'Downloading video info', headers=headers)
+        video_info = self._download_json(f'https://{host}/api/json/video/86400/{group_2}/{group_1}/{video_id}.json',
+                                         video_id, 'Downloading video info', headers=headers)
         if 'error' in video_info:
             raise ExtractorError(f'Txxx said: {video_info["error"]}', expected=True, video_id=video_id)
 
-        video_file = self._download_json(video_path_url, video_id, 'Downloading video file info', headers=headers)
+        video_file = self._download_json(f'https://{host}/api/videofile.php?video_id={video_id}&lifetime=8640000',
+                                         video_id, 'Downloading video file info', headers=headers)
         if 'error' in video_file:
             raise ExtractorError(f'Txxx said: {video_file["error"]}', expected=True, video_id=video_id)
-
-        video_json = video_info.get('video')
-        stat_json = video_json.get('statistics')
-        user_json = video_json.get('user')
 
         formats = []
         for video in video_file:
@@ -298,7 +293,7 @@ class TxxxIE(TxxxBaseIE):
                 continue
             # some hosts only return the path
             if video_url.startswith('/'):
-                video_url = 'https://%s%s' % (host, video_url)
+                video_url = urljoin(f'https://{host}', video_url)
             formats.append({
                 'url': video_url,
                 'format_id': format_id,
@@ -309,12 +304,12 @@ class TxxxIE(TxxxBaseIE):
         return {
             'id': video_id,
             'display_id': display_id,
-            'title': video_json.get('title'),
-            'uploader': user_json.get('username'),
-            'duration': parse_duration(video_json.get('duration')),
-            'view_count': int_or_none(stat_json.get('viewed')),
-            'like_count': int_or_none(stat_json.get('likes')),
-            'dislike_count': int_or_none(stat_json.get('dislikes')),
+            'title': traverse_obj(video_info, ('video', 'title')),
+            'uploader': traverse_obj(video_info, ('video', 'user', 'username')),
+            'duration': parse_duration(traverse_obj(video_info, ('video', 'duration'))),
+            'view_count': int_or_none(traverse_obj(video_info, ('video', 'statistics', 'viewed'))),
+            'like_count': int_or_none(traverse_obj(video_info, ('video', 'statistics', 'likes'))),
+            'dislike_count': int_or_none(traverse_obj(video_info, ('video', 'statistics', 'dislikes'))),
             'age_limit': 18,
             'formats': formats,
         }
