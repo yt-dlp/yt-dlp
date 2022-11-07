@@ -7,13 +7,13 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    base_url,
     float_or_none,
-    scheme_host_only,
-    smuggle_url,
-    unified_strdate,
     int_or_none,
     qualities,
+    smuggle_url,
     unescapeHTML,
+    unified_strdate,
     unsmuggle_url,
     urlencode_postdata,
 )
@@ -25,7 +25,7 @@ class OdnoklassnikiIE(InfoExtractor):
                     (?:(?:www|m|mobile)\.)?
                     (?:odnoklassniki|ok)\.ru/
                     (?:
-                        video(?:embed)?/|
+                        video(?P<embed>embed)?/|
                         web-api/video/moviePlayer/|
                         live/|
                         dk\?.*?st\.mvId=
@@ -154,9 +154,7 @@ class OdnoklassnikiIE(InfoExtractor):
             'title': 'Быковское крещение',
             'duration': 3038.181,
         },
-        'skip': True,
-    },
-    {
+    }, {
         'url': 'https://ok.ru/web-api/video/moviePlayer/20079905452',
         'only_matching': True,
     }, {
@@ -209,7 +207,8 @@ class OdnoklassnikiIE(InfoExtractor):
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
-        yield from (smuggle_url(x, {'referrer': scheme_host_only(url)}) for x in super()._extract_embed_urls(url, webpage))
+        for x in super()._extract_embed_urls(url, webpage):
+            yield smuggle_url(x, {'referrer': base_url(url)})
 
     def _real_extract(self, url):
         try:
@@ -226,24 +225,21 @@ class OdnoklassnikiIE(InfoExtractor):
             compat_urllib_parse_urlparse(url).query).get('fromTime', [None])[0])
 
         url, smuggled = unsmuggle_url(url, {})
-
-        video_id = self._match_id(url)
-
-        mode = 'videoembed' if '/videoembed/' in url else 'video'
+        video_id, is_embed = self._match_valid_url(url).group('id', 'embed')
+        mode = 'videoembed' if is_embed else 'video'
 
         webpage = self._download_webpage(
             f'https://ok.ru/{mode}/{video_id}', video_id,
             note='Downloading desktop webpage',
-            headers={
-                'Referer': smuggled['referrer'],
-            } if smuggled.get('referrer') else {})
+            headers={'Referer': smuggled['referrer']} if smuggled.get('referrer') else {})
 
         error = self._search_regex(
             r'[^>]+class="vp_video_stub_txt"[^>]*>([^<]+)<',
             webpage, 'error', default=None)
         # Direct link from boosty
-        if error == "The author of this video has not been found or is blocked" and not smuggled.get('referrer') and mode == 'videoembed':
-            return self._extract_desktop(smuggle_url(url, {'referrer': "https://boosty.to"}))
+        if (error == 'The author of this video has not been found or is blocked'
+                and not smuggled.get('referrer') and mode == 'videoembed'):
+            return self._extract_desktop(smuggle_url(url, {'referrer': 'https://boosty.to'}))
         elif error:
             raise ExtractorError(error, expected=True)
 
@@ -275,7 +271,7 @@ class OdnoklassnikiIE(InfoExtractor):
         movie = metadata['movie']
 
         # Some embedded videos may not contain title in movie dict (e.g.
-        # https://ok.ru/video/62036049272859-0) thus we allow missing title
+        # http://ok.ru/video/62036049272859-0) thus we allow missing title
         # here and it's going to be extracted later by an extractor that
         # will process the actual embed.
         provider = metadata.get('provider')
