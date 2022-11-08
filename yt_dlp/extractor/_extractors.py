@@ -699,6 +699,7 @@ from .hotstar import (
     HotStarIE,
     HotStarPrefixIE,
     HotStarPlaylistIE,
+    HotStarSeasonIE,
     HotStarSeriesIE,
 )
 from .howcast import HowcastIE

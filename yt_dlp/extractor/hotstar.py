@@ -258,16 +258,16 @@ class HotStarPrefixIE(InfoExtractor):
         'url': 'hotstar:1000076273',
         'only_matching': True,
     }, {
-        'url': 'hotstar:movies:1000057157',
+        'url': 'hotstar:movies:1260009879',
         'info_dict': {
-            'id': '1000057157',
+            'id': '1260009879',
             'ext': 'mp4',
-            'title': 'Radha Gopalam',
-            'description': 'md5:be3bc342cc120bbc95b3b0960e2b0d22',
-            'timestamp': 1140805800,
-            'upload_date': '20060224',
-            'duration': 9182,
-            'episode': 'Radha Gopalam',
+            'title': 'Nuvvu Naaku Nachav',
+            'description': 'md5:d43701b1314e6f8233ce33523c043b7d',
+            'timestamp': 1567525674,
+            'upload_date': '20190903',
+            'duration': 10787,
+            'episode': 'Nuvvu Naaku Nachav',
         },
     }, {
         'url': 'hotstar:episode:1000234847',
@@ -289,7 +289,7 @@ class HotStarPrefixIE(InfoExtractor):
 
 class HotStarPlaylistIE(HotStarBaseIE):
     IE_NAME = 'hotstar:playlist'
-    _VALID_URL = r'https?://(?:www\.)?hotstar\.com/tv/[^/]+/s-\w+/list/[^/]+/t-(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/s-\w+/list/[^/]+/t-(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.hotstar.com/tv/savdhaan-india/s-26/list/popular-clips/t-3_2_26',
         'info_dict': {
@@ -298,6 +298,9 @@ class HotStarPlaylistIE(HotStarBaseIE):
         'playlist_mincount': 20,
     }, {
         'url': 'https://www.hotstar.com/tv/savdhaan-india/s-26/list/extras/t-2480',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.hotstar.com/in/tv/karthika-deepam/15457/list/popular-clips/t-3_2_1272',
         'only_matching': True,
     }]
 
@@ -310,6 +313,44 @@ class HotStarPlaylistIE(HotStarBaseIE):
             for video in collection['assets']['items'] if video.get('contentId')]
 
         return self.playlist_result(entries, playlist_id)
+
+
+class HotStarSeasonIE(HotStarBaseIE):
+    IE_NAME = 'hotstar:season'
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/\w+)/seasons/[^/]+/ss-(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://www.hotstar.com/tv/radhakrishn/1260000646/seasons/season-2/ss-8028',
+        'info_dict': {
+            'id': '8028',
+        },
+        'playlist_mincount': 35,
+    }, {
+        'url': 'https://www.hotstar.com/in/tv/ishqbaaz/9567/seasons/season-2/ss-4357',
+        'info_dict': {
+            'id': '4357',
+        },
+        'playlist_mincount': 30,
+    }, {
+        'url': 'https://www.hotstar.com/in/tv/bigg-boss/14714/seasons/season-4/ss-8208/',
+        'info_dict': {
+            'id': '8208',
+        },
+        'playlist_mincount': 19,
+    }]
+
+    def _real_extract(self, url):
+        url, season_id = self._match_valid_url(url).groups()
+        headers = {
+            'x-country-code': 'IN',
+            'x-platform-code': 'PCTV',
+        }
+        item_json = self._download_json(
+            f'{self._API_URL}/o/v1/season/asset?tao=0&tas=0&size=10000&id={season_id}', season_id, headers=headers)['body']['results']
+        entries = [
+            self.url_result(HotStarIE._video_url(video['contentId'], root=url), HotStarIE, video['contentId'])
+            for video in item_json['items'] if video.get('contentId')]
+
+        return self.playlist_result(entries, season_id)
 
 
 class HotStarSeriesIE(HotStarBaseIE):
@@ -332,7 +373,7 @@ class HotStarSeriesIE(HotStarBaseIE):
         'info_dict': {
             'id': '435',
         },
-        'playlist_mincount': 269,
+        'playlist_mincount': 267,
     }]
 
     def _real_extract(self, url):
