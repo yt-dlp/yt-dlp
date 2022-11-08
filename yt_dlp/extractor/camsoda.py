@@ -37,12 +37,15 @@ class CamsodaIE(InfoExtractor):
         stream_name = traverse_obj(data, 'stream_name', expected_type=str)
         token = traverse_obj(data, 'token', expected_type=str)
 
+        formats = []
         for server in traverse_obj(data, ('edge_servers', ...)):
             formats = self._extract_m3u8_formats(
                 f'https://{server}/{stream_name}_v1/index.m3u8?token={token}',
                 video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
             if formats:
                 break
+        if not formats:
+            self.raise_no_formats('No active streams found', expected=True)
 
         self._sort_formats(formats)
 
