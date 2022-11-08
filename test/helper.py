@@ -260,8 +260,8 @@ def expect_info_dict(self, got_dict, expected_dict):
         info_dict_str += ''.join(
             f'    {_repr(k)}: {_repr(test_info_dict[k])},\n'
             for k in missing_keys)
-        write_string(
-            '\n\'info_dict\': {\n' + info_dict_str + '},\n', out=sys.stderr)
+        info_dict_str = '\n\'info_dict\': {\n' + info_dict_str + '},\n'
+        write_string(info_dict_str.replace('\n', '\n        '), out=sys.stderr)
         self.assertFalse(
             missing_keys,
             'Missing keys in test definition: %s' % (

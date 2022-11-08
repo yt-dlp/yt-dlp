@@ -480,6 +480,7 @@ class HTMLBreakOnClosingTagParser(html.parser.HTMLParser):
             raise self.HTMLBreakOnClosingTagException()
 
 
+# XXX: This should be far less strict
 def get_element_text_and_html_by_tag(tag, html):
     """
     For the first element with the specified tag in the passed HTML document
@@ -685,7 +686,8 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
             return '\0_'
         return char
 
-    if restricted and is_id is NO_DEFAULT:
+    # Replace look-alike Unicode glyphs
+    if restricted and (is_id is NO_DEFAULT or not is_id):
         s = unicodedata.normalize('NFKC', s)
     s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)  # Handle timestamps
     result = ''.join(map(replace_insane, s))

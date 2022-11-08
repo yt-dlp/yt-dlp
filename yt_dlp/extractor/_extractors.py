@@ -589,6 +589,7 @@ from .foxgay import FoxgayIE
 from .foxnews import (
     FoxNewsIE,
     FoxNewsArticleIE,
+    FoxNewsVideoIE,
 )
 from .foxsports import FoxSportsIE
 from .fptplay import FptplayIE

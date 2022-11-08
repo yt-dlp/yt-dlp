@@ -23,7 +23,7 @@
  - **9now.com.au**
  - **abc.net.au**
  - **abc.net.au:iview**
- - **abc.net.au:iview:showseries**
+ - **abc.net.au:​iview:showseries**
  - **abcnews**
  - **abcnews:video**
  - **abcotvs**: ABC Owned Television Stations
@@ -124,8 +124,8 @@
  - **bbc**: [<abbr title="netrc machine"><em>bbc</em></abbr>] BBC
  - **bbc.co.uk**: [<abbr title="netrc machine"><em>bbc</em></abbr>] BBC iPlayer
  - **bbc.co.uk:article**: BBC articles
- - **bbc.co.uk:iplayer:episodes**
- - **bbc.co.uk:iplayer:group**
+ - **bbc.co.uk:​iplayer:episodes**
+ - **bbc.co.uk:​iplayer:group**
  - **bbc.co.uk:playlist**
  - **BBVTV**: [<abbr title="netrc machine"><em>bbvtv</em></abbr>]
  - **BBVTVLive**: [<abbr title="netrc machine"><em>bbvtv</em></abbr>]
@@ -274,7 +274,7 @@
  - **crunchyroll**: [<abbr title="netrc machine"><em>crunchyroll</em></abbr>]
  - **crunchyroll:beta**: [<abbr title="netrc machine"><em>crunchyroll</em></abbr>]
  - **crunchyroll:playlist**: [<abbr title="netrc machine"><em>crunchyroll</em></abbr>]
- - **crunchyroll:playlist:beta**: [<abbr title="netrc machine"><em>crunchyroll</em></abbr>]
+ - **crunchyroll:​playlist:beta**: [<abbr title="netrc machine"><em>crunchyroll</em></abbr>]
  - **CSpan**: C-SPAN
  - **CSpanCongress**
  - **CtsNews**: 華視新聞
@@ -483,7 +483,7 @@
  - **Golem**
  - **goodgame:stream**
  - **google:podcasts**
- - **google:podcasts:feed**
+ - **google:​podcasts:feed**
  - **GoogleDrive**
  - **GoogleDrive:Folder**
  - **GoPlay**: [<abbr title="netrc machine"><em>goplay</em></abbr>]
@@ -618,7 +618,7 @@
  - **kuwo:singer**: 酷我音乐 - 歌手
  - **kuwo:song**: 酷我音乐
  - **la7.it**
- - **la7.it:pod:episode**
+ - **la7.it:​pod:episode**
  - **la7.it:podcast**
  - **laola1tv**
  - **laola1tv:embed**
@@ -652,7 +652,7 @@
  - **LineLiveChannel**
  - **LinkedIn**: [<abbr title="netrc machine"><em>linkedin</em></abbr>]
  - **linkedin:learning**: [<abbr title="netrc machine"><em>linkedin</em></abbr>]
- - **linkedin:learning:course**: [<abbr title="netrc machine"><em>linkedin</em></abbr>]
+ - **linkedin:​learning:course**: [<abbr title="netrc machine"><em>linkedin</em></abbr>]
  - **LinuxAcademy**: [<abbr title="netrc machine"><em>linuxacademy</em></abbr>]
  - **Liputan6**
  - **LiTV**
@@ -673,7 +673,7 @@
  - **MagentaMusik360**
  - **mailru**: Видео@Mail.Ru
  - **mailru:music**: Музыка@Mail.Ru
- - **mailru:music:search**: Музыка@Mail.Ru
+ - **mailru:​music:search**: Музыка@Mail.Ru
  - **MainStreaming**: MainStreaming Player
  - **MallTV**
  - **mangomolo:live**
@@ -718,7 +718,7 @@
  - **microsoftstream**: Microsoft Stream
  - **mildom**: Record ongoing live by specific user in Mildom
  - **mildom:clip**: Clip in Mildom
- - **mildom:user:vod**: Download all VODs from specific user in Mildom
+ - **mildom:​user:vod**: Download all VODs from specific user in Mildom
  - **mildom:vod**: VOD in Mildom
  - **minds**
  - **minds:channel**
@@ -803,7 +803,7 @@
  - **navernow**
  - **NBA**
  - **nba:watch**
- - **nba:watch:collection**
+ - **nba:​watch:collection**
  - **NBAChannel**
  - **NBAEmbed**
  - **NBAWatchEmbed**
@@ -817,7 +817,7 @@
  - **NBCStations**
  - **ndr**: NDR.de - Norddeutscher Rundfunk
  - **ndr:embed**
- - **ndr:embed:base**
+ - **ndr:​embed:base**
  - **NDTV**
  - **Nebula**: [<abbr title="netrc machine"><em>watchnebula</em></abbr>]
  - **nebula:channel**: [<abbr title="netrc machine"><em>watchnebula</em></abbr>]
@@ -869,7 +869,7 @@
  - **niconico:tag**: NicoNico video tag URLs
  - **NiconicoUser**
  - **nicovideo:search**: Nico video search; "nicosearch:" prefix
- - **nicovideo:search:date**: Nico video search, newest first; "nicosearchdate:" prefix
+ - **nicovideo:​search:date**: Nico video search, newest first; "nicosearchdate:" prefix
  - **nicovideo:search_url**: Nico video search URLs
  - **Nintendo**
  - **Nitter**
@@ -892,7 +892,7 @@
  - **npo**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **npo.nl:live**
  - **npo.nl:radio**
- - **npo.nl:radio:fragment**
+ - **npo.nl:​radio:fragment**
  - **Npr**
  - **NRK**
  - **NRKPlaylist**
@@ -933,7 +933,7 @@
  - **openrec:capture**
  - **openrec:movie**
  - **OraTV**
- - **orf:fm4:story**: fm4.orf.at stories
+ - **orf:​fm4:story**: fm4.orf.at stories
  - **orf:iptv**: iptv.ORF.at
  - **orf:radio**
  - **orf:tvthek**: ORF TVthek
@@ -981,7 +981,7 @@
  - **Pinterest**
  - **PinterestCollection**
  - **pixiv:sketch**
- - **pixiv:sketch:user**
+ - **pixiv:​sketch:user**
  - **Pladform**
  - **PlanetMarathi**
  - **Platzi**: [<abbr title="netrc machine"><em>platzi</em></abbr>]
@@ -1010,7 +1010,7 @@
  - **polskieradio:kierowcow**
  - **polskieradio:player**
  - **polskieradio:podcast**
- - **polskieradio:podcast:list**
+ - **polskieradio:​podcast:list**
  - **PolskieRadioCategory**
  - **Popcorntimes**
  - **PopcornTV**
@@ -1122,7 +1122,7 @@
  - **rtl.nl**: rtl.nl and rtlxl.nl
  - **rtl2**
  - **rtl2:you**
- - **rtl2:you:series**
+ - **rtl2:​you:series**
  - **RTLLuLive**
  - **RTLLuRadio**
  - **RTNews**
@@ -1198,9 +1198,9 @@
  - **Skeb**
  - **sky.it**
  - **sky:news**
- - **sky:news:story**
+ - **sky:​news:story**
  - **sky:sports**
- - **sky:sports:news**
+ - **sky:​sports:news**
  - **skyacademy.it**
  - **SkylineWebcams**
  - **skynewsarabia:article**
@@ -1289,7 +1289,7 @@
  - **Teachable**: [<abbr title="netrc machine"><em>teachable</em></abbr>]
  - **TeachableCourse**: [<abbr title="netrc machine"><em>teachable</em></abbr>]
  - **teachertube**: teachertube.com videos
- - **teachertube:user:collection**: teachertube.com user and collection videos
+ - **teachertube:​user:collection**: teachertube.com user and collection videos
  - **TeachingChannel**
  - **Teamcoco**
  - **TeamTreeHouse**: [<abbr title="netrc machine"><em>teamtreehouse</em></abbr>]
@@ -1614,12 +1614,12 @@
  - **XXXYMovies**
  - **Yahoo**: Yahoo screen and movies
  - **yahoo:gyao**
- - **yahoo:gyao:player**
+ - **yahoo:​gyao:player**
  - **yahoo:japannews**: Yahoo! Japan News
  - **YandexDisk**
  - **yandexmusic:album**: Яндекс.Музыка - Альбом
- - **yandexmusic:artist:albums**: Яндекс.Музыка - Артист - Альбомы
- - **yandexmusic:artist:tracks**: Яндекс.Музыка - Артист - Треки
+ - **yandexmusic:​artist:albums**: Яндекс.Музыка - Артист - Альбомы
+ - **yandexmusic:​artist:tracks**: Яндекс.Музыка - Артист - Треки
  - **yandexmusic:playlist**: Яндекс.Музыка - Плейлист
  - **yandexmusic:track**: Яндекс.Музыка - Трек
  - **YandexVideo**
@@ -1641,14 +1641,14 @@
  - **youtube:clip**
  - **youtube:favorites**: YouTube liked videos; ":ytfav" keyword (requires cookies)
  - **youtube:history**: Youtube watch history; ":ythis" keyword (requires cookies)
- - **youtube:music:search_url**: YouTube music search URLs with selectable sections, e.g. #songs
+ - **youtube:​music:search_url**: YouTube music search URLs with selectable sections, e.g. #songs
  - **youtube:notif**: YouTube notifications; ":ytnotif" keyword (requires cookies)
  - **youtube:playlist**: YouTube playlists
  - **youtube:recommended**: YouTube recommended videos; ":ytrec" keyword
  - **youtube:search**: YouTube search; "ytsearch:" prefix
- - **youtube:search:date**: YouTube search, newest videos first; "ytsearchdate:" prefix
+ - **youtube:​search:date**: YouTube search, newest videos first; "ytsearchdate:" prefix
  - **youtube:search_url**: YouTube search URLs with sorting and filter support
- - **youtube:shorts:pivot:audio**: YouTube Shorts audio pivot (Shorts using audio of a given video)
+ - **youtube:​shorts:pivot:audio**: YouTube Shorts audio pivot (Shorts using audio of a given video)
  - **youtube:stories**: YouTube channel stories; "ytstories:" prefix
  - **youtube:subscriptions**: YouTube subscriptions feed; ":ytsubs" keyword (requires cookies)
  - **youtube:tab**: YouTube Tabs
