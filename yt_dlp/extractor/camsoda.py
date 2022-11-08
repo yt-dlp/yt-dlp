@@ -51,7 +51,7 @@ class CamsodaIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': video_id,
+            'title': self._html_extract_title(webpage),
             'description': self._html_search_meta('description', webpage, default=None),
             'is_live': True,
             'formats': formats,
