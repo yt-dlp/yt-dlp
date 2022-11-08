@@ -28,7 +28,7 @@ try:
 except ImportError:
     try:
         from Crypto.Cipher import AES as Cryptodome_AES
-    except (ImportError, SyntaxError):  # Old Crypto gives SyntaxError in newer Python
+    except (ImportError, SyntaxErro,OSError):  # Old Crypto gives SyntaxError in newer Python
         Cryptodome_AES = None
     else:
         try:
