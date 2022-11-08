@@ -49,14 +49,18 @@ class TxxxIE(TxxxBaseIE):
                      (?:(?:www\.)?(?P<host>
                          hclips\.com|
                          hdzog\.com|
+                         hdzog\.tube|
                          hotmovs\.com|
+                         hotmovs\.tube|
                          inporn\.com|
                          privatehomeclips\.com|
                          tubepornclassic\.com|
                          txxx\.com|
                          txxx\.tube|
                          upornia\.com|
+                         upornia\.tube|
                          vjav\.com|
+                         vjav\.tube|
                          vxxx\.com|
                          voyeurhit\.com|
                          voyeurhit\.tube))
@@ -138,7 +142,37 @@ class TxxxIE(TxxxBaseIE):
             'age_limit': 18,
         }
     }, {
+        'url': 'https://hdzog.tube/videos/67063/gorgeous-malena-morgan-will-seduce-you-at-the-first-glance/',
+        'md5': 'f8bdedafd45d1ec2875c43fe33a846d3',
+        'info_dict': {
+            'id': '67063',
+            'display_id': 'gorgeous-malena-morgan-will-seduce-you-at-the-first-glance',
+            'ext': 'mp4',
+            'title': 'Gorgeous Malena Morgan will seduce you at the first glance',
+            'uploader': 'momlesson',
+            'duration': 601,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
+        }
+    }, {
         'url': 'https://hotmovs.com/videos/8789287/unbelievable-malena-morgan-performing-in-incredible-masturantion/',
+        'md5': '71d32c51584876472db87e561171a386',
+        'info_dict': {
+            'id': '8789287',
+            'display_id': 'unbelievable-malena-morgan-performing-in-incredible-masturantion',
+            'ext': 'mp4',
+            'title': 'Unbelievable Malena Morgan performing in incredible masturantion',
+            'uploader': 'Davit Sanchez',
+            'duration': 940,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
+        }
+    }, {
+        'url': 'https://hotmovs.tube/videos/8789287/unbelievable-malena-morgan-performing-in-incredible-masturantion/',
         'md5': '71d32c51584876472db87e561171a386',
         'info_dict': {
             'id': '8789287',
@@ -213,7 +247,37 @@ class TxxxIE(TxxxBaseIE):
             'age_limit': 18,
         }
     }, {
+        'url': 'https://upornia.tube/videos/1498858/twistys-malena-morgan-starring-at-dr-morgan-baller/',
+        'md5': '7ff7033340bc88a173198b7c22600e4f',
+        'info_dict': {
+            'id': '1498858',
+            'display_id': 'twistys-malena-morgan-starring-at-dr-morgan-baller',
+            'ext': 'mp4',
+            'title': 'Twistys - Malena Morgan starring at Dr. Morgan-Baller',
+            'uploader': 'mindgeek',
+            'duration': 480,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
+        }
+    }, {
         'url': 'https://vjav.com/videos/11761/yui-hatano-in-if-yui-was-my-girlfriend2/',
+        'md5': '6de5bc1f13bdfc3491a77f23edb1676f',
+        'info_dict': {
+            'id': '11761',
+            'display_id': 'yui-hatano-in-if-yui-was-my-girlfriend2',
+            'ext': 'mp4',
+            'title': 'Yui Hatano in If Yui Was My Girlfriend',
+            'uploader': 'Matheus69',
+            'duration': 3310,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
+        }
+    }, {
+        'url': 'https://vjav.tube/videos/11761/yui-hatano-in-if-yui-was-my-girlfriend2/',
         'md5': '6de5bc1f13bdfc3491a77f23edb1676f',
         'info_dict': {
             'id': '11761',
