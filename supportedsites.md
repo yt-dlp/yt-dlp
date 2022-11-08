@@ -1207,7 +1207,6 @@
  - **skynewsarabia:video**
  - **SkyNewsAU**
  - **Slideshare**
- - **SlidesLive**
  - **Slutload**
  - **Smotrim**
  - **Snotr**
