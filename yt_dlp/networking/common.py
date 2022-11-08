@@ -286,8 +286,7 @@ class RequestHandler:
     If a Request is not to be supported by the handler, an UnsupportedRequest
     should be raised with a reason within _prepare_request().
 
-    If an implementation makes use of an SSLContext, it should retrieve one from make_sslcontext() and
-    (optionally) re-define _make_sslcontext() with a custom SSLContext initialization method.
+    If an implementation makes use of an SSLContext, it should retrieve one from make_sslcontext().
 
     All exceptions raised by a RequestHandler should be an instance of RequestError.
     Any other exception raised will be treated as a handler issue.
