@@ -5775,9 +5775,12 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 60,
     }, {
         # Channel with no uploads and hence no videos, streams, shorts tabs or uploads playlist. This should fail.
+        # See test_youtube_lists
         'url': 'https://www.youtube.com/channel/UC2yXPzFejc422buOIzn_0CA',
         'only_matching': True,
-    }, {  # No uploads and no UCID given. Should fail with no uploads error
+    }, {
+        # No uploads and no UCID given. Should fail with no uploads error
+        # See test_youtube_lists
         'url': 'https://www.youtube.com/news',
         'only_matching': True
     }, {
