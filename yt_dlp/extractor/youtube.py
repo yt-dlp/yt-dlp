@@ -5824,7 +5824,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     def suitable(cls, url):
         return False if YoutubeIE.suitable(url) else super().suitable(url)
 
-    _URL_RE = re.compile(rf'(?P<pre>{_VALID_URL})(?(not_channel)|(?P<tab>/\w+))?(?P<post>.*)$')
+    _URL_RE = re.compile(rf'(?P<pre>{_VALID_URL})(?(not_channel)|(?P<tab>/[^?#/]+))?(?P<post>.*)$')
 
     def _get_url_mobj(self, url):
         mobj = self._URL_RE.match(url).groupdict()
