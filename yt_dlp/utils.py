@@ -418,6 +418,8 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, *, tag=r'[\w
     Return the text (content) and the html (whole) of the tag with the specified
     attribute in the passed HTML document
     """
+    if not value:
+        return
 
     quote = '' if re.match(r'''[\s"'`=<>]''', value) else '?'
 
