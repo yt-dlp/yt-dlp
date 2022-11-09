@@ -5881,7 +5881,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 elif mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
                     pre = f'https://www.youtube.com/channel/{item_id}'
 
-        original_tab_id = tab[1:]
+        original_tab_id, display_id = tab[1:], f'{item_id}{tab}'
         if is_channel and not tab and 'no-youtube-channel-redirect' not in compat_opts:
             tab = '/videos'
 
@@ -5905,7 +5905,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             return self.url_result(
                 f'https://www.youtube.com/watch?v={video_id}', YoutubeIE, video_id)
 
-        data, ytcfg = self._extract_data(url, item_id)
+        data, ytcfg = self._extract_data(url, display_id)
 
         # YouTube may provide a non-standard redirect to the regional channel
         # See: https://github.com/yt-dlp/yt-dlp/issues/2694
@@ -5970,7 +5970,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
         # YouTube sometimes provides a button to reload playlist with unavailable videos.
         if 'no-youtube-unavailable-videos' not in compat_opts:
-            data = self._reload_with_unavailable_videos(item_id, data, ytcfg) or data
+            data = self._reload_with_unavailable_videos(display_id, data, ytcfg) or data
         self._extract_and_report_alerts(data, only_once=True)
 
         tabs, entries = self._extract_tab_renderers(data), []
@@ -5989,8 +5989,14 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         if len(entries) == 1:
             return entries[0]
         elif entries:
-            return self.playlist_result(
-                entries, item_id, **self._extract_metadata_from_tabs(item_id, data))
+            metadata = self._extract_metadata_from_tabs(item_id, data)
+            uploads_url = 'the Uploads (UU) playlist URL'
+            if try_get(metadata, lambda x: x['channel_id'].startswith('UC')):
+                uploads_url = f'https://www.youtube.com/playlist?list=UU{metadata["channel_id"][2:]}'
+            self.to_screen(
+                'Downloading as multiple playlists, separated by tabs. '
+                f'To download as a single playlist instead, pass {uploads_url}')
+            return self.playlist_result(entries, item_id, **metadata)
 
         playlist = traverse_obj(
             data, ('contents', 'twoColumnWatchNextResults', 'playlist', 'playlist'), expected_type=dict)
