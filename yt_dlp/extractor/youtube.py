@@ -5846,8 +5846,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         tab_url = urljoin(base_url, traverse_obj(
             tab, ('endpoint', 'commandMetadata', 'webCommandMetadata', 'url')))
 
-        tab_id = (traverse_obj(tab, 'tabIdentifier', expected_type=str)
-                  or tab_url and self._get_url_mobj(tab_url)['tab'][1:])
+        tab_id = (tab_url and self._get_url_mobj(tab_url)['tab'][1:]
+                  or traverse_obj(tab, 'tabIdentifier', expected_type=str))
         if tab_id:
             return {
                 'TAB_ID_SPONSORSHIPS': 'membership',
