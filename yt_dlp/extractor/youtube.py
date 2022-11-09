@@ -5981,8 +5981,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'extractor': YoutubeTabIE.IE_NAME,
                 'webpage_url': url,
             })
-        # Users expect to get all `video_id`s with `--flat-playlist`. So don't return `url_result`
-        entries.extend(map(self._real_extract, extra_tabs))
+        if self.get_param('playlist_items') == '0':
+            entries.extend(self.url_result(u, YoutubeTabIE) for u in extra_tabs)
+        else:  # Users expect to get all `video_id`s even with `--flat-playlist`. So don't return `url_result`
+            entries.extend(map(self._real_extract, extra_tabs))
 
         if len(entries) == 1:
             return entries[0]
