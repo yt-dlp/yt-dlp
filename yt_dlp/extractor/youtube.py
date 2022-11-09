@@ -4601,28 +4601,33 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             response, ('contents', 'twoColumnBrowseResultsRenderer', 'tabs', ..., ('tabRenderer', 'expandableTabRenderer')), expected_type=dict)
 
     def _extract_from_tabs(self, item_id, ytcfg, data, tabs):
-        playlist_id = title = description = channel_url = channel_name = channel_id = None
-        tags = []
+        metadata = self._extract_metadata_from_tabs(item_id, data)
 
         selected_tab = self._extract_selected_tab(tabs)
-        # Deprecated - remove when layout discontinued
-        primary_sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')
-        playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer'), expected_type=dict)
-        metadata_renderer = try_get(
-            data, lambda x: x['metadata']['channelMetadataRenderer'], dict)
-        if metadata_renderer:
-            channel_name = metadata_renderer.get('title')
-            channel_url = metadata_renderer.get('channelUrl')
-            channel_id = metadata_renderer.get('externalId')
-        else:
-            metadata_renderer = try_get(
-                data, lambda x: x['metadata']['playlistMetadataRenderer'], dict)
+        metadata['title'] += format_field(selected_tab, 'title', ' - %s')
+        metadata['title'] += format_field(selected_tab, 'expandedText', ' - %s')
 
+        return self.playlist_result(
+            self._entries(
+                selected_tab, metadata['id'], ytcfg,
+                self._extract_account_syncid(ytcfg, data),
+                self._extract_visitor_data(data, ytcfg)),
+            **metadata)
+
+    def _extract_metadata_from_tabs(self, item_id, data):
+        info = {'id': item_id}
+
+        metadata_renderer = traverse_obj(data, ('metadata', 'channelMetadataRenderer'), expected_type=dict)
         if metadata_renderer:
-            title = metadata_renderer.get('title')
-            description = metadata_renderer.get('description', '')
-            playlist_id = channel_id
-            tags = metadata_renderer.get('keywords', '').split()
+            info.update({
+                'uploader': metadata_renderer.get('title'),
+                'uploader_id': metadata_renderer.get('externalId'),
+                'uploader_url': metadata_renderer.get('channelUrl'),
+            })
+            if info['uploader_id']:
+                info['id'] = info['uploader_id']
+        else:
+            metadata_renderer = traverse_obj(data, ('metadata', 'playlistMetadataRenderer'), expected_type=dict) or {}
 
         # We can get the uncropped banner/avatar by replacing the crop params with '=s0'
         # See: https://github.com/yt-dlp/yt-dlp/issues/2237#issuecomment-1013694714
@@ -4640,7 +4645,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 })
 
         channel_banners = self._extract_thumbnails(
-            data, ('header', ..., ['banner', 'mobileBanner', 'tvBanner']))
+            data, ('header', ..., ('banner', 'mobileBanner', 'tvBanner')))
         for banner in channel_banners:
             banner['preference'] = -10
 
@@ -4653,78 +4658,64 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'preference': -5
                 })
 
-        # Deprecated - remove when old layout is discontinued
+        # Deprecated - remove primary_sidebar_renderer when layout discontinued
+        primary_sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')
+        playlist_header_renderer = traverse_obj(data, ('header', 'playlistHeaderRenderer'), expected_type=dict)
+
         primary_thumbnails = self._extract_thumbnails(
             primary_sidebar_renderer, ('thumbnailRenderer', ('playlistVideoThumbnailRenderer', 'playlistCustomThumbnailRenderer'), 'thumbnail'))
-
         playlist_thumbnails = self._extract_thumbnails(
             playlist_header_renderer, ('playlistHeaderBanner', 'heroPlaylistThumbnailRenderer', 'thumbnail'))
 
-        if playlist_id is None:
-            playlist_id = item_id
+        info.update({
+            'title': (metadata_renderer.get('title')
+                      or self._get_text(data, ('header', 'hashtagHeaderRenderer', 'hashtag'))
+                      or info['id']),
+            'availability': self._extract_availability(data),
+            'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
+            'description': metadata_renderer.get('description'),
+            'tags': try_get(metadata_renderer, lambda x: x['keywords'].split()),
+            'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
+        })
 
-        # Deprecated - remove primary_sidebar_renderer when old layout discontinued
         # Playlist stats is a text runs array containing [video count, view count, last updated].
         # last updated or (view count and last updated) may be missing.
         playlist_stats = get_first(
-            (primary_sidebar_renderer, playlist_header_renderer), (('stats', 'briefStats', 'numVideosText'),))
+            (primary_sidebar_renderer, playlist_header_renderer), (('stats', 'briefStats', 'numVideosText'), ))
+
         last_updated_unix = self._parse_time_text(
             self._get_text(playlist_stats, 2)  # deprecated, remove when old layout discontinued
             or self._get_text(playlist_header_renderer, ('byline', 1, 'playlistBylineRenderer', 'text')))
+        info['modified_date'] = strftime_or_none(last_updated_unix, '%Y%m%d')
 
-        view_count = self._get_count(playlist_stats, 1)
-        if view_count is None:
-            view_count = self._get_count(playlist_header_renderer, 'viewCountText')
+        info['view_count'] = self._get_count(playlist_stats, 1)
+        if info['view_count'] is None:  # 0 is allowed
+            info['view_count'] = self._get_count(playlist_header_renderer, 'viewCountText')
 
-        playlist_count = self._get_count(playlist_stats, 0)
-        if playlist_count is None:
-            playlist_count = self._get_count(playlist_header_renderer, ('byline', 0, 'playlistBylineRenderer', 'text'))
+        info['playlist_count'] = self._get_count(playlist_stats, 0)
+        if info['playlist_count'] is None:  # 0 is allowed
+            info['playlist_count'] = self._get_count(playlist_header_renderer, ('byline', 0, 'playlistBylineRenderer', 'text'))
 
-        if title is None:
-            title = self._get_text(data, ('header', 'hashtagHeaderRenderer', 'hashtag')) or playlist_id
-        title += format_field(selected_tab, 'title', ' - %s')
-        title += format_field(selected_tab, 'expandedText', ' - %s')
-
-        metadata = {
-            'playlist_id': playlist_id,
-            'playlist_title': title,
-            'playlist_description': description,
-            'uploader': channel_name,
-            'uploader_id': channel_id,
-            'uploader_url': channel_url,
-            'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
-            'tags': tags,
-            'view_count': view_count,
-            'availability': self._extract_availability(data),
-            'modified_date': strftime_or_none(last_updated_unix, '%Y%m%d'),
-            'playlist_count': playlist_count,
-            'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
-        }
-        if not channel_id:
+        if not info.get('uploader_id'):
             owner = traverse_obj(playlist_header_renderer, 'ownerText')
-            if not owner:
-                # Deprecated
+            if not owner:  # Deprecated
                 owner = traverse_obj(
                     self._extract_sidebar_info_renderer(data, 'playlistSidebarSecondaryInfoRenderer'),
                     ('videoOwner', 'videoOwnerRenderer', 'title'))
             owner_text = self._get_text(owner)
             browse_ep = traverse_obj(owner, ('runs', 0, 'navigationEndpoint', 'browseEndpoint')) or {}
-            metadata.update(filter_dict({
+            info.update({
                 'uploader': self._search_regex(r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text),
                 'uploader_id': browse_ep.get('browseId'),
                 'uploader_url': urljoin('https://www.youtube.com', browse_ep.get('canonicalBaseUrl'))
-            }))
+            })
 
-        metadata.update({
-            'channel': metadata['uploader'],
-            'channel_id': metadata['uploader_id'],
-            'channel_url': metadata['uploader_url']})
-        return self.playlist_result(
-            self._entries(
-                selected_tab, playlist_id, ytcfg,
-                self._extract_account_syncid(ytcfg, data),
-                self._extract_visitor_data(data, ytcfg)),
-            **metadata)
+        info.update({
+            'channel': info['uploader'],
+            'channel_id': info['uploader_id'],
+            'channel_url': info['uploader_url']
+        })
+        return info
 
     def _extract_inline_playlist(self, playlist, playlist_id, data, ytcfg):
         first_id = last_id = response = None
@@ -5994,8 +5985,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
         if len(tab_results) == 1:
             return tab_results[0]
-        elif len(tab_results) > 1:
-            return self.playlist_result(tab_results, item_id, title=f'Uploads for {item_id}')
+        elif tab_results:
+            return self.playlist_result(
+                tab_results, item_id, **self._extract_metadata_from_tabs(item_id, data))
 
         playlist = traverse_obj(
             data, ('contents', 'twoColumnWatchNextResults', 'playlist', 'playlist'), expected_type=dict)
