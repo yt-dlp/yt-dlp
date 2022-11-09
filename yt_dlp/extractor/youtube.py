@@ -4627,7 +4627,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if info['uploader_id']:
                 info['id'] = info['uploader_id']
         else:
-            metadata_renderer = traverse_obj(data, ('metadata', 'playlistMetadataRenderer'), expected_type=dict) or {}
+            metadata_renderer = traverse_obj(data, ('metadata', 'playlistMetadataRenderer'), expected_type=dict)
 
         # We can get the uncropped banner/avatar by replacing the crop params with '=s0'
         # See: https://github.com/yt-dlp/yt-dlp/issues/2237#issuecomment-1013694714
@@ -4668,13 +4668,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             playlist_header_renderer, ('playlistHeaderBanner', 'heroPlaylistThumbnailRenderer', 'thumbnail'))
 
         info.update({
-            'title': (metadata_renderer.get('title')
+            'title': (traverse_obj(metadata_renderer, 'title')
                       or self._get_text(data, ('header', 'hashtagHeaderRenderer', 'hashtag'))
                       or info['id']),
             'availability': self._extract_availability(data),
             'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
-            'description': metadata_renderer.get('description'),
-            'tags': try_get(metadata_renderer, lambda x: x['keywords'].split()),
+            'description': try_get(metadata_renderer, lambda x: x.get('description', '')),
+            'tags': try_get(metadata_renderer or {}, lambda x: x.get('keywords', '').split()),
             'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
         })
 
@@ -5737,7 +5737,16 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'url': 'https://www.youtube.com/channel/UCK9V2B22uJYu3N7eR_BT9QA',
         'info_dict': {
             'id': 'UCK9V2B22uJYu3N7eR_BT9QA',
-            'title': 'Uploads for UCK9V2B22uJYu3N7eR_BT9QA'
+            'title': 'Polka Ch. 尾丸ポルカ',
+            'channel_follower_count': int,
+            'channel_id': 'UCK9V2B22uJYu3N7eR_BT9QA',
+            'channel_url': 'https://www.youtube.com/channel/UCK9V2B22uJYu3N7eR_BT9QA',
+            'uploader': 'Polka Ch. 尾丸ポルカ',
+            'description': 'md5:3b8df1ac5af337aa206e37ee3d181ec9',
+            'channel': 'Polka Ch. 尾丸ポルカ',
+            'tags': 'count:35',
+            'uploader_url': 'https://www.youtube.com/channel/UCK9V2B22uJYu3N7eR_BT9QA',
+            'uploader_id': 'UCK9V2B22uJYu3N7eR_BT9QA',
         },
         'playlist_count': 3,
     }, {
