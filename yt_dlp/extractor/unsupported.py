@@ -6,7 +6,7 @@ class KnownDRMIE(InfoExtractor):
     IE_DESC = False
     IE_NAME = 'unsupported:drm'
     UNSUPPORTED_URLS = (
-        'play\.hbomax\.com',
+        r'play\.hbomax\.com',
         r'channel(?:4|5)\.com',
         r'peacocktv\.com',
         r'([a-zA-Z0-9_\.]+\.)?disneyplus\.com',
