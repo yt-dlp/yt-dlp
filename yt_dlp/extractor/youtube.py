@@ -5918,8 +5918,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             self.to_screen(f'This playlist is likely not available in your region. Following conditional redirect to {redirect_url}')
             return self.url_result(redirect_url, YoutubeTabIE)
 
-        tab_results = []
-        tabs = self._extract_tab_renderers(data)
+        tabs, extra_tabs = self._extract_tab_renderers(data), []
         if is_channel and tabs and 'no-youtube-channel-redirect' not in compat_opts:
             selected_tab = self._extract_selected_tab(tabs)
             selected_tab_id, selected_tab_name = self._extract_tab_id_and_name(selected_tab, url)  # NB: Name may be translated
@@ -5929,12 +5928,12 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 self.to_screen('Channel URLs download all uploads of the channel. '
                                'To download only the videos in a specific tab, pass the tab\'s URL')
                 if self._has_tab(tabs, 'streams'):
-                    tab_results.append(self.url_result(''.join((pre, '/streams', post))))
+                    extra_tabs.append(''.join((pre, '/streams', post)))
                 if self._has_tab(tabs, 'shorts'):
-                    tab_results.append(self.url_result(''.join((pre, '/shorts', post))))
+                    extra_tabs.append(''.join((pre, '/shorts', post)))
                 # XXX: Members-only tab should also be extracted
 
-                if not tab_results and selected_tab_id != 'videos':
+                if not extra_tabs and selected_tab_id != 'videos':
                     # Channel does not have streams, shorts or videos tabs
                     if item_id[:2] != 'UC':
                         raise ExtractorError('This channel has no uploads', expected=True)
@@ -5951,7 +5950,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                         self.to_screen(
                             f'The channel does not have a videos, shorts, or live tab. Redirecting to playlist {pl_id} instead')
 
-                elif tab_results and selected_tab_id != 'videos':
+                elif extra_tabs and selected_tab_id != 'videos':
                     # When there are shorts/live tabs but not videos tab
                     url, data = ''.join((pre, post)), None
 
@@ -5974,20 +5973,22 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             data = self._reload_with_unavailable_videos(item_id, data, ytcfg) or data
         self._extract_and_report_alerts(data, only_once=True)
 
-        tabs = self._extract_tab_renderers(data)
+        tabs, entries = self._extract_tab_renderers(data), []
         if tabs:
-            tab_results[:0] = [self._extract_from_tabs(item_id, ytcfg, data, tabs)]
-            tab_results[0].update({
+            entries = [self._extract_from_tabs(item_id, ytcfg, data, tabs)]
+            entries[0].update({
                 'extractor_key': YoutubeTabIE.ie_key(),
                 'extractor': YoutubeTabIE.IE_NAME,
                 'webpage_url': url,
             })
+        # Users expect to get all `video_id`s with `--flat-playlist`. So don't return `url_result`
+        entries.extend(map(self._real_extract, extra_tabs))
 
-        if len(tab_results) == 1:
-            return tab_results[0]
-        elif tab_results:
+        if len(entries) == 1:
+            return entries[0]
+        elif entries:
             return self.playlist_result(
-                tab_results, item_id, **self._extract_metadata_from_tabs(item_id, data))
+                entries, item_id, **self._extract_metadata_from_tabs(item_id, data))
 
         playlist = traverse_obj(
             data, ('contents', 'twoColumnWatchNextResults', 'playlist', 'playlist'), expected_type=dict)
