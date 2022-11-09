@@ -5881,8 +5881,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
         original_tab_id = tab[1:]
         if is_channel and not tab and 'no-youtube-channel-redirect' not in compat_opts:
-            self.to_screen('Channel URLs download all uploads of the channel. '
-                           'To download only the videos in a specific tab, pass the tab\'s URL')
             tab = '/videos'
 
         url = ''.join((pre, tab, post))
@@ -5923,11 +5921,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         if is_channel and tabs and 'no-youtube-channel-redirect' not in compat_opts:
             selected_tab = self._extract_selected_tab(tabs)
             selected_tab_id, selected_tab_name = self._extract_tab_id_and_name(selected_tab, url)  # NB: Name may be translated
-            requested_tab_id = mobj['tab'][1:]
-            self.write_debug(f'Selected tab: {selected_tab_id!r} ({selected_tab_name}), '
-                             f'Requested tab: {requested_tab_id!r}, Original tab: {original_tab_id!r}')
+            self.write_debug(f'Selected tab: {selected_tab_id!r} ({selected_tab_name}), Requested tab: {original_tab_id!r}')
 
             if not original_tab_id and selected_tab_name:
+                self.to_screen('Channel URLs download all uploads of the channel. '
+                               'To download only the videos in a specific tab, pass the tab\'s URL')
                 if self._has_tab(tabs, 'streams'):
                     tab_results.append(self.url_result(''.join((pre, '/streams', post))))
                 if self._has_tab(tabs, 'shorts'):
@@ -5947,7 +5945,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                     except ExtractorError:
                         raise ExtractorError('This channel has no uploads', expected=True)
                     else:
-                        item_id, url, selected_tab_name = pl_id, pl_url, requested_tab_id
+                        item_id, url = pl_id, pl_url
                         self.to_screen(
                             f'The channel does not have a videos, shorts, or live tab. Redirecting to playlist {pl_id} instead')
 
@@ -5955,17 +5953,17 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                     # When there are shorts/live tabs but not videos tab
                     url, data = ''.join((pre, post)), None
 
-            elif requested_tab_id != selected_tab_id:
-                if requested_tab_id == 'live':
+            elif (original_tab_id or 'videos') != selected_tab_id:
+                if original_tab_id == 'live':
                     # Live tab should have redirected to the video
                     # Except in the case the channel has an actual live tab
                     # Example: https://www.youtube.com/channel/UCEH7P7kyJIkS_gJf93VYbmg/live
                     raise UserNotLive(video_id=mobj['id'])
                 elif selected_tab_name:
-                    raise ExtractorError(f'This channel does not have a {requested_tab_id} tab', expected=True)
+                    raise ExtractorError(f'This channel does not have a {original_tab_id} tab', expected=True)
 
                 # For channels such as https://www.youtube.com/channel/UCtFRv9O2AHqOZjjynzrv-xg
-                url = ''.join((pre, f'/{selected_tab_id}' if selected_tab_id else '', post))
+                url = f'{pre}{post}'
 
         self.write_debug(f'Final URL: {url}')
 
