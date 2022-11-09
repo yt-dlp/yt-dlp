@@ -5849,7 +5849,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         tab_id = (traverse_obj(tab, 'tabIdentifier', expected_type=str)
                   or tab_url and self._get_url_mobj(tab_url)['tab'][1:])
         if tab_id:
-            return tab_id, tab_name
+            return {
+                'TAB_ID_SPONSORSHIPS': 'membership',
+            }.get(tab_id, tab_id), tab_name
 
         # Fallback to tab name if we cannot get the tab id.
         # XXX: should we strip non-ascii letters? e.g. in case of 'let's play' tab example on special gaming channel
