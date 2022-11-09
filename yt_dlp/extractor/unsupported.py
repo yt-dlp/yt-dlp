@@ -84,7 +84,7 @@ class KnownDRMIE(InfoExtractor):
 
     @classproperty
     def _VALID_URL(cls):
-        return r'https?://(?:www\.)?(?:%s)' % '|'.join(rf'(?:{s})' for s in cls.UNSUPPORTED_URLS)
+        return rf'https?://(?:www\.)?(?:{"|".join(cls.UNSUPPORTED_URLS)})'
 
     def _real_extract(self, url):
         raise ExtractorError(
