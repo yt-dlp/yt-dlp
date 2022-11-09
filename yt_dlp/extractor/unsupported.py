@@ -15,7 +15,7 @@ class KnownDRMIE(InfoExtractor):
         r'oneplus\.ch',
         r'artstation\.com/learning/courses',
         r'philo\.com',
-        r'([a-zA-Z0-9_\.]+\.)?mech-plus\.com',
+        r'(?:[\w\.]+\.)?mech-plus\.com',
         r'aha\.video',
         r'mubi\.com',
         r'vootkids\.com'
