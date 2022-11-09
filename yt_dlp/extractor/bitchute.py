@@ -4,7 +4,6 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    GeoRestrictedError,
     HEADRequest,
     OnDemandPagedList,
     clean_html,
@@ -68,6 +67,7 @@ class BitChuteIE(InfoExtractor):
         'url': 'https://www.bitchute.com/torrent/Zee5BE49045h/szoMrox2JEI.webtorrent',
         'only_matching': True,
     }]
+    _GEO_BYPASS = False
 
     _HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.57 Safari/537.36',
@@ -90,12 +90,11 @@ class BitChuteIE(InfoExtractor):
                 'filesize': int_or_none(response.headers.get('Content-Length'))
             }
 
-    @staticmethod
-    def _raise_if_restricted(webpage):
-        page_title = clean_html(get_element_by_class('page-title', webpage))
-        if page_title and re.fullmatch(r'(?:Channel|Video) Restricted', page_title):
+    def _raise_if_restricted(self, webpage):
+        page_title = clean_html(get_element_by_class('page-title', webpage)) or ''
+        if re.fullmatch(r'(?:Channel|Video) Restricted', page_title):
             reason = clean_html(get_element_by_id('page-detail', webpage)) or page_title
-            raise GeoRestrictedError(reason)
+            self.raise_geo_restricted(reason)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
