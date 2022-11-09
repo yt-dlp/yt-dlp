@@ -9,21 +9,22 @@ from ..utils import (
     traverse_obj,
     try_call,
     try_get,
-    urljoin)
+    urljoin,
+)
 
 
 class CinetecaMilanoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?cinetecamilano\.it/film/(?P<id>\d+)/?'
+    _VALID_URL = r'https?://(?:www\.)?cinetecamilano\.it/film/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.cinetecamilano.it/film/1942',
         'info_dict': {
             'id': '1942',
             'ext': 'mp4',
-            'title': "Il draghetto Gris\u00f9 (4 episodi)",
+            'title': 'Il draghetto Gris\u00f9 (4 episodi)',
             'release_date': '20220129',
-            'thumbnail': 're:.+\\.png',
+            'thumbnail': r're:.+\.png',
             'description': 'md5:5328cbe080b93224712b6f17fcaf2c01',
-            'modified_date': "20200520",
+            'modified_date': '20200520',
             'duration': 3139,
             'release_timestamp': 1643446208,
             'modified_timestamp': int
@@ -37,11 +38,11 @@ class CinetecaMilanoIE(InfoExtractor):
                 f'https://www.cinetecamilano.it/api/catalogo/{video_id}',
                 video_id, headers={
                     'Referer': url,
-                    'Authorization': try_get(self._get_cookies('https://www.cinetecamilano.it'), lambda x: f"Bearer {x['cnt-token'].value}") or ''
+                    'Authorization': try_get(self._get_cookies('https://www.cinetecamilano.it'), lambda x: f'Bearer {x["cnt-token"].value}') or ''
                 })
         except ExtractorError as e:
-            if (isinstance(e.cause, HTTPError) and e.cause.code == 500) or \
-                    isinstance(e.cause, JSONDecodeError):
+            if ((isinstance(e.cause, HTTPError) and e.cause.code == 500)
+                    or isinstance(e.cause, JSONDecodeError)):
                 raise ExtractorError(
                     'This video is only available for registered users. You may want to use --cookies.',
                     expected=True, cause=e.cause)
@@ -57,7 +58,7 @@ class CinetecaMilanoIE(InfoExtractor):
             'duration': float_or_none(archive.get('duration'), invscale=60),
             'release_timestamp': parse_iso8601(archive.get('updated_at'), delimiter=' '),
             'modified_timestamp': parse_iso8601(archive.get('created_at'), delimiter=' '),
-            'thumbnail': urljoin(url, try_call(lambda: archive['thumb']['src'].replace('/public/', '/storage/'))),
+            'thumbnail': urljoin(url, try_get(archive, lambda x: x['thumb']['src'].replace('/public/', '/storage/'))),
             'formats': self._extract_m3u8_formats(
                 urljoin(url, traverse_obj(archive, ('drm', 'hls'))), video_id, 'mp4')
         }
