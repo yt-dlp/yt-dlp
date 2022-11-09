@@ -40,6 +40,7 @@ class StripchatIE(InfoExtractor):
         server = traverse_obj(data, ('viewCam', 'viewServers', 'flashphoner-hls'), expected_type=str)
         model_id = traverse_obj(data, ('viewCam', 'model', 'id'), expected_type=int)
 
+        formats = []
         for host in traverse_obj(data, (
                 'config', 'data', (('featuresV2', 'hlsFallback', 'fallbackDomains', ...), 'hlsStreamHost'))):
             formats = self._extract_m3u8_formats(
@@ -47,6 +48,8 @@ class StripchatIE(InfoExtractor):
                 video_id, ext='mp4', m3u8_id='hls', fatal=False, live=True)
             if formats:
                 break
+        if not formats:
+            self.raise_no_formats('No active streams found', expected=True)
 
         self._sort_formats(formats)
 
