@@ -144,10 +144,11 @@ class RumbleEmbedIE(InfoExtractor):
                 if not video_info.get('url'):
                     continue
                 if ext == 'hls':
-                    formats.extend(self._extract_m3u8_formats(
-                        video_info['url'], video_id, ext='mp4', m3u8_id='hls', fatal=False))
                     if meta.get('live') is True and video.get('live') == 1:
                         live_status = 'post_live'
+                    formats.extend(self._extract_m3u8_formats(
+                        video_info['url'], video_id,
+                        ext='mp4', m3u8_id='hls', fatal=False, live=live_status == 'is_live'))
                     continue
                 formats.append({
                     'ext': ext,
