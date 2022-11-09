@@ -109,8 +109,6 @@ class RumbleEmbedIE(InfoExtractor):
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
         'only_matching': True,
     }]
-    FORMAT_MAPPING = {'bitrate': 'tbr', 'size': 'filesize', 'w': 'width', 'h': 'height'}
-    THUMBNAIL_MAPPING = {'i': 'url', 'w': 'width', 'h': 'height'}
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -126,7 +124,7 @@ class RumbleEmbedIE(InfoExtractor):
             'https://rumble.com/embedJS/u3/', video_id,
             query={'request': 'video', 'ver': 2, 'v': video_id})
 
-        sys_msg = traverse_obj(video, ('sys', 'msg'), default=None)
+        sys_msg = traverse_obj(video, ('sys', 'msg'))
         if sys_msg:
             self.report_warning(sys_msg, video_id=video_id)
 
@@ -141,30 +139,29 @@ class RumbleEmbedIE(InfoExtractor):
 
         formats = []
         for ext, ext_info in (video.get('ua') or {}).items():
-            if not ext_info:
-                continue
             for height, video_info in (ext_info or {}).items():
                 meta = video_info.get('meta') or {}
-                if 'url' not in video_info:
+                if not video_info.get('url'):
                     continue
                 if ext == 'hls':
-                    formats.extend(
-                        self._extract_m3u8_formats(
-                            video_info['url'], video_id, ext='mp4', m3u8_id='hls', fatal=False))
+                    formats.extend(self._extract_m3u8_formats(
+                        video_info['url'], video_id, ext='mp4', m3u8_id='hls', fatal=False))
                     if meta.get('live') is True and video.get('live') == 1:
                         live_status = 'post_live'
                     continue
-                fmt = {
+                formats.append({
                     'ext': ext,
                     'url': video_info['url'],
                     'format_id': '%s-%sp' % (ext, height),
                     'height': int_or_none(height),
                     'fps': video.get('fps'),
-                }
-                fmt.update(
-                    {key: meta[meta_key] for meta_key, key in self.FORMAT_MAPPING.items()
-                     if meta_key in meta})
-                formats.append(fmt)
+                    **traverse_obj(meta, {
+                        'tbr': 'bitrate',
+                        'filesize': 'size',
+                        'width': 'w',
+                        'height': 'h',
+                    }, default={})
+                })
         self._sort_formats(formats)
 
         subtitles = {
@@ -175,10 +172,9 @@ class RumbleEmbedIE(InfoExtractor):
         }
 
         author = video.get('author') or {}
-        thumbnails = [{key: mapping[t_key] for t_key, key in self.THUMBNAIL_MAPPING.items()
-                       if t_key in mapping} for mapping in video.get('t', ())]
-        if not thumbnails and 'i' in video:
-            thumbnails.append({'url': video['i']})
+        thumbnails = traverse_obj(video, ('t', ..., {'url': 'i', 'width': 'w', 'height': 'h'}))
+        if not thumbnails and video.get('i'):
+            thumbnails = [{'url': video['i']}]
 
         if live_status in {'is_live', 'post_live'}:
             duration = None
@@ -187,7 +183,7 @@ class RumbleEmbedIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': unescapeHTML(video['title']),
+            'title': unescapeHTML(video.get('title')),
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': thumbnails,
