@@ -912,7 +912,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _extract_video(self, renderer):
         video_id = renderer.get('videoId')
-        title = self._get_text(renderer, 'title')
+
+        reel_header_renderer = traverse_obj(
+            renderer, (
+                'navigationEndpoint', 'reelWatchEndpoint', 'overlay', 'reelPlayerOverlayRenderer',
+                'reelPlayerHeaderSupportedRenderers', 'reelPlayerHeaderRenderer'))
+
+        title = self._get_text(renderer, 'title', 'headline') or self._get_text(reel_header_renderer, 'reelTitleText')
         description = self._get_text(renderer, 'descriptionSnippet')
 
         duration = int_or_none(renderer.get('lengthSeconds'))
@@ -920,18 +926,32 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             duration = parse_duration(self._get_text(
                 renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
         if duration is None:
+            # TODO: for shorts in shorts tab
             duration = parse_duration(self._search_regex(
                 r'(?i)(ago)(?!.*\1)\s+(?P<duration>[a-z0-9 ,]+?)(?:\s+[\d,]+\s+views)?(?:\s+-\s+play\s+short)?$',
                 traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label'), default='', expected_type=str),
                 video_id, default=None, group='duration'))
 
         # videoInfo is a string like '50K views • 10 years ago'.
-        view_count = self._get_count(renderer, 'viewCountText', 'shortViewCountText', 'videoInfo')
-        uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
+        view_count_text = self._get_text(renderer,  'viewCountText', 'shortViewCountText', 'videoInfo') or ''
+        if 'no views' in view_count_text.lower():
+            view_count = 0
+        else:
+            view_count = self._get_count({'simpleText': view_count_text})
         channel_id = traverse_obj(
             renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'),
             expected_type=str, get_all=False)
-        time_text = self._get_text(renderer, 'publishedTimeText', 'videoInfo') or ''
+        if not channel_id:
+            channel_id = traverse_obj(reel_header_renderer, ('channelNavigationEndpoint', 'browseEndpoint', 'browseId'))
+        channel = (
+            self._get_text(renderer, 'ownerText', 'shortBylineText')
+            or self._get_text(reel_header_renderer, 'channelTitleText')
+        )
+        time_text = (
+           self._get_text(renderer, 'publishedTimeText', 'videoInfo')
+           or self._get_text(reel_header_renderer, 'timestampText')
+           or ''
+        )
         scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
@@ -959,8 +979,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'title': title,
             'description': description,
             'duration': duration,
-            'uploader': uploader,
             'channel_id': channel_id,
+            'channel': channel,
+            'channel_url': f'https://www.youtube.com/channel/{channel_id}' if channel_id else None,
             'thumbnails': thumbnails,
             'timestamp': (self._parse_time_text(time_text)
                           if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
@@ -5828,6 +5849,38 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
         },
         'playlist_mincount': 30,
+    }, {
+        # Shorts url result in shorts tab
+        'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/shorts',
+        'info_dict': {
+            'id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'title': 'cole-dlp-test-acc - Shorts',
+            'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel': 'cole-dlp-test-acc',
+            'channel_follower_count': int,
+            'description': 'test description',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'tags': [],
+            'uploader': 'cole-dlp-test-acc',
+            'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+
+        },
+        'playlist': [{
+            'url': 'https://www.youtube.com/watch?v=0ouY_g93Wko',
+            'info_dict': {
+                'id': 'sSM9J5YH_60',
+                'ie_key': 'Youtube',
+                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'title': 'SHORT short',
+                'channel': 'cole-dlp-test-acc',
+                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'view_count': int,
+                'thumbnails': list,
+                '_type': 'url'
+            }
+        }],
+        'params': {'extract_flat': True},
     }]
 
     @classmethod
