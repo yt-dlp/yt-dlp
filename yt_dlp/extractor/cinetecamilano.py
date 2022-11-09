@@ -7,7 +7,6 @@ from ..utils import (
     parse_iso8601,
     strip_or_none,
     traverse_obj,
-    try_call,
     try_get,
     urljoin,
 )
