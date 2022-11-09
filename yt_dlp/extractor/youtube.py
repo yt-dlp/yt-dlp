@@ -5775,7 +5775,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 60,
     }, {
         # Channel with no uploads and hence no videos, streams, shorts tabs or uploads playlist. This should fail.
-        # FIXME: how to test?
         'url': 'https://www.youtube.com/channel/UC2yXPzFejc422buOIzn_0CA',
         'only_matching': True,
     }, {  # No uploads and no UCID given. Should fail with no uploads error
