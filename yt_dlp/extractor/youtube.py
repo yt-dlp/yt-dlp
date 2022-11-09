@@ -5861,8 +5861,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         compat_opts = self.get_param('compat_opts', [])
 
         mobj = self._get_url_mobj(url)
-        # Youtube returns incomplete data if tabname is not lower case
-        pre, tab, post, is_channel = mobj['pre'], mobj['tab'].lower(), mobj['post'], not mobj['not_channel']
+        pre, tab, post, is_channel = mobj['pre'], mobj['tab'], mobj['post'], not mobj['not_channel']
         if is_channel:
             if smuggled_data.get('is_music_url'):
                 if item_id[:2] == 'VL':  # Youtube music VL channels have an equivalent playlist
