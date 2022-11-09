@@ -10,7 +10,6 @@ from ..utils import (
     get_element_by_class,
     get_elements_html_by_class,
     int_or_none,
-    match_filter_func,
     orderedSet,
     parse_count,
     parse_duration,
@@ -141,8 +140,7 @@ class BitChuteChannelIE(InfoExtractor):
         ],
         'params': {
             'skip_download': True,
-            'check_formats': False,
-            'match_filter': match_filter_func('id=UGlrF9o9b-Q'),
+            'playlist_items': '-1',
         },
     }, {
         'url': 'https://www.bitchute.com/playlist/wV9Imujxasw9/',
