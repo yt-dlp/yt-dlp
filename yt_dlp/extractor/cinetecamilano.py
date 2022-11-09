@@ -41,11 +41,9 @@ class CinetecaMilanoIE(InfoExtractor):
                     'Authorization': try_get(self._get_cookies('https://www.cinetecamilano.it'), lambda x: f'Bearer {x["cnt-token"].value}') or ''
                 })
         except ExtractorError as e:
-            if ((isinstance(e.cause, HTTPError) and e.cause.code == 500)
-                    or isinstance(e.cause, JSONDecodeError)):
-                raise ExtractorError(
-                    'This video is only available for registered users. You may want to use --cookies.',
-                    expected=True, cause=e.cause)
+            if (isinstance(e.cause, HTTPError) and e.cause.code == 500) or \
+                    isinstance(e.cause, JSONDecodeError):
+                self.raise_login_required(method='cookies')
             raise
         if not film_json.get('success') or not film_json.get('archive'):
             raise ExtractorError('Video information not found')
