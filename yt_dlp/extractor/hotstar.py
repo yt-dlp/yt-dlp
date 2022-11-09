@@ -1,22 +1,19 @@
 import hashlib
 import hmac
+import json
 import re
 import time
 import uuid
-import json
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str
-)
+from ..compat import compat_HTTPError, compat_str
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     int_or_none,
     join_nonempty,
     str_or_none,
-    try_get,
+    traverse_obj,
     url_or_none,
 )
 
@@ -25,6 +22,11 @@ class HotStarBaseIE(InfoExtractor):
     _BASE_URL = 'https://www.hotstar.com'
     _API_URL = 'https://api.hotstar.com'
     _AKAMAI_ENCRYPTION_KEY = b'\x05\xfc\x1a\x01\xca\xc9\x4b\xc4\x12\xfc\x53\x12\x07\x75\xf9\xee'
+
+    def _call_api_v1(self, path, *args, **kwargs):
+        return self._download_json(
+            f'{self._API_URL}/o/v1/{path}', *args, **kwargs,
+            headers={'x-country-code': 'IN', 'x-platform-code': 'PCTV'})
 
     def _call_api_impl(self, path, video_id, query, st=None, cookies=None):
         st = int_or_none(st) or int(time.time())
@@ -59,17 +61,6 @@ class HotStarBaseIE(InfoExtractor):
                 response['message'], expected=True)
         return response['data']
 
-    def _call_api(self, path, video_id, query_name='contentId'):
-        return self._download_json(
-            f'{self._API_URL}/{path}', video_id=video_id,
-            query={
-                query_name: video_id,
-                'tas': 10000,
-            }, headers={
-                'x-country-code': 'IN',
-                'x-platform-code': 'PCTV',
-            })
-
     def _call_api_v2(self, path, video_id, st=None, cookies=None):
         return self._call_api_impl(
             f'{path}/content/{video_id}', video_id, st=st, cookies=cookies, query={
@@ -78,6 +69,13 @@ class HotStarBaseIE(InfoExtractor):
                 'os-name': 'Windows',
                 'os-version': '10',
             })
+
+    def _playlist_entries(self, path, item_id, root=None, **kwargs):
+        results = self._call_api_v1(path, item_id, **kwargs)['body']['results']
+        for video in traverse_obj(results, (('assets', None), 'items', ...)):
+            if video.get('contentId'):
+                yield self.url_result(
+                    HotStarIE._video_url(video['contentId'], root=root), HotStarIE, video['contentId'])
 
 
 class HotStarIE(HotStarBaseIE):
@@ -104,6 +102,7 @@ class HotStarIE(HotStarBaseIE):
             'duration': 381,
             'episode': 'Can You Not Spread Rumours?',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.hotstar.com/tv/ek-bhram-sarvagun-sampanna/s-2116/janhvi-targets-suman/1000234847',
         'info_dict': {
@@ -161,7 +160,8 @@ class HotStarIE(HotStarBaseIE):
         video_type = self._TYPE.get(video_type, video_type)
         cookies = self._get_cookies(url)  # Cookies before any request
 
-        video_data = self._call_api(f'o/v1/{video_type}/detail', video_id)['body']['results']['item']
+        video_data = self._call_api_v1(f'{video_type}/detail', video_id,
+                                       query={'tas': 10000, 'contentId': video_id})['body']['results']['item']
         if not self.get_param('allow_unplayable_formats') and video_data.get('drmProtected'):
             self.report_drm(video_id)
 
@@ -305,14 +305,9 @@ class HotStarPlaylistIE(HotStarBaseIE):
     }]
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url)
-
-        collection = self._call_api('o/v1/tray/find', playlist_id, 'uqId')['body']['results']
-        entries = [
-            self.url_result(HotStarIE._video_url(video['contentId']), HotStarIE, video['contentId'])
-            for video in collection['assets']['items'] if video.get('contentId')]
-
-        return self.playlist_result(entries, playlist_id)
+        id_ = self._match_id(url)
+        return self.playlist_result(
+            self._playlist_entries('tray/find', id_, query={'tas': 10000, 'uqId': id_}), id_)
 
 
 class HotStarSeasonIE(HotStarBaseIE):
@@ -340,17 +335,8 @@ class HotStarSeasonIE(HotStarBaseIE):
 
     def _real_extract(self, url):
         url, season_id = self._match_valid_url(url).groups()
-        headers = {
-            'x-country-code': 'IN',
-            'x-platform-code': 'PCTV',
-        }
-        item_json = self._download_json(
-            f'{self._API_URL}/o/v1/season/asset?tao=0&tas=0&size=10000&id={season_id}', season_id, headers=headers)['body']['results']
-        entries = [
-            self.url_result(HotStarIE._video_url(video['contentId'], root=url), HotStarIE, video['contentId'])
-            for video in item_json['items'] if video.get('contentId')]
-
-        return self.playlist_result(entries, season_id)
+        return self.playlist_result(self._playlist_entries(
+            'season/asset', season_id, url, query={'tao': 0, 'tas': 0, 'size': 10000, 'id': season_id}), season_id)
 
 
 class HotStarSeriesIE(HotStarBaseIE):
@@ -378,17 +364,8 @@ class HotStarSeriesIE(HotStarBaseIE):
 
     def _real_extract(self, url):
         url, series_id = self._match_valid_url(url).groups()
-        headers = {
-            'x-country-code': 'IN',
-            'x-platform-code': 'PCTV',
-        }
-        detail_json = self._download_json(
-            f'{self._API_URL}/o/v1/show/detail?contentId={series_id}', series_id, headers=headers)
-        id = try_get(detail_json, lambda x: x['body']['results']['item']['id'], int)
-        item_json = self._download_json(
-            f'{self._API_URL}/o/v1/tray/g/1/items?etid=0&tao=0&tas=10000&eid={id}', series_id, headers=headers)
+        id_ = self._call_api_v1(
+            'show/detail', series_id, query={'contentId': series_id})['body']['results']['item']['id']
 
-        return self.playlist_result([
-            self.url_result(HotStarIE._video_url(video['contentId'], root=url), HotStarIE, video['contentId'])
-            for video in item_json['body']['results']['items'] if video.get('contentId')
-        ], series_id)
+        return self.playlist_result(self._playlist_entries(
+            'tray/g/1/items', series_id, url, query={'tao': 0, 'tas': 10000, 'etid': 0, 'eid': id_}), series_id)
