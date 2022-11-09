@@ -5991,6 +5991,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         tabs = self._extract_tab_renderers(data)
         if tabs:
             tab_results.append(self._extract_from_tabs(item_id, ytcfg, data, tabs))
+            tab_results[-1].update({
+                'extractor_key': YoutubeTabIE.ie_key(),
+                'extractor': YoutubeTabIE.IE_NAME,
+                'webpage_url': url,
+            })
 
         if len(tab_results) == 1:
             return tab_results[0]
