@@ -319,6 +319,7 @@ from .chirbit import (
 )
 from .cinchcast import CinchcastIE
 from .cinemax import CinemaxIE
+from .cinetecamilano import CinetecaMilanoIE
 from .ciscolive import (
     CiscoLiveSessionIE,
     CiscoLiveSearchIE,
