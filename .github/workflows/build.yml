@@ -1,8 +1,12 @@
 name: Build
 on: workflow_dispatch
+permissions:
+  contents: read
 
 jobs:
   prepare:
+    permissions:
+      contents: write  # for push_release
     runs-on: ubuntu-latest
     outputs:
       version_suffix: ${{ steps.version_suffix.outputs.version_suffix }}
@@ -69,9 +73,6 @@ jobs:
           python pyinst.py --onedir
           (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
           python pyinst.py
-    - name: Get SHA2-SUMS
-      id: get_sha
-      run: |
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
@@ -248,6 +249,8 @@ jobs:
 
 
   publish_release:
+    permissions:
+      contents: write  # for action-gh-release
     runs-on: ubuntu-latest
     needs: [prepare, build_unix, build_windows, build_windows32, build_macos, build_macos_legacy]
 
