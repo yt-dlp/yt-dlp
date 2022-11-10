@@ -5866,17 +5866,17 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
         },
         'playlist': [{
-            'url': 'https://www.youtube.com/watch?v=0ouY_g93Wko',
             'info_dict': {
-                'id': 'sSM9J5YH_60',
+                '_type': 'url',
                 'ie_key': 'Youtube',
+                'url': 'https://www.youtube.com/shorts/sSM9J5YH_60',
+                'id': 'sSM9J5YH_60',
                 'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
                 'title': 'SHORT short',
                 'channel': 'cole-dlp-test-acc',
                 'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
                 'view_count': int,
                 'thumbnails': list,
-                '_type': 'url'
             }
         }],
         'params': {'extract_flat': True},
@@ -5890,14 +5890,15 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         },
         'playlist': [{
             'info_dict': {
-                'id': str,
                 '_type': 'url',
+                'ie_key': 'Youtube',
+                'url': 'startswith:https://www.youtube.com/watch?v=',
+                'id': str,
                 'title': str,
                 'live_status': 'is_live',
                 'channel_id': str,
                 'channel_url': str,
                 'concurrent_view_count': int,
-                'ie_key': 'Youtube',
                 'channel': str,
             }
         }],
