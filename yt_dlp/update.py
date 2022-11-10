@@ -37,6 +37,9 @@ def _get_variant_and_executable_path():
             return f'{sys.platform}_dir', path
         if sys.platform == 'darwin' and version_tuple(platform.mac_ver()[0]) < (10, 15):
             return 'darwin_legacy_exe', path
+        machine = platform.machine().lower()
+        if machine == 'aarch64' or machine == 'armv7l':
+            return f'{sys.platform}_{machine}_exe', path
         return f'{sys.platform}_exe', path
 
     path = os.path.dirname(__file__)
@@ -72,6 +75,8 @@ _FILE_SUFFIXES = {
     'darwin_exe': '_macos',
     'darwin_legacy_exe': '_macos_legacy',
     'linux_exe': '_linux',
+    'linux_aarch64_exe': '_linux_aarch64',
+    'linux_armv7l_exe': '_linux_armv7l',
 }
 
 _NON_UPDATEABLE_REASONS = {
@@ -162,12 +167,9 @@ class Updater:
     def release_name(self):
         """The release filename"""
         label = _FILE_SUFFIXES[detect_variant()]
-        if label:
-            machine = platform.machine().lower()
-            if machine == 'aarch64' or machine.startswith('arm'):
-                label += f'_{machine}'
-            elif platform.architecture()[0][:2] == '32':
-                label = f'_x86{label}'
+        machine = platform.machine().lower()
+        if machine != 'aarch64' and machine != 'armv7l' and platform.architecture()[0][:2] == '32':
+            label = f'_x86{label}'
         return f'yt-dlp{label}'
 
     @functools.cached_property
