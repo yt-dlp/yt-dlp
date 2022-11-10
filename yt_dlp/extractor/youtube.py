@@ -3233,7 +3233,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if 'incomplete data' in str(e).lower() and parent:
                     self.report_warning(
                         'Received incomplete data for a comment reply thread and retrying did not help. '
-                        'Ignoring to let other comments be downloaded')
+                        'Ignoring to let other comments be downloaded.')
                 else:
                     raise
             is_forced_continuation = False
