@@ -1647,7 +1647,10 @@ class InfoExtractor:
         FUNCTION_RE = r'\(function\((?P<arg_keys>.*?)\){return\s+(?P<js>{.*?})\s*;?\s*}\((?P<arg_vals>.*?)\)'
         js, arg_keys, arg_vals = self._search_regex(
             (rf'<script>\s*window\.{rectx}={FUNCTION_RE}\s*\)\s*;?\s*</script>', rf'{rectx}\(.*?{FUNCTION_RE}'),
-            webpage, context_name, group=('js', 'arg_keys', 'arg_vals'), fatal=fatal)
+            webpage, context_name, group=('js', 'arg_keys', 'arg_vals'),
+            default=NO_DEFAULT if fatal else (None, None, None))
+        if js is None:
+            return {}
 
         args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
 
