@@ -933,7 +933,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 video_id, default=None, group='duration'))
 
         # videoInfo is a string like '50K views • 10 years ago'.
-        view_count_text = self._get_text(renderer,  'viewCountText', 'shortViewCountText', 'videoInfo') or ''
+        view_count_text = self._get_text(renderer, 'viewCountText', 'shortViewCountText', 'videoInfo') or ''
         if 'no views' in view_count_text.lower():
             view_count = 0
         else:
@@ -948,9 +948,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             or self._get_text(reel_header_renderer, 'channelTitleText')
         )
         time_text = (
-           self._get_text(renderer, 'publishedTimeText', 'videoInfo')
-           or self._get_text(reel_header_renderer, 'timestampText')
-           or ''
+            self._get_text(renderer, 'publishedTimeText', 'videoInfo')
+            or self._get_text(reel_header_renderer, 'timestampText') or ''
         )
         scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
         overlay_style = traverse_obj(
@@ -5505,7 +5504,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': '#cctv9',
             'tags': [],
         },
-        'playlist_mincount': 350,
+        'playlist_mincount': 300,  # not consistent but should be over 300
     }, {
         'url': 'https://www.youtube.com/watch?list=PLW4dVinRY435CBE_JD3t-0SRXKfnZHS1P&feature=youtu.be&v=M9cJMXmQ_ZU',
         'only_matching': True,
@@ -5692,7 +5691,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
             'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
-            'description': '',
+            'description': 'test description',
             'title': 'cole-dlp-test-acc - 再生リスト',
             'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
             'uploader': 'cole-dlp-test-acc',
@@ -5882,10 +5881,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         }],
         'params': {'extract_flat': True},
     }, {
+        # Live video status should be extracted
         'url': 'https://www.youtube.com/channel/UCQvWX73GQygcwXOTSf_VDVg/live',
         'info_dict': {
             'id': 'UCQvWX73GQygcwXOTSf_VDVg',
-            'title': 'UCQvWX73GQygcwXOTSf_VDVg - Live',  # TODO
+            'title': 'UCQvWX73GQygcwXOTSf_VDVg - Live',  # TODO, should be Minecraft - Live or Minecraft - Topic - Live
             'tags': []
         },
         'playlist': [{
