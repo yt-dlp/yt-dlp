@@ -33,17 +33,17 @@ def _get_variant_and_executable_path():
         path = sys.executable
         if not hasattr(sys, '_MEIPASS'):
             return 'py2exe', path
-        if sys._MEIPASS == os.path.dirname(path):
+        elif sys._MEIPASS == os.path.dirname(path):
             return f'{sys.platform}_dir', path
-        if sys.platform == 'darwin' and version_tuple(platform.mac_ver()[0]) < (10, 15):
+        elif sys.platform == 'darwin' and version_tuple(platform.mac_ver()[0]) < (10, 15):
             return 'darwin_legacy_exe', path
         return f'{sys.platform}_exe', path
 
     path = os.path.dirname(__file__)
     if isinstance(__loader__, zipimporter):
         return 'zip', os.path.join(path, '..')
-    if (os.path.basename(sys.argv[0]) in ('__main__.py', '-m')
-            and os.path.exists(os.path.join(path, '../.git/HEAD'))):
+    elif (os.path.basename(sys.argv[0]) in ('__main__.py', '-m')
+          and os.path.exists(os.path.join(path, '../.git/HEAD'))):
         return 'source', path
     return 'unknown', path
 
@@ -281,7 +281,7 @@ class Updater:
         # There is no sys.orig_argv in py < 3.10. Also, it can be [] when frozen
         if getattr(sys, 'orig_argv', None):
             return sys.orig_argv
-        if getattr(sys, 'frozen', False):
+        elif getattr(sys, 'frozen', False):
             return sys.argv
 
     def restart(self):
