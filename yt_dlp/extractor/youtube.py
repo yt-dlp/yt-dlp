@@ -3237,11 +3237,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 note_prefix = '%sDownloading comment%s API JSON page %d %s' % (
                     '       ' if parent else '', ' replies' if parent else '',
                     page_num, comment_prog_str)
-
-            response = self._extract_response(
-                item_id=None, query=continuation,
-                ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
-                check_get_keys='onResponseReceivedEndpoints' if not is_forced_continuation else None)
+            try:
+                response = self._extract_response(
+                    item_id=None, query=continuation,
+                    ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
+                    check_get_keys='onResponseReceivedEndpoints' if not is_forced_continuation else None)
+            except ExtractorError as e:
+                # Ignore incomplete data error for replies if retries didn't work.
+                # This is to allow any other parent comments and comment threads to be downloaded.
+                # See: https://github.com/yt-dlp/yt-dlp/issues/4669
+                if 'incomplete data' in str(e).lower() and parent and self.get_param('ignoreerrors') is True:
+                    self.report_warning(
+                        'Received incomplete data for a comment reply thread and retrying did not help. '
+                        'Ignoring to let other comments be downloaded.')
+                else:
+                    raise
             is_forced_continuation = False
             continuation_contents = traverse_obj(
                 response, 'onResponseReceivedEndpoints', expected_type=list, default=[])
