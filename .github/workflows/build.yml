@@ -65,7 +65,6 @@ jobs:
           auto-update-conda: true
           activate-environment: ''
           auto-activate-base: false
-
     - name: Install Requirements
       run: |
           sudo apt-get -y install zip pandoc man sed
@@ -80,20 +79,18 @@ jobs:
       run: |
           python devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
           python devscripts/make_lazy_extractors.py
-
     - name: Build Unix platform-independent binary
       run: |
           make all tar
-
     - name: Build Unix standalone binary
       shell: bash -l {0}
       run: |
-          unset LD_LIBRARY_PATH # considered harmful, set by setup-python@v4
+          unset LD_LIBRARY_PATH  # Harmful; set by setup-python
           conda activate build
           python pyinst.py --onedir
           (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
           python pyinst.py
-           
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
