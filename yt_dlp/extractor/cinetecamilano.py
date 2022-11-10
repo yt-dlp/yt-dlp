@@ -1,5 +1,5 @@
-from json import JSONDecodeError
-from urllib.error import HTTPError
+import json
+import urllib.error
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -40,8 +40,8 @@ class CinetecaMilanoIE(InfoExtractor):
                     'Authorization': try_get(self._get_cookies('https://www.cinetecamilano.it'), lambda x: f'Bearer {x["cnt-token"].value}') or ''
                 })
         except ExtractorError as e:
-            if (isinstance(e.cause, HTTPError) and e.cause.code == 500) or \
-                    isinstance(e.cause, JSONDecodeError):
+            if (isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 500) or \
+                    isinstance(e.cause, json.JSONDecodeError):
                 self.raise_login_required(method='cookies')
             raise
         if not film_json.get('success') or not film_json.get('archive'):
