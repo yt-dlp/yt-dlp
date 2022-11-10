@@ -115,7 +115,7 @@ jobs:
 
   build_linux_arm:
       needs: prepare
-      runs-on: ubuntu-18.04  # Standalone executable should be built on minimum supported OS
+      runs-on: ubuntu-latest
       strategy:
         matrix:
           architecture:
@@ -319,8 +319,8 @@ jobs:
           sha256sum artifact/yt-dlp_macos | awk '{print $1 "  yt-dlp_macos"}' >> SHA2-256SUMS
           sha256sum artifact/yt-dlp_macos.zip | awk '{print $1 "  yt-dlp_macos.zip"}' >> SHA2-256SUMS
           sha256sum artifact/yt-dlp_macos_legacy | awk '{print $1 "  yt-dlp_macos_legacy"}' >> SHA2-256SUMS
-          sha256sum artifact/yt-dlp_armv7l_linux | awk '{print $1 "  yt-dlp_armv7l_linux"}' >> SHA2-256SUMS
-          sha256sum artifact/yt-dlp_aarch64_linux | awk '{print $1 "  yt-dlp_aarch64_linux"}' >> SHA2-256SUMS
+          sha256sum artifact/yt-dlp_linux_armv7l | awk '{print $1 "  yt-dlp_linux_armv7l"}' >> SHA2-256SUMS
+          sha256sum artifact/yt-dlp_linux_aarch64 | awk '{print $1 "  yt-dlp_linux_aarch64"}' >> SHA2-256SUMS
           sha256sum artifact/dist/yt-dlp_linux | awk '{print $1 "  yt-dlp_linux"}' >> SHA2-256SUMS
           sha256sum artifact/dist/yt-dlp_linux.zip | awk '{print $1 "  yt-dlp_linux.zip"}' >> SHA2-256SUMS
           sha512sum artifact/yt-dlp | awk '{print $1 "  yt-dlp"}' >> SHA2-512SUMS
@@ -332,8 +332,8 @@ jobs:
           sha512sum artifact/yt-dlp_macos | awk '{print $1 "  yt-dlp_macos"}' >> SHA2-512SUMS
           sha512sum artifact/yt-dlp_macos.zip | awk '{print $1 "  yt-dlp_macos.zip"}' >> SHA2-512SUMS
           sha512sum artifact/yt-dlp_macos_legacy | awk '{print $1 "  yt-dlp_macos_legacy"}' >> SHA2-512SUMS
-          sha512sum artifact/yt-dlp_armv7l_linux | awk '{print $1 "  yt-dlp_armv7l_linux"}' >> SHA2-512SUMS
-          sha512sum artifact/yt-dlp_aarch64_linux | awk '{print $1 "  yt-dlp_aarch64_linux"}' >> SHA2-512SUMS
+          sha512sum artifact/yt-dlp_linux_armv7l | awk '{print $1 "  yt-dlp_linux_armv7l"}' >> SHA2-512SUMS
+          sha512sum artifact/yt-dlp_linux_aarch64 | awk '{print $1 "  yt-dlp_linux_aarch64"}' >> SHA2-512SUMS
           sha512sum artifact/dist/yt-dlp_linux | awk '{print $1 "  yt-dlp_linux"}' >> SHA2-512SUMS
           sha512sum artifact/dist/yt-dlp_linux.zip | awk '{print $1 "  yt-dlp_linux.zip"}' >> SHA2-512SUMS
 
@@ -366,8 +366,8 @@ jobs:
           artifact/yt-dlp_macos
           artifact/yt-dlp_macos.zip
           artifact/yt-dlp_macos_legacy
-          artifact/yt-dlp_armv7l_linux
-          artifact/yt-dlp_aarch64_linux
+          artifact/yt-dlp_linux_armv7l
+          artifact/yt-dlp_linux_aarch64
           artifact/dist/yt-dlp_linux
           artifact/dist/yt-dlp_linux.zip
           _update_spec
