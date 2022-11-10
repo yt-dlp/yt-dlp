@@ -913,10 +913,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_video(self, renderer):
         video_id = renderer.get('videoId')
 
-        reel_header_renderer = traverse_obj(
-            renderer, (
-                'navigationEndpoint', 'reelWatchEndpoint', 'overlay', 'reelPlayerOverlayRenderer',
-                'reelPlayerHeaderSupportedRenderers', 'reelPlayerHeaderRenderer'))
+        reel_header_renderer = traverse_obj(renderer, (
+            'navigationEndpoint', 'reelWatchEndpoint', 'overlay', 'reelPlayerOverlayRenderer',
+            'reelPlayerHeaderSupportedRenderers', 'reelPlayerHeaderRenderer'))
 
         title = self._get_text(renderer, 'title', 'headline') or self._get_text(reel_header_renderer, 'reelTitleText')
         description = self._get_text(renderer, 'descriptionSnippet')
@@ -932,31 +931,17 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label'), default='', expected_type=str),
                 video_id, default=None, group='duration'))
 
-        # videoInfo is a string like '50K views • 10 years ago'.
-        view_count_text = self._get_text(renderer, 'viewCountText', 'shortViewCountText', 'videoInfo') or ''
-        if 'no views' in view_count_text.lower():
-            view_count = 0
-        else:
-            view_count = self._get_count({'simpleText': view_count_text})
         channel_id = traverse_obj(
             renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'),
             expected_type=str, get_all=False)
         if not channel_id:
             channel_id = traverse_obj(reel_header_renderer, ('channelNavigationEndpoint', 'browseEndpoint', 'browseId'))
-        channel = (
-            self._get_text(renderer, 'ownerText', 'shortBylineText')
-            or self._get_text(reel_header_renderer, 'channelTitleText')
-        )
-        time_text = (
-            self._get_text(renderer, 'publishedTimeText', 'videoInfo')
-            or self._get_text(reel_header_renderer, 'timestampText') or ''
-        )
-        scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
+
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
             get_all=False, expected_type=str)
         badges = self._extract_badges(renderer)
-        thumbnails = self._extract_thumbnails(renderer, 'thumbnail')
+
         navigation_url = urljoin('https://www.youtube.com/', traverse_obj(
             renderer, ('navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url'),
             expected_type=str)) or ''
@@ -964,11 +949,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if overlay_style == 'SHORTS' or '/shorts/' in navigation_url:
             url = f'https://www.youtube.com/shorts/{video_id}'
 
+        time_text = (self._get_text(renderer, 'publishedTimeText', 'videoInfo')
+                     or self._get_text(reel_header_renderer, 'timestampText') or '')
+        scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
+
         live_status = (
             'is_upcoming' if scheduled_timestamp is not None
             else 'was_live' if 'streamed' in time_text.lower()
             else 'is_live' if overlay_style == 'LIVE' or self._has_badge(badges, BadgeType.LIVE_NOW)
             else None)
+
+        # videoInfo is a string like '50K views • 10 years ago'.
+        view_count_text = self._get_text(renderer, 'viewCountText', 'shortViewCountText', 'videoInfo') or ''
+        view_count = (0 if 'no views' in view_count_text.lower()
+                      else self._get_count({'simpleText': view_count_text}))
+        view_count_field = 'concurrent_view_count' if live_status in ('is_live', 'is_upcoming') else 'view_count'
 
         return {
             '_type': 'url',
@@ -979,9 +974,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'description': description,
             'duration': duration,
             'channel_id': channel_id,
-            'channel': channel,
+            'channel': (self._get_text(renderer, 'ownerText', 'shortBylineText')
+                        or self._get_text(reel_header_renderer, 'channelTitleText')),
             'channel_url': f'https://www.youtube.com/channel/{channel_id}' if channel_id else None,
-            'thumbnails': thumbnails,
+            'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
             'timestamp': (self._parse_time_text(time_text)
                           if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
                           else None),
@@ -993,7 +989,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     needs_premium=self._has_badge(badges, BadgeType.AVAILABILITY_PREMIUM) or None,
                     needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
                     is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None),
-            'concurrent_view_count' if live_status in ('is_live', 'is_upcoming') else 'view_count': view_count,
+            view_count_field: view_count,
             'live_status': live_status
         }
 
