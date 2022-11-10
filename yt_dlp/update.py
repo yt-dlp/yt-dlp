@@ -164,8 +164,8 @@ class Updater:
         label = _FILE_SUFFIXES[detect_variant()]
         if label:
             machine = platform.machine().lower()
-            if machine == 'aarch64' or machine.startswith("arm"):
-                label = f'_{machine}{label}'
+            if machine == 'aarch64' or machine.startswith('arm'):
+                label += f'_{machine}'
             elif platform.architecture()[0][:2] == '32':
                 label = f'_x86{label}'
         return f'yt-dlp{label}'

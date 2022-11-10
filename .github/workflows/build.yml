@@ -113,7 +113,7 @@ jobs:
         git -C taps/ push
 
 
-  build_unix_arm:
+  build_linux_arm:
       needs: prepare
       runs-on: ubuntu-18.04  # Standalone executable should be built on minimum supported OS
       strategy:
@@ -131,36 +131,30 @@ jobs:
         uses: uraimo/run-on-arch-action@v2
         with:
           arch: ${{ matrix.architecture }}
-          distro: ubuntu18.04
-
+          distro: ubuntu18.04  # Standalone executable should be built on minimum supported OS
           setup: |
             mkdir -p "${PWD}/artifacts"
-
-          # Setup shared volume folders between the host container and the child container
           dockerRunArgs: |
             --volume "${PWD}/repo:/repo"
             --volume "${PWD}/artifacts:/artifacts"
-            
-          # Additional shell commands to be executed in the docker container as part of docker build. Will be included in the cached docker image if githubToken is set 
           install: |
             apt update
             apt -y install zlib1g-dev python3.8 python3.8-dev python3.8-distutils python3-pip
 
-          # The installation, preparation and build steps have been merged together since there's only a single run step in the action
           run: |
             cd repo
             python3.8 -m pip install Pyinstaller -r requirements.txt
             python3.8 devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
             python3.8 devscripts/make_lazy_extractors.py
             python3.8 pyinst.py
-            cp dist/yt-dlp_linux* ../artifacts/yt-dlp_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}_linux
+            cp dist/yt-dlp_linux* ../artifacts/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           # Because uraimo/run-on-arch-action designates armv7l as armv7, we need to use this wonky workaround to fix the naming scheme
           path: |
-            artifacts/yt-dlp_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}_linux
+            artifacts/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
 
   build_macos:
     runs-on: macos-11
@@ -298,7 +292,7 @@ jobs:
 
   publish_release:
     runs-on: ubuntu-latest
-    needs: [prepare, build_unix, build_unix_arm, build_windows, build_windows32, build_macos, build_macos_legacy]
+    needs: [prepare, build_unix, build_linux_arm, build_windows, build_windows32, build_macos, build_macos_legacy]
 
     steps:
     - uses: actions/checkout@v3
