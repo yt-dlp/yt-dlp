@@ -926,7 +926,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             duration = parse_duration(self._get_text(
                 renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
         if duration is None:
-            # TODO: for shorts in shorts tab
+            # XXX: should write a parser to be more general to support more cases (e.g. shorts in shorts tab)
             duration = parse_duration(self._search_regex(
                 r'(?i)(ago)(?!.*\1)\s+(?P<duration>[a-z0-9 ,]+?)(?:\s+[\d,]+\s+views)?(?:\s+-\s+play\s+short)?$',
                 traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label'), default='', expected_type=str),
@@ -5881,6 +5881,28 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             }
         }],
         'params': {'extract_flat': True},
+    }, {
+        'url': 'https://www.youtube.com/channel/UCQvWX73GQygcwXOTSf_VDVg/live',
+        'info_dict': {
+            'id': 'UCQvWX73GQygcwXOTSf_VDVg',
+            'title': 'UCQvWX73GQygcwXOTSf_VDVg - Live',  # TODO
+            'tags': []
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': str,
+                '_type': 'url',
+                'title': str,
+                'live_status': 'is_live',
+                'channel_id': str,
+                'channel_url': str,
+                'concurrent_view_count': int,
+                'ie_key': 'Youtube',
+                'channel': str,
+            }
+        }],
+        'params': {'extract_flat': True},
+        'playlist_mincount': 1
     }]
 
     @classmethod
