@@ -174,6 +174,7 @@ class Updater:
 
     def _report_error(self, msg, expected=False):
         self.ydl.report_error(msg, tb=False if expected else None)
+        self.ydl._download_retcode = 100
 
     def _report_permission_error(self, file):
         self._report_error(f'Unable to write to {file}; Try running as administrator', True)

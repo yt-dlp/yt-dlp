@@ -294,9 +294,10 @@ def create_parser():
 
         aliases = (x if x.startswith('-') else f'--{x}' for x in map(str.strip, aliases.split(',')))
         try:
+            args = [f'ARG{i}' for i in range(nargs)]
             alias_group.add_option(
-                *aliases, help=opts, nargs=nargs, dest=parser.ALIAS_DEST, type='str' if nargs else None,
-                metavar=' '.join(f'ARG{i}' for i in range(nargs)), action='callback',
+                *aliases, nargs=nargs, dest=parser.ALIAS_DEST, type='str' if nargs else None,
+                metavar=' '.join(args), help=opts.format(*args), action='callback',
                 callback=_alias_callback, callback_kwargs={'opts': opts, 'nargs': nargs})
         except Exception as err:
             raise optparse.OptionValueError(f'wrong {opt_str} formatting; {err}')
@@ -549,11 +550,11 @@ def create_parser():
     selection.add_option(
         '--min-filesize',
         metavar='SIZE', dest='min_filesize', default=None,
-        help='Do not download any videos smaller than SIZE, e.g. 50k or 44.6M')
+        help='Abort download if filesize is smaller than SIZE, e.g. 50k or 44.6M')
     selection.add_option(
         '--max-filesize',
         metavar='SIZE', dest='max_filesize', default=None,
-        help='Do not download any videos larger than SIZE, e.g. 50k or 44.6M')
+        help='Abort download if filesize if larger than SIZE, e.g. 50k or 44.6M')
     selection.add_option(
         '--date',
         metavar='DATE', dest='date', default=None,

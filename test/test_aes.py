@@ -11,7 +11,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import base64
 
 from yt_dlp.aes import (
-    BLOCK_SIZE_BYTES,
     aes_cbc_decrypt,
     aes_cbc_decrypt_bytes,
     aes_cbc_encrypt,
@@ -103,8 +102,7 @@ class TestAES(unittest.TestCase):
 
     def test_ecb_encrypt(self):
         data = bytes_to_intlist(self.secret_msg)
-        data += [0x08] * (BLOCK_SIZE_BYTES - len(data) % BLOCK_SIZE_BYTES)
-        encrypted = intlist_to_bytes(aes_ecb_encrypt(data, self.key, self.iv))
+        encrypted = intlist_to_bytes(aes_ecb_encrypt(data, self.key))
         self.assertEqual(
             encrypted,
             b'\xaa\x86]\x81\x97>\x02\x92\x9d\x1bR[[L/u\xd3&\xd1(h\xde{\x81\x94\xba\x02\xae\xbd\xa6\xd0:')

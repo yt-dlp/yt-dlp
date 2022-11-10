@@ -161,7 +161,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         ac_idx = parse_qs(url).get('ac', [None])[-1]
-        video_id = f'{video_id}{format_field(ac_idx, template="__%s")}'
+        video_id = f'{video_id}{format_field(ac_idx, None, "__%s")}'
 
         webpage = self._download_webpage(url, video_id)
         json_bangumi_data = self._search_json(r'window.bangumiData\s*=', webpage, 'bangumiData', video_id)
