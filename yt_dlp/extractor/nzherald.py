@@ -107,7 +107,7 @@ class NZHeraldIE(InfoExtractor):
                 if custom_video_id:
                     video_metadata = self._download_json(
                         'https://www.nzherald.co.nz/pf/api/v3/content/fetch/full-content-by-id', article_id,
-                        query={'query': json.dumps({'id': f'{custom_video_id}', 'site': 'nzh'}), '_website': 'nzh'})
+                        query={'query': json.dumps({'id': custom_video_id, 'site': 'nzh'}), '_website': 'nzh'})
             bc_video_id = traverse_obj(
                 video_metadata or fusion_metadata,  # fusion metadata is the video metadata for video-only pages
                 'brightcoveId', ('content_elements', ..., 'referent', 'id'),
