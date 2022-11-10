@@ -222,6 +222,10 @@ def sanitize_got_info_dict(got_dict):
     if test_info_dict.get('display_id') == test_info_dict.get('id'):
         test_info_dict.pop('display_id')
 
+    # Check url for flat entries
+    if got_dict.get('_type', 'video') != 'video' and got_dict.get('url'):
+        test_info_dict['url'] = got_dict['url']
+
     return test_info_dict
 
 
@@ -235,8 +239,9 @@ def expect_info_dict(self, got_dict, expected_dict):
         for key in mandatory_fields:
             self.assertTrue(got_dict.get(key), 'Missing mandatory field %s' % key)
     # Check for mandatory fields that are automatically set by YoutubeDL
-    for key in ['webpage_url', 'extractor', 'extractor_key']:
-        self.assertTrue(got_dict.get(key), 'Missing field: %s' % key)
+    if got_dict.get('_type', 'video') == 'video':
+        for key in ['webpage_url', 'extractor', 'extractor_key']:
+            self.assertTrue(got_dict.get(key), 'Missing field: %s' % key)
 
     test_info_dict = sanitize_got_info_dict(got_dict)
 
