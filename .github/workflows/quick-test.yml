@@ -1,8 +1,7 @@
 name: Quick Test
 on: [push, pull_request]
-
 permissions:
-  contents: read  #  to fetch code (actions/checkout)
+  contents: read
 
 jobs:
   tests:
