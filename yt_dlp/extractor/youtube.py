@@ -3270,6 +3270,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
         if message and not parent and tracker['running_total'] == 0:
             self.report_warning(f'Youtube said: {message}', video_id=video_id, only_once=True)
+            raise self.CommentsDisabled
 
     @staticmethod
     def _generate_comment_continuation(video_id):
