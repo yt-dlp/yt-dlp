@@ -34,14 +34,14 @@ class CinetecaMilanoIE(InfoExtractor):
         video_id = self._match_id(url)
         try:
             film_json = self._download_json(
-                f'https://www.cinetecamilano.it/api/catalogo/{video_id}',
+                f'https://www.cinetecamilano.it/api/catalogo/{video_id}/?',
                 video_id, headers={
                     'Referer': url,
                     'Authorization': try_get(self._get_cookies('https://www.cinetecamilano.it'), lambda x: f'Bearer {x["cnt-token"].value}') or ''
                 })
         except ExtractorError as e:
-            if (isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 500) or \
-                    isinstance(e.cause, json.JSONDecodeError):
+            if ((isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 500)
+                    or isinstance(e.cause, json.JSONDecodeError)):
                 self.raise_login_required(method='cookies')
             raise
         if not film_json.get('success') or not film_json.get('archive'):
