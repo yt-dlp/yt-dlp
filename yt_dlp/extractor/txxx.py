@@ -35,8 +35,7 @@ class TxxxBaseIE(InfoExtractor):
     }
 
     def _decode_base64(self, text):
-        for from_char, to_char in self._BASE64_CHAR_REPL_MAP.items():
-            text = text.replace(from_char, to_char)
+        text = text.translate(text.maketrans(self._BASE64_CHAR_REPL_MAP))
         return base64.b64decode(text).decode('utf-8')
 
     def _get_format_id(self, format_id):
