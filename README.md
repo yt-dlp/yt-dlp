@@ -12,7 +12,7 @@
 [![License: Unlicense](https://img.shields.io/badge/-Unlicense-blue.svg?style=for-the-badge)](LICENSE "License")
 [![CI Status](https://img.shields.io/github/workflow/status/yt-dlp/yt-dlp/Core%20Tests/master?label=Tests&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/actions "CI Status")
 [![Commits](https://img.shields.io/github/commit-activity/m/yt-dlp/yt-dlp?label=commits&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
-[![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master?label=&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
+[![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master?label=&style=for-the-badge&display_timestamp=committer)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
 
 </div>
 <!-- MANPAGE: END EXCLUDED SECTION -->
@@ -88,7 +88,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * Supports some (but not all) age-gated content without cookies
     * Download livestreams from the start using `--live-from-start` (*experimental*)
     * `255kbps` audio is extracted (if available) from YouTube Music when premium cookies are given
-    * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
+    * Channel URLs download all uploads of the channel, including shorts and live
 
 * **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE][::CONTAINER]`
 
@@ -142,7 +142,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * `playlist_index` behaves differently when used with options like `--playlist-reverse` and `--playlist-items`. See [#302](https://github.com/yt-dlp/yt-dlp/issues/302) for details. You can use `--compat-options playlist-index` if you want to keep the earlier behavior
 * The output of `-F` is listed in a new format. Use `--compat-options list-formats` to revert this
 * Live chats (if available) are considered as subtitles. Use `--sub-langs all,-live_chat` to download all subtitles except live chat. You can also use `--compat-options no-live-chat` to prevent any live chat/danmaku from downloading
-* YouTube channel URLs are automatically redirected to `/video`. Append a `/featured` to the URL to download only the videos in the home page. If the channel does not have a videos tab, we try to download the equivalent `UU` playlist instead. For all other tabs, if the channel does not show the requested tab, an error will be raised. Also, `/live` URLs raise an error if there are no live videos instead of silently downloading the entire channel. You may use `--compat-options no-youtube-channel-redirect` to revert all these redirections
+* YouTube channel URLs download all uploads of the channel. To download only the videos in a specific tab, pass the tab's URL. If the channel does not show the requested tab, an error will be raised. Also, `/live` URLs raise an error if there are no live videos instead of silently downloading the entire channel. You may use `--compat-options no-youtube-channel-redirect` to revert all these redirections
 * Unavailable videos are also listed for YouTube playlists. Use `--compat-options no-youtube-unavailable-videos` to remove this
 * The upload dates extracted from YouTube are in UTC [when available](https://github.com/yt-dlp/yt-dlp/blob/89e4d86171c7b7c997c77d4714542e0383bf0db0/yt_dlp/extractor/youtube.py#L3898-L3900). Use `--compat-options no-youtube-prefer-utc-upload-date` to prefer the non-UTC upload date.
 * If `ffmpeg` is used as the downloader, the downloading and merging of formats happen in a single step when possible. Use `--compat-options no-direct-merge` to revert this
@@ -1644,9 +1644,9 @@ The metadata obtained by the extractors can be modified by using `--parse-metada
 
 `--replace-in-metadata FIELDS REGEX REPLACE` is used to replace text in any metadata field using [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax). [Backreferences](https://docs.python.org/3/library/re.html?highlight=backreferences#re.sub) can be used in the replace string for advanced use.
 
-The general syntax of `--parse-metadata FROM:TO` is to give the name of a field or an [output template](#output-template) to extract data from, and the format to interpret it as, separated by a colon `:`. Either a [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) with named capture groups or a similar syntax to the [output template](#output-template) (only `%(field)s` formatting is supported) can be used for `TO`. The option can be used multiple times to parse and modify various fields.
+The general syntax of `--parse-metadata FROM:TO` is to give the name of a field or an [output template](#output-template) to extract data from, and the format to interpret it as, separated by a colon `:`. Either a [python regular expression](https://docs.python.org/3/library/re.html#regular-expression-syntax) with named capture groups, a single field name, or a similar syntax to the [output template](#output-template) (only `%(field)s` formatting is supported) can be used for `TO`. The option can be used multiple times to parse and modify various fields.
 
-Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--embed-metadata`.
+Note that these options preserve their relative order, allowing replacements to be made in parsed fields and viceversa. Also, any field thus created can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--embed-metadata`.
 
 This option also has a few special uses:
 
@@ -1735,11 +1735,7 @@ The following extractors use this feature:
 * `language`: Audio languages to extract, e.g. `funimation:language=english,japanese`
 * `version`: The video version to extract - `uncut` or `simulcast`
 
-#### crunchyroll
-* `language`: Audio languages to extract, e.g. `crunchyroll:language=jaJp`
-* `hardsub`: Which hard-sub versions to extract, e.g. `crunchyroll:hardsub=None,enUS`
-
-#### crunchyrollbeta
+#### crunchyrollbeta (Crunchyroll)
 * `format`: Which stream type(s) to extract (default: `adaptive_hls`). Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `download_dash`, `multitrack_adaptive_hls_v2`
 * `hardsub`: Preference order for which hardsub versions to extract, or `all` (default: `None` = no hardsubs), e.g. `crunchyrollbeta:hardsub=en-US,None`
 

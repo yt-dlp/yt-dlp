@@ -368,7 +368,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 or '正在观看预览，大会员免费看全片' in webpage):
             self.raise_login_required('This video is for premium members only')
 
-        play_info = self._search_json(r'window\.__playinfo__\s*=\s*', webpage, 'play info', video_id)['data']
+        play_info = self._search_json(r'window\.__playinfo__\s*=', webpage, 'play info', video_id)['data']
         formats = self.extract_formats(play_info)
         if (not formats and '成为大会员抢先看' in webpage
                 and play_info.get('durl') and not play_info.get('dash')):

@@ -3725,7 +3725,8 @@ class InfoExtractor:
         if not cls.working():
             desc += ' (**Currently broken**)' if markdown else ' (Currently broken)'
 
-        name = f' - **{cls.IE_NAME}**' if markdown else cls.IE_NAME
+        # Escape emojis. Ref: https://github.com/github/markup/issues/1153
+        name = (' - **%s**' % re.sub(r':(\w+:)', ':\u200B\\g<1>', cls.IE_NAME)) if markdown else cls.IE_NAME
         return f'{name}:{desc}' if desc else name
 
     def extract_subtitles(self, *args, **kwargs):
@@ -3736,6 +3737,9 @@ class InfoExtractor:
 
     def _get_subtitles(self, *args, **kwargs):
         raise NotImplementedError('This method must be implemented by subclasses')
+
+    class CommentsDisabled(Exception):
+        """Raise in _get_comments if comments are disabled for the video"""
 
     def extract_comments(self, *args, **kwargs):
         if not self.get_param('getcomments'):
@@ -3752,6 +3756,8 @@ class InfoExtractor:
                 interrupted = False
             except KeyboardInterrupt:
                 self.to_screen('Interrupted by user')
+            except self.CommentsDisabled:
+                return {'comments': None, 'comment_count': None}
             except Exception as e:
                 if self.get_param('ignoreerrors') is not True:
                     raise

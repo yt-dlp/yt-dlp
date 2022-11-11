@@ -2400,40 +2400,6 @@ class GenericIE(InfoExtractor):
             }
         },
         {
-            'note': 'Rumble embed',
-            'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html',
-            'md5': '53af34098a7f92c4e51cf0bd1c33f009',
-            'info_dict': {
-                'id': 'vb0ofn',
-                'ext': 'mp4',
-                'timestamp': 1612662578,
-                'uploader': 'LovingMontana',
-                'channel': 'LovingMontana',
-                'upload_date': '20210207',
-                'title': 'Winter-loving dog helps girls dig a snow fort ',
-                'channel_url': 'https://rumble.com/c/c-546523',
-                'thumbnail': 'https://sp.rmbl.ws/s8/1/5/f/x/x/5fxxb.OvCc.1-small-Moose-The-Dog-Helps-Girls-D.jpg',
-                'duration': 103,
-            }
-        },
-        {
-            'note': 'Rumble JS embed',
-            'url': 'https://therightscoop.com/what-does-9-plus-1-plus-1-equal-listen-to-this-audio-of-attempted-kavanaugh-assassins-call-and-youll-get-it',
-            'md5': '4701209ac99095592e73dbba21889690',
-            'info_dict': {
-                'id': 'v15eqxl',
-                'ext': 'mp4',
-                'channel': 'Mr Producer Media',
-                'duration': 92,
-                'title': '911 Audio From The Man Who Wanted To Kill Supreme Court Justice Kavanaugh',
-                'channel_url': 'https://rumble.com/c/RichSementa',
-                'thumbnail': 'https://sp.rmbl.ws/s8/1/P/j/f/A/PjfAe.OvCc-small-911-Audio-From-The-Man-Who-.jpg',
-                'timestamp': 1654892716,
-                'uploader': 'Mr Producer Media',
-                'upload_date': '20220610',
-            }
-        },
-        {
             'note': 'JSON LD with multiple @type',
             'url': 'https://www.nu.nl/280161/video/hoe-een-bladvlo-dit-verwoestende-japanse-onkruid-moet-vernietigen.html',
             'md5': 'c7949f34f57273013fb7ccb1156393db',
