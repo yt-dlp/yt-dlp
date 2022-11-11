@@ -4286,7 +4286,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if smuggled_data:
                 _smuggle(info_dict, smuggled_data)
                 if info_dict.get('entries'):
-                    info_dict['entries'] = (_smuggle(i, smuggled_data) for i in info_dict['entries'])
+                    info_dict['entries'] = (_smuggle(i, smuggled_data.copy()) for i in info_dict['entries'])
             return info_dict
         return wrapper
 
