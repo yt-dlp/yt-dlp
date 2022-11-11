@@ -18,7 +18,7 @@ body:
       options:
         - label: I'm reporting a broken site
           required: true
-        - label: I've verified that I'm running yt-dlp version **2022.10.04** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
+        - label: I've verified that I'm running yt-dlp version **2022.11.11** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
           required: true
         - label: I've checked that all provided URLs are playable in a browser with the same IP and same login details
           required: true
@@ -62,7 +62,7 @@ body:
         [debug] Command-line config: ['-vU', 'test:youtube']
         [debug] Portable config "yt-dlp.conf": ['-i']
         [debug] Encodings: locale cp65001, fs utf-8, pref cp65001, out utf-8, error utf-8, screen utf-8
-        [debug] yt-dlp version 2022.10.04 [9d339c4] (win32_exe)
+        [debug] yt-dlp version 2022.11.11 [9d339c4] (win32_exe)
         [debug] Python 3.8.10 (CPython 64bit) - Windows-10-10.0.22000-SP0
         [debug] Checking exe version: ffmpeg -bsfs
         [debug] Checking exe version: ffprobe -bsfs
@@ -70,8 +70,8 @@ body:
         [debug] Optional libraries: Cryptodome-3.15.0, brotli-1.0.9, certifi-2022.06.15, mutagen-1.45.1, sqlite3-2.6.0, websockets-10.3
         [debug] Proxy map: {}
         [debug] Fetching release info: https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest
-        Latest version: 2022.10.04, Current version: 2022.10.04
-        yt-dlp is up to date (2022.10.04)
+        Latest version: 2022.11.11, Current version: 2022.11.11
+        yt-dlp is up to date (2022.11.11)
         <more lines>
       render: shell
     validations:
