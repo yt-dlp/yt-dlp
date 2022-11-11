@@ -24,11 +24,11 @@ class RecurbateIE(InfoExtractor):
 
         video_url = f'https://recurbate.com/api/get.php?video={video_id}&token={token}'
         video_webpage = self._download_webpage(video_url, video_id)
-        if 'shall_signin' in video_webpage[:20]:
-            self.raise_login_required(method='cookies')
 
         entries = self._parse_html5_media_entries(video_url, video_webpage, video_id)
         if not entries:
+            if 'shall_signin' in video_webpage[:20]:
+                self.raise_login_required(method='cookies')
             raise ExtractorError('No media links found')
         return merge_dicts({
             'id': video_id,
