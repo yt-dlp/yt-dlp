@@ -5,7 +5,6 @@ import subprocess
 import sys
 import traceback
 from enum import Enum
-from typing import Protocol
 
 from .hoodoo import Color, TermCode, format_text
 from ..compat import functools
@@ -32,7 +31,21 @@ class Verbosity(Enum):
     VERBOSE = 2
 
 
-class StreamOutput:
+class _OutputBase:
+    allow_bidi = False
+    allow_color = False
+
+    def format(self, text, *text_formats):
+        if not self.allow_color:
+            return text
+
+        return format_text(str(text), *text_formats)
+
+    def log(self, message):
+        pass
+
+
+class StreamOutput(_OutputBase):
     allow_bidi = True
 
     def __init__(self, stream, allow_color, encoding):
@@ -44,10 +57,7 @@ class StreamOutput:
         write_string(message, self._stream, self._encoding)
 
 
-class ClassOutput:
-    allow_bidi = False
-    allow_color = False
-
+class ClassOutput(_OutputBase):
     def __init__(self, func):
         self._logging_function = func
 
@@ -55,10 +65,7 @@ class ClassOutput:
         self._logging_function(message.rstrip())
 
 
-class LoggingOutput:
-    allow_bidi = False
-    allow_color = False
-
+class LoggingOutput(_OutputBase):
     def __init__(self, func):
         ...
 
@@ -66,26 +73,12 @@ class LoggingOutput:
         ...
 
 
-class NullOutput:
-    allow_bidi = False
-    allow_color = False
-
-    def log(self, message):
-        pass
-
+class NullOutput(_OutputBase):
     def __bool__(self):
         return False
 
 
 NULL_OUTPUT = NullOutput()
-
-
-class _LoggerProtocol(Protocol):
-    allow_bidi: bool
-    allow_color: bool
-
-    def log(self, message: str) -> None:
-        ...
 
 
 class _LoggerProxy:
@@ -142,7 +135,7 @@ class Logger:
 
         screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, allow_color, encoding)
         # TODO(logging): remove type hint
-        self.mapping: dict[LogLevel, _LoggerProtocol] = {LogLevel.SCREEN: screen_output}
+        self.mapping: dict[LogLevel, _OutputBase] = {LogLevel.SCREEN: screen_output}
 
     def make_derived(self, screen=None, debug=None, info=None, warning=None, error=None, handle_error=None) -> 'Logger':
         kwargs = {
@@ -230,10 +223,10 @@ class Logger:
 
     def format(self, level, text, *text_formats):
         logger = self.mapping.get(level)
-        if not logger or not getattr(logger, 'allow_color', False):
+        if not logger:
             return text
 
-        return format_text(str(text), *text_formats)
+        return logger.format(str(text), *text_formats)
 
     def try_encoding(self, level, text, fallback_text, pref_encoding=None):
         logger = self.mapping.get(level)
