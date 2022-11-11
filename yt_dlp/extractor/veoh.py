@@ -9,7 +9,8 @@ from ..utils import (
     try_get,
     str_or_none,
     ExtractorError,
-    url_or_none
+    url_or_none,
+    OnDemandPagedList
 )
 
 
@@ -153,20 +154,14 @@ class VeohUserIE(VeohIE):
             'playlist_mincount': 2
         }]
 
-    def _get_authtoken(self, page, uploader=None):
-        webpage = self._download_webpage(page, uploader)
-        return self._search_regex(
-            r'csrfToken:\s*(["\'])(?P<token>[0-9a-zA-Z]{40})\1', webpage,
-            'request token', group='token')
+    _TOKEN = None
 
-    def _get_videos(self, uploader, authtoken=None):
-        if authtoken is None:
-            authtoken = self._get_authtoken(f'https://www.veoh.com/users/{uploader}', uploader)
+    def _get_videos(self, uploader):
         total_vids = 0
         for i in itertools.count():
             payload = json.dumps({'username': uploader, 'maxResults': 16, 'page': i + 1, 'requestName': 'userPage'}).encode('utf-8')
             headers = {
-                'x-csrf-token': authtoken,
+                'x-csrf-token': self._TOKEN,
                 'content-type': 'application/json;charset=UTF-8'
             }
             response = self._download_json(
@@ -193,9 +188,15 @@ class VeohUserIE(VeohIE):
             if (total_vids == response['totalRecords']) or (len(response['videos']) == 0):
                 break
 
+    def _real_initialize(self):
+        if self._TOKEN is None:
+            webpage = self._download_webpage('https://www.veoh.com', None)
+            self._TOKEN = self._search_regex(
+                r'csrfToken:\s*(["\'])(?P<token>[0-9a-zA-Z]{40})\1', webpage,
+                'request token', group='token')
+
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        uploader = mobj.group('id')
+        uploader = self._match_id(url)
 
         return {
             '_type': 'playlist',
