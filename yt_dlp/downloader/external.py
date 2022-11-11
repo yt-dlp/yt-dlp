@@ -319,13 +319,8 @@ class Aria2cFD(ExternalFD):
         return cmd
 
     def _call_downloader(self, tmpfilename, info_dict):
-        info_dict.pop('__rpc_port', None)
-        info_dict.pop('__rpc_secret', None)
-        if self._ENABLE_PROGRESS:
-            import uuid
-            info_dict = info_dict.copy()
-            info_dict['__rpc_port'] = find_available_port() or 19190
-            info_dict['__rpc_secret'] = str(uuid.uuid4())
+        info_dict['__rpc_port'] = find_available_port() or 19190
+        info_dict['__rpc_secret'] = str(uuid.uuid4())
         return super()._call_downloader(tmpfilename, info_dict)
 
     def _call_process(self, cmd, info_dict):
