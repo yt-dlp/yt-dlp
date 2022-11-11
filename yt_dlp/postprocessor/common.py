@@ -195,9 +195,9 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
 
     def _retry_download(self, err, count, retries):
         # While this is not an extractor, it behaves similar to one and
-        # so obey extractor_retries and sleep_interval_requests
+        # so obey extractor_retries and "--retry-sleep extractor"
         RetryManager.report_retry(err, count, retries, info=self.to_screen, warn=self.report_warning,
-                                  sleep_func=self.get_param('sleep_interval_requests'))
+                                  sleep_func=self.get_param('retry_sleep_functions', {}).get('extractor'))
 
     def _download_json(self, url, *, expected_http_errors=(404,)):
         self.write_debug(f'{self.PP_NAME} query: {url}')

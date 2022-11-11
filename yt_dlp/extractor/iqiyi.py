@@ -588,8 +588,9 @@ class IqIE(InfoExtractor):
             ut_list = ['0']
 
         # bid 0 as an initial format checker
-        dash_paths = self._parse_json(PhantomJSwrapper(self).get(
-            url, html='<!DOCTYPE html>', video_id=video_id, note2='Executing signature code', jscode=self._DASH_JS % {
+        dash_paths = self._parse_json(PhantomJSwrapper(self, timeout=120_000).get(
+            url, note2='Executing signature code (this may take a couple minutes)',
+            html='<!DOCTYPE html>', video_id=video_id, jscode=self._DASH_JS % {
                 'tvid': video_info['tvId'],
                 'vid': video_info['vid'],
                 'src': traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'),

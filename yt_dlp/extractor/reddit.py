@@ -37,6 +37,26 @@ class RedditIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
+        # 1080p fallback format
+        'url': 'https://www.reddit.com/r/aww/comments/90bu6w/heat_index_was_110_degrees_so_we_offered_him_a/',
+        'md5': '8b5902cfda3006bf90faea7adf765a49',
+        'info_dict': {
+            'id': 'gyh95hiqc0b11',
+            'ext': 'mp4',
+            'display_id': '90bu6w',
+            'title': 'Heat index was 110 degrees so we offered him a cold drink. He went for a full body soak instead',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnails': 'count:7',
+            'timestamp': 1532051078,
+            'upload_date': '20180720',
+            'uploader': 'FootLoosePickleJuice',
+            'duration': 14,
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'age_limit': 0,
+        },
+    }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
         'only_matching': True,
     }, {
@@ -145,9 +165,18 @@ class RedditIE(InfoExtractor):
             dash_playlist_url = playlist_urls[0] or f'https://v.redd.it/{video_id}/DASHPlaylist.mpd'
             hls_playlist_url = playlist_urls[1] or f'https://v.redd.it/{video_id}/HLSPlaylist.m3u8'
 
-            formats = self._extract_m3u8_formats(
-                hls_playlist_url, display_id, 'mp4',
-                entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
+            formats = [{
+                'url': unescapeHTML(reddit_video['fallback_url']),
+                'height': int_or_none(reddit_video.get('height')),
+                'width': int_or_none(reddit_video.get('width')),
+                'tbr': int_or_none(reddit_video.get('bitrate_kbps')),
+                'acodec': 'none',
+                'ext': 'mp4',
+                'format_id': 'fallback',
+                'format_note': 'DASH video, mp4_dash',
+            }]
+            formats.extend(self._extract_m3u8_formats(
+                hls_playlist_url, display_id, 'mp4', m3u8_id='hls', fatal=False))
             formats.extend(self._extract_mpd_formats(
                 dash_playlist_url, display_id, mpd_id='dash', fatal=False))
             self._sort_formats(formats)

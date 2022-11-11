@@ -1,5 +1,8 @@
 name: Download Tests
 on: [push, pull_request]
+permissions:
+  contents: read
+
 jobs:
   quick:
     name: Quick Download Tests

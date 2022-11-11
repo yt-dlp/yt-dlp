@@ -191,8 +191,7 @@ class YoutubeLiveChatFD(FragmentFD):
             if test:
                 break
 
-        self._finish_frag_download(ctx, info_dict)
-        return True
+        return self._finish_frag_download(ctx, info_dict)
 
     @staticmethod
     def parse_live_timestamp(action):

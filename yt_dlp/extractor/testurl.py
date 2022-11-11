@@ -21,7 +21,7 @@ class TestURLIE(InfoExtractor):
         matching_extractors = [e for e in gen_extractor_classes() if rex.search(e.IE_NAME)]
 
         if len(matching_extractors) == 0:
-            raise ExtractorError('No extractors matching {extractor_id!r} found', expected=True)
+            raise ExtractorError(f'No extractors matching {extractor_id!r} found', expected=True)
         elif len(matching_extractors) > 1:
             try:  # Check for exact match
                 extractor = next(

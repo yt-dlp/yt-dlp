@@ -14,7 +14,7 @@ class VootIE(InfoExtractor):
                         voot:|
                         https?://(?:www\.)?voot\.com/?
                         (?:
-                            movies/[^/]+/|
+                            movies?/[^/]+/|
                             (?:shows|kids)/(?:[^/]+/){4}
                         )
                      )
@@ -46,6 +46,9 @@ class VootIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.voot.com/movies/pandavas-5/424627',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.voot.com/movie/fight-club/621842',
         'only_matching': True,
     }]
 

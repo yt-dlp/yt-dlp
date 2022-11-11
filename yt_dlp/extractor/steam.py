@@ -166,7 +166,7 @@ class SteamCommunityBroadcastIE(InfoExtractor):
         self._sort_formats(formats)
         return {
             'id': video_id,
-            'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
+            'title': self._generic_title('', webpage),
             'formats': formats,
             'live_status': 'is_live',
             'view_count': json_data.get('num_view'),
