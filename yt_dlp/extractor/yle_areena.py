@@ -1,11 +1,6 @@
 from .common import InfoExtractor
 from .kaltura import KalturaIE
-from ..utils import (
-    int_or_none,
-    str_or_none,
-    url_or_none,
-    traverse_obj
-)
+from ..utils import int_or_none, traverse_obj, url_or_none
 
 
 class YleAreenaIE(InfoExtractor):
@@ -23,73 +18,54 @@ class YleAreenaIE(InfoExtractor):
             'season_number': 1,
             'episode': 'Episode 2',
             'episode_number': 2,
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': 'http://cfvod.kaltura.com/p/1955031/sp/195503100/thumbnail/entry_id/0_a3tjk92c/version/100061',
             'uploader_id': 'ovp@yle.fi',
             'duration': 1435,
             'view_count': int,
             'upload_date': '20181204',
             'timestamp': 1543916210,
-            'subtitles': {'fin': [{'url': r're:^https?://.*$', 'ext': 'unknown_video'}]},
+            'subtitles': {'fin': [{'url': r're:^https?://', 'ext': 'srt'}]},
             'age_limit': 7,
         }
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
+        info = self._search_json_ld(self._download_webpage(url, video_id), video_id, default={})
         video_data = self._download_json(
             f'https://player.api.yle.fi/v1/preview/{video_id}.json?app_id=player_static_prod&app_key=8930d72170e48303cf5f3867780d549b',
             video_id)
-        kaltura_id = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'kaltura', 'id'))
 
-        webpage = self._download_webpage(url, video_id)
-        info = self._search_json_ld(webpage, video_id, default={})
-        raw_title = info.get('title') or ''
-        # raw_title example:'K1, J2: Pouchit | Modernit miehet',
-        _RAW_TITLE_RE = r'K(?P<season_number>[\d]+), J(?P<episode_number>[\d]+): (?P<episode_title>[^|]*) | (?P<series_title>.*)$'
-
-        title = (
-            traverse_obj(video_data, ('data', 'ongoing_ondemand', 'title', 'fin'), expected_type=str_or_none)
-            or str_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'episode_title', fatal=False, group='episode_title'))
-            or raw_title or '')
-
-        description = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'description', 'fin'), expected_type=str_or_none)
-
-        series = (
-            traverse_obj(video_data, ('data', 'ongoing_ondemand', 'series', 'title', 'fin'), expected_type=str_or_none)
-            or str_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'series_title', fatal=False, group='series_title')))
-
-        season_number = (
-            int_or_none(self._search_regex(r'Kausi (?P<season_number>[\d]+)', description, 'season_number', fatal=False, group='season_number'))
-            or int_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'season_number', fatal=False, group='season_number')))
-
-        episode_number = (
-            traverse_obj(video_data, ('data', 'ongoing_ondemand', 'episode_number'), expected_type=int_or_none)
-            or int_or_none(self._search_regex(_RAW_TITLE_RE, raw_title, 'episode_number', fatal=False, group='episode_number')))
+        # Example title: 'K1, J2: Pouchit | Modernit miehet'
+        series, season_number, episode_number, episode = self._search_regex(
+            r'K(?P<season_no>[\d]+),\s*J(?P<episode_no>[\d]+):?\s*\b(?P<episode>[^|]+)\s*|\s*(?P<series>.+)',
+            info.get('title') or '', 'episode metadata', group=('season_no', 'episode_no', 'episode', 'series'),
+            default=(None, None, None, None))
+        description = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'description', 'fin'), expected_type=str)
 
         subtitles = {}
-        subtitles_data = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'subtitles', ...), list)
-        for subtitles_track in subtitles_data:
-            subtitles_language = subtitles_track.get('language')
-            subtitles_url = url_or_none(subtitles_track.get('uri'))
-            if subtitles_url is None:
-                continue
-            if subtitles_language in subtitles:
-                subtitles[subtitles_language].append({'url': subtitles_url})
-                continue
-            subtitles[subtitles_language] = [{'url': subtitles_url}]
+        for sub in traverse_obj(video_data, ('data', 'ongoing_ondemand', 'subtitles', ...)):
+            if url_or_none(sub.get('uri')):
+                subtitles.setdefault(sub.get('language') or 'und', []).append({
+                    'url': sub['uri'],
+                    'ext': 'srt',
+                    'name': sub.get('kind'),
+                })
 
         return {
             '_type': 'url_transparent',
-            'url': f'kaltura:1955031:{kaltura_id}',
+            'url': 'kaltura:1955031:%s' % traverse_obj(video_data, ('data', 'ongoing_ondemand', 'kaltura', 'id')),
             'ie_key': KalturaIE.ie_key(),
-            'title': title,
+            'title': (traverse_obj(video_data, ('data', 'ongoing_ondemand', 'title', 'fin'), expected_type=str)
+                      or episode or info.get('title')),
             'description': description,
-            'series': series,
-            'season_number': season_number,
-            'episode_number': episode_number,
-            'thumbnail': False,
+            'series': (traverse_obj(video_data, ('data', 'ongoing_ondemand', 'series', 'title', 'fin'), expected_type=str)
+                       or series),
+            'season_number': (int_or_none(self._search_regex(r'Kausi (\d+)', description, 'season number', default=None))
+                              or int(season_number)),
+            'episode_number': (traverse_obj(video_data, ('data', 'ongoing_ondemand', 'episode_number'), expected_type=int_or_none)
+                               or int(episode_number)),
             'thumbnails': traverse_obj(info, ('thumbnails', ..., {'url': 'url'})),
-            'subtitles': subtitles,
             'age_limit': traverse_obj(video_data, ('data', 'ongoing_ondemand', 'content_rating', 'age_restriction'), expected_type=int_or_none),
+            'subtitles': subtitles,
         }
