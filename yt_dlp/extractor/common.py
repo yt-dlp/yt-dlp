@@ -3738,6 +3738,9 @@ class InfoExtractor:
     def _get_subtitles(self, *args, **kwargs):
         raise NotImplementedError('This method must be implemented by subclasses')
 
+    class CommentsDisabled(Exception):
+        """Raise in _get_comments if comments are disabled for the video"""
+
     def extract_comments(self, *args, **kwargs):
         if not self.get_param('getcomments'):
             return None
@@ -3753,6 +3756,8 @@ class InfoExtractor:
                 interrupted = False
             except KeyboardInterrupt:
                 self.to_screen('Interrupted by user')
+            except self.CommentsDisabled:
+                return {'comments': None, 'comment_count': None}
             except Exception as e:
                 if self.get_param('ignoreerrors') is not True:
                     raise

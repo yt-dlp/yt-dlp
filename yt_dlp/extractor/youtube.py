@@ -912,7 +912,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     def _extract_video(self, renderer):
         video_id = renderer.get('videoId')
-        title = self._get_text(renderer, 'title')
+
+        reel_header_renderer = traverse_obj(renderer, (
+            'navigationEndpoint', 'reelWatchEndpoint', 'overlay', 'reelPlayerOverlayRenderer',
+            'reelPlayerHeaderSupportedRenderers', 'reelPlayerHeaderRenderer'))
+
+        title = self._get_text(renderer, 'title', 'headline') or self._get_text(reel_header_renderer, 'reelTitleText')
         description = self._get_text(renderer, 'descriptionSnippet')
 
         duration = int_or_none(renderer.get('lengthSeconds'))
@@ -920,24 +925,23 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             duration = parse_duration(self._get_text(
                 renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
         if duration is None:
+            # XXX: should write a parser to be more general to support more cases (e.g. shorts in shorts tab)
             duration = parse_duration(self._search_regex(
                 r'(?i)(ago)(?!.*\1)\s+(?P<duration>[a-z0-9 ,]+?)(?:\s+[\d,]+\s+views)?(?:\s+-\s+play\s+short)?$',
                 traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label'), default='', expected_type=str),
                 video_id, default=None, group='duration'))
 
-        # videoInfo is a string like '50K views • 10 years ago'.
-        view_count = self._get_count(renderer, 'viewCountText', 'shortViewCountText', 'videoInfo')
-        uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
         channel_id = traverse_obj(
             renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'),
             expected_type=str, get_all=False)
-        time_text = self._get_text(renderer, 'publishedTimeText', 'videoInfo') or ''
-        scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
+        if not channel_id:
+            channel_id = traverse_obj(reel_header_renderer, ('channelNavigationEndpoint', 'browseEndpoint', 'browseId'))
+
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
             get_all=False, expected_type=str)
         badges = self._extract_badges(renderer)
-        thumbnails = self._extract_thumbnails(renderer, 'thumbnail')
+
         navigation_url = urljoin('https://www.youtube.com/', traverse_obj(
             renderer, ('navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url'),
             expected_type=str)) or ''
@@ -945,11 +949,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if overlay_style == 'SHORTS' or '/shorts/' in navigation_url:
             url = f'https://www.youtube.com/shorts/{video_id}'
 
+        time_text = (self._get_text(renderer, 'publishedTimeText', 'videoInfo')
+                     or self._get_text(reel_header_renderer, 'timestampText') or '')
+        scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
+
         live_status = (
             'is_upcoming' if scheduled_timestamp is not None
             else 'was_live' if 'streamed' in time_text.lower()
             else 'is_live' if overlay_style == 'LIVE' or self._has_badge(badges, BadgeType.LIVE_NOW)
             else None)
+
+        # videoInfo is a string like '50K views • 10 years ago'.
+        view_count_text = self._get_text(renderer, 'viewCountText', 'shortViewCountText', 'videoInfo') or ''
+        view_count = (0 if 'no views' in view_count_text.lower()
+                      else self._get_count({'simpleText': view_count_text}))
+        view_count_field = 'concurrent_view_count' if live_status in ('is_live', 'is_upcoming') else 'view_count'
 
         return {
             '_type': 'url',
@@ -959,9 +973,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'title': title,
             'description': description,
             'duration': duration,
-            'uploader': uploader,
             'channel_id': channel_id,
-            'thumbnails': thumbnails,
+            'channel': (self._get_text(renderer, 'ownerText', 'shortBylineText')
+                        or self._get_text(reel_header_renderer, 'channelTitleText')),
+            'channel_url': f'https://www.youtube.com/channel/{channel_id}' if channel_id else None,
+            'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
             'timestamp': (self._parse_time_text(time_text)
                           if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
                           else None),
@@ -973,7 +989,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     needs_premium=self._has_badge(badges, BadgeType.AVAILABILITY_PREMIUM) or None,
                     needs_subscription=self._has_badge(badges, BadgeType.AVAILABILITY_SUBSCRIPTION) or None,
                     is_unlisted=self._has_badge(badges, BadgeType.AVAILABILITY_UNLISTED) or None),
-            'concurrent_view_count' if live_status in ('is_live', 'is_upcoming') else 'view_count': view_count,
+            view_count_field: view_count,
             'live_status': live_status
         }
 
@@ -3221,11 +3237,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 note_prefix = '%sDownloading comment%s API JSON page %d %s' % (
                     '       ' if parent else '', ' replies' if parent else '',
                     page_num, comment_prog_str)
-
-            response = self._extract_response(
-                item_id=None, query=continuation,
-                ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
-                check_get_keys='onResponseReceivedEndpoints' if not is_forced_continuation else None)
+            try:
+                response = self._extract_response(
+                    item_id=None, query=continuation,
+                    ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
+                    check_get_keys='onResponseReceivedEndpoints' if not is_forced_continuation else None)
+            except ExtractorError as e:
+                # Ignore incomplete data error for replies if retries didn't work.
+                # This is to allow any other parent comments and comment threads to be downloaded.
+                # See: https://github.com/yt-dlp/yt-dlp/issues/4669
+                if 'incomplete data' in str(e).lower() and parent and self.get_param('ignoreerrors') is True:
+                    self.report_warning(
+                        'Received incomplete data for a comment reply thread and retrying did not help. '
+                        'Ignoring to let other comments be downloaded.')
+                else:
+                    raise
             is_forced_continuation = False
             continuation_contents = traverse_obj(
                 response, 'onResponseReceivedEndpoints', expected_type=list, default=[])
@@ -3254,6 +3280,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
         if message and not parent and tracker['running_total'] == 0:
             self.report_warning(f'Youtube said: {message}', video_id=video_id, only_once=True)
+            raise self.CommentsDisabled
 
     @staticmethod
     def _generate_comment_continuation(video_id):
@@ -5484,7 +5511,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': '#cctv9',
             'tags': [],
         },
-        'playlist_mincount': 350,
+        'playlist_mincount': 300,  # not consistent but should be over 300
     }, {
         'url': 'https://www.youtube.com/watch?list=PLW4dVinRY435CBE_JD3t-0SRXKfnZHS1P&feature=youtu.be&v=M9cJMXmQ_ZU',
         'only_matching': True,
@@ -5671,7 +5698,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
             'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
-            'description': '',
+            'description': 'test description',
             'title': 'cole-dlp-test-acc - 再生リスト',
             'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
             'uploader': 'cole-dlp-test-acc',
@@ -5828,6 +5855,62 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
         },
         'playlist_mincount': 30,
+    }, {
+        # Shorts url result in shorts tab
+        'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/shorts',
+        'info_dict': {
+            'id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'title': 'cole-dlp-test-acc - Shorts',
+            'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel': 'cole-dlp-test-acc',
+            'channel_follower_count': int,
+            'description': 'test description',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'tags': [],
+            'uploader': 'cole-dlp-test-acc',
+            'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+
+        },
+        'playlist': [{
+            'info_dict': {
+                '_type': 'url',
+                'ie_key': 'Youtube',
+                'url': 'https://www.youtube.com/shorts/sSM9J5YH_60',
+                'id': 'sSM9J5YH_60',
+                'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'title': 'SHORT short',
+                'channel': 'cole-dlp-test-acc',
+                'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'view_count': int,
+                'thumbnails': list,
+            }
+        }],
+        'params': {'extract_flat': True},
+    }, {
+        # Live video status should be extracted
+        'url': 'https://www.youtube.com/channel/UCQvWX73GQygcwXOTSf_VDVg/live',
+        'info_dict': {
+            'id': 'UCQvWX73GQygcwXOTSf_VDVg',
+            'title': 'UCQvWX73GQygcwXOTSf_VDVg - Live',  # TODO, should be Minecraft - Live or Minecraft - Topic - Live
+            'tags': []
+        },
+        'playlist': [{
+            'info_dict': {
+                '_type': 'url',
+                'ie_key': 'Youtube',
+                'url': 'startswith:https://www.youtube.com/watch?v=',
+                'id': str,
+                'title': str,
+                'live_status': 'is_live',
+                'channel_id': str,
+                'channel_url': str,
+                'concurrent_view_count': int,
+                'channel': str,
+            }
+        }],
+        'params': {'extract_flat': True},
+        'playlist_mincount': 1
     }]
 
     @classmethod
