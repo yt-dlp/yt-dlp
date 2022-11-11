@@ -16,7 +16,6 @@ from ..utils import (
 class VeohIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?veoh\.com/(?:watch|videos|embed|iphone/#_Watch)/(?P<id>(?:v|e|yapi-)[\da-zA-Z]+)'
 
-    IE_NAME = 'veoh'
     _TESTS = [{
         'url': 'http://www.veoh.com/watch/v56314296nk7Zdmz3',
         'md5': '620e68e6a3cff80086df3348426c9ca3',
@@ -133,7 +132,7 @@ class VeohIE(InfoExtractor):
 
 
 class VeohUserIE(VeohIE):
-    _VALID_URL = r'https?://(?:www\.)?veoh\.com/users/(?P<user>([\da-zA-Z_\-]+))'
+    _VALID_URL = r'https?://(?:www\.)?veoh\.com/users/(?P<id>[\w-]+)'
     IE_NAME = 'veoh:user'
 
     _TESTS = [
@@ -154,9 +153,6 @@ class VeohUserIE(VeohIE):
             'playlist_mincount': 2
         }]
 
-    _USERSINFO_ENDPOINT = 'https://www.veoh.com/users/published/videos'
-    _VIDEO_BASEURL = 'https://www.veoh.com/watch/'
-
     def _get_authtoken(self, page, uploader=None):
         webpage = self._download_webpage(page, uploader)
         return self._search_regex(
@@ -174,7 +170,7 @@ class VeohUserIE(VeohIE):
                 'content-type': 'application/json;charset=UTF-8'
             }
             response = self._download_json(
-                self._USERSINFO_ENDPOINT, uploader, data=payload, headers=headers,
+                'https://www.veoh.com/users/published/videos', uploader, data=payload, headers=headers,
                 note=f'Downloading videos page {i + 1}')
             if not response['success']:
                 raise ExtractorError('unsuccessful veoh user videos request')
@@ -183,7 +179,7 @@ class VeohUserIE(VeohIE):
                 for cand in candidates:
                     if not isinstance(cand, dict):
                         continue
-                    permalink_url = url_or_none(self._VIDEO_BASEURL + cand.get('permalinkId'))
+                    permalink_url = url_or_none('https://www.veoh.com/watch/' + cand.get('permalinkId'))
                     if permalink_url:
                         return self.url_result(
                             permalink_url,
@@ -199,7 +195,7 @@ class VeohUserIE(VeohIE):
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        uploader = mobj.group('user')
+        uploader = mobj.group('id')
 
         return {
             '_type': 'playlist',
