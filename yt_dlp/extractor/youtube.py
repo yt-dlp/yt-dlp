@@ -4236,15 +4236,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
 
 class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
-
     @staticmethod
     def passthrough_smuggled_data(func):
-        def _smuggle(entries, smuggled_data):
-            for entry in entries:
-                # TODO: Convert URL to music.youtube instead.
-                # Do we need to passthrough any other smuggled_data?
-                entry['url'] = smuggle_url(entry['url'], smuggled_data)
-                yield entry
+        def _smuggle(info, smuggled_data):
+            if info.get('_type') not in ('url', 'url_transparent'):
+                return info
+            if smuggled_data.get('is_music_url'):
+                parsed_url = urllib.parse.urlparse(info['url'])
+                if parsed_url.netloc in ('www.youtube.com', 'music.youtube.com'):
+                    smuggled_data.pop('is_music_url')
+                    info['url'] = urllib.parse.urlunparse(parsed_url._replace(netloc='music.youtube.com'))
+            if smuggled_data:
+                info['url'] = smuggle_url(info['url'], smuggled_data)
+            return info
 
         @functools.wraps(func)
         def wrapper(self, url):
@@ -4252,8 +4256,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if self.is_music_url(url):
                 smuggled_data['is_music_url'] = True
             info_dict = func(self, url, smuggled_data)
-            if smuggled_data and info_dict.get('entries'):
-                info_dict['entries'] = _smuggle(info_dict['entries'], smuggled_data)
+            if smuggled_data:
+                _smuggle(info_dict, smuggled_data)
+                if info_dict.get('entries'):
+                    info_dict['entries'] = (_smuggle(i, smuggled_data) for i in info_dict['entries'])
             return info_dict
         return wrapper
 
@@ -5526,10 +5532,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'description': '',
             'availability': 'public',
         },
-        'expected_warnings': [
-            'The URL does not have a videos tab',
-            r'[Uu]navailable videos (are|will be) hidden',
-        ],
         'playlist_mincount': 101,
     }, {
         # Destination channel with only a hidden self tab (tab id is UCtFRv9O2AHqOZjjynzrv-xg)
@@ -5662,7 +5664,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'tags': [],
             'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
-            'description': '',
+            'description': 'test description',
             'title': 'cole-dlp-test-acc - 再生リスト',
             'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
             'uploader': 'cole-dlp-test-acc',
@@ -5856,7 +5858,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         # Fallback to tab name if we cannot get the tab id.
         # XXX: should we strip non-ascii letters? e.g. in case of 'let's play' tab example on special gaming channel
         # Note that in the case of translated tab name this may result in an empty string, which we don't want.
-        self.write_debug(f'Falling back to selected tab name: {tab_name}')
+        if tab_name:
+            self.write_debug(f'Falling back to selected tab name: {tab_name}')
         return {
             'home': 'featured',
             'live': 'streams',
@@ -5874,41 +5877,37 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
         mobj = self._get_url_mobj(url)
         pre, tab, post, is_channel = mobj['pre'], mobj['tab'], mobj['post'], not mobj['not_channel']
-        if is_channel:
-            if smuggled_data.get('is_music_url'):
-                if item_id[:2] == 'VL':  # Youtube music VL channels have an equivalent playlist
-                    item_id = item_id[2:]
-                    pre, tab, post, is_channel = f'https://www.youtube.com/playlist?list={item_id}', '', '', False
-                elif item_id[:2] == 'MP':  # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
-                    mdata = self._extract_tab_endpoint(
-                        f'https://music.youtube.com/channel/{item_id}', item_id, default_client='web_music')
-                    murl = traverse_obj(mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'),
-                                        get_all=False, expected_type=str)
-                    if not murl:
-                        raise ExtractorError('Failed to resolve album to playlist')
-                    return self.url_result(murl, YoutubeTabIE)
-                elif mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
-                    pre = f'https://www.youtube.com/channel/{item_id}'
+        if is_channel and smuggled_data.get('is_music_url'):
+            if item_id[:2] == 'VL':  # Youtube music VL channels have an equivalent playlist
+                return self.url_result(
+                    f'https://music.youtube.com/playlist?list={item_id[2:]}', YoutubeTabIE, item_id[2:])
+            elif item_id[:2] == 'MP':  # Resolve albums (/[channel/browse]/MP...) to their equivalent playlist
+                mdata = self._extract_tab_endpoint(
+                    f'https://music.youtube.com/channel/{item_id}', item_id, default_client='web_music')
+                murl = traverse_obj(mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'),
+                                    get_all=False, expected_type=str)
+                if not murl:
+                    raise ExtractorError('Failed to resolve album to playlist')
+                return self.url_result(murl, YoutubeTabIE)
+            elif mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
+                return self.url_result(
+                    f'https://music.youtube.com/channel/{item_id}{tab}{post}', YoutubeTabIE, item_id)
 
         original_tab_id, display_id = tab[1:], f'{item_id}{tab}'
         if is_channel and not tab and 'no-youtube-channel-redirect' not in compat_opts:
-            tab = '/videos'
-
-        url = ''.join((pre, tab, post))
-        mobj = self._get_url_mobj(url)
+            url = f'{pre}/videos{post}'
 
         # Handle both video/playlist URLs
         qs = parse_qs(url)
-        video_id, playlist_id = (qs.get(key, [None])[0] for key in ('v', 'list'))
-
+        video_id, playlist_id = [traverse_obj(qs, (key, 0)) for key in ('v', 'list')]
         if not video_id and mobj['not_channel'].startswith('watch'):
             if not playlist_id:
                 # If there is neither video or playlist ids, youtube redirects to home page, which is undesirable
-                raise ExtractorError('Unable to recognize tab page')
+                raise ExtractorError('A video URL was given without video ID', expected=True)
             # Common mistake: https://www.youtube.com/watch?list=playlist_id
             self.report_warning(f'A video URL was given without video ID. Trying to download playlist {playlist_id}')
-            url = f'https://www.youtube.com/playlist?list={playlist_id}'
-            mobj = self._get_url_mobj(url)
+            return self.url_result(
+                f'https://www.youtube.com/playlist?list={playlist_id}', YoutubeTabIE, playlist_id)
 
         if not self._yes_playlist(playlist_id, video_id):
             return self.url_result(
@@ -5922,8 +5921,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         redirect_url = traverse_obj(
             data, ('onResponseReceivedActions', ..., 'navigateAction', 'endpoint', 'commandMetadata', 'webCommandMetadata', 'url'), get_all=False)
         if redirect_url and 'no-youtube-channel-redirect' not in compat_opts:
-            redirect_url = ''.join((
-                urljoin('https://www.youtube.com', redirect_url), mobj['tab'], mobj['post']))
+            redirect_url = ''.join((urljoin('https://www.youtube.com', redirect_url), tab, post))
             self.to_screen(f'This playlist is likely not available in your region. Following conditional redirect to {redirect_url}')
             return self.url_result(redirect_url, YoutubeTabIE)
 
@@ -5934,7 +5932,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             self.write_debug(f'Selected tab: {selected_tab_id!r} ({selected_tab_name}), Requested tab: {original_tab_id!r}')
 
             if not original_tab_id and selected_tab_name:
-                self.to_screen('Channel URLs download all uploads of the channel. '
+                self.to_screen('Downloading all uploads of the channel. '
                                'To download only the videos in a specific tab, pass the tab\'s URL')
                 if self._has_tab(tabs, 'streams'):
                     extra_tabs.append(''.join((pre, '/streams', post)))
@@ -5961,21 +5959,19 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
 
                 elif extra_tabs and selected_tab_id != 'videos':
                     # When there are shorts/live tabs but not videos tab
-                    url, data = ''.join((pre, post)), None
+                    url, data = f'{pre}{post}', None
 
             elif (original_tab_id or 'videos') != selected_tab_id:
                 if original_tab_id == 'live':
                     # Live tab should have redirected to the video
                     # Except in the case the channel has an actual live tab
                     # Example: https://www.youtube.com/channel/UCEH7P7kyJIkS_gJf93VYbmg/live
-                    raise UserNotLive(video_id=mobj['id'])
+                    raise UserNotLive(video_id=item_id)
                 elif selected_tab_name:
                     raise ExtractorError(f'This channel does not have a {original_tab_id} tab', expected=True)
 
                 # For channels such as https://www.youtube.com/channel/UCtFRv9O2AHqOZjjynzrv-xg
                 url = f'{pre}{post}'
-
-        self.write_debug(f'Final URL: {url}')
 
         # YouTube sometimes provides a button to reload playlist with unavailable videos.
         if 'no-youtube-unavailable-videos' not in compat_opts:
@@ -6007,6 +6003,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 f'To download as a single playlist instead, pass {uploads_url}')
             return self.playlist_result(entries, item_id, **metadata)
 
+        # Inline playlist
         playlist = traverse_obj(
             data, ('contents', 'twoColumnWatchNextResults', 'playlist', 'playlist'), expected_type=dict)
         if playlist:
@@ -6015,7 +6012,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         video_id = traverse_obj(
             data, ('currentVideoEndpoint', 'watchEndpoint', 'videoId'), expected_type=str) or video_id
         if video_id:
-            if mobj['tab'] != '/live':  # live tab is expected to redirect to video
+            if tab != '/live':  # live tab is expected to redirect to video
                 self.report_warning(f'Unable to recognize playlist. Downloading just video {video_id}')
             return self.url_result(f'https://www.youtube.com/watch?v={video_id}', YoutubeIE, video_id)
 
