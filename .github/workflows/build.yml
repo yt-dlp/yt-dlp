@@ -115,8 +115,10 @@ jobs:
 
 
   build_linux_arm:
-      needs: prepare
+      permissions:
+        packages: write  # for Creating cache
       runs-on: ubuntu-latest
+      needs: prepare
       strategy:
         matrix:
           architecture:
@@ -127,37 +129,33 @@ jobs:
       - uses: actions/checkout@v3
         with:
           path: ./repo
-
       - name: Virtualized Install, Prepare & Build
-        uses: uraimo/run-on-arch-action@v2
+        uses: yt-dlp/run-on-arch-action@v2
         with:
+          githubToken: ${{ github.token }}  # To cache image
           arch: ${{ matrix.architecture }}
           distro: ubuntu18.04  # Standalone executable should be built on minimum supported OS
-          setup: |
-            mkdir -p "${PWD}/artifacts"
-          dockerRunArgs: |
-            --volume "${PWD}/repo:/repo"
-            --volume "${PWD}/artifacts:/artifacts"
-          # Attempting to install Python 3.10 from the Deadsnakes repo raises errors,
-          # therefore we instead opt for using 3.8
-          install: |
+          dockerRunArgs: --volume "${PWD}/repo:/repo"
+          install: |  # Installing Python 3.10 from the Deadsnakes repo raises errors
             apt update
             apt -y install zlib1g-dev python3.8 python3.8-dev python3.8-distutils python3-pip
+            python3.8 -m pip install -U pip setuptools wheel
+            # Cannot access requirements.txt from the repo directory at this stage
+            python3.8 -m pip install -U Pyinstaller mutagen pycryptodomex websockets brotli certifi
 
           run: |
             cd repo
-            python3.8 -m pip install Pyinstaller -r requirements.txt
+            python3.8 -m pip install -U Pyinstaller -r requirements.txt  # Cached version may be out of date
             python3.8 devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
             python3.8 devscripts/make_lazy_extractors.py
             python3.8 pyinst.py
-            cp dist/yt-dlp_linux* ../artifacts/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          # Because uraimo/run-on-arch-action designates armv7l as armv7, we need to use this wonky workaround to fix the naming scheme
-          path: |
-            artifacts/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
+          path: |  # run-on-arch-action designates armv7l as armv7
+            repo/dist/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
+
 
   build_macos:
     runs-on: macos-11
