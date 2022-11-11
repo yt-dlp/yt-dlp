@@ -9,6 +9,7 @@ from ..utils import (
 
 class SlidesLiveIE(InfoExtractor):
     _VALID_URL = r'https?://slideslive\.com/(?P<id>[0-9]+)'
+    _WORKING = False
     _TESTS = [{
         # video_service_name = YOUTUBE
         'url': 'https://slideslive.com/38902413/gcc-ia16-backend',
