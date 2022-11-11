@@ -1,5 +1,5 @@
-import itertools
 import json
+import functools
 
 from .common import InfoExtractor
 from ..utils import (
@@ -155,42 +155,34 @@ class VeohUserIE(VeohIE):
         }]
 
     _TOKEN = None
+    _PAGE_SIZE = 16
 
-    def _get_videos(self, uploader):
-        total_vids = 0
-        for i in itertools.count():
-            payload = json.dumps({'username': uploader, 'maxResults': 16, 'page': i + 1, 'requestName': 'userPage'}).encode('utf-8')
-            headers = {
-                'x-csrf-token': self._TOKEN,
-                'content-type': 'application/json;charset=UTF-8'
-            }
-            response = self._download_json(
-                'https://www.veoh.com/users/published/videos', uploader, data=payload, headers=headers,
-                note=f'Downloading videos page {i + 1}')
-            if not response['success']:
-                raise ExtractorError('unsuccessful veoh user videos request')
+    def _fetch_page(self, uploader, page):
+        payload = json.dumps({'username': uploader, 'maxResults': self._PAGE_SIZE, 'page': page + 1, 'requestName': 'userPage'}).encode('utf-8')
+        headers = {
+            'x-csrf-token': self._TOKEN,
+            'content-type': 'application/json;charset=UTF-8'
+        }
+        response = self._download_json(
+            'https://www.veoh.com/users/published/videos', uploader, data=payload, headers=headers,
+            note=f'Downloading videos page {page + 1}')
+        if not response['success']:
+            raise ExtractorError('Unsuccessful veoh user-videos request')
 
-            def resolve_entry(*candidates):
-                for cand in candidates:
-                    if not isinstance(cand, dict):
-                        continue
-                    permalink_url = url_or_none('https://www.veoh.com/watch/' + cand.get('permalinkId'))
-                    if permalink_url:
-                        return self.url_result(
-                            permalink_url,
-                            VeohIE.ie_key(),
-                            str_or_none(cand.get('permalinkId'), cand.get('title')))
-
-            for e in response['videos'] or []:
-                yield resolve_entry(e)
-
-            total_vids += len(response['videos'])
-            if (total_vids == response['totalRecords']) or (len(response['videos']) == 0):
-                break
+        for video in response['videos'] or []:
+            if not isinstance(video, dict):
+                continue
+            permalink_url = url_or_none('https://www.veoh.com/watch/' + video.get('permalinkId'))
+            if permalink_url:
+                yield self.url_result(
+                    permalink_url,
+                    VeohIE.ie_key(),
+                    str_or_none(video.get('permalinkId'), video.get('title')))
 
     def _real_initialize(self):
-        if self._TOKEN is None:
-            webpage = self._download_webpage('https://www.veoh.com', None)
+        if not self._TOKEN:
+            webpage = self._download_webpage(
+                'https://www.veoh.com', None, note='Downloading authorization token')
             self._TOKEN = self._search_regex(
                 r'csrfToken:\s*(["\'])(?P<token>[0-9a-zA-Z]{40})\1', webpage,
                 'request token', group='token')
@@ -198,9 +190,6 @@ class VeohUserIE(VeohIE):
     def _real_extract(self, url):
         uploader = self._match_id(url)
 
-        return {
-            '_type': 'playlist',
-            'id': uploader,
-            'title': f'{uploader} (Uploads)',
-            'entries': self._get_videos(uploader)
-        }
+        return self.playlist_result(OnDemandPagedList(
+            functools.partial(self._fetch_page, uploader),
+            self._PAGE_SIZE), uploader, f'{uploader} (Uploads)')
