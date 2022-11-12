@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 import time
+import uuid
 
 from .fragment import FragmentFD
 from ..compat import functools
@@ -174,10 +175,9 @@ class ExternalFD(FragmentFD):
         self.try_remove(encodeFilename('%s.frag.urls' % tmpfilename))
         return 0
 
-    def _call_process(self, cmd, info_dict):
-        p = Popen(cmd, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate_or_kill()
-        return stdout, stderr, p.returncode
+    def _call_process(self, cmd, info_dict, capture_stderr):
+        return Popen.run(
+            cmd, text=True, stderr=subprocess.PIPE if capture_stderr else None)
 
 
 class CurlFD(ExternalFD):
@@ -323,13 +323,12 @@ class Aria2cFD(ExternalFD):
         info_dict['__rpc_secret'] = str(uuid.uuid4())
         return super()._call_downloader(tmpfilename, info_dict)
 
-    def _call_process(self, cmd, info_dict):
+    def _call_process(self, cmd, info_dict, capture_stderr):
         if '__rpc_port' not in info_dict:
-            return super()._call_process(cmd, info_dict)
+            return super()._call_process(cmd, info_dict, capture_stderr)
 
         from tempfile import TemporaryFile
         import json
-        import uuid
 
         rpc_port = info_dict['__rpc_port']
         rpc_secret = info_dict['__rpc_secret']
@@ -376,7 +375,7 @@ class Aria2cFD(ExternalFD):
         self._hook_progress(status, info_dict)
 
         with TemporaryFile() as so, TemporaryFile() as se, \
-             Popen(cmd, stdout=so.fileno(), stderr=se.fileno()) as p:
+             Popen(cmd, stdout=so.fileno(), stderr=se.fileno() if capture_stderr else None) as p:
             # make a small wait so that RPC client can receive response,
             # or the connection stalls infinitely
             time.sleep(0.2)
