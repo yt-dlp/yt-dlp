@@ -35,7 +35,7 @@ from .utils import (
     try_call,
 )
 
-CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
+CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chrome-beta', 'chrome-dev', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
@@ -206,6 +206,8 @@ def _get_chromium_based_browser_settings(browser_name):
         browser_dir = {
             'brave': os.path.join(appdata_local, R'BraveSoftware\Brave-Browser\User Data'),
             'chrome': os.path.join(appdata_local, R'Google\Chrome\User Data'),
+            'chrome-beta': os.path.join(appdata_local, R'Google\Chrome Beta\User Data'),
+            'chrome-dev': os.path.join(appdata_local, R'Google\Chrome Dev\User Data'),
             'chromium': os.path.join(appdata_local, R'Chromium\User Data'),
             'edge': os.path.join(appdata_local, R'Microsoft\Edge\User Data'),
             'opera': os.path.join(appdata_roaming, R'Opera Software\Opera Stable'),
@@ -217,6 +219,8 @@ def _get_chromium_based_browser_settings(browser_name):
         browser_dir = {
             'brave': os.path.join(appdata, 'BraveSoftware/Brave-Browser'),
             'chrome': os.path.join(appdata, 'Google/Chrome'),
+            'chrome-beta': os.path.join(appdata, 'Google/Chrome Beta'),
+            'chrome-dev': os.path.join(appdata, 'Google/Chrome Dev'),
             'chromium': os.path.join(appdata, 'Chromium'),
             'edge': os.path.join(appdata, 'Microsoft Edge'),
             'opera': os.path.join(appdata, 'com.operasoftware.Opera'),
@@ -228,6 +232,8 @@ def _get_chromium_based_browser_settings(browser_name):
         browser_dir = {
             'brave': os.path.join(config, 'BraveSoftware/Brave-Browser'),
             'chrome': os.path.join(config, 'google-chrome'),
+            'chrome-beta': os.path.join(config, 'google-chrome-beta'),
+            'chrome-dev': os.path.join(config, 'google-chrome-dev'),
             'chromium': os.path.join(config, 'chromium'),
             'edge': os.path.join(config, 'microsoft-edge'),
             'opera': os.path.join(config, 'opera'),
@@ -239,6 +245,8 @@ def _get_chromium_based_browser_settings(browser_name):
     keyring_name = {
         'brave': 'Brave',
         'chrome': 'Chrome',
+        'chrome-beta': 'Chrome Beta',
+        'chrome-dev': 'Chrome Dev',
         'chromium': 'Chromium',
         'edge': 'Microsoft Edge' if sys.platform == 'darwin' else 'Chromium',
         'opera': 'Opera' if sys.platform == 'darwin' else 'Chromium',
