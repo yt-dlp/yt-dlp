@@ -7,7 +7,7 @@ import re
 import time
 
 from ..output.hoodoo import Color, TermCode, Typeface
-from ..output.logging import LogLevel, default_logger
+from ..output.logging import LogLevel
 from ..output.progress import Progress
 from ..utils import (
     IDENTITY,
@@ -313,7 +313,7 @@ class FileDownloader:
             progress_dict))
 
     def _format_progress(self, *args, **kwargs):
-        return default_logger.format(LogLevel.INFO, *args, **kwargs)
+        return self.ydl.logger.format(LogLevel.INFO, *args, **kwargs)
 
     def report_progress(self, s):
         def with_fields(*tups, default=''):

@@ -261,8 +261,8 @@ class Logger:
         Print a message to stderr, prefixed with 'WARNING:'
         If stderr is a tty file the prefix will be colored
         """
-        default_logger.log(LogLevel.WARNING, message, once=once,
-                           prefix=default_logger.format(LogLevel.WARNING, "WARNING:", Style.WARNING))
+        self.log(LogLevel.WARNING, message, once=once,
+                 prefix=self.format(LogLevel.WARNING, "WARNING:", Style.WARNING))
 
     def deprecation_warning(self, message, *, stacklevel=0):
         deprecation_warning(
