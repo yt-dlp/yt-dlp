@@ -67,10 +67,9 @@ class TencentBaseIE(InfoExtractor):
 
         formats, subtitles = [], {}
         for video_format in video_response['ul']['ui']:
-            url_is_m3u8 = determine_ext(video_format['url']) == 'm3u8'
-            if video_format.get('hls') or url_is_m3u8:
+            if video_format.get('hls') or determine_ext(video_format['url']) == 'm3u8':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    video_format['url'] if url_is_m3u8 else video_format['url'] + video_format['hls']['pt'],
+                    video_format['url'] + traverse_obj(video_format, ('hls', 'pt'), default=''),
                     video_id, 'mp4', fatal=False)
                 for f in fmts:
                     f.update({'width': video_width, 'height': video_height})
