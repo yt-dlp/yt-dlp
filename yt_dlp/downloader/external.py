@@ -1,4 +1,5 @@
 import enum
+import json
 import os.path
 import re
 import subprocess
@@ -323,42 +324,41 @@ class Aria2cFD(ExternalFD):
         info_dict['__rpc_secret'] = str(uuid.uuid4())
         return super()._call_downloader(tmpfilename, info_dict)
 
+    def aria2c_rpc(self, rpc_port, rpc_secret, method, params, secret=True):
+        if secret and rpc_secret:
+            params = [f'token:{rpc_secret}', *params]
+        # note: there's no need to be UUID (it can even a numeric value), but that's easier
+        sanitycheck = str(uuid.uuid4())
+        d = json.dumps({
+            'jsonrpc': '2.0',
+            'id': sanitycheck,
+            'method': method,
+            'params': params,
+        }).encode('utf-8')
+        request = sanitized_Request(
+            f'http://localhost:{rpc_port}/jsonrpc',
+            headers={
+                'Content-Type': 'application/json',
+                'Content-Length': f'{len(d)}',
+                'Ytdl-request-proxy': '__noproxy__',
+            },
+            data=d)
+        with self.ydl.urlopen(request) as r:
+            resp = json.load(r)
+        # failing at this assertion means that the RPC server went wrong
+        # (KeyEror includes)
+        assert resp['id'] == sanitycheck
+        return resp['result']
+
     def _call_process(self, cmd, info_dict, capture_stderr):
         if '__rpc_port' not in info_dict:
             return super()._call_process(cmd, info_dict, capture_stderr)
 
         from tempfile import TemporaryFile
-        import json
 
         rpc_port = info_dict['__rpc_port']
         rpc_secret = info_dict['__rpc_secret']
         nr_frags = len(info_dict['fragments']) if 'fragments' in info_dict else -1
-
-        def aria2c_rpc(method, params, secret=True):
-            if secret and rpc_secret:
-                params = [f'token:{rpc_secret}', *params]
-            # note: there's no need to be UUID (it can even a numeric value), but that's easier
-            sanitycheck = str(uuid.uuid4())
-            d = json.dumps({
-                'jsonrpc': '2.0',
-                'id': sanitycheck,
-                'method': method,
-                'params': params,
-            }).encode('utf-8')
-            request = sanitized_Request(
-                f'http://localhost:{rpc_port}/jsonrpc',
-                headers={
-                    'Content-Type': 'application/json',
-                    'Content-Length': f'{len(d)}',
-                    'Ytdl-request-proxy': '__noproxy__',
-                },
-                data=d)
-            with self.ydl.urlopen(request) as r:
-                resp = json.load(r)
-            # failing at this assertion means that the RPC server went wrong
-            # (KeyEror includes)
-            assert resp['id'] == sanitycheck
-            return resp['result']
 
         started = time.time()
         status = {
@@ -387,11 +387,11 @@ class Aria2cFD(ExternalFD):
 
                     # use tellActive as we won't know the GID without reading stdout
                     # that is a mess in Python
-                    aktiva = aria2c_rpc('aria2.tellActive', [])
-                    completed = aria2c_rpc('aria2.tellStopped', [0, abs(nr_frags)])
+                    aktiva = self.aria2c_rpc(rpc_port, rpc_secret, 'aria2.tellActive', [])
+                    completed = self.aria2c_rpc(rpc_port, rpc_secret, 'aria2.tellStopped', [0, abs(nr_frags)])
                     if not aktiva and len(completed) == abs(nr_frags):
                         # no active downloads, we'll exit the loop after shutdown
-                        aria2c_rpc('aria2.shutdown', [])
+                        self.aria2c_rpc(rpc_port, rpc_secret, 'aria2.shutdown', [])
                         retval = p.wait()
                         break
 
