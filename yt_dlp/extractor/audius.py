@@ -37,7 +37,7 @@ class AudiusBaseIE(InfoExtractor):
         Audius removes forward slashes from the uri, but leaves backslashes.
         The problem is that the current version of Chrome replaces backslashes
         in the address bar with a forward slashes, so if you copy the link from
-        there and paste it into youtube-dl, you won't be able to download
+        there and paste it into yt-dlp, you won't be able to download
         anything from this link, since the Audius API won't be able to resolve
         this url
         """
