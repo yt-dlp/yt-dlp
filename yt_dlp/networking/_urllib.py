@@ -34,12 +34,8 @@ from ..socks import (
     sockssocket,
     ProxyError as SocksProxyError,
 )
-from ..utils import (
-    escape_url,
-    extract_basic_auth,
-    sanitize_url,
-    update_url_query,
-)
+from ..utils import escape_url, update_url_query
+
 from .exceptions import (
     TransportError,
     HTTPError,
@@ -342,6 +338,36 @@ class YDLProxyHandler(urllib.request.BaseHandler):
             return None
         return urllib.request.ProxyHandler.proxy_open(
             self, req, proxy, None)
+
+
+class PUTRequest(urllib.request.Request):
+    def get_method(self):
+        return 'PUT'
+
+
+class HEADRequest(urllib.request.Request):
+    def get_method(self):
+        return 'HEAD'
+
+
+def update_Request(req, url=None, data=None, headers=None, query=None):
+    req_headers = req.headers.copy()
+    req_headers.update(headers or {})
+    req_data = data or req.data
+    req_url = update_url_query(url or req.get_full_url(), query)
+    req_get_method = req.get_method()
+    if req_get_method == 'HEAD':
+        req_type = HEADRequest
+    elif req_get_method == 'PUT':
+        req_type = PUTRequest
+    else:
+        req_type = urllib.request.Request
+    new_req = req_type(
+        req_url, data=req_data, headers=req_headers,
+        origin_req_host=req.origin_req_host, unverifiable=req.unverifiable)
+    if hasattr(req, 'timeout'):
+        new_req.timeout = req.timeout
+    return new_req
 
 
 class UrllibResponseAdapter(Response):

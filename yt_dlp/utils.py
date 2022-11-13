@@ -55,7 +55,7 @@ from .compat import (
     compat_os_name,
     compat_shlex_quote,
 )
-from .compat.utils import *
+from .compat.utils import *  # noqa: F401, F403
 from .dependencies import websockets, xattr
 
 
