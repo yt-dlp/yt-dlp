@@ -1050,6 +1050,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             <a\s[^>]*\bhref="(?P<url>https://www\.youtube\.com/watch\?v=[0-9A-Za-z_-]{11})"
             \s[^>]*\bclass="[^"]*\blazy-load-youtube''',
     ]
+    _RETURN_TYPE = 'video'  # While there are "multifeed" test cases, they don't seem to actually exist anymore
 
     _PLAYER_INFO_RE = (
         r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/player',
