@@ -175,7 +175,7 @@ class CDAIE(InfoExtractor):
             f'{self._BASE_URL}/video/{video_id}/vfilm', video_id)
 
         if 'Ten film jest dostępny dla użytkowników premium' in webpage:
-            raise ExtractorError('This video is only available for premium users.', expected=True)
+            self.raise_login_required('This video is only available for premium users', method='password')
 
         if re.search(r'niedostępn[ey] w(?:&nbsp;|\s+)Twoim kraju\s*<', webpage):
             self.raise_geo_restricted()
