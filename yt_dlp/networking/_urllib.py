@@ -323,36 +323,6 @@ class YDLNoRedirectHandler(urllib.request.BaseHandler):
     http_error_301 = http_error_303 = http_error_307 = http_error_308 = http_error_302
 
 
-class PUTRequest(urllib.request.Request):
-    def get_method(self):
-        return 'PUT'
-
-
-class HEADRequest(urllib.request.Request):
-    def get_method(self):
-        return 'HEAD'
-
-
-def update_Request(req, url=None, data=None, headers=None, query=None):
-    req_headers = req.headers.copy()
-    req_headers.update(headers or {})
-    req_data = data or req.data
-    req_url = update_url_query(url or req.get_full_url(), query)
-    req_get_method = req.get_method()
-    if req_get_method == 'HEAD':
-        req_type = HEADRequest
-    elif req_get_method == 'PUT':
-        req_type = PUTRequest
-    else:
-        req_type = urllib.request.Request
-    new_req = req_type(
-        req_url, data=req_data, headers=req_headers,
-        origin_req_host=req.origin_req_host, unverifiable=req.unverifiable)
-    if hasattr(req, 'timeout'):
-        new_req.timeout = req.timeout
-    return new_req
-
-
 class YDLProxyHandler(urllib.request.BaseHandler):
     handler_order = 100
 
@@ -394,14 +364,6 @@ class UrllibResponseAdapter(Response):
         except Exception as e:
             handle_response_read_exceptions(e)
             raise e
-
-
-def sanitized_Request(url, *args, **kwargs):
-    url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
-    if auth_header is not None:
-        headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
-        headers['Authorization'] = auth_header
-    return urllib.request.Request(url, *args, **kwargs)
 
 
 def handle_sslerror(e: ssl.SSLError):
