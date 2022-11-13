@@ -386,11 +386,23 @@ class ZenYandexChannelIE(InfoExtractor):
     def _real_extract(self, url):
         item_id = self._match_id(url)
         webpage = self._download_webpage(url, item_id)
-        redirect = self._search_json(
-            r'var it\s*=', webpage, 'redirect', item_id, default={}).get('retpath')
-        if redirect:
-            item_id = self._match_id(redirect)
-            webpage = self._download_webpage(redirect, item_id, note='Redirecting')
+
+        json_data = self._search_json(r'var it\s*=\s*', webpage, 'host/retpath', item_id, default={})
+        retpath = json_data.get('retpath')
+        container = self._search_regex(r"element2.value\s*=\s*'(.*?)';", webpage, 'container', default='{}')
+
+        if json_data:
+            data = urlencode_postdata({'retpath': retpath, 'container': container})
+            _, urlh = self._download_webpage_handle(json_data.get('host'), item_id, data=data, note='get cookies')
+
+            cookies = self._get_cookies(urlh.geturl())
+            self._set_cookie(retpath, 'Session_id', cookies.get('Session_id').value)
+
+            url = retpath
+
+        item_id = self._match_id(url)
+        webpage = self._download_webpage(url, item_id, note='Downloading video webpage')
+
         data = self._search_json(
             r'var\s+data\s*=', webpage, 'channel data', item_id, contains_pattern=r'{\"__serverState__.+}')
         server_state_json = traverse_obj(data, lambda k, _: k.startswith('__serverState__'), get_all=False)
