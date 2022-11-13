@@ -319,6 +319,7 @@ from .chirbit import (
 )
 from .cinchcast import CinchcastIE
 from .cinemax import CinemaxIE
+from .cinetecamilano import CinetecaMilanoIE
 from .ciscolive import (
     CiscoLiveSessionIE,
     CiscoLiveSearchIE,
@@ -2042,7 +2043,10 @@ from .varzesh3 import Varzesh3IE
 from .vbox7 import Vbox7IE
 from .veehd import VeeHDIE
 from .veo import VeoIE
-from .veoh import VeohIE
+from .veoh import (
+    VeohIE,
+    VeohUserIE
+)
 from .vesti import VestiIE
 from .vevo import (
     VevoIE,
@@ -2265,6 +2269,7 @@ from .yandexvideo import (
 from .yapfiles import YapFilesIE
 from .yesjapan import YesJapanIE
 from .yinyuetai import YinYueTaiIE
+from .yle_areena import YleAreenaIE
 from .ynet import YnetIE
 from .youjizz import YouJizzIE
 from .youku import (

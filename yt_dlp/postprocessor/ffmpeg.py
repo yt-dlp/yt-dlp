@@ -137,7 +137,7 @@ class FFmpegPostProcessor(PostProcessor):
         path = self._paths.get(prog)
         if path in self._version_cache:
             return self._version_cache[path], self._features_cache.get(path, {})
-        out = _get_exe_version_output(path, ['-bsfs'], to_screen=self.write_debug)
+        out = _get_exe_version_output(path, ['-bsfs'])
         ver = detect_exe_version(out) if out else False
         if ver:
             regexs = [
@@ -1081,9 +1081,9 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
 
     @staticmethod
     def _options(target_ext):
+        yield from ('-update', '1')
         if target_ext == 'jpg':
-            return ['-bsf:v', 'mjpeg2jpeg']
-        return []
+            yield from ('-bsf:v', 'mjpeg2jpeg')
 
     def convert_thumbnail(self, thumbnail_filename, target_ext):
         thumbnail_conv_filename = replace_extension(thumbnail_filename, target_ext)
@@ -1092,7 +1092,7 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         _, source_ext = os.path.splitext(thumbnail_filename)
         self.real_run_ffmpeg(
             [(thumbnail_filename, [] if source_ext == '.gif' else ['-f', 'image2', '-pattern_type', 'none'])],
-            [(thumbnail_conv_filename.replace('%', '%%'), self._options(target_ext))])
+            [(thumbnail_conv_filename, self._options(target_ext))])
         return thumbnail_conv_filename
 
     def run(self, info):

@@ -1647,7 +1647,10 @@ class InfoExtractor:
         FUNCTION_RE = r'\(function\((?P<arg_keys>.*?)\){return\s+(?P<js>{.*?})\s*;?\s*}\((?P<arg_vals>.*?)\)'
         js, arg_keys, arg_vals = self._search_regex(
             (rf'<script>\s*window\.{rectx}={FUNCTION_RE}\s*\)\s*;?\s*</script>', rf'{rectx}\(.*?{FUNCTION_RE}'),
-            webpage, context_name, group=('js', 'arg_keys', 'arg_vals'), fatal=fatal)
+            webpage, context_name, group=('js', 'arg_keys', 'arg_vals'),
+            default=NO_DEFAULT if fatal else (None, None, None))
+        if js is None:
+            return {}
 
         args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
 
@@ -3699,6 +3702,24 @@ class InfoExtractor:
             (*cls.get_testcases(include_onlymatching=False), *cls.get_webpage_testcases()),
             (..., (('playlist', 0), None), 'info_dict', 'age_limit')) or [0])
 
+    @classproperty(cache=True)
+    def _RETURN_TYPE(cls):
+        """What the extractor returns: "video", "playlist", "any", or None (Unknown)"""
+        tests = tuple(cls.get_testcases(include_onlymatching=False))
+        if not tests:
+            return None
+        elif not any(k.startswith('playlist') for test in tests for k in test):
+            return 'video'
+        elif all(any(k.startswith('playlist') for k in test) for test in tests):
+            return 'playlist'
+        return 'any'
+
+    @classmethod
+    def is_single_video(cls, url):
+        """Returns whether the URL is of a single video, None if unknown"""
+        assert cls.suitable(url), 'The URL must be suitable for the extractor'
+        return {'video': True, 'playlist': False}.get(cls._RETURN_TYPE)
+
     @classmethod
     def is_suitable(cls, age_limit):
         """Test whether the extractor is generally suitable for the given age limit"""
@@ -3950,6 +3971,7 @@ class SearchInfoExtractor(InfoExtractor):
     """
 
     _MAX_RESULTS = float('inf')
+    _RETURN_TYPE = 'playlist'
 
     @classproperty
     def _VALID_URL(cls):
