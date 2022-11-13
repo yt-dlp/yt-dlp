@@ -6,11 +6,12 @@ from ..utils import (
     age_restricted,
     bug_reports_message,
     classproperty,
+    get_first_group,
     write_string,
 )
 
 # These bloat the lazy_extractors, so allow them to passthrough silently
-ALLOWED_CLASSMETHODS = {'get_testcases', 'extract_from_webpage'}
+ALLOWED_CLASSMETHODS = {'get_testcases', 'extract_from_webpage', '_fetch_nodeinfo_software'}
 _WARNED = False
 
 
