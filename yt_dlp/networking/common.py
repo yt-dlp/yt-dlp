@@ -5,7 +5,6 @@ import enum
 import functools
 import io
 import ssl
-import sys
 import typing
 import urllib.parse
 import urllib.request

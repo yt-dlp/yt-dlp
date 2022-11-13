@@ -53,9 +53,9 @@ class SSLError(TransportError):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(self):
-            self.msg = f'SSLV3_ALERT_HANDSHAKE_FAILURE: Try using --legacy-server-connect'
+            self.msg = 'SSLV3_ALERT_HANDSHAKE_FAILURE: Try using --legacy-server-connect'
         elif 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(self.msg):
-            self.msg = f'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. Try using --cipher-list DEFAULT'
+            self.msg = 'SSLV3_ALERT_HANDSHAKE_FAILURE: The server may not support the current cipher list. Try using --cipher-list DEFAULT'
 
 
 class ProxyError(TransportError):
