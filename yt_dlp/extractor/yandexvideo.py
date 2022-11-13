@@ -10,6 +10,7 @@ from ..utils import (
     traverse_obj,
     try_get,
     url_or_none,
+    urlencode_postdata,
 )
 
 
@@ -254,11 +255,24 @@ class ZenYandexIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        redirect = self._search_json(r'var it\s*=', webpage, 'redirect', id, default={}).get('retpath')
-        if redirect:
-            video_id = self._match_id(redirect)
-            webpage = self._download_webpage(redirect, video_id, note='Redirecting')
+        webpage = self._download_webpage(url, video_id, note='Downloading first page')
+
+        json_data = self._search_json(r'var it\s*=\s*', webpage, 'host/retpath', video_id, default={})
+        retpath = json_data.get('retpath')
+        container = self._search_regex(r"element2.value\s*=\s*'(.*?)';", webpage, 'container', default='{}')
+
+        if json_data:
+            data = urlencode_postdata({'retpath': retpath, 'container': container})
+            _, urlh = self._download_webpage_handle(json_data.get('host'), video_id, data=data, note='get cookies')
+
+            cookies = self._get_cookies(urlh.geturl())
+            self._set_cookie(retpath, 'Session_id', cookies.get('Session_id').value)
+
+            url = retpath
+
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id, note='Downloading video webpage')
+
         data_json = self._search_json(
             r'data\s*=', webpage, 'metadata', video_id, contains_pattern=r'{["\']_*serverState_*video.+}')
         serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
