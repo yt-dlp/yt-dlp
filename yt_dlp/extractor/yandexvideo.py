@@ -255,24 +255,17 @@ class ZenYandexIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id, note='Downloading first page')
-
-        json_data = self._search_json(r'var it\s*=\s*', webpage, 'host/retpath', video_id, default={})
-        retpath = json_data.get('retpath')
-        container = self._search_regex(r"element2.value\s*=\s*'(.*?)';", webpage, 'container', default='{}')
-
-        if json_data:
-            data = urlencode_postdata({'retpath': retpath, 'container': container})
-            _, urlh = self._download_webpage_handle(json_data.get('host'), video_id, data=data, note='get cookies')
-
-            cookies = self._get_cookies(urlh.geturl())
-            self._set_cookie(retpath, 'Session_id', cookies.get('Session_id').value)
-
-            url = retpath
-
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id, note='Downloading video webpage')
-
+        redirect_json = self._search_json(r'var it\s*=', webpage, 'redirect', video_id, default={})
+        retpath = redirect_json.get('retpath')
+        host = redirect_json.get('host')
+        if retpath and host:
+            video_id = self._match_id(retpath)
+            container = self._search_regex(r'element2\.value\s*=\s*\'(.*?)\';', webpage, 'container')
+            _ = self._request_webpage(host, video_id, note='Redirecting', data=urlencode_postdata({
+                'retpath': retpath,
+                'container': container,
+            }))
+            webpage = self._download_webpage(retpath, video_id, note='Downloading video webpage')
         data_json = self._search_json(
             r'data\s*=', webpage, 'metadata', video_id, contains_pattern=r'{["\']_*serverState_*video.+}')
         serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
@@ -370,23 +363,17 @@ class ZenYandexChannelIE(InfoExtractor):
     def _real_extract(self, url):
         item_id = self._match_id(url)
         webpage = self._download_webpage(url, item_id)
-
-        json_data = self._search_json(r'var it\s*=\s*', webpage, 'host/retpath', item_id, default={})
-        retpath = json_data.get('retpath')
-        container = self._search_regex(r"element2.value\s*=\s*'(.*?)';", webpage, 'container', default='{}')
-
-        if json_data:
-            data = urlencode_postdata({'retpath': retpath, 'container': container})
-            _, urlh = self._download_webpage_handle(json_data.get('host'), item_id, data=data, note='get cookies')
-
-            cookies = self._get_cookies(urlh.geturl())
-            self._set_cookie(retpath, 'Session_id', cookies.get('Session_id').value)
-
-            url = retpath
-
-        item_id = self._match_id(url)
-        webpage = self._download_webpage(url, item_id, note='Downloading video webpage')
-
+        redirect_json = self._search_json(r'var it\s*=', webpage, 'redirect', item_id, default={})
+        retpath = redirect_json.get('retpath')
+        host = redirect_json.get('host')
+        if retpath and host:
+            item_id = self._match_id(retpath)
+            container = self._search_regex(r'element2\.value\s*=\s*\'(.*?)\';', webpage, 'container')
+            _ = self._request_webpage(host, item_id, note='Redirecting', data=urlencode_postdata({
+                'retpath': retpath,
+                'container': container,
+            }))
+            webpage = self._download_webpage(retpath, item_id, note='Downloading video webpage')
         data = self._search_json(
             r'var\s+data\s*=', webpage, 'channel data', item_id, contains_pattern=r'{\"__serverState__.+}')
         server_state_json = traverse_obj(data, lambda k, _: k.startswith('__serverState__'), get_all=False)
