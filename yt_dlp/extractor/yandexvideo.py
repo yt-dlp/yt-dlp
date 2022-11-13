@@ -255,6 +255,7 @@ class ZenYandexIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id, note='Downloading first page')
         redirect_json = self._search_json(r'var it\s*=', webpage, 'redirect', video_id, default={})
         retpath = redirect_json.get('retpath')
         host = redirect_json.get('host')
