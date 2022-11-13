@@ -2446,6 +2446,15 @@ class GenericIE(InfoExtractor):
 
         self._downloader.write_debug(f'Identified {num} {name}{format_field(note, None, "; %s")}')
 
+    def _hls_segment_query(self, url):
+        if self._configuration_arg('hls_segment_query', ie_key=GenericIE):
+            query_string = urllib.parse.urlparse(url).query
+            if query_string:
+                return {
+                    'extra_param_to_segment_url': query_string,
+                }
+        return
+
     def _extract_rss(self, url, video_id, doc):
         NS_MAP = {
             'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd',
@@ -2606,6 +2615,8 @@ class GenericIE(InfoExtractor):
             subtitles = {}
             if format_id.endswith('mpegurl'):
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
+                if self._hls_segment_query(url):
+                    info_dict.update(self._hls_segment_query(url))
             elif format_id.endswith('mpd') or format_id.endswith('dash+xml'):
                 formats, subtitles = self._extract_mpd_formats_and_subtitles(url, video_id, headers=headers)
             elif format_id == 'f4m':
@@ -2635,6 +2646,8 @@ class GenericIE(InfoExtractor):
         if first_bytes.startswith(b'#EXTM3U'):
             self.report_detected('M3U playlist')
             info_dict['formats'], info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
+            if self._hls_segment_query(url):
+                info_dict.update(self._hls_segment_query(url))
             self._sort_formats(info_dict['formats'])
             return info_dict
 
@@ -2812,6 +2825,9 @@ class GenericIE(InfoExtractor):
                         m3u8_id='hls', fatal=False)
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
+                    if self._hls_segment_query(src):
+                        info_dict.update(self._hls_segment_query(src))
+
                 else:
                     formats.append({
                         'url': src,
@@ -3049,6 +3065,8 @@ class GenericIE(InfoExtractor):
                 return [self._extract_xspf_playlist(video_url, video_id)]
             elif ext == 'm3u8':
                 entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4', headers=headers)
+                if self._hls_segment_query(video_url):
+                    entry_info_dict.update(self._hls_segment_query(video_url))
             elif ext == 'mpd':
                 entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_mpd_formats_and_subtitles(video_url, video_id, headers=headers)
             elif ext == 'f4m':
