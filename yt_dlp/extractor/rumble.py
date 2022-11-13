@@ -223,16 +223,8 @@ class RumbleEmbedIE(InfoExtractor):
 
 
 class RumbleIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-        https?://(?:www\.)?rumble\.com/
-        (?P<id>v            # ids start with v
-            (?!ideos)       # exclude https://rumble.com/videos
-            [0-9a-zA-Z]{4,} # video page identifier (case insensitive)
-            (?:-[^&?#$/]*)? # usually followed by -<title>.html otherwise redirected
-        )
-        [^/]*$              # queries are allowed, but no slashes
-    '''
-    _EMBED_REGEX = [r'<a class=video-item--a href=(?P<url>/v[0-9a-z.-]+\.html)>']
+    _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?P<id>v(?!ideos)[\w.-]+)[^/]*$'
+    _EMBED_REGEX = [r'<a class=video-item--a href=(?P<url>/v[\w.-]+\.html)>']
     _TESTS = [{
         'add_ie': ['RumbleEmbed'],
         'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html',
@@ -245,8 +237,7 @@ class RumbleIE(InfoExtractor):
             'channel': 'LovingMontana',
             'upload_date': '20210207',
             'title': 'Winter-loving dog helps girls dig a snow fort ',
-            'description': 'Moose the dog is more than happy to help '
-                           'with digging out this epic snow fort. Great job, Moose!',
+            'description': 'Moose the dog is more than happy to help with digging out this epic snow fort. Great job, Moose!',
             'channel_url': 'https://rumble.com/c/c-546523',
             'thumbnail': r're:https://.+\.jpg',
             'duration': 103,
@@ -291,25 +282,24 @@ class RumbleIE(InfoExtractor):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
 
-        rumble_embed = self._downloader.get_info_extractor(RumbleEmbedIE.ie_key())
         try:
-            url_info = next(rumble_embed.extract_from_webpage(self._downloader, url, webpage))
+            url_info = next(RumbleEmbedIE.extract_from_webpage(self._downloader, url, webpage))
         except StopIteration:
             raise UnsupportedError(url)
-        info = rumble_embed.extract(url_info['url'])
+
         release_ts_str = self._search_regex(
             r'(?:Livestream begins|Streamed on):\s+<time datetime="([^"]+)',
             webpage, 'release date', fatal=False, default=None)
         view_count_str = self._search_regex(r'<span class="media-heading-info">([\d,]+) Views',
                                             webpage, 'view count', fatal=False, default=None)
-        info.update({
-            'release_timestamp': parse_iso8601(release_ts_str),
-            'view_count': parse_count(view_count_str),
-            'like_count': parse_count(get_element_by_class('rumbles-count', webpage)),
-            'description': clean_html(get_element_by_class('media-description', webpage)),
-        })
 
-        return info
+        return self.url_result(
+            url_info['url'], ie_key=url_info['ie_key'], url_transparent=True,
+            view_count=parse_count(view_count_str),
+            release_timestamp=parse_iso8601(release_ts_str),
+            like_count=parse_count(get_element_by_class('rumbles-count', webpage)),
+            description=clean_html(get_element_by_class('media-description', webpage)),
+        )
 
 
 class RumbleChannelIE(InfoExtractor):
