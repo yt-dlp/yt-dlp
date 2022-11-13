@@ -27,7 +27,7 @@ class CDAIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:www\.)?cda\.pl/video|ebd\.cda\.pl/[0-9]+x[0-9]+)/(?P<id>[0-9a-z]+)'
     _NETRC_MACHINE = 'cdapl'
 
-    _BASE_URL = 'http://www.cda.pl/'
+    _BASE_URL = 'https://www.cda.pl'
     _BASE_API_URL = 'https://api.cda.pl'
     _API_HEADERS = {
         'Accept': 'application/vnd.cda.public+json',
@@ -101,7 +101,9 @@ class CDAIE(InfoExtractor):
             }, **kwargs)
 
     def _perform_login(self, username, password):
-        cached_bearer = self.cache.load(self._BEARER_CACHE, username) or {}
+        # hack to allow e-mails as a key
+        cache_username = username.replace('@', '___')
+        cached_bearer = self.cache.load(self._BEARER_CACHE, cache_username) or {}
         if cached_bearer.get('valid_until', 0) > datetime.datetime.now().timestamp() + 5:
             self._API_HEADERS['Authorization'] = f'Bearer {cached_bearer["token"]}'
             return
@@ -120,7 +122,7 @@ class CDAIE(InfoExtractor):
                 'login': username,
                 'password': password_hash,
             })
-        self.cache.store(self._BEARER_CACHE, username, {
+        self.cache.store(self._BEARER_CACHE, cache_username, {
             'token': token_res['access_token'],
             'valid_until': token_res['expires_in'] + datetime.datetime.now().timestamp(),
         })
@@ -138,9 +140,6 @@ class CDAIE(InfoExtractor):
         meta = self._download_json(
             f'{self._BASE_API_URL}/video/{video_id}', video_id, headers=self._API_HEADERS)['video']
 
-        if meta.get('premium') and not meta.get('premium_free'):
-            self.report_drm(video_id)
-
         uploader = traverse_obj(meta, 'author', 'login')
 
         formats = [{
@@ -152,6 +151,10 @@ class CDAIE(InfoExtractor):
         } for quality in meta['qualities'] if quality.get('file')]
 
         self._sort_formats(formats)
+
+        if meta.get('premium') and not meta.get('premium_free') and len(formats) == 0:
+            raise ExtractorError(
+                'No video formats and video requires CDA Premium - do you have a subscription?', expected=True)
 
         return {
             'id': video_id,
@@ -169,7 +172,7 @@ class CDAIE(InfoExtractor):
     def _web_extract(self, video_id, url):
         self._set_cookie('cda.pl', 'cda.player', 'html5')
         webpage = self._download_webpage(
-            self._BASE_URL + '/video/' + video_id, video_id)
+            f'{self._BASE_URL}/video/{video_id}/vfilm', video_id)
 
         if 'Ten film jest dostępny dla użytkowników premium' in webpage:
             raise ExtractorError('This video is only available for premium users.', expected=True)
