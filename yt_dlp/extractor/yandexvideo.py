@@ -306,22 +306,6 @@ class ZenYandexIE(InfoExtractor):
 class ZenYandexChannelIE(InfoExtractor):
     _VALID_URL = r'https?://(zen\.yandex|dzen)\.ru/(?!media|video)(?:id/)?(?P<id>[a-z0-9-_]+)'
     _TESTS = [{
-        'url': 'https://zen.yandex.ru/tok_media',
-        'info_dict': {
-            'id': 'tok_media',
-            'title': 'СПЕКТР',
-            'description': 'md5:a9e5b3c247b7fe29fd21371a428bcf56',
-        },
-        'playlist_mincount': 169,
-    }, {
-        'url': 'https://dzen.ru/tok_media',
-        'info_dict': {
-            'id': 'tok_media',
-            'title': 'СПЕКТР',
-            'description': 'md5:a9e5b3c247b7fe29fd21371a428bcf56',
-        },
-        'playlist_mincount': 169,
-    }, {
         'url': 'https://zen.yandex.ru/id/606fd806cc13cb3c58c05cf5',
         'info_dict': {
             'id': '606fd806cc13cb3c58c05cf5',
