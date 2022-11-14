@@ -63,7 +63,7 @@ class LA7IE(InfoExtractor):
             url = '%s//%s' % (self.http_scheme(), url)
 
         webpage = self._download_webpage(url, video_id)
-        video_path = self._search_regex(r'(/content/.*?).mp4', webpage, 'video_path')
+        video_path = self._search_regex(r'akamaihd\.net/i(?:/,)?(/content/.*?)\.mp4', webpage, 'video_path')
 
         formats = self._extract_mpd_formats(
             f'{self._HOST}/local/dash/,{video_path}.mp4.urlset/manifest.mpd',
@@ -204,7 +204,7 @@ class LA7PodcastIE(LA7PodcastEpisodeIE):
             'id': 'propagandalive',
             'title': "Propaganda Live",
         },
-        'playlist_count': 10,
+        'playlist_count_min': 10,
     }]
 
     def _real_extract(self, url):
