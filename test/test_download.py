@@ -150,6 +150,8 @@ def generator(test_case, tname):
                 try_rm(tc_filename + '.part')
                 try_rm(os.path.splitext(tc_filename)[0] + '.info.json')
         try_rm_tcs_files()
+        if is_playlist:
+            try_rm(ydl.prepare_filename(dict(test_case.get('info_dict', {})), 'pl_infojson'))
         try:
             try_num = 1
             while True:
@@ -244,11 +246,12 @@ def generator(test_case, tname):
                 expect_info_dict(self, info_dict, tc.get('info_dict', {}))
         finally:
             try_rm_tcs_files()
-            if is_playlist and res_dict is not None and res_dict.get('entries'):
+            if is_playlist and res_dict is not None:
                 # Remove all other files that may have been extracted if the
                 # extractor returns full results even with extract_flat
-                res_tcs = [{'info_dict': e} for e in res_dict['entries']]
+                res_tcs = [{'info_dict': e} for e in res_dict.get('entries') or ()]
                 try_rm_tcs_files(res_tcs)
+                try_rm(ydl.prepare_filename(dict(res_dict), 'pl_infojson'))
 
     return test_template
 
