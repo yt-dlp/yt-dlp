@@ -2202,7 +2202,7 @@ from .weiqitv import WeiqiTVIE
 from .wikimedia import WikimediaIE
 from .willow import WillowIE
 from .wimtv import WimTVIE
-from .winsport import WinsportIE
+from .winsport import WinsportVideoIE
 from .whowatch import WhoWatchIE
 from .wistia import (
     WistiaIE,
