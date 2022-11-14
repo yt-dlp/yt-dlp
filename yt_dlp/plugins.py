@@ -2,6 +2,7 @@ import contextlib
 import importlib
 import inspect
 import itertools
+import os
 import pkgutil
 import re
 import shutil
@@ -11,7 +12,9 @@ import zipimport
 from pathlib import Path
 from zipfile import ZipFile
 
-from .utils import write_string, get_config_dirs
+from yt_dlp.compat import compat_expanduser
+
+from .utils import write_string, get_user_config_dirs, get_system_config_dirs
 
 PACKAGE_NAME = 'ytdlp_plugins'
 _INITIALIZED = False
@@ -50,24 +53,24 @@ class PluginFinder(importlib.abc.MetaPathFinder):
     def search_locations(self, fullname):
         # Also load plugin packages from standard config folders
         config_locations = []
-        for config_dir in map(Path, get_config_dirs('yt-dlp')):
+        for config_dir in map(Path, get_user_config_dirs('yt-dlp')+get_system_config_dirs('yt-dlp')):
             plugin_dir = config_dir / 'plugins'
             if not plugin_dir.is_dir():
                 continue
             config_locations.extend(plugin_dir / d for d in plugin_dir.iterdir())
         path_locations = [Path(path) for path in sys.path]  # PYTHON_PATH
         parts = Path(*fullname.split('.'))
-        locations = []
+        locations = set()
         for path in dict.fromkeys(path_locations + config_locations):
             candidate = path / parts
             if candidate.is_dir():
-                locations.append(str(candidate))
+                locations.add(str(candidate))
             elif any(path.with_suffix(suffix).is_file() for suffix in {'.zip', '.egg', '.whl'}):
                 with contextlib.suppress(FileNotFoundError):
                     if self.zip_has_dir(path, parts):
-                        locations.append(str(candidate))
+                        locations.add(str(candidate))
 
-        return locations
+        return list(locations)
 
     def find_spec(self, fullname, path=None, target=None):
         if fullname not in self.packages:

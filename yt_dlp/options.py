@@ -33,6 +33,8 @@ from .utils import (
     orderedSet_from_options,
     remove_end,
     write_string,
+    get_user_config_dirs,
+    get_system_config_dirs
 )
 from .version import __version__
 
@@ -42,28 +44,26 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     if ignore_config_files == 'if_override':
         ignore_config_files = overrideArguments is not None
 
+    def _load_from_config_dirs(config_dirs, package_name):
+        for config_dir in config_dirs:
+            conf_file_path = os.path.join(config_dir, package_name, 'config')
+            conf = Config.read_file(conf_file_path, default=None)
+            if conf is None:
+                conf_file_path += '.txt'
+                conf = Config.read_file(conf_file_path, default=None)
+            if conf is not None:
+                return conf_file_path, conf
+        return None, None
+
     def _readUserConf(package_name, default=[]):
-        # .config
+        # .config/package_name.conf
         xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
-        userConfFile = os.path.join(xdg_config_home, package_name, 'config')
-        if not os.path.isfile(userConfFile):
-            userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
+        userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
         userConf = Config.read_file(userConfFile, default=None)
         if userConf is not None:
             return userConf, userConfFile
 
-        # appdata
-        appdata_dir = os.getenv('appdata')
-        if appdata_dir:
-            userConfFile = os.path.join(appdata_dir, package_name, 'config')
-            userConf = Config.read_file(userConfFile, default=None)
-            if userConf is None:
-                userConfFile += '.txt'
-                userConf = Config.read_file(userConfFile, default=None)
-        if userConf is not None:
-            return userConf, userConfFile
-
-        # home
+        # home (~/package_name.conf or ~/package_name.conf.txt)
         userConfFile = os.path.join(compat_expanduser('~'), '%s.conf' % package_name)
         userConf = Config.read_file(userConfFile, default=None)
         if userConf is None:
@@ -72,9 +72,19 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
         if userConf is not None:
             return userConf, userConfFile
 
+        # Package config directories (e.g. ~/.config/package_name/package_name.txt)
+        userConf, userConfFile = _load_from_config_dirs(get_user_config_dirs(package_name), package_name)
+        if userConf is not None:
+            return userConf, userConfFile
         return default, None
 
-    def add_config(label, path, user=False):
+    def _readSystemConf(package_name, default=[]):
+        systemConf, systemConfFile = _load_from_config_dirs(get_system_config_dirs(package_name), package_name)
+        if systemConf is not None:
+            return systemConf, systemConfFile
+        return default, None
+
+    def add_config(label, path, user=False, system=False):
         """ Adds config and returns whether to continue """
         if root.parse_known_args()[0].ignoreconfig:
             return False
@@ -84,6 +94,8 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
         for package in ('yt-dlp',):
             if user:
                 args, current_path = _readUserConf(package, default=None)
+            elif system:
+                args, current_path = _readSystemConf(package, default=None)
             else:
                 current_path = os.path.join(path, '%s.conf' % package)
                 args = Config.read_file(current_path, default=None)
@@ -97,7 +109,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
         yield add_config('Portable', get_executable_path())
         yield add_config('Home', expand_path(root.parse_known_args()[0].paths.get('home', '')).strip())
         yield add_config('User', None, user=True)
-        yield add_config('System', '/etc')
+        yield add_config('System', None, system=True)
 
     opts = optparse.Values({'verbose': True, 'print_help': False})
     try:

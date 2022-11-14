@@ -1103,15 +1103,20 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * If `-P` is not given, the current directory is searched
 1. **User Configuration**:
     * `${XDG_CONFIG_HOME}/yt-dlp/config` (recommended on Linux/macOS)
+    * `${XDG_CONFIG_HOME}/yt-dlp/config.txt`
     * `${XDG_CONFIG_HOME}/yt-dlp.conf`
     * `${APPDATA}/yt-dlp/config` (recommended on Windows)
     * `${APPDATA}/yt-dlp/config.txt`
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
+    * `~/.yt-dlp/config`
+    * `~/.yt-dlp/config.txt`
 
     See also: [Notes about environment variables](#notes-about-environment-variables)
 1. **System Configuration**:
     * `/etc/yt-dlp.conf`
+    * `/etc/yt-dlp/config`
+    * `/etc/yt-dlp/config.txt`
 
 E.g. with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
 ```
@@ -1777,9 +1782,25 @@ NOTE: These options may be changed/removed in the future without concern for bac
 
 # PLUGINS
 
-Plugins are loaded from namespace-package `ytdlp_plugins.extractor` and `ytdlp_plugins.postprocessor`. They can also be installed via `pip`.
+Plugins are loaded from namespace-package `ytdlp_plugins.extractor` and `ytdlp_plugins.postprocessor`.
 
-E.g. you can create a file `<root-dir>/ytdlp_plugins/<type>/myplugin.py`; where `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`).
+# TODO: rewrite so that it is more clear
+They can also be loaded from the standard config folders:
+1. **User Plugins**:
+    * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/ytdlp_plugins` (recommended on Linux/macOS)
+    * `${APPDATA}/yt-dlp/plugins/<package name>/ytdlp_plugins` (recommended on Windows)
+    * `~/.yt-dlp/plugins/<package name>/ytdlp_plugins`
+   
+2. **System Plugins**:
+    * `/etc/yt-dlp/plugins/<package name>/ytdlp_plugins`
+
+where `<package name>` is a folder containing the ytdlp_plugins namespace-package.
+
+Any path in `PYTHONPATH` is searched in for the ytdlp_plugins namespace-package as well. 
+- This means plugins can also be installed via `pip`.
+- The root directory of the binary is also a valid location by default (`<root-dir>/ytdlp_plugins/[extractor|postprocessor]/myplugin.py`)
+- Or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`).
+
 
 Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
 
