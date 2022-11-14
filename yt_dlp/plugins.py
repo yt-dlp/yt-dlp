@@ -5,12 +5,13 @@ import itertools
 import pkgutil
 import shutil
 import sys
+import os
 import traceback
 import zipimport
 from pathlib import Path
 from zipfile import ZipFile
 
-from .utils import write_string
+from .utils import write_string, get_config_dirs
 
 PACKAGE_NAME = 'ytdlp_plugins'
 _INITIALIZED = False
@@ -50,7 +51,16 @@ class PluginFinder(importlib.abc.MetaPathFinder):
     def search_locations(self, fullname):
         parts = fullname.split('.')
         locations = []
-        for path in map(Path, dict.fromkeys(sys.path).keys()):
+
+        # Also load plugin packages from standard config folders
+        config_locations = []
+        for config_dir in get_config_dirs('yt-dlp'):
+            plugin_dir = os.path.join(config_dir, 'plugins')
+            if not os.path.isdir(plugin_dir):
+                continue
+            config_locations.extend(os.path.join(plugin_dir, d) for d in os.listdir(plugin_dir))
+
+        for path in map(Path, dict.fromkeys(sys.path+config_locations).keys()):
             candidate = path.joinpath(*parts)
             if candidate.is_dir():
                 locations.append(str(candidate))
@@ -58,6 +68,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
                 with contextlib.suppress(FileNotFoundError):
                     if self.zip_has_dir(path, Path(*parts)):
                         locations.append(str(candidate))
+
         return locations
 
     def find_spec(self, fullname, path=None, target=None):

@@ -5318,6 +5318,28 @@ def load_plugins(*args, **kwargs):
     from .plugins import load_plugins
     return load_plugins(*args, **kwargs)
 
+def get_config_dirs(package_name):
+    locations = []
+    # .config
+    xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
+    config_dir = os.path.join(xdg_config_home, package_name)
+    if os.path.isdir(config_dir):
+        locations.append(config_dir)
+
+    # appdata
+    appdata_dir = os.getenv('appdata')
+    if appdata_dir:
+        config_dir = os.path.join(appdata_dir, package_name)
+        if os.path.isdir(config_dir):
+            locations.append(config_dir)
+
+    # home
+    user_config_directory = os.path.join(compat_expanduser('~'), '.%s' % package_name)
+    if os.path.isdir(user_config_directory):
+        locations.append(user_config_directory)
+
+    return locations
+
 
 def traverse_obj(
         obj, *paths, default=NO_DEFAULT, expected_type=None, get_all=True,
