@@ -28,11 +28,23 @@ def aes_cbc_encrypt_bytes(data, key, iv, **kwargs):
     return intlist_to_bytes(aes_cbc_encrypt(*map(bytes_to_intlist, (data, key, iv)), **kwargs))
 
 
+BLOCK_SIZE_BYTES = 16
+
+
 def unpad_pkcs7(data):
     return data[:-compat_ord(data[-1])]
 
 
-BLOCK_SIZE_BYTES = 16
+def pkcs7_padding(data):
+    """
+    PKCS#7 padding
+
+    @param {int[]} data        cleartext
+    @returns {int[]}           padding data
+    """
+
+    remaining_length = BLOCK_SIZE_BYTES - len(data) % BLOCK_SIZE_BYTES
+    return data + [remaining_length] * remaining_length
 
 
 def pad_block(block, padding_mode):
@@ -64,7 +76,7 @@ def pad_block(block, padding_mode):
 
 def aes_ecb_encrypt(data, key, iv=None):
     """
-    Encrypt with aes in ECB mode
+    Encrypt with aes in ECB mode. Using PKCS#7 padding
 
     @param {int[]} data        cleartext
     @param {int[]} key         16/24/32-Byte cipher key
@@ -77,8 +89,7 @@ def aes_ecb_encrypt(data, key, iv=None):
     encrypted_data = []
     for i in range(block_count):
         block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
-        encrypted_data += aes_encrypt(block, expanded_key)
-    encrypted_data = encrypted_data[:len(data)]
+        encrypted_data += aes_encrypt(pkcs7_padding(block), expanded_key)
 
     return encrypted_data
 
@@ -551,5 +562,6 @@ __all__ = [
 
     'key_expansion',
     'pad_block',
+    'pkcs7_padding',
     'unpad_pkcs7',
 ]

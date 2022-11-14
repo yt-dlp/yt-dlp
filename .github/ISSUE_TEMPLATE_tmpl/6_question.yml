@@ -2,12 +2,13 @@ name: Ask question
 description: Ask yt-dlp related question
 labels: [question]
 body:
+  %(no_skip)s
   - type: markdown
     attributes:
       value: |
         ### Make sure you are **only** asking a question and not reporting a bug or requesting a feature.
         If your question contains "isn't working" or "can you add", this is most likely the wrong template.
-        If you are in doubt whether this is the right template, **use another template**!
+        If you are in doubt whether this is the right template, **USE ANOTHER TEMPLATE**!
   - type: checkboxes
     id: checklist
     attributes:

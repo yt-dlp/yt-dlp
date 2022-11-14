@@ -63,6 +63,8 @@ from .utils import (
 )
 from .YoutubeDL import YoutubeDL
 
+_IN_CLI = False
+
 
 def _exit(status=0, *args):
     for msg in args:
@@ -324,14 +326,15 @@ def validate_options(opts):
 
     def parse_chapters(name, value):
         chapters, ranges = [], []
+        parse_timestamp = lambda x: float('inf') if x in ('inf', 'infinite') else parse_duration(x)
         for regex in value or []:
             if regex.startswith('*'):
-                for range in regex[1:].split(','):
-                    dur = tuple(map(parse_duration, range.strip().split('-')))
-                    if len(dur) == 2 and all(t is not None for t in dur):
-                        ranges.append(dur)
-                    else:
+                for range_ in map(str.strip, regex[1:].split(',')):
+                    mobj = range_ != '-' and re.fullmatch(r'([^-]+)?\s*-\s*([^-]+)?', range_)
+                    dur = mobj and (parse_timestamp(mobj.group(1) or '0'), parse_timestamp(mobj.group(2) or 'inf'))
+                    if None in (dur or [None]):
                         raise ValueError(f'invalid {name} time range "{regex}". Must be of the form *start-end')
+                    ranges.append(dur)
                 continue
             try:
                 chapters.append(re.compile(regex))
@@ -344,10 +347,16 @@ def validate_options(opts):
 
     # Cookies from browser
     if opts.cookiesfrombrowser:
-        mobj = re.match(r'(?P<name>[^+:]+)(\s*\+\s*(?P<keyring>[^:]+))?(\s*:(?P<profile>.+))?', opts.cookiesfrombrowser)
+        container = None
+        mobj = re.fullmatch(r'''(?x)
+            (?P<name>[^+:]+)
+            (?:\s*\+\s*(?P<keyring>[^:]+))?
+            (?:\s*:\s*(?P<profile>.+?))?
+            (?:\s*::\s*(?P<container>.+))?
+        ''', opts.cookiesfrombrowser)
         if mobj is None:
             raise ValueError(f'invalid cookies from browser arguments: {opts.cookiesfrombrowser}')
-        browser_name, keyring, profile = mobj.group('name', 'keyring', 'profile')
+        browser_name, keyring, profile, container = mobj.group('name', 'keyring', 'profile', 'container')
         browser_name = browser_name.lower()
         if browser_name not in SUPPORTED_BROWSERS:
             raise ValueError(f'unsupported browser specified for cookies: "{browser_name}". '
@@ -357,7 +366,7 @@ def validate_options(opts):
             if keyring not in SUPPORTED_KEYRINGS:
                 raise ValueError(f'unsupported keyring specified for cookies: "{keyring}". '
                                  f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
-        opts.cookiesfrombrowser = (browser_name, profile, keyring)
+        opts.cookiesfrombrowser = (browser_name, profile, keyring, container)
 
     # MetadataParser
     def metadataparser_actions(f):
@@ -401,6 +410,9 @@ def validate_options(opts):
 
     if opts.download_archive is not None:
         opts.download_archive = expand_path(opts.download_archive)
+
+    if opts.ffmpeg_location is not None:
+        opts.ffmpeg_location = expand_path(opts.ffmpeg_location)
 
     if opts.user_agent is not None:
         opts.headers.setdefault('User-Agent', opts.user_agent)
@@ -477,7 +489,7 @@ def validate_options(opts):
                     val1=opts.sponskrub and opts.sponskrub_cut)
 
     # Conflicts with --allow-unplayable-formats
-    report_conflict('--add-metadata', 'addmetadata')
+    report_conflict('--embed-metadata', 'addmetadata')
     report_conflict('--embed-chapters', 'addchapters')
     report_conflict('--embed-info-json', 'embed_infojson')
     report_conflict('--embed-subs', 'embedsubtitles')
@@ -766,6 +778,7 @@ def parse_options(argv=None):
         'windowsfilenames': opts.windowsfilenames,
         'ignoreerrors': opts.ignoreerrors,
         'force_generic_extractor': opts.force_generic_extractor,
+        'allowed_extractors': opts.allowed_extractors or ['default'],
         'ratelimit': opts.ratelimit,
         'throttledratelimit': opts.throttledratelimit,
         'overwrites': opts.overwrites,
@@ -949,6 +962,8 @@ def _real_main(argv=None):
 
 
 def main(argv=None):
+    global _IN_CLI
+    _IN_CLI = True
     try:
         _exit(*variadic(_real_main(argv)))
     except DownloadError:

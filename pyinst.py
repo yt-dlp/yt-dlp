@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 
+# Allow direct execution
 import os
-import platform
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import platform
 
 from PyInstaller.__main__ import run as run_pyinstaller
 
-OS_NAME, MACHINE, ARCH = sys.platform, platform.machine(), platform.architecture()[0][:2]
-if MACHINE in ('x86_64', 'AMD64') or ('i' in MACHINE and '86' in MACHINE):
-    # NB: Windows x86 has MACHINE = AMD64 irrespective of bitness
+from devscripts.utils import read_version
+
+OS_NAME, MACHINE, ARCH = sys.platform, platform.machine().lower(), platform.architecture()[0][:2]
+if MACHINE in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
     MACHINE = 'x86' if ARCH == '32' else ''
 
 
 def main():
-    opts = parse_options()
-    version = read_version('yt_dlp/version.py')
+    opts, version = parse_options(), read_version()
 
     onedir = '--onedir' in opts or '-D' in opts
     if not onedir and '-F' not in opts and '--onefile' not in opts:
@@ -53,19 +57,12 @@ def parse_options():
     return opts
 
 
-# Get the version from yt_dlp/version.py without importing the package
-def read_version(fname):
-    with open(fname, encoding='utf-8') as f:
-        exec(compile(f.read(), fname, 'exec'))
-        return locals()['__version__']
-
-
 def exe(onedir):
     """@returns (name, path)"""
     name = '_'.join(filter(None, (
         'yt-dlp',
         {'win32': '', 'darwin': 'macos'}.get(OS_NAME, OS_NAME),
-        MACHINE
+        MACHINE,
     )))
     return name, ''.join(filter(None, (
         'dist/',
@@ -83,7 +80,7 @@ def version_to_list(version):
 def dependency_options():
     # Due to the current implementation, these are auto-detected, but explicitly add them just in case
     dependencies = [pycryptodome_module(), 'mutagen', 'brotli', 'certifi', 'websockets']
-    excluded_modules = ['test', 'ytdlp_plugins', 'youtube_dl', 'youtube_dlc']
+    excluded_modules = ('youtube_dl', 'youtube_dlc', 'test', 'ytdlp_plugins', 'devscripts')
 
     yield from (f'--hidden-import={module}' for module in dependencies)
     yield '--collect-submodules=websockets'

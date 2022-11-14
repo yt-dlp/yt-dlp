@@ -870,7 +870,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
 
         if '://player.vimeo.com/video/' in url:
             config = self._parse_json(self._search_regex(
-                r'\bconfig\s*=\s*({.+?})\s*;', webpage, 'info section'), video_id)
+                r'\b(?:playerC|c)onfig\s*=\s*({.+?})\s*;', webpage, 'info section'), video_id)
             if config.get('view') == 4:
                 config = self._verify_player_video_password(
                     redirect_url, video_id, headers)
@@ -1131,7 +1131,7 @@ class VimeoChannelIE(VimeoBaseInfoExtractor):
 
 class VimeoUserIE(VimeoChannelIE):
     IE_NAME = 'vimeo:user'
-    _VALID_URL = r'https://vimeo\.com/(?!(?:[0-9]+|watchlater)(?:$|[?#/]))(?P<id>[^/]+)(?:/videos|[#?]|$)'
+    _VALID_URL = r'https://vimeo\.com/(?!(?:[0-9]+|watchlater)(?:$|[?#/]))(?P<id>[^/]+)(?:/videos)?/?(?:$|[?#])'
     _TITLE_RE = r'<a[^>]+?class="user">([^<>]+?)</a>'
     _TESTS = [{
         'url': 'https://vimeo.com/nkistudio/videos',
@@ -1140,6 +1140,9 @@ class VimeoUserIE(VimeoChannelIE):
             'id': 'nkistudio',
         },
         'playlist_mincount': 66,
+    }, {
+        'url': 'https://vimeo.com/nkistudio/',
+        'only_matching': True,
     }]
     _BASE_URL_TEMPL = 'https://vimeo.com/%s'
 
