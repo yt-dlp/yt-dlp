@@ -281,10 +281,8 @@ class RumbleIE(InfoExtractor):
     def _real_extract(self, url):
         page_id = self._match_id(url)
         webpage = self._download_webpage(url, page_id)
-
-        try:
-            url_info = next(RumbleEmbedIE.extract_from_webpage(self._downloader, url, webpage))
-        except StopIteration:
+        url_info = next(RumbleEmbedIE.extract_from_webpage(self._downloader, url, webpage), None)
+        if not url_info:
             raise UnsupportedError(url)
 
         release_ts_str = self._search_regex(
