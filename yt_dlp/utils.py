@@ -5318,6 +5318,7 @@ def load_plugins(*args, **kwargs):
     from .plugins import load_plugins
     return load_plugins(*args, **kwargs)
 
+
 def get_config_dirs(package_name):
     locations = []
     # .config

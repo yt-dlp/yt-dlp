@@ -6,7 +6,6 @@ import pkgutil
 import re
 import shutil
 import sys
-import os
 import traceback
 import zipimport
 from pathlib import Path
@@ -45,29 +44,27 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
     def zip_has_dir(self, archive, path):
         if archive not in self._zip_content_cache:
-            self._zip_content_cache[archive] = \
-                [Path(name) for name in ZipFile(archive).namelist()]
+            self._zip_content_cache[archive] = [Path(name) for name in ZipFile(archive).namelist()]
         return any(path in file.parents for file in self._zip_content_cache[archive])
 
     def search_locations(self, fullname):
-        parts = fullname.split('.')
-        locations = []
-
         # Also load plugin packages from standard config folders
         config_locations = []
-        for config_dir in get_config_dirs('yt-dlp'):
-            plugin_dir = os.path.join(config_dir, 'plugins')
-            if not os.path.isdir(plugin_dir):
+        for config_dir in map(Path, get_config_dirs('yt-dlp')):
+            plugin_dir = config_dir / 'plugins'
+            if not plugin_dir.is_dir():
                 continue
-            config_locations.extend(os.path.join(plugin_dir, d) for d in os.listdir(plugin_dir))
-
-        for path in map(Path, dict.fromkeys(sys.path+config_locations).keys()):
-            candidate = path.joinpath(*parts)
+            config_locations.extend(plugin_dir / d for d in plugin_dir.iterdir())
+        path_locations = [Path(path) for path in sys.path]  # PYTHON_PATH
+        parts = Path(*fullname.split('.'))
+        locations = []
+        for path in dict.fromkeys(path_locations + config_locations):
+            candidate = path / parts
             if candidate.is_dir():
                 locations.append(str(candidate))
-            elif path.is_file() and path.suffix in {'.zip', '.egg', '.whl'}:
+            elif any(path.with_suffix(suffix).is_file() for suffix in {'.zip', '.egg', '.whl'}):
                 with contextlib.suppress(FileNotFoundError):
-                    if self.zip_has_dir(path, Path(*parts)):
+                    if self.zip_has_dir(path, parts):
                         locations.append(str(candidate))
 
         return locations
@@ -107,7 +104,7 @@ def initialize():
         except FileNotFoundError:
             pass
         except OSError as exc:
-            print(exc, file=sys.stderr)
+            write_string(str(exc))
 
     sys.meta_path.insert(
         0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'))
@@ -134,7 +131,7 @@ def load_plugins(name, suffix, namespace=None):
         def check_predicate(obj):
             return (inspect.isclass(obj)
                     and obj.__name__.endswith(suffix)
-                    and obj.__module__.startswith(package_name) )
+                    and obj.__module__.startswith(package_name))
 
         return check_predicate
 
@@ -150,7 +147,6 @@ def load_plugins(name, suffix, namespace=None):
                 spec.loader.exec_module(module)
         except Exception:
             write_string(f'Error while importing module {module_name!r}\n{traceback.format_exc(limit=-1)}')
-            traceback.print_exc(limit=-1)
             continue
 
         sys.modules[module_name] = module
