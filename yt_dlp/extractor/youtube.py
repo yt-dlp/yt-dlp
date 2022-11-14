@@ -1,5 +1,6 @@
 import base64
 import calendar
+import collections
 import copy
 import datetime
 import enum
@@ -2480,6 +2481,34 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'note': '6 channel audio',
             'url': 'https://www.youtube.com/watch?v=zgdo7-RRjgo',
             'only_matching': True,
+        }, {
+            'note': 'Multiple HLS formats with same itag',
+            'url': 'https://www.youtube.com/watch?v=kX3nB4PpJko',
+            'info_dict': {
+                'id': 'kX3nB4PpJko',
+                'ext': 'mp4',
+                'categories': ['Entertainment'],
+                'description': 'md5:e8031ff6e426cdb6a77670c9b81f6fa6',
+                'uploader_url': 'http://www.youtube.com/user/MrBeast6000',
+                'live_status': 'not_live',
+                'duration': 937,
+                'channel_follower_count': int,
+                'thumbnail': 'https://i.ytimg.com/vi_webp/kX3nB4PpJko/maxresdefault.webp',
+                'title': 'Last To Take Hand Off Jet, Keeps It!',
+                'channel': 'MrBeast',
+                'playable_in_embed': True,
+                'view_count': int,
+                'upload_date': '20221112',
+                'uploader': 'MrBeast',
+                'uploader_id': 'MrBeast6000',
+                'channel_url': 'https://www.youtube.com/channel/UCX6OQ3DkcsbYNE6H8uQQuVA',
+                'age_limit': 0,
+                'availability': 'public',
+                'channel_id': 'UCX6OQ3DkcsbYNE6H8uQQuVA',
+                'like_count': int,
+                'tags': [],
+            },
+            'params': {'extractor_args': {'youtube': {'player_client': ['ios']}}, 'format': '233-1'},
         }
     ]
 
@@ -3472,7 +3501,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return live_status
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, live_status, duration):
-        itags, stream_ids = {}, []
+        itags, stream_ids = collections.defaultdict(set), []
         itag_qualities, res_qualities = {}, {0: None}
         q = qualities([
             # Normally tiny is the smallest video-only formats. But
@@ -3554,10 +3583,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             video_id=video_id, only_once=True)
                     throttled = True
 
-            if itag:
-                itags[itag] = 'https'
-                stream_ids.append(stream_id)
-
             tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
             language_preference = (
                 10 if audio_track.get('audioIsDefault') and 10
@@ -3616,6 +3641,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 }
                 if dct.get('ext'):
                     dct['container'] = dct['ext'] + '_dash'
+
+            if itag:
+                itags[itag].add(('https', dct.get('language')))
+                stream_ids.append(stream_id)
             yield dct
 
         needs_live_processing = self._needs_live_processing(live_status, duration)
@@ -3636,13 +3665,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             skip_manifests.add('dash')
 
         def process_manifest_format(f, proto, itag):
-            if itag in itags:
-                if itags[itag] == proto or f'{itag}-{proto}' in itags:
-                    return False
-                itag = f'{itag}-{proto}'
-            if itag:
+            key = (proto, f.get('language'))
+            if key in itags[itag]:
+                return False
+            itags[itag].add(key)
+
+            if any(p != proto for p, _ in itags[itag]):
+                f['format_id'] = f'{itag}-{proto}'
+            elif itag:
                 f['format_id'] = itag
-                itags[itag] = proto
 
             f['quality'] = q(itag_qualities.get(try_get(f, lambda f: f['format_id'].split('-')[0]), -1))
             if f['quality'] == -1 and f.get('height'):
