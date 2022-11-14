@@ -1,30 +1,29 @@
+import contextlib
 import importlib
+import inspect
+import itertools
+import pkgutil
+import shutil
 import sys
 import traceback
-from contextlib import suppress
-from importlib.abc import MetaPathFinder, Loader
-from importlib.machinery import ModuleSpec
-from importlib.util import module_from_spec, find_spec
-from inspect import getmembers, isclass
-from itertools import accumulate
+import zipimport
 from pathlib import Path
-from pkgutil import iter_modules as pkgutil_iter_modules
-from shutil import copytree
 from zipfile import ZipFile
-from zipimport import zipimporter
+
+from .utils import write_string
 
 PACKAGE_NAME = 'ytdlp_plugins'
 _INITIALIZED = False
 
 
-class PluginLoader(Loader):
+class PluginLoader(importlib.abc.Loader):
     """ Dummy loader for virtual namespace packages """
 
     def exec_module(self, module):
         return None
 
 
-class PluginFinder(MetaPathFinder):
+class PluginFinder(importlib.abc.MetaPathFinder):
     """
     This class provides one or multiple namespace packages
     it searches in sys.path for the existing subdirectories
@@ -40,7 +39,7 @@ class PluginFinder(MetaPathFinder):
 
     @staticmethod
     def partition(name):
-        yield from accumulate(name.split('.'), lambda a, b: '.'.join((a, b)))
+        yield from itertools.accumulate(name.split('.'), lambda a, b: '.'.join((a, b)))
 
     def zip_has_dir(self, archive, path):
         if archive not in self._zip_content_cache:
@@ -56,7 +55,7 @@ class PluginFinder(MetaPathFinder):
             if candidate.is_dir():
                 locations.append(str(candidate))
             elif path.is_file() and path.suffix in {'.zip', '.egg', '.whl'}:
-                with suppress(FileNotFoundError):
+                with contextlib.suppress(FileNotFoundError):
                     if self.zip_has_dir(path, Path(*parts)):
                         locations.append(str(candidate))
         return locations
@@ -69,7 +68,7 @@ class PluginFinder(MetaPathFinder):
         if not search_locations:
             return None
 
-        spec = ModuleSpec(fullname, PluginLoader(), is_package=True)
+        spec = importlib.machinery.ModuleSpec(fullname, PluginLoader(), is_package=True)
         spec.submodule_search_locations = search_locations
         return spec
 
@@ -85,13 +84,14 @@ def initialize():
     if _INITIALIZED:
         return
 
+    # FIXME: https://github.com/yt-dlp/yt-dlp/pull/1393/files#r742829806
     # are we running from PyInstaller single executable?
     # then copy the plugin directory if exist
     root = Path(sys.executable).parent
     meipass = Path(getattr(sys, '_MEIPASS', root))
     if getattr(sys, 'frozen', False) and root != meipass:
         try:
-            copytree(root / PACKAGE_NAME, meipass / PACKAGE_NAME, dirs_exist_ok=True)
+            shutil.copytree(root / PACKAGE_NAME, meipass / PACKAGE_NAME, dirs_exist_ok=True)
         except FileNotFoundError:
             pass
         except OSError as exc:
@@ -103,15 +103,15 @@ def initialize():
 
 
 def directories():
-    spec = find_spec(PACKAGE_NAME)
+    spec = importlib.util.find_spec(PACKAGE_NAME)
     return spec.submodule_search_locations if spec else []
 
 
 def iter_modules(subpackage):
     fullname = f'{PACKAGE_NAME}.{subpackage}'
-    with suppress(ModuleNotFoundError):
+    with contextlib.suppress(ModuleNotFoundError):
         pkg = importlib.import_module(fullname)
-        yield from pkgutil_iter_modules(path=pkg.__path__, prefix=f'{fullname}.')
+        yield from pkgutil.iter_modules(path=pkg.__path__, prefix=f'{fullname}.')
 
 
 def load_plugins(name, suffix, namespace):
@@ -119,27 +119,28 @@ def load_plugins(name, suffix, namespace):
 
     def gen_predicate(package_name):
         def check_predicate(obj):
-            return (isclass(obj)
+            return (inspect.isclass(obj)
                     and obj.__name__.endswith(suffix)
-                    and obj.__module__.startswith(package_name))
+                    and obj.__module__.startswith(package_name)
+                    and not obj.__name__.startswith('_'))
 
         return check_predicate
 
     for finder, module_name, is_pkg in iter_modules(name):
         try:
-            if isinstance(finder, zipimporter):
+            if isinstance(finder, zipimport.zipimporter):
                 module = finder.load_module(module_name)
             else:
                 spec = finder.find_spec(module_name)
-                module = module_from_spec(spec)
+                module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
         except Exception:
-            print(f"Error while importing module '{module_name}'", file=sys.stderr)
+            write_string(f'Error while importing module {module_name!r}\n{traceback.format_exc(limit=-1)}')
             traceback.print_exc(limit=-1)
             continue
 
         sys.modules[module_name] = module
-        module_classes = dict(getmembers(module, gen_predicate(module_name)))
+        module_classes = dict(inspect.getmembers(module, gen_predicate(module_name)))
         name_collisions = (
             set(classes.keys()) | set(namespace.keys())) & set(module_classes.keys())
         classes.update({key: value for key, value in module_classes.items()

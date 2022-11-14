@@ -1,7 +1,4 @@
 from ..compat.compat_utils import passthrough_module
-import os
-
-from ..plugins import load_plugins
 
 passthrough_module(__name__, '.extractors')
 del passthrough_module

@@ -18,7 +18,6 @@ import html.entities
 import html.parser
 import http.client
 import http.cookiejar
-import importlib.util
 import inspect
 import io
 import itertools
@@ -5311,6 +5310,13 @@ def get_executable_path():
     from .update import _get_variant_and_executable_path
 
     return os.path.dirname(os.path.abspath(_get_variant_and_executable_path()[1]))
+
+
+# TODO: move to compat utils (see network rework)
+def load_plugins(*args, **kwargs):
+    """ For compatability. Do not use """
+    from .plugins import load_plugins
+    return load_plugins(*args, **kwargs)
 
 
 def traverse_obj(
