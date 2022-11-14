@@ -28,11 +28,11 @@ class TestPlugins(unittest.TestCase):
         self.assertIn(self.SAMPLE_PLUGIN_DIR, plugin_dirs)
 
     def test_extractor_classes(self):
-        plugins_ie = load_plugins("extractor", "IE", {})
+        plugins_ie = load_plugins("extractor", "IE")
         self.assertIn("SamplePluginIE", plugins_ie.keys())
 
     def test_postprocessor_classes(self):
-        plugins_pp = load_plugins("postprocessor", "PP", {})
+        plugins_pp = load_plugins("postprocessor", "PP")
         self.assertIn("SamplePluginPP", plugins_pp.keys())
 
     def test_importing_zipped_module(self):

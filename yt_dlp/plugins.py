@@ -3,6 +3,7 @@ import importlib
 import inspect
 import itertools
 import pkgutil
+import re
 import shutil
 import sys
 import os
@@ -125,19 +126,21 @@ def iter_modules(subpackage):
         yield from pkgutil.iter_modules(path=pkg.__path__, prefix=f'{fullname}.')
 
 
-def load_plugins(name, suffix, namespace):
+def load_plugins(name, suffix, namespace=None):
     classes = {}
+    namespace = namespace or {}
 
     def gen_predicate(package_name):
         def check_predicate(obj):
             return (inspect.isclass(obj)
                     and obj.__name__.endswith(suffix)
-                    and obj.__module__.startswith(package_name)
-                    and not obj.__name__.startswith('_'))
+                    and obj.__module__.startswith(package_name) )
 
         return check_predicate
 
     for finder, module_name, is_pkg in iter_modules(name):
+        if re.match(r"^(\w+\.)*_", module_name):
+            continue
         try:
             if isinstance(finder, zipimport.zipimporter):
                 module = finder.load_module(module_name)
