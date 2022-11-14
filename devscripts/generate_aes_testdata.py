@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
+
+# Allow direct execution
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 import codecs
 import subprocess
 
-import os
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from yt_dlp.utils import intlist_to_bytes
 from yt_dlp.aes import aes_encrypt, key_expansion
+from yt_dlp.utils import intlist_to_bytes
 
 secret_msg = b'Secret message goes here'
 

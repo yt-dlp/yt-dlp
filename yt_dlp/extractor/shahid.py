@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import math
 import re
@@ -79,16 +76,12 @@ class ShahidIE(ShahidBaseIE):
         'only_matching': True
     }]
 
-    def _real_initialize(self):
-        email, password = self._get_login_info()
-        if email is None:
-            return
-
+    def _perform_login(self, username, password):
         try:
             user_data = self._download_json(
                 'https://shahid.mbc.net/wd/service/users/login',
                 None, 'Logging in', data=json.dumps({
-                    'email': email,
+                    'email': username,
                     'password': password,
                     'basic': 'false',
                 }).encode('utf-8'), headers={

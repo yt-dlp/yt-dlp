@@ -1,22 +1,20 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str, compat_HTTPError
+from ..compat import compat_HTTPError
 from ..utils import (
-    determine_ext,
     int_or_none,
     parse_iso8601,
-    try_get,
+    traverse_obj,
+    unescapeHTML,
     ExtractorError,
 )
 
 
 class RumbleEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rumble\.com/embed/(?:[0-9a-z]+\.)?(?P<id>[0-9a-z]+)'
+    _EMBED_REGEX = [fr'(?:<(?:script|iframe)[^>]+\bsrc=|["\']embedUrl["\']\s*:\s*)["\'](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://rumble.com/embed/v5pv5f',
         'md5': '36a18a049856720189f30977ccbb2c34',
@@ -26,56 +24,215 @@ class RumbleEmbedIE(InfoExtractor):
             'title': 'WMAR 2 News Latest Headlines | October 20, 6pm',
             'timestamp': 1571611968,
             'upload_date': '20191020',
+            'channel_url': 'https://rumble.com/c/WMAR',
+            'channel': 'WMAR',
+            'thumbnail': 'https://sp.rmbl.ws/s8/1/5/M/z/1/5Mz1a.OvCc-small-WMAR-2-News-Latest-Headline.jpg',
+            'duration': 234,
+            'uploader': 'WMAR',
+            'live_status': 'not_live',
         }
+    }, {
+        'url': 'https://rumble.com/embed/vslb7v',
+        'md5': '7418035de1a30a178b8af34dc2b6a52b',
+        'info_dict': {
+            'id': 'vslb7v',
+            'ext': 'mp4',
+            'title': 'Defense Sec. says US Commitment to NATO Defense \'Ironclad\'',
+            'timestamp': 1645142135,
+            'upload_date': '20220217',
+            'channel_url': 'https://rumble.com/c/CyberTechNews',
+            'channel': 'CTNews',
+            'thumbnail': 'https://sp.rmbl.ws/s8/6/7/i/9/h/7i9hd.OvCc.jpg',
+            'duration': 901,
+            'uploader': 'CTNews',
+            'live_status': 'not_live',
+        }
+    }, {
+        'url': 'https://rumble.com/embed/vunh1h',
+        'info_dict': {
+            'id': 'vunh1h',
+            'ext': 'mp4',
+            'title': '‘Gideon, op zoek naar de waarheid’ including ENG SUBS',
+            'timestamp': 1647197663,
+            'upload_date': '20220313',
+            'channel_url': 'https://rumble.com/user/BLCKBX',
+            'channel': 'BLCKBX',
+            'thumbnail': r're:https://.+\.jpg',
+            'duration': 5069,
+            'uploader': 'BLCKBX',
+            'live_status': 'not_live',
+            'subtitles': {
+                'en': [
+                    {
+                        'url': r're:https://.+\.vtt',
+                        'name': 'English',
+                        'ext': 'vtt'
+                    }
+                ]
+            },
+        },
+        'params': {'skip_download': True}
+    }, {
+        'url': 'https://rumble.com/embed/v1essrt',
+        'info_dict': {
+            'id': 'v1essrt',
+            'ext': 'mp4',
+            'title': 'startswith:lofi hip hop radio - beats to relax/study',
+            'timestamp': 1661519399,
+            'upload_date': '20220826',
+            'channel_url': 'https://rumble.com/c/LofiGirl',
+            'channel': 'Lofi Girl',
+            'thumbnail': r're:https://.+\.jpg',
+            'duration': None,
+            'uploader': 'Lofi Girl',
+            'live_status': 'is_live',
+        },
+        'params': {'skip_download': True}
+    }, {
+        'url': 'https://rumble.com/embed/v1amumr',
+        'info_dict': {
+            'id': 'v1amumr',
+            'ext': 'webm',
+            'fps': 60,
+            'title': 'Turning Point USA 2022 Student Action Summit DAY 1  - Rumble Exclusive Live',
+            'timestamp': 1658518457,
+            'upload_date': '20220722',
+            'channel_url': 'https://rumble.com/c/RumbleEvents',
+            'channel': 'Rumble Events',
+            'thumbnail': r're:https://.+\.jpg',
+            'duration': 16427,
+            'uploader': 'Rumble Events',
+            'live_status': 'was_live',
+        },
+        'params': {'skip_download': True}
     }, {
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'(?:<(?:script|iframe)[^>]+\bsrc=|["\']embedUrl["\']\s*:\s*)["\'](?P<url>%s)' % RumbleEmbedIE._VALID_URL,
-                webpage)]
+    _WEBPAGE_TESTS = [
+        {
+            'note': 'Rumble embed',
+            'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html',
+            'md5': '53af34098a7f92c4e51cf0bd1c33f009',
+            'info_dict': {
+                'id': 'vb0ofn',
+                'ext': 'mp4',
+                'timestamp': 1612662578,
+                'uploader': 'LovingMontana',
+                'channel': 'LovingMontana',
+                'upload_date': '20210207',
+                'title': 'Winter-loving dog helps girls dig a snow fort ',
+                'channel_url': 'https://rumble.com/c/c-546523',
+                'thumbnail': 'https://sp.rmbl.ws/s8/1/5/f/x/x/5fxxb.OvCc.1-small-Moose-The-Dog-Helps-Girls-D.jpg',
+                'duration': 103,
+                'live_status': 'not_live',
+            }
+        },
+        {
+            'note': 'Rumble JS embed',
+            'url': 'https://therightscoop.com/what-does-9-plus-1-plus-1-equal-listen-to-this-audio-of-attempted-kavanaugh-assassins-call-and-youll-get-it',
+            'md5': '4701209ac99095592e73dbba21889690',
+            'info_dict': {
+                'id': 'v15eqxl',
+                'ext': 'mp4',
+                'channel': 'Mr Producer Media',
+                'duration': 92,
+                'title': '911 Audio From The Man Who Wanted To Kill Supreme Court Justice Kavanaugh',
+                'channel_url': 'https://rumble.com/c/RichSementa',
+                'thumbnail': 'https://sp.rmbl.ws/s8/1/P/j/f/A/PjfAe.OvCc-small-911-Audio-From-The-Man-Who-.jpg',
+                'timestamp': 1654892716,
+                'uploader': 'Mr Producer Media',
+                'upload_date': '20220610',
+                'live_status': 'not_live',
+            }
+        },
+    ]
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        embeds = tuple(super()._extract_embed_urls(url, webpage))
+        if embeds:
+            return embeds
+        return [f'https://rumble.com/embed/{mobj.group("id")}' for mobj in re.finditer(
+            r'<script>\s*Rumble\(\s*"play"\s*,\s*{\s*[\'"]video[\'"]\s*:\s*[\'"](?P<id>[0-9a-z]+)[\'"]', webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video = self._download_json(
-            'https://rumble.com/embedJS/', video_id,
-            query={'request': 'video', 'v': video_id})
-        title = video['title']
+            'https://rumble.com/embedJS/u3/', video_id,
+            query={'request': 'video', 'ver': 2, 'v': video_id})
+
+        sys_msg = traverse_obj(video, ('sys', 'msg'))
+        if sys_msg:
+            self.report_warning(sys_msg, video_id=video_id)
+
+        if video.get('live') == 0:
+            live_status = 'not_live' if video.get('livestream_has_dvr') is None else 'was_live'
+        elif video.get('live') == 1:
+            live_status = 'is_upcoming' if video.get('livestream_has_dvr') else 'was_live'
+        elif video.get('live') == 2:
+            live_status = 'is_live'
+        else:
+            live_status = None
 
         formats = []
-        for height, ua in (video.get('ua') or {}).items():
-            for i in range(2):
-                f_url = try_get(ua, lambda x: x[i], compat_str)
-                if f_url:
-                    ext = determine_ext(f_url)
-                    f = {
-                        'ext': ext,
-                        'format_id': '%s-%sp' % (ext, height),
-                        'height': int_or_none(height),
-                        'url': f_url,
-                    }
-                    bitrate = try_get(ua, lambda x: x[i + 2]['bitrate'])
-                    if bitrate:
-                        f['tbr'] = int_or_none(bitrate)
-                    formats.append(f)
+        for ext, ext_info in (video.get('ua') or {}).items():
+            for height, video_info in (ext_info or {}).items():
+                meta = video_info.get('meta') or {}
+                if not video_info.get('url'):
+                    continue
+                if ext == 'hls':
+                    if meta.get('live') is True and video.get('live') == 1:
+                        live_status = 'post_live'
+                    formats.extend(self._extract_m3u8_formats(
+                        video_info['url'], video_id,
+                        ext='mp4', m3u8_id='hls', fatal=False, live=live_status == 'is_live'))
+                    continue
+                formats.append({
+                    'ext': ext,
+                    'url': video_info['url'],
+                    'format_id': '%s-%sp' % (ext, height),
+                    'height': int_or_none(height),
+                    'fps': video.get('fps'),
+                    **traverse_obj(meta, {
+                        'tbr': 'bitrate',
+                        'filesize': 'size',
+                        'width': 'w',
+                        'height': 'h',
+                    }, default={})
+                })
         self._sort_formats(formats)
 
+        subtitles = {
+            lang: [{
+                'url': sub_info['path'],
+                'name': sub_info.get('language') or '',
+            }] for lang, sub_info in (video.get('cc') or {}).items() if sub_info.get('path')
+        }
+
         author = video.get('author') or {}
+        thumbnails = traverse_obj(video, ('t', ..., {'url': 'i', 'width': 'w', 'height': 'h'}))
+        if not thumbnails and video.get('i'):
+            thumbnails = [{'url': video['i']}]
+
+        if live_status in {'is_live', 'post_live'}:
+            duration = None
+        else:
+            duration = int_or_none(video.get('duration'))
 
         return {
             'id': video_id,
-            'title': title,
+            'title': unescapeHTML(video.get('title')),
             'formats': formats,
-            'thumbnail': video.get('i'),
+            'subtitles': subtitles,
+            'thumbnails': thumbnails,
             'timestamp': parse_iso8601(video.get('pubDate')),
             'channel': author.get('name'),
             'channel_url': author.get('url'),
-            'duration': int_or_none(video.get('duration')),
+            'duration': duration,
+            'uploader': author.get('name'),
+            'live_status': live_status,
         }
 
 
@@ -90,7 +247,7 @@ class RumbleChannelIE(InfoExtractor):
         },
     }, {
         'url': 'https://rumble.com/user/goldenpoodleharleyeuna',
-        'playlist_count': 4,
+        'playlist_mincount': 4,
         'info_dict': {
             'id': 'goldenpoodleharleyeuna',
         },

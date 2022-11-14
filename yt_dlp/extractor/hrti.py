@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -27,8 +24,9 @@ class HRTiBaseIE(InfoExtractor):
     _APP_VERSION = '1.1'
     _APP_PUBLICATION_ID = 'all_in_one'
     _API_URL = 'http://clientapi.hrt.hr/client_api.php/config/identify/format/json'
+    _token = None
 
-    def _initialize_api(self):
+    def _initialize_pre_login(self):
         init_data = {
             'application_publication_id': self._APP_PUBLICATION_ID
         }
@@ -64,12 +62,7 @@ class HRTiBaseIE(InfoExtractor):
 
         self._logout_url = modules['user']['resources']['logout']['uri']
 
-    def _login(self):
-        username, password = self._get_login_info()
-        # TODO: figure out authentication with cookies
-        if username is None or password is None:
-            self.raise_login_required()
-
+    def _perform_login(self, username, password):
         auth_data = {
             'username': username,
             'password': password,
@@ -94,8 +87,9 @@ class HRTiBaseIE(InfoExtractor):
         self._token = auth_info['secure_streaming_token']
 
     def _real_initialize(self):
-        self._initialize_api()
-        self._login()
+        if not self._token:
+            # TODO: figure out authentication with cookies
+            self.raise_login_required(method='password')
 
 
 class HRTiIE(HRTiBaseIE):

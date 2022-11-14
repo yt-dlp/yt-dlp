@@ -1,26 +1,19 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    strip_or_none,
-    xpath_attr,
-    xpath_text,
-)
+from ..utils import unified_strdate
 
 
 class InaIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www|m)\.)?ina\.fr/(?:video|audio)/(?P<id>[A-Z0-9_]+)'
+    _VALID_URL = r'https?://(?:(?:www|m)\.)?ina\.fr/(?:[^?#]+/)(?P<id>[\w-]+)'
     _TESTS = [{
-        'url': 'http://www.ina.fr/video/I12055569/francois-hollande-je-crois-que-c-est-clair-video.html',
-        'md5': 'a667021bf2b41f8dc6049479d9bb38a3',
+        'url': 'https://www.ina.fr/video/I12055569/francois-hollande-je-crois-que-c-est-clair-video.html',
+        'md5': 'c5a09e5cb5604ed10709f06e7a377dda',
         'info_dict': {
             'id': 'I12055569',
             'ext': 'mp4',
             'title': 'François Hollande "Je crois que c\'est clair"',
-            'description': 'md5:3f09eb072a06cb286b8f7e4f77109663',
+            'description': 'md5:19f61e2b4844ed4bb2e3df9ab9f527ff',
+            'upload_date': '20070712',
+            'thumbnail': 'https://cdn-hub.ina.fr/notice/690x517/3c4/I12055569.jpeg',
         }
     }, {
         'url': 'https://www.ina.fr/video/S806544_001/don-d-organes-des-avancees-mais-d-importants-besoins-video.html',
@@ -34,53 +27,58 @@ class InaIE(InfoExtractor):
     }, {
         'url': 'http://m.ina.fr/video/I12055569',
         'only_matching': True,
+    }, {
+        'url': 'https://www.ina.fr/ina-eclaire-actu/video/cpb8205116303/les-jeux-electroniques',
+        'md5': '4b8284a9a3a184fdc7e744225b8251e7',
+        'info_dict': {
+            'id': 'CPB8205116303',
+            'ext': 'mp4',
+            'title': 'Les jeux électroniques',
+            'description': 'md5:e09f7683dad1cc60b74950490127d233',
+            'upload_date': '19821204',
+            'duration': 657,
+            'thumbnail': 'https://cdn-hub.ina.fr/notice/690x517/203/CPB8205116303.jpeg',
+        },
+    }, {
+        'url': 'https://www.ina.fr/ina-eclaire-actu/arletty-carriere-conseils-actrice-marcel-carne',
+        'md5': '743d6f069a00e19dda0da166a54eeccb',
+        'info_dict': {
+            'id': 'I22203233',
+            'ext': 'mp4',
+            'title': 'Arletty sur le métier d\'actrice',
+            'description': 'md5:3d89b5e419d8514c934f146045ccdbad',
+            'upload_date': '19581128',
+            'thumbnail': 'https://cdn-hub.ina.fr/notice/690x517/082/I22203233.jpeg',
+        },
+    }, {
+        'url': 'https://www.ina.fr/ina-eclaire-actu/chasse-croise-sncf-gare-d-austerlitz-vacances-d-ete',
+        'md5': 'a96fb85e9ba3b5c5b2eeb0c5daa55f2f',
+        'info_dict': {
+            'id': 'CAF91038285',
+            'ext': 'mp4',
+            'title': 'Les grands départs : les trains',
+            'description': 'md5:1630ee819d8d4da97df53459e99f72bb',
+            'upload_date': '19740801',
+            'thumbnail': 'https://cdn-hub.ina.fr/notice/690x517/2cf/CAF91038285.jpeg',
+        },
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        info_doc = self._download_xml(
-            'http://player.ina.fr/notices/%s.mrss' % video_id, video_id)
-        item = info_doc.find('channel/item')
-        title = xpath_text(item, 'title', fatal=True)
-        media_ns_xpath = lambda x: self._xpath_ns(x, 'http://search.yahoo.com/mrss/')
-        content = item.find(media_ns_xpath('content'))
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
 
-        get_furl = lambda x: xpath_attr(content, media_ns_xpath(x), 'url')
-        formats = []
-        for q, w, h in (('bq', 400, 300), ('mq', 512, 384), ('hq', 768, 576)):
-            q_url = get_furl(q)
-            if not q_url:
-                continue
-            formats.append({
-                'format_id': q,
-                'url': q_url,
-                'width': w,
-                'height': h,
-            })
-        if not formats:
-            furl = get_furl('player') or content.attrib['url']
-            ext = determine_ext(furl)
-            formats = [{
-                'url': furl,
-                'vcodec': 'none' if ext == 'mp3' else None,
-                'ext': ext,
-            }]
+        api_url = self._html_search_regex(r'asset-details-url\s*=\s*["\'](?P<api_url>[^"\']+)', webpage, 'api_url')
+        asset_id = self._search_regex(r'assets/([^?/]+)', api_url, 'asset_id')
 
-        thumbnails = []
-        for thumbnail in content.findall(media_ns_xpath('thumbnail')):
-            thumbnail_url = thumbnail.get('url')
-            if not thumbnail_url:
-                continue
-            thumbnails.append({
-                'url': thumbnail_url,
-                'height': int_or_none(thumbnail.get('height')),
-                'width': int_or_none(thumbnail.get('width')),
-            })
+        api_response = self._download_json(api_url.replace(asset_id, f'{asset_id}.json'), asset_id)
 
         return {
-            'id': video_id,
-            'formats': formats,
-            'title': title,
-            'description': strip_or_none(xpath_text(item, 'description')),
-            'thumbnails': thumbnails,
+            'id': asset_id,
+            'url': api_response['resourceUrl'],
+            'ext': {'video': 'mp4', 'audio': 'mp3'}.get(api_response.get('type')),
+            'title': api_response.get('title'),
+            'description': api_response.get('description'),
+            'upload_date': unified_strdate(api_response.get('dateOfBroadcast')),
+            'duration': api_response.get('duration'),
+            'thumbnail': api_response.get('resourceThumbnail'),
         }

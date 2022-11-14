@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .mtv import MTVServicesInfoExtractor
 from ..utils import update_url_query
 

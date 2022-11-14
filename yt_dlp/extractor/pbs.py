@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -193,7 +190,7 @@ class PBSIE(InfoExtractor):
            # Article with embedded player (or direct video)
            (?:www\.)?pbs\.org/(?:[^/]+/){1,5}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
            # Player
-           (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)/
+           (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)
         )
     ''' % '|'.join(list(zip(*_STATIONS))[0])
 
@@ -545,7 +542,7 @@ class PBSIE(InfoExtractor):
                 for vid_id in video_id]
             return self.playlist_result(entries, display_id)
 
-        info = None
+        info = {}
         redirects = []
         redirect_urls = set()
 
@@ -660,6 +657,9 @@ class PBSIE(InfoExtractor):
                     'protocol': 'http',
                 })
                 formats.append(f)
+        for f in formats:
+            if (f.get('format_note') or '').endswith(' AD'):  # Audio description
+                f['language_preference'] = -10
         self._sort_formats(formats)
 
         rating_str = info.get('rating')

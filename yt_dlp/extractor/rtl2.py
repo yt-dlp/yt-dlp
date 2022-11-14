@@ -1,19 +1,13 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
-from ..aes import aes_cbc_decrypt
+from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import (
     compat_b64decode,
-    compat_ord,
     compat_str,
 )
 from ..utils import (
-    bytes_to_intlist,
     ExtractorError,
-    intlist_to_bytes,
     int_or_none,
     strip_or_none,
 )
@@ -142,17 +136,12 @@ class RTL2YouIE(RTL2YouBaseIE):
             self._BACKWERK_BASE_URL + 'stream/video/' + video_id, video_id)
 
         data, iv = compat_b64decode(stream_data['streamUrl']).decode().split(':')
-        stream_url = intlist_to_bytes(aes_cbc_decrypt(
-            bytes_to_intlist(compat_b64decode(data)),
-            bytes_to_intlist(self._AES_KEY),
-            bytes_to_intlist(compat_b64decode(iv))
-        ))
+        stream_url = unpad_pkcs7(aes_cbc_decrypt_bytes(
+            compat_b64decode(data), self._AES_KEY, compat_b64decode(iv)))
         if b'rtl2_you_video_not_found' in stream_url:
             raise ExtractorError('video not found', expected=True)
 
-        formats = self._extract_m3u8_formats(
-            stream_url[:-compat_ord(stream_url[-1])].decode(),
-            video_id, 'mp4', 'm3u8_native')
+        formats = self._extract_m3u8_formats(stream_url.decode(), video_id, 'mp4', 'm3u8_native')
         self._sort_formats(formats)
 
         video_data = self._download_json(

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -22,14 +19,7 @@ class LecturioBaseIE(InfoExtractor):
     _LOGIN_URL = 'https://app.lecturio.com/en/login'
     _NETRC_MACHINE = 'lecturio'
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         # Sets some cookies
         _, urlh = self._download_webpage_handle(
             self._LOGIN_URL, None, 'Downloading login popup')

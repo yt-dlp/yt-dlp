@@ -1,7 +1,7 @@
 import functools
 from threading import Lock
-from .utils import supports_terminal_sequences, write_string
 
+from .utils import supports_terminal_sequences, write_string
 
 CONTROL_SEQUENCES = {
     'DOWN': '\n',
@@ -34,7 +34,7 @@ def format_text(text, f):
     '''
     @param f    String representation of formatting to apply in the form:
                 [style] [light] font_color [on [light] bg_color]
-                Eg: "red", "bold green on light blue"
+                E.g. "red", "bold green on light blue"
     '''
     f = f.upper()
     tokens = f.strip().split()
@@ -69,6 +69,7 @@ def format_text(text, f):
             raise SyntaxError(f'Invalid format {" ".join(tokens)!r} in {f!r}')
 
     if fg_color or bg_color:
+        text = text.replace(CONTROL_SEQUENCES['RESET'], f'{fg_color}{bg_color}')
         return f'{fg_color}{bg_color}{text}{CONTROL_SEQUENCES["RESET"]}'
     else:
         return text
@@ -78,6 +79,7 @@ class MultilinePrinterBase:
     def __init__(self, stream=None, lines=1):
         self.stream = stream
         self.maximum = lines - 1
+        self._HAVE_FULLCAP = supports_terminal_sequences(stream)
 
     def __enter__(self):
         return self
@@ -124,7 +126,6 @@ class MultilinePrinter(MultilinePrinterBase):
         self.preserve_output = preserve_output
         self._lastline = self._lastlength = 0
         self._movelock = Lock()
-        self._HAVE_FULLCAP = supports_terminal_sequences(self.stream)
 
     def lock(func):
         @functools.wraps(func)
@@ -147,6 +148,7 @@ class MultilinePrinter(MultilinePrinterBase):
     def print_at_line(self, text, pos):
         if self._HAVE_FULLCAP:
             self.write(*self._move_cursor(pos), CONTROL_SEQUENCES['ERASE_LINE'], text)
+            return
 
         text = self._add_line_number(text, pos)
         textlen = len(text)
@@ -177,4 +179,4 @@ class MultilinePrinter(MultilinePrinterBase):
                 *text, CONTROL_SEQUENCES['ERASE_LINE'],
                 f'{CONTROL_SEQUENCES["UP"]}{CONTROL_SEQUENCES["ERASE_LINE"]}' * self.maximum)
         else:
-            self.write(*text, ' ' * self._lastlength)
+            self.write('\r', ' ' * self._lastlength, '\r')

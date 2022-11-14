@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import functools
 import re
 
@@ -165,14 +163,10 @@ class NBAWatchIE(NBAWatchBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         collection_id = parse_qs(url).get('collection', [None])[0]
-        if collection_id:
-            if self.get_param('noplaylist'):
-                self.to_screen('Downloading just video %s because of --no-playlist' % display_id)
-            else:
-                self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % collection_id)
-                return self.url_result(
-                    'https://www.nba.com/watch/list/collection/' + collection_id,
-                    NBAWatchCollectionIE.ie_key(), collection_id)
+        if self._yes_playlist(collection_id, display_id):
+            return self.url_result(
+                'https://www.nba.com/watch/list/collection/' + collection_id,
+                NBAWatchCollectionIE.ie_key(), collection_id)
         return self._extract_video('seoName', display_id)
 
 

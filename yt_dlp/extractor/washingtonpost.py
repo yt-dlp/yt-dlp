@@ -1,15 +1,14 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
+
+from ..utils import traverse_obj
 
 
 class WashingtonPostIE(InfoExtractor):
     IE_NAME = 'washingtonpost'
     _VALID_URL = r'(?:washingtonpost:|https?://(?:www\.)?washingtonpost\.com/(?:video|posttv)/(?:[^/]+/)*)(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
-    _EMBED_URL = r'https?://(?:www\.)?washingtonpost\.com/video/c/embed/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}'
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=["\'](?P<url>https?://(?:www\.)?washingtonpost\.com/video/c/embed/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})']
     _TESTS = [{
         'url': 'https://www.washingtonpost.com/video/c/video/480ba4ee-1ec7-11e6-82c2-a7dcb313287d',
         'md5': '6f537e1334b714eb15f9563bd4b9cdfa',
@@ -29,11 +28,6 @@ class WashingtonPostIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @classmethod
-    def _extract_urls(cls, webpage):
-        return re.findall(
-            r'<iframe[^>]+\bsrc=["\'](%s)' % cls._EMBED_URL, webpage)
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         return self.url_result(
@@ -50,7 +44,7 @@ class WashingtonPostArticleIE(InfoExtractor):
             'title': 'Sinkhole of bureaucracy',
         },
         'playlist': [{
-            'md5': 'b9be794ceb56c7267d410a13f99d801a',
+            'md5': '7ccf53ea8cbb77de5f570242b3b21a59',
             'info_dict': {
                 'id': 'fc433c38-b146-11e3-b8b3-44b1d1cd4c1f',
                 'ext': 'mp4',
@@ -59,9 +53,10 @@ class WashingtonPostArticleIE(InfoExtractor):
                 'description': 'Overly complicated paper pushing is nothing new to government bureaucracy. But the way federal retirement applications are filed may be the most outdated. David Fahrenthold explains.',
                 'timestamp': 1395440416,
                 'upload_date': '20140321',
+                'thumbnail': r're:https://[^\.]+.cloudfront\.net/PAPERMINESplash\.jpg',
             },
         }, {
-            'md5': '1fff6a689d8770966df78c8cb6c8c17c',
+            'md5': '7ccf53ea8cbb77de5f570242b3b21a59',
             'info_dict': {
                 'id': '41255e28-b14a-11e3-b8b3-44b1d1cd4c1f',
                 'ext': 'mp4',
@@ -70,6 +65,7 @@ class WashingtonPostArticleIE(InfoExtractor):
                 'duration': 2220,
                 'timestamp': 1395441819,
                 'upload_date': '20140321',
+                'thumbnail': r're:https://[^\.]+.cloudfront\.net/BoyersSplash\.jpeg',
             },
         }],
     }, {
@@ -88,7 +84,11 @@ class WashingtonPostArticleIE(InfoExtractor):
                 'timestamp': 1419972442,
                 'title': 'Why black boxes don’t transmit data in real time',
             }
-        }]
+        }],
+        'skip': 'Doesnt have a video anymore',
+    }, {
+        'url': 'https://www.washingtonpost.com/nation/2021/08/05/dixie-river-fire-california-climate/',
+        'only_matching': True,
     }]
 
     @classmethod
@@ -106,6 +106,13 @@ class WashingtonPostArticleIE(InfoExtractor):
                 <div\s+class="posttv-video-embed[^>]*?data-uuid=|
                 data-video-uuid=
             )"([^"]+)"''', webpage)
+
+        if not uuids:
+            json_data = self._search_nextjs_data(webpage, page_id)
+            for content_element in traverse_obj(json_data, ('props', 'pageProps', 'globalContent', 'content_elements')):
+                if content_element.get('type') == 'video':
+                    uuids.append(content_element.get('_id'))
+
         entries = [self.url_result('washingtonpost:%s' % uuid, 'WashingtonPost', uuid) for uuid in uuids]
 
         return {

@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .theplatform import ThePlatformFeedIE
 from ..utils import (
     dict_get,
@@ -55,7 +51,6 @@ class CorusIE(ThePlatformFeedIE):
             'timestamp': 1486392197,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
         'expected_warnings': ['Failed to parse JSON'],

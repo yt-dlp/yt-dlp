@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     unified_strdate,
@@ -10,6 +7,8 @@ from ..utils import (
 
 class CinchcastIE(InfoExtractor):
     _VALID_URL = r'https?://player\.cinchcast\.com/.*?(?:assetId|show_id)=(?P<id>[0-9]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>https?://player\.cinchcast\.com/.+?)\1']
+
     _TESTS = [{
         'url': 'http://player.cinchcast.com/?show_id=5258197&platformId=1&assetType=single',
         'info_dict': {

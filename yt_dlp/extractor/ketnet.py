@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .canvas import CanvasIE
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote

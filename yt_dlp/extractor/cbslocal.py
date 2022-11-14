@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .anvato import AnvatoIE
 from .sendtonews import SendtoNewsIE
 from ..compat import compat_urlparse

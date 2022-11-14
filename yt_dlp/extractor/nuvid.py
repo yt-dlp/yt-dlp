@@ -1,11 +1,12 @@
-# coding: utf-8
-from __future__ import unicode_literals
+import re
 
 from .common import InfoExtractor
 from ..utils import (
     parse_duration,
     int_or_none,
-    try_get,
+    strip_or_none,
+    traverse_obj,
+    url_or_none,
 )
 
 
@@ -20,14 +21,30 @@ class NuvidIE(InfoExtractor):
             'title': 'italian babe',
             'duration': 321.0,
             'age_limit': 18,
+            'thumbnail': r're:https?://.+\.jpg',
         }
     }, {
         'url': 'https://m.nuvid.com/video/6523263',
+        'md5': 'ebd22ce8e47e1d9a4d0756a15c67da52',
         'info_dict': {
             'id': '6523263',
             'ext': 'mp4',
-            'age_limit': 18,
             'title': 'Slut brunette college student anal dorm',
+            'duration': 421.0,
+            'age_limit': 18,
+            'thumbnail': r're:https?://.+\.jpg',
+            'thumbnails': list,
+        }
+    }, {
+        'url': 'http://m.nuvid.com/video/6415801/',
+        'md5': '638d5ececb138d5753593f751ae3f697',
+        'info_dict': {
+            'id': '6415801',
+            'ext': 'mp4',
+            'title': 'My best friend wanted to fuck my wife for a long time',
+            'duration': 1882,
+            'age_limit': 18,
+            'thumbnail': r're:https?://.+\.jpg',
         }
     }]
 
@@ -46,6 +63,16 @@ class NuvidIE(InfoExtractor):
                 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
             })
 
+        webpage = self._download_webpage(
+            'http://m.nuvid.com/video/%s' % (video_id, ),
+            video_id, 'Downloading video page', fatal=False) or ''
+
+        title = strip_or_none(video_data.get('title') or self._html_search_regex(
+            (r'''<span\s[^>]*?\btitle\s*=\s*(?P<q>"|'|\b)(?P<title>[^"]+)(?P=q)\s*>''',
+                r'''<div\s[^>]*?\bclass\s*=\s*(?P<q>"|'|\b)thumb-holder video(?P=q)>\s*<h5\b[^>]*>(?P<title>[^<]+)</h5''',
+                r'''<span\s[^>]*?\bclass\s*=\s*(?P<q>"|'|\b)title_thumb(?P=q)>(?P<title>[^<]+)</span'''),
+            webpage, 'title', group='title'))
+
         formats = [{
             'url': source,
             'format_id': qualities.get(quality),
@@ -55,19 +82,19 @@ class NuvidIE(InfoExtractor):
         self._check_formats(formats, video_id)
         self._sort_formats(formats)
 
-        title = video_data.get('title')
-        thumbnail_base_url = try_get(video_data, lambda x: x['thumbs']['url'])
-        thumbnail_extension = try_get(video_data, lambda x: x['thumbs']['extension'])
-        thumbnail_id = self._search_regex(
-            r'/media/videos/tmb/6523263/preview/(/d+)' + thumbnail_extension, video_data.get('poster', ''), 'thumbnail id', default=19)
-        thumbnail = f'{thumbnail_base_url}player/{thumbnail_id}{thumbnail_extension}'
-        duration = parse_duration(video_data.get('duration') or video_data.get('duration_format'))
+        duration = parse_duration(traverse_obj(video_data, 'duration', 'duration_format'))
+        thumbnails = [
+            {'url': thumb_url} for thumb_url in re.findall(
+                r'<div\s+class\s*=\s*"video-tmb-wrap"\s*>\s*<img\s+src\s*=\s*"([^"]+)"\s*/>', webpage)
+            if url_or_none(thumb_url)]
+        if url_or_none(video_data.get('poster')):
+            thumbnails.append({'url': video_data['poster'], 'preference': 1})
 
         return {
             'id': video_id,
             'formats': formats,
             'title': title,
-            'thumbnail': thumbnail,
+            'thumbnails': thumbnails,
             'duration': duration,
             'age_limit': 18,
         }

@@ -1,29 +1,22 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
 import base64
-import calendar
-import datetime
+import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    update_url_query,
     clean_html,
+    time_seconds,
+    try_call,
     unified_timestamp,
+    update_url_query,
 )
-from ..compat import compat_urllib_parse
 
 
 class RadikoBaseIE(InfoExtractor):
     _FULL_KEY = None
 
     def _auth_client(self):
-        auth_cache = self._downloader.cache.load('radiko', 'auth_data')
-        if auth_cache:
-            return auth_cache
-
         _, auth1_handle = self._download_webpage_handle(
             'https://radiko.jp/v2/api/auth1', None, 'Downloading authentication page',
             headers={
@@ -50,7 +43,7 @@ class RadikoBaseIE(InfoExtractor):
             }).split(',')[0]
 
         auth_data = (auth_token, area_id)
-        self._downloader.cache.store('radiko', 'auth_data', auth_data)
+        self.cache.store('radiko', 'auth_data', auth_data)
         return auth_data
 
     def _extract_full_key(self):
@@ -92,8 +85,8 @@ class RadikoBaseIE(InfoExtractor):
 
     def _extract_formats(self, video_id, station, is_onair, ft, cursor, auth_token, area_id, query):
         m3u8_playlist_data = self._download_xml(
-            'https://radiko.jp/v3/station/stream/pc_html5/%s.xml' % station, video_id,
-            note='Downloading m3u8 information')
+            f'https://radiko.jp/v3/station/stream/pc_html5/{station}.xml', video_id,
+            note='Downloading stream information')
         m3u8_urls = m3u8_playlist_data.findall('.//url')
 
         formats = []
@@ -105,7 +98,7 @@ class RadikoBaseIE(InfoExtractor):
                 'station_id': station,
                 **query,
                 'l': '15',
-                'lsid': '77d0678df93a1034659c14d6fc89f018',
+                'lsid': '88ecea37e968c1f17d5413312d9f8003',
                 'type': 'b',
             })
             if playlist_url in found:
@@ -115,20 +108,21 @@ class RadikoBaseIE(InfoExtractor):
 
             time_to_skip = None if is_onair else cursor - ft
 
+            domain = urllib.parse.urlparse(playlist_url).netloc
             subformats = self._extract_m3u8_formats(
                 playlist_url, video_id, ext='m4a',
-                live=True, fatal=False, m3u8_id=None,
+                live=True, fatal=False, m3u8_id=domain,
+                note=f'Downloading m3u8 information from {domain}',
                 headers={
                     'X-Radiko-AreaId': area_id,
                     'X-Radiko-AuthToken': auth_token,
                 })
             for sf in subformats:
-                domain = sf['format_id'] = compat_urllib_parse.urlparse(sf['url']).netloc
-                if re.match(r'^[cf]-radiko\.smartstream\.ne\.jp$', domain):
+                if re.fullmatch(r'[cf]-radiko\.smartstream\.ne\.jp', domain):
                     # Prioritize live radio vs playback based on extractor
                     sf['preference'] = 100 if is_onair else -100
                 if not is_onair and url_attrib['timefree'] == '1' and time_to_skip:
-                    sf['_ffmpeg_args'] = ['-ss', time_to_skip]
+                    sf['downloader_options'] = {'ffmpeg_args': ['-ss', time_to_skip]}
             formats.extend(subformats)
 
         self._sort_formats(formats)
@@ -154,31 +148,29 @@ class RadikoIE(RadikoBaseIE):
     def _real_extract(self, url):
         station, video_id = self._match_valid_url(url).groups()
         vid_int = unified_timestamp(video_id, False)
-
-        auth_token, area_id = self._auth_client()
-
         prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, vid_int)
 
-        title = prog.find('title').text
-        description = clean_html(prog.find('info').text)
-        station_name = station_program.find('.//name').text
-
-        formats = self._extract_formats(
-            video_id=video_id, station=station, is_onair=False,
-            ft=ft, cursor=vid_int, auth_token=auth_token, area_id=area_id,
-            query={
-                'start_at': radio_begin,
-                'ft': radio_begin,
-                'end_at': radio_end,
-                'to': radio_end,
-                'seek': video_id,
-            })
+        auth_cache = self.cache.load('radiko', 'auth_data')
+        for attempt in range(2):
+            auth_token, area_id = (not attempt and auth_cache) or self._auth_client()
+            formats = self._extract_formats(
+                video_id=video_id, station=station, is_onair=False,
+                ft=ft, cursor=vid_int, auth_token=auth_token, area_id=area_id,
+                query={
+                    'start_at': radio_begin,
+                    'ft': radio_begin,
+                    'end_at': radio_end,
+                    'to': radio_end,
+                    'seek': video_id,
+                })
+            if formats:
+                break
 
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
-            'uploader': station_name,
+            'title': try_call(lambda: prog.find('title').text),
+            'description': clean_html(try_call(lambda: prog.find('info').text)),
+            'uploader': try_call(lambda: station_program.find('.//name').text),
             'uploader_id': station,
             'timestamp': vid_int,
             'formats': formats,
@@ -208,8 +200,7 @@ class RadikoRadioIE(RadikoBaseIE):
 
         auth_token, area_id = self._auth_client()
         # get current time in JST (GMT+9:00 w/o DST)
-        vid_now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
-        vid_now = calendar.timegm(vid_now.timetuple())
+        vid_now = time_seconds(hours=9)
 
         prog, station_program, ft, _, _ = self._find_program(station, station, vid_now)
 

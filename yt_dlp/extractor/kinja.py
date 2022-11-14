@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
@@ -13,8 +8,6 @@ from ..utils import (
     parse_iso8601,
     strip_or_none,
     try_get,
-    unescapeHTML,
-    urljoin,
 )
 
 
@@ -58,6 +51,7 @@ class KinjaEmbedIE(InfoExtractor):
             vine|
             youtube-(?:list|video)
         )-(?P<id>[^&]+)''' % (_DOMAIN_REGEX, _COMMON_REGEX)
+    _EMBED_REGEX = [rf'(?x)<iframe[^>]+?src=(?P<q>["\'])(?P<url>(?:(?:https?:)?//{_DOMAIN_REGEX})?{_COMMON_REGEX}(?:(?!\1).)+)\1']
     _TESTS = [{
         'url': 'https://kinja.com/ajax/inset/iframe?id=fb-10103303356633621',
         'only_matching': True,
@@ -121,12 +115,6 @@ class KinjaEmbedIE(InfoExtractor):
         'youtube-list': ('youtube.com/embed/%s?list=%s', 'YoutubePlaylist'),
         'youtube-video': ('youtube.com/embed/', 'Youtube'),
     }
-
-    @staticmethod
-    def _extract_urls(webpage, url):
-        return [urljoin(url, unescapeHTML(mobj.group('url'))) for mobj in re.finditer(
-            r'(?x)<iframe[^>]+?src=(?P<q>["\'])(?P<url>(?:(?:https?:)?//%s)?%s(?:(?!\1).)+)\1' % (KinjaEmbedIE._DOMAIN_REGEX, KinjaEmbedIE._COMMON_REGEX),
-            webpage)]
 
     def _real_extract(self, url):
         video_type, video_id = self._match_valid_url(url).groups()

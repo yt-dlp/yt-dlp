@@ -1,4 +1,3 @@
-# coding: utf-8
 import re
 
 from .common import InfoExtractor
@@ -35,18 +34,16 @@ class HiDiveIE(InfoExtractor):
         'skip': 'Requires Authentication',
     }]
 
-    def _real_initialize(self):
-        email, password = self._get_login_info()
-        if email is None:
-            return
-
+    def _perform_login(self, username, password):
         webpage = self._download_webpage(self._LOGIN_URL, None)
         form = self._search_regex(
             r'(?s)<form[^>]+action="/account/login"[^>]*>(.+?)</form>',
-            webpage, 'login form')
+            webpage, 'login form', default=None)
+        if not form:  # logged in
+            return
         data = self._hidden_inputs(form)
         data.update({
-            'Email': email,
+            'Email': username,
             'Password': password,
         })
         self._download_webpage(

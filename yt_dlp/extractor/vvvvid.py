@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -63,6 +60,18 @@ class VVVVIDIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
+        },
+    }, {
+        # video_type == 'video/dash'
+        'url': 'https://www.vvvvid.it/show/683/made-in-abyss/1542/693786/nanachi',
+        'info_dict': {
+            'id': '693786',
+            'ext': 'mp4',
+            'title': 'Nanachi',
+        },
+        'params': {
+            'skip_download': True,
+            'format': 'mp4',
         },
     }, {
         'url': 'https://www.vvvvid.it/show/434/perche-dovrei-guardarlo-di-dario-moccia/437/489048',
@@ -205,6 +214,9 @@ class VVVVIDIE(InfoExtractor):
                 })
                 is_youtube = True
                 break
+            elif video_type == 'video/dash':
+                formats.extend(self._extract_m3u8_formats(
+                    embed_code, video_id, 'mp4', m3u8_id='hls', fatal=False))
             else:
                 formats.extend(self._extract_wowza_formats(
                     'http://sb.top-ix.org/videomg/_definst_/mp4:%s/playlist.m3u8' % embed_code, video_id))

@@ -1,12 +1,10 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    traverse_obj,
     smuggle_url,
     unsmuggle_url,
 )
@@ -55,9 +53,6 @@ class LiTVIE(InfoExtractor):
         episode_title = program_info['title']
         content_id = season_list['contentId']
 
-        if prompt:
-            self.to_screen('Downloading playlist %s - add --no-playlist to just download video %s' % (content_id, video_id))
-
         all_episodes = [
             self.url_result(smuggle_url(
                 self._URL_TEMPLATE % (program_info['contentType'], episode['contentId']),
@@ -67,15 +62,9 @@ class LiTVIE(InfoExtractor):
         return self.playlist_result(all_episodes, content_id, episode_title)
 
     def _real_extract(self, url):
-        url, data = unsmuggle_url(url, {})
+        url, smuggled_data = unsmuggle_url(url, {})
 
         video_id = self._match_id(url)
-
-        noplaylist = self.get_param('noplaylist')
-        noplaylist_prompt = True
-        if 'force_noplaylist' in data:
-            noplaylist = data['force_noplaylist']
-            noplaylist_prompt = False
 
         webpage = self._download_webpage(url, video_id)
 
@@ -84,14 +73,9 @@ class LiTVIE(InfoExtractor):
             video_id)
 
         season_list = list(program_info.get('seasonList', {}).values())
-        if season_list:
-            if not noplaylist:
-                return self._extract_playlist(
-                    season_list[0], video_id, program_info,
-                    prompt=noplaylist_prompt)
-
-            if noplaylist_prompt:
-                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+        playlist_id = traverse_obj(season_list, 0, 'contentId')
+        if self._yes_playlist(playlist_id, video_id, smuggled_data):
+            return self._extract_playlist(season_list[0], video_id, program_info)
 
         # In browsers `getMainUrl` request is always issued. Usually this
         # endpoint gives the same result as the data embedded in the webpage.

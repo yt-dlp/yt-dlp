@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -14,7 +11,7 @@ from ..utils import (
 
 
 class GediDigitalIE(InfoExtractor):
-    _VALID_URL = r'''(?x)(?P<url>(?:https?:)//video\.
+    _VALID_URL = r'''(?x:(?P<base_url>(?:https?:)//video\.
         (?:
             (?:
                 (?:espresso\.)?repubblica
@@ -36,7 +33,13 @@ class GediDigitalIE(InfoExtractor):
                 |corrierealpi
                 |lasentinella
             )\.gelocal
-        )\.it(?:/[^/]+){2,4}/(?P<id>\d+))(?:$|[?&].*)'''
+        )\.it(?:/[^/]+){2,4}/(?P<id>\d+))(?:$|[?&].*))'''
+    _EMBED_REGEX = [rf'''(?x)
+            (?:
+                data-frame-src=|
+                <iframe[^\n]+src=
+            )
+            (["'])(?P<url>{_VALID_URL})\1''']
     _TESTS = [{
         'url': 'https://video.lastampa.it/politica/il-paradosso-delle-regionali-la-lega-vince-ma-sembra-aver-perso/121559/121683',
         'md5': '84658d7fb9e55a6e57ecc77b73137494',
@@ -112,22 +115,9 @@ class GediDigitalIE(InfoExtractor):
             urls[i] = urljoin(base_url(e), url_basename(e))
         return urls
 
-    @staticmethod
-    def _extract_urls(webpage):
-        entries = [
-            mobj.group('eurl')
-            for mobj in re.finditer(r'''(?x)
-            (?:
-                data-frame-src=|
-                <iframe[^\n]+src=
-            )
-            (["'])(?P<eurl>%s)\1''' % GediDigitalIE._VALID_URL, webpage)]
-        return GediDigitalIE._sanitize_urls(entries)
-
-    @staticmethod
-    def _extract_url(webpage):
-        urls = GediDigitalIE._extract_urls(webpage)
-        return urls[0] if urls else None
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        return cls._sanitize_urls(tuple(super()._extract_embed_urls(url, webpage)))
 
     @staticmethod
     def _clean_formats(formats):
@@ -142,8 +132,7 @@ class GediDigitalIE(InfoExtractor):
         formats[:] = clean_formats
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        url = self._match_valid_url(url).group('url')
+        video_id, url = self._match_valid_url(url).group('id', 'base_url')
         webpage = self._download_webpage(url, video_id)
         title = self._html_search_meta(
             ['twitter:title', 'og:title'], webpage, fatal=True)

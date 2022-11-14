@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -84,7 +82,7 @@ class DLiveStreamIE(InfoExtractor):
         self._sort_formats(formats)
         return {
             'id': display_name,
-            'title': self._live_title(title),
+            'title': title,
             'uploader': display_name,
             'uploader_id': username,
             'formats': formats,

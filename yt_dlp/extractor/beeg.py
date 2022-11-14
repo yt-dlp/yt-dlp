@@ -1,32 +1,43 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
+
 from ..utils import (
     int_or_none,
-    parse_qs,
+    traverse_obj,
+    try_get,
     unified_timestamp,
 )
 
 
 class BeegIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?beeg\.(?:com|porn(?:/video)?)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?beeg\.(?:com(?:/video)?)/-?(?P<id>\d+)'
     _TESTS = [{
-        # api/v6 v1
-        'url': 'http://beeg.com/5416503',
-        'md5': 'a1a1b1a8bc70a89e49ccfd113aed0820',
+        'url': 'https://beeg.com/-0983946056129650',
+        'md5': '51d235147c4627cfce884f844293ff88',
         'info_dict': {
-            'id': '5416503',
+            'id': '0983946056129650',
             'ext': 'mp4',
-            'title': 'Sultry Striptease',
-            'description': 'md5:d22219c09da287c14bed3d6c37ce4bc2',
-            'timestamp': 1391813355,
-            'upload_date': '20140207',
-            'duration': 383,
+            'title': 'sucked cock and fucked in a private plane',
+            'duration': 927,
             'tags': list,
             'age_limit': 18,
+            'upload_date': '20220131',
+            'timestamp': 1643656455,
+            'display_id': 2540839,
+        }
+    }, {
+        'url': 'https://beeg.com/-0599050563103750?t=4-861',
+        'md5': 'bd8b5ea75134f7f07fad63008db2060e',
+        'info_dict': {
+            'id': '0599050563103750',
+            'ext': 'mp4',
+            'title': 'Bad Relatives',
+            'duration': 2060,
+            'tags': list,
+            'age_limit': 18,
+            'description': 'md5:b4fc879a58ae6c604f8f259155b7e3b9',
+            'timestamp': 1643623200,
+            'display_id': 2569965,
+            'upload_date': '20220131',
         }
     }, {
         # api/v6 v2
@@ -36,12 +47,6 @@ class BeegIE(InfoExtractor):
         # api/v6 v2 w/o t
         'url': 'https://beeg.com/1277207756',
         'only_matching': True,
-    }, {
-        'url': 'https://beeg.porn/video/5416503',
-        'only_matching': True,
-    }, {
-        'url': 'https://beeg.porn/5416503',
-        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -49,68 +54,38 @@ class BeegIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        beeg_version = self._search_regex(
-            r'beeg_version\s*=\s*([\da-zA-Z_-]+)', webpage, 'beeg version',
-            default='1546225636701')
+        video = self._download_json(
+            'https://store.externulls.com/facts/file/%s' % video_id,
+            video_id, 'Downloading JSON for %s' % video_id)
 
-        if len(video_id) >= 10:
-            query = {
-                'v': 2,
-            }
-            qs = parse_qs(url)
-            t = qs.get('t', [''])[0].split('-')
-            if len(t) > 1:
-                query.update({
-                    's': t[0],
-                    'e': t[1],
-                })
-        else:
-            query = {'v': 1}
+        fc_facts = video.get('fc_facts')
+        first_fact = {}
+        for fact in fc_facts:
+            if not first_fact or try_get(fact, lambda x: x['id'] < first_fact['id']):
+                first_fact = fact
 
-        for api_path in ('', 'api.'):
-            video = self._download_json(
-                'https://%sbeeg.com/api/v6/%s/video/%s'
-                % (api_path, beeg_version, video_id), video_id,
-                fatal=api_path == 'api.', query=query)
-            if video:
-                break
+        resources = traverse_obj(video, ('file', 'hls_resources')) or first_fact.get('hls_resources')
 
         formats = []
-        for format_id, video_url in video.items():
-            if not video_url:
+        for format_id, video_uri in resources.items():
+            if not video_uri:
                 continue
-            height = self._search_regex(
-                r'^(\d+)[pP]$', format_id, 'height', default=None)
-            if not height:
-                continue
-            formats.append({
-                'url': self._proto_relative_url(
-                    video_url.replace('{DATA_MARKERS}', 'data=pc_XX__%s_0' % beeg_version), 'https:'),
-                'format_id': format_id,
-                'height': int(height),
-            })
+            height = int_or_none(self._search_regex(r'fl_cdn_(\d+)', format_id, 'height', default=None))
+            current_formats = self._extract_m3u8_formats(f'https://video.beeg.com/{video_uri}', video_id, ext='mp4', m3u8_id=str(height))
+            for f in current_formats:
+                f['height'] = height
+            formats.extend(current_formats)
+
         self._sort_formats(formats)
-
-        title = video['title']
-        video_id = compat_str(video.get('id') or video_id)
-        display_id = video.get('code')
-        description = video.get('desc')
-        series = video.get('ps_name')
-
-        timestamp = unified_timestamp(video.get('date'))
-        duration = int_or_none(video.get('duration'))
-
-        tags = [tag.strip() for tag in video['tags'].split(',')] if video.get('tags') else None
 
         return {
             'id': video_id,
-            'display_id': display_id,
-            'title': title,
-            'description': description,
-            'series': series,
-            'timestamp': timestamp,
-            'duration': duration,
-            'tags': tags,
+            'display_id': first_fact.get('id'),
+            'title': traverse_obj(video, ('file', 'stuff', 'sf_name')),
+            'description': traverse_obj(video, ('file', 'stuff', 'sf_story')),
+            'timestamp': unified_timestamp(first_fact.get('fc_created')),
+            'duration': int_or_none(traverse_obj(video, ('file', 'fl_duration'))),
+            'tags': traverse_obj(video, ('tags', ..., 'tg_name')),
             'formats': formats,
             'age_limit': self._rta_search(webpage),
         }

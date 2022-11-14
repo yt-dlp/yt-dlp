@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     bool_or_none,
@@ -12,6 +9,7 @@ from ..utils import (
 
 class SlidesLiveIE(InfoExtractor):
     _VALID_URL = r'https?://slideslive\.com/(?P<id>[0-9]+)'
+    _WORKING = False
     _TESTS = [{
         # video_service_name = YOUTUBE
         'url': 'https://slideslive.com/38902413/gcc-ia16-backend',
@@ -34,9 +32,6 @@ class SlidesLiveIE(InfoExtractor):
             'id': 'RMraDYN5ozA_',
             'ext': 'mp4',
             'title': 'Offline Reinforcement Learning: From Algorithms to Practical Challenges',
-        },
-        'params': {
-            'format': 'bestvideo',
         },
     }, {
         # video_service_name = youtube

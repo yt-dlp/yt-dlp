@@ -1,21 +1,59 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
     merge_dicts,
+    traverse_obj,
+    url_or_none,
 )
 
 
-class LRTIE(InfoExtractor):
-    IE_NAME = 'lrt.lt'
+class LRTBaseIE(InfoExtractor):
+    def _extract_js_var(self, webpage, var_name, default=None):
+        return self._search_regex(
+            fr'{var_name}\s*=\s*(["\'])((?:(?!\1).)+)\1',
+            webpage, var_name.replace('_', ' '), default, group=2)
+
+
+class LRTStreamIE(LRTBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?lrt\.lt/mediateka/tiesiogiai/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://www.lrt.lt/mediateka/tiesiogiai/lrt-opus',
+        'info_dict': {
+            'id': 'lrt-opus',
+            'live_status': 'is_live',
+            'title': 're:^LRT Opus.+$',
+            'ext': 'mp4'
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        streams_data = self._download_json(self._extract_js_var(webpage, 'tokenURL'), video_id)
+
+        formats, subtitles = [], {}
+        for stream_url in traverse_obj(streams_data, (
+                'response', 'data', lambda k, _: k.startswith('content')), expected_type=url_or_none):
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_url, video_id, 'mp4', m3u8_id='hls', live=True)
+            formats.extend(fmts)
+            subtitles = self._merge_subtitles(subtitles, subs)
+        self._sort_formats(formats)
+
+        stream_title = self._extract_js_var(webpage, 'video_title', 'LRT')
+        return {
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            'is_live': True,
+            'title': f'{self._og_search_title(webpage)} - {stream_title}'
+        }
+
+
+class LRTVODIE(LRTBaseIE):
     _VALID_URL = r'https?://(?:www\.)?lrt\.lt(?P<path>/mediateka/irasas/(?P<id>[0-9]+))'
     _TESTS = [{
         # m3u8 download
         'url': 'https://www.lrt.lt/mediateka/irasas/2000127261/greita-ir-gardu-sicilijos-ikvepta-klasikiniu-makaronu-su-baklazanais-vakariene',
-        'md5': '85cb2bb530f31d91a9c65b479516ade4',
         'info_dict': {
             'id': '2000127261',
             'ext': 'mp4',
@@ -24,6 +62,8 @@ class LRTIE(InfoExtractor):
             'duration': 3035,
             'timestamp': 1604079000,
             'upload_date': '20201030',
+            'tags': ['LRT TELEVIZIJA', 'Beatos virtuvė', 'Beata Nicholson', 'Makaronai', 'Baklažanai', 'Vakarienė', 'Receptas'],
+            'thumbnail': 'https://www.lrt.lt/img/2020/10/30/764041-126478-1287x836.jpg'
         },
     }, {
         # direct mp3 download
@@ -39,11 +79,6 @@ class LRTIE(InfoExtractor):
             'like_count': int,
         },
     }]
-
-    def _extract_js_var(self, webpage, var_name, default):
-        return self._search_regex(
-            r'%s\s*=\s*(["\'])((?:(?!\1).)+)\1' % var_name,
-            webpage, var_name.replace('_', ' '), default, group=2)
 
     def _real_extract(self, url):
         path, video_id = self._match_valid_url(url).groups()

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -78,6 +75,7 @@ class CCCIE(InfoExtractor):
             'thumbnail': event_data.get('thumb_url'),
             'timestamp': parse_iso8601(event_data.get('date')),
             'duration': int_or_none(event_data.get('length')),
+            'view_count': int_or_none(event_data.get('view_count')),
             'tags': event_data.get('tags'),
             'formats': formats,
         }

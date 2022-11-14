@@ -1,24 +1,47 @@
 name: Download Tests
 on: [push, pull_request]
+permissions:
+  contents: read
+
 jobs:
-  tests:
-    name: Download Tests
+  quick:
+    name: Quick Download Tests
     if: "contains(github.event.head_commit.message, 'ci run dl')"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    - name: Install test requirements
+      run: pip install pytest
+    - name: Run tests
+      continue-on-error: true
+      run: ./devscripts/run_tests.sh download
+
+  full:
+    name: Full Download Tests
+    if: "contains(github.event.head_commit.message, 'ci run dl all')"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-18.04]
-        python-version: [3.7, 3.8, 3.9, 3.10-dev, pypy-3.6, pypy-3.7]
+        os: [ubuntu-latest]
+        python-version: ['3.7', '3.10', 3.11-dev, pypy-3.7, pypy-3.8]
         run-tests-ext: [sh]
         include:
+        # atleast one of each CPython/PyPy tests must be in windows
         - os: windows-latest
-          python-version: 3.6
+          python-version: '3.8'
+          run-tests-ext: bat
+        - os: windows-latest
+          python-version: pypy-3.9
           run-tests-ext: bat
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install pytest

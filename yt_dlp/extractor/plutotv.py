@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 import uuid
 
@@ -20,11 +17,11 @@ from ..utils import (
 
 class PlutoTVIE(InfoExtractor):
     _VALID_URL = r'''(?x)
-        https?://(?:www\.)?pluto\.tv(?:/en)?/on-demand
+        https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/on-demand
         /(?P<video_type>movies|series)
         /(?P<series_or_movie_slug>[^/]+)
         (?:
-            /seasons?/(?P<season_no>\d+)
+            (?:/seasons?/(?P<season_no>\d+))?
             (?:/episode/(?P<episode_slug>[^/]+))?
         )?
         /?(?:$|[#?])'''
@@ -83,6 +80,9 @@ class PlutoTVIE(InfoExtractor):
             }
         }, {
             'url': 'https://pluto.tv/en/on-demand/series/manhunters-fugitive-task-force/seasons/1/episode/third-times-the-charm-1-1',
+            'only_matching': True,
+        }, {
+            'url': 'https://pluto.tv/it/on-demand/series/csi-vegas/episode/legacy-2021-1-1',
             'only_matching': True,
         }
     ]

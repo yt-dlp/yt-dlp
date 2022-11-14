@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
@@ -59,12 +56,8 @@ class SportDeutschlandIE(InfoExtractor):
         videos = asset.get('videos') or []
         if len(videos) > 1:
             playlist_id = parse_qs(url).get('playlistId', [None])[0]
-            if playlist_id:
-                if self.get_param('noplaylist'):
-                    videos = [videos[int(playlist_id)]]
-                    self.to_screen('Downloading just a single video because of --no-playlist')
-                else:
-                    self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % asset_id)
+            if not self._yes_playlist(playlist_id, asset_id):
+                videos = [videos[int(playlist_id)]]
 
             def entries():
                 for i, video in enumerate(videos, 1):

@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -15,14 +10,15 @@ from ..utils import (
 class WimTVIE(InfoExtractor):
     _player = None
     _UUID_RE = r'[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}'
-    _VALID_URL = r'''(?x)
+    _VALID_URL = r'''(?x:
         https?://platform.wim.tv/
         (?:
             (?:embed/)?\?
             |\#/webtv/.+?/
         )
         (?P<type>vod|live|cast)[=/]
-        (?P<id>%s).*?''' % _UUID_RE
+        (?P<id>%s).*?)''' % _UUID_RE
+    _EMBED_REGEX = [rf'<iframe[^>]+src=["\'](?P<url>{_VALID_URL})']
     _TESTS = [{
         # vod stream
         'url': 'https://platform.wim.tv/embed/?vod=db29fb32-bade-47b6-a3a6-cb69fe80267a',
@@ -56,14 +52,6 @@ class WimTVIE(InfoExtractor):
         'url': 'https://platform.wim.tv/#/webtv/renzoarborechannel/cast/f47e0d15-5b45-455e-bf0d-dba8ffa96365',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<iframe[^>]+src=["\'](?P<url>%s)' % WimTVIE._VALID_URL,
-                webpage)]
 
     def _real_initialize(self):
         if not self._player:

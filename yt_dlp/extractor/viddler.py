@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
@@ -10,6 +7,8 @@ from ..utils import (
 
 class ViddlerIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?viddler\.com/(?:v|embed|player)/(?P<id>[a-z0-9]+)(?:.+?\bsecret=(\d+))?'
+    _EMBED_REGEX = [r'<(?:iframe[^>]+?src|param[^>]+?value)=(["\'])(?P<url>(?:https?:)?//(?:www\.)?viddler\.com/(?:embed|player)/.+?)\1']
+
     _TESTS = [{
         'url': 'http://www.viddler.com/v/43903784',
         'md5': '9eee21161d2c7f5b39690c3e325fab2f',

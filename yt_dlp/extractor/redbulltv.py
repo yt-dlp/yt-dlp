@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
@@ -81,12 +77,11 @@ class RedBullTVIE(InfoExtractor):
 
         title = video['title'].strip()
 
-        formats = self._extract_m3u8_formats(
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             'https://dms.redbull.tv/v3/%s/%s/playlist.m3u8' % (video_id, token),
             video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
         self._sort_formats(formats)
 
-        subtitles = {}
         for resource in video.get('resources', []):
             if resource.startswith('closed_caption_'):
                 splitted_resource = resource.split('_')

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -111,9 +108,7 @@ class TVNetIE(InfoExtractor):
                 continue
             stream_urls.add(stream_url)
             formats.extend(self._extract_m3u8_formats(
-                stream_url, video_id, 'mp4',
-                entry_protocol='m3u8' if is_live else 'm3u8_native',
-                m3u8_id='hls', fatal=False))
+                stream_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False))
         self._sort_formats(formats)
 
         # better support for radio streams
@@ -129,9 +124,6 @@ class TVNetIE(InfoExtractor):
             self._search_regex(
                 r'data-image=(["\'])(?P<url>(?:https?:)?//.+?)\1', webpage,
                 'thumbnail', default=None, group='url'))
-
-        if is_live:
-            title = self._live_title(title)
 
         view_count = int_or_none(self._search_regex(
             r'(?s)<div[^>]+\bclass=["\'].*?view-count[^>]+>.*?(\d+).*?</div>',

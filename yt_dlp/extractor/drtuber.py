@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -13,6 +11,7 @@ from ..utils import (
 
 class DrTuberIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:www|m)\.)?drtuber\.com/(?:video|embed)/(?P<id>\d+)(?:/(?P<display_id>[\w-]+))?'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?drtuber\.com/embed/\d+)']
     _TESTS = [{
         'url': 'http://www.drtuber.com/video/1740434/hot-perky-blonde-naked-golf',
         'md5': '93e680cf2536ad0dfb7e74d94a89facd',
@@ -34,12 +33,6 @@ class DrTuberIE(InfoExtractor):
         'url': 'http://m.drtuber.com/video/3893529/lingerie-blowjob-from-beautiful-teen',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?drtuber\.com/embed/\d+)',
-            webpage)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

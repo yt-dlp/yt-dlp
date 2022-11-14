@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .brightcove import BrightcoveNewIE
 from ..utils import extract_attributes
 
@@ -21,7 +18,6 @@ class BandaiChannelIE(BrightcoveNewIE):
             'duration': 1387.733,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }]

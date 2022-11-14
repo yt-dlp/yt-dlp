@@ -1,11 +1,9 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     determine_ext,
     int_or_none,
-    try_get,
+    traverse_obj,
     unescapeHTML,
     url_or_none,
 )
@@ -13,18 +11,20 @@ from ..utils import (
 
 class NineGagIE(InfoExtractor):
     IE_NAME = '9gag'
+    IE_DESC = '9GAG'
     _VALID_URL = r'https?://(?:www\.)?9gag\.com/gag/(?P<id>[^/?&#]+)'
 
     _TESTS = [{
         'url': 'https://9gag.com/gag/ae5Ag7B',
         'info_dict': {
             'id': 'ae5Ag7B',
-            'ext': 'mp4',
+            'ext': 'webm',
             'title': 'Capybara Agility Training',
             'upload_date': '20191108',
             'timestamp': 1573237208,
+            'thumbnail': 'https://img-9gag-fun.9cache.com/photo/ae5Ag7B_460s.jpg',
             'categories': ['Awesome'],
-            'tags': ['Weimaraner', 'American Pit Bull Terrier'],
+            'tags': ['Awesome'],
             'duration': 44,
             'like_count': int,
             'dislike_count': int,
@@ -34,6 +34,26 @@ class NineGagIE(InfoExtractor):
         # HTML escaped title
         'url': 'https://9gag.com/gag/av5nvyb',
         'only_matching': True,
+    }, {
+        # Non Anonymous Uploader
+        'url': 'https://9gag.com/gag/ajgp66G',
+        'info_dict': {
+            'id': 'ajgp66G',
+            'ext': 'webm',
+            'title': 'Master Shifu! Or Splinter! You decide:',
+            'upload_date': '20220806',
+            'timestamp': 1659803411,
+            'thumbnail': 'https://img-9gag-fun.9cache.com/photo/ajgp66G_460s.jpg',
+            'categories': ['Funny'],
+            'tags': ['Funny'],
+            'duration': 26,
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'uploader': 'Peter Klaus',
+            'uploader_id': 'peterklaus12',
+            'uploader_url': 'https://9gag.com/u/peterklaus12',
+        }
     }]
 
     def _real_extract(self, url):
@@ -47,8 +67,6 @@ class NineGagIE(InfoExtractor):
             raise ExtractorError(
                 'The given url does not contain a video',
                 expected=True)
-
-        title = unescapeHTML(post['title'])
 
         duration = None
         formats = []
@@ -100,7 +118,7 @@ class NineGagIE(InfoExtractor):
                 formats.append(common)
         self._sort_formats(formats)
 
-        section = try_get(post, lambda x: x['postSection']['name'])
+        section = traverse_obj(post, ('postSection', 'name'))
 
         tags = None
         post_tags = post.get('tags')
@@ -112,18 +130,19 @@ class NineGagIE(InfoExtractor):
                     continue
                 tags.append(tag_key)
 
-        get_count = lambda x: int_or_none(post.get(x + 'Count'))
-
         return {
             'id': post_id,
-            'title': title,
+            'title': unescapeHTML(post.get('title')),
             'timestamp': int_or_none(post.get('creationTs')),
             'duration': duration,
+            'uploader': traverse_obj(post, ('creator', 'fullName')),
+            'uploader_id': traverse_obj(post, ('creator', 'username')),
+            'uploader_url': url_or_none(traverse_obj(post, ('creator', 'profileUrl'))),
             'formats': formats,
             'thumbnails': thumbnails,
-            'like_count': get_count('upVote'),
-            'dislike_count': get_count('downVote'),
-            'comment_count': get_count('comments'),
+            'like_count': int_or_none(post.get('upVoteCount')),
+            'dislike_count': int_or_none(post.get('downVoteCount')),
+            'comment_count': int_or_none(post.get('commentsCount')),
             'age_limit': 18 if post.get('nsfw') == 1 else None,
             'categories': [section] if section else None,
             'tags': tags,

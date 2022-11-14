@@ -1,18 +1,12 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import itertools
 import json
 import re
+import urllib.error
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_etree_Element,
-    compat_HTTPError,
-    compat_str,
-    compat_urlparse,
-)
+from ..compat import compat_HTTPError, compat_str, compat_urlparse
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -38,7 +32,7 @@ from ..utils import (
 class BBCCoUkIE(InfoExtractor):
     IE_NAME = 'bbc.co.uk'
     IE_DESC = 'BBC iPlayer'
-    _ID_REGEX = r'(?:[pbm][\da-z]{7}|w[\da-z]{7,14})'
+    _ID_REGEX = r'(?:[pbml][\da-z]{7}|w[\da-z]{7,14})'
     _VALID_URL = r'''(?x)
                     https?://
                         (?:www\.)?bbc\.co\.uk/
@@ -52,6 +46,7 @@ class BBCCoUkIE(InfoExtractor):
                         )
                         (?P<id>%s)(?!/(?:episodes|broadcasts|clips))
                     ''' % _ID_REGEX
+    _EMBED_REGEX = [r'setPlaylist\("(?P<url>https?://www\.bbc\.co\.uk/iplayer/[^/]+/[\da-z]{8})"\)']
 
     _LOGIN_URL = 'https://account.bbc.com/signin'
     _NETRC_MACHINE = 'bbc'
@@ -263,11 +258,7 @@ class BBCCoUkIE(InfoExtractor):
             'only_matching': True,
         }]
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading signin page')
 
@@ -292,9 +283,6 @@ class BBCCoUkIE(InfoExtractor):
                 raise ExtractorError(
                     'Unable to login: %s' % error, expected=True)
             raise ExtractorError('Unable to log in')
-
-    def _real_initialize(self):
-        self._login()
 
     class MediaSelectionError(Exception):
         def __init__(self, id):
@@ -324,7 +312,7 @@ class BBCCoUkIE(InfoExtractor):
                 continue
             captions = self._download_xml(
                 cc_url, programme_id, 'Downloading captions', fatal=False)
-            if not isinstance(captions, compat_etree_Element):
+            if not isinstance(captions, xml.etree.ElementTree.Element):
                 continue
             subtitles['en'] = [
                 {
@@ -394,9 +382,17 @@ class BBCCoUkIE(InfoExtractor):
                         formats.extend(self._extract_mpd_formats(
                             href, programme_id, mpd_id=format_id, fatal=False))
                     elif transfer_format == 'hls':
-                        formats.extend(self._extract_m3u8_formats(
-                            href, programme_id, ext='mp4', entry_protocol='m3u8_native',
-                            m3u8_id=format_id, fatal=False))
+                        # TODO: let expected_status be passed into _extract_xxx_formats() instead
+                        try:
+                            fmts = self._extract_m3u8_formats(
+                                href, programme_id, ext='mp4', entry_protocol='m3u8_native',
+                                m3u8_id=format_id, fatal=False)
+                        except ExtractorError as e:
+                            if not (isinstance(e.exc_info[1], urllib.error.HTTPError)
+                                    and e.exc_info[1].code in (403, 404)):
+                                raise
+                            fmts = []
+                        formats.extend(fmts)
                     elif transfer_format == 'hds':
                         formats.extend(self._extract_f4m_formats(
                             href, programme_id, f4m_id=format_id, fatal=False))
@@ -451,9 +447,10 @@ class BBCCoUkIE(InfoExtractor):
             playlist = self._download_json(
                 'http://www.bbc.co.uk/programmes/%s/playlist.json' % playlist_id,
                 playlist_id, 'Downloading playlist JSON')
+            formats = []
+            subtitles = {}
 
-            version = playlist.get('defaultAvailableVersion')
-            if version:
+            for version in playlist.get('allAvailableVersions', []):
                 smp_config = version['smpConfig']
                 title = smp_config['title']
                 description = smp_config['summary']
@@ -463,8 +460,17 @@ class BBCCoUkIE(InfoExtractor):
                         continue
                     programme_id = item.get('vpid')
                     duration = int_or_none(item.get('duration'))
-                    formats, subtitles = self._download_media_selector(programme_id)
-                return programme_id, title, description, duration, formats, subtitles
+                    version_formats, version_subtitles = self._download_media_selector(programme_id)
+                    types = version['types']
+                    for f in version_formats:
+                        f['format_note'] = ', '.join(types)
+                        if any('AudioDescribed' in x for x in types):
+                            f['language_preference'] = -10
+                    formats += version_formats
+                    for tag, subformats in (version_subtitles or {}).items():
+                        subtitles.setdefault(tag, []).extend(subformats)
+
+            return programme_id, title, description, duration, formats, subtitles
         except ExtractorError as ee:
             if not (isinstance(ee.cause, compat_HTTPError) and ee.cause.code == 404):
                 raise
@@ -585,7 +591,12 @@ class BBCCoUkIE(InfoExtractor):
 class BBCIE(BBCCoUkIE):
     IE_NAME = 'bbc'
     IE_DESC = 'BBC'
-    _VALID_URL = r'https?://(?:www\.)?bbc\.(?:com|co\.uk)/(?:[^/]+/)+(?P<id>[^/#?]+)'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?(?:
+            bbc\.(?:com|co\.uk)|
+            bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd\.onion|
+            bbcweb3hytmzhn5d532owbu6oqadra5z3ar726vq5kgwwn6aucdccrad\.onion
+        )/(?:[^/]+/)+(?P<id>[^/#?]+)'''
 
     _MEDIA_SETS = [
         'pc',
@@ -775,20 +786,32 @@ class BBCIE(BBCCoUkIE):
             'upload_date': '20150725',
         },
     }, {
+        # video with window.__INITIAL_DATA__ and value as JSON string
+        'url': 'https://www.bbc.com/news/av/world-europe-59468682',
+        'info_dict': {
+            'id': 'p0b71qth',
+            'ext': 'mp4',
+            'title': 'Why France is making this woman a national hero',
+            'description': 'md5:7affdfab80e9c3a1f976230a1ff4d5e4',
+            'thumbnail': r're:https?://.+/.+\.jpg',
+            'timestamp': 1638230731,
+            'upload_date': '20211130',
+        },
+    }, {
         # single video article embedded with data-media-vpid
         'url': 'http://www.bbc.co.uk/sport/rowing/35908187',
         'only_matching': True,
     }, {
+        # bbcthreeConfig
         'url': 'https://www.bbc.co.uk/bbcthree/clip/73d0bbd0-abc3-4cea-b3c0-cdae21905eb1',
         'info_dict': {
             'id': 'p06556y7',
             'ext': 'mp4',
-            'title': 'Transfers: Cristiano Ronaldo to Man Utd, Arsenal to spend?',
-            'description': 'md5:4b7dfd063d5a789a1512e99662be3ddd',
+            'title': 'Things Not To Say to people that live on council estates',
+            'description': "From being labelled a 'chav', to the presumption that they're 'scroungers', people who live on council estates encounter all kinds of prejudices and false assumptions about themselves, their families, and their lifestyles. Here, eight people discuss the common statements, misconceptions, and clichés that they're tired of hearing.",
+            'duration': 360,
+            'thumbnail': r're:https?://.+/.+\.jpg',
         },
-        'params': {
-            'skip_download': True,
-        }
     }, {
         # window.__PRELOADED_STATE__
         'url': 'https://www.bbc.co.uk/radio/play/b0b9z4yl',
@@ -823,6 +846,12 @@ class BBCIE(BBCCoUkIE):
             'upload_date': '20190604',
             'categories': ['Psychology'],
         },
+    }, {  # onion routes
+        'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/news/av/world-europe-63208576',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.bbcweb3hytmzhn5d532owbu6oqadra5z3ar726vq5kgwwn6aucdccrad.onion/sport/av/football/63195681',
+        'only_matching': True,
     }]
 
     @classmethod
@@ -880,13 +909,8 @@ class BBCIE(BBCCoUkIE):
         json_ld_info = self._search_json_ld(webpage, playlist_id, default={})
         timestamp = json_ld_info.get('timestamp')
 
-        playlist_title = json_ld_info.get('title')
-        if not playlist_title:
-            playlist_title = self._og_search_title(
-                webpage, default=None) or self._html_search_regex(
-                r'<title>(.+?)</title>', webpage, 'playlist title', default=None)
-            if playlist_title:
-                playlist_title = re.sub(r'(.+)\s*-\s*BBC.*?$', r'\1', playlist_title).strip()
+        playlist_title = json_ld_info.get('title') or re.sub(
+            r'(.+)\s*-\s*BBC.*?$', r'\1', self._generic_title('', webpage, default='')).strip() or None
 
         playlist_description = json_ld_info.get(
             'description') or self._og_search_description(webpage, default=None)
@@ -1161,9 +1185,16 @@ class BBCIE(BBCCoUkIE):
                 return self.playlist_result(
                     entries, playlist_id, playlist_title, playlist_description)
 
-        initial_data = self._parse_json(self._search_regex(
-            r'window\.__INITIAL_DATA__\s*=\s*({.+?});', webpage,
-            'preload state', default='{}'), playlist_id, fatal=False)
+        initial_data = self._search_regex(
+            r'window\.__INITIAL_DATA__\s*=\s*("{.+?}")\s*;', webpage,
+            'quoted preload state', default=None)
+        if initial_data is None:
+            initial_data = self._search_regex(
+                r'window\.__INITIAL_DATA__\s*=\s*({.+?})\s*;', webpage,
+                'preload state', default={})
+        else:
+            initial_data = self._parse_json(initial_data or '"{}"', playlist_id, fatal=False)
+        initial_data = self._parse_json(initial_data, playlist_id, fatal=False)
         if initial_data:
             def parse_media(media):
                 if not media:
@@ -1204,8 +1235,11 @@ class BBCIE(BBCCoUkIE):
                 if name == 'media-experience':
                     parse_media(try_get(resp, lambda x: x['data']['initialItem']['mediaItem'], dict))
                 elif name == 'article':
-                    for block in (try_get(resp, lambda x: x['data']['blocks'], list) or []):
-                        if block.get('type') != 'media':
+                    for block in (try_get(resp,
+                                          (lambda x: x['data']['blocks'],
+                                           lambda x: x['data']['content']['model']['blocks'],),
+                                          list) or []):
+                        if block.get('type') not in ['media', 'video']:
                             continue
                         parse_media(block.get('model'))
             return self.playlist_result(

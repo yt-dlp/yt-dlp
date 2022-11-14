@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from .fox import FOXIE
 from ..utils import (

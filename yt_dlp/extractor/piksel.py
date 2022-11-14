@@ -1,14 +1,11 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     dict_get,
     ExtractorError,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
     try_get,
     unescapeHTML,
@@ -33,6 +30,7 @@ class PikselIE(InfoExtractor):
             )\.jp|
             vidego\.baltimorecity\.gov
         )/v/(?:refid/(?P<refid>[^/]+)/prefid/)?(?P<id>[\w-]+)'''
+    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?:)?//player\.piksel\.com/v/[a-z0-9]+)']
     _TESTS = [
         {
             'url': 'http://player.piksel.com/v/ums2867l',
@@ -64,14 +62,6 @@ class PikselIE(InfoExtractor):
             'only_matching': True,
         }
     ]
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+src=["\'](?P<url>(?:https?:)?//player\.piksel\.com/v/[a-z0-9]+)',
-            webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _call_api(self, app_token, resource, display_id, query, fatal=True):
         response = (self._download_json(
@@ -116,12 +106,8 @@ class PikselIE(InfoExtractor):
             elif asset_type == 'audio':
                 tbr = abr
 
-            format_id = ['http']
-            if tbr:
-                format_id.append(compat_str(tbr))
-
             formats.append({
-                'format_id': '-'.join(format_id),
+                'format_id': join_nonempty('http', tbr),
                 'url': unescapeHTML(http_url),
                 'vbr': vbr,
                 'abr': abr,
@@ -167,7 +153,7 @@ class PikselIE(InfoExtractor):
                 re.sub(r'/od/[^/]+/', '/od/http/', smil_url), video_id,
                 transform_source=transform_source, fatal=False))
 
-        self._sort_formats(formats)
+        self._sort_formats(formats, ('tbr', ))  # Incomplete resolution information
 
         subtitles = {}
         for caption in video_data.get('captions', []):

@@ -1,14 +1,9 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
+from ..compat import compat_urlparse
 from ..utils import (
     determine_ext,
     int_or_none,
+    join_nonempty,
     parse_duration,
     parse_iso8601,
     url_or_none,
@@ -148,13 +143,9 @@ class MDRIE(InfoExtractor):
                     abr = int_or_none(xpath_text(asset, './bitrateAudio', 'abr'), 1000)
                     filesize = int_or_none(xpath_text(asset, './fileSize', 'file size'))
 
-                    format_id = [media_type]
-                    if vbr or abr:
-                        format_id.append(compat_str(vbr or abr))
-
                     f = {
                         'url': video_url,
-                        'format_id': '-'.join(format_id),
+                        'format_id': join_nonempty(media_type, vbr or abr),
                         'filesize': filesize,
                         'abr': abr,
                         'vbr': vbr,

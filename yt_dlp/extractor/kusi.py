@@ -1,13 +1,10 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import random
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote_plus
 from ..utils import (
-    int_or_none,
     float_or_none,
+    int_or_none,
     timeconvert,
     update_url_query,
     xpath_text,
@@ -69,7 +66,7 @@ class KUSIIE(InfoExtractor):
         formats = []
         for quality in quality_options:
             formats.append({
-                'url': compat_urllib_parse_unquote_plus(quality.attrib['url']),
+                'url': urllib.parse.unquote_plus(quality.attrib['url']),
                 'height': int_or_none(quality.attrib.get('height')),
                 'width': int_or_none(quality.attrib.get('width')),
                 'vbr': float_or_none(quality.attrib.get('bitratebits'), scale=1000),

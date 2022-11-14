@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .theplatform import ThePlatformFeedIE
 from ..utils import (
     ExtractorError,
@@ -77,21 +75,21 @@ class CBSIE(CBSBaseIE):
         (?:
             cbs:|
             https?://(?:www\.)?(?:
-                cbs\.com/(?:shows/[^/]+/video|movies/[^/]+)/|
+                cbs\.com/(?:shows|movies)/(?:video|[^/]+/video|[^/]+)/|
                 colbertlateshow\.com/(?:video|podcasts)/)
         )(?P<id>[\w-]+)'''
 
     # All tests are blocked outside US
     _TESTS = [{
-        'url': 'https://www.cbs.com/shows/garth-brooks/video/_u7W953k6la293J7EPTd9oHkSPs6Xn6_/connect-chat-feat-garth-brooks/',
+        'url': 'https://www.cbs.com/shows/video/xrUyNLtl9wd8D_RWWAg9NU2F_V6QpB3R/',
         'info_dict': {
-            'id': '_u7W953k6la293J7EPTd9oHkSPs6Xn6_',
+            'id': 'xrUyNLtl9wd8D_RWWAg9NU2F_V6QpB3R',
             'ext': 'mp4',
-            'title': 'Connect Chat feat. Garth Brooks',
-            'description': 'Connect with country music singer Garth Brooks, as he chats with fans on Wednesday November 27, 2013. Be sure to tune in to Garth Brooks: Live from Las Vegas, Friday November 29, at 9/8c on CBS!',
-            'duration': 1495,
-            'timestamp': 1385585425,
-            'upload_date': '20131127',
+            'title': 'Tough As Nails - Dreams Never Die',
+            'description': 'md5:a3535a62531cdd52b0364248a2c1ae33',
+            'duration': 2588,
+            'timestamp': 1639015200,
+            'upload_date': '20211209',
             'uploader': 'CBSI-NEW',
         },
         'params': {
@@ -99,14 +97,14 @@ class CBSIE(CBSBaseIE):
             'skip_download': True,
         },
     }, {
-        'url': 'https://www.cbs.com/shows/the-late-show-with-stephen-colbert/video/60icOhMb9NcjbcWnF_gub9XXHdeBcNk2/the-late-show-6-23-21-christine-baranski-joy-oladokun-',
+        'url': 'https://www.cbs.com/shows/video/sZH1MGgomIosZgxGJ1l263MFq16oMtW1/',
         'info_dict': {
-            'id': '60icOhMb9NcjbcWnF_gub9XXHdeBcNk2',
-            'title': 'The Late Show - 6/23/21 (Christine Baranski, Joy Oladokun)',
-            'timestamp': 1624507140,
-            'description': 'md5:e01af24e95c74d55e8775aef86117b95',
+            'id': 'sZH1MGgomIosZgxGJ1l263MFq16oMtW1',
+            'title': 'The Late Show - 3/16/22 (Michael Buble, Rose Matafeo)',
+            'timestamp': 1647488100,
+            'description': 'md5:d0e6ec23c544b7fa8e39a8e6844d2439',
             'uploader': 'CBSI-NEW',
-            'upload_date': '20210624',
+            'upload_date': '20220317',
         },
         'params': {
             'ignore_no_formats_error': True,

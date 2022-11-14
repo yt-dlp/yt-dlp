@@ -1,16 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 
 from .common import InfoExtractor
-from ..utils import (
-    qualities,
-    compat_str,
-    parse_duration,
-    parse_iso8601,
-    str_to_int,
-)
+from ..compat import compat_str
+from ..utils import parse_duration, parse_iso8601, qualities, str_to_int
 
 
 class GigaIE(InfoExtractor):

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -29,7 +26,6 @@ class PornFlipIE(InfoExtractor):
                 'age_limit': 18,
             },
             'params': {
-                'format': 'bestvideo',
                 'skip_download': True,
             },
         },

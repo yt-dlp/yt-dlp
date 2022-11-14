@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -162,7 +159,8 @@ class CCTVIE(InfoExtractor):
                         'url': video_url,
                         'format_id': 'http',
                         'quality': quality,
-                        'source_preference': -10
+                        # Sample clip
+                        'preference': -10
                     })
 
         hls_url = try_get(data, lambda x: x['hls_url'], compat_str)

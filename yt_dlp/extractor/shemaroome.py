@@ -1,11 +1,7 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
-from ..aes import aes_cbc_decrypt
+from ..aes import aes_cbc_decrypt, unpad_pkcs7
 from ..compat import (
     compat_b64decode,
-    compat_ord,
 )
 from ..utils import (
     bytes_to_intlist,
@@ -16,7 +12,7 @@ from ..utils import (
 
 
 class ShemarooMeIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?shemaroome\.com/(?:movies|shows)/(?P<id>[^?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?shemaroome\.com/(?:movies|shows)/(?P<id>[^?#]+)'
     _TESTS = [{
         'url': 'https://www.shemaroome.com/movies/dil-hai-tumhaara',
         'info_dict': {
@@ -76,9 +72,8 @@ class ShemarooMeIE(InfoExtractor):
         url_data = bytes_to_intlist(compat_b64decode(data_json['new_play_url']))
         key = bytes_to_intlist(compat_b64decode(data_json['key']))
         iv = [0] * 16
-        m3u8_url = intlist_to_bytes(aes_cbc_decrypt(url_data, key, iv))
-        m3u8_url = m3u8_url[:-compat_ord((m3u8_url[-1]))].decode('ascii')
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, fatal=False, headers={'stream_key': data_json['stream_key']})
+        m3u8_url = unpad_pkcs7(intlist_to_bytes(aes_cbc_decrypt(url_data, key, iv))).decode('ascii')
+        formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, fatal=False, headers={'stream_key': data_json['stream_key']})
         self._sort_formats(formats)
 
         release_date = self._html_search_regex(
@@ -91,6 +86,7 @@ class ShemarooMeIE(InfoExtractor):
             subtitles.setdefault('EN', []).append({
                 'url': self._proto_relative_url(sub_url),
             })
+        subtitles = self._merge_subtitles(subtitles, m3u8_subs)
         description = self._html_search_regex(r'(?s)>Synopsis(</.+?)</', webpage, 'description', fatal=False)
 
         return {

@@ -1,14 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
     qualities,
-    unescapeHTML,
     url_or_none,
 )
 
@@ -16,6 +10,7 @@ from ..utils import (
 class YapFilesIE(InfoExtractor):
     _YAPFILES_URL = r'//(?:(?:www|api)\.)?yapfiles\.ru/get_player/*\?.*?\bv=(?P<id>\w+)'
     _VALID_URL = r'https?:%s' % _YAPFILES_URL
+    _EMBED_REGEX = [rf'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?{_YAPFILES_URL}.*?)\1']
     _TESTS = [{
         # with hd
         'url': 'http://www.yapfiles.ru/get_player/?v=vMDE1NjcyNDUt0413',
@@ -32,12 +27,6 @@ class YapFilesIE(InfoExtractor):
         'url': 'https://api.yapfiles.ru/get_player/?uid=video_player_1872528&plroll=1&adv=1&v=vMDE4NzI1Mjgt690b',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [unescapeHTML(mobj.group('url')) for mobj in re.finditer(
-            r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?%s.*?)\1'
-            % YapFilesIE._YAPFILES_URL, webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

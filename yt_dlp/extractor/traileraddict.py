@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -24,8 +22,7 @@ class TrailerAddictIE(InfoExtractor):
         name = mobj.group('movie') + '/' + mobj.group('trailer_name')
         webpage = self._download_webpage(url, name)
 
-        title = self._search_regex(r'<title>(.+?)</title>',
-                                   webpage, 'video title').replace(' - Trailer Addict', '')
+        title = self._html_extract_title(webpage, 'video title').replace(' - Trailer Addict', '')
         view_count_str = self._search_regex(
             r'<span class="views_n">([0-9,.]+)</span>',
             webpage, 'view count', fatal=False)

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 
 
@@ -13,6 +10,8 @@ class CAM4IE(InfoExtractor):
             'ext': 'mp4',
             'title': 're:^foxynesss [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'age_limit': 18,
+            'live_status': 'is_live',
+            'thumbnail': 'https://snapshots.xcdnpro.com/thumbnails/foxynesss',
         }
     }
 
@@ -25,8 +24,9 @@ class CAM4IE(InfoExtractor):
 
         return {
             'id': channel_id,
-            'title': self._live_title(channel_id),
+            'title': channel_id,
             'is_live': True,
             'age_limit': 18,
             'formats': formats,
+            'thumbnail': f'https://snapshots.xcdnpro.com/thumbnails/{channel_id}',
         }

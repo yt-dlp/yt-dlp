@@ -1,8 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -15,6 +10,14 @@ from ..utils import (
 
 class IndavideoEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:embed\.)?indavideo\.hu/player/video/|assets\.indavideo\.hu/swf/player\.swf\?.*\b(?:v(?:ID|id))=)(?P<id>[\da-f]+)'
+    # Some example URLs covered by generic extractor:
+    #   http://indavideo.hu/video/Vicces_cica_1
+    #   http://index.indavideo.hu/video/2015_0728_beregszasz
+    #   http://auto.indavideo.hu/video/Sajat_utanfutoban_a_kis_tacsko
+    #   http://erotika.indavideo.hu/video/Amator_tini_punci
+    #   http://film.indavideo.hu/video/f_hrom_nagymamm_volt
+    #   http://palyazat.indavideo.hu/video/Embertelen_dal_Dodgem_egyuttes
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//embed\.indavideo\.hu/player/video/[\da-f]+)']
     _TESTS = [{
         'url': 'http://indavideo.hu/player/video/1bdc3c6d80/',
         'md5': 'c8a507a1c7410685f83a06eaeeaafeab',
@@ -39,20 +42,6 @@ class IndavideoEmbedIE(InfoExtractor):
         'url': 'http://assets.indavideo.hu/swf/player.swf?v=fe25e500&vID=1bdc3c6d80&autostart=1&hide=1&i=1',
         'only_matching': True,
     }]
-
-    # Some example URLs covered by generic extractor:
-    #   http://indavideo.hu/video/Vicces_cica_1
-    #   http://index.indavideo.hu/video/2015_0728_beregszasz
-    #   http://auto.indavideo.hu/video/Sajat_utanfutoban_a_kis_tacsko
-    #   http://erotika.indavideo.hu/video/Amator_tini_punci
-    #   http://film.indavideo.hu/video/f_hrom_nagymamm_volt
-    #   http://palyazat.indavideo.hu/video/Embertelen_dal_Dodgem_egyuttes
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//embed\.indavideo\.hu/player/video/[\da-f]+)',
-            webpage)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

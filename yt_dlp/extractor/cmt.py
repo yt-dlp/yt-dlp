@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .mtv import MTVIE
 
 # TODO Remove - Reason: Outdated Site

@@ -1,17 +1,15 @@
-# coding: utf-8
-from __future__ import unicode_literals
+import itertools
 
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     smuggle_url,
+    str_or_none,
     traverse_obj,
-    unsmuggle_url,
     unified_strdate,
+    unsmuggle_url,
 )
-
-import itertools
 
 
 class VoicyBaseIE(InfoExtractor):
@@ -25,9 +23,9 @@ class VoicyBaseIE(InfoExtractor):
             'id': voice_id,
             'title': compat_str(value.get('PlaylistName')),
             'uploader': value.get('SpeakerName'),
-            'uploader_id': compat_str(value.get('SpeakerId')),
+            'uploader_id': str_or_none(value.get('SpeakerId')),
             'channel': value.get('ChannelName'),
-            'channel_id': compat_str(value.get('ChannelId')),
+            'channel_id': str_or_none(value.get('ChannelId')),
             'upload_date': upload_date,
         }
 
@@ -107,7 +105,7 @@ class VoicyChannelIE(VoicyBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return not VoicyIE.suitable(url) and super(VoicyChannelIE, cls).suitable(url)
+        return not VoicyIE.suitable(url) and super().suitable(url)
 
     def _entries(self, channel_id):
         pager = ''

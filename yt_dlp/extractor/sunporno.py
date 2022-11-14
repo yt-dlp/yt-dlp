@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -36,8 +34,7 @@ class SunPornoIE(InfoExtractor):
         webpage = self._download_webpage(
             'http://www.sunporno.com/videos/%s' % video_id, video_id)
 
-        title = self._html_search_regex(
-            r'<title>([^<]+)</title>', webpage, 'title')
+        title = self._html_extract_title(webpage)
         description = self._html_search_meta(
             'description', webpage, 'description')
         thumbnail = self._html_search_regex(

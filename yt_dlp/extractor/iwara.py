@@ -1,21 +1,29 @@
-# coding: utf-8
-from __future__ import unicode_literals
+import itertools
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_urlparse
 from ..utils import (
     int_or_none,
     mimetype2ext,
     remove_end,
-    url_or_none,
-    unified_strdate,
     strip_or_none,
+    unified_strdate,
+    url_or_none,
+    urljoin,
 )
 
 
-class IwaraIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.|ecchi\.)?iwara\.tv/videos/(?P<id>[a-zA-Z0-9]+)'
+class IwaraBaseIE(InfoExtractor):
+    _BASE_REGEX = r'(?P<base_url>https?://(?:www\.|ecchi\.)?iwara\.tv)'
+
+    def _extract_playlist(self, base_url, webpage):
+        for path in re.findall(r'class="title">\s*<a[^<]+href="([^"]+)', webpage):
+            yield self.url_result(urljoin(base_url, path))
+
+
+class IwaraIE(IwaraBaseIE):
+    _VALID_URL = fr'{IwaraBaseIE._BASE_REGEX}/videos/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'url': 'http://iwara.tv/videos/amVwUl1EHpAD9RD',
         # md5 is unstable
@@ -60,7 +68,7 @@ class IwaraIE(InfoExtractor):
 
         webpage, urlh = self._download_webpage_handle(url, video_id)
 
-        hostname = compat_urllib_parse_urlparse(urlh.geturl()).hostname
+        hostname = urllib.parse.urlparse(urlh.geturl()).hostname
         # ecchi is 'sexy' in Japanese
         age_limit = 18 if hostname.split('.')[0] == 'ecchi' else 0
 
@@ -76,8 +84,7 @@ class IwaraIE(InfoExtractor):
                 'age_limit': age_limit,
             }
 
-        title = remove_end(self._html_search_regex(
-            r'<title>([^<]+)</title>', webpage, 'title'), ' | Iwara')
+        title = remove_end(self._html_extract_title(webpage), ' | Iwara')
 
         thumbnail = self._html_search_regex(
             r'poster=[\'"]([^\'"]+)', webpage, 'thumbnail', default=None)
@@ -121,3 +128,114 @@ class IwaraIE(InfoExtractor):
             'upload_date': upload_date,
             'description': description,
         }
+
+
+class IwaraPlaylistIE(IwaraBaseIE):
+    _VALID_URL = fr'{IwaraBaseIE._BASE_REGEX}/playlist/(?P<id>[^/?#&]+)'
+    IE_NAME = 'iwara:playlist'
+
+    _TESTS = [{
+        'url': 'https://ecchi.iwara.tv/playlist/best-enf',
+        'info_dict': {
+            'title': 'Best enf',
+            'uploader': 'Jared98112',
+            'id': 'best-enf',
+        },
+        'playlist_mincount': 1097,
+    }, {
+        # urlencoded
+        'url': 'https://ecchi.iwara.tv/playlist/%E3%83%97%E3%83%AC%E3%82%A4%E3%83%AA%E3%82%B9%E3%83%88-2',
+        'info_dict': {
+            'id': 'プレイリスト-2',
+            'title': 'プレイリスト',
+            'uploader': 'mainyu',
+        },
+        'playlist_mincount': 91,
+    }]
+
+    def _real_extract(self, url):
+        playlist_id, base_url = self._match_valid_url(url).group('id', 'base_url')
+        playlist_id = urllib.parse.unquote(playlist_id)
+        webpage = self._download_webpage(url, playlist_id)
+
+        return {
+            '_type': 'playlist',
+            'id': playlist_id,
+            'title': self._html_search_regex(r'class="title"[^>]*>([^<]+)', webpage, 'title', fatal=False),
+            'uploader': self._html_search_regex(r'<h2>([^<]+)', webpage, 'uploader', fatal=False),
+            'entries': self._extract_playlist(base_url, webpage),
+        }
+
+
+class IwaraUserIE(IwaraBaseIE):
+    _VALID_URL = fr'{IwaraBaseIE._BASE_REGEX}/users/(?P<id>[^/?#&]+)'
+    IE_NAME = 'iwara:user'
+
+    _TESTS = [{
+        'note': 'number of all videos page is just 1 page. less than 40 videos',
+        'url': 'https://ecchi.iwara.tv/users/infinityyukarip',
+        'info_dict': {
+            'title': 'Uploaded videos from Infinity_YukariP',
+            'id': 'infinityyukarip',
+            'uploader': 'Infinity_YukariP',
+            'uploader_id': 'infinityyukarip',
+        },
+        'playlist_mincount': 39,
+    }, {
+        'note': 'no even all videos page. probably less than 10 videos',
+        'url': 'https://ecchi.iwara.tv/users/mmd-quintet',
+        'info_dict': {
+            'title': 'Uploaded videos from mmd quintet',
+            'id': 'mmd-quintet',
+            'uploader': 'mmd quintet',
+            'uploader_id': 'mmd-quintet',
+        },
+        'playlist_mincount': 6,
+    }, {
+        'note': 'has paging. more than 40 videos',
+        'url': 'https://ecchi.iwara.tv/users/theblackbirdcalls',
+        'info_dict': {
+            'title': 'Uploaded videos from TheBlackbirdCalls',
+            'id': 'theblackbirdcalls',
+            'uploader': 'TheBlackbirdCalls',
+            'uploader_id': 'theblackbirdcalls',
+        },
+        'playlist_mincount': 420,
+    }, {
+        'note': 'foreign chars in URL. there must be foreign characters in URL',
+        'url': 'https://ecchi.iwara.tv/users/ぶた丼',
+        'info_dict': {
+            'title': 'Uploaded videos from ぶた丼',
+            'id': 'ぶた丼',
+            'uploader': 'ぶた丼',
+            'uploader_id': 'ぶた丼',
+        },
+        'playlist_mincount': 170,
+    }]
+
+    def _entries(self, playlist_id, base_url):
+        webpage = self._download_webpage(
+            f'{base_url}/users/{playlist_id}', playlist_id)
+        videos_url = self._search_regex(r'<a href="(/users/[^/]+/videos)(?:\?[^"]+)?">', webpage, 'all videos url', default=None)
+        if not videos_url:
+            yield from self._extract_playlist(base_url, webpage)
+            return
+
+        videos_url = urljoin(base_url, videos_url)
+
+        for n in itertools.count(1):
+            page = self._download_webpage(
+                videos_url, playlist_id, note=f'Downloading playlist page {n}',
+                query={'page': str(n - 1)} if n > 1 else {})
+            yield from self._extract_playlist(
+                base_url, page)
+
+            if f'page={n}' not in page:
+                break
+
+    def _real_extract(self, url):
+        playlist_id, base_url = self._match_valid_url(url).group('id', 'base_url')
+        playlist_id = urllib.parse.unquote(playlist_id)
+
+        return self.playlist_result(
+            self._entries(playlist_id, base_url), playlist_id)

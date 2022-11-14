@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -24,6 +21,7 @@ class SpringboardPlatformIE(InfoExtractor):
                             xml_feeds_advanced/index/(?P<index_2>\d+)/rss3/(?P<id_2>\d+)
                         )
                     '''
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//cms\.springboardplatform\.com/embed_iframe/\d+/video/\d+.*?)\1']
     _TESTS = [{
         'url': 'http://cms.springboardplatform.com/previews/159/video/981017/0/0/1',
         'md5': '5c3cb7b5c55740d482561099e920f192',
@@ -47,14 +45,6 @@ class SpringboardPlatformIE(InfoExtractor):
         'url': 'http://cms.springboardplatform.com/xml_feeds_advanced/index/159/rss3/981017/0/0/1/',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//cms\.springboardplatform\.com/embed_iframe/\d+/video/\d+.*?)\1',
-                webpage)]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

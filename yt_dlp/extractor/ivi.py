@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import re
 
@@ -16,6 +13,7 @@ class IviIE(InfoExtractor):
     IE_DESC = 'ivi.ru'
     IE_NAME = 'ivi'
     _VALID_URL = r'https?://(?:www\.)?ivi\.(?:ru|tv)/(?:watch/(?:[^/]+/)?|video/player\?.*?videoId=)(?P<id>\d+)'
+    _EMBED_REGEX = [r'<embed[^>]+?src=(["\'])(?P<url>https?://(?:www\.)?ivi\.ru/video/player.+?)\1']
     _GEO_BYPASS = False
     _GEO_COUNTRIES = ['RU']
     _LIGHT_KEY = b'\xf1\x02\x32\xb7\xbc\x5c\x7a\xe8\xf7\x96\xc1\x33\x2b\x27\xa1\x8c'

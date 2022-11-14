@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import datetime
 
 from .common import InfoExtractor
@@ -8,6 +5,7 @@ from ..utils import (
     float_or_none,
     jwt_encode_hs256,
     try_get,
+    ExtractorError,
 )
 
 
@@ -94,6 +92,11 @@ class ATVAtIE(InfoExtractor):
             })
 
         video_id, videos_data = list(videos['data'].items())[0]
+        error_msg = try_get(videos_data, lambda x: x['error']['title'])
+        if error_msg == 'Geo check failed':
+            self.raise_geo_restricted(error_msg)
+        elif error_msg:
+            raise ExtractorError(error_msg)
         entries = [
             self._extract_video_info(url, contentResource[video['id']], video)
             for video in videos_data]

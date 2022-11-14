@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -15,6 +12,7 @@ from ..utils import (
 
 class ZapiksIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?zapiks\.(?:fr|com)/(?:(?:[a-z]{2}/)?(?P<display_id>.+?)\.html|index\.php\?.*\bmedia_id=(?P<id>\d+))'
+    _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://(?:www\.)?zapiks\.fr/index\.php\?.+?)"']
     _TESTS = [
         {
             'url': 'http://www.zapiks.fr/ep2s3-bon-appetit-eh-be-viva.html',

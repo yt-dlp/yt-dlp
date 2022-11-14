@@ -1,11 +1,6 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_xpath,
-)
 from ..utils import (
     int_or_none,
     parse_duration,
@@ -70,9 +65,9 @@ class MicrosoftVirtualAcademyIE(MicrosoftVirtualAcademyBaseIE):
 
         formats = []
 
-        for sources in settings.findall(compat_xpath('.//MediaSources')):
+        for sources in settings.findall('.//MediaSources'):
             sources_type = sources.get('videoType')
-            for source in sources.findall(compat_xpath('./MediaSource')):
+            for source in sources.findall('./MediaSource'):
                 video_url = source.text
                 if not video_url or not video_url.startswith('http'):
                     continue
@@ -101,7 +96,7 @@ class MicrosoftVirtualAcademyIE(MicrosoftVirtualAcademyBaseIE):
         self._sort_formats(formats)
 
         subtitles = {}
-        for source in settings.findall(compat_xpath('.//MarkerResourceSource')):
+        for source in settings.findall('.//MarkerResourceSource'):
             subtitle_url = source.text
             if not subtitle_url:
                 continue

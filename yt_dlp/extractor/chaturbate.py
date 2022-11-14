@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -101,7 +99,7 @@ class ChaturbateIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(video_id),
+            'title': video_id,
             'thumbnail': 'https://roomimg.stream.highwebmedia.com/ri/%s.jpg' % video_id,
             'age_limit': self._rta_search(webpage),
             'is_live': True,

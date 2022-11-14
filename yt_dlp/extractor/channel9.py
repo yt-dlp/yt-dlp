@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -16,6 +14,7 @@ class Channel9IE(InfoExtractor):
     IE_DESC = 'Channel 9'
     IE_NAME = 'channel9'
     _VALID_URL = r'https?://(?:www\.)?(?:channel9\.msdn\.com|s\.ch9\.ms)/(?P<contentpath>.+?)(?P<rss>/RSS)?/?(?:[?#&]|$)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>https?://channel9\.msdn\.com/(?:[^/]+/)+)player\b']
 
     _TESTS = [{
         'url': 'http://channel9.msdn.com/Events/TechEd/Australia/2013/KOS002',
@@ -79,12 +78,6 @@ class Channel9IE(InfoExtractor):
     }]
 
     _RSS_URL = 'http://channel9.msdn.com/%s/RSS'
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+src=["\'](https?://channel9\.msdn\.com/(?:[^/]+/)+)player\b',
-            webpage)
 
     def _extract_list(self, video_id, rss_url=None):
         if not rss_url:

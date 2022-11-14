@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -14,6 +12,7 @@ from ..utils import (
 
 class YouPornIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?youporn\.com/(?:watch|embed)/(?P<id>\d+)(?:/(?P<display_id>[^/?#&]+))?'
+    _EMBED_REGEX = [r'<iframe[^>]+\bsrc=["\'](?P<url>(?:https?:)?//(?:www\.)?youporn\.com/embed/\d+)']
     _TESTS = [{
         'url': 'http://www.youporn.com/watch/505835/sex-ed-is-it-safe-to-masturbate-daily/',
         'md5': '3744d24c50438cf5b6f6d59feb5055c2',
@@ -66,12 +65,6 @@ class YouPornIE(InfoExtractor):
         'url': 'https://www.youporn.com/watch/13922959/femdom-principal/',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+\bsrc=["\']((?:https?:)?//(?:www\.)?youporn\.com/embed/\d+)',
-            webpage)
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -137,9 +130,10 @@ class YouPornIE(InfoExtractor):
             r'(?s)<div[^>]+class=["\']submitByLink["\'][^>]*>(.+?)</div>',
             webpage, 'uploader', fatal=False)
         upload_date = unified_strdate(self._html_search_regex(
-            [r'UPLOADED:\s*<span>([^<]+)',
+            (r'UPLOADED:\s*<span>([^<]+)',
              r'Date\s+[Aa]dded:\s*<span>([^<]+)',
-             r'(?s)<div[^>]+class=["\']videoInfo(?:Date|Time)["\'][^>]*>(.+?)</div>'],
+             r'''(?s)<div[^>]+class=["']videoInfo(?:Date|Time)\b[^>]*>(.+?)</div>''',
+             r'(?s)<label\b[^>]*>Uploaded[^<]*</label>\s*<span\b[^>]*>(.+?)</span>'),
             webpage, 'upload date', fatal=False))
 
         age_limit = self._rta_search(webpage)

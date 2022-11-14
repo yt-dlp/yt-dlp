@@ -1,7 +1,3 @@
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 import itertools
 
 from .common import InfoExtractor
@@ -157,11 +153,8 @@ class DaumListIE(InfoExtractor):
         query_dict = parse_qs(url)
         if 'clipid' in query_dict:
             clip_id = query_dict['clipid'][0]
-            if self.get_param('noplaylist'):
-                self.to_screen('Downloading just video %s because of --no-playlist' % clip_id)
+            if not self._yes_playlist(list_id, clip_id):
                 return self.url_result(DaumClipIE._URL_TEMPLATE % clip_id, 'DaumClip')
-            else:
-                self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % list_id)
 
 
 class DaumPlaylistIE(DaumListIE):

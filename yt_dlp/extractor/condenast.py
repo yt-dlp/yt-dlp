@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -61,7 +58,10 @@ class CondeNastIE(InfoExtractor):
         )''' % '|'.join(_SITES.keys())
     IE_DESC = 'Condé Nast media group: %s' % ', '.join(sorted(_SITES.values()))
 
-    EMBED_URL = r'(?:https?:)?//player(?:-backend)?\.(?:%s)\.com/(?:embed(?:js)?|(?:script|inline)/video)/.+?' % '|'.join(_SITES.keys())
+    _EMBED_REGEX = [r'''(?x)
+        <(?:iframe|script)[^>]+?src=(["\'])(?P<url>
+            (?:https?:)?//player(?:-backend)?\.(?:%s)\.com/(?:embed(?:js)?|(?:script|inline)/video)/.+?
+        )\1''' % '|'.join(_SITES.keys())]
 
     _TESTS = [{
         'url': 'http://video.wired.com/watch/3d-printed-speakers-lit-with-led',

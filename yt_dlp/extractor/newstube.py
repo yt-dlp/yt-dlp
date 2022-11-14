@@ -1,15 +1,10 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import hashlib
 
 from .common import InfoExtractor
-from ..aes import aes_cbc_decrypt
+from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..utils import (
-    bytes_to_intlist,
     int_or_none,
-    intlist_to_bytes,
     parse_codecs,
     parse_duration,
 )
@@ -47,10 +42,8 @@ class NewstubeIE(InfoExtractor):
             }))
         key = hashlib.pbkdf2_hmac(
             'sha1', video_guid.replace('-', '').encode(), enc_data[:16], 1)[:16]
-        dec_data = aes_cbc_decrypt(
-            bytes_to_intlist(enc_data[32:]), bytes_to_intlist(key),
-            bytes_to_intlist(enc_data[16:32]))
-        sources = self._parse_json(intlist_to_bytes(dec_data[:-dec_data[-1]]), video_guid)
+        dec_data = unpad_pkcs7(aes_cbc_decrypt_bytes(enc_data[32:], key, enc_data[16:32]))
+        sources = self._parse_json(dec_data, video_guid)
 
         formats = []
         for source in sources:
