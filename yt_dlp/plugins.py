@@ -69,6 +69,8 @@ class PluginFinder(importlib.abc.MetaPathFinder):
                 with contextlib.suppress(FileNotFoundError):
                     if self.zip_has_dir(path, parts):
                         locations.add(str(candidate))
+            else:
+                print("rejected candidate", candidate)
 
         return list(locations)
 
