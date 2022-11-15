@@ -65,7 +65,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
             candidate = path / parts
             if candidate.is_dir():
                 locations.add(str(candidate))
-            elif any(path.with_suffix(suffix).is_file() for suffix in {'.zip', '.egg', '.whl'}):
+            elif path.name and any(path.with_suffix(suffix).is_file() for suffix in {'.zip', '.egg', '.whl'}):
                 with contextlib.suppress(FileNotFoundError):
                     if self.zip_has_dir(path, parts):
                         locations.add(str(candidate))
