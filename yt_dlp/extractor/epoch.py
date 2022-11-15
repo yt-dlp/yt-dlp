@@ -3,6 +3,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     UnsupportedError,
+    clean_html,
     extract_attributes,
     get_element_html_by_class,
     try_get,
@@ -18,7 +19,7 @@ class EpochIE(InfoExtractor):
                 'id': 'a3dd732c-4750-4bc8-8156-69180668bda1',
                 'ext': 'mp4',
                 'title': '‘They Can Do Audio, Video, Physical Surveillance on You 24H/365D a Year’: Rex Lee on Intrusive Apps',
-                'description': 'md5:b5f522f96f36997e0957f82910c475c6',
+                'description': 'md5:00f32d1e821481a88698e6f450a04e1b',
                 'thumbnail': r're:https://.*\.jpg',
             }
         },
@@ -28,7 +29,7 @@ class EpochIE(InfoExtractor):
                 'id': '276c7f46-3bbf-475d-9934-b9bbe827cf0a',
                 'ext': 'mp4',
                 'title': 'The Communist Party’s Cyberattacks on America Explained; Rex Lee Talks Tech Hybrid Warfare',
-                'description': 'md5:4c072b26f1f7cfa9a201ac2d482d22b4',
+                'description': 'md5:c993752ccec901a6b84e12117c5cc8f8',
                 'thumbnail': r're:https://.*\.jpg',
             }
         },
@@ -38,7 +39,7 @@ class EpochIE(InfoExtractor):
                 'id': 'aa9ceecd-a127-453d-a2de-7153d6fd69b6',
                 'ext': 'mp4',
                 'title': 'Kash Patel: A ‘6-Year-Saga’ of Government Corruption, From Russiagate to Mar-a-Lago',
-                'description': 'md5:f309228a74e15038fc531733449c4318',
+                'description': 'md5:1aa6aa4b99934f985785837a34707753',
                 'thumbnail': r're:https://.*\.jpg',
             }
         },
@@ -48,7 +49,7 @@ class EpochIE(InfoExtractor):
                 'id': '9489f994-2a20-4812-b233-ac0e5c345632',
                 'ext': 'mp4',
                 'title': 'Dick Morris Discusses His Book ‘The Return: Trump’s Big 2024 Comeback’',
-                'description': 'md5:bfc57b12437104721ba7b62ae89c5ebe',
+                'description': 'md5:ef6f45dd925b5d23e2a862487b42030e',
                 'thumbnail': r're:https://.*\.jpg',
             }
         },
@@ -59,7 +60,7 @@ class EpochIE(InfoExtractor):
                 'id': '4849547',
                 'ext': 'mp4',
                 'title': 'Silence Patton | Documentary',
-                'description': 'Why was General Patton silenced ...',
+                'description': 'Why was General Patton silenced during his service in World War II?',
                 'thumbnail': r're:https://.*\.jpg',
             },
             'params': {'skip_download': True},
@@ -72,11 +73,14 @@ class EpochIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        description = self._og_search_description(webpage, default='NA')
-        match = re.fullmatch(r'(This film is only available [^.]+\.) *(.*)', description)
-        if match:
-            self.report_warning(match.group(1), video_id)
-            description = match.group(2)
+        # get_element_by_class() fails on some websites, let's do it the dirty way ...
+        raw_description = clean_html(self._search_regex(
+            r'(?s)<div +class="article_content" *>(.+?)</div>', webpage, 'description', default=''))
+        description_lines_iter = iter(raw_description.splitlines())
+        description = next(description_lines_iter, None)
+        if re.match(r'This film is only available ', description or ''):
+            self.report_warning(description, video_id)
+            description = next(description_lines_iter, None)
 
         player = extract_attributes(get_element_html_by_class('player-container', webpage) or '<>')
         youmaker_video_id = try_get(
