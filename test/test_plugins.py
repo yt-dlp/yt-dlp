@@ -31,11 +31,21 @@ class TestPlugins(unittest.TestCase):
         self.assertIn(self.TEST_PLUGIN_DIR, plugin_dirs)
 
     def test_extractor_classes(self):
-        plugins_ie = load_plugins('extractor', 'IE')
+        for module_name in tuple(sys.modules):
+            if module_name.startswith("ytdlp_plugins.extractor"):
+                del sys.modules[module_name]
+        plugins_ie = load_plugins(f'extractor', 'IE')
+        self.assertIn('ytdlp_plugins.extractor.normal', sys.modules.keys())
         self.assertIn('NormalPluginIE', plugins_ie.keys())
+        # don't load modules with underscore prefix
+        self.assertFalse(
+            'ytdlp_plugins.extractor._ignore' in sys.modules.keys(),
+            'loaded module beginning with underscore',
+        )
+        self.assertNotIn('IgnorePluginIE', plugins_ie.keys())
 
     def test_postprocessor_classes(self):
-        plugins_pp = load_plugins("postprocessor", "PP")
+        plugins_pp = load_plugins('postprocessor', 'PP')
         self.assertIn('NormalPluginPP', plugins_pp.keys())
 
     def test_importing_zipped_module(self):
