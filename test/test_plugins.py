@@ -9,6 +9,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEST_DATA_DIR = Path(os.path.dirname(os.path.abspath(__file__)), 'testdata')
 sys.path.append(str(TEST_DATA_DIR))
+invalidate_caches()
 
 from yt_dlp.plugins import PACKAGE_NAME, directories, load_plugins
 
@@ -26,7 +27,6 @@ class TestPlugins(unittest.TestCase):
         self.assertFalse(self.TEST_PLUGIN_DIR.joinpath('postprocessor', '__init__.py').exists())
 
     def test_directories_containing_plugins(self):
-        print(sys.path)
         plugin_dirs = {Path(path) for path in directories()}
         self.assertIn(self.TEST_PLUGIN_DIR, plugin_dirs)
 
