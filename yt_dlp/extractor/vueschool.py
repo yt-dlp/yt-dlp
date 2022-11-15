@@ -13,14 +13,11 @@ class VueSchoolBaseIE(InfoExtractor):
     def _get_course_info_from_lesson_slug(self, lesson_slug, id):
         return self._download_json(f'https://vueschool.io/api/lessons/{lesson_slug}/widgetInfo', video_id=id)
 
-    def __flatten_list_elements(self, lists):
-        output = []
-        for list in lists:
-            output += list
-        return output
-
-    def _flat_lessons_from_chapters(self, chapters):
-        return self.__flatten_list_elements([x for chapter in chapters for x in chapter.get('lessons')])
+    def _flatten_lessons_from_chapters(self, chapters):
+        lessons = []
+        for chapter in chapters:
+            lessons += chapter.get('lessons')
+        return lessons
 
 
 class VueSchoolLessonIE(VueSchoolBaseIE):
@@ -66,11 +63,7 @@ class VueSchoolLessonIE(VueSchoolBaseIE):
 
         description = get_element_by_class('text xl:text-lg', webpage).strip()
 
-        """
-         Extract course information
-        """
         course_dict = self._get_course_info_from_lesson_slug(lesson_slug, id=lesson_slug)
-
         course_title = course_dict.get('title')
         course_slug = course_dict.get('slug')
 
@@ -95,18 +88,13 @@ class VueSchoolLessonIE(VueSchoolBaseIE):
         return self.url_result(
             vimeo_url, VimeoIE, url_transparent=True,
             video_id=lesson_slug, video_title=lesson_title,
-            **{
-                'id': lesson_slug,
-                'series_id': course_slug,           # Course Slug
-                'series': course_title,             # Course
-                'chapter_number': chapter_number,   # Chapter Number
-                'chapter': chapter,                 # Chapter
-                'episode_number': lesson_number,    # Lesson Number
-                'episode': lesson_title,            # Lesson Title
-                'title': lesson_title,              # Lesson Title
-                'description': description,
-                'duration': duration
-            }
+            id=lesson_slug,
+            series_id=course_slug, series=course_title,
+            chapter_number=chapter_number, chapter=chapter,
+            episode_number=lesson_number, episode=lesson_title,
+            title=lesson_title,
+            description=description,
+            duration=duration
         )
 
 
@@ -134,15 +122,11 @@ class VueSchoolCourseIE(VueSchoolBaseIE):
         course_dict = self._get_course_info_from_lesson_slug(lesson_slugs, id=course_slug)
         course_title = course_dict.get('title')
         course_slug = course_dict.get('slug')
-        lessons = self._flat_lessons_from_chapters(course_dict.get('chapters'))
+        lessons = self._flatten_lessons_from_chapters(course_dict.get('chapters'))
 
         return {
             '_type': 'playlist',
             'title': course_title,
             'id': course_slug,
-            'entries': [self._format_lesson_url(lesson) for lesson in lessons]
+            'entries': [self.url_result('https://vueschool.io/lessons/%s' % lesson.get('slug'), VueSchoolLessonIE) for lesson in lessons]
         }
-
-    def _format_lesson_url(self, lesson):
-        url = 'https://vueschool.io/lessons/%s' % lesson.get('slug')
-        return self.url_result(url, VueSchoolLessonIE)
