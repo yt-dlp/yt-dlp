@@ -54,6 +54,7 @@ class TestPlugins(unittest.TestCase):
         self.assertIn('ZippedPluginPP', plugins_pp.keys())
 
         sys.path.remove(str(zip_path))
+        invalidate_caches()  # reset the import caches
 
 
 if __name__ == '__main__':
