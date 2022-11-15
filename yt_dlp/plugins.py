@@ -139,7 +139,7 @@ def load_plugins(name, suffix, namespace=None):
         return check_predicate
 
     for finder, module_name, is_pkg in iter_modules(name):
-        if re.match(r"^(\w+\.)*_", module_name):
+        if re.match(r'^(\w+\.)*_', module_name):
             continue
         try:
             if sys.version_info < (3, 10) and isinstance(finder, zipimport.zipimporter):

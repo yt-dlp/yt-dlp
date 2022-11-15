@@ -1784,37 +1784,62 @@ NOTE: These options may be changed/removed in the future without concern for bac
 
 Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. **Use plugins at your own risk and only if you trust the code!**
 
+Plugins can be of `<type>`s `extractor` or `postprocessor`. 
+- Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. 
+- Extractor plugins take priority over builtin extractors.
+- Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
+
+
 Plugins are loaded from namespace-package `ytdlp_plugins.extractor` and `ytdlp_plugins.postprocessor`.
 
-# TODO: rewrite so that it is more clear
-They can also be loaded from the standard config folders:
-1. **User Plugins**:
-    * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/ytdlp_plugins` (recommended on Linux/macOS)
-    * `${APPDATA}/yt-dlp/plugins/<package name>/ytdlp_plugins` (recommended on Windows)
-    * `~/.yt-dlp/plugins/<package name>/ytdlp_plugins`
+In other words, the file structure on the disk looks something like:
+    
+        ytdlp_plugins/
+            extractor/
+                myplugin.py
+            postprocessor/
+                myplugin.py
 
-2. **System Plugins**:
-    * `/etc/yt-dlp/plugins/<package name>/ytdlp_plugins`
-
-where `<package name>` is a folder containing the ytdlp_plugins namespace-package.
-
-Any path in `PYTHONPATH` is searched in for the ytdlp_plugins namespace-package as well. 
-- This means plugins can also be installed via `pip`.
-- The root directory of the binary is also a valid location by default (`<root-dir>/ytdlp_plugins/[extractor|postprocessor]/myplugin.py`)
-- Or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`).
-
-Zipped packages containing `ytdlp_plugins` folder in their root are also supported.'
-- e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/myplugin.zip/` where `myplugin.zip` contains `ytdlp_plugins/extractor/myplugin.py`
-
-Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
-
-See [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for a sample plugin package.
-
-If you are a plugin author, add [ytdlp-plugins](https://github.com/topics/ytdlp-plugins) as a topic to your repository for discoverability
+yt-dlp looks for these `ytdlp_plugins` folders in various locations and reads in plugins from all of them.
 
 See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plugins)
 
+## Installing Plugins
 
+
+1. **User Plugins**:
+    * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/ytdlp_plugins/` (recommended on Linux/macOS)
+    * `${APPDATA}/yt-dlp/plugins/<package name>/ytdlp_plugins/` (recommended on Windows)
+    * `~/.yt-dlp/plugins/<package name>/ytdlp_plugins/`
+
+2. **System Plugins**:
+    * `/etc/yt-dlp/plugins/<package name>/ytdlp_plugins/`
+
+where `<package name>` is a folder containing `ytdlp_plugins`.
+
+Additionally, any path in `PYTHONPATH` is searched in for `ytdlp_plugins` as well. To name a few use cases, this means that:
+
+- Plugins can be installed and managed using `pip` (see [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for an example)
+- Plugins can be installed in the root directory of the binary (where `<root-dir>/yt-dlp.exe`, `<root-dir>/ytdlp_plugins/`)
+- Or, if you are running directly from the source code, plugins can be installed in the root directory of the module (where `<root dir>/yt_dlp/__main__.py`, `<root-dir>/ytdlp_plugins/`)
+
+.zip, .egg and .whl archives containing `ytdlp_plugins` in their root are also supported:
+- e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/myplugin.zip/` where `myplugin.zip` contains `ytdlp_plugins/<type>/myplugin.py`
+
+Run yt-dlp with `--verbose`/`-v` to check if the plugin has been loaded.
+
+## Developing Plugins
+
+See [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for a sample plugin package. 
+
+To run and debug:
+1. Set your IDE's run configuration to run the `yt_dlp` Python module.
+2. Add your project's root directory containing `ytdlp_plugins` to `PYTHONPATH` environment variable (this may not be necessary with some IDE run configurations)
+3. The `ytdlp_plugins` folder should be automatically picked up by yt-dlp (run with `-v` to check)
+
+If you are a plugin author, add [ytdlp-plugins](https://github.com/topics/ytdlp-plugins) as a topic to your repository for discoverability
+
+See the [Developer Instructions](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#developer-instructions) on how to write and test an extractor.
 
 # EMBEDDING YT-DLP
 
