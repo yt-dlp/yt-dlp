@@ -2,7 +2,7 @@ from .common import InfoExtractor
 from ..utils import clean_html, get_element_html_by_class
 
 
-class WinsportVideoIE(InfoExtractor):
+class WinSportsVideoIE(InfoExtractor):
     _VALID_URL = r'https?://www\.winsports\.co/videos/(?P<display_id>[\w-]+)-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.winsports.co/videos/siempre-castellanos-gran-atajada-del-portero-cardenal-para-evitar-la-caida-de-su-arco-60536',
