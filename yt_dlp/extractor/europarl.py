@@ -86,5 +86,5 @@ class EuroParlWebstreamIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'release_timestamp': parse_iso8601(json_info.get('published_start')),
-            'is_live': "LIVE" in json_info.get('state', '')
+            'is_live': 'LIVE' in json_info.get('state', '')
         }
