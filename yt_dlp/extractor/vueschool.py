@@ -11,7 +11,7 @@ from ..utils import (
 
 class VueSchoolBaseIE(InfoExtractor):
     def _get_course_info_from_lesson_slug(self, lesson_slug, id):
-        return self._download_json(f"https://vueschool.io/api/lessons/{lesson_slug}/widgetInfo", video_id=id)
+        return self._download_json(f'https://vueschool.io/api/lessons/{lesson_slug}/widgetInfo', video_id=id)
 
     def __flatten_list_elements(self, lists):
         output = []
@@ -20,7 +20,7 @@ class VueSchoolBaseIE(InfoExtractor):
         return output
 
     def _flat_lessons_from_chapters(self, chapters):
-        return self.__flatten_list_elements([chapter.get("lessons") for chapter in chapters])
+        return self.__flatten_list_elements([x for chapter in chapters for x in chapter.get('lessons')])
 
 
 class VueSchoolLessonIE(VueSchoolBaseIE):
@@ -58,16 +58,13 @@ class VueSchoolLessonIE(VueSchoolBaseIE):
          Attempt to access content behind paywall
         """
         try:
-            (_, vimeo_wrapper_element) = get_element_text_and_html_by_tag("vimeo-player", webpage)
+            (_, vimeo_wrapper_element) = get_element_text_and_html_by_tag('vimeo-player', webpage)
             vimeo_player_wrapper_dict = extract_attributes(vimeo_wrapper_element)
-            vimeo_id = vimeo_player_wrapper_dict.get(":id")
+            vimeo_id = vimeo_player_wrapper_dict.get(':id')
         except compat_HTMLParseError:
-            return self.raise_login_required()
+            return self.raise_login_required(msg='This video is only available for paid users.', method='cookies')
 
-        """
-         Extract lesson information
-        """
-        description = get_element_by_class("text xl:text-lg", webpage).strip()
+        description = get_element_by_class('text xl:text-lg', webpage).strip()
 
         """
          Extract course information
@@ -83,13 +80,13 @@ class VueSchoolLessonIE(VueSchoolBaseIE):
         lesson_title = None
         duration = None
 
-        for chapter_dict in course_dict.get("chapters"):
-            for lesson_dict in chapter_dict.get("lessons"):
-                if lesson_slug == lesson_dict.get("slug"):
+        for chapter_dict in course_dict.get('chapters'):
+            for lesson_dict in chapter_dict.get('lessons'):
+                if lesson_slug == lesson_dict.get('slug'):
                     chapter_number = int_or_none(chapter_dict.get('course_order') + 1)
                     chapter = chapter_dict.get('title')
                     lesson_number = int_or_none(lesson_dict.get('course_order'))
-                    lesson_title = lesson_dict.get("title")
+                    lesson_title = lesson_dict.get('title')
                     duration = duration
                     break
 
@@ -99,16 +96,16 @@ class VueSchoolLessonIE(VueSchoolBaseIE):
             vimeo_url, VimeoIE, url_transparent=True,
             video_id=lesson_slug, video_title=lesson_title,
             **{
-                "id": lesson_slug,
-                "series_id": course_slug,           # Course Slug
-                "series": course_title,             # Course
-                "chapter_number": chapter_number,   # Chapter Number
-                "chapter": chapter,                 # Chapter
-                "episode_number": lesson_number,    # Lesson Number
-                "episode": lesson_title,            # Lesson Title
-                "title": lesson_title,              # Lesson Title
-                "description": description,
-                "duration": duration
+                'id': lesson_slug,
+                'series_id': course_slug,           # Course Slug
+                'series': course_title,             # Course
+                'chapter_number': chapter_number,   # Chapter Number
+                'chapter': chapter,                 # Chapter
+                'episode_number': lesson_number,    # Lesson Number
+                'episode': lesson_title,            # Lesson Title
+                'title': lesson_title,              # Lesson Title
+                'description': description,
+                'duration': duration
             }
         )
 
@@ -132,20 +129,20 @@ class VueSchoolCourseIE(VueSchoolBaseIE):
         course_slug = self._match_id(url)
         webpage = self._download_webpage(url, video_id=course_slug)
 
-        lesson_slugs = self._html_search_regex(r'https?://vueschool\.io/lessons/(?P<lesson_slug>[0-9a-z\-]+)', webpage, name="lesson_slug")
+        lesson_slugs = self._html_search_regex(r'https?://vueschool\.io/lessons/(?P<lesson_slug>[0-9a-z\-]+)', webpage, name='lesson_slug')
 
         course_dict = self._get_course_info_from_lesson_slug(lesson_slugs, id=course_slug)
-        course_title = course_dict.get("title")
-        course_slug = course_dict.get("slug")
-        lessons = self._flat_lessons_from_chapters(course_dict.get("chapters"))
+        course_title = course_dict.get('title')
+        course_slug = course_dict.get('slug')
+        lessons = self._flat_lessons_from_chapters(course_dict.get('chapters'))
 
         return {
-            "_type": "playlist",
-            "title": course_title,
-            "id": course_slug,
-            "entries": [self._format_lesson_url(lesson) for lesson in lessons]
+            '_type': 'playlist',
+            'title': course_title,
+            'id': course_slug,
+            'entries': [self._format_lesson_url(lesson) for lesson in lessons]
         }
 
     def _format_lesson_url(self, lesson):
-        url = "https://vueschool.io/lessons/%s" % lesson.get("slug")
+        url = 'https://vueschool.io/lessons/%s' % lesson.get('slug')
         return self.url_result(url, VueSchoolLessonIE)
