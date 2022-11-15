@@ -61,6 +61,8 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Modifying metadata examples](#modifying-metadata-examples)
 * [EXTRACTOR ARGUMENTS](#extractor-arguments)
 * [PLUGINS](#plugins)
+    * [Installing Plugins](#installing-plugins)
+    * [Developing Plugins](#developing-plugins)
 * [EMBEDDING YT-DLP](#embedding-yt-dlp)
     * [Embedding examples](#embedding-examples)
 * [DEPRECATED OPTIONS](#deprecated-options)
