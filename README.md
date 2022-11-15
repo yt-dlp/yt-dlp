@@ -1782,6 +1782,8 @@ NOTE: These options may be changed/removed in the future without concern for bac
 
 # PLUGINS
 
+Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. **Use plugins at your own risk and only if you trust the code!**
+
 Plugins are loaded from namespace-package `ytdlp_plugins.extractor` and `ytdlp_plugins.postprocessor`.
 
 # TODO: rewrite so that it is more clear
@@ -1806,9 +1808,7 @@ Zipped packages containing `ytdlp_plugins` folder in their root are also support
 
 Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
 
-See [ytdlp_plugins](ytdlp_plugins) for example plugins.
-
-Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. Use plugins at your own risk and only if you trust the code
+See [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for a sample plugin package.
 
 If you are a plugin author, add [ytdlp-plugins](https://github.com/topics/ytdlp-plugins) as a topic to your repository for discoverability
 

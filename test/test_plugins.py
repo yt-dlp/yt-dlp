@@ -19,7 +19,7 @@ class TestPlugins(unittest.TestCase):
     TEST_PLUGIN_DIR = TEST_DATA_DIR / f'{PACKAGE_NAME}'
 
     def test_plugin_directory_structure(self):
-        # TODO: doesn't test much?
+        # XXX: doesn't test much?
         self.assertFalse(self.TEST_PLUGIN_DIR.joinpath('__init__.py').exists())
         self.assertTrue(self.TEST_PLUGIN_DIR.joinpath('extractor').is_dir())
         self.assertFalse(self.TEST_PLUGIN_DIR.joinpath('extractor', '__init__.py').exists())
