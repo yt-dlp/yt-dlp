@@ -1963,10 +1963,9 @@ from .tubitv import (
 )
 from .tumblr import TumblrIE
 from .tunein import (
-    TuneInClipIE,
     TuneInStationIE,
-    TuneInProgramIE,
-    TuneInTopicIE,
+    TuneInPodcastIE,
+    TuneInPodcastEpisodeIE,
     TuneInShortenerIE,
 )
 from .tunepk import TunePkIE
