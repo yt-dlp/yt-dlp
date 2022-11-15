@@ -1,5 +1,8 @@
 import contextlib
 import importlib
+import importlib.machinery
+import importlib.util
+import importlib.abc
 import inspect
 import itertools
 import pkgutil
