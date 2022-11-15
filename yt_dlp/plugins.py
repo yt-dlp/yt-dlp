@@ -53,7 +53,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
     def search_locations(self, fullname):
         # Also load plugin packages from standard config folders
         config_locations = []
-        for config_dir in map(Path, get_user_config_dirs('yt-dlp')+get_system_config_dirs('yt-dlp')):
+        for config_dir in map(Path, get_user_config_dirs('yt-dlp') + get_system_config_dirs('yt-dlp')):
             plugin_dir = config_dir / 'plugins'
             if not plugin_dir.is_dir():
                 continue
