@@ -6293,7 +6293,9 @@ class YoutubeYtUserIE(InfoExtractor):
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
-        return self.url_result(f'https://www.youtube.com/user/{user_id}', YoutubeTabIE, user_id)
+        return self.url_result(
+            'https://www.youtube.com/user/%s/videos' % user_id,
+            ie=YoutubeTabIE.ie_key(), video_id=user_id)
 
 
 class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
