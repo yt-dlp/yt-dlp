@@ -34,7 +34,7 @@ class TestPlugins(unittest.TestCase):
         for module_name in tuple(sys.modules):
             if module_name.startswith(f'{PACKAGE_NAME}.extractor'):
                 del sys.modules[module_name]
-        plugins_ie = load_plugins(f'extractor', 'IE')
+        plugins_ie = load_plugins('extractor', 'IE')
         self.assertIn(f'{PACKAGE_NAME}.extractor.normal', sys.modules.keys())
         self.assertIn('NormalPluginIE', plugins_ie.keys())
         # don't load modules with underscore prefix
