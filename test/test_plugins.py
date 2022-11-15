@@ -26,6 +26,7 @@ class TestPlugins(unittest.TestCase):
         self.assertFalse(self.TEST_PLUGIN_DIR.joinpath('postprocessor', '__init__.py').exists())
 
     def test_directories_containing_plugins(self):
+        print(sys.path)
         plugin_dirs = {Path(path) for path in directories()}
         self.assertIn(self.TEST_PLUGIN_DIR, plugin_dirs)
 
