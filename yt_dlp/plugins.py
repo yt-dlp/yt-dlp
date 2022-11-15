@@ -30,8 +30,8 @@ class PluginLoader(importlib.abc.Loader):
 class PluginFinder(importlib.abc.MetaPathFinder):
     """
     This class provides one or multiple namespace packages
-    it searches in sys.path for the existing subdirectories
-    from which the modules can be imported
+    it searches in sys.path and yt-dlp config folders
+    for the existing subdirectories from which the modules can be imported
     """
 
     def __init__(self, *packages):
