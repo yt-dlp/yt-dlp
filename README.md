@@ -1790,7 +1790,7 @@ They can also be loaded from the standard config folders:
     * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/ytdlp_plugins` (recommended on Linux/macOS)
     * `${APPDATA}/yt-dlp/plugins/<package name>/ytdlp_plugins` (recommended on Windows)
     * `~/.yt-dlp/plugins/<package name>/ytdlp_plugins`
-   
+
 2. **System Plugins**:
     * `/etc/yt-dlp/plugins/<package name>/ytdlp_plugins`
 
@@ -1801,6 +1801,8 @@ Any path in `PYTHONPATH` is searched in for the ytdlp_plugins namespace-package 
 - The root directory of the binary is also a valid location by default (`<root-dir>/ytdlp_plugins/[extractor|postprocessor]/myplugin.py`)
 - Or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`).
 
+Zipped packages containing `ytdlp_plugins` folder in their root are also supported.'
+- e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/myplugin.zip/` where `myplugin.zip` contains `ytdlp_plugins/extractor/myplugin.py`
 
 Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
 

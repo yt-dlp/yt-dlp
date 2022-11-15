@@ -2,7 +2,6 @@ import contextlib
 import importlib
 import inspect
 import itertools
-import os
 import pkgutil
 import re
 import shutil
@@ -11,8 +10,6 @@ import traceback
 import zipimport
 from pathlib import Path
 from zipfile import ZipFile
-
-from yt_dlp.compat import compat_expanduser
 
 from .utils import write_string, get_user_config_dirs, get_system_config_dirs
 
@@ -142,7 +139,10 @@ def load_plugins(name, suffix, namespace=None):
         if re.match(r"^(\w+\.)*_", module_name):
             continue
         try:
-            if isinstance(finder, zipimport.zipimporter):
+            if sys.version_info < (3, 10) and isinstance(finder, zipimport.zipimporter):
+                # zipimporter.load_module() is deprecated in 3.10 and removed in 3.12
+                # The exec_module branch below is the replacement for > 3.10
+                # See: https://docs.python.org/3/library/zipimport.html#zipimport.zipimporter.exec_module
                 module = finder.load_module(module_name)
             else:
                 spec = finder.find_spec(module_name)

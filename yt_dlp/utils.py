@@ -5350,6 +5350,7 @@ def get_system_config_dirs(package_name):
         locations.add(system_config_directory)
     return list(locations)
 
+
 def traverse_obj(
         obj, *paths, default=NO_DEFAULT, expected_type=None, get_all=True,
         casesense=True, is_user_input=False, traverse_string=False):
