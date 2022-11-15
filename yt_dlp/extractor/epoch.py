@@ -73,14 +73,14 @@ class EpochIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         description = self._og_search_description(webpage, default='NA')
-        match = re.match(r'(This film is only available [^.]+\.) *(.*)', description)
+        match = re.fullmatch(r'(This film is only available [^.]+\.) *(.*)', description)
         if match:
             self.report_warning(match.group(1), video_id)
             description = match.group(2)
 
-        player = extract_attributes(get_element_html_by_class('player-container', webpage))
+        player = extract_attributes(get_element_html_by_class('player-container', webpage) or '<>')
         youmaker_video_id = try_get(
-            player, lambda x: re.match(r'player-([0-9a-z-]+)$', x['data-id']).group(1))
+            player, lambda x: re.fullmatch(r'player-([0-9a-f-]+)', x['data-id']).group(1))
 
         if youmaker_video_id:
             video_id = youmaker_video_id
