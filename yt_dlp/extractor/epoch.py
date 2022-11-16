@@ -5,6 +5,7 @@ from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
+    get_element_by_class,
     get_element_html_by_class,
     try_get,
 )
@@ -73,9 +74,7 @@ class EpochIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        # get_element_by_class() fails on some websites, let's do it the dirty way ...
-        raw_description = clean_html(self._search_regex(
-            r'(?s)<div +class="article_content" *>(.+?)</div>', webpage, 'description', default=''))
+        raw_description = clean_html(get_element_by_class('article_content', webpage))
         description_lines_iter = iter(raw_description.splitlines())
         description = next(description_lines_iter, None)
         if re.match(r'This film is only available ', description or ''):
