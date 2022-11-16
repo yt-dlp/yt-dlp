@@ -122,7 +122,7 @@ class BandcampIE(InfoExtractor):
         current = tralbum.get('current') or {}
         artist = embed.get('artist') or current.get('artist') or tralbum.get('artist')
         album_artist = self._html_search_regex(
-            r'<h3 class="albumTitle">[^>]*by\s*<span>\s*<a href="[^>]+">\s*([^>]+?)\s*</a>',
+            r'<h3 class="albumTitle">[\S\s]*?by\s*<span>\s*<a href="[^>]+">\s*([^>]+?)\s*</a>',
             webpage, 'album artist', fatal=False)
         timestamp = unified_timestamp(
             current.get('publish_date') or tralbum.get('album_publish_date'))
