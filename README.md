@@ -1442,6 +1442,7 @@ The following numeric meta fields can be used with comparisons `<`, `<=`, `>`, `
  - `filesize_approx`: An estimate for the number of bytes
  - `width`: Width of the video, if known
  - `height`: Height of the video, if known
+ - `aspect_ratio`: Aspect ratio of the video, if known
  - `tbr`: Average bitrate of audio and video in KBit/s
  - `abr`: Average audio bitrate in KBit/s
  - `vbr`: Average video bitrate in KBit/s
