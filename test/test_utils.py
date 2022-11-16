@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+import textwrap
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -1768,32 +1769,31 @@ Line 1
         self.assertEqual(list(get_elements_text_and_html_by_attribute(
             'class', 'foo', '<a class="foo">nice</a><span class="foo">nice</span>', tag='a')), [('nice', '<a class="foo">nice</a>')])
 
-    GET_ELEMENT_BY_TAG_TEST_STRING = '''
-    random text lorem ipsum</p>
-    <div>
-        this should be returned
-        <span>this should also be returned</span>
-        <div>
-            this should also be returned
-        </div>
-        closing tag above should not trick, so this should also be returned
-    </div>
-    but this text should not be returned
-    '''
-    GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML = GET_ELEMENT_BY_TAG_TEST_STRING.strip()[32:276]
-    GET_ELEMENT_BY_TAG_RES_OUTERDIV_TEXT = GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML[5:-6]
-    GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML = GET_ELEMENT_BY_TAG_TEST_STRING.strip()[78:119]
-    GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT = GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML[6:-7]
-
     def test_get_element_text_and_html_by_tag(self):
-        html = self.GET_ELEMENT_BY_TAG_TEST_STRING
+        get_element_by_tag_test_string = '''
+        random text lorem ipsum</p>
+        <div>
+            this should be returned
+            <span>this should also be returned</span>
+            <div>
+                this should also be returned
+            </div>
+            closing tag above should not trick, so this should also be returned
+        </div>
+        but this text should not be returned
+        '''
+        html = textwrap.indent(textwrap.dedent(get_element_by_tag_test_string), ' ' * 4)
+        get_element_by_tag_res_outerdiv_html = html.strip()[32:276]
+        get_element_by_tag_res_outerdiv_text = get_element_by_tag_res_outerdiv_html[5:-6]
+        get_element_by_tag_res_innerspan_html = html.strip()[78:119]
+        get_element_by_tag_res_innerspan_text = get_element_by_tag_res_innerspan_html[6:-7]
 
         self.assertEqual(
             get_element_text_and_html_by_tag('div', html),
-            (self.GET_ELEMENT_BY_TAG_RES_OUTERDIV_TEXT, self.GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML))
+            (get_element_by_tag_res_outerdiv_text, get_element_by_tag_res_outerdiv_html))
         self.assertEqual(
             get_element_text_and_html_by_tag('span', html),
-            (self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT, self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML))
+            (get_element_by_tag_res_innerspan_text, get_element_by_tag_res_innerspan_html))
         self.assertRaises(compat_HTMLParseError, get_element_text_and_html_by_tag, 'article', html)
 
     def test_iri_to_uri(self):
