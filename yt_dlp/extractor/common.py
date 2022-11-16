@@ -3676,12 +3676,13 @@ class InfoExtractor:
 
     @classmethod
     def get_testcases(cls, include_onlymatching=False):
-        t = getattr(cls, '_TEST', None)
+        # Do not look in super classes
+        t = vars(cls).get('_TEST')
         if t:
             assert not hasattr(cls, '_TESTS'), f'{cls.ie_key()}IE has _TEST and _TESTS'
             tests = [t]
         else:
-            tests = getattr(cls, '_TESTS', [])
+            tests = vars(cls).get('_TESTS', [])
         for t in tests:
             if not include_onlymatching and t.get('only_matching', False):
                 continue
@@ -3690,12 +3691,12 @@ class InfoExtractor:
 
     @classmethod
     def get_webpage_testcases(cls):
-        tests = getattr(cls, '_WEBPAGE_TESTS', [])
+        tests = vars(cls).get('_WEBPAGE_TESTS', [])
         for t in tests:
             t['name'] = cls.ie_key()
         return tests
 
-    @classproperty
+    @classproperty(cache=True)
     def age_limit(cls):
         """Get age limit from the testcases"""
         return max(traverse_obj(

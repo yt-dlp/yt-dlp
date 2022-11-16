@@ -536,7 +536,7 @@ class MTVItaliaIE(MTVServicesInfoExtractor):
         }
 
 
-class MTVItaliaProgrammaIE(MTVItaliaIE):
+class MTVItaliaProgrammaIE(MTVItaliaIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'mtv.it:programma'
     _VALID_URL = r'https?://(?:www\.)?mtv\.it/(?:programmi|playlist)/(?P<id>[0-9a-z]+)'
     _TESTS = [{

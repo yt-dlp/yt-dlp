@@ -1004,7 +1004,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         return merge_dicts(info_dict, info_dict_config, json_ld)
 
 
-class VimeoOndemandIE(VimeoIE):
+class VimeoOndemandIE(VimeoIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'vimeo:ondemand'
     _VALID_URL = r'https?://(?:www\.)?vimeo\.com/ondemand/(?:[^/]+/)?(?P<id>[^/?#&]+)'
     _TESTS = [{
@@ -1129,7 +1129,7 @@ class VimeoChannelIE(VimeoBaseInfoExtractor):
         return self._extract_videos(channel_id, self._BASE_URL_TEMPL % channel_id)
 
 
-class VimeoUserIE(VimeoChannelIE):
+class VimeoUserIE(VimeoChannelIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'vimeo:user'
     _VALID_URL = r'https://vimeo\.com/(?!(?:[0-9]+|watchlater)(?:$|[?#/]))(?P<id>[^/]+)(?:/videos)?/?(?:$|[?#])'
     _TITLE_RE = r'<a[^>]+?class="user">([^<>]+?)</a>'
@@ -1239,7 +1239,7 @@ class VimeoAlbumIE(VimeoBaseInfoExtractor):
             entries, album_id, album.get('name'), album.get('description'))
 
 
-class VimeoGroupsIE(VimeoChannelIE):
+class VimeoGroupsIE(VimeoChannelIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'vimeo:group'
     _VALID_URL = r'https://vimeo\.com/groups/(?P<id>[^/]+)(?:/(?!videos?/\d+)|$)'
     _TESTS = [{
@@ -1331,7 +1331,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         return info_dict
 
 
-class VimeoWatchLaterIE(VimeoChannelIE):
+class VimeoWatchLaterIE(VimeoChannelIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'vimeo:watchlater'
     IE_DESC = 'Vimeo watch later list, ":vimeowatchlater" keyword (requires authentication)'
     _VALID_URL = r'https://vimeo\.com/(?:home/)?watchlater|:vimeowatchlater'
@@ -1354,7 +1354,7 @@ class VimeoWatchLaterIE(VimeoChannelIE):
         return self._extract_videos('watchlater', 'https://vimeo.com/watchlater')
 
 
-class VimeoLikesIE(VimeoChannelIE):
+class VimeoLikesIE(VimeoChannelIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https://(?:www\.)?vimeo\.com/(?P<id>[^/]+)/likes/?(?:$|[?#]|sort:)'
     IE_NAME = 'vimeo:likes'
     IE_DESC = 'Vimeo user likes'

@@ -51,7 +51,7 @@ class PeekVidsIE(InfoExtractor):
         return info
 
 
-class PlayVidsIE(PeekVidsIE):
+class PlayVidsIE(PeekVidsIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?playvids\.com/(?:embed/|[^/]{2}/)?(?P<id>[^/?#]*)'
     _TESTS = [{
         'url': 'https://www.playvids.com/U3pBrYhsjXM/pc/dane-jones-cute-redhead-with-perfect-tits-with-mini-vamp',

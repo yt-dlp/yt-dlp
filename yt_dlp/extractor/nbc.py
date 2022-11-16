@@ -24,7 +24,7 @@ from ..utils import (
 )
 
 
-class NBCIE(ThePlatformIE):
+class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?(?P<permalink>://(?:www\.)?nbc\.com/(?:classic-tv/)?[^/]+/video/[^/]+/(?P<id>n?\d+))'
 
     _TESTS = [
@@ -315,7 +315,7 @@ class NBCSportsStreamIE(AdobePassIE):
         }
 
 
-class NBCNewsIE(ThePlatformIE):
+class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'(?x)https?://(?:www\.)?(?:nbcnews|today|msnbc)\.com/([^/]+/)*(?:.*-)?(?P<id>[^/?]+)'
     _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//www\.nbcnews\.com/widget/video-embed/[^"\']+)\1']
 

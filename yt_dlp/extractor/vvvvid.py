@@ -242,7 +242,7 @@ class VVVVIDIE(InfoExtractor):
         return info
 
 
-class VVVVIDShowIE(VVVVIDIE):
+class VVVVIDShowIE(VVVVIDIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'(?P<base_url>%s(?P<id>\d+)(?:/(?P<show_title>[^/?&#]+))?)/?(?:[?#&]|$)' % VVVVIDIE._VALID_URL_BASE
     _TESTS = [{
         'url': 'https://www.vvvvid.it/show/156/psyco-pass',

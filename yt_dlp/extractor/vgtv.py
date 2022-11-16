@@ -9,7 +9,7 @@ from ..utils import (
 )
 
 
-class VGTVIE(XstreamIE):
+class VGTVIE(XstreamIE):  # XXX: Do not subclass from concrete IE
     IE_DESC = 'VGTV, BTTV, FTV, Aftenposten and Aftonbladet'
     _GEO_BYPASS = False
 

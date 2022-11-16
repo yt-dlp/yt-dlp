@@ -52,10 +52,9 @@ class UplynkIE(InfoExtractor):
         return self._extract_uplynk_info(url)
 
 
-class UplynkPreplayIE(UplynkIE):
+class UplynkPreplayIE(UplynkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'uplynk:preplay'
     _VALID_URL = r'https?://.*?\.uplynk\.com/preplay2?/(?P<path>ext/[0-9a-f]{32}/(?P<external_id>[^/?&]+)|(?P<id>[0-9a-f]{32}))\.json'
-    _TEST = None
 
     def _real_extract(self, url):
         path, external_id, video_id = self._match_valid_url(url).groups()

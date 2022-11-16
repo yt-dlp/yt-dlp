@@ -240,7 +240,6 @@ class RutubeMovieIE(RutubePlaylistBaseIE):
     IE_NAME = 'rutube:movie'
     IE_DESC = 'Rutube movies'
     _VALID_URL = r'https?://rutube\.ru/metainfo/tv/(?P<id>\d+)'
-    _TESTS = []
 
     _MOVIE_TEMPLATE = 'http://rutube.ru/api/metainfo/tv/%s/?format=json'
     _PAGE_TEMPLATE = 'http://rutube.ru/api/metainfo/tv/%s/video?page=%s&format=json'

@@ -127,7 +127,7 @@ class HitboxIE(InfoExtractor):
         return metadata
 
 
-class HitboxLiveIE(HitboxIE):
+class HitboxLiveIE(HitboxIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'hitbox:live'
     _VALID_URL = r'https?://(?:www\.)?(?:hitbox|smashcast)\.tv/(?P<id>[^/?#&]+)'
     _TESTS = [{

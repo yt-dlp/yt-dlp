@@ -380,7 +380,7 @@ class AfreecaTVIE(InfoExtractor):
         return info
 
 
-class AfreecaTVLiveIE(AfreecaTVIE):
+class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
 
     IE_NAME = 'afreecatv:live'
     _VALID_URL = r'https?://play\.afreeca(?:tv)?\.com/(?P<id>[^/]+)(?:/(?P<bno>\d+))?'

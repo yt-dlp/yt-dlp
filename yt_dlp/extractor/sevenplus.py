@@ -13,7 +13,7 @@ from ..utils import (
 )
 
 
-class SevenPlusIE(BrightcoveNewIE):
+class SevenPlusIE(BrightcoveNewIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = '7plus'
     _VALID_URL = r'https?://(?:www\.)?7plus\.com\.au/(?P<path>[^?]+\?.*?\bepisode-id=(?P<id>[^&#]+))'
     _TESTS = [{

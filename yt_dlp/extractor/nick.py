@@ -188,7 +188,7 @@ class NickDeIE(MTVServicesInfoExtractor):
         return self._remove_template_parameter(config['feedWithQueryParams'])
 
 
-class NickNightIE(NickDeIE):
+class NickNightIE(NickDeIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'nicknight'
     _VALID_URL = r'https?://(?:www\.)(?P<host>nicknight\.(?:de|at|tv))/(?:playlist|shows)/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _TESTS = [{

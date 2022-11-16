@@ -70,7 +70,7 @@ class SkyItPlayerIE(InfoExtractor):
         return self._parse_video(video, video_id)
 
 
-class SkyItVideoIE(SkyItPlayerIE):
+class SkyItVideoIE(SkyItPlayerIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'video.sky.it'
     _VALID_URL = r'https?://(?:masterchef|video|xfactor)\.sky\.it(?:/[^/]+)*/video/[0-9a-z-]+-(?P<id>\d+)'
     _TESTS = [{
@@ -99,7 +99,7 @@ class SkyItVideoIE(SkyItPlayerIE):
         return self._player_url_result(video_id)
 
 
-class SkyItVideoLiveIE(SkyItPlayerIE):
+class SkyItVideoLiveIE(SkyItPlayerIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'video.sky.it:live'
     _VALID_URL = r'https?://video\.sky\.it/diretta/(?P<id>[^/?&#]+)'
     _TEST = {
@@ -127,7 +127,7 @@ class SkyItVideoLiveIE(SkyItPlayerIE):
         return self._parse_video(livestream, asset_id)
 
 
-class SkyItIE(SkyItPlayerIE):
+class SkyItIE(SkyItPlayerIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'sky.it'
     _VALID_URL = r'https?://(?:sport|tg24)\.sky\.it(?:/[^/]+)*/\d{4}/\d{2}/\d{2}/(?P<id>[^/?&#]+)'
     _TESTS = [{
@@ -166,7 +166,7 @@ class SkyItIE(SkyItPlayerIE):
         return self._player_url_result(video_id)
 
 
-class SkyItArteIE(SkyItIE):
+class SkyItArteIE(SkyItIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'arte.sky.it'
     _VALID_URL = r'https?://arte\.sky\.it/video/(?P<id>[^/?&#]+)'
     _TESTS = [{
@@ -187,7 +187,7 @@ class SkyItArteIE(SkyItIE):
     _VIDEO_ID_REGEX = r'"embedUrl"\s*:\s*"(?:https:)?//player\.sky\.it/player/external\.html\?[^"]*\bid=(\d+)'
 
 
-class CieloTVItIE(SkyItIE):
+class CieloTVItIE(SkyItIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'cielotv.it'
     _VALID_URL = r'https?://(?:www\.)?cielotv\.it/video/(?P<id>[^.]+)\.html'
     _TESTS = [{
@@ -208,7 +208,7 @@ class CieloTVItIE(SkyItIE):
     _VIDEO_ID_REGEX = r'videoId\s*=\s*"(\d+)"'
 
 
-class TV8ItIE(SkyItVideoIE):
+class TV8ItIE(SkyItVideoIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'tv8.it'
     _VALID_URL = r'https?://(?:www\.)?tv8\.it/(?:show)?video/[0-9a-z-]+-(?P<id>\d+)'
     _TESTS = [{

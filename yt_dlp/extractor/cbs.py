@@ -10,7 +10,7 @@ from ..utils import (
 )
 
 
-class CBSBaseIE(ThePlatformFeedIE):
+class CBSBaseIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
     def _parse_smil_subtitles(self, smil, namespace=None, subtitles_lang='en'):
         subtitles = {}
         for k, ext in [('sMPTE-TTCCURL', 'tt'), ('ClosedCaptionURL', 'ttml'), ('webVTTCaptionURL', 'vtt')]:

@@ -356,7 +356,7 @@ class RaiPlayIE(RaiBaseIE):
         }
 
 
-class RaiPlayLiveIE(RaiPlayIE):
+class RaiPlayLiveIE(RaiPlayIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/dirette/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'http://www.raiplay.it/dirette/rainews24',
@@ -504,7 +504,7 @@ class RaiPlaySoundIE(RaiBaseIE):
         }
 
 
-class RaiPlaySoundLiveIE(RaiPlaySoundIE):
+class RaiPlaySoundLiveIE(RaiPlaySoundIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?P<id>[^/?#&]+)$)'
     _TESTS = [{
         'url': 'https://www.raiplaysound.it/radio2',
@@ -717,7 +717,7 @@ class RaiIE(RaiBaseIE):
         }
 
 
-class RaiNewsIE(RaiIE):
+class RaiNewsIE(RaiIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = rf'https?://(www\.)?rainews\.it/(?!articoli)[^?#]+-(?P<id>{RaiBaseIE._UUID_RE})(?:-[^/?#]+)?\.html'
     _EMBED_REGEX = [rf'<iframe[^>]+data-src="(?P<url>/iframe/[^?#]+?{RaiBaseIE._UUID_RE}\.html)']
     _TESTS = [{
