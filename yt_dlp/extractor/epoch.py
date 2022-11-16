@@ -2,7 +2,7 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    UnsupportedError,
+    ExtractorError,
     clean_html,
     extract_attributes,
     get_element_html_by_class,
@@ -92,7 +92,7 @@ class EpochIE(InfoExtractor):
         elif player.get('data-source', '').endswith('.m3u8'):
             manifest_url = player['data-source']
         else:
-            raise UnsupportedError(url)
+            raise ExtractorError('No video found.')
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             manifest_url, video_id, 'mp4', m3u8_id='hls')
