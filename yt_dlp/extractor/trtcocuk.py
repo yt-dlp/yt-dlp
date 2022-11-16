@@ -1,7 +1,5 @@
-from urllib.parse import unquote
-
 from .common import InfoExtractor
-from ..utils import int_or_none, parse_iso8601, traverse_obj
+from ..utils import ExtractorError, int_or_none, parse_iso8601, traverse_obj
 
 
 class TrtCocukVideoIE(InfoExtractor):
@@ -32,10 +30,13 @@ class TrtCocukVideoIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         nuxtjs_data = self._search_nuxt_data(webpage, display_id)['data']
-        video_url = self._search_regex(
-            r'[\'"]?(?P<url>[^"]+)', unquote(nuxtjs_data['video']), 'video_url')
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            str(video_url).replace(r'\u002F', '/'), display_id)
+
+        try:
+            video_url = self._parse_json(nuxtjs_data['video'], display_id)
+        except ExtractorError:
+            video_url = nuxtjs_data['video']
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id)
+
         return {
             'id': str(nuxtjs_data['id']),
             'formats': formats,
