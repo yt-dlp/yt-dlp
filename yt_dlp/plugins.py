@@ -7,14 +7,18 @@ import inspect
 import itertools
 import pkgutil
 import re
-import shutil
 import sys
 import traceback
 import zipimport
 from pathlib import Path
 from zipfile import ZipFile
 
-from .utils import write_string, get_user_config_dirs, get_system_config_dirs
+from .utils import (
+    write_string,
+    get_user_config_dirs,
+    get_system_config_dirs,
+    get_executable_path
+)
 
 PACKAGE_NAME = 'ytdlp_plugins'
 _INITIALIZED = False
@@ -52,16 +56,19 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
     def search_locations(self, fullname):
         # Also load plugin packages from standard config folders
-        config_locations = []
+        search_locations = []
         for config_dir in map(Path, get_user_config_dirs('yt-dlp') + get_system_config_dirs('yt-dlp')):
             plugin_dir = config_dir / 'plugins'
             if not plugin_dir.is_dir():
                 continue
-            config_locations.extend(plugin_dir / d for d in plugin_dir.iterdir())
-        path_locations = [Path(path) for path in sys.path]  # PYTHON_PATH
+            search_locations.extend(plugin_dir / d for d in plugin_dir.iterdir())
+        search_locations.extend([Path(path) for path in sys.path])  # PYTHONPATH
+
+        # Required for pyinstaller/py2exe to find plugins in the executable directory
+        search_locations.append(Path(get_executable_path()))
         parts = Path(*fullname.split('.'))
         locations = set()
-        for path in dict.fromkeys(path_locations + config_locations):
+        for path in dict.fromkeys(search_locations):
             candidate = path / parts
             if candidate.is_dir():
                 locations.add(str(candidate))
@@ -95,19 +102,6 @@ def initialize():
     global _INITIALIZED
     if _INITIALIZED:
         return
-
-    # FIXME: https://github.com/yt-dlp/yt-dlp/pull/1393/files#r742829806
-    # are we running from PyInstaller single executable?
-    # then copy the plugin directory if exist
-    root = Path(sys.executable).parent
-    meipass = Path(getattr(sys, '_MEIPASS', root))
-    if getattr(sys, 'frozen', False) and root != meipass:
-        try:
-            shutil.copytree(root / PACKAGE_NAME, meipass / PACKAGE_NAME, dirs_exist_ok=True)
-        except FileNotFoundError:
-            pass
-        except OSError as exc:
-            write_string(str(exc))
 
     sys.meta_path.insert(
         0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'))
