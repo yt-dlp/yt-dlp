@@ -66,6 +66,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
         # Required for pyinstaller/py2exe to find plugins in the executable directory
         search_locations.append(Path(get_executable_path()))
+
         parts = Path(*fullname.split('.'))
         locations = set()
         for path in dict.fromkeys(search_locations):

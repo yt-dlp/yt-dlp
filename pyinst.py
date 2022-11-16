@@ -32,7 +32,6 @@ def main():
               '"devscripts/make_lazy_extractors.py"  to build lazy extractors', file=sys.stderr)
     print(f'Destination: {final_file}\n')
 
-    # To add plugins to the package, run with --add-data=ytdlp_plugins
     opts = [
         f'--name={name}',
         '--icon=devscripts/logo.ico',
