@@ -85,6 +85,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
             except ExtractorError as e:
                 if not attempt and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
                     del self._API_HEADERS['authorization']  # refresh the token
+                    continue
                 raise
 
         if 'error' in data:
