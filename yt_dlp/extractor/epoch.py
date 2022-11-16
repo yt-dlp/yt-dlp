@@ -77,7 +77,7 @@ class EpochIE(InfoExtractor):
         raw_description = clean_html(get_element_by_class('article_content', webpage))
         description_lines_iter = iter(raw_description.splitlines())
         description = next(description_lines_iter, None)
-        if re.match(r'This film is only available ', description or ''):
+        if re.match(r'This film is [a-z ]*available ', description or ''):
             self.report_warning(description, video_id)
             description = next(description_lines_iter, None)
 
