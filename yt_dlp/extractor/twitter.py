@@ -107,46 +107,56 @@ class TwitterBaseIE(InfoExtractor):
                 'x-twitter-active-user': 'yes',
             })
 
-        result, last_error = None, None
+        last_error = None
         for bearer_token in self._TOKENS:
-            headers['Authorization'] = f'Bearer {bearer_token}'
+            for attempt in range(2):
+                headers['Authorization'] = f'Bearer {bearer_token}'
 
-            if not self.is_logged_in:
-                if not self._TOKENS[bearer_token]:
-                    headers.pop('x-guest-token', None)
-                    guest_token_response = self._download_json(
-                        self._API_BASE + 'guest/activate.json', video_id,
-                        'Downloading guest token', data=b'', headers=headers)
-
-                    self._TOKENS[bearer_token] = guest_token_response.get('guest_token')
+                if not self.is_logged_in:
                     if not self._TOKENS[bearer_token]:
-                        raise ExtractorError('Could not retrieve guest token')
-                headers['x-guest-token'] = self._TOKENS[bearer_token]
+                        headers.pop('x-guest-token', None)
+                        guest_token_response = self._download_json(
+                            self._API_BASE + 'guest/activate.json', video_id,
+                            'Downloading guest token', data=b'', headers=headers)
 
-            try:
-                allowed_status = {400, 403, 404} if graphql else {403}
-                result = self._download_json(
-                    (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
-                    video_id, headers=headers, query=query, expected_status=allowed_status)
-                break
+                        self._TOKENS[bearer_token] = guest_token_response.get('guest_token')
+                        if not self._TOKENS[bearer_token]:
+                            raise ExtractorError('Could not retrieve guest token')
 
-            except ExtractorError as e:
-                if last_error:
-                    raise last_error
-                elif not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 404:
-                    raise
-                last_error = e
-                self.report_warning(
-                    'Twitter API gave 404 response, retrying with deprecated token. '
-                    'Only one media item can be extracted')
+                    headers['x-guest-token'] = self._TOKENS[bearer_token]
 
-        if result.get('errors'):
-            error_message = ', '.join(set(traverse_obj(
-                result, ('errors', ..., 'message'), expected_type=str))) or 'Unknown error'
-            raise ExtractorError(f'Error(s) while querying api: {error_message}', expected=True)
+                try:
+                    allowed_status = {400, 403, 404} if graphql else {403}
+                    result = self._download_json(
+                        (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
+                        video_id, headers=headers, query=query, expected_status=allowed_status)
 
-        assert result is not None
-        return result
+                except ExtractorError as e:
+                    if last_error:
+                        raise last_error
+
+                    if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 404:
+                        raise
+
+                    last_error = e
+                    self.report_warning(
+                        'Twitter API gave 404 response, retrying with deprecated auth token. '
+                        'Only one media item can be extracted')
+                    break
+
+                if result.get('errors'):
+                    errors = traverse_obj(result, ('errors', ..., 'message'), expected_type=str)
+                    if not attempt and any('bad guest token' in error.lower() for error in errors):
+                        self.to_screen('Guest token has expired. Refreshing guest token')
+                        self._TOKENS[bearer_token] = None
+                        continue
+
+                    error_message = ', '.join(set(errors)) or 'Unknown error'
+                    raise ExtractorError(f'Error(s) while querying API: {error_message}', expected=True)
+
+                return result
+
+        raise ExtractorError('Failed to call API')
 
     def _build_graphql_query(self, media_id):
         raise NotImplementedError('Method must be implemented to support GraphQL')
