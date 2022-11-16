@@ -1835,12 +1835,7 @@ Run yt-dlp with `--verbose`/`-v` to check if the plugin has been loaded.
 
 ## Developing Plugins
 
-See [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for a sample plugin package. 
-
-To run and debug:
-1. Set your IDE's run configuration to run the `yt_dlp` Python module.
-2. Add your project's root directory containing `ytdlp_plugins` to `PYTHONPATH` environment variable (this may not be necessary with some IDE run configurations)
-3. The `ytdlp_plugins` folder should be automatically picked up by yt-dlp (run with `-v` to check)
+See [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for a sample plugin package with developer instructions. 
 
 If you are a plugin author, add [ytdlp-plugins](https://github.com/topics/ytdlp-plugins) as a topic to your repository for discoverability
 
