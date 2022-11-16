@@ -39,7 +39,7 @@ class _OutputBase:
         if not self.allow_color:
             return text
 
-        return format_text(str(text), *text_formats)
+        return format_text(text, *text_formats)
 
     def log(self, message):
         pass
@@ -189,7 +189,7 @@ class Logger:
         if not logger or suppress:
             return
 
-        assert isinstance(message, str)  # Does this hold true?
+        assert isinstance(message, str)
 
         if once:
             if message in self._message_cache:
@@ -202,7 +202,7 @@ class Logger:
         if prefix:
             message = ' '.join((*map(str, variadic(prefix)), message))
 
-        # ? Maybe this should call twice instead of append to message?
+        # XXX: Might have to call twice instead of append for compat
         if level is LogLevel.ERROR and self._verbosity is Verbosity.VERBOSE:
             message += '\n'
             if trace is not None:
@@ -266,7 +266,8 @@ class Logger:
 
     def deprecation_warning(self, message, *, stacklevel=0):
         deprecation_warning(
-            message, stacklevel=stacklevel + 1, printer=self.error, is_error=False)
+            message, stacklevel=stacklevel + 1, printer=self.handle_error,
+            is_error=False, prefix=True)
 
     def deprecated_feature(self, message):
         self.log(LogLevel.WARNING, message, once=True,

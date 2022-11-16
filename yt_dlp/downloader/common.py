@@ -275,7 +275,7 @@ class FileDownloader:
 
     def _prepare_multiline_status(self, lines=1):
         self._progress = Progress.make_progress(
-            logger=self.ydl.logger, lines=lines, console=self.ydl.console,
+            logger=self.ydl.logger, lines=lines,
             newline=bool(self.params.get('progress_with_newline')),
             preserve=not self.params.get('quiet'))
 
