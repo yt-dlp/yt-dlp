@@ -2584,7 +2584,9 @@ class GenericIE(InfoExtractor):
             **smuggled_data.get('http_headers', {})
         })
         new_url = full_response.geturl()
-        if url != new_url:
+        if new_url == urllib.parse.urlparse(url)._replace(scheme='https').geturl():
+            url = new_url
+        elif url != new_url:
             self.report_following_redirect(new_url)
             if force_videoid:
                 new_url = smuggle_url(new_url, {'force_videoid': force_videoid})
