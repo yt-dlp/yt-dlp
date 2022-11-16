@@ -84,11 +84,6 @@ class BandcampIE(InfoExtractor):
             r'data-%s=(["\'])({.+?})\1' % attr, webpage,
             attr + ' data', group=2), video_id, fatal=fatal)
 
-    def _extract_album_artist(self, webpage, fatal=False):
-        return self._html_search_regex(
-            r'<h3 class="albumTitle">[\s\S]*by\s*<span>\s*<a href=".*">\s*(.*)\s*</a>',
-            webpage, "album artist", group=1, fatal=fatal)
-
     def _real_extract(self, url):
         title, uploader = self._match_valid_url(url).group('id', 'uploader')
         webpage = self._download_webpage(url, title)
@@ -126,7 +121,9 @@ class BandcampIE(InfoExtractor):
         embed = self._extract_data_attr(webpage, title, 'embed', False)
         current = tralbum.get('current') or {}
         artist = embed.get('artist') or current.get('artist') or tralbum.get('artist')
-        album_artist = self._extract_album_artist(webpage)
+        album_artist = self._html_search_regex(
+            r'<h3 class="albumTitle">[^>]*by\s*<span>\s*<a href="[^>]+">\s*([^>]+?)\s*</a>',
+            webpage, 'album artist', fatal=False)
         timestamp = unified_timestamp(
             current.get('publish_date') or tralbum.get('album_publish_date'))
 
