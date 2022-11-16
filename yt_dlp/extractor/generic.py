@@ -5,7 +5,6 @@ import urllib.parse
 import xml.etree.ElementTree
 
 from .common import InfoExtractor  # isort: split
-from .brightcove import BrightcoveLegacyIE, BrightcoveNewIE
 from .commonprotocols import RtmpIE
 from .youtube import YoutubeIE
 from ..compat import compat_etree_fromstring
@@ -361,188 +360,6 @@ class GenericIE(InfoExtractor):
             },
             'skip': 'There is a limit of 200 free downloads / month for the test song',
         },
-        {
-            # embedded brightcove video
-            # it also tests brightcove videos that need to set the 'Referer'
-            # in the http requests
-            'add_ie': ['BrightcoveLegacy'],
-            'url': 'http://www.bfmtv.com/video/bfmbusiness/cours-bourse/cours-bourse-l-analyse-technique-154522/',
-            'info_dict': {
-                'id': '2765128793001',
-                'ext': 'mp4',
-                'title': 'Le cours de bourse : l’analyse technique',
-                'description': 'md5:7e9ad046e968cb2d1114004aba466fd9',
-                'uploader': 'BFM BUSINESS',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            # embedded with itemprop embedURL and video id spelled as `idVideo`
-            'add_id': ['BrightcoveLegacy'],
-            'url': 'http://bfmbusiness.bfmtv.com/mediaplayer/chroniques/olivier-delamarche/',
-            'info_dict': {
-                'id': '5255628253001',
-                'ext': 'mp4',
-                'title': 'md5:37c519b1128915607601e75a87995fc0',
-                'description': 'md5:37f7f888b434bb8f8cc8dbd4f7a4cf26',
-                'uploader': 'BFM BUSINESS',
-                'uploader_id': '876450612001',
-                'timestamp': 1482255315,
-                'upload_date': '20161220',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        },
-        {
-            # https://github.com/ytdl-org/youtube-dl/issues/2253
-            'url': 'http://bcove.me/i6nfkrc3',
-            'md5': '0ba9446db037002366bab3b3eb30c88c',
-            'info_dict': {
-                'id': '3101154703001',
-                'ext': 'mp4',
-                'title': 'Still no power',
-                'uploader': 'thestar.com',
-                'description': 'Mississauga resident David Farmer is still out of power as a result of the ice storm a month ago. To keep the house warm, Farmer cuts wood from his property for a wood burning stove downstairs.',
-            },
-            'add_ie': ['BrightcoveLegacy'],
-            'skip': 'video gone',
-        },
-        {
-            'url': 'http://www.championat.com/video/football/v/87/87499.html',
-            'md5': 'fb973ecf6e4a78a67453647444222983',
-            'info_dict': {
-                'id': '3414141473001',
-                'ext': 'mp4',
-                'title': 'Видео. Удаление Дзагоева (ЦСКА)',
-                'description': 'Онлайн-трансляция матча ЦСКА - "Волга"',
-                'uploader': 'Championat',
-            },
-        },
-        {
-            # https://github.com/ytdl-org/youtube-dl/issues/3541
-            'add_ie': ['BrightcoveLegacy'],
-            'url': 'http://www.kijk.nl/sbs6/leermijvrouwenkennen/videos/jqMiXKAYan2S/aflevering-1',
-            'info_dict': {
-                'id': '3866516442001',
-                'ext': 'mp4',
-                'title': 'Leer mij vrouwen kennen: Aflevering 1',
-                'description': 'Leer mij vrouwen kennen: Aflevering 1',
-                'uploader': 'SBS Broadcasting',
-            },
-            'skip': 'Restricted to Netherlands',
-            'params': {
-                'skip_download': True,  # m3u8 download
-            },
-        },
-        {
-            # Brightcove video in <iframe>
-            'url': 'http://www.un.org/chinese/News/story.asp?NewsID=27724',
-            'md5': '36d74ef5e37c8b4a2ce92880d208b968',
-            'info_dict': {
-                'id': '5360463607001',
-                'ext': 'mp4',
-                'title': '叙利亚失明儿童在废墟上演唱《心跳》  呼吁获得正常童年生活',
-                'description': '联合国儿童基金会中东和北非区域大使、作曲家扎德·迪拉尼（Zade Dirani）在3月15日叙利亚冲突爆发7周年纪念日之际发布了为叙利亚谱写的歌曲《心跳》（HEARTBEAT），为受到六年冲突影响的叙利亚儿童发出强烈呐喊，呼吁世界做出共同努力，使叙利亚儿童重新获得享有正常童年生活的权利。',
-                'uploader': 'United Nations',
-                'uploader_id': '1362235914001',
-                'timestamp': 1489593889,
-                'upload_date': '20170315',
-            },
-            'add_ie': ['BrightcoveLegacy'],
-        },
-        {
-            # Brightcove with alternative playerID key
-            'url': 'http://www.nature.com/nmeth/journal/v9/n7/fig_tab/nmeth.2062_SV1.html',
-            'info_dict': {
-                'id': 'nmeth.2062_SV1',
-                'title': 'Simultaneous multiview imaging of the Drosophila syncytial blastoderm : Quantitative high-speed imaging of entire developing embryos with simultaneous multiview light-sheet microscopy : Nature Methods : Nature Research',
-            },
-            'playlist': [{
-                'info_dict': {
-                    'id': '2228375078001',
-                    'ext': 'mp4',
-                    'title': 'nmeth.2062-sv1',
-                    'description': 'nmeth.2062-sv1',
-                    'timestamp': 1363357591,
-                    'upload_date': '20130315',
-                    'uploader': 'Nature Publishing Group',
-                    'uploader_id': '1964492299001',
-                },
-            }],
-        },
-        {
-            # Brightcove with UUID in videoPlayer
-            'url': 'http://www8.hp.com/cn/zh/home.html',
-            'info_dict': {
-                'id': '5255815316001',
-                'ext': 'mp4',
-                'title': 'Sprocket Video - China',
-                'description': 'Sprocket Video - China',
-                'uploader': 'HP-Video Gallery',
-                'timestamp': 1482263210,
-                'upload_date': '20161220',
-                'uploader_id': '1107601872001',
-            },
-            'params': {
-                'skip_download': True,  # m3u8 download
-            },
-            'skip': 'video rotates...weekly?',
-        },
-        {
-            # Brightcove:new type [2].
-            'url': 'http://www.delawaresportszone.com/video-st-thomas-more-earns-first-trip-to-basketball-semis',
-            'md5': '2b35148fcf48da41c9fb4591650784f3',
-            'info_dict': {
-                'id': '5348741021001',
-                'ext': 'mp4',
-                'upload_date': '20170306',
-                'uploader_id': '4191638492001',
-                'timestamp': 1488769918,
-                'title': 'VIDEO:  St. Thomas More earns first trip to basketball semis',
-
-            },
-        },
-        {
-            # Alternative brightcove <video> attributes
-            'url': 'http://www.programme-tv.net/videos/extraits/81095-guillaume-canet-evoque-les-rumeurs-d-infidelite-de-marion-cotillard-avec-brad-pitt-dans-vivement-dimanche/',
-            'info_dict': {
-                'id': '81095-guillaume-canet-evoque-les-rumeurs-d-infidelite-de-marion-cotillard-avec-brad-pitt-dans-vivement-dimanche',
-                'title': "Guillaume Canet évoque les rumeurs d'infidélité de Marion Cotillard avec Brad Pitt dans Vivement Dimanche, Extraits : toutes les vidéos avec Télé-Loisirs",
-            },
-            'playlist': [{
-                'md5': '732d22ba3d33f2f3fc253c39f8f36523',
-                'info_dict': {
-                    'id': '5311302538001',
-                    'ext': 'mp4',
-                    'title': "Guillaume Canet évoque les rumeurs d'infidélité de Marion Cotillard avec Brad Pitt dans Vivement Dimanche",
-                    'description': "Guillaume Canet évoque les rumeurs d'infidélité de Marion Cotillard avec Brad Pitt dans Vivement Dimanche (France 2, 5 février 2017)",
-                    'timestamp': 1486321708,
-                    'upload_date': '20170205',
-                    'uploader_id': '800000640001',
-                },
-                'only_matching': True,
-            }],
-        },
-        {
-            # Brightcove with UUID in videoPlayer
-            'url': 'http://www8.hp.com/cn/zh/home.html',
-            'info_dict': {
-                'id': '5255815316001',
-                'ext': 'mp4',
-                'title': 'Sprocket Video - China',
-                'description': 'Sprocket Video - China',
-                'uploader': 'HP-Video Gallery',
-                'timestamp': 1482263210,
-                'upload_date': '20161220',
-                'uploader_id': '1107601872001',
-            },
-            'params': {
-                'skip_download': True,  # m3u8 download
-            },
-        },
         # ooyala video
         {
             'url': 'http://www.rollingstone.com/music/videos/norwegian-dj-cashmere-cat-goes-spartan-on-with-me-premiere-20131219',
@@ -844,20 +661,6 @@ class GenericIE(InfoExtractor):
                 'age_limit': 18,
                 'uploader': 'www.handjobhub.com',
                 'title': 'Busty Blonde Siri Tit Fuck While Wank at HandjobHub.com',
-            }
-        },
-        # Multiple brightcove videos
-        # https://github.com/ytdl-org/youtube-dl/issues/2283
-        {
-            'url': 'http://www.newyorker.com/online/blogs/newsdesk/2014/01/always-never-nuclear-command-and-control.html',
-            'info_dict': {
-                'id': 'always-never',
-                'title': 'Always / Never - The New Yorker',
-            },
-            'playlist_count': 3,
-            'params': {
-                'extract_flat': False,
-                'skip_download': True,
             }
         },
         # MLB embed
@@ -1352,21 +1155,6 @@ class GenericIE(InfoExtractor):
             },
             'expected_warnings': ['Failed to parse JSON Expecting value'],
         },
-        # Brightcove URL in single quotes
-        {
-            'url': 'http://www.sportsnet.ca/baseball/mlb/sn-presents-russell-martin-world-citizen/',
-            'md5': '4ae374f1f8b91c889c4b9203c8c752af',
-            'info_dict': {
-                'id': '4255764656001',
-                'ext': 'mp4',
-                'title': 'SN Presents: Russell Martin, World Citizen',
-                'description': 'To understand why he was the Toronto Blue Jays’ top off-season priority is to appreciate his background and upbringing in Montreal, where he first developed his baseball skills. Written and narrated by Stephen Brunt.',
-                'uploader': 'Rogers Sportsnet',
-                'uploader_id': '1704050871',
-                'upload_date': '20150525',
-                'timestamp': 1432570283,
-            },
-        },
         # Kinja embed
         {
             'url': 'http://www.clickhole.com/video/dont-understand-bitcoin-man-will-mumble-explanatio-2537',
@@ -1400,52 +1188,6 @@ class GenericIE(InfoExtractor):
                 'title': 'New experience with Acrobat DC',
                 'description': 'New experience with Acrobat DC',
                 'duration': 248.667,
-            },
-        },
-        # BrightcoveInPageEmbed embed
-        {
-            'url': 'http://www.geekandsundry.com/tabletop-bonus-wils-final-thoughts-on-dread/',
-            'info_dict': {
-                'id': '4238694884001',
-                'ext': 'flv',
-                'title': 'Tabletop: Dread, Last Thoughts',
-                'description': 'Tabletop: Dread, Last Thoughts',
-                'duration': 51690,
-            },
-        },
-        # Brightcove embed, with no valid 'renditions' but valid 'IOSRenditions'
-        # This video can't be played in browsers if Flash disabled and UA set to iPhone, which is actually a false alarm
-        {
-            'url': 'https://dl.dropboxusercontent.com/u/29092637/interview.html',
-            'info_dict': {
-                'id': '4785848093001',
-                'ext': 'mp4',
-                'title': 'The Cardinal Pell Interview',
-                'description': 'Sky News Contributor Andrew Bolt interviews George Pell in Rome, following the Cardinal\'s evidence before the Royal Commission into Child Abuse. ',
-                'uploader': 'GlobeCast Australia - GlobeStream',
-                'uploader_id': '2733773828001',
-                'upload_date': '20160304',
-                'timestamp': 1457083087,
-            },
-            'params': {
-                # m3u8 downloads
-                'skip_download': True,
-            },
-        },
-        {
-            # Brightcove embed with whitespace around attribute names
-            'url': 'http://www.stack.com/video/3167554373001/learn-to-hit-open-three-pointers-with-damian-lillard-s-baseline-drift-drill',
-            'info_dict': {
-                'id': '3167554373001',
-                'ext': 'mp4',
-                'title': "Learn to Hit Open Three-Pointers With Damian Lillard's Baseline Drift Drill",
-                'description': 'md5:57bacb0e0f29349de4972bfda3191713',
-                'uploader_id': '1079349493',
-                'upload_date': '20140207',
-                'timestamp': 1391810548,
-            },
-            'params': {
-                'skip_download': True,
             },
         },
         # Another form of arte.tv embed
@@ -1498,7 +1240,7 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1464107587,
                 'uploader': 'TheAtlantic',
             },
-            'add_ie': ['BrightcoveLegacy'],
+            'skip': 'Private Youtube video',
         },
         # Facebook <iframe> embed
         {
@@ -2733,16 +2475,6 @@ class GenericIE(InfoExtractor):
         # FIXME: unescaping the whole page may break URLs, commenting out for now.
         # There probably should be a second run of generic extractor on unescaped webpage.
         # webpage = urllib.parse.unquote(webpage)
-
-        # TODO: Move to respective extractors
-        bc_urls = BrightcoveLegacyIE._extract_brightcove_urls(webpage)
-        if bc_urls:
-            return [self.url_result(smuggle_url(bc_url, {'Referer': url}), BrightcoveLegacyIE)
-                    for bc_url in bc_urls]
-        bc_urls = BrightcoveNewIE._extract_brightcove_urls(self, webpage)
-        if bc_urls:
-            return [self.url_result(smuggle_url(bc_url, {'Referer': url}), BrightcoveNewIE)
-                    for bc_url in bc_urls]
 
         embeds = []
         for ie in self._downloader._ies.values():
