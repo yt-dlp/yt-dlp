@@ -2100,6 +2100,7 @@ from .vimeo import (
     VimeoUserIE,
     VimeoWatchLaterIE,
     VHXEmbedIE,
+    VHXSubscriptionsIE,
 )
 from .vimm import (
     VimmIE,
