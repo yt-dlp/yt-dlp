@@ -5839,7 +5839,7 @@ def cached_method(f):
         bound_args.apply_defaults()
         key = tuple(bound_args.arguments.values())[1:]
 
-        cache = vars(self).setdefault('__cached_method__cache', {}).setdefault(f.__name__, {})
+        cache = vars(self).setdefault('_cached_method__cache', {}).setdefault(f.__name__, {})
         if key not in cache:
             cache[key] = f(self, *args, **kwargs)
         return cache[key]

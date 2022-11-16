@@ -110,7 +110,7 @@ class RedBullTVIE(InfoExtractor):
         return self.extract_info(video_id)
 
 
-class RedBullEmbedIE(RedBullTVIE):
+class RedBullEmbedIE(RedBullTVIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?redbull\.com/embed/(?P<id>rrn:content:[^:]+:[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}:[a-z]{2}-[A-Z]{2,3})'
     _TESTS = [{
         # HLS manifest accessible only using assetId

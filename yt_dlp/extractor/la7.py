@@ -194,7 +194,7 @@ class LA7PodcastEpisodeIE(InfoExtractor):
         return self._extract_info(webpage, video_id)
 
 
-class LA7PodcastIE(LA7PodcastEpisodeIE):
+class LA7PodcastIE(LA7PodcastEpisodeIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'la7.it:podcast'
     _VALID_URL = r'(https?://)?(www\.)?la7\.it/(?P<id>[^/]+)/podcast/?(?:$|[#?])'
 

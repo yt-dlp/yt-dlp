@@ -10,7 +10,7 @@ from ..utils import (
 )
 
 
-class AMPIE(InfoExtractor):
+class AMPIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     # parse Akamai Adaptive Media Player feed
     def _extract_feed_info(self, url):
         feed = self._download_json(

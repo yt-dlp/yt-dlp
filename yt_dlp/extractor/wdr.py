@@ -133,7 +133,7 @@ class WDRIE(InfoExtractor):
         }
 
 
-class WDRPageIE(WDRIE):
+class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
     _MAUS_REGEX = r'https?://(?:www\.)wdrmaus.de/(?:[^/]+/)*?(?P<maus_id>[^/?#.]+)(?:/?|/index\.php5|\.php5)$'
     _PAGE_REGEX = r'/(?:mediathek/)?(?:[^/]+/)*(?P<display_id>[^/]+)\.html'
     _VALID_URL = r'https?://(?:www\d?\.)?(?:(?:kinder\.)?wdr\d?|sportschau)\.de' + _PAGE_REGEX + '|' + _MAUS_REGEX

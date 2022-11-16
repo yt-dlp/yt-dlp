@@ -655,7 +655,7 @@ class TikTokUserIE(TikTokBaseIE):
         return self.playlist_result(self._entries_api(user_id, videos), user_id, user_name, thumbnail=thumbnail)
 
 
-class TikTokBaseListIE(TikTokBaseIE):
+class TikTokBaseListIE(TikTokBaseIE):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     def _entries(self, list_id, display_id):
         query = {
             self._QUERY_NAME: list_id,
@@ -764,7 +764,7 @@ class TikTokTagIE(TikTokBaseListIE):
         return self.playlist_result(self._entries(tag_id, display_id), tag_id, display_id)
 
 
-class DouyinIE(TikTokIE):
+class DouyinIE(TikTokIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?douyin\.com/video/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.douyin.com/video/6961737553342991651',

@@ -735,7 +735,7 @@ class NRKTVSeriesIE(NRKTVSerieBaseIE):
             entries, series_id, titles.get('title'), titles.get('subtitle'))
 
 
-class NRKTVDirekteIE(NRKTVIE):
+class NRKTVDirekteIE(NRKTVIE):  # XXX: Do not subclass from concrete IE
     IE_DESC = 'NRK TV Direkte and NRK Radio Direkte'
     _VALID_URL = r'https?://(?:tv|radio)\.nrk\.no/direkte/(?P<id>[^/?#&]+)'
 

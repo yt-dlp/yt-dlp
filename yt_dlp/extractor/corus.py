@@ -7,7 +7,7 @@ from ..utils import (
 )
 
 
-class CorusIE(ThePlatformFeedIE):
+class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'''(?x)
                     https?://
                         (?:www\.)?

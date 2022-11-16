@@ -65,7 +65,7 @@ class BilibiliBaseIE(InfoExtractor):
         missing_formats = format_names.keys() - set(traverse_obj(formats, (..., 'quality')))
         if missing_formats:
             self.to_screen(f'Format(s) {", ".join(format_names[i] for i in missing_formats)} are missing; '
-                           'you have to login or become premium member to download them')
+                           f'you have to login or become premium member to download them. {self._login_hint()}')
 
         self._sort_formats(formats)
         return formats

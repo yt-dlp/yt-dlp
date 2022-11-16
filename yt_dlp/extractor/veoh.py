@@ -130,7 +130,7 @@ class VeohIE(InfoExtractor):
         }
 
 
-class VeohUserIE(VeohIE):
+class VeohUserIE(VeohIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?veoh\.com/users/(?P<id>[\w-]+)'
     IE_NAME = 'veoh:user'
 

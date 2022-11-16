@@ -426,7 +426,7 @@ class TVNowIE(TVNowNewBaseIE):
         return self._extract_video(info, video_id, display_id)
 
 
-class TVNowFilmIE(TVNowIE):
+class TVNowFilmIE(TVNowIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'''(?x)
                     (?P<base_url>https?://
                         (?:www\.)?tvnow\.(?:de|at|ch)/

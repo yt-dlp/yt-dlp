@@ -588,7 +588,7 @@ class BBCCoUkIE(InfoExtractor):
         }
 
 
-class BBCIE(BBCCoUkIE):
+class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'bbc'
     IE_DESC = 'BBC'
     _VALID_URL = r'''(?x)

@@ -405,7 +405,7 @@ class UdemyIE(InfoExtractor):
         }
 
 
-class UdemyCourseIE(UdemyIE):
+class UdemyCourseIE(UdemyIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'udemy:course'
     _VALID_URL = r'https?://(?:[^/]+\.)?udemy\.com/(?P<id>[^/?#&]+)'
     _TESTS = [{

@@ -286,7 +286,7 @@ class MediasetIE(ThePlatformBaseIE):
         return info
 
 
-class MediasetShowIE(MediasetIE):
+class MediasetShowIE(MediasetIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'''(?x)
                     (?:
                         https?://

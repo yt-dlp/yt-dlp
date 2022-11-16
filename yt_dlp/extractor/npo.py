@@ -599,7 +599,7 @@ class NPORadioFragmentIE(InfoExtractor):
         }
 
 
-class NPODataMidEmbedIE(InfoExtractor):
+class NPODataMidEmbedIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
@@ -653,7 +653,7 @@ class HetKlokhuisIE(NPODataMidEmbedIE):
     }
 
 
-class NPOPlaylistBaseIE(NPOIE):
+class NPOPlaylistBaseIE(NPOIE):  # XXX: Do not subclass from concrete IE
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 

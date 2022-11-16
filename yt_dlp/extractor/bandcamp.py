@@ -211,7 +211,7 @@ class BandcampIE(InfoExtractor):
         }
 
 
-class BandcampAlbumIE(BandcampIE):
+class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:album'
     _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com/album/(?P<id>[^/?#&]+)'
 
@@ -314,7 +314,7 @@ class BandcampAlbumIE(BandcampIE):
         }
 
 
-class BandcampWeeklyIE(BandcampIE):
+class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:weekly'
     _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/?\?(?:.*?&)?show=(?P<id>\d+)'
     _TESTS = [{

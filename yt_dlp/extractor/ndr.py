@@ -218,7 +218,7 @@ class NJoyIE(NDRBaseIE):
         }
 
 
-class NDREmbedBaseIE(InfoExtractor):
+class NDREmbedBaseIE(InfoExtractor):  # XXX: Conventionally, Concrete class names do not end in BaseIE
     IE_NAME = 'ndr:embed:base'
     _VALID_URL = r'(?:ndr:(?P<id_s>[\da-z]+)|https?://www\.ndr\.de/(?P<id>[\da-z]+)-ppjson\.json)'
     _TESTS = [{
@@ -315,7 +315,7 @@ class NDREmbedBaseIE(InfoExtractor):
         }
 
 
-class NDREmbedIE(NDREmbedBaseIE):
+class NDREmbedIE(NDREmbedBaseIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'ndr:embed'
     _VALID_URL = r'https?://(?:\w+\.)*ndr\.de/(?:[^/]+/)*(?P<id>[\da-z]+)-(?:(?:ard)?player|externalPlayer)\.html'
     _TESTS = [{
@@ -413,7 +413,7 @@ class NDREmbedIE(NDREmbedBaseIE):
     }]
 
 
-class NJoyEmbedIE(NDREmbedBaseIE):
+class NJoyEmbedIE(NDREmbedBaseIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'njoy:embed'
     _VALID_URL = r'https?://(?:www\.)?n-joy\.de/(?:[^/]+/)*(?P<id>[\da-z]+)-(?:player|externalPlayer)_[^/]+\.html'
     _TESTS = [{
