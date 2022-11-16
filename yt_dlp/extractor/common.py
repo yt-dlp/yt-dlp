@@ -150,7 +150,10 @@ class InfoExtractor:
                                  ("3D" or "DASH video")
                     * width      Width of the video, if known
                     * height     Height of the video, if known
+                    * aspect_ratio  Aspect ratio of the video, if known
+                                 Automatically calculated from width and height
                     * resolution Textual description of width and height
+                                 Automatically calculated from width and height
                     * dynamic_range The dynamic range of the video. One of:
                                  "SDR" (None), "HDR10", "HDR10+, "HDR12", "HLG, "DV"
                     * tbr        Average bitrate of audio and video in KBit/s
