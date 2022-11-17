@@ -37,7 +37,7 @@ class NetverseBaseIE(InfoExtractor):
                     'author': traverse_obj(comment, ('customer', 'name')),
                     'author_thumbnail': traverse_obj(comment, ('customer', 'profile_picture')),
                 }
-            
+
 
 class NetverseIE(NetverseBaseIE):
     _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>watch|video)/(?P<display_id>[^/?#&]+)'
