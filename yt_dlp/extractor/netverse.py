@@ -20,13 +20,21 @@ class NetverseBaseIE(InfoExtractor):
         comment_json = self._download_json(
             f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}', video_id,
             data=b'', fatal=False) or {}
-        return [{
-            'id': comment.get('_id'),
-            'text': comment.get('comment'),
-            'author_id': comment.get('customer_id'),
-            'author': traverse_obj(comment, ('customer', 'name')),
-            'author_thumbnail': traverse_obj(comment, ('customer', 'profile_picture')),
-        } for comment in traverse_obj(comment_json, ('response', 'comments', 'data', ...)) or ()]
+        last_page_number = traverse_obj(comment_json, ('response', 'comments', 'last_page'))
+
+        comment_list = []
+        for i in range(last_page_number):
+            comment_data = self._download_json(
+                f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}', video_id,
+                data=b'', fatal=False, query={'page': i + 1}, note='Downloading JSON comment metadata') or {}
+            comment_list.extend([{
+                'id': comment.get('_id'),
+                'text': comment.get('comment'),
+                'author_id': comment.get('customer_id'),
+                'author': traverse_obj(comment, ('customer', 'name')),
+                'author_thumbnail': traverse_obj(comment, ('customer', 'profile_picture')),
+            } for comment in traverse_obj(comment_data, ('response', 'comments', 'data', ...)) or ()])
+        return comment_list
 
 
 class NetverseIE(NetverseBaseIE):
@@ -148,6 +156,29 @@ class NetverseIE(NetverseBaseIE):
             'view_count': int,
             'episode': 'Episode 1',
             'uploader': 'Net Prime',
+        }
+    }, {
+        # video with multiple page comment
+        'url': 'https://netverse.id/video/match-island-eps-1-fix',
+        'info_dict': {
+            'id': 'x8aznjc',
+            'ext': 'mp4',
+            'like_count': int,
+            'tags': ['Match-Island', 'Pd00111'],
+            'display_id': 'match-island-eps-1-fix',
+            'view_count': int,
+            'episode': 'Episode 1',
+            'uploader': 'Net Prime',
+            'duration': 4070,
+            'timestamp': 1653068165,
+            'description': 'md5:e9cf3b480ad18e9c33b999e3494f223f',
+            'age_limit': 0,
+            'title': 'Welcome To Match Island',
+            'upload_date': '20220520',
+            'episode_number': 1,
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
+            'uploader_id': 'x2ir3vq',
+            'season': 'Season 1',
         }
     }]
 
