@@ -389,6 +389,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?watch\.whatevertinfoil\.de',
         r'(?:www\.)?piped\.qdi\.fi',
         r'(?:www\.)?piped\.video',
+        r'(?:www\.)?piped\.aeong\.one',
     )
 
     # extracted from account/account_menu ep
