@@ -1,8 +1,8 @@
-from .brightcove import BrightcoveNewIE
+from .brightcove import BrightcoveNewBaseIE
 from ..utils import extract_attributes
 
 
-class BandaiChannelIE(BrightcoveNewIE):  # XXX: Do not subclass from concrete IE
+class BandaiChannelIE(BrightcoveNewBaseIE):
     IE_NAME = 'bandaichannel'
     _VALID_URL = r'https?://(?:www\.)?b-ch\.com/titles/(?P<id>\d+/\d+)'
     _TESTS = [{
