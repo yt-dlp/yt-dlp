@@ -6566,7 +6566,7 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
                 'title': 'Kurzgesagt – In a Nutshell',
                 'channel_id': 'UCsXVk37bltHxD1rDPwtNM8Q',
                 'channel_follower_count': int,
-                'playlist_count': int,
+                'playlist_count': int,  # XXX: should have a way of saying > 1
                 'channel_url': 'https://www.youtube.com/channel/UCsXVk37bltHxD1rDPwtNM8Q',
                 'thumbnails': list
             }
