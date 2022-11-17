@@ -7,6 +7,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     url_or_none,
+    traverse_obj,
 )
 
 
@@ -37,12 +38,12 @@ class Kanal2IE(InfoExtractor):
 
         info = {
             'id': video_id,
-            'title': self.get_title(playlist['info']),
-            'description': playlist['info'].get('description'),
-            'webpage_url': playlist['data'].get('url'),
-            'thumbnail': playlist['data'].get('image'),
+            'title': self.get_title(playlist.get('info')),
+            'description': traverse_obj(playlist, ('info', 'description')),
+            'webpage_url': traverse_obj(playlist, ('data', 'url')),
+            'thumbnail': traverse_obj(playlist, ('data', 'image')),
             'formats': self.get_formats(playlist, video_id),
-            'timestamp': self.get_timestamp(playlist['info'].get('subtitle')),
+            'timestamp': self.get_timestamp(traverse_obj(playlist, ('info', 'subtitle'))),
         }
 
         return info
@@ -80,9 +81,9 @@ class Kanal2IE(InfoExtractor):
 
     def get_formats(self, playlist, video_id):
         formats = []
-        session = self.get_session(playlist['data']['path'], video_id)
+        session = self.get_session(traverse_obj(playlist, ('data', 'path')), video_id)
         sid = session.get('session')
-        for stream in playlist['data'].get('streams', []):
+        for stream in traverse_obj(playlist, ('data', 'streams'), default=[]):
             if not stream.get('file'):
                 continue
             formats.append({
