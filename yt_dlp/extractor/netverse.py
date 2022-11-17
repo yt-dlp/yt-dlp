@@ -19,13 +19,16 @@ class NetverseBaseIE(InfoExtractor):
     def _get_comments(self, video_id):
         comment_json = self._download_json(
             f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}', video_id,
-            data=b'', fatal=False) or {}
+            data=b'', fatal=False, note='Downloading JSON comment metadata') or {}
         last_page_number = traverse_obj(comment_json, ('response', 'comments', 'last_page'))
 
         for i in range(last_page_number):
-            comment_data = self._download_json(
-                f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}', video_id,
-                data=b'', fatal=False, query={'page': i + 1}, note='Downloading JSON comment metadata') or {}
+            if i == 0:
+                comment_data = comment_json
+            else:
+                comment_data = self._download_json(
+                    f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}', video_id,
+                    data=b'', fatal=False, query={'page': i + 1}, note='Downloading JSON comment metadata') or {}
             yield [{
                 'id': comment.get('_id'),
                 'text': comment.get('comment'),
