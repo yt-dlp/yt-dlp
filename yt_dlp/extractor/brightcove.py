@@ -26,7 +26,6 @@ from ..utils import (
     parse_qs,
     smuggle_url,
     str_or_none,
-    traverse_obj,
     try_get,
     unescapeHTML,
     unsmuggle_url,
@@ -459,8 +458,7 @@ class BrightcoveLegacyIE(InfoExtractor):
         videoPlayer = query.get('@videoPlayer')
         if videoPlayer:
             # We set the original url as the default 'Referer' header
-            referer = (query.get('linkBaseURL', [None])[0]
-                       or traverse_obj(smuggled_data, 'Referer', 'referrer', casesense=False, default=url))
+            referer = query.get('linkBaseURL', [None])[0] or smuggled_data.get('Referer', url)
             video_id = videoPlayer[0]
             if 'playerID' not in query:
                 mobj = re.search(r'/bcpid(\d+)', url)
@@ -906,7 +904,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
 
         api_url = 'https://edge.api.brightcove.com/playback/v1/accounts/%s/%ss/%s' % (account_id, content_type, video_id)
         headers = {}
-        referrer = traverse_obj(smuggled_data, 'Referer', 'referrer', casesense=False)
+        referrer = smuggled_data.get('referrer')  # XXX: notice the spelling/case of the key
         if referrer:
             headers.update({
                 'Referer': referrer,
