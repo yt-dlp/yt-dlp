@@ -67,6 +67,7 @@ from .utils import (
     EntryNotInPlaylist,
     ExistingVideoReached,
     ExtractorError,
+    FormatSorter,
     GeoRestrictedError,
     HEADRequest,
     ISO3166Utils,
@@ -547,7 +548,7 @@ class YoutubeDL:
     _format_fields = {
         # NB: Keep in sync with the docstring of extractor/common.py
         'url', 'manifest_url', 'manifest_stream_number', 'ext', 'format', 'format_id', 'format_note',
-        'width', 'height', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
+        'width', 'height', 'aspect_ratio', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'audio_channels',
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
         'preference', 'language', 'language_preference', 'quality', 'source_preference',
@@ -1357,7 +1358,7 @@ class YoutubeDL:
         return self.get_output_path(dir_type, filename)
 
     def _match_entry(self, info_dict, incomplete=False, silent=False):
-        """ Returns None if the file should be downloaded """
+        """Returns None if the file should be downloaded"""
         _type = info_dict.get('_type', 'video')
         assert incomplete or _type == 'video', 'Only video result can be considered complete'
 
@@ -1381,6 +1382,7 @@ class YoutubeDL:
                 if rejecttitle:
                     if re.search(rejecttitle, title, re.IGNORECASE):
                         return '"' + title + '" title matched reject pattern "' + rejecttitle + '"'
+
             date = info_dict.get('upload_date')
             if date is not None:
                 dateRange = self.params.get('daterange', DateRange())
@@ -2185,6 +2187,7 @@ class YoutubeDL:
                     'vcodec': the_only_video.get('vcodec'),
                     'vbr': the_only_video.get('vbr'),
                     'stretched_ratio': the_only_video.get('stretched_ratio'),
+                    'aspect_ratio': the_only_video.get('aspect_ratio'),
                 })
 
             if the_only_audio:
@@ -2459,6 +2462,18 @@ class YoutubeDL:
         if err:
             self.report_error(err, tb=False)
 
+    def sort_formats(self, info_dict):
+        formats = self._get_formats(info_dict)
+        if not formats:
+            return
+        # Backward compatibility with InfoExtractor._sort_formats
+        field_preference = formats[0].pop('__sort_fields', None)
+        if field_preference:
+            info_dict['_format_sort_fields'] = field_preference
+
+        formats.sort(key=FormatSorter(
+            self, info_dict.get('_format_sort_fields', [])).calculate_preference)
+
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'
         self._num_videos += 1
@@ -2544,6 +2559,7 @@ class YoutubeDL:
         info_dict['requested_subtitles'] = self.process_subtitles(
             info_dict['id'], subtitles, automatic_captions)
 
+        self.sort_formats(info_dict)
         formats = self._get_formats(info_dict)
 
         # or None ensures --clean-infojson removes it
@@ -2627,6 +2643,8 @@ class YoutubeDL:
                 format['resolution'] = self.format_resolution(format, default=None)
             if format.get('dynamic_range') is None and format.get('vcodec') != 'none':
                 format['dynamic_range'] = 'SDR'
+            if format.get('aspect_ratio') is None:
+                format['aspect_ratio'] = try_call(lambda: round(format['width'] / format['height'], 2))
             if (info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
@@ -2953,8 +2971,6 @@ class YoutubeDL:
         if 'format' not in info_dict and 'ext' in info_dict:
             info_dict['format'] = info_dict['ext']
 
-        # This is mostly just for backward compatibility of process_info
-        # As a side-effect, this allows for format-specific filters
         if self._match_entry(info_dict) is not None:
             info_dict['__write_download_archive'] = 'ignore'
             return

@@ -39,7 +39,6 @@ class MicrosoftEmbedIE(InfoExtractor):
                     'height': source.get('heightPixels'),
                     'width': source.get('widthPixels'),
                 })
-        self._sort_formats(formats)
 
         subtitles = {
             lang: [{

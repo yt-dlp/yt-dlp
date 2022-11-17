@@ -274,7 +274,6 @@ class VevoIE(VevoBaseIE):
                     'width': int(m.group('width')),
                     'height': int(m.group('height')),
                 })
-        self._sort_formats(formats)
 
         track = video_info['title']
         if featured_artist:

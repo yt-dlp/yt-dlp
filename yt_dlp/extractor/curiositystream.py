@@ -117,7 +117,6 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
                             'format_id': 'http',
                         })
                     formats.append(fmt)
-        self._sort_formats(formats)
 
         title = media['title']
 

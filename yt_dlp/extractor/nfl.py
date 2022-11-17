@@ -71,7 +71,6 @@ class NFLBaseIE(InfoExtractor):
             ext = determine_ext(item_url)
             if ext == 'm3u8':
                 info['formats'] = self._extract_m3u8_formats(item_url, media_id, 'mp4')
-                self._sort_formats(info['formats'])
             else:
                 info['url'] = item_url
                 if item.get('audio') is True:

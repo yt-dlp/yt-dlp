@@ -247,8 +247,6 @@ class MediasetIE(ThePlatformBaseIE):
         if (first_e or geo_e) and not formats:
             raise geo_e or first_e
 
-        self._sort_formats(formats)
-
         feed_data = self._download_json(
             'https://feed.entertainment.tv.theplatform.eu/f/PR1GhC/mediaset-prod-all-programs-v2/guid/-/' + guid,
             guid, fatal=False)
@@ -286,7 +284,7 @@ class MediasetIE(ThePlatformBaseIE):
         return info
 
 
-class MediasetShowIE(MediasetIE):
+class MediasetShowIE(MediasetIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'''(?x)
                     (?:
                         https?://

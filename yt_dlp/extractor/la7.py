@@ -78,8 +78,6 @@ class LA7IE(InfoExtractor):
             if http_f:
                 formats.append(http_f)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': self._og_search_title(webpage, default=None),
@@ -136,7 +134,6 @@ class LA7PodcastEpisodeIE(InfoExtractor):
             'format_id': ext,
             'ext': ext,
         }]
-        self._sort_formats(formats)
 
         title = self._html_search_regex(
             (r'<div class="title">(?P<title>.+?)</',
@@ -194,7 +191,7 @@ class LA7PodcastEpisodeIE(InfoExtractor):
         return self._extract_info(webpage, video_id)
 
 
-class LA7PodcastIE(LA7PodcastEpisodeIE):
+class LA7PodcastIE(LA7PodcastEpisodeIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'la7.it:podcast'
     _VALID_URL = r'(https?://)?(www\.)?la7\.it/(?P<id>[^/]+)/podcast/?(?:$|[#?])'
 

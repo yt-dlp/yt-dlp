@@ -150,8 +150,6 @@ class MedalTVIE(InfoExtractor):
                     'An unknown error occurred ({0}).'.format(error),
                     video_id=video_id)
 
-        self._sort_formats(formats)
-
         # Necessary because the id of the author is not known in advance.
         # Won't raise an issue if no profile can be found as this is optional.
         author = traverse_obj(api_response, ('pageProps', 'profile')) or {}

@@ -54,7 +54,6 @@ class MLBBaseIE(InfoExtractor):
                         'width': int(mobj.group(1)),
                     })
                 formats.append(f)
-        self._sort_formats(formats)
 
         thumbnails = []
         for cut in (try_get(feed, lambda x: x['image']['cuts'], list) or []):
@@ -339,7 +338,6 @@ class MLBTVIE(InfoExtractor):
             formats.extend(f)
             self._merge_subtitles(s, target=subtitles)
 
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': traverse_obj(airings, (..., 'titles', 0, 'episodeName'), get_all=False),

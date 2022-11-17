@@ -250,7 +250,6 @@ class FC2LiveIE(InfoExtractor):
                             'Referer': url,
                         }))
 
-        self._sort_formats(formats)
         for fmt in formats:
             fmt.update({
                 'protocol': 'fc2_live',

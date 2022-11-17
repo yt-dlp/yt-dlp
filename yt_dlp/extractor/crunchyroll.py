@@ -208,7 +208,6 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                     f['language'] = stream_response.get('audio_locale')
                 f['quality'] = hardsub_preference(hardsub_lang.lower())
             formats.extend(adaptive_formats)
-        self._sort_formats(formats)
 
         return {
             'id': internal_id,

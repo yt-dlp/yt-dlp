@@ -128,8 +128,6 @@ class SpankBangIE(InfoExtractor):
                     format_url = format_url[0]
                 extract_format(format_id, format_url)
 
-        self._sort_formats(formats)
-
         info = self._search_json_ld(webpage, video_id, default={})
 
         title = self._html_search_regex(

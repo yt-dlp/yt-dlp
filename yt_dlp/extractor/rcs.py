@@ -196,7 +196,6 @@ class RCSBaseIE(InfoExtractor):
                 'format_id': 'http-mp4',
                 'url': urls['mp4']
             })
-        self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):

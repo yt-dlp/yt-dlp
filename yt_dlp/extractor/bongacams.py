@@ -57,7 +57,6 @@ class BongaCamsIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             '%s/hls/stream_%s/playlist.m3u8' % (server_url, uploader_id),
             channel_id, 'mp4', m3u8_id='hls', live=True)
-        self._sort_formats(formats)
 
         return {
             'id': channel_id,

@@ -132,7 +132,6 @@ class FOXIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, 'mp4',
             entry_protocol='m3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
 
         data = try_get(
             video, lambda x: x['trackingData']['properties'], dict) or {}

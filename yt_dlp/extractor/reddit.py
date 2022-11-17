@@ -179,7 +179,6 @@ class RedditIE(InfoExtractor):
                 hls_playlist_url, display_id, 'mp4', m3u8_id='hls', fatal=False))
             formats.extend(self._extract_mpd_formats(
                 dash_playlist_url, display_id, mpd_id='dash', fatal=False))
-            self._sort_formats(formats)
 
             return {
                 **info,

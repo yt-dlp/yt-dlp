@@ -117,7 +117,6 @@ class BitChuteIE(InfoExtractor):
             self.raise_no_formats(
                 'Video is unavailable. Please make sure this video is playable in the browser '
                 'before reporting this issue.', expected=True, video_id=video_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

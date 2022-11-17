@@ -8,7 +8,7 @@ from ..utils import (
 )
 
 
-class TheWeatherChannelIE(ThePlatformIE):
+class TheWeatherChannelIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?weather\.com(?P<asset_name>(?:/(?P<locale>[a-z]{2}-[A-Z]{2}))?/(?:[^/]+/)*video/(?P<id>[^/?#]+))'
     _TESTS = [{
         'url': 'https://weather.com/series/great-outdoors/video/ice-climber-is-in-for-a-shock',
@@ -79,7 +79,6 @@ class TheWeatherChannelIE(ThePlatformIE):
                     'url': variant_url,
                     'format_id': variant_id,
                 })
-        self._sort_formats(formats)
 
         cc_url = video_data.get('cc_url')
 
