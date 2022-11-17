@@ -16,7 +16,6 @@ import sys
 
 from .compat import compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
-from .downloader import FileDownloader
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
@@ -50,6 +49,7 @@ from .utils import (
     format_field,
     int_or_none,
     match_filter_func,
+    parse_bytes,
     parse_duration,
     preferredencoding,
     read_batch_urls,
@@ -281,19 +281,19 @@ def validate_options(opts):
             raise ValueError(f'invalid {key} retry sleep expression {expr!r}')
 
     # Bytes
-    def parse_bytes(name, value):
+    def validate_bytes(name, value):
         if value is None:
             return None
-        numeric_limit = FileDownloader.parse_bytes(value)
+        numeric_limit = parse_bytes(value)
         validate(numeric_limit is not None, 'rate limit', value)
         return numeric_limit
 
-    opts.ratelimit = parse_bytes('rate limit', opts.ratelimit)
-    opts.throttledratelimit = parse_bytes('throttled rate limit', opts.throttledratelimit)
-    opts.min_filesize = parse_bytes('min filesize', opts.min_filesize)
-    opts.max_filesize = parse_bytes('max filesize', opts.max_filesize)
-    opts.buffersize = parse_bytes('buffer size', opts.buffersize)
-    opts.http_chunk_size = parse_bytes('http chunk size', opts.http_chunk_size)
+    opts.ratelimit = validate_bytes('rate limit', opts.ratelimit)
+    opts.throttledratelimit = validate_bytes('throttled rate limit', opts.throttledratelimit)
+    opts.min_filesize = validate_bytes('min filesize', opts.min_filesize)
+    opts.max_filesize = validate_bytes('max filesize', opts.max_filesize)
+    opts.buffersize = validate_bytes('buffer size', opts.buffersize)
+    opts.http_chunk_size = validate_bytes('http chunk size', opts.http_chunk_size)
 
     # Output templates
     def validate_outtmpl(tmpl, msg):
