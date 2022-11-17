@@ -425,8 +425,6 @@ class NiconicoIE(InfoExtractor):
             if fmt:
                 formats.append(fmt)
 
-        self._sort_formats(formats)
-
         # Start extracting information
         tags = None
         if webpage:

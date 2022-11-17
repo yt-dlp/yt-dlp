@@ -112,8 +112,6 @@ class AllocineIE(InfoExtractor):
                 })
             duration, view_count, timestamp = [None] * 3
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'display_id': display_id,

@@ -85,7 +85,6 @@ class OoyalaBaseIE(InfoExtractor):
         if not formats and not auth_data.get('authorized'):
             self.raise_no_formats('%s said: %s' % (
                 self.IE_NAME, auth_data['message']), expected=True)
-        self._sort_formats(formats)
 
         subtitles = {}
         for lang, sub in metadata.get('closed_captions_vtt', {}).get('captions', {}).items():

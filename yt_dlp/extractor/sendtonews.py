@@ -77,9 +77,6 @@ class SendtoNewsIE(InfoExtractor):
                     'format_id': '%s-%d' % (determine_protocol(f), tbr),
                     'tbr': tbr,
                 })
-            # 'tbr' was explicitly set to be preferred over 'height' originally,
-            # So this is being kept unless someone can confirm this is unnecessary
-            self._sort_formats(info_dict['formats'], ('tbr', 'res'))
 
             thumbnails = []
             if video.get('thumbnailUrl'):
@@ -98,6 +95,9 @@ class SendtoNewsIE(InfoExtractor):
                 'thumbnails': thumbnails,
                 'duration': float_or_none(video.get('SM_length')),
                 'timestamp': parse_iso8601(video.get('S_sysDate'), delimiter=' '),
+                # 'tbr' was explicitly set to be preferred over 'height' originally,
+                # So this is being kept unless someone can confirm this is unnecessary
+                '_format_sort_fields': ('tbr', 'res')
             })
             entries.append(info_dict)
 

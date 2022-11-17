@@ -212,7 +212,6 @@ class RTSIE(SRGSSRIE):  # XXX: Do not subclass from concrete IE
             })
 
         self._check_formats(formats, media_id)
-        self._sort_formats(formats)
 
         duration = info.get('duration') or info.get('cutout') or info.get('cutduration')
         if isinstance(duration, compat_str):

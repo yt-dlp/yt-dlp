@@ -81,7 +81,6 @@ class DaftsexIE(InfoExtractor):
                     'height': int_or_none(height),
                     'ext': ext,
                 })
-            self._sort_formats(formats)
 
             return {
                 'id': video_id,
@@ -117,7 +116,6 @@ class DaftsexIE(InfoExtractor):
                     'height': int_or_none(height),
                     'ext': ext,
                 })
-        self._sort_formats(formats)
 
         thumbnails = []
         for k, v in item.items():

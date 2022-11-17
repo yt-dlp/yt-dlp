@@ -74,7 +74,6 @@ class TVNowBaseIE(InfoExtractor):
             if not info.get('free', True):
                 raise ExtractorError(
                     'Video %s is not available for free' % video_id, expected=True)
-        self._sort_formats(formats)
 
         description = info.get('articleLong') or info.get('articleShort')
         timestamp = parse_iso8601(info.get('broadcastStartDate'), ' ')
@@ -392,7 +391,6 @@ class TVNowIE(TVNowNewBaseIE):
             if not info.get('free', True):
                 raise ExtractorError(
                     'Video %s is not available for free' % video_id, expected=True)
-        self._sort_formats(formats)
 
         description = source.get('description')
         thumbnail = url_or_none(source.get('poster'))

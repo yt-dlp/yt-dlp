@@ -233,7 +233,6 @@ class TikTokBaseIE(InfoExtractor):
         if auth_cookie:
             for f in formats:
                 self._set_cookie(compat_urllib_parse_urlparse(f['url']).hostname, 'sid_tt', auth_cookie.value)
-        self._sort_formats(formats, ('quality', 'codec', 'size', 'br'))
 
         thumbnails = []
         for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
@@ -291,7 +290,8 @@ class TikTokBaseIE(InfoExtractor):
             'availability': self._availability(
                 is_private='Private' in labels,
                 needs_subscription='Friends only' in labels,
-                is_unlisted='Followers only' in labels)
+                is_unlisted='Followers only' in labels),
+            '_format_sort_fields': ('quality', 'codec', 'size', 'br'),
         }
 
     def _parse_aweme_video_web(self, aweme_detail, webpage_url):
@@ -333,7 +333,6 @@ class TikTokBaseIE(InfoExtractor):
                 'height': height,
             })
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats)
 
         thumbnails = []
         for thumbnail_name in ('thumbnail', 'cover', 'dynamicCover', 'originCover'):

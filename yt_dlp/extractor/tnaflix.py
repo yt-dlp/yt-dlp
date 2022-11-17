@@ -162,7 +162,6 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
         def extract_field(pattern, name):
             return self._html_search_regex(pattern, webpage, name, default=None) if pattern else None
 
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'display_id': display_id,

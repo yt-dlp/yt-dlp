@@ -162,7 +162,6 @@ class ESPNIE(OnceIE):
         links = clip.get('links', {})
         traverse_source(links.get('source', {}))
         traverse_source(links.get('mobile', {}))
-        self._sort_formats(formats)
 
         description = clip.get('caption') or clip.get('description')
         thumbnail = clip.get('thumbnail')
@@ -269,7 +268,6 @@ class ESPNCricInfoIE(InfoExtractor):
                     'url': item['url'],
                     'vcodec': 'none',
                 })
-        self._sort_formats(formats)
         return {
             'id': id,
             'title': data_json.get('title'),
@@ -400,7 +398,6 @@ class WatchESPNIE(AdobePassIE):
             m3u8_url, headers = asset['stream'], {}
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id='hls')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

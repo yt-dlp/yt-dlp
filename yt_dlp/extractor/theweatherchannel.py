@@ -79,7 +79,6 @@ class TheWeatherChannelIE(ThePlatformIE):  # XXX: Do not subclass from concrete 
                     'url': variant_url,
                     'format_id': variant_id,
                 })
-        self._sort_formats(formats)
 
         cc_url = video_data.get('cc_url')
 

@@ -84,8 +84,6 @@ class AMPIE(InfoExtractor):  # XXX: Conventionally, base classes should end with
                     'ext': ext,
                 })
 
-        self._sort_formats(formats)
-
         timestamp = unified_timestamp(item.get('pubDate'), ' ') or parse_iso8601(item.get('dc-date'))
 
         return {

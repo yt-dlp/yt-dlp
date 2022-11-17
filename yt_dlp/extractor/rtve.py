@@ -130,7 +130,6 @@ class RTVEALaCartaIE(InfoExtractor):
                     'quality': q(quality),
                     'url': video_url,
                 })
-        self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):
@@ -238,7 +237,6 @@ class RTVEAudioIE(RTVEALaCartaIE):  # XXX: Do not subclass from concrete IE
                     'quality': q(quality),
                     'url': audio_url,
                 })
-        self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):

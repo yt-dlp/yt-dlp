@@ -103,8 +103,6 @@ class WDRIE(InfoExtractor):
                         a_format['ext'] = ext
                     formats.append(a_format)
 
-        self._sort_formats(formats)
-
         caption_url = media_resource.get('captionURL')
         if caption_url:
             subtitles['de'] = [{

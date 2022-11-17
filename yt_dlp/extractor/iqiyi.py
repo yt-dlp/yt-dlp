@@ -385,7 +385,6 @@ class IqiyiIE(InfoExtractor):
 
             self._sleep(5, video_id)
 
-        self._sort_formats(formats)
         title = (get_element_by_id('widget-videotitle', webpage)
                  or clean_html(get_element_by_attribute('class', 'mod-play-tit', webpage))
                  or self._html_search_regex(r'<span[^>]+data-videochanged-title="word"[^>]*>([^<]+)</span>', webpage, 'title'))
@@ -666,8 +665,6 @@ class IqIE(InfoExtractor):
                     **parse_resolution(video_format.get('scrsz'))
                 })
             formats.extend(extracted_formats)
-
-        self._sort_formats(formats)
 
         for sub_format in traverse_obj(initial_format_data, ('program', 'stl', ...), expected_type=dict, default=[]):
             lang = self._LID_TAGS.get(str_or_none(sub_format.get('lid')), sub_format.get('_name'))

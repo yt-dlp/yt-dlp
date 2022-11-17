@@ -87,7 +87,6 @@ class JamendoIE(InfoExtractor):
             ('ogg1', 'ogg', 'ogg'),
             ('flac', 'flac', 'flac'),
         ))]
-        self._sort_formats(formats)
 
         urls = []
         thumbnails = []

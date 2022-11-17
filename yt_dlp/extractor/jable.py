@@ -45,7 +45,6 @@ class JableIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         formats = self._extract_m3u8_formats(
             self._search_regex(r'var\s+hlsUrl\s*=\s*\'([^\']+)', webpage, 'hls_url'), video_id, 'mp4', m3u8_id='hls')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

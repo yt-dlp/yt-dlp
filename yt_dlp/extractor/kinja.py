@@ -147,7 +147,6 @@ class KinjaEmbedIE(InfoExtractor):
                     formats.extend(self._extract_m3u8_formats(
                         m3u8_url, video_id, 'mp4', 'm3u8_native',
                         m3u8_id='hls', fatal=False))
-            self._sort_formats(formats)
 
             thumbnail = None
             poster = data.get('poster') or {}
@@ -194,8 +193,6 @@ class KinjaEmbedIE(InfoExtractor):
                         'bitrate', default=None)),
                     'url': fallback_rendition_url,
                 })
-
-            self._sort_formats(formats)
 
             return {
                 'id': video_id,

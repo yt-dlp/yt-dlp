@@ -37,7 +37,6 @@ class GronkhIE(InfoExtractor):
                 'url': data_json['vtt_url'],
                 'ext': 'vtt',
             })
-        self._sort_formats(formats)
         return {
             'id': id,
             'title': data_json.get('title'),

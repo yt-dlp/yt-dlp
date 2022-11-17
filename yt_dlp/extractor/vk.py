@@ -507,7 +507,6 @@ class VKIE(VKBaseIE):
                     'url': format_url,
                     'ext': 'flv',
                 })
-        self._sort_formats(formats)
 
         subtitles = {}
         for sub in data.get('subs') or {}:

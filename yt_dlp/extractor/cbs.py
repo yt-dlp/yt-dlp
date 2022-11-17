@@ -52,7 +52,6 @@ class CBSBaseIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
             subtitles = self._merge_subtitles(subtitles, tp_subtitles)
         if last_e and not formats:
             self.raise_no_formats(last_e, True, content_id)
-        self._sort_formats(formats)
 
         extra_info.update({
             'id': content_id,

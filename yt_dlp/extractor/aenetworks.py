@@ -62,7 +62,6 @@ class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
             subtitles = self._merge_subtitles(subtitles, tp_subtitles)
         if last_e and not formats:
             raise last_e
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'formats': formats,

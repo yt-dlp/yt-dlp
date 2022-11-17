@@ -223,7 +223,6 @@ class VVVVIDIE(InfoExtractor):
             metadata_from_url(embed_code)
 
         if not is_youtube:
-            self._sort_formats(formats)
             info['formats'] = formats
 
         metadata_from_url(video_data.get('thumbnail'))

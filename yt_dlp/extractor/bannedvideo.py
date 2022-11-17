@@ -135,7 +135,6 @@ query GetCommentReplies($id: String!) {
             formats.extend(self._extract_m3u8_formats(
                 video_info.get('streamUrl'), video_id, 'mp4',
                 entry_protocol='m3u8_native', m3u8_id='hls', live=True))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

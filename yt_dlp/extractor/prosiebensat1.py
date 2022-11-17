@@ -156,7 +156,6 @@ class ProSiebenSat1BaseIE(InfoExtractor):
                                 'tbr': tbr,
                                 'format_id': 'http%s' % ('-%d' % tbr if tbr else ''),
                             })
-        self._sort_formats(formats)
 
         return {
             'duration': float_or_none(video.get('duration')),

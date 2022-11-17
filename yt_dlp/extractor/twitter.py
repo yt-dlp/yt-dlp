@@ -876,7 +876,6 @@ class TwitterIE(TwitterBaseIE):
                 fmts, subs = self._extract_variant_formats(variant, twid)
                 subtitles = self._merge_subtitles(subtitles, subs)
                 formats.extend(fmts)
-            self._sort_formats(formats, ('res', 'br', 'size', 'proto'))  # The codec of http formats are unknown
 
             thumbnails = []
             media_url = media.get('media_url_https') or media.get('media_url')
@@ -898,6 +897,8 @@ class TwitterIE(TwitterBaseIE):
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
                 'duration': float_or_none(video_info.get('duration_millis'), 1000),
+                # The codec of http formats are unknown
+                '_format_sort_fields': ('res', 'br', 'size', 'proto'),
             }
 
         def extract_from_card_info(card):
@@ -952,7 +953,6 @@ class TwitterIE(TwitterBaseIE):
                 vmap_url = get_binding_value('amplify_url_vmap') if is_amplify else get_binding_value('player_stream_url')
                 content_id = get_binding_value('%s_content_id' % (card_name if is_amplify else 'player'))
                 formats, subtitles = self._extract_formats_from_vmap_url(vmap_url, content_id or twid)
-                self._sort_formats(formats)
 
                 thumbnails = []
                 for suffix in ('_small', '', '_large', '_x_large', '_original'):

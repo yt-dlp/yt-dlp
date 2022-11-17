@@ -48,7 +48,6 @@ class DumpertIE(InfoExtractor):
                 'format_id': version,
                 'quality': quality(version),
             })
-        self._sort_formats(formats)
 
         thumbnails = []
         stills = item.get('stills') or {}

@@ -1699,7 +1699,14 @@ class InfoExtractor:
         return FormatSort
 
     def _sort_formats(self, formats, field_preference=[]):
-        if formats and field_preference:
+        if not field_preference:
+            self._downloader.deprecation_warning(
+                'yt_dlp.InfoExtractor._sort_formats is deprecated and is no longer required')
+            return
+        self._downloader.deprecation_warning(
+            'yt_dlp.InfoExtractor._sort_formats is deprecated and no longer works as expected. '
+            'Return _format_sort_fields in the info_dict instead')
+        if formats:
             formats[0]['__sort_fields'] = field_preference
 
     def _check_formats(self, formats, video_id):
@@ -2431,7 +2438,6 @@ class InfoExtractor:
                     'width': int_or_none(location.get(xpath_with_ns('s1:width', NS_MAP))),
                     'height': int_or_none(location.get(xpath_with_ns('s1:height', NS_MAP))),
                 })
-            self._sort_formats(formats)
 
             entries.append({
                 'id': playlist_id,
@@ -3269,7 +3275,6 @@ class InfoExtractor:
                     'url': formats[0]['url'],
                 })
             else:
-                self._sort_formats(formats)
                 entry['formats'] = formats
             entries.append(entry)
         if len(entries) == 1:
