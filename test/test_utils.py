@@ -1796,6 +1796,25 @@ Line 1
             (get_element_by_tag_res_innerspan_text, get_element_by_tag_res_innerspan_html))
         self.assertRaises(compat_HTMLParseError, get_element_text_and_html_by_tag, 'article', html)
 
+    def test_get_element_text_and_html_by_tag_malformed(self):
+        inner_text = 'inner_text'
+        malnested_elements = f'<malnested_a><malnested_b>{inner_text}</malnested_a></malnested_b>'
+        html = f'<div>{malnested_elements}</div>'
+
+        self.assertEqual(get_element_text_and_html_by_tag('div', html), (malnested_elements, html))
+        self.assertEqual(
+            get_element_text_and_html_by_tag('malnested_a', html),
+            (f'<malnested_b>{inner_text}',
+             f'<malnested_a><malnested_b>{inner_text}</malnested_a>'))
+        self.assertEqual(
+            get_element_text_and_html_by_tag('malnested_b', html),
+            (f'{inner_text}</malnested_a>',
+             f'<malnested_b>{inner_text}</malnested_a></malnested_b>'))
+        self.assertRaises(
+            compat_HTMLParseError, get_element_text_and_html_by_tag, 'orphan', f'{html}</orphan>')
+        self.assertRaises(
+            compat_HTMLParseError, get_element_text_and_html_by_tag, 'orphan', f'<orphan>{html}')
+
     def test_iri_to_uri(self):
         self.assertEqual(
             iri_to_uri('https://www.google.com/search?q=foo&ie=utf-8&oe=utf-8&client=firefox-b'),
