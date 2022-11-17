@@ -2,8 +2,6 @@
 
 ### Description of your *pull request* and other information
 
-</details>
-
 <!--
 
 Explanation of your *pull request* in arbitrary form goes here. Please **make sure the description explains the purpose and effect** of your *pull request* and is worded well enough to be understood. Provide as much **context and examples** as possible
