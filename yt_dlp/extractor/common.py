@@ -344,6 +344,7 @@ class InfoExtractor:
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
                     to set it
     _old_archive_ids: A list of old archive ids needed for backward compatibility
+    _format_sort_fields: A list of fields to use for sorting formats
     __post_extractor: A function to be called just before the metadata is
                     written to either disk, logger or console. The function
                     must return a dict which will be added to the info_dict.
@@ -1698,9 +1699,8 @@ class InfoExtractor:
         return FormatSort
 
     def _sort_formats(self, formats, field_preference=[]):
-        if not formats:
-            return
-        formats.sort(key=FormatSorter(self._downloader, field_preference).calculate_preference)
+        if formats and field_preference:
+            formats[0]['__sort_fields'] = field_preference
 
     def _check_formats(self, formats, video_id):
         if formats:
