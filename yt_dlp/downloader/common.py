@@ -87,7 +87,7 @@ class FileDownloader:
     def _set_ydl(self, ydl):
         self.ydl = ydl
 
-        # TODO(logging): Implement them regularly through the logger
+        # TODO(output): Implement them regularly through the logger
         for func in (
             'deprecation_warning',
             'deprecated_feature',

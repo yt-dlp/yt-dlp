@@ -33,10 +33,10 @@ class Verbosity(Enum):
 
 class _OutputBase:
     allow_bidi = False
-    allow_color = False
+    use_color = False
 
     def format(self, text, *text_formats):
-        if not self.allow_color:
+        if not self.use_color:
             return text
 
         return format_text(text, *text_formats)
@@ -48,10 +48,10 @@ class _OutputBase:
 class StreamOutput(_OutputBase):
     allow_bidi = True
 
-    def __init__(self, stream, allow_color, encoding):
+    def __init__(self, stream, use_color, encoding):
         self._stream = stream
         self._encoding = encoding
-        self.allow_color = allow_color and supports_terminal_sequences(stream)
+        self.use_color = use_color and supports_terminal_sequences(stream)
 
     def log(self, message):
         write_string(message, self._stream, self._encoding)
@@ -86,7 +86,7 @@ class _LoggerProxy:
         functools.update_wrapper(self, obj)
         for k, v in kwargs.items():
             original = getattr(obj, k)
-            # TODO(logging): XXX: This should not need `_LoggerProxy.self`
+            # TODO(output): XXX: This should not need `_LoggerProxy.self`
             override = v(obj, original)
             functools.update_wrapper(override, original)
             setattr(self, k, override)
@@ -134,7 +134,7 @@ class Logger:
         self._raise_errors = not ignore_errors
 
         screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, allow_color, encoding)
-        # TODO(logging): remove type hint
+        # TODO(output): remove type hint
         self.mapping: dict[LogLevel, _OutputBase] = {LogLevel.SCREEN: screen_output}
 
     def make_derived(self, screen=None, debug=None, info=None, warning=None, error=None, handle_error=None) -> 'Logger':
@@ -175,7 +175,7 @@ class Logger:
         })
 
     def setup_logging_logger(self):
-        # TODO(logging): implement LoggingLogger
+        # TODO(output): implement LoggingLogger
         logger = LoggingOutput(logging.INFO)
         self.mapping.update({
             LogLevel.DEBUG: NULL_OUTPUT,

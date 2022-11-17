@@ -2013,7 +2013,7 @@ def write_string(s, out=None, encoding=None):
     out.flush()
 
 
-# TODO(logging): XXX: This could take a LogLevel, printer is basically unused
+# TODO(output): XXX: This could take a LogLevel, printer is basically unused
 def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
     from . import _IN_CLI
     if _IN_CLI:
@@ -5862,7 +5862,7 @@ class RetryManager:
             if self.error:
                 self.error_callback(self.error, self.attempt, self.retries)
 
-    # TODO(logging): XXX: This could take a LogLevel, or automatically do info and warn?
+    # TODO(output): XXX: This could take a LogLevel, or automatically do info and warn?
     @staticmethod
     def report_retry(e, count, retries, *, sleep_func, info, warn, error=None, suffix=None):
         """Utility function for reporting retries"""

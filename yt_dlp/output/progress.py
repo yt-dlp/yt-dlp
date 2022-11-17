@@ -59,7 +59,7 @@ class Progress:
             self._write(self._add_line_number(text, pos), '\n')
             return
 
-        if self.output.allow_color:
+        if self.output.use_color:
             self._write(self._move_to(pos), ERASE_LINE, text)
             return
 
@@ -85,14 +85,14 @@ class Progress:
 
         # move cursor to the end of the last line and write line break
         if self.preserve:
-            if self.output.allow_color:
+            if self.output.use_color:
                 self._write(self._move_to(self.maximum), '\n')
             else:
                 self._write('\n')
             return
 
         # Try to clear as many lines as possible
-        if self.output.allow_color:
+        if self.output.use_color:
             self._write(
                 self._move_to(self.maximum), ERASE_LINE,
                 f'{MOVE_UP}{ERASE_LINE}' * self.maximum)
