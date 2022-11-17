@@ -22,19 +22,17 @@ class NetverseBaseIE(InfoExtractor):
             data=b'', fatal=False) or {}
         last_page_number = traverse_obj(comment_json, ('response', 'comments', 'last_page'))
 
-        comment_list = []
         for i in range(last_page_number):
             comment_data = self._download_json(
                 f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}', video_id,
                 data=b'', fatal=False, query={'page': i + 1}, note='Downloading JSON comment metadata') or {}
-            comment_list.extend([{
+            yield [{
                 'id': comment.get('_id'),
                 'text': comment.get('comment'),
                 'author_id': comment.get('customer_id'),
                 'author': traverse_obj(comment, ('customer', 'name')),
                 'author_thumbnail': traverse_obj(comment, ('customer', 'profile_picture')),
-            } for comment in traverse_obj(comment_data, ('response', 'comments', 'data', ...)) or ()])
-        return comment_list
+            } for comment in traverse_obj(comment_data, ('response', 'comments', 'data', ...)) or ()]
 
 
 class NetverseIE(NetverseBaseIE):
@@ -156,6 +154,10 @@ class NetverseIE(NetverseBaseIE):
             'view_count': int,
             'episode': 'Episode 1',
             'uploader': 'Net Prime',
+            'comment_count': int,
+        },
+        'params':{
+            'getcomments': True
         }
     }, {
         # video with multiple page comment
@@ -179,6 +181,10 @@ class NetverseIE(NetverseBaseIE):
             'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
             'uploader_id': 'x2ir3vq',
             'season': 'Season 1',
+            'comment_count': int,
+        },
+        'params':{
+            'getcomments': True
         }
     }]
 
@@ -197,7 +203,7 @@ class NetverseIE(NetverseBaseIE):
             'thumbnail': traverse_obj(videos, ('program_detail', 'thumbnail_image')),
             'description': traverse_obj(videos, ('program_detail', 'description')),
             'episode_number': videos.get('episode_order'),
-            '__post_extractor': self.extract_comments(display_id, self._get_comments(display_id)),
+            '__post_extractor': self.extract_comments(display_id),
         }
 
 
