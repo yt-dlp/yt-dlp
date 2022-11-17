@@ -1,6 +1,7 @@
 import re
 
 from .common import InfoExtractor
+from ..utils import clean_html, get_element_html_by_class
 
 
 class MediaStreamIE(InfoExtractor):
@@ -117,3 +118,41 @@ class MediaStreamIE(InfoExtractor):
             'is_live': player_config.get('type') == 'live',
             'thumbnail': self._og_search_thumbnail(webpage),
         }
+
+
+class WinSportsVideoIE(InfoExtractor):
+    _VALID_URL = r'https?://www\.winsports\.co/videos/(?P<display_id>[\w-]+)-(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.winsports.co/videos/siempre-castellanos-gran-atajada-del-portero-cardenal-para-evitar-la-caida-de-su-arco-60536',
+        'info_dict': {
+            'id': '62dc8357162c4b0821fcfb3c',
+            'display_id': 'siempre-castellanos-gran-atajada-del-portero-cardenal-para-evitar-la-caida-de-su-arco',
+            'title': '¡Siempre Castellanos! Gran atajada del portero \'cardenal\' para evitar la caída de su arco',
+            'description': 'md5:eb811b2b2882bdc59431732c06b905f2',
+            'thumbnail': r're:^https?://[^?#]+62dc8357162c4b0821fcfb3c',
+            'ext': 'mp4',
+        }
+    }, {
+        'url': 'https://www.winsports.co/videos/observa-aqui-los-goles-del-empate-entre-tolima-y-nacional-60548',
+        'info_dict': {
+            'id': '62dcb875ef12a5526790b552',
+            'display_id': 'observa-aqui-los-goles-del-empate-entre-tolima-y-nacional',
+            'title': 'Observa aquí los goles del empate entre Tolima y Nacional',
+            'description': 'md5:b19402ba6e46558b93fd24b873eea9c9',
+            'thumbnail': r're:^https?://[^?#]+62dcb875ef12a5526790b552',
+            'ext': 'mp4',
+        }
+    }]
+
+    def _real_extract(self, url):
+        display_id, video_id = self._match_valid_url(url).group('display_id', 'id')
+        webpage = self._download_webpage(url, display_id)
+
+        media_setting_json = self._search_json(
+            r'<script\s*[^>]+data-drupal-selector="drupal-settings-json">', webpage, 'drupal-setting-json', display_id)
+
+        mediastream_id = media_setting_json['settings']['mediastream_formatter'][video_id]['mediastream_id']
+
+        return self.url_result(
+            f'https://mdstrm.com/embed/{mediastream_id}', MediaStreamIE, video_id, url_transparent=True,
+            display_id=display_id, video_title=clean_html(get_element_html_by_class('title-news', webpage)))

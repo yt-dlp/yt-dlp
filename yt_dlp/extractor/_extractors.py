@@ -977,7 +977,10 @@ from .mediasite import (
     MediasiteCatalogIE,
     MediasiteNamedCatalogIE,
 )
-from .mediastream import MediaStreamIE
+from .mediastream import (
+    MediaStreamIE,
+    WinSportsVideoIE,
+)
 from .mediaworksnz import MediaWorksNZVODIE
 from .medici import MediciIE
 from .megaphone import MegaphoneIE
@@ -2203,7 +2206,6 @@ from .weiqitv import WeiqiTVIE
 from .wikimedia import WikimediaIE
 from .willow import WillowIE
 from .wimtv import WimTVIE
-from .winsports import WinSportsVideoIE
 from .whowatch import WhoWatchIE
 from .wistia import (
     WistiaIE,
