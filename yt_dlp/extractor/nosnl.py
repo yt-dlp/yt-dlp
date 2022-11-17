@@ -3,7 +3,7 @@ from ..utils import parse_duration, parse_iso8601, traverse_obj
 
 
 class NOSNLArticleIE(InfoExtractor):
-    _VALID_URL = r'https?://nos\.nl/((?!video)(\w+/)?\w+/)\d+-(?P<display_id>[\w-]+)'
+    _VALID_URL = r'https?://nos\.nl/(?P<type>video|(\w+/)?\w+)/?\d+-(?P<display_id>[\w-]+)'
     _TESTS = [
         {
             # only 1 video
@@ -46,44 +46,64 @@ class NOSNLArticleIE(InfoExtractor):
                 'thumbnail': 'https://cdn.nos.nl/image/2022/08/16/888178/1024x576a.jpg',
             },
             'playlist_count': 2,
+        }, {
+            # video url
+            'url': 'https://nos.nl/video/2452718-xi-en-trudeau-botsen-voor-de-camera-op-g20-top-je-hebt-gelekt',
+            'info_dict': {
+                'id': '2452718',
+                # 'ext': 'mp4',
+                'ext': None,  # FIXME: set back to mp4
+                'description': 'md5:61907dac576f75c11bf8ffffd4a3cc0f',
+                'title': 'Xi en Trudeau botsen voor de camera op G20-top: \'Je hebt gelekt\'',
+                'duration': 43.0,
+                'thumbnail': 'https://cdn.nos.nl/image/2022/11/17/916155/3840x2160a.jpg',
+            },
+            'playlist_count': 1,
         }
     ]
 
-    def _entries(self, nextjs_json, display_id):
-        for item in nextjs_json['items']:
-            if item.get('type') == 'video':
-                formats, subtitle = self._extract_m3u8_formats_and_subtitles(
-                    traverse_obj(item, ('source', 'url')), display_id, ext='mp4')
-                yield {
-                    'id': str(item['id']),
-                    'title': item.get('title'),
-                    'description': item.get('description'),
-                    'formats': formats,
-                    'subtitles': subtitle,
-                    'duration': parse_duration(item.get('duration')),
-                    'thumbnails': [{
-                        'url': traverse_obj(image, ('url', ...), get_all=False),
-                        'width': image.get('width'),
-                        'height': image.get('height')
-                    } for image in traverse_obj(item, ('imagesByRatio', ...))[0]],
-                }
+    def _get_video_data(self, data_process, display_id):
+        if data_process.get('type') == 'video':
+            formats, subtitle = self._extract_m3u8_formats_and_subtitles(
+                traverse_obj(data_process, ('source', 'url')), display_id, ext="mp4")
+            yield {
+                'id': str(data_process['id']),
+                'title': data_process.get('title'),
+                'description': data_process.get('description'),
+                'formats': formats,
+                'subtitles': subtitle,
+                'duration': parse_duration(data_process.get('duration')),
+                'thumbnails': [{
+                    'url': traverse_obj(image, ('url', ...), get_all=False),
+                    'width': image.get('width'),
+                    'height': image.get('height')
+                } for image in traverse_obj(data_process, ('imagesByRatio', ...))[0]],
+            }
 
-            elif item.get('type') == 'audio':
-                yield {
-                    'id': str(item['id']),
-                    'title': item.get('title'),
-                    'url': traverse_obj(item, ('media', 'src')),
-                    'ext': 'mp3',
-                }
+        elif data_process.get('type') == 'audio':
+            yield {
+                'id': str(data_process['id']),
+                'title': data_process.get('title'),
+                'url': traverse_obj(data_process, ('media', 'src')),
+                'ext': 'mp3',
+            }
+
+    def _entries(self, nextjs_json, display_id):
+        if isinstance(nextjs_json, dict):
+            yield from self._get_video_data(nextjs_json, display_id)
+        else:
+            for item in nextjs_json:
+                yield from self._get_video_data(item, display_id)
 
     def _real_extract(self, url):
-        display_id = self._match_valid_url(url).group('display_id')
+        site_type, display_id = self._match_valid_url(url).group('type', 'display_id')
         webpage = self._download_webpage(url, display_id)
 
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['data']
         return {
             '_type': 'playlist',
-            'entries': self._entries(nextjs_json, display_id),
+            'entries': self._entries(
+                nextjs_json['video'] if site_type == 'video' else nextjs_json['items'], display_id),
             'id': str(nextjs_json['id']),
             'title': nextjs_json.get('title') or self._html_search_meta(['title', 'og:title', 'twitter:title'], webpage),
             'description': (nextjs_json.get('description')
