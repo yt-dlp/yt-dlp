@@ -1167,7 +1167,8 @@ class TwitterSpacesIE(TwitterBaseIE):
             # XXX: Native downloader does not work
             formats = self._extract_m3u8_formats(
                 traverse_obj(source, 'noRedirectPlaybackUrl', 'location'),
-                metadata['media_key'], 'm4a', 'm3u8', live=live_status == 'is_live')
+                metadata['media_key'], 'm4a', 'm3u8', live=live_status == 'is_live',
+                headers={'Referer': 'https://twitter.com/'})
             for fmt in formats:
                 fmt.update({'vcodec': 'none', 'acodec': 'aac'})
 
