@@ -4385,13 +4385,15 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _extract_channel_renderer(self, renderer):
         channel_id = renderer['channelId']
         title = self._get_text(renderer, 'title')
+        channel_url = f'https://www.youtube.com/channel/{channel_id}'
         return {
             '_type': 'url',
-            'url': f'https://www.youtube.com/channel/{channel_id}',
+            'url': channel_url,
             'id': channel_id,
             'ie_key': YoutubeTabIE.ie_key(),
             'channel': title,
             'channel_id': channel_id,
+            'channel_url': channel_url,
             'title': title,
             'channel_follower_count': self._get_count(renderer, 'subscriberCountText'),
             'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
@@ -6563,7 +6565,9 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
                 'title': 'Kurzgesagt – In a Nutshell',
                 'channel_id': 'UCsXVk37bltHxD1rDPwtNM8Q',
                 'channel_follower_count': int,
-                'playlist_count': int
+                'playlist_count': int,
+                'channel_url': 'https://www.youtube.com/channel/UCsXVk37bltHxD1rDPwtNM8Q',
+                'thumbnails': list
             }
         }],
         'params': {'extract_flat': True, 'playlist_items': '1'},
