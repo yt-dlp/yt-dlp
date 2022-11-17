@@ -156,8 +156,6 @@ class TwitterBaseIE(InfoExtractor):
 
                 return result
 
-        raise ExtractorError('Failed to call API')
-
     def _build_graphql_query(self, media_id):
         raise NotImplementedError('Method must be implemented to support GraphQL')
 
