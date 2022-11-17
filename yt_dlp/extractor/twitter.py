@@ -109,7 +109,7 @@ class TwitterBaseIE(InfoExtractor):
 
         last_error = None
         for bearer_token in self._TOKENS:
-            for attempt in range(2):
+            for first_attempt in True, False:
                 headers['Authorization'] = f'Bearer {bearer_token}'
 
                 if not self.is_logged_in:
@@ -142,11 +142,11 @@ class TwitterBaseIE(InfoExtractor):
                     self.report_warning(
                         'Twitter API gave 404 response, retrying with deprecated auth token. '
                         'Only one media item can be extracted')
-                    break
+                    break  # continue outer loop with next bearer_token
 
                 if result.get('errors'):
                     errors = traverse_obj(result, ('errors', ..., 'message'), expected_type=str)
-                    if not attempt and any('bad guest token' in error.lower() for error in errors):
+                    if first_attempt and any('bad guest token' in error.lower() for error in errors):
                         self.to_screen('Guest token has expired. Refreshing guest token')
                         self._TOKENS[bearer_token] = None
                         continue
