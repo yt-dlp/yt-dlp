@@ -16,6 +16,18 @@ class NetverseBaseIE(InfoExtractor):
             f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[endpoint]}/{slug}/{season_id}',
             display_id or slug, query=query)
 
+    def _get_comments(self, video_id):
+        comment_json = self._download_json(
+            f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}', video_id,
+            data=b'', fatal=False) or {}
+        return [{
+            'id': comment.get('_id'),
+            'text': comment.get('comment'),
+            'author_id': comment.get('customer_id'),
+            'author': traverse_obj(comment, ('customer', 'name')),
+            'author_thumbnail': traverse_obj(comment, ('customer', 'profile_picture')),
+        } for comment in traverse_obj(comment_json, ('response', 'comments', 'data', ...)) or ()]
+
 
 class NetverseIE(NetverseBaseIE):
     _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>watch|video)/(?P<display_id>[^/?#&]+)'
@@ -28,7 +40,7 @@ class NetverseIE(NetverseBaseIE):
             'ext': 'mp4',
             'season': 'Season 2016',
             'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
-            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/T7aV31Y0eGRWBbwkK/x1080',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
             'episode_number': 22,
             'episode': 'Episode 22',
             'uploader_id': 'x2ir3vq',
@@ -51,7 +63,7 @@ class NetverseIE(NetverseBaseIE):
             'ext': 'mp4',
             'season': 'Season 2',
             'description': 'md5:8a74f70812cca267e19ee0635f0af835',
-            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/Thwuy1YURicFmGu0v/x1080',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
             'episode_number': 2,
             'episode': 'Episode 2',
             'view_count': int,
@@ -75,7 +87,7 @@ class NetverseIE(NetverseBaseIE):
             'title': 'Tetangga Baru',
             'season': 'Season 1',
             'description': 'md5:23fcf70e97d461d3029d25d59b2ccfb9',
-            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/T3Ogm1YEnnyjVKAFF/x1080',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
             'episode_number': 1,
             'episode': 'Episode 1',
             'timestamp': 1624538169,
@@ -96,7 +108,7 @@ class NetverseIE(NetverseBaseIE):
         'info_dict': {
             'id': 'x887jzz',
             'ext': 'mp4',
-            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/TfuZ_1Y6PboJ5An_s/x1080',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
             'season': 'Season 1',
             'episode_number': 1,
             'description': 'md5:d4f627b3e7a3f9acdc55f6cdd5ea41d5',
@@ -114,6 +126,29 @@ class NetverseIE(NetverseBaseIE):
             'upload_date': '20220225',
         },
         'skip': 'This video get Geo-blocked for some country'
+    }, {
+        # video with comments
+        'url': 'https://netverse.id/video/episode-1-season-2016-ok-food',
+        'info_dict': {
+            'id': 'k6hetBPiQMljSxxvAy7',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://s\d+\.dmcdn\.net/v/[^/]+/x1080',
+            'display_id': 'episode-1-season-2016-ok-food',
+            'like_count': int,
+            'description': '',
+            'duration': 1471,
+            'age_limit': 0,
+            'timestamp': 1642405848,
+            'episode_number': 1,
+            'season': 'Season 2016',
+            'uploader_id': 'x2ir3vq',
+            'title': 'Episode 1 - Season 2016 - Ok Food',
+            'upload_date': '20220117',
+            'tags': [],
+            'view_count': int,
+            'episode': 'Episode 1',
+            'uploader': 'Net Prime',
+        }
     }]
 
     def _real_extract(self, url):
@@ -131,6 +166,7 @@ class NetverseIE(NetverseBaseIE):
             'thumbnail': traverse_obj(videos, ('program_detail', 'thumbnail_image')),
             'description': traverse_obj(videos, ('program_detail', 'description')),
             'episode_number': videos.get('episode_order'),
+            '__post_extractor': self.extract_comments(display_id, self._get_comments(display_id)),
         }
 
 
