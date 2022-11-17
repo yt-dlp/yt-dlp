@@ -294,8 +294,6 @@ class TVPlayIE(InfoExtractor):
                 'This content might not be available in your country due to copyright reasons',
                 metadata_available=True)
 
-        self._sort_formats(formats)
-
         # TODO: webvtt in m3u8
         subtitles = {}
         sami_path = video.get('sami_path')
@@ -410,7 +408,6 @@ class ViafreeIE(InfoExtractor):
             raise
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_href, guid, 'mp4')
-        self._sort_formats(formats)
         episode = program.get('episode') or {}
         return {
             'id': guid,
@@ -495,7 +492,6 @@ class TVPlayHomeIE(InfoExtractor):
             urljoin(url, f'/api/products/{stream_id}/videos/playlist?videoType={video_type}&platform=BROWSER'), video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             stream['sources']['HLS'][0]['src'], video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
 
         thumbnails = set(traverse_obj(
             data, (('galary', 'images', 'artworks'), ..., ..., ('miniUrl', 'mainUrl')), expected_type=url_or_none))

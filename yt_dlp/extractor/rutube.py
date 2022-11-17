@@ -81,7 +81,6 @@ class RutubeBaseIE(InfoExtractor):
                     'url': format_url,
                     'format_id': format_id,
                 })
-        self._sort_formats(formats)
         return formats
 
     def _download_and_extract_formats(self, video_id, query=None):

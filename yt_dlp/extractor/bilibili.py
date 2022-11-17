@@ -67,7 +67,6 @@ class BilibiliBaseIE(InfoExtractor):
             self.to_screen(f'Format(s) {", ".join(format_names[i] for i in missing_formats)} are missing; '
                            f'you have to login or become premium member to download them. {self._login_hint()}')
 
-        self._sort_formats(formats)
         return formats
 
     def json2srt(self, json_data):
@@ -879,7 +878,6 @@ class BiliIntlBaseIE(InfoExtractor):
                 'filesize': aud.get('size'),
             })
 
-        self._sort_formats(formats)
         return formats
 
     def _extract_video_info(self, video_data, *, ep_id=None, aid=None):
@@ -1105,7 +1103,6 @@ class BiliLiveIE(InfoExtractor):
             })
             for fmt in traverse_obj(stream_data, ('playurl_info', 'playurl', 'stream', ..., 'format', ...)) or []:
                 formats.extend(self._parse_formats(qn, fmt))
-        self._sort_formats(formats)
 
         return {
             'id': room_id,

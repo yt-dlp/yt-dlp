@@ -70,7 +70,6 @@ class AdobeTVBaseIE(InfoExtractor):
                     })
                     s3_extracted = True
             formats.append(f)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -269,7 +268,6 @@ class AdobeTVVideoIE(AdobeTVBaseIE):
                 'width': int_or_none(source.get('width') or None),
                 'url': source_src,
             })
-        self._sort_formats(formats)
 
         # For both metadata and downloaded files the duration varies among
         # formats. I just pick the max one

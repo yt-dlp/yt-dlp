@@ -66,7 +66,6 @@ class TV2HuIE(InfoExtractor):
         video_json = self._download_json(video_json_url, video_id)
         m3u8_url = self._proto_relative_url(traverse_obj(video_json, ('bitrates', 'hls')))
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

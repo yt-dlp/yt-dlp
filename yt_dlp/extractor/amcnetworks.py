@@ -106,7 +106,6 @@ class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         media_url = update_url_query(media_url, query)
         formats, subtitles = self._extract_theplatform_smil(
             media_url, video_id)
-        self._sort_formats(formats)
 
         thumbnails = []
         thumbnail_urls = [properties.get('imageDesktop')]

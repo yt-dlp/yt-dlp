@@ -103,7 +103,6 @@ class YouPornIE(InfoExtractor):
                 })
             f['height'] = height
             formats.append(f)
-        self._sort_formats(formats)
 
         webpage = self._download_webpage(
             'http://www.youporn.com/watch/%s' % video_id, display_id,

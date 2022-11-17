@@ -122,7 +122,6 @@ class LikeeIE(InfoExtractor):
             'width': info.get('video_width'),
             'quality': 1,
         }]
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': info.get('msgText'),

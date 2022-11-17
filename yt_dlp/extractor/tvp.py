@@ -433,8 +433,6 @@ class TVPEmbedIE(InfoExtractor):
                     'height': int_or_none(traverse_obj(file, ('quality', 'height'))),
                 })
 
-        self._sort_formats(formats)
-
         title = dict_get(info, ('subtitle', 'title', 'seoTitle'))
         description = dict_get(info, ('description', 'seoDescription'))
         thumbnails = []

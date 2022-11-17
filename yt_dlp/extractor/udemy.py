@@ -391,8 +391,6 @@ class UdemyIE(InfoExtractor):
                 if f.get('url'):
                     formats.append(f)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,

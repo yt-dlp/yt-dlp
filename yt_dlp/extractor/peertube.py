@@ -1233,7 +1233,6 @@ class PeerTubeIE(InfoExtractor):
             else:
                 f['fps'] = int_or_none(file_.get('fps'))
             formats.append(f)
-        self._sort_formats(formats)
 
         description = video.get('description')
         if description and len(description) >= 250:

@@ -88,7 +88,6 @@ class SubstackIE(InfoExtractor):
         else:
             self.raise_no_formats(f'Page type "{post_type}" is not supported')
 
-        self._sort_formats(formats)
         return {
             'id': str(webpage_info['post']['id']),
             'formats': formats,

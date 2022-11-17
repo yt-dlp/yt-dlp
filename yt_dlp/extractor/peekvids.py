@@ -40,7 +40,6 @@ class PeekVidsIE(InfoExtractor):
         } for name, url in srcs.items() if len(name) > 8 and name.startswith('data-src')]
         if not formats:
             formats = [{'url': url} for url in srcs.values()]
-        self._sort_formats(formats)
 
         info = self._search_json_ld(webpage, video_id, expected_type='VideoObject')
         info.update({

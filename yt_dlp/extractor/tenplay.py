@@ -98,7 +98,6 @@ class TenPlayIE(InfoExtractor):
         if '10play-not-in-oz' in m3u8_url:
             self.raise_geo_restricted(countries=['AU'])
         formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
-        self._sort_formats(formats)
 
         return {
             'formats': formats,

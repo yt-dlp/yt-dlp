@@ -123,11 +123,6 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     def _set_vimeo_cookie(self, name, value):
         self._set_cookie('vimeo.com', name, value)
 
-    def _vimeo_sort_formats(self, formats):
-        # Note: Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
-        # at the same time without actual units specified.
-        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source'))
-
     def _parse_config(self, config, video_id):
         video_data = config['video']
         video_title = video_data.get('title')
@@ -242,6 +237,9 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'is_live': is_live,
+            # Note: Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
+            # at the same time without actual units specified.
+            '_format_sort_fields': ('quality', 'res', 'fps', 'hdr:12', 'source'),
         }
 
     def _extract_original_format(self, url, video_id, unlisted_hash=None):
@@ -776,7 +774,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             })
         info = self._parse_config(self._download_json(
             video['config_url'], video_id), video_id)
-        self._vimeo_sort_formats(info['formats'])
         get_timestamp = lambda x: parse_iso8601(video.get(x + '_time'))
         info.update({
             'description': video.get('description'),
@@ -874,9 +871,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             if config.get('view') == 4:
                 config = self._verify_player_video_password(
                     redirect_url, video_id, headers)
-            info = self._parse_config(config, video_id)
-            self._vimeo_sort_formats(info['formats'])
-            return info
+            return self._parse_config(config, video_id)
 
         if re.search(r'<form[^>]+?id="pw_form"', webpage):
             video_password = self._get_video_password()
@@ -981,7 +976,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
 
         info_dict_config = self._parse_config(config, video_id)
         formats.extend(info_dict_config['formats'])
-        self._vimeo_sort_formats(formats)
+        info_dict['_format_sort_fields'] = info_dict_config['_format_sort_fields']
 
         json_ld = self._search_json_ld(webpage, video_id, default={})
 
@@ -1326,7 +1321,6 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             page_url + '/action', video_id)
         if source_format:
             info_dict['formats'].append(source_format)
-        self._vimeo_sort_formats(info_dict['formats'])
         info_dict['description'] = clean_html(clip_data.get('description'))
         return info_dict
 
@@ -1398,5 +1392,4 @@ class VHXEmbedIE(VimeoBaseInfoExtractor):
         config = self._download_json(config_url, video_id)
         info = self._parse_config(config, video_id)
         info['id'] = video_id
-        self._vimeo_sort_formats(info['formats'])
         return info

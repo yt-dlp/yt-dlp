@@ -33,7 +33,6 @@ class UplynkIE(InfoExtractor):
         if session_id:
             for f in formats:
                 f['extra_param_to_segment_url'] = 'pbs=' + session_id
-        self._sort_formats(formats)
         asset = self._download_json('http://content.uplynk.com/player/assetinfo/%s.json' % path, display_id)
         if asset.get('error') == 1:
             raise ExtractorError('% said: %s' % (self.IE_NAME, asset['msg']), expected=True)

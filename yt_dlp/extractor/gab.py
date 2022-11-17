@@ -54,7 +54,6 @@ class GabTVIE(InfoExtractor):
             else:
                 frmt['height'] = str_to_int(resolution.replace('p', ''))
             formats.append(frmt)
-        self._sort_formats(formats)
 
         return {
             'id': id,
@@ -119,8 +118,6 @@ class GabIE(InfoExtractor):
                 **format_metadata,
             } for url, f in ((media.get('url'), metadata.get('original') or {}),
                              (media.get('source_mp4'), metadata.get('playable') or {})) if url]
-
-            self._sort_formats(formats)
 
             author = json_data.get('account') or {}
             entries.append({

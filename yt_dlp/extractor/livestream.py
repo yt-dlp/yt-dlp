@@ -126,7 +126,6 @@ class LivestreamIE(InfoExtractor):
         if f4m_url:
             formats.extend(self._extract_f4m_formats(
                 f4m_url, video_id, f4m_id='hds', fatal=False))
-        self._sort_formats(formats)
 
         comments = [{
             'author_id': comment.get('author_id'),
@@ -171,7 +170,6 @@ class LivestreamIE(InfoExtractor):
                 'url': rtsp_url,
                 'format_id': 'rtsp',
             })
-        self._sort_formats(formats)
 
         return {
             'id': broadcast_id,
@@ -300,7 +298,6 @@ class LivestreamOriginalIE(InfoExtractor):
                 'format_id': 'rtsp',
             })
 
-        self._sort_formats(formats)
         return formats
 
     def _extract_folder(self, url, folder_id):

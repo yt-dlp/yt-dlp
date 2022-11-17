@@ -267,7 +267,6 @@ class MetacafeIE(InfoExtractor):
                 'url': video_url,
                 'ext': video_ext,
             }]
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

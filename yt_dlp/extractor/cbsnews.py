@@ -132,7 +132,6 @@ class CBSNewsLiveVideoIE(InfoExtractor):
             })
 
         formats = self._extract_akamai_formats(video_info['url'], display_id)
-        self._sort_formats(formats)
 
         return {
             'id': display_id,

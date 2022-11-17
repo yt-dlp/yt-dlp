@@ -546,8 +546,6 @@ class BrightcoveNewIE(AdobePassIE):
                 self.raise_no_formats(
                     error.get('message') or error.get('error_subcode') or error['error_code'], expected=True)
 
-        self._sort_formats(formats)
-
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
 

@@ -119,7 +119,6 @@ class AolIE(YahooIE):  # XXX: Do not subclass from concrete IE
                         'height': int_or_none(qs.get('h', [None])[0]),
                     })
                 formats.append(f)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

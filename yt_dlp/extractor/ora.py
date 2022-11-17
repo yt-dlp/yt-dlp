@@ -54,7 +54,6 @@ class OraTVIE(InfoExtractor):
                     'format_id': q,
                     'quality': preference(q),
                 })
-            self._sort_formats(formats)
         else:
             return self.url_result(self._search_regex(
                 r'"youtube_id"\s*:\s*"([^"]+)', webpage, 'youtube id'), 'Youtube')

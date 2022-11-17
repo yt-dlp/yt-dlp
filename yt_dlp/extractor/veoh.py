@@ -105,7 +105,6 @@ class VeohIE(InfoExtractor):
                     'quality': q(f_id),
                     'url': f_url,
                 })
-        self._sort_formats(formats)
 
         categories = metadata.get('categoryPath')
         if not categories:

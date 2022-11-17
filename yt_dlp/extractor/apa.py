@@ -72,7 +72,6 @@ class APAIE(InfoExtractor):
                     'format_id': format_id,
                     'height': height,
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

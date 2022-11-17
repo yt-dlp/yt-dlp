@@ -2619,7 +2619,6 @@ class GenericIE(InfoExtractor):
                     'vcodec': 'none' if m.group('type') == 'audio' else None
                 }]
                 info_dict['direct'] = True
-            self._sort_formats(formats)
             info_dict.update({
                 'formats': formats,
                 'subtitles': subtitles,
@@ -2637,7 +2636,6 @@ class GenericIE(InfoExtractor):
         if first_bytes.startswith(b'#EXTM3U'):
             self.report_detected('M3U playlist')
             info_dict['formats'], info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
-            self._sort_formats(info_dict['formats'])
             return info_dict
 
         # Maybe it's a direct link to a video?
@@ -2671,12 +2669,10 @@ class GenericIE(InfoExtractor):
             elif doc.tag == 'SmoothStreamingMedia':
                 info_dict['formats'], info_dict['subtitles'] = self._parse_ism_formats_and_subtitles(doc, url)
                 self.report_detected('ISM manifest')
-                self._sort_formats(info_dict['formats'])
                 return info_dict
             elif re.match(r'^(?:{[^}]+})?smil$', doc.tag):
                 smil = self._parse_smil(doc, url, video_id)
                 self.report_detected('SMIL file')
-                self._sort_formats(smil['formats'])
                 return smil
             elif doc.tag == '{http://xspf.org/ns/0/}playlist':
                 self.report_detected('XSPF playlist')
@@ -2691,12 +2687,10 @@ class GenericIE(InfoExtractor):
                     mpd_base_url=full_response.geturl().rpartition('/')[0],
                     mpd_url=url)
                 self.report_detected('DASH manifest')
-                self._sort_formats(info_dict['formats'])
                 return info_dict
             elif re.match(r'^{http://ns\.adobe\.com/f4m/[12]\.0}manifest$', doc.tag):
                 info_dict['formats'] = self._parse_f4m_formats(doc, url, video_id)
                 self.report_detected('F4M manifest')
-                self._sort_formats(info_dict['formats'])
                 return info_dict
         except xml.etree.ElementTree.ParseError:
             pass
@@ -2840,7 +2834,6 @@ class GenericIE(InfoExtractor):
                 })
             if formats or subtitles:
                 self.report_detected('video.js embed')
-                self._sort_formats(formats)
                 return [{'formats': formats, 'subtitles': subtitles}]
 
         # Looking for http://schema.org/VideoObject
@@ -2922,8 +2915,6 @@ class GenericIE(InfoExtractor):
                     })
                     if not formats[-1].get('height'):
                         formats[-1]['quality'] = 1
-
-                self._sort_formats(formats)
 
                 return [{
                     'id': flashvars['video_id'],
@@ -3072,9 +3063,6 @@ class GenericIE(InfoExtractor):
                     GenericIE.ie_key())
             else:
                 entry_info_dict['url'] = video_url
-
-            if entry_info_dict.get('formats'):
-                self._sort_formats(entry_info_dict['formats'])
 
             entries.append(entry_info_dict)
 

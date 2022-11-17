@@ -19,7 +19,6 @@ class Ant1NewsGrBaseIE(InfoExtractor):
             raise ExtractorError('no source found for %s' % video_id)
         formats, subs = (self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
                          if determine_ext(source) == 'm3u8' else ([{'url': source}], {}))
-        self._sort_formats(formats)
         thumbnails = scale_thumbnails_to_max_format_width(
             formats, [{'url': info['thumb']}], r'(?<=/imgHandler/)\d+')
         return {

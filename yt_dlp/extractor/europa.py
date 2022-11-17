@@ -76,7 +76,6 @@ class EuropaIE(InfoExtractor):
                 'format_note': xpath_text(file_, './lglabel'),
                 'language_preference': language_preference(lang)
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

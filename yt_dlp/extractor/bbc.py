@@ -575,8 +575,6 @@ class BBCCoUkIE(InfoExtractor):
         else:
             programme_id, title, description, duration, formats, subtitles = self._download_playlist(group_id)
 
-        self._sort_formats(formats)
-
         return {
             'id': programme_id,
             'title': title,
@@ -890,7 +888,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
     def _extract_from_playlist_sxml(self, url, playlist_id, timestamp):
         programme_id, title, description, duration, formats, subtitles = \
             self._process_legacy_playlist_url(url, playlist_id)
-        self._sort_formats(formats)
         return {
             'id': programme_id,
             'title': title,
@@ -954,7 +951,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                             duration = int_or_none(items[0].get('duration'))
                             programme_id = items[0].get('vpid')
                             formats, subtitles = self._download_media_selector(programme_id)
-                            self._sort_formats(formats)
                             entries.append({
                                 'id': programme_id,
                                 'title': title,
@@ -991,7 +987,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                                         continue
                                     raise
                             if entry:
-                                self._sort_formats(entry['formats'])
                                 entries.append(entry)
 
         if entries:
@@ -1015,7 +1010,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
 
         if programme_id:
             formats, subtitles = self._download_media_selector(programme_id)
-            self._sort_formats(formats)
             # digitalData may be missing (e.g. http://www.bbc.com/autos/story/20130513-hyundais-rock-star)
             digital_data = self._parse_json(
                 self._search_regex(
@@ -1047,7 +1041,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             if version_id:
                 title = smp_data['title']
                 formats, subtitles = self._download_media_selector(version_id)
-                self._sort_formats(formats)
                 image_url = smp_data.get('holdingImageURL')
                 display_date = init_data.get('displayDate')
                 topic_title = init_data.get('topicTitle')
@@ -1089,7 +1082,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     continue
                 title = lead_media.get('title') or self._og_search_title(webpage)
                 formats, subtitles = self._download_media_selector(programme_id)
-                self._sort_formats(formats)
                 description = lead_media.get('summary')
                 uploader = lead_media.get('masterBrand')
                 uploader_id = lead_media.get('mid')
@@ -1118,7 +1110,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             if current_programme and programme_id and current_programme.get('type') == 'playable_item':
                 title = current_programme.get('titles', {}).get('tertiary') or playlist_title
                 formats, subtitles = self._download_media_selector(programme_id)
-                self._sort_formats(formats)
                 synopses = current_programme.get('synopses') or {}
                 network = current_programme.get('network') or {}
                 duration = int_or_none(
@@ -1151,7 +1142,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             clip_title = clip.get('title')
             if clip_vpid and clip_title:
                 formats, subtitles = self._download_media_selector(clip_vpid)
-                self._sort_formats(formats)
                 return {
                     'id': clip_vpid,
                     'title': clip_title,
@@ -1173,7 +1163,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     if not programme_id:
                         continue
                     formats, subtitles = self._download_media_selector(programme_id)
-                    self._sort_formats(formats)
                     entries.append({
                         'id': programme_id,
                         'title': playlist_title,
@@ -1205,7 +1194,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
                     if not (item_id and item_title):
                         continue
                     formats, subtitles = self._download_media_selector(item_id)
-                    self._sort_formats(formats)
                     item_desc = None
                     blocks = try_get(media, lambda x: x['summary']['blocks'], list)
                     if blocks:
@@ -1306,7 +1294,6 @@ class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
             formats, subtitles = self._extract_from_media_meta(media_meta, playlist_id)
             if not formats and not self.get_param('ignore_no_formats'):
                 continue
-            self._sort_formats(formats)
 
             video_id = media_meta.get('externalId')
             if not video_id:
