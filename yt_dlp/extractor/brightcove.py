@@ -860,7 +860,7 @@ class BrightcoveNewIE(BrightcoveNewBaseIE):
     def _extract_from_webpage(self, url, webpage):
         bc_urls = self._extract_brightcove_urls(self, webpage)
         for bc_url in bc_urls:
-            yield self.url_result(smuggle_url(bc_url, {'Referer': url}), BrightcoveNewIE)
+            yield self.url_result(smuggle_url(bc_url, {'referrer': url}), BrightcoveNewIE)
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
