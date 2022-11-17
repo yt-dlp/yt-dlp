@@ -6549,6 +6549,7 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
             # }],
         },
     }, {
+        # Channel results
         'url': 'https://www.youtube.com/results?search_query=kurzgesagt&sp=EgIQAg%253D%253D',
         'info_dict': {
             'id': 'kurzgesagt',
