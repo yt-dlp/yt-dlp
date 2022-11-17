@@ -19,7 +19,6 @@ from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
-from .extractor.common import InfoExtractor
 from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
@@ -39,6 +38,7 @@ from .utils import (
     DateRange,
     DownloadCancelled,
     DownloadError,
+    FormatSorter,
     GeoUtils,
     PlaylistEntries,
     SameFileError,
@@ -152,7 +152,7 @@ def set_compat_opts(opts):
         else:
             opts.embed_infojson = False
     if 'format-sort' in opts.compat_opts:
-        opts.format_sort.extend(InfoExtractor.FormatSort.ytdl_default)
+        opts.format_sort.extend(FormatSorter.ytdl_default)
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
     _audio_multistreams_set = set_default_compat('multistreams', 'allow_multiple_audio_streams', False, remove_compat=False)
     if _video_multistreams_set is False and _audio_multistreams_set is False:
@@ -227,7 +227,7 @@ def validate_options(opts):
 
     # Format sort
     for f in opts.format_sort:
-        validate_regex('format sorting', f, InfoExtractor.FormatSort.regex)
+        validate_regex('format sorting', f, FormatSorter.regex)
 
     # Postprocessor formats
     validate_regex('merge output format', opts.merge_output_format,
