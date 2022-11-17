@@ -149,7 +149,6 @@ class BrightcoveLegacyIE(InfoExtractor):
         # embedded brightcove video
         # it also tests brightcove videos that need to set the 'Referer'
         # in the http requests
-        'add_ie': ['BrightcoveLegacy'],
         'url': 'http://www.bfmtv.com/video/bfmbusiness/cours-bourse/cours-bourse-l-analyse-technique-154522/',
         'info_dict': {
             'id': '2765128793001',
@@ -164,7 +163,6 @@ class BrightcoveLegacyIE(InfoExtractor):
         'skip': '404 Not Found',
     }, {
         # embedded with itemprop embedURL and video id spelled as `idVideo`
-        'add_id': ['BrightcoveLegacy'],
         'url': 'http://bfmbusiness.bfmtv.com/mediaplayer/chroniques/olivier-delamarche/',
         'info_dict': {
             'id': '5255628253001',
@@ -191,11 +189,9 @@ class BrightcoveLegacyIE(InfoExtractor):
             'uploader': 'thestar.com',
             'description': 'Mississauga resident David Farmer is still out of power as a result of the ice storm a month ago. To keep the house warm, Farmer cuts wood from his property for a wood burning stove downstairs.',
         },
-        'add_ie': ['BrightcoveLegacy'],
         'skip': 'video gone',
     }, {
         # https://github.com/ytdl-org/youtube-dl/issues/3541
-        'add_ie': ['BrightcoveLegacy'],
         'url': 'http://www.kijk.nl/sbs6/leermijvrouwenkennen/videos/jqMiXKAYan2S/aflevering-1',
         'info_dict': {
             'id': '3866516442001',
@@ -222,7 +218,6 @@ class BrightcoveLegacyIE(InfoExtractor):
             'timestamp': 1489593889,
             'upload_date': '20170315',
         },
-        'add_ie': ['BrightcoveLegacy'],
         'skip': '404 Not Found',
     }, {
         # Brightcove with UUID in videoPlayer
