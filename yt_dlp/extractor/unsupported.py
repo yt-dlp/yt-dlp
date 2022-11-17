@@ -39,7 +39,8 @@ class KnownDRMIE(UnsupportedInfoExtractor):
         r'(?:[\w\.]+\.)?mech-plus\.com',
         r'aha\.video',
         r'mubi\.com',
-        r'vootkids\.com'
+        r'vootkids\.com',
+        r'nowtv\.it/watch',
     )
 
     _TESTS = [{
@@ -100,6 +101,10 @@ class KnownDRMIE(UnsupportedInfoExtractor):
     }, {
         # https://github.com/yt-dlp/yt-dlp/issues/3287
         'url': 'https://www.vootkids.com',
+        'only_matching': True,
+    }, {
+        # https://github.com/yt-dlp/yt-dlp/issues/2744
+        'url': 'https://www.nowtv.it/watch',
         'only_matching': True,
     }]
 
