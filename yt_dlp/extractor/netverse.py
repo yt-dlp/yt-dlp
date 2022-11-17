@@ -29,14 +29,15 @@ class NetverseBaseIE(InfoExtractor):
                 comment_data = self._download_json(
                     f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}', video_id,
                     data=b'', fatal=False, query={'page': i + 1}, note='Downloading JSON comment metadata') or {}
-            yield [{
-                'id': comment.get('_id'),
-                'text': comment.get('comment'),
-                'author_id': comment.get('customer_id'),
-                'author': traverse_obj(comment, ('customer', 'name')),
-                'author_thumbnail': traverse_obj(comment, ('customer', 'profile_picture')),
-            } for comment in traverse_obj(comment_data, ('response', 'comments', 'data', ...)) or ()]
-
+            for comment in traverse_obj(comment_data, ('response', 'comments', 'data', ...)):
+                yield {
+                    'id': comment.get('_id'),
+                    'text': comment.get('comment'),
+                    'author_id': comment.get('customer_id'),
+                    'author': traverse_obj(comment, ('customer', 'name')),
+                    'author_thumbnail': traverse_obj(comment, ('customer', 'profile_picture')),
+                }
+            
 
 class NetverseIE(NetverseBaseIE):
     _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>watch|video)/(?P<display_id>[^/?#&]+)'
