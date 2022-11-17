@@ -2289,15 +2289,24 @@ def format_bytes(bytes):
     return format_decimal_suffix(bytes, '%.2f%sB', factor=1024) or 'N/A'
 
 
-def lookup_unit_table(unit_table, s):
+def lookup_unit_table(unit_table, s, strict=False):
+    num_re = NUMBER_RE if strict else NUMBER_RE.replace(R'\.', '[,.]')
     units_re = '|'.join(re.escape(u) for u in unit_table)
-    m = re.match(
-        r'(?P<num>[0-9]+(?:[,.][0-9]*)?)\s*(?P<unit>%s)\b' % units_re, s)
+    m = (re.fullmatch if strict else re.match)(
+        rf'(?P<num>{num_re})\s*(?P<unit>{units_re})\b', s)
     if not m:
         return None
-    num_str = m.group('num').replace(',', '.')
+
+    num = float(m.group('num').replace(',', '.'))
     mult = unit_table[m.group('unit')]
-    return int(float(num_str) * mult)
+    return round(num * mult)
+
+
+def parse_bytes(s):
+    """Parse a string indicating a byte quantity into an integer"""
+    return lookup_unit_table(
+        {u: 1024**i for i, u in enumerate(['', *'KMGTPEZY'])},
+        s.upper(), strict=True)
 
 
 def parse_filesize(s):
