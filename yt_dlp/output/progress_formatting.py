@@ -84,11 +84,10 @@ def format_and_get_default_template(progress_dict):
         '%(_percent_str)s at %(_speed_str)s ETA %(_eta_str)s')
 
     if has_field('fragment_index', 'fragment_count'):
-        msg_template += ' (%(fragment_index)d fragments of %(fragment_count)d)'
+        msg_template += ' (frag %(fragment_index)d/%(fragment_count)d)'
 
     elif has_field('fragment_index'):
-        # XXX(output): This refers to `downloaded`
-        msg_template += ' (%(fragment_index)d fragments downloaded)'
+        msg_template += ' (frag %(fragment_index)d)'
 
     return msg_template
 

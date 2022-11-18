@@ -35,7 +35,7 @@ class Console:
         if not hasattr(ctypes, 'windll'):
             return
 
-        # XXX: This might be overkill. SetConsoleTitle will not fail.
+        # XXX(output): This might be overkill. SetConsoleTitle will not fail.
         if not ctypes.windll.kernel32.GetConsoleWindow():
             return
 

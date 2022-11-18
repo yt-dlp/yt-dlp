@@ -1283,7 +1283,7 @@ class YoutubeDL:
                             LogLevel.INFO, self.prepare_filename(info_dict), Style.FILENAME)
                         query = self.logger.format(
                             LogLevel.INFO, f'Download "{filename}"? (Y/n): ', Style.EMPHASIS)
-                        # TODO(output): XXX: use logger, then call input plain?
+                        # XXX(output): use logger for output
                         reply = input(query).lower().strip()
                         if reply in {'y', ''}:
                             return None
@@ -2563,7 +2563,7 @@ class YoutubeDL:
 
         while True:
             if interactive_format_selection:
-                # TODO(output): XXX: use logger, then call input plain?
+                # XXX(output): use logger for output
                 req_format = input(self.logger.format(
                     LogLevel.INFO, '\nEnter format selector: ', Style.EMPHASIS))
                 try:

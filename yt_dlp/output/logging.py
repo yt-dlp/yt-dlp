@@ -86,7 +86,7 @@ class _LoggerProxy:
         functools.update_wrapper(self, obj)
         for k, v in kwargs.items():
             original = getattr(obj, k)
-            # TODO(output): XXX: This should not need `_LoggerProxy.self`
+            # XXX(output): Wrapper needs no reference to obj
             override = v(obj, original)
             functools.update_wrapper(override, original)
             setattr(self, k, override)
