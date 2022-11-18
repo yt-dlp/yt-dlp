@@ -173,6 +173,13 @@ For ease of use, a few more compat options are available:
 
 You can install yt-dlp using [the binaries](#release-files), [PIP](https://pypi.org/project/yt-dlp) or one using a third-party package manager. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) for detailed instructions
 
+## GRAPHICAL USER INTERFACES (GUIs, unofficial)
+[OnionMedia - Free Video Downloader and Converter](https://github.com/onionware-github/OnionMedia) by Onionware (Windows)
+
+[youtube-dl-gui](https://github.com/jely2002/youtube-dl-gui) by jely2002 (Windows, Mac, Linux)
+
+[Seal](https://github.com/JunkFood02/Seal) by JunkFood02 (Android)
+
 
 ## UPDATE
 You can use `yt-dlp -U` to update if you are [using the release binaries](#release-files)
