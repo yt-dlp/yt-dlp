@@ -14,7 +14,7 @@ def move_cursor(distance):
     return -distance * MOVE_UP if distance < 0 else distance * MOVE_DOWN
 
 
-def _synchronized(func=None, /):
+def _synchronized(func=None):
     if func is None:
         return _synchronized
 

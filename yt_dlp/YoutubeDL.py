@@ -715,7 +715,6 @@ class YoutubeDL:
 
     @staticmethod
     def make_logger(params):
-
         screen = sys.stderr if params.get('logtostderr') else sys.stdout
         stdout = sys.stderr if params.get('quiet') else screen
         verbosity = (
@@ -724,8 +723,8 @@ class YoutubeDL:
             else Verbosity.NORMAL)
 
         logger = Logger(
-            screen, verbosity, ignore_errors=bool(params.get('ignoreerrors')),
-            encoding=params.get('encoding'), allow_color=not params.get('nocolor', False))
+            screen, verbosity, encoding=params.get('encoding'),
+            allow_color=not params.get('nocolor', False))
 
         logger_param = params.get('logger')
         if logger_param:
@@ -739,9 +738,25 @@ class YoutubeDL:
         return logger
 
     def _setup_output(self, params):
+        def handle_error(func):
+            def wrapper(message, trace=None, is_error=True, prefix=True):
+                func(message, trace=trace, is_error=is_error, prefix=prefix)
+                if not is_error:
+                    return
+                if not self.params.get('ignoreerrors'):
+                    if sys.exc_info()[0] and hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
+                        exc_info = sys.exc_info()[1].exc_info
+                    else:
+                        exc_info = sys.exc_info()
+                    raise DownloadError(message, exc_info)
+
+                self._download_retcode = 1
+
+            return wrapper
+
         windows_enable_vt_mode()
 
-        self.logger = self.make_logger(params)
+        self.logger = self.make_logger(params).make_derived(handle_error=handle_error)
         if params.get('bidi_workaround', False):
             try:
                 self.logger.init_bidi_workaround()

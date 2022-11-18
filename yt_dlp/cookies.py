@@ -25,7 +25,7 @@ from .dependencies import (
     secretstorage,
     sqlite3,
 )
-from .output.logging import LogLevel, StreamOutput, default_logger
+from .output.logging import Logger, LogLevel, StreamOutput, default_logger
 from .output.progress import Progress
 from .utils import (
     Popen,
@@ -73,13 +73,16 @@ def wrap_logger(logger):
     if getattr(logger, '__is_cookie_wrapped', False):
         return logger
 
-    def _cookies_prefix(_, func):
+    def _cookies_prefix(func):
         def wrapped(message, *args, **kwargs):
             func(f'[Cookies] {message}', *args, **kwargs)
 
         return wrapped
 
-    logger = logger.make_derived(info=_cookies_prefix)
+    if isinstance(logger, Logger):
+        logger = logger.make_derived(info=_cookies_prefix)
+    else:
+        logger = Logger(None).setup_class_logger(logger)
     logger.__is_cookie_wrapped = True
 
     return logger

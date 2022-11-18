@@ -33,8 +33,6 @@ def format_and_get_default_template(progress_dict):
     def has_field(*field_names):
         return all(progress_dict.get(field_name) is not None for field_name in field_names)
 
-    _format_bytes = lambda key: format_bytes(progress_dict.get(key))
-
     if progress_dict['status'] == 'finished':
         speed = try_call(lambda: progress_dict['total_bytes'] / progress_dict['elapsed'])
         progress_dict.update({
@@ -63,9 +61,9 @@ def format_and_get_default_template(progress_dict):
             lambda: current_bytes / progress_dict['total_bytes'],
             lambda: current_bytes / progress_dict['total_bytes_estimate'],
             lambda: 0)),
-        '_total_bytes_str': _format_bytes('total_bytes'),
-        '_total_bytes_estimate_str': _format_bytes('total_bytes_estimate'),
-        '_downloaded_bytes_str': _format_bytes('downloaded_bytes'),
+        '_total_bytes_str': format_bytes(progress_dict.get('total_bytes')),
+        '_total_bytes_estimate_str': format_bytes(progress_dict.get('total_bytes_estimate')),
+        '_downloaded_bytes_str': format_bytes(progress_dict.get('downloaded_bytes')),
         '_elapsed_str': format_seconds(progress_dict.get('elapsed')),
     })
 

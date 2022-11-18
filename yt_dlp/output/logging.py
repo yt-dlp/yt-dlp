@@ -83,13 +83,12 @@ NULL_OUTPUT = NullOutput()
 
 class _LoggerProxy:
     def __init__(self, obj, **kwargs):
-        functools.update_wrapper(self, obj)
-        for k, v in kwargs.items():
-            original = getattr(obj, k)
+        for name, wrapper in kwargs.items():
+            original = getattr(obj, name)
             # XXX(output): Wrapper needs no reference to obj
-            override = v(obj, original)
+            override = wrapper(original)
             functools.update_wrapper(override, original)
-            setattr(self, k, override)
+            setattr(self, name, override)
 
         self.__obj = obj
 
@@ -125,13 +124,12 @@ class Logger:
     """
 
     def __init__(self, screen, verbosity=Verbosity.NORMAL,
-                 *, ignore_errors=False, encoding=None, allow_color=False):
+                 *, encoding=None, allow_color=False):
         self._bidi_initalized = False
         self._message_cache = set()
         self._pref_encoding = encoding
         self._allow_color = allow_color
         self._verbosity = verbosity
-        self._raise_errors = not ignore_errors
 
         screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, allow_color, encoding)
         # TODO(output): remove type hint
@@ -161,6 +159,7 @@ class Logger:
             LogLevel.WARNING: NULL_OUTPUT if no_warnings else stderr_output,
             LogLevel.ERROR: stderr_output,
         })
+        return self
 
     def setup_class_logger(self, logger):
         debug_logger = ClassOutput(logger.debug)
@@ -173,16 +172,18 @@ class Logger:
             LogLevel.WARNING: warning_logger,
             LogLevel.ERROR: error_logger,
         })
+        return self
 
     def setup_logging_logger(self):
         # TODO(output): implement LoggingLogger
-        logger = LoggingOutput(logging.INFO)
+        # logger = LoggingOutput(logging.INFO)
         self.mapping.update({
             LogLevel.DEBUG: NULL_OUTPUT,
             LogLevel.INFO: NULL_OUTPUT,
             LogLevel.WARNING: NULL_OUTPUT,
             LogLevel.ERROR: NULL_OUTPUT,
         })
+        return self
 
     def log(self, level, message, *, newline=True, once=False, suppress=False, trace=None, prefix=None):
         logger = self.mapping.get(level)
