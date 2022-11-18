@@ -109,7 +109,7 @@ class TwitterBaseIE(InfoExtractor):
 
         last_error = None
         for bearer_token in self._TOKENS:
-            for first_attempt in True, False:
+            for first_attempt in (True, False):
                 headers['Authorization'] = f'Bearer {bearer_token}'
 
                 if not self.is_logged_in:
