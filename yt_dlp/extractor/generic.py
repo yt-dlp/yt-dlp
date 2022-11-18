@@ -10,6 +10,7 @@ from .youtube import YoutubeIE
 from ..compat import compat_etree_fromstring
 from ..utils import (
     KNOWN_EXTENSIONS,
+    MEDIA_EXTENSIONS,
     ExtractorError,
     UnsupportedError,
     determine_ext,
@@ -2572,8 +2573,9 @@ class GenericIE(InfoExtractor):
         json_ld = self._search_json_ld(webpage, video_id, default={})
         if json_ld.get('url') not in (url, None):
             self.report_detected('JSON LD')
+            is_direct = json_ld.get('ext') not in (None, *MEDIA_EXTENSIONS.manifests)
             return [merge_dicts({
-                '_type': 'video' if json_ld.get('ext') else 'url_transparent',
+                '_type': 'video' if is_direct else 'url_transparent',
                 'url': smuggle_url(json_ld['url'], {
                     'force_videoid': video_id,
                     'to_generic': True,
