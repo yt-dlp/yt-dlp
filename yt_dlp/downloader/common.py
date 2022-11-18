@@ -6,26 +6,21 @@ import random
 import re
 import time
 
-from ..output.hoodoo import Color, TermCode, Typeface
-from ..output.logging import LogLevel
-from ..output.progress import Progress
+from ..output.progress import ProgressReporter
 from ..utils import (
     IDENTITY,
     NO_DEFAULT,
     NUMBER_RE,
     LockingUnsupportedError,
-    Namespace,
     RetryManager,
     classproperty,
     decodeArgument,
     encodeFilename,
     format_bytes,
-    join_nonempty,
     sanitize_open,
     shell_quote,
     timeconvert,
     timetuple_from_msec,
-    try_call,
 )
 
 
@@ -274,99 +269,15 @@ class FileDownloader:
         self.to_screen('[download] Destination: ' + filename)
 
     def _prepare_multiline_status(self, lines=1):
-        self._progress = Progress.make_progress(
-            logger=self.ydl.logger, lines=lines,
+        self._progress = ProgressReporter(
+            self.ydl, 'download', lines=lines,
             newline=bool(self.params.get('progress_with_newline')),
-            preserve=not self.params.get('quiet'))
-
-    def _finish_multiline_status(self):
-        self._progress.close()
-
-    ProgressStyles = Namespace(
-        downloaded_bytes=TermCode(Color.LIGHT | Color.BLUE),
-        percent=TermCode(Color.LIGHT | Color.BLUE),
-        eta=TermCode(Color.YELLOW),
-        speed=TermCode(Color.GREEN),
-        elapsed=TermCode(Typeface.BOLD, Color.WHITE),
-        total_bytes='',
-        total_bytes_estimate='',
-    )
-
-    def _report_progress_status(self, s, default_template):
-        for name, style in self.ProgressStyles.items_:
-            name = f'_{name}_str'
-            if name not in s:
-                continue
-            s[name] = self._format_progress(s[name], style)
-        s['_default_template'] = default_template % s
-
-        progress_dict = s.copy()
-        progress_dict.pop('info_dict')
-        progress_dict = {'info': s['info_dict'], 'progress': progress_dict}
-
-        progress_template = self.params.get('progress_template', {})
-        self._progress.print_at_line(self.ydl.evaluate_outtmpl(
-            progress_template.get('download') or '[download] %(progress._default_template)s',
-            progress_dict), s.get('progress_idx') or 0)
-        self.ydl.console.change_title(self.ydl.evaluate_outtmpl(
-            progress_template.get('download-title') or 'yt-dlp %(progress._default_template)s',
-            progress_dict))
-
-    def _format_progress(self, *args, **kwargs):
-        return self.ydl.logger.format(LogLevel.INFO, *args, **kwargs)
+            preserve=not self.params.get('quiet'),
+            disabled=bool(self.params.get('noprogress')),
+            templates=self.params.get('progress_template', {}))
 
     def report_progress(self, s):
-        def with_fields(*tups, default=''):
-            for *fields, tmpl in tups:
-                if all(s.get(f) is not None for f in fields):
-                    return tmpl
-            return default
-
-        if s['status'] == 'finished':
-            if self.params.get('noprogress'):
-                self.to_screen('[download] Download completed')
-            speed = try_call(lambda: s['total_bytes'] / s['elapsed'])
-            s.update({
-                'speed': speed,
-                '_speed_str': self.format_speed(speed).strip(),
-                '_total_bytes_str': format_bytes(s.get('total_bytes')),
-                '_elapsed_str': self.format_seconds(s.get('elapsed')),
-                '_percent_str': self.format_percent(100),
-            })
-            self._report_progress_status(s, join_nonempty(
-                '100%%',
-                with_fields(('total_bytes', 'of %(_total_bytes_str)s')),
-                with_fields(('elapsed', 'in %(_elapsed_str)s')),
-                with_fields(('speed', 'at %(_speed_str)s')),
-                delim=' '))
-
-        if s['status'] != 'downloading':
-            return
-
-        s.update({
-            '_eta_str': self.format_eta(s.get('eta')),
-            '_speed_str': self.format_speed(s.get('speed')),
-            '_percent_str': self.format_percent(try_call(
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
-                lambda: s['downloaded_bytes'] == 0 and 0)),
-            '_total_bytes_str': format_bytes(s.get('total_bytes')),
-            '_total_bytes_estimate_str': format_bytes(s.get('total_bytes_estimate')),
-            '_downloaded_bytes_str': format_bytes(s.get('downloaded_bytes')),
-            '_elapsed_str': self.format_seconds(s.get('elapsed')),
-        })
-
-        msg_template = with_fields(
-            ('total_bytes', '%(_percent_str)s of %(_total_bytes_str)s at %(_speed_str)s ETA %(_eta_str)s'),
-            ('total_bytes_estimate', '%(_percent_str)s of ~%(_total_bytes_estimate_str)s at %(_speed_str)s ETA %(_eta_str)s'),
-            ('downloaded_bytes', 'elapsed', '%(_downloaded_bytes_str)s at %(_speed_str)s (%(_elapsed_str)s)'),
-            ('downloaded_bytes', '%(_downloaded_bytes_str)s at %(_speed_str)s'),
-            default='%(_percent_str)s at %(_speed_str)s ETA %(_eta_str)s')
-
-        msg_template += with_fields(
-            ('fragment_index', 'fragment_count', ' (frag %(fragment_index)s/%(fragment_count)s)'),
-            ('fragment_index', ' (frag %(fragment_index)s)'))
-        self._report_progress_status(s, msg_template)
+        self._progress.report_progress(s)
 
     def report_resuming_byte(self, resume_len):
         """Report attempt to resume at given byte."""
@@ -417,7 +328,7 @@ class FileDownloader:
                     'status': 'finished',
                     'total_bytes': os.path.getsize(encodeFilename(filename)),
                 }, info_dict)
-                self._finish_multiline_status()
+                self._progress.close()
                 return True, False
 
         if subtitle:
@@ -431,7 +342,7 @@ class FileDownloader:
             time.sleep(sleep_interval)
 
         ret = self.real_download(filename, info_dict)
-        self._finish_multiline_status()
+        self._progress.close()
         return ret, True
 
     def real_download(self, filename, info_dict):
