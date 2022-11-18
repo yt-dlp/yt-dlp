@@ -7,6 +7,7 @@ import traceback
 from enum import Enum
 
 from .hoodoo import Color, TermCode, format_text
+from .logging_output import logger as _logging_logger
 from ..compat import functools
 from ..utils import (
     deprecation_warning,
@@ -66,11 +67,18 @@ class ClassOutput(_OutputBase):
 
 
 class LoggingOutput(_OutputBase):
-    def __init__(self, func):
-        ...
+    def __init__(self, level):
+        self.level = level
 
     def log(self, message):
-        ...
+        message = message.rstrip()
+        removable_prefixes = ['[debug] ', 'ERROR: ', 'WARNING: ']
+        for prefix in removable_prefixes:
+            if message.startswith(prefix):
+                message = message[len(prefix):]
+        if message.startswith('['):
+            message = message.partition(']')[2].lstrip()
+        _logging_logger.log(self.level, message)
 
 
 class NullOutput(_OutputBase):
@@ -175,13 +183,11 @@ class Logger:
         return self
 
     def setup_logging_logger(self):
-        # TODO(output): implement LoggingLogger
-        # logger = LoggingOutput(logging.INFO)
         self.mapping.update({
-            LogLevel.DEBUG: NULL_OUTPUT,
-            LogLevel.INFO: NULL_OUTPUT,
-            LogLevel.WARNING: NULL_OUTPUT,
-            LogLevel.ERROR: NULL_OUTPUT,
+            LogLevel.DEBUG: LoggingOutput(logging.DEBUG),
+            LogLevel.INFO: LoggingOutput(logging.INFO),
+            LogLevel.WARNING: LoggingOutput(logging.WARNING),
+            LogLevel.ERROR: LoggingOutput(logging.ERROR),
         })
         return self
 

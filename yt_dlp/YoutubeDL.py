@@ -8,7 +8,6 @@ import io
 import itertools
 import json
 import locale
-import logging
 import operator
 import os
 import random
@@ -728,7 +727,7 @@ class YoutubeDL:
 
         logger_param = params.get('logger')
         if logger_param:
-            if logger_param == logging:
+            if logger_param == 'logging':
                 logger.setup_logging_logger()
             else:
                 logger.setup_class_logger(logger_param)
