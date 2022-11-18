@@ -2573,7 +2573,7 @@ class GenericIE(InfoExtractor):
         json_ld = self._search_json_ld(webpage, video_id, default={})
         if json_ld.get('url') not in (url, None):
             self.report_detected('JSON LD')
-            is_direct = json_ld.get('ext', False) and json_ld['ext'] not in MEDIA_EXTENSIONS.manifests
+            is_direct = json_ld.get('ext') not in (None, *MEDIA_EXTENSIONS.manifests)
             return [merge_dicts({
                 '_type': 'video' if is_direct else 'url_transparent',
                 'url': smuggle_url(json_ld['url'], {
