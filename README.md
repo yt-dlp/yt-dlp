@@ -1490,7 +1490,7 @@ The available fields are:
  - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other)
  - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `eac3` > `ac3` > `dts` > other)
  - `codec`: Equivalent to `vcodec,acodec`
- - `vext`: Video Extension (`mp4` > `webm` > `flv` > other). If `--prefer-free-formats` is used, `webm` is preferred.
+ - `vext`: Video Extension (`mp4` > `mov` > `webm` > `flv` > other). If `--prefer-free-formats` is used, `webm` is preferred.
  - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other). If `--prefer-free-formats` is used, the order changes to `ogg` > `opus` > `webm` > `mp3` > `m4a` > `aac`
  - `ext`: Equivalent to `vext,aext`
  - `filesize`: Exact filesize, if known in advance
@@ -1566,7 +1566,7 @@ $ yt-dlp -S "+size,+br"
 $ yt-dlp -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b"
 
 # Download the best video with the best extension
-# (For video, mp4 > webm > flv. For audio, m4a > aac > mp3 ...)
+# (For video, mp4 > mov > webm > flv. For audio, m4a > aac > mp3 ...)
 $ yt-dlp -S "ext"
 
 
