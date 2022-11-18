@@ -3,6 +3,7 @@ from threading import Lock
 
 from .hoodoo import CSI
 from .logging import NULL_OUTPUT, LogLevel, StreamOutput, default_logger
+from .progress_formatting import apply_progress_format
 
 ERASE_LINE = f'{CSI}K'
 MOVE_UP = f'{CSI}A'
@@ -117,3 +118,42 @@ class Progress:
         distance = line - self._lastline
         self._lastline = line
         return f'\r{move_cursor(distance)}'
+
+
+class ProgressReporter:
+    def __init__(self, ydl, prefix, *, lines=1, newline=False, preserve=False, disabled=False, templates={}):
+        # XXX(output): This fails if ydl fake without console or logger gets passed
+        self._ydl = ydl
+        self._progress = Progress.make_progress(ydl.logger, lines=lines, preserve=preserve, newline=newline)
+        self.disabled = disabled
+        # Pass in a `progress_template` (`params.get('progress_template', {})`)
+        # XXX(output): This allows `{prefix}`, `{prefix}-title` and `{prefix}-finish` for all prefixes
+        self._screen_template = templates.get(prefix) or f'[{prefix}] %(progress._default_template)s'
+        self._title_template = templates.get(f'{prefix}-title') or 'yt-dlp %(progress._default_template)s'
+        self._finish_template = templates.get(f'{prefix}-finish') or f'[{prefix}] {prefix.capitalize()} completed'
+
+    def report_progress(self, progress_dict):
+        line = progress_dict.get('progress_idx') or 0
+        if self.disabled:
+            if progress_dict['status'] == 'finished':
+                self._progress.print_at_line(self._finish_template, line)
+
+            return
+
+        apply_progress_format(progress_dict, self._progress.output.use_color)
+
+        progress_data = progress_dict.copy()
+        progress_data = {
+            'info': progress_data.pop('info_dict'),
+            'progress': progress_data,
+        }
+
+        self._progress.print_at_line(self._ydl.evaluate_outtmpl(
+            self._screen_template, progress_data), line)
+
+        if self._ydl.console.allow_title_change:
+            self._ydl.console.change_title(self._ydl.evaluate_outtmpl(
+                self._title_template, progress_data))
+
+    def close(self):
+        self._progress.close()
