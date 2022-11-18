@@ -98,8 +98,6 @@ class WistiaBaseIE(InfoExtractor):
                     })
                 formats.append(f)
 
-        self._sort_formats(formats)
-
         subtitles = {}
         for caption in data.get('captions', []):
             language = caption.get('language')

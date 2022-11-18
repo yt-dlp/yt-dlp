@@ -10,13 +10,14 @@ from ..output.progress import ProgressReporter
 from ..utils import (
     IDENTITY,
     NO_DEFAULT,
-    NUMBER_RE,
     LockingUnsupportedError,
     RetryManager,
     classproperty,
     decodeArgument,
     encodeFilename,
     format_bytes,
+    parse_bytes,
+    remove_start,
     sanitize_open,
     shell_quote,
     timeconvert,
@@ -111,11 +112,11 @@ class FileDownloader:
         time = timetuple_from_msec(seconds * 1000)
         if time.hours > 99:
             return '--:--:--'
-        if not time.hours:
-            return '   %02d:%02d' % time[1:-1]
         return '%02d:%02d:%02d' % time[:-1]
 
-    format_eta = format_seconds
+    @classmethod
+    def format_eta(cls, seconds):
+        return f'{remove_start(cls.format_seconds(seconds), "00:"):>8s}'
 
     @staticmethod
     def calc_percent(byte_counter, data_len):
@@ -170,12 +171,7 @@ class FileDownloader:
     @staticmethod
     def parse_bytes(bytestr):
         """Parse a string indicating a byte quantity into an integer."""
-        matchobj = re.match(rf'(?i)^({NUMBER_RE})([kMGTPEZY]?)$', bytestr)
-        if matchobj is None:
-            return None
-        number = float(matchobj.group(1))
-        multiplier = 1024.0 ** 'bkmgtpezy'.index(matchobj.group(2).lower())
-        return int(round(number * multiplier))
+        parse_bytes(bytestr)
 
     def slow_down(self, start_time, now, byte_counter):
         """Sleep if the download speed is over the rate limit."""

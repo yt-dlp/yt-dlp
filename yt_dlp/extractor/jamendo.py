@@ -87,7 +87,6 @@ class JamendoIE(InfoExtractor):
             ('ogg1', 'ogg', 'ogg'),
             ('flac', 'flac', 'flac'),
         ))]
-        self._sort_formats(formats)
 
         urls = []
         thumbnails = []
@@ -134,7 +133,7 @@ class JamendoIE(InfoExtractor):
         }
 
 
-class JamendoAlbumIE(JamendoIE):
+class JamendoAlbumIE(JamendoIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?jamendo\.com/album/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.jamendo.com/album/121486/duck-on-cover',

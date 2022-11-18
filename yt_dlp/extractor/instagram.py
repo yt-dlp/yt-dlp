@@ -155,7 +155,6 @@ class InstagramBaseIE(InfoExtractor):
         } for format in videos_list or []]
         if dash_manifest_raw:
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash_manifest_raw, media_id), mpd_id='dash'))
-        self._sort_formats(formats)
 
         thumbnails = [{
             'url': thumbnail.get('url'),
@@ -452,7 +451,7 @@ class InstagramIE(InstagramBaseIE):
                 webpage = self._download_webpage(
                     f'{url}/embed/', video_id, note='Downloading embed webpage', fatal=False)
                 additional_data = self._search_json(
-                    r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
+                    r'window\.__additionalDataLoaded\s*\(\s*[^,]+,', webpage, 'additional data', video_id, fatal=False)
                 if not additional_data and not media:
                     self.raise_login_required('Requested content is not available, rate-limit reached or login required')
 
@@ -494,7 +493,6 @@ class InstagramIE(InstagramBaseIE):
         dash = traverse_obj(media, ('dash_info', 'video_dash_manifest'))
         if dash:
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash, video_id), mpd_id='dash'))
-        self._sort_formats(formats)
 
         comment_data = traverse_obj(media, ('edge_media_to_parent_comment', 'edges'))
         comments = [{

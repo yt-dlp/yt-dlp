@@ -233,7 +233,6 @@ class TikTokBaseIE(InfoExtractor):
         if auth_cookie:
             for f in formats:
                 self._set_cookie(compat_urllib_parse_urlparse(f['url']).hostname, 'sid_tt', auth_cookie.value)
-        self._sort_formats(formats, ('quality', 'codec', 'size', 'br'))
 
         thumbnails = []
         for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
@@ -291,7 +290,8 @@ class TikTokBaseIE(InfoExtractor):
             'availability': self._availability(
                 is_private='Private' in labels,
                 needs_subscription='Friends only' in labels,
-                is_unlisted='Followers only' in labels)
+                is_unlisted='Followers only' in labels),
+            '_format_sort_fields': ('quality', 'codec', 'size', 'br'),
         }
 
     def _parse_aweme_video_web(self, aweme_detail, webpage_url):
@@ -333,7 +333,6 @@ class TikTokBaseIE(InfoExtractor):
                 'height': height,
             })
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats)
 
         thumbnails = []
         for thumbnail_name in ('thumbnail', 'cover', 'dynamicCover', 'originCover'):
@@ -655,7 +654,7 @@ class TikTokUserIE(TikTokBaseIE):
         return self.playlist_result(self._entries_api(user_id, videos), user_id, user_name, thumbnail=thumbnail)
 
 
-class TikTokBaseListIE(TikTokBaseIE):
+class TikTokBaseListIE(TikTokBaseIE):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     def _entries(self, list_id, display_id):
         query = {
             self._QUERY_NAME: list_id,
@@ -764,7 +763,7 @@ class TikTokTagIE(TikTokBaseListIE):
         return self.playlist_result(self._entries(tag_id, display_id), tag_id, display_id)
 
 
-class DouyinIE(TikTokIE):
+class DouyinIE(TikTokIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?douyin\.com/video/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.douyin.com/video/6961737553342991651',

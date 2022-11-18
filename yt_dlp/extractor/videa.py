@@ -167,7 +167,6 @@ class VideaIE(InfoExtractor):
                 'height': int_or_none(source.get('height')),
             })
             formats.append(f)
-        self._sort_formats(formats)
 
         thumbnail = self._proto_relative_url(xpath_text(video, './poster_src'))
 

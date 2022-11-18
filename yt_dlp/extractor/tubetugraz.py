@@ -37,7 +37,6 @@ class TubeTuGrazBaseIE(InfoExtractor):
         id = episode_info.get('id')
         formats = list(self._extract_formats(
             traverse_obj(episode_info, ('mediapackage', 'media', 'track')), id))
-        self._sort_formats(formats)
 
         title = traverse_obj(episode_info, ('mediapackage', 'title'), 'dcTitle')
         series_title = traverse_obj(episode_info, ('mediapackage', 'seriestitle'))

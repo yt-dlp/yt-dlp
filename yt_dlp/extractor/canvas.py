@@ -118,7 +118,6 @@ class CanvasIE(InfoExtractor):
                     'format_id': format_type,
                     'url': format_url,
                 })
-        self._sort_formats(formats)
 
         subtitle_urls = data.get('subtitleUrls')
         if isinstance(subtitle_urls, list):

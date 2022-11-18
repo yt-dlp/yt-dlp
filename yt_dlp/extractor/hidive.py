@@ -103,7 +103,6 @@ class HiDiveIE(InfoExtractor):
                     f['language'] = audio
                     f['format_note'] = f'{version}, {extra}'
                 formats.extend(frmt)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

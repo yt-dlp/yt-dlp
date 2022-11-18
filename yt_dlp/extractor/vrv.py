@@ -192,7 +192,6 @@ class VRVIE(VRVBaseIE):
                     formats.extend(self._extract_vrv_formats(
                         stream.get('url'), video_id, stream_type.split('_')[1],
                         audio_locale, stream.get('hardsub_locale')))
-        self._sort_formats(formats)
 
         subtitles = {}
         for k in ('captions', 'subtitles'):

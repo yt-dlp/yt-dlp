@@ -166,7 +166,6 @@ class IviIE(InfoExtractor):
                 'quality': quality(content_format),
                 'filesize': int_or_none(f.get('size_in_bytes')),
             })
-        self._sort_formats(formats)
 
         compilation = result.get('compilation')
         episode = title if compilation else None

@@ -29,8 +29,6 @@ class MoviezineIE(InfoExtractor):
             'ext': 'mp4',
         }]
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': self._search_regex(r'title: "(.+?)",', jsplayer, 'title'),

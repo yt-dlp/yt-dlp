@@ -89,7 +89,6 @@ class StreamableIE(InfoExtractor):
                 'vcodec': parse_codecs(try_get(info, lambda x: x['input_metadata']['video_codec_name'])).get('vcodec'),
                 'acodec': parse_codecs(try_get(info, lambda x: x['input_metadata']['audio_codec_name'])).get('acodec'),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

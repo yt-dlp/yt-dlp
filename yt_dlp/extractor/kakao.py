@@ -120,7 +120,6 @@ class KakaoIE(InfoExtractor):
                 'filesize': int_or_none(fmt.get('filesize')),
                 'tbr': int_or_none(fmt.get('kbps')),
             })
-        self._sort_formats(formats)
 
         thumbs = []
         for thumb in clip.get('clipChapterThumbnailList') or []:

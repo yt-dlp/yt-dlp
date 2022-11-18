@@ -92,8 +92,6 @@ class OpencastBaseIE(InfoExtractor):
                     })
                 formats.append(track_obj)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'formats': formats,

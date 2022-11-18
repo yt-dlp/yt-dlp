@@ -2,10 +2,10 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    clean_html,
     ExtractorError,
-    js_to_json,
     base_url,
+    clean_html,
+    js_to_json,
     url_basename,
     urljoin,
 )
@@ -196,7 +196,6 @@ class RCSBaseIE(InfoExtractor):
                 'format_id': 'http-mp4',
                 'url': urls['mp4']
             })
-        self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):

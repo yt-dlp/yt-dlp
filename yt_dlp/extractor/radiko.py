@@ -125,7 +125,6 @@ class RadikoBaseIE(InfoExtractor):
                     sf['downloader_options'] = {'ffmpeg_args': ['-ss', time_to_skip]}
             formats.extend(subformats)
 
-        self._sort_formats(formats)
         return formats
 
 

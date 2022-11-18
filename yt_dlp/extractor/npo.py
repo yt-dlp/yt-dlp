@@ -247,8 +247,6 @@ class NPOIE(NPOBaseIE):
             if not self.get_param('allow_unplayable_formats') and drm:
                 self.report_drm(video_id)
 
-        self._sort_formats(formats)
-
         info = {
             'id': video_id,
             'title': video_id,
@@ -454,8 +452,6 @@ class NPOIE(NPOBaseIE):
                         'quality': stream.get('kwaliteit'),
                     })
 
-        self._sort_formats(formats)
-
         subtitles = {}
         if metadata.get('tt888') == 'ja':
             subtitles['nl'] = [{
@@ -599,7 +595,7 @@ class NPORadioFragmentIE(InfoExtractor):
         }
 
 
-class NPODataMidEmbedIE(InfoExtractor):
+class NPODataMidEmbedIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
@@ -653,7 +649,7 @@ class HetKlokhuisIE(NPODataMidEmbedIE):
     }
 
 
-class NPOPlaylistBaseIE(NPOIE):
+class NPOPlaylistBaseIE(NPOIE):  # XXX: Do not subclass from concrete IE
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 

@@ -157,7 +157,6 @@ class PelotonIE(InfoExtractor):
             'title': segment.get('name')
         } for segment in traverse_obj(metadata, ('segments', 'segment_list'))]
 
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': ride_data.get('title'),

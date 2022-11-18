@@ -98,8 +98,6 @@ class SapoIE(InfoExtractor):
                 'height': 720,
             })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,
