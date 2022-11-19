@@ -171,6 +171,7 @@ class RedditIE(InfoExtractor):
                 'width': int_or_none(reddit_video.get('width')),
                 'tbr': int_or_none(reddit_video.get('bitrate_kbps')),
                 'acodec': 'none',
+                'vcodec': 'h264',
                 'ext': 'mp4',
                 'format_id': 'fallback',
                 'format_note': 'DASH video, mp4_dash',
