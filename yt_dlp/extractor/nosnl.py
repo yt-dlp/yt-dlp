@@ -1,5 +1,11 @@
 from .common import InfoExtractor
-from ..utils import parse_duration, parse_iso8601, traverse_obj
+from ..utils import (
+    merge_dicts,
+    parse_duration,
+    parse_iso8601,
+    traverse_obj,
+    try_call,
+)
 
 
 class NOSNLArticleIE(InfoExtractor):
@@ -22,13 +28,14 @@ class NOSNLArticleIE(InfoExtractor):
             'info_dict': {
                 'id': '2440409',
                 'title': 'Vannacht sliepen weer enkele honderden asielzoekers in Ter Apel buiten',
-                'description': 'Er werd wel geprobeerd om kwetsbare migranten onderdak te bieden, zegt het COA.',
+                'description': 'md5:cc413a10e45e0237016248daa5285436',
                 'tags': ['aanmeldcentrum', 'Centraal Orgaan opvang asielzoekers', 'COA', 'asielzoekers', 'Ter Apel'],
                 'modified_timestamp': 1660452773,
                 'modified_date': '20220814',
                 'upload_date': '20220813',
                 'thumbnail': 'https://cdn.nos.nl/image/2022/07/18/880346/1024x576a.jpg',
                 'timestamp': 1660401384,
+                'categories': ['Regionaal nieuws', 'Binnenland'],
             },
             'playlist_count': 2,
         }, {
@@ -37,13 +44,14 @@ class NOSNLArticleIE(InfoExtractor):
             'info_dict': {
                 'id': '2440789',
                 'title': 'Wekdienst 16/8: Groningse acties tien jaar na zware aardbeving • Femke Bol in actie op EK atletiek ',
-                'description': 'Nieuws, weer, verkeer: met dit overzicht begin je geïnformeerd aan de dag.',
+                'description': 'md5:dae07b9f55d169882dce23e2e4aed3b7',
                 'tags': ['wekdienst'],
                 'modified_date': '20220816',
                 'modified_timestamp': 1660625449,
                 'timestamp': 1660625449,
                 'upload_date': '20220816',
                 'thumbnail': 'https://cdn.nos.nl/image/2022/08/16/888178/1024x576a.jpg',
+                'categories': ['Binnenland', 'Buitenland'],
             },
             'playlist_count': 2,
         }, {
@@ -59,6 +67,8 @@ class NOSNLArticleIE(InfoExtractor):
                 'thumbnail': 'https://cdn.nos.nl/image/2022/11/17/916155/1024x576a.jpg',
                 'modified_timestamp': 1668663388,
                 'timestamp': 1668663388,
+                'categories': ['Buitenland'],
+                'url': str,
             },
             'playlist_mincount': 1,
         }
@@ -102,7 +112,9 @@ class NOSNLArticleIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['data']
-        return {
+        json_ld_data = self._search_json_ld(webpage, display_id)
+
+        return merge_dicts(json_ld_data, {
             '_type': 'playlist',
             'entries': self._entries(
                 nextjs_json['video'] if site_type == 'video' else nextjs_json['items'], display_id),
@@ -113,5 +125,6 @@ class NOSNLArticleIE(InfoExtractor):
             'tags': nextjs_json.get('keywords'),
             'modified_timestamp': parse_iso8601(nextjs_json.get('modifiedAt')),
             'thumbnail': nextjs_json.get('shareImageSrc') or self._html_search_meta(['og:image', 'twitter:image'], webpage),
-            'timestamp': parse_iso8601(nextjs_json.get('publishedAt'))
-        }
+            'timestamp': parse_iso8601(nextjs_json.get('publishedAt')),
+            'categories': try_call(lambda: traverse_obj(nextjs_json, ('categories', ..., 'label')))
+        })
