@@ -1,6 +1,5 @@
 from .common import InfoExtractor
 from ..utils import (
-    merge_dicts,
     parse_duration,
     parse_iso8601,
     traverse_obj,
@@ -28,7 +27,7 @@ class NOSNLArticleIE(InfoExtractor):
             'info_dict': {
                 'id': '2440409',
                 'title': 'Vannacht sliepen weer enkele honderden asielzoekers in Ter Apel buiten',
-                'description': 'md5:cc413a10e45e0237016248daa5285436',
+                'description': 'md5:72b1e1674d798460e79d78fa37e9f56d',
                 'tags': ['aanmeldcentrum', 'Centraal Orgaan opvang asielzoekers', 'COA', 'asielzoekers', 'Ter Apel'],
                 'modified_timestamp': 1660452773,
                 'modified_date': '20220814',
@@ -44,7 +43,7 @@ class NOSNLArticleIE(InfoExtractor):
             'info_dict': {
                 'id': '2440789',
                 'title': 'Wekdienst 16/8: Groningse acties tien jaar na zware aardbeving • Femke Bol in actie op EK atletiek ',
-                'description': 'md5:dae07b9f55d169882dce23e2e4aed3b7',
+                'description': 'md5:0bd277ed7a44fc15cb12a9d27d8f6641',
                 'tags': ['wekdienst'],
                 'modified_date': '20220816',
                 'modified_timestamp': 1660625449,
@@ -68,7 +67,6 @@ class NOSNLArticleIE(InfoExtractor):
                 'modified_timestamp': 1668663388,
                 'timestamp': 1668663388,
                 'categories': ['Buitenland'],
-                'url': str,
             },
             'playlist_mincount': 1,
         }
@@ -112,9 +110,7 @@ class NOSNLArticleIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         nextjs_json = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['data']
-        json_ld_data = self._search_json_ld(webpage, display_id)
-
-        return merge_dicts(json_ld_data, {
+        return {
             '_type': 'playlist',
             'entries': self._entries(
                 nextjs_json['video'] if site_type == 'video' else nextjs_json['items'], display_id),
@@ -127,4 +123,4 @@ class NOSNLArticleIE(InfoExtractor):
             'thumbnail': nextjs_json.get('shareImageSrc') or self._html_search_meta(['og:image', 'twitter:image'], webpage),
             'timestamp': parse_iso8601(nextjs_json.get('publishedAt')),
             'categories': try_call(lambda: traverse_obj(nextjs_json, ('categories', ..., 'label')))
-        })
+        }
