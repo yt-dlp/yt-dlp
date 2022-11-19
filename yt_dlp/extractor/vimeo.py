@@ -1412,9 +1412,9 @@ class VimeoProIE(VimeoBaseInfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         password_form = self._search_regex(
-            r'(?is)<form[^>]+?method=["\']post["\'][^>]*>(.+?)</form>',
-            webpage, 'password form', default='')
-        if 'password' in password_form:
+            r'(?is)<form[^>]+?method=["\']post["\'][^>]*>(.+?password.+?)</form>',
+            webpage, 'password form', default=None)
+        if password_form:
             try:
                 webpage = self._download_webpage(url, display_id, data=urlencode_postdata({
                     'password': self._get_video_password(),
