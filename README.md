@@ -1808,6 +1808,7 @@ See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plug
 
 ## Installing Plugins
 
+Plugins can be installed in a variety of different ways. 
 
 1. **User Plugins**:
     * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/ytdlp_plugins/` (recommended on Linux/macOS)
@@ -1819,17 +1820,16 @@ See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plug
 
 where `<package name>` is a folder containing `ytdlp_plugins`.
 
-For binaries, plugins can also be installed in the root directory of the binary (where `<root-dir>/yt-dlp.exe`, `<root-dir>/ytdlp_plugins/`)
+Plugins can also be installed in the root directory of the binary (where `<root-dir>/yt-dlp.exe`, `<root-dir>/ytdlp_plugins/`)
 
-Additionally, any path in `PYTHONPATH` is searched in for `ytdlp_plugins` as well. To name a few use cases, this means that:
+If you are running directly from the source code, plugins can be installed in the root directory of the module (where `<root dir>/yt_dlp/__main__.py`, `<root-dir>/ytdlp_plugins/`)
 
-- Plugins can be installed and managed using `pip` (see [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for an example)
-- Or, if you are running directly from the source code, plugins can be installed in the root directory of the module (where `<root dir>/yt_dlp/__main__.py`, `<root-dir>/ytdlp_plugins/`)
-- Note: This does not work for Pyinstaller builds.
+Additionally, plugins can be installed and managed using `pip` (see [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for an example)
+- Any path in `PYTHONPATH` is searched in for `ytdlp_plugins`
+- Note: This does not work for Pyinstaller/py2exe builds.
 
-
-.zip, .egg and .whl archives containing `ytdlp_plugins` in their root are also supported:
-- e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/myplugin.zip/` where `myplugin.zip` contains `ytdlp_plugins/<type>/myplugin.py`
+.zip, .egg and .whl archives containing `ytdlp_plugins` in their root are also supported. These can be placed in the same locations `ytdlp_plugins` can be found.
+- e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/myplugin.zip` where `myplugin.zip` contains `ytdlp_plugins/<type>/myplugin.py`
 
 Run yt-dlp with `--verbose`/`-v` to check if the plugin has been loaded.
 
