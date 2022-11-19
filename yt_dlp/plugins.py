@@ -125,11 +125,13 @@ def load_plugins(name, suffix, namespace=None):
     classes = {}
     namespace = namespace or {}
 
-    def gen_predicate(package_name):
+    def gen_predicate(package_name, module):
         def check_predicate(obj):
             return (inspect.isclass(obj)
                     and obj.__name__.endswith(suffix)
-                    and obj.__module__.startswith(package_name))
+                    and obj.__module__.startswith(package_name)
+                    and not obj.__name__.startswith('_')
+                    and obj.__name__ in getattr(module, '__all__', [obj.__name__]))
 
         return check_predicate
 
@@ -151,7 +153,7 @@ def load_plugins(name, suffix, namespace=None):
             continue
 
         sys.modules[module_name] = module
-        module_classes = dict(inspect.getmembers(module, gen_predicate(module_name)))
+        module_classes = dict(inspect.getmembers(module, gen_predicate(module_name, module)))
         name_collisions = (
             set(classes.keys()) | set(namespace.keys())) & set(module_classes.keys())
         classes.update({key: value for key, value in module_classes.items()

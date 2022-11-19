@@ -44,6 +44,13 @@ class TestPlugins(unittest.TestCase):
         )
         self.assertNotIn('IgnorePluginIE', plugins_ie.keys())
 
+        # Don't load extractors with underscore prefix
+        self.assertNotIn('_IgnoreUnderscorePluginIE', plugins_ie.keys())
+
+        # Don't load extractors not specified in __all__ (if supplied)
+        self.assertNotIn('IgnoreNotInAllPluginIE', plugins_ie.keys())
+        self.assertIn('InAllPluginIE', plugins_ie.keys())
+
     def test_postprocessor_classes(self):
         plugins_pp = load_plugins('postprocessor', 'PP')
         self.assertIn('NormalPluginPP', plugins_pp.keys())
