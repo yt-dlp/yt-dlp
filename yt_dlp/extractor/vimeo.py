@@ -1415,12 +1415,10 @@ class VimeoProIE(VimeoBaseInfoExtractor):
             r'(?is)<form[^>]+?method=["\']post["\'][^>]*>(.+?)</form>',
             webpage, 'password form', default='')
         if 'password' in password_form:
-            password = self._get_video_password()
-            inputs = self._hidden_inputs(password_form)
             try:
                 webpage = self._download_webpage(url, display_id, data=urlencode_postdata({
-                    'password': password,
-                    **inputs,
+                    'password': self._get_video_password(),
+                    **self._hidden_inputs(password_form),
                 }), note='Logging in with video password')
             except ExtractorError as e:
                 if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 418:
