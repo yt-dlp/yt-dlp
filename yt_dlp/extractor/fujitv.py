@@ -57,7 +57,6 @@ class FujiTVFODPlus7IE(InfoExtractor):
                                   self._BITRATE_MAP.get(f.get('tbr'), ()))))
             formats.extend(fmt)
             subtitles = self._merge_subtitles(subtitles, subs)
-        self._sort_formats(formats, ['tbr'])
 
         return {
             'id': video_id,
@@ -68,4 +67,5 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': f'{self._BASE_URL}img/program/{series_id}/episode/{video_id}_a.jpg',
+            '_format_sort_fields': ('tbr', )
         }

@@ -33,7 +33,6 @@ class UplynkIE(InfoExtractor):
         if session_id:
             for f in formats:
                 f['extra_param_to_segment_url'] = 'pbs=' + session_id
-        self._sort_formats(formats)
         asset = self._download_json('http://content.uplynk.com/player/assetinfo/%s.json' % path, display_id)
         if asset.get('error') == 1:
             raise ExtractorError('% said: %s' % (self.IE_NAME, asset['msg']), expected=True)
@@ -52,10 +51,9 @@ class UplynkIE(InfoExtractor):
         return self._extract_uplynk_info(url)
 
 
-class UplynkPreplayIE(UplynkIE):
+class UplynkPreplayIE(UplynkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'uplynk:preplay'
     _VALID_URL = r'https?://.*?\.uplynk\.com/preplay2?/(?P<path>ext/[0-9a-f]{32}/(?P<external_id>[^/?&]+)|(?P<id>[0-9a-f]{32}))\.json'
-    _TEST = None
 
     def _real_extract(self, url):
         path, external_id, video_id = self._match_valid_url(url).groups()

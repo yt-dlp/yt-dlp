@@ -127,7 +127,6 @@ class PeriscopeIE(PeriscopeBaseIE):
             }
             self._add_width_and_height(rtmp_format)
             formats.append(rtmp_format)
-        self._sort_formats(formats)
 
         info['formats'] = formats
         return info

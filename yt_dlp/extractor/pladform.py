@@ -111,8 +111,6 @@ class PladformIE(InfoExtractor):
             if error:
                 fail(error)
 
-        self._sort_formats(formats)
-
         webpage = self._download_webpage(
             'http://video.pladform.ru/catalog/video/videoid/%s' % video_id,
             video_id)

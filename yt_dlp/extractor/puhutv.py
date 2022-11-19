@@ -111,7 +111,6 @@ class PuhuTVIE(InfoExtractor):
                 format_id += '-%sp' % quality
             f['format_id'] = format_id
             formats.append(f)
-        self._sort_formats(formats)
 
         creator = try_get(
             show, lambda x: x['producer']['name'], compat_str)

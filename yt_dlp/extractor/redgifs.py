@@ -45,7 +45,6 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
                 'height': height,
                 'quality': quality(format_id),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -73,7 +72,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         self._API_HEADERS['authorization'] = f'Bearer {auth["token"]}'
 
     def _call_api(self, ep, video_id, *args, **kwargs):
-        for attempt in range(2):
+        for first_attempt in True, False:
             if 'authorization' not in self._API_HEADERS:
                 self._fetch_oauth_token(video_id)
             try:
@@ -83,8 +82,9 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
                     f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, *args, **kwargs)
                 break
             except ExtractorError as e:
-                if not attempt and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                if first_attempt and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
                     del self._API_HEADERS['authorization']  # refresh the token
+                    continue
                 raise
 
         if 'error' in data:

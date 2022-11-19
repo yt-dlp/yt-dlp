@@ -78,8 +78,6 @@ class GoProIE(InfoExtractor):
                 'height': int_or_none(fmt.get('height')),
             })
 
-        self._sort_formats(formats)
-
         title = str_or_none(
             try_get(metadata, lambda x: x['collection']['title'])
             or self._html_search_meta(['og:title', 'twitter:title'], webpage)

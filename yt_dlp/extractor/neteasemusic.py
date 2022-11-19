@@ -236,7 +236,6 @@ class NetEaseMusicIE(NetEaseMusicBaseIE):
             song_id, 'Downloading song info')['songs'][0]
 
         formats = self.extract_formats(info)
-        self._sort_formats(formats)
 
         lyrics_info = self.query_api(
             'song/lyric?id=%s&lv=-1&tv=-1' % song_id,
@@ -412,7 +411,6 @@ class NetEaseMusicMvIE(NetEaseMusicBaseIE):
             {'url': mv_url, 'ext': 'mp4', 'format_id': '%sp' % brs, 'height': int(brs)}
             for brs, mv_url in info['brs'].items()
         ]
-        self._sort_formats(formats)
 
         return {
             'id': mv_id,
@@ -482,7 +480,6 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
 
         if not self._yes_playlist(info['songs'] and program_id, info['mainSong']['id']):
             formats = self.extract_formats(info['mainSong'])
-            self._sort_formats(formats)
 
             return {
                 'id': info['mainSong']['id'],

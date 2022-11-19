@@ -198,7 +198,6 @@ class YoukuIE(InfoExtractor):
             'width': stream.get('width'),
             'height': stream.get('height'),
         } for stream in data['stream'] if stream.get('channel_type') != 'tail']
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

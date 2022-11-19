@@ -58,7 +58,6 @@ class DrTuberIE(InfoExtractor):
                     'quality': 2 if format_id == 'hq' else 1,
                     'url': video_url
                 })
-        self._sort_formats(formats)
 
         duration = int_or_none(video_data.get('duration')) or parse_duration(
             video_data.get('duration_format'))

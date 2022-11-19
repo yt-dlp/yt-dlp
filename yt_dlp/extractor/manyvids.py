@@ -135,8 +135,6 @@ class ManyVidsIE(InfoExtractor):
             if 'transcoded' in f['format_id']:
                 f['preference'] = f.get('preference', -1) - 1
 
-        self._sort_formats(formats)
-
         def get_likes():
             likes = self._search_regex(
                 r'''(<a\b[^>]*\bdata-id\s*=\s*(['"])%s\2[^>]*>)''' % (video_id, ),

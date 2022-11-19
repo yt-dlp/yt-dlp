@@ -37,7 +37,6 @@ class WASDTVBaseIE(InfoExtractor):
         media_url, is_live = self._get_media_url(media_meta)
         video_id = media.get('media_id') or container.get('media_container_id')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(media_url, video_id, 'mp4')
-        self._sort_formats(formats)
         return {
             'id': str(video_id),
             'title': container.get('media_container_name') or self._og_search_title(self._download_webpage(url, video_id)),
@@ -149,7 +148,6 @@ class WASDTVClipIE(WASDTVBaseIE):
         clip = self._fetch(f'v2/clips/{clip_id}', video_id=clip_id, description='clip')
         clip_data = clip.get('clip_data')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(clip_data.get('url'), video_id=clip_id, ext='mp4')
-        self._sort_formats(formats)
         return {
             'id': clip_id,
             'title': clip.get('clip_title') or self._og_search_title(self._download_webpage(url, clip_id, fatal=False)),

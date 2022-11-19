@@ -46,7 +46,6 @@ class RadioFranceIE(InfoExtractor):
             for i, fm in
             enumerate(re.findall(r"([a-z0-9]+)\s*:\s*'([^']+)'", formats_str))
         ]
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

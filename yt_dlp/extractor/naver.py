@@ -67,7 +67,6 @@ class NaverBaseIE(InfoExtractor):
                 formats.extend(self._extract_m3u8_formats(
                     update_url_query(stream_url, query), video_id,
                     'mp4', 'm3u8_native', m3u8_id=stream_type, fatal=False))
-        self._sort_formats(formats)
 
         replace_ext = lambda x, y: re.sub(self._CAPTION_EXT_RE, '.' + y, x)
 
@@ -239,7 +238,6 @@ class NaverLiveIE(InfoExtractor):
                 quality.get('url'), video_id, 'mp4',
                 m3u8_id=quality.get('qualityId'), live=True
             ))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

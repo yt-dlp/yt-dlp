@@ -36,7 +36,6 @@ class DaystarClipIE(InfoExtractor):
                     video_id, 'mp4', fatal=False, headers={'Referer': src_iframe})
                 formats.extend(fmts)
                 subtitles = self._merge_subtitles(subtitles, subs)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

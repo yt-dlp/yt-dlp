@@ -67,7 +67,6 @@ class BooyahClipsIE(BooyahBaseIE):
                 'height': video_data.get('resolution'),
                 'preference': -10,
             }))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

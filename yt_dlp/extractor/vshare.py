@@ -49,8 +49,6 @@ class VShareIE(InfoExtractor):
             url, '<video>%s</video>' % self._extract_packed(webpage),
             video_id)[0]
 
-        self._sort_formats(info['formats'])
-
         info.update({
             'id': video_id,
             'title': title,

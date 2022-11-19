@@ -122,7 +122,6 @@ class QQMusicIE(InfoExtractor):
                 'abr': details.get('abr'),
             })
         self._check_formats(formats, mid)
-        self._sort_formats(formats)
 
         actual_lrc_lyrics = ''.join(
             line + '\n' for line in re.findall(

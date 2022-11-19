@@ -146,7 +146,6 @@ class RoosterTeethIE(RoosterTeethBaseIE):
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             m3u8_url, display_id, 'mp4', 'm3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
 
         episode = self._download_json(
             api_episode_url, display_id,
