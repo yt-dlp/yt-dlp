@@ -51,14 +51,16 @@ class NOSNLArticleIE(InfoExtractor):
             'url': 'https://nos.nl/video/2452718-xi-en-trudeau-botsen-voor-de-camera-op-g20-top-je-hebt-gelekt',
             'info_dict': {
                 'id': '2452718',
-                # 'ext': 'mp4',
-                'ext': None,  # FIXME: set back to mp4
-                'description': 'md5:61907dac576f75c11bf8ffffd4a3cc0f',
                 'title': 'Xi en Trudeau botsen voor de camera op G20-top: \'Je hebt gelekt\'',
-                'duration': 43.0,
-                'thumbnail': 'https://cdn.nos.nl/image/2022/11/17/916155/3840x2160a.jpg',
+                'modified_date': '20221117',
+                'description': 'md5:61907dac576f75c11bf8ffffd4a3cc0f',
+                'tags': ['Xi', 'Trudeau', 'G20', 'indonesié'],
+                'upload_date': '20221117',
+                'thumbnail': 'https://cdn.nos.nl/image/2022/11/17/916155/1024x576a.jpg',
+                'modified_timestamp': 1668663388,
+                'timestamp': 1668663388,
             },
-            'playlist_count': 1,
+            'playlist_mincount': 1,
         }
     ]
 
