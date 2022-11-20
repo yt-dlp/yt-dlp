@@ -1421,9 +1421,9 @@ class VimeoProIE(VimeoBaseInfoExtractor):
                     **self._hidden_inputs(password_form),
                 }), note='Logging in with video password')
             except ExtractorError as e:
-                if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 418:
-                    raise
-                raise ExtractorError('Wrong video password', expected=True)
+                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 418:
+                    raise ExtractorError('Wrong video password', expected=True)
+                raise
 
         description = None
         # even if we have video_id, some videos require player URL with portfolio_id query param
@@ -1431,17 +1431,11 @@ class VimeoProIE(VimeoBaseInfoExtractor):
         vimeo_url = VimeoIE._extract_url(url, webpage)
         if vimeo_url:
             description = self._html_search_meta('description', webpage, default=None)
+        elif video_id:
+            vimeo_url = f'https://vimeo.com/{video_id}'
         else:
-            if video_id:
-                vimeo_url = f'https://vimeo.com/{video_id}'
-            else:
-                raise ExtractorError(
-                    'No Vimeo embed or video ID could be found in VimeoPro page', expected=True)
+            raise ExtractorError(
+                'No Vimeo embed or video ID could be found in VimeoPro page', expected=True)
 
-        return {
-            '_type': 'url_transparent',
-            'ie_key': VimeoIE.ie_key(),
-            'url': vimeo_url,
-            'webpage_url': url,
-            'description': description,
-        }
+        return self.url_result(vimeo_url, VimeoIE, video_id, url_transparent=True,
+                               description=description)
