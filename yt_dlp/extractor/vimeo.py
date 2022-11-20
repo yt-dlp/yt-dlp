@@ -1426,6 +1426,8 @@ class VimeoProIE(VimeoBaseInfoExtractor):
                 raise ExtractorError('Wrong video password', expected=True)
 
         description = None
+        # even if we have video_id, some videos require player URL with portfolio_id query param
+        # https://github.com/ytdl-org/youtube-dl/issues/20070
         vimeo_url = VimeoIE._extract_url(url, webpage)
         if vimeo_url:
             description = self._html_search_meta('description', webpage, default=None)
