@@ -2446,14 +2446,12 @@ class GenericIE(InfoExtractor):
 
         self._downloader.write_debug(f'Identified {num} {name}{format_field(note, None, "; %s")}')
 
-    def _hls_segment_query(self, url):
-        if self._configuration_arg('hls_segment_query', ie_key=GenericIE):
+    def _fragment_query(self, url):
+        if self._configuration_arg('fragment_query'):
             query_string = urllib.parse.urlparse(url).query
             if query_string:
-                return {
-                    'extra_param_to_segment_url': query_string,
-                }
-        return
+                return {'extra_param_to_segment_url': query_string}
+        return {}
 
     def _extract_rss(self, url, video_id, doc):
         NS_MAP = {
@@ -2617,10 +2615,10 @@ class GenericIE(InfoExtractor):
             subtitles = {}
             if format_id.endswith('mpegurl'):
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
-                if self._hls_segment_query(url):
-                    info_dict.update(self._hls_segment_query(url))
+                info_dict.update(self._fragment_query(url))
             elif format_id.endswith('mpd') or format_id.endswith('dash+xml'):
                 formats, subtitles = self._extract_mpd_formats_and_subtitles(url, video_id, headers=headers)
+                info_dict.update(self._fragment_query(url))
             elif format_id == 'f4m':
                 formats = self._extract_f4m_formats(url, video_id, headers=headers)
             else:
@@ -2647,8 +2645,7 @@ class GenericIE(InfoExtractor):
         if first_bytes.startswith(b'#EXTM3U'):
             self.report_detected('M3U playlist')
             info_dict['formats'], info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
-            if self._hls_segment_query(url):
-                info_dict.update(self._hls_segment_query(url))
+            info_dict.update(self._fragment_query(url))
             return info_dict
 
         # Maybe it's a direct link to a video?
@@ -2699,6 +2696,7 @@ class GenericIE(InfoExtractor):
                     doc,
                     mpd_base_url=full_response.geturl().rpartition('/')[0],
                     mpd_url=url)
+                info_dict.update(self._fragment_query(url))
                 self.report_detected('DASH manifest')
                 return info_dict
             elif re.match(r'^{http://ns\.adobe\.com/f4m/[12]\.0}manifest$', doc.tag):
@@ -2821,10 +2819,10 @@ class GenericIE(InfoExtractor):
                         m3u8_id='hls', fatal=False)
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
-                    if self._hls_segment_query(src):
-                        info_dict.update(self._hls_segment_query(src))
+                for fmt in formats:
+                    fmt.update(self._fragment_query(src))
 
-                else:
+                if not formats:
                     formats.append({
                         'url': src,
                         'ext': (mimetype2ext(src_type)
@@ -3058,10 +3056,10 @@ class GenericIE(InfoExtractor):
                 return [self._extract_xspf_playlist(video_url, video_id)]
             elif ext == 'm3u8':
                 entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4', headers=headers)
-                if self._hls_segment_query(video_url):
-                    entry_info_dict.update(self._hls_segment_query(video_url))
+                entry_info_dict.update(self._fragment_query(video_url))
             elif ext == 'mpd':
                 entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_mpd_formats_and_subtitles(video_url, video_id, headers=headers)
+                entry_info_dict.update(self._fragment_query(video_url))
             elif ext == 'f4m':
                 entry_info_dict['formats'] = self._extract_f4m_formats(video_url, video_id, headers=headers)
             elif re.search(r'(?i)\.(?:ism|smil)/manifest', video_url) and video_url != url:
