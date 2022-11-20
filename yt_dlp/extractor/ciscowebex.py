@@ -62,7 +62,7 @@ class CiscoWebexIE(InfoExtractor):
         if urlh.status == 429:
             self.raise_login_required(
                 f'{self.IE_NAME} asks you to solve a CAPTCHA. Solve CAPTCHA in browser and',
-                method=cookies)
+                method='cookies')
 
         video_id = stream.get('recordUUID') or video_id
 
