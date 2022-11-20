@@ -1838,10 +1838,7 @@ Run yt-dlp with `--verbose`/`-v` to check if the plugin has been loaded.
 
 See [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for a sample plugin package with instructions on how to set up an environment for plugin development. 
 
-Plugin classes can be excluded from being imported by prefixing the class name with an underscore (e.g. `_MyBasePluginIE`), 
-or by defining `__all__` with only the classes you want to import.
-
-Modules can similarly be excluded by prefixing the module name with an underscore (e.g. `_myplugin.py`)
+All public classes with a name ending in `IE` are imported from each file. This respects underscore prefix (e.g. `_MyBasePluginIE` is private) and `__all__`. Modules can similarly be excluded by prefixing the module name with an underscore (e.g. `_myplugin.py`)
 
 If you are a plugin author, add [ytdlp-plugins](https://github.com/topics/ytdlp-plugins) as a topic to your repository for discoverability
 
