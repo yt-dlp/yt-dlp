@@ -55,34 +55,34 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
                 return conf_file_path, conf
         return None, None
 
-    def _readUserConf(package_name, default=[]):
+    def _read_user_conf(package_name, default=None):
         # .config/package_name.conf
         xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
-        userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
-        userConf = Config.read_file(userConfFile, default=None)
-        if userConf is not None:
-            return userConf, userConfFile
+        user_conf_file = os.path.join(xdg_config_home, '%s.conf' % package_name)
+        user_conf = Config.read_file(user_conf_file, default=None)
+        if user_conf is not None:
+            return user_conf, user_conf_file
 
         # home (~/package_name.conf or ~/package_name.conf.txt)
-        userConfFile = os.path.join(compat_expanduser('~'), '%s.conf' % package_name)
-        userConf = Config.read_file(userConfFile, default=None)
-        if userConf is None:
-            userConfFile += '.txt'
-            userConf = Config.read_file(userConfFile, default=None)
-        if userConf is not None:
-            return userConf, userConfFile
+        user_conf_file = os.path.join(compat_expanduser('~'), '%s.conf' % package_name)
+        user_conf = Config.read_file(user_conf_file, default=None)
+        if user_conf is None:
+            user_conf_file += '.txt'
+            user_conf = Config.read_file(user_conf_file, default=None)
+        if user_conf is not None:
+            return user_conf, user_conf_file
 
         # Package config directories (e.g. ~/.config/package_name/package_name.txt)
-        userConf, userConfFile = _load_from_config_dirs(get_user_config_dirs(package_name), package_name)
-        if userConf is not None:
-            return userConf, userConfFile
-        return default, None
+        user_conf, user_conf_file = _load_from_config_dirs(get_user_config_dirs(package_name), package_name)
+        if user_conf is not None:
+            return user_conf, user_conf_file
+        return default if default is not None else [], None
 
-    def _readSystemConf(package_name, default=[]):
-        systemConf, systemConfFile = _load_from_config_dirs(get_system_config_dirs(package_name), package_name)
-        if systemConf is not None:
-            return systemConf, systemConfFile
-        return default, None
+    def _read_system_conf(package_name, default=None):
+        system_conf, system_conf_file = _load_from_config_dirs(get_system_config_dirs(package_name), package_name)
+        if system_conf is not None:
+            return system_conf, system_conf_file
+        return default if default is not None else [], None
 
     def add_config(label, path, user=False, system=False):
         """ Adds config and returns whether to continue """
@@ -93,9 +93,9 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
         # the configuration file of any of these three packages
         for package in ('yt-dlp',):
             if user:
-                args, current_path = _readUserConf(package, default=None)
+                args, current_path = _read_user_conf(package, default=None)
             elif system:
-                args, current_path = _readSystemConf(package, default=None)
+                args, current_path = _read_system_conf(package, default=None)
             else:
                 current_path = os.path.join(path, '%s.conf' % package)
                 args = Config.read_file(current_path, default=None)
