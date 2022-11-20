@@ -1818,15 +1818,16 @@ Plugins can be installed in a variety of different ways.
 2. **System Plugins**:
     * `/etc/yt-dlp/plugins/<package name>/ytdlp_plugins/`
 
-where `<package name>` is a folder containing `ytdlp_plugins`.
+3. **yt-dlp executable location**:
+    * Binary: Plugins can be installed root directory of the binary (where `<root-dir>/yt-dlp.exe`, `<root-dir>/ytdlp_plugins/`)
+    * Source: plugins can be installed in the root directory of the module (where `<root dir>/yt_dlp/__main__.py`, `<root-dir>/ytdlp_plugins/`)
 
-Plugins can also be installed in the root directory of the binary (where `<root-dir>/yt-dlp.exe`, `<root-dir>/ytdlp_plugins/`)
+4. **pip and other locations in `PYTHONPATH`**
+    * Plugins can be installed and managed using `pip`. See [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for an example.
+    * Any path in `PYTHONPATH` is searched in for `ytdlp_plugins`
+      * Note: This does not apply for Pyinstaller/py2exe builds.
 
-If you are running directly from the source code, plugins can be installed in the root directory of the module (where `<root dir>/yt_dlp/__main__.py`, `<root-dir>/ytdlp_plugins/`)
-
-Additionally, plugins can be installed and managed using `pip` (see [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for an example)
-- Any path in `PYTHONPATH` is searched in for `ytdlp_plugins`
-- Note: This does not work for Pyinstaller/py2exe builds.
+(where `<package name>` is a folder containing `ytdlp_plugins`)
 
 .zip, .egg and .whl archives containing `ytdlp_plugins` in their root are also supported. These can be placed in the same locations `ytdlp_plugins` can be found.
 - e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/myplugin.zip` where `myplugin.zip` contains `ytdlp_plugins/<type>/myplugin.py`
