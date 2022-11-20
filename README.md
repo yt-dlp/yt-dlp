@@ -1737,7 +1737,7 @@ The following extractors use this feature:
 * `approximate_date`: Extract approximate `upload_date` and `timestamp` in flat-playlist. This may cause date-based filters to be slightly off
 
 #### generic
-* `hls_segment_query`: If a generic m3u8 URL has a query, have the native HLS downloader append the query to the HLS segment URLs. Does not apply to ffmpeg
+* `fragment_query`: Passthrough any query in mpd/m3u8 manifest URLs to their fragments. Does not apply to ffmpeg
 
 #### funimation
 * `language`: Audio languages to extract, e.g. `funimation:language=english,japanese`
