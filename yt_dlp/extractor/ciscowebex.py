@@ -57,13 +57,12 @@ class CiscoWebexIE(InfoExtractor):
                     raise ExtractorError(
                         'This video is protected by a password, use the --video-password option', expected=True)
                 raise ExtractorError('Wrong password', expected=True)
-            raise ExtractorError(f"{self.IE_NAME} said: {stream['code']} - {stream['message']}", expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {stream["code"]} - {stream["message"]}', expected=True)
 
         if urlh.status == 429:
-            raise ExtractorError(
-                f'{self.IE_NAME} asks you to solve a CAPTCHA. Login with browser, '
-                'solve CAPTCHA, then export cookies and pass cookie file to '
-                'yt-dlp with --cookies.', expected=True)
+            self.raise_login_required(
+                f'{self.IE_NAME} asks you to solve a CAPTCHA. Solve CAPTCHA in browser and',
+                method=cookies)
 
         video_id = stream.get('recordUUID') or video_id
 
@@ -93,7 +92,6 @@ class CiscoWebexIE(InfoExtractor):
                     'vcodec': 'none',
                     'acodec': 'mp3',
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
