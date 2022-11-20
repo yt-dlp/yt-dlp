@@ -2203,15 +2203,14 @@ class GenericIE(InfoExtractor):
                 continue
 
             guid = try_call(lambda: it.find('guid').text)
-            if guid:
-                next_url = smuggle_url(next_url, {'force_videoid': guid})
+            next_url_new = smuggle_url(next_url, {'force_videoid': guid}) if guid else next_url
 
             def itunes(key):
                 return xpath_text(it, xpath_with_ns(f'./itunes:{key}', NS_MAP), default=None)
 
             entries.append({
                 '_type': 'url_transparent',
-                'url': next_url,
+                'url': next_url_new,
                 'title': try_call(lambda: it.find('title').text),
                 'description': xpath_text(it, 'description', default=None),
                 'uploader': xpath_text(it, 'author', default=None),
@@ -2222,6 +2221,7 @@ class GenericIE(InfoExtractor):
                 'episode_number': int_or_none(itunes('episode')),
                 'season_number': int_or_none(itunes('season')),
                 'age_limit': {'true': 18, 'yes': 18, 'false': 0, 'no': 0}.get((itunes('explicit') or '').lower()),
+                'webpage_url': next_url,
             })
 
         return {
