@@ -29,13 +29,16 @@ class ScreencastifyIE(InfoExtractor):
         query_string = traverse_obj(info, ('manifest', 'auth', 'query'))
         query = urllib.parse.parse_qs(query_string)
         formats = []
+        dash_manifest_url = traverse_obj(info, ('manifest', 'url'))
+        if dash_manifest_url:
+            formats.extend(
+                self._extract_mpd_formats(
+                    dash_manifest_url, video_id, mpd_id='dash', query=query, fatal=False))
         hls_manifest_url = traverse_obj(info, ('manifest', 'hlsUrl'))
         if hls_manifest_url:
             formats.extend(
                 self._extract_m3u8_formats(
-                    hls_manifest_url, video_id, ext='mp4', m3u8_id='hls', query=query))
-        # DASH formats also need query to be appended to segment URLs but downloader is unable to
-        # dash_manifest_url = traverse_obj(info, ('manifest', 'url'))
+                    hls_manifest_url, video_id, ext='mp4', m3u8_id='hls', query=query, fatal=False))
         for f in formats:
             f['url'] = update_url_query(f['url'], query)
 
