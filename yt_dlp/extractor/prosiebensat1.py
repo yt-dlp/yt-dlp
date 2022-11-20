@@ -1,13 +1,8 @@
-import re
-
 from hashlib import sha1
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     ExtractorError,
-    determine_ext,
     float_or_none,
-    int_or_none,
     merge_dicts,
     unified_strdate,
     traverse_obj,
@@ -21,14 +16,12 @@ class ProSiebenSat1BaseIE(InfoExtractor):
     _V4_BASE_URL = 'https://vas-v4.p7s1video.net/4.0/get'
 
     def _extract_video_info(self, url, clip_id):
-        client_location = url
-
         formats = []
-        site = "prosieben"
-        if "prosiebenmaxx" in url:
-            site = "prosiebenmaxx"
-        elif "voice-of-germany" in url:
-            site = "voiceofgermany"
+        site = 'prosieben'
+        if 'prosiebenmaxx' in url:
+            site = 'prosiebenmaxx'
+        elif 'voice-of-germany' in url:
+            site = 'voiceofgermany'
 
         raw_ct = self._ENCRYPTION_KEY[site] + clip_id + self._IV[site] + self._ACCESS_ID[site]
         protocols = self._download_json(
@@ -121,16 +114,16 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
         {
             'url': 'https://video.prosieben.de/serien/circus-halligalli/videos/episode-17-staffel-2',
             'info_dict': {
-                "id": "v_15rj2o35vim3",
-                "title": "Circus Halligalli Staffel 2 Folge 17: Staffel 2",
-                "description": "Auf dem Gipfel der Besinnlichkeit mit dem Goldenen Umberto für Kevin Großkreutz, Thomas D im Studio, Oma Erika mit Geschenken, Marteria auf der Bühne und der...",
-                "duration": 2716,
-                "timestamp": 1358263115,
-                "webpage_url": "https://video.prosieben.de/serien/circus-halligalli/videos/episode-17-staffel-2",
-                "fulltitle": "Circus Halligalli Staffel 2 Folge 17: Staffel 2",
-                "duration_string": "45:16",
-                "upload_date": "20130115",
-                "ext": "mp4",
+                'id': 'v_15rj2o35vim3',
+                'title': 'Circus Halligalli Staffel 2 Folge 17: Staffel 2',
+                'description': 'Auf dem Gipfel der Besinnlichkeit mit dem Goldenen Umberto für Kevin Großkreutz, Thomas D im Studio, Oma Erika mit Geschenken, Marteria auf der Bühne und der...',
+                'duration': 2716,
+                'timestamp': 1358263115,
+                'webpage_url': 'https://video.prosieben.de/serien/circus-halligalli/videos/episode-17-staffel-2',
+                'fulltitle': 'Circus Halligalli Staffel 2 Folge 17: Staffel 2',
+                'duration_string': '45:16',
+                'upload_date': '20130115',
+                'ext': 'mp4',
             },
         },
         {
@@ -273,11 +266,11 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
         {
             'url': 'https://www.prosiebenmaxx.de/anime/detektiv-conan/videos/2448-die-detective-boys-auf-der-jagd-nach-dem-blauen-vogel-ganze-folge',
             'info_dict': {
-                "id": "v_kpwnpx7nac7v",
-                "title": "Detektiv Conan - Episode 448: Die Detective Boys auf der Jagd nach dem blauen Vogel » Jetzt streamen",
-                "description": "Das Mädchen Yuka möchte ihre Schulkameraden mit ihrem blauen Wellensittich bekannt machen. Als sie die Detective Boys mit zu sich nach Hause nimmt, werden sie jedoch von einem fremden Mann begrüßt. ",
-                "upload_date": "20221118",
-                "ext": "mp4",
+                'id': 'v_kpwnpx7nac7v',
+                'title': 'Detektiv Conan - Episode 448: Die Detective Boys auf der Jagd nach dem blauen Vogel » Jetzt streamen',
+                'description': 'Das Mädchen Yuka möchte ihre Schulkameraden mit ihrem blauen Wellensittich bekannt machen. Als sie die Detective Boys mit zu sich nach Hause nimmt, werden sie jedoch von einem fremden Mann begrüßt. ',
+                'upload_date': '20221118',
+                'ext': 'mp4',
             }
         },
         {
@@ -325,30 +318,28 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
     _CLIENT_NAME = 'kolibri-2.0.19-splec4'
 
     _ACCESS_ID = {
-        "prosieben": "x_supernovatvc-de",
-        "prosiebenmaxx": "x_prosiebenmaxx-de",
-        "voiceofgermany": "x_the_voice_of_germany-de",
+        'prosieben': 'x_supernovatvc-de',
+        'prosiebenmaxx': 'x_prosiebenmaxx-de',
+        'voiceofgermany': 'x_the_voice_of_germany-de',
     }
 
     _ENCRYPTION_KEY = {
-        "prosieben": 'Ahsh3soxiemusijophoophiodeevujup',
-        "prosiebenmaxx": 'Eeyeey9oquahthainoofashoyoikosag',
-        "voiceofgermany": 'Ahphiesh9aenahghahlaethohchaghae',
+        'prosieben': 'Ahsh3soxiemusijophoophiodeevujup',
+        'prosiebenmaxx': 'Eeyeey9oquahthainoofashoyoikosag',
+        'voiceofgermany': 'Ahphiesh9aenahghahlaethohchaghae',
     }
 
     _IV = {
-        "prosieben": 'Seeth6rohquuuthaiquiumepaphohrer',
-        "prosiebenmaxx": 'Aeluchoc6aevechuipiexeeboowedaok',
-        "voiceofgermany": 'Teeth1eegaengeigeenethohcooshale',
+        'prosieben': 'Seeth6rohquuuthaiquiumepaphohrer',
+        'prosiebenmaxx': 'Aeluchoc6aevechuipiexeeboowedaok',
+        'voiceofgermany': 'Teeth1eegaengeigeenethohcooshale',
     }
 
     _CLIPID_REGEXES = [
-        r'"clip_id"\s*:\s+"([^"]+)"',
-        r'clipId":"([^"]+)"',
-        r'clip[iI]d=([^"]+)',
-        r'clip[iI][dD]\s*=\s*["\']([^"]+)',
+        r'clip_?[iI][dD]["\']\s*:\s*["\']([^"\']+)',
+        r'clip[iI][dD]\s*=\s*["\']([^"\']+)',
         r"'itemImageUrl'\s*:\s*'/dynamic/thumbnails/full/[^/]+/([^']+)'",
-        r'"contentId":"([0-9]*)",',
+        r'"contentId":"(\d+)",',
     ]
 
     _TITLE_REGEXES = [
@@ -399,9 +390,9 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
             webpage, 'webpage_data_json', default=None)
         if webpage_data_json_raw:
             webpage_data_json = self._parse_json(webpage_data_json_raw, None, fatal=False)
-            clip_id = next((v["__ref"] for k,v in webpage_data_json.get("ROOT_QUERY", {}).items() if "videoBySlug" in k), None)
+            clip_id = next((v['__ref'] for k, v in webpage_data_json.get('ROOT_QUERY', {}).items() if 'videoBySlug' in k), None)
             if clip_id:
-                clip_id = clip_id.split(":")[-1]
+                clip_id = clip_id.split(':')[-1]
         else:
             clip_id = self._html_search_regex(
                 self._CLIPID_REGEXES, webpage, 'clip id')
@@ -436,7 +427,7 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
         playlist_json = self._search_regex(
             self._PLAYLIST_JSON_REGEXES,
             webpage, 'playlist')
-        playlist = traverse_obj(self._parse_json(playlist_json, playlist_id), ("views", "default", "page", "clips"))
+        playlist = traverse_obj(self._parse_json(playlist_json, playlist_id), ('views', 'default', 'page', 'clips'))
 
         entries = []
         for item in playlist:
