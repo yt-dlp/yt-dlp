@@ -17,7 +17,7 @@ class ScreencastifyIE(InfoExtractor):
             'extra_param_to_segment_url': str,
         },
         'params': {
-            'skip_download': True,
+            'skip_download': 'm3u8',
         },
     }]
 
