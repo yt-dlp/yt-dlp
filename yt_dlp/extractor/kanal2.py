@@ -4,7 +4,6 @@ from ..utils import (
     join_nonempty,
     traverse_obj,
     unified_timestamp,
-    url_or_none,
 )
 
 
@@ -14,7 +13,7 @@ class Kanal2IE(InfoExtractor):
         {
             'note': 'Test standard url (#5575)',
             'url': 'https://kanal2.postimees.ee/pluss/video/?id=40792',
-            'md5': 'baf49cab468cf553bc1cf36909f1a0c7',
+            'md5': '7ea7b16266ec1798743777df241883dd',
             'info_dict': {
                 'id': '40792',
                 'ext': 'mp4',
@@ -60,10 +59,7 @@ class Kanal2IE(InfoExtractor):
         for stream in traverse_obj(playlist, ('data', 'streams'), default=[]):
             if not stream.get('file'):
                 continue
-            formats.append({
-                'protocol': 'm3u8',
-                'ext': 'mp4',
-                'url': url_or_none(stream.get('file') + '&s=' + session['session']),
-            })
+            formats.extend(self._extract_m3u8_formats(
+                stream['file'] + '&s=' + session['session'], video_id, 'mp4'))
 
         return formats
