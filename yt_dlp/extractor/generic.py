@@ -2192,6 +2192,7 @@ class GenericIE(InfoExtractor):
     def _extract_rss(self, url, video_id, doc):
         NS_MAP = {
             'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd',
+            'dc': 'http://dublincore.org/specifications/dublin-core/dcmes-xml/2001-04-11/dcmes-xml-dtd.dtd',
         }
 
         entries = []
@@ -2208,12 +2209,15 @@ class GenericIE(InfoExtractor):
             def itunes(key):
                 return xpath_text(it, xpath_with_ns(f'./itunes:{key}', NS_MAP), default=None)
 
+            def dc(key):
+                return xpath_text(it, xpath_with_ns(f'./dc:{key}', NS_MAP), default=None)
+
             entries.append({
                 '_type': 'url_transparent',
                 'url': next_url_new,
                 'title': try_call(lambda: it.find('title').text),
                 'description': xpath_text(it, 'description', default=None),
-                'uploader': xpath_text(it, 'author', default=None),
+                'uploader': xpath_text(it, 'author', default=None) or itunes('author') or dc('creator'),
                 'timestamp': unified_timestamp(xpath_text(it, 'pubDate', default=None)),
                 'duration': parse_duration(itunes('duration')),
                 'thumbnail': url_or_none(xpath_attr(it, xpath_with_ns('./itunes:image', NS_MAP), 'href')),
