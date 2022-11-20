@@ -175,6 +175,19 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
             'skip': 'This video is unavailable',
         },
         {
+            'url': 'https://video.sixx.de/serien/good-bones-mutter-tochter-home-makeover/videos/das-hippiehaus-makeover',
+            'info_dict': {
+                'id': 'v_3uyccigkh00t',
+                'title': 'Good Bones - Mutter, Tochter, Home-Makeover Staffel 5 Folge 7: Das...',
+                'description': 'Mina und Karen finden ein nettes kleines Häuschen in der Nähe eines großen Parks. Das Objekt kostet gerade einmal 11.000 Dollar und ist damit ein echtes...',
+                'duration': 2458,
+                'timestamp': 1639050103,
+                'duration_string': '40:58',
+                'upload_date': '20211209',
+                'ext': 'mp4',
+            }
+        },
+        {
             'url': 'http://www.sat1.de/film/der-ruecktritt/video/im-interview-kai-wiesinger-clip',
             'info_dict': {
                 'id': '2906572',
@@ -191,6 +204,19 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
             'skip': 'This video is unavailable',
         },
         {
+            'url': 'https://video.sat1.de/serien/sat1-nachrichten/videos/abendnachrichten-18112022',
+            'info_dict': {
+                "id": "7270673",
+                "title": "SAT.1 Nachrichten Staffel 2022 Folge null: Abendnachrichten 18.11.2022",
+                "description": "Dicke Luft auf UN-Klimakonferenz - 200 Teilnehmerstaaten können sich nicht auf Abschlusserklärung einigen. +++ Winter hält Einzug in der Ukraine - Zehn...",
+                "duration": 821,
+                "timestamp": 1668801422,
+                "duration_string": "13:41",
+                "upload_date": "20221118",
+                "ext": "mp4",
+            }
+        },
+        {
             'url': 'http://www.kabeleins.de/tv/rosins-restaurants/videos/jagd-auf-fertigkost-im-elsthal-teil-2-ganze-folge',
             'info_dict': {
                 'id': '2992323',
@@ -205,6 +231,19 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
                 'skip_download': True,
             },
             'skip': 'This video is unavailable',
+        },
+        {
+            'url': 'http://www.kabeleins.de/tv/rosins-restaurants/videos/jagd-auf-fertigkost-im-elsthal-teil-2-ganze-folge',
+            'info_dict': {
+                "id": "v_v71l7bgts3t0",
+                "title": "Trucker Babes - 400 PS in Frauenhand Staffel 10 Folge 3: Ich hab...",
+                "description": "Sabrina hat wenige Tage Zeit, um ihre Lieferung nach Kroatien zu bringen. Dabei kämpft sie mit Hitze und einem langsameren Fahrzeug, als sie üblich gewohnt ist....",
+                "duration": 5314,
+                "timestamp": 1666872297,
+                "duration_string": "1:28:34",
+                "upload_date": "20221027",
+                "ext": "mp4",
+            }
         },
         {
             'url': 'http://www.ran.de/fussball/bundesliga/video/schalke-toennies-moechte-raul-zurueck-ganze-folge',
@@ -227,9 +266,6 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
                 'timestamp': 1382041620,
                 'upload_date': '20131017',
                 'duration': 469.88,
-            },
-            'params': {
-                'skip_download': True,
             },
         },
         {
