@@ -23,134 +23,54 @@ class ProSiebenSat1BaseIE(InfoExtractor):
     def _extract_video_info(self, url, clip_id):
         client_location = url
 
-        video = {}
-
         formats = []
-        if self._ACCESS_ID:
-            raw_ct = self._ENCRYPTION_KEY + clip_id + self._IV + self._ACCESS_ID
-            protocols = self._download_json(
-                self._V4_BASE_URL + 'protocols', clip_id,
-                'Downloading protocols JSON',
-                headers=self.geo_verification_headers(), query={
-                    'access_id': self._ACCESS_ID,
-                    'client_token': sha1((raw_ct).encode()).hexdigest(),
+        site = "prosieben"
+        if "prosiebenmaxx" in url:
+            site = "prosiebenmaxx"
+        elif "voice-of-germany" in url:
+            site = "voiceofgermany"
+
+        raw_ct = self._ENCRYPTION_KEY[site] + clip_id + self._IV[site] + self._ACCESS_ID[site]
+        protocols = self._download_json(
+            self._V4_BASE_URL + 'protocols', clip_id,
+            'Downloading protocols JSON',
+            headers=self.geo_verification_headers(), query={
+                'access_id': self._ACCESS_ID[site],
+                'client_token': sha1((raw_ct).encode()).hexdigest(),
+                'video_id': clip_id,
+            }, fatal=False, expected_status=(403,)) or {}
+        error = protocols.get('error') or {}
+        if error.get('title') == 'Geo check failed':
+            self.raise_geo_restricted(countries=['AT', 'CH', 'DE'])
+        server_token = protocols.get('server_token')
+        if server_token:
+            urls = (self._download_json(
+                self._V4_BASE_URL + 'urls', clip_id, 'Downloading urls JSON', query={
+                    'access_id': self._ACCESS_ID[site],
+                    'client_token': sha1((raw_ct + server_token + self._SUPPORTED_PROTOCOLS).encode()).hexdigest(),
+                    'protocols': self._SUPPORTED_PROTOCOLS,
+                    'server_token': server_token,
                     'video_id': clip_id,
-                }, fatal=False, expected_status=(403,)) or {}
-            error = protocols.get('error') or {}
-            if error.get('title') == 'Geo check failed':
-                self.raise_geo_restricted(countries=['AT', 'CH', 'DE'])
-            server_token = protocols.get('server_token')
-            if server_token:
-                urls = (self._download_json(
-                    self._V4_BASE_URL + 'urls', clip_id, 'Downloading urls JSON', query={
-                        'access_id': self._ACCESS_ID,
-                        'client_token': sha1((raw_ct + server_token + self._SUPPORTED_PROTOCOLS).encode()).hexdigest(),
-                        'protocols': self._SUPPORTED_PROTOCOLS,
-                        'server_token': server_token,
-                        'video_id': clip_id,
-                    }, fatal=False) or {}).get('urls') or {}
-                for protocol, variant in urls.items():
-                    source_url = variant.get('clear', {}).get('url')
-                    if not source_url:
-                        continue
-                    if protocol == 'dash':
-                        formats.extend(self._extract_mpd_formats(
-                            source_url, clip_id, mpd_id=protocol, fatal=False))
-                    elif protocol == 'hls':
-                        formats.extend(self._extract_m3u8_formats(
-                            source_url, clip_id, 'mp4', 'm3u8_native',
-                            m3u8_id=protocol, fatal=False))
-                    else:
-                        formats.append({
-                            'url': source_url,
-                            'format_id': protocol,
-                        })
-        if not formats:
-            source_ids = [compat_str(source['id']) for source in video['sources']]
-
-            client_id = self._SALT[:2] + sha1(''.join([clip_id, self._SALT, self._TOKEN, client_location, self._SALT, self._CLIENT_NAME]).encode('utf-8')).hexdigest()
-
-            sources = self._download_json(
-                'http://vas.sim-technik.de/vas/live/v2/videos/%s/sources' % clip_id,
-                clip_id, 'Downloading sources JSON', query={
-                    'access_token': self._TOKEN,
-                    'client_id': client_id,
-                    'client_location': client_location,
-                    'client_name': self._CLIENT_NAME,
-                })
-            server_id = sources['server_id']
-
-            def fix_bitrate(bitrate):
-                bitrate = int_or_none(bitrate)
-                if not bitrate:
-                    return None
-                return (bitrate // 1000) if bitrate % 1000 == 0 else bitrate
-
-            for source_id in source_ids:
-                client_id = self._SALT[:2] + sha1(''.join([self._SALT, clip_id, self._TOKEN, server_id, client_location, source_id, self._SALT, self._CLIENT_NAME]).encode('utf-8')).hexdigest()
-                urls = self._download_json(
-                    'http://vas.sim-technik.de/vas/live/v2/videos/%s/sources/url' % clip_id,
-                    clip_id, 'Downloading urls JSON', fatal=False, query={
-                        'access_token': self._TOKEN,
-                        'client_id': client_id,
-                        'client_location': client_location,
-                        'client_name': self._CLIENT_NAME,
-                        'server_id': server_id,
-                        'source_ids': source_id,
-                    })
-                if not urls:
+                }, fatal=False) or {}).get('urls') or {}
+            for protocol, variant in urls.items():
+                source_url = variant.get('clear', {}).get('url')
+                if not source_url:
                     continue
-                if urls.get('status_code') != 0:
-                    raise ExtractorError('This video is unavailable', expected=True)
-                urls_sources = urls['sources']
-                if isinstance(urls_sources, dict):
-                    urls_sources = urls_sources.values()
-                for source in urls_sources:
-                    source_url = source.get('url')
-                    if not source_url:
-                        continue
-                    protocol = source.get('protocol')
-                    mimetype = source.get('mimetype')
-                    if mimetype == 'application/f4m+xml' or 'f4mgenerator' in source_url or determine_ext(source_url) == 'f4m':
-                        formats.extend(self._extract_f4m_formats(
-                            source_url, clip_id, f4m_id='hds', fatal=False))
-                    elif mimetype == 'application/x-mpegURL':
-                        formats.extend(self._extract_m3u8_formats(
-                            source_url, clip_id, 'mp4', 'm3u8_native',
-                            m3u8_id='hls', fatal=False))
-                    elif mimetype == 'application/dash+xml':
-                        formats.extend(self._extract_mpd_formats(
-                            source_url, clip_id, mpd_id='dash', fatal=False))
-                    else:
-                        tbr = fix_bitrate(source['bitrate'])
-                        if protocol in ('rtmp', 'rtmpe'):
-                            mobj = re.search(r'^(?P<url>rtmpe?://[^/]+)/(?P<path>.+)$', source_url)
-                            if not mobj:
-                                continue
-                            path = mobj.group('path')
-                            mp4colon_index = path.rfind('mp4:')
-                            app = path[:mp4colon_index]
-                            play_path = path[mp4colon_index:]
-                            formats.append({
-                                'url': '%s/%s' % (mobj.group('url'), app),
-                                'app': app,
-                                'play_path': play_path,
-                                'player_url': 'http://livepassdl.conviva.com/hf/ver/2.79.0.17083/LivePassModuleMain.swf',
-                                'page_url': 'http://www.prosieben.de',
-                                'tbr': tbr,
-                                'ext': 'flv',
-                                'format_id': 'rtmp%s' % ('-%d' % tbr if tbr else ''),
-                            })
-                        else:
-                            formats.append({
-                                'url': source_url,
-                                'tbr': tbr,
-                                'format_id': 'http%s' % ('-%d' % tbr if tbr else ''),
-                            })
+                if protocol == 'dash':
+                    formats.extend(self._extract_mpd_formats(
+                        source_url, clip_id, mpd_id=protocol, fatal=False))
+                elif protocol == 'hls':
+                    formats.extend(self._extract_m3u8_formats(
+                        source_url, clip_id, 'mp4', 'm3u8_native',
+                        m3u8_id=protocol, fatal=False))
+                else:
+                    formats.append({
+                        'url': source_url,
+                        'format_id': protocol,
+                    })
         self._sort_formats(formats)
 
         return {
-            'duration': float_or_none(video.get('duration')),
             'formats': formats,
         }
 
@@ -163,6 +83,7 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
                         (?:www\.)?
                         (?:
                             (?:beta\.)?
+                            (?:video\.)?
                             (?:
                                 prosieben(?:maxx)?|sixx|sat1(?:gold)?|kabeleins(?:doku)?|the-voice-of-germany|advopedia
                             )\.(?:de|at|ch)|
@@ -190,6 +111,26 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
                 'season_number': 2,
                 'episode': 'Episode 18 - Staffel 2',
                 'episode_number': 18,
+            },
+            'params': {
+                # rtmp download
+                'skip_download': True,
+            },
+            'skip': 'Seems to be broken, episode not available and url scheme changed',
+        },
+        {
+            'url': 'https://video.prosieben.de/serien/circus-halligalli/videos/episode-17-staffel-2',
+            'info_dict': {
+                "id": "v_15rj2o35vim3",
+                "title": "Circus Halligalli Staffel 2 Folge 17: Staffel 2",
+                "description": "Auf dem Gipfel der Besinnlichkeit mit dem Goldenen Umberto für Kevin Großkreutz, Thomas D im Studio, Oma Erika mit Geschenken, Marteria auf der Bühne und der...",
+                "duration": 2716,
+                "timestamp": 1358263115,
+                "webpage_url": "https://video.prosieben.de/serien/circus-halligalli/videos/episode-17-staffel-2",
+                "fulltitle": "Circus Halligalli Staffel 2 Folge 17: Staffel 2",
+                "duration_string": "45:16",
+                "upload_date": "20130115",
+                "ext": "mp4",
             },
         },
         {
@@ -282,11 +223,6 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
                 'upload_date': '20140226',
                 'duration': 228.96,
             },
-            'params': {
-                # rtmp download
-                'skip_download': True,
-            },
-            'skip': 'This video is unavailable',
         },
         {
             'url': 'http://www.the-voice-of-germany.de/video/31-andreas-kuemmert-rocket-man-clip',
@@ -327,8 +263,26 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
             'skip': 'This video is unavailable',
         },
         {
+            'url': 'https://www.prosiebenmaxx.de/anime/detektiv-conan/video/playlist-detektiv-conan',
+            'info_dict': {
+                'id': '107690',
+                'title': 'Detektiv Conan: Playlist - alle Folgen im Stream',
+            },
+            'playlist_count': 10,
+        },
+        {
+            'url': 'https://www.prosiebenmaxx.de/anime/detektiv-conan/videos/2448-die-detective-boys-auf-der-jagd-nach-dem-blauen-vogel-ganze-folge',
+            'info_dict': {
+                "id": "v_kpwnpx7nac7v",
+                "title": "Detektiv Conan - Episode 448: Die Detective Boys auf der Jagd nach dem blauen Vogel » Jetzt streamen",
+                "description": "Das Mädchen Yuka möchte ihre Schulkameraden mit ihrem blauen Wellensittich bekannt machen. Als sie die Detective Boys mit zu sich nach Hause nimmt, werden sie jedoch von einem fremden Mann begrüßt. ",
+                "upload_date": "20221118",
+                "ext": "mp4",
+            }
+        },
+        {
             # title in <h2 class="subtitle">
-            'url': 'http://www.prosieben.de/stars/oscar-award/videos/jetzt-erst-enthuellt-das-geheimnis-von-emma-stones-oscar-robe-clip',
+            'url': 'https://www.prosieben.de/serien/oscars/videos/jetzt-erst-enthuellt-das-geheimnis-von-emma-stones-oscar-robe',
             'info_dict': {
                 'id': '4895826',
                 'ext': 'mp4',
@@ -370,9 +324,23 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
     _SALT = '01!8d8F_)r9]4s[qeuXfP%'
     _CLIENT_NAME = 'kolibri-2.0.19-splec4'
 
-    _ACCESS_ID = 'x_prosiebenmaxx-de'
-    _ENCRYPTION_KEY = 'Eeyeey9oquahthainoofashoyoikosag'
-    _IV = 'Aeluchoc6aevechuipiexeeboowedaok'
+    _ACCESS_ID = {
+        "prosieben": "x_supernovatvc-de",
+        "prosiebenmaxx": "x_prosiebenmaxx-de",
+        "voiceofgermany": "x_the_voice_of_germany-de",
+    }
+
+    _ENCRYPTION_KEY = {
+        "prosieben": 'Ahsh3soxiemusijophoophiodeevujup',
+        "prosiebenmaxx": 'Eeyeey9oquahthainoofashoyoikosag',
+        "voiceofgermany": 'Ahphiesh9aenahghahlaethohchaghae',
+    }
+
+    _IV = {
+        "prosieben": 'Seeth6rohquuuthaiquiumepaphohrer',
+        "prosiebenmaxx": 'Aeluchoc6aevechuipiexeeboowedaok',
+        "voiceofgermany": 'Teeth1eegaengeigeenethohcooshale',
+    }
 
     _CLIPID_REGEXES = [
         r'"clip_id"\s*:\s+"([^"]+)"',
@@ -426,8 +394,17 @@ class ProSiebenSat1IE(ProSiebenSat1BaseIE):
     ]
 
     def _extract_clip(self, url, webpage):
-        clip_id = self._html_search_regex(
-            self._CLIPID_REGEXES, webpage, 'clip id')
+        webpage_data_json_raw = self._search_regex(
+            [r'<script>window.INITIAL_APOLLO_CACHE = ({[^<]*})</script'],
+            webpage, 'webpage_data_json', default=None)
+        if webpage_data_json_raw:
+            webpage_data_json = self._parse_json(webpage_data_json_raw, None, fatal=False)
+            clip_id = next((v["__ref"] for k,v in webpage_data_json.get("ROOT_QUERY", {}).items() if "videoBySlug" in k), None)
+            if clip_id:
+                clip_id = clip_id.split(":")[-1]
+        else:
+            clip_id = self._html_search_regex(
+                self._CLIPID_REGEXES, webpage, 'clip id')
         title = self._html_search_regex(
             self._TITLE_REGEXES, webpage, 'title',
             default=None) or self._og_search_title(webpage)
