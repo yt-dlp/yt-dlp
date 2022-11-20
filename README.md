@@ -1823,7 +1823,7 @@ Plugins can be installed in a variety of different ways.
     * Source: plugins can be installed in the root directory of the module (where `<root dir>/yt_dlp/__main__.py`, `<root-dir>/ytdlp_plugins/`)
 
 4. **pip and other locations in `PYTHONPATH`**
-    * Plugins can be installed and managed using `pip`. See [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for an example.
+    * Plugins can be installed and managed using `pip`. See [ytdlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for an example.
     * Any path in `PYTHONPATH` is searched in for `ytdlp_plugins`
       * Note: This does not apply for Pyinstaller/py2exe builds.
 
@@ -1836,7 +1836,7 @@ Run yt-dlp with `--verbose`/`-v` to check if the plugin has been loaded.
 
 ## Developing Plugins
 
-See [ytdlp-sample-plugins](https://github.com/coletdjnz/ytdlp-sample-plugins) for a sample plugin package with instructions on how to set up an environment for plugin development. 
+See [ytdlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for a sample plugin package with instructions on how to set up an environment for plugin development. 
 
 All public classes with a name ending in `IE` are imported from each file. This respects underscore prefix (e.g. `_MyBasePluginIE` is private) and `__all__`. Modules can similarly be excluded by prefixing the module name with an underscore (e.g. `_myplugin.py`)
 
