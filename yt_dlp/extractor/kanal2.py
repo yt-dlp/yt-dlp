@@ -4,6 +4,7 @@ from ..utils import (
     join_nonempty,
     traverse_obj,
     unified_timestamp,
+    update_url_query,
 )
 
 
@@ -56,10 +57,8 @@ class Kanal2IE(InfoExtractor):
             raise ExtractorError(f'Unable to obtain session - {session["reason"]}')
 
         formats = []
-        for stream in traverse_obj(playlist, ('data', 'streams'), default=[]):
-            if not stream.get('file'):
-                continue
+        for stream in traverse_obj(playlist, ('data', 'streams', ..., 'file')):
             formats.extend(self._extract_m3u8_formats(
-                stream['file'] + '&s=' + session['session'], video_id, 'mp4'))
+                update_url_query(stream, {'s': session['session']}), video_id, 'mp4'))
 
         return formats
