@@ -11,6 +11,7 @@ from ..compat import compat_HTTPError, compat_str
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
+    base_url,
     clean_html,
     determine_ext,
     format_field,
@@ -23,6 +24,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urlencode_postdata,
+    urljoin,
 )
 
 
@@ -325,10 +327,10 @@ class PornHubIE(PornHubBaseIE):
                 r'var\s+flashvars_\d+\s*=\s*({.+?});', webpage, 'flashvars', default='{}'),
             video_id)
         if flashvars:
-            subtitle_url = url_or_none(flashvars.get('closedCaptionsFile'))
+            subtitle_url = flashvars.get('closedCaptionsFile')
             if subtitle_url:
                 subtitles.setdefault('en', []).append({
-                    'url': subtitle_url,
+                    'url': urljoin(base_url(url), subtitle_url),
                     'ext': 'srt',
                 })
             thumbnail = flashvars.get('image_url')
