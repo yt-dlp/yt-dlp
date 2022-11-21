@@ -131,12 +131,14 @@ class PornHubIE(PornHubBaseIE):
     _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?pornhub(?:premium)?\.(?:com|net|org)/embed/[\da-z]+)']
     _TESTS = [{
         'url': 'http://www.pornhub.com/view_video.php?viewkey=648719015',
-        'md5': 'a6391306d050e4547f62b3f485dd9ba9',
+        'md5': '4d4a4e9178b655776f86cf89ecaf0edf',
         'info_dict': {
             'id': '648719015',
             'ext': 'mp4',
+            'thumbnail': r're:^https://.i\.phncdn\.com/videos/201306/28/14084201/original/.*\.jpg',
             'title': 'Seductive Indian beauty strips down and fingers her pink pussy',
             'uploader': 'BABES-COM',
+            'uploader_id': '/users/babes-com',
             'upload_date': '20130628',
             'timestamp': 1372447216,
             'duration': 361,
