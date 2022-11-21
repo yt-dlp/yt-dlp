@@ -28,6 +28,24 @@ class NoicePodcastIE(InfoExtractor):
             'modified_timestamp': 1669030647,
             'thumbnail': 'https://images.noiceid.cc/catalog/content-1668496302560',
         }
+    }, {
+        'url': 'https://open.noice.id/content/222134e4-99f2-456f-b8a2-b8be404bf063',
+        'info_dict': {
+            'id': '222134e4-99f2-456f-b8a2-b8be404bf063',
+            'ext': 'mp3',
+            'release_timestamp': 1653488220,
+            'description': 'md5:35074f6190cef52b05dd133bb2ef460e',
+            'upload_date': '20220525',
+            'timestamp': 1653460637,
+            'release_date': '20220525',
+            'thumbnail': 'https://images.noiceid.cc/catalog/content-1653460337625',
+            'title': 'Eps 1: Dijodohin Sama Anak Pak RT',
+            'modified_timestamp': 1669030647,
+            'season_number': 1,
+            'modified_date': '20221121',
+            'duration': 1830,
+            'season': 'Season 1',
+        }
     }]
 
     def _get_formats_and_subtitles(self, media_url, video_id):
