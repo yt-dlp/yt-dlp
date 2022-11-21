@@ -46,15 +46,19 @@ class Kanal2IE(InfoExtractor):
         }
 
     def get_formats(self, playlist, video_id):
+        path = traverse_obj(playlist, ('data', 'path'))
+        if not path:
+            raise ExtractorError('Path value not found in playlist JSON response')
         session = self._download_json(
             'https://sts.postimees.ee/session/register',
             video_id, note='Creating session', errnote='Error creating session',
             headers={
-                'X-Original-URI': traverse_obj(playlist, ('data', 'path')),
+                'X-Original-URI': path,
                 'Accept': 'application/json',
             })
-        if session['reason'] != 'OK':
-            raise ExtractorError(f'Unable to obtain session - {session["reason"]}')
+        if session.get('reason') != 'OK' or not session.get('session'):
+            reason = session.get('reason', 'unknown error')
+            raise ExtractorError(f'Unable to obtain session: {reason}')
 
         formats = []
         for stream in traverse_obj(playlist, ('data', 'streams', ..., 'file')):
