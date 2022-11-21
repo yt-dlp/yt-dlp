@@ -136,7 +136,7 @@ class PornHubIE(PornHubBaseIE):
             'id': '648719015',
             'ext': 'mp4',
             'title': 'Seductive Indian beauty strips down and fingers her pink pussy',
-            'uploader': 'Babes',
+            'uploader': 'BABES-COM',
             'upload_date': '20130628',
             'timestamp': 1372447216,
             'duration': 361,
