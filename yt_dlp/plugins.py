@@ -66,7 +66,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
                 plugin_dir = config_dir / containing_folder
                 if not plugin_dir.is_dir():
                     continue
-                yield from (plugin_dir / d for d in plugin_dir.iterdir())
+                yield from plugin_dir.iterdir()
 
         # Load from user config folders
         candidate_locations.extend(
