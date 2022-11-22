@@ -1,29 +1,71 @@
 import textwrap
 import unittest
 
-from parsing import (
-    FirstMatchingElementParser,
-    HTMLTagParser,
+from yt_dlp.compat import compat_HTMLParseError
+from yt_dlp.parsing import (
     MatchingElementParser,
+    HTMLCommentRanges,
+    HTMLTagParser,
 )
 
-from yt_dlp.compat import compat_HTMLParseError
-
-get_element_by_attribute = FirstMatchingElementParser
-get_element_by_class = FirstMatchingElementParser
-get_element_html_by_attribute = FirstMatchingElementParser
-get_element_html_by_class = FirstMatchingElementParser.get_element_html_by_class
-get_element_text_and_html_by_tag = FirstMatchingElementParser.get_element_text_and_html_by_tag
-get_elements_by_attribute = MatchingElementParser
-get_elements_by_class = MatchingElementParser
-get_elements_html_by_attribute = MatchingElementParser
-get_elements_html_by_class = FirstMatchingElementParser.get_elements_html_by_class
-get_elements_text_and_html_by_attribute = MatchingElementParser
+extract_attributes = MatchingElementParser.extract_attributes
+get_element_by_attribute = MatchingElementParser.get_element_by_attribute
+get_element_by_class = MatchingElementParser.get_element_by_class
+get_element_html_by_attribute = MatchingElementParser.get_element_html_by_attribute
+get_element_html_by_class = MatchingElementParser.get_element_html_by_class
+get_element_text_and_html_by_tag = MatchingElementParser.get_element_text_and_html_by_tag
+get_elements_by_attribute = MatchingElementParser.get_elements_by_attribute
+get_elements_by_class = MatchingElementParser.get_elements_by_class
+get_elements_html_by_attribute = MatchingElementParser.get_elements_html_by_attribute
+get_elements_html_by_class = MatchingElementParser.get_elements_html_by_class
+get_elements_text_and_html_by_attribute = MatchingElementParser.get_elements_text_and_html_by_attribute
+get_elements_text_and_html_by_tag = MatchingElementParser.get_elements_text_and_html_by_tag
 
 
 class TestParsing(unittest.TestCase):
+    def test_extract_attributes(self):
+        self.assertEqual(extract_attributes('<e x="y">'), {'x': 'y'})
+        self.assertEqual(extract_attributes("<e x='y'>"), {'x': 'y'})
+        self.assertEqual(extract_attributes('<e x=y>'), {'x': 'y'})
+        self.assertEqual(extract_attributes('<e x="a \'b\' c">'), {'x': "a 'b' c"})
+        self.assertEqual(extract_attributes('<e x=\'a "b" c\'>'), {'x': 'a "b" c'})
+        self.assertEqual(extract_attributes('<e x="&#121;">'), {'x': 'y'})
+        self.assertEqual(extract_attributes('<e x="&#x79;">'), {'x': 'y'})
+        self.assertEqual(extract_attributes('<e x="&amp;">'), {'x': '&'})  # XML
+        self.assertEqual(extract_attributes('<e x="&quot;">'), {'x': '"'})
+        self.assertEqual(extract_attributes('<e x="&pound;">'), {'x': '£'})  # HTML 3.2
+        self.assertEqual(extract_attributes('<e x="&lambda;">'), {'x': 'λ'})  # HTML 4.0
+        self.assertEqual(extract_attributes('<e x="&foo">'), {'x': '&foo'})
+        self.assertEqual(extract_attributes('<e x="\'">'), {'x': "'"})
+        self.assertEqual(extract_attributes('<e x=\'"\'>'), {'x': '"'})
+        self.assertEqual(extract_attributes('<e x >'), {'x': None})
+        self.assertEqual(extract_attributes('<e x=y a>'), {'x': 'y', 'a': None})
+        self.assertEqual(extract_attributes('<e x= y>'), {'x': 'y'})
+        self.assertEqual(extract_attributes('<e x=1 y=2 x=3>'), {'y': '2', 'x': '3'})
+        self.assertEqual(extract_attributes('<e \nx=\ny\n>'), {'x': 'y'})
+        self.assertEqual(extract_attributes('<e \nx=\n"y"\n>'), {'x': 'y'})
+        self.assertEqual(extract_attributes("<e \nx=\n'y'\n>"), {'x': 'y'})
+        self.assertEqual(extract_attributes('<e \nx="\ny\n">'), {'x': '\ny\n'})
+        self.assertEqual(extract_attributes('<e CAPS=x>'), {'caps': 'x'})  # Names lowercased
+        self.assertEqual(extract_attributes('<e x=1 X=2>'), {'x': '2'})
+        self.assertEqual(extract_attributes('<e X=1 x=2>'), {'x': '2'})
+        self.assertEqual(extract_attributes('<e _:funny-name1=1>'), {'_:funny-name1': '1'})
+        self.assertEqual(extract_attributes('<e x="Fáilte 世界 \U0001f600">'), {'x': 'Fáilte 世界 \U0001f600'})
+        self.assertEqual(extract_attributes('<e x="décompose&#769;">'), {'x': 'décompose\u0301'})
+        # "Narrow" Python builds don't support unicode code points outside BMP.
+        try:
+            chr(0x10000)
+            supports_outside_bmp = True
+        except ValueError:
+            supports_outside_bmp = False
+        if supports_outside_bmp:
+            self.assertEqual(extract_attributes('<e x="Smile &#128512;!">'), {'x': 'Smile \U0001f600!'})
+        # Malformed HTML should not break attributes extraction on older Python
+        self.assertEqual(extract_attributes('<mal"formed/>'), {})
+
     GET_ELEMENT_BY_CLASS_TEST_STRING = '''
         <span class="foo bar">nice</span>
+        <div class="foo bar">also nice</div>
     '''
 
     def test_get_element_by_class(self):
@@ -35,7 +77,8 @@ class TestParsing(unittest.TestCase):
     def test_get_element_html_by_class(self):
         html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
-        self.assertEqual(get_element_html_by_class('foo', html), html.strip())
+        self.assertEqual(get_element_html_by_class('foo', html),
+                         '<span class="foo bar">nice</span>')
         self.assertEqual(get_element_by_class('no-such-class', html), None)
 
     GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING = '''
@@ -48,6 +91,7 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(get_element_by_attribute('class', 'foo bar', html), 'nice')
         self.assertEqual(get_element_by_attribute('class', 'foo', html), None)
         self.assertEqual(get_element_by_attribute('class', 'no-such-foo', html), None)
+        self.assertEqual(get_element_by_attribute('class', 'foo bar', html, tag='div'), 'also nice')
 
         html = self.GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING
 
@@ -56,7 +100,8 @@ class TestParsing(unittest.TestCase):
     def test_get_element_html_by_attribute(self):
         html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
-        self.assertEqual(get_element_html_by_attribute('class', 'foo bar', html), html.strip())
+        self.assertEqual(get_element_html_by_attribute('class', 'foo bar', html),
+                         '<span class="foo bar">nice</span>')
         self.assertEqual(get_element_html_by_attribute('class', 'foo', html), None)
         self.assertEqual(get_element_html_by_attribute('class', 'no-such-foo', html), None)
 
@@ -110,7 +155,7 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html), [])
 
         self.assertEqual(get_elements_text_and_html_by_attribute(
-            'class', 'foo', '<a class="foo">nice</a><span class="foo">nice</span>', tag='a'),
+            'class', 'foo', '<a class="foo">nice</a><span class="foo">not nice</span>', tag='a'),
             [('nice', '<a class="foo">nice</a>')])
 
     def test_get_element_text_and_html_by_tag(self):
@@ -138,7 +183,16 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(
             get_element_text_and_html_by_tag('span', html),
             (get_element_by_tag_res_innerspan_text, get_element_by_tag_res_innerspan_html))
-        self.assertRaises(compat_HTMLParseError, get_element_text_and_html_by_tag, 'article', html)
+        self.assertIsNone(get_element_text_and_html_by_tag('article', html))
+
+    def test_get_elements_text_and_html_by_tag(self):
+        test_string = '''
+            <img src="a.png">
+            <img src="b.png" />
+            <span>ignore</span>
+        '''
+        items = get_elements_text_and_html_by_tag('img', test_string)
+        self.assertListEqual(items, [('', '<img src="a.png">'), ('', '<img src="b.png" />')])
 
     def test_get_element_text_and_html_by_tag_malformed(self):
         inner_text = 'inner text'
@@ -157,10 +211,8 @@ class TestParsing(unittest.TestCase):
             get_element_text_and_html_by_tag('malnested_b', html),
             (f'{inner_text}</malnested_a>',
              f'<malnested_b>{inner_text}</malnested_a></malnested_b>'))
-        self.assertRaises(
-            compat_HTMLParseError, get_element_text_and_html_by_tag, 'orphan', f'{html}</orphan>')
-        self.assertRaises(
-            compat_HTMLParseError, get_element_text_and_html_by_tag, 'orphan', f'<orphan>{html}')
+        self.assertIsNone(get_element_text_and_html_by_tag('orphan', f'{html}</orphan>'))
+        self.assertIsNone(get_element_text_and_html_by_tag('orphan', f'<orphan>{html}'))
 
     def test_strict_html_parsing(self):
         class StrictTagParser(HTMLTagParser):
@@ -188,14 +240,14 @@ class TestParsing(unittest.TestCase):
         self.assertEqual(parser.taglist('<div><p>', reset=True), [])
 
         tags = parser.taglist('<div><p></div></p>', reset=True)
-        self.assertEqual(tags, [Tag('div'), Tag('p')])
+        self.assertEqual(tags, [Tag('p'), Tag('div')])
 
         tags = parser.taglist('<div><p>/p></div>', reset=True)
         self.assertEqual(tags, [Tag('div')])
 
-        tags = parser.taglist('<div><p>paragraph</p<ignored /></div>', reset=True)
-        self.assertEqual(tags, [Tag('p'), Tag('div')])
-        self.assertEqual(tags[0].text_and_html(), ('paragraph', '<p>paragraph</p'))
+        tags = parser.taglist('<div><p>paragraph</p<ignored></div>', reset=True)
+        self.assertEqual(tags, [Tag('div'), Tag('p')])
+        self.assertEqual(tags[1].text_and_html(), ('paragraph', '<p>paragraph</p<ignored>'))
 
         tags = parser.taglist('<img width="300px">must be empty</img>', reset=True)
         self.assertEqual(tags, [Tag('img')])
@@ -216,3 +268,65 @@ class TestParsing(unittest.TestCase):
         html = '''<img greater_a='1>0' greater_b="1>0">'''
         tags = parser.taglist(html, reset=True)
         self.assertEqual(tags[0].text_and_html(), ('', html))
+
+    def test_tag_return_order(self):
+        Tag = HTMLTagParser.Tag
+        html = '''
+        <t0>
+            <t1>
+                <t2>
+                    <t3 /> <t4 />
+                </t2>
+            </t1>
+            <t5>
+                <t6 />
+            </t5>
+        </t0>
+        <t7>
+            <t8 />
+        </t7>
+        '''
+        parser = HTMLTagParser()
+        tags = parser.taglist(html, reset=True)
+        self.assertEqual(
+            str(tags), str([Tag('t0'), Tag('t1'), Tag('t2'), Tag('t3'), Tag('t4'),
+                            Tag('t5'), Tag('t6'), Tag('t7'), Tag('t8')]))
+
+        tags = parser.taglist(html, reset=True, depth_first=True)
+        self.assertEqual(
+            str(tags), str([Tag('t3'), Tag('t4'), Tag('t2'), Tag('t1'), Tag('t6'),
+                            Tag('t5'), Tag('t0'), Tag('t8'), Tag('t7')]))
+
+        # return tags in nested order
+        tags = parser.taglist(html, reset=True, depth_first=None)
+        self.assertEqual(
+            str(tags), str([
+                [Tag('t0'),
+                 [Tag('t1'),
+                  [Tag('t2'), Tag('t3'), Tag('t4')]],
+                 [Tag('t5'), Tag('t6')]],
+                [Tag('t7'), Tag('t8')]]))
+
+    def test_within_html_comment(self):
+        def mark_comments(_string, char='^', nochar='-'):
+            cmts = HTMLCommentRanges(_string)
+            return "".join(char if _idx in cmts else nochar for _idx in range(len(_string)))
+
+        html_string = '''
+        no              comments         in            this              line
+        ---------------------------------------------------------------------
+        <!--                 whole line represents a comment              -->
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        before <!--                      comment                  -->   after
+        -------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------
+        here   is   <!-- a comment -->   and   <!-- another comment -->   end
+        ------------^^^^^^^^^^^^^^^^^^---------^^^^^^^^^^^^^^^^^^^^^^^^------
+        this <!-- nested  <!--     comment    -->  ends here --> and not here
+        -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----------------------------
+        stray --> comment closings --> are ignored <!-- but not <!-- openings
+        -------------------------------------------^^^^^^^^^^^^^^^^^^^^^^^^^^
+        '''
+
+        lines = textwrap.dedent(html_string).strip().splitlines()
+        for line, marker in zip(lines[0::2], lines[1::2]):
+            self.assertEqual((line, mark_comments(line)), (line, marker))
