@@ -254,7 +254,7 @@ class NaverLiveIE(InfoExtractor):
 
 class NaverNowIE(NaverBaseIE):
     IE_NAME = 'navernow'
-    _VALID_URL = r'https?://now\.naver\.com/s/now\.(?P<id>[\w\d]+)'
+    _VALID_URL = r'https?://now\.naver\.com/s/now\.(?P<id>\w+)'
     _API_URL = 'https://apis.naver.com/now_web/oldnow_web/v4'
     _TESTS = [{
         'url': 'https://now.naver.com/s/now.4759?shareReplayId=26331132#replay=',
