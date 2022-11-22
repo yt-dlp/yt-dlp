@@ -1811,17 +1811,21 @@ See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plug
 Plugins can be installed in a variety of different ways. 
 
 1. **Configuration directories**:
-    * Plugins can be installed into a `plugins/<package name>` directory under any [configuration directory](#configuration).
+    * `yt_dlp_plugins` can be dropped into a `yt-dlp-plugins/<package name>` directory under any [configuration directory](#configuration), 
+   or into a `yt-dlp-plugins/<package name>` directory for other [configuration locations](#configuration).
         * where `<package name>` is a folder containing `yt_dlp_plugins`
     * **User Plugins**
       * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Linux/macOS)
+      * `${XDG_CONFIG_HOME}/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
       * `${APPDATA}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Windows)
       * `~/.yt-dlp/plugins/<package name>/yt_dlp_plugins/`
+      * `~/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
     * **System Plugins**
       * `/etc/yt-dlp/plugins/<package name>/yt_dlp_plugins/`
+      * `/etc/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
 2. **Executable location**:
-    * Binary: Plugins can be installed root directory of the binary (where `<root-dir>/yt-dlp.exe`, `<root-dir>/yt_dlp_plugins/`)
-    * Source: plugins can be installed in the root directory of the module (where `<root dir>/yt_dlp/__main__.py`, `<root-dir>/yt_dlp_plugins/`)
+    * Binary: Plugins can be installed in the same directory of the binary (where `<root-dir>/yt-dlp.exe`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`)
+    * Source: Plugins can be installed in the parent directory of `yt_dlp` (where `<root-dir>/yt_dlp/__main__.py`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`)
 
 3. **pip and other locations in `PYTHONPATH`**
     * Plugins can be installed and managed using `pip`. See [ytdlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for an example.

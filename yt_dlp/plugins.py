@@ -5,6 +5,7 @@ import importlib.util
 import importlib.abc
 import inspect
 import itertools
+import os
 import pkgutil
 import re
 import sys
@@ -12,6 +13,8 @@ import traceback
 import zipimport
 from pathlib import Path
 from zipfile import ZipFile
+
+from .compat import compat_expanduser
 
 from .utils import (
     write_string,
@@ -56,29 +59,51 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
     def search_locations(self, fullname):
         # Also load plugin packages from standard config folders
-        search_locations = []
-        for config_dir in map(Path, get_user_config_dirs('yt-dlp') + get_system_config_dirs('yt-dlp')):
-            plugin_dir = config_dir / 'plugins'
-            if not plugin_dir.is_dir():
-                continue
-            search_locations.extend(plugin_dir / d for d in plugin_dir.iterdir())
-        search_locations.extend([Path(path) for path in sys.path])  # PYTHONPATH
+        candidate_locations = []
 
-        # Required for pyinstaller/py2exe to find plugins in the executable directory
-        search_locations.append(Path(get_executable_path()))
+        def _get_package_paths(root_paths, containing_folder='plugins'):
+            for config_dir in map(Path, root_paths):
+                plugin_dir = config_dir / containing_folder
+                if not plugin_dir.is_dir():
+                    continue
+                yield from (plugin_dir / d for d in plugin_dir.iterdir())
 
-        parts = Path(*fullname.split('.'))
-        locations = set()
-        for path in dict.fromkeys(search_locations):
-            candidate = path / parts
-            if candidate.is_dir():
-                locations.add(str(candidate))
-            elif path.name and any(path.with_suffix(suffix).is_file() for suffix in {'.zip', '.egg', '.whl'}):
-                with contextlib.suppress(FileNotFoundError):
-                    if self.zip_has_dir(path, parts):
-                        locations.add(str(candidate))
+        # Load from user config folders
+        candidate_locations.extend(
+            _get_package_paths(get_user_config_dirs('yt-dlp') + get_system_config_dirs('yt-dlp'),
+                               containing_folder='plugins'))
 
-        return list(locations)
+        # Load from yt-dlp-plugins folders
+        candidate_locations.extend(_get_package_paths(
+            [
+                get_executable_path(),
+                compat_expanduser('~'),
+                '/etc',
+                os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
+            ], containing_folder='yt-dlp-plugins'))
+
+        candidate_locations.extend([Path(path) for path in sys.path])  # PYTHONPATH
+
+        def _find_locations(candidate_locations, fullname):
+            parts = Path(*fullname.split('.'))
+            locations = set()
+            for path in dict.fromkeys(candidate_locations):
+                candidate = path / parts
+                if candidate.is_dir():
+                    locations.add(str(candidate))
+                elif path.name and any(path.with_suffix(suffix).is_file() for suffix in {'.zip', '.egg', '.whl'}):
+                    with contextlib.suppress(FileNotFoundError):
+                        if self.zip_has_dir(path, parts):
+                            locations.add(str(candidate))
+            return locations
+
+        locations = _find_locations(candidate_locations, fullname)
+
+        # compat: support ytdlp_plugins in executable path (treat like yt_dlp_plugins)
+        locations |= _find_locations(
+            [Path(get_executable_path())], fullname.replace('yt_dlp_plugins', 'ytdlp_plugins'))
+
+        return locations
 
     def find_spec(self, fullname, path=None, target=None):
         if fullname not in self.packages:
