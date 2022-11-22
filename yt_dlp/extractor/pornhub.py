@@ -457,18 +457,6 @@ class PornHubIE(PornHubBaseIE):
                     r'/(\d{6}/\d{2})/', video_url, 'upload data', default=None)
                 if upload_date:
                     upload_date = upload_date.replace('/', '')
-            if '/video/get_media' in video_url:
-                medias = self._download_json(video_url, video_id, fatal=False)
-                if isinstance(medias, list):
-                    for media in medias:
-                        if not isinstance(media, dict):
-                            continue
-                        video_url = url_or_none(media.get('videoUrl'))
-                        if not video_url:
-                            continue
-                        height = int_or_none(media.get('quality'))
-                        add_format(video_url, height)
-                continue
             add_format(video_url)
 
         model_profile = self._search_json(
