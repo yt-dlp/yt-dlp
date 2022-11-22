@@ -4,7 +4,6 @@
 import os
 import re
 import sys
-import textwrap
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,14 +20,6 @@ from yt_dlp.compat import (
     compat_HTMLParseError,
     compat_os_name,
 )
-from yt_dlp.parsing import (
-    HTMLTagParser,
-    FirstMatchingElementParser,
-)
-
-# some testcases don't work with current functions
-get_element_text_and_html_by_tag = FirstMatchingElementParser.get_element_text_and_html_by_tag
-
 from yt_dlp.utils import (
     Config,
     DateRange,
@@ -68,6 +59,7 @@ from yt_dlp.utils import (
     get_element_by_class,
     get_element_html_by_attribute,
     get_element_html_by_class,
+    get_element_text_and_html_by_tag,
     get_elements_by_attribute,
     get_elements_by_class,
     get_elements_html_by_attribute,
@@ -1776,109 +1768,33 @@ Line 1
         self.assertEqual(list(get_elements_text_and_html_by_attribute(
             'class', 'foo', '<a class="foo">nice</a><span class="foo">nice</span>', tag='a')), [('nice', '<a class="foo">nice</a>')])
 
-    def test_get_element_text_and_html_by_tag(self):
-        get_element_by_tag_test_string = '''
-        random text lorem ipsum</p>
+    GET_ELEMENT_BY_TAG_TEST_STRING = '''
+    random text lorem ipsum</p>
+    <div>
+        this should be returned
+        <span>this should also be returned</span>
         <div>
-            this should be returned
-            <span>this should also be returned</span>
-            <div>
-                this should also be returned
-            </div>
-            closing tag above should not trick, so this should also be returned
+            this should also be returned
         </div>
-        but this text should not be returned
-        '''
-        html = textwrap.indent(textwrap.dedent(get_element_by_tag_test_string), ' ' * 4)
-        get_element_by_tag_res_outerdiv_html = html.strip()[32:276]
-        get_element_by_tag_res_outerdiv_text = get_element_by_tag_res_outerdiv_html[5:-6]
-        get_element_by_tag_res_innerspan_html = html.strip()[78:119]
-        get_element_by_tag_res_innerspan_text = get_element_by_tag_res_innerspan_html[6:-7]
+        closing tag above should not trick, so this should also be returned
+    </div>
+    but this text should not be returned
+    '''
+    GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML = GET_ELEMENT_BY_TAG_TEST_STRING.strip()[32:276]
+    GET_ELEMENT_BY_TAG_RES_OUTERDIV_TEXT = GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML[5:-6]
+    GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML = GET_ELEMENT_BY_TAG_TEST_STRING.strip()[78:119]
+    GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT = GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML[6:-7]
+
+    def test_get_element_text_and_html_by_tag(self):
+        html = self.GET_ELEMENT_BY_TAG_TEST_STRING
 
         self.assertEqual(
             get_element_text_and_html_by_tag('div', html),
-            (get_element_by_tag_res_outerdiv_text, get_element_by_tag_res_outerdiv_html))
+            (self.GET_ELEMENT_BY_TAG_RES_OUTERDIV_TEXT, self.GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML))
         self.assertEqual(
             get_element_text_and_html_by_tag('span', html),
-            (get_element_by_tag_res_innerspan_text, get_element_by_tag_res_innerspan_html))
+            (self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT, self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML))
         self.assertRaises(compat_HTMLParseError, get_element_text_and_html_by_tag, 'article', html)
-
-    def test_get_element_text_and_html_by_tag_malformed(self):
-        inner_text = 'inner text'
-        malnested_elements = f'<malnested_a><malnested_b>{inner_text}</malnested_a></malnested_b>'
-        commented_html = '<!--<div>inner comment</div>-->'
-        outerdiv_html = f'<div>{malnested_elements}</div>'
-        html = f'{commented_html}{outerdiv_html}'
-
-        self.assertEqual(
-            get_element_text_and_html_by_tag('div', html), (malnested_elements, outerdiv_html))
-        self.assertEqual(
-            get_element_text_and_html_by_tag('malnested_a', html),
-            (f'<malnested_b>{inner_text}',
-             f'<malnested_a><malnested_b>{inner_text}</malnested_a>'))
-        self.assertEqual(
-            get_element_text_and_html_by_tag('malnested_b', html),
-            (f'{inner_text}</malnested_a>',
-             f'<malnested_b>{inner_text}</malnested_a></malnested_b>'))
-        self.assertRaises(
-            compat_HTMLParseError, get_element_text_and_html_by_tag, 'orphan', f'{html}</orphan>')
-        self.assertRaises(
-            compat_HTMLParseError, get_element_text_and_html_by_tag, 'orphan', f'<orphan>{html}')
-
-    def test_strict_html_parsing(self):
-        class StrictTagParser(HTMLTagParser):
-            STRICT = True
-
-        parser = StrictTagParser()
-        with self.assertRaisesRegex(compat_HTMLParseError, "stray closing tag 'p'"):
-            parser.taglist('</p>', reset=True)
-        with self.assertRaisesRegex(compat_HTMLParseError, "unclosed tag 'p', 'div'"):
-            parser.taglist('<div><p>', reset=True)
-        with self.assertRaisesRegex(compat_HTMLParseError, "malnested closing tag 'div', expected after '</p>'"):
-            parser.taglist('<div><p></div></p>', reset=True)
-        with self.assertRaisesRegex(compat_HTMLParseError, "malnested closing tag 'div', expected after '</p>'"):
-            parser.taglist('<div><p>/p></div>', reset=True)
-        with self.assertRaisesRegex(compat_HTMLParseError, "malformed closing tag 'p<<'"):
-            parser.taglist('<div><p></p<< </div>', reset=True)
-        with self.assertRaisesRegex(compat_HTMLParseError, "stray closing tag 'img'"):
-            parser.taglist('<img>must be empty</img>', reset=True)
-
-    def test_relaxed_html_parsing(self):
-        Tag = HTMLTagParser.Tag
-        parser = HTMLTagParser()
-
-        self.assertEqual(parser.taglist('</p>', reset=True), [])
-        self.assertEqual(parser.taglist('<div><p>', reset=True), [])
-
-        tags = parser.taglist('<div><p></div></p>', reset=True)
-        self.assertEqual(tags, [Tag('div'), Tag('p')])
-
-        tags = parser.taglist('<div><p>/p></div>', reset=True)
-        self.assertEqual(tags, [Tag('div')])
-
-        tags = parser.taglist('<div><p>paragraph</p<ignored /></div>', reset=True)
-        self.assertEqual(tags, [Tag('p'), Tag('div')])
-        self.assertEqual(tags[0].text_and_html(), ('paragraph', '<p>paragraph</p'))
-
-        tags = parser.taglist('<img width="300px">must be empty</img>', reset=True)
-        self.assertEqual(tags, [Tag('img')])
-        self.assertEqual(tags[0].text_and_html(), ('', '<img width="300px">'))
-
-    def test_compliant_html_parsing(self):
-        # certain elements don't need to be closed (see HTMLTagParser.VOID_TAGS)
-        Tag = HTMLTagParser.Tag
-        html = '''
-            no error without closing tag: <img>
-            self closing is ok: <img />
-        '''
-        parser = HTMLTagParser()
-        tags = parser.taglist(html, reset=True)
-        self.assertEqual(tags, [Tag('img'), Tag('img')])
-
-        # don't get fooled by '>' in attributes
-        html = '''<img greater_a='1>0' greater_b="1>0">'''
-        tags = parser.taglist(html, reset=True)
-        self.assertEqual(tags[0].text_and_html(), ('', html))
 
     def test_iri_to_uri(self):
         self.assertEqual(
