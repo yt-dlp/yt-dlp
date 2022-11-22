@@ -1811,7 +1811,7 @@ See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plug
 Plugins can be installed using various different methods and locations.
 
 1. **Configuration directories**:
-    * Plugin packages (containing the `yt_dlp_plugins` namespace folder) can be dropped into a `plugins` directory under any [configuration directory](#configuration), 
+   Plugin packages (containing a `yt_dlp_plugins` namespace folder) can be dropped into a `plugins` directory under any [configuration directory](#configuration), 
    or into a `yt-dlp-plugins` directory under any of the other [configuration locations](#configuration).
     * **User Plugins**
       * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Linux/macOS)
