@@ -4,7 +4,7 @@ from ..utils import (
     determine_ext,
     int_or_none,
     parse_iso8601,
-    traverse_obj
+    traverse_obj,
 )
 
 
@@ -24,9 +24,16 @@ class NoicePodcastIE(InfoExtractor):
             'release_timestamp': 1668496642,
             'title': 'Eps 1. Belajar dari Wishnutama: Kreatif Bukan Followers! (bersama Wishnutama)',
             'modified_date': '20221121',
+            'categories': ['Bisnis dan Keuangan'],
             'duration': 3567,
             'modified_timestamp': 1669030647,
             'thumbnail': 'https://images.noiceid.cc/catalog/content-1668496302560',
+            'channel_id': '9dab1024-5b92-4265-ae1c-63da87359832',
+            'like_count': int,
+            'channel': 'Noice Space Talks',
+            'comment_count': int,
+            'dislike_count': int,
+            'channel_follower_count': int,
         }
     }, {
         'url': 'https://open.noice.id/content/222134e4-99f2-456f-b8a2-b8be404bf063',
@@ -43,8 +50,15 @@ class NoicePodcastIE(InfoExtractor):
             'modified_timestamp': 1669030647,
             'season_number': 1,
             'modified_date': '20221121',
+            'categories': ['Cerita dan Drama'],
             'duration': 1830,
             'season': 'Season 1',
+            'channel_id': '60193f6b-d24d-4b23-913b-ceed5a731e74',
+            'dislike_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'channel': 'Dear Jerome',
+            'channel_follower_count': int,
         }
     }]
 
@@ -80,13 +94,22 @@ class NoicePodcastIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'description': (nextjs_data.get('description') or clean_html(nextjs_data.get('htmlDescription'))
-                            or self._html_search_meta(['description', 'og:title', ''], webpage)),
+                            or self._html_search_meta(['description', 'og:description'], webpage)),
             'thumbnail': nextjs_data.get('image') or self._html_search_meta('og:image', webpage),
             'timestamp': parse_iso8601(nextjs_data.get('createdAt')),
             'release_timestamp': parse_iso8601(nextjs_data.get('publishedAt')),
             'modified_timestamp': parse_iso8601(
                 nextjs_data.get('updatedAt') or self._html_search_meta('og:updated_time', webpage)),
             'duration': int_or_none(nextjs_data.get('duration')),
+            'categories': traverse_obj(nextjs_data, ('genres', ..., 'name')),
             'season': nextjs_data.get('seasonName'),
             'season_number': int_or_none(nextjs_data.get('seasonNumber')),
+            'channel': traverse_obj(nextjs_data, ('catalog', 'title')),
+            'channel_id': traverse_obj(nextjs_data, ('catalog', 'id'), 'catalogId'),
+            **traverse_obj(nextjs_data, ('meta', 'aggregations', {
+                'like_count': 'likes',
+                'dislike_count': 'dislikes',
+                'comment_count': 'comments',
+                'channel_follower_count': 'followers',
+            }))
         }
