@@ -1802,13 +1802,13 @@ In other words, the file structure on the disk looks something like:
             postprocessor/
                 myplugin.py
 
-yt-dlp looks for these `yt_dlp_plugins` folders in various locations and reads in plugins from all of them.
+yt-dlp looks for these `yt_dlp_plugins` namespace folders in many locations (see below) and loads in plugins from **all** of them.
 
 See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plugins)
 
 ## Installing Plugins
 
-Plugins can be installed using various different methods and locations.
+Plugins can be installed using various methods and locations.
 
 1. **Configuration directories**:
    Plugin packages (containing a `yt_dlp_plugins` namespace folder) can be dropped into a `plugins` directory under any [configuration directory](#configuration), 
