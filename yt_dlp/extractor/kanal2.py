@@ -10,22 +10,20 @@ from ..utils import (
 
 class Kanal2IE(InfoExtractor):
     _VALID_URL = r'https?://kanal2\.postimees\.ee/[^?#]+\?([^#]+&)?id=(?P<id>\d+)'
-    _TESTS = [
-        {
-            'note': 'Test standard url (#5575)',
-            'url': 'https://kanal2.postimees.ee/pluss/video/?id=40792',
-            'md5': '7ea7b16266ec1798743777df241883dd',
-            'info_dict': {
-                'id': '40792',
-                'ext': 'mp4',
-                'title': 'Aedniku aabits / Osa 53  (05.08.2016 20:00)',
-                'thumbnail': r're:https?://.*\.jpg$',
-                'description': 'md5:53cabf3c5d73150d594747f727431248',
-                'upload_date': '20160805',
-                'timestamp': 1470420000,
-            }
+    _TESTS = [{
+        'note': 'Test standard url (#5575)',
+        'url': 'https://kanal2.postimees.ee/pluss/video/?id=40792',
+        'md5': '7ea7b16266ec1798743777df241883dd',
+        'info_dict': {
+            'id': '40792',
+            'ext': 'mp4',
+            'title': 'Aedniku aabits / Osa 53  (05.08.2016 20:00)',
+            'thumbnail': r're:https?://.*\.jpg$',
+            'description': 'md5:53cabf3c5d73150d594747f727431248',
+            'upload_date': '20160805',
+            'timestamp': 1470420000,
         },
-    ]
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
