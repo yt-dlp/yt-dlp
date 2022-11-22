@@ -15,7 +15,7 @@ class NoicePodcastIE(InfoExtractor):
         'url': 'https://open.noice.id/content/7694bb04-ff0f-40fa-a60b-5b39f29584b2',
         'info_dict': {
             'id': '7694bb04-ff0f-40fa-a60b-5b39f29584b2',
-            'ext': 'mp3',
+            'ext': 'm4a',
             'season': 'Season 1',
             'description': 'md5:58d1274e6857b6fbbecf47075885380d',
             'release_date': '20221115',
@@ -40,7 +40,7 @@ class NoicePodcastIE(InfoExtractor):
         'url': 'https://open.noice.id/content/222134e4-99f2-456f-b8a2-b8be404bf063',
         'info_dict': {
             'id': '222134e4-99f2-456f-b8a2-b8be404bf063',
-            'ext': 'mp3',
+            'ext': 'm4a',
             'release_timestamp': 1653488220,
             'description': 'md5:35074f6190cef52b05dd133bb2ef460e',
             'upload_date': '20220525',
