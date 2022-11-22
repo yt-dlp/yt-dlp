@@ -1792,17 +1792,17 @@ Plugins can be of `<type>`s `extractor` or `postprocessor`.
 - Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
 
 
-Plugins are loaded from namespace-package `ytdlp_plugins.extractor` and `ytdlp_plugins.postprocessor`.
+Plugins are loaded from namespace-package `yt_dlp_plugins.extractor` and `yt_dlp_plugins.postprocessor`.
 
 In other words, the file structure on the disk looks something like:
     
-        ytdlp_plugins/
+        yt_dlp_plugins/
             extractor/
                 myplugin.py
             postprocessor/
                 myplugin.py
 
-yt-dlp looks for these `ytdlp_plugins` folders in various locations and reads in plugins from all of them.
+yt-dlp looks for these `yt_dlp_plugins` folders in various locations and reads in plugins from all of them.
 
 See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plugins)
 
@@ -1810,27 +1810,27 @@ See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plug
 
 Plugins can be installed in a variety of different ways. 
 
-1. **User Plugins**:
-    * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/ytdlp_plugins/` (recommended on Linux/macOS)
-    * `${APPDATA}/yt-dlp/plugins/<package name>/ytdlp_plugins/` (recommended on Windows)
-    * `~/.yt-dlp/plugins/<package name>/ytdlp_plugins/`
+1. **Configuration directories**:
+    * Plugins can be installed into a `plugins/<package name>` directory under any [configuration directory](#configuration).
+        * where `<package name>` is a folder containing `yt_dlp_plugins`
+    * **User Plugins**
+      * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Linux/macOS)
+      * `${APPDATA}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Windows)
+      * `~/.yt-dlp/plugins/<package name>/yt_dlp_plugins/`
+    * **System Plugins**
+      * `/etc/yt-dlp/plugins/<package name>/yt_dlp_plugins/`
+2. **Executable location**:
+    * Binary: Plugins can be installed root directory of the binary (where `<root-dir>/yt-dlp.exe`, `<root-dir>/yt_dlp_plugins/`)
+    * Source: plugins can be installed in the root directory of the module (where `<root dir>/yt_dlp/__main__.py`, `<root-dir>/yt_dlp_plugins/`)
 
-2. **System Plugins**:
-    * `/etc/yt-dlp/plugins/<package name>/ytdlp_plugins/`
-
-3. **yt-dlp executable location**:
-    * Binary: Plugins can be installed root directory of the binary (where `<root-dir>/yt-dlp.exe`, `<root-dir>/ytdlp_plugins/`)
-    * Source: plugins can be installed in the root directory of the module (where `<root dir>/yt_dlp/__main__.py`, `<root-dir>/ytdlp_plugins/`)
-
-4. **pip and other locations in `PYTHONPATH`**
+3. **pip and other locations in `PYTHONPATH`**
     * Plugins can be installed and managed using `pip`. See [ytdlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for an example.
-    * Any path in `PYTHONPATH` is searched in for `ytdlp_plugins`
+    * Any path in `PYTHONPATH` is searched in for `yt_dlp_plugins`
       * Note: This does not apply for Pyinstaller/py2exe builds.
 
-(where `<package name>` is a folder containing `ytdlp_plugins`)
 
-.zip, .egg and .whl archives containing `ytdlp_plugins` in their root are also supported. These can be placed in the same locations `ytdlp_plugins` can be found.
-- e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/myplugin.zip` where `myplugin.zip` contains `ytdlp_plugins/<type>/myplugin.py`
+.zip, .egg and .whl archives containing `yt_dlp_plugins` in their root are also supported. These can be placed in the same locations `yt_dlp_plugins` can be found.
+- e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/myplugin.zip` where `myplugin.zip` contains `yt_dlp_plugins/<type>/myplugin.py`
 
 Run yt-dlp with `--verbose`/`-v` to check if the plugin has been loaded.
 

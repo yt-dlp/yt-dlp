@@ -20,7 +20,7 @@ from .utils import (
     get_executable_path
 )
 
-PACKAGE_NAME = 'ytdlp_plugins'
+PACKAGE_NAME = 'yt_dlp_plugins'
 _INITIALIZED = False
 
 
