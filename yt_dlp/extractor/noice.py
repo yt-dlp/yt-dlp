@@ -64,9 +64,7 @@ class NoicePodcastIE(InfoExtractor):
 
     def _get_formats_and_subtitles(self, media_url, video_id):
         formats, subtitles = [], {}
-        if isinstance(media_url, str):
-            media_url = [media_url]
-        for url in media_url:
+        for url in variadic(media_url):
             ext = determine_ext(url)
             if ext == 'm3u8':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(url, video_id)
@@ -76,6 +74,8 @@ class NoicePodcastIE(InfoExtractor):
                 formats.append({
                     'url': url,
                     'ext': 'mp3',
+                    'vcodec': 'none',
+                    'acodec': 'mp3',
                 })
         return formats, subtitles
 
