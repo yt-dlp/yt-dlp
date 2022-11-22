@@ -42,7 +42,7 @@ class Kanal2IE(InfoExtractor):
             'formats': self.get_formats(playlist, video_id),
             'timestamp': unified_timestamp(self._search_regex(
                 r'\((\d{2}\.\d{2}\.\d{4}\s\d{2}:\d{2})\)$',
-                traverse_obj(playlist, ('info', 'subtitle')), 'timestamp', default=None) + ' +0200'),
+                traverse_obj(playlist, ('info', 'subtitle')), 'timestamp', default='') + ' +0200'),
         }
 
     def get_formats(self, playlist, video_id):
