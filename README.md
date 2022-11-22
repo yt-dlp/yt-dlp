@@ -1834,7 +1834,7 @@ Plugins can be installed using various methods and locations.
 
 
 .zip, .egg and .whl archives containing a `yt_dlp_plugins` namespace folder in their root are also supported. These can be placed in the same locations `yt_dlp_plugins` namespace folders can be found.
-- e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/myplugin.zip` where `myplugin.zip` contains `yt_dlp_plugins/<type>/myplugin.py`
+- e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/mypluginpkg.zip` where `mypluginpkg.zip` contains `yt_dlp_plugins/<type>/myplugin.py`
 
 Run yt-dlp with `--verbose`/`-v` to check if the plugin has been loaded.
 
