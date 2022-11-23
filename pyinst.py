@@ -134,11 +134,11 @@ def windows_set_version(exe, version):
         kids=[
             StringFileInfo([StringTable('040904B0', [
                 StringStruct('Comments', 'yt-dlp%s Command Line Interface' % suffix),
-                StringStruct('CompanyName', 'https://github.com/yt-dlp'),
+                StringStruct('CompanyName', 'https://github.com/observeroftime02/yt-dlp-daily'),
                 StringStruct('FileDescription', 'yt-dlp%s' % (MACHINE and f' ({MACHINE})')),
                 StringStruct('FileVersion', version),
                 StringStruct('InternalName', f'yt-dlp{suffix}'),
-                StringStruct('LegalCopyright', 'pukkandan.ytdlp@gmail.com | UNLICENSE'),
+                StringStruct('LegalCopyright', 'observeroftime@shizuki.ca | UNLICENSE'),
                 StringStruct('OriginalFilename', f'yt-dlp{suffix}.exe'),
                 StringStruct('ProductName', f'yt-dlp{suffix}'),
                 StringStruct(

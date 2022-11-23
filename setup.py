@@ -19,7 +19,7 @@ VERSION = read_version()
 DESCRIPTION = 'A youtube-dl fork with additional features and patches'
 
 LONG_DESCRIPTION = '\n\n'.join((
-    'Official repository: <https://github.com/yt-dlp/yt-dlp>',
+    'Official repository: <https://github.com/observeroftime02/yt-dlp-daily>',
     '**PS**: Some links in this document will not work since this is a copy of the README.md from Github',
     read_file('README.md')))
 
@@ -127,22 +127,20 @@ def main():
         params = build_params()
 
     setup(
-        name='yt-dlp',
+        name='yt-dlp-daily',
         version=VERSION,
-        maintainer='pukkandan',
-        maintainer_email='pukkandan.ytdlp@gmail.com',
+        maintainer='observeroftime02',
+        maintainer_email='observeroftime@shizuki.ca',
         description=DESCRIPTION,
         long_description=LONG_DESCRIPTION,
         long_description_content_type='text/markdown',
-        url='https://github.com/yt-dlp/yt-dlp',
+        url='https://github.com/observeroftime02/yt-dlp-daily',
         packages=packages(),
         install_requires=REQUIREMENTS,
         python_requires='>=3.7',
         project_urls={
-            'Documentation': 'https://github.com/yt-dlp/yt-dlp#readme',
-            'Source': 'https://github.com/yt-dlp/yt-dlp',
-            'Tracker': 'https://github.com/yt-dlp/yt-dlp/issues',
-            'Funding': 'https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators',
+            'Documentation': 'https://github.com/observeroftime02/yt-dlp-daily#readme',
+            'Source': 'https://github.com/observeroftime02/yt-dlp-daily',
         },
         classifiers=[
             'Topic :: Multimedia :: Video',
