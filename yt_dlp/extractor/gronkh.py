@@ -9,7 +9,7 @@ from ..utils import (
 
 
 class GronkhIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/(?:watch/)?streams/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/(?:watch/)?streams?/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://gronkh.tv/streams/657',
