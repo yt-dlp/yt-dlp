@@ -25,7 +25,23 @@ class GronkhIE(InfoExtractor):
     }, {
         'url': 'https://gronkh.tv/streams/657',
         'only_matching': True,
-    }]
+    },
+        {
+        'url': 'https://gronkh.tv/stream/536',
+        'info_dict': {
+            'id': '536',
+            'ext': 'mp4',
+            'title': 'GTV0536, 2021-10-01 - MARTHA IS DEAD  #FREiAB1830  !FF7 !horde !archiv',
+            'view_count': 19491,
+            'thumbnail': 'https://01.cdn.vod.farm/preview/6436746cce14e25f751260a692872b9b.jpg',
+            'upload_date': '20211001'
+        },
+        'params': {'skip_download': True}
+    }, {
+        'url': 'https://gronkh.tv/watch/stream/546',
+        'only_matching': True,
+    }
+    ]
 
     def _real_extract(self, url):
         id = self._match_id(url)
