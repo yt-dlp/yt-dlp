@@ -3691,6 +3691,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 fallback_dct['url'] = update_url_query(
                     fmt_url_parsed._replace(netloc=new_netloc).geturl(), {'fallback_count': '1'})
                 fallback_dct['format_id'] += 'f'
+                fallback_dct['format_note'] += ' (fallback)'
                 yield fallback_dct
 
         needs_live_processing = self._needs_live_processing(live_status, duration)
