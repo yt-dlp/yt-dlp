@@ -3680,6 +3680,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 stream_ids.append(stream_id)
             yield dct
 
+            # Fallback format url
+            # TODO: fix preference, and implement for DASH/HLS
+            mn = query.get('mn', [''])[0].split(',')
+            fvip = query.get('fvip', [''])[0]
+            if len(mn) > 1 and mn[1] and fvip:
+                fallback_dct = dct.copy()
+                fmt_url_parsed = urllib.parse.urlparse(fallback_dct['url'])
+                new_netloc = re.sub(r'\d+', fvip, fmt_url_parsed.netloc.split('---')[0]) + '---' + mn[1] + '.googlevideo.com'
+                fallback_dct['url'] = update_url_query(
+                    fmt_url_parsed._replace(netloc=new_netloc).geturl(), {'fallback_count': '1'})
+                fallback_dct['format_id'] += 'f'
+                yield fallback_dct
+
         needs_live_processing = self._needs_live_processing(live_status, duration)
         skip_bad_formats = not self._configuration_arg('include_incomplete_formats')
 
