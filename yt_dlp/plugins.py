@@ -24,8 +24,6 @@ from .utils import (
 )
 
 PACKAGE_NAME = 'yt_dlp_plugins'
-COMPAT_PACKAGE_NAME = 'ytdlp_plugins'
-
 _INITIALIZED = False
 
 
@@ -181,9 +179,9 @@ def load_plugins(name, suffix, namespace=None):
 
     # Backwards-compatibility with old plugin system using __init__.py
     # Note: plugins imported this way do not show up in directories()
-    with contextlib.suppress(FileNotFoundError):
-        spec = importlib.util.spec_from_file_location(
-            name, Path(get_executable_path(), COMPAT_PACKAGE_NAME, name, '__init__.py'))
+    plugin_init_file = Path(get_executable_path(), 'ytdlp_plugins', name, '__init__.py')
+    if plugin_init_file.exists():
+        spec = importlib.util.spec_from_file_location(name, plugin_init_file)
         plugins = importlib.util.module_from_spec(spec)
         sys.modules[spec.name] = plugins
         spec.loader.exec_module(plugins)
