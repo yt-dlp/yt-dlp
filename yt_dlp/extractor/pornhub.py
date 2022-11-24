@@ -443,8 +443,11 @@ class PornHubIE(PornHubBaseIE):
                 if upload_date:
                     upload_date = upload_date.replace('/', '')
             if '/video/get_media' in video_url:
-                medias = self._download_json(video_url, video_id, fatal=False)
-                if isinstance(medias, list):
+                medias = self._download_json(video_url, video_id, fatal=False,
+                                             errnote=False)
+                if medias is None:
+                    self.write_debug(f'{video_id}: get_media endpoint did not return valid JSON')
+                elif isinstance(medias, list):
                     for media in medias:
                         if not isinstance(media, dict):
                             continue
