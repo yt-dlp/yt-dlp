@@ -1854,6 +1854,7 @@ from .tiktok import (
     TikTokEffectIE,
     TikTokTagIE,
     TikTokVMIE,
+    TikTokLiveIE,
     DouyinIE,
 )
 from .tinypic import TinyPicIE
