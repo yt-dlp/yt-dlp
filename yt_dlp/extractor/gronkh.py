@@ -22,8 +22,7 @@ class GronkhIE(InfoExtractor):
             'upload_date': '20221111'
         },
         'params': {'skip_download': True}
-    },
-        {
+    }, {
         'url': 'https://gronkh.tv/stream/536',
         'info_dict': {
             'id': '536',
@@ -34,8 +33,7 @@ class GronkhIE(InfoExtractor):
             'upload_date': '20211001'
         },
         'params': {'skip_download': True}
-    },
-    ]
+    }]
 
     def _real_extract(self, url):
         id = self._match_id(url)
