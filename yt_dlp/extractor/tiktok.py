@@ -926,7 +926,7 @@ class TikTokLiveIE(InfoExtractor):
             # live_detail_url from https://github.com/Pauloo27/tiktok-live/blob/master/index.js#L23
             video_js_data = self._download_json(live_detail_url, room_id)
             title = (traverse_obj(video_js_data, ('LiveRoomInfo', 'title'), expected_type=str)
-                    or self._html_search_meta(['og:title', 'twitter:title'], webpage, fatal=True))
+                or self._html_search_meta(['og:title', 'twitter:title'], webpage, fatal=True))
             # thumbnail = traverse_obj(video_js_data, ('LiveRoomInfo', 'coverUrl'))
             status = traverse_obj(video_js_data, ('LiveRoomInfo', 'status'), expected_type=int) or 4
             is_live = status == 2  # Not currently live is 4, other numbers have not been encountered for the time being
