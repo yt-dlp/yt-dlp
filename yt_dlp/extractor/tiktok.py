@@ -912,28 +912,48 @@ class TikTokVMIE(InfoExtractor):
             raise UnsupportedError(new_url)
         return self.url_result(new_url)
 
-    
+
 class TikTokLiveIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\.-]+)/live'
     IE_NAME = 'tiktok:live'
+    # _TESTS = [{
+        # 'url': }]
 
     def _real_extract(self, url):
-        user_name = self._match_id(url)
-        webpage = self._download_webpage(url, user_name, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
+        uploader_id = self._match_id(url)
+        webpage = self._download_webpage(url, uploader_id, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
         room_id = self._html_search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
         if room_id:
             live_detail_url = f'https://www.tiktok.com/api/live/detail/?aid=1988&roomID={room_id}'
-            detail_json = self._download_json(live_detail_url, room_id)
-            status = traverse_obj(detail_json, ('LiveRoomInfo', 'status'), expected_type=int) or 0
-            
-            if status == 2:
-                liveUrl = detail_json["LiveRoomInfo"]["liveUrl"]
-                new_url = liveUrl.replace("pull-hls", "pull-flv").replace("/playlist.m3u8", ".flv").replace(".m3u8", ".flv")
-                # new_url from https://github.com/Pauloo27/tiktok-live/blob/master/index.js#L28
-                if self.suitable(new_url):  # Prevent infinite loop in case redirect fails
-                    raise UnsupportedError(new_url)
-                return self.url_result(new_url)
-            else: # Not currently live is 4, other numbers have not been encountered for the time being
+            # live_detail_url from https://github.com/Pauloo27/tiktok-live/blob/master/index.js#L23
+            video_js_data = self._download_json(live_detail_url, room_id)
+            title = (traverse_obj(video_js_data, ('LiveRoomInfo', 'title'), expected_type=str)
+                    or self._html_search_meta(['og:title', 'twitter:title'], webpage, fatal=True))
+            # thumbnail = traverse_obj(video_js_data, ('LiveRoomInfo', 'coverUrl'))
+            status = traverse_obj(video_js_data, ('LiveRoomInfo', 'status'), expected_type=int) or 0
+            is_live = status == 2 # Not currently live is 4, other numbers have not been encountered for the time being
+
+            base_dict = {
+                'title': title,
+                'uploader_id': uploader_id,
+                'is_live': is_live,
+            }
+
+            if is_live:
+                liveUrl = traverse_obj(video_js_data, ('LiveRoomInfo', 'liveUrl'), expected_type=str)
+                if self.suitable(liveUrl):  # Prevent infinite loop in case redirect fails
+                    raise UnsupportedError(liveUrl)
+                formats = self._extract_m3u8_formats(
+                    liveUrl, room_id, 'mp4')
+                infodict = {
+                    'formats': formats,
+                }
+                return {
+                    'id': room_id,
+                    **base_dict,
+                    **infodict,
+                }
+            else:
                 raise ExtractorError('The user is not currently live')
                 # https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/twitcasting.py#L253
         raise ExtractorError('The user is not currently live')
