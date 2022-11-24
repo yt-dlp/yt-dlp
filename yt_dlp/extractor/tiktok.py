@@ -919,10 +919,8 @@ class TikTokLiveIE(InfoExtractor):
 
     def _real_extract(self, url):
         user_name = self._match_id(url)
-        print(user_name)
         webpage = self._download_webpage(url, user_name, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
         room_id = self._html_search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
-        print(room_id)
         if room_id:
             live_detail_url = f'https://www.tiktok.com/api/live/detail/?aid=1988&roomID={room_id}'
             detail_json = self._download_json(live_detail_url, room_id)
@@ -931,7 +929,7 @@ class TikTokLiveIE(InfoExtractor):
             if status == 2:
                 liveUrl = detail_json["LiveRoomInfo"]["liveUrl"]
                 new_url = liveUrl.replace("pull-hls", "pull-flv").replace("/playlist.m3u8", ".flv").replace(".m3u8", ".flv")
-                print(new_url)
+                # new_url from https://github.com/Pauloo27/tiktok-live/blob/master/index.js#L28
                 if self.suitable(new_url):  # Prevent infinite loop in case redirect fails
                     raise UnsupportedError(new_url)
                 return self.url_result(new_url)
