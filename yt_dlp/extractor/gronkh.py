@@ -22,7 +22,7 @@ class GronkhIE(InfoExtractor):
             'upload_date': '20221111'
         },
         'params': {'skip_download': True}
-    }, 
+    },
         {
         'url': 'https://gronkh.tv/stream/536',
         'info_dict': {
