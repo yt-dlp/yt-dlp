@@ -60,8 +60,10 @@ from .utils import (
     POSTPROCESS_WHEN,
     STR_FORMAT_RE_TMPL,
     STR_FORMAT_TYPES,
+    ClassicDownloadArchive,
     ContentTooShortError,
     DateRange,
+    DownloadArchive,
     DownloadCancelled,
     DownloadError,
     EntryNotInPlaylist,
@@ -74,6 +76,7 @@ from .utils import (
     LazyList,
     MaxDownloadsReached,
     Namespace,
+    OnMemoryDownloadArchive,
     PagedList,
     PerRequestProxyHandler,
     PlaylistEntries,
@@ -732,21 +735,19 @@ class YoutubeDL:
 
         def preload_download_archive(fn):
             """Preload the archive, if any is specified"""
-            archive = set()
             if fn is None:
-                return archive
-            elif not is_path_like(fn):
+                # disable recording archive
+                return None
+            elif isinstance(fn, DownloadArchive):
+                # DownloadArchive is directly provided
                 return fn
+            elif not is_path_like(fn):
+                # compat: set() is passed
+                return OnMemoryDownloadArchive(fn)
 
+            # compat: file name is passed
             self.write_debug(f'Loading archive file {fn!r}')
-            try:
-                with locked_file(fn, 'r', encoding='utf-8') as archive_file:
-                    for line in archive_file:
-                        archive.add(line.strip())
-            except OSError as ioe:
-                if ioe.errno != errno.ENOENT:
-                    raise
-            return archive
+            return ClassicDownloadArchive(fn)
 
         self.archive = preload_download_archive(self.params.get('download_archive'))
 
@@ -3508,20 +3509,16 @@ class YoutubeDL:
 
         vid_ids = [self._make_archive_id(info_dict)]
         vid_ids.extend(info_dict.get('_old_archive_ids') or [])
-        return any(id_ in self.archive for id_ in vid_ids)
+        return self.archive.in_download_archive(vid_ids)
 
     def record_download_archive(self, info_dict):
-        fn = self.params.get('download_archive')
-        if fn is None:
+        if not self.archive:
             return
         vid_id = self._make_archive_id(info_dict)
         assert vid_id
 
         self.write_debug(f'Adding to archive: {vid_id}')
-        if is_path_like(fn):
-            with locked_file(fn, 'a', encoding='utf-8') as archive_file:
-                archive_file.write(vid_id + '\n')
-        self.archive.add(vid_id)
+        self.archive.record_download_archive(vid_id)
 
     @staticmethod
     def format_resolution(format, default='unknown'):

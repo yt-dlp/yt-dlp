@@ -6000,6 +6000,73 @@ def orderedSet_from_options(options, alias_dict, *, use_regex=False, start=None)
     return orderedSet(requested)
 
 
+class DownloadArchive:
+    """
+    A base class to provide ability to store download history externally
+    """
+
+    def in_download_archive(self, vid_ids):
+        raise NotImplementedError('This must be implemented in subclasses')
+
+    def record_download_archive(self, vid_id):
+        raise NotImplementedError('This must be implemented in subclasses')
+
+
+class ClassicDownloadArchive(DownloadArchive):
+    """
+    A DownloadArchive implementation that stores the videos on both
+    text file and memory
+    """
+
+    def __init__(self, filename) -> None:
+        assert is_path_like(filename)
+        self._filename = filename
+        self.archive = set()
+        try:
+            with locked_file(filename, 'r', encoding='utf-8') as archive_file:
+                for line in archive_file:
+                    self.archive.add(line.strip())
+        except OSError as ioe:
+            if ioe.errno != errno.ENOENT:
+                raise
+
+    def in_download_archive(self, vid_ids):
+        return any(id_ in self.archive for id_ in vid_ids)
+
+    def record_download_archive(self, vid_id):
+        fn = self._filename
+        if is_path_like(fn):
+            with locked_file(fn, 'a', encoding='utf-8') as archive_file:
+                archive_file.write(vid_id + '\n')
+        self.archive.add(vid_id)
+    
+    def __repr__(self) -> str:
+        return f'ClassicDownloadArchive({self._filename:r})'
+    
+    def __str__(self) -> str:
+        return repr(self)
+
+
+class OnMemoryDownloadArchive(DownloadArchive):
+    """
+    A DownloadArchive implementation that stores the videos on memory
+    """
+
+    def __init__(self, archive=None) -> None:
+        if not isinstance(archive, set):
+            archive = set()
+        self.archive = archive
+
+    def in_download_archive(self, vid_ids):
+        return any(id_ in self.archive for id_ in vid_ids)
+
+    def record_download_archive(self, vid_id):
+        self.archive.add(vid_id)
+
+    def __str__(self) -> str:
+        return f'OnMemoryDownloadArchive(<{len(self.archive)} entries>)'
+
+
 class FormatSorter:
     regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
 
