@@ -6021,14 +6021,18 @@ class ClassicDownloadArchive(DownloadArchive):
     def __init__(self, filename) -> None:
         assert is_path_like(filename)
         self._filename = filename
-        self.archive = set()
+        self.reload()
+
+    def reload(self):
+        archive = set()
         try:
-            with locked_file(filename, 'r', encoding='utf-8') as archive_file:
+            with locked_file(self._filename, 'r', encoding='utf-8') as archive_file:
                 for line in archive_file:
-                    self.archive.add(line.strip())
+                    archive.add(line.strip())
         except OSError as ioe:
             if ioe.errno != errno.ENOENT:
                 raise
+        self.archive = archive
 
     def in_download_archive(self, vid_ids):
         return any(id_ in self.archive for id_ in vid_ids)
