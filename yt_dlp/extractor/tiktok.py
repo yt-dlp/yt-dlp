@@ -916,8 +916,6 @@ class TikTokVMIE(InfoExtractor):
 class TikTokLiveIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\.-]+)/live'
     IE_NAME = 'tiktok:live'
-    # _TESTS = [{
-        # 'url': }]
 
     def _real_extract(self, url):
         uploader_id = self._match_id(url)
@@ -930,8 +928,8 @@ class TikTokLiveIE(InfoExtractor):
             title = (traverse_obj(video_js_data, ('LiveRoomInfo', 'title'), expected_type=str)
                     or self._html_search_meta(['og:title', 'twitter:title'], webpage, fatal=True))
             # thumbnail = traverse_obj(video_js_data, ('LiveRoomInfo', 'coverUrl'))
-            status = traverse_obj(video_js_data, ('LiveRoomInfo', 'status'), expected_type=int) or 0
-            is_live = status == 2 # Not currently live is 4, other numbers have not been encountered for the time being
+            status = traverse_obj(video_js_data, ('LiveRoomInfo', 'status'), expected_type=int) or 4
+            is_live = status == 2  # Not currently live is 4, other numbers have not been encountered for the time being
 
             base_dict = {
                 'title': title,
