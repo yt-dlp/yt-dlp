@@ -84,16 +84,25 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
         candidate_locations.extend([Path(path) for path in sys.path])  # PYTHONPATH
 
-        parts = Path(*fullname.split('.'))
-        locations = set()
-        for path in dict.fromkeys(candidate_locations):
-            candidate = path / parts
-            if candidate.is_dir():
-                locations.add(str(candidate))
-            elif path.name and any(path.with_suffix(suffix).is_file() for suffix in {'.zip', '.egg', '.whl'}):
-                with contextlib.suppress(FileNotFoundError):
-                    if self.zip_has_dir(path, parts):
-                        locations.add(str(candidate))
+        def _find_locations(candidate_locations, fullname):
+            parts = Path(*fullname.split('.'))
+            locations = set()
+            for path in dict.fromkeys(candidate_locations):
+                candidate = path / parts
+                if candidate.is_dir():
+                    locations.add(str(candidate))
+                elif path.name and any(path.with_suffix(suffix).is_file() for suffix in {'.zip', '.egg', '.whl'}):
+                    with contextlib.suppress(FileNotFoundError):
+                        if self.zip_has_dir(path, parts):
+                            locations.add(str(candidate))
+            return locations
+
+        locations = _find_locations(candidate_locations, fullname)
+
+        # compat: support ytdlp_plugins in executable path (treat like yt_dlp_plugins)
+        locations |= _find_locations(
+            [Path(get_executable_path())], fullname.replace('yt_dlp_plugins', 'ytdlp_plugins'))
+
         return locations
 
     def find_spec(self, fullname, path=None, target=None):
@@ -151,14 +160,7 @@ def load_plugins(name, suffix, namespace=None):
 
         return check_predicate
 
-    def load_module(module, module_name):
-        module_classes = dict(inspect.getmembers(module, gen_predicate(module_name, module)))
-        name_collisions = (
-            set(classes.keys()) | set(namespace.keys())) & set(module_classes.keys())
-        classes.update({key: value for key, value in module_classes.items()
-                        if key not in name_collisions})
-
-    for finder, module_name, _ in iter_modules(name):
+    for finder, module_name, is_pkg in iter_modules(name):
         if re.match(r'^(\w+\.)*_', module_name):
             continue
         try:
@@ -170,22 +172,17 @@ def load_plugins(name, suffix, namespace=None):
             else:
                 spec = finder.find_spec(module_name)
                 module = importlib.util.module_from_spec(spec)
-                sys.modules[module_name] = module
                 spec.loader.exec_module(module)
         except Exception:
             write_string(f'Error while importing module {module_name!r}\n{traceback.format_exc(limit=-1)}')
             continue
-        load_module(module, module_name)
 
-    # Backwards-compatibility with old plugin system using __init__.py
-    # Note: plugins imported this way do not show up in directories()
-    plugin_init_file = Path(get_executable_path(), 'ytdlp_plugins', name, '__init__.py')
-    if plugin_init_file.exists():
-        spec = importlib.util.spec_from_file_location(name, plugin_init_file)
-        plugins = importlib.util.module_from_spec(spec)
-        sys.modules[spec.name] = plugins
-        spec.loader.exec_module(plugins)
-        load_module(plugins, spec.name)
+        sys.modules[module_name] = module
+        module_classes = dict(inspect.getmembers(module, gen_predicate(module_name, module)))
+        name_collisions = (
+            set(classes.keys()) | set(namespace.keys())) & set(module_classes.keys())
+        classes.update({key: value for key, value in module_classes.items()
+                        if key not in name_collisions})
 
     namespace.update(classes)
     return classes
