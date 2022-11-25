@@ -3760,7 +3760,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # Fallback format url
                         # Note: YouTube does not allow us changing the playback_host in the manifest_url.
                         # So this will not work for external downloaders such as ffmpeg.
-                        # XXX: if ?fallback_count=1 is sent in the request, the server will just redirect to the original..
                         fallback_url = self._build_fallback_playback_url(
                             f['fragment_base_url'],
                             mn=self._search_regex(r'/mn/([^/]+)', f['fragment_base_url'], 'mn param', default=None),
@@ -3770,7 +3769,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             f_fallback['fragment_base_url'] = fallback_url
                             f_fallback['format_id'] += '-f'
                             f_fallback['format_note'] += ' (fallback)'
-                            print(f_fallback['fragment_base_url'])
                             yield f_fallback
 
         yield subtitles
