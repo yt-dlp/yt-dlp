@@ -122,6 +122,7 @@ class MediaStreamIE(InfoExtractor):
 
 class WinSportsVideoIE(InfoExtractor):
     _VALID_URL = r'https?://www\.winsports\.co/videos/(?P<display_id>[\w-]+)-(?P<id>\d+)'
+
     _TESTS = [{
         'url': 'https://www.winsports.co/videos/siempre-castellanos-gran-atajada-del-portero-cardenal-para-evitar-la-caida-de-su-arco-60536',
         'info_dict': {
@@ -131,7 +132,7 @@ class WinSportsVideoIE(InfoExtractor):
             'description': 'md5:eb811b2b2882bdc59431732c06b905f2',
             'thumbnail': r're:^https?://[^?#]+62dc8357162c4b0821fcfb3c',
             'ext': 'mp4',
-        }
+        },
     }, {
         'url': 'https://www.winsports.co/videos/observa-aqui-los-goles-del-empate-entre-tolima-y-nacional-60548',
         'info_dict': {
@@ -141,7 +142,7 @@ class WinSportsVideoIE(InfoExtractor):
             'description': 'md5:b19402ba6e46558b93fd24b873eea9c9',
             'thumbnail': r're:^https?://[^?#]+62dcb875ef12a5526790b552',
             'ext': 'mp4',
-        }
+        },
     }]
 
     def _real_extract(self, url):
