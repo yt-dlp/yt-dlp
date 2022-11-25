@@ -3771,6 +3771,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             f_fallback['fragment_base_url'] = fallback_url
                             f_fallback['format_id'] += '-f'
                             f_fallback['format_note'] += ' (fallback)'
+                            f_fallback['extra_param_to_segment_url'] = 'fallback_count=1'
                             yield f_fallback
 
         yield subtitles
