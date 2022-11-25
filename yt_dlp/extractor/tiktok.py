@@ -918,38 +918,29 @@ class TikTokLiveIE(InfoExtractor):
     IE_NAME = 'tiktok:live'
 
     def _real_extract(self, url):
-        uploader_id = self._match_id(url)
+        uploader = self._match_id(url)
         webpage = self._download_webpage(url, uploader_id, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
         room_id = self._html_search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
         if room_id:
-            live_detail_url = f'https://www.tiktok.com/api/live/detail/?aid=1988&roomID={room_id}'
-            # live_detail_url from https://github.com/Pauloo27/tiktok-live/blob/master/index.js#L23
-            video_js_data = self._download_json(live_detail_url, room_id)
+            video_js_data = self._download_json(
+                f'https://www.tiktok.com/api/live/detail/?aid=1988&roomID={room_id}', room_id)
             title = (traverse_obj(video_js_data, ('LiveRoomInfo', 'title'), expected_type=str)
                      or self._html_search_meta(['og:title', 'twitter:title'], webpage, fatal=True))
             # thumbnail = traverse_obj(video_js_data, ('LiveRoomInfo', 'coverUrl'))
-            status = traverse_obj(video_js_data, ('LiveRoomInfo', 'status'), expected_type=int) or 4
-            is_live = status == 2  # Not currently live is 4, other numbers have not been encountered for the time being
-
-            base_dict = {
-                'title': title,
-                'uploader_id': uploader_id,
-                'is_live': is_live,
-            }
+            # status = 2 if live else 4
+            is_live = traverse_obj(video_js_data, ('LiveRoomInfo', 'status'), expected_type=int, default=4) == 2
 
             if is_live:
-                liveUrl = traverse_obj(video_js_data, ('LiveRoomInfo', 'liveUrl'), expected_type=str)
-                if self.suitable(liveUrl):  # Prevent infinite loop in case redirect fails
-                    raise UnsupportedError(liveUrl)
-                formats = self._extract_m3u8_formats(
-                    liveUrl, room_id, 'mp4')
-                infodict = {
-                    'formats': formats,
-                }
+                live_url = traverse_obj(video_js_data, ('LiveRoomInfo', 'liveUrl'), expected_type=url_or_none)
+                if not live_url:
+                    raise ExtractorError('No stream URL found')
+                formats = self._extract_m3u8_formats(live_url, room_id, 'mp4', live=is_live)
                 return {
                     'id': room_id,
-                    **base_dict,
-                    **infodict,
+                    'title': title,
+                    'uploader': uploader,
+                    'formats': formats,
+                    'is_live': is_live,
                 }
             else:
                 raise ExtractorError('The user is not currently live')
