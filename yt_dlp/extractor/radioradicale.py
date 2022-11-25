@@ -13,11 +13,13 @@ class RadioRadicaleIE(InfoExtractor):
         'info_dict': {
             'id': '471591',
             'ext': 'mp4',
-            'title': 'Conversazione di Giuseppe Di Leo con Paolo Isotta, musicologo e scrittore italiano, sull\'opera e la figura di Piero Buscaroli',
-            'upload_date': '20160407',
+            'title': 'md5:e8fbb8de57011a3255db0beca69af73d',
             'creator': 'Giuseppe Di Leo',
-            'timestamp': 1460044800.0,
             'location': 'Napoli',
+            'timestamp': 1460044800.0,
+            'upload_date': '20160407',
+            'description': 'md5:5e15a789a2fe4d67da8d1366996e89ef',
+            'thumbnail': 'https://www.radioradicale.it/photo400/0/0/9/0/1/00901768.jpg',
         }
     }]
 
@@ -30,6 +32,8 @@ class RadioRadicaleIE(InfoExtractor):
         video_info = self._parse_json(self._search_regex(
             r'jQuery\.extend\(Drupal\.settings\s*,\s*({.+?})\);',
             webpage, 'drupal settings'), video_id)['RRscheda']
+
+        json_ld = list(self._yield_json_ld(webpage, video_id))[0]
 
         playlist = self._extract_m3u8_formats_and_subtitles(
             video_info['playlist'][0]['sources'][0]['src'], video_id)
@@ -51,8 +55,10 @@ class RadioRadicaleIE(InfoExtractor):
             'title': video_info['playlist'][0]['title'],
             'creator': self._search_regex(name_time, webpage, 'creator', group='creator'),
             'location': video_info['luogo'],
-            'timestamp': datetime.strptime(video_info['data'], '%d %B %Y').replace(
+            'timestamp': datetime.strptime(json_ld['uploadDate'], '%Y-%m-%d').replace(
                 hour=int(self._search_regex(name_time, webpage, 'release hour', group='hour')),
                 minute=int(self._search_regex(name_time, webpage, 'release minute', group='minute'))
             ).timestamp(),
+            'thumbnail': json_ld['thumbnailUrl'],
+            'description': json_ld['description'],
         }
