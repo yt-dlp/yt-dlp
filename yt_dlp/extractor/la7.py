@@ -13,7 +13,7 @@ from ..utils import (
 
 class LA7IE(InfoExtractor):
     IE_NAME = 'la7.it'
-    _VALID_URL = r'''(?x)(https?://)?(?:
+    _VALID_URL = r'''(?x)https?://(?:
         (?:www\.)?la7\.it/([^/]+)/(?:rivedila7|video)/|
         tg\.la7\.it/repliche-tgla7\?id=
     )(?P<id>.+)'''
@@ -39,7 +39,7 @@ class LA7IE(InfoExtractor):
     def _generate_mp4_url(self, quality, m3u8_formats):
         for f in m3u8_formats:
             if f['vcodec'] != 'none' and quality in f['url']:
-                http_url = '%s%s.mp4' % (self._HOST, quality)
+                http_url = f'{self._HOST}{quality}.mp4'
 
                 urlh = self._request_webpage(
                     HEADRequest(http_url), quality,
@@ -58,12 +58,9 @@ class LA7IE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
-        if not url.startswith('http'):
-            url = '%s//%s' % (self.http_scheme(), url)
-
         webpage = self._download_webpage(url, video_id)
-        video_path = self._search_regex(r'akamaihd\.net/i(?:/,)?(/content/.*?)\.mp4', webpage, 'video_path')
+        video_path = self._search_regex(
+            r'(/content/\S+?)\.mp4(?:\.csmil)?/master\.m3u8', webpage, 'video_path')
 
         formats = self._extract_mpd_formats(
             f'{self._HOST}/local/dash/,{video_path}.mp4.urlset/manifest.mpd',
@@ -74,9 +71,7 @@ class LA7IE(InfoExtractor):
         formats.extend(m3u8_formats)
 
         for q in filter(None, video_path.split(',')):
-            http_f = self._generate_mp4_url(q, m3u8_formats)
-            if http_f:
-                formats.append(http_f)
+            formats.append(self._generate_mp4_url(q, m3u8_formats))
 
         self._sort_formats(formats)
 
@@ -92,8 +87,7 @@ class LA7IE(InfoExtractor):
 
 class LA7PodcastEpisodeIE(InfoExtractor):
     IE_NAME = 'la7.it:pod:episode'
-    _VALID_URL = r'''(?x)(https?://)?
-        (?:www\.)?la7\.it/[^/]+/podcast/([^/]+-)?(?P<id>\d+)'''
+    _VALID_URL = r'https?://(?:www\.)?la7\.it/[^/]+/podcast/([^/]+-)?(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://www.la7.it/voicetown/podcast/la-carezza-delle-memoria-di-carlo-verdone-23-03-2021-371497',
@@ -176,7 +170,7 @@ class LA7PodcastEpisodeIE(InfoExtractor):
         # and title is the same as the show_title
         # add the date to the title
         if date and not date_alt and ppn and ppn.lower() == title.lower():
-            title += ' del %s' % date
+            title = f'{title} del {date}'
         return {
             'id': video_id,
             'title': title,
@@ -196,7 +190,7 @@ class LA7PodcastEpisodeIE(InfoExtractor):
 
 class LA7PodcastIE(LA7PodcastEpisodeIE):
     IE_NAME = 'la7.it:podcast'
-    _VALID_URL = r'(https?://)?(www\.)?la7\.it/(?P<id>[^/]+)/podcast/?(?:$|[#?])'
+    _VALID_URL = r'https?://(?:www\.)?la7\.it/(?P<id>[^/]+)/podcast/?(?:$|[#?])'
 
     _TESTS = [{
         'url': 'https://www.la7.it/propagandalive/podcast',
