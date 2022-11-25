@@ -3533,6 +3533,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 or live_status == 'post_live' and (duration or 0) > 4 * 3600):
             return live_status
 
+    @staticmethod
+    def _build_fallback_playback_url(playback_url, mn, fvip):
+        mn = str_or_none(mn, '').split(',')
+        if len(mn) > 1 and mn[1] and fvip:
+            fmt_url_parsed = urllib.parse.urlparse(playback_url)
+            new_netloc = re.sub(r'\d+', fvip, fmt_url_parsed.netloc.split('---')[0]) + '---' + mn[1] + '.googlevideo.com'
+            return update_url_query(fmt_url_parsed._replace(netloc=new_netloc).geturl(), {'fallback_count': '1'})
+
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, live_status, duration):
         itags, stream_ids = collections.defaultdict(set), []
         itag_qualities, res_qualities = {}, {0: None}
@@ -3681,16 +3689,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yield dct
 
             # Fallback format url
-            # TODO: fix preference, and implement for DASH/HLS
-            mn = query.get('mn', [''])[0].split(',')
-            fvip = query.get('fvip', [''])[0]
-            if len(mn) > 1 and mn[1] and fvip:
+            # TODO: fix preference
+            fallback_url = self._build_fallback_playback_url(
+                dct['url'], query.get('mn', [''])[0], query.get('fvip', [''])[0])
+            if fallback_url:
                 fallback_dct = dct.copy()
-                fmt_url_parsed = urllib.parse.urlparse(fallback_dct['url'])
-                new_netloc = re.sub(r'\d+', fvip, fmt_url_parsed.netloc.split('---')[0]) + '---' + mn[1] + '.googlevideo.com'
-                fallback_dct['url'] = update_url_query(
-                    fmt_url_parsed._replace(netloc=new_netloc).geturl(), {'fallback_count': '1'})
-                fallback_dct['format_id'] += 'f'
+                fallback_dct['url'] = fallback_url
+                fallback_dct['format_id'] += '-f'
                 fallback_dct['format_note'] += ' (fallback)'
                 yield fallback_dct
 
@@ -3751,6 +3756,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             f['is_from_start'] = True
 
                         yield f
+
+                        # Fallback format url
+                        # Note: YouTube does not allow us changing the playback_host in the manifest_url.
+                        # So this will not work for external downloaders such as ffmpeg.
+                        # XXX: if ?fallback_count=1 is sent in the request, the server will just redirect to the original..
+                        fallback_url = self._build_fallback_playback_url(
+                            f['fragment_base_url'],
+                            mn=self._search_regex(r'/mn/([^/]+)', f['fragment_base_url'], 'mn param', default=None),
+                            fvip=self._search_regex(r'/fvip/(\d+)', f['fragment_base_url'], 'fvip param', default=None))
+                        if fallback_url:
+                            f_fallback = f.copy()
+                            f_fallback['fragment_base_url'] = fallback_url
+                            f_fallback['format_id'] += '-f'
+                            f_fallback['format_note'] += ' (fallback)'
+                            print(f_fallback['fragment_base_url'])
+                            yield f_fallback
+
         yield subtitles
 
     def _extract_storyboard(self, player_responses, duration):
