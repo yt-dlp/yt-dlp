@@ -820,6 +820,7 @@ from .joj import JojIE
 from .jwplatform import JWPlatformIE
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
+from .kanal2 import Kanal2IE
 from .karaoketv import KaraoketvIE
 from .karrierevideos import KarriereVideosIE
 from .keezmovies import KeezMoviesIE
@@ -1603,6 +1604,7 @@ from .savefrom import SaveFromIE
 from .sbs import SBSIE
 from .screen9 import Screen9IE
 from .screencast import ScreencastIE
+from .screencastify import ScreencastifyIE
 from .screencastomatic import ScreencastOMaticIE
 from .scrippsnetworks import (
     ScrippsNetworksWatchIE,
@@ -2096,6 +2098,7 @@ from .vimeo import (
     VimeoGroupsIE,
     VimeoLikesIE,
     VimeoOndemandIE,
+    VimeoProIE,
     VimeoReviewIE,
     VimeoUserIE,
     VimeoWatchLaterIE,

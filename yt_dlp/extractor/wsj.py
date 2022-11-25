@@ -82,7 +82,6 @@ class WSJIE(InfoExtractor):
                 'height': int_or_none(v.get('height')),
                 'fps': float_or_none(v.get('fps')),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

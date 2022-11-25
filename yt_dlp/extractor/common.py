@@ -23,13 +23,13 @@ import xml.etree.ElementTree
 from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..cookies import LenientSimpleCookie
-from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,
     NO_DEFAULT,
     ExtractorError,
+    FormatSorter,
     GeoRestrictedError,
     GeoUtils,
     LenientJSONDecoder,
@@ -41,8 +41,8 @@ from ..utils import (
     bug_reports_message,
     classproperty,
     clean_html,
+    deprecation_warning,
     determine_ext,
-    determine_protocol,
     dict_get,
     encode_data_uri,
     error_to_compat_str,
@@ -344,6 +344,7 @@ class InfoExtractor:
                     'unlisted' or 'public'. Use 'InfoExtractor._availability'
                     to set it
     _old_archive_ids: A list of old archive ids needed for backward compatibility
+    _format_sort_fields: A list of fields to use for sorting formats
     __post_extractor: A function to be called just before the metadata is
                     written to either disk, logger or console. The function
                     must return a dict which will be added to the info_dict.
@@ -1686,295 +1687,27 @@ class InfoExtractor:
             html, '%s form' % form_id, group='form')
         return self._hidden_inputs(form)
 
-    class FormatSort:
-        regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
+    @classproperty(cache=True)
+    def FormatSort(cls):
+        class FormatSort(FormatSorter):
+            def __init__(ie, *args, **kwargs):
+                super().__init__(ie._downloader, *args, **kwargs)
 
-        default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
-                   'res', 'fps', 'hdr:12', 'vcodec:vp9.2', 'channels', 'acodec',
-                   'size', 'br', 'asr', 'proto', 'ext', 'hasaud', 'source', 'id')  # These must not be aliases
-        ytdl_default = ('hasaud', 'lang', 'quality', 'tbr', 'filesize', 'vbr',
-                        'height', 'width', 'proto', 'vext', 'abr', 'aext',
-                        'fps', 'fs_approx', 'source', 'id')
-
-        settings = {
-            'vcodec': {'type': 'ordered', 'regex': True,
-                       'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
-            'acodec': {'type': 'ordered', 'regex': True,
-                       'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
-            'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
-                    'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
-            'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
-                      'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.*', '.*dash', 'websocket_frag', 'rtmpe?', '', 'mms|rtsp', 'ws|websocket', 'f4']},
-            'vext': {'type': 'ordered', 'field': 'video_ext',
-                     'order': ('mp4', 'webm', 'flv', '', 'none'),
-                     'order_free': ('webm', 'mp4', 'flv', '', 'none')},
-            'aext': {'type': 'ordered', 'field': 'audio_ext',
-                     'order': ('m4a', 'aac', 'mp3', 'ogg', 'opus', 'webm', '', 'none'),
-                     'order_free': ('ogg', 'opus', 'webm', 'mp3', 'm4a', 'aac', '', 'none')},
-            'hidden': {'visible': False, 'forced': True, 'type': 'extractor', 'max': -1000},
-            'aud_or_vid': {'visible': False, 'forced': True, 'type': 'multiple',
-                           'field': ('vcodec', 'acodec'),
-                           'function': lambda it: int(any(v != 'none' for v in it))},
-            'ie_pref': {'priority': True, 'type': 'extractor'},
-            'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
-            'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
-            'lang': {'convert': 'float', 'field': 'language_preference', 'default': -1},
-            'quality': {'convert': 'float', 'default': -1},
-            'filesize': {'convert': 'bytes'},
-            'fs_approx': {'convert': 'bytes', 'field': 'filesize_approx'},
-            'id': {'convert': 'string', 'field': 'format_id'},
-            'height': {'convert': 'float_none'},
-            'width': {'convert': 'float_none'},
-            'fps': {'convert': 'float_none'},
-            'channels': {'convert': 'float_none', 'field': 'audio_channels'},
-            'tbr': {'convert': 'float_none'},
-            'vbr': {'convert': 'float_none'},
-            'abr': {'convert': 'float_none'},
-            'asr': {'convert': 'float_none'},
-            'source': {'convert': 'float', 'field': 'source_preference', 'default': -1},
-
-            'codec': {'type': 'combined', 'field': ('vcodec', 'acodec')},
-            'br': {'type': 'combined', 'field': ('tbr', 'vbr', 'abr'), 'same_limit': True},
-            'size': {'type': 'combined', 'same_limit': True, 'field': ('filesize', 'fs_approx')},
-            'ext': {'type': 'combined', 'field': ('vext', 'aext')},
-            'res': {'type': 'multiple', 'field': ('height', 'width'),
-                    'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
-
-            # Actual field names
-            'format_id': {'type': 'alias', 'field': 'id'},
-            'preference': {'type': 'alias', 'field': 'ie_pref'},
-            'language_preference': {'type': 'alias', 'field': 'lang'},
-            'source_preference': {'type': 'alias', 'field': 'source'},
-            'protocol': {'type': 'alias', 'field': 'proto'},
-            'filesize_approx': {'type': 'alias', 'field': 'fs_approx'},
-            'audio_channels': {'type': 'alias', 'field': 'channels'},
-
-            # Deprecated
-            'dimension': {'type': 'alias', 'field': 'res', 'deprecated': True},
-            'resolution': {'type': 'alias', 'field': 'res', 'deprecated': True},
-            'extension': {'type': 'alias', 'field': 'ext', 'deprecated': True},
-            'bitrate': {'type': 'alias', 'field': 'br', 'deprecated': True},
-            'total_bitrate': {'type': 'alias', 'field': 'tbr', 'deprecated': True},
-            'video_bitrate': {'type': 'alias', 'field': 'vbr', 'deprecated': True},
-            'audio_bitrate': {'type': 'alias', 'field': 'abr', 'deprecated': True},
-            'framerate': {'type': 'alias', 'field': 'fps', 'deprecated': True},
-            'filesize_estimate': {'type': 'alias', 'field': 'size', 'deprecated': True},
-            'samplerate': {'type': 'alias', 'field': 'asr', 'deprecated': True},
-            'video_ext': {'type': 'alias', 'field': 'vext', 'deprecated': True},
-            'audio_ext': {'type': 'alias', 'field': 'aext', 'deprecated': True},
-            'video_codec': {'type': 'alias', 'field': 'vcodec', 'deprecated': True},
-            'audio_codec': {'type': 'alias', 'field': 'acodec', 'deprecated': True},
-            'video': {'type': 'alias', 'field': 'hasvid', 'deprecated': True},
-            'has_video': {'type': 'alias', 'field': 'hasvid', 'deprecated': True},
-            'audio': {'type': 'alias', 'field': 'hasaud', 'deprecated': True},
-            'has_audio': {'type': 'alias', 'field': 'hasaud', 'deprecated': True},
-            'extractor': {'type': 'alias', 'field': 'ie_pref', 'deprecated': True},
-            'extractor_preference': {'type': 'alias', 'field': 'ie_pref', 'deprecated': True},
-        }
-
-        def __init__(self, ie, field_preference):
-            self._order = []
-            self.ydl = ie._downloader
-            self.evaluate_params(self.ydl.params, field_preference)
-            if ie.get_param('verbose'):
-                self.print_verbose_info(self.ydl.write_debug)
-
-        def _get_field_setting(self, field, key):
-            if field not in self.settings:
-                if key in ('forced', 'priority'):
-                    return False
-                self.ydl.deprecated_feature(f'Using arbitrary fields ({field}) for format sorting is '
-                                            'deprecated and may be removed in a future version')
-                self.settings[field] = {}
-            propObj = self.settings[field]
-            if key not in propObj:
-                type = propObj.get('type')
-                if key == 'field':
-                    default = 'preference' if type == 'extractor' else (field,) if type in ('combined', 'multiple') else field
-                elif key == 'convert':
-                    default = 'order' if type == 'ordered' else 'float_string' if field else 'ignore'
-                else:
-                    default = {'type': 'field', 'visible': True, 'order': [], 'not_in_list': (None,)}.get(key, None)
-                propObj[key] = default
-            return propObj[key]
-
-        def _resolve_field_value(self, field, value, convertNone=False):
-            if value is None:
-                if not convertNone:
-                    return None
-            else:
-                value = value.lower()
-            conversion = self._get_field_setting(field, 'convert')
-            if conversion == 'ignore':
-                return None
-            if conversion == 'string':
-                return value
-            elif conversion == 'float_none':
-                return float_or_none(value)
-            elif conversion == 'bytes':
-                return FileDownloader.parse_bytes(value)
-            elif conversion == 'order':
-                order_list = (self._use_free_order and self._get_field_setting(field, 'order_free')) or self._get_field_setting(field, 'order')
-                use_regex = self._get_field_setting(field, 'regex')
-                list_length = len(order_list)
-                empty_pos = order_list.index('') if '' in order_list else list_length + 1
-                if use_regex and value is not None:
-                    for i, regex in enumerate(order_list):
-                        if regex and re.match(regex, value):
-                            return list_length - i
-                    return list_length - empty_pos  # not in list
-                else:  # not regex or  value = None
-                    return list_length - (order_list.index(value) if value in order_list else empty_pos)
-            else:
-                if value.isnumeric():
-                    return float(value)
-                else:
-                    self.settings[field]['convert'] = 'string'
-                    return value
-
-        def evaluate_params(self, params, sort_extractor):
-            self._use_free_order = params.get('prefer_free_formats', False)
-            self._sort_user = params.get('format_sort', [])
-            self._sort_extractor = sort_extractor
-
-            def add_item(field, reverse, closest, limit_text):
-                field = field.lower()
-                if field in self._order:
-                    return
-                self._order.append(field)
-                limit = self._resolve_field_value(field, limit_text)
-                data = {
-                    'reverse': reverse,
-                    'closest': False if limit is None else closest,
-                    'limit_text': limit_text,
-                    'limit': limit}
-                if field in self.settings:
-                    self.settings[field].update(data)
-                else:
-                    self.settings[field] = data
-
-            sort_list = (
-                tuple(field for field in self.default if self._get_field_setting(field, 'forced'))
-                + (tuple() if params.get('format_sort_force', False)
-                   else tuple(field for field in self.default if self._get_field_setting(field, 'priority')))
-                + tuple(self._sort_user) + tuple(sort_extractor) + self.default)
-
-            for item in sort_list:
-                match = re.match(self.regex, item)
-                if match is None:
-                    raise ExtractorError('Invalid format sort string "%s" given by extractor' % item)
-                field = match.group('field')
-                if field is None:
-                    continue
-                if self._get_field_setting(field, 'type') == 'alias':
-                    alias, field = field, self._get_field_setting(field, 'field')
-                    if self._get_field_setting(alias, 'deprecated'):
-                        self.ydl.deprecated_feature(f'Format sorting alias {alias} is deprecated and may '
-                                                    f'be removed in a future version. Please use {field} instead')
-                reverse = match.group('reverse') is not None
-                closest = match.group('separator') == '~'
-                limit_text = match.group('limit')
-
-                has_limit = limit_text is not None
-                has_multiple_fields = self._get_field_setting(field, 'type') == 'combined'
-                has_multiple_limits = has_limit and has_multiple_fields and not self._get_field_setting(field, 'same_limit')
-
-                fields = self._get_field_setting(field, 'field') if has_multiple_fields else (field,)
-                limits = limit_text.split(':') if has_multiple_limits else (limit_text,) if has_limit else tuple()
-                limit_count = len(limits)
-                for (i, f) in enumerate(fields):
-                    add_item(f, reverse, closest,
-                             limits[i] if i < limit_count
-                             else limits[0] if has_limit and not has_multiple_limits
-                             else None)
-
-        def print_verbose_info(self, write_debug):
-            if self._sort_user:
-                write_debug('Sort order given by user: %s' % ', '.join(self._sort_user))
-            if self._sort_extractor:
-                write_debug('Sort order given by extractor: %s' % ', '.join(self._sort_extractor))
-            write_debug('Formats sorted by: %s' % ', '.join(['%s%s%s' % (
-                '+' if self._get_field_setting(field, 'reverse') else '', field,
-                '%s%s(%s)' % ('~' if self._get_field_setting(field, 'closest') else ':',
-                              self._get_field_setting(field, 'limit_text'),
-                              self._get_field_setting(field, 'limit'))
-                if self._get_field_setting(field, 'limit_text') is not None else '')
-                for field in self._order if self._get_field_setting(field, 'visible')]))
-
-        def _calculate_field_preference_from_value(self, format, field, type, value):
-            reverse = self._get_field_setting(field, 'reverse')
-            closest = self._get_field_setting(field, 'closest')
-            limit = self._get_field_setting(field, 'limit')
-
-            if type == 'extractor':
-                maximum = self._get_field_setting(field, 'max')
-                if value is None or (maximum is not None and value >= maximum):
-                    value = -1
-            elif type == 'boolean':
-                in_list = self._get_field_setting(field, 'in_list')
-                not_in_list = self._get_field_setting(field, 'not_in_list')
-                value = 0 if ((in_list is None or value in in_list) and (not_in_list is None or value not in not_in_list)) else -1
-            elif type == 'ordered':
-                value = self._resolve_field_value(field, value, True)
-
-            # try to convert to number
-            val_num = float_or_none(value, default=self._get_field_setting(field, 'default'))
-            is_num = self._get_field_setting(field, 'convert') != 'string' and val_num is not None
-            if is_num:
-                value = val_num
-
-            return ((-10, 0) if value is None
-                    else (1, value, 0) if not is_num  # if a field has mixed strings and numbers, strings are sorted higher
-                    else (0, -abs(value - limit), value - limit if reverse else limit - value) if closest
-                    else (0, value, 0) if not reverse and (limit is None or value <= limit)
-                    else (0, -value, 0) if limit is None or (reverse and value == limit) or value > limit
-                    else (-1, value, 0))
-
-        def _calculate_field_preference(self, format, field):
-            type = self._get_field_setting(field, 'type')  # extractor, boolean, ordered, field, multiple
-            get_value = lambda f: format.get(self._get_field_setting(f, 'field'))
-            if type == 'multiple':
-                type = 'field'  # Only 'field' is allowed in multiple for now
-                actual_fields = self._get_field_setting(field, 'field')
-
-                value = self._get_field_setting(field, 'function')(get_value(f) for f in actual_fields)
-            else:
-                value = get_value(field)
-            return self._calculate_field_preference_from_value(format, field, type, value)
-
-        def calculate_preference(self, format):
-            # Determine missing protocol
-            if not format.get('protocol'):
-                format['protocol'] = determine_protocol(format)
-
-            # Determine missing ext
-            if not format.get('ext') and 'url' in format:
-                format['ext'] = determine_ext(format['url'])
-            if format.get('vcodec') == 'none':
-                format['audio_ext'] = format['ext'] if format.get('acodec') != 'none' else 'none'
-                format['video_ext'] = 'none'
-            else:
-                format['video_ext'] = format['ext']
-                format['audio_ext'] = 'none'
-            # if format.get('preference') is None and format.get('ext') in ('f4f', 'f4m'):  # Not supported?
-            #    format['preference'] = -1000
-
-            # Determine missing bitrates
-            if format.get('tbr') is None:
-                if format.get('vbr') is not None and format.get('abr') is not None:
-                    format['tbr'] = format.get('vbr', 0) + format.get('abr', 0)
-            else:
-                if format.get('vcodec') != 'none' and format.get('vbr') is None:
-                    format['vbr'] = format.get('tbr') - format.get('abr', 0)
-                if format.get('acodec') != 'none' and format.get('abr') is None:
-                    format['abr'] = format.get('tbr') - format.get('vbr', 0)
-
-            return tuple(self._calculate_field_preference(format, field) for field in self._order)
+        deprecation_warning(
+            'yt_dlp.InfoExtractor.FormatSort is deprecated and may be removed in the future. '
+            'Use yt_dlp.utils.FormatSorter instead')
+        return FormatSort
 
     def _sort_formats(self, formats, field_preference=[]):
-        if not formats:
+        if not field_preference:
+            self._downloader.deprecation_warning(
+                'yt_dlp.InfoExtractor._sort_formats is deprecated and is no longer required')
             return
-        formats.sort(key=self.FormatSort(self, field_preference).calculate_preference)
+        self._downloader.deprecation_warning(
+            'yt_dlp.InfoExtractor._sort_formats is deprecated and no longer works as expected. '
+            'Return _format_sort_fields in the info_dict instead')
+        if formats:
+            formats[0]['__sort_fields'] = field_preference
 
     def _check_formats(self, formats, video_id):
         if formats:
@@ -2705,7 +2438,6 @@ class InfoExtractor:
                     'width': int_or_none(location.get(xpath_with_ns('s1:width', NS_MAP))),
                     'height': int_or_none(location.get(xpath_with_ns('s1:height', NS_MAP))),
                 })
-            self._sort_formats(formats)
 
             entries.append({
                 'id': playlist_id,
@@ -3543,7 +3275,6 @@ class InfoExtractor:
                     'url': formats[0]['url'],
                 })
             else:
-                self._sort_formats(formats)
                 entry['formats'] = formats
             entries.append(entry)
         if len(entries) == 1:

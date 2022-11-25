@@ -266,7 +266,6 @@ class NDREmbedBaseIE(InfoExtractor):  # XXX: Conventionally, Concrete class name
                     ff['vcodec'] = 'none'
                     ff['ext'] = ext or 'mp3'
                 formats.append(ff)
-        self._sort_formats(formats)
 
         config = playlist['config']
 

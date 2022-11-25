@@ -63,7 +63,6 @@ class BreakIE(InfoExtractor):
                 'format_id': 'http-%d' % bitrate if bitrate else 'http',
                 'tbr': bitrate,
             })
-        self._sort_formats(formats)
 
         title = self._search_regex(
             (r'title["\']\s*:\s*(["\'])(?P<value>(?:(?!\1).)+)\1',

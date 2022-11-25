@@ -78,8 +78,6 @@ class LA7IE(InfoExtractor):
             if http_f:
                 formats.append(http_f)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': self._og_search_title(webpage, default=None),
@@ -136,7 +134,6 @@ class LA7PodcastEpisodeIE(InfoExtractor):
             'format_id': ext,
             'ext': ext,
         }]
-        self._sort_formats(formats)
 
         title = self._html_search_regex(
             (r'<div class="title">(?P<title>.+?)</',

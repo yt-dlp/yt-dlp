@@ -49,7 +49,6 @@ class Laola1TvEmbedIE(InfoExtractor):
         formats = self._extract_akamai_formats(
             '%s?hdnea=%s' % (token_attrib['url'], token_attrib['auth']),
             video_id)
-        self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):

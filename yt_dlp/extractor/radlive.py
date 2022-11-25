@@ -62,7 +62,6 @@ class RadLiveIE(InfoExtractor):
             raise ExtractorError('Unable to extract video info, make sure the URL is valid')
 
         formats = self._extract_m3u8_formats(video_info['assets']['videos'][0]['url'], video_id)
-        self._sort_formats(formats)
 
         data = video_info.get('structured_data', {})
 

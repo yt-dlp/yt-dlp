@@ -63,8 +63,6 @@ class AluraIE(InfoExtractor):
                             f['height'] = int('720' if m.group('res') == 'hd' else '480')
                 formats.extend(video_format)
 
-            self._sort_formats(formats)
-
             return {
                 'id': video_id,
                 'title': video_title,

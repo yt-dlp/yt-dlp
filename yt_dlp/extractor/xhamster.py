@@ -234,7 +234,6 @@ class XHamsterIE(InfoExtractor):
                                         'Referer': standard_url,
                                     },
                                 })
-            self._sort_formats(formats)
 
             categories_list = video.get('categories')
             if isinstance(categories_list, list):
@@ -310,8 +309,6 @@ class XHamsterIE(InfoExtractor):
             formats.append({
                 'url': video_url,
             })
-
-        self._sort_formats(formats)
 
         # Only a few videos have an description
         mobj = re.search(r'<span>Description: </span>([^<]+)', webpage)

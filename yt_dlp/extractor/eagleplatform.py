@@ -192,8 +192,6 @@ class EaglePlatformIE(InfoExtractor):
                 f['url'] = format_url
                 formats.append(f)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,

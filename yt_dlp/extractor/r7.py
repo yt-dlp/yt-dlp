@@ -66,7 +66,6 @@ class R7IE(InfoExtractor):
                 f_copy['protocol'] = 'http'
                 f = f_copy
             formats.append(f)
-        self._sort_formats(formats)
 
         description = video.get('description')
         thumbnail = video.get('thumb')

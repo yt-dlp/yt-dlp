@@ -452,8 +452,6 @@ class NexxIE(InfoExtractor):
         else:
             self.raise_no_formats(f'{cdn} formats are currently not supported', video_id)
 
-        self._sort_formats(formats)
-
         subtitles = {}
         for sub in video.get('captiondata') or []:
             if sub.get('data'):

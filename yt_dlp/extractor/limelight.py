@@ -179,8 +179,6 @@ class LimelightBaseIE(InfoExtractor):
                     'ext': ext,
                 })
 
-        self._sort_formats(formats)
-
         subtitles = {}
         for flag in mobile_item.get('flags'):
             if flag == 'ClosedCaptions':

@@ -51,8 +51,6 @@ class StripchatIE(InfoExtractor):
         if not formats:
             self.raise_no_formats('No active streams found', expected=True)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': video_id,

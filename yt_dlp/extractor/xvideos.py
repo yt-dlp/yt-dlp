@@ -149,8 +149,6 @@ class XVideosIE(InfoExtractor):
                     'quality': -2 if format_id.endswith('low') else None,
                 })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'formats': formats,

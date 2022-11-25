@@ -67,7 +67,6 @@ class NaverBaseIE(InfoExtractor):
                 formats.extend(self._extract_m3u8_formats(
                     update_url_query(stream_url, query), video_id,
                     'mp4', 'm3u8_native', m3u8_id=stream_type, fatal=False))
-        self._sort_formats(formats)
 
         replace_ext = lambda x, y: re.sub(self._CAPTION_EXT_RE, '.' + y, x)
 
@@ -239,7 +238,6 @@ class NaverLiveIE(InfoExtractor):
                 quality.get('url'), video_id, 'mp4',
                 m3u8_id=quality.get('qualityId'), live=True
             ))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -256,7 +254,7 @@ class NaverLiveIE(InfoExtractor):
 
 class NaverNowIE(NaverBaseIE):
     IE_NAME = 'navernow'
-    _VALID_URL = r'https?://now\.naver\.com/s/now\.(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://now\.naver\.com/s/now\.(?P<id>\w+)'
     _API_URL = 'https://apis.naver.com/now_web/oldnow_web/v4'
     _TESTS = [{
         'url': 'https://now.naver.com/s/now.4759?shareReplayId=26331132#replay=',
@@ -315,6 +313,9 @@ class NaverNowIE(NaverBaseIE):
             'title': '아이키의 떰즈업',
         },
         'playlist_mincount': 101,
+    }, {
+        'url': 'https://now.naver.com/s/now.kihyunplay?shareReplayId=30573291#replay',
+        'only_matching': True,
     }]
 
     def _extract_replay(self, show_id, replay_id):

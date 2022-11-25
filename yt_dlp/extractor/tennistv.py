@@ -138,8 +138,6 @@ class TennisTVIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             self._FORMAT_URL.format(partner=self._PARTNER_ID, entry=entryid, session=k_session), video_id)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': self._generic_title('', webpage),

@@ -42,8 +42,6 @@ class MochaVideoIE(InfoExtractor):
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'display_id': json_data.get('slug') or video_slug,

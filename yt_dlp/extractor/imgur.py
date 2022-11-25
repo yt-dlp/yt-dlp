@@ -84,8 +84,6 @@ class ImgurIE(InfoExtractor):
                 },
             })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'formats': formats,

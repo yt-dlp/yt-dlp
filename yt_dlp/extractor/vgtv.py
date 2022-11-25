@@ -238,8 +238,6 @@ class VGTVIE(XstreamIE):  # XXX: Do not subclass from concrete IE
                 raise self.raise_geo_restricted(
                     countries=[host.rpartition('.')[-1].partition('/')[0].upper()])
 
-        self._sort_formats(info['formats'])
-
         info.update({
             'id': video_id,
             'title': data['title'],

@@ -202,7 +202,6 @@ class RumbleEmbedIE(InfoExtractor):
                         'height': 'h',
                     }, default={})
                 })
-        self._sort_formats(formats)
 
         subtitles = {
             lang: [{

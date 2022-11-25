@@ -247,8 +247,6 @@ class NPOIE(NPOBaseIE):
             if not self.get_param('allow_unplayable_formats') and drm:
                 self.report_drm(video_id)
 
-        self._sort_formats(formats)
-
         info = {
             'id': video_id,
             'title': video_id,
@@ -453,8 +451,6 @@ class NPOIE(NPOBaseIE):
                         'url': stream_url,
                         'quality': stream.get('kwaliteit'),
                     })
-
-        self._sort_formats(formats)
 
         subtitles = {}
         if metadata.get('tt888') == 'ja':

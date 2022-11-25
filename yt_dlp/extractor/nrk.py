@@ -180,7 +180,6 @@ class NRKIE(NRKBaseIE):
                     'format_id': asset_format,
                     'vcodec': 'none',
                 })
-        self._sort_formats(formats)
 
         data = call_playback_api('metadata')
 

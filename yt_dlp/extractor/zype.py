@@ -97,7 +97,6 @@ class ZypeIE(InfoExtractor):
             if text_tracks:
                 text_tracks = self._parse_json(
                     text_tracks, video_id, js_to_json, False)
-        self._sort_formats(formats)
 
         if text_tracks:
             for text_track in text_tracks:

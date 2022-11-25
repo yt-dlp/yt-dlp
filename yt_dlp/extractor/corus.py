@@ -126,7 +126,6 @@ class CorusIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
                 smil, smil_url, video_id, namespace))
         if not formats and video.get('drm'):
             self.report_drm(video_id)
-        self._sort_formats(formats)
 
         subtitles = {}
         for track in video.get('tracks', []):

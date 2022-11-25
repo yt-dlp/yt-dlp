@@ -241,8 +241,6 @@ class YahooIE(InfoExtractor):
         if not formats and msg == 'geo restricted':
             self.raise_geo_restricted(metadata_available=True)
 
-        self._sort_formats(formats)
-
         thumbnails = []
         for thumb in video.get('thumbnails', []):
             thumb_url = thumb.get('url')
@@ -498,7 +496,6 @@ class YahooJapanNewsIE(InfoExtractor):
                     'tbr': int_or_none(vid.get('bitrate')),
                 })
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats)
 
         return formats
 

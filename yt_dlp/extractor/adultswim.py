@@ -180,7 +180,6 @@ class AdultSwimIE(TurnerBaseIE):
                         info['subtitles'].setdefault('en', []).append({
                             'url': asset_url,
                         })
-            self._sort_formats(info['formats'])
 
             return info
         else:
