@@ -4069,7 +4069,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'live_status': live_status,
             'release_timestamp': live_start_time,
             '_format_sort_fields': (  # source_preference is lower for throttled/potentially damaged formats
-                'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto')
+                'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto',
+                'size', 'br', 'asr', 'ext', 'hasaud', '+id',  # +id de-prioritizes fallback formats
+            )
         }
 
         subtitles = {}

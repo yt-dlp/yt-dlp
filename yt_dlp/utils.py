@@ -6236,6 +6236,9 @@ class FormatSorter:
         is_num = self._get_field_setting(field, 'convert') != 'string' and val_num is not None
         if is_num:
             value = val_num
+        elif reverse and value is not None:  # Reverse strings
+            value = [-ord(x) for x in value]
+            value.extend(0 for _ in range(128 - len(value)))
 
         return ((-10, 0) if value is None
                 else (1, value, 0) if not is_num  # if a field has mixed strings and numbers, strings are sorted higher
