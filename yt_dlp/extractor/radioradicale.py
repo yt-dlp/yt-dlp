@@ -1,7 +1,9 @@
+from locale import LC_ALL, setlocale
 from .common import InfoExtractor
 from urllib.parse import urlparse
 from re import sub
 from datetime import datetime
+from os.path import dirname
 
 
 class RadioRadicaleIE(InfoExtractor):
@@ -20,53 +22,37 @@ class RadioRadicaleIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        months = {
-            'GEN': 1,
-            'FEB': 2,
-            'MAR': 3,
-            'APR': 4,
-            'MAG': 5,
-            'GIU': 6,
-            'LUG': 7,
-            'AGO': 8,
-            'SET': 9,
-            'OTT': 10,
-            'NOV': 11,
-            'DIC': 12
-        }
-
-        regex_strs = [
-            r'<h1[^>]+class=(["\'])titolo-scheda\1[^>]*>(?P<title>[^<]+)',
-            r' \| di&nbsp;(?P<creator>.+?) - (?P<location>.+?) - (?P<hour>\d+):(?P<minute>\d+)',
-            r'<div[^>]+class=(["\'])data\1[^>]*>[ \n]*<span[^>]+class=(["\'])data_day\2[^>]*>(?P<day>\d+)<\/span>[ \n]*<span[^>]+class=(["\'])data_month\4[^>]*>(?P<month>\w+)<\/span>[ \n]*<span[^>]+class=(["\'])data_year\6[^>]*>(?P<year>\d+)<\/span>[ \n]*<\/div>'
-        ]
+        setlocale(LC_ALL, '')
 
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        m3u8_base = urlparse(self._search_regex(
-            r'href="(rtsp://video.radioradicale.it:80/.+?)"', webpage, 'video ref'))
-        m3u8_base = m3u8_base._replace(scheme='https', netloc=m3u8_base.hostname)
+        video_info = self._parse_json(self._search_regex(
+            r'jQuery\.extend\(Drupal\.settings\s*,\s*({.+?})\);',
+            webpage, 'drupal settings'), video_id)['RRscheda']
 
         playlist = self._extract_m3u8_formats_and_subtitles(
-            m3u8_base._replace(path=m3u8_base.path + '/playlist.m3u8').geturl(), video_id)
+            video_info['playlist'][0]['sources'][0]['src'], video_id)
 
-        playlist[0][0]['fragment_base_url'] = m3u8_base.geturl()
+        base_url = urlparse(video_info['playlist'][0]['sources'][0]['src'])._replace(
+            params='', query='', fragment='')
+
+        playlist[0][0]['fragment_base_url'] = \
+            base_url._replace(path=dirname(base_url.path)).geturl()
         chunks = sub('#.*', '', self._download_webpage(
                      playlist[0][0]['url'], video_id, note='Downloading chunk list')).strip().split()
         playlist[0][0]['fragments'] = [{'path': chunk} for chunk in chunks]
 
+        name_time = r' \| di&nbsp;(?P<creator>.+?) - (?P<location>.+?) - (?P<hour>\d+):(?P<minute>\d+)'
+
         return {
             'id': video_id,
             'formats': playlist[0],
-            'title': self._html_search_regex(regex_strs[0], webpage, 'title', group='title'),
-            'creator': self._search_regex(regex_strs[1], webpage, 'creator', group='creator'),
-            'location': self._search_regex(regex_strs[1], webpage, 'location', group='location'),
-            'timestamp': datetime(
-                int(self._html_search_regex(regex_strs[2], webpage, 'release year', group='year')),
-                months[self._html_search_regex(regex_strs[2], webpage, 'release month', group='month')],
-                int(self._html_search_regex(regex_strs[2], webpage, 'release day', group='day')),
-                int(self._search_regex(regex_strs[1], webpage, 'release hour', group='hour')),
-                int(self._search_regex(regex_strs[1], webpage, 'release minute', group='minute'))
+            'title': video_info['playlist'][0]['title'],
+            'creator': self._search_regex(name_time, webpage, 'creator', group='creator'),
+            'location': video_info['luogo'],
+            'timestamp': datetime.strptime(video_info['data'], '%d %B %Y').replace(
+                hour=int(self._search_regex(name_time, webpage, 'release hour', group='hour')),
+                minute=int(self._search_regex(name_time, webpage, 'release minute', group='minute'))
             ).timestamp(),
         }
