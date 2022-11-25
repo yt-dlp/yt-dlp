@@ -37,7 +37,7 @@ class _YDLIgnoringLogger(logging.Logger):
         return inspect.getabsfile(YoutubeDL)
 
     @staticmethod
-    def skip_frame(condition, start_frame):
+    def skip_frames(condition, start_frame):
         frame = start_frame
         if frame is None:
             return start_frame
@@ -53,18 +53,39 @@ class _YDLIgnoringLogger(logging.Logger):
 
         return frame
 
-    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False,
-             stacklevel=1):
-        # TODO(output): This needs to handle exception reprocessing as well
+    @staticmethod
+    def _get_raising_frame():
+        error = sys.exc_info()[1]
+        if error is None:
+            return None
+
+        error_chain = [error]
+
+        while error is not None:
+            error_chain.append(error)
+            error = error.__cause__ or error.__context__
+
+        for error in reversed(error_chain):
+            tb = error.__traceback__
+            if tb is None:
+                continue
+            while tb.tb_next is not None:
+                tb = tb.tb_next
+
+            return tb.tb_frame
+
+        return None
+
+    @classmethod
+    def _get_logging_frame(cls, stacklevel):
         frame = inspect.currentframe()
         if frame is None:
-            return
+            return None
 
-        def internal_frame(frame, _=...):
-            return inspect.getabsfile(frame) in self._internal_frames
+        def internal_frame(frame, _):
+            return inspect.getabsfile(frame) in cls._internal_frames
 
-        # Skip internal frames
-        frame = self.skip_frame(internal_frame, frame)
+        frame = cls.skip_frames(internal_frame, frame)
 
         # We need to skip additional frames since the
         # logging call could be delegated through YDL.
@@ -72,15 +93,24 @@ class _YDLIgnoringLogger(logging.Logger):
         # then until it is no longer internal
         # so that `common` is skipped as well
         def ydl_frame(frame, _):
-            return inspect.getabsfile(frame) != self._ydl_path
+            return inspect.getabsfile(frame) != cls._ydl_path
 
-        above_ydl_frame = self.skip_frame(ydl_frame, frame).f_back
-        if above_ydl_frame is not None and internal_frame(above_ydl_frame):
-            frame = self.skip_frame(internal_frame, above_ydl_frame)
+        above_ydl_frame = cls.skip_frames(ydl_frame, frame).f_back
+        # Assumption: YoutubeDL.py is never main
+        assert above_ydl_frame is not None
+        frame = cls.skip_frames(internal_frame, above_ydl_frame)
 
         # Skip `stacklevel` amount of levels
         # XXX(output): Could be f_back instead since stacklevel should == 1
-        frame = self.skip_frame(lambda _, depth: depth == stacklevel, frame)
+        frame = cls.skip_frames(lambda _, depth: depth == stacklevel, frame)
+
+        return frame
+
+    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False,
+             stacklevel=1):
+        frame = self._get_raising_frame() or self._get_logging_frame(stacklevel)
+        if frame is None:
+            return
 
         fn, lno, func, *_ = inspect.getframeinfo(frame)
 
