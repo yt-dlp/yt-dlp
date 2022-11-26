@@ -466,9 +466,7 @@ class DRTVSeriesIE(InfoExtractor):
             'url': f'https://www.dr.dk/drtv{season.get("path")}',
             'ie_key': DRTVSeasonIE.ie_key(),
             'title': season.get('title'),
-            'description': season.get('shortDescription'),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
-            'season_number': season.get('seasonNumber'),
         } for season in traverse_obj(data, ('entries', 0, 'item', 'show', 'seasons', 'items'))]
 
         return {
