@@ -387,17 +387,28 @@ class DRTVSeasonIE(InfoExtractor):
                     '''
     _GEO_COUNTRIES = ['DK']
     _TESTS = [{
-        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_9008',
+        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_9008', # Season 2008 of "Frank & Kastaniegaarden"
         'info_dict': {
-            'id': 'frank-and-kastaniegaarden_9008',
+            'id': '9008',
+            'display_id': 'frank-and-kastaniegaarden',
             'title': 'Frank & Kastaniegaarden',
             'series': 'Frank & Kastaniegaarden',
         },
         'playlist_mincount': 8
+    }, {
+        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_8761', # Season 2009 of "Frank & Kastaniegaarden"
+        'info_dict': {
+            'id': '8761',
+            'display_id': 'frank-and-kastaniegaarden',
+            'title': 'Frank & Kastaniegaarden',
+            'series': 'Frank & Kastaniegaarden',
+        },
+        'playlist_mincount': 19
     }]
 
     def _real_extract(self, url):
         season_id = self._match_id(url)
+        id_split = season_id.rsplit('_', 1)
         data = self._download_json(SERIES_API % f'/saeson/{season_id}', season_id)
 
         entries = [{
@@ -414,7 +425,8 @@ class DRTVSeasonIE(InfoExtractor):
 
         return {
             '_type': 'playlist',
-            'id': season_id,
+            'id': id_split[1],
+            'display_id': id_split[0],
             'title': traverse_obj(data, ('entries', 0, 'item', 'title')),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
             'entries': entries
@@ -434,7 +446,8 @@ class DRTVSeriesIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.dr.dk/drtv/serie/frank-and-kastaniegaarden_6954',
         'info_dict': {
-            'id': 'frank-and-kastaniegaarden_6954',
+            'id': '6954',
+            'display_id': 'frank-and-kastaniegaarden',
             'title': 'Frank & Kastaniegaarden',
             'series': 'Frank & Kastaniegaarden',
         },
@@ -443,6 +456,7 @@ class DRTVSeriesIE(InfoExtractor):
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
+        id_split = series_id.rsplit('_', 1)
         data = self._download_json(SERIES_API % f'/serie/{series_id}', series_id)
 
         entries = [{
@@ -457,7 +471,8 @@ class DRTVSeriesIE(InfoExtractor):
 
         return {
             '_type': 'playlist',
-            'id': series_id,
+            'id': id_split[1],
+            'display_id': id_split[0],
             'title': traverse_obj(data, ('entries', 0, 'item', 'title')),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
             'entries': entries
