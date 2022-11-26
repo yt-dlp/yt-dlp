@@ -12,6 +12,7 @@ from ..utils import (
     float_or_none,
     mimetype2ext,
     str_or_none,
+    traverse_obj,
     try_get,
     unified_timestamp,
     update_url_query,
@@ -371,4 +372,92 @@ class DRTVLiveIE(InfoExtractor):
             'thumbnail': channel_data.get('PrimaryImageUri'),
             'formats': formats,
             'is_live': True,
+        }
+
+
+class DRTVSeasonIE(InfoExtractor):
+    IE_NAME = 'drtv:season'
+    _VALID_URL = r'''(?x)
+                    https?://
+                        (?:
+                            (?:www\.)?(?:dr\.dk|dr-massive\.com)/drtv/(?:saeson)/
+                        )
+                        (?P<id>[\da-z_-]+)
+                    '''
+    _GEO_COUNTRIES = ['DK']
+    _TESTS = [{
+        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_9008',
+        'info_dict': {
+            'id': 'frank-and-kastaniegaarden_9008',
+            'title': 'Frank & Kastaniegaarden',
+            'series': 'Frank & Kastaniegaarden',
+        },
+        'playlist_mincount': 8
+    }]
+
+    def _real_extract(self, url):
+        season_id = self._match_id(url)
+        data = self._download_json(f'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=/saeson/{season_id}', season_id)
+
+        entries = [{
+            '_type': 'url_transparent',
+            'url': f'https://www.dr.dk/drtv{episode["path"]}',
+            'ie_key': DRTVIE.ie_key(),
+            'title': episode.get('title'),
+            'episode': episode.get('episodeName'),
+            'description': episode.get('shortDescription'),
+            'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'season_number': traverse_obj(data, ('entries', 0, 'item', 'seasonNumber')),
+            'episode_number': episode.get('episodeNumber'),
+        } for episode in traverse_obj(data, ('entries', 0, 'item', 'episodes', 'items'))]
+
+        return {
+            '_type': 'playlist',
+            'id': season_id,
+            'title': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'entries': entries
+        }
+
+
+class DRTVSeriesIE(InfoExtractor):
+    IE_NAME = 'drtv:series'
+    _VALID_URL = r'''(?x)
+                    https?://
+                        (?:
+                            (?:www\.)?(?:dr\.dk|dr-massive\.com)/drtv/(?:serie)/
+                        )
+                        (?P<id>[\da-z_-]+)
+                    '''
+    _GEO_COUNTRIES = ['DK']
+    _TESTS = [{
+        'url': 'https://www.dr.dk/drtv/serie/frank-and-kastaniegaarden_6954',
+        'info_dict': {
+            'id': 'frank-and-kastaniegaarden_6954',
+            'title': 'Frank & Kastaniegaarden',
+            'series': 'Frank & Kastaniegaarden',
+        },
+        'playlist_mincount': 15
+    }]
+
+    def _real_extract(self, url):
+        series_id = self._match_id(url)
+        data = self._download_json(f'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=/serie/{series_id}', series_id)
+
+        entries = [{
+            '_type': 'url_transparent',
+            'url': f'https://www.dr.dk/drtv{season.get("path")}',
+            'ie_key': DRTVSeasonIE.ie_key(),
+            'title': season.get('title'),
+            'description': season.get('shortDescription'),
+            'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'season_number': season.get('seasonNumber'),
+        } for season in traverse_obj(data, ('entries', 0, 'item', 'show', 'seasons', 'items'))]
+
+        return {
+            '_type': 'playlist',
+            'id': series_id,
+            'title': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'entries': entries
         }
