@@ -375,6 +375,7 @@ class DRTVLiveIE(InfoExtractor):
         }
 
 
+SERIES_API = 'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=%s'
 class DRTVSeasonIE(InfoExtractor):
     IE_NAME = 'drtv:season'
     _VALID_URL = r'''(?x)
@@ -397,7 +398,7 @@ class DRTVSeasonIE(InfoExtractor):
 
     def _real_extract(self, url):
         season_id = self._match_id(url)
-        data = self._download_json(f'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=/saeson/{season_id}', season_id)
+        data = self._download_json(SERIES_API % f'/saeson/{season_id}', season_id)
 
         entries = [{
             '_type': 'url_transparent',
@@ -442,7 +443,7 @@ class DRTVSeriesIE(InfoExtractor):
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
-        data = self._download_json(f'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=/serie/{series_id}', series_id)
+        data = self._download_json(SERIES_API % f'/serie/{series_id}', series_id)
 
         entries = [{
             '_type': 'url_transparent',
