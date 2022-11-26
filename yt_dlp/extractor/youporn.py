@@ -82,7 +82,6 @@ class YouPornIE(InfoExtractor):
             'timestamp': 1606089600,
             'title': 'Tinder In Real Life',
             'view_count': int,
-
         }
     }]
 
