@@ -376,6 +376,8 @@ class DRTVLiveIE(InfoExtractor):
 
 
 SERIES_API = 'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=%s'
+
+
 class DRTVSeasonIE(InfoExtractor):
     IE_NAME = 'drtv:season'
     _VALID_URL = r'''(?x)
@@ -387,7 +389,7 @@ class DRTVSeasonIE(InfoExtractor):
                     '''
     _GEO_COUNTRIES = ['DK']
     _TESTS = [{
-        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_9008', # Season 2008 of "Frank & Kastaniegaarden"
+        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_9008',  # Season 2008 of "Frank & Kastaniegaarden"
         'info_dict': {
             'id': '9008',
             'display_id': 'frank-and-kastaniegaarden',
@@ -396,7 +398,7 @@ class DRTVSeasonIE(InfoExtractor):
         },
         'playlist_mincount': 8
     }, {
-        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_8761', # Season 2009 of "Frank & Kastaniegaarden"
+        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_8761',  # Season 2009 of "Frank & Kastaniegaarden"
         'info_dict': {
             'id': '8761',
             'display_id': 'frank-and-kastaniegaarden',
