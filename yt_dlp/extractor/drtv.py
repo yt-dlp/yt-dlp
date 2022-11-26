@@ -412,7 +412,7 @@ class DRTVSeasonIE(InfoExtractor):
         data = self._download_json(SERIES_API % f'/saeson/{season_id}', season_id)
 
         entries = [{
-            '_type': 'url_transparent',
+            '_type': 'url',
             'url': f'https://www.dr.dk/drtv{episode["path"]}',
             'ie_key': DRTVIE.ie_key(),
             'title': episode.get('title'),
@@ -460,7 +460,7 @@ class DRTVSeriesIE(InfoExtractor):
         data = self._download_json(SERIES_API % f'/serie/{series_id}', series_id)
 
         entries = [{
-            '_type': 'url_transparent',
+            '_type': 'url',
             'url': f'https://www.dr.dk/drtv{season.get("path")}',
             'ie_key': DRTVSeasonIE.ie_key(),
             'title': season.get('title'),
