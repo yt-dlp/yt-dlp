@@ -218,8 +218,9 @@ class TestParsing(unittest.TestCase):
             get_element_text_and_html_by_tag('malnested_b', html),
             (f'{inner_text}</malnested_a>',
              f'<malnested_b>{inner_text}</malnested_a></malnested_b>'))
+        self.assertEqual(
+            get_element_text_and_html_by_tag('orphan', f'<orphan>{html}'), ('', '<orphan>'))
         self.assertIsNone(get_element_text_and_html_by_tag('orphan', f'{html}</orphan>'))
-        self.assertIsNone(get_element_text_and_html_by_tag('orphan', f'<orphan>{html}'))
 
     def test_strict_html_parsing(self):
         class StrictTagParser(HTMLTagParser):
@@ -244,13 +245,13 @@ class TestParsing(unittest.TestCase):
         parser = HTMLTagParser()
 
         self.assertEqual(parser.taglist('</p>', reset=True), [])
-        self.assertEqual(parser.taglist('<div><p>', reset=True), [])
+        self.assertEqual(parser.taglist('<div><p>', reset=True), [Tag('div'), Tag('p')])
 
         tags = parser.taglist('<div><p></div></p>', reset=True)
-        self.assertEqual(tags, [Tag('p'), Tag('div')])
+        self.assertEqual(tags, [Tag('div'), Tag('p')])
 
         tags = parser.taglist('<div><p>/p></div>', reset=True)
-        self.assertEqual(tags, [Tag('div')])
+        self.assertEqual(tags, [Tag('div'), Tag('p')])
 
         tags = parser.taglist('<div><p>paragraph</p<ignored></div>', reset=True)
         self.assertEqual(tags, [Tag('div'), Tag('p')])

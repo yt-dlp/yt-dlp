@@ -190,7 +190,7 @@ class HTMLTagParser(HTMLParser):
             tag_obj = self.Tag(tag, string=self.rawdata, attrs=attrs)
             tag_obj.openrange(self._offset, len(tag_text))
             if tag_is_open:
-                nesting = []
+                nesting = [tag_obj]
                 self._nestedtags[-1].append(nesting)
                 self._nestedtags.append(nesting)
             else:
@@ -218,7 +218,7 @@ class HTMLTagParser(HTMLParser):
             if isinstance(tag_obj, self.Tag):
                 close_idx = self.rawdata.find('>', self._offset) + 1
                 tag_obj.closerange(self._offset, close_idx - self._offset)
-                self._nestedtags.pop().insert(0, tag_obj)
+                self._nestedtags.pop()
                 self.callback(tag_obj)
         except ValueError as exc:
             if isinstance(exc, compat_HTMLParseError):
