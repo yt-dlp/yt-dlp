@@ -63,7 +63,7 @@ class AmazonMiniTVIE(InfoExtractor):
         'url': 'amazonminitv:280d2564-584f-452f-9c98-7baf906e01ab',
         'only_matching': True,
     }]
-    _GRAPHQL_QUERY = '''
+    _GRAPHQL_QUERY_CONTENT = '''
 query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, $contentType: ContentType!, $clientId: String) {
   content(
     applicationContextInput: {deviceLocale: $deviceLocale, sessionIdToken: $sessionIdToken, clientId: $clientId}
@@ -163,7 +163,7 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
                 'variables': {
                     'contentId': asin,
                 },
-                'query': self._GRAPHQL_QUERY,
+                'query': self._GRAPHQL_QUERY_CONTENT,
             },
             note='Downloading title info')
 
@@ -238,16 +238,7 @@ class AmazonMiniTVSeasonIE(AmazonMiniTVIE):
         'url': 'amazonminitv:season:0aa996eb-6a1b-4886-a342-387fbd2f1db0',
         'only_matching': True,
     }]
-
-    def _entries(self, asin):
-        season_info = self._call_api(
-            asin,
-            data={
-                'operationName': 'getEpisodes',
-                'variables': {
-                    'episodeOrSeasonId': asin,
-                },
-                'query': '''
+    _GRAPHQL_QUERY = '''
 query getEpisodes($sessionIdToken: String!, $clientId: String, $episodeOrSeasonId: ID!, $deviceLocale: String) {
   getEpisodes(
     applicationContextInput: {sessionIdToken: $sessionIdToken, deviceLocale: $deviceLocale, clientId: $clientId}
@@ -272,7 +263,17 @@ query getEpisodes($sessionIdToken: String!, $clientId: String, $episodeOrSeasonI
     }
   }
 }
-''',
+'''
+
+    def _entries(self, asin):
+        season_info = self._call_api(
+            asin,
+            data={
+                'operationName': 'getEpisodes',
+                'variables': {
+                    'episodeOrSeasonId': asin,
+                },
+                'query': self._GRAPHQL_QUERY,
             },
             note='Downloading season info')
 
@@ -297,16 +298,7 @@ class AmazonMiniTVSeriesIE(AmazonMiniTVIE):
         'url': 'amazonminitv:series:56521d46-b040-4fd5-872e-3e70476a04b0',
         'only_matching': True,
     }]
-
-    def _entries(self, asin):
-        season_info = self._call_api(
-            asin,
-            data={
-                'operationName': 'getSeasons',
-                'variables': {
-                    'episodeOrSeasonOrSeriesId': asin,
-                },
-                'query': '''
+    _GRAPHQL_QUERY = '''
 query getSeasons($sessionIdToken: String!, $deviceLocale: String, $episodeOrSeasonOrSeriesId: ID!, $clientId: String) {
   getSeasons(
     applicationContextInput: {deviceLocale: $deviceLocale, sessionIdToken: $sessionIdToken, clientId: $clientId}
@@ -317,7 +309,17 @@ query getSeasons($sessionIdToken: String!, $deviceLocale: String, $episodeOrSeas
     }
   }
 }
-''',
+'''
+
+    def _entries(self, asin):
+        season_info = self._call_api(
+            asin,
+            data={
+                'operationName': 'getSeasons',
+                'variables': {
+                    'episodeOrSeasonOrSeriesId': asin,
+                },
+                'query': self._GRAPHQL_QUERY,
             },
             note='Downloading series info')
 
