@@ -41,7 +41,7 @@ class RadioRadicaleIE(InfoExtractor):
         subtitles = {sub.get('srclang'): [{
             'url': sub.get('src'),
             'name': sub.get('label')
-            }] for sub in traverse_obj(video_info, ('playlist', 0, 'subtitles'))}
+        }] for sub in traverse_obj(video_info, ('playlist', 0, 'subtitles'))}
 
         return {
             'id': video_id,
