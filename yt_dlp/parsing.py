@@ -185,17 +185,19 @@ class HTMLTagParser(HTMLParser):
             tag_text = HTMLTagParser.ANY_TAG_REGEX.match(self.rawdata[self._offset:]).group()
 
         tag_obj = tag
+        tag_is_open = not (tag_text.endswith('/>') or tag in self.VOID_TAGS)
         if self.predicate(tag, attrs):
             tag_obj = self.Tag(tag, string=self.rawdata, attrs=attrs)
             tag_obj.openrange(self._offset, len(tag_text))
-            if tag_text.endswith('/>') or tag in self.VOID_TAGS:
+            if tag_is_open:
+                nesting = []
+                self._nestedtags[-1].append(nesting)
+                self._nestedtags.append(nesting)
+            else:
                 self._nestedtags[-1].append(tag_obj)
                 self.callback(tag_obj)
-                return
-            nesting = []
-            self._nestedtags[-1].append(nesting)
-            self._nestedtags.append(nesting)
-        self.tagstack.appendleft(tag_obj)
+        if tag_is_open:
+            self.tagstack.appendleft(tag_obj)
 
     handle_startendtag = handle_starttag
 

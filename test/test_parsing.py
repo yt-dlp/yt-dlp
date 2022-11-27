@@ -186,6 +186,9 @@ class TestParsing(unittest.TestCase):
         self.assertIsNone(get_element_text_and_html_by_tag('article', html))
 
     def test_get_elements_text_and_html_by_tag(self):
+        class StrictParser(MatchingElementParser):
+            STRICT = True
+
         test_string = '''
             <img src="a.png">
             <img src="b.png" />
@@ -193,6 +196,10 @@ class TestParsing(unittest.TestCase):
         '''
         items = get_elements_text_and_html_by_tag('img', test_string)
         self.assertListEqual(items, [('', '<img src="a.png">'), ('', '<img src="b.png" />')])
+
+        self.assertEqual(
+            StrictParser.get_element_text_and_html_by_tag('use', '<use><img></use>'),
+            ('<img>', '<use><img></use>'))
 
     def test_get_element_text_and_html_by_tag_malformed(self):
         inner_text = 'inner text'
