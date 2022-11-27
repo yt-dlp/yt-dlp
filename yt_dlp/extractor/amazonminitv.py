@@ -130,11 +130,8 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
 
         resp = self._download_json(
             f'https://www.amazon.in/minitv/api/web/{name}',
-            asin,
-            query=query,
-            data=json.dumps(data).encode() if data else None,
-            headers=headers,
-            note=note)
+            asin, query=query, data=json.dumps(data).encode() if data else None,
+            headers=headers, note=note)
 
         if 'errors' in resp:
             raise ExtractorError(f'MiniTV said: {resp["errors"][0]["message"]}')
@@ -157,8 +154,7 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
         asin = f'amzn1.dv.gti.{self._match_id(url)}'
 
         title_info = self._call_api(
-            asin,
-            data={
+            asin, data={
                 'operationName': 'content',
                 'variables': {
                     'contentId': asin,
@@ -185,19 +181,17 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
                     asset['manifestUrl'], asin, mpd_id=type_, fatal=False)
                 formats.extend(mpd_fmts)
                 subtitles = self._merge_subtitles(subtitles, mpd_subs)
-            else:
-                pass
 
         duration = traverse_obj(title_info, ('description', 'contentLengthInSeconds'))
         credits_time = try_get(title_info, lambda x: x['timecode']['endCreditsTime'] / 1000)
         chapters = [{
             'start_time': credits_time,
-            'end_time': duration,
+            'end_time': duration + credits_time,  # FIXME: I suppose this is correct
             'title': 'End Credits',
         }] if credits_time and duration else []
         is_episode = title_info.get('vodType') == 'EPISODE'
 
-        info = {
+        return {
             'id': asin,
             'title': title_info.get('name'),
             'formats': formats,
@@ -219,8 +213,6 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
             'episode_number': title_info.get('episodeNumber'),
             'episode_id': asin if is_episode else None,
         }
-
-        return info
 
 
 class AmazonMiniTVSeasonIE(AmazonMiniTVIE):
