@@ -63,6 +63,49 @@ class AmazonMiniTVIE(InfoExtractor):
         'url': 'amazonminitv:280d2564-584f-452f-9c98-7baf906e01ab',
         'only_matching': True,
     }]
+    _GRAPHQL_QUERY = '''
+query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, $contentType: ContentType!, $clientId: String) {
+  content(
+    applicationContextInput: {deviceLocale: $deviceLocale, sessionIdToken: $sessionIdToken, clientId: $clientId}
+    contentId: $contentId
+    contentType: $contentType
+  ) {
+    contentId
+    name
+    ... on Episode {
+      contentId
+      vodType
+      name
+      images
+      description {
+        synopsis
+        contentLengthInSeconds
+      }
+      publicReleaseDateUTC
+      audioTracks
+      seasonId
+      seriesId
+      seriesName
+      seasonNumber
+      episodeNumber
+      timecode {
+        endCreditsTime
+      }
+    }
+    ... on MovieContent {
+      contentId
+      vodType
+      name
+      description {
+        synopsis
+        contentLengthInSeconds
+      }
+      images
+      publicReleaseDateUTC
+      audioTracks
+    }
+  }
+}'''
 
     def _call_api(self, asin, data=None, note=None):
         query = {}
@@ -120,49 +163,7 @@ class AmazonMiniTVIE(InfoExtractor):
                 'variables': {
                     'contentId': asin,
                 },
-                'query': '''
-query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, $contentType: ContentType!, $clientId: String) {
-  content(
-    applicationContextInput: {deviceLocale: $deviceLocale, sessionIdToken: $sessionIdToken, clientId: $clientId}
-    contentId: $contentId
-    contentType: $contentType
-  ) {
-    contentId
-    name
-    ... on Episode {
-      contentId
-      vodType
-      name
-      images
-      description {
-        synopsis
-        contentLengthInSeconds
-      }
-      publicReleaseDateUTC
-      audioTracks
-      seasonId
-      seriesId
-      seriesName
-      seasonNumber
-      episodeNumber
-      timecode {
-        endCreditsTime
-      }
-    }
-    ... on MovieContent {
-      contentId
-      vodType
-      name
-      description {
-        synopsis
-        contentLengthInSeconds
-      }
-      images
-      publicReleaseDateUTC
-      audioTracks
-    }
-  }
-}''',
+                'query': self._GRAPHQL_QUERY,
             },
             note='Downloading title info')
 
