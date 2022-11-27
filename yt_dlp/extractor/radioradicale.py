@@ -1,9 +1,8 @@
-from locale import LC_ALL, setlocale
 from .common import InfoExtractor
-from urllib.parse import urlparse
-from re import sub
-from datetime import datetime
-from os.path import dirname
+from ..utils import (
+    strftime_or_none,
+    traverse_obj,
+)
 
 
 class RadioRadicaleIE(InfoExtractor):
@@ -14,51 +13,38 @@ class RadioRadicaleIE(InfoExtractor):
             'id': '471591',
             'ext': 'mp4',
             'title': 'md5:e8fbb8de57011a3255db0beca69af73d',
-            'creator': 'Giuseppe Di Leo',
             'location': 'Napoli',
-            'timestamp': 1460044800.0,
+            'timestamp': 1459987200,
             'upload_date': '20160407',
             'description': 'md5:5e15a789a2fe4d67da8d1366996e89ef',
             'thumbnail': 'https://www.radioradicale.it/photo400/0/0/9/0/1/00901768.jpg',
-        }
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
-        setlocale(LC_ALL, '')
-
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        video_info = self._parse_json(self._search_regex(
-            r'jQuery\.extend\(Drupal\.settings\s*,\s*({.+?})\);',
-            webpage, 'drupal settings'), video_id)['RRscheda']
+        video_info = self._search_json(
+            r'jQuery\.extend\(Drupal\.settings\s*,',
+            webpage, 'video_info', video_id).get('RRscheda')
+        json_ld = self._search_json_ld(webpage, video_id)
 
-        json_ld = list(self._yield_json_ld(webpage, video_id))[0]
-
-        playlist = self._extract_m3u8_formats_and_subtitles(
-            video_info['playlist'][0]['sources'][0]['src'], video_id)
-
-        base_url = urlparse(video_info['playlist'][0]['sources'][0]['src'])._replace(
-            params='', query='', fragment='')
-
-        playlist[0][0]['fragment_base_url'] = \
-            base_url._replace(path=dirname(base_url.path)).geturl()
-        chunks = sub('#.*', '', self._download_webpage(
-                     playlist[0][0]['url'], video_id, note='Downloading chunk list')).strip().split()
-        playlist[0][0]['fragments'] = [{'path': chunk} for chunk in chunks]
-
-        name_time = r' \| di&nbsp;(?P<creator>.+?) - (?P<location>.+?) - (?P<hour>\d+):(?P<minute>\d+)'
+        formats = []
+        for source in traverse_obj(video_info, ('playlist', 0, 'sources')):
+            formats.extend(
+                self._extract_m3u8_formats(source.get('src'), video_id))
 
         return {
             'id': video_id,
-            'formats': playlist[0],
-            'title': video_info['playlist'][0]['title'],
-            'creator': self._search_regex(name_time, webpage, 'creator', group='creator'),
-            'location': video_info['luogo'],
-            'timestamp': datetime.strptime(json_ld['uploadDate'], '%Y-%m-%d').replace(
-                hour=int(self._search_regex(name_time, webpage, 'release hour', group='hour')),
-                minute=int(self._search_regex(name_time, webpage, 'release minute', group='minute'))
-            ).timestamp(),
-            'thumbnail': json_ld['thumbnailUrl'],
-            'description': json_ld['description'],
+            'formats': formats,
+            'title': json_ld.get('title') or self._og_search_title(webpage),
+            'location': video_info.get('luogo'),
+            'timestamp': json_ld.get('timestamp'),
+            'upload_date': strftime_or_none(json_ld.get('timestamp'), '%Y%m%d'),
+            'thumbnail': traverse_obj(json_ld, ('thumbnails', 0, 'url')),
+            'description': json_ld.get('description') or self._og_search_description(webpage),
         }
