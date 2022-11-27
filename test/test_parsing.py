@@ -195,7 +195,7 @@ class TestParsing(unittest.TestCase):
             <span>ignore</span>
         '''
         items = get_elements_text_and_html_by_tag('img', test_string)
-        self.assertListEqual(items, [('', '<img src="a.png">'), ('', '<img src="b.png" />')])
+        self.assertEqual(items, [('', '<img src="a.png">'), ('', '<img src="b.png" />')])
 
         self.assertEqual(
             StrictParser.get_element_text_and_html_by_tag('use', '<use><img></use>'),
@@ -245,16 +245,26 @@ class TestParsing(unittest.TestCase):
         parser = HTMLTagParser()
 
         self.assertEqual(parser.taglist('</p>', reset=True), [])
-        self.assertEqual(parser.taglist('<div><p>', reset=True), [Tag('div'), Tag('p')])
+
+        tags = parser.taglist('<div><p>', reset=True)
+        self.assertEqual(tags, [Tag('div'), Tag('p')])
+        self.assertEqual(tags[0].text_and_html(), ('', '<div>'))
+        self.assertEqual(tags[1].text_and_html(), ('', '<p>'))
 
         tags = parser.taglist('<div><p></div></p>', reset=True)
         self.assertEqual(tags, [Tag('div'), Tag('p')])
+        self.assertEqual(tags[0].text_and_html(), ('<p>', '<div><p></div>'))
+        self.assertEqual(tags[1].text_and_html(), ('</div>', '<p></div></p>'))
 
         tags = parser.taglist('<div><p>/p></div>', reset=True)
         self.assertEqual(tags, [Tag('div'), Tag('p')])
+        self.assertEqual(tags[0].text_and_html(), ('<p>/p>', '<div><p>/p></div>'))
+        self.assertEqual(tags[1].text_and_html(), ('', '<p>'))
 
         tags = parser.taglist('<div><p>paragraph</p<ignored></div>', reset=True)
         self.assertEqual(tags, [Tag('div'), Tag('p')])
+        self.assertEqual(tags[0].text_and_html(),
+                         ('<p>paragraph</p<ignored>', '<div><p>paragraph</p<ignored></div>'))
         self.assertEqual(tags[1].text_and_html(), ('paragraph', '<p>paragraph</p<ignored>'))
 
         tags = parser.taglist('<img width="300px">must be empty</img>', reset=True)
@@ -315,7 +325,7 @@ class TestParsing(unittest.TestCase):
                  [Tag('t5'), Tag('t6')]],
                 [Tag('t7'), Tag('t8')]]))
 
-    def test_within_html_comment(self):
+    def test_html_comment_ranges(self):
         def mark_comments(_string, char='^', nochar='-'):
             cmts = HTMLCommentRanges(_string)
             return "".join(char if _idx in cmts else nochar for _idx in range(len(_string)))

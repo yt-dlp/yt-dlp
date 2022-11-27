@@ -318,7 +318,7 @@ class MatchingElementParser(HTMLTagParser):
 
     @classmethod
     def get_elements_by_attribute(cls, *args, **kwargs):
-        return [tag.text_and_html()[0] for tag in cls.tags_by_attribute(*args, **kwargs)]
+        return [tag.text() for tag in cls.tags_by_attribute(*args, **kwargs)]
 
     @classmethod
     def get_elements_html_by_attribute(cls, *args, **kwargs):
@@ -349,7 +349,7 @@ class MatchingElementParser(HTMLTagParser):
     @classmethod
     def get_elements_text_and_html_by_class(cls, class_name, html):
         value = cls.class_value_regex(class_name)
-        return [tag.text() for tag
+        return [tag.text_and_html() for tag
                 in cls.tags_by_attribute('class', value, html, escape_value=False)]
 
     @classmethod
