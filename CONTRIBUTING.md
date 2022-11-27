@@ -161,7 +161,7 @@ The same applies for changes to the documentation, code style, or overarching ch
 
 ## Adding support for a new site
 
-If you want to add support for a new site, first of all **make sure** this site is **not dedicated to [copyright infringement](https://www.github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free)**. yt-dlp does **not support** such sites thus pull requests adding support for them **will be rejected**.
+If you want to add support for a new site, first of all **make sure** this site is **not dedicated to [copyright infringement](#is-the-website-primarily-used-for-piracy)**. yt-dlp does **not support** such sites thus pull requests adding support for them **will be rejected**.
 
 After you have ensured this site is distributing its content legally, you can follow this quick list (assuming your service is called `yourextractor`):
 
@@ -195,7 +195,7 @@ After you have ensured this site is distributing its content legally, you can fo
                 # * A value
                 # * MD5 checksum; start the string with md5:
                 # * A regular expression; start the string with re:
-                # * Any Python type (for example int or float)
+                # * Any Python type, e.g. int or float
             }
         }]
 
@@ -214,7 +214,7 @@ After you have ensured this site is distributing its content legally, you can fo
                 # TODO more properties (see yt_dlp/extractor/common.py)
             }
     ```
-1. Add an import in [`yt_dlp/extractor/extractors.py`](yt_dlp/extractor/extractors.py).
+1. Add an import in [`yt_dlp/extractor/_extractors.py`](yt_dlp/extractor/_extractors.py). Note that the class name must end with `IE`.
 1. Run `python test/test_download.py TestDownload.test_YourExtractor` (note that `YourExtractor` doesn't end with `IE`). This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, the tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in. You can also run all the tests in one go with `TestDownload.test_YourExtractor_all`
 1. Make sure you have atleast one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the particular test is disabled from running.
 1. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L91-L426). Add tests and code for as many as you want.
@@ -222,10 +222,10 @@ After you have ensured this site is distributing its content legally, you can fo
 
         $ flake8 yt_dlp/extractor/yourextractor.py
 
-1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.6 and above. Backward compatibility is not required for even older versions of Python.
+1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.7 and above. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
-        $ git add yt_dlp/extractor/extractors.py
+        $ git add yt_dlp/extractor/_extractors.py
         $ git add yt_dlp/extractor/yourextractor.py
         $ git commit -m '[yourextractor] Add extractor'
         $ git push origin yourextractor
@@ -261,7 +261,7 @@ The aforementioned metafields are the critical data that the extraction does not
 
 For pornographic sites, appropriate `age_limit` must also be returned.
 
-The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
+The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - e.g. when the video is a live stream that has not started yet.
 
 [Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 
@@ -300,14 +300,10 @@ description = meta['summary']  # incorrect
 The latter will break extraction process with `KeyError` if `summary` disappears from `meta` at some later time but with the former approach extraction will just go ahead with `description` set to `None` which is perfectly fine (remember `None` is equivalent to the absence of data).
 
 
-If the data is nested, do not use `.get` chains, but instead make use of the utility functions `try_get` or `traverse_obj`
+If the data is nested, do not use `.get` chains, but instead make use of `traverse_obj`.
 
 Considering the above `meta` again, assume you want to extract `["user"]["name"]` and put it in the resulting info dict as `uploader`
 
-```python
-uploader = try_get(meta, lambda x: x['user']['name'])  # correct
-```
-or
 ```python
 uploader = traverse_obj(meta, ('user', 'name'))  # correct
 ```
@@ -320,6 +316,10 @@ uploader = meta['user']['name']  # incorrect
 or
 ```python
 uploader = meta.get('user', {}).get('name')  # incorrect
+```
+or
+```python
+uploader = try_get(meta, lambda x: x['user']['name'])  # old utility
 ```
 
 
@@ -346,25 +346,25 @@ On failure this code will silently continue the extraction with `description` se
 
 Another thing to remember is not to try to iterate over `None`
 
-Say you extracted a list of thumbnails into `thumbnail_data` using `try_get` and now want to iterate over them
+Say you extracted a list of thumbnails into `thumbnail_data` and want to iterate over them
 
 ```python
-thumbnail_data = try_get(...)
+thumbnail_data = data.get('thumbnails') or []
 thumbnails = [{
     'url': item['url']
-} for item in thumbnail_data or []]  # correct
+} for item in thumbnail_data]  # correct
 ```
 
 and not like:
 
 ```python
-thumbnail_data = try_get(...)
+thumbnail_data = data.get('thumbnails')
 thumbnails = [{
     'url': item['url']
 } for item in thumbnail_data]  # incorrect
 ```
 
-In the later case, `thumbnail_data` will be `None` if the field was not found and this will cause the loop `for item in thumbnail_data` to raise a fatal error. Using `for item in thumbnail_data or []` avoids this error and results in setting an empty list in `thumbnails` instead.
+In this case, `thumbnail_data` will be `None` if the field was not found and this will cause the loop `for item in thumbnail_data` to raise a fatal error. Using `or []` avoids this error and results in setting an empty list in `thumbnails` instead.
 
 
 ### Provide fallbacks
@@ -431,7 +431,7 @@ title = self._search_regex(  # correct
     r'<span[^>]+class="title"[^>]*>([^<]+)', webpage, 'title')
 ```
 
-Or even better:
+which tolerates potential changes in the `style` attribute's value. Or even better:
 
 ```python
 title = self._search_regex(  # correct
@@ -439,7 +439,7 @@ title = self._search_regex(  # correct
     webpage, 'title', group='title')
 ```
 
-Note how you tolerate potential changes in the `style` attribute's value or switch from using double quotes to single for `class` attribute: 
+which also handles both single quotes in addition to double quotes.
 
 The code definitely should not look like:
 
@@ -457,7 +457,42 @@ title = self._search_regex(  # incorrect
     webpage, 'title', group='title')
 ```
 
-Here the presence or absence of other attributes including `style` is irrelevent for the data we need, and so the regex must not depend on it
+Here the presence or absence of other attributes including `style` is irrelevant for the data we need, and so the regex must not depend on it
+
+
+#### Keep the regular expressions as simple as possible, but no simpler
+
+Since many extractors deal with unstructured data provided by websites, we will often need to use very complex regular expressions. You should try to use the *simplest* regex that can accomplish what you want. In other words, each part of the regex must have a reason for existing. If you can take out a symbol and the functionality does not change, the symbol should not be there.
+
+##### Example
+
+Correct:
+
+```python
+_VALID_URL = r'https?://(?:www\.)?website\.com/(?:[^/]+/){3,4}(?P<display_id>[^/]+)_(?P<id>\d+)'
+```
+
+Incorrect:
+
+```python
+_VALID_URL = r'https?:\/\/(?:www\.)?website\.com\/[^\/]+/[^\/]+/[^\/]+(?:\/[^\/]+)?\/(?P<display_id>[^\/]+)_(?P<id>\d+)'
+```
+
+#### Do not misuse `.` and use the correct quantifiers (`+*?`)
+
+Avoid creating regexes that over-match because of wrong use of quantifiers. Also try to avoid non-greedy matching (`?`) where possible since they could easily result in [catastrophic backtracking](https://www.regular-expressions.info/catastrophic.html)
+
+Correct:
+
+```python
+title = self._search_regex(r'<span\b[^>]+class="title"[^>]*>([^<]+)', webpage, 'title')
+```
+
+Incorrect:
+
+```python
+title = self._search_regex(r'<span\b.*class="title".*>(.+?)<', webpage, 'title')
+```
 
 
 ### Long lines policy
@@ -466,7 +501,7 @@ There is a soft limit to keep lines of code under 100 characters long. This mean
 
 For example, you should **never** split long string literals like URLs or some other often copied entities over multiple lines to fit this limit:
 
-Conversely, don't unecessarily split small lines further. As a rule of thumb, if removing the line split keeps the code under 80 characters, it should be a single line.
+Conversely, don't unnecessarily split small lines further. As a rule of thumb, if removing the line split keeps the code under 80 characters, it should be a single line.
 
 ##### Examples
 
@@ -521,19 +556,22 @@ formats = self._extract_m3u8_formats(m3u8_url,
 
 ### Quotes
 
-Always use single quotes for strings (even if the string has `'`) and double quotes for docstrings. Use `'''` only for multi-line strings. An exception can be made if a string has multiple single quotes in it and escaping makes it significantly harder to read. For f-strings, use you can use double quotes on the inside. But avoid f-strings that have too many quotes inside.
+Always use single quotes for strings (even if the string has `'`) and double quotes for docstrings. Use `'''` only for multi-line strings. An exception can be made if a string has multiple single quotes in it and escaping makes it *significantly* harder to read. For f-strings, use you can use double quotes on the inside. But avoid f-strings that have too many quotes inside.
 
 
 ### Inline values
 
 Extracting variables is acceptable for reducing code duplication and improving readability of complex expressions. However, you should avoid extracting variables used only once and moving them to opposite parts of the extractor file, which makes reading the linear flow difficult.
 
-#### Example
+#### Examples
 
 Correct:
 
 ```python
-title = self._html_search_regex(r'<h1>([^<]+)</h1>', webpage, 'title')
+return {
+    'title': self._html_search_regex(r'<h1>([^<]+)</h1>', webpage, 'title'),
+    # ...some lines of code...
+}
 ```
 
 Incorrect:
@@ -542,6 +580,11 @@ Incorrect:
 TITLE_RE = r'<h1>([^<]+)</h1>'
 # ...some lines of code...
 title = self._html_search_regex(TITLE_RE, webpage, 'title')
+# ...some lines of code...
+return {
+    'title': title,
+    # ...some lines of code...
+}
 ```
 
 
@@ -573,33 +616,32 @@ Methods supporting list of patterns are: `_search_regex`, `_html_search_regex`, 
 
 ### Trailing parentheses
 
-Always move trailing parentheses used for grouping/functions after the last argument. On the other hand, literal list/tuple/dict/set should closed be in a new line. Generators and list/dict comprehensions may use either style
+Always move trailing parentheses used for grouping/functions after the last argument. On the other hand, multi-line literal list/tuple/dict/set should closed be in a new line. Generators and list/dict comprehensions may use either style
 
 #### Examples
 
 Correct:
 
 ```python
-url = try_get(
-    info,
-    lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
-    list)
+url = traverse_obj(info, (
+    'context', 'dispatcher', 'stores', 'VideoTitlePageStore', 'data', 'video', 0, 'VideoUrlSet', 'VideoUrl'), list)
 ```
 Correct:
 
 ```python
-url = try_get(info,
-              lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
-              list)
+url = traverse_obj(
+    info,
+    ('context', 'dispatcher', 'stores', 'VideoTitlePageStore', 'data', 'video', 0, 'VideoUrlSet', 'VideoUrl'),
+    list)
 ```
 
 Incorrect:
 
 ```python
-url = try_get(
+url = traverse_obj(
     info,
-    lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
-    list,
+    ('context', 'dispatcher', 'stores', 'VideoTitlePageStore', 'data', 'video', 0, 'VideoUrlSet', 'VideoUrl'),
+    list
 )
 ```
 
@@ -648,20 +690,16 @@ Use `unified_strdate` for uniform `upload_date` or any `YYYYMMDD` meta field ext
 
 Explore [`yt_dlp/utils.py`](yt_dlp/utils.py) for more useful convenience functions.
 
-#### More examples
+#### Examples
 
-##### Safely extract optional description from parsed JSON
 ```python
 description = traverse_obj(response, ('result', 'video', 'summary'), expected_type=str)
-```
-
-##### Safely extract more optional metadata
-```python
+thumbnails = traverse_obj(response, ('result', 'thumbnails', ..., 'url'), expected_type=url_or_none)
 video = traverse_obj(response, ('result', 'video', 0), default={}, expected_type=dict)
-description = video.get('summary')
 duration = float_or_none(video.get('durationMs'), scale=1000)
 view_count = int_or_none(video.get('views'))
 ```
+
 
 # My pull request is labeled pending-fixes
 

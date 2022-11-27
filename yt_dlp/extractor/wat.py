@@ -54,7 +54,7 @@ class WatIE(InfoExtractor):
         #     'http://www.wat.tv/interface/contentv4s/' + video_id, video_id)
         video_data = self._download_json(
             'https://mediainfo.tf1.fr/mediainfocombo/' + video_id,
-            video_id, query={'context': 'MYTF1'})
+            video_id, query={'context': 'MYTF1', 'pver': '4020003'})
         video_info = video_data['media']
 
         error_desc = video_info.get('error_desc')
@@ -94,8 +94,6 @@ class WatIE(InfoExtractor):
                 'http://www.wat.tv/get/webhtml/' + video_id, video_id, fatal=False)
             if manifest_urls:
                 extract_formats(manifest_urls)
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

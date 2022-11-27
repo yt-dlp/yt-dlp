@@ -2,6 +2,7 @@ name: Site feature request
 description: Request a new functionality for a supported site
 labels: [triage, site-enhancement]
 body:
+  %(no_skip)s
   - type: checkboxes
     id: checklist
     attributes:
@@ -9,13 +10,13 @@ body:
       description: |
         Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
       options:
-        - label: I'm reporting a site feature request
+        - label: I'm requesting a site-specific feature
           required: true
         - label: I've verified that I'm running yt-dlp version **%(version)s** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
           required: true
-        - label: I've checked that all provided URLs are alive and playable in a browser
+        - label: I've checked that all provided URLs are playable in a browser with the same IP and same login details
           required: true
-        - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues including closed ones. DO NOT post duplicates
+        - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues **including closed ones**. DO NOT post duplicates
           required: true
         - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
           required: true
@@ -24,8 +25,8 @@ body:
     id: region
     attributes:
       label: Region
-      description: "Enter the region the site is accessible from"
-      placeholder: "India"
+      description: Enter the country/region that the site is accessible from
+      placeholder: India
   - type: textarea
     id: example-urls
     attributes:
@@ -39,34 +40,9 @@ body:
   - type: textarea
     id: description
     attributes:
-      label: Description
-      description: |
-        Provide an explanation of your site feature request in an arbitrary form.
-        Please make sure the description is worded well enough to be understood, see [is-the-description-of-the-issue-itself-sufficient](https://github.com/ytdl-org/youtube-dl#is-the-description-of-the-issue-itself-sufficient).
-        Provide any additional information, any suggested solutions, and as much context and examples as possible
-      placeholder: WRITE DESCRIPTION HERE
+      label: Provide a description that is worded well enough to be understood
+      description: See [is-the-description-of-the-issue-itself-sufficient](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-description-of-the-issue-itself-sufficient)
+      placeholder: Provide any additional information, any suggested solutions, and as much context and examples as possible
     validations:
       required: true
-  - type: textarea
-    id: log
-    attributes:
-      label: Verbose log
-      description: |
-        Provide the complete verbose output of yt-dlp that demonstrates the need for the enhancement.
-        Add the `-vU` flag to your command line you run yt-dlp with (`yt-dlp -vU <your command line>`), copy the WHOLE output and insert it below.
-        It should look similar to this:
-      placeholder: |
-        [debug] Command-line config: ['-vU', 'http://www.youtube.com/watch?v=BaW_jenozKc']
-        [debug] Portable config file: yt-dlp.conf
-        [debug] Portable config: ['-i']
-        [debug] Encodings: locale cp1252, fs utf-8, stdout utf-8, stderr utf-8, pref cp1252
-        [debug] yt-dlp version %(version)s (exe)
-        [debug] Python version 3.8.8 (CPython 64bit) - Windows-10-10.0.19041-SP0
-        [debug] exe versions: ffmpeg 3.0.1, ffprobe 3.0.1
-        [debug] Optional libraries: Cryptodome, keyring, mutagen, sqlite, websockets
-        [debug] Proxy map: {}
-        yt-dlp is up to date (%(version)s)
-        <more lines>
-      render: shell
-    validations:
-      required: true
+  %(verbose)s

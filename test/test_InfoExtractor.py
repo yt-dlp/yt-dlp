@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
@@ -6,10 +7,12 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import threading
-from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
 
-from yt_dlp.compat import compat_etree_fromstring, compat_http_server
+import http.server
+import threading
+
+from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
+from yt_dlp.compat import compat_etree_fromstring
 from yt_dlp.extractor import YoutubeIE, get_info_extractor
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import (
@@ -23,7 +26,7 @@ TEAPOT_RESPONSE_STATUS = 418
 TEAPOT_RESPONSE_BODY = "<h1>418 I'm a teapot</h1>"
 
 
-class InfoExtractorTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
+class InfoExtractorTestRequestHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
@@ -38,7 +41,9 @@ class InfoExtractorTestRequestHandler(compat_http_server.BaseHTTPRequestHandler)
 
 
 class DummyIE(InfoExtractor):
-    pass
+    def _sort_formats(self, formats, field_preference=[]):
+        self._downloader.sort_formats(
+            {'formats': formats, '_format_sort_fields': field_preference})
 
 
 class TestInfoExtractor(unittest.TestCase):
@@ -498,6 +503,24 @@ class TestInfoExtractor(unittest.TestCase):
             {
                 'formats': [{
                     'url': 'https://www.klarna.com/uk/wp-content/uploads/sites/11/2019/01/KL062_Smooth3_0_DogWalking_5s_920x080_.mp4',
+                    'ext': 'mp4',
+                }],
+            })
+
+        # from https://0000.studio/
+        # with type attribute but without extension in URL
+        expect_dict(
+            self,
+            self.ie._parse_html5_media_entries(
+                'https://0000.studio',
+                r'''
+                <video src="https://d1ggyt9m8pwf3g.cloudfront.net/protected/ap-northeast-1:1864af40-28d5-492b-b739-b32314b1a527/archive/clip/838db6a7-8973-4cd6-840d-8517e4093c92"
+                    controls="controls" type="video/mp4" preload="metadata" autoplay="autoplay" playsinline class="object-contain">
+                </video>
+                ''', None)[0],
+            {
+                'formats': [{
+                    'url': 'https://d1ggyt9m8pwf3g.cloudfront.net/protected/ap-northeast-1:1864af40-28d5-492b-b739-b32314b1a527/archive/clip/838db6a7-8973-4cd6-840d-8517e4093c92',
                     'ext': 'mp4',
                 }],
             })
@@ -1360,7 +1383,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         for mpd_file, mpd_url, mpd_base_url, expected_formats, expected_subtitles in _TEST_CASES:
             with open('./test/testdata/mpd/%s.mpd' % mpd_file, encoding='utf-8') as f:
                 formats, subtitles = self.ie._parse_mpd_formats_and_subtitles(
-                    compat_etree_fromstring(f.read().encode('utf-8')),
+                    compat_etree_fromstring(f.read().encode()),
                     mpd_base_url=mpd_base_url, mpd_url=mpd_url)
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
@@ -1546,12 +1569,298 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                     ]
                 },
             ),
+            (
+                'ec-3_test',
+                'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                [{
+                    'format_id': 'audio_deu_1-224',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'isma',
+                    'tbr': 224,
+                    'asr': 48000,
+                    'vcodec': 'none',
+                    'acodec': 'EC-3',
+                    'protocol': 'ism',
+                    '_download_params':
+                    {
+                        'stream_type': 'audio',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 0,
+                        'height': 0,
+                        'fourcc': 'EC-3',
+                        'language': 'deu',
+                        'codec_private_data': '00063F000000AF87FBA7022DFB42A4D405CD93843BDD0700200F00',
+                        'sampling_rate': 48000,
+                        'channels': 6,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                    'audio_ext': 'isma',
+                    'video_ext': 'none',
+                    'abr': 224,
+                }, {
+                    'format_id': 'audio_deu-127',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'isma',
+                    'tbr': 127,
+                    'asr': 48000,
+                    'vcodec': 'none',
+                    'acodec': 'AACL',
+                    'protocol': 'ism',
+                    '_download_params':
+                    {
+                        'stream_type': 'audio',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 0,
+                        'height': 0,
+                        'fourcc': 'AACL',
+                        'language': 'deu',
+                        'codec_private_data': '1190',
+                        'sampling_rate': 48000,
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                    'audio_ext': 'isma',
+                    'video_ext': 'none',
+                    'abr': 127,
+                }, {
+                    'format_id': 'video_deu-23',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 384,
+                    'height': 216,
+                    'tbr': 23,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    '_download_params':
+                    {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 384,
+                        'height': 216,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '000000016742C00CDB06077E5C05A808080A00000300020000030009C0C02EE0177CC6300F142AE00000000168CA8DC8',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                    'video_ext': 'ismv',
+                    'audio_ext': 'none',
+                    'vbr': 23,
+                }, {
+                    'format_id': 'video_deu-403',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 400,
+                    'height': 224,
+                    'tbr': 403,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    '_download_params':
+                    {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 400,
+                        'height': 224,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D4014E98323B602D4040405000003000100000300320F1429380000000168EAECF2',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                    'video_ext': 'ismv',
+                    'audio_ext': 'none',
+                    'vbr': 403,
+                }, {
+                    'format_id': 'video_deu-680',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 640,
+                    'height': 360,
+                    'tbr': 680,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    '_download_params':
+                    {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 640,
+                        'height': 360,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D401EE981405FF2E02D4040405000000300100000030320F162D3800000000168EAECF2',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                    'video_ext': 'ismv',
+                    'audio_ext': 'none',
+                    'vbr': 680,
+                }, {
+                    'format_id': 'video_deu-1253',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 640,
+                    'height': 360,
+                    'tbr': 1253,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    '_download_params':
+                    {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 640,
+                        'height': 360,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D401EE981405FF2E02D4040405000000300100000030320F162D3800000000168EAECF2',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                    'video_ext': 'ismv',
+                    'audio_ext': 'none',
+                    'vbr': 1253,
+                }, {
+                    'format_id': 'video_deu-2121',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 768,
+                    'height': 432,
+                    'tbr': 2121,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    '_download_params':
+                    {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 768,
+                        'height': 432,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D401EECA0601BD80B50101014000003000400000300C83C58B6580000000168E93B3C80',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                    'video_ext': 'ismv',
+                    'audio_ext': 'none',
+                    'vbr': 2121,
+                }, {
+                    'format_id': 'video_deu-3275',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 1280,
+                    'height': 720,
+                    'tbr': 3275,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    '_download_params':
+                    {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 1280,
+                        'height': 720,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D4020ECA02802DD80B501010140000003004000000C83C60C65800000000168E93B3C80',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                    'video_ext': 'ismv',
+                    'audio_ext': 'none',
+                    'vbr': 3275,
+                }, {
+                    'format_id': 'video_deu-5300',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 1920,
+                    'height': 1080,
+                    'tbr': 5300,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    '_download_params':
+                    {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 1920,
+                        'height': 1080,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D4028ECA03C0113F2E02D4040405000000300100000030320F18319600000000168E93B3C80',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                    'video_ext': 'ismv',
+                    'audio_ext': 'none',
+                    'vbr': 5300,
+                }, {
+                    'format_id': 'video_deu-8079',
+                    'url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'manifest_url': 'https://smstr01.dmm.t-online.de/smooth24/smoothstream_m1/streaming/sony/9221438342941275747/636887760842957027/25_km_h-Trailer-9221571562372022953_deu_20_1300k_HD_H_264_ISMV.ism/Manifest',
+                    'ext': 'ismv',
+                    'width': 1920,
+                    'height': 1080,
+                    'tbr': 8079,
+                    'vcodec': 'AVC1',
+                    'acodec': 'none',
+                    'protocol': 'ism',
+                    '_download_params':
+                    {
+                        'stream_type': 'video',
+                        'duration': 370000000,
+                        'timescale': 10000000,
+                        'width': 1920,
+                        'height': 1080,
+                        'fourcc': 'AVC1',
+                        'language': 'deu',
+                        'codec_private_data': '00000001674D4028ECA03C0113F2E02D4040405000000300100000030320F18319600000000168E93B3C80',
+                        'channels': 2,
+                        'bits_per_sample': 16,
+                        'nal_unit_length_field': 4
+                    },
+                    'video_ext': 'ismv',
+                    'audio_ext': 'none',
+                    'vbr': 8079,
+                }],
+                {},
+            ),
         ]
 
         for ism_file, ism_url, expected_formats, expected_subtitles in _TEST_CASES:
             with open('./test/testdata/ism/%s.Manifest' % ism_file, encoding='utf-8') as f:
                 formats, subtitles = self.ie._parse_ism_formats_and_subtitles(
-                    compat_etree_fromstring(f.read().encode('utf-8')), ism_url=ism_url)
+                    compat_etree_fromstring(f.read().encode()), ism_url=ism_url)
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
                 expect_value(self, subtitles, expected_subtitles, None)
@@ -1577,7 +1886,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         for f4m_file, f4m_url, expected_formats in _TEST_CASES:
             with open('./test/testdata/f4m/%s.f4m' % f4m_file, encoding='utf-8') as f:
                 formats = self.ie._parse_f4m_formats(
-                    compat_etree_fromstring(f.read().encode('utf-8')),
+                    compat_etree_fromstring(f.read().encode()),
                     f4m_url, None)
                 self.ie._sort_formats(formats)
                 expect_value(self, formats, expected_formats, None)
@@ -1624,7 +1933,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         for xspf_file, xspf_url, expected_entries in _TEST_CASES:
             with open('./test/testdata/xspf/%s.xspf' % xspf_file, encoding='utf-8') as f:
                 entries = self.ie._parse_xspf(
-                    compat_etree_fromstring(f.read().encode('utf-8')),
+                    compat_etree_fromstring(f.read().encode()),
                     xspf_file, xspf_url=xspf_url, xspf_base_url=xspf_url)
                 expect_value(self, entries, expected_entries, None)
                 for i in range(len(entries)):
@@ -1637,7 +1946,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         # or the underlying `_download_webpage_handle` returning no content
         # when a response matches `expected_status`.
 
-        httpd = compat_http_server.HTTPServer(
+        httpd = http.server.HTTPServer(
             ('127.0.0.1', 0), InfoExtractorTestRequestHandler)
         port = http_server_port(httpd)
         server_thread = threading.Thread(target=httpd.serve_forever)

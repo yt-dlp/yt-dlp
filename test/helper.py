@@ -9,7 +9,7 @@ import types
 
 import yt_dlp.extractor
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_os_name, compat_str
+from yt_dlp.compat import compat_os_name
 from yt_dlp.utils import preferredencoding, write_string
 
 if 'pytest' in sys.modules:
@@ -44,7 +44,7 @@ def try_rm(filename):
             raise
 
 
-def report_warning(message):
+def report_warning(message, *args, **kwargs):
     '''
     Print the message to stderr, it will be prefixed with 'WARNING:'
     If stderr is a tty file the 'WARNING:' will be colored
@@ -67,10 +67,10 @@ class FakeYDL(YoutubeDL):
         super().__init__(params, auto_init=False)
         self.result = []
 
-    def to_screen(self, s, skip_eol=None):
+    def to_screen(self, s, *args, **kwargs):
         print(s)
 
-    def trouble(self, s, tb=None):
+    def trouble(self, s, *args, **kwargs):
         raise Exception(s)
 
     def download(self, x):
@@ -80,10 +80,10 @@ class FakeYDL(YoutubeDL):
         # Silence an expected warning matching a regex
         old_report_warning = self.report_warning
 
-        def report_warning(self, message):
+        def report_warning(self, message, *args, **kwargs):
             if re.match(regex, message):
                 return
-            old_report_warning(message)
+            old_report_warning(message, *args, **kwargs)
         self.report_warning = types.MethodType(report_warning, self)
 
 
@@ -92,33 +92,40 @@ def gettestcases(include_onlymatching=False):
         yield from ie.get_testcases(include_onlymatching)
 
 
-md5 = lambda s: hashlib.md5(s.encode('utf-8')).hexdigest()
+def getwebpagetestcases():
+    for ie in yt_dlp.extractor.gen_extractors():
+        for tc in ie.get_webpage_testcases():
+            tc.setdefault('add_ie', []).append('Generic')
+            yield tc
+
+
+md5 = lambda s: hashlib.md5(s.encode()).hexdigest()
 
 
 def expect_value(self, got, expected, field):
-    if isinstance(expected, compat_str) and expected.startswith('re:'):
+    if isinstance(expected, str) and expected.startswith('re:'):
         match_str = expected[len('re:'):]
         match_rex = re.compile(match_str)
 
         self.assertTrue(
-            isinstance(got, compat_str),
-            f'Expected a {compat_str.__name__} object, but got {type(got).__name__} for field {field}')
+            isinstance(got, str),
+            f'Expected a {str.__name__} object, but got {type(got).__name__} for field {field}')
         self.assertTrue(
             match_rex.match(got),
             f'field {field} (value: {got!r}) should match {match_str!r}')
-    elif isinstance(expected, compat_str) and expected.startswith('startswith:'):
+    elif isinstance(expected, str) and expected.startswith('startswith:'):
         start_str = expected[len('startswith:'):]
         self.assertTrue(
-            isinstance(got, compat_str),
-            f'Expected a {compat_str.__name__} object, but got {type(got).__name__} for field {field}')
+            isinstance(got, str),
+            f'Expected a {str.__name__} object, but got {type(got).__name__} for field {field}')
         self.assertTrue(
             got.startswith(start_str),
             f'field {field} (value: {got!r}) should start with {start_str!r}')
-    elif isinstance(expected, compat_str) and expected.startswith('contains:'):
+    elif isinstance(expected, str) and expected.startswith('contains:'):
         contains_str = expected[len('contains:'):]
         self.assertTrue(
-            isinstance(got, compat_str),
-            f'Expected a {compat_str.__name__} object, but got {type(got).__name__} for field {field}')
+            isinstance(got, str),
+            f'Expected a {str.__name__} object, but got {type(got).__name__} for field {field}')
         self.assertTrue(
             contains_str in got,
             f'field {field} (value: {got!r}) should contain {contains_str!r}')
@@ -142,12 +149,12 @@ def expect_value(self, got, expected, field):
                     index, field, type_expected, type_got))
             expect_value(self, item_got, item_expected, field)
     else:
-        if isinstance(expected, compat_str) and expected.startswith('md5:'):
+        if isinstance(expected, str) and expected.startswith('md5:'):
             self.assertTrue(
-                isinstance(got, compat_str),
+                isinstance(got, str),
                 f'Expected field {field} to be a unicode object, but got value {got!r} of type {type(got)!r}')
             got = 'md5:' + md5(got)
-        elif isinstance(expected, compat_str) and re.match(r'^(?:min|max)?count:\d+', expected):
+        elif isinstance(expected, str) and re.match(r'^(?:min|max)?count:\d+', expected):
             self.assertTrue(
                 isinstance(got, (list, dict)),
                 f'Expected field {field} to be a list or a dict, but it is of type {type(got).__name__}')
@@ -215,6 +222,10 @@ def sanitize_got_info_dict(got_dict):
     if test_info_dict.get('display_id') == test_info_dict.get('id'):
         test_info_dict.pop('display_id')
 
+    # Check url for flat entries
+    if got_dict.get('_type', 'video') != 'video' and got_dict.get('url'):
+        test_info_dict['url'] = got_dict['url']
+
     return test_info_dict
 
 
@@ -228,33 +239,31 @@ def expect_info_dict(self, got_dict, expected_dict):
         for key in mandatory_fields:
             self.assertTrue(got_dict.get(key), 'Missing mandatory field %s' % key)
     # Check for mandatory fields that are automatically set by YoutubeDL
-    for key in ['webpage_url', 'extractor', 'extractor_key']:
-        self.assertTrue(got_dict.get(key), 'Missing field: %s' % key)
+    if got_dict.get('_type', 'video') == 'video':
+        for key in ['webpage_url', 'extractor', 'extractor_key']:
+            self.assertTrue(got_dict.get(key), 'Missing field: %s' % key)
 
     test_info_dict = sanitize_got_info_dict(got_dict)
 
     missing_keys = set(test_info_dict.keys()) - set(expected_dict.keys())
     if missing_keys:
         def _repr(v):
-            if isinstance(v, compat_str):
+            if isinstance(v, str):
                 return "'%s'" % v.replace('\\', '\\\\').replace("'", "\\'").replace('\n', '\\n')
             elif isinstance(v, type):
                 return v.__name__
             else:
                 return repr(v)
-        info_dict_str = ''
-        if len(missing_keys) != len(expected_dict):
-            info_dict_str += ''.join(
-                f'    {_repr(k)}: {_repr(v)},\n'
-                for k, v in test_info_dict.items() if k not in missing_keys)
-
-            if info_dict_str:
-                info_dict_str += '\n'
+        info_dict_str = ''.join(
+            f'    {_repr(k)}: {_repr(v)},\n'
+            for k, v in test_info_dict.items() if k not in missing_keys)
+        if info_dict_str:
+            info_dict_str += '\n'
         info_dict_str += ''.join(
             f'    {_repr(k)}: {_repr(test_info_dict[k])},\n'
             for k in missing_keys)
-        write_string(
-            '\n\'info_dict\': {\n' + info_dict_str + '},\n', out=sys.stderr)
+        info_dict_str = '\n\'info_dict\': {\n' + info_dict_str + '},\n'
+        write_string(info_dict_str.replace('\n', '\n        '), out=sys.stderr)
         self.assertFalse(
             missing_keys,
             'Missing keys in test definition: %s' % (
@@ -301,9 +310,9 @@ def assertEqual(self, got, expected, msg=None):
 def expect_warnings(ydl, warnings_re):
     real_warning = ydl.report_warning
 
-    def _report_warning(w):
+    def _report_warning(w, *args, **kwargs):
         if not any(re.search(w_re, w) for w_re in warnings_re):
-            real_warning(w)
+            real_warning(w, *args, **kwargs)
 
     ydl.report_warning = _report_warning
 

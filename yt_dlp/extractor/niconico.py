@@ -231,7 +231,7 @@ class NiconicoIE(InfoExtractor):
             or self._parse_json(
                 self._html_search_regex(
                     'data-api-data="([^"]+)"',
-                    self._download_webpage('http://www.nicovideo.jp/watch/' + video_id, video_id),
+                    self._download_webpage('https://www.nicovideo.jp/watch/' + video_id, video_id),
                     'API data', default='{}'),
                 video_id))
 
@@ -390,7 +390,7 @@ class NiconicoIE(InfoExtractor):
 
         try:
             webpage, handle = self._download_webpage_handle(
-                'http://www.nicovideo.jp/watch/' + video_id, video_id)
+                'https://www.nicovideo.jp/watch/' + video_id, video_id)
             if video_id.startswith('so'):
                 video_id = self._match_id(handle.geturl())
 
@@ -424,8 +424,6 @@ class NiconicoIE(InfoExtractor):
             fmt = self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol)
             if fmt:
                 formats.append(fmt)
-
-        self._sort_formats(formats)
 
         # Start extracting information
         tags = None
@@ -557,8 +555,7 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
     }
 
     def _call_api(self, list_id, resource, query):
-        "Implement this in child class"
-        pass
+        raise NotImplementedError('Must be implemented in subclasses')
 
     @staticmethod
     def _parse_owner(item):
@@ -647,14 +644,14 @@ class NiconicoSeriesIE(InfoExtractor):
             'id': '110226',
             'title': 'ご立派ァ！のシリーズ',
         },
-        'playlist_mincount': 10,  # as of 2021/03/17
+        'playlist_mincount': 10,
     }, {
         'url': 'https://www.nicovideo.jp/series/12312/',
         'info_dict': {
             'id': '12312',
             'title': 'バトルスピリッツ　お勧めカード紹介(調整中)',
         },
-        'playlist_mincount': 97,  # as of 2021/03/17
+        'playlist_mincount': 103,
     }, {
         'url': 'https://nico.ms/series/203559',
         'only_matching': True,
@@ -672,7 +669,7 @@ class NiconicoSeriesIE(InfoExtractor):
             title = unescapeHTML(title)
         playlist = [
             self.url_result(f'https://www.nicovideo.jp/watch/{v_id}', video_id=v_id)
-            for v_id in re.findall(r'href="/watch/([a-z0-9]+)" data-href="/watch/\1', webpage)]
+            for v_id in re.findall(r'data-href=[\'"](?:https://www\.nicovideo\.jp)?/watch/([a-z0-9]+)', webpage)]
         return self.playlist_result(playlist, list_id, title)
 
 
@@ -729,7 +726,7 @@ class NicovideoSearchBaseIE(InfoExtractor):
             webpage = self._download_webpage(url, item_id, query=query, note=note % {'page': page_num})
             results = re.findall(r'(?<=data-video-id=)["\']?(?P<videoid>.*?)(?=["\'])', webpage)
             for item in results:
-                yield self.url_result(f'http://www.nicovideo.jp/watch/{item}', 'Niconico', item)
+                yield self.url_result(f'https://www.nicovideo.jp/watch/{item}', 'Niconico', item)
             if not results:
                 break
 

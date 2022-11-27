@@ -1,11 +1,10 @@
-﻿from .common import InfoExtractor
-
+from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     smuggle_url,
     str_or_none,
     traverse_obj,
-    urlencode_postdata
+    urlencode_postdata,
 )
 
 

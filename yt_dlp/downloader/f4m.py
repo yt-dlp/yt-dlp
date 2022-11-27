@@ -1,17 +1,13 @@
+import base64
 import io
 import itertools
+import struct
 import time
+import urllib.error
+import urllib.parse
 
 from .fragment import FragmentFD
-from ..compat import (
-    compat_b64decode,
-    compat_etree_fromstring,
-    compat_struct_pack,
-    compat_struct_unpack,
-    compat_urllib_error,
-    compat_urllib_parse_urlparse,
-    compat_urlparse,
-)
+from ..compat import compat_etree_fromstring
 from ..utils import fix_xml_ampersands, xpath_text
 
 
@@ -35,13 +31,13 @@ class FlvReader(io.BytesIO):
 
     # Utility functions for reading numbers and strings
     def read_unsigned_long_long(self):
-        return compat_struct_unpack('!Q', self.read_bytes(8))[0]
+        return struct.unpack('!Q', self.read_bytes(8))[0]
 
     def read_unsigned_int(self):
-        return compat_struct_unpack('!I', self.read_bytes(4))[0]
+        return struct.unpack('!I', self.read_bytes(4))[0]
 
     def read_unsigned_char(self):
-        return compat_struct_unpack('!B', self.read_bytes(1))[0]
+        return struct.unpack('!B', self.read_bytes(1))[0]
 
     def read_string(self):
         res = b''
@@ -188,7 +184,7 @@ def build_fragments_list(boot_info):
     first_frag_number = fragment_run_entry_table[0]['first']
     fragments_counter = itertools.count(first_frag_number)
     for segment, fragments_count in segment_run_table['segment_run']:
-        # In some live HDS streams (for example Rai), `fragments_count` is
+        # In some live HDS streams (e.g. Rai), `fragments_count` is
         # abnormal and causing out-of-memory errors. It's OK to change the
         # number of fragments for live streams as they are updated periodically
         if fragments_count == 4294967295 and boot_info['live']:
@@ -203,11 +199,11 @@ def build_fragments_list(boot_info):
 
 
 def write_unsigned_int(stream, val):
-    stream.write(compat_struct_pack('!I', val))
+    stream.write(struct.pack('!I', val))
 
 
 def write_unsigned_int_24(stream, val):
-    stream.write(compat_struct_pack('!I', val)[1:])
+    stream.write(struct.pack('!I', val)[1:])
 
 
 def write_flv_header(stream):
@@ -256,8 +252,6 @@ class F4mFD(FragmentFD):
     A downloader for f4m manifests or AdobeHDS.
     """
 
-    FD_NAME = 'f4m'
-
     def _get_unencrypted_media(self, doc):
         media = doc.findall(_add_ns('media'))
         if not media:
@@ -303,12 +297,12 @@ class F4mFD(FragmentFD):
         # 1. http://live-1-1.rutube.ru/stream/1024/HDS/SD/C2NKsS85HQNckgn5HdEmOQ/1454167650/S-s604419906/move/four/dirs/upper/1024-576p.f4m
         bootstrap_url = node.get('url')
         if bootstrap_url:
-            bootstrap_url = compat_urlparse.urljoin(
+            bootstrap_url = urllib.parse.urljoin(
                 base_url, bootstrap_url)
             boot_info = self._get_bootstrap_from_url(bootstrap_url)
         else:
             bootstrap_url = None
-            bootstrap = compat_b64decode(node.text)
+            bootstrap = base64.b64decode(node.text)
             boot_info = read_bootstrap_info(bootstrap)
         return boot_info, bootstrap_url
 
@@ -338,14 +332,14 @@ class F4mFD(FragmentFD):
         # Prefer baseURL for relative URLs as per 11.2 of F4M 3.0 spec.
         man_base_url = get_base_url(doc) or man_url
 
-        base_url = compat_urlparse.urljoin(man_base_url, media.attrib['url'])
+        base_url = urllib.parse.urljoin(man_base_url, media.attrib['url'])
         bootstrap_node = doc.find(_add_ns('bootstrapInfo'))
         boot_info, bootstrap_url = self._parse_bootstrap_node(
             bootstrap_node, man_base_url)
         live = boot_info['live']
         metadata_node = media.find(_add_ns('metadata'))
         if metadata_node is not None:
-            metadata = compat_b64decode(metadata_node.text)
+            metadata = base64.b64decode(metadata_node.text)
         else:
             metadata = None
 
@@ -373,7 +367,7 @@ class F4mFD(FragmentFD):
             if not live:
                 write_metadata_tag(dest_stream, metadata)
 
-        base_url_parsed = compat_urllib_parse_urlparse(base_url)
+        base_url_parsed = urllib.parse.urlparse(base_url)
 
         self._start_frag_download(ctx, info_dict)
 
@@ -393,9 +387,10 @@ class F4mFD(FragmentFD):
                 query.append(info_dict['extra_param_to_segment_url'])
             url_parsed = base_url_parsed._replace(path=base_url_parsed.path + name, query='&'.join(query))
             try:
-                success, down_data = self._download_fragment(ctx, url_parsed.geturl(), info_dict)
+                success = self._download_fragment(ctx, url_parsed.geturl(), info_dict)
                 if not success:
                     return False
+                down_data = self._read_fragment(ctx)
                 reader = FlvReader(down_data)
                 while True:
                     try:
@@ -412,7 +407,7 @@ class F4mFD(FragmentFD):
                     if box_type == b'mdat':
                         self._append_fragment(ctx, box_data)
                         break
-            except (compat_urllib_error.HTTPError, ) as err:
+            except urllib.error.HTTPError as err:
                 if live and (err.code == 404 or err.code == 410):
                     # We didn't keep up with the live window. Continue
                     # with the next available fragment.
@@ -429,6 +424,4 @@ class F4mFD(FragmentFD):
                     msg = 'Missed %d fragments' % (fragments_list[0][1] - (frag_i + 1))
                     self.report_warning(msg)
 
-        self._finish_frag_download(ctx, info_dict)
-
-        return True
+        return self._finish_frag_download(ctx, info_dict)

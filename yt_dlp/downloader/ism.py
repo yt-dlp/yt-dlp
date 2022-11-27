@@ -2,9 +2,10 @@ import binascii
 import io
 import struct
 import time
+import urllib.error
 
 from .fragment import FragmentFD
-from ..compat import compat_urllib_error
+from ..utils import RetryManager
 
 u8 = struct.Struct('>B')
 u88 = struct.Struct('>Bx')
@@ -137,6 +138,8 @@ def write_piff_header(stream, params):
 
         if fourcc == 'AACL':
             sample_entry_box = box(b'mp4a', sample_entry_payload)
+        if fourcc == 'EC-3':
+            sample_entry_box = box(b'ec-3', sample_entry_payload)
     elif stream_type == 'video':
         sample_entry_payload += u16.pack(0)  # pre defined
         sample_entry_payload += u16.pack(0)  # reserved
@@ -151,7 +154,7 @@ def write_piff_header(stream, params):
         sample_entry_payload += u16.pack(0x18)  # depth
         sample_entry_payload += s16.pack(-1)  # pre defined
 
-        codec_private_data = binascii.unhexlify(params['codec_private_data'].encode('utf-8'))
+        codec_private_data = binascii.unhexlify(params['codec_private_data'].encode())
         if fourcc in ('H264', 'AVC1'):
             sps, pps = codec_private_data.split(u32.pack(1))[1:]
             avcc_payload = u8.pack(1)  # configuration version
@@ -230,8 +233,6 @@ class IsmFD(FragmentFD):
     Download segments in a ISM manifest
     """
 
-    FD_NAME = 'ism'
-
     def real_download(self, filename, info_dict):
         segments = info_dict['fragments'][:1] if self.params.get(
             'test', False) else info_dict['fragments']
@@ -247,7 +248,6 @@ class IsmFD(FragmentFD):
             'ism_track_written': False,
         })
 
-        fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
 
         frag_index = 0
@@ -255,8 +255,10 @@ class IsmFD(FragmentFD):
             frag_index += 1
             if frag_index <= ctx['fragment_index']:
                 continue
-            count = 0
-            while count <= fragment_retries:
+
+            retry_manager = RetryManager(self.params.get('fragment_retries'), self.report_retry,
+                                         frag_index=frag_index, fatal=not skip_unavailable_fragments)
+            for retry in retry_manager:
                 try:
                     success = self._download_fragment(ctx, segment['url'], info_dict)
                     if not success:
@@ -269,18 +271,13 @@ class IsmFD(FragmentFD):
                         write_piff_header(ctx['dest_stream'], info_dict['_download_params'])
                         extra_state['ism_track_written'] = True
                     self._append_fragment(ctx, frag_content)
-                    break
-                except compat_urllib_error.HTTPError as err:
-                    count += 1
-                    if count <= fragment_retries:
-                        self.report_retry_fragment(err, frag_index, count, fragment_retries)
-            if count > fragment_retries:
-                if skip_unavailable_fragments:
-                    self.report_skip_fragment(frag_index)
+                except urllib.error.HTTPError as err:
+                    retry.error = err
                     continue
-                self.report_error('giving up after %s fragment retries' % fragment_retries)
-                return False
 
-        self._finish_frag_download(ctx, info_dict)
+            if retry_manager.error:
+                if not skip_unavailable_fragments:
+                    return False
+                self.report_skip_fragment(frag_index)
 
-        return True
+        return self._finish_frag_download(ctx, info_dict)

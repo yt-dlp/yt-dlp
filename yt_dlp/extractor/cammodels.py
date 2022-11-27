@@ -84,7 +84,6 @@ class CamModelsIE(InfoExtractor):
                 else:
                     continue
                 formats.append(f)
-        self._sort_formats(formats)
 
         return {
             'id': user_id,

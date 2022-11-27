@@ -9,6 +9,7 @@ from ..utils import (
 
 class SlidesLiveIE(InfoExtractor):
     _VALID_URL = r'https?://slideslive\.com/(?P<id>[0-9]+)'
+    _WORKING = False
     _TESTS = [{
         # video_service_name = YOUTUBE
         'url': 'https://slideslive.com/38902413/gcc-ia16-backend',
@@ -84,7 +85,6 @@ class SlidesLiveIE(InfoExtractor):
                 formats.extend(self._extract_mpd_formats(
                     _MANIFEST_PATTERN % (service_id, 'mpd'), service_id,
                     mpd_id='dash', fatal=False))
-                self._sort_formats(formats)
                 info.update({
                     'id': service_id,
                     'formats': formats,

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
@@ -6,11 +7,12 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
 import random
 import subprocess
-from test.helper import FakeYDL, get_params, is_download_test
+import urllib.request
 
-from yt_dlp.compat import compat_str, compat_urllib_request
+from test.helper import FakeYDL, get_params, is_download_test
 
 
 @is_download_test
@@ -32,7 +34,7 @@ class TestMultipleSocks(unittest.TestCase):
             'proxy': params['primary_proxy']
         })
         self.assertEqual(
-            ydl.urlopen('http://yt-dl.org/ip').read().decode('utf-8'),
+            ydl.urlopen('http://yt-dl.org/ip').read().decode(),
             params['primary_server_ip'])
 
     def test_proxy_https(self):
@@ -43,7 +45,7 @@ class TestMultipleSocks(unittest.TestCase):
             'proxy': params['primary_proxy']
         })
         self.assertEqual(
-            ydl.urlopen('https://yt-dl.org/ip').read().decode('utf-8'),
+            ydl.urlopen('https://yt-dl.org/ip').read().decode(),
             params['primary_server_ip'])
 
     def test_secondary_proxy_http(self):
@@ -51,10 +53,10 @@ class TestMultipleSocks(unittest.TestCase):
         if params is None:
             return
         ydl = FakeYDL()
-        req = compat_urllib_request.Request('http://yt-dl.org/ip')
+        req = urllib.request.Request('http://yt-dl.org/ip')
         req.add_header('Ytdl-request-proxy', params['secondary_proxy'])
         self.assertEqual(
-            ydl.urlopen(req).read().decode('utf-8'),
+            ydl.urlopen(req).read().decode(),
             params['secondary_server_ip'])
 
     def test_secondary_proxy_https(self):
@@ -62,10 +64,10 @@ class TestMultipleSocks(unittest.TestCase):
         if params is None:
             return
         ydl = FakeYDL()
-        req = compat_urllib_request.Request('https://yt-dl.org/ip')
+        req = urllib.request.Request('https://yt-dl.org/ip')
         req.add_header('Ytdl-request-proxy', params['secondary_proxy'])
         self.assertEqual(
-            ydl.urlopen(req).read().decode('utf-8'),
+            ydl.urlopen(req).read().decode(),
             params['secondary_server_ip'])
 
 
@@ -96,16 +98,16 @@ class TestSocks(unittest.TestCase):
         ydl = FakeYDL({
             'proxy': '%s://127.0.0.1:%d' % (protocol, self.port),
         })
-        return ydl.urlopen('http://yt-dl.org/ip').read().decode('utf-8')
+        return ydl.urlopen('http://yt-dl.org/ip').read().decode()
 
     def test_socks4(self):
-        self.assertTrue(isinstance(self._get_ip('socks4'), compat_str))
+        self.assertTrue(isinstance(self._get_ip('socks4'), str))
 
     def test_socks4a(self):
-        self.assertTrue(isinstance(self._get_ip('socks4a'), compat_str))
+        self.assertTrue(isinstance(self._get_ip('socks4a'), str))
 
     def test_socks5(self):
-        self.assertTrue(isinstance(self._get_ip('socks5'), compat_str))
+        self.assertTrue(isinstance(self._get_ip('socks5'), str))
 
 
 if __name__ == '__main__':

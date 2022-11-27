@@ -104,7 +104,6 @@ class ServusIE(InfoExtractor):
                     'width': int_or_none(resource.get('width')),
                     'height': int_or_none(resource.get('height')),
                 })
-        self._sort_formats(formats)
 
         attrs = {}
         for attribute in video['attributes']:

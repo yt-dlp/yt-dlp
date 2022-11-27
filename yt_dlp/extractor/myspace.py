@@ -122,7 +122,6 @@ class MySpaceIE(InfoExtractor):
                 else:
                     raise ExtractorError(
                         'Found song but don\'t know how to download it')
-            self._sort_formats(formats)
             return {
                 'id': video_id,
                 'title': self._og_search_title(webpage),
@@ -140,7 +139,6 @@ class MySpaceIE(InfoExtractor):
                 video.get('streamUrl'), video.get('hlsStreamUrl'),
                 video.get('mp4StreamUrl'), int_or_none(video.get('width')),
                 int_or_none(video.get('height')))
-            self._sort_formats(formats)
             return {
                 'id': video_id,
                 'title': video['title'],

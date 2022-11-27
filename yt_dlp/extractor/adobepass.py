@@ -1,21 +1,19 @@
+import getpass
 import json
 import re
 import time
+import urllib.error
 import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urlparse,
-    compat_getpass
-)
+from ..compat import compat_urlparse
 from ..utils import (
-    unescapeHTML,
-    urlencode_postdata,
-    unified_timestamp,
-    ExtractorError,
     NO_DEFAULT,
+    ExtractorError,
+    unescapeHTML,
+    unified_timestamp,
+    urlencode_postdata,
 )
-
 
 MSO_INFO = {
     'DTV': {
@@ -1346,10 +1344,15 @@ MSO_INFO = {
         'username_field': 'username',
         'password_field': 'password',
     },
+    'AlticeOne': {
+        'name': 'Optimum TV',
+        'username_field': 'j_username',
+        'password_field': 'j_password',
+    },
 }
 
 
-class AdobePassIE(InfoExtractor):
+class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     _SERVICE_PROVIDER_TEMPLATE = 'https://sp.auth.adobe.com/adobe-services/%s'
     _USER_AGENT = 'Mozilla/5.0 (X11; Linux i686; rv:47.0) Gecko/20100101 Firefox/47.0'
     _MVPD_CACHE = 'ap-mvpd'
@@ -1430,32 +1433,34 @@ class AdobePassIE(InfoExtractor):
         guid = xml_text(resource, 'guid') if '<' in resource else resource
         count = 0
         while count < 2:
-            requestor_info = self._downloader.cache.load(self._MVPD_CACHE, requestor_id) or {}
+            requestor_info = self.cache.load(self._MVPD_CACHE, requestor_id) or {}
             authn_token = requestor_info.get('authn_token')
             if authn_token and is_expired(authn_token, 'simpleTokenExpires'):
                 authn_token = None
             if not authn_token:
-                # TODO add support for other TV Providers
                 mso_id = self.get_param('ap_mso')
+                if mso_id:
+                    username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
+                    if not username or not password:
+                        raise_mvpd_required()
+                    mso_info = MSO_INFO[mso_id]
+
+                    provider_redirect_page_res = self._download_webpage_handle(
+                        self._SERVICE_PROVIDER_TEMPLATE % 'authenticate/saml', video_id,
+                        'Downloading Provider Redirect Page', query={
+                            'noflash': 'true',
+                            'mso_id': mso_id,
+                            'requestor_id': requestor_id,
+                            'no_iframe': 'false',
+                            'domain_name': 'adobe.com',
+                            'redirect_url': url,
+                        })
+                elif not self._cookies_passed:
+                    raise_mvpd_required()
+
                 if not mso_id:
-                    raise_mvpd_required()
-                username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
-                if not username or not password:
-                    raise_mvpd_required()
-                mso_info = MSO_INFO[mso_id]
-
-                provider_redirect_page_res = self._download_webpage_handle(
-                    self._SERVICE_PROVIDER_TEMPLATE % 'authenticate/saml', video_id,
-                    'Downloading Provider Redirect Page', query={
-                        'noflash': 'true',
-                        'mso_id': mso_id,
-                        'requestor_id': requestor_id,
-                        'no_iframe': 'false',
-                        'domain_name': 'adobe.com',
-                        'redirect_url': url,
-                    })
-
-                if mso_id == 'Comcast_SSO':
+                    pass
+                elif mso_id == 'Comcast_SSO':
                     # Comcast page flow varies by video site and whether you
                     # are on Comcast's network.
                     provider_redirect_page, urlh = provider_redirect_page_res
@@ -1503,7 +1508,7 @@ class AdobePassIE(InfoExtractor):
                             'send_confirm_link': False,
                             'send_token': True
                         }))
-                    philo_code = compat_getpass('Type auth code you have received [Return]: ')
+                    philo_code = getpass.getpass('Type auth code you have received [Return]: ')
                     self._download_webpage(
                         'https://idp.philo.com/auth/update/login_code', video_id, 'Submitting token', data=urlencode_postdata({
                             'token': philo_code
@@ -1705,25 +1710,30 @@ class AdobePassIE(InfoExtractor):
                         mso_info.get('username_field', 'username'): username,
                         mso_info.get('password_field', 'password'): password
                     }
-                    if mso_id == 'Cablevision':
+                    if mso_id in ('Cablevision', 'AlticeOne'):
                         form_data['_eventId_proceed'] = ''
                     mvpd_confirm_page_res = post_form(provider_login_page_res, 'Logging in', form_data)
                     if mso_id != 'Rogers':
                         post_form(mvpd_confirm_page_res, 'Confirming Login')
 
-                session = self._download_webpage(
-                    self._SERVICE_PROVIDER_TEMPLATE % 'session', video_id,
-                    'Retrieving Session', data=urlencode_postdata({
-                        '_method': 'GET',
-                        'requestor_id': requestor_id,
-                    }), headers=mvpd_headers)
+                try:
+                    session = self._download_webpage(
+                        self._SERVICE_PROVIDER_TEMPLATE % 'session', video_id,
+                        'Retrieving Session', data=urlencode_postdata({
+                            '_method': 'GET',
+                            'requestor_id': requestor_id,
+                        }), headers=mvpd_headers)
+                except ExtractorError as e:
+                    if not mso_id and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                        raise_mvpd_required()
+                    raise
                 if '<pendingLogout' in session:
-                    self._downloader.cache.store(self._MVPD_CACHE, requestor_id, {})
+                    self.cache.store(self._MVPD_CACHE, requestor_id, {})
                     count += 1
                     continue
                 authn_token = unescapeHTML(xml_text(session, 'authnToken'))
                 requestor_info['authn_token'] = authn_token
-                self._downloader.cache.store(self._MVPD_CACHE, requestor_id, requestor_info)
+                self.cache.store(self._MVPD_CACHE, requestor_id, requestor_info)
 
             authz_token = requestor_info.get(guid)
             if authz_token and is_expired(authz_token, 'simpleTokenTTL'):
@@ -1739,14 +1749,14 @@ class AdobePassIE(InfoExtractor):
                         'userMeta': '1',
                     }), headers=mvpd_headers)
                 if '<pendingLogout' in authorize:
-                    self._downloader.cache.store(self._MVPD_CACHE, requestor_id, {})
+                    self.cache.store(self._MVPD_CACHE, requestor_id, {})
                     count += 1
                     continue
                 if '<error' in authorize:
                     raise ExtractorError(xml_text(authorize, 'details'), expected=True)
                 authz_token = unescapeHTML(xml_text(authorize, 'authzToken'))
                 requestor_info[guid] = authz_token
-                self._downloader.cache.store(self._MVPD_CACHE, requestor_id, requestor_info)
+                self.cache.store(self._MVPD_CACHE, requestor_id, requestor_info)
 
             mvpd_headers.update({
                 'ap_19': xml_text(authn_token, 'simpleSamlNameID'),
@@ -1762,7 +1772,7 @@ class AdobePassIE(InfoExtractor):
                     'hashed_guid': 'false',
                 }), headers=mvpd_headers)
             if '<pendingLogout' in short_authorize:
-                self._downloader.cache.store(self._MVPD_CACHE, requestor_id, {})
+                self.cache.store(self._MVPD_CACHE, requestor_id, {})
                 count += 1
                 continue
             return short_authorize

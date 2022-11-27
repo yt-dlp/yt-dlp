@@ -1,8 +1,10 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    join_nonempty,
     smuggle_url,
     str_or_none,
+    strip_or_none,
     traverse_obj,
 )
 
@@ -11,19 +13,16 @@ class TVerIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?P<type>lp|corner|series|episodes?|feature|tokyo2020/video)/)+(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'skip': 'videos are only available for 7 days',
-        'url': 'https://tver.jp/episodes/ephss8yveb',
+        'url': 'https://tver.jp/episodes/ep83nf3w4p',
         'info_dict': {
-            'title': '#44　料理と値段と店主にびっくり　オモてなしすぎウマい店　2時間SP',
-            'description': 'md5:66985373a66fed8ad3cd595a3cfebb13',
-        },
-        'add_ie': ['BrightcoveNew'],
-    }, {
-        'skip': 'videos are only available for 7 days',
-        'url': 'https://tver.jp/lp/episodes/ep6f16g26p',
-        'info_dict': {
-            # sorry but this is "correct"
-            'title': '4月11日(月)23時06分 ~ 放送予定',
-            'description': 'md5:4029cc5f4b1e8090dfc5b7bd2bc5cd0b',
+            'title': '家事ヤロウ!!! 売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！',
+            'description': 'md5:dc2c06b6acc23f1e7c730c513737719b',
+            'series': '家事ヤロウ!!!',
+            'episode': '売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！',
+            'alt_title': '売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！',
+            'channel': 'テレビ朝日',
+            'onair_label': '5月3日(火)放送分',
+            'ext_title': '家事ヤロウ!!! 売り場席巻のチーズSP＆財前直見×森泉親子の脱東京暮らし密着！ テレビ朝日 5月3日(火)放送分',
         },
         'add_ie': ['BrightcoveNew'],
     }, {
@@ -55,9 +54,24 @@ class TVerIE(InfoExtractor):
             video_id = self._match_id(self._search_regex(
                 (r'canonical"\s*href="(https?://tver\.jp/[^"]+)"', r'&link=(https?://tver\.jp/[^?&]+)[?&]'),
                 webpage, 'url regex'))
+
+        episode_info = self._download_json(
+            f'https://platform-api.tver.jp/service/api/v1/callEpisode/{video_id}?require_data=mylist,later[epefy106ur],good[epefy106ur],resume[epefy106ur]',
+            video_id, fatal=False,
+            query={
+                'platform_uid': self._PLATFORM_UID,
+                'platform_token': self._PLATFORM_TOKEN,
+            }, headers={
+                'x-tver-platform-type': 'web'
+            })
+        episode_content = traverse_obj(
+            episode_info, ('result', 'episode', 'content')) or {}
+
         video_info = self._download_json(
             f'https://statics.tver.jp/content/episode/{video_id}.json', video_id,
-            query={'v': '5'}, headers={
+            query={
+                'v': str_or_none(episode_content.get('version')) or '5',
+            }, headers={
                 'Origin': 'https://tver.jp',
                 'Referer': 'https://tver.jp/',
             })
@@ -68,24 +82,24 @@ class TVerIE(InfoExtractor):
         if not r_id.isdigit():
             r_id = f'ref:{r_id}'
 
-        additional_info = self._download_json(
-            f'https://platform-api.tver.jp/service/api/v1/callEpisode/{video_id}?require_data=mylist,later[epefy106ur],good[epefy106ur],resume[epefy106ur]',
-            video_id, fatal=False,
-            query={
-                'platform_uid': self._PLATFORM_UID,
-                'platform_token': self._PLATFORM_TOKEN,
-            }, headers={
-                'x-tver-platform-type': 'web'
-            })
+        episode = strip_or_none(episode_content.get('title'))
+        series = str_or_none(episode_content.get('seriesTitle'))
+        title = (
+            join_nonempty(series, episode, delim=' ')
+            or str_or_none(video_info.get('title')))
+        provider = str_or_none(episode_content.get('productionProviderName'))
+        onair_label = str_or_none(episode_content.get('broadcastDateLabel'))
 
         return {
             '_type': 'url_transparent',
-            'title': str_or_none(video_info.get('title')),
+            'title': title,
+            'series': series,
+            'episode': episode,
+            # an another title which is considered "full title" for some viewers
+            'alt_title': join_nonempty(title, provider, onair_label, delim=' '),
+            'channel': provider,
             'description': str_or_none(video_info.get('description')),
             'url': smuggle_url(
                 self.BRIGHTCOVE_URL_TEMPLATE % (p_id, r_id), {'geo_countries': ['JP']}),
-            'series': traverse_obj(
-                additional_info, ('result', ('episode', 'series'), 'content', ('seriesTitle', 'title')),
-                get_all=False),
             'ie_key': 'BrightcoveNew',
         }

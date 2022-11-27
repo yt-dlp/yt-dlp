@@ -1,11 +1,11 @@
 import itertools
 import json
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote_plus
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     int_or_none,
     str_to_int,
     url_or_none,
@@ -32,7 +32,6 @@ class ChingariBaseIE(InfoExtractor):
                 'url': base_url + '/apipublic' + media_data['path'],
                 'quality': 10,
             })
-        self._sort_formats(formats)
         timestamp = str_to_int(post_data.get('created_at'))
         if timestamp:
             timestamp = int_or_none(timestamp, 1000)
@@ -47,8 +46,8 @@ class ChingariBaseIE(InfoExtractor):
             'id': id,
             'extractor_key': ChingariIE.ie_key(),
             'extractor': 'Chingari',
-            'title': compat_urllib_parse_unquote_plus(clean_html(post_data.get('caption'))),
-            'description': compat_urllib_parse_unquote_plus(clean_html(post_data.get('caption'))),
+            'title': urllib.parse.unquote_plus(clean_html(post_data.get('caption'))),
+            'description': urllib.parse.unquote_plus(clean_html(post_data.get('caption'))),
             'duration': media_data.get('duration'),
             'thumbnail': url_or_none(thumbnail),
             'like_count': post_data.get('likeCount'),

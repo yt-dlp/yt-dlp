@@ -123,6 +123,13 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
         (?:https?://(?:link|player)\.theplatform\.com/[sp]/(?P<provider_id>[^/]+)/
            (?:(?:(?:[^/]+/)+select/)?(?P<media>media/(?:guid/\d+/)?)?|(?P<config>(?:[^/\?]+/(?:swf|config)|onsite)/select/))?
          |theplatform:)(?P<id>[^/\?&]+)'''
+    _EMBED_REGEX = [
+        r'''(?x)
+            <meta\s+
+                property=(["'])(?:og:video(?::(?:secure_)?url)?|twitter:player)\1\s+
+                content=(["'])(?P<url>https?://player\.theplatform\.com/p/.+?)\2''',
+        r'(?s)<(?:iframe|script)[^>]+src=(["\'])(?P<url>(?:https?:)?//player\.theplatform\.com/p/.+?)\1'
+    ]
 
     _TESTS = [{
         # from http://www.metacafe.com/watch/cb-e9I_cZgTgIPd/blackberrys_big_bold_z30/
@@ -192,22 +199,11 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
     }]
 
     @classmethod
-    def _extract_urls(cls, webpage):
-        m = re.search(
-            r'''(?x)
-                    <meta\s+
-                        property=(["'])(?:og:video(?::(?:secure_)?url)?|twitter:player)\1\s+
-                        content=(["'])(?P<url>https?://player\.theplatform\.com/p/.+?)\2
-            ''', webpage)
-        if m:
-            return [m.group('url')]
-
+    def _extract_embed_urls(cls, url, webpage):
         # Are whitespaces ignored in URLs?
         # https://github.com/ytdl-org/youtube-dl/issues/12044
-        matches = re.findall(
-            r'(?s)<(?:iframe|script)[^>]+src=(["\'])((?:https?:)?//player\.theplatform\.com/p/.+?)\1', webpage)
-        if matches:
-            return [re.sub(r'\s', '', list(zip(*matches))[1][0])]
+        for embed_url in super()._extract_embed_urls(url, webpage):
+            yield re.sub(r'\s', '', embed_url)
 
     @staticmethod
     def _sign_url(url, sig_key, sig_secret, life=600, include_qs=False):
@@ -300,7 +296,6 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             smil_url = self._sign_url(smil_url, sig['key'], sig['secret'])
 
         formats, subtitles = self._extract_theplatform_smil(smil_url, video_id)
-        self._sort_formats(formats)
 
         ret = self._extract_theplatform_metadata(path, video_id)
         combined_subtitles = self._merge_subtitles(ret.get('subtitles', {}), subtitles)
@@ -369,8 +364,6 @@ class ThePlatformFeedIE(ThePlatformBaseIE):
                     main_smil_url or smil_url, query), video_id, 'Downloading SMIL data for %s' % asset_type)
                 formats.extend(cur_formats)
                 subtitles = self._merge_subtitles(subtitles, cur_subtitles)
-
-        self._sort_formats(formats)
 
         thumbnails = [{
             'url': thumbnail['plfile$url'],

@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -24,6 +22,7 @@ class PladformIE(InfoExtractor):
                         )
                         (?P<id>\d+)
                     '''
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//out\.pladform\.ru/player\?.+?)\1']
     _TESTS = [{
         'url': 'http://out.pladform.ru/player?pl=18079&type=html5&videoid=100231282',
         'info_dict': {
@@ -60,13 +59,6 @@ class PladformIE(InfoExtractor):
         'url': 'http://video.pladform.ru/catalog/video/videoid/100183293/vkcid/0',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//out\.pladform\.ru/player\?.+?)\1', webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -118,8 +110,6 @@ class PladformIE(InfoExtractor):
             error = xpath_text(video, './cap', 'error', default=None)
             if error:
                 fail(error)
-
-        self._sort_formats(formats)
 
         webpage = self._download_webpage(
             'http://video.pladform.ru/catalog/video/videoid/%s' % video_id,

@@ -8,6 +8,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    remove_start,
     strip_or_none,
     try_get,
     unified_timestamp,
@@ -125,7 +126,6 @@ class DPlayBaseIE(InfoExtractor):
                     'url': format_url,
                     'format_id': format_id,
                 })
-        self._sort_formats(formats)
 
         creator = series = None
         tags = []
@@ -311,7 +311,7 @@ class DPlayIE(DPlayBaseIE):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         display_id = mobj.group('id')
-        domain = mobj.group('domain').lstrip('www.')
+        domain = remove_start(mobj.group('domain'), 'www.')
         country = mobj.group('country') or mobj.group('subdomain_country') or mobj.group('plus_country')
         host = 'disco-api.' + domain if domain[0] == 'd' else 'eu2-prod.disco-api.com'
         return self._get_disco_api_info(
@@ -717,6 +717,72 @@ class TLCIE(DiscoveryPlusBaseIE):
     }
 
 
+class MotorTrendIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:watch\.)?motortrend\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://watch.motortrend.com/video/car-issues-motortrend-atve-us/double-dakotas',
+        'info_dict': {
+            'id': '"4859182"',
+            'display_id': 'double-dakotas',
+            'ext': 'mp4',
+            'title': 'Double Dakotas',
+            'description': 'Tylers buy-one-get-one Dakota deal has the Wizard pulling double duty.',
+            'season_number': 2,
+            'episode_number': 3,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.motortrend.com/video/car-issues-motortrend-atve-us/double-dakotas',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'vel'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.watch.motortrend.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class MotorTrendOnDemandIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?motortrendondemand\.com/detail' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.motortrendondemand.com/detail/wheelstanding-dump-truck-stubby-bobs-comeback/37699/784',
+        'info_dict': {
+            'id': '37699',
+            'display_id': 'wheelstanding-dump-truck-stubby-bobs-comeback/37699',
+            'ext': 'mp4',
+            'title': 'Wheelstanding Dump Truck! Stubby Bob’s Comeback',
+            'description': 'md5:996915abe52a1c3dfc83aecea3cce8e7',
+            'season_number': 5,
+            'episode_number': 52,
+            'episode': 'Episode 52',
+            'season': 'Season 5',
+            'thumbnail': r're:^https?://.+\.jpe?g$',
+            'timestamp': 1388534401,
+            'duration': 1887.345,
+            'creator': 'Originals',
+            'series': 'Roadkill',
+            'upload_date': '20140101',
+            'tags': [],
+        },
+    }]
+
+    _PRODUCT = 'MTOD'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.motortrendondemand.com',
+        'realm': 'motortrend',
+        'country': 'us',
+    }
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers.update({
+            'x-disco-params': f'realm={realm}',
+            'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:4.39.1-gi1',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })
+
+
 class DiscoveryPlusIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:\w{2}/)?video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
@@ -879,6 +945,9 @@ class DiscoveryPlusItalyIE(DiscoveryPlusBaseIE):
     _TESTS = [{
         'url': 'https://www.discoveryplus.com/it/video/i-signori-della-neve/stagione-2-episodio-1-i-preparativi',
         'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.com/it/video/super-benny/trailer',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'dplus_us'
@@ -887,6 +956,13 @@ class DiscoveryPlusItalyIE(DiscoveryPlusBaseIE):
         'realm': 'dplay',
         'country': 'it',
     }
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers.update({
+            'x-disco-params': 'realm=%s' % realm,
+            'x-disco-client': f'WEB:UNKNOWN:{self._PRODUCT}:25.2.6',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })
 
 
 class DiscoveryPlusItalyShowIE(DiscoveryPlusShowBaseIE):

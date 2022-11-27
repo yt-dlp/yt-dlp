@@ -37,7 +37,7 @@ def md5_text(text):
     return hashlib.md5(text.encode('utf-8')).hexdigest()
 
 
-class IqiyiSDK(object):
+class IqiyiSDK:
     def __init__(self, target, ip, timestamp):
         self.target = target
         self.ip = ip
@@ -131,7 +131,7 @@ class IqiyiSDK(object):
         self.target = self.digit_sum(self.timestamp) + chunks[0] + compat_str(sum(ip))
 
 
-class IqiyiSDKInterpreter(object):
+class IqiyiSDKInterpreter:
     def __init__(self, sdk_code):
         self.sdk_code = sdk_code
 
@@ -385,7 +385,6 @@ class IqiyiIE(InfoExtractor):
 
             self._sleep(5, video_id)
 
-        self._sort_formats(formats)
         title = (get_element_by_id('widget-videotitle', webpage)
                  or clean_html(get_element_by_attribute('class', 'mod-play-tit', webpage))
                  or self._html_search_regex(r'<span[^>]+data-videochanged-title="word"[^>]*>([^<]+)</span>', webpage, 'title'))
@@ -441,6 +440,7 @@ class IqIE(InfoExtractor):
         '1': 'zh_CN',
         '2': 'zh_TW',
         '3': 'en',
+        '4': 'kor',
         '18': 'th',
         '21': 'my',
         '23': 'vi',
@@ -521,7 +521,7 @@ class IqIE(InfoExtractor):
     '''
 
     def _extract_vms_player_js(self, webpage, video_id):
-        player_js_cache = self._downloader.cache.load('iq', 'player_js')
+        player_js_cache = self.cache.load('iq', 'player_js')
         if player_js_cache:
             return player_js_cache
         webpack_js_url = self._proto_relative_url(self._search_regex(
@@ -534,7 +534,7 @@ class IqIE(InfoExtractor):
                 f'https://stc.iqiyipic.com/_next/static/chunks/{webpack_map1.get(module_index, module_index)}.{webpack_map2[module_index]}.js',
                 video_id, note=f'Downloading #{module_index} module JS', errnote='Unable to download module JS', fatal=False) or ''
             if 'vms request' in module_js:
-                self._downloader.cache.store('iq', 'player_js', module_js)
+                self.cache.store('iq', 'player_js', module_js)
                 return module_js
         raise ExtractorError('Unable to extract player JS')
 
@@ -587,8 +587,9 @@ class IqIE(InfoExtractor):
             ut_list = ['0']
 
         # bid 0 as an initial format checker
-        dash_paths = self._parse_json(PhantomJSwrapper(self).get(
-            url, html='<!DOCTYPE html>', video_id=video_id, note2='Executing signature code', jscode=self._DASH_JS % {
+        dash_paths = self._parse_json(PhantomJSwrapper(self, timeout=120_000).get(
+            url, note2='Executing signature code (this may take a couple minutes)',
+            html='<!DOCTYPE html>', video_id=video_id, jscode=self._DASH_JS % {
                 'tvid': video_info['tvId'],
                 'vid': video_info['vid'],
                 'src': traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'),
@@ -610,7 +611,7 @@ class IqIE(InfoExtractor):
         preview_time = traverse_obj(
             initial_format_data, ('boss_ts', (None, 'data'), ('previewTime', 'rtime')), expected_type=float_or_none, get_all=False)
         if traverse_obj(initial_format_data, ('boss_ts', 'data', 'prv'), expected_type=int_or_none):
-            self.report_warning('This preview video is limited%s' % format_field(preview_time, template=' to %s seconds'))
+            self.report_warning('This preview video is limited%s' % format_field(preview_time, None, ' to %s seconds'))
 
         # TODO: Extract audio-only formats
         for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):
@@ -664,8 +665,6 @@ class IqIE(InfoExtractor):
                     **parse_resolution(video_format.get('scrsz'))
                 })
             formats.extend(extracted_formats)
-
-        self._sort_formats(formats)
 
         for sub_format in traverse_obj(initial_format_data, ('program', 'stl', ...), expected_type=dict, default=[]):
             lang = self._LID_TAGS.get(str_or_none(sub_format.get('lid')), sub_format.get('_name'))

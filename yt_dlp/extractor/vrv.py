@@ -1,17 +1,14 @@
 import base64
-import json
 import hashlib
 import hmac
+import json
 import random
 import string
 import time
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_urllib_parse_urlencode,
-    compat_urllib_parse,
-)
+from ..compat import compat_HTTPError, compat_urllib_parse_urlencode
 from ..utils import (
     ExtractorError,
     float_or_none,
@@ -46,12 +43,12 @@ class VRVBaseIE(InfoExtractor):
             headers['Content-Type'] = 'application/json'
         base_string = '&'.join([
             'POST' if data else 'GET',
-            compat_urllib_parse.quote(base_url, ''),
-            compat_urllib_parse.quote(encoded_query, '')])
+            urllib.parse.quote(base_url, ''),
+            urllib.parse.quote(encoded_query, '')])
         oauth_signature = base64.b64encode(hmac.new(
             (self._API_PARAMS['oAuthSecret'] + '&' + self._TOKEN_SECRET).encode('ascii'),
             base_string.encode(), hashlib.sha1).digest()).decode()
-        encoded_query += '&oauth_signature=' + compat_urllib_parse.quote(oauth_signature, '')
+        encoded_query += '&oauth_signature=' + urllib.parse.quote(oauth_signature, '')
         try:
             return self._download_json(
                 '?'.join([base_url, encoded_query]), video_id,
@@ -195,7 +192,6 @@ class VRVIE(VRVBaseIE):
                     formats.extend(self._extract_vrv_formats(
                         stream.get('url'), video_id, stream_type.split('_')[1],
                         audio_locale, stream.get('hardsub_locale')))
-        self._sort_formats(formats)
 
         subtitles = {}
         for k in ('captions', 'subtitles'):

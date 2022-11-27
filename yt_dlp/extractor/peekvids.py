@@ -40,7 +40,6 @@ class PeekVidsIE(InfoExtractor):
         } for name, url in srcs.items() if len(name) > 8 and name.startswith('data-src')]
         if not formats:
             formats = [{'url': url} for url in srcs.values()]
-        self._sort_formats(formats)
 
         info = self._search_json_ld(webpage, video_id, expected_type='VideoObject')
         info.update({
@@ -51,7 +50,7 @@ class PeekVidsIE(InfoExtractor):
         return info
 
 
-class PlayVidsIE(PeekVidsIE):
+class PlayVidsIE(PeekVidsIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?playvids\.com/(?:embed/|[^/]{2}/)?(?P<id>[^/?#]*)'
     _TESTS = [{
         'url': 'https://www.playvids.com/U3pBrYhsjXM/pc/dane-jones-cute-redhead-with-perfect-tits-with-mini-vamp',

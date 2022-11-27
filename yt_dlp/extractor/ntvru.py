@@ -115,7 +115,6 @@ class NTVRuIE(InfoExtractor):
                 'url': file_,
                 'filesize': int_or_none(xpath_text(video, './%ssize' % format_id)),
             })
-        self._sort_formats(formats)
 
         return {
             'id': xpath_text(video, './id'),

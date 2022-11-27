@@ -64,7 +64,6 @@ class XNXXIE(InfoExtractor):
                     'format_id': format_id,
                     'quality': -1 if format_id == 'low' else 0,
                 })
-        self._sort_formats(formats)
 
         thumbnail = self._og_search_thumbnail(webpage, default=None) or get(
             'ThumbUrl', fatal=False) or get('ThumbUrl169', fatal=False)

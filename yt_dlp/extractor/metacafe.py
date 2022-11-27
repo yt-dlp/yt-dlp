@@ -1,17 +1,14 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse,
-    compat_urllib_parse_unquote,
-)
+from ..compat import compat_parse_qs, compat_urllib_parse_unquote
 from ..utils import (
-    determine_ext,
     ExtractorError,
-    int_or_none,
+    determine_ext,
     get_element_by_attribute,
+    int_or_none,
     mimetype2ext,
 )
 
@@ -143,7 +140,7 @@ class MetacafeIE(InfoExtractor):
 
         headers = {
             # Disable family filter
-            'Cookie': 'user=%s; ' % compat_urllib_parse.quote(json.dumps({'ffilter': False}))
+            'Cookie': 'user=%s; ' % urllib.parse.quote(json.dumps({'ffilter': False}))
         }
 
         # AnyClip videos require the flashversion cookie so that we get the link
@@ -270,7 +267,6 @@ class MetacafeIE(InfoExtractor):
                 'url': video_url,
                 'ext': video_ext,
             }]
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

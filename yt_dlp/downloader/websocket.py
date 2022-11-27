@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 import os
 import signal
@@ -5,7 +6,6 @@ import threading
 
 from .common import FileDownloader
 from .external import FFmpegFD
-from ..compat import asyncio
 from ..dependencies import websockets
 
 
@@ -19,7 +19,7 @@ class FFmpegSinkFD(FileDownloader):
         async def call_conn(proc, stdin):
             try:
                 await self.real_connection(stdin, info_dict)
-            except (BrokenPipeError, OSError):
+            except OSError:
                 pass
             finally:
                 with contextlib.suppress(OSError):

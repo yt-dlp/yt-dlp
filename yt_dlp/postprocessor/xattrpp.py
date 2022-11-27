@@ -43,7 +43,7 @@ class XAttrMetadataPP(PostProcessor):
                 if value:
                     if infoname == 'upload_date':
                         value = hyphenate_date(value)
-                    write_xattr(info['filepath'], xattrname, value.encode('utf-8'))
+                    write_xattr(info['filepath'], xattrname, value.encode())
 
         except XAttrUnavailableError as e:
             raise PostProcessingError(str(e))

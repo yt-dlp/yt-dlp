@@ -1,5 +1,25 @@
+**IMPORTANT**: PRs without the template will be CLOSED
+
+### Description of your *pull request* and other information
+
+</details>
+
 <!--
-# Please follow the guide below
+
+Explanation of your *pull request* in arbitrary form goes here. Please **make sure the description explains the purpose and effect** of your *pull request* and is worded well enough to be understood. Provide as much **context and examples** as possible
+
+-->
+
+ADD DESCRIPTION HERE
+
+Fixes #
+
+
+<details open><summary>Template</summary> <!-- OPEN is intentional -->
+
+<!--
+
+# PLEASE FOLLOW THE GUIDE BELOW
 
 - You will be asked some questions, please read them **carefully** and answer honestly
 - Put an `x` into all the boxes `[ ]` relevant to your *pull request* (like [x])
@@ -21,9 +41,3 @@
 - [ ] New extractor ([Piracy websites will not be accepted](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-website-primarily-used-for-piracy))
 - [ ] Core bug fix/improvement
 - [ ] New feature (It is strongly [recommended to open an issue first](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#adding-new-feature-or-making-overarching-changes))
-
----
-
-### Description of your *pull request* and other information
-
-Explanation of your *pull request* in arbitrary form goes here. Please **make sure the description explains the purpose and effect** of your *pull request* and is worded well enough to be understood. Provide as much **context and examples** as possible.

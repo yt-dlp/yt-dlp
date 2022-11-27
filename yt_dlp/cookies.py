@@ -1,12 +1,16 @@
+import base64
 import contextlib
-import ctypes
+import http.cookiejar
+import http.cookies
 import json
 import os
+import re
 import shutil
 import struct
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
@@ -16,14 +20,20 @@ from .aes import (
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
-from .compat import compat_b64decode, compat_cookiejar_Cookie
 from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
     secretstorage,
     sqlite3,
 )
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
-from .utils import Popen, YoutubeDLCookieJar, error_to_str, expand_path
+from .utils import (
+    Popen,
+    YoutubeDLCookieJar,
+    error_to_str,
+    expand_path,
+    is_path_like,
+    try_call,
+)
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
@@ -49,21 +59,26 @@ class YDLLogger:
         if self._ydl:
             self._ydl.report_error(message)
 
+    class ProgressBar(MultilinePrinter):
+        _DELAY, _timer = 0.1, 0
+
+        def print(self, message):
+            if time.time() - self._timer > self._DELAY:
+                self.print_at_line(f'[Cookies] {message}', 0)
+                self._timer = time.time()
+
     def progress_bar(self):
         """Return a context manager with a print method. (Optional)"""
         # Do not print to files/pipes, loggers, or when --no-progress is used
         if not self._ydl or self._ydl.params.get('noprogress') or self._ydl.params.get('logger'):
             return
-        file = self._ydl._out_files['error']
+        file = self._ydl._out_files.error
         try:
             if not file.isatty():
                 return
         except BaseException:
             return
-
-        printer = MultilinePrinter(file, preserve_output=False)
-        printer.print = lambda message: printer.print_at_line(f'[Cookies] {message}', 0)
-        return printer
+        return self.ProgressBar(file, preserve_output=False)
 
 
 def _create_progress_bar(logger):
@@ -79,22 +94,26 @@ def _create_progress_bar(logger):
 def load_cookies(cookie_file, browser_specification, ydl):
     cookie_jars = []
     if browser_specification is not None:
-        browser_name, profile, keyring = _parse_browser_specification(*browser_specification)
-        cookie_jars.append(extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring))
+        browser_name, profile, keyring, container = _parse_browser_specification(*browser_specification)
+        cookie_jars.append(
+            extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring, container=container))
 
     if cookie_file is not None:
-        cookie_file = expand_path(cookie_file)
+        is_filename = is_path_like(cookie_file)
+        if is_filename:
+            cookie_file = expand_path(cookie_file)
+
         jar = YoutubeDLCookieJar(cookie_file)
-        if os.access(cookie_file, os.R_OK):
+        if not is_filename or os.access(cookie_file, os.R_OK):
             jar.load(ignore_discard=True, ignore_expires=True)
         cookie_jars.append(jar)
 
     return _merge_cookie_jars(cookie_jars)
 
 
-def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None):
+def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None, container=None):
     if browser_name == 'firefox':
-        return _extract_firefox_cookies(profile, logger)
+        return _extract_firefox_cookies(profile, container, logger)
     elif browser_name == 'safari':
         return _extract_safari_cookies(profile, logger)
     elif browser_name in CHROMIUM_BASED_BROWSERS:
@@ -103,7 +122,7 @@ def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(),
         raise ValueError(f'unknown browser: {browser_name}')
 
 
-def _extract_firefox_cookies(profile, logger):
+def _extract_firefox_cookies(profile, container, logger):
     logger.info('Extracting cookies from firefox')
     if not sqlite3:
         logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
@@ -122,18 +141,43 @@ def _extract_firefox_cookies(profile, logger):
         raise FileNotFoundError(f'could not find firefox cookies database in {search_root}')
     logger.debug(f'Extracting cookies from: "{cookie_database_path}"')
 
+    container_id = None
+    if container not in (None, 'none'):
+        containers_path = os.path.join(os.path.dirname(cookie_database_path), 'containers.json')
+        if not os.path.isfile(containers_path) or not os.access(containers_path, os.R_OK):
+            raise FileNotFoundError(f'could not read containers.json in {search_root}')
+        with open(containers_path) as containers:
+            identities = json.load(containers).get('identities', [])
+        container_id = next((context.get('userContextId') for context in identities if container in (
+            context.get('name'),
+            try_call(lambda: re.fullmatch(r'userContext([^\.]+)\.label', context['l10nID']).group())
+        )), None)
+        if not isinstance(container_id, int):
+            raise ValueError(f'could not find firefox container "{container}" in containers.json')
+
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
-            cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
+            if isinstance(container_id, int):
+                logger.debug(
+                    f'Only loading cookies from firefox container "{container}", ID {container_id}')
+                cursor.execute(
+                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes LIKE ? OR originAttributes LIKE ?',
+                    (f'%userContextId={container_id}', f'%userContextId={container_id}&%'))
+            elif container == 'none':
+                logger.debug('Only loading cookies not belonging to any container')
+                cursor.execute(
+                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE NOT INSTR(originAttributes,"userContextId=")')
+            else:
+                cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
             with _create_progress_bar(logger) as progress_bar:
                 table = cursor.fetchall()
                 total_cookie_count = len(table)
                 for i, (host, name, value, path, expiry, is_secure) in enumerate(table):
                     progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
-                    cookie = compat_cookiejar_Cookie(
+                    cookie = http.cookiejar.Cookie(
                         version=0, name=name, value=value, port=None, port_specified=False,
                         domain=host, domain_specified=bool(host), domain_initial_dot=host.startswith('.'),
                         path=path, path_specified=bool(path), secure=is_secure, expires=expiry, discard=False,
@@ -147,30 +191,16 @@ def _extract_firefox_cookies(profile, logger):
 
 
 def _firefox_browser_dir():
-    if sys.platform in ('linux', 'linux2'):
-        return os.path.expanduser('~/.mozilla/firefox')
-    elif sys.platform == 'win32':
+    if sys.platform in ('cygwin', 'win32'):
         return os.path.expandvars(R'%APPDATA%\Mozilla\Firefox\Profiles')
     elif sys.platform == 'darwin':
         return os.path.expanduser('~/Library/Application Support/Firefox')
-    else:
-        raise ValueError(f'unsupported platform: {sys.platform}')
+    return os.path.expanduser('~/.mozilla/firefox')
 
 
 def _get_chromium_based_browser_settings(browser_name):
     # https://chromium.googlesource.com/chromium/src/+/HEAD/docs/user_data_dir.md
-    if sys.platform in ('linux', 'linux2'):
-        config = _config_home()
-        browser_dir = {
-            'brave': os.path.join(config, 'BraveSoftware/Brave-Browser'),
-            'chrome': os.path.join(config, 'google-chrome'),
-            'chromium': os.path.join(config, 'chromium'),
-            'edge': os.path.join(config, 'microsoft-edge'),
-            'opera': os.path.join(config, 'opera'),
-            'vivaldi': os.path.join(config, 'vivaldi'),
-        }[browser_name]
-
-    elif sys.platform == 'win32':
+    if sys.platform in ('cygwin', 'win32'):
         appdata_local = os.path.expandvars('%LOCALAPPDATA%')
         appdata_roaming = os.path.expandvars('%APPDATA%')
         browser_dir = {
@@ -194,7 +224,15 @@ def _get_chromium_based_browser_settings(browser_name):
         }[browser_name]
 
     else:
-        raise ValueError(f'unsupported platform: {sys.platform}')
+        config = _config_home()
+        browser_dir = {
+            'brave': os.path.join(config, 'BraveSoftware/Brave-Browser'),
+            'chrome': os.path.join(config, 'google-chrome'),
+            'chromium': os.path.join(config, 'chromium'),
+            'edge': os.path.join(config, 'microsoft-edge'),
+            'opera': os.path.join(config, 'opera'),
+            'vivaldi': os.path.join(config, 'vivaldi'),
+        }[browser_name]
 
     # Linux keyring names can be determined by snooping on dbus while opening the browser in KDE:
     # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"
@@ -273,7 +311,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
             else:
                 failed_message = ''
             logger.info(f'Extracted {len(jar)} cookies from {browser_name}{failed_message}')
-            counts = decryptor.cookie_counts.copy()
+            counts = decryptor._cookie_counts.copy()
             counts['unencrypted'] = unencrypted_cookies
             logger.debug(f'cookie version breakdown: {counts}')
             return jar
@@ -283,10 +321,10 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
 
 
 def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, path, expires_utc, is_secure):
-    host_key = host_key.decode('utf-8')
-    name = name.decode('utf-8')
-    value = value.decode('utf-8')
-    path = path.decode('utf-8')
+    host_key = host_key.decode()
+    name = name.decode()
+    value = value.decode()
+    path = path.decode()
     is_encrypted = not value and encrypted_value
 
     if is_encrypted:
@@ -294,7 +332,7 @@ def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, pa
         if value is None:
             return is_encrypted, None
 
-    return is_encrypted, compat_cookiejar_Cookie(
+    return is_encrypted, http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
         domain=host_key, domain_specified=bool(host_key), domain_initial_dot=host_key.startswith('.'),
         path=path, path_specified=bool(path), secure=is_secure, expires=expires_utc, discard=False,
@@ -327,23 +365,18 @@ class ChromeCookieDecryptor:
         - KeyStorageLinux::CreateService
     """
 
-    def decrypt(self, encrypted_value):
-        raise NotImplementedError('Must be implemented by sub classes')
+    _cookie_counts = {}
 
-    @property
-    def cookie_counts(self):
+    def decrypt(self, encrypted_value):
         raise NotImplementedError('Must be implemented by sub classes')
 
 
 def get_cookie_decryptor(browser_root, browser_keyring_name, logger, *, keyring=None):
-    if sys.platform in ('linux', 'linux2'):
-        return LinuxChromeCookieDecryptor(browser_keyring_name, logger, keyring=keyring)
-    elif sys.platform == 'darwin':
+    if sys.platform == 'darwin':
         return MacChromeCookieDecryptor(browser_keyring_name, logger)
-    elif sys.platform == 'win32':
+    elif sys.platform in ('win32', 'cygwin'):
         return WindowsChromeCookieDecryptor(browser_root, logger)
-    else:
-        raise NotImplementedError(f'Chrome cookie decryption is not supported on this platform: {sys.platform}')
+    return LinuxChromeCookieDecryptor(browser_keyring_name, logger, keyring=keyring)
 
 
 class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
@@ -359,10 +392,6 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
         # values from
         # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_linux.cc
         return pbkdf2_sha1(password, salt=b'saltysalt', iterations=1, key_length=16)
-
-    @property
-    def cookie_counts(self):
-        return self._cookie_counts
 
     def decrypt(self, encrypted_value):
         version = encrypted_value[:3]
@@ -397,10 +426,6 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
         # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_mac.mm
         return pbkdf2_sha1(password, salt=b'saltysalt', iterations=1003, key_length=16)
 
-    @property
-    def cookie_counts(self):
-        return self._cookie_counts
-
     def decrypt(self, encrypted_value):
         version = encrypted_value[:3]
         ciphertext = encrypted_value[3:]
@@ -425,10 +450,6 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
         self._logger = logger
         self._v10_key = _get_windows_v10_key(browser_root, logger)
         self._cookie_counts = {'v10': 0, 'other': 0}
-
-    @property
-    def cookie_counts(self):
-        return self._cookie_counts
 
     def decrypt(self, encrypted_value):
         version = encrypted_value[:3]
@@ -458,7 +479,7 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
             self._cookie_counts['other'] += 1
             # any other prefix means the data is DPAPI encrypted
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_win.cc
-            return _decrypt_windows_dpapi(encrypted_value, self._logger).decode('utf-8')
+            return _decrypt_windows_dpapi(encrypted_value, self._logger).decode()
 
 
 def _extract_safari_cookies(profile, logger):
@@ -521,7 +542,7 @@ class DataParser:
         while True:
             c = self.read_bytes(1)
             if c == b'\x00':
-                return b''.join(buffer).decode('utf-8')
+                return b''.join(buffer).decode()
             else:
                 buffer.append(c)
 
@@ -603,7 +624,7 @@ def _parse_safari_cookies_record(data, jar, logger):
 
     p.skip_to(record_size, 'space at the end of the record')
 
-    cookie = compat_cookiejar_Cookie(
+    cookie = http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
         domain=domain, domain_specified=bool(domain), domain_initial_dot=domain.startswith('.'),
         path=path, path_specified=bool(path), secure=is_secure, expires=expiration_date, discard=False,
@@ -723,21 +744,19 @@ def _get_kwallet_network_wallet(logger):
     """
     default_wallet = 'kdewallet'
     try:
-        proc = Popen([
+        stdout, _, returncode = Popen.run([
             'dbus-send', '--session', '--print-reply=literal',
             '--dest=org.kde.kwalletd5',
             '/modules/kwalletd5',
             'org.kde.KWallet.networkWallet'
-        ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        ], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
-        stdout, stderr = proc.communicate_or_kill()
-        if proc.returncode != 0:
+        if returncode:
             logger.warning('failed to read NetworkWallet')
             return default_wallet
         else:
-            network_wallet = stdout.decode('utf-8').strip()
-            logger.debug(f'NetworkWallet = "{network_wallet}"')
-            return network_wallet
+            logger.debug(f'NetworkWallet = "{stdout.strip()}"')
+            return stdout.strip()
     except Exception as e:
         logger.warning(f'exception while obtaining NetworkWallet: {e}')
         return default_wallet
@@ -755,17 +774,16 @@ def _get_kwallet_password(browser_keyring_name, logger):
     network_wallet = _get_kwallet_network_wallet(logger)
 
     try:
-        proc = Popen([
+        stdout, _, returncode = Popen.run([
             'kwallet-query',
             '--read-password', f'{browser_keyring_name} Safe Storage',
             '--folder', f'{browser_keyring_name} Keys',
             network_wallet
         ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
-        stdout, stderr = proc.communicate_or_kill()
-        if proc.returncode != 0:
-            logger.error(f'kwallet-query failed with return code {proc.returncode}. Please consult '
-                         'the kwallet-query man page for details')
+        if returncode:
+            logger.error(f'kwallet-query failed with return code {returncode}. '
+                         'Please consult the kwallet-query man page for details')
             return b''
         else:
             if stdout.lower().startswith(b'failed to read'):
@@ -780,9 +798,7 @@ def _get_kwallet_password(browser_keyring_name, logger):
                 return b''
             else:
                 logger.debug('password found')
-                if stdout[-1:] == b'\n':
-                    stdout = stdout[:-1]
-                return stdout
+                return stdout.rstrip(b'\n')
     except Exception as e:
         logger.warning(f'exception running kwallet-query: {error_to_str(e)}')
         return b''
@@ -829,17 +845,16 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
 def _get_mac_keyring_password(browser_keyring_name, logger):
     logger.debug('using find-generic-password to obtain password from OSX keychain')
     try:
-        proc = Popen(
+        stdout, _, returncode = Popen.run(
             ['security', 'find-generic-password',
              '-w',  # write password to stdout
              '-a', browser_keyring_name,  # match 'account'
              '-s', f'{browser_keyring_name} Safe Storage'],  # match 'service'
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-
-        stdout, stderr = proc.communicate_or_kill()
-        if stdout[-1:] == b'\n':
-            stdout = stdout[:-1]
-        return stdout
+        if returncode:
+            logger.warning('find-generic-password failed')
+            return None
+        return stdout.rstrip(b'\n')
     except Exception as e:
         logger.warning(f'exception running find-generic-password: {error_to_str(e)}')
         return None
@@ -858,7 +873,7 @@ def _get_windows_v10_key(browser_root, logger):
     except KeyError:
         logger.error('no encrypted key in Local State')
         return None
-    encrypted_key = compat_b64decode(base64_key)
+    encrypted_key = base64.b64decode(base64_key)
     prefix = b'DPAPI'
     if not encrypted_key.startswith(prefix):
         logger.error('invalid key')
@@ -873,7 +888,7 @@ def pbkdf2_sha1(password, salt, iterations, key_length):
 def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
     plaintext = unpad_pkcs7(aes_cbc_decrypt_bytes(ciphertext, key, initialization_vector))
     try:
-        return plaintext.decode('utf-8')
+        return plaintext.decode()
     except UnicodeDecodeError:
         logger.warning('failed to decrypt cookie (AES-CBC) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
@@ -887,7 +902,7 @@ def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, logger):
         return None
 
     try:
-        return plaintext.decode('utf-8')
+        return plaintext.decode()
     except UnicodeDecodeError:
         logger.warning('failed to decrypt cookie (AES-GCM) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
@@ -898,10 +913,12 @@ def _decrypt_windows_dpapi(ciphertext, logger):
     References:
         - https://docs.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptunprotectdata
     """
-    from ctypes.wintypes import DWORD
+
+    import ctypes
+    import ctypes.wintypes
 
     class DATA_BLOB(ctypes.Structure):
-        _fields_ = [('cbData', DWORD),
+        _fields_ = [('cbData', ctypes.wintypes.DWORD),
                     ('pbData', ctypes.POINTER(ctypes.c_char))]
 
     buffer = ctypes.create_string_buffer(ciphertext)
@@ -939,7 +956,7 @@ def _open_database_copy(database_path, tmpdir):
 
 def _get_column_names(cursor, table_name):
     table_info = cursor.execute(f'PRAGMA table_info({table_name})').fetchall()
-    return [row[1].decode('utf-8') for row in table_info]
+    return [row[1].decode() for row in table_info]
 
 
 def _find_most_recently_used_file(root, filename, logger):
@@ -969,11 +986,102 @@ def _is_path(value):
     return os.path.sep in value
 
 
-def _parse_browser_specification(browser_name, profile=None, keyring=None):
+def _parse_browser_specification(browser_name, profile=None, keyring=None, container=None):
     if browser_name not in SUPPORTED_BROWSERS:
         raise ValueError(f'unsupported browser: "{browser_name}"')
     if keyring not in (None, *SUPPORTED_KEYRINGS):
         raise ValueError(f'unsupported keyring: "{keyring}"')
-    if profile is not None and _is_path(profile):
-        profile = os.path.expanduser(profile)
-    return browser_name, profile, keyring
+    if profile is not None and _is_path(expand_path(profile)):
+        profile = expand_path(profile)
+    return browser_name, profile, keyring, container
+
+
+class LenientSimpleCookie(http.cookies.SimpleCookie):
+    """More lenient version of http.cookies.SimpleCookie"""
+    # From https://github.com/python/cpython/blob/v3.10.7/Lib/http/cookies.py
+    # We use Morsel's legal key chars to avoid errors on setting values
+    _LEGAL_KEY_CHARS = r'\w\d' + re.escape('!#$%&\'*+-.:^_`|~')
+    _LEGAL_VALUE_CHARS = _LEGAL_KEY_CHARS + re.escape('(),/<=>?@[]{}')
+
+    _RESERVED = {
+        "expires",
+        "path",
+        "comment",
+        "domain",
+        "max-age",
+        "secure",
+        "httponly",
+        "version",
+        "samesite",
+    }
+
+    _FLAGS = {"secure", "httponly"}
+
+    # Added 'bad' group to catch the remaining value
+    _COOKIE_PATTERN = re.compile(r"""
+        \s*                            # Optional whitespace at start of cookie
+        (?P<key>                       # Start of group 'key'
+        [""" + _LEGAL_KEY_CHARS + r"""]+?# Any word of at least one letter
+        )                              # End of group 'key'
+        (                              # Optional group: there may not be a value.
+        \s*=\s*                          # Equal Sign
+        (                                # Start of potential value
+        (?P<val>                           # Start of group 'val'
+        "(?:[^\\"]|\\.)*"                    # Any doublequoted string
+        |                                    # or
+        \w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT # Special case for "expires" attr
+        |                                    # or
+        [""" + _LEGAL_VALUE_CHARS + r"""]*     # Any word or empty string
+        )                                  # End of group 'val'
+        |                                  # or
+        (?P<bad>(?:\\;|[^;])*?)            # 'bad' group fallback for invalid values
+        )                                # End of potential value
+        )?                             # End of optional value group
+        \s*                            # Any number of spaces.
+        (\s+|;|$)                      # Ending either at space, semicolon, or EOS.
+        """, re.ASCII | re.VERBOSE)
+
+    def load(self, data):
+        # Workaround for https://github.com/yt-dlp/yt-dlp/issues/4776
+        if not isinstance(data, str):
+            return super().load(data)
+
+        morsel = None
+        for match in self._COOKIE_PATTERN.finditer(data):
+            if match.group('bad'):
+                morsel = None
+                continue
+
+            key, value = match.group('key', 'val')
+
+            is_attribute = False
+            if key.startswith('$'):
+                key = key[1:]
+                is_attribute = True
+
+            lower_key = key.lower()
+            if lower_key in self._RESERVED:
+                if morsel is None:
+                    continue
+
+                if value is None:
+                    if lower_key not in self._FLAGS:
+                        morsel = None
+                        continue
+                    value = True
+                else:
+                    value, _ = self.value_decode(value)
+
+                morsel[key] = value
+
+            elif is_attribute:
+                morsel = None
+
+            elif value is not None:
+                morsel = self.get(key, http.cookies.Morsel())
+                real_value, coded_value = self.value_decode(value)
+                morsel.set(key, real_value, coded_value)
+                self[key] = morsel
+
+            else:
+                morsel = None

@@ -1,6 +1,6 @@
 # flake8: noqa: F401
 """Imports all optional dependencies for the project.
-An attribute "_yt_dlp__identifier" may be inserted into the module if it uses an ambigious namespace"""
+An attribute "_yt_dlp__identifier" may be inserted into the module if it uses an ambiguous namespace"""
 
 try:
     import brotlicffi as brotli
@@ -28,7 +28,7 @@ try:
 except ImportError:
     try:
         from Crypto.Cipher import AES as Cryptodome_AES
-    except ImportError:
+    except (ImportError, SyntaxError):  # Old Crypto gives SyntaxError in newer Python
         Cryptodome_AES = None
     else:
         try:

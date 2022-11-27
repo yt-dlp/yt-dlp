@@ -47,7 +47,6 @@ class VoxMediaVolumeIE(OnceIE):
                 'tbr': int_or_none(tbr),
             })
         if formats:
-            self._sort_formats(formats)
             info['formats'] = formats
             info['duration'] = int_or_none(asset.get('duration'))
             return info
@@ -58,7 +57,6 @@ class VoxMediaVolumeIE(OnceIE):
                 continue
             if provider_video_type == 'brightcove':
                 info['formats'] = self._extract_once_formats(provider_video_id)
-                self._sort_formats(info['formats'])
             else:
                 info.update({
                     '_type': 'url_transparent',
@@ -71,6 +69,7 @@ class VoxMediaVolumeIE(OnceIE):
 
 class VoxMediaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:(?:theverge|vox|sbnation|eater|polygon|curbed|racked|funnyordie)\.com|recode\.net)/(?:[^/]+/)*(?P<id>[^/?]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src="(?P<url>https?://(?:www\.)?funnyordie\.com/embed/[^"]+)"']
     _TESTS = [{
         # Volume embed, Youtube
         'url': 'http://www.theverge.com/2014/6/27/5849272/material-world-how-google-discovered-what-software-is-made-of',
