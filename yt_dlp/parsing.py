@@ -261,7 +261,7 @@ class MatchingElementParser(HTMLTagParser):
 
         return rf'''(?x)
             <(?:{tag})
-             (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
+             (?:\s(?:[^>"'\\]|"[^"\\]*"|'[^'\\]*')*)?
              \s{re.escape(attribute)}\s*=\s*(?P<_q>['"])(?-x:{value_regex})(?P=_q)
             '''
 
@@ -278,7 +278,8 @@ class MatchingElementParser(HTMLTagParser):
         def matchfunc(tag_str, _attrs):
             return tag_str == tag
 
-        yield from cls.iter_tags(rf'<\s*{re.escape(tag)}[\s>]', html, matchfunc=matchfunc)
+        tag_regex = rf'''<\s*{re.escape(tag)}(?:\s(?:[^>"'\\]|"[^"\\]*"|'[^'\\]*')*)?>'''
+        yield from cls.iter_tags(tag_regex, html, matchfunc=matchfunc)
 
     @classmethod
     def tags_by_attribute(cls, attribute, value, html, *, tag=r'[\w:.-]+', escape_value=True):
