@@ -187,7 +187,6 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
                 subtitles = self._merge_subtitles(subtitles, mpd_subs)
             else:
                 pass
-        self._sort_formats(formats)
 
         duration = traverse_obj(title_info, ('description', 'contentLengthInSeconds'))
         credits_time = try_get(title_info, lambda x: x['timecode']['endCreditsTime'] / 1000)
