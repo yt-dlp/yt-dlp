@@ -38,9 +38,15 @@ class RadioRadicaleIE(InfoExtractor):
             formats.extend(
                 self._extract_m3u8_formats(source.get('src'), video_id))
 
+        subtitles = {sub.get('srclang'): [{
+            'url': sub.get('src'),
+            'name': sub.get('label')
+            }] for sub in traverse_obj(video_info, ('playlist', 0, 'subtitles'))}
+
         return {
             'id': video_id,
             'formats': formats,
+            'subtitles': subtitles,
             'title': json_ld.get('title') or self._og_search_title(webpage),
             'location': video_info.get('luogo'),
             'timestamp': json_ld.get('timestamp'),
