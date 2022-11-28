@@ -8,56 +8,41 @@ from .compat import compat_HTMLParseError
 from .utils import orderedSet
 
 
-def iter_find(string, sub: str):
-    size = len(sub)
-    idx = -size
-    while True:
-        idx = string.find(sub, idx + size)
-        if idx == -1:
-            return
-        yield idx
+class HTMLIgnoreRanges:
+    """check if an offset is within CDATA content elements (script, style) or XML comments
 
+        note:
+            * given offsets must be in increasing order
+            * no detection of nested constructs (e.g. comments within script tags)
 
-class HTMLCommentRanges:
-    """computes the offsets of HTML comments
-
-    comments start with '<!--' and end with the first '-->' encountered
-    note: markers within quotes are not ignored
+        usage:
+            ranges = HTMLIgnoreRanges(html)
+            if offset in ranges:
+                ...
     """
+    REGEX = re.compile(r'<!--|-->|</?\s*(?:script|style)\b[^>]*>')
 
     def __init__(self, html):
-        self._range_iter = self.ranges(html)
-        self._range = next(self._range_iter, None)
-        self._last_offset = 0
-
-    @staticmethod
-    def ranges(string, sopen='<!--', sclose='-->'):
-        assert not (sopen.startswith(sclose) or sclose.startswith(sopen))
-        open_iter = iter_find(string, sopen)
-        close_len = len(sclose)
-        close_iter = (idx + close_len for idx in iter_find(string, sclose))
-        next_open = next(open_iter, None)
-        next_close = next(close_iter, None)
-
-        while True:
-            if next_open is None:
-                return
-            while next_close is not None and next_open > next_close:
-                next_close = next(close_iter, None)
-            yield slice(next_open, next_close)
-            if next_close is None:
-                return
-            while next_open is not None and next_open < next_close:
-                next_open = next(open_iter, None)
+        self.html = html
+        self._last_match = None
+        self._final = False
 
     def __contains__(self, offset):
         assert isinstance(offset, int)
-        assert offset >= self._last_offset, 'offset must be in increasing order'
-        self._last_offset = offset
-        while self._range and self._range.stop is not None and offset >= self._range.stop:
-            self._range = next(self._range_iter, None)
 
-        return not (self._range is None or offset < self._range.start)
+        if not self._final and (self._last_match is None or offset >= self._last_match.end()):
+            match = self.REGEX.search(self.html, offset)
+            if match:
+                self._last_match = match
+            else:
+                self._final = True
+
+        if self._last_match is None:
+            return False
+        match_string = self._last_match.group()
+        if match_string.startswith('</') or match_string == '-->':
+            return offset < self._last_match.start()
+        return offset >= self._last_match.end()
 
 
 class HTMLTagParser(HTMLParser):
@@ -267,10 +252,10 @@ class MatchingElementParser(HTMLTagParser):
 
     @classmethod
     def iter_tags(cls, regex, html, *, matchfunc):
-        comments = HTMLCommentRanges(html)
+        ignored = HTMLIgnoreRanges(html)
         parser = cls(matchfunc)
         for match in re.finditer(regex, html):
-            if match.start() not in comments:
+            if match.start() not in ignored:
                 yield from parser.taglist(html[match.start():], reset=True)
 
     @classmethod

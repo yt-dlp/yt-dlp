@@ -4,7 +4,7 @@ import unittest
 from yt_dlp.compat import compat_HTMLParseError
 from yt_dlp.parsing import (
     MatchingElementParser,
-    HTMLCommentRanges,
+    HTMLIgnoreRanges,
     HTMLTagParser,
 )
 
@@ -325,26 +325,31 @@ class TestParsing(unittest.TestCase):
                  [Tag('t5'), Tag('t6')]],
                 [Tag('t7'), Tag('t8')]]))
 
-    def test_html_comment_ranges(self):
+    def test_html_ignored_ranges(self):
         def mark_comments(_string, char='^', nochar='-'):
-            cmts = HTMLCommentRanges(_string)
+            cmts = HTMLIgnoreRanges(_string)
             return "".join(char if _idx in cmts else nochar for _idx in range(len(_string)))
 
         html_string = '''
         no              comments         in            this              line
         ---------------------------------------------------------------------
         <!--                 whole line represents a comment              -->
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        ----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^---
         before <!--                      comment                  -->   after
-        -------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------
+        -----------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-----------
+        this is a leftover comment -->     <!-- a new comment without closing
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         here   is   <!-- a comment -->   and   <!-- another comment -->   end
-        ------------^^^^^^^^^^^^^^^^^^---------^^^^^^^^^^^^^^^^^^^^^^^^------
-        this <!-- nested  <!--     comment    -->  ends here --> and not here
-        -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----------------------------
-        stray --> comment closings --> are ignored <!-- but not <!-- openings
-        -------------------------------------------^^^^^^^^^^^^^^^^^^^^^^^^^^
+        ----------------^^^^^^^^^^^----------------^^^^^^^^^^^^^^^^^---------
+        <script> ignore here </script>            <script> and here </script>
+        --------^^^^^^^^^^^^^-----------------------------^^^^^^^^^^---------
         '''
 
         lines = textwrap.dedent(html_string).strip().splitlines()
         for line, marker in zip(lines[0::2], lines[1::2]):
             self.assertEqual((line, mark_comments(line)), (line, marker))
+
+        # yet we must be able to match script elements
+        test_string = '''<script type="text/javascript">var foo = 'bar';</script>'''
+        items = get_element_text_and_html_by_tag('script', test_string)
+        self.assertEqual(items, ("var foo = 'bar';", test_string))
