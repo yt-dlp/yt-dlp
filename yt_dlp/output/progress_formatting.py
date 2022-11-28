@@ -5,13 +5,13 @@ from ..utils import format_bytes, timetuple_from_msec, try_call
 
 
 class Style(enum.Enum):
-    DOWNLOADED_BYTES = TermCode(Color.LIGHT | Color.BLUE)
-    PERCENT = TermCode(Color.LIGHT | Color.BLUE)
-    ETA = TermCode(Color.YELLOW)
-    SPEED = TermCode(Color.GREEN)
-    ELAPSED = TermCode(Typeface.BOLD, Color.WHITE)
-    TOTAL_BYTES = TermCode()
-    TOTAL_BYTES_ESTIMATE = TermCode()
+    DOWNLOADED_BYTES = TermCode.make(Color.LIGHT | Color.BLUE)
+    PERCENT = TermCode.make(Color.LIGHT | Color.BLUE)
+    ETA = TermCode.make(Color.YELLOW)
+    SPEED = TermCode.make(Color.GREEN)
+    ELAPSED = TermCode.make(Typeface.BOLD, Color.WHITE)
+    TOTAL_BYTES = TermCode.make()
+    TOTAL_BYTES_ESTIMATE = TermCode.make()
 
 
 def apply_progress_format(progress_dict, use_color=None):

@@ -1,11 +1,28 @@
+"""
+A module providing simple abstractions for terminal codes
+
+It replaces the previous (mini)curses module.
+"""
+
 import enum
 
 CSI = '\x1B['
 OSC = '\x1B]'
 BEL = '\x07'
+CSI_END = 'm'
 
 
 class Color(enum.IntFlag):
+    """
+    A class representing a terminal color
+
+    Used for `TermCode.make(...)` to provide a color code.
+
+    `OR`ing with `Color.LIGHT` indicates that the color should be a lighter color.
+    Similarly, `OR`ing with `Color.BG` indicates that the color should be in the background.
+    Both can be combined to create a light background color,
+    so `Color.BG | Color.LIGHT | Color.BLUE` will give a light blue background.
+    """
     BLACK = 0
     RED = 1
     GREEN = 2
@@ -20,47 +37,110 @@ class Color(enum.IntFlag):
 
 
 class Typeface(enum.Enum):
-    BOLD = 1
-    UNDERLINED = 4
-    NEGATIVE = 7
+    """
+    A class representing a terminal typeface
+
+    Used for `TermCode.make(...)` to provide a typeface code.
+    """
+    BOLD = '1'
+    UNDERLINED = '4'
+    NEGATIVE = '7'
 
 
 class TermCode(str):
-    def __new__(cls, *text_formats):
-        code = ''.join(
-            text_format if isinstance(text_format, str) else make_color_code(text_format)
-            for text_format in text_formats)
-        return super().__new__(cls, code)
+    """ A string wrapper representing a terminal code """
 
     def __repr__(self):
         return f'{type(self).__name__}({str(self)!r})'
 
+    @classmethod
+    def make(cls, *text_formats):
+        """
+        Creates a TermCode from the provided text formats
 
-def make_color_code(*text_formats):
-    result = []
+        This method combines multiple `Color`s and `Typeface`s into one code.
+        Codes are prefixed by `CSI` and suffixed by `CSI_END`.
 
-    for text_format in text_formats:
+        @params text_formats    A `Typeface`/`Color` specifying the format.
+
+        @returns                A `TermCode` combining the specified formats.
+        """
+        sequence = ';'.join(map(cls._convert_color, text_formats))
+        return cls(f'{CSI}{sequence}{CSI_END}')
+
+    @classmethod
+    def join(cls, *text_formats):
+        """
+        Joins multiple terminal codes into one
+
+        `Color`s and `Typeface`s will be converted to their respective codes.
+        Multiple CSI sequences will be joined into one
+        while other sequences will be left untouched.
+
+        @params text_formats    A text format which could be either:
+                                - A `Typeface`/`Color` for color formatting.
+                                - A `str`/`TermCode` for providing direct terminal codes.
+
+        @returns                A `TermCode` combining the specified text formats.
+        """
+        if len(text_formats) == 1 and isinstance(text_formats[0], str):
+            return cls(text_formats[0])
+
+        codes = []
+
+        is_color = False
+        for text_format in text_formats:
+            if isinstance(text_format, (Color, Typeface)):
+                codes.append(';' if is_color else CSI)
+                is_color = True
+                codes.append(cls._convert_color(text_format))
+
+            # isinstance(text_format, (str, TermCode))
+            elif text_format.startswith(CSI) and text_format.endswith(CSI_END):
+                codes.append(';' if is_color else CSI)
+                is_color = True
+                codes.append(text_format[len(CSI):-len(CSI_END)])
+
+            else:
+                if is_color:
+                    codes.append(CSI_END)
+                    is_color = False
+                codes.append(text_format)
+
+        if is_color:
+            codes.append(CSI_END)
+
+        return cls(''.join(codes))
+
+    @staticmethod
+    def _convert_color(text_format):
         if isinstance(text_format, Typeface):
-            result.extend(f'{CSI}{text_format.value}m')
+            return text_format.value
 
-        elif isinstance(text_format, Color):
-            prefix = 3
+        # isinstance(text_format, Color)
+        prefix = 30
 
-            if text_format & Color.LIGHT:
-                prefix += 6
-                text_format ^= Color.LIGHT
+        if text_format & Color.LIGHT:
+            prefix += 60
+            text_format ^= Color.LIGHT
 
-            if text_format & Color.BG:
-                prefix += 1
-                text_format ^= Color.BG
+        if text_format & Color.BG:
+            prefix += 10
+            text_format ^= Color.BG
 
-            result.append(f'{CSI}{prefix}{text_format}m')
+        return str(prefix + text_format)
 
-        else:  # isinstance(text_format, TermCode)
-            result.append(text_format)
 
-    return ''.join(result)
+RESET = TermCode(f'{CSI}0{CSI_END}')
 
 
 def format_text(message, *text_formats):
-    return f'{make_color_code(*text_formats)}{message}{CSI}0m'
+    """
+    Format text using the provided text format
+
+    Resets the changes afterwards by appending the reset sequence.
+    Joins multiple sequences through `TermCode.join(...)`.
+
+    @params text_formats    A `TermCode`/`Typeface`/`Color`/`str` specifying the format.
+    """
+    return f'{TermCode.join(*text_formats)}{message}{RESET}'

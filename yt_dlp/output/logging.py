@@ -105,14 +105,14 @@ class _LoggerProxy:
 
 
 class Style:
-    HEADER = TermCode(Color.YELLOW)
-    EMPHASIS = TermCode(Color.LIGHT | Color.BLUE)
-    FILENAME = TermCode(Color.GREEN)
-    ID = TermCode(Color.GREEN)
-    DELIM = TermCode(Color.BLUE)
-    ERROR = TermCode(Color.RED)
-    WARNING = TermCode(Color.YELLOW)
-    SUPPRESS = TermCode(Color.LIGHT | Color.BLACK)
+    HEADER = TermCode.make(Color.YELLOW)
+    EMPHASIS = TermCode.make(Color.LIGHT | Color.BLUE)
+    FILENAME = TermCode.make(Color.GREEN)
+    ID = TermCode.make(Color.GREEN)
+    DELIM = TermCode.make(Color.BLUE)
+    ERROR = TermCode.make(Color.RED)
+    WARNING = TermCode.make(Color.YELLOW)
+    SUPPRESS = TermCode.make(Color.LIGHT | Color.BLACK)
 
 
 class Logger:
