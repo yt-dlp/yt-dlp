@@ -3171,6 +3171,8 @@ class YoutubeDL:
                                 'f%s' % f['format_id'], info_dict['ext'])
                             downloaded.append(fname)
                         info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
+                        info_dict['http_headers'] = traverse_obj(
+                            info_dict, 'http_headers', ('requested_formats', ..., 'http_headers'), get_all=False)
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
                     else:

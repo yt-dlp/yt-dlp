@@ -2374,7 +2374,7 @@ class GenericIE(InfoExtractor):
             info_dict.update({
                 'formats': formats,
                 'subtitles': subtitles,
-                'http_headers': headers,
+                'http_headers': headers or None,
             })
             return info_dict
 
