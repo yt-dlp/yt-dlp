@@ -19,20 +19,21 @@ class Vbox7IE(InfoExtractor):
     _GEO_COUNTRIES = ['BG']
     _TESTS = [{
         'url': 'http://vbox7.com/play:0946fff23c',
-        'md5': 'a60f9ab3a3a2f013ef9a967d5f7be5bf',
+        'md5': '02190d95ba7246c9047f35dda8a93fbb',
         'info_dict': {
             'id': '0946fff23c',
             'ext': 'mp4',
             'title': 'Борисов: Притеснен съм за бъдещето на България',
             'description': 'По думите му е опасно страната ни да бъде обявена за "сигурна"',
-            'thumbnail': r're:^https?://.*\.jpg$',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 2640,
             'timestamp': 1470982814,
             'upload_date': '20160812',
             'uploader': 'zdraveibulgaria',
         },
         'params': {
-            'proxy': '127.0.0.1:8118',
-        },
+            'test': False
+        }
     }, {
         'url': 'http://vbox7.com/play:249bb972c2',
         'md5': '99f65c0c9ef9b682b97313e052734c3f',
@@ -81,6 +82,9 @@ class Vbox7IE(InfoExtractor):
                 webpage.replace('"/*@context"', '"@context"'), video_id,
                 fatal=False)
 
+        formats = []
+        formats.extend(self._extract_mpd_formats(video_url, video_id, fatal=False))
+
         info.update({
             'id': video_id,
             'title': title,
@@ -89,5 +93,6 @@ class Vbox7IE(InfoExtractor):
             'thumbnail': self._proto_relative_url(
                 info.get('thumbnail') or self._og_search_thumbnail(webpage),
                 'http:'),
+            'formats': formats,
         })
         return info

@@ -2535,10 +2535,13 @@ class InfoExtractor:
                 if segment_duration:
                     ms_info['segment_duration'] = float(segment_duration)
 
+            base_url_elem = element.find(_add_ns('BaseURL'))
+            base_url = None if base_url_elem is None else base_url_elem.text
+
             def extract_Initialization(source):
                 initialization = source.find(_add_ns('Initialization'))
                 if initialization is not None:
-                    ms_info['initialization_url'] = initialization.attrib['sourceURL']
+                    ms_info['initialization_url'] = initialization.attrib.get('sourceURL', base_url)
 
             segment_list = element.find(_add_ns('SegmentList'))
             if segment_list is not None:
@@ -2546,7 +2549,7 @@ class InfoExtractor:
                 extract_Initialization(segment_list)
                 segment_urls_e = segment_list.findall(_add_ns('SegmentURL'))
                 if segment_urls_e:
-                    ms_info['segment_urls'] = [segment.attrib['media'] for segment in segment_urls_e]
+                    ms_info['segment_urls'] = [(segment.attrib.get('media', base_url), segment.attrib.get('mediaRange', None)) for segment in segment_urls_e]
             else:
                 segment_template = element.find(_add_ns('SegmentTemplate'))
                 if segment_template is not None:
@@ -2763,7 +2766,7 @@ class InfoExtractor:
                         for s in representation_ms_info['s']:
                             duration = float_or_none(s['d'], timescale)
                             for r in range(s.get('r', 0) + 1):
-                                segment_uri = representation_ms_info['segment_urls'][segment_index]
+                                segment_uri = representation_ms_info['segment_urls'][segment_index][0]
                                 fragments.append({
                                     location_key(segment_uri): segment_uri,
                                     'duration': duration,
@@ -2778,9 +2781,20 @@ class InfoExtractor:
                         segment_duration = float_or_none(
                             representation_ms_info['segment_duration'],
                             representation_ms_info['timescale']) if 'segment_duration' in representation_ms_info else None
-                        for segment_url in representation_ms_info['segment_urls']:
+                        for (segment_url, segment_media_range) in representation_ms_info['segment_urls']:
+                            if segment_media_range:
+                                crg = re.search(r'(\d+)-(\d+)', segment_media_range)
+                                segment_media_range = {'start': int(crg.group(1)), 'end': int(crg.group(2))}
+                                if len(fragments) > 0:
+                                    prev = fragments[-1]
+                                    if prev['media_range']['end'] + 1 == segment_media_range['start'] and prev.get(location_key(segment_url)) == segment_url:
+                                        prev['media_range']['end'] = segment_media_range['end']
+                                        if segment_duration and prev.get('duration'):
+                                            prev['duration'] += segment_duration
+                                        continue
                             fragment = {
                                 location_key(segment_url): segment_url,
+                                'media_range': segment_media_range,
                             }
                             if segment_duration:
                                 fragment['duration'] = segment_duration
