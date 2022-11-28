@@ -2,7 +2,7 @@ from .cbs import CBSIE
 from ..utils import int_or_none
 
 
-class CBSInteractiveIE(CBSIE):
+class CBSInteractiveIE(CBSIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?(?P<site>cnet|zdnet)\.com/(?:videos|video(?:/share)?)/(?P<id>[^/?]+)'
     _TESTS = [{
         'url': 'http://www.cnet.com/videos/hands-on-with-microsofts-windows-8-1-update/',

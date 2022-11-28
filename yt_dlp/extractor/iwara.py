@@ -116,8 +116,6 @@ class IwaraIE(IwaraBaseIE):
                 'quality': 1 if format_id == 'Source' else 0,
             })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,

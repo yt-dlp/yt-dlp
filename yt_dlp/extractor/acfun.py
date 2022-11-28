@@ -27,7 +27,6 @@ class AcFunVideoBaseIE(InfoExtractor):
                     **parse_codecs(video.get('codecs', ''))
                 })
 
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'formats': formats,
@@ -84,7 +83,7 @@ class AcFunVideoIE(AcFunVideoBaseIE):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
-        json_all = self._search_json(r'window.videoInfo\s*=\s*', webpage, 'videoInfo', video_id)
+        json_all = self._search_json(r'window.videoInfo\s*=', webpage, 'videoInfo', video_id)
 
         title = json_all.get('title')
         video_list = json_all.get('videoList') or []
@@ -161,10 +160,10 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         ac_idx = parse_qs(url).get('ac', [None])[-1]
-        video_id = f'{video_id}{format_field(ac_idx, template="__%s")}'
+        video_id = f'{video_id}{format_field(ac_idx, None, "__%s")}'
 
         webpage = self._download_webpage(url, video_id)
-        json_bangumi_data = self._search_json(r'window.bangumiData\s*=\s*', webpage, 'bangumiData', video_id)
+        json_bangumi_data = self._search_json(r'window.bangumiData\s*=', webpage, 'bangumiData', video_id)
 
         if ac_idx:
             video_info = json_bangumi_data['hlVideoInfo']
@@ -181,7 +180,7 @@ class AcFunBangumiIE(AcFunVideoBaseIE):
             if v.get('id') == season_id), 1)
 
         json_bangumi_list = self._search_json(
-            r'window\.bangumiList\s*=\s*', webpage, 'bangumiList', video_id, fatal=False)
+            r'window\.bangumiList\s*=', webpage, 'bangumiList', video_id, fatal=False)
         video_internal_id = int_or_none(traverse_obj(json_bangumi_data, ('currentVideoInfo', 'id')))
         episode_number = video_internal_id and next((
             idx for idx, v in enumerate(json_bangumi_list.get('items') or [], 1)

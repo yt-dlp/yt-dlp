@@ -82,7 +82,6 @@ class GlomexBaseIE(InfoExtractor):
         if video.get('language'):
             for fmt in formats:
                 fmt['language'] = video['language']
-        self._sort_formats(formats)
 
         images = (video.get('images') or []) + [video.get('image') or {}]
         thumbnails = [{

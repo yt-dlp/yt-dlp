@@ -117,7 +117,6 @@ class MGTVIE(InfoExtractor):
                 },
                 'format_note': stream.get('name'),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

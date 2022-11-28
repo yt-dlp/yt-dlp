@@ -77,7 +77,6 @@ class TV5MondePlusIE(InfoExtractor):
                     'url': v_url,
                     'format_id': video_format,
                 })
-        self._sort_formats(formats)
 
         metadata = self._parse_json(
             vpl_data['data-metadata'], display_id)

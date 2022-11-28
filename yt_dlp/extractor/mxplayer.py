@@ -1,6 +1,11 @@
 from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import try_get
+from ..utils import (
+    int_or_none,
+    traverse_obj,
+    try_get,
+    urljoin,
+)
 
 
 class MxplayerIE(InfoExtractor):
@@ -9,6 +14,7 @@ class MxplayerIE(InfoExtractor):
         'url': 'https://www.mxplayer.in/show/watch-my-girlfriend-is-an-alien-hindi-dubbed/season-1/episode-1-online-9d2013d31d5835bb8400e3b3c5e7bb72',
         'info_dict': {
             'id': '9d2013d31d5835bb8400e3b3c5e7bb72',
+            'display_id': 'episode-1-online',
             'ext': 'mp4',
             'title': 'Episode 1',
             'description': 'md5:62ed43eb9fec5efde5cf3bd1040b7670',
@@ -17,7 +23,6 @@ class MxplayerIE(InfoExtractor):
             'duration': 2451,
             'season': 'Season 1',
             'series': 'My Girlfriend Is An Alien (Hindi Dubbed)',
-            'thumbnail': 'https://qqcdnpictest.mxplay.com/pic/9d2013d31d5835bb8400e3b3c5e7bb72/en/16x9/320x180/9562f5f8df42cad09c9a9c4e69eb1567_1920x1080.webp',
             'episode': 'Episode 1'
         },
         'params': {
@@ -28,21 +33,17 @@ class MxplayerIE(InfoExtractor):
         'url': 'https://www.mxplayer.in/movie/watch-knock-knock-hindi-dubbed-movie-online-b9fa28df3bfb8758874735bbd7d2655a?watch=true',
         'info_dict': {
             'id': 'b9fa28df3bfb8758874735bbd7d2655a',
+            'display_id': 'episode-1-online',
             'ext': 'mp4',
             'title': 'Knock Knock (Hindi Dubbed)',
-            'description': 'md5:b195ba93ff1987309cfa58e2839d2a5b',
-            'season_number': 0,
-            'episode_number': 0,
+            'description': 'md5:4160f2dfc3b87c524261366f6b736329',
             'duration': 5970,
-            'season': 'Season 0',
-            'series': None,
-            'thumbnail': 'https://qqcdnpictest.mxplay.com/pic/b9fa28df3bfb8758874735bbd7d2655a/en/16x9/320x180/test_pic1588676032011.webp',
-            'episode': 'Episode 0'
         },
         'params': {
             'format': 'bv',
             'skip_download': True,
         },
+        'skip': 'No longer available',
     }, {
         'url': 'https://www.mxplayer.in/show/watch-shaitaan/season-1/the-infamous-taxi-gang-of-meerut-online-45055d5bcff169ad48f2ad7552a83d6c',
         'info_dict': {
@@ -55,26 +56,26 @@ class MxplayerIE(InfoExtractor):
             'duration': 2332,
             'season': 'Season 1',
             'series': 'Shaitaan',
-            'thumbnail': 'https://qqcdnpictest.mxplay.com/pic/45055d5bcff169ad48f2ad7552a83d6c/en/16x9/320x180/voot_8e7d5f8d8183340869279c732c1e3a43.webp',
             'episode': 'Episode 1'
         },
         'params': {
             'format': 'best',
             'skip_download': True,
         },
+        'skip': 'No longer available.'
     }, {
         'url': 'https://www.mxplayer.in/show/watch-aashram/chapter-1/duh-swapna-online-d445579792b0135598ba1bc9088a84cb',
         'info_dict': {
             'id': 'd445579792b0135598ba1bc9088a84cb',
+            'display_id': 'duh-swapna-online',
             'ext': 'mp4',
             'title': 'Duh Swapna',
             'description': 'md5:35ff39c4bdac403c53be1e16a04192d8',
             'season_number': 1,
             'episode_number': 3,
             'duration': 2568,
-            'season': 'Chapter 1',
+            'season': 'Season 1',
             'series': 'Aashram',
-            'thumbnail': 'https://qqcdnpictest.mxplay.com/pic/d445579792b0135598ba1bc9088a84cb/en/4x3/1600x1200/test_pic1624819307993.webp',
             'episode': 'Episode 3'
         },
         'params': {
@@ -85,6 +86,7 @@ class MxplayerIE(InfoExtractor):
         'url': 'https://www.mxplayer.in/show/watch-dangerous/season-1/chapter-1-online-5a351b4f9fb69436f6bd6ae3a1a75292',
         'info_dict': {
             'id': '5a351b4f9fb69436f6bd6ae3a1a75292',
+            'display_id': 'chapter-1-online',
             'ext': 'mp4',
             'title': 'Chapter 1',
             'description': 'md5:233886b8598bc91648ac098abe1d288f',
@@ -93,7 +95,6 @@ class MxplayerIE(InfoExtractor):
             'duration': 1305,
             'season': 'Season 1',
             'series': 'Dangerous',
-            'thumbnail': 'https://qqcdnpictest.mxplay.com/pic/5a351b4f9fb69436f6bd6ae3a1a75292/en/4x3/1600x1200/test_pic1624706302350.webp',
             'episode': 'Episode 1'
         },
         'params': {
@@ -107,72 +108,93 @@ class MxplayerIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'The Attacks of 26/11',
             'description': 'md5:689bacd29e97b3f31eaf519eb14127e5',
-            'season_number': 0,
-            'episode_number': 0,
             'duration': 6085,
-            'season': 'Season 0',
-            'series': None,
-            'thumbnail': 'https://qqcdnpictest.mxplay.com/pic/0452f0d80226c398d63ce7e3ea40fa2d/en/16x9/320x180/00c8955dab5e5d340dbde643f9b1f6fd_1920x1080.webp',
-            'episode': 'Episode 0'
         },
         'params': {
             'format': 'best',
             'skip_download': True,
         },
+        'skip': 'No longer available. Cannot be played on browser'
+    }, {
+        'url': 'https://www.mxplayer.in/movie/watch-kitne-door-kitne-paas-movie-online-a9e9c76c566205955f70d8b2cb88a6a2',
+        'info_dict': {
+            'id': 'a9e9c76c566205955f70d8b2cb88a6a2',
+            'display_id': 'watch-kitne-door-kitne-paas-movie-online',
+            'title': 'Kitne Door Kitne Paas',
+            'duration': 8458,
+            'ext': 'mp4',
+            'description': 'md5:fb825f3c542513088024dcafef0921b4',
+        },
+        'params': {
+            'format': 'bv',
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.mxplayer.in/show/watch-ek-thi-begum-hindi/season-2/game-of-power-online-5e5305c28f1409847cdc4520b6ad77cf',
+        'info_dict': {
+            'id': '5e5305c28f1409847cdc4520b6ad77cf',
+            'display_id': 'game-of-power-online',
+            'title': 'Game Of Power',
+            'duration': 1845,
+            'ext': 'mp4',
+            'description': 'md5:1d0948d2a5312d7013792d53542407f9',
+            'series': 'Ek Thi Begum (Hindi)',
+            'season': 'Season 2',
+            'season_number': 2,
+            'episode': 'Episode 2',
+            'episode_number': 2,
+        },
+        'params': {
+            'format': 'bv',
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.mxplayer.in/movie/watch-deewane-huye-paagal-movie-online-4f9175c40a11c3994182a65afdd37ec6?watch=true',
+        'info_dict': {
+            'id': '4f9175c40a11c3994182a65afdd37ec6',
+            'display_id': 'watch-deewane-huye-paagal-movie-online',
+            'title': 'Deewane Huye Paagal',
+            'duration': 9037,
+            'ext': 'mp4',
+            'description': 'md5:d17bd5c651016c4ed2e6f8a4ace15534',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
-        type, display_id, video_id = self._match_valid_url(url).groups()
-        type = 'movie_film' if type == 'movie' else 'tvshow_episode'
-        API_URL = 'https://androidapi.mxplay.com/v1/detail/'
-        headers = {
-            'X-Av-Code': '23',
-            'X-Country': 'IN',
-            'X-Platform': 'android',
-            'X-App-Version': '1370001318',
-            'X-Resolution': '3840x2160',
-        }
-        data_json = self._download_json(f'{API_URL}{type}/{video_id}', display_id, headers=headers)['profile']
+        video_type, display_id, video_id = self._match_valid_url(url).group('type', 'display_id', 'id')
+        if 'show' in video_type:
+            video_type = 'episode'
 
-        season, series = None, None
-        for dct in data_json.get('levelInfos', []):
-            if dct.get('type') == 'tvshow_season':
-                season = dct.get('name')
-            elif dct.get('type') == 'tvshow_show':
-                series = dct.get('name')
-        thumbnails = []
-        for thumb in data_json.get('poster', []):
-            thumbnails.append({
-                'url': thumb.get('url'),
-                'width': thumb.get('width'),
-                'height': thumb.get('height'),
-            })
+        data_json = self._download_json(
+            f'https://api.mxplay.com/v1/web/detail/video?type={video_type}&id={video_id}', display_id)
 
-        formats = []
-        subtitles = {}
-        for dct in data_json.get('playInfo', []):
-            if dct.get('extension') == 'mpd':
-                frmt, subs = self._extract_mpd_formats_and_subtitles(dct.get('playUrl'), display_id, fatal=False)
-                formats.extend(frmt)
-                subtitles = self._merge_subtitles(subtitles, subs)
-            elif dct.get('extension') == 'm3u8':
-                frmt, subs = self._extract_m3u8_formats_and_subtitles(dct.get('playUrl'), display_id, fatal=False)
-                formats.extend(frmt)
-                subtitles = self._merge_subtitles(subtitles, subs)
-        self._sort_formats(formats)
+        formats, subtitles = [], {}
+        m3u8_url = urljoin('https://llvod.mxplay.com/', traverse_obj(
+            data_json, ('stream', (('thirdParty', 'hlsUrl'), ('hls', 'high'))), get_all=False))
+        if m3u8_url:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, display_id, 'mp4', fatal=False)
+        mpd_url = urljoin('https://llvod.mxplay.com/', traverse_obj(
+            data_json, ('stream', (('thirdParty', 'dashUrl'), ('dash', 'high'))), get_all=False))
+        if mpd_url:
+            fmts, subs = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+
+        season = traverse_obj(data_json, ('container', 'title'))
         return {
             'id': video_id,
-            'display_id': display_id,
-            'title': data_json.get('name') or display_id,
-            'description': data_json.get('description'),
-            'season_number': data_json.get('seasonNum'),
-            'episode_number': data_json.get('episodeNum'),
-            'duration': data_json.get('duration'),
-            'season': season,
-            'series': series,
-            'thumbnails': thumbnails,
+            'title': data_json.get('title'),
             'formats': formats,
             'subtitles': subtitles,
+            'display_id': display_id,
+            'duration': data_json.get('duration'),
+            'series': traverse_obj(data_json, ('container', 'container', 'title')),
+            'description': data_json.get('description'),
+            'season': season,
+            'season_number': int_or_none(
+                self._search_regex(r'Season (\d+)', season, 'Season Number', default=None)),
+            'episode_number': data_json.get('sequence') or None,
         }
 
 

@@ -137,7 +137,6 @@ class LecturioIE(LecturioBaseIE):
                         'height': int(mobj.group(1)),
                     })
             formats.append(f)
-        self._sort_formats(formats)
 
         subtitles = {}
         automatic_captions = {}

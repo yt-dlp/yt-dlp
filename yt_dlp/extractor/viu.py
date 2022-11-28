@@ -86,7 +86,6 @@ class ViuIE(ViuBaseIE):
             #     r'\1whe\2', video_data['href'])
             m3u8_url = video_data['href']
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4')
-        self._sort_formats(formats)
 
         for key, value in video_data.items():
             mobj = re.match(r'^subtitle_(?P<lang>[^_]+)_(?P<ext>(vtt|srt))', key)
@@ -164,12 +163,17 @@ class ViuOTTIE(InfoExtractor):
         },
         'skip': 'Geo-restricted to Singapore',
     }, {
-        'url': 'http://www.viu.com/ott/hk/zh-hk/vod/7123/%E5%A4%A7%E4%BA%BA%E5%A5%B3%E5%AD%90',
+        'url': 'https://www.viu.com/ott/hk/zh-hk/vod/430078/%E7%AC%AC%E5%85%AD%E6%84%9F-3',
         'info_dict': {
-            'id': '7123',
+            'id': '430078',
             'ext': 'mp4',
-            'title': '這就是我的生活之道',
-            'description': 'md5:4eb0d8b08cf04fcdc6bbbeb16043434f',
+            'title': '大韓民國的1%',
+            'description': 'md5:74d6db47ddd9ddb9c89a05739103ccdb',
+            'episode_number': 1,
+            'duration': 6614,
+            'episode': '大韓民國的1%',
+            'series': '第六感 3',
+            'thumbnail': 'https://d2anahhhmp1ffz.cloudfront.net/1313295781/d2b14f48d008ef2f3a9200c98d8e9b63967b9cc2',
         },
         'params': {
             'skip_download': 'm3u8 download',
@@ -177,11 +181,12 @@ class ViuOTTIE(InfoExtractor):
         },
         'skip': 'Geo-restricted to Hong Kong',
     }, {
-        'url': 'https://www.viu.com/ott/hk/zh-hk/vod/68776/%E6%99%82%E5%B0%9A%E5%AA%BD%E5%92%AA',
-        'playlist_count': 12,
+        'url': 'https://www.viu.com/ott/hk/zh-hk/vod/444666/%E6%88%91%E7%9A%84%E5%AE%A4%E5%8F%8B%E6%98%AF%E4%B9%9D%E5%B0%BE%E7%8B%90',
+        'playlist_count': 16,
         'info_dict': {
-            'id': '3916',
-            'title': '時尚媽咪',
+            'id': '23807',
+            'title': '我的室友是九尾狐',
+            'description': 'md5:b42c95f2b4a316cdd6ae14ca695f33b9',
         },
         'params': {
             'skip_download': 'm3u8 download',
@@ -359,17 +364,22 @@ class ViuOTTIE(InfoExtractor):
                 'ext': 'mp4',
                 'filesize': try_get(stream_data, lambda x: x['size'][vid_format], int)
             })
-        self._sort_formats(formats)
 
         subtitles = {}
         for sub in video_data.get('subtitle') or []:
-            sub_url = sub.get('url')
-            if not sub_url:
-                continue
-            subtitles.setdefault(sub.get('name'), []).append({
-                'url': sub_url,
-                'ext': 'srt',
-            })
+            lang = sub.get('name') or 'und'
+            if sub.get('url'):
+                subtitles.setdefault(lang, []).append({
+                    'url': sub['url'],
+                    'ext': 'srt',
+                    'name': f'Spoken text for {lang}',
+                })
+            if sub.get('second_subtitle_url'):
+                subtitles.setdefault(f'{lang}_ost', []).append({
+                    'url': sub['second_subtitle_url'],
+                    'ext': 'srt',
+                    'name': f'On-screen text for {lang}',
+                })
 
         title = strip_or_none(video_data.get('synopsis'))
         return {

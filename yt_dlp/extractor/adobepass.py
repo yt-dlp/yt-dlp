@@ -1344,10 +1344,15 @@ MSO_INFO = {
         'username_field': 'username',
         'password_field': 'password',
     },
+    'AlticeOne': {
+        'name': 'Optimum TV',
+        'username_field': 'j_username',
+        'password_field': 'j_password',
+    },
 }
 
 
-class AdobePassIE(InfoExtractor):
+class AdobePassIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     _SERVICE_PROVIDER_TEMPLATE = 'https://sp.auth.adobe.com/adobe-services/%s'
     _USER_AGENT = 'Mozilla/5.0 (X11; Linux i686; rv:47.0) Gecko/20100101 Firefox/47.0'
     _MVPD_CACHE = 'ap-mvpd'
@@ -1705,7 +1710,7 @@ class AdobePassIE(InfoExtractor):
                         mso_info.get('username_field', 'username'): username,
                         mso_info.get('password_field', 'password'): password
                     }
-                    if mso_id == 'Cablevision':
+                    if mso_id in ('Cablevision', 'AlticeOne'):
                         form_data['_eventId_proceed'] = ''
                     mvpd_confirm_page_res = post_form(provider_login_page_res, 'Logging in', form_data)
                     if mso_id != 'Rogers':

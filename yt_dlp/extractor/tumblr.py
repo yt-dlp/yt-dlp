@@ -358,7 +358,6 @@ class TumblrIE(InfoExtractor):
             'height': int_or_none(
                 media_json.get('height') or self._og_search_property('video:height', webpage, default=None)),
         }]
-        self._sort_formats(formats)
 
         # the url we're extracting from might be an original post or it might be a reblog.
         # if it's a reblog, og:description will be the reblogger's comment, not the uploader's.

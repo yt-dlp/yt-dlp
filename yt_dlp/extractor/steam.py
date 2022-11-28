@@ -109,7 +109,6 @@ class SteamIE(InfoExtractor):
                                 'format_id': ext + quality,
                                 'url': video_url,
                             })
-            self._sort_formats(formats)
             entry['formats'] = formats
             entries.append(entry)
         embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
@@ -163,10 +162,9 @@ class SteamCommunityBroadcastIE(InfoExtractor):
             'https://steamcommunity.com/actions/ajaxresolveusers',
             video_id, query={'steamids': video_id})[0]
 
-        self._sort_formats(formats)
         return {
             'id': video_id,
-            'title': self._html_extract_title(webpage) or self._og_search_title(webpage),
+            'title': self._generic_title('', webpage),
             'formats': formats,
             'live_status': 'is_live',
             'view_count': json_data.get('num_view'),

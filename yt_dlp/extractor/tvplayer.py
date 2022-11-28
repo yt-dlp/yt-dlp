@@ -72,7 +72,6 @@ class TVPlayerIE(InfoExtractor):
             raise
 
         formats = self._extract_m3u8_formats(response['stream'], display_id, 'mp4')
-        self._sort_formats(formats)
 
         return {
             'id': resource_id,

@@ -2,6 +2,7 @@ name: Site feature request
 description: Request a new functionality for a supported site
 labels: [triage, site-enhancement]
 body:
+  %(no_skip)s
   - type: checkboxes
     id: checklist
     attributes:

@@ -84,7 +84,6 @@ class AtresPlayerIE(InfoExtractor):
             elif src_type == 'application/dash+xml':
                 formats, subtitles = self._extract_mpd_formats(
                     src, video_id, mpd_id='dash', fatal=False)
-        self._sort_formats(formats)
 
         heartbeat = episode.get('heartbeat') or {}
         omniture = episode.get('omniture') or {}

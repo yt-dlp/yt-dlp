@@ -102,7 +102,6 @@ class TelecincoIE(InfoExtractor):
             }).encode(), headers=headers)['tokens']['1']['cdn']
         formats = self._extract_m3u8_formats(
             stream + '?' + cdn, video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

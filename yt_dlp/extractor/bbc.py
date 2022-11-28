@@ -575,8 +575,6 @@ class BBCCoUkIE(InfoExtractor):
         else:
             programme_id, title, description, duration, formats, subtitles = self._download_playlist(group_id)
 
-        self._sort_formats(formats)
-
         return {
             'id': programme_id,
             'title': title,
@@ -588,10 +586,15 @@ class BBCCoUkIE(InfoExtractor):
         }
 
 
-class BBCIE(BBCCoUkIE):
+class BBCIE(BBCCoUkIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'bbc'
     IE_DESC = 'BBC'
-    _VALID_URL = r'https?://(?:www\.)?bbc\.(?:com|co\.uk)/(?:[^/]+/)+(?P<id>[^/#?]+)'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?(?:
+            bbc\.(?:com|co\.uk)|
+            bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd\.onion|
+            bbcweb3hytmzhn5d532owbu6oqadra5z3ar726vq5kgwwn6aucdccrad\.onion
+        )/(?:[^/]+/)+(?P<id>[^/#?]+)'''
 
     _MEDIA_SETS = [
         'pc',
@@ -841,6 +844,12 @@ class BBCIE(BBCCoUkIE):
             'upload_date': '20190604',
             'categories': ['Psychology'],
         },
+    }, {  # onion routes
+        'url': 'https://www.bbcnewsd73hkzno2ini43t4gblxvycyac5aw4gnv7t2rccijh7745uqd.onion/news/av/world-europe-63208576',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.bbcweb3hytmzhn5d532owbu6oqadra5z3ar726vq5kgwwn6aucdccrad.onion/sport/av/football/63195681',
+        'only_matching': True,
     }]
 
     @classmethod
@@ -879,7 +888,6 @@ class BBCIE(BBCCoUkIE):
     def _extract_from_playlist_sxml(self, url, playlist_id, timestamp):
         programme_id, title, description, duration, formats, subtitles = \
             self._process_legacy_playlist_url(url, playlist_id)
-        self._sort_formats(formats)
         return {
             'id': programme_id,
             'title': title,
@@ -898,12 +906,8 @@ class BBCIE(BBCCoUkIE):
         json_ld_info = self._search_json_ld(webpage, playlist_id, default={})
         timestamp = json_ld_info.get('timestamp')
 
-        playlist_title = json_ld_info.get('title')
-        if not playlist_title:
-            playlist_title = (self._og_search_title(webpage, default=None)
-                              or self._html_extract_title(webpage, 'playlist title', default=None))
-            if playlist_title:
-                playlist_title = re.sub(r'(.+)\s*-\s*BBC.*?$', r'\1', playlist_title).strip()
+        playlist_title = json_ld_info.get('title') or re.sub(
+            r'(.+)\s*-\s*BBC.*?$', r'\1', self._generic_title('', webpage, default='')).strip() or None
 
         playlist_description = json_ld_info.get(
             'description') or self._og_search_description(webpage, default=None)
@@ -947,7 +951,6 @@ class BBCIE(BBCCoUkIE):
                             duration = int_or_none(items[0].get('duration'))
                             programme_id = items[0].get('vpid')
                             formats, subtitles = self._download_media_selector(programme_id)
-                            self._sort_formats(formats)
                             entries.append({
                                 'id': programme_id,
                                 'title': title,
@@ -984,7 +987,6 @@ class BBCIE(BBCCoUkIE):
                                         continue
                                     raise
                             if entry:
-                                self._sort_formats(entry['formats'])
                                 entries.append(entry)
 
         if entries:
@@ -1008,7 +1010,6 @@ class BBCIE(BBCCoUkIE):
 
         if programme_id:
             formats, subtitles = self._download_media_selector(programme_id)
-            self._sort_formats(formats)
             # digitalData may be missing (e.g. http://www.bbc.com/autos/story/20130513-hyundais-rock-star)
             digital_data = self._parse_json(
                 self._search_regex(
@@ -1040,7 +1041,6 @@ class BBCIE(BBCCoUkIE):
             if version_id:
                 title = smp_data['title']
                 formats, subtitles = self._download_media_selector(version_id)
-                self._sort_formats(formats)
                 image_url = smp_data.get('holdingImageURL')
                 display_date = init_data.get('displayDate')
                 topic_title = init_data.get('topicTitle')
@@ -1082,7 +1082,6 @@ class BBCIE(BBCCoUkIE):
                     continue
                 title = lead_media.get('title') or self._og_search_title(webpage)
                 formats, subtitles = self._download_media_selector(programme_id)
-                self._sort_formats(formats)
                 description = lead_media.get('summary')
                 uploader = lead_media.get('masterBrand')
                 uploader_id = lead_media.get('mid')
@@ -1111,7 +1110,6 @@ class BBCIE(BBCCoUkIE):
             if current_programme and programme_id and current_programme.get('type') == 'playable_item':
                 title = current_programme.get('titles', {}).get('tertiary') or playlist_title
                 formats, subtitles = self._download_media_selector(programme_id)
-                self._sort_formats(formats)
                 synopses = current_programme.get('synopses') or {}
                 network = current_programme.get('network') or {}
                 duration = int_or_none(
@@ -1144,7 +1142,6 @@ class BBCIE(BBCCoUkIE):
             clip_title = clip.get('title')
             if clip_vpid and clip_title:
                 formats, subtitles = self._download_media_selector(clip_vpid)
-                self._sort_formats(formats)
                 return {
                     'id': clip_vpid,
                     'title': clip_title,
@@ -1166,7 +1163,6 @@ class BBCIE(BBCCoUkIE):
                     if not programme_id:
                         continue
                     formats, subtitles = self._download_media_selector(programme_id)
-                    self._sort_formats(formats)
                     entries.append({
                         'id': programme_id,
                         'title': playlist_title,
@@ -1198,7 +1194,6 @@ class BBCIE(BBCCoUkIE):
                     if not (item_id and item_title):
                         continue
                     formats, subtitles = self._download_media_selector(item_id)
-                    self._sort_formats(formats)
                     item_desc = None
                     blocks = try_get(media, lambda x: x['summary']['blocks'], list)
                     if blocks:
@@ -1299,7 +1294,6 @@ class BBCIE(BBCCoUkIE):
             formats, subtitles = self._extract_from_media_meta(media_meta, playlist_id)
             if not formats and not self.get_param('ignore_no_formats'):
                 continue
-            self._sort_formats(formats)
 
             video_id = media_meta.get('externalId')
             if not video_id:

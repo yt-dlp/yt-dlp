@@ -139,7 +139,6 @@ class GloboIE(InfoExtractor):
         fmts, subtitles = self._extract_m3u8_formats_and_subtitles(
             signed_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
         formats.extend(fmts)
-        self._sort_formats(formats)
 
         for resource in video['resources']:
             if resource.get('type') == 'subtitle':

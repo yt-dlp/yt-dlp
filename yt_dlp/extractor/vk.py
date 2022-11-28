@@ -447,17 +447,17 @@ class VKIE(VKBaseIE):
                 m_rutube.group(1).replace('\\', ''))
             return self.url_result(rutube_url)
 
-        dailymotion_urls = DailymotionIE._extract_embed_urls(url, info_page)
-        if dailymotion_urls:
-            return self.url_result(dailymotion_urls[0], DailymotionIE.ie_key())
+        dailymotion_url = next(DailymotionIE._extract_embed_urls(url, info_page), None)
+        if dailymotion_url:
+            return self.url_result(dailymotion_url, DailymotionIE.ie_key())
 
         odnoklassniki_url = OdnoklassnikiIE._extract_url(info_page)
         if odnoklassniki_url:
             return self.url_result(odnoklassniki_url, OdnoklassnikiIE.ie_key())
 
-        sibnet_urls = self._extract_embed_urls(url, info_page)
-        if sibnet_urls:
-            return self.url_result(sibnet_urls[0])
+        sibnet_url = next(self._extract_embed_urls(url, info_page), None)
+        if sibnet_url:
+            return self.url_result(sibnet_url)
 
         m_opts = re.search(r'(?s)var\s+opts\s*=\s*({.+?});', info_page)
         if m_opts:
@@ -507,7 +507,6 @@ class VKIE(VKBaseIE):
                     'url': format_url,
                     'ext': 'flv',
                 })
-        self._sort_formats(formats)
 
         subtitles = {}
         for sub in data.get('subs') or {}:
@@ -536,7 +535,7 @@ class VKIE(VKBaseIE):
 class VKUserVideosIE(VKBaseIE):
     IE_NAME = 'vk:uservideos'
     IE_DESC = "VK - User's Videos"
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/video/@(?P<id>[^?$#/&]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/video/(?:playlist/)?(?P<id>[^?$#/&]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
     _TEMPLATE_URL = 'https://vk.com/videos'
     _TESTS = [{
         'url': 'https://vk.com/video/@mobidevices',
@@ -550,6 +549,13 @@ class VKUserVideosIE(VKBaseIE):
             'id': '-17892518_uploaded',
         },
         'playlist_mincount': 182,
+    }, {
+        'url': 'https://vk.com/video/playlist/-174476437_2',
+        'info_dict': {
+            'id': '-174476437_2',
+            'title': 'Анонсы'
+        },
+        'playlist_mincount': 108,
     }]
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
 
@@ -584,11 +590,19 @@ class VKUserVideosIE(VKBaseIE):
     def _real_extract(self, url):
         u_id, section = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, u_id)
-        page_id = self._search_regex(r'data-owner-id\s?=\s?"([^"]+)"', webpage, 'page_id')
+
+        if u_id.startswith('@'):
+            page_id = self._search_regex(r'data-owner-id\s?=\s?"([^"]+)"', webpage, 'page_id')
+        elif '_' in u_id:
+            page_id, section = u_id.split('_', 1)
+        else:
+            raise ExtractorError('Invalid URL', expected=True)
+
         if not section:
             section = 'all'
 
-        return self.playlist_result(self._entries(page_id, section), '%s_%s' % (page_id, section))
+        playlist_title = clean_html(get_element_by_class('VideoInfoPanel__title', webpage))
+        return self.playlist_result(self._entries(page_id, section), '%s_%s' % (page_id, section), playlist_title)
 
 
 class VKWallPostIE(VKBaseIE):

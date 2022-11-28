@@ -133,7 +133,6 @@ class TwitchBaseIE(InfoExtractor):
                         'quality': 10,
                         'format_note': 'Source',
                     })
-        self._sort_formats(formats)
 
     def _download_base_gql(self, video_id, ops, note, fatal=True):
         headers = {
@@ -1144,7 +1143,6 @@ class TwitchClipsIE(TwitchBaseIE):
                 'height': int_or_none(option.get('quality')),
                 'fps': int_or_none(option.get('frameRate')),
             })
-        self._sort_formats(formats)
 
         thumbnails = []
         for thumbnail_id in ('tiny', 'small', 'medium'):
@@ -1169,7 +1167,7 @@ class TwitchClipsIE(TwitchBaseIE):
             'id': clip.get('id') or video_id,
             '_old_archive_ids': [make_archive_id(self, old_id)] if old_id else None,
             'display_id': video_id,
-            'title': clip.get('title') or video_id,
+            'title': clip.get('title'),
             'formats': formats,
             'duration': int_or_none(clip.get('durationSeconds')),
             'view_count': int_or_none(clip.get('viewCount')),

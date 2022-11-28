@@ -120,7 +120,6 @@ class TvigleIE(InfoExtractor):
                         'height': int_or_none(height),
                         'filesize': filesize,
                     })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

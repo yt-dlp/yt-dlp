@@ -98,7 +98,6 @@ class LineLiveIE(LineLiveBaseIE):
             archive_status = item.get('archiveStatus')
             if archive_status != 'ARCHIVED':
                 self.raise_no_formats('this video has been ' + archive_status.lower(), expected=True)
-        self._sort_formats(formats)
         info['formats'] = formats
         return info
 

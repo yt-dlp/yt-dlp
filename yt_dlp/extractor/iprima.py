@@ -148,9 +148,8 @@ class IPrimaIE(InfoExtractor):
                 elif manifest_type == 'DASH' or ext == 'mpd':
                     formats += self._extract_mpd_formats(
                         manifest_url, video_id, mpd_id='dash', fatal=False)
-            self._sort_formats(formats)
 
-        final_result = self._search_json_ld(webpage, video_id) or {}
+        final_result = self._search_json_ld(webpage, video_id, default={})
         final_result.update({
             'id': video_id,
             'title': title,
@@ -247,8 +246,6 @@ class IPrimaCNNIE(InfoExtractor):
 
         if not formats and '>GEO_IP_NOT_ALLOWED<' in playerpage:
             self.raise_geo_restricted(countries=['CZ'], metadata_available=True)
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

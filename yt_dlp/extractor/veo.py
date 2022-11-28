@@ -65,8 +65,6 @@ class VeoIE(InfoExtractor):
                 'vbr': int_or_none(fmt.get('bit_rate'), scale=1000),
             })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': str_or_none(metadata.get('title')),

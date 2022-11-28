@@ -60,7 +60,6 @@ class InternazionaleIE(InfoExtractor):
             entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
         formats.extend(self._extract_mpd_formats(
             video_base + 'mpd', display_id, mpd_id='dash', fatal=False))
-        self._sort_formats(formats)
 
         timestamp = unified_timestamp(self._html_search_meta(
             'article:published_time', webpage, 'timestamp'))
