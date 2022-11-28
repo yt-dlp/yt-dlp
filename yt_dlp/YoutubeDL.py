@@ -3756,11 +3756,6 @@ class YoutubeDL:
                 write_debug('Lazy loading extractors is forcibly disabled')
             else:
                 write_debug('Lazy loading extractors is disabled')
-        if plugin_extractors or plugin_postprocessors:
-            write_debug('Plugins: %s' % [
-                '%s%s' % (klass.__name__, '' if klass.__name__ == name else f' as {name}')
-                for name, klass in itertools.chain(plugin_extractors.items(), plugin_postprocessors.items())])
-            write_debug('Plugin directories: %s' % plugin_directories())
         if self.params['compat_opts']:
             write_debug('Compatibility options: %s' % ', '.join(self.params['compat_opts']))
 
@@ -3794,6 +3789,15 @@ class YoutubeDL:
                 proxy_map.update(handler.proxies)
         write_debug(f'Proxy map: {proxy_map}')
 
+        for plugin_type, plugins in {'Extractor': plugin_extractors, 'Post-Processor': plugin_postprocessors}.items():
+            if not plugins:
+                continue
+            write_debug(f'{plugin_type} Plugins: %s' % (', '.join(sorted(('%s%s' % (
+                klass.__name__, '' if klass.__name__ == name else f' as {name}')
+                for name, klass in plugins.items())))))
+        plugin_dirs = plugin_directories()
+        if plugin_dirs:
+            write_debug('Plugin directories: %s' % plugin_directories())
         # Not implemented
         if False and self.params.get('call_home'):
             ipaddr = self.urlopen('https://yt-dl.org/ip').read().decode()
