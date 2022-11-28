@@ -1844,7 +1844,7 @@ See [ytdlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for 
 
 All public classes with a name ending in `IE` are imported from each file. This respects underscore prefix (e.g. `_MyBasePluginIE` is private) and `__all__`. Modules can similarly be excluded by prefixing the module name with an underscore (e.g. `_myplugin.py`)
 
-If you are a plugin author, add [ytdlp-plugins](https://github.com/topics/ytdlp-plugins) as a topic to your repository for discoverability
+If you are a plugin author, add [yt-dlp-plugins](https://github.com/topics/yt-dlp-plugins) as a topic to your repository for discoverability
 
 See the [Developer Instructions](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#developer-instructions) on how to write and test an extractor.
 
