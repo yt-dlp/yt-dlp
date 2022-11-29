@@ -1,9 +1,9 @@
 import functools
 from threading import Lock
 
+from .formatting import apply_progress_format
 from .hoodoo import CSI
 from .logging import NULL_OUTPUT, LogLevel, StreamOutput, default_logger
-from .progress_formatting import apply_progress_format
 
 ERASE_LINE = f'{CSI}K'
 MOVE_UP = f'{CSI}A'
@@ -125,6 +125,7 @@ class ProgressReporter:
         # XXX(output): This fails if ydl fake without console or logger gets passed
         self._ydl = ydl
         self._progress = Progress.make_progress(ydl.logger, lines=lines, preserve=preserve, newline=newline)
+        self._console = ydl.console
         self.disabled = disabled
         # Pass in a `progress_template` (`params.get('progress_template', {})`)
         # XXX(output): This allows `{prefix}`, `{prefix}-title` and `{prefix}-finish` for all prefixes
@@ -151,8 +152,8 @@ class ProgressReporter:
         self._progress.print_at_line(self._ydl.evaluate_outtmpl(
             self._screen_template, progress_data), line)
 
-        if self._ydl.console.allow_title_change:
-            self._ydl.console.change_title(self._ydl.evaluate_outtmpl(
+        if self._console.allow_title_change:
+            self._console.change_title(self._ydl.evaluate_outtmpl(
                 self._title_template, progress_data))
 
     def close(self):

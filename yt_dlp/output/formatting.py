@@ -4,7 +4,7 @@ from .hoodoo import Color, TermCode, Typeface, format_text
 from ..utils import format_bytes, timetuple_from_msec, try_call
 
 
-class Style(enum.Enum):
+class ProgressStyle(enum.Enum):
     DOWNLOADED_BYTES = TermCode.make(Color.LIGHT | Color.BLUE)
     PERCENT = TermCode.make(Color.LIGHT | Color.BLUE)
     ETA = TermCode.make(Color.YELLOW)
@@ -20,7 +20,7 @@ def apply_progress_format(progress_dict, use_color=None):
         return
 
     if use_color:
-        for item in Style:
+        for item in ProgressStyle:
             name = f'_{item.name.lower()}_str'
             if name not in progress_dict:
                 continue
@@ -37,7 +37,7 @@ def format_and_get_default_template(progress_dict):
         speed = try_call(lambda: progress_dict['total_bytes'] / progress_dict['elapsed'])
         progress_dict.update({
             'speed': speed,
-            '_speed_str': format_speed(speed).strip(),
+            '_speed_str': format_speed(speed),
             '_total_bytes_str': format_bytes(progress_dict.get('total_bytes')),
             '_elapsed_str': format_seconds(progress_dict.get('elapsed')),
             '_percent_str': format_percent(1),
@@ -55,8 +55,9 @@ def format_and_get_default_template(progress_dict):
     current_bytes = progress_dict.get('downloaded_bytes') or progress_dict.get('processed_bytes')
 
     progress_dict.update({
-        '_eta_str': format_eta(progress_dict.get('eta')).strip(),
-        '_speed_str': format_speed(progress_dict.get('speed')) if progress_dict.get('speed_rate') is None else format_speed_rate(progress_dict['speed_rate']),
+        '_eta_str': format_seconds(progress_dict.get('eta')),
+        '_speed_str': (format_speed(progress_dict.get('speed')) if progress_dict.get('speed_rate') is None
+            else format_speed_rate(progress_dict['speed_rate'])),
         '_percent_str': format_percent(try_call(
             lambda: current_bytes / progress_dict['total_bytes'],
             lambda: current_bytes / progress_dict['total_bytes_estimate'],
@@ -90,22 +91,15 @@ def format_and_get_default_template(progress_dict):
     return msg_template
 
 
-def format_seconds(seconds):
+def format_seconds(seconds, eta=False):
     if seconds is None:
         return ' Unknown'
     time = timetuple_from_msec(int(seconds) * 1000)
     if time.hours > 99:
         return '--:--:--'
-    if not time.hours:
+    if eta and not time.hours:
         return f'   {time.minutes:0>2}:{time.seconds:0>2}'
     return f'{time.hours:0>2}:{time.minutes:0>2}:{time.seconds:0>2}'
-
-
-def format_eta(seconds):
-    if seconds is not None and seconds < 60:
-        return f'{seconds}s'
-
-    return format_seconds(seconds)
 
 
 def format_percent(percent):
