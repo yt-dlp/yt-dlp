@@ -38,9 +38,9 @@ class PluginLoader(importlib.abc.Loader):
 
 class PluginFinder(importlib.abc.MetaPathFinder):
     """
-    This class provides one or multiple namespace packages
-    it searches in sys.path and yt-dlp config folders
-    for the existing subdirectories from which the modules can be imported
+    This class provides one or multiple namespace packages.
+    It searches in sys.path and yt-dlp config folders for
+    the existing subdirectories from which the modules can be imported
     """
 
     def __init__(self, *packages):
@@ -60,7 +60,6 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         return any(path in file.parents for file in self._zip_content_cache[archive])
 
     def search_locations(self, fullname):
-        # Also load plugin packages from standard config folders
         candidate_locations = []
 
         def _get_package_paths(root_paths, containing_folder='plugins'):
@@ -70,7 +69,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
                     continue
                 yield from plugin_dir.iterdir()
 
-        # Load from user config folders
+        # Load from yt-dlp config folders
         candidate_locations.extend(
             _get_package_paths(get_user_config_dirs('yt-dlp') + get_system_config_dirs('yt-dlp'),
                                containing_folder='plugins'))
@@ -179,8 +178,9 @@ def load_plugins(name, suffix, namespace=None):
             continue
         load_module(module, module_name)
 
-    # Backwards-compatibility with old plugin system using __init__.py
+    # Compat: old plugin system using __init__.py
     # Note: plugins imported this way do not show up in directories()
+    # nor are considered part of the yt_dlp_plugins namespace package
     with contextlib.suppress(FileNotFoundError):
         spec = importlib.util.spec_from_file_location(
             name, Path(get_executable_path(), COMPAT_PACKAGE_NAME, name, '__init__.py'))
