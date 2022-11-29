@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 import shutil
@@ -89,21 +90,6 @@ class NullOutput(_OutputBase):
 NULL_OUTPUT = NullOutput()
 
 
-class _LoggerProxy:
-    def __init__(self, obj, **kwargs):
-        for name, wrapper in kwargs.items():
-            original = getattr(obj, name)
-            # XXX(output): Wrapper needs no reference to obj
-            override = wrapper(original)
-            functools.update_wrapper(override, original)
-            setattr(self, name, override)
-
-        self.__obj = obj
-
-    def __getattr__(self, name):
-        return getattr(self.__obj, name)
-
-
 class Style:
     HEADER = TermCode.make(Color.YELLOW)
     EMPHASIS = TermCode.make(Color.LIGHT | Color.BLUE)
@@ -143,17 +129,18 @@ class Logger:
         # TODO(output): remove type hint
         self.mapping: dict[LogLevel, _OutputBase] = {LogLevel.SCREEN: screen_output}
 
-    def make_derived(self, screen=None, debug=None, info=None, warning=None, error=None, handle_error=None) -> 'Logger':
-        kwargs = {
-            'screen': screen,
-            'debug': debug,
-            'info': info,
-            'warning': warning,
-            'error': error,
-            'handle_error': handle_error,
-        }
+    def make_derived(self, **overrides):
+        derived = copy.copy(self)
+        for name, wrapper in overrides.items():
+            base = getattr(derived, name, None)
+            if base is None:
+                raise NameError(f"No method {name!r} exists for type {type(derived).__name__}")
 
-        return _LoggerProxy(self, **{key: value for key, value in kwargs.items() if value})
+            wrapped = functools.update_wrapper(wrapper(base), base)
+            setattr(derived, name, wrapped)
+
+        derived.mapping = self.mapping.copy()
+        return derived
 
     def setup_stream_logger(self, stdout, stderr, *, no_warnings=False):
         stdout_output = NULL_OUTPUT if stdout is None else StreamOutput(stdout, self._allow_color, self._pref_encoding)

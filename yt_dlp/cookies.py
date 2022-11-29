@@ -44,7 +44,7 @@ class CookiesProgress(Progress):
     _DELAY = 0.1
 
     def __init__(self, output, lines=1, preserve=False, newline=False):
-        # Only log to streams
+        # Only log to ttys
         if isinstance(output, StreamOutput):
             try:
                 if not output._stream.isatty():
@@ -66,12 +66,20 @@ class CookiesProgress(Progress):
     @classmethod
     def make_progress(cls, logger):
         # Does not print to files/pipes, loggers, or when --no-progress is used
+        # TODO(output): Fix this printing when --no-progress is used
         return super().make_progress(logger, LogLevel.ERROR, lines=1, preserve=False, newline=False)
 
 
 def wrap_logger(logger):
-    if getattr(logger, '__is_cookie_wrapped', False):
+    PROPERTY = '__is_cookie_wrapped'
+    if getattr(logger, PROPERTY, False):
         return logger
+
+    def _debug_prefix(func):
+        def wrapped(message, *args, **kwargs):
+            func(f'[debug] {message}', *args, **kwargs)
+
+        return wrapped
 
     def _cookies_prefix(func):
         def wrapped(message, *args, **kwargs):
@@ -79,11 +87,11 @@ def wrap_logger(logger):
 
         return wrapped
 
-    if isinstance(logger, Logger):
-        logger = logger.make_derived(info=_cookies_prefix)
-    else:
+    if not isinstance(logger, Logger):
         logger = Logger(None).setup_class_logger(logger)
-    logger.__is_cookie_wrapped = True
+
+    logger = logger.make_derived(debug=_debug_prefix, info=_cookies_prefix)
+    setattr(logger, PROPERTY, True)
 
     return logger
 
