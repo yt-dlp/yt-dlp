@@ -924,7 +924,10 @@ class TikTokLiveIE(InfoExtractor):
         if not room_id:
             raise ExtractorError('The user is not currently live', expected=True)
         video_js_data = self._download_json(
-            f'https://www.tiktok.com/api/live/detail/?aid=1988&roomID={room_id}', room_id)
+            'https://www.tiktok.com/api/live/detail/', room_id, query={
+                'aid': '1988',
+                'roomID': room_id,
+            })
         title = (traverse_obj(video_js_data, ('LiveRoomInfo', 'title'), expected_type=str)
                  or self._html_search_meta(['og:title', 'twitter:title'], webpage, default=''))
         # thumbnail = traverse_obj(video_js_data, ('LiveRoomInfo', 'coverUrl'))
