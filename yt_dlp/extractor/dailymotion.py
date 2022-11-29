@@ -293,7 +293,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             f['url'] = f['url'].split('#')[0]
             if not f.get('fps') and f['format_id'].endswith('@60'):
                 f['fps'] = 60
-        self._sort_formats(formats)
 
         subtitles = {}
         subtitles_data = try_get(metadata, lambda x: x['subtitles']['data'], dict) or {}

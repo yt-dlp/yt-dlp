@@ -296,7 +296,6 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             smil_url = self._sign_url(smil_url, sig['key'], sig['secret'])
 
         formats, subtitles = self._extract_theplatform_smil(smil_url, video_id)
-        self._sort_formats(formats)
 
         ret = self._extract_theplatform_metadata(path, video_id)
         combined_subtitles = self._merge_subtitles(ret.get('subtitles', {}), subtitles)
@@ -365,8 +364,6 @@ class ThePlatformFeedIE(ThePlatformBaseIE):
                     main_smil_url or smil_url, query), video_id, 'Downloading SMIL data for %s' % asset_type)
                 formats.extend(cur_formats)
                 subtitles = self._merge_subtitles(subtitles, cur_subtitles)
-
-        self._sort_formats(formats)
 
         thumbnails = [{
             'url': thumbnail['plfile$url'],

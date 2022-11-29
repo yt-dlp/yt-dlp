@@ -93,7 +93,6 @@ class MicrosoftVirtualAcademyIE(MicrosoftVirtualAcademyBaseIE):
                     'acodec': acodec,
                     'vcodec': vcodec,
                 })
-        self._sort_formats(formats)
 
         subtitles = {}
         for source in settings.findall('.//MarkerResourceSource'):

@@ -59,7 +59,7 @@ class NationalGeographicVideoIE(InfoExtractor):
         }
 
 
-class NationalGeographicTVIE(FOXIE):
+class NationalGeographicTVIE(FOXIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?nationalgeographic\.com/tv/watch/(?P<id>[\da-fA-F]+)'
     _TESTS = [{
         'url': 'https://www.nationalgeographic.com/tv/watch/6a875e6e734b479beda26438c9f21138/',

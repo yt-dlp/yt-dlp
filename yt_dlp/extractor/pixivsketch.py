@@ -71,7 +71,6 @@ class PixivSketchIE(PixivSketchBaseIE):
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, ext='mp4',
             entry_protocol='m3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

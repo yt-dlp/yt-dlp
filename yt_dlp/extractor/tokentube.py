@@ -95,8 +95,6 @@ class TokentubeIE(InfoExtractor):
 
         description = remove_end(description, 'Category')
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'formats': formats,

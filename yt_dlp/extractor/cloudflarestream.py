@@ -51,7 +51,6 @@ class CloudflareStreamIE(InfoExtractor):
             'm3u8_native', m3u8_id='hls', fatal=False)
         formats.extend(self._extract_mpd_formats(
             manifest_base_url + 'mpd', video_id, mpd_id='dash', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

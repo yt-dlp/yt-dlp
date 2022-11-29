@@ -208,7 +208,6 @@ class VLiveIE(VLiveBaseIE):
                     'old/v3/live/%s/playInfo',
                     video_id)['result']['adaptiveStreamUrl']
                 formats = self._extract_m3u8_formats(stream_url, video_id, 'mp4')
-                self._sort_formats(formats)
                 info = get_common_fields()
                 info.update({
                     'title': video['title'],
@@ -286,7 +285,6 @@ class VLivePostIE(VLiveBaseIE):
                         'url': f_url,
                         'height': int_or_none(f_id[:-1]),
                     })
-                self._sort_formats(formats)
                 entry = {
                     'formats': formats,
                     'id': video_id,

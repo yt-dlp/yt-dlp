@@ -407,7 +407,6 @@ class PanoptoIE(PanoptoBaseIE):
         subtitles = self._merge_subtitles(
             podcast_subtitles, streams_subtitles, self.extract_subtitles(base_url, video_id, delivery))
 
-        self._sort_formats(formats)
         self.mark_watched(base_url, video_id, delivery_info)
 
         return {

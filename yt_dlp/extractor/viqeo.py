@@ -74,7 +74,6 @@ class ViqeoIE(InfoExtractor):
                     'vcodec': 'none' if is_audio else None,
                 })
                 formats.append(f)
-        self._sort_formats(formats)
 
         duration = int_or_none(data.get('duration'))
 

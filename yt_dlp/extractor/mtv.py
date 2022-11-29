@@ -102,8 +102,6 @@ class MTVServicesInfoExtractor(InfoExtractor):
                     }])
                 except (KeyError, TypeError):
                     raise ExtractorError('Invalid rendition field.')
-        if formats:
-            self._sort_formats(formats)
         return formats
 
     def _extract_subtitles(self, mdoc, mtvn_id):
@@ -201,8 +199,6 @@ class MTVServicesInfoExtractor(InfoExtractor):
         # http://www.southpark.de/alle-episoden/s14e01-sexual-healing)
         if not formats:
             return None
-
-        self._sort_formats(formats)
 
         return {
             'title': title,
@@ -536,7 +532,7 @@ class MTVItaliaIE(MTVServicesInfoExtractor):
         }
 
 
-class MTVItaliaProgrammaIE(MTVItaliaIE):
+class MTVItaliaProgrammaIE(MTVItaliaIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'mtv.it:programma'
     _VALID_URL = r'https?://(?:www\.)?mtv\.it/(?:programmi|playlist)/(?P<id>[0-9a-z]+)'
     _TESTS = [{

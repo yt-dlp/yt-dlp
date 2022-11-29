@@ -99,7 +99,7 @@ query Medium($id: ID!) {
         }
 
 
-class MurrtubeUserIE(MurrtubeIE):
+class MurrtubeUserIE(MurrtubeIE):  # XXX: Do not subclass from concrete IE
     IE_DESC = 'Murrtube user profile'
     _VALID_URL = r'https?://murrtube\.net/(?P<id>[^/]+)$'
     _TEST = {

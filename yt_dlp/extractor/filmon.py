@@ -65,7 +65,6 @@ class FilmOnIE(InfoExtractor):
                 'quality': QUALITY(stream.get('quality')),
                 'protocol': 'm3u8_native',
             })
-        self._sort_formats(formats)
 
         thumbnails = []
         poster = response.get('poster', {})
@@ -153,7 +152,6 @@ class FilmOnChannelIE(InfoExtractor):
                 'ext': 'mp4',
                 'quality': QUALITY(quality),
             })
-        self._sort_formats(formats)
 
         thumbnails = []
         for name, width, height in self._THUMBNAIL_RES:

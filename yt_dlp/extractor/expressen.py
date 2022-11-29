@@ -70,7 +70,6 @@ class ExpressenIE(InfoExtractor):
             formats = [{
                 'url': stream,
             }]
-        self._sort_formats(formats)
 
         title = info.get('titleRaw') or data['title']
         description = info.get('descriptionRaw')

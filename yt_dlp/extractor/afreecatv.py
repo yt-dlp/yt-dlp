@@ -338,7 +338,6 @@ class AfreecaTVIE(InfoExtractor):
                     }]
                 if not formats and not self.get_param('ignore_no_formats'):
                     continue
-                self._sort_formats(formats)
                 file_info = common_entry.copy()
                 file_info.update({
                     'id': format_id,
@@ -380,7 +379,7 @@ class AfreecaTVIE(InfoExtractor):
         return info
 
 
-class AfreecaTVLiveIE(AfreecaTVIE):
+class AfreecaTVLiveIE(AfreecaTVIE):  # XXX: Do not subclass from concrete IE
 
     IE_NAME = 'afreecatv:live'
     _VALID_URL = r'https?://play\.afreeca(?:tv)?\.com/(?P<id>[^/]+)(?:/(?P<bno>\d+))?'
@@ -463,8 +462,6 @@ class AfreecaTVLiveIE(AfreecaTVIE):
                     'protocol': 'm3u8',
                     'quality': quality_key(quality_str),
                 })
-
-        self._sort_formats(formats)
 
         station_info = self._download_json(
             'https://st.afreecatv.com/api/get_station_status.php', broadcast_no,

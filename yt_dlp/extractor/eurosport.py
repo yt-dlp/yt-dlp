@@ -83,8 +83,6 @@ class EurosportIE(InfoExtractor):
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
-        self._sort_formats(formats)
-
         return {
             'id': json_data['id'],
             'title': json_ld_data.get('title') or self._og_search_title(webpage),

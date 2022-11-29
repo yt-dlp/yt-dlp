@@ -31,7 +31,6 @@ class JixieBaseIE(InfoExtractor):
                     'ext': 'mp4',
                 })
 
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'display_id': display_id,

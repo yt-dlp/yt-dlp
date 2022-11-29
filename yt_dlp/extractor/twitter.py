@@ -107,46 +107,54 @@ class TwitterBaseIE(InfoExtractor):
                 'x-twitter-active-user': 'yes',
             })
 
-        result, last_error = None, None
+        last_error = None
         for bearer_token in self._TOKENS:
-            headers['Authorization'] = f'Bearer {bearer_token}'
+            for first_attempt in (True, False):
+                headers['Authorization'] = f'Bearer {bearer_token}'
 
-            if not self.is_logged_in:
-                if not self._TOKENS[bearer_token]:
-                    headers.pop('x-guest-token', None)
-                    guest_token_response = self._download_json(
-                        self._API_BASE + 'guest/activate.json', video_id,
-                        'Downloading guest token', data=b'', headers=headers)
-
-                    self._TOKENS[bearer_token] = guest_token_response.get('guest_token')
+                if not self.is_logged_in:
                     if not self._TOKENS[bearer_token]:
-                        raise ExtractorError('Could not retrieve guest token')
-                headers['x-guest-token'] = self._TOKENS[bearer_token]
+                        headers.pop('x-guest-token', None)
+                        guest_token_response = self._download_json(
+                            self._API_BASE + 'guest/activate.json', video_id,
+                            'Downloading guest token', data=b'', headers=headers)
 
-            try:
-                allowed_status = {400, 403, 404} if graphql else {403}
-                result = self._download_json(
-                    (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
-                    video_id, headers=headers, query=query, expected_status=allowed_status)
-                break
+                        self._TOKENS[bearer_token] = guest_token_response.get('guest_token')
+                        if not self._TOKENS[bearer_token]:
+                            raise ExtractorError('Could not retrieve guest token')
 
-            except ExtractorError as e:
-                if last_error:
-                    raise last_error
-                elif not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 404:
-                    raise
-                last_error = e
-                self.report_warning(
-                    'Twitter API gave 404 response, retrying with deprecated token. '
-                    'Only one media item can be extracted')
+                    headers['x-guest-token'] = self._TOKENS[bearer_token]
 
-        if result.get('errors'):
-            error_message = ', '.join(set(traverse_obj(
-                result, ('errors', ..., 'message'), expected_type=str))) or 'Unknown error'
-            raise ExtractorError(f'Error(s) while querying api: {error_message}', expected=True)
+                try:
+                    allowed_status = {400, 403, 404} if graphql else {403}
+                    result = self._download_json(
+                        (self._GRAPHQL_API_BASE if graphql else self._API_BASE) + path,
+                        video_id, headers=headers, query=query, expected_status=allowed_status)
 
-        assert result is not None
-        return result
+                except ExtractorError as e:
+                    if last_error:
+                        raise last_error
+
+                    if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code != 404:
+                        raise
+
+                    last_error = e
+                    self.report_warning(
+                        'Twitter API gave 404 response, retrying with deprecated auth token. '
+                        'Only one media item can be extracted')
+                    break  # continue outer loop with next bearer_token
+
+                if result.get('errors'):
+                    errors = traverse_obj(result, ('errors', ..., 'message'), expected_type=str)
+                    if first_attempt and any('bad guest token' in error.lower() for error in errors):
+                        self.to_screen('Guest token has expired. Refreshing guest token')
+                        self._TOKENS[bearer_token] = None
+                        continue
+
+                    error_message = ', '.join(set(errors)) or 'Unknown error'
+                    raise ExtractorError(f'Error(s) while querying API: {error_message}', expected=True)
+
+                return result
 
     def _build_graphql_query(self, media_id):
         raise NotImplementedError('Method must be implemented to support GraphQL')
@@ -328,7 +336,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '665052190608723968',
             'display_id': '665052190608723968',
             'ext': 'mp4',
-            'title': 'md5:3f57ab5d35116537a2ae7345cd0060d8',
+            'title': 'md5:55fef1d5b811944f1550e91b44abb82e',
             'description': 'A new beginning is coming December 18. Watch the official 60 second #TV spot for #StarWars: #TheForceAwakens. https://t.co/OkSqT2fjWJ',
             'uploader_id': 'starwars',
             'uploader': r're:Star Wars.*',
@@ -364,6 +372,7 @@ class TwitterIE(TwitterBaseIE):
             # Test case of TwitterCardIE
             'skip_download': True,
         },
+        'skip': 'Dead external link',
     }, {
         'url': 'https://twitter.com/jaydingeer/status/700207533655363584',
         'info_dict': {
@@ -568,10 +577,10 @@ class TwitterIE(TwitterBaseIE):
             'id': '1577855447914409984',
             'display_id': '1577855540407197696',
             'ext': 'mp4',
-            'title': 'oshtru \U0001faac\U0001f47d - gm \u2728\ufe0f now I can post image and video. nice update.',
-            'description': 'gm \u2728\ufe0f now I can post image and video. nice update. https://t.co/cG7XgiINOm',
+            'title': 'md5:9d198efb93557b8f8d5b78c480407214',
+            'description': 'md5:b9c3699335447391d11753ab21c70a74',
             'upload_date': '20221006',
-            'uploader': 'oshtru \U0001faac\U0001f47d',
+            'uploader': 'oshtru',
             'uploader_id': 'oshtru',
             'uploader_url': 'https://twitter.com/oshtru',
             'thumbnail': r're:^https?://.*\.jpg',
@@ -876,7 +885,6 @@ class TwitterIE(TwitterBaseIE):
                 fmts, subs = self._extract_variant_formats(variant, twid)
                 subtitles = self._merge_subtitles(subtitles, subs)
                 formats.extend(fmts)
-            self._sort_formats(formats, ('res', 'br', 'size', 'proto'))  # The codec of http formats are unknown
 
             thumbnails = []
             media_url = media.get('media_url_https') or media.get('media_url')
@@ -898,6 +906,8 @@ class TwitterIE(TwitterBaseIE):
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
                 'duration': float_or_none(video_info.get('duration_millis'), 1000),
+                # The codec of http formats are unknown
+                '_format_sort_fields': ('res', 'br', 'size', 'proto'),
             }
 
         def extract_from_card_info(card):
@@ -952,7 +962,6 @@ class TwitterIE(TwitterBaseIE):
                 vmap_url = get_binding_value('amplify_url_vmap') if is_amplify else get_binding_value('player_stream_url')
                 content_id = get_binding_value('%s_content_id' % (card_name if is_amplify else 'player'))
                 formats, subtitles = self._extract_formats_from_vmap_url(vmap_url, content_id or twid)
-                self._sort_formats(formats)
 
                 thumbnails = []
                 for suffix in ('_small', '', '_large', '_x_large', '_original'):
@@ -1096,7 +1105,6 @@ class TwitterBroadcastIE(TwitterBaseIE, PeriscopeBaseIE):
 class TwitterSpacesIE(TwitterBaseIE):
     IE_NAME = 'twitter:spaces'
     _VALID_URL = TwitterBaseIE._BASE_REGEX + r'i/spaces/(?P<id>[0-9a-zA-Z]{13})'
-    _TWITTER_GRAPHQL = 'https://twitter.com/i/api/graphql/HPEisOmj1epUNLCWTYhUWw/'
 
     _TESTS = [{
         'url': 'https://twitter.com/i/spaces/1RDxlgyvNXzJL',
@@ -1167,7 +1175,8 @@ class TwitterSpacesIE(TwitterBaseIE):
             # XXX: Native downloader does not work
             formats = self._extract_m3u8_formats(
                 traverse_obj(source, 'noRedirectPlaybackUrl', 'location'),
-                metadata['media_key'], 'm4a', 'm3u8', live=live_status == 'is_live')
+                metadata['media_key'], 'm4a', 'm3u8', live=live_status == 'is_live',
+                headers={'Referer': 'https://twitter.com/'})
             for fmt in formats:
                 fmt.update({'vcodec': 'none', 'acodec': 'aac'})
 

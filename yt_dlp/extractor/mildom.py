@@ -74,8 +74,6 @@ class MildomIE(MildomBaseIE):
         for fmt in formats:
             fmt.setdefault('http_headers', {})['Referer'] = 'https://www.mildom.com/'
 
-        self._sort_formats(formats)
-
         return {
             'id': result_video_id,
             'title': self._html_search_meta('twitter:description', webpage, default=None) or traverse_obj(enterstudio, 'anchor_intro'),
@@ -165,8 +163,6 @@ class MildomVodIE(MildomBaseIE):
                 'acodec': 'aac',
                 'ext': 'mp4'
             })
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

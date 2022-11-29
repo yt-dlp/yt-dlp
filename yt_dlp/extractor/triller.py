@@ -114,7 +114,6 @@ class TrillerBaseIE(InfoExtractor):
             formats.extend(self._extract_m3u8_formats(
                 manifest_url, video_id, 'mp4', entry_protocol='m3u8_native',
                 m3u8_id='hls', fatal=False))
-        self._sort_formats(formats)
 
         comment_count = int_or_none(video_info.get('comment_count'))
 

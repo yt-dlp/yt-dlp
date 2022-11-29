@@ -134,7 +134,6 @@ class ViewLiftEmbedIE(ViewLiftBaseIE):
                 'url': sub_url,
             })
 
-        self._sort_formats(formats)
         return {
             'id': film_id,
             'title': title,

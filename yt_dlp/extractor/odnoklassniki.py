@@ -370,8 +370,6 @@ class OdnoklassnikiIE(InfoExtractor):
             if payment_info:
                 self.raise_no_formats('This video is paid, subscribe to download it', expected=True)
 
-        self._sort_formats(formats)
-
         info['formats'] = formats
         return info
 

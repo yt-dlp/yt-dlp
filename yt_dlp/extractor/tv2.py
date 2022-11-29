@@ -95,7 +95,6 @@ class TV2IE(InfoExtractor):
                     })
         if not formats and data.get('drmProtected'):
             self.report_drm(video_id)
-        self._sort_formats(formats)
 
         thumbnails = [{
             'id': type,
@@ -258,7 +257,6 @@ class KatsomoIE(InfoExtractor):
                     })
         if not formats and data.get('drmProtected'):
             self.report_drm(video_id)
-        self._sort_formats(formats)
 
         thumbnails = [{
             'id': thumbnail.get('@type'),
