@@ -117,7 +117,6 @@ class Logger:
     instances might be shared between multiple `LogLevel`s.
 
     To enable the bidirectional workaround, call `init_bidi_workaround()`.
-    You SHOULD NOT call `init_bidi_workaround` more than once.
     """
 
     def __init__(self, screen, verbosity=Verbosity.NORMAL,
@@ -293,7 +292,23 @@ class Logger:
         self.log(LogLevel.ERROR, message, trace=trace, prefix=prefix)
 
     def init_bidi_workaround(self):
+        """
+        Initialize the bidirectional workaround
+
+        It raises `ImportError` systems not providing the `pty` module.
+        This is notably the case on Windows machines.
+        It also requires either `bidiv` or `fribidi` to be accessible.
+
+        The width of the terminal will be collected once at startup only.
+        If you need to update the terminal width passed to the executable
+        call `init_bidi_workaround` after the resize, which will spawn a new
+        bidi executable with the updated width.
+        """
         import pty
+
+        if self._bidi_initalized:
+            self._bidi_reader.close()
+            self._bidi_process.terminate()
 
         master, slave = pty.openpty()
         width = shutil.get_terminal_size().columns
@@ -304,6 +319,7 @@ class Logger:
         except OSError:
             _output_process = subprocess.Popen(['fribidi', '-c', 'UTF-8'] + width_args, **sp_kwargs)
 
+        self._bidi_process = _output_process
         assert _output_process.stdin is not None
         self._bidi_writer = _output_process.stdin
         self._bidi_reader = os.fdopen(master, 'rb')
