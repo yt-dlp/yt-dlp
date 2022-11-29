@@ -66,8 +66,7 @@ class CookiesProgress(Progress):
     @classmethod
     def make_progress(cls, logger):
         # Does not print to files/pipes, loggers, or when --no-progress is used
-        # TODO(output): Fix this printing when --no-progress is used
-        return super().make_progress(logger, LogLevel.ERROR, lines=1, preserve=False, newline=False)
+        return super().make_progress(logger, LogLevel.ERROR, lines=1, preserve=False, newline=True)
 
 
 def wrap_logger(logger):

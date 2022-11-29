@@ -118,12 +118,13 @@ class Logger:
     """
 
     def __init__(self, screen, verbosity=Verbosity.NORMAL,
-                 *, encoding=None, allow_color=False):
+                 *, encoding=None, allow_color=True, disable_progress=False):
         self._bidi_initalized = False
         self._message_cache = set()
         self._pref_encoding = encoding
         self._allow_color = allow_color
         self._verbosity = verbosity
+        self.disable_progress = disable_progress
 
         screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, allow_color, encoding)
         self.mapping = {LogLevel.SCREEN: screen_output}

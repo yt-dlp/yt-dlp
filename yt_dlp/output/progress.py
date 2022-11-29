@@ -32,8 +32,8 @@ def _synchronized(func=None):
 class Progress:
     @classmethod
     def make_progress(cls, logger=default_logger, level=LogLevel.INFO,
-                      *, lines=1, preserve=True, newline=False, disable=False):
-        if disable:
+                      *, lines=1, preserve=True, newline=False):
+        if logger.disable_progress:
             output = NULL_OUTPUT
 
         else:

@@ -723,7 +723,8 @@ class YoutubeDL:
 
         logger = Logger(
             screen, verbosity, encoding=params.get('encoding'),
-            allow_color=not params.get('nocolor', False))
+            allow_color=not params.get('nocolor', False),
+            disable_progress=bool(params.get('noprogress')))
 
         logger_param = params.get('logger')
         if logger_param:
