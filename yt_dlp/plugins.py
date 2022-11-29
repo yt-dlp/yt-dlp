@@ -166,7 +166,7 @@ def load_plugins(name, suffix, namespace=None):
         try:
             if sys.version_info < (3, 10) and isinstance(finder, zipimport.zipimporter):
                 # zipimporter.load_module() is deprecated in 3.10 and removed in 3.12
-                # The exec_module branch below is the replacement for > 3.10
+                # The exec_module branch below is the replacement for >= 3.10
                 # See: https://docs.python.org/3/library/zipimport.html#zipimport.zipimporter.exec_module
                 module = finder.load_module(module_name)
             else:
