@@ -865,7 +865,7 @@ class DouyinIE(TikTokBaseIE):
             'comment_count': int,
         }
     }]
-    _APP_VERSIONS = [('9.6.0', '960')]
+    _APP_VERSIONS = [('23.3.0', '230300')]
     _APP_NAME = 'aweme'
     _AID = 1128
     _API_HOSTNAME = 'aweme.snssdk.com'
@@ -878,7 +878,7 @@ class DouyinIE(TikTokBaseIE):
         try:
             return self._extract_aweme_app(video_id)
         except ExtractorError as e:
-            self.report_warning(f'{e}; trying with webpage')
+            self.to_screen(f'{str(e).split(";")[0]}; trying with webpage')
 
         webpage = self._download_webpage(url, video_id)
         render_data_json = self._search_regex(
@@ -886,7 +886,10 @@ class DouyinIE(TikTokBaseIE):
             webpage, 'render data', default=None)
         if not render_data_json:
             # TODO: Run verification challenge code to generate signature cookies
-            raise ExtractorError('Fresh cookies (not necessarily logged in) are needed')
+            cookies = self._get_cookies(self._WEBPAGE_HOST)
+            expected = not cookies.get('s_v_web_id') or not cookies.get('ttwid')
+            raise ExtractorError(
+                'Fresh cookies (not necessarily logged in) are needed', expected=expected)
 
         render_data = self._parse_json(
             render_data_json, video_id, transform_source=compat_urllib_parse_unquote)
