@@ -917,9 +917,14 @@ class TikTokLiveIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\.-]+)/live'
     IE_NAME = 'tiktok:live'
 
+    _TESTS = [{
+        'url': 'https://www.tiktok.com/@iris04201/live',
+        'only_matching': True,
+    }]
+
     def _real_extract(self, url):
-        uploader = self._match_id(url)
-        webpage = self._download_webpage(url, uploader, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
+        # TODO: add support for TikTok Live events, see https://github.com/isaackogan/TikTokLive for reference
+        webpage = self._download_webpage(url, self._match_id(url), headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
         room_id = self._html_search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
         if not room_id:
             raise ExtractorError('The user is not currently live', expected=True)
@@ -928,9 +933,6 @@ class TikTokLiveIE(InfoExtractor):
                 'aid': '1988',
                 'roomID': room_id,
             })
-        title = (traverse_obj(video_js_data, ('LiveRoomInfo', 'title'), expected_type=str)
-                 or self._html_search_meta(['og:title', 'twitter:title'], webpage, default=''))
-        # thumbnail = traverse_obj(video_js_data, ('LiveRoomInfo', 'coverUrl'))
         # status = 2 if live else 4
         is_live = traverse_obj(video_js_data, ('LiveRoomInfo', 'status'), expected_type=int, default=4) == 2
         if not is_live:
@@ -938,11 +940,16 @@ class TikTokLiveIE(InfoExtractor):
         live_url = traverse_obj(video_js_data, ('LiveRoomInfo', 'liveUrl'), expected_type=url_or_none)
         if not live_url:
             raise ExtractorError('No stream URL found')
-        formats = self._extract_m3u8_formats(live_url, room_id, 'mp4', live=is_live)
+
         return {
             'id': room_id,
-            'title': title,
-            'uploader': uploader,
-            'formats': formats,
+            'title': (traverse_obj(video_js_data, ('LiveRoomInfo', 'title'), expected_type=str)
+                      or self._html_search_meta(['og:title', 'twitter:title'], webpage, default='')),
+            'uploader': traverse_obj(video_js_data, ('LiveRoomInfo', 'ownerInfo', 'uniqueId'), default=''),
+            'uploader_id': traverse_obj(video_js_data, ('LiveRoomInfo', 'ownerInfo', 'id'), default=''),
+            'creator': traverse_obj(video_js_data, ('LiveRoomInfo', 'ownerInfo', 'nickname'), default=''),
+            'thumbnail': traverse_obj(video_js_data, ('LiveRoomInfo', 'coverUrl'), default='').replace("720x720", "gcp"),
+            'concurrent_view_count': traverse_obj(video_js_data, ('LiveRoomInfo', 'liveRoomStats', 'userCount'), expected_type=int),
+            'formats': self._extract_m3u8_formats(live_url, room_id, 'mp4', live=is_live),
             'is_live': is_live,
         }
