@@ -126,6 +126,14 @@ class TikTokBaseIE(InfoExtractor):
                     continue
                 raise e
 
+    def _extract_aweme_app(self, aweme_id):
+        feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
+                                   note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
+        aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
+        if not aweme_detail:
+            raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
+        return self._parse_aweme_video_app(aweme_detail)
+
     def _get_subtitles(self, aweme_detail, aweme_id):
         # TODO: Extract text positioning info
         subtitles = {}
@@ -540,14 +548,6 @@ class TikTokIE(TikTokBaseIE):
         'only_matching': True
     }]
 
-    def _extract_aweme_app(self, aweme_id):
-        feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
-                                   note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
-        aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
-        if not aweme_detail:
-            raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
-        return self._parse_aweme_video_app(aweme_detail)
-
     def _real_extract(self, url):
         video_id, user_id = self._match_valid_url(url).group('id', 'user_id')
         try:
@@ -782,7 +782,7 @@ class TikTokTagIE(TikTokBaseListIE):
         return self.playlist_result(self._entries(tag_id, display_id), tag_id, display_id)
 
 
-class DouyinIE(TikTokIE):  # XXX: Do not subclass from concrete IE
+class DouyinIE(TikTokBaseIE):
     _VALID_URL = r'https?://(?:www\.)?douyin\.com/video/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.douyin.com/video/6961737553342991651',
