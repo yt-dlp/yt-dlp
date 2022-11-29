@@ -33,7 +33,7 @@ class Verbosity(Enum):
     VERBOSE = 2
 
 
-class _OutputBase:
+class OutputBase:
     allow_bidi = False
     use_color = False
 
@@ -47,10 +47,10 @@ class _OutputBase:
         pass
 
 
-class StreamOutput(_OutputBase):
+class StreamOutput(OutputBase):
     allow_bidi = True
 
-    def __init__(self, stream, use_color, encoding):
+    def __init__(self, stream, use_color=True, encoding=None):
         self._stream = stream
         self._encoding = encoding
         self.use_color = use_color and supports_terminal_sequences(stream)
@@ -59,7 +59,7 @@ class StreamOutput(_OutputBase):
         write_string(message, self._stream, self._encoding)
 
 
-class ClassOutput(_OutputBase):
+class ClassOutput(OutputBase):
     def __init__(self, func):
         self._logging_function = func
 
@@ -67,7 +67,7 @@ class ClassOutput(_OutputBase):
         self._logging_function(message.rstrip())
 
 
-class LoggingOutput(_OutputBase):
+class LoggingOutput(OutputBase):
     def __init__(self, level):
         self.level = level
 
@@ -82,7 +82,7 @@ class LoggingOutput(_OutputBase):
         _logging_logger.log(self.level, message)
 
 
-class NullOutput(_OutputBase):
+class NullOutput(OutputBase):
     def __bool__(self):
         return False
 
@@ -105,16 +105,16 @@ class Logger:
     """
     A YoutubeDL output/logging facility
 
-    After instancing, one of the following functions MUST be called:
+    After instancing, one of the following functions SHOULD be called:
     - `setup_stream_logger`
     - `setup_class_logger`
     - `setup_logging_logger`
+    Alternatively you can also define your own outputs deriving `OutputBase`
+    and set those for the LogLevel in the mapping of the logger.
     You are free to call any of the setup functions more than once.
 
     To enable the bidirectional workaround, call `init_bidi_workaround()`.
     You SHOULD NOT call `init_bidi_workaround` more than once.
-
-    The logger for LogLevel.SCREEN will always be a `StreamLogger`.
     """
 
     def __init__(self, screen, verbosity=Verbosity.NORMAL,
@@ -126,8 +126,7 @@ class Logger:
         self._verbosity = verbosity
 
         screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, allow_color, encoding)
-        # TODO(output): remove type hint
-        self.mapping: dict[LogLevel, _OutputBase] = {LogLevel.SCREEN: screen_output}
+        self.mapping = {LogLevel.SCREEN: screen_output}
 
     def make_derived(self, **overrides):
         derived = copy.copy(self)
