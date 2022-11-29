@@ -923,8 +923,8 @@ class TikTokLiveIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        # TODO: add support for TikTok Live events, see https://github.com/isaackogan/TikTokLive for reference
-        webpage = self._download_webpage(url, self._match_id(url), headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
+        uploader = self._match_id(url)
+        webpage = self._download_webpage(url, uploader, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
         room_id = self._html_search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
         if not room_id:
             raise ExtractorError('The user is not currently live', expected=True)
@@ -945,10 +945,9 @@ class TikTokLiveIE(InfoExtractor):
             'id': room_id,
             'title': (traverse_obj(video_js_data, ('LiveRoomInfo', 'title'), expected_type=str)
                       or self._html_search_meta(['og:title', 'twitter:title'], webpage, default='')),
-            'uploader': traverse_obj(video_js_data, ('LiveRoomInfo', 'ownerInfo', 'uniqueId'), default=''),
-            'uploader_id': traverse_obj(video_js_data, ('LiveRoomInfo', 'ownerInfo', 'id'), default=''),
-            'creator': traverse_obj(video_js_data, ('LiveRoomInfo', 'ownerInfo', 'nickname'), default=''),
-            'thumbnail': traverse_obj(video_js_data, ('LiveRoomInfo', 'coverUrl'), default='').replace("720x720", "gcp"),
+            'uploader': traverse_obj(video_js_data, ('LiveRoomInfo', 'ownerInfo', 'uniqueId')) or uploader,
+            'uploader_id': traverse_obj(video_js_data, ('LiveRoomInfo', 'ownerInfo', 'id')),
+            'creator': traverse_obj(video_js_data, ('LiveRoomInfo', 'ownerInfo', 'nickname')),
             'concurrent_view_count': traverse_obj(video_js_data, ('LiveRoomInfo', 'liveRoomStats', 'userCount'), expected_type=int),
             'formats': self._extract_m3u8_formats(live_url, room_id, 'mp4', live=is_live),
             'is_live': is_live,
