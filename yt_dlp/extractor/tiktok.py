@@ -129,8 +129,9 @@ class TikTokBaseIE(InfoExtractor):
     def _get_subtitles(self, aweme_detail, aweme_id):
         # TODO: Extract text positioning info
         subtitles = {}
+        # aweme/detail endpoint subs
         captions_info = traverse_obj(
-            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict, default=[])
+            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict)
         for caption in captions_info:
             caption_url = traverse_obj(caption, ('url', 'url_list', ...), expected_type=url_or_none, get_all=False)
             if not caption_url:
@@ -145,6 +146,24 @@ class TikTokBaseIE(InfoExtractor):
                     f'{i + 1}\n{srt_subtitles_timecode(line["start_time"] / 1000)} --> {srt_subtitles_timecode(line["end_time"] / 1000)}\n{line["text"]}'
                     for i, line in enumerate(caption_json['utterances']) if line.get('text'))
             })
+        # feed endpoint subs
+        if not subtitles:
+            for caption in traverse_obj(aweme_detail, ('video', 'cla_info', 'caption_infos', ...), expected_type=dict):
+                if not caption.get('url') or not caption.get('caption_format'):
+                    continue
+                subtitles.setdefault(caption.get('lang', 'en'), []).append({
+                    'ext': 'vtt' if caption['caption_format'] == 'webvtt' else caption['caption_format'],
+                    'url': caption['url'],
+                })
+        # webpage subs
+        if not subtitles:
+            for caption in traverse_obj(aweme_detail, ('video', 'subtitleInfos', ...), expected_type=dict):
+                if not caption.get('Url') or not caption.get('Format'):
+                    continue
+                subtitles.setdefault(caption.get('LanguageCodeName', 'en'), []).append({
+                    'ext': 'vtt' if caption['Format'] == 'webvtt' else caption['Format'],
+                    'url': caption['Url'],
+                })
         return subtitles
 
     def _parse_aweme_video_app(self, aweme_detail):
