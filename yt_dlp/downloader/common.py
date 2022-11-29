@@ -82,24 +82,38 @@ class FileDownloader:
 
     def _set_ydl(self, ydl):
         self.ydl = ydl
+        self.logger = ydl.logger
+        self.console = ydl.console
 
-        # TODO(output): Implement them regularly through the logger
-        for func in (
-            'deprecation_warning',
-            'deprecated_feature',
-            'report_error',
-            'report_file_already_downloaded',
-            'report_warning',
-            'to_console_title',
-            'to_stderr',
-            'trouble',
-            'write_debug',
-        ):
-            if not hasattr(self, func):
-                setattr(self, func, getattr(ydl, func))
+    def deprecation_warning(self, message, *, stacklevel=0):
+        self.logger.deprecation_warning(message, stacklevel=stacklevel + 1)
+
+    def deprecated_feature(self, message):
+        self.logger.deprecated_feature(message)
+
+    def report_error(self, message, tb=None, is_error=True):
+        self.logger.handle_error(message, trace=tb, is_error=is_error)
+
+    def report_file_already_downloaded(self, file_name):
+        self.ydl.report_file_already_downloaded(file_name)
+
+    def report_warning(self, message, only_once=False):
+        self.logger.warning(message, once=only_once)
+
+    def to_console_title(self, message):
+        self.console.change_title(message)
 
     def to_screen(self, message, skip_eol=False, only_once=False):
-        self.ydl.logger.info(message, newline=not skip_eol, quiet=self.params.get('quiet'), once=only_once)
+        self.logger.info(message, newline=not skip_eol, quiet=self.params.get('quiet'), once=only_once)
+
+    def to_stderr(self, message, only_once=False):
+        self.logger.error(message, once=only_once)
+
+    def trouble(self, message=None, tb=None, is_error=True):
+        self.logger.handle_error(message, trace=tb, is_error=is_error, prefix=False)
+
+    def write_debug(self, message, only_once=False):
+        self.logger.debug(message, once=only_once)
 
     @classproperty
     def FD_NAME(cls):
