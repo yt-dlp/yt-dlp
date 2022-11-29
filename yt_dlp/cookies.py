@@ -59,9 +59,10 @@ class CookiesProgress(Progress):
         self._timer = 0
 
     def print(self, message):
-        if time.time() - self._timer > self._DELAY:
+        current_time = time.time()
+        if current_time - self._timer > self._DELAY:
             self.print_at_line(f'[Cookies] {message}', 0)
-            self._timer = time.time()
+            self._timer = current_time
 
     @classmethod
     def make_progress(cls, logger):

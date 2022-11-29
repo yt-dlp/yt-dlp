@@ -20,7 +20,6 @@ from ..utils import (
 
 class LogLevel(Enum):
     SCREEN = 0
-    PROGRESS = 1
     DEBUG = 10
     INFO = 20
     WARNING = 30
@@ -105,13 +104,17 @@ class Logger:
     """
     A YoutubeDL output/logging facility
 
-    After instancing, one of the following functions SHOULD be called:
+    After instancing all `LogLevel`s beside `LogLevel.SCREEN` are NULL_OUTPUT.
+    To initialize them to the appropriate values one SHOULD call one of:
     - `setup_stream_logger`
     - `setup_class_logger`
     - `setup_logging_logger`
     Alternatively you can also define your own outputs deriving `OutputBase`
     and set those for the LogLevel in the mapping of the logger.
     You are free to call any of the setup functions more than once.
+
+    The state of outputs SHOULD NOT be mutated since
+    instances might be shared between multiple `LogLevel`s.
 
     To enable the bidirectional workaround, call `init_bidi_workaround()`.
     You SHOULD NOT call `init_bidi_workaround` more than once.
@@ -120,14 +123,20 @@ class Logger:
     def __init__(self, screen, verbosity=Verbosity.NORMAL,
                  *, encoding=None, allow_color=True, disable_progress=False):
         self._bidi_initalized = False
-        self._message_cache = set()
         self._pref_encoding = encoding
         self._allow_color = allow_color
         self._verbosity = verbosity
+        self.message_cache = set()
         self.disable_progress = disable_progress
 
         screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, allow_color, encoding)
-        self.mapping = {LogLevel.SCREEN: screen_output}
+        self.mapping: dict[LogLevel, OutputBase] = {
+            LogLevel.SCREEN: screen_output,
+            LogLevel.DEBUG: NULL_OUTPUT,
+            LogLevel.INFO: NULL_OUTPUT,
+            LogLevel.ERROR: NULL_OUTPUT,
+            LogLevel.WARNING: NULL_OUTPUT,
+        }
 
     def make_derived(self, **overrides):
         derived = copy.copy(self)
@@ -186,9 +195,9 @@ class Logger:
         assert isinstance(message, str)
 
         if once:
-            if message in self._message_cache:
+            if message in self.message_cache:
                 return
-            self._message_cache.add(message)
+            self.message_cache.add(message)
 
         if logger.allow_bidi and self._bidi_initalized:
             message = self._apply_bidi_workaround(message)
@@ -310,5 +319,4 @@ class Logger:
         return result[:-1]
 
 
-default_logger = Logger(None, Verbosity.QUIET)
-default_logger.setup_stream_logger(None, sys.stderr)
+default_logger = Logger(None, Verbosity.QUIET).setup_stream_logger(None, sys.stderr)

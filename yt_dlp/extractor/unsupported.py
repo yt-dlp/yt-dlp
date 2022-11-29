@@ -106,7 +106,7 @@ class KnownDRMIE(UnsupportedInfoExtractor):
 
     def _real_extract(self, url):
         raise ExtractorError(
-            f'The requested site is known to use DRM protection. '
+            'The requested site is known to use DRM protection. '
             f'It will {self.logger.format(LogLevel.ERROR, "NOT", Style.EMPHASIS)} be supported.{LF}'
             f'Please {self.logger.format(LogLevel.ERROR, "DO NOT", Style.ERROR)} open an issue, '
             'unless you have evidence that the video is not DRM protected', expected=True)
