@@ -5628,8 +5628,3 @@ class FormatSorter:
                 format['abr'] = format.get('tbr') - format.get('vbr', 0)
 
         return tuple(self._calculate_field_preference(format, field) for field in self._order)
-
-
-# Deprecated
-has_certifi = bool(certifi)
-has_websockets = bool(websockets)
