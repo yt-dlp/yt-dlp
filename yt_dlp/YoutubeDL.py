@@ -3797,7 +3797,7 @@ class YoutubeDL:
                 for name, klass in plugins.items())))))
         plugin_dirs = plugin_directories()
         if plugin_dirs:
-            write_debug('Plugin directories: %s' % plugin_directories())
+            write_debug(f'Plugin directories: {plugin_dirs}')
         # Not implemented
         if False and self.params.get('call_home'):
             ipaddr = self.urlopen('https://yt-dl.org/ip').read().decode()
