@@ -87,6 +87,11 @@ from .alura import (
 )
 from .amcnetworks import AMCNetworksIE
 from .amazon import AmazonStoreIE
+from .amazonminitv import (
+    AmazonMiniTVIE,
+    AmazonMiniTVSeasonIE,
+    AmazonMiniTVSeriesIE,
+)
 from .americastestkitchen import (
     AmericasTestKitchenIE,
     AmericasTestKitchenSeasonIE,

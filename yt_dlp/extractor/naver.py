@@ -8,6 +8,7 @@ from ..utils import (
     clean_html,
     dict_get,
     int_or_none,
+    join_nonempty,
     merge_dicts,
     parse_duration,
     traverse_obj,
@@ -72,13 +73,11 @@ class NaverBaseIE(InfoExtractor):
 
         def get_subs(caption_url):
             if re.search(self._CAPTION_EXT_RE, caption_url):
-                return [{
-                    'url': replace_ext(caption_url, 'ttml'),
-                }, {
-                    'url': replace_ext(caption_url, 'vtt'),
-                }]
-            else:
-                return [{'url': caption_url}]
+                return [
+                    replace_ext(caption_url, 'ttml'),
+                    replace_ext(caption_url, 'vtt'),
+                ]
+            return [caption_url]
 
         automatic_captions = {}
         subtitles = {}
@@ -87,7 +86,13 @@ class NaverBaseIE(InfoExtractor):
             if not caption_url:
                 continue
             sub_dict = automatic_captions if caption.get('type') == 'auto' else subtitles
-            sub_dict.setdefault(dict_get(caption, ('locale', 'language')), []).extend(get_subs(caption_url))
+            lang = caption.get('locale') or join_nonempty('language', 'country', from_dict=caption) or 'und'
+            if caption.get('type') == 'fan':
+                lang += '_fan%d' % next(i for i in itertools.count(1) if f'{lang}_fan{i}' not in sub_dict)
+            sub_dict.setdefault(lang, []).extend({
+                'url': sub_url,
+                'name': join_nonempty('label', 'fanName', from_dict=caption, delim=' - '),
+            } for sub_url in get_subs(caption_url))
 
         user = meta.get('user', {})
 
