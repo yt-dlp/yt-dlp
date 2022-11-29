@@ -743,11 +743,7 @@ class YoutubeDL:
                 if not is_error:
                     return
                 if not self.params.get('ignoreerrors'):
-                    if sys.exc_info()[0] and hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
-                        exc_info = sys.exc_info()[1].exc_info
-                    else:
-                        exc_info = sys.exc_info()
-                    raise DownloadError(message, exc_info)
+                    raise DownloadError(message, sys.exc_info())
 
                 self._download_retcode = 1
 

@@ -209,15 +209,13 @@ class Logger:
         if prefix:
             message = ' '.join((*map(str, variadic(prefix)), message))
 
-        # XXX: Might have to call twice instead of append for compat
+        # XXX(output): Might have to call twice instead of append for compat
         if level is LogLevel.ERROR and self._verbosity is Verbosity.VERBOSE:
             message += '\n'
             if trace is not None:
                 message += str(trace)
 
             elif sys.exc_info()[0]:  # called from an except block
-                if hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
-                    message += ''.join(traceback.format_exception(*sys.exc_info()[1].exc_info))
                 message += traceback.format_exc()
 
             else:
