@@ -312,6 +312,7 @@ class TestRequestHandler(RequestHandlerTestCase):
         with make_rh({'logger': FakeLogger(), 'nocheckcertificate': True}) as rh:
             r = rh.handle(Request('https://127.0.0.1:%d/headers' % self.https_port))
             self.assertEqual(r.status, 200)
+            r.close()
 
     @with_make_rh()
     def test_percent_encode(self, make_rh):
@@ -319,16 +320,18 @@ class TestRequestHandler(RequestHandlerTestCase):
             # Unicode characters should be encoded with uppercase percent-encoding
             res = rh.handle(Request(f'http://127.0.0.1:{self.http_port}/中文.html'))
             self.assertEqual(res.status, 200)
-
+            res.close()
             # don't normalize existing percent encodings
             res = rh.handle(Request(f'http://127.0.0.1:{self.http_port}/%c7%9f'))
             self.assertEqual(res.status, 200)
+            res.close()
 
     @with_make_rh()
     def test_unicode_path_redirection(self, make_rh):
         with make_rh() as rh:
             r = rh.handle(Request('http://127.0.0.1:%d/302-non-ascii-redirect' % self.http_port))
             self.assertEqual(r.url, f'http://127.0.0.1:{self.http_port}/%E4%B8%AD%E6%96%87.html')
+            r.close()
 
     @with_make_rh()
     def test_raise_http_error(self, make_rh):
@@ -338,7 +341,7 @@ class TestRequestHandler(RequestHandlerTestCase):
                     rh.handle(Request('http://127.0.0.1:%d/gen_%d' % (self.http_port, bad_status)))
 
             # Should not raise an error
-            rh.handle(Request('http://127.0.0.1:%d/gen_200' % self.http_port))
+            rh.handle(Request('http://127.0.0.1:%d/gen_200' % self.http_port)).close()
 
     @with_make_rh()
     def test_redirect_loop(self, make_rh):
@@ -351,8 +354,10 @@ class TestRequestHandler(RequestHandlerTestCase):
         with make_rh() as rh:
             res = rh.handle(Request('http://127.0.0.1:%d/redirect_301' % self.http_port))
             self.assertEqual(res.url, 'http://127.0.0.1:%d/method' % self.http_port)
+            res.close()
             res2 = rh.handle(Request('http://127.0.0.1:%d/gen_200' % self.http_port))
             self.assertEqual(res2.url, 'http://127.0.0.1:%d/gen_200' % self.http_port)
+            res2.close()
 
     @with_make_rh()
     def test_redirect(self, make_rh):
@@ -392,6 +397,7 @@ class TestRequestHandler(RequestHandlerTestCase):
         with make_rh() as rh:
             res = rh.handle(Request('http://localhost:%d/redirect_302' % self.http_port, allow_redirects=False))
             self.assertEqual(res.status, 302)
+            res.close()
 
     @with_make_rh()
     def test_content_type(self, make_rh):
