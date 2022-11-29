@@ -51,7 +51,7 @@ class TikTokBaseIE(InfoExtractor):
         return self._download_json(
             'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
-                'User-Agent': f'com.ss.android.ugc.trill/{manifest_app_version} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
+                'User-Agent': f'com.ss.android.ugc.{self._APP_NAME}/{manifest_app_version} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
                 'Accept': 'application/json',
             }, query=query)
 
@@ -373,7 +373,7 @@ class TikTokBaseIE(InfoExtractor):
             'timestamp': int_or_none(aweme_detail.get('createTime')),
             'creator': str_or_none(author_info.get('nickname')),
             'uploader': str_or_none(author_info.get('uniqueId') or aweme_detail.get('author')),
-            'uploader_id': str_or_none(author_info.get('id') or aweme_detail.get('authorId')),
+            'uploader_id': str_or_none(traverse_obj(author_info, 'id', 'uid', 'authorId')),
             'uploader_url': user_url,
             'track': str_or_none(music_info.get('title')),
             'album': str_or_none(music_info.get('album')) or None,
