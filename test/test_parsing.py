@@ -222,6 +222,10 @@ class TestParsing(unittest.TestCase):
             get_element_text_and_html_by_tag('orphan', f'<orphan>{html}'), ('', '<orphan>'))
         self.assertIsNone(get_element_text_and_html_by_tag('orphan', f'{html}</orphan>'))
 
+        # ignore case on tags
+        ci_html = f'<SpAn>{html}</sPaN>'
+        self.assertEqual(get_element_text_and_html_by_tag('span', ci_html), (html, ci_html))
+
     def test_strict_html_parsing(self):
         class StrictTagParser(HTMLTagParser):
             STRICT = True
