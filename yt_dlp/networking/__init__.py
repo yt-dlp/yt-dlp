@@ -89,7 +89,7 @@ class RequestDirector:
                     raise
                 # something went very wrong, try fallback to next handler
                 self.ydl.report_error(
-                    f'Unexpected error from "{handler.NAME}" request handler: {e}' + bug_reports_message(),
+                    f'Unexpected error from "{handler.NAME}" request handler: {type(e).__name__}:{e}' + bug_reports_message(),
                     is_error=False)
                 unexpected_errors.append(e)
                 continue
