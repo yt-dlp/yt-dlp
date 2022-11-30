@@ -156,16 +156,16 @@ class RedditIE(InfoExtractor):
         if 'reddit.com/' in video_url and f'/{video_id}/' in video_url:
             entries = []
             for media in traverse_obj(data, ('media_metadata', ...), expected_type=dict):
-                if media.get('id') and media.get('e') == 'RedditVideo':
-                    formats = []
-                    if media.get('hlsUrl'):
-                        formats.extend(self._extract_m3u8_formats(
-                            unescapeHTML(media['hlsUrl']), video_id, 'mp4', m3u8_id='hls', fatal=False))
-                    if media.get('dashUrl'):
-                        formats.extend(self._extract_mpd_formats(
-                            unescapeHTML(media['dashUrl']), video_id, mpd_id='dash', fatal=False))
-                    if not formats:
-                        continue
+                if not media.get('id') and media.get('e') != 'RedditVideo':
+                    continue
+                formats = []
+                if media.get('hlsUrl'):
+                    formats.extend(self._extract_m3u8_formats(
+                        unescapeHTML(media['hlsUrl']), video_id, 'mp4', m3u8_id='hls', fatal=False))
+                if media.get('dashUrl'):
+                    formats.extend(self._extract_mpd_formats(
+                        unescapeHTML(media['dashUrl']), video_id, mpd_id='dash', fatal=False))
+                if formats:
                     entries.append({
                         'id': media['id'],
                         'display_id': video_id,
@@ -173,7 +173,7 @@ class RedditIE(InfoExtractor):
                         **info,
                     })
             if entries:
-                return self.playlist_result(entries, video_id, info['title'])
+                return self.playlist_result(entries, video_id, info.get('title'))
             raise ExtractorError('No media found', expected=True)
 
         # Check if media is hosted on reddit:
