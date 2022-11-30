@@ -4085,7 +4085,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not trans_code:
                         continue
                     orig_trans_code = trans_code
-                    if caption_track.get('kind') != 'asr':
+                    if caption_track.get('kind') != 'asr' and trans_code != 'und':
                         if not get_translated_subs:
                             continue
                         trans_code += f'-{lang_code}'
