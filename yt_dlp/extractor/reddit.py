@@ -1,5 +1,5 @@
 import random
-from urllib.parse import urlparse
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -152,11 +152,13 @@ class RedditIE(InfoExtractor):
             'age_limit': age_limit,
         }
 
+        parsed_url = urllib.parse.urlparse(video_url)
+
         # Check for embeds in text posts, or else raise to avoid recursing into the same reddit URL
-        if 'reddit.com/' in video_url and f'/{video_id}/' in video_url:
+        if 'reddit.com' in parsed_url.netloc and f'/{video_id}/' in parsed_url.path:
             entries = []
             for media in traverse_obj(data, ('media_metadata', ...), expected_type=dict):
-                if not media.get('id') and media.get('e') != 'RedditVideo':
+                if not media.get('id') or media.get('e') != 'RedditVideo':
                     continue
                 formats = []
                 if media.get('hlsUrl'):
@@ -217,7 +219,6 @@ class RedditIE(InfoExtractor):
                 'duration': int_or_none(reddit_video.get('duration')),
             }
 
-        parsed_url = urlparse(video_url)
         if parsed_url.netloc == 'v.redd.it':
             self.raise_no_formats('This video is processing', expected=True, video_id=video_id)
             return {
