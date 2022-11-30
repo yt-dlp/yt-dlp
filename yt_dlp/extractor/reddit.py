@@ -9,7 +9,7 @@ from ..utils import (
     try_get,
     unescapeHTML,
     url_or_none,
-    traverse_obj
+    traverse_obj,
 )
 
 
@@ -57,6 +57,14 @@ class RedditIE(InfoExtractor):
             'age_limit': 0,
         },
     }, {
+        # videos embedded in reddit text post
+        'url': 'https://www.reddit.com/r/KamenRider/comments/wzqkxp/finale_kamen_rider_revice_episode_50_family_to/',
+        'playlist_count': 2,
+        'info_dict': {
+            'id': 'wzqkxp',
+            'title': 'md5:72d3d19402aa11eff5bd32fc96369b37',
+        },
+    }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
         'only_matching': True,
     }, {
@@ -102,10 +110,6 @@ class RedditIE(InfoExtractor):
         data = data[0]['data']['children'][0]['data']
         video_url = data['url']
 
-        # Avoid recursing into the same reddit URL
-        if 'reddit.com/' in video_url and '/%s/' % video_id in video_url:
-            raise ExtractorError('No media found', expected=True)
-
         over_18 = data.get('over_18')
         if over_18 is True:
             age_limit = 18
@@ -147,6 +151,30 @@ class RedditIE(InfoExtractor):
             'comment_count': int_or_none(data.get('num_comments')),
             'age_limit': age_limit,
         }
+
+        # Check for embeds in text posts, or else raise to avoid recursing into the same reddit URL
+        if 'reddit.com/' in video_url and f'/{video_id}/' in video_url:
+            entries = []
+            for media in traverse_obj(data, ('media_metadata', ...), expected_type=dict):
+                if media.get('id') and media.get('e') == 'RedditVideo':
+                    formats = []
+                    if media.get('hlsUrl'):
+                        formats.extend(self._extract_m3u8_formats(
+                            unescapeHTML(media['hlsUrl']), video_id, 'mp4', m3u8_id='hls', fatal=False))
+                    if media.get('dashUrl'):
+                        formats.extend(self._extract_mpd_formats(
+                            unescapeHTML(media['dashUrl']), video_id, mpd_id='dash', fatal=False))
+                    if not formats:
+                        continue
+                    entries.append({
+                        'id': media['id'],
+                        'display_id': video_id,
+                        'formats': formats,
+                        **info,
+                    })
+            if entries:
+                return self.playlist_result(entries, video_id, info['title'])
+            raise ExtractorError('No media found', expected=True)
 
         # Check if media is hosted on reddit:
         reddit_video = traverse_obj(data, (('media', 'secure_media'), 'reddit_video'), get_all=False)
