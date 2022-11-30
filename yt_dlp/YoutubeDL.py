@@ -738,6 +738,12 @@ class YoutubeDL:
         return logger
 
     def _setup_output(self, params):
+        def debug(func):
+            def wrapper(message, once=True):
+                func(f'[debug] {message}', once=once)
+
+            return wrapper
+
         def handle_error(func):
             def wrapper(message, trace=None, is_error=True, prefix=True):
                 func(message, trace=trace, is_error=is_error, prefix=prefix)
@@ -752,7 +758,7 @@ class YoutubeDL:
 
         windows_enable_vt_mode()
 
-        self.logger = self.make_logger(params).make_derived(handle_error=handle_error)
+        self.logger = self.make_logger(params).make_derived(debug=debug, handle_error=handle_error)
         if params.get('bidi_workaround', False):
             try:
                 self.logger.init_bidi_workaround()
