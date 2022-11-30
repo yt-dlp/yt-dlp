@@ -15,17 +15,22 @@ from ..utils import (
 
 class MediasetIE(ThePlatformBaseIE):
     _TP_TLD = 'eu'
-    _VALID_URL = r'''(?x)
+    _GUID_RE = r'F[0-9A-Z]{15}'
+    _VALID_URL = rf'''(?x)
                     (?:
                         mediaset:|
                         https?://
                             (?:\w+\.)+mediaset\.it/
                             (?:
                                 (?:video|on-demand|movie)/(?:[^/]+/)+[^/]+_|
-                                player/(?:v\d+/)?index\.html\?.*?\bprogramGuid=
+                                player/(?:v\d+/)?index\.html\?\S*?\bprogramGuid=
                             )
-                    )(?P<id>[0-9A-Z]{16,})
+                    )(?P<id>{_GUID_RE})
                     '''
+
+    _EMBED_REGEX = [
+        rf'<iframe[^>]+src=[\'"](?P<url>(?:https?:)?//(?:\w+\.)+mediaset\.it/player/(?:v\d+/)?index\.html\?\S*?programGuid={_GUID_RE})[\'"&]'
+    ]
     _TESTS = [{
         # full episode
         'url': 'https://mediasetinfinity.mediaset.it/video/mrwronglezionidamore/episodio-1_F310575103000102',
@@ -94,12 +99,59 @@ class MediasetIE(ThePlatformBaseIE):
         ],
         'skip': True,
     }, {
+        # old domain
+        'url': 'https://www.mediasetplay.mediaset.it/video/mrwronglezionidamore/episodio-1_F310575103000102',
+        'only_matching': True,
+    }, {
         # iframe
         'url': 'https://static3.mediasetplay.mediaset.it/player/index.html?appKey=5ad3966b1de1c4000d5cec48&programGuid=FAFU000000665924&id=665924',
         'only_matching': True,
     }, {
         'url': 'mediaset:FAFU000000665924',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        # Mediaset embed
+        'url': 'http://www.tgcom24.mediaset.it/politica/serracchiani-voglio-vivere-in-una-societa-aperta-reazioni-sproporzionate-_3071354-201702a.shtml',
+        'info_dict': {
+            'id': 'FD00000000004929',
+            'ext': 'mp4',
+            'title': 'Serracchiani: "Voglio vivere in una società aperta, con tutela del patto di fiducia"',
+            'duration': 67.013,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'Mediaset Play',
+            'uploader_id': 'QY',
+            'upload_date': '20201005',
+            'timestamp': 1601866168,
+            'chapters': [],
+        },
+        'params': {
+            'skip_download': True,
+        }
+    }, {
+        # WittyTV embed
+        'url': 'https://www.wittytv.it/mauriziocostanzoshow/ultima-puntata-venerdi-25-novembre/',
+        'info_dict': {
+            'id': 'F312172801000801',
+            'ext': 'mp4',
+            'title': 'Ultima puntata - Venerdì 25 novembre',
+            'description': 'Una serata all\'insegna della musica e del buonumore ma non priva di spunti di riflessione',
+            'duration': 6203.01,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'Canale 5',
+            'uploader_id': 'C5',
+            'upload_date': '20221126',
+            'timestamp': 1669428689,
+            'chapters': list,
+            'series': 'Maurizio Costanzo Show',
+            'season': 'Season 12',
+            'season_number': 12,
+            'episode': 'Episode 8',
+            'episode_number': 8,
+        },
+        'params': {
+            'skip_download': True,
+        }
     }]
 
     def _parse_smil_formats(self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
