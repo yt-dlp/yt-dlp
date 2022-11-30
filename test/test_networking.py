@@ -562,6 +562,8 @@ class TestRequestDirector(RequestHandlerTestCase):
             self.assertEqual(rd.send(req).read(), b'MockHandler2')
             req.preferred_handlers.insert(0, MockHandlerFallbackRH.rh_key())
             self.assertEqual(rd.send(req).read(), b'MockHandler2')
+            req.preferred_handlers.insert(0, 'I do not exist')
+            self.assertEqual(rd.send(req).read(), b'MockHandler2')
             req.preferred_handlers.insert(0, 'Urllib')
             self.assertNotIn(b'MockHandler', rd.send(req).read())
 
