@@ -204,7 +204,6 @@ class Logger:
         if prefix:
             message = ' '.join((*map(str, variadic(prefix)), message))
 
-        # XXX(output): Might have to call twice instead of append for compat
         if level is LogLevel.ERROR and self._verbosity is Verbosity.VERBOSE:
             message += '\n'
             if trace is not None:

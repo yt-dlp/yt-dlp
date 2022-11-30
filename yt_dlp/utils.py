@@ -2044,7 +2044,6 @@ def write_string(s, out=None, encoding=None):
     out.flush()
 
 
-# XXX(output): This could likely be removed/changed to use Logger/Output
 def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
     from . import _IN_CLI
     if _IN_CLI:
@@ -5939,7 +5938,6 @@ class RetryManager:
             if self.error:
                 self.error_callback(self.error, self.attempt, self.retries)
 
-    # XXX(output): This could take a LogLevel or a logger and automatically get info and warn
     @staticmethod
     def report_retry(e, count, retries, *, sleep_func, info, warn, error=None, suffix=None):
         """Utility function for reporting retries"""

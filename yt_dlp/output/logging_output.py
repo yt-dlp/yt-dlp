@@ -17,7 +17,6 @@ class deferred_class_attribute:
 class _YDLIgnoringLogger(logging.Logger):
     @deferred_class_attribute
     def _internal_frames():
-        # XXX(output): Are these all the special cases?
         from . import logging as output_logging
         from ..downloader import common as downloader
         from ..extractor import common as extractor
@@ -101,7 +100,6 @@ class _YDLIgnoringLogger(logging.Logger):
         frame = cls.skip_frames(internal_frame, above_ydl_frame)
 
         # Skip `stacklevel` amount of levels
-        # XXX(output): Could be f_back instead since stacklevel should == 1
         frame = cls.skip_frames(lambda _, depth: depth == stacklevel, frame)
 
         return frame

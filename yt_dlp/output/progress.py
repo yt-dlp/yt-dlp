@@ -122,13 +122,11 @@ class Progress:
 
 class ProgressReporter:
     def __init__(self, ydl, prefix, *, lines=1, newline=False, preserve=False, disabled=False, templates={}):
-        # XXX(output): This fails if ydl fake without console or logger gets passed
         self._ydl = ydl
         self._progress = Progress.make_progress(ydl.logger, lines=lines, preserve=preserve, newline=newline)
         self._console = ydl.console
         self.disabled = disabled
         # Pass in a `progress_template` (`params.get('progress_template', {})`)
-        # XXX(output): This allows `{prefix}`, `{prefix}-title` and `{prefix}-finish` for all prefixes
         self._screen_template = templates.get(prefix) or f'[{prefix}] %(progress._default_template)s'
         self._title_template = templates.get(f'{prefix}-title') or 'yt-dlp %(progress._default_template)s'
         self._finish_template = templates.get(f'{prefix}-finish') or f'[{prefix}] {prefix.capitalize()} completed'
