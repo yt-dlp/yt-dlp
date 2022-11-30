@@ -1095,19 +1095,28 @@ class ExtractorError(YoutubeDLError):
         self.exc_info = sys.exc_info()  # preserve original exception
         if isinstance(self.exc_info[1], ExtractorError):
             self.exc_info = self.exc_info[1].exc_info
+        super().__init__(self.__msg)
 
-        super().__init__(''.join((
-            format_field(ie, None, '[%s] '),
-            format_field(video_id, None, '%s: '),
-            msg,
-            format_field(cause, None, ' (caused by %r)'),
-            '' if expected else bug_reports_message())))
+    @property
+    def __msg(self):
+        return ''.join((
+            format_field(self.ie, None, '[%s] '),
+            format_field(self.video_id, None, '%s: '),
+            self.orig_msg,
+            format_field(self.cause, None, ' (caused by %r)'),
+            '' if self.expected else bug_reports_message()))
 
     def format_traceback(self):
         return join_nonempty(
             self.traceback and ''.join(traceback.format_tb(self.traceback)),
             self.cause and ''.join(traceback.format_exception(None, self.cause, self.cause.__traceback__)[1:]),
             delim='\n') or None
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if getattr(self, 'msg', None) and name not in ('msg', 'args'):
+            self.msg = self.__msg or type(self).__name__
+            self.args = (self.msg, )  # Cannot be property
 
 
 class UnsupportedError(ExtractorError):
