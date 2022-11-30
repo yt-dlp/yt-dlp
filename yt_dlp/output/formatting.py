@@ -5,6 +5,7 @@ from ..utils import format_bytes, timetuple_from_msec, try_call
 
 
 class ProgressStyle(enum.Enum):
+    """ An Enum holding Styles for progress formatting """
     DOWNLOADED_BYTES = TermCode.make(Color.LIGHT | Color.BLUE)
     PERCENT = TermCode.make(Color.LIGHT | Color.BLUE)
     ETA = TermCode.make(Color.YELLOW)
@@ -14,7 +15,16 @@ class ProgressStyle(enum.Enum):
     TOTAL_BYTES_ESTIMATE = TermCode.make()
 
 
-def apply_progress_format(progress_dict, use_color=None):
+def apply_progress_format(progress_dict, use_color=False):
+    """
+    Add formatted string entries to the progress dict
+
+    This will add the formatted properties and default template.
+    Optionally formats the entries with color codes.
+
+    @param progress_dict    The progress dict to apply the formatting to.
+    @param use_color        Use color codes for formatting.
+    """
     default_template = format_and_get_default_template(progress_dict)
     if not default_template:
         return
@@ -30,6 +40,16 @@ def apply_progress_format(progress_dict, use_color=None):
 
 
 def format_and_get_default_template(progress_dict):
+    """
+    Add formatted entries to the progress dict and return the default template
+
+    This will add the string representation of certain properties to the dict.
+    It also returns the optimal default template to use for this `progress_dict`.
+
+    @param progress_dict    The progress dict to process.
+
+    @returns                The optimal default template.
+    """
     def has_field(*field_names):
         return all(progress_dict.get(field_name) is not None for field_name in field_names)
 
@@ -56,8 +76,10 @@ def format_and_get_default_template(progress_dict):
 
     progress_dict.update({
         '_eta_str': format_seconds(progress_dict.get('eta')),
-        '_speed_str': (format_speed(progress_dict.get('speed')) if progress_dict.get('speed_rate') is None
-            else format_speed_rate(progress_dict['speed_rate'])),
+        '_speed_str':
+            format_speed(progress_dict.get('speed'))
+            if progress_dict.get('speed_rate') is None
+            else format_speed_rate(progress_dict['speed_rate']),
         '_percent_str': format_percent(try_call(
             lambda: current_bytes / progress_dict['total_bytes'],
             lambda: current_bytes / progress_dict['total_bytes_estimate'],
@@ -92,6 +114,7 @@ def format_and_get_default_template(progress_dict):
 
 
 def format_seconds(seconds, eta=False):
+    """ Format seconds as hours, minutes and seconds (width 8) """
     if seconds is None:
         return ' Unknown'
     time = timetuple_from_msec(int(seconds) * 1000)
@@ -103,12 +126,19 @@ def format_seconds(seconds, eta=False):
 
 
 def format_percent(percent):
+    """
+    Format a percentage as string (width 6)
+
+    Notice that 1.0 and not 100.0 is 100%.
+    """
     return '  N/A%' if percent is None else f'{percent:>6.1%}'
 
 
 def format_speed(speed):
+    """ Format speed as a string /s (width 12) """
     return ' Unknown B/s' if speed is None else f'{format_bytes(speed):>10}/s'
 
 
 def format_speed_rate(rate):
+    """ Format speed rate as a string multiplier (width 5) """
     return ' ---x' if rate is None else f'{rate:>4.1f}x'
