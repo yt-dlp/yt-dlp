@@ -16,6 +16,7 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     qualities,
+    remove_start,
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
@@ -157,19 +158,19 @@ class TikTokBaseIE(InfoExtractor):
         # feed endpoint subs
         if not subtitles:
             for caption in traverse_obj(aweme_detail, ('video', 'cla_info', 'caption_infos', ...), expected_type=dict):
-                if not caption.get('url') or not caption.get('caption_format'):
+                if not caption.get('url'):
                     continue
-                subtitles.setdefault(caption.get('lang', 'en'), []).append({
-                    'ext': 'vtt' if caption['caption_format'] == 'webvtt' else caption['caption_format'],
+                subtitles.setdefault(caption.get('lang') or 'en', []).append({
+                    'ext': remove_start(caption.get('caption_format'), 'web'),
                     'url': caption['url'],
                 })
         # webpage subs
         if not subtitles:
             for caption in traverse_obj(aweme_detail, ('video', 'subtitleInfos', ...), expected_type=dict):
-                if not caption.get('Url') or not caption.get('Format'):
+                if not caption.get('Url'):
                     continue
-                subtitles.setdefault(caption.get('LanguageCodeName', 'en'), []).append({
-                    'ext': 'vtt' if caption['Format'] == 'webvtt' else caption['Format'],
+                subtitles.setdefault(caption.get('LanguageCodeName') or 'en', []).append({
+                    'ext': remove_start(caption.get('Format'), 'web'),
                     'url': caption['Url'],
                 })
         return subtitles
@@ -895,7 +896,8 @@ class DouyinIE(TikTokBaseIE):
         try:
             return self._extract_aweme_app(video_id)
         except ExtractorError as e:
-            self.to_screen(f'{str(e).split(";")[0]}; trying with webpage')
+            e.expected = True
+            self.to_screen(f'{e}; trying with webpage')
 
         webpage = self._download_webpage(url, video_id)
         render_data_json = self._search_regex(
