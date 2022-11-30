@@ -174,12 +174,11 @@ class HTMLTagParser(HTMLParser):
         if self.predicate(tag, attrs):
             tag_obj = self.Tag(tag, string=self.rawdata, attrs=attrs)
             tag_obj.openrange(self._offset, len(tag_text))
+            nesting = [tag_obj]
+            self._nestedtags[-1].append(nesting)
             if tag_is_open:
-                nesting = [tag_obj]
-                self._nestedtags[-1].append(nesting)
                 self._nestedtags.append(nesting)
             else:
-                self._nestedtags[-1].append(tag_obj)
                 self.callback(tag_obj)
         if tag_is_open:
             self.tagstack.appendleft(tag_obj)

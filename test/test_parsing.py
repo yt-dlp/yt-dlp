@@ -325,9 +325,9 @@ class TestParsing(unittest.TestCase):
             str(tags), str([
                 [Tag('t0'),
                  [Tag('t1'),
-                  [Tag('t2'), Tag('t3'), Tag('t4')]],
-                 [Tag('t5'), Tag('t6')]],
-                [Tag('t7'), Tag('t8')]]))
+                  [Tag('t2'), [Tag('t3')], [Tag('t4')]]],
+                 [Tag('t5'), [Tag('t6')]]],
+                [Tag('t7'), [Tag('t8')]]]))
 
     def test_html_ignored_ranges(self):
         def mark_comments(_string, char='^', nochar='-'):
