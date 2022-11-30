@@ -195,7 +195,7 @@ class MediasetIE(ThePlatformBaseIE):
                     }), guid, f'Downloading {f.split("+")[0]} SMIL data')
             except ExtractorError as e:
                 if e.orig_msg == 'None of the available releases match the specified AssetType, ProtectionScheme, and/or Format preferences':
-                    e.orig_msg = 'Content behind paywall and DRM'
+                    e.orig_msg = 'This video is DRM protected'
                 if not geo_e and isinstance(e, GeoRestrictedError):
                     geo_e = e
                 if not first_e:
