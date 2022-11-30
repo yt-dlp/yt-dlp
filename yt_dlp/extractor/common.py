@@ -692,16 +692,10 @@ class InfoExtractor:
         except UnsupportedError:
             raise
         except ExtractorError as e:
-            kwargs = {
-                'video_id': e.video_id or self.get_temp_id(url),
-                'ie': self.IE_NAME,
-                'tb': e.traceback or sys.exc_info()[2],
-                'expected': e.expected,
-                'cause': e.cause
-            }
-            if hasattr(e, 'countries'):
-                kwargs['countries'] = e.countries
-            raise type(e)(e.orig_msg, **kwargs)
+            e.video_id = e.video_id or self.get_temp_id(url),
+            e.ie = e.ie or self.IE_NAME,
+            e.traceback = e.traceback or sys.exc_info()[2]
+            raise
         except http.client.IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
