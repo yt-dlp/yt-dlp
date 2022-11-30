@@ -3872,6 +3872,9 @@ class download_range_func:
         return (isinstance(other, download_range_func)
                 and self.chapters == other.chapters and self.ranges == other.ranges)
 
+    def __repr__(self):
+        return f'{type(self).__name__}({self.chapters}, {self.ranges})'
+
 
 def parse_dfxp_time_expr(time_expr):
     if not time_expr:
@@ -5976,7 +5979,7 @@ def truncate_string(s, left, right=0):
     assert left > 3 and right >= 0
     if s is None or len(s) <= left + right:
         return s
-    return f'{s[:left-3]}...{s[-right:]}'
+    return f'{s[:left-3]}...{s[-right:] if right else ""}'
 
 
 def orderedSet_from_options(options, alias_dict, *, use_regex=False, start=None):

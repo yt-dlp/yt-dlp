@@ -432,19 +432,19 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     explicitly provided IP block in CIDR notation
 
 ## Video Selection:
-    -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the videos
+    -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the items
                                     to download. You can specify a range using
                                     "[START]:[STOP][:STEP]". For backward
                                     compatibility, START-STOP is also supported.
                                     Use negative indices to count from the right
                                     and negative STEP to download in reverse
                                     order. E.g. "-I 1:3,7,-5::2" used on a
-                                    playlist of size 15 will download the videos
+                                    playlist of size 15 will download the items
                                     at index 1,2,3,7,11,13,15
-    --min-filesize SIZE             Do not download any videos smaller than
+    --min-filesize SIZE             Abort download if filesize is smaller than
                                     SIZE, e.g. 50k or 44.6M
-    --max-filesize SIZE             Do not download any videos larger than SIZE,
-                                    e.g. 50k or 44.6M
+    --max-filesize SIZE             Abort download if filesize is larger than
+                                    SIZE, e.g. 50k or 44.6M
     --date DATE                     Download only videos uploaded on this date.
                                     The date can be "YYYYMMDD" or in the format 
                                     [now|today|yesterday][-N[day|week|month|year]].
@@ -491,9 +491,9 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     a file that is in the archive
     --break-on-reject               Stop the download process when encountering
                                     a file that has been filtered out
-    --break-per-input               --break-on-existing, --break-on-reject,
-                                    --max-downloads, and autonumber resets per
-                                    input URL
+    --break-per-input               Alters --max-downloads, --break-on-existing,
+                                    --break-on-reject, and autonumber to reset
+                                    per input URL
     --no-break-per-input            --break-on-existing and similar options
                                     terminates the entire download queue
     --skip-playlist-after-errors N  Number of allowed failures until the rest of
@@ -1046,10 +1046,10 @@ Make chapter entries for, or remove various segments (sponsor,
                                     for, separated by commas. Available
                                     categories are sponsor, intro, outro,
                                     selfpromo, preview, filler, interaction,
-                                    music_offtopic, poi_highlight, chapter, all and
-                                    default (=all). You can prefix the category
-                                    with a "-" to exclude it. See [1] for
-                                    description of the categories. E.g.
+                                    music_offtopic, poi_highlight, chapter, all
+                                    and default (=all). You can prefix the
+                                    category with a "-" to exclude it. See [1]
+                                    for description of the categories. E.g.
                                     --sponsorblock-mark all,-preview
                                     [1] https://wiki.sponsor.ajay.app/w/Segment_Categories
     --sponsorblock-remove CATS      SponsorBlock categories to be removed from
@@ -1058,7 +1058,7 @@ Make chapter entries for, or remove various segments (sponsor,
                                     remove takes precedence. The syntax and
                                     available categories are the same as for
                                     --sponsorblock-mark except that "default"
-                                    refers to "all,-filler" and poi_highlight and
+                                    refers to "all,-filler" and poi_highlight,
                                     chapter are not available
     --sponsorblock-chapter-title TEMPLATE
                                     An output template for the title of the
