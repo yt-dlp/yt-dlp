@@ -20,7 +20,6 @@ from yt_dlp.compat import (
     compat_HTMLParseError,
     compat_os_name,
 )
-from yt_dlp.networking import Request
 from yt_dlp.utils import (
     CaseInsensitiveDict,
     Config,

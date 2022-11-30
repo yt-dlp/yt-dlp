@@ -56,7 +56,7 @@ class Request:
     @param method: HTTP method to use. If no method specified, will use POST if payload data is present else GET
     @param allow_redirects: whether to follow redirects for this request.
     @param timeout: socket timeout value for this request.
-
+    @param preferred_handlers: list of rh_keys of handlers to prioritize for this request. First most handler is preferred.
     A Request may also have the following special headers:
     Ytdl-request-proxy: proxy url to use for request.
 
@@ -76,7 +76,9 @@ class Request:
             query: dict = None,
             method: str = None,
             allow_redirects: bool = True,
-            timeout: Union[float, int] = None):
+            timeout: Union[float, int] = None,
+            preferred_handlers: typing.Sequence[str] = None,
+    ):
 
         url, basic_auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
 
@@ -94,7 +96,8 @@ class Request:
         if basic_auth_header:
             self.headers['Authorization'] = basic_auth_header
 
-        self.proxies = proxies or {}
+        self.proxies = dict(proxies or {})
+        self.preferred_handlers = list(preferred_handlers or [])
 
     @property
     def url(self):
@@ -302,6 +305,8 @@ class RequestHandler:
     SUPPORTED_ENCODINGS may contain a list of supported content encodings for the Accept-Encoding header.
 
     SUPPORTED_FEATURES may contain a list of supported features, as defined in Features enum.
+
+    RH_NAME may contain a display name for the RequestHandler.
     """
 
     SUPPORTED_SCHEMES = None
@@ -477,5 +482,9 @@ class RequestHandler:
         pass
 
     @utils.classproperty
-    def NAME(cls):
-        return cls.__name__
+    def RH_NAME(cls):
+        return cls.__name__[:-2]
+
+    @classmethod
+    def rh_key(cls):
+        return cls.__name__[:-2]

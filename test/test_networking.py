@@ -24,13 +24,13 @@ from http.cookiejar import Cookie
 
 from test.helper import FakeYDL, http_server_port
 from yt_dlp import YoutubeDL
-from yt_dlp.networking import Request, UrllibRH, REQUEST_HANDLERS
+from yt_dlp.networking import Request, UrllibRH, list_request_handler_classes, RequestHandler, Response
 from yt_dlp.utils import urlencode_postdata
 from yt_dlp.networking.exceptions import HTTPError, IncompleteRead, SSLError, UnsupportedRequest, RequestError
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
-ALL_REQUEST_HANDLERS = REQUEST_HANDLERS
+ALL_REQUEST_HANDLERS = list_request_handler_classes()
 
 
 class FakeLogger:
@@ -241,11 +241,11 @@ def with_make_rh(handlers=None, ignore_handlers=None):
             for handler in handlers:
                 if handler is None:  # TODO: should we show handler being skipped? how would we get name?
                     continue
-                with self.subTest(handler=handler.NAME):
+                with self.subTest(handler=handler.RH_NAME):
                     try:
                         test(self, functools.partial(make_rh, handler), *args, **kwargs)
                     except UnsupportedRequest as e:
-                        self.skipTest(f'Skipping, unsupported test for {handler.NAME} handler: {e}')
+                        self.skipTest(f'Skipping, unsupported test for {handler.RH_NAME} handler: {e}')
         return wrapper
     return inner_func
 
@@ -537,6 +537,33 @@ class TestRequestDirector(RequestHandlerTestCase):
 
             with self.assertRaises(AssertionError):
                 rd.send(None)
+
+    def test_handler_preference(self):
+        class MockHandlerRH(RequestHandler):
+            def handle(self, request: Request):
+                return Response(io.BytesIO(self.rh_key().encode('utf-8')), url=request.url, headers={})
+
+        class MockHandler2RH(MockHandlerRH):
+            pass
+
+        class MockHandlerFallbackRH(RequestHandler):
+            def prepare_request(self, request: Request):
+                raise UnsupportedRequest('no support')
+
+        with FakeYDL() as ydl:
+            rd = ydl.build_request_director([MockHandlerFallbackRH, MockHandler2RH, MockHandlerRH, UrllibRH, ])
+
+            req = Request(url='http://127.0.0.1:%d/headers' % self.http_port)
+            self.assertNotIn(b'MockHandler', rd.send(req).read())
+
+            req.preferred_handlers.insert(0, MockHandlerRH.rh_key())
+            self.assertEqual(rd.send(req).read(), b'MockHandler')
+            req.preferred_handlers.insert(0, MockHandler2RH.rh_key())
+            self.assertEqual(rd.send(req).read(), b'MockHandler2')
+            req.preferred_handlers.insert(0, MockHandlerFallbackRH.rh_key())
+            self.assertEqual(rd.send(req).read(), b'MockHandler2')
+            req.preferred_handlers.insert(0, 'Urllib')
+            self.assertNotIn(b'MockHandler', rd.send(req).read())
 
 
 class TestHTTPProxy(RequestHandlerTestCase):

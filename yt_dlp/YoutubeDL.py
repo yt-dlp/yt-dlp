@@ -32,11 +32,13 @@ from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
 from .networking import (
-    REQUEST_HANDLERS,
-    HEADRequest,
-    Request,
+    list_request_handler_classes,
     RequestDirector,
     UrllibRH,
+)
+from .networking.common import (
+    Request,
+    HEADRequest,
 )
 from .networking.utils import std_headers
 from .postprocessor import _PLUGIN_CLASSES as plugin_postprocessors
@@ -728,7 +730,7 @@ class YoutubeDL:
                 get_postprocessor(pp_def.pop('key'))(self, **pp_def),
                 when=when)
 
-        self._request_director = self.build_request_director(REQUEST_HANDLERS)
+        self._request_director = self.build_request_director(list_request_handler_classes())
 
         def preload_download_archive(fn):
             """Preload the archive, if any is specified"""

@@ -88,6 +88,14 @@ class TestRequest(unittest.TestCase):
         self.assertEqual(auth_header('http://user:@foo.bar'), 'Basic dXNlcjo=')
         self.assertEqual(auth_header('http://user:pass@foo.bar'), 'Basic dXNlcjpwYXNz')
 
+    def test_handler_preference(self):
+        req = Request('http://example.com')
+        self.assertEqual(req.preferred_handlers, [])
+        req = Request('http://example.com', preferred_handlers=['Urllib'])
+        self.assertEqual(req.preferred_handlers, ['Urllib'])
+        req.preferred_handlers.append('Test')
+        self.assertEqual(req.preferred_handlers, ['Urllib', 'Test'])
+
 
 if __name__ == '__main__':
     unittest.main()
