@@ -12,7 +12,7 @@ from .common import (
 from .exceptions import RequestError, UnsupportedRequest
 from ..utils import CaseInsensitiveDict, bug_reports_message
 
-_BASE_HANDLER_PREFERENCE = ['Urllib']
+_BASE_HANDLER_PRIORITY = ['Urllib']
 
 
 class RequestDirector:
@@ -70,7 +70,7 @@ class RequestDirector:
 
         assert isinstance(request, Request)
 
-        request.preferred_handlers.append(_BASE_HANDLER_PREFERENCE)
+        request.preferred_handlers.extend(_BASE_HANDLER_PRIORITY)
 
         unexpected_errors = []
         unsupported_errors = []
