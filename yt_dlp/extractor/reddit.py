@@ -32,6 +32,7 @@ class RedditIE(InfoExtractor):
             'dislike_count': int,
             'comment_count': int,
             'age_limit': 0,
+            'channel': 'videos',
         },
         'params': {
             'skip_download': True,
@@ -55,6 +56,7 @@ class RedditIE(InfoExtractor):
             'dislike_count': int,
             'comment_count': int,
             'age_limit': 0,
+            'channel': 'aww',
         },
     }, {
         # videos embedded in reddit text post
@@ -146,6 +148,7 @@ class RedditIE(InfoExtractor):
             'thumbnails': thumbnails,
             'timestamp': float_or_none(data.get('created_utc')),
             'uploader': data.get('author'),
+            'channel': data.get('subreddit'),
             'like_count': int_or_none(data.get('ups')),
             'dislike_count': int_or_none(data.get('downs')),
             'comment_count': int_or_none(data.get('num_comments')),
