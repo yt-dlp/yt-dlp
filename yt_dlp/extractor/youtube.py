@@ -2625,22 +2625,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             @returns (manifest_url, manifest_stream_number, is_live) or None
             """
             try:
-                for retry in self.RetryManager():
+                for retry in self.RetryManager(fatal=False):
                     try:
                         with lock:
                             refetch_manifest(format_id, delay)
 
                         f = next((f for f in formats if f['format_id'] == format_id), None)
-                        if not f:
-                            if not is_live:
-                                err_str = f'{video_id}: Video is no longer live'
-                            else:
-                                err_str = f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}'
-                            raise MpdFeedException(err_str)
-                        return f['manifest_url'], f['manifest_stream_number'], is_live
-                    except MpdFeedException as err:
-                        retry.error = err
-                        continue
+                        if f:
+                            return f['manifest_url'], f['manifest_stream_number'], is_live
+                        elif is_live:
+                            retry.error = f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}'
+                        else:
+                            retry.error = f'{video_id}: Video is no longer live'
             except MpdFeedException:
                 return None
 
