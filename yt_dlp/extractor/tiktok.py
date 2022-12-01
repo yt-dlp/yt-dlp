@@ -16,6 +16,7 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     qualities,
+    remove_start,
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
@@ -51,7 +52,7 @@ class TikTokBaseIE(InfoExtractor):
         return self._download_json(
             'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
-                'User-Agent': f'com.ss.android.ugc.trill/{manifest_app_version} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
+                'User-Agent': f'com.ss.android.ugc.{self._APP_NAME}/{manifest_app_version} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
                 'Accept': 'application/json',
             }, query=query)
 
@@ -126,11 +127,21 @@ class TikTokBaseIE(InfoExtractor):
                     continue
                 raise e
 
+    def _extract_aweme_app(self, aweme_id):
+        feed_list = self._call_api(
+            'feed', {'aweme_id': aweme_id}, aweme_id, note='Downloading video feed',
+            errnote='Unable to download video feed').get('aweme_list') or []
+        aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
+        if not aweme_detail:
+            raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
+        return self._parse_aweme_video_app(aweme_detail)
+
     def _get_subtitles(self, aweme_detail, aweme_id):
         # TODO: Extract text positioning info
         subtitles = {}
+        # aweme/detail endpoint subs
         captions_info = traverse_obj(
-            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict, default=[])
+            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict)
         for caption in captions_info:
             caption_url = traverse_obj(caption, ('url', 'url_list', ...), expected_type=url_or_none, get_all=False)
             if not caption_url:
@@ -145,6 +156,24 @@ class TikTokBaseIE(InfoExtractor):
                     f'{i + 1}\n{srt_subtitles_timecode(line["start_time"] / 1000)} --> {srt_subtitles_timecode(line["end_time"] / 1000)}\n{line["text"]}'
                     for i, line in enumerate(caption_json['utterances']) if line.get('text'))
             })
+        # feed endpoint subs
+        if not subtitles:
+            for caption in traverse_obj(aweme_detail, ('video', 'cla_info', 'caption_infos', ...), expected_type=dict):
+                if not caption.get('url'):
+                    continue
+                subtitles.setdefault(caption.get('lang') or 'en', []).append({
+                    'ext': remove_start(caption.get('caption_format'), 'web'),
+                    'url': caption['url'],
+                })
+        # webpage subs
+        if not subtitles:
+            for caption in traverse_obj(aweme_detail, ('video', 'subtitleInfos', ...), expected_type=dict):
+                if not caption.get('Url'):
+                    continue
+                subtitles.setdefault(caption.get('LanguageCodeName') or 'en', []).append({
+                    'ext': remove_start(caption.get('Format'), 'web'),
+                    'url': caption['Url'],
+                })
         return subtitles
 
     def _parse_aweme_video_app(self, aweme_detail):
@@ -354,7 +383,7 @@ class TikTokBaseIE(InfoExtractor):
             'timestamp': int_or_none(aweme_detail.get('createTime')),
             'creator': str_or_none(author_info.get('nickname')),
             'uploader': str_or_none(author_info.get('uniqueId') or aweme_detail.get('author')),
-            'uploader_id': str_or_none(author_info.get('id') or aweme_detail.get('authorId')),
+            'uploader_id': str_or_none(traverse_obj(author_info, 'id', 'uid', 'authorId')),
             'uploader_url': user_url,
             'track': str_or_none(music_info.get('title')),
             'album': str_or_none(music_info.get('album')) or None,
@@ -520,14 +549,6 @@ class TikTokIE(TikTokBaseIE):
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
         'only_matching': True
     }]
-
-    def _extract_aweme_app(self, aweme_id):
-        feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
-                                   note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
-        aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
-        if not aweme_detail:
-            raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
-        return self._parse_aweme_video_app(aweme_detail)
 
     def _real_extract(self, url):
         video_id, user_id = self._match_valid_url(url).group('id', 'user_id')
@@ -763,56 +784,68 @@ class TikTokTagIE(TikTokBaseListIE):
         return self.playlist_result(self._entries(tag_id, display_id), tag_id, display_id)
 
 
-class DouyinIE(TikTokIE):  # XXX: Do not subclass from concrete IE
+class DouyinIE(TikTokBaseIE):
     _VALID_URL = r'https?://(?:www\.)?douyin\.com/video/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.douyin.com/video/6961737553342991651',
-        'md5': '10523312c8b8100f353620ac9dc8f067',
+        'md5': 'a97db7e3e67eb57bf40735c022ffa228',
         'info_dict': {
             'id': '6961737553342991651',
             'ext': 'mp4',
             'title': '#杨超越  小小水手带你去远航❤️',
-            'uploader': '杨超越',
-            'upload_date': '20210513',
-            'timestamp': 1620905839,
+            'description': '#杨超越  小小水手带你去远航❤️',
             'uploader_id': '110403406559',
+            'uploader_url': 'https://www.douyin.com/user/MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
+            'creator': '杨超越',
+            'duration': 19782,
+            'timestamp': 1620905839,
+            'upload_date': '20210513',
+            'track': '@杨超越创作的原声',
             'view_count': int,
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-        }
+        },
     }, {
         'url': 'https://www.douyin.com/video/6982497745948921092',
-        'md5': 'd78408c984b9b5102904cf6b6bc2d712',
+        'md5': '34a87ebff3833357733da3fe17e37c0e',
         'info_dict': {
             'id': '6982497745948921092',
             'ext': 'mp4',
             'title': '这个夏日和小羊@杨超越 一起遇见白色幻想',
-            'uploader': '杨超越工作室',
-            'upload_date': '20210708',
-            'timestamp': 1625739481,
+            'description': '这个夏日和小羊@杨超越 一起遇见白色幻想',
             'uploader_id': '408654318141572',
+            'uploader_url': 'https://www.douyin.com/user/MS4wLjABAAAAZJpnglcjW2f_CMVcnqA_6oVBXKWMpH0F8LIHuUu8-lA',
+            'creator': '杨超越工作室',
+            'duration': 42608,
+            'timestamp': 1625739481,
+            'upload_date': '20210708',
+            'track': '@杨超越工作室创作的原声',
             'view_count': int,
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-        }
+        },
     }, {
         'url': 'https://www.douyin.com/video/6953975910773099811',
-        'md5': '72e882e24f75064c218b76c8b713c185',
+        'md5': 'dde3302460f19db59c47060ff013b902',
         'info_dict': {
             'id': '6953975910773099811',
             'ext': 'mp4',
             'title': '#一起看海  出现在你的夏日里',
-            'uploader': '杨超越',
-            'upload_date': '20210422',
-            'timestamp': 1619098692,
+            'description': '#一起看海  出现在你的夏日里',
             'uploader_id': '110403406559',
+            'uploader_url': 'https://www.douyin.com/user/MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
+            'creator': '杨超越',
+            'duration': 17228,
+            'timestamp': 1619098692,
+            'upload_date': '20210422',
+            'track': '@杨超越创作的原声',
             'view_count': int,
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-        }
+        },
     }, {
         'url': 'https://www.douyin.com/video/6950251282489675042',
         'md5': 'b4db86aec367ef810ddd38b1737d2fed',
@@ -828,25 +861,30 @@ class DouyinIE(TikTokIE):  # XXX: Do not subclass from concrete IE
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-        }
+        },
+        'skip': 'No longer available',
     }, {
         'url': 'https://www.douyin.com/video/6963263655114722595',
-        'md5': '1abe1c477d05ee62efb40bf2329957cf',
+        'md5': 'cf9f11f0ec45d131445ec2f06766e122',
         'info_dict': {
             'id': '6963263655114722595',
             'ext': 'mp4',
             'title': '#哪个爱豆的105度最甜 换个角度看看我哈哈',
-            'uploader': '杨超越',
-            'upload_date': '20210517',
-            'timestamp': 1621261163,
+            'description': '#哪个爱豆的105度最甜 换个角度看看我哈哈',
             'uploader_id': '110403406559',
+            'uploader_url': 'https://www.douyin.com/user/MS4wLjABAAAAEKnfa654JAJ_N5lgZDQluwsxmY0lhfmEYNQBBkwGG98',
+            'creator': '杨超越',
+            'duration': 15115,
+            'timestamp': 1621261163,
+            'upload_date': '20210517',
+            'track': '@杨超越创作的原声',
             'view_count': int,
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-        }
+        },
     }]
-    _APP_VERSIONS = [('9.6.0', '960')]
+    _APP_VERSIONS = [('23.3.0', '230300')]
     _APP_NAME = 'aweme'
     _AID = 1128
     _API_HOSTNAME = 'aweme.snssdk.com'
@@ -859,7 +897,8 @@ class DouyinIE(TikTokIE):  # XXX: Do not subclass from concrete IE
         try:
             return self._extract_aweme_app(video_id)
         except ExtractorError as e:
-            self.report_warning(f'{e}; trying with webpage')
+            e.expected = True
+            self.to_screen(f'{e}; trying with webpage')
 
         webpage = self._download_webpage(url, video_id)
         render_data_json = self._search_regex(
@@ -867,7 +906,10 @@ class DouyinIE(TikTokIE):  # XXX: Do not subclass from concrete IE
             webpage, 'render data', default=None)
         if not render_data_json:
             # TODO: Run verification challenge code to generate signature cookies
-            raise ExtractorError('Fresh cookies (not necessarily logged in) are needed')
+            cookies = self._get_cookies(self._WEBPAGE_HOST)
+            expected = not cookies.get('s_v_web_id') or not cookies.get('ttwid')
+            raise ExtractorError(
+                'Fresh cookies (not necessarily logged in) are needed', expected=expected)
 
         render_data = self._parse_json(
             render_data_json, video_id, transform_source=compat_urllib_parse_unquote)
@@ -875,31 +917,35 @@ class DouyinIE(TikTokIE):  # XXX: Do not subclass from concrete IE
 
 
 class TikTokVMIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:vm|vt)\.tiktok\.com/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:(?:vm|vt)\.tiktok\.com|(?:www\.)tiktok\.com/t)/(?P<id>\w+)'
     IE_NAME = 'vm.tiktok'
 
     _TESTS = [{
-        'url': 'https://vm.tiktok.com/ZSe4FqkKd',
+        'url': 'https://www.tiktok.com/t/ZTRC5xgJp',
         'info_dict': {
-            'id': '7023491746608712966',
+            'id': '7170520270497680683',
             'ext': 'mp4',
-            'title': 'md5:5607564db90271abbbf8294cca77eddd',
-            'description': 'md5:5607564db90271abbbf8294cca77eddd',
-            'duration': 11,
-            'upload_date': '20211026',
-            'uploader_id': '7007385080558846981',
-            'creator': 'Memes',
-            'artist': 'Memes',
-            'track': 'original sound',
-            'uploader': 'susmandem',
-            'timestamp': 1635284105,
-            'thumbnail': r're:https://.+\.webp.*',
-            'like_count': int,
+            'title': 'md5:c64f6152330c2efe98093ccc8597871c',
+            'uploader_id': '6687535061741700102',
+            'upload_date': '20221127',
             'view_count': int,
+            'like_count': int,
             'comment_count': int,
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAObqu3WCTXxmw2xwZ3iLEHnEecEIw7ks6rxWqOqOhaPja9BI7gqUQnjw8_5FSoDXX',
+            'album': 'Wave of Mutilation: Best of Pixies',
+            'thumbnail': r're:https://.+\.webp.*',
+            'duration': 5,
+            'timestamp': 1669516858,
             'repost_count': int,
-            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAXcNoOEOxVyBzuII_E--T0MeCrLP0ay1Sm6x_n3dluiWEoWZD0VlQOytwad4W0i0n',
-        }
+            'artist': 'Pixies',
+            'track': 'Where Is My Mind?',
+            'description': 'md5:c64f6152330c2efe98093ccc8597871c',
+            'uploader': 'sigmachaddeus',
+            'creator': 'SigmaChad',
+        },
+    }, {
+        'url': 'https://vm.tiktok.com/ZSe4FqkKd',
+        'only_matching': True,
     }, {
         'url': 'https://vt.tiktok.com/ZSe4FqkKd',
         'only_matching': True,
