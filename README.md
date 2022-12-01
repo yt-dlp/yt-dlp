@@ -1774,6 +1774,9 @@ The following extractors use this feature:
 #### twitter
 * `force_graphql`: Force usage of the GraphQL API. By default it will only be used if login cookies are provided
 
+#### niconicochannelplus
+* `max_comments`: Limit the amount of comments to gather (default: `120`)
+
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
