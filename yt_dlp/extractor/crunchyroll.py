@@ -250,6 +250,11 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
         'info_dict': {
             'id': 'GY19NQ2QR',
             'title': 'Girl Friend BETA',
+            'entries': [
+                {
+                    'language': 'ja-JP',
+                },
+            ] * 10
         },
         'playlist_mincount': 10,
     }, {
