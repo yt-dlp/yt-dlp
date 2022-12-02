@@ -200,8 +200,7 @@ class HTMLTagParser(HTMLParser):
             tag_obj = self.tagstack[idx]
             self.tagstack.remove(tag)
             if isinstance(tag_obj, self.Tag):
-                close_idx = self.rawdata.find('>', self._offset) + 1
-                tag_obj.closerange(self._offset, close_idx - self._offset)
+                tag_obj.closerange(slice(self._offset, self.rawdata.find('>', self._offset) + 1))
                 self._nestedtags.pop()
                 self.callback(tag_obj)
         except ValueError as exc:
