@@ -151,10 +151,10 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 # "authenticated_url" is a format string contains "{session_id}".
                 m3u8_url=data_json['video_stream']['authenticated_url'].format(session_id=session_id),
                 video_id=content_code),
+            'ext': 'mp4',
 
             # optional metafields
 
-            'ext': 'mp4',
             '_format_sort_fields': ('tbr', 'vcodec', 'acodec'),
 
             'channel': channel_name,
