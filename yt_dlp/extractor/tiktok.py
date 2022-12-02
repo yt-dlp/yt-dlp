@@ -30,7 +30,7 @@ class TikTokBaseIE(InfoExtractor):
     _WORKING_APP_VERSION = None
     _APP_NAME = 'trill'
     _AID = 1180
-    _API_HOSTNAME = 'api-h2.tiktokv.com'
+    _API_HOSTNAME = 'api16-normal-c-useast1a.tiktokv.com'
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
