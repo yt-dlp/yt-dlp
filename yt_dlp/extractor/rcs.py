@@ -8,11 +8,13 @@ from ..utils import (
     HEADRequest,
     int_or_none,
     js_to_json,
+    mimetype2ext,
     sanitize_url,
     traverse_obj,
     url_basename,
     urljoin,
 )
+import web_pdb
 
 
 class RCSBaseIE(InfoExtractor):
@@ -31,30 +33,6 @@ class RCSBaseIE(InfoExtractor):
             'video.corriere.it/vr360/videos/',
         '.net//': '.net/',
         'http://': 'https://',
-    }
-    _MP4_REPLACE = {
-        'media2vam.corbologna.corriere.it.edgesuite.net':
-            'media2vam-bologna-corriere-it.akamaized.net',
-        'media2vam.corfiorentino.corriere.it.edgesuite.net':
-            'media2vam-fiorentino-corriere-it.akamaized.net',
-        'media2vam.cormezzogiorno.corriere.it.edgesuite.net':
-            'media2vam-mezzogiorno-corriere-it.akamaized.net',
-        'media2vam.corveneto.corriere.it.edgesuite.net':
-            'media2vam-veneto-corriere-it.akamaized.net',
-        'media2.oggi.it.edgesuite.net':
-            'media2-oggi-it.akamaized.net',
-        'media2.quimamme.it.edgesuite.net':
-            'media2-quimamme-it.akamaized.net',
-        'media2.amica.it.edgesuite.net':
-            'media2-amica-it.akamaized.net',
-        'media2.living.corriere.it.edgesuite.net':
-            'media2-living-corriere-it.akamaized.net',
-        'media2.style.corriere.it.edgesuite.net':
-            'media2-style-corriere-it.akamaized.net',
-        'media2.iodonna.it.edgesuite.net':
-            'media2-iodonna-it.akamaized.net',
-        'media2.leitv.it.edgesuite.net':
-            'media2-leitv-it.akamaized.net',
     }
     _MIGRATION_MAP = {
         'videoamica-vh.akamaihd': 'amica',
@@ -96,33 +74,16 @@ class RCSBaseIE(InfoExtractor):
         'vivimilano-vh.akamaihd': 'vivimilano',
         'media2-youreporter-it.akamaized': 'youreporter'
     }
-    _MIGRATION_MEDIA = {
-        'advrcs-vh.akamaihd': '',
-        'corriere-f.akamaihd': '',
-        'corrierepmd-corriere-it.akamaized': '',
-        'corrprotetto-vh.akamaihd': '',
-        'gazzetta-f.akamaihd': '',
-        'gazzettapmd-gazzetta-it.akamaized': '',
-        'gazzprotetto-vh.akamaihd': '',
-        'periodici-f.akamaihd': '',
-        'periodicisecure-vh.akamaihd': '',
-        'videocoracademy-vh.akamaihd': ''
-    }
-    _MIME_TYPE = {
-        'application/vnd.apple.mpegurl': 'm3u8',
-        'audio/mpeg': 'mp3',
-        'video/mp4': 'mp4',  # unreliable: use _create_http_formats instead
-        'application/f4m': 'dash',  # TODO
-    }
 
     def _get_video_src(self, video):
+        #web_pdb.set_trace()
         mediaFiles = traverse_obj(video, ('mediaProfile', 'mediaFile'))
         sources = []
 
         for source in mediaFiles:
-            if self._MIME_TYPE.get(source.get('mimeType')):
+            if source.get('mimeType'):
                 sources.append({
-                    'type': self._MIME_TYPE[source['mimeType']],
+                    'type': mimetype2ext(source['mimeType']),
                     'url': source.get('value'),
                     'bitrate': source.get('bitrate')})
 
@@ -152,7 +113,7 @@ class RCSBaseIE(InfoExtractor):
 
     def _create_http_formats(self, m3u8_url, m3u8_formats, video_id):
         http_formats = []
-        REPL_REGEX = r'(https?://[^/]+)/hls/(\S+?\.mp4).+'
+        REPL_REGEX = r'(https?://[^/]+)/hls/([^?#]+?\.mp4).+'
         for f in m3u8_formats:
             if f['vcodec'] != 'none' and re.match(REPL_REGEX, f['url']):
                 http_f = f.copy()
@@ -200,14 +161,14 @@ class RCSBaseIE(InfoExtractor):
         video_id = mobj.group('id')
 
         if 'cdn' not in mobj.groupdict():
-            raise ExtractorError('CDN not found in url: %s' % url)
+            raise ExtractorError(f'CDN not found in url: {url}')
 
         # for leitv/youreporter don't use the embed page
         if mobj.group('cdn') not in ['leitv.it', 'youreporter.it']:
             if 'video-embed' not in url and not re.match(self._UUID_RE, video_id):
                 page = self._download_webpage(url, video_id)
                 video_id = self._search_regex(fr'"uuid"\s*:\s*"({self._UUID_RE})"', page, video_id, fatal=False) or video_id
-            url = 'https://video.%s/video-embed/%s' % (mobj.group('cdn'), video_id)
+            url = f'https://video.{mobj.group("cdn")}/video-embed/{video_id}'
 
         page = self._download_webpage(url, video_id)
         video_data = None
