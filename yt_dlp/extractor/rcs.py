@@ -32,30 +32,6 @@ class RCSBaseIE(InfoExtractor):
         '.net//': '.net/',
         'http://': 'https://',
     }
-    _MP4_REPLACE = {
-        'media2vam.corbologna.corriere.it.edgesuite.net':
-            'media2vam-bologna-corriere-it.akamaized.net',
-        'media2vam.corfiorentino.corriere.it.edgesuite.net':
-            'media2vam-fiorentino-corriere-it.akamaized.net',
-        'media2vam.cormezzogiorno.corriere.it.edgesuite.net':
-            'media2vam-mezzogiorno-corriere-it.akamaized.net',
-        'media2vam.corveneto.corriere.it.edgesuite.net':
-            'media2vam-veneto-corriere-it.akamaized.net',
-        'media2.oggi.it.edgesuite.net':
-            'media2-oggi-it.akamaized.net',
-        'media2.quimamme.it.edgesuite.net':
-            'media2-quimamme-it.akamaized.net',
-        'media2.amica.it.edgesuite.net':
-            'media2-amica-it.akamaized.net',
-        'media2.living.corriere.it.edgesuite.net':
-            'media2-living-corriere-it.akamaized.net',
-        'media2.style.corriere.it.edgesuite.net':
-            'media2-style-corriere-it.akamaized.net',
-        'media2.iodonna.it.edgesuite.net':
-            'media2-iodonna-it.akamaized.net',
-        'media2.leitv.it.edgesuite.net':
-            'media2-leitv-it.akamaized.net',
-    }
     _MIGRATION_MAP = {
         'videoamica-vh.akamaihd': 'amica',
         'media2-amica-it.akamaized': 'amica',
@@ -95,18 +71,6 @@ class RCSBaseIE(InfoExtractor):
         'media2-vivimilano-corriere-it.akamaized': 'vivimilano',
         'vivimilano-vh.akamaihd': 'vivimilano',
         'media2-youreporter-it.akamaized': 'youreporter'
-    }
-    _MIGRATION_MEDIA = {
-        'advrcs-vh.akamaihd': '',
-        'corriere-f.akamaihd': '',
-        'corrierepmd-corriere-it.akamaized': '',
-        'corrprotetto-vh.akamaihd': '',
-        'gazzetta-f.akamaihd': '',
-        'gazzettapmd-gazzetta-it.akamaized': '',
-        'gazzprotetto-vh.akamaihd': '',
-        'periodici-f.akamaihd': '',
-        'periodicisecure-vh.akamaihd': '',
-        'videocoracademy-vh.akamaihd': ''
     }
     _MIME_TYPE = {
         'application/vnd.apple.mpegurl': 'm3u8',
