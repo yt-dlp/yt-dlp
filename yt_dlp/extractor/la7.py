@@ -2,7 +2,6 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     float_or_none,
     HEADRequest,
     int_or_none,
@@ -14,7 +13,7 @@ from ..utils import (
 class LA7IE(InfoExtractor):
     IE_NAME = 'la7.it'
     _VALID_URL = r'''(?x)https?://(?:
-        (?:www\.)?la7\.it/([^/]+)/(?:rivedila7|video)/|
+        (?:www\.)?la7\.it/([^/]+)/(?:rivedila7|video|news)/|
         tg\.la7\.it/repliche-tgla7\?id=
     )(?P<id>.+)'''
 
@@ -32,6 +31,9 @@ class LA7IE(InfoExtractor):
         },
     }, {
         'url': 'http://www.la7.it/omnibus/rivedila7/omnibus-news-02-07-2016-189077',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.la7.it/calcio-femminile/news/il-gol-di-lindsey-thomas-fiorentina-vs-milan-serie-a-calcio-femminile-26-11-2022-461736',
         'only_matching': True,
     }]
     _HOST = 'https://awsvodpkg.iltrovatore.it'
@@ -59,8 +61,12 @@ class LA7IE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
+
+        if re.search(r'(?i)(drmsupport\s*:\s*true)\s*', webpage):
+            self.report_drm(video_id)
+
         video_path = self._search_regex(
-            r'(/content/\S+?)\.mp4(?:\.csmil)?/master\.m3u8', webpage, 'video_path')
+            r'(/content/[\w/,]+?)\.mp4(?:\.csmil)?/master\.m3u8', webpage, 'video_path')
 
         formats = self._extract_mpd_formats(
             f'{self._HOST}/local/dash/,{video_path}.mp4.urlset/manifest.mpd',
@@ -71,9 +77,9 @@ class LA7IE(InfoExtractor):
         formats.extend(m3u8_formats)
 
         for q in filter(None, video_path.split(',')):
-            formats.append(self._generate_mp4_url(q, m3u8_formats))
-
-        self._sort_formats(formats)
+            http_f = self._generate_mp4_url(q, m3u8_formats)
+            if http_f:
+                formats.append(http_f)
 
         return {
             'id': video_id,
@@ -121,16 +127,16 @@ class LA7PodcastEpisodeIE(InfoExtractor):
                 webpage, 'video_id', group='vid')
 
         media_url = self._search_regex(
-            (r'src:\s*([\'"])(?P<url>.+?mp3.+?)\1',
-             r'data-podcast=([\'"])(?P<url>.+?mp3.+?)\1'),
+            (r'src\s*:\s*([\'"])(?P<url>\S+?mp3.+?)\1',
+             r'data-podcast\s*=\s*([\'"])(?P<url>\S+?mp3.+?)\1'),
             webpage, 'media_url', group='url')
-        ext = determine_ext(media_url)
         formats = [{
             'url': media_url,
-            'format_id': ext,
-            'ext': ext,
+            'format_id': 'http-mp3',
+            'ext': 'mp3',
+            'acodec': 'mp3',
+            'vcodec': 'none',
         }]
-        self._sort_formats(formats)
 
         title = self._html_search_regex(
             (r'<div class="title">(?P<title>.+?)</',
