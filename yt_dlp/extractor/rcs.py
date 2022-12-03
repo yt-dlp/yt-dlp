@@ -5,7 +5,11 @@ from ..utils import (
     ExtractorError,
     base_url,
     clean_html,
+    HEADRequest,
+    int_or_none,
     js_to_json,
+    sanitize_url,
+    traverse_obj,
     url_basename,
     urljoin,
 )
@@ -15,6 +19,7 @@ class RCSBaseIE(InfoExtractor):
     # based on VideoPlayerLoader.prototype.getVideoSrc
     # and VideoPlayerLoader.prototype.transformSrc from
     # https://js2.corriereobjects.it/includes2013/LIBS/js/corriere_video.sjs
+    _UUID_RE = r'[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}'
     _ALL_REPLACE = {
         'media2vam.corriere.it.edgesuite.net':
             'media2vam-corriere-it.akamaized.net',
@@ -25,6 +30,7 @@ class RCSBaseIE(InfoExtractor):
         'media2vam-corriere-it.akamaized.net/fcs.quotidiani/vr/videos/':
             'video.corriere.it/vr360/videos/',
         '.net//': '.net/',
+        'http://': 'https://',
     }
     _MP4_REPLACE = {
         'media2vam.corbologna.corriere.it.edgesuite.net':
@@ -102,100 +108,91 @@ class RCSBaseIE(InfoExtractor):
         'periodicisecure-vh.akamaihd': '',
         'videocoracademy-vh.akamaihd': ''
     }
+    _MIME_TYPE = {
+        'application/vnd.apple.mpegurl': 'm3u8',
+        'audio/mpeg': 'mp3',
+        'video/mp4': 'mp4',  # unreliable: use _create_http_formats instead
+        'application/f4m': 'dash',  # TODO
+    }
 
     def _get_video_src(self, video):
-        mediaFiles = video.get('mediaProfile').get('mediaFile')
-        src = {}
-        # audio
-        if video.get('mediaType') == 'AUDIO':
-            for aud in mediaFiles:
-                # todo: check
-                src['mp3'] = aud.get('value')
-        # video
-        else:
-            for vid in mediaFiles:
-                if vid.get('mimeType') == 'application/vnd.apple.mpegurl':
-                    src['m3u8'] = vid.get('value')
-                if vid.get('mimeType') == 'video/mp4':
-                    src['mp4'] = vid.get('value')
+        mediaFiles = traverse_obj(video, ('mediaProfile', 'mediaFile'))
+        sources = []
 
-        # replace host
-        for t in src:
+        for source in mediaFiles:
+            if self._MIME_TYPE.get(source.get('mimeType')):
+                sources.append({
+                    'type': self._MIME_TYPE[source['mimeType']],
+                    'url': source.get('value'),
+                    'bitrate': source.get('bitrate')})
+
+        for source in sources:
             for s, r in self._ALL_REPLACE.items():
-                src[t] = src[t].replace(s, r)
-            for s, r in self._MP4_REPLACE.items():
-                src[t] = src[t].replace(s, r)
+                source['url'] = source['url'].replace(s, r)
 
-        # switch cdn
-        if 'mp4' in src and 'm3u8' in src:
-            if ('-lh.akamaihd' not in src.get('m3u8')
-                    and 'akamai' in src.get('mp4')):
-                if 'm3u8' in src:
-                    matches = re.search(r'(?:https*:)?\/\/(?P<host>.*)\.net\/i(?P<path>.*)$', src.get('m3u8'))
-                    src['m3u8'] = 'https://vod.rcsobjects.it/hls/%s%s' % (
-                        self._MIGRATION_MAP[matches.group('host')],
-                        matches.group('path').replace(
-                            '///', '/').replace(
-                            '//', '/').replace(
-                            '.csmil', '.urlset'
-                        )
-                    )
-                if 'mp4' in src:
-                    matches = re.search(r'(?:https*:)?\/\/(?P<host>.*)\.net\/i(?P<path>.*)$', src.get('mp4'))
-                    if matches:
-                        if matches.group('host') in self._MIGRATION_MEDIA:
-                            vh_stream = 'https://media2.corriereobjects.it'
-                            if src.get('mp4').find('fcs.quotidiani_!'):
-                                vh_stream = 'https://media2-it.corriereobjects.it'
-                            src['mp4'] = '%s%s' % (
-                                vh_stream,
-                                matches.group('path').replace(
-                                    '///', '/').replace(
-                                    '//', '/').replace(
-                                    '/fcs.quotidiani/mediacenter', '').replace(
-                                    '/fcs.quotidiani_!/mediacenter', '').replace(
-                                    'corriere/content/mediacenter/', '').replace(
-                                    'gazzetta/content/mediacenter/', '')
-                            )
-                        else:
-                            src['mp4'] = 'https://vod.rcsobjects.it/%s%s' % (
-                                self._MIGRATION_MAP[matches.group('host')],
-                                matches.group('path').replace('///', '/').replace('//', '/')
-                            )
+            if source['type'] == 'm3u8' and '-lh.akamaihd' in source['url']:
+                matches = re.search(r'(?:https*:)?\/\/(?P<host>.*)\.net\/i(?P<path>.*)$', source['url'])
+                source['url'] = 'https://vod.rcsobjects.it/hls/%s%s' % (
+                    self._MIGRATION_MAP[matches.group('host')],
+                    matches.group('path').replace('///', '/').replace('//', '/').replace('.csmil', '.urlset')
+                )
+            if (source['type'] == 'm3u8' and 'fcs.quotidiani_!' in source['url']) or (
+                    'geoblocking' in video['mediaProfile']):
+                source['url'] = source['url'].replace(
+                    'vod.rcsobjects', 'vod-it.rcsobjects')
+            if source['type'] == 'm3u8' and 'vod' in source['url']:
+                source['url'] = source['url'].replace(
+                    '.csmil', '.urlset')
+            if source['type'] == 'mp3':
+                source['url'] = source['url'].replace(
+                    'media2vam-corriere-it.akamaized.net',
+                    'vod.rcsobjects.it/corriere')
 
-        if 'mp3' in src:
-            src['mp3'] = src.get('mp3').replace(
-                'media2vam-corriere-it.akamaized.net',
-                'vod.rcsobjects.it/corriere')
-        if 'mp4' in src:
-            if src.get('mp4').find('fcs.quotidiani_!'):
-                src['mp4'] = src.get('mp4').replace('vod.rcsobjects', 'vod-it.rcsobjects')
-        if 'm3u8' in src:
-            if src.get('m3u8').find('fcs.quotidiani_!'):
-                src['m3u8'] = src.get('m3u8').replace('vod.rcsobjects', 'vod-it.rcsobjects')
+        return sources
 
-        if 'geoblocking' in video.get('mediaProfile'):
-            if 'm3u8' in src:
-                src['m3u8'] = src.get('m3u8').replace('vod.rcsobjects', 'vod-it.rcsobjects')
-            if 'mp4' in src:
-                src['mp4'] = src.get('mp4').replace('vod.rcsobjects', 'vod-it.rcsobjects')
-        if 'm3u8' in src:
-            if src.get('m3u8').find('csmil') and src.get('m3u8').find('vod'):
-                src['m3u8'] = src.get('m3u8').replace('.csmil', '.urlset')
+    def _create_http_formats(self, m3u8_url, m3u8_formats, video_id):
+        http_formats = []
+        REPL_REGEX = r'(https?://[^/]+)/hls/(\S+?\.mp4).+'
+        for f in m3u8_formats:
+            if f['vcodec'] != 'none' and re.match(REPL_REGEX, f['url']):
+                http_f = f.copy()
+                del http_f['manifest_url']
+                http_url = re.sub(REPL_REGEX, r'\g<1>/\g<2>', f['url'])
+                format_id = http_f['format_id'].replace('hls-', 'https-')
+                urlh = self._request_webpage(
+                    HEADRequest(http_url), video_id,
+                    note=f'Check filesize for {format_id}', fatal=False)
+                if urlh:
+                    http_f.update({
+                        'format_id': format_id,
+                        'url': http_url,
+                        'protocol': 'https',
+                        'filesize_approx': int_or_none(urlh.headers.get('Content-Length', None)),
+                    })
+                    http_formats.append(http_f)
 
-        return src
+        return http_formats
 
-    def _create_formats(self, urls, video_id):
+    def _create_formats(self, sources, video_id):
         formats = []
-        formats = self._extract_m3u8_formats(
-            urls.get('m3u8'), video_id, 'mp4', entry_protocol='m3u8_native',
-            m3u8_id='hls', fatal=False)
 
-        if urls.get('mp4'):
-            formats.append({
-                'format_id': 'http-mp4',
-                'url': urls['mp4']
-            })
+        for source in sources:
+            if source['type'] == 'm3u8':
+                m3u8_formats = self._extract_m3u8_formats(
+                    source['url'], video_id, 'mp4', m3u8_id='hls', fatal=False)
+                formats.extend(m3u8_formats)
+                http_formats = self._create_http_formats(source['url'], m3u8_formats or [], video_id)
+                formats.extend(http_formats)
+            if source['type'] == 'mp3':
+                formats.append({
+                    'format_id': 'https-mp3',
+                    'ext': 'mp3',
+                    'acodec': 'mp3',
+                    'vcodec': 'none',
+                    'abr': source.get('bitrate'),
+                    'url': source['url'],
+                })
+
         return formats
 
     def _real_extract(self, url):
@@ -205,26 +202,27 @@ class RCSBaseIE(InfoExtractor):
         if 'cdn' not in mobj.groupdict():
             raise ExtractorError('CDN not found in url: %s' % url)
 
-        # for leitv/youreporter/viaggi don't use the embed page
-        if ((mobj.group('cdn') not in ['leitv.it', 'youreporter.it'])
-                and (mobj.group('vid') == 'video')):
+        # for leitv/youreporter don't use the embed page
+        if mobj.group('cdn') not in ['leitv.it', 'youreporter.it']:
+            if 'video-embed' not in url and not re.match(self._UUID_RE, video_id):
+                page = self._download_webpage(url, video_id)
+                video_id = self._search_regex(fr'"uuid"\s*:\s*"({self._UUID_RE})"', page, video_id, fatal=False) or video_id
             url = 'https://video.%s/video-embed/%s' % (mobj.group('cdn'), video_id)
 
         page = self._download_webpage(url, video_id)
-
         video_data = None
         # look for json video data url
         json = self._search_regex(
             r'''(?x)url\s*=\s*(["'])
             (?P<url>
                 (?:https?:)?//video\.rcs\.it
-                /fragment-includes/video-includes/.+?\.json
+                /fragment-includes/video-includes/\S+?\.json
             )\1;''',
             page, video_id, group='url', default=None)
+
         if json:
-            if json.startswith('//'):
-                json = 'https:%s' % json
-            video_data = self._download_json(json, video_id)
+            video_data = self._download_json(sanitize_url(json, scheme='https'), video_id)
+            video_id = video_data.get('id') or video_id
 
         # if json url not found, look for json video data directly in the page
         else:
@@ -256,7 +254,7 @@ class RCSBaseIE(InfoExtractor):
         formats = self._create_formats(
             self._get_video_src(video_data), video_id)
 
-        description = (video_data.get('description')
+        description = (clean_html(video_data.get('description'))
                        or clean_html(video_data.get('htmlDescription'))
                        or self._html_search_meta('description', page))
         uploader = video_data.get('provider') or mobj.group('cdn')
@@ -296,7 +294,7 @@ class RCSEmbedsIE(RCSBaseIE):
             \1''']
     _TESTS = [{
         'url': 'https://video.rcs.it/video-embed/iodonna-0001585037',
-        'md5': '623ecc8ffe7299b2d0c1046d8331a9df',
+        'md5': '0faca97df525032bb9847f690bc3720c',
         'info_dict': {
             'id': 'iodonna-0001585037',
             'ext': 'mp4',
@@ -307,7 +305,7 @@ class RCSEmbedsIE(RCSBaseIE):
     }, {
         # redownload the page changing 'video-embed' in 'video-json'
         'url': 'https://video.gazzanet.gazzetta.it/video-embed/gazzanet-mo05-0000260789',
-        'md5': 'a043e3fecbe4d9ed7fc5d888652a5440',
+        'md5': '03c81ad0c965b717596aee17028bcd78',
         'info_dict': {
             'id': 'gazzanet-mo05-0000260789',
             'ext': 'mp4',
@@ -325,13 +323,10 @@ class RCSEmbedsIE(RCSBaseIE):
 
     @staticmethod
     def _sanitize_urls(urls):
-        # add protocol if missing
-        for i, e in enumerate(urls):
-            if e.startswith('//'):
-                urls[i] = 'https:%s' % e
-        # clean iframes urls
-        for i, e in enumerate(urls):
-            urls[i] = urljoin(base_url(e), url_basename(e))
+        # add protocol if missing and clean iframes urls
+        for url in urls:
+            url = sanitize_url(url, scheme='https')
+            url = urljoin(base_url(url), url_basename(url))
         return urls
 
     @classmethod
@@ -349,10 +344,10 @@ class RCSIE(RCSBaseIE):
                         |corrierefiorentino\.
                     )?corriere\.it
                     |(?:gazzanet\.)?gazzetta\.it)
-                    /(?!video-embed/).+?/(?P<id>[^/\?]+)(?=\?|/$|$)'''
+                    /(?!video-embed/)\S+?/(?P<id>[^/\?]+)(?=\?|/$|$)'''
     _TESTS = [{
         'url': 'https://video.corriere.it/sport/formula-1/vettel-guida-ferrari-sf90-mugello-suo-fianco-c-elecrerc-bendato-video-esilarante/b727632a-f9d0-11ea-91b0-38d50a849abb',
-        'md5': '0f4ededc202b0f00b6e509d831e2dcda',
+        'md5': '14946840dec46ecfddf66ba4eea7d2b2',
         'info_dict': {
             'id': 'b727632a-f9d0-11ea-91b0-38d50a849abb',
             'ext': 'mp4',
@@ -363,7 +358,7 @@ class RCSIE(RCSBaseIE):
     }, {
         # video data inside iframe
         'url': 'https://viaggi.corriere.it/video/norvegia-il-nuovo-ponte-spettacolare-sopra-la-cascata-di-voringsfossen/',
-        'md5': 'da378e4918d2afbf7d61c35abb948d4c',
+        'md5': 'f22a92d9e666e80f2fffbf2825359c81',
         'info_dict': {
             'id': '5b7cd134-e2c1-11ea-89b3-b56dd0df2aa2',
             'ext': 'mp4',
@@ -373,13 +368,25 @@ class RCSIE(RCSBaseIE):
         }
     }, {
         'url': 'https://video.gazzetta.it/video-motogp-catalogna-cadute-dovizioso-vale-rossi/49612410-00ca-11eb-bcd8-30d4253e0140?vclk=Videobar',
-        'md5': 'eedc1b5defd18e67383afef51ff7bdf9',
+        'md5': 'c8cb6f99bf0d803d5c630ec5f9a401eb',
         'info_dict': {
             'id': '49612410-00ca-11eb-bcd8-30d4253e0140',
             'ext': 'mp4',
             'title': 'Dovizioso, il contatto con Zarco e la caduta. E anche Vale finisce a terra',
             'description': 'md5:8c6e905dc3b9413218beca11ebd69778',
             'uploader': 'AMorici',
+        }
+    }, {
+        # only audio format https://github.com/yt-dlp/yt-dlp/issues/5683
+        'url': 'https://video.corriere.it/cronaca/audio-telefonata-il-papa-becciu-santita-lettera-che-mi-ha-inviato-condanna/b94c0d20-70c2-11ed-9572-e4b947a0ebd2',
+        'md5': 'aaffb08d02f2ce4292a4654694c78150',
+        'info_dict': {
+            'id': 'b94c0d20-70c2-11ed-9572-e4b947a0ebd2',
+            'ext': 'mp3',
+            'title': 'L\'audio della telefonata tra il Papa e Becciu: «Santità, la lettera che mi ha inviato è una condanna»',
+            'description': 'md5:c0ddb61bd94a8d4e0d4bb9cda50a689b',
+            'uploader': 'Corriere Tv',
+            'formats': [{'format_id': 'https-mp3', 'ext': 'mp3'}],
         }
     }, {
         'url': 'https://video.corriere.it/video-360/metro-copenaghen-tutta-italiana/a248a7f0-e2db-11e9-9830-af2de6b1f945',
@@ -394,10 +401,10 @@ class RCSVariousIE(RCSBaseIE):
                         youreporter\.it
                     )/(?:[^/]+/)?(?P<id>[^/]+?)(?:$|\?|/)'''
     _TESTS = [{
-        'url': 'https://www.leitv.it/benessere/mal-di-testa-come-combatterlo-ed-evitarne-la-comparsa/',
-        'md5': '92b4e63667b8f95acb0a04da25ae28a1',
+        'url': 'https://www.leitv.it/benessere/mal-di-testa/',
+        'md5': '3b7a683d105a7313ec7513b014443631',
         'info_dict': {
-            'id': 'mal-di-testa-come-combatterlo-ed-evitarne-la-comparsa',
+            'id': 'leitv-0000125151',
             'ext': 'mp4',
             'title': 'Cervicalgia e mal di testa, il video con i suggerimenti dell\'esperto',
             'description': 'md5:ae21418f34cee0b8d02a487f55bcabb5',
@@ -405,9 +412,9 @@ class RCSVariousIE(RCSBaseIE):
         }
     }, {
         'url': 'https://www.youreporter.it/fiume-sesia-3-ottobre-2020/',
-        'md5': '8dccd436b47a830bab5b4a88232f391a',
+        'md5': '3989b6d603482611a2abd2f32b79f739',
         'info_dict': {
-            'id': 'fiume-sesia-3-ottobre-2020',
+            'id': 'youreporter-0000332574',
             'ext': 'mp4',
             'title': 'Fiume Sesia 3 ottobre 2020',
             'description': 'md5:0070eef1cc884d13c970a4125063de55',
