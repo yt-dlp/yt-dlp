@@ -5579,17 +5579,39 @@ def supports_terminal_sequences(stream):
         return False
 
 
-def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
+def windows_enable_vt_mode():
+    """Ref: https://bugs.python.org/issue30075 """
     if get_windows_version() < (10, 0, 10586):
         return
-    global WINDOWS_VT_MODE
-    try:
-        Popen.run('', shell=True)
-    except Exception:
-        return
 
-    WINDOWS_VT_MODE = True
-    supports_terminal_sequences.cache_clear()
+    import ctypes
+    import ctypes.wintypes
+    import msvcrt
+
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+
+    dll = ctypes.WinDLL('kernel32', use_last_error=False)
+    handle = os.open('CONOUT$', os.O_RDWR)
+
+    try:
+        h_out = ctypes.wintypes.HANDLE(msvcrt.get_osfhandle(handle))
+        dw_original_mode = ctypes.wintypes.DWORD()
+        success = dll.GetConsoleMode(h_out, ctypes.byref(dw_original_mode))
+        if not success:
+            raise Exception('GetConsoleMode failed')
+
+        success = dll.SetConsoleMode(h_out, ctypes.wintypes.DWORD(
+            dw_original_mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+        if not success:
+            raise Exception('SetConsoleMode failed')
+    except Exception as e:
+        write_string(f'WARNING: Cannot enable VT mode - {e}')
+    else:
+        global WINDOWS_VT_MODE
+        WINDOWS_VT_MODE = True
+        supports_terminal_sequences.cache_clear()
+    finally:
+        os.close(handle)
 
 
 _terminal_sequences_re = re.compile('\033\\[[^m]+m')
