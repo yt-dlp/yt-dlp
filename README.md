@@ -1765,6 +1765,7 @@ The following extractors use this feature:
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
 #### tiktok
+* `api_hostname`: Hostname to use for mobile API requests, e.g. `api-h2.tiktokv.com`
 * `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`, e.g. `20.2.1`
 * `manifest_app_version`: Numeric app version to call mobile APIs with, e.g. `221`
 
