@@ -30,17 +30,14 @@ class TikTokBaseIE(InfoExtractor):
     _WORKING_APP_VERSION = None
     _APP_NAME = 'trill'
     _AID = 1180
-    _API_HOSTNAME = 'api16-normal-c-useast1a.tiktokv.com'
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
 
-    def _real_initialize(self):
-        api_hostname = traverse_obj(
-            self._configuration_arg('api_hostname', ie_key=TikTokIE.ie_key()), -1)
-        if api_hostname:
-            self.write_debug(f'Imported API hostname from extractor argument: {api_hostname}')
-            self._API_HOSTNAME = api_hostname
+    @property
+    def _API_HOSTNAME(self):
+        return self._configuration_arg(
+            'api_hostname', ['api16-normal-c-useast1a.tiktokv.com'], ie_key=TikTokIE)[0]
 
     @staticmethod
     def _create_url(user_id, video_id):
