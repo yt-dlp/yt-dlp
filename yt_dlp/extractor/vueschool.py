@@ -13,12 +13,6 @@ class VueSchoolBaseIE(InfoExtractor):
     def _get_course_info_from_lesson_slug(self, lesson_slug, id):
         return self._download_json(f'https://vueschool.io/api/lessons/{lesson_slug}/widgetInfo', video_id=id)
 
-    def _flatten_lessons_from_chapters(self, chapters):
-        lessons = []
-        for chapter in chapters:
-            lessons += chapter.get('lessons')
-        return lessons
-
 
 class VueSchoolLessonIE(VueSchoolBaseIE):
     IE_DESC = 'VueSchool Lesson'
@@ -122,7 +116,7 @@ class VueSchoolCourseIE(VueSchoolBaseIE):
         course_dict = self._get_course_info_from_lesson_slug(lesson_slugs, id=course_slug)
         course_title = course_dict.get('title')
         course_slug = course_dict.get('slug')
-        lessons = self._flatten_lessons_from_chapters(course_dict.get('chapters'))
+        lessons = [lesson for chapter in course_dict.get('chapters') for lesson in chapter.get('lessons')]
 
         return {
             '_type': 'playlist',
