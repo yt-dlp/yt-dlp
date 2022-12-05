@@ -673,7 +673,30 @@ class NiconicoSeriesIE(InfoExtractor):
         return self.playlist_result(playlist, list_id, title)
 
 
-class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
+class NiconicoHistoryBaseIE(NiconicoPlaylistBaseIE):
+    _API_URL = None
+    _LIST_ID = None
+
+    def _call_api(self, list_id, resource, query):
+        return self._download_json(
+            self._API_URL, list_id,
+            f'Downloading {resource}', query=query,
+            headers=self._API_HEADERS)['data']
+
+    def _real_extract(self, url):
+        list_id = self._LIST_ID
+        try:
+            mylist = self._call_api(list_id, 'list', {
+                'pageSize': 1,
+            })
+        except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                self.raise_login_required('You have to be logged in to get your history')
+            raise
+        return self.playlist_result(self._entries(list_id), list_id, **self._parse_owner(mylist))
+
+
+class NiconicoHistoryIE(NiconicoHistoryBaseIE):
     IE_NAME = 'niconico:history'
     IE_DESC = 'NicoNico user history. Requires cookies.'
     _VALID_URL = r'https?://(?:www\.|sp\.)?nicovideo\.jp/my/history(?!/like)'
@@ -696,26 +719,11 @@ class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
         'only_matching': True,
     }]
 
-    def _call_api(self, list_id, resource, query):
-        return self._download_json(
-            'https://nvapi.nicovideo.jp/v1/users/me/watch/history', 'history',
-            f'Downloading {resource}', query=query,
-            headers=self._API_HEADERS)['data']
-
-    def _real_extract(self, url):
-        list_id = 'history'
-        try:
-            mylist = self._call_api(list_id, 'list', {
-                'pageSize': 1,
-            })
-        except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                self.raise_login_required('You have to be logged in to get your watch history')
-            raise
-        return self.playlist_result(self._entries(list_id), list_id, **self._parse_owner(mylist))
+    _API_URL = 'https://nvapi.nicovideo.jp/v1/users/me/watch/history'
+    _LIST_ID = 'history'
 
 
-class NiconicoLikeHistoryIE(NiconicoPlaylistBaseIE):
+class NiconicoLikeHistoryIE(NiconicoHistoryBaseIE):
     IE_NAME = 'niconico:history:like'
     IE_DESC = 'NicoNico user like history. Requires cookies.'
     _VALID_URL = r'https?://(?:www\.|sp\.)?nicovideo\.jp/my/history/like'
@@ -730,23 +738,8 @@ class NiconicoLikeHistoryIE(NiconicoPlaylistBaseIE):
         'only_matching': True,
     }]
 
-    def _call_api(self, list_id, resource, query):
-        return self._download_json(
-            'https://nvapi.nicovideo.jp/v1/users/me/likes', 'like_history',
-            f'Downloading {resource}', query=query,
-            headers=self._API_HEADERS)['data']
-
-    def _real_extract(self, url):
-        list_id = 'like_history'
-        try:
-            mylist = self._call_api(list_id, 'list', {
-                'pageSize': 1,
-            })
-        except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                self.raise_login_required('You have to be logged in to get your like history')
-            raise
-        return self.playlist_result(self._entries(list_id), list_id, **self._parse_owner(mylist))
+    _API_URL = 'https://nvapi.nicovideo.jp/v1/users/me/likes'
+    _LIST_ID = 'like_history'
 
 
 class NicovideoSearchBaseIE(InfoExtractor):
