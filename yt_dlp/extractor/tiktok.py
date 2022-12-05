@@ -30,10 +30,14 @@ class TikTokBaseIE(InfoExtractor):
     _WORKING_APP_VERSION = None
     _APP_NAME = 'trill'
     _AID = 1180
-    _API_HOSTNAME = 'api16-normal-c-useast1a.tiktokv.com'
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
+
+    @property
+    def _API_HOSTNAME(self):
+        return self._configuration_arg(
+            'api_hostname', ['api16-normal-c-useast1a.tiktokv.com'], ie_key=TikTokIE)[0]
 
     @staticmethod
     def _create_url(user_id, video_id):
@@ -398,7 +402,7 @@ class TikTokBaseIE(InfoExtractor):
 
 
 class TikTokIE(TikTokBaseIE):
-    _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)/video)/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)?/video)/(?P<id>\d+)'
     _EMBED_REGEX = [rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{_VALID_URL})']
 
     _TESTS = [{
@@ -944,8 +948,27 @@ class TikTokVMIE(InfoExtractor):
             'creator': 'SigmaChad',
         },
     }, {
-        'url': 'https://vm.tiktok.com/ZSe4FqkKd',
-        'only_matching': True,
+        'url': 'https://vm.tiktok.com/ZTR45GpSF/',
+        'info_dict': {
+            'id': '7106798200794926362',
+            'ext': 'mp4',
+            'title': 'md5:edc3e7ea587847f8537468f2fe51d074',
+            'uploader_id': '6997695878846268418',
+            'upload_date': '20220608',
+            'view_count': int,
+            'like_count': int,
+            'comment_count': int,
+            'thumbnail': r're:https://.+\.webp.*',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAdZ_NcPPgMneaGrW0hN8O_J_bwLshwNNERRF5DxOw2HKIzk0kdlLrR8RkVl1ksrMO',
+            'duration': 29,
+            'timestamp': 1654680400,
+            'repost_count': int,
+            'artist': 'Akihitoko',
+            'track': 'original sound',
+            'description': 'md5:edc3e7ea587847f8537468f2fe51d074',
+            'uploader': 'akihitoko1',
+            'creator': 'Akihitoko',
+        },
     }, {
         'url': 'https://vt.tiktok.com/ZSe4FqkKd',
         'only_matching': True,

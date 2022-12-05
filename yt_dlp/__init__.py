@@ -91,12 +91,11 @@ def get_urls(urls, batchfile, verbose):
 
 
 def print_extractor_information(opts, urls):
-    # Importing GenericIE is currently slow since it imports other extractors
-    # TODO: Move this back to module level after generalization of embed detection
-    from .extractor.generic import GenericIE
-
     out = ''
     if opts.list_extractors:
+        # Importing GenericIE is currently slow since it imports YoutubeIE
+        from .extractor.generic import GenericIE
+
         urls = dict.fromkeys(urls, False)
         for ie in list_extractor_classes(opts.age_limit):
             out += ie.IE_NAME + (' (CURRENTLY BROKEN)' if not ie.working() else '') + '\n'
