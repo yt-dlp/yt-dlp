@@ -255,7 +255,7 @@ jobs:
     - name: Install Requirements
       run: |  # Custom pyinstaller built with https://github.com/observeroftime01/pyinstaller-builds
           python -m pip install -U pip setuptools wheel py2exe
-          pip install "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.6.2-py3-none-any.whl" -r requirements.txt
+          pip install "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.7.0-py3-none-any.whl" -r requirements.txt
 
     - name: Prepare
       run: |
@@ -291,7 +291,7 @@ jobs:
     - name: Install Requirements
       run: |
           python -m pip install -U pip setuptools wheel
-          pip install "https://observeroftime01.github.io/Pyinstaller-Builds/i686/pyinstaller-5.6.2-py3-none-any.whl" -r requirements.txt
+          pip install "https://observeroftime01.github.io/Pyinstaller-Builds/i686/pyinstaller-5.7.0-py3-none-any.whl" -r requirements.txt
 
     - name: Prepare
       run: |
