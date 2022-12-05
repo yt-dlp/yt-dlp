@@ -2191,6 +2191,7 @@ from .wdr import (
     WDRElefantIE,
     WDRMobileIE,
 )
+from .webcamerapl import WebcameraplIE
 from .webcaster import (
     WebcasterIE,
     WebcasterFeedIE,
