@@ -68,6 +68,8 @@ class UplynkIE(UplynkBaseIE):
             'ext': 'mp4',
             'title': '030816-kgo-530pm-solar-eclipse-vid_web.mp4',
             'uploader_id': '4413701bf5a1488db55b767f8ae9d4fa',
+            'duration': 530.2739166666679,
+            'thumbnail': r're:^https?://.*\.jpg$',
         },
         'params': {
             'skip_download': 'm3u8',
