@@ -71,6 +71,7 @@ from ..utils import (
     str_to_int,
     strip_or_none,
     traverse_obj,
+    truncate_string,
     try_call,
     try_get,
     unescapeHTML,
@@ -674,7 +675,8 @@ class InfoExtractor:
             for _ in range(2):
                 try:
                     self.initialize()
-                    self.write_debug('Extracting URL: %s' % url)
+                    self.to_screen('Extracting URL: %s' % (
+                        url if self.get_param('verbose') else truncate_string(url, 100, 20)))
                     ie_result = self._real_extract(url)
                     if ie_result is None:
                         return None
@@ -1905,6 +1907,14 @@ class InfoExtractor:
             preference=None, quality=None, m3u8_id=None, note=None,
             errnote=None, fatal=True, live=False, data=None, headers={},
             query={}):
+
+        if not m3u8_url:
+            if errnote is not False:
+                errnote = errnote or 'Failed to obtain m3u8 URL'
+                if fatal:
+                    raise ExtractorError(errnote, video_id=video_id)
+                self.report_warning(f'{errnote}{bug_reports_message()}')
+            return [], {}
 
         res = self._download_webpage_handle(
             m3u8_url, video_id,
