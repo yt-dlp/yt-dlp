@@ -36,6 +36,13 @@ class UnderlineIE(InfoExtractor):
                 "id": "342/posters/12863/poster/66463-mbti-personality-prediction-approach-on-persian-twitter",
                 "ext": "mp4",
                 "title": "MBTI Personality Prediction Approach on Persian Twitter",
+                "slide_info": [
+                    {
+                        "url": "https://assets.underline.io/lecture/66463/slideshow/b236b5cfb38966a761a5443bf47fbdf9.pdf",
+                        "filename": "Personality-Prediction-WINLP-slides.pdf",
+                        "size": 780319,
+                    }
+                ],
             },
         }
     ]
@@ -84,8 +91,11 @@ class UnderlineIE(InfoExtractor):
                 )
             )
 
+        slide_info = list(gen_dict_extract(webpage_info, "slideshow"))
+
         return {
             "id": video_id,
             "title": title,
             "formats": formats,
+            "slide_info": slide_info,
         }
