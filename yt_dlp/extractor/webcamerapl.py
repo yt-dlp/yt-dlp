@@ -17,7 +17,7 @@ class WebcameraplIE(InfoExtractor):
         'info_dict': {
             'id': 'gdansk-stare-miasto',
             'ext': 'mp4',
-            'title': 'GDAŃSK - widok na Stare Miasto'
+            'title': 'GDAŃSK - widok na Stare Miasto',
         }
     }]
 
@@ -27,17 +27,16 @@ class WebcameraplIE(InfoExtractor):
 
         title = self._html_search_regex(r'<h1.*?>(.+?)</h1>', webpage, 'title')
 
-        rot13_m3u8_url = self._search_regex(r'data-src="(uggc.+?\.z3h8)"', webpage, 'm3u8 url', fatal=False)
+        rot13_m3u8_url = self._search_regex(r'data-src="(uggc.+?\.z3h8)"', webpage, 'm3u8 url')
         if not rot13_m3u8_url:
             self.raise_no_formats('No video/audio found at the provided url.', expected=True)
         m3u8_url = decode(rot13_m3u8_url, 'rot-13')
 
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4')
 
         return {
             'id': video_id,
             'title': title,
             'formats': formats,
-            'url': m3u8_url,
-            'ext': 'mp4',
+            'subtitles': subtitles,
         }
