@@ -2172,6 +2172,20 @@ class GenericIE(InfoExtractor):
                 'age_limit': 0,
                 'direct': True,
             }
+        }, {
+            'url': 'https://mediaspace.carleton.ca/media/4705_0_2021/1_5hgwu9bi',
+            'info_dict': {
+                'id': '1_5hgwu9bi',
+                'ext': 'mp4',
+                'thumbnail': 'https://cfvod.kaltura.com/p/2011531/sp/201153100/thumbnail/entry_id/1_5hgwu9bi/version/100011',
+                'upload_date': '20210908',
+                'timestamp': 1631110578,
+                'description': '4705 2020 lec 0',
+                'view_count': int,
+                'duration': 2687,
+                'title': '4705_0_2021',
+                'uploader_id': '',
+            }
         }
     ]
 

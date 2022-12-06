@@ -13,6 +13,7 @@ from ..utils import (
     format_field,
     int_or_none,
     unsmuggle_url,
+    update_url_query,
     smuggle_url,
     traverse_obj,
     remove_start
@@ -233,10 +234,13 @@ class KalturaIE(InfoExtractor):
             embed_url = 'kaltura:%(partner_id)s:%(id)s' % embed_info
             escaped_pid = re.escape(embed_info['partner_id'])
             service_mobj = re.search(
-                r'<script[^>]+src=(["\'])(?P<id>(?:https?:)?//(?:(?!\1).)+)/p/%s/sp/%s00/embedIframeJs' % (escaped_pid, escaped_pid),
+                r'<script[^>]+src=(["\'])(?P<id>(?:https?:)?//(?:(?!\1).)+)/p/%s/sp/%s00/embedIframeJs/uiconf_id/(?P<uiconf_id>[^/]+)' % (escaped_pid, escaped_pid),
                 webpage)
             if service_mobj:
-                embed_url = smuggle_url(embed_url, {'service_url': service_mobj.group('id')})
+                embed_url = smuggle_url(embed_url, {'service_url': service_mobj.group('id'), 'uiconf_id': service_mobj.group('uiconf_id')})
+            flashvars_mobj = re.search(r'flashvars\s*=\s*(?P<flashvars>.+);\n', webpage)
+            if flashvars_mobj:
+                embed_url = smuggle_url(embed_url, {'flashvars': flashvars_mobj.group('flashvars')})
             urls.append(embed_url)
         return urls
 
@@ -386,11 +390,36 @@ class KalturaIE(InfoExtractor):
 
         mobj = self._match_valid_url(url)
         partner_id, entry_id, player_type = mobj.group('partner_id', 'id', 'player_type')
+        flashvars = smuggled_data.get('flashvars')
         ks, captions = None, None
         if not player_type:
             player_type = 'kwidget' if 'html5lib/v2' in url else 'html5'
-        if partner_id and entry_id:
+        if partner_id and entry_id and not flashvars:
             _, info, flavor_assets, captions = self._get_video_info(entry_id, partner_id, smuggled_data.get('service_url'), player_type=player_type)
+        elif flashvars:
+            flashvars = self._parse_json(flashvars, entry_id)
+            params = {'wid': '_' + partner_id, 'entry_id': entry_id, 'uiconf_id': smuggled_data.get('uiconf_id')}
+            for k, v in flashvars.items():
+                params['flashvars[' + k + ']'] = json.dumps(v) if not isinstance(v, str) else v
+            iframe_url = update_url_query("https://cdnapisec.kaltura.com/html5/html5lib/v2.98/mwEmbedFrame.php", params)
+            webpage = self._download_webpage(iframe_url, entry_id)
+            entry_data = self._search_json(
+                self.IFRAME_PACKAGE_DATA_REGEX, webpage,
+                'kalturaIframePackageData', entry_id)['entryResult']
+            info, flavor_assets = entry_data['meta'], entry_data['contextData']['flavorAssets']
+            entry_id = info['id']
+            # Unfortunately, data returned in kalturaIframePackageData lacks
+            # captions so we will try requesting the complete data using
+            # regular approach since we now know the entry_id
+            try:
+                _, info, flavor_assets, captions = self._get_video_info(
+                    entry_id, partner_id, player_type=player_type)
+            except ExtractorError:
+                # Regular scenario failed but we already have everything
+                # extracted apart from captions and can process at least
+                # with this
+                pass
+            ks = flashvars.get('ks', [None])
         else:
             path, query = mobj.group('path', 'query')
             if not path and not query:
