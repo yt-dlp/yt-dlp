@@ -1,11 +1,5 @@
 from .common import InfoExtractor
 
-DEBUG_P = False
-if DEBUG_P:
-    import json
-    from icecream import ic
-    from IPython import embed
-
 
 def gen_dict_extract(var, key):
     if hasattr(var, "items"):
@@ -35,7 +29,9 @@ class UnderlineIE(InfoExtractor):
             "info_dict": {
                 "id": "342/posters/12863/poster/66463-mbti-personality-prediction-approach-on-persian-twitter",
                 "ext": "mp4",
-                "title": "MBTI Personality Prediction Approach on Persian Twitter",
+                "title": (
+                    "MBTI Personality Prediction Approach on Persian Twitter"
+                ),
                 "slide_info": [
                     {
                         "url": "https://assets.underline.io/lecture/66463/slideshow/b236b5cfb38966a761a5443bf47fbdf9.pdf",
@@ -59,13 +55,7 @@ class UnderlineIE(InfoExtractor):
             end_pattern=r"</script>",
         )
 
-        if DEBUG_P:
-            with open("./tmp.json", "w") as f:
-                json.dump(webpage_info, f)
-
         title = list(gen_dict_extract(webpage_info, "title"))
-        if DEBUG_P:
-            ic(title)
 
         if len(title) == 0:
             title = None
@@ -73,8 +63,6 @@ class UnderlineIE(InfoExtractor):
             title = title[0]
 
         playlist_urls = list(gen_dict_extract(webpage_info, "playlist"))
-        if DEBUG_P:
-            ic(playlist_urls)
 
         if len(playlist_urls) == 0:
             url = None
@@ -87,7 +75,10 @@ class UnderlineIE(InfoExtractor):
         if m3u8_url:
             formats.extend(
                 self._extract_m3u8_formats(
-                    m3u8_url, video_id, ext="mp4", entry_protocol="m3u8_native"
+                    m3u8_url,
+                    video_id,
+                    ext="mp4",
+                    entry_protocol="m3u8_native",
                 )
             )
 
