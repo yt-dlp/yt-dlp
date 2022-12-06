@@ -802,6 +802,7 @@ from .iwara import (
     IwaraPlaylistIE,
     IwaraUserIE,
 )
+from .ivxplayer import IVXPlayerIE
 from .ixigua import IxiguaIE
 from .izlesene import IzleseneIE
 from .jable import (
