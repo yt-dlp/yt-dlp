@@ -24,8 +24,6 @@ class CuriosityStreamBaseIE(InfoExtractor):
             if auth_cookie:
                 self.write_debug('Obtained auth_token cookie')
                 self._auth_token = compat_urllib_parse_unquote(auth_cookie.value)
-            else:
-                self.write_debug('Auth cookie NOT found')
         if self._auth_token:
             headers['x-auth-token'] = self._auth_token
         result = self._download_json(
@@ -56,8 +54,11 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
             'description': 'Vint Cerf, Google\'s Chief Internet Evangelist, describes how he and Bob Kahn created the internet.',
             'channel': 'Curiosity Stream',
             'categories': ['Technology', 'Interview'],
-            'average_rating': 96.79,
+            'average_rating': 96.71,
             'series_id': '2',
+            'thumbnail': 'https://img.curiositystream.com/w:1255/cHJvZHVjdGlvbi9zb3VyY2VzL3RpdGxlcy8yL2hvcml6b250YWxfaW1hZ2VfMTZfOS9lbi1VUy83YjA2MWZjYS0yZDQyLTRiNGEtYTNkMy0zYmYzOGU0MGQzNzgvbWVkaWFfaG9yaXpvbnRhbF9pbWFnZV8xNl85XzJfMzg0MHgyMTYwXzAwMDEuanBn.jpg',
+            'tags': [],
+            'duration': 158
         },
         'params': {
             # m3u8 download
