@@ -57,7 +57,7 @@ class PinterestBaseIE(InfoExtractor):
         urls = []
         formats = []
         duration = None
-        domain = data.get('domain')
+        domain = data.get('domain', '')
         if domain.lower() != 'uploaded by user' and traverse_obj(data, ('embed', 'src')):
             info.update({
                 '_type': 'url_transparent',
