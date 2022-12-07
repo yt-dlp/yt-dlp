@@ -350,7 +350,7 @@ def validate_options(opts):
         mobj = re.fullmatch(r'''(?x)
             (?P<name>[^+:]+)
             (?:\s*\+\s*(?P<keyring>[^:]+))?
-            (?:\s*:\s*(?P<profile>.+?))?
+            (?:\s*:\s*(?!:)(?P<profile>.+?))?
             (?:\s*::\s*(?P<container>.+))?
         ''', opts.cookiesfrombrowser)
         if mobj is None:
