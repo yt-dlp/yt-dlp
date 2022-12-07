@@ -29,22 +29,21 @@ class IVXPlayerIE(InfoExtractor):
     # TODO: only use video_id and player key
     def _real_extract(self, url):
         video_id, player_key = self._match_valid_url(url).group('video_id', 'player_key')
-        if (video_id is not None):
-            json_data = self._download_json(
-                f'https://ivxplayer.ivideosmart.com/prod/video/{video_id}?key={player_key}', video_id)
-            
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                json_data['player']['video_url'], video_id) 
+        json_data = self._download_json(
+            f'https://ivxplayer.ivideosmart.com/prod/video/{video_id}?key={player_key}', video_id)
+        
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            json_data['player']['video_url'], video_id) 
 
-            return {
-                'id': str(json_data['ivx']['id']),
-                'title': traverse_obj(json_data, ('ivx', 'name')),
-                'description': traverse_obj(json_data, ('ivx', 'description')),
-                'duration': int_or_none(traverse_obj(json_data, ('ivx', 'duration'))),
-                'timestamp': parse_iso8601(traverse_obj(json_data, ('ivx', 'published_at'))),
-                'formats': formats,
-                'subtitles': subtitles,
-            }
+        return {
+            'id': str(json_data['ivx']['id']),
+            'title': traverse_obj(json_data, ('ivx', 'name')),
+            'description': traverse_obj(json_data, ('ivx', 'description')),
+            'duration': int_or_none(traverse_obj(json_data, ('ivx', 'duration'))),
+            'timestamp': parse_iso8601(traverse_obj(json_data, ('ivx', 'published_at'))),
+            'formats': formats,
+            'subtitles': subtitles,
+        }
 
 
 class IVXPlayerEmbedIE(InfoExtractor):
