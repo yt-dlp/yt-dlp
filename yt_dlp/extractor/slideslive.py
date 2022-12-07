@@ -10,7 +10,7 @@ from ..utils import (
 class SlidesLiveIE(InfoExtractor):
     _VALID_URL = r'https?://slideslive\.com/(?P<id>[0-9]+)'
     _TESTS = [{
-        # video_service_name = yoda
+        # service_name = yoda
         'url': 'https://slideslive.com/38902413/gcc-ia16-backend',
         'info_dict': {
             'id': '38902413',
@@ -24,7 +24,7 @@ class SlidesLiveIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }, {
-        # video_service_name = yoda
+        # service_name = yoda
         'url': 'https://slideslive.com/38935785',
         'info_dict': {
             'id': '38935785',
@@ -38,6 +38,7 @@ class SlidesLiveIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }, {
+        # service_name = yoda
         'url': 'https://slideslive.com/38973182/how-should-a-machine-learning-researcher-think-about-ai-ethics',
         'info_dict': {
             'id': '38973182',
@@ -51,15 +52,46 @@ class SlidesLiveIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }, {
-        # video_service_name = youtube
+        # service_name = youtube
+        'url': 'https://slideslive.com/38897546/special-metaprednaska-petra-ludwiga-hodnoty-pro-lepsi-spolecnost',
+        'md5': '8a79b5e3d700837f40bd2afca3c8fa01',
+        'info_dict': {
+            'id': 'jmg02wCJD5M',
+            'display_id': '38897546',
+            'ext': 'mp4',
+            'title': 'SPECIÁL: Meta-přednáška Petra Ludwiga - Hodnoty pro lepší společnost',
+            'description': 'Watch full version of this video at https://slideslive.com/38897546.',
+            'channel_url': 'https://www.youtube.com/channel/UCZWdAkNYFncuX0khyvhqnxw',
+            'channel': 'SlidesLive Videos - G1',
+            'channel_id': 'UCZWdAkNYFncuX0khyvhqnxw',
+            'uploader_id': 'UCZWdAkNYFncuX0khyvhqnxw',
+            'uploader': 'SlidesLive Videos - G1',
+            'uploader_url': 'http://www.youtube.com/channel/UCZWdAkNYFncuX0khyvhqnxw',
+            'live_status': 'not_live',
+            'upload_date': '20160710',
+            'timestamp': 1618786715,
+            'duration': 6827,
+            'like_count': int,
+            'view_count': int,
+            'comment_count': int,
+            'channel_follower_count': int,
+            'age_limit': 0,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'playable_in_embed': True,
+            'availability': 'unlisted',
+            'tags': [],
+            'categories': ['People & Blogs'],
+        },
+    }, {
+        # service_name = youtube
         'url': 'https://slideslive.com/38903721/magic-a-scientific-resurrection-of-an-esoteric-legend',
         'only_matching': True,
     }, {
-        # video_service_name = url
+        # service_name = url
         'url': 'https://slideslive.com/38922070/learning-transferable-skills-1',
         'only_matching': True,
     }, {
-        # video_service_name = vimeo
+        # service_name = vimeo
         'url': 'https://slideslive.com/38921896/retrospectives-a-venue-for-selfreflection-in-ml-research-3',
         'only_matching': True,
     }]
