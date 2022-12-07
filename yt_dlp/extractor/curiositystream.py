@@ -25,7 +25,7 @@ class CuriosityStreamBaseIE(InfoExtractor):
                 self.write_debug('Obtained auth_token cookie')
                 self._auth_token = compat_urllib_parse_unquote(auth_cookie.value)
         if self._auth_token:
-            headers['x-auth-token'] = self._auth_token
+            headers['X-Auth-Token'] = self._auth_token
         result = self._download_json(
             self._API_BASE_URL + path, video_id, headers=headers, query=query)
         self._handle_errors(result)
