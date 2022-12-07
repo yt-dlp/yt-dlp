@@ -1,8 +1,9 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str, compat_urllib_parse_unquote
+from ..compat import compat_str
 from ..utils import ExtractorError, int_or_none, urlencode_postdata
+import urllib.parse
 
 
 class CuriosityStreamBaseIE(InfoExtractor):
@@ -23,7 +24,7 @@ class CuriosityStreamBaseIE(InfoExtractor):
             auth_cookie = self._get_cookies('https://curiositystream.com').get('auth_token')
             if auth_cookie:
                 self.write_debug('Obtained auth_token cookie')
-                self._auth_token = compat_urllib_parse_unquote(auth_cookie.value)
+                self._auth_token = urllib.parse.unquote(auth_cookie.value)
         if self._auth_token:
             headers['X-Auth-Token'] = self._auth_token
         result = self._download_json(
