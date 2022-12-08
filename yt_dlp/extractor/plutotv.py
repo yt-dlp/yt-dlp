@@ -103,7 +103,7 @@ class PlutoTVIE(InfoExtractor):
                     compat_urlparse.urljoin(first_segment_url.group(1), '0-end/master.m3u8'))
                 continue
             first_segment_url = re.search(
-                r'^(https?://.*/).+\-0+\.ts$', res,
+                r'^(https?://.*/).+\-0+[0-1]0\.ts$', res,
                 re.MULTILINE)
             if first_segment_url:
                 m3u8_urls.add(
