@@ -4105,7 +4105,7 @@ def mp42srt(mp4_data):
         out.append(f'{num + 1}\n{txt}\n')
 
     return ''.join(out)
-    
+
 
 def cli_option(params, command_option, param, separator=None):
     param = params.get(param)
