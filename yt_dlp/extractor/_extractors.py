@@ -982,6 +982,10 @@ from .mediasite import (
     MediasiteCatalogIE,
     MediasiteNamedCatalogIE,
 )
+from .mediastream import (
+    MediaStreamIE,
+    WinSportsVideoIE,
+)
 from .mediaworksnz import MediaWorksNZVODIE
 from .medici import MediciIE
 from .megaphone import MegaphoneIE
