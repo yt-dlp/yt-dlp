@@ -1,10 +1,10 @@
-from codecs import decode
+import codecs
 
 from .common import InfoExtractor
 
 
 class WebcameraplIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<id>[^\.]+)\.webcamera\.pl/?'
+    _VALID_URL = r'https?://(?P<id>[\w-]+)\.webcamera\.pl'
     _TESTS = [{
         'url': 'https://warszawa-plac-zamkowy.webcamera.pl',
         'info_dict': {
@@ -25,18 +25,18 @@ class WebcameraplIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_regex(r'<h1.*?>(.+?)</h1>', webpage, 'title')
-
-        rot13_m3u8_url = self._search_regex(r'data-src="(uggc.+?\.z3h8)"', webpage, 'm3u8 url')
+        rot13_m3u8_url = self._search_regex(r'data-src\s*=\s*"(uggc[^"]+\.z3h8)"',
+                                            webpage, 'm3u8 url', default=None)
         if not rot13_m3u8_url:
-            self.raise_no_formats('No video/audio found at the provided url.', expected=True)
-        m3u8_url = decode(rot13_m3u8_url, 'rot-13')
+            self.raise_no_formats('No video/audio found at the provided url', expected=True)
 
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, ext='mp4')
+        m3u8_url = codecs.decode(rot13_m3u8_url, 'rot-13')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, live=True)
 
         return {
             'id': video_id,
-            'title': title,
+            'title': self._html_search_regex(r'<h1\b[^>]*>([^>]+)</h1>', webpage, 'title'),
             'formats': formats,
             'subtitles': subtitles,
+            'is_live': True,
         }
