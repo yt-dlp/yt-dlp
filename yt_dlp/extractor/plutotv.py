@@ -84,6 +84,17 @@ class PlutoTVIE(InfoExtractor):
         }, {
             'url': 'https://pluto.tv/it/on-demand/series/csi-vegas/episode/legacy-2021-1-1',
             'only_matching': True,
+        },
+        {
+            'url': 'https://pluto.tv/en/on-demand/movies/attack-of-the-killer-tomatoes-1977-1-1-ptv1',
+            'md5': '7db56369c0da626a32d505ec6eb3f89f',
+            'info_dict': {
+                'id': '5b190c7bb0875c36c90c29c4',
+                'ext': 'mp4',
+                'title': 'Attack of the Killer Tomatoes',
+                'description': 'A group of scientists band together to save the world from mutated tomatoes that KILL! (1978)',
+                'duration': 5700,
+            }
         }
     ]
 
