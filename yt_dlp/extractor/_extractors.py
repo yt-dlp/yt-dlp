@@ -2236,12 +2236,6 @@ from .xhamster import (
     XHamsterEmbedIE,
     XHamsterUserIE,
 )
-from .xiami import (
-    XiamiSongIE,
-    XiamiAlbumIE,
-    XiamiArtistIE,
-    XiamiCollectionIE
-)
 from .ximalaya import (
     XimalayaIE,
     XimalayaAlbumIE
