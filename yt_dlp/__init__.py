@@ -20,6 +20,7 @@ from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .options import parseOpts
+from .output.logging import redirect_warnings
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
@@ -926,6 +927,8 @@ def _real_main(argv=None):
         FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
 
     with YoutubeDL(ydl_opts) as ydl:
+        redirect_warnings(ydl.logger)
+
         pre_process = opts.update_self or opts.rm_cachedir
         actual_use = all_urls or opts.load_info_filename
 

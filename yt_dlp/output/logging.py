@@ -1,10 +1,12 @@
 import copy
+import inspect
 import logging
 import os
 import shutil
 import subprocess
 import sys
 import traceback
+import warnings
 from enum import Enum
 
 from .hoodoo import Color, TermCode, format_text
@@ -98,6 +100,23 @@ class Style:
     ERROR = TermCode.make(Color.RED)
     WARNING = TermCode.make(Color.YELLOW)
     SUPPRESS = TermCode.make(Color.LIGHT | Color.BLACK)
+
+
+def redirect_warnings(logger):
+    """ Redirect messages from the `warnings` module to a `Logger` """
+    _old_showwarning = warnings.showwarning
+
+    def _warnings_showwarning(message, category, filename, lineno, file=None, line=None):
+        if file is not None:
+            _old_showwarning(message, category, filename, lineno, file, line)
+            return
+
+        module = inspect.getmodule(None, filename)
+        if module:
+            filename = module.__name__
+        logger.warning(f'{category.__name__}: {message} ({filename}:{lineno})')
+
+    warnings.showwarning = _warnings_showwarning
 
 
 class Logger:
