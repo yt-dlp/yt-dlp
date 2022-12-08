@@ -6,6 +6,7 @@ from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from .odnoklassniki import OdnoklassnikiIE
 from .pladform import PladformIE
+from .sibnet import SibnetEmbedIE
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
 from ..compat import compat_urlparse
@@ -101,8 +102,7 @@ class VKIE(VKBaseIE):
                             (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
                         )
                     '''
-    # https://help.sibnet.ru/?sibnet_video_embed
-    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//video\.sibnet\.ru/shell\.php\?.*?\bvideoid=\d+.*?)\1']
+
     _TESTS = [
         {
             'url': 'http://vk.com/videos-77521?z=video-77521_162222515%2Fclub77521',
@@ -455,7 +455,7 @@ class VKIE(VKBaseIE):
         if odnoklassniki_url:
             return self.url_result(odnoklassniki_url, OdnoklassnikiIE.ie_key())
 
-        sibnet_url = next(self._extract_embed_urls(url, info_page), None)
+        sibnet_url = next(SibnetEmbedIE._extract_embed_urls(url, info_page), None)
         if sibnet_url:
             return self.url_result(sibnet_url)
 

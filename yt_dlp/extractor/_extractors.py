@@ -1639,6 +1639,7 @@ from .shared import (
     VivoIE,
 )
 from .sharevideos import ShareVideosEmbedIE
+from .sibnet import SibnetEmbedIE
 from .shemaroome import ShemarooMeIE
 from .showroomlive import ShowRoomLiveIE
 from .simplecast import (
