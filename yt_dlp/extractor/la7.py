@@ -18,7 +18,7 @@ class LA7IE(InfoExtractor):
     )(?P<id>.+)'''
 
     _TESTS = [{
-        # 'src' is a plain URL
+        # single quality video
         'url': 'http://www.la7.it/crozza/video/inccool8-02-10-2015-163722',
         'md5': '8b613ffc0c4bf9b9e377169fc19c214c',
         'info_dict': {
@@ -28,12 +28,23 @@ class LA7IE(InfoExtractor):
             'description': 'Benvenuti nell\'incredibile mondo della INC. COOL. 8. dove “INC.” sta per “Incorporated” “COOL” sta per “fashion” ed Eight sta per il gesto atletico',
             'thumbnail': 're:^https?://.*',
             'upload_date': '20151002',
+            'formats': 'count:4',
+        },
+    }, {
+        # multiple quality video
+        'url': 'https://www.la7.it/calcio-femminile/news/il-gol-di-lindsey-thomas-fiorentina-vs-milan-serie-a-calcio-femminile-26-11-2022-461736',
+        'md5': 'd2370e78f75e8d1238cb3a0db9a2eda3',
+        'info_dict': {
+            'id': 'il-gol-di-lindsey-thomas-fiorentina-vs-milan-serie-a-calcio-femminile-26-11-2022-461736',
+            'ext': 'mp4',
+            'title': 'Il gol di Lindsey Thomas | Fiorentina vs Milan | Serie A Calcio Femminile',
+            'description': 'Il gol di Lindsey Thomas | Fiorentina vs Milan | Serie A Calcio Femminile',
+            'thumbnail': 're:^https?://.*',
+            'upload_date': '20221126',
+            'formats': 'count:8',
         },
     }, {
         'url': 'http://www.la7.it/omnibus/rivedila7/omnibus-news-02-07-2016-189077',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.la7.it/calcio-femminile/news/il-gol-di-lindsey-thomas-fiorentina-vs-milan-serie-a-calcio-femminile-26-11-2022-461736',
         'only_matching': True,
     }]
     _HOST = 'https://awsvodpkg.iltrovatore.it'
