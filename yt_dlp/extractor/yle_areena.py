@@ -118,7 +118,5 @@ class YleAreenaIE(InfoExtractor):
             'thumbnails': traverse_obj(info, ('thumbnails', ..., {'url': 'url'})),
             'age_limit': traverse_obj(video_data, ('data', 'ongoing_ondemand', 'content_rating', 'age_restriction'), expected_type=int_or_none),
             'subtitles': subtitles,
-            'manifest_url': manifest_url,
-            'webpage_url': url,
             'release_date': release_date
         }
