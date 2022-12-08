@@ -99,14 +99,12 @@ class YleAreenaIE(InfoExtractor):
         # Extract video release date
         start_time = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'start_time'), expected_type=str)
         release_date = '%s%s%s' % (start_time[0:4], start_time[5:7], start_time[8:10])
-        # Service URL
-        kaltura_url = 'kaltura:1955031:%s' % traverse_obj(video_data, ('data', 'ongoing_ondemand', 'kaltura', 'id'))
-        # Include video source URL for Kaltura internal use
-        smuggle_data = smuggle_url(kaltura_url, {'source_url': url})
 
-        return {
+        return {            
             '_type': 'url_transparent',
-            'url': smuggle_data,
+            'url': smuggle_url(
+                f'kaltura:1955031:{video_data["data"]["ongoing_ondemand"]["kaltura"]["id"]}',
+                {'source_url': url}),
             'ie_key': KalturaIE.ie_key(),
             'title': (traverse_obj(video_data, ('data', 'ongoing_ondemand', 'title', 'fin'), expected_type=str)
                       or episode or info.get('title')),
