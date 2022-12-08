@@ -1,17 +1,20 @@
 from .common import InfoExtractor
 from .vimeo import VimeoIE
+from ..compat import compat_HTMLParseError
 from ..utils import (
-    int_or_none,
+    extract_attributes,
     get_element_by_class,
     get_element_text_and_html_by_tag,
-    extract_attributes,
-    compat_HTMLParseError
+    int_or_none,
+    traverse_obj,
+    try_call,
 )
 
 
 class VueSchoolBaseIE(InfoExtractor):
     def _get_course_info_from_lesson_slug(self, lesson_slug, id):
-        return self._download_json(f'https://vueschool.io/api/lessons/{lesson_slug}/widgetInfo', video_id=id)
+        return self._download_json(
+            f'https://vueschool.io/api/lessons/{lesson_slug}/widgetInfo', video_id=id)
 
 
 class VueSchoolLessonIE(VueSchoolBaseIE):
@@ -20,6 +23,7 @@ class VueSchoolLessonIE(VueSchoolBaseIE):
     _TESTS = [{
         'url': 'https://vueschool.io/lessons/getting-started-with-vue-js-and-the-composition-api',
         'info_dict': {
+            'ext': 'mp4',
             'id': '665769592',
             'title': 'Getting Started with Vue.js and the Composition API',
             'series_id': 'vue-js-fundamentals-with-the-composition-api',
@@ -29,15 +33,12 @@ class VueSchoolLessonIE(VueSchoolBaseIE):
             'episode_number': 1,
             'episode': 'Getting Started with Vue.js and the Composition API',
             'duration': 238,
-            'uploader_id': str,
-            'uploader': str,
-            'uploader_url': str,
-            'description': str,
-            'thumbnail': str
-        },
-        'params': {
-            'skip_download': True,
-            'ignore_no_formats_error': True,
+            'thumbnail': 'startswith:https://i.vimeocdn.com/video/',
+            'uploader_id': 'user62798049',
+            'description': 'md5:b634d76886075d7006349365df6bfe9f',
+            'uploader_url': 'https://vimeo.com/user62798049',
+            'uploader': 'Alex Kyriakidis',
+            'display_id': 'getting-started-with-vue-js-and-the-composition-api',
         },
     }]
 
@@ -45,51 +46,34 @@ class VueSchoolLessonIE(VueSchoolBaseIE):
         lesson_slug = self._match_id(url)
         webpage = self._download_webpage(url, video_id=lesson_slug)
 
-        """
-         Attempt to access content behind paywall
-        """
         try:
-            (_, vimeo_wrapper_element) = get_element_text_and_html_by_tag('vimeo-player', webpage)
-            vimeo_player_wrapper_dict = extract_attributes(vimeo_wrapper_element)
-            vimeo_id = vimeo_player_wrapper_dict.get(':id')
+            _, player = get_element_text_and_html_by_tag('vimeo-player', webpage)
+            vimeo_id = extract_attributes(player)[':id']
         except compat_HTMLParseError:
-            return self.raise_login_required(msg='This video is only available for paid users.', method='cookies')
+            return self.raise_login_required()
 
-        description = get_element_by_class('text xl:text-lg', webpage).strip()
-
-        course_dict = self._get_course_info_from_lesson_slug(lesson_slug, id=lesson_slug)
-        course_title = course_dict.get('title')
-        course_slug = course_dict.get('slug')
-
-        chapter_number = None
-        chapter = None
-        lesson_number = None
-        lesson_title = None
-        duration = None
-
-        for chapter_dict in course_dict.get('chapters'):
-            for lesson_dict in chapter_dict.get('lessons'):
-                if lesson_slug == lesson_dict.get('slug'):
-                    chapter_number = int_or_none(chapter_dict.get('course_order') + 1)
-                    chapter = chapter_dict.get('title')
-                    lesson_number = int_or_none(lesson_dict.get('course_order'))
-                    lesson_title = lesson_dict.get('title')
-                    duration = duration
+        course = self._get_course_info_from_lesson_slug(lesson_slug, lesson_slug)
+        for chapter in traverse_obj(course, ('chapters', ...)):
+            for lesson in traverse_obj(chapter, ('lessons', ...)):
+                if lesson_slug == lesson.get('slug'):
                     break
+            else:
+                chapter, lesson = {}, {}
 
-        vimeo_url = VimeoIE._smuggle_referrer(f'https://player.vimeo.com/video/{vimeo_id}', url)
-
-        return self.url_result(
-            vimeo_url, VimeoIE, url_transparent=True,
-            video_id=lesson_slug, video_title=lesson_title,
-            id=lesson_slug,
-            series_id=course_slug, series=course_title,
-            chapter_number=chapter_number, chapter=chapter,
-            episode_number=lesson_number, episode=lesson_title,
-            title=lesson_title,
-            description=description,
-            duration=duration
-        )
+        return {
+            '_type': 'url_transparent',
+            'url': VimeoIE._smuggle_referrer(f'https://player.vimeo.com/video/{vimeo_id}', url),
+            'ie_key': VimeoIE.ie_key(),
+            'display_id': lesson_slug,
+            'series_id': course.get('slug'),
+            'series': course.get('title'),
+            'chapter_number': try_call(lambda: chapter['course_order'] + 1),
+            'chapter': chapter.get('title'),
+            'episode_number': int_or_none(lesson.get('course_order')),
+            'episode': lesson.get('title'),
+            'title': lesson.get('title'),
+            'description': get_element_by_class('text xl:text-lg', webpage).strip(),
+        }
 
 
 class VueSchoolCourseIE(VueSchoolBaseIE):
@@ -97,30 +81,25 @@ class VueSchoolCourseIE(VueSchoolBaseIE):
     _VALID_URL = r'https?://vueschool\.io/courses/(?P<id>[a-z0-9\-]+)'
     _TESTS = [{
         'url': 'https://vueschool.io/courses/vue-js-fundamentals-with-the-composition-api',
+        'playlist_count': 14,
         'info_dict': {
             'id': 'vue-js-fundamentals-with-the-composition-api',
-            '_type': 'playlist',
             'title': 'Vue.js 3 Fundamentals with the Composition API',
         },
-        'params': {
-            'skip_download': True,
-        }
     }]
 
     def _real_extract(self, url):
         course_slug = self._match_id(url)
-        webpage = self._download_webpage(url, video_id=course_slug)
+        webpage = self._download_webpage(url, course_slug)
 
-        lesson_slugs = self._html_search_regex(r'https?://vueschool\.io/lessons/(?P<lesson_slug>[0-9a-z\-]+)', webpage, name='lesson_slug')
-
-        course_dict = self._get_course_info_from_lesson_slug(lesson_slugs, id=course_slug)
-        course_title = course_dict.get('title')
-        course_slug = course_dict.get('slug')
-        lessons = [lesson for chapter in course_dict.get('chapters') for lesson in chapter.get('lessons')]
+        lesson_slugs = self._html_search_regex(
+            r'https?://vueschool\.io/lessons/(?P<lesson_slug>[\w\-]+)', webpage, 'lesson slug')
+        course = self._get_course_info_from_lesson_slug(lesson_slugs, course_slug)
 
         return {
             '_type': 'playlist',
-            'title': course_title,
-            'id': course_slug,
-            'entries': [self.url_result('https://vueschool.io/lessons/%s' % lesson.get('slug'), VueSchoolLessonIE) for lesson in lessons]
+            'id': course.get('slug'),
+            'title': course.get('title'),
+            'entries': [self.url_result(f'https://vueschool.io/lessons/{lesson["slug"]}', VueSchoolLessonIE)
+                        for lesson in traverse_obj(course, ('chapters', ..., 'lessons', ...))]
         }
