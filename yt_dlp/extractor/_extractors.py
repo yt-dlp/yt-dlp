@@ -1211,6 +1211,7 @@ from .nintendo import NintendoIE
 from .nitter import NitterIE
 from .njpwworld import NJPWWorldIE
 from .nobelprize import NobelPrizeIE
+from .noice import NoicePodcastIE
 from .nonktube import NonkTubeIE
 from .noodlemagazine import NoodleMagazineIE
 from .noovo import NoovoIE
