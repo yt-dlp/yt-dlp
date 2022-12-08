@@ -71,12 +71,12 @@ class YleAreenaIE(InfoExtractor):
         video_id = self._match_id(url)
         info = self._search_json_ld(self._download_webpage(url, video_id), video_id, default={})
         # Generate headers
-        real_headers = self.generate_api_headers()
-        real_headers.update({'content-type': 'application/json'})
+        headers = self.generate_api_headers()
+        headers.update({'content-type': 'application/json'})
 
         video_data = self._download_json(
             f'https://player.api.yle.fi/v1/preview/{video_id}.json?app_id=player_static_prod&app_key=8930d72170e48303cf5f3867780d549b',
-            video_id, fatal=True, headers=real_headers)
+            video_id, fatal=True, headers=headers)
 
         # Example title: 'K1, J2: Pouchit | Modernit miehet'
         series, season_number, episode_number, episode = self._search_regex(
