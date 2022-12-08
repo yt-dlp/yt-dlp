@@ -5,7 +5,7 @@ import time
 import urllib.error
 
 from .fragment import FragmentFD
-from ..utils import RetryManager
+from ..utils import RetryManager, variadic
 
 u8 = struct.Struct('>B')
 u88 = struct.Struct('>Bx')
@@ -215,17 +215,24 @@ def write_piff_header(stream, params):
     stream.write(box(b'moov', moov_payload))  # Movie Box
 
 
-def extract_box_data(data, box_sequence):
+def extract_box_data(data, selection=()):
     data_reader = io.BytesIO(data)
+    selection = variadic(selection)
+
     while True:
-        box_size = u32.unpack(data_reader.read(4))[0]
+        size_data = data_reader.read(4)
+        if not size_data:
+            return
+
+        box_size = int.from_bytes(size_data) - 8
         box_type = data_reader.read(4)
-        if box_type == box_sequence[0]:
-            box_data = data_reader.read(box_size - 8)
-            if len(box_sequence) == 1:
-                return box_data
-            return extract_box_data(box_data, box_sequence[1:])
-        data_reader.seek(box_size - 8, 1)
+
+        if box_type not in selection:
+            data_reader.seek(box_size, 1)
+            continue
+
+        box_data = data_reader.read(box_size)
+        yield box_type, box_data
 
 
 class IsmFD(FragmentFD):
@@ -266,7 +273,9 @@ class IsmFD(FragmentFD):
                     frag_content = self._read_fragment(ctx)
 
                     if not extra_state['ism_track_written']:
-                        tfhd_data = extract_box_data(frag_content, [b'moof', b'traf', b'tfhd'])
+                        tfhd_data = frag_content
+                        for box_type in [b'moof', b'traf', b'tfhd']:
+                            _, tfhd_data = next(iter(extract_box_data(tfhd_data, box_type)))
                         info_dict['_download_params']['track_id'] = u32.unpack(tfhd_data[4:8])[0]
                         write_piff_header(ctx['dest_stream'], info_dict['_download_params'])
                         extra_state['ism_track_written'] = True
