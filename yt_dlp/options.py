@@ -29,12 +29,12 @@ from .utils import (
     expand_path,
     format_field,
     get_executable_path,
+    get_system_config_dirs,
+    get_user_config_dirs,
     join_nonempty,
     orderedSet_from_options,
     remove_end,
     write_string,
-    get_user_config_dirs,
-    get_system_config_dirs
 )
 from .version import __version__
 
