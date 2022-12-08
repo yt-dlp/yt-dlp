@@ -151,8 +151,6 @@ class CDAIE(InfoExtractor):
             'filesize': quality.get('length'),
         } for quality in meta['qualities'] if quality.get('file')]
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': meta.get('title'),
@@ -303,7 +301,5 @@ class CDAIE(InfoExtractor):
                 continue
 
             extract_format(webpage, resolution)
-
-        self._sort_formats(formats)
 
         return merge_dicts(info_dict, info)

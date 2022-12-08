@@ -122,7 +122,6 @@ class ShugiinItvLiveRoomIE(ShugiinItvBaseIE):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'https://hlslive.shugiintv.go.jp/{room_id}/amlst:{room_id}/playlist.m3u8',
             room_id, ext='mp4')
-        self._sort_formats(formats)
 
         return {
             'id': room_id,
@@ -160,7 +159,6 @@ class ShugiinItvVodIE(ShugiinItvBaseIE):
         m3u8_url = re.sub(r'^http://', 'https://', m3u8_url)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             m3u8_url, video_id, ext='mp4')
-        self._sort_formats(formats)
 
         title = self._html_search_regex(
             (r'<td\s+align="left">(.+)\s*\(\d+分\)',
@@ -264,7 +262,6 @@ class SangiinIE(InfoExtractor):
             'm3u8 url', group=2)
 
         formats, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

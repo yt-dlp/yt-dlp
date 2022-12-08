@@ -108,7 +108,6 @@ class BYUtvIE(InfoExtractor):
                 'thumbnail': ep.get('imageThumbnail'),
                 'duration': parse_duration(ep.get('length')),
             })
-        self._sort_formats(formats)
 
         return merge_dicts(info, {
             'id': video_id,

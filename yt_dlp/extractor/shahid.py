@@ -118,7 +118,6 @@ class ShahidIE(ShahidBaseIE):
             # https://docs.aws.amazon.com/mediapackage/latest/ug/manifest-filtering.html
             r'aws\.manifestfilter=[\w:;,-]+&?',
             '', playout['url']), video_id, 'mp4')
-        self._sort_formats(formats)
 
         # video = self._call_api(
         #     'product/id', video_id, {

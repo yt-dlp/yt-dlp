@@ -53,7 +53,6 @@ class HungamaIE(InfoExtractor):
             })
 
         formats = self._extract_m3u8_formats(video_json['stream_url'], video_id, ext='mp4', m3u8_id='hls')
-        self._sort_formats(formats)
 
         json_ld = self._search_json_ld(
             self._download_webpage(url, video_id, fatal=False) or '', video_id, fatal=False)

@@ -104,8 +104,6 @@ class WebOfStoriesIE(InfoExtractor):
             'play_path': play_path,
         }]
 
-        self._sort_formats(formats)
-
         return {
             'id': story_id,
             'title': title,

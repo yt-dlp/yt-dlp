@@ -43,7 +43,6 @@ class CarambaTVIE(InfoExtractor):
             'height': int_or_none(f.get('height')),
             'format_id': format_field(f, 'height', '%sp'),
         } for f in video['qualities'] if f.get('fn')]
-        self._sort_formats(formats)
 
         thumbnail = video.get('splash')
         duration = float_or_none(try_get(

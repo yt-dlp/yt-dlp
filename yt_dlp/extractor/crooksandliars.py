@@ -45,7 +45,6 @@ class CrooksAndLiarsIE(InfoExtractor):
             'format_id': item['type'],
             'quality': quality(item['type']),
         } for item in manifest['flavors'] if item['mime'].startswith('video/')]
-        self._sort_formats(formats)
 
         return {
             'url': url,

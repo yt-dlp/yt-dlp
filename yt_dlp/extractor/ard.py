@@ -40,8 +40,6 @@ class ARDMediathekBaseIE(InfoExtractor):
                     'This video is not available due to geoblocking',
                     countries=self._GEO_COUNTRIES, metadata_available=True)
 
-        self._sort_formats(formats)
-
         subtitles = {}
         subtitle_url = media_info.get('_subtitleUrl')
         if subtitle_url:
@@ -262,7 +260,6 @@ class ARDMediathekIE(ARDMediathekBaseIE):
                     'format_id': fid,
                     'url': furl,
                 })
-            self._sort_formats(formats)
             info = {
                 'formats': formats,
             }
@@ -371,7 +368,6 @@ class ARDIE(InfoExtractor):
                     continue
                 f['url'] = format_url
             formats.append(f)
-        self._sort_formats(formats)
 
         _SUB_FORMATS = (
             ('./dataTimedText', 'ttml'),

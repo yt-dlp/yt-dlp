@@ -92,7 +92,6 @@ class ZapiksIE(InfoExtractor):
             if m:
                 f['height'] = int(m.group('height'))
             formats.append(f)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

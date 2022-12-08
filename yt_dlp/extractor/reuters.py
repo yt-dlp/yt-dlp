@@ -55,7 +55,6 @@ class ReutersIE(InfoExtractor):
                     'ext': ext,
                     'container': container if method != 'mobile' else None,
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

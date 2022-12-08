@@ -116,7 +116,6 @@ class TencentBaseIE(InfoExtractor):
             formats.extend(fmts)
             self._merge_subtitles(subs, native_subtitles, target=subtitles)
 
-        self._sort_formats(formats)
         return formats, subtitles
 
     def _get_clean_title(self, title):

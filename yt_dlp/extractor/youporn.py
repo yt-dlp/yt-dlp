@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
     int_or_none,
+    merge_dicts,
     str_to_int,
     unified_strdate,
     url_or_none,
@@ -64,6 +65,24 @@ class YouPornIE(InfoExtractor):
     }, {
         'url': 'https://www.youporn.com/watch/13922959/femdom-principal/',
         'only_matching': True,
+    }, {
+        'url': 'https://www.youporn.com/watch/16290308/tinderspecial-trailer1/',
+        'info_dict': {
+            'id': '16290308',
+            'age_limit': 18,
+            'categories': [],
+            'description': 'md5:00ea70f642f431c379763c17c2f396bc',
+            'display_id': 'tinderspecial-trailer1',
+            'duration': 298.0,
+            'ext': 'mp4',
+            'upload_date': '20201123',
+            'uploader': 'Ersties',
+            'tags': [],
+            'thumbnail': 'https://fi1.ypncdn.com/202011/23/16290308/original/8/tinderspecial-trailer1-8(m=eaAaaEPbaaaa).jpg',
+            'timestamp': 1606089600,
+            'title': 'Tinder In Real Life',
+            'view_count': int,
+        }
     }]
 
     def _real_extract(self, url):
@@ -103,7 +122,6 @@ class YouPornIE(InfoExtractor):
                 })
             f['height'] = height
             formats.append(f)
-        self._sort_formats(formats)
 
         webpage = self._download_webpage(
             'http://www.youporn.com/watch/%s' % video_id, display_id,
@@ -160,7 +178,8 @@ class YouPornIE(InfoExtractor):
             r'(?s)Tags:.*?</div>\s*<div[^>]+class=["\']tagBoxContent["\'][^>]*>(.+?)</div>',
             'tags')
 
-        return {
+        data = self._search_json_ld(webpage, video_id, expected_type='VideoObject', fatal=False)
+        return merge_dicts(data, {
             'id': video_id,
             'display_id': display_id,
             'title': title,
@@ -175,4 +194,4 @@ class YouPornIE(InfoExtractor):
             'tags': tags,
             'age_limit': age_limit,
             'formats': formats,
-        }
+        })

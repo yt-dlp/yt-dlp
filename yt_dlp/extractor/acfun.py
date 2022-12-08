@@ -27,7 +27,6 @@ class AcFunVideoBaseIE(InfoExtractor):
                     **parse_codecs(video.get('codecs', ''))
                 })
 
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'formats': formats,

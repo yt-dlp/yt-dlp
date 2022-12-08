@@ -461,13 +461,12 @@ class FacebookIE(InfoExtractor):
                 formats.extend(self._parse_mpd_formats(
                     compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest))))
 
-        def process_formats(formats):
+        def process_formats(info):
             # Downloads with browser's User-Agent are rate limited. Working around
             # with non-browser User-Agent.
-            for f in formats:
+            for f in info['formats']:
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
-
-            self._sort_formats(formats, ('res', 'quality'))
+            info['_format_sort_fields'] = ('res', 'quality')
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
@@ -510,7 +509,6 @@ class FacebookIE(InfoExtractor):
                                 'url': playable_url,
                             })
                     extract_dash_manifest(video, formats)
-                    process_formats(formats)
                     v_id = video.get('videoId') or video.get('id') or video_id
                     info = {
                         'id': v_id,
@@ -521,6 +519,7 @@ class FacebookIE(InfoExtractor):
                         'timestamp': int_or_none(video.get('publish_time')),
                         'duration': float_or_none(video.get('playable_duration_in_ms'), 1000),
                     }
+                    process_formats(info)
                     description = try_get(video, lambda x: x['savable_description']['text'])
                     title = video.get('name')
                     if title:
@@ -687,13 +686,12 @@ class FacebookIE(InfoExtractor):
             if subtitles_src:
                 subtitles.setdefault('en', []).append({'url': subtitles_src})
 
-        process_formats(formats)
-
         info_dict = {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
         }
+        process_formats(info_dict)
         info_dict.update(extract_metadata(webpage))
 
         return info_dict

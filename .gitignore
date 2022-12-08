@@ -71,6 +71,7 @@ dist/
 zip/
 tmp/
 venv/
+.venv/
 completions/
 
 # Misc

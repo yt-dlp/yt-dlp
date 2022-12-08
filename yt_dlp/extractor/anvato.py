@@ -354,8 +354,6 @@ class AnvatoIE(InfoExtractor):
                 })
             formats.append(a_format)
 
-        self._sort_formats(formats)
-
         subtitles = {}
         for caption in video_data.get('captions', []):
             a_caption = {

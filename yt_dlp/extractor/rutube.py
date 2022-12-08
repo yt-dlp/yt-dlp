@@ -81,7 +81,6 @@ class RutubeBaseIE(InfoExtractor):
                     'url': format_url,
                     'format_id': format_id,
                 })
-        self._sort_formats(formats)
         return formats
 
     def _download_and_extract_formats(self, video_id, query=None):
@@ -240,7 +239,6 @@ class RutubeMovieIE(RutubePlaylistBaseIE):
     IE_NAME = 'rutube:movie'
     IE_DESC = 'Rutube movies'
     _VALID_URL = r'https?://rutube\.ru/metainfo/tv/(?P<id>\d+)'
-    _TESTS = []
 
     _MOVIE_TEMPLATE = 'http://rutube.ru/api/metainfo/tv/%s/?format=json'
     _PAGE_TEMPLATE = 'http://rutube.ru/api/metainfo/tv/%s/video?page=%s&format=json'

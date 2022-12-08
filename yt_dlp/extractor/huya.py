@@ -93,8 +93,6 @@ class HuyaLiveIE(InfoExtractor):
                     **self._RESOLUTION.get(si.get('sDisplayName'), {}),
                 })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,

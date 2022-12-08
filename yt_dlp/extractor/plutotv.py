@@ -135,7 +135,6 @@ class PlutoTVIE(InfoExtractor):
             subtitles = self._merge_subtitles(subtitles, subs)
 
         formats, subtitles = self._to_ad_free_formats(video_id, formats, subtitles)
-        self._sort_formats(formats)
 
         info = {
             'id': video_id,

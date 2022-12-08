@@ -93,7 +93,7 @@ _REGEX_TS = re.compile(r'''(?x)
     ([0-9]{3})?
 ''')
 _REGEX_EOF = re.compile(r'\Z')
-_REGEX_NL = re.compile(r'(?:\r\n|[\r\n])')
+_REGEX_NL = re.compile(r'(?:\r\n|[\r\n]|$)')
 _REGEX_BLANK = re.compile(r'(?:\r\n|[\r\n])+')
 
 

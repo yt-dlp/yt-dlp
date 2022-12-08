@@ -54,7 +54,6 @@ class CallinIE(InfoExtractor):
         title = episode.get('title') or self._generic_title('', webpage)
         url = episode['m3u8']
         formats = self._extract_m3u8_formats(url, display_id, ext='ts')
-        self._sort_formats(formats)
 
         show = traverse_obj(episode, ('show', 'title'))
         show_id = traverse_obj(episode, ('show', 'id'))

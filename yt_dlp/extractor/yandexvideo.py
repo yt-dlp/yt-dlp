@@ -121,8 +121,6 @@ class YandexVideoIE(InfoExtractor):
             else:
                 formats.append({'url': content_url})
 
-        self._sort_formats(formats)
-
         timestamp = (int_or_none(content.get('release_date'))
                      or int_or_none(content.get('release_date_ut'))
                      or int_or_none(content.get('start_time')))
@@ -275,7 +273,6 @@ class ZenYandexIE(InfoExtractor):
                 formats.extend(self._extract_mpd_formats(s_url, id, mpd_id='dash'))
             elif ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(s_url, id, 'mp4'))
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': video_json.get('title') or self._og_search_title(webpage),

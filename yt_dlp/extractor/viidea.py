@@ -158,7 +158,6 @@ class ViideaIE(InfoExtractor):
                 smil_url = '%s/%s/video/%s/smil.xml' % (base_url, lecture_slug, part_id)
                 smil = self._download_smil(smil_url, lecture_id)
                 info = self._parse_smil(smil, smil_url, lecture_id)
-                self._sort_formats(info['formats'])
                 info['id'] = lecture_id if not multipart else '%s_part%s' % (lecture_id, part_id)
                 info['display_id'] = lecture_slug if not multipart else '%s_part%s' % (lecture_slug, part_id)
                 if multipart:
