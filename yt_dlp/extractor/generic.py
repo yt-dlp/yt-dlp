@@ -1864,11 +1864,6 @@ class GenericIE(InfoExtractor):
                 'title': 'I AM BIO Podcast | BIO',
             },
             'playlist_mincount': 52,
-        },
-        {
-            # Sibnet embed (https://help.sibnet.ru/?sibnet_video_embed)
-            'url': 'https://phpbb3.x-tk.ru/bbcode-video-sibnet-t24.html',
-            'only_matching': True,
         }, {
             # WimTv embed player
             'url': 'http://www.msmotor.tv/wearefmi-pt-2-2021/',
