@@ -44,15 +44,15 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     if ignore_config_files == 'if_override':
         ignore_config_files = overrideArguments is not None
 
-    def _load_from_config_dirs(config_dirs, package_name):
+    def _load_from_config_dirs(config_dirs):
         for config_dir in config_dirs:
-            conf_file_path = os.path.join(config_dir, package_name, 'config')
+            conf_file_path = os.path.join(config_dir, 'config')
             conf = Config.read_file(conf_file_path, default=None)
             if conf is None:
                 conf_file_path += '.txt'
                 conf = Config.read_file(conf_file_path, default=None)
             if conf is not None:
-                return conf_file_path, conf
+                return conf, conf_file_path
         return None, None
 
     def _read_user_conf(package_name, default=None):
@@ -73,13 +73,13 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             return user_conf, user_conf_file
 
         # Package config directories (e.g. ~/.config/package_name/package_name.txt)
-        user_conf, user_conf_file = _load_from_config_dirs(get_user_config_dirs(package_name), package_name)
+        user_conf, user_conf_file = _load_from_config_dirs(get_user_config_dirs(package_name))
         if user_conf is not None:
             return user_conf, user_conf_file
         return default if default is not None else [], None
 
     def _read_system_conf(package_name, default=None):
-        system_conf, system_conf_file = _load_from_config_dirs(get_system_config_dirs(package_name), package_name)
+        system_conf, system_conf_file = _load_from_config_dirs(get_system_config_dirs(package_name))
         if system_conf is not None:
             return system_conf, system_conf_file
         return default if default is not None else [], None
@@ -90,7 +90,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             return False
         # Multiple package names can be given here
         # E.g. ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
-        # the configuration file of any of these three packages
+        # the configuration file in any of these three packages
         for package in ('yt-dlp',):
             if user:
                 args, current_path = _read_user_conf(package, default=None)
