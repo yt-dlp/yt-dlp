@@ -71,17 +71,17 @@ class AirTVIE(InfoExtractor):
         if nextjs_json.get('youtube_id'):
             return self.url_result(
                 f'https://www.youtube.com/watch?v={nextjs_json.get("youtube_id")}', YoutubeIE)
-        formats, subtitles = self._get_formats_and_subtitle(nextjs_json, display_id)
 
+        formats, subtitles = self._get_formats_and_subtitle(nextjs_json, display_id)
         return {
             'id': display_id,
             'title': nextjs_json.get('title') or self._html_search_meta('og:title', webpage),
             'formats': formats,
             'subtitles': subtitles,
-            'description': nextjs_json.get('description') if nextjs_json.get('description') else None,
+            'description': nextjs_json.get('description') or None,
             'duration': int_or_none(nextjs_json.get('duration')),
-            'thumbnails': [{'url': thumbnail} for thumbnail in nextjs_json.get('default_thumbnails')],
-            'channel_id': nextjs_json.get('channel') or nextjs_json.get('channel_slug'),
+            'thumbnails': [{'url': thumbnail} for thumbnail in traverse_obj(nextjs_json, ('default_thumbnails', ...)],
+            'channel_id': traverse_obj(nextjs_json, 'channel', 'channel_slug'),
             'timestamp': parse_iso8601(nextjs_json.get('created')),
             'release_timestamp': parse_iso8601(nextjs_json.get('published')),
             'view_count': int_or_none(nextjs_json.get('views')),
