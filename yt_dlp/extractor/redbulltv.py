@@ -80,7 +80,6 @@ class RedBullTVIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             'https://dms.redbull.tv/v3/%s/%s/playlist.m3u8' % (video_id, token),
             video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
 
         for resource in video.get('resources', []):
             if resource.startswith('closed_caption_'):
@@ -110,7 +109,7 @@ class RedBullTVIE(InfoExtractor):
         return self.extract_info(video_id)
 
 
-class RedBullEmbedIE(RedBullTVIE):
+class RedBullEmbedIE(RedBullTVIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?redbull\.com/embed/(?P<id>rrn:content:[^:]+:[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}:[a-z]{2}-[A-Z]{2,3})'
     _TESTS = [{
         # HLS manifest accessible only using assetId

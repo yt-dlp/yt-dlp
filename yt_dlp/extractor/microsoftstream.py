@@ -101,7 +101,6 @@ class MicrosoftStreamIE(InfoExtractor):
                     playlist['playbackUrl'], video_id, ism_id='mss',
                     fatal=False, headers=headers))
         formats = [merge_dicts(f, {'language': language}) for f in formats]
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

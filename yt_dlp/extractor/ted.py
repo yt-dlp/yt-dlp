@@ -125,8 +125,6 @@ class TedTalkIE(TedBaseIE):
             ext_url = external.get('code') if service.lower() == 'youtube' else None
             return self.url_result(ext_url or external['uri'])
 
-        self._sort_formats(formats)
-
         thumbnail = playerData.get('thumb') or self._og_search_property('image', webpage)
         if thumbnail:
             # trim thumbnail resize parameters

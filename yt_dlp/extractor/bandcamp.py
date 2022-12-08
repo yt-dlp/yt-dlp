@@ -184,8 +184,6 @@ class BandcampIE(InfoExtractor):
                             'acodec': format_id.split('-')[0],
                         })
 
-        self._sort_formats(formats)
-
         title = '%s - %s' % (artist, track) if artist else track
 
         if not duration:
@@ -211,7 +209,7 @@ class BandcampIE(InfoExtractor):
         }
 
 
-class BandcampAlbumIE(BandcampIE):
+class BandcampAlbumIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:album'
     _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com/album/(?P<id>[^/?#&]+)'
 
@@ -314,7 +312,7 @@ class BandcampAlbumIE(BandcampIE):
         }
 
 
-class BandcampWeeklyIE(BandcampIE):
+class BandcampWeeklyIE(BandcampIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'Bandcamp:weekly'
     _VALID_URL = r'https?://(?:www\.)?bandcamp\.com/?\?(?:.*?&)?show=(?P<id>\d+)'
     _TESTS = [{
@@ -363,7 +361,6 @@ class BandcampWeeklyIE(BandcampIE):
                 'ext': ext,
                 'vcodec': 'none',
             })
-        self._sort_formats(formats)
 
         title = show.get('audio_title') or 'Bandcamp Weekly'
         subtitle = show.get('subtitle')

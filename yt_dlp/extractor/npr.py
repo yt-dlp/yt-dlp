@@ -121,8 +121,6 @@ class NprIE(InfoExtractor):
                 m3u8_url = traverse_obj(list(raw_json_ld), (..., 'subjectOf', ..., 'embedUrl'), get_all=False)
                 formats = self._extract_m3u8_formats(m3u8_url, media_id, 'mp4', m3u8_id='hls', fatal=False)
 
-            self._sort_formats(formats)
-
             entries.append({
                 'id': media_id,
                 'title': media.get('title', {}).get('$text') or playlist_title,

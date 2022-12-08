@@ -250,7 +250,6 @@ class LBRYIE(LBRYBaseIE):
         if determine_ext(final_url) == 'm3u8':
             info['formats'] = self._extract_m3u8_formats(
                 final_url, display_id, 'mp4', 'm3u8_native', m3u8_id='hls', live=is_live, headers=headers)
-            self._sort_formats(info['formats'])
         else:
             info['url'] = streaming_url
         return {

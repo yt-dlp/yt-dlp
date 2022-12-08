@@ -87,6 +87,11 @@ from .alura import (
 )
 from .amcnetworks import AMCNetworksIE
 from .amazon import AmazonStoreIE
+from .amazonminitv import (
+    AmazonMiniTVIE,
+    AmazonMiniTVSeasonIE,
+    AmazonMiniTVSeriesIE,
+)
 from .americastestkitchen import (
     AmericasTestKitchenIE,
     AmericasTestKitchenSeasonIE,
@@ -820,6 +825,7 @@ from .joj import JojIE
 from .jwplatform import JWPlatformIE
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
+from .kanal2 import Kanal2IE
 from .karaoketv import KaraoketvIE
 from .karrierevideos import KarriereVideosIE
 from .keezmovies import KeezMoviesIE
@@ -1205,6 +1211,7 @@ from .nintendo import NintendoIE
 from .nitter import NitterIE
 from .njpwworld import NJPWWorldIE
 from .nobelprize import NobelPrizeIE
+from .noice import NoicePodcastIE
 from .nonktube import NonkTubeIE
 from .noodlemagazine import NoodleMagazineIE
 from .noovo import NoovoIE
@@ -1603,6 +1610,7 @@ from .savefrom import SaveFromIE
 from .sbs import SBSIE
 from .screen9 import Screen9IE
 from .screencast import ScreencastIE
+from .screencastify import ScreencastifyIE
 from .screencastomatic import ScreencastOMaticIE
 from .scrippsnetworks import (
     ScrippsNetworksWatchIE,
@@ -1632,6 +1640,7 @@ from .shared import (
     VivoIE,
 )
 from .sharevideos import ShareVideosEmbedIE
+from .sibnet import SibnetEmbedIE
 from .shemaroome import ShemarooMeIE
 from .showroomlive import ShowRoomLiveIE
 from .simplecast import (
@@ -2096,6 +2105,7 @@ from .vimeo import (
     VimeoGroupsIE,
     VimeoLikesIE,
     VimeoOndemandIE,
+    VimeoProIE,
     VimeoReviewIE,
     VimeoUserIE,
     VimeoWatchLaterIE,
@@ -2226,12 +2236,6 @@ from .xhamster import (
     XHamsterIE,
     XHamsterEmbedIE,
     XHamsterUserIE,
-)
-from .xiami import (
-    XiamiSongIE,
-    XiamiAlbumIE,
-    XiamiArtistIE,
-    XiamiCollectionIE
 )
 from .ximalaya import (
     XimalayaIE,

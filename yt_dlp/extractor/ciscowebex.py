@@ -72,7 +72,6 @@ class CiscoWebexIE(InfoExtractor):
                     'vcodec': 'none',
                     'acodec': 'mp3',
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

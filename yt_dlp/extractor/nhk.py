@@ -78,7 +78,6 @@ class NhkBaseIE(InfoExtractor):
                     m3u8_id='hls', fatal=False)
                 for f in info['formats']:
                     f['language'] = lang
-                self._sort_formats(info['formats'])
             else:
                 info.update({
                     '_type': 'url_transparent',
@@ -240,7 +239,6 @@ class NhkForSchoolBangumiIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             f'https://nhks-vh.akamaihd.net/i/das/{video_id[0:8]}/{video_id}_V_000.f4v/master.m3u8',
             video_id, ext='mp4', m3u8_id='hls')
-        self._sort_formats(formats)
 
         duration = parse_duration(base_values.get('r_duration'))
 

@@ -86,7 +86,6 @@ class ViuIE(ViuBaseIE):
             #     r'\1whe\2', video_data['href'])
             m3u8_url = video_data['href']
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4')
-        self._sort_formats(formats)
 
         for key, value in video_data.items():
             mobj = re.match(r'^subtitle_(?P<lang>[^_]+)_(?P<ext>(vtt|srt))', key)
@@ -365,7 +364,6 @@ class ViuOTTIE(InfoExtractor):
                 'ext': 'mp4',
                 'filesize': try_get(stream_data, lambda x: x['size'][vid_format], int)
             })
-        self._sort_formats(formats)
 
         subtitles = {}
         for sub in video_data.get('subtitle') or []:

@@ -76,7 +76,6 @@ class URPlayIE(InfoExtractor):
                 formats.extend(self._extract_wowza_formats(
                     'http://%s/%splaylist.m3u8' % (host, file_http),
                     video_id, skip_protocols=['f4m', 'rtmp', 'rtsp']))
-        self._sort_formats(formats)
 
         subtitles = {}
 

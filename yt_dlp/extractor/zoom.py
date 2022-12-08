@@ -86,8 +86,6 @@ class ZoomIE(InfoExtractor):
                 'preference': -1
             })
 
-        self._sort_formats(formats)
-
         return {
             'id': play_id,
             'title': data.get('topic'),

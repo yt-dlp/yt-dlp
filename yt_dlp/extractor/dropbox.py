@@ -63,7 +63,6 @@ class DropboxIE(InfoExtractor):
             video_url = re.sub(r'[?&]dl=0', '', url)
             video_url += ('?' if '?' not in video_url else '&') + 'dl=1'
             formats.append({'url': video_url, 'format_id': 'original', 'format_note': 'Original', 'quality': 1})
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

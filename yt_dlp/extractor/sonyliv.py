@@ -150,7 +150,6 @@ class SonyLIVIE(InfoExtractor):
             video_id, 'mp4', m3u8_id='hls', headers=headers, fatal=False))
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
-        self._sort_formats(formats)
 
         metadata = self._call_api(
             '1.6', 'IN/DETAIL/' + video_id, video_id)['containers'][0]['metadata']

@@ -136,7 +136,6 @@ class ArkenaIE(InfoExtractor):
                         elif mime_type == 'application/vnd.ms-sstr+xml':
                             formats.extend(self._extract_ism_formats(
                                 href, video_id, ism_id='mss', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

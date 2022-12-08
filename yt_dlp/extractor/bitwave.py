@@ -45,7 +45,6 @@ class BitwaveStreamIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             channel['data']['url'], username,
             'mp4')
-        self._sort_formats(formats)
 
         return {
             'id': username,

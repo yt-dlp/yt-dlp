@@ -312,7 +312,7 @@ class ArchiveOrgIE(InfoExtractor):
                 })
 
         for entry in entries.values():
-            self._sort_formats(entry['formats'], ('source', ))
+            entry['_format_sort_fields'] = ('source', )
 
         if len(entries) == 1:
             # If there's only one item, use it as the main info dict

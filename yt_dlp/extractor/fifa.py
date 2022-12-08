@@ -80,7 +80,6 @@ class FifaIE(InfoExtractor):
             })
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(content_data['playURL'], video_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -102,8 +102,6 @@ class SpringboardPlatformIE(InfoExtractor):
         })
         formats.append(m3u8_format)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,
