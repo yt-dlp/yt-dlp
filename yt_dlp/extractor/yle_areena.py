@@ -1,6 +1,6 @@
 from .common import InfoExtractor
 from .kaltura import KalturaIE
-from ..utils import int_or_none, traverse_obj, url_or_none, filter_dict, smuggle_url
+from ..utils import int_or_none, traverse_obj, url_or_none, smuggle_url, unified_strdate
 
 
 class YleAreenaIE(InfoExtractor):
@@ -58,25 +58,16 @@ class YleAreenaIE(InfoExtractor):
         }
     ]
 
-    def generate_api_headers(
-            self):
-        """Prepare requested site header"""
-        headers = {
-            'origin': 'https://areena.yle.fi',
-            'referer': 'https://areena.yle.fi/'
-        }
-        return filter_dict(headers)
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         info = self._search_json_ld(self._download_webpage(url, video_id), video_id, default={})
-        # Generate headers
-        headers = self.generate_api_headers()
-        headers.update({'content-type': 'application/json'})
-
         video_data = self._download_json(
             f'https://player.api.yle.fi/v1/preview/{video_id}.json?app_id=player_static_prod&app_key=8930d72170e48303cf5f3867780d549b',
-            video_id, fatal=True, headers=headers)
+            video_id, headers={
+                'origin': 'https://areena.yle.fi',
+                'referer': 'https://areena.yle.fi/',
+                'content-type': 'application/json'
+            })
 
         # Example title: 'K1, J2: Pouchit | Modernit miehet'
         series, season_number, episode_number, episode = self._search_regex(
@@ -94,13 +85,7 @@ class YleAreenaIE(InfoExtractor):
                     'name': sub.get('kind'),
                 })
 
-        # Video manifest URL
-        manifest_url = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'manifest_url'))
-        # Extract video release date
-        start_time = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'start_time'), expected_type=str)
-        release_date = '%s%s%s' % (start_time[0:4], start_time[5:7], start_time[8:10])
-
-        return {            
+        return {
             '_type': 'url_transparent',
             'url': smuggle_url(
                 f'kaltura:1955031:{video_data["data"]["ongoing_ondemand"]["kaltura"]["id"]}',
@@ -118,5 +103,5 @@ class YleAreenaIE(InfoExtractor):
             'thumbnails': traverse_obj(info, ('thumbnails', ..., {'url': 'url'})),
             'age_limit': traverse_obj(video_data, ('data', 'ongoing_ondemand', 'content_rating', 'age_restriction'), expected_type=int_or_none),
             'subtitles': subtitles,
-            'release_date': release_date
+            'release_date': unified_strdate(traverse_obj(video_data, ('data', 'ongoing_ondemand', 'start_time'), expected_type=str))
         }
