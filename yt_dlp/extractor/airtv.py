@@ -80,7 +80,9 @@ class AirTVIE(InfoExtractor):
             'subtitles': subtitles,
             'description': nextjs_json.get('description') or None,
             'duration': int_or_none(nextjs_json.get('duration')),
-            'thumbnails': [{'url': thumbnail} for thumbnail in traverse_obj(nextjs_json, ('default_thumbnails', ...)],
+            'thumbnails': [
+                {'url': thumbnail}
+                for thumbnail in traverse_obj(nextjs_json, ('default_thumbnails', ...))],
             'channel_id': traverse_obj(nextjs_json, 'channel', 'channel_slug'),
             'timestamp': parse_iso8601(nextjs_json.get('created')),
             'release_timestamp': parse_iso8601(nextjs_json.get('published')),
