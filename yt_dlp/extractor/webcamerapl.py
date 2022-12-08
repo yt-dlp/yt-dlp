@@ -10,14 +10,16 @@ class WebcameraplIE(InfoExtractor):
         'info_dict': {
             'id': 'warszawa-plac-zamkowy',
             'ext': 'mp4',
-            'title': 'WIDOK NA PLAC ZAMKOWY W WARSZAWIE',
+            'title': r're:WIDOK NA PLAC ZAMKOWY W WARSZAWIE \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+            'live_status': 'is_live',
         }
     }, {
         'url': 'https://gdansk-stare-miasto.webcamera.pl/',
         'info_dict': {
             'id': 'gdansk-stare-miasto',
             'ext': 'mp4',
-            'title': 'GDAŃSK - widok na Stare Miasto',
+            'title': r're:GDAŃSK - widok na Stare Miasto \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+            'live_status': 'is_live',
         }
     }]
 
