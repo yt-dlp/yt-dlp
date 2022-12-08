@@ -27,7 +27,7 @@ class MediaStreamIE(InfoExtractor):
             'description': 'mmtv-costarica',
             'thumbnail': 're:^https?://[^?#]+5a7b1e63a8da282c34d65445',
             'ext': 'mp4',
-            'live_status': "is_live",
+            'live_status': 'is_live',
         },
         'params': {
             'skip_download': 'Livestream'
@@ -67,9 +67,8 @@ class MediaStreamIE(InfoExtractor):
         for mobj in re.finditer(r'<script[^>]+>[^>]*playerMdStream.mdstreamVideo\(\s*[\'"](?P<video_id>\w+)', webpage):
             yield f'https://mdstrm.com/embed/{mobj.group("video_id")}'
 
-        for mobj in re.finditer(r'<iframe[^>]src\s*=\s*"https://mdstrm.com/(?P<video_type>[\w-]+)/(?P<video_id>\w+)',
-                                webpage):
-            yield f'https://mdstrm.com/{mobj.group("video_type")}/{mobj.group("video_id")}'
+        yield from re.findall(
+            r'<iframe[^>]src\s*=\s*"(https://mdstrm.com/[\w-]+/\w+)', webpage)
 
         for mobj in re.finditer(
             r'''(?x)
@@ -79,10 +78,7 @@ class MediaStreamIE(InfoExtractor):
                 (?:\s*data-video-type\s*=\s*"(?P<video_type>[^"]+))?
                 ''', webpage):
 
-            video_type = 'embed'
-            if mobj.group('video_type') == 'live':
-                video_type = 'live-stream'
-
+            video_type = 'live-stream' if mobj.group('video_type') == 'live' else 'embed'
             yield f'https://mdstrm.com/{video_type}/{mobj.group("video_id")}'
 
     def _real_extract(self, url):
