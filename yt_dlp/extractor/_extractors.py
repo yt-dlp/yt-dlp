@@ -1568,6 +1568,7 @@ from .ruhd import RUHDIE
 from .rule34video import Rule34VideoIE
 from .rumble import (
     RumbleEmbedIE,
+    RumbleIE,
     RumbleChannelIE,
 )
 from .rutube import (

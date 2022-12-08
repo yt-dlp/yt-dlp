@@ -4,11 +4,15 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
+    ExtractorError,
+    UnsupportedError,
+    clean_html,
+    get_element_by_class,
     int_or_none,
+    parse_count,
     parse_iso8601,
     traverse_obj,
     unescapeHTML,
-    ExtractorError,
 )
 
 
@@ -111,24 +115,6 @@ class RumbleEmbedIE(InfoExtractor):
     }]
 
     _WEBPAGE_TESTS = [
-        {
-            'note': 'Rumble embed',
-            'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html',
-            'md5': '53af34098a7f92c4e51cf0bd1c33f009',
-            'info_dict': {
-                'id': 'vb0ofn',
-                'ext': 'mp4',
-                'timestamp': 1612662578,
-                'uploader': 'LovingMontana',
-                'channel': 'LovingMontana',
-                'upload_date': '20210207',
-                'title': 'Winter-loving dog helps girls dig a snow fort ',
-                'channel_url': 'https://rumble.com/c/c-546523',
-                'thumbnail': 'https://sp.rmbl.ws/s8/1/5/f/x/x/5fxxb.OvCc.1-small-Moose-The-Dog-Helps-Girls-D.jpg',
-                'duration': 103,
-                'live_status': 'not_live',
-            }
-        },
         {
             'note': 'Rumble JS embed',
             'url': 'https://therightscoop.com/what-does-9-plus-1-plus-1-equal-listen-to-this-audio-of-attempted-kavanaugh-assassins-call-and-youll-get-it',
@@ -233,6 +219,84 @@ class RumbleEmbedIE(InfoExtractor):
             'uploader': author.get('name'),
             'live_status': live_status,
         }
+
+
+class RumbleIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?rumble\.com/(?P<id>v(?!ideos)[\w.-]+)[^/]*$'
+    _EMBED_REGEX = [r'<a class=video-item--a href=(?P<url>/v[\w.-]+\.html)>']
+    _TESTS = [{
+        'add_ie': ['RumbleEmbed'],
+        'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html',
+        'md5': '53af34098a7f92c4e51cf0bd1c33f009',
+        'info_dict': {
+            'id': 'vb0ofn',
+            'ext': 'mp4',
+            'timestamp': 1612662578,
+            'uploader': 'LovingMontana',
+            'channel': 'LovingMontana',
+            'upload_date': '20210207',
+            'title': 'Winter-loving dog helps girls dig a snow fort ',
+            'description': 'Moose the dog is more than happy to help with digging out this epic snow fort. Great job, Moose!',
+            'channel_url': 'https://rumble.com/c/c-546523',
+            'thumbnail': r're:https://.+\.jpg',
+            'duration': 103,
+            'like_count': int,
+            'view_count': int,
+            'live_status': 'not_live',
+        }
+    }, {
+        'url': 'http://www.rumble.com/vDMUM1?key=value',
+        'only_matching': True,
+    }]
+
+    _WEBPAGE_TESTS = [{
+        'url': 'https://rumble.com/videos?page=2',
+        'playlist_count': 25,
+        'info_dict': {
+            'id': 'videos?page=2',
+            'title': 'All videos',
+            'description': 'Browse videos uploaded to Rumble.com',
+            'age_limit': 0,
+        },
+    }, {
+        'url': 'https://rumble.com/live-videos',
+        'playlist_mincount': 19,
+        'info_dict': {
+            'id': 'live-videos',
+            'title': 'Live Videos',
+            'description': 'Live videos on Rumble.com',
+            'age_limit': 0,
+        },
+    }, {
+        'url': 'https://rumble.com/search/video?q=rumble&sort=views',
+        'playlist_count': 24,
+        'info_dict': {
+            'id': 'video?q=rumble&sort=views',
+            'title': 'Search results for: rumble',
+            'age_limit': 0,
+        },
+    }]
+
+    def _real_extract(self, url):
+        page_id = self._match_id(url)
+        webpage = self._download_webpage(url, page_id)
+        url_info = next(RumbleEmbedIE.extract_from_webpage(self._downloader, url, webpage), None)
+        if not url_info:
+            raise UnsupportedError(url)
+
+        release_ts_str = self._search_regex(
+            r'(?:Livestream begins|Streamed on):\s+<time datetime="([^"]+)',
+            webpage, 'release date', fatal=False, default=None)
+        view_count_str = self._search_regex(r'<span class="media-heading-info">([\d,]+) Views',
+                                            webpage, 'view count', fatal=False, default=None)
+
+        return self.url_result(
+            url_info['url'], ie_key=url_info['ie_key'], url_transparent=True,
+            view_count=parse_count(view_count_str),
+            release_timestamp=parse_iso8601(release_ts_str),
+            like_count=parse_count(get_element_by_class('rumbles-count', webpage)),
+            description=clean_html(get_element_by_class('media-description', webpage)),
+        )
 
 
 class RumbleChannelIE(InfoExtractor):
