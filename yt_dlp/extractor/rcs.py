@@ -5,6 +5,9 @@ from ..utils import (
     ExtractorError,
     base_url,
     clean_html,
+    extract_attributes,
+    get_element_html_by_class,
+    get_element_html_by_id,
     HEADRequest,
     int_or_none,
     js_to_json,
@@ -21,6 +24,7 @@ class RCSBaseIE(InfoExtractor):
     # and VideoPlayerLoader.prototype.transformSrc from
     # https://js2.corriereobjects.it/includes2013/LIBS/js/corriere_video.sjs
     _UUID_RE = r'[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}'
+    _RCS_ID_RE = r'[\w-]+-\d{10}'
     _ALL_REPLACE = {
         'media2vam.corriere.it.edgesuite.net':
             'media2vam-corriere-it.akamaized.net',
@@ -30,7 +34,6 @@ class RCSBaseIE(InfoExtractor):
             'corrierepmd-corriere-it.akamaized.net',
         'media2vam-corriere-it.akamaized.net/fcs.quotidiani/vr/videos/':
             'video.corriere.it/vr360/videos/',
-        '.net//': '.net/',
         'http://': 'https://',
     }
     _MIGRATION_MAP = {
@@ -89,14 +92,13 @@ class RCSBaseIE(InfoExtractor):
             for s, r in self._ALL_REPLACE.items():
                 source['url'] = source['url'].replace(s, r)
 
-            if source['type'] == 'm3u8' and '-lh.akamaihd' in source['url']:
-                matches = re.search(r'(?:https*:)?\/\/(?P<host>.*)\.net\/i(?P<path>.*)$', source['url'])
-                source['url'] = 'https://vod.rcsobjects.it/hls/%s%s' % (
-                    self._MIGRATION_MAP[matches.group('host')],
-                    matches.group('path').replace('///', '/').replace('//', '/').replace('.csmil', '.urlset')
-                )
+            if source['type'] == 'm3u8' and '-vh.akamaihd' in source['url']:
+                # still needed for some old content: see _TESTS #3
+                matches = re.search(r'(?:https*:)?//(?P<host>.*)\.net/i(?P<path>.*)$', source['url'])
+                if matches:
+                    source['url'] = f'https://vod.rcsobjects.it/hls/{self._MIGRATION_MAP[matches.group("host")]}{matches.group("path")}'
             if (source['type'] == 'm3u8' and 'fcs.quotidiani_!' in source['url']) or (
-                    'geoblocking' in video['mediaProfile']):
+                    video['mediaProfile'].get('geoblocking')):
                 source['url'] = source['url'].replace(
                     'vod.rcsobjects', 'vod-it.rcsobjects')
             if source['type'] == 'm3u8' and 'vod' in source['url']:
@@ -155,75 +157,63 @@ class RCSBaseIE(InfoExtractor):
         return formats
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('id')
-
-        if 'cdn' not in mobj.groupdict():
-            raise ExtractorError(f'CDN not found in url: {url}')
-
-        # for leitv/youreporter don't use the embed page
-        if mobj.group('cdn') not in ['leitv.it', 'youreporter.it']:
-            if 'video-embed' not in url and not re.match(self._UUID_RE, video_id):
-                page = self._download_webpage(url, video_id)
-                video_id = self._search_regex(fr'"uuid"\s*:\s*"({self._UUID_RE})"', page, video_id, fatal=False) or video_id
-            url = f'https://video.{mobj.group("cdn")}/video-embed/{video_id}'
-
-        page = self._download_webpage(url, video_id)
+        cdn, video_id = self._match_valid_url(url).group('cdn', 'id')
         video_data = None
-        # look for json video data url
-        json = self._search_regex(
-            r'''(?x)url\s*=\s*(["'])
-            (?P<url>
-                (?:https?:)?//video\.rcs\.it
-                /fragment-includes/video-includes/[^"']+?\.json
-            )\1;''',
-            page, video_id, group='url', default=None)
 
-        if json:
-            video_data = self._download_json(sanitize_url(json, scheme='https'), video_id)
-            video_id = video_data.get('id') or video_id
-
-        # if json url not found, look for json video data directly in the page
+        if re.match(self._UUID_RE, video_id) or re.match(self._RCS_ID_RE, video_id):
+            url = f'https://video.{cdn}/video-json/{video_id}'
         else:
-            # RCS normal pages and most of the embeds
-            json = self._search_regex(
-                r'[\s;]video\s*=\s*({[\s\S]+?})(?:;|,playlist=)',
-                page, video_id, default=None)
-            if not json and 'video-embed' in url:
-                page = self._download_webpage(url.replace('video-embed', 'video-json'), video_id)
-                json = self._search_regex(
-                    r'##start-video##({[\s\S]+?})##end-video##',
-                    page, video_id, default=None)
-            if not json:
-                # if no video data found try search for iframes
-                emb = RCSEmbedsIE._extract_url(page)
+            webpage = self._download_webpage(url, video_id)
+            data_config = get_element_html_by_id('divVideoPlayer', webpage) or get_element_html_by_class('divVideoPlayer', webpage)
+
+            if data_config:
+                data_config = self._parse_json(
+                    extract_attributes(data_config).get('data-config'),
+                    video_id, fatal=False) or {}
+                cdn = f'{data_config["newspaper"]}.it' if data_config.get('newspaper') else cdn
+                video_id = data_config.get('uuid') or video_id
+                url = f'https://video.{cdn}/video-json/{video_id}'
+            else:
+                json_url = self._search_regex(
+                    r'''(?x)url\s*=\s*(["'])
+                    (?P<url>
+                        (?:https?:)?//video\.rcs\.it
+                        /fragment-includes/video-includes/[^"']+?\.json
+                    )\1;''',
+                    webpage, video_id, group='url', default=None)
+                if json_url:
+                    video_data = self._download_json(sanitize_url(json_url, scheme='https'), video_id)
+                    video_id = video_data.get('id') or video_id
+
+        if not video_data:
+            webpage = self._download_webpage(url, video_id)
+            json_data = self._search_regex(
+                r'##start-video##({[\s\S]+?})##end-video##',
+                webpage, video_id, default=None, fatal=False)
+            if json_data:
+                video_data = self._parse_json(
+                    json_data, video_id, transform_source=js_to_json)
+            else:
+                # try search for iframes
+                emb = RCSEmbedsIE._extract_url(webpage)
                 if emb:
                     return {
                         '_type': 'url_transparent',
                         'url': emb,
                         'ie_key': RCSEmbedsIE.ie_key()
                     }
-            if json:
-                video_data = self._parse_json(
-                    json, video_id, transform_source=js_to_json)
 
         if not video_data:
             raise ExtractorError('Video data not found in the page')
 
-        formats = self._create_formats(
-            self._get_video_src(video_data), video_id)
-
-        description = (clean_html(video_data.get('description'))
-                       or clean_html(video_data.get('htmlDescription'))
-                       or self._html_search_meta('description', page))
-        uploader = video_data.get('provider') or mobj.group('cdn')
-
         return {
             'id': video_id,
             'title': video_data.get('title'),
-            'description': description,
-            'uploader': uploader,
-            'formats': formats
+            'description': (clean_html(video_data.get('description'))
+                            or clean_html(video_data.get('htmlDescription'))
+                            or self._html_search_meta('description', webpage)),
+            'uploader': video_data.get('provider') or cdn,
+            'formats': self._create_formats(self._get_video_src(video_data), video_id),
         }
 
 
@@ -262,22 +252,21 @@ class RCSEmbedsIE(RCSBaseIE):
             'uploader': 'rcs.it',
         }
     }, {
-        # redownload the page changing 'video-embed' in 'video-json'
         'url': 'https://video.gazzanet.gazzetta.it/video-embed/gazzanet-mo05-0000260789',
-        'md5': '03c81ad0c965b717596aee17028bcd78',
-        'info_dict': {
-            'id': 'gazzanet-mo05-0000260789',
-            'ext': 'mp4',
-            'title': 'Valentino Rossi e papà Graziano si divertono col drifting',
-            'description': 'md5:a8bf90d6adafd9815f70fc74c0fc370a',
-            'uploader': 'rcd',
-        }
-    }, {
-        'url': 'https://video.corriere.it/video-embed/b727632a-f9d0-11ea-91b0-38d50a849abb?player',
         'match_only': True
     }, {
         'url': 'https://video.gazzetta.it/video-embed/49612410-00ca-11eb-bcd8-30d4253e0140',
         'match_only': True
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.iodonna.it/video-iodonna/personaggi-video/monica-bellucci-piu-del-lavoro-oggi-per-me-sono-importanti-lamicizia-e-la-famiglia/',
+        'info_dict': {
+            'id': 'iodonna-0002033648',
+            'ext': 'mp4',
+            'title': 'Monica Bellucci: «Più del lavoro, oggi per me sono importanti l\'amicizia e la famiglia»',
+            'description': 'md5:daea6d9837351e56b1ab615c06bebac1',
+            'uploader': 'rcs.it',
+        }
     }]
 
     @staticmethod
@@ -305,17 +294,18 @@ class RCSIE(RCSBaseIE):
                     |(?:gazzanet\.)?gazzetta\.it)
                     /(?!video-embed/)[^?#]+?/(?P<id>[^/\?]+)(?=\?|/$|$)'''
     _TESTS = [{
+        # json iframe from directly from id
         'url': 'https://video.corriere.it/sport/formula-1/vettel-guida-ferrari-sf90-mugello-suo-fianco-c-elecrerc-bendato-video-esilarante/b727632a-f9d0-11ea-91b0-38d50a849abb',
         'md5': '14946840dec46ecfddf66ba4eea7d2b2',
         'info_dict': {
             'id': 'b727632a-f9d0-11ea-91b0-38d50a849abb',
             'ext': 'mp4',
             'title': 'Vettel guida la Ferrari SF90 al Mugello e al suo fianco c\'è Leclerc (bendato): il video è esilarante',
-            'description': 'md5:93b51c9161ac8a64fb2f997b054d0152',
+            'description': 'md5:3915ce5ebb3d2571deb69a5eb85ac9b5',
             'uploader': 'Corriere Tv',
         }
     }, {
-        # video data inside iframe
+        # search for video id inside the page
         'url': 'https://viaggi.corriere.it/video/norvegia-il-nuovo-ponte-spettacolare-sopra-la-cascata-di-voringsfossen/',
         'md5': 'f22a92d9e666e80f2fffbf2825359c81',
         'info_dict': {
@@ -324,16 +314,6 @@ class RCSIE(RCSBaseIE):
             'title': 'La nuova spettacolare attrazione in Norvegia: il ponte sopra Vøringsfossen',
             'description': 'md5:18b35a291f6746c0c8dacd16e5f5f4f8',
             'uploader': 'DOVE Viaggi',
-        }
-    }, {
-        'url': 'https://video.gazzetta.it/video-motogp-catalogna-cadute-dovizioso-vale-rossi/49612410-00ca-11eb-bcd8-30d4253e0140?vclk=Videobar',
-        'md5': 'c8cb6f99bf0d803d5c630ec5f9a401eb',
-        'info_dict': {
-            'id': '49612410-00ca-11eb-bcd8-30d4253e0140',
-            'ext': 'mp4',
-            'title': 'Dovizioso, il contatto con Zarco e la caduta. E anche Vale finisce a terra',
-            'description': 'md5:8c6e905dc3b9413218beca11ebd69778',
-            'uploader': 'AMorici',
         }
     }, {
         # only audio format https://github.com/yt-dlp/yt-dlp/issues/5683
@@ -348,6 +328,17 @@ class RCSIE(RCSBaseIE):
             'formats': [{'format_id': 'https-mp3', 'ext': 'mp3'}],
         }
     }, {
+        # old content still needs cdn migration
+        'url': 'https://viaggi.corriere.it/video/milano-varallo-sesia-sul-treno-a-vapore/',
+        'md5': '2dfdce7af249654ad27eeba03fe1e08d',
+        'info_dict': {
+            'id': 'd8f6c8d0-f7d7-11e8-bfca-f74cf4634191',
+            'ext': 'mp4',
+            'title': 'Milano-Varallo Sesia sul treno a vapore',
+            'description': 'md5:6348f47aac230397fe341a74f7678d53',
+            'uploader': 'DOVE Viaggi',
+        }
+    }, {
         'url': 'https://video.corriere.it/video-360/metro-copenaghen-tutta-italiana/a248a7f0-e2db-11e9-9830-af2de6b1f945',
         'match_only': True
     }]
@@ -357,7 +348,8 @@ class RCSVariousIE(RCSBaseIE):
     _VALID_URL = r'''(?x)https?://www\.
                     (?P<cdn>
                         leitv\.it|
-                        youreporter\.it
+                        youreporter\.it|
+                        amica\.it
                     )/(?:[^/]+/)?(?P<id>[^/]+?)(?:$|\?|/)'''
     _TESTS = [{
         'url': 'https://www.leitv.it/benessere/mal-di-testa/',
@@ -378,5 +370,15 @@ class RCSVariousIE(RCSBaseIE):
             'title': 'Fiume Sesia 3 ottobre 2020',
             'description': 'md5:0070eef1cc884d13c970a4125063de55',
             'uploader': 'youreporter.it',
+        }
+    }, {
+        'url': 'https://www.amica.it/video-post/saint-omer-al-cinema-il-film-leone-dargento-che-ribalta-gli-stereotipi/',
+        'md5': '187cce524dfd0343c95646c047375fc4',
+        'info_dict': {
+            'id': 'amica-0001225365',
+            'ext': 'mp4',
+            'title': '"Saint Omer": al cinema il film Leone d\'argento che ribalta gli stereotipi',
+            'description': 'md5:b1c8869c2dcfd6073a2a311ba0008aa8',
+            'uploader': 'rcs.it',
         }
     }]
