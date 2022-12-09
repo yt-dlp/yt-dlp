@@ -401,8 +401,9 @@ class KalturaIE(InfoExtractor):
             params = {'wid': f'_{partner_id}', 'entry_id': entry_id, 'uiconf_id': smuggled_data.get('uiconf_id')}
             for k, v in flashvars.items():
                 params['flashvars[' + k + ']'] = json.dumps(v) if not isinstance(v, str) else v
-            iframe_url = update_url_query("https://cdnapisec.kaltura.com/html5/html5lib/v2.98/mwEmbedFrame.php", params)
-            webpage = self._download_webpage(iframe_url, entry_id)
+            webpage = self._download_webpage(update_url_query(
+                'https://cdnapisec.kaltura.com/html5/html5lib/v2.98/mwEmbedFrame.php',
+                params), entry_id)
             entry_data = self._search_json(
                 self.IFRAME_PACKAGE_DATA_REGEX, webpage,
                 'kalturaIframePackageData', entry_id)['entryResult']
