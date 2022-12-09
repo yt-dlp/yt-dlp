@@ -13,7 +13,7 @@ from ..utils import (
 
 class UplynkBaseIE(InfoExtractor):
     _UPLYNK_URL_RE = r'''(?x)
-        https?://\w+\.uplynk\.com/(?P<path>
+        https?://[\w-]+\.uplynk\.com/(?P<path>
             ext/[0-9a-f]{32}/(?P<external_id>[^/?&]+)|
             (?P<id>[0-9a-f]{32})
         )\.(?:m3u8|json)
@@ -74,7 +74,7 @@ class UplynkIE(UplynkBaseIE):
 
 class UplynkPreplayIE(UplynkBaseIE):
     IE_NAME = 'uplynk:preplay'
-    _VALID_URL = r'https?://.*?\.uplynk\.com/preplay2?/(?P<path>ext/[0-9a-f]{32}/(?P<external_id>[^/?&]+)|(?P<id>[0-9a-f]{32}))\.json'
+    _VALID_URL = r'https?://[\w-]+\.uplynk\.com/preplay2?/(?P<path>ext/[0-9a-f]{32}/(?P<external_id>[^/?&]+)|(?P<id>[0-9a-f]{32}))\.json'
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
