@@ -924,6 +924,19 @@ class GenericIE(InfoExtractor):
                 'title': 'EP3S5 - Bon Appétit - Baqueira Mi Corazon !',
             }
         },
+        # Kaltura embed (different embed code)
+        {
+            'url': 'http://www.premierchristianradio.com/Shows/Saturday/Unbelievable/Conference-Videos/Os-Guinness-Is-It-Fools-Talk-Unbelievable-Conference-2014',
+            'info_dict': {
+                'id': '1_a52wc67y',
+                'ext': 'flv',
+                'upload_date': '20150127',
+                'uploader_id': 'PremierMedia',
+                'timestamp': int,
+                'title': 'Os Guinness // Is It Fools Talk? // Unbelievable? Conference 2014',
+            },
+            'skip': 'Paywall, probably broken',
+        },
         # Kaltura embed with single quotes
         {
             'url': 'http://fod.infobase.com/p_ViewPlaylist.aspx?AssignmentID=NUN8ZY',
@@ -949,7 +962,7 @@ class GenericIE(InfoExtractor):
                 'title': '06_matthew_brender_raj_dutt',
                 'timestamp': 1466638791,
                 'upload_date': '20160622',
-                'thumbnail': 'https://cfvod.kaltura.com/p/1681692/sp/168169200/thumbnail/entry_id/0_utuok90b/version/100002',
+                'thumbnail': r're:https?://\w+.kaltura.com/',
                 'view_count': int,
                 'duration': 331,
             },
@@ -966,7 +979,7 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20111113',
                 'uploader_id': 'kps1',
                 'duration': 5420,
-                'thumbnail': 'http://cdnsecakmi.kaltura.com/p/537811/sp/53781100/thumbnail/entry_id/1_sgtvehim/version/100011',
+                'thumbnail': r're:https?://\w+.kaltura.com/',
                 'view_count': int,
             },
             'add_ie': ['Kaltura'],
@@ -982,7 +995,7 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20170403',
                 'uploader_id': 'batchUser',
                 'timestamp': 1491232186,
-                'thumbnail': 'http://cfvod.kaltura.com/p/1487951/sp/148795100/thumbnail/entry_id/0_f2cfbpwy/version/100021',
+                'thumbnail': r're:https?://\w+.kaltura.com/',
                 'duration': 6073,
                 'view_count': int,
             },
