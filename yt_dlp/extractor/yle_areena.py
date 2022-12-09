@@ -1,6 +1,12 @@
 from .common import InfoExtractor
 from .kaltura import KalturaIE
-from ..utils import int_or_none, traverse_obj, url_or_none, smuggle_url, unified_strdate
+from ..utils import (
+    int_or_none,
+    smuggle_url,
+    traverse_obj,
+    unified_strdate,
+    url_or_none,
+)
 
 
 class YleAreenaIE(InfoExtractor):
@@ -103,5 +109,5 @@ class YleAreenaIE(InfoExtractor):
             'thumbnails': traverse_obj(info, ('thumbnails', ..., {'url': 'url'})),
             'age_limit': traverse_obj(video_data, ('data', 'ongoing_ondemand', 'content_rating', 'age_restriction'), expected_type=int_or_none),
             'subtitles': subtitles,
-            'release_date': unified_strdate(traverse_obj(video_data, ('data', 'ongoing_ondemand', 'start_time'), expected_type=str))
+            'release_date': unified_strdate(traverse_obj(video_data, ('data', 'ongoing_ondemand', 'start_time'), expected_type=str)),
         }
