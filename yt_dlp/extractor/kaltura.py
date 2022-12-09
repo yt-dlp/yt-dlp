@@ -394,9 +394,7 @@ class KalturaIE(InfoExtractor):
         ks, captions = None, None
         if not player_type:
             player_type = 'kwidget' if 'html5lib/v2' in url else 'html5'
-        if partner_id and entry_id and not flashvars:
-            _, info, flavor_assets, captions = self._get_video_info(entry_id, partner_id, smuggled_data.get('service_url'), player_type=player_type)
-        elif flashvars:
+        if flashvars:
             flashvars = self._parse_json(flashvars, entry_id)
             params = {'wid': f'_{partner_id}', 'entry_id': entry_id, 'uiconf_id': smuggled_data.get('uiconf_id')}
             for k, v in flashvars.items():
@@ -421,6 +419,8 @@ class KalturaIE(InfoExtractor):
                 # with this
                 pass
             ks = flashvars.get('ks', [None])
+        elif partner_id and entry_id:
+            _, info, flavor_assets, captions = self._get_video_info(entry_id, partner_id, smuggled_data.get('service_url'), player_type=player_type)
         else:
             path, query = mobj.group('path', 'query')
             if not path and not query:
