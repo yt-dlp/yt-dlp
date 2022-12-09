@@ -1,11 +1,6 @@
 from .common import InfoExtractor
-
-from ..utils import (
-    HEADRequest,
-    float_or_none,
-    make_archive_id,
-    smuggle_url,
-)
+from .uplynk import UplynkPreplayIE
+from ..utils import HEADRequest, float_or_none, make_archive_id, smuggle_url
 
 
 class FoxSportsIE(InfoExtractor):
@@ -44,7 +39,7 @@ class FoxSportsIE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
-            'ie_key': 'UplynkPreplay',
+            'ie_key': UplynkPreplayIE.ie_key(),
             'url': smuggle_url(preplay_url, {'Origin': 'https://www.foxsports.com'}),
             'display_id': video_id,
             'title': data.get('name') or json_ld.get('title'),

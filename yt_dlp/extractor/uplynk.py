@@ -2,30 +2,22 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    float_or_none,
     ExtractorError,
+    float_or_none,
     smuggle_url,
-    unsmuggle_url,
     traverse_obj,
+    unsmuggle_url,
     update_url_query,
 )
 
 
 class UplynkBaseIE(InfoExtractor):
     _UPLYNK_URL_RE = r'''(?x)
-                        https?://
-                            .*?\.uplynk\.com/
-                            (?P<path>
-                                ext/[0-9a-f]{32}/
-                                (?P<external_id>[^/?&]+)|
-                                (?P<id>[0-9a-f]{32})
-                            )
-                            \.(?:m3u8|json)
-                            (?:
-                                .*?\b
-                                pbs=(?P<session_id>[^&]+)
-                            )?
-                    '''
+        https?://\w+\.uplynk\.com/(?P<path>
+            ext/[0-9a-f]{32}/(?P<external_id>[^/?&]+)|
+            (?P<id>[0-9a-f]{32})
+        )\.(?:m3u8|json)
+        (?:.*?\bpbs=(?P<session_id>[^&]+))?'''
 
     def _extract_uplynk_info(self, url):
         uplynk_content_url, smuggled_data = unsmuggle_url(url, {})
