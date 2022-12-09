@@ -293,7 +293,7 @@ class TwitterCardIE(InfoExtractor):
 
 class TwitterIE(TwitterBaseIE):
     IE_NAME = 'twitter'
-    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'(?:(?:i/web|[^/]+)/status|statuses)/(?P<id>\d+)'
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'(?:(?:i/web|[^/]+)/status|statuses)/(?P<id>\d+)(?:/video/(?P<index>\d+))?'
 
     _TESTS = [{
         'url': 'https://twitter.com/freethenipple/status/643211948184596480',
@@ -336,7 +336,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '665052190608723968',
             'display_id': '665052190608723968',
             'ext': 'mp4',
-            'title': 'md5:55fef1d5b811944f1550e91b44abb82e',
+            'title': 'md5:e99588f17b3dd0503814ffb560e64731',
             'description': 'A new beginning is coming December 18. Watch the official 60 second #TV spot for #StarWars: #TheForceAwakens. https://t.co/OkSqT2fjWJ',
             'uploader_id': 'starwars',
             'uploader': r're:Star Wars.*',
@@ -648,7 +648,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader_url': 'https://twitter.com/Rizdraws',
             'upload_date': '20220928',
             'timestamp': 1664391723,
-            'thumbnail': 're:^https?://.*\\.jpg',
+            'thumbnail': r're:^https?://.+\.jpg',
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
@@ -727,6 +727,48 @@ class TwitterIE(TwitterBaseIE):
         },
         'add_ie': ['TwitterSpaces'],
         'params': {'skip_download': 'm3u8'},
+    }, {
+        # URL specifies video number but --yes-playlist
+        'url': 'https://twitter.com/CTVJLaidlaw/status/1600649710662213632/video/1',
+        'playlist_mincount': 2,
+        'info_dict': {
+            'id': '1600649710662213632',
+            'title': 'md5:be05989b0722e114103ed3851a0ffae2',
+            'timestamp': 1670459604.0,
+            'description': 'md5:591c19ce66fadc2359725d5cd0d1052c',
+            'comment_count': int,
+            'uploader_id': 'CTVJLaidlaw',
+            'repost_count': int,
+            'tags': ['colorectalcancer', 'cancerjourney', 'imnotaquitter'],
+            'upload_date': '20221208',
+            'age_limit': 0,
+            'uploader': 'Jocelyn Laidlaw',
+            'uploader_url': 'https://twitter.com/CTVJLaidlaw',
+            'like_count': int,
+        },
+    }, {
+        # URL specifies video number and --no-playlist
+        'url': 'https://twitter.com/CTVJLaidlaw/status/1600649710662213632/video/2',
+        'info_dict': {
+            'id': '1600649511827013632',
+            'ext': 'mp4',
+            'title': 'md5:be05989b0722e114103ed3851a0ffae2',
+            'thumbnail': r're:^https?://.+\.jpg',
+            'timestamp': 1670459604.0,
+            'uploader_id': 'CTVJLaidlaw',
+            'uploader': 'Jocelyn Laidlaw',
+            'repost_count': int,
+            'comment_count': int,
+            'tags': ['colorectalcancer', 'cancerjourney', 'imnotaquitter'],
+            'duration': 102.226,
+            'uploader_url': 'https://twitter.com/CTVJLaidlaw',
+            'display_id': '1600649710662213632',
+            'like_count': int,
+            'description': 'md5:591c19ce66fadc2359725d5cd0d1052c',
+            'upload_date': '20221208',
+            'age_limit': 0,
+        },
+        'params': {'noplaylist': True},
     }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
@@ -828,7 +870,7 @@ class TwitterIE(TwitterBaseIE):
         }
 
     def _real_extract(self, url):
-        twid = self._match_id(url)
+        twid, selected_index = self._match_valid_url(url).group('id', 'index')
         if self.is_logged_in or self._configuration_arg('force_graphql'):
             self.write_debug(f'Using GraphQL API (Auth = {self.is_logged_in})')
             result = self._call_graphql_api('zZXycP0V6H7m-2r0mOnFcA/TweetDetail', twid)
@@ -997,6 +1039,13 @@ class TwitterIE(TwitterBaseIE):
             return self.url_result(expanded_url, display_id=twid, **info)
 
         entries[0]['_old_archive_ids'] = [make_archive_id(self, twid)]
+
+        if not self._yes_playlist(twid, selected_index, video_label='URL-specified video number'):
+            index = int(selected_index) - 1
+            if index >= len(entries):
+                raise ExtractorError(f'Video #{selected_index} is unavailable', expected=True)
+
+            return entries[index]
 
         if len(entries) == 1:
             return entries[0]
