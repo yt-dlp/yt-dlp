@@ -327,7 +327,7 @@ class Aria2cFD(ExternalFD):
     def aria2c_rpc(self, rpc_port, rpc_secret, method, params, secret=True):
         if secret and rpc_secret:
             params = [f'token:{rpc_secret}', *params]
-        # note: there's no need to be UUID (it can even a numeric value), but that's easier
+        # note: there's no need to be UUID (it can even a numeric value), but that's easier and long enough not to make duplicate one
         sanitycheck = str(uuid.uuid4())
         d = json.dumps({
             'jsonrpc': '2.0',
