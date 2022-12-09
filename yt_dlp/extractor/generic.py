@@ -936,7 +936,7 @@ class GenericIE(InfoExtractor):
                 'uploader_id': 'cplapp@learn360.com',
                 'view_count': int,
                 'duration': 3403,
-                'thumbnail': 'http://cfvod.kaltura.com/p/1067292/sp/106729200/thumbnail/entry_id/0_izeg5utt/version/100001',
+                'thumbnail': r're:https?://\w+.kaltura.com/',
             },
             'add_ie': ['Kaltura'],
         },
