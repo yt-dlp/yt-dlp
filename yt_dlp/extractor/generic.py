@@ -951,7 +951,6 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20160622',
                 'thumbnail': 'https://cfvod.kaltura.com/p/1681692/sp/168169200/thumbnail/entry_id/0_utuok90b/version/100002',
                 'view_count': int,
-                'uploader_id': '',
                 'duration': 331,
             },
             'add_ie': ['Kaltura'],
