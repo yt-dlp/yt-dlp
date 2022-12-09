@@ -145,9 +145,9 @@ class RCSBaseIE(InfoExtractor):
                 m3u8_formats = self._extract_m3u8_formats(
                     source['url'], video_id, 'mp4', m3u8_id='hls', fatal=False)
                 formats.extend(m3u8_formats)
-                http_formats = self._create_http_formats(source['url'], m3u8_formats or [], video_id)
-                formats.extend(http_formats)
-            if source['type'] == 'mp3':
+                formats.extend(self._create_http_formats(
+                    source['url'], m3u8_formats or [], video_id))
+            elif source['type'] == 'mp3':
                 formats.append({
                     'format_id': 'https-mp3',
                     'ext': 'mp3',
@@ -180,7 +180,7 @@ class RCSBaseIE(InfoExtractor):
             r'''(?x)url\s*=\s*(["'])
             (?P<url>
                 (?:https?:)?//video\.rcs\.it
-                /fragment-includes/video-includes/\S+?\.json
+                /fragment-includes/video-includes/[^"']+?\.json
             )\1;''',
             page, video_id, group='url', default=None)
 
@@ -308,7 +308,7 @@ class RCSIE(RCSBaseIE):
                         |corrierefiorentino\.
                     )?corriere\.it
                     |(?:gazzanet\.)?gazzetta\.it)
-                    /(?!video-embed/)\S+?/(?P<id>[^/\?]+)(?=\?|/$|$)'''
+                    /(?!video-embed/)[^?#]+?/(?P<id>[^/\?]+)(?=\?|/$|$)'''
     _TESTS = [{
         'url': 'https://video.corriere.it/sport/formula-1/vettel-guida-ferrari-sf90-mugello-suo-fianco-c-elecrerc-bendato-video-esilarante/b727632a-f9d0-11ea-91b0-38d50a849abb',
         'md5': '14946840dec46ecfddf66ba4eea7d2b2',
