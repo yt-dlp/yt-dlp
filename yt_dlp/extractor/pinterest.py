@@ -6,6 +6,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     str_or_none,
+    strip_or_none,
     traverse_obj,
     unified_timestamp,
     url_or_none,
@@ -13,7 +14,11 @@ from ..utils import (
 
 
 class PinterestBaseIE(InfoExtractor):
-    _VALID_URL_BASE = r'https?://(?:[^/]+\.)?pinterest\.(?:com|fr|de|ch|jp|cl|ca|it|co\.uk|nz|ru|com\.au|at|pt|co\.kr|es|com\.mx|dk|ph|th|com\.uy|co|nl|info|kr|ie|vn|com\.vn|ec|mx|in|pe|co\.at|hu|co\.in|co\.nz|id|com\.ec|com\.py|tw|be|uk|com\.bo|com\.pe)'
+    _VALID_URL_BASE = r'''(?x)
+        https?://(?:[^/]+\.)?pinterest\.(?:
+            com|fr|de|ch|jp|cl|ca|it|co\.uk|nz|ru|com\.au|at|pt|co\.kr|es|com\.mx|
+            dk|ph|th|com\.uy|co|nl|info|kr|ie|vn|com\.vn|ec|mx|in|pe|co\.at|hu|
+            co\.in|co\.nz|id|com\.ec|com\.py|tw|be|uk|com\.bo|com\.pe)'''
 
     def _call_api(self, resource, video_id, options):
         return self._download_json(
@@ -40,9 +45,8 @@ class PinterestBaseIE(InfoExtractor):
                 })
 
         info = {
-            'id': video_id,
-            'title': (data.get('title') or data.get('grid_title') or video_id).strip(),
-            'description': data.get('seo_description') or data.get('description'),
+            'title': strip_or_none(traverse_obj(data, 'title', 'grid_title', default='')),
+            'description': traverse_obj(data, 'seo_description', 'description'),
             'timestamp': unified_timestamp(data.get('created_at')),
             'thumbnails': thumbnails,
             'uploader': traverse_obj(data, ('closeup_attribution', 'full_name')),
@@ -51,7 +55,6 @@ class PinterestBaseIE(InfoExtractor):
             'comment_count': int_or_none(data.get('comment_count')),
             'categories': traverse_obj(data, ('pin_join', 'visual_annotation'), expected_type=list),
             'tags': traverse_obj(data, 'hashtags', expected_type=list),
-            'extractor_key': PinterestIE.ie_key(),
         }
 
         urls = []
@@ -59,10 +62,14 @@ class PinterestBaseIE(InfoExtractor):
         duration = None
         domain = data.get('domain', '')
         if domain.lower() != 'uploaded by user' and traverse_obj(data, ('embed', 'src')):
-            info.update({
+            if not info['title']:
+                info['title'] = None
+            return {
                 '_type': 'url_transparent',
                 'url': data['embed']['src'],
-            })
+                **info,
+            }
+
         elif extract_formats:
             video_list = traverse_obj(
                 data, ('videos', 'video_list'),
@@ -89,12 +96,16 @@ class PinterestBaseIE(InfoExtractor):
                         'height': int_or_none(format_dict.get('height')),
                         'duration': duration,
                     })
-            info.update({
-                'formats': formats,
-                'duration': duration,
-            })
 
-        return info
+        return {
+            'id': video_id,
+            'formats': formats,
+            'duration': duration,
+            'webpage_url': f'https://www.pinterest.com/pin/{video_id}/',
+            'extractor_key': PinterestIE.ie_key(),
+            'extractor': PinterestIE.IE_NAME,
+            **info,
+        }
 
 
 class PinterestIE(PinterestBaseIE):
