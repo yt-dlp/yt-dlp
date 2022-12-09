@@ -398,7 +398,7 @@ class KalturaIE(InfoExtractor):
             _, info, flavor_assets, captions = self._get_video_info(entry_id, partner_id, smuggled_data.get('service_url'), player_type=player_type)
         elif flashvars:
             flashvars = self._parse_json(flashvars, entry_id)
-            params = {'wid': '_' + partner_id, 'entry_id': entry_id, 'uiconf_id': smuggled_data.get('uiconf_id')}
+            params = {'wid': f'_{partner_id}', 'entry_id': entry_id, 'uiconf_id': smuggled_data.get('uiconf_id')}
             for k, v in flashvars.items():
                 params['flashvars[' + k + ']'] = json.dumps(v) if not isinstance(v, str) else v
             iframe_url = update_url_query("https://cdnapisec.kaltura.com/html5/html5lib/v2.98/mwEmbedFrame.php", params)
