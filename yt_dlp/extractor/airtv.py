@@ -1,6 +1,12 @@
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..utils import determine_ext, int_or_none, parse_iso8601, traverse_obj
+from ..utils import (
+    determine_ext,
+    int_or_none,
+    mimetype2ext,
+    parse_iso8601,
+    traverse_obj
+)
 
 
 class AirTVIE(InfoExtractor):
@@ -54,13 +60,13 @@ class AirTVIE(InfoExtractor):
     def _get_formats_and_subtitle(self, json_data, video_id):
         formats, subtitles = [], {}
         for source in traverse_obj(json_data, 'sources', 'sources_desktop', ...):
-            ext = determine_ext(source.get('src'))
+            ext = determine_ext(source.get('src'), mimetype2ext(source.get('type')))
             if ext == 'm3u8':
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(source.get('src'), video_id)
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             else:
-                formats.append({'url': source.get('src'), 'ext': 'mp4'})
+                formats.append({'url': source.get('src'), 'ext': ext})
         return formats, subtitles
 
     def _real_extract(self, url):
