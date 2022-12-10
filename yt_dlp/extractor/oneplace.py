@@ -1,5 +1,4 @@
 from .common import InfoExtractor
-from ..utils import clean_html
 
 
 class OnePlacePodcastIE(InfoExtractor):
@@ -34,11 +33,11 @@ class OnePlacePodcastIE(InfoExtractor):
         return {
             'id': video_id,
             'url': media_url,
-            'title': clean_html(self._search_regex(
+            'title': self._html_search_regex(
                 r'<div[^>]class\s*=\s*"details"[^>]+>[^<]<h2[^>]+>(?P<title>[^>]+)>', webpage,
-                'title', fatal=False, default=None)) or self._html_search_meta(['og:title', 'title'], webpage),
+                'title', fatal=False, default=None) or self._html_search_meta(['og:title', 'title'], webpage),
             'ext': 'mp3',
             'vcodec': 'none',
-            'description': clean_html(self._search_regex(
-                r'<div[^>]+class="[^"]+epDesc"[^>]*>\s*(?P<desc>.+)', webpage, 'description', default=None))
+            'description': self._html_search_regex(
+                r'<div[^>]+class="[^"]+epDesc"[^>]*>\s*(?P<desc>.+)', webpage, 'description', default=None)
         }
