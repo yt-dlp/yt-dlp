@@ -876,6 +876,25 @@ class NiconicoLiveIE(InfoExtractor):
     IE_NAME = 'niconico:live'
     IE_DESC = 'ニコニコ生放送'
     _VALID_URL = r'(?:https?://(?:sp\.)?live2?\.nicovideo\.jp/(?:watch|gate)/|nico(?:nico|video)?:)(?P<id>lv\d+)'
+    _TESTS = [{
+        'note': 'this test case includes invisible characters for title, pasting them as-is',
+        'url': 'https://live.nicovideo.jp/watch/lv339533123',
+        'info_dict': {
+            'id': 'lv339533123',
+            'title': '激辛ペヤング食べます‪( ;ᯅ; )‬（歌枠オーディション参加中）',
+            'is_live': True,
+        },
+        'skip': 'livestream',
+    }, {
+        'url': 'https://live2.nicovideo.jp/watch/lv339533123',
+        'only_matching': True,
+    }, {
+        'url': 'https://sp.live.nicovideo.jp/watch/lv339533123',
+        'only_matching': True,
+    }, {
+        'url': 'https://sp.live2.nicovideo.jp/watch/lv339533123',
+        'only_matching': True,
+    }]
 
     _KNOWN_LATENCY = ('high', 'low')
 
