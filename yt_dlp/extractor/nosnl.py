@@ -1,9 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    parse_duration,
-    parse_iso8601,
-    traverse_obj,
-)
+from ..utils import parse_duration, parse_iso8601, traverse_obj
 
 
 class NOSNLArticleIE(InfoExtractor):
@@ -75,7 +71,7 @@ class NOSNLArticleIE(InfoExtractor):
         for item in nextjs_json:
             if item.get('type') == 'video':
                 formats, subtitle = self._extract_m3u8_formats_and_subtitles(
-                    traverse_obj(item, ('source', 'url')), display_id, ext="mp4")
+                    traverse_obj(item, ('source', 'url')), display_id, ext='mp4')
                 yield {
                     'id': str(item['id']),
                     'title': item.get('title'),
