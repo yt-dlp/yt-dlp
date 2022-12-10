@@ -39,5 +39,5 @@ class OnePlacePodcastIE(InfoExtractor):
             'ext': 'mp3',
             'vcodec': 'none',
             'description': self._html_search_regex(
-                r'<div[^>]+class="[^"]+epDesc"[^>]*>\s*(?P<desc>.+)</div>', webpage, 'description', default=None)
+                r'<div[^>]+class="[^"]+epDesc"[^>]*>\s*(?P<desc>.+)\s*</div>', webpage, 'description', default=None)
         }
