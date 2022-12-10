@@ -1282,6 +1282,7 @@ from .on24 import On24IE
 from .ondemandkorea import OnDemandKoreaIE
 from .onefootball import OneFootballIE
 from .onenewsnz import OneNewsNZIE
+from .oneplace import OnePlacePodcastIE
 from .onet import (
     OnetIE,
     OnetChannelIE,
