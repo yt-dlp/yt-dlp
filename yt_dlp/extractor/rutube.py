@@ -16,16 +16,12 @@ from ..utils import (
 
 
 class RutubeBaseIE(InfoExtractor):
-    def _download_api_info(self, video_id, query=None, secret=None):
+    def _download_api_info(self, video_id, query=None):
         if not query:
             query = {}
         query['format'] = 'json'
-        if secret:
-            url = 'http://rutube.ru/api/video/%s/?p=%s' % (video_id, secret)
-        else:
-            url = 'http://rutube.ru/api/video/%s/' % video_id
         return self._download_json(
-            url,
+            'http://rutube.ru/api/video/%s/' % video_id,
             video_id, 'Downloading video JSON',
             'Unable to download video JSON', query=query)
 
@@ -56,20 +52,16 @@ class RutubeBaseIE(InfoExtractor):
             'is_live': bool_or_none(video.get('is_livestream')),
         }
 
-    def _download_and_extract_info(self, video_id, query=None, secret=None):
+    def _download_and_extract_info(self, video_id, query=None):
         return self._extract_info(
-            self._download_api_info(video_id, query=query, secret=secret), video_id)
+            self._download_api_info(video_id, query=query), video_id)
 
-    def _download_api_options(self, video_id, query=None, secret=None):
+    def _download_api_options(self, video_id, query=None):
         if not query:
             query = {}
         query['format'] = 'json'
-        if secret:
-            url = 'http://rutube.ru/api/play/options/%s/?p=%s' % (video_id, secret)
-        else:
-            url = 'http://rutube.ru/api/play/options/%s/' % video_id
         return self._download_json(
-            url,
+            'http://rutube.ru/api/play/options/%s/' % video_id,
             video_id, 'Downloading options JSON',
             'Unable to download options JSON',
             headers=self.geo_verification_headers(), query=query)
@@ -91,15 +83,15 @@ class RutubeBaseIE(InfoExtractor):
                 })
         return formats
 
-    def _download_and_extract_formats(self, video_id, query=None, secret=None):
+    def _download_and_extract_formats(self, video_id, query=None):
         return self._extract_formats(
-            self._download_api_options(video_id, query=query, secret=secret), video_id)
+            self._download_api_options(video_id, query=query), video_id)
 
 
 class RutubeIE(RutubeBaseIE):
     IE_NAME = 'rutube'
     IE_DESC = 'Rutube videos'
-    _VALID_URL = r'https?://rutube\.ru/(?:video(?:/private)?|(?:play/)?embed)/(?P<id>[\da-z]{32})(?:/\?p=(?P<secret>[\da-zA-Z-_]{22}))?'
+    _VALID_URL = r'https?://rutube\.ru/(?:video(?:/private)?|(?:play/)?embed)/(?P<id>[\da-z]{32})'
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//rutube\.ru/(?:play/)?embed/[\da-z]{32}.*?)\1']
 
     _TESTS = [{
@@ -159,9 +151,9 @@ class RutubeIE(RutubeBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        secret = self._match_valid_url(url).group('secret')
-        info = self._download_and_extract_info(video_id, secret=secret)
-        info['formats'] = self._download_and_extract_formats(video_id, secret=secret)
+        query = parse_qs(url)
+        info = self._download_and_extract_info(video_id, query)
+        info['formats'] = self._download_and_extract_formats(video_id, query)
         return info
 
 
