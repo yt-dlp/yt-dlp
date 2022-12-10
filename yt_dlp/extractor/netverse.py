@@ -24,7 +24,7 @@ class NetverseBaseIE(InfoExtractor):
             comment_data = self._download_json(
                 f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}',
                 video_id, data=b'', fatal=False, query={'page': i},
-                note='Downloading JSON comment metadata page {i}') or {}
+                note=f'Downloading JSON comment metadata page {i}') or {}
             yield from traverse_obj(comment_data, ('response', 'comments', 'data', ..., {
                 'id': '_id',
                 'text': 'comment',
