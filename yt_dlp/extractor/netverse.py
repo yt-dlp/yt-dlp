@@ -1,8 +1,8 @@
+import itertools
+
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from ..utils import smuggle_url, traverse_obj
-
-import itertools
 
 
 class NetverseBaseIE(InfoExtractor):
