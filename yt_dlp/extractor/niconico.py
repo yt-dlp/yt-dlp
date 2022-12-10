@@ -882,6 +882,14 @@ class NiconicoLiveIE(InfoExtractor):
         'info_dict': {
             'id': 'lv339533123',
             'title': '激辛ペヤング食べます‪( ;ᯅ; )‬（歌枠オーディション参加中）',
+            'view_count': 1526,
+            'comment_count': 1772,
+            'description': '初めましてもかって言います❕\nのんびり自由に適当に暮らしてます',
+            'uploader': 'もか',
+            'channel': 'ゲストさんのコミュニティ',
+            'channel_id': 'co5776900',
+            'channel_url': 'https://com.nicovideo.jp/community/co5776900',
+            'timestamp': 1670677328,
             'is_live': True,
         },
         'skip': 'livestream',
@@ -971,6 +979,27 @@ class NiconicoLiveIE(InfoExtractor):
         title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(
             ('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
 
+        raw_thumbs = traverse_obj(embedded_data, ('program', 'thumbnail')) or {}
+        thumbnails = []
+        for name, value in raw_thumbs.items():
+            if isinstance(value, str):
+                thumbnails.append({
+                    'id': name,
+                    'url': value,
+                    **parse_resolution(value, lenient=True),
+                })
+                continue
+
+            for k, img_url in value.items():
+                res = parse_resolution(k, lenient=True) or parse_resolution(img_url, lenient=True)
+                width, height = res.get('width'), res.get('height')
+
+                thumbnails.append({
+                    'id': f'{name}_{width}x{height}',
+                    'url': img_url,
+                    **res,
+                })
+
         formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
         for fmt, q in zip(formats, reversed(qualities[1:])):
             fmt.update({
@@ -986,6 +1015,17 @@ class NiconicoLiveIE(InfoExtractor):
         return {
             'id': video_id,
             'title': title,
-            'formats': formats,
+            **traverse_obj(embedded_data, {
+                'view_count': ('program', 'statistics', 'watchCount'),
+                'comment_count': ('program', 'statistics', 'commentCount'),
+                'uploader': ('program', 'supplier', 'name'),
+                'channel': ('socialGroup', 'name'),
+                'channel_id': ('socialGroup', 'id'),
+                'channel_url': ('socialGroup', 'socialGroupPageUrl'),
+            }),
+            'description': clean_html(traverse_obj(embedded_data, ('program', 'description'))),
+            'timestamp': int_or_none(traverse_obj(embedded_data, ('program', 'openTime'))),
             'is_live': True,
+            'thumbnails': thumbnails,
+            'formats': formats,
         }
