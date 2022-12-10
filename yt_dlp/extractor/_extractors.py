@@ -78,6 +78,7 @@ from .agora import (
     WyborczaVideoIE,
 )
 from .airmozilla import AirMozillaIE
+from .airtv import AirTVIE
 from .aljazeera import AlJazeeraIE
 from .alphaporno import AlphaPornoIE
 from .amara import AmaraIE
