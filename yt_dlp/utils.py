@@ -1282,6 +1282,10 @@ class XAttrUnavailableError(YoutubeDLError):
     pass
 
 
+class LiveMaxDurationPassed(YoutubeDLError):
+    pass
+
+
 def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
     hc = http_class(*args, **kwargs)
     source_address = ydl_handler._params.get('source_address')

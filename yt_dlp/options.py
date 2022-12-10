@@ -7,6 +7,7 @@ import shlex
 import shutil
 import string
 import sys
+from datetime import datetime
 
 from .compat import compat_expanduser
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
@@ -313,6 +314,13 @@ def create_parser():
         parser.rargs[:0] = shlex.split(
             opts if value is None else opts.format(*map(shlex.quote, value)))
 
+    def _parse_datetime(option, opt_str, value, parser):
+        try:
+            dt = datetime.fromisoformat(value)
+            setattr(parser.values, option.dest, dt)
+        except Exception as err:
+            raise optparse.OptionValueError(f'wrong {opt_str} formatting; {err}')
+
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
         '-h', '--help', dest='print_help', action='store_true',
@@ -413,6 +421,20 @@ def create_parser():
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
         help='Download livestreams from the current time (default)')
+    general.add_option(
+        '--live-from-start-begin',
+        action='callback', type='str',
+        dest='live_from_start_begin', metavar='ISO_DATETIME', default=None,
+        callback=_parse_datetime,
+        help='When using "--live-from-start", set date time when to start recording live stream'
+    )
+    general.add_option(
+        '--live-from-start-end',
+        action='callback', type='str',
+        dest='live_from_start_end', metavar='ISO_DATETIME', default=None,
+        callback=_parse_datetime,
+        help='When using "--live-from-start", set date time when to end recording live stream'
+    )
     general.add_option(
         '--wait-for-video',
         dest='wait_for_video', metavar='MIN[-MAX]', default=None,

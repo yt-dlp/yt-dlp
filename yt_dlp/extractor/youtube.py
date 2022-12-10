@@ -26,6 +26,7 @@ from ..utils import (
     NO_DEFAULT,
     ExtractorError,
     LazyList,
+    LiveMaxDurationPassed,
     UserNotLive,
     bug_reports_message,
     classproperty,
@@ -2648,7 +2649,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _live_dash_fragments(self, video_id, format_id, live_start_time, mpd_feed, manifestless_orig_fmt, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
 
-        mpd_url, stream_number, is_live = None, None, True
+        mpd_url, stream_number, is_live, start_date_time, end_date_time = None, None, True, None, None
 
         begin_index = 0
         download_start_time = ctx.get('start') or time.time()
@@ -2662,6 +2663,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         known_idx, no_fragment_score, last_segment_url = begin_index, 0, None
         fragments, fragment_base_url = None, None
+
+        begin_dt, end_dt = self.get_param('live_from_start_begin'), self.get_param('live_from_start_end')
+
+        if begin_dt:
+            nowish = datetime.datetime.fromtimestamp(download_start_time, tz=datetime.timezone.utc)
+            start_date_time = int((nowish - begin_dt).total_seconds())
+            if end_dt:
+                if end_dt <= begin_dt:
+                    pass
+                end_date_time = int((nowish - end_dt).total_seconds())
+        else:
+            start_date_time = MAX_DURATION
 
         def _extract_sequence_from_mpd(refresh_sequence, immediate):
             nonlocal mpd_url, stream_number, is_live, no_fragment_score, fragments, fragment_base_url
@@ -2722,13 +2735,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 last_segment_url = None
                 continue
 
-            last_seq += 1
+            if not end_date_time:
+                last_seq += 1
 
             if begin_index < 0 and known_idx < 0:
                 # skip from the start when it's negative value
                 known_idx = last_seq + begin_index
             if lack_early_segments:
-                known_idx = max(known_idx, last_seq - int(MAX_DURATION // fragments[-1]['duration']))
+                known_idx = max(known_idx, last_seq - int(start_date_time // fragments[-1]['duration']))
             try:
                 for idx in range(known_idx, last_seq):
                     # do not update sequence here or you'll get skipped some part of it
@@ -2737,6 +2751,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         known_idx = idx - 1
                         raise ExtractorError('breaking out of outer loop')
                     last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
+                    if end_date_time:
+                        end_idx = last_seq - int(end_date_time // fragments[-1]['duration'])
+
+                        if idx >= end_idx:
+                            raise LiveMaxDurationPassed()
+
                     yield {
                         'url': last_segment_url,
                         'fragment_count': last_seq,
@@ -2748,12 +2768,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 known_idx = last_seq
             except ExtractorError:
                 continue
+            except LiveMaxDurationPassed:
+                break
 
             if manifestless_orig_fmt:
                 # Stop at the first iteration if running for post-live manifestless;
                 # fragment count no longer increase since it starts
                 break
-
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
     def _extract_player_url(self, *ytcfgs, webpage=None):

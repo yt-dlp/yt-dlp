@@ -868,6 +868,8 @@ def parse_options(argv=None):
         'encoding': opts.encoding,
         'extract_flat': opts.extract_flat,
         'live_from_start': opts.live_from_start,
+        'live_from_start_begin': opts.live_from_start_begin,
+        'live_from_start_end': opts.live_from_start_end,
         'wait_for_video': opts.wait_for_video,
         'mark_watched': opts.mark_watched,
         'merge_output_format': opts.merge_output_format,
