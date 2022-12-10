@@ -3,7 +3,6 @@ from ..utils import (
     parse_duration,
     parse_iso8601,
     traverse_obj,
-    try_call,
 )
 
 
@@ -72,38 +71,32 @@ class NOSNLArticleIE(InfoExtractor):
         }
     ]
 
-    def _get_video_data(self, data_process, display_id):
-        if data_process.get('type') == 'video':
-            formats, subtitle = self._extract_m3u8_formats_and_subtitles(
-                traverse_obj(data_process, ('source', 'url')), display_id, ext="mp4")
-            yield {
-                'id': str(data_process['id']),
-                'title': data_process.get('title'),
-                'description': data_process.get('description'),
-                'formats': formats,
-                'subtitles': subtitle,
-                'duration': parse_duration(data_process.get('duration')),
-                'thumbnails': [{
-                    'url': traverse_obj(image, ('url', ...), get_all=False),
-                    'width': image.get('width'),
-                    'height': image.get('height')
-                } for image in traverse_obj(data_process, ('imagesByRatio', ...))[0]],
-            }
-
-        elif data_process.get('type') == 'audio':
-            yield {
-                'id': str(data_process['id']),
-                'title': data_process.get('title'),
-                'url': traverse_obj(data_process, ('media', 'src')),
-                'ext': 'mp3',
-            }
-
     def _entries(self, nextjs_json, display_id):
-        if isinstance(nextjs_json, dict):
-            yield from self._get_video_data(nextjs_json, display_id)
-        else:
-            for item in nextjs_json:
-                yield from self._get_video_data(item, display_id)
+        for data_process in nextjs_json:
+            if data_process.get('type') == 'video':
+                formats, subtitle = self._extract_m3u8_formats_and_subtitles(
+                    traverse_obj(data_process, ('source', 'url')), display_id, ext="mp4")
+                yield {
+                    'id': str(data_process['id']),
+                    'title': data_process.get('title'),
+                    'description': data_process.get('description'),
+                    'formats': formats,
+                    'subtitles': subtitle,
+                    'duration': parse_duration(data_process.get('duration')),
+                    'thumbnails': [{
+                        'url': traverse_obj(image, ('url', ...), get_all=False),
+                        'width': image.get('width'),
+                        'height': image.get('height')
+                    } for image in traverse_obj(data_process, ('imagesByRatio', ...))[0]],
+                }
+
+            elif data_process.get('type') == 'audio':
+                yield {
+                    'id': str(data_process['id']),
+                    'title': data_process.get('title'),
+                    'url': traverse_obj(data_process, ('media', 'src')),
+                    'ext': 'mp3',
+                }
 
     def _real_extract(self, url):
         site_type, display_id = self._match_valid_url(url).group('type', 'display_id')
@@ -113,7 +106,7 @@ class NOSNLArticleIE(InfoExtractor):
         return {
             '_type': 'playlist',
             'entries': self._entries(
-                nextjs_json['video'] if site_type == 'video' else nextjs_json['items'], display_id),
+                [nextjs_json['video']] if site_type == 'video' else nextjs_json['items'], display_id),
             'id': str(nextjs_json['id']),
             'title': nextjs_json.get('title') or self._html_search_meta(['title', 'og:title', 'twitter:title'], webpage),
             'description': (nextjs_json.get('description')
