@@ -72,29 +72,29 @@ class NOSNLArticleIE(InfoExtractor):
     ]
 
     def _entries(self, nextjs_json, display_id):
-        for data_process in nextjs_json:
-            if data_process.get('type') == 'video':
+        for item in nextjs_json:
+            if item.get('type') == 'video':
                 formats, subtitle = self._extract_m3u8_formats_and_subtitles(
-                    traverse_obj(data_process, ('source', 'url')), display_id, ext="mp4")
+                    traverse_obj(item, ('source', 'url')), display_id, ext="mp4")
                 yield {
-                    'id': str(data_process['id']),
-                    'title': data_process.get('title'),
-                    'description': data_process.get('description'),
+                    'id': str(item['id']),
+                    'title': item.get('title'),
+                    'description': item.get('description'),
                     'formats': formats,
                     'subtitles': subtitle,
-                    'duration': parse_duration(data_process.get('duration')),
+                    'duration': parse_duration(item.get('duration')),
                     'thumbnails': [{
                         'url': traverse_obj(image, ('url', ...), get_all=False),
                         'width': image.get('width'),
                         'height': image.get('height')
-                    } for image in traverse_obj(data_process, ('imagesByRatio', ...))[0]],
+                    } for image in traverse_obj(item, ('imagesByRatio', ...))[0]],
                 }
 
-            elif data_process.get('type') == 'audio':
+            elif item.get('type') == 'audio':
                 yield {
-                    'id': str(data_process['id']),
-                    'title': data_process.get('title'),
-                    'url': traverse_obj(data_process, ('media', 'src')),
+                    'id': str(item['id']),
+                    'title': item.get('title'),
+                    'url': traverse_obj(item, ('media', 'src')),
                     'ext': 'mp3',
                 }
 
