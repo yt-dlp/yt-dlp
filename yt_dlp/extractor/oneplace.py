@@ -39,5 +39,5 @@ class OnePlacePodcastIE(InfoExtractor):
             ), webpage, 'title', group='content', default=None),
             'description': self._html_search_regex(
                 r'<div[^>]+class="[^"]+epDesc"[^>]*>\s*(?P<desc>.+?)\s*</div>',
-                webpage, 'description', default=None)
+                webpage, 'description', default=None),
         }
