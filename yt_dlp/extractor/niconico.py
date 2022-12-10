@@ -5,13 +5,17 @@ import json
 import re
 import time
 
+from urllib.parse import urlparse
+
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
     compat_HTTPError,
 )
+from ..dependencies import websockets
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
+    WebSocketsWrapper,
     bug_reports_message,
     clean_html,
     float_or_none,
@@ -866,3 +870,103 @@ class NiconicoUserIE(InfoExtractor):
     def _real_extract(self, url):
         list_id = self._match_id(url)
         return self.playlist_result(self._entries(list_id), list_id, ie=NiconicoIE.ie_key())
+
+
+class NiconicoLiveIE(InfoExtractor):
+    IE_NAME = 'niconico:live'
+    IE_DESC = 'ニコニコ生放送'
+    _VALID_URL = r'(?:https?://(?:sp\.)?live2?\.nicovideo\.jp/(?:watch|gate)/|nico(?:nico|video)?:)(?P<id>lv\d+)'
+
+    _KNOWN_LATENCY = ('high', 'low')
+
+    def _real_extract(self, url):
+        if not websockets:
+            raise ExtractorError('websockets library is not available. Please install it.', expected=True)
+        video_id = self._match_id(url)
+        webpage, urlh = self._download_webpage_handle(f'https://live.nicovideo.jp/watch/{video_id}', video_id)
+
+        embedded_data = self._parse_json(unescapeHTML(self._search_regex(
+            r'<script\s+id="embedded-data"\s*data-props="(.+?)"', webpage, 'embedded data')), video_id)
+
+        ws_url = traverse_obj(embedded_data, ('site', 'relive', 'webSocketUrl'))
+        if not ws_url:
+            raise ExtractorError('The live hasn\'t started yet or already ended.', expected=True)
+        ws_url = update_url_query(ws_url, {
+            'frontend_id': traverse_obj(embedded_data, ('site', 'frontendId')) or '9',
+        })
+
+        hostname = remove_start(urlparse(urlh.geturl()).hostname, 'sp.')
+        cookies = try_get(urlh.geturl(), self._downloader._calc_cookies)
+        latency = try_get(self._configuration_arg('latency'), lambda x: x[0])
+        if latency not in self._KNOWN_LATENCY:
+            latency = 'high'
+
+        ws = WebSocketsWrapper(ws_url, {
+            'Cookies': str_or_none(cookies) or '',
+            'Origin': f'https://{hostname}',
+            'Accept': '*/*',
+            'User-Agent': self.get_param('http_headers')['User-Agent'],
+        })
+
+        self.write_debug('[debug] Sending HLS server request')
+        ws.send(json.dumps({
+            'type': 'startWatching',
+            'data': {
+                'stream': {
+                    'quality': 'abr',
+                    'protocol': 'hls+fmp4',
+                    'latency': latency,
+                    'chasePlay': False
+                },
+                'room': {
+                    'protocol': 'webSocket',
+                    'commentable': True
+                },
+                'reconnect': False,
+            }
+        }))
+
+        while True:
+            recv = ws.recv()
+            if not recv:
+                continue
+            data = json.loads(recv)
+            if not isinstance(data, dict):
+                continue
+            if data.get('type') == 'stream':
+                m3u8_url = data['data']['uri']
+                qualities = data['data']['availableQualities']
+                break
+            elif data.get('type') == 'disconnect':
+                self.write_debug(recv)
+                raise ExtractorError('Disconnected at middle of extraction')
+            elif data.get('type') == 'error':
+                self.write_debug(recv)
+                message = traverse_obj(data, ('body', 'code')) or recv
+                raise ExtractorError(message)
+            elif self.get_param('verbose', False):
+                if len(recv) > 100:
+                    recv = recv[:100] + '...'
+                self.write_debug('Server said: %s' % recv)
+
+        title = traverse_obj(embedded_data, ('program', 'title')) or self._html_search_meta(
+            ('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
+
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', live=True)
+        for fmt, q in zip(formats, reversed(qualities[1:])):
+            fmt.update({
+                'format_id': q,
+                'protocol': 'niconico_live',
+                'ws': ws,
+                'video_id': video_id,
+                'cookies': cookies,
+                'live_latency': latency,
+                'origin': hostname,
+            })
+
+        return {
+            'id': video_id,
+            'title': title,
+            'formats': formats,
+            'is_live': True,
+        }
