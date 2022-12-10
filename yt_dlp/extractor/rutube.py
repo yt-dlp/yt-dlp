@@ -16,12 +16,16 @@ from ..utils import (
 
 
 class RutubeBaseIE(InfoExtractor):
-    def _download_api_info(self, video_id, query=None):
+    def _download_api_info(self, video_id, query=None, secret=None):
         if not query:
             query = {}
         query['format'] = 'json'
+        if secret:
+            url = 'http://rutube.ru/api/video/%s/?p=%s' % (video_id, secret)
+        else:
+            url = 'http://rutube.ru/api/video/%s/' % video_id
         return self._download_json(
-            'http://rutube.ru/api/video/%s/' % video_id,
+            url,
             video_id, 'Downloading video JSON',
             'Unable to download video JSON', query=query)
 
@@ -52,16 +56,20 @@ class RutubeBaseIE(InfoExtractor):
             'is_live': bool_or_none(video.get('is_livestream')),
         }
 
-    def _download_and_extract_info(self, video_id, query=None):
+    def _download_and_extract_info(self, video_id, query=None, secret=None):
         return self._extract_info(
-            self._download_api_info(video_id, query=query), video_id)
+            self._download_api_info(video_id, query=query, secret=secret), video_id)
 
-    def _download_api_options(self, video_id, query=None):
+    def _download_api_options(self, video_id, query=None, secret=None):
         if not query:
             query = {}
         query['format'] = 'json'
+        if secret:
+            url = 'http://rutube.ru/api/play/options/%s/?p=%s' % (video_id, secret)
+        else:
+            url = 'http://rutube.ru/api/play/options/%s/' % video_id
         return self._download_json(
-            'http://rutube.ru/api/play/options/%s/' % video_id,
+            url,
             video_id, 'Downloading options JSON',
             'Unable to download options JSON',
             headers=self.geo_verification_headers(), query=query)
@@ -83,20 +91,20 @@ class RutubeBaseIE(InfoExtractor):
                 })
         return formats
 
-    def _download_and_extract_formats(self, video_id, query=None):
+    def _download_and_extract_formats(self, video_id, query=None, secret=None):
         return self._extract_formats(
-            self._download_api_options(video_id, query=query), video_id)
+            self._download_api_options(video_id, query=query, secret=secret), video_id)
 
 
 class RutubeIE(RutubeBaseIE):
     IE_NAME = 'rutube'
     IE_DESC = 'Rutube videos'
-    _VALID_URL = r'https?://rutube\.ru/(?:video|(?:play/)?embed)/(?P<id>[\da-z]{32})'
+    _VALID_URL = r'https?://rutube\.ru/(?:video(?:/private)?|(?:play/)?embed)/(?P<id>[\da-z]{32})(?:/\?p=(?P<secret>[\da-zA-Z-_]{22}))?'
     _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//rutube\.ru/(?:play/)?embed/[\da-z]{32}.*?)\1']
 
     _TESTS = [{
         'url': 'http://rutube.ru/video/3eac3b4561676c17df9132a9a1e62e3e/',
-        'md5': '1d24f180fac7a02f3900712e5a5764d6',
+        'md5': 'e33ac625efca66aba86cbec9851f2692',
         'info_dict': {
             'id': '3eac3b4561676c17df9132a9a1e62e3e',
             'ext': 'mp4',
@@ -108,6 +116,10 @@ class RutubeIE(RutubeBaseIE):
             'timestamp': 1381943602,
             'upload_date': '20131016',
             'age_limit': 0,
+            'view_count': int,
+            'thumbnail': 'http://pic.rutubelist.ru/video/d2/a0/d2a0aec998494a396deafc7ba2c82add.jpg',
+            'category': ['Новости и СМИ'],
+
         },
     }, {
         'url': 'http://rutube.ru/play/embed/a10e53b86e8f349080f718582ce4c661',
@@ -121,6 +133,24 @@ class RutubeIE(RutubeBaseIE):
     }, {
         'url': 'https://rutube.ru/video/10b3a03fc01d5bbcc632a2f3514e8aab/?pl_type=source',
         'only_matching': True,
+    }, {
+        'url': 'https://rutube.ru/video/private/884fb55f07a97ab673c7d654553e0f48/?p=x2QojCumHTS3rsKHWXN8Lg',
+        'md5': 'd106225f15d625538fe22971158e896f',
+        'info_dict': {
+            'id': '884fb55f07a97ab673c7d654553e0f48',
+            'ext': 'mp4',
+            'title': 'Яцуноками, Nioh2',
+            'description': 'Nioh2: финал сражения с боссом Яцуноками',
+            'duration': 15,
+            'uploader': 'mexus',
+            'uploader_id': '24222106',
+            'timestamp': 1670646232,
+            'upload_date': '20221210',
+            'age_limit': 0,
+            'view_count': int,
+            'thumbnail': 'http://pic.rutubelist.ru/video/f2/d4/f2d42b54be0a6e69c1c22539e3152156.jpg',
+            'category': ['Видеоигры'],
+        },
     }]
 
     @classmethod
@@ -129,8 +159,9 @@ class RutubeIE(RutubeBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        info = self._download_and_extract_info(video_id)
-        info['formats'] = self._download_and_extract_formats(video_id)
+        secret = self._match_valid_url(url).group('secret')
+        info = self._download_and_extract_info(video_id, secret=secret)
+        info['formats'] = self._download_and_extract_formats(video_id, secret=secret)
         return info
 
 
