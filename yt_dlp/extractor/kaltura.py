@@ -411,8 +411,7 @@ class KalturaIE(InfoExtractor):
             # captions so we will try requesting the complete data using
             # regular approach since we now know the entry_id
             try:
-                _, info, flavor_assets, captions = self._get_video_info(
-                    entry_id, partner_id, player_type=player_type)
+                captions = self.extract_subtitles(entry_id, partner_id, player_type)
             except ExtractorError:
                 # Regular scenario failed but we already have everything
                 # extracted apart from captions and can process at least
@@ -476,6 +475,10 @@ class KalturaIE(InfoExtractor):
             ks = params.get('flashvars[ks]', [None])[0]
 
         return self._per_video_extract(smuggled_data, entry_id, info, ks, flavor_assets, captions)
+
+    def _get_subtitles(self, entry_id, partner_id, player_type):
+        _, _, _, captions = self._get_video_info(entry_id, partner_id, player_type=player_type)
+        return captions
 
     def _per_video_extract(self, smuggled_data, entry_id, info, ks, flavor_assets, captions):
         source_url = smuggled_data.get('source_url')
