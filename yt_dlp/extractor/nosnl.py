@@ -122,5 +122,5 @@ class NOSNLArticleIE(InfoExtractor):
             'modified_timestamp': parse_iso8601(nextjs_json.get('modifiedAt')),
             'thumbnail': nextjs_json.get('shareImageSrc') or self._html_search_meta(['og:image', 'twitter:image'], webpage),
             'timestamp': parse_iso8601(nextjs_json.get('publishedAt')),
-            'categories': try_call(lambda: traverse_obj(nextjs_json, ('categories', ..., 'label')))
+            'categories': traverse_obj(nextjs_json, ('categories', ..., 'label')),
         }
