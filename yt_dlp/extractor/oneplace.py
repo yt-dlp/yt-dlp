@@ -22,22 +22,22 @@ class OnePlacePodcastIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_valid_url(url).group('id')
+        video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-
-        media_url = self._search_regex((
-            r'mp3-url\s*=\s*"([^"]+)',
-            r'<div[^>]+id\s*=\s*"player"[^>]+data-media-url\s*=\s*"(?P<media_url>[^"]+)',
-        ), webpage, 'media url')
 
         return {
             'id': video_id,
-            'url': media_url,
-            'title': self._html_search_regex(
-                r'<div[^>]class\s*=\s*"details"[^>]+>[^<]<h2[^>]+>(?P<title>[^>]+)>', webpage,
-                'title', fatal=False, default=None) or self._html_search_meta(['og:title', 'title'], webpage),
+            'url': self._search_regex((
+                r'mp3-url\s*=\s*"([^"]+)',
+                r'<div[^>]+id\s*=\s*"player"[^>]+data-media-url\s*=\s*"(?P<media_url>[^"]+)',
+            ), webpage, 'media url'),
             'ext': 'mp3',
             'vcodec': 'none',
+            'title': self._html_search_regex((
+                r'<div[^>]class\s*=\s*"details"[^>]+>[^<]<h2[^>]+>(?P<content>[^>]+)>',
+                self._meta_regex('og:title'), self._meta_regex('title'),
+            ), webpage, 'title', group='content', default=None),
             'description': self._html_search_regex(
-                r'<div[^>]+class="[^"]+epDesc"[^>]*>\s*(?P<desc>.+?)\s*</div>', webpage, 'description', default=None)
+                r'<div[^>]+class="[^"]+epDesc"[^>]*>\s*(?P<desc>.+?)\s*</div>',
+                webpage, 'description', default=None)
         }
