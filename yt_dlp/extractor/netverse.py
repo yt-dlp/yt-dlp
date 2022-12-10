@@ -17,27 +17,24 @@ class NetverseBaseIE(InfoExtractor):
             display_id or slug, query=query)
 
     def _get_comments(self, video_id):
-        comment_json = self._download_json(
-            f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}', video_id,
-            data=b'', fatal=False, note='Downloading JSON comment metadata') or {}
-        last_page_number = traverse_obj(comment_json, ('response', 'comments', 'last_page'))
-
-        for i in range(last_page_number):
-            if i == 0:
-                comment_data = comment_json
-            else:
-                comment_data = self._download_json(
-                    f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}', video_id,
-                    data=b'', fatal=False, query={'page': i + 1}, note='Downloading JSON comment metadata') or {}
-            for comment in traverse_obj(comment_data, ('response', 'comments', 'data', ...)):
-                yield {
-                    'id': comment.get('_id'),
-                    'text': comment.get('comment'),
-                    'author_id': comment.get('customer_id'),
-                    'author': traverse_obj(comment, ('customer', 'name')),
-                    'author_thumbnail': traverse_obj(comment, ('customer', 'profile_picture')),
-                }
-
+        last_page_number = None
+        for i in itertools.count(1):
+            comment_data = self._download_json(
+                f'https://api.netverse.id/mediadetails/api/v3/videos/comments/{video_id}',
+                video_id, data=b'', fatal=False, query={'page': i},
+                note='Downloading JSON comment metadata page {i}') or {}
+            yield from traverse_obj(comment_data, ('response', 'comments', 'data', ..., {
+                'id': '_id',
+                'text': 'comment',
+                'author_id': 'customer_id',
+                'author': ('customer', 'name'),
+                'author_thumbnail': ('customer', 'profile_picture'),
+            }))
+                
+            if not last_page_number:
+                last_page_number = traverse_obj(comment_data, ('response', 'comments', 'last_page'))
+            if i >= (last_page_number or 0):
+                break
 
 class NetverseIE(NetverseBaseIE):
     _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>watch|video)/(?P<display_id>[^/?#&]+)'
