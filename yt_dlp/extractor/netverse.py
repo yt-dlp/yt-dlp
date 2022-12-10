@@ -2,6 +2,8 @@ from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from ..utils import smuggle_url, traverse_obj
 
+import itertools
+
 
 class NetverseBaseIE(InfoExtractor):
     _ENDPOINTS = {
@@ -30,11 +32,12 @@ class NetverseBaseIE(InfoExtractor):
                 'author': ('customer', 'name'),
                 'author_thumbnail': ('customer', 'profile_picture'),
             }))
-                
+
             if not last_page_number:
                 last_page_number = traverse_obj(comment_data, ('response', 'comments', 'last_page'))
             if i >= (last_page_number or 0):
                 break
+
 
 class NetverseIE(NetverseBaseIE):
     _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>watch|video)/(?P<display_id>[^/?#&]+)'
