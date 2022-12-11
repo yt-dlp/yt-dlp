@@ -4,6 +4,7 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    int_or_none,
     parse_qs,
     smuggle_url,
     traverse_obj,
@@ -11,6 +12,7 @@ from ..utils import (
     unsmuggle_url,
     update_url_query,
     url_or_none,
+    xpath_text,
 )
 
 
@@ -26,6 +28,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1648189972,
             'upload_date': '20220325',
             'thumbnail': r're:^https?://.*\.jpg',
+            'chapters': [],
         },
         'params': {
             'skip_download': 'm3u8',
@@ -40,6 +43,7 @@ class SlidesLiveIE(InfoExtractor):
             'upload_date': '20211115',
             'timestamp': 1636996003,
             'thumbnail': r're:^https?://.*\.jpg',
+            'chapters': 'count:639',
         },
         'params': {
             'skip_download': 'm3u8',
@@ -54,6 +58,7 @@ class SlidesLiveIE(InfoExtractor):
             'upload_date': '20220201',
             'thumbnail': r're:^https?://.*\.jpg',
             'timestamp': 1643728135,
+            'chapters': 'count:2',
         },
         'params': {
             'skip_download': 'm3u8',
@@ -83,11 +88,12 @@ class SlidesLiveIE(InfoExtractor):
             'comment_count': int,
             'channel_follower_count': int,
             'age_limit': 0,
-            'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnail': r're:^https?://.*\.(?:jpg|webp)',
             'playable_in_embed': True,
             'availability': 'unlisted',
             'tags': [],
             'categories': ['People & Blogs'],
+            'chapters': 'count:168',
         },
     }, {
         # embed-only presentation
@@ -99,6 +105,7 @@ class SlidesLiveIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg',
             'timestamp': 1629671508,
             'upload_date': '20210822',
+            'chapters': 'count:7',
         },
         'params': {
             'skip_download': 'm3u8',
@@ -126,6 +133,7 @@ class SlidesLiveIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg',
             'timestamp': 1629671508,
             'upload_date': '20210822',
+            'chapters': 'count:7',
         },
         'params': {
             'skip_download': 'm3u8',
@@ -144,6 +152,22 @@ class SlidesLiveIE(InfoExtractor):
             })
             yield cls.url_result(smuggle_url(embed_url, {'Referer': url, 'Origin': origin}))
 
+    def _parse_slides_xml(self, xml, video_id):
+        slides = []
+        if not xml:
+            return slides
+        for slide in xml.findall('./slide'):
+            name = xpath_text(slide, './slideName', 'name')
+            if not name:
+                continue
+            slides.append({
+                'id': xpath_text(slide, './orderId', 'id'),
+                'time': int_or_none(xpath_text(slide, './timeSec', 'time')),
+                'name': name,
+                'url': f'https://cdn.slideslive.com/data/presentations/{video_id}/slides/big/{name}.jpg',
+            })
+        return slides
+
     def _extract_custom_m3u8_info(self, m3u8_data):
         m3u8_dict = {}
 
@@ -156,6 +180,7 @@ class SlidesLiveIE(InfoExtractor):
             'VOD-VIDEO-ID': 'service_id',
             'VOD-VIDEO-SERVERS': 'video_servers',
             'VOD-SUBTITLES': 'subtitles',
+            'VOD-SLIDES-XML-URL': 'slides_xml_url',
         }
 
         for line in m3u8_data.splitlines():
@@ -211,6 +236,40 @@ class SlidesLiveIE(InfoExtractor):
         assert service_name in ('url', 'yoda', 'vimeo', 'youtube')
         service_id = player_info['service_id']
 
+        slides = []
+        if player_info.get('slides_xml_url'):
+            slides_xml = self._download_xml(
+                player_info['slides_xml_url'], video_id, note='Downloading slides XML',
+                errnote='Failed to download slides XML', fatal=False)
+            slides.extend(self._parse_slides_xml(slides_xml, video_id))
+
+        thumbnails = []
+        if url_or_none(player_info.get('thumbnail')):
+            thumbnails.append({
+                'id': 'thumbnail',
+                'url': player_info['thumbnail'],
+            })
+        thumbnails.extend(traverse_obj(slides, (..., {
+            'id': 'id',
+            'url': 'url',
+        })))
+
+        chapters = []
+        for i in range(len(slides)):
+            start_time = traverse_obj(slides, (i, 'time'), expected_type=int)
+            if not isinstance(start_time, int) or not traverse_obj(slides, (i, 'id')):
+                continue
+            next_start = traverse_obj(slides, (i + 1, 'time'), expected_type=int)
+            if next_start:
+                end_time = next_start - 1
+            else:
+                end_time = start_time + 1
+            chapters.append({
+                'title': slides[i]['id'],
+                'start_time': start_time,
+                'end_time': end_time,
+            })
+
         subtitles = {}
         for sub in traverse_obj(player_info, ('subtitles', ...), expected_type=dict):
             webvtt_url = url_or_none(sub.get('webvtt_url'))
@@ -226,7 +285,8 @@ class SlidesLiveIE(InfoExtractor):
             'title': player_info.get('title') or self._html_search_meta('title', webpage, default=''),
             'timestamp': unified_timestamp(player_info.get('timestamp')),
             'is_live': player_info.get('playlist_type') != 'vod',
-            'thumbnail': url_or_none(player_info.get('thumbnail')),
+            'thumbnails': thumbnails,
+            'chapters': chapters,
             'subtitles': subtitles,
         }
 
