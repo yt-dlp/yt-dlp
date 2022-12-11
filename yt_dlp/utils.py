@@ -3363,7 +3363,7 @@ def js_to_json(code, vars={}, *, strict=False):
             try:
                 json.loads(vars[v])
                 return vars[v]
-            except:
+            except Exception:
                 return json.dumps(vars[v])
 
         if not strict:
