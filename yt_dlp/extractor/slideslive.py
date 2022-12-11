@@ -1,14 +1,21 @@
+import re
+import urllib.parse
+
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
+    parse_qs,
     smuggle_url,
     traverse_obj,
     unified_timestamp,
+    unsmuggle_url,
+    update_url_query,
     url_or_none,
 )
 
 
 class SlidesLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://slideslive\.com/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://slideslive\.com/(?:embed/presentation/)?(?P<id>[0-9]+)'
     _TESTS = [{
         # service_name = yoda
         'url': 'https://slideslive.com/38902413/gcc-ia16-backend',
@@ -83,6 +90,20 @@ class SlidesLiveIE(InfoExtractor):
             'categories': ['People & Blogs'],
         },
     }, {
+        # embed-only presentation
+        'url': 'https://slideslive.com/embed/presentation/38925850',
+        'info_dict': {
+            'id': '38925850',
+            'ext': 'mp4',
+            'title': 'Towards a Deep Network Architecture for Structured Smoothness',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'timestamp': 1629671508,
+            'upload_date': '20210822',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
         # service_name = youtube
         'url': 'https://slideslive.com/38903721/magic-a-scientific-resurrection-of-an-esoteric-legend',
         'only_matching': True,
@@ -95,6 +116,33 @@ class SlidesLiveIE(InfoExtractor):
         'url': 'https://slideslive.com/38921896/retrospectives-a-venue-for-selfreflection-in-ml-research-3',
         'only_matching': True,
     }]
+
+    _WEBPAGE_TESTS = [{
+        'url': 'https://iclr.cc/virtual_2020/poster_Hklr204Fvr.html',
+        'info_dict': {
+            'id': '38925850',
+            'ext': 'mp4',
+            'title': 'Towards a Deep Network Architecture for Structured Smoothness',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'timestamp': 1629671508,
+            'upload_date': '20210822',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }]
+
+    @classmethod
+    def _extract_from_webpage(cls, url, webpage):
+        # Reference: https://slideslive.com/embed_presentation.js
+        for embed_id in re.findall(r'(?s)new\s+SlidesLiveEmbed\s*\([^\)]+\bpresentationId:\s*["\'](?P<url>\d+)["\']', webpage):
+            url_parsed = urllib.parse.urlparse(url)
+            origin = f'{url_parsed.scheme}://{url_parsed.netloc}'
+            embed_url = update_url_query(f'https://slideslive.com/embed/presentation/{embed_id}', {
+                'embed_parent_url': url,
+                'embed_container_origin': origin,
+            })
+            yield cls.url_result(smuggle_url(embed_url, {'Referer': url, 'Origin': origin}))
 
     def _extract_custom_m3u8_info(self, m3u8_data):
         m3u8_dict = {}
@@ -127,8 +175,32 @@ class SlidesLiveIE(InfoExtractor):
         return m3u8_dict
 
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        webpage, urlh = self._download_webpage_handle(
+            f'https://slideslive.com/embed/presentation/{video_id}', video_id,
+            headers=traverse_obj(smuggled_data, {
+                'Referer': 'Referer',
+                'Origin': 'Origin',
+            }, casesense=False), query=traverse_obj(parse_qs(url), {
+                'embed_parent_url': 'embed_parent_url',
+                'embed_container_origin': 'embed_container_origin',
+            }))
+        redirect_url = urlh.geturl()
+        if 'domain_not_allowed' in redirect_url:
+            domain = traverse_obj(parse_qs(redirect_url), ('allowed_domains[]', ...), get_all=False)
+            if not domain:
+                raise ExtractorError(
+                    'This is an embed-only presentation. Try passing --referer', expected=True)
+            webpage = self._download_webpage(
+                f'https://slideslive.com/embed/presentation/{video_id}', video_id, headers={
+                    'Referer': f'https://{domain}/',
+                    'Origin': f'https://{domain}',
+                }, query={
+                    'embed_parent_url': f'https://{domain}/',
+                    'embed_container_origin': f'https://{domain}',
+                })
+
         player_token = self._search_regex(r'data-player-token="([^"]+)"', webpage, 'player token')
         player_data = self._download_webpage(
             f'https://ben.slideslive.com/player/{video_id}', video_id,
