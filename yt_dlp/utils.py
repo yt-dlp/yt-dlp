@@ -3360,7 +3360,7 @@ def js_to_json(code, vars={}, *, strict=False):
                 return f'"{i}":' if v.endswith(':') else str(i)
 
         if v in vars:
-            return json.dumps(vars[v])
+            return vars[v]
 
         if not strict:
             return f'"{v}"'

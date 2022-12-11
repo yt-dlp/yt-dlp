@@ -954,6 +954,88 @@ class TestUtil(unittest.TestCase):
         )
         self.assertEqual(escape_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
 
+    def test_js_to_json_vars_strings(self):
+        def parse_js_to_json(js, vars):
+            try:
+                return json.loads(js_to_json(js, vars))
+            except json.JSONDecodeError as e:
+                raise ValueError(f'JSON: {e.msg}: line {e.lineno} column {e.colno} "{e.doc}"')
+
+        self.assertDictEqual(
+            parse_js_to_json(
+                '''{
+                    'null': a,
+                    'nullStr': b,
+                    'true': c,
+                    'trueStr': d,
+                    'false': e,
+                    'falseStr': f,
+                }''',
+                {
+                    'a': 'null',
+                    'b': '"null"',
+                    'c': 'true',
+                    'd': '"true"',
+                    'e': 'false',
+                    'f': '"false"',
+                }
+            ),
+            {
+                'null': None,
+                'nullStr': 'null',
+                'true': True,
+                'trueStr': 'true',
+                'false': False,
+                'falseStr': 'false',
+            }
+        )
+
+        self.assertDictEqual(
+            parse_js_to_json(
+                '''{
+                    'int': a,
+                    'intStr': b,
+                    'float': c,
+                    'floatStr': d,
+                }''',
+                {
+                    'a': '123',
+                    'b': '"123"',
+                    'c': '1.23',
+                    'd': '"1.23"',
+                }
+            ),
+            {
+                'int': 123,
+                'intStr': '123',
+                'float': 1.23,
+                'floatStr': '1.23',
+            }
+        )
+
+        self.assertDictEqual(
+            parse_js_to_json(
+                '''{
+                    'object': a,
+                    'objectStr': b,
+                    'array': c,
+                    'arrayStr': d,
+                }''',
+                {
+                    'a': '{}',
+                    'b': '"{}"',
+                    'c': '[]',
+                    'd': '"[]"',
+                }
+            ),
+            {
+                'object': {},
+                'objectStr': '{}',
+                'array': [],
+                'arrayStr': '[]',
+            }
+        )
+
     def test_js_to_json_realworld(self):
         inp = '''{
             'clip':{'provider':'pseudo'}
