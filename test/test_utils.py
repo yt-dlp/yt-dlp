@@ -970,6 +970,7 @@ class TestUtil(unittest.TestCase):
                     'trueStr': d,
                     'false': e,
                     'falseStr': f,
+                    'unresolvedVar': g,
                 }''',
                 {
                     'a': 'null',
@@ -978,6 +979,7 @@ class TestUtil(unittest.TestCase):
                     'd': '"true"',
                     'e': 'false',
                     'f': '"false"',
+                    'g': 'var',
                 }
             ),
             {
@@ -987,6 +989,7 @@ class TestUtil(unittest.TestCase):
                 'trueStr': 'true',
                 'false': False,
                 'falseStr': 'false',
+                'unresolvedVar': 'var'
             }
         )
 
