@@ -1,19 +1,15 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
-    int_or_none,
     parse_duration,
-    parse_iso8601
+    parse_iso8601,
+    traverse_obj
 )
 
 
 class KikaIE(InfoExtractor):
     IE_DESC = 'KiKA.de'
-    _VALID_URL = r'https?://(?:www\.)?kika\.de/(?:.*)/[a-z-]+-?(?P<id>\d+)(?:_.+?)?'
-
+    _VALID_URL = r'https?://(?:www\.)?kika\.de/(?:.*)/[a-z-]+-?(?P<id>\d+)'
     _GEO_COUNTRIES = ['DE']
 
     _TESTS = [{
@@ -35,13 +31,8 @@ class KikaIE(InfoExtractor):
         video_id = self._match_id(url)
 
         doc = self._download_json("https://www.kika.de/_next-api/proxy/v1/videos/video%s" % (video_id), video_id)
-        title = doc.get('title')
-        timestamp = parse_iso8601(doc.get('date'))
-        duration = parse_duration(doc.get('duration'))
-
-        video_url = doc.get('assets').get('url')
-        video_assets = self._download_json(video_url, video_id)
-        formats = self._extract_formats(video_assets, video_id)
+        video_assets = self._download_json(doc.get('assets').get('url'), video_id)
+        formats = list(self._extract_formats(video_assets, video_id))
 
         subtitles = {}
         ttml_resource = video_assets.get('videoSubtitle')
@@ -52,42 +43,40 @@ class KikaIE(InfoExtractor):
             }]
         webvtt_resource = video_assets.get('webvttUrl')
         if webvtt_resource:
-            vtt = {
+            subtitles.setdefault('de', []).append({
                 'url': webvtt_resource,
-                'ext': 'webvtt'
-            }
-            subtitles['de'].append(vtt)
+                'ext': 'vtt'
+            })
 
         return {
             'id': video_id,
-            'title': title,
-            'description': doc['description'],
-            'timestamp': timestamp,
-            'duration': duration,
+            'title': doc.get('title'),
+            'description': doc.get('description'),
+            'timestamp': parse_iso8601(doc.get('date')),
+            'duration': parse_duration(doc.get('duration')),
             'formats': formats,
             'subtitles': subtitles,
             'uploader': 'KIKA'
         }
 
     def _extract_formats(self, media_info, video_id):
-        streams = media_info.get('assets', [])
-        formats = []
-        for num, media in enumerate(streams):
-            stream_url = media.get("url")
+        for media in media_info['assets']:
+            stream_url = media.get('url')
+            if not stream_url:
+                continue
             ext = determine_ext(stream_url)
             if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    stream_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id='hls', fatal=False))
+                yield from self._extract_m3u8_formats(
+                    stream_url, video_id, 'mp4', m3u8_id='hls', fatal=False)
             else:
-                f = {
+                yield {
                     'url': stream_url,
-                    'format_id': 'a%s-%s' % (num, ext),
-                    'width': media.get('frameWidth'),
-                    'height': media.get('frameHeight'),
-                    'filesize': int_or_none(media.get('fileSize')),
-                    'abr': int_or_none(media.get('bitrateAudio')),
-                    'vbr': int_or_none(media.get('bitrateVideo')),
+                    'format_id': ext,
+                    **traverse_obj(media, {
+                        'width': 'frameWidth',
+                        'height': 'frameHeight',
+                        'filesize': 'fileSize',
+                        'abr': 'bitrateAudio',
+                        'vbr': 'bitrateVideo'
+                    })
                 }
-                formats.append(f)
-        return formats
