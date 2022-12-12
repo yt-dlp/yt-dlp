@@ -3360,11 +3360,14 @@ def js_to_json(code, vars={}, *, strict=False):
                 return f'"{i}":' if v.endswith(':') else str(i)
 
         if v in vars:
-            try:
-                json.loads(vars[v])
+            if strict:
                 return vars[v]
-            except Exception:
-                return json.dumps(vars[v])
+            else:
+                try:
+                    json.loads(vars[v])
+                    return vars[v]
+                except json.decoder.JSONDecodeError:
+                    return f'"{vars[v]}"'
 
         if not strict:
             return f'"{v}"'
