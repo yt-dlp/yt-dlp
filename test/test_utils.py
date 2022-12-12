@@ -955,14 +955,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(escape_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
 
     def test_js_to_json_vars_strings(self):
-        def parse_js_to_json(js, vars):
-            try:
-                return json.loads(js_to_json(js, vars))
-            except json.JSONDecodeError as e:
-                raise ValueError(f'JSON: {e.msg}: line {e.lineno} column {e.colno} "{e.doc}"')
-
         self.assertDictEqual(
-            parse_js_to_json(
+            json.loads(js_to_json(
                 '''{
                     'null': a,
                     'nullStr': b,
@@ -981,7 +975,7 @@ class TestUtil(unittest.TestCase):
                     'f': '"false"',
                     'g': 'var',
                 }
-            ),
+            )),
             {
                 'null': None,
                 'nullStr': 'null',
@@ -994,7 +988,7 @@ class TestUtil(unittest.TestCase):
         )
 
         self.assertDictEqual(
-            parse_js_to_json(
+            json.loads(js_to_json(
                 '''{
                     'int': a,
                     'intStr': b,
@@ -1007,7 +1001,7 @@ class TestUtil(unittest.TestCase):
                     'c': '1.23',
                     'd': '"1.23"',
                 }
-            ),
+            )),
             {
                 'int': 123,
                 'intStr': '123',
@@ -1017,7 +1011,7 @@ class TestUtil(unittest.TestCase):
         )
 
         self.assertDictEqual(
-            parse_js_to_json(
+            json.loads(js_to_json(
                 '''{
                     'object': a,
                     'objectStr': b,
@@ -1030,7 +1024,7 @@ class TestUtil(unittest.TestCase):
                     'c': '[]',
                     'd': '"[]"',
                 }
-            ),
+            )),
             {
                 'object': {},
                 'objectStr': '{}',
