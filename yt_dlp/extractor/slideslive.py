@@ -27,7 +27,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1648189972,
             'upload_date': '20220325',
             'thumbnail': r're:^https?://.*\.jpg',
-            'chapters': [],
+            'chapters': 'count:41',
         },
         'params': {
             'skip_download': 'm3u8',
@@ -140,31 +140,24 @@ class SlidesLiveIE(InfoExtractor):
     }]
 
     @classmethod
-    def _extract_from_webpage(cls, url, webpage):
+    def _extract_embed_urls(cls, url, webpage):
         # Reference: https://slideslive.com/embed_presentation.js
         for embed_id in re.findall(r'(?s)new\s+SlidesLiveEmbed\s*\([^\)]+\bpresentationId:\s*["\'](\d+)["\']', webpage):
             url_parsed = urllib.parse.urlparse(url)
             origin = f'{url_parsed.scheme}://{url_parsed.netloc}'
-            yield cls.url_result(update_url_query(
+            yield update_url_query(
                 f'https://slideslive.com/embed/presentation/{embed_id}', {
                     'embed_parent_url': url,
                     'embed_container_origin': origin,
-                }))
+                })
 
-    def _parse_slides_xml(self, xml, video_id):
-        slides = []
-        if not xml:
-            return slides
-        for slide in xml.findall('./slide'):
-            name = xpath_text(slide, './slideName', 'name')
-            if not name:
-                continue
-            slides.append({
-                'id': xpath_text(slide, './orderId', 'id'),
-                'time': int_or_none(xpath_text(slide, './timeSec', 'time')),
-                'url': f'https://cdn.slideslive.com/data/presentations/{video_id}/slides/big/{name}.jpg',
-            })
-        return slides
+    def _download_embed_webpage_handle(self, video_id, headers):
+        return self._download_webpage_handle(
+            f'https://slideslive.com/embed/presentation/{video_id}', video_id,
+            headers=headers, query=traverse_obj(headers, {
+                'embed_parent_url': 'Referer',
+                'embed_container_origin': 'Origin',
+            }))
 
     def _extract_custom_m3u8_info(self, m3u8_data):
         m3u8_dict = {}
@@ -198,30 +191,22 @@ class SlidesLiveIE(InfoExtractor):
         return m3u8_dict
 
     def _real_extract(self, url):
-        video_id, original_query = self._match_id(url), parse_qs(url)
-        webpage, urlh = self._download_webpage_handle(
-            f'https://slideslive.com/embed/presentation/{video_id}', video_id,
-            headers=traverse_obj(original_query, {
+        video_id = self._match_id(url)
+        webpage, urlh = self._download_embed_webpage_handle(
+            video_id, headers=traverse_obj(parse_qs(url), {
                 'Referer': ('embed_parent_url', ...),
                 'Origin': ('embed_container_origin', ...),
-            }, get_all=False), query=traverse_obj(original_query, {
-                'embed_parent_url': 'embed_parent_url',
-                'embed_container_origin': 'embed_container_origin',
-            }))
+            }, get_all=False))
         redirect_url = urlh.geturl()
         if 'domain_not_allowed' in redirect_url:
             domain = traverse_obj(parse_qs(redirect_url), ('allowed_domains[]', ...), get_all=False)
             if not domain:
                 raise ExtractorError(
                     'This is an embed-only presentation. Try passing --referer', expected=True)
-            webpage = self._download_webpage(
-                f'https://slideslive.com/embed/presentation/{video_id}', video_id, headers={
-                    'Referer': f'https://{domain}/',
-                    'Origin': f'https://{domain}',
-                }, query={
-                    'embed_parent_url': f'https://{domain}/',
-                    'embed_container_origin': f'https://{domain}',
-                })
+            webpage, _ = self._download_embed_webpage_handle(video_id, headers={
+                'Referer': f'https://{domain}/',
+                'Origin': f'https://{domain}',
+            })
 
         player_token = self._search_regex(r'data-player-token="([^"]+)"', webpage, 'player token')
         player_data = self._download_webpage(
@@ -233,38 +218,25 @@ class SlidesLiveIE(InfoExtractor):
         assert service_name in ('url', 'yoda', 'vimeo', 'youtube')
         service_id = player_info['service_id']
 
-        slides = []
+        slides_xml = None
         if player_info.get('slides_xml_url'):
             slides_xml = self._download_xml(
-                player_info['slides_xml_url'], video_id, note='Downloading slides XML',
-                errnote='Failed to download slides XML', fatal=False)
-            slides.extend(self._parse_slides_xml(slides_xml, video_id))
-
-        thumbnails = []
+                player_info['slides_xml_url'], video_id, fatal=False,
+                note='Downloading slides XML', errnote='Failed to download slides XML')
+        chapters, thumbnails = [], []
         if url_or_none(player_info.get('thumbnail')):
-            thumbnails.append({
-                'id': '0',
-                'url': player_info['thumbnail'],
-            })
-        thumbnails.extend(traverse_obj(slides, (..., {
-            'id': 'id',
-            'url': 'url',
-        })))
-
-        chapters = []
-        for i in range(len(slides)):
-            start_time = traverse_obj(slides, (i, 'time'), expected_type=int)
-            if not isinstance(start_time, int) or not traverse_obj(slides, (i, 'id')):
-                continue
-            next_start = traverse_obj(slides, (i + 1, 'time'), expected_type=int)
-            if next_start:
-                end_time = next_start - 1
-            else:
-                end_time = start_time + 1
+            thumbnails.append({'url': player_info['thumbnail']})
+        for slide in slides_xml.findall('./slide') if slides_xml else []:
+            name = xpath_text(slide, './slideName', 'name')
+            slide_id = xpath_text(slide, './orderId', 'id')
+            if name:
+                thumbnails.append({
+                    'id': slide_id,
+                    'url': f'https://cdn.slideslive.com/data/presentations/{video_id}/slides/big/{name}.jpg',
+                })
             chapters.append({
-                'title': slides[i]['id'],
-                'start_time': start_time,
-                'end_time': end_time,
+                'title': slide_id,
+                'start_time': int_or_none(xpath_text(slide, './timeSec', 'time')),
             })
 
         subtitles = {}
