@@ -142,7 +142,7 @@ class SlidesLiveIE(InfoExtractor):
     @classmethod
     def _extract_from_webpage(cls, url, webpage):
         # Reference: https://slideslive.com/embed_presentation.js
-        for embed_id in re.findall(r'(?s)new\s+SlidesLiveEmbed\s*\([^\)]+\bpresentationId:\s*["\'](?P<url>\d+)["\']', webpage):
+        for embed_id in re.findall(r'(?s)new\s+SlidesLiveEmbed\s*\([^\)]+\bpresentationId:\s*["\'](\d+)["\']', webpage):
             url_parsed = urllib.parse.urlparse(url)
             origin = f'{url_parsed.scheme}://{url_parsed.netloc}'
             yield cls.url_result(update_url_query(
