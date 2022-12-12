@@ -2013,6 +2013,11 @@ class YoutubeDL:
             # Do not set for full playlist
             ie_result.pop('requested_entries')
 
+        if ie_result['_type'] == 'multi_video' and not failures:
+            if self.params.get('force_write_download_archive') or (
+                    not self.params.get('simulate') and not self.params.get('skip_download')):
+                self.record_download_archive(ie_result)
+
         # Write the updated info to json
         if _infojson_written is True and self._write_info_json(
                 'updated playlist', ie_result,
