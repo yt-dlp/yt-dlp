@@ -982,7 +982,7 @@ class NiconicoLiveIE(InfoExtractor):
         raw_thumbs = traverse_obj(embedded_data, ('program', 'thumbnail')) or {}
         thumbnails = []
         for name, value in raw_thumbs.items():
-            if isinstance(value, str):
+            if not isinstance(value, dict):
                 thumbnails.append({
                     'id': name,
                     'url': value,
