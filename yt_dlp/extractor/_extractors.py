@@ -666,6 +666,7 @@ from .go import GoIE
 from .godtube import GodTubeIE
 from .gofile import GofileIE
 from .golem import GolemIE
+from .golfchannel import GolfChannelIE
 from .goodgame import GoodGameIE
 from .googledrive import (
     GoogleDriveIE,
