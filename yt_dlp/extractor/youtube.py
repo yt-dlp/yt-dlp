@@ -5995,6 +5995,38 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         }],
         'params': {'extract_flat': True, 'playlist_items': '1'},
         'playlist_mincount': 1
+    }, {
+        # Channel renderer metadata. Contains number of videos on the channel
+        'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/channels',
+        'info_dict': {
+            'id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'title': 'cole-dlp-test-acc - Channels',
+            'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel': 'cole-dlp-test-acc',
+            'description': 'test description',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'tags': [],
+            'uploader': 'cole-dlp-test-acc',
+            'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+
+        },
+        'playlist': [{
+            'info_dict': {
+                '_type': 'url',
+                'ie_key': 'YoutubeTab',
+                'url': 'https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'id': 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'channel_id': 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'title': 'PewDiePie',
+                'channel': 'PewDiePie',
+                'channel_url': 'https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'thumbnails': list,
+                'channel_follower_count': int,
+                'playlist_count': int
+            }
+        }],
+        'params': {'extract_flat': True},
     }]
 
     @classmethod
