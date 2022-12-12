@@ -517,6 +517,9 @@ from .epicon import (
     EpiconIE,
     EpiconSeriesIE,
 )
+from .eplus import (
+    EplusIbIE,
+)
 from .epoch import EpochIE
 from .eporner import EpornerIE
 from .eroprofile import (
