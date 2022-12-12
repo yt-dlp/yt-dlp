@@ -27,6 +27,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1648189972,
             'upload_date': '20220325',
             'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnails': 'count:42',
             'chapters': 'count:41',
         },
         'params': {
@@ -42,6 +43,7 @@ class SlidesLiveIE(InfoExtractor):
             'upload_date': '20211115',
             'timestamp': 1636996003,
             'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnails': 'count:640',
             'chapters': 'count:639',
         },
         'params': {
@@ -57,6 +59,7 @@ class SlidesLiveIE(InfoExtractor):
             'upload_date': '20220201',
             'thumbnail': r're:^https?://.*\.jpg',
             'timestamp': 1643728135,
+            'thumbnails': 'count:3',
             'chapters': 'count:2',
         },
         'params': {
@@ -88,6 +91,7 @@ class SlidesLiveIE(InfoExtractor):
             'channel_follower_count': int,
             'age_limit': 0,
             'thumbnail': r're:^https?://.*\.(?:jpg|webp)',
+            'thumbnails': 'count:169',
             'playable_in_embed': True,
             'availability': 'unlisted',
             'tags': [],
@@ -102,6 +106,7 @@ class SlidesLiveIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Towards a Deep Network Architecture for Structured Smoothness',
             'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnails': 'count:8',
             'timestamp': 1629671508,
             'upload_date': '20210822',
             'chapters': 'count:7',
@@ -130,6 +135,7 @@ class SlidesLiveIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Towards a Deep Network Architecture for Structured Smoothness',
             'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnails': 'count:8',
             'timestamp': 1629671508,
             'upload_date': '20210822',
             'chapters': 'count:7',
