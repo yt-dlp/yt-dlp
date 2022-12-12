@@ -9,7 +9,6 @@ from ..utils import (
     smuggle_url,
     traverse_obj,
     unified_timestamp,
-    unsmuggle_url,
     update_url_query,
     url_or_none,
     xpath_text,
@@ -146,11 +145,11 @@ class SlidesLiveIE(InfoExtractor):
         for embed_id in re.findall(r'(?s)new\s+SlidesLiveEmbed\s*\([^\)]+\bpresentationId:\s*["\'](?P<url>\d+)["\']', webpage):
             url_parsed = urllib.parse.urlparse(url)
             origin = f'{url_parsed.scheme}://{url_parsed.netloc}'
-            embed_url = update_url_query(f'https://slideslive.com/embed/presentation/{embed_id}', {
-                'embed_parent_url': url,
-                'embed_container_origin': origin,
-            })
-            yield cls.url_result(smuggle_url(embed_url, {'Referer': url, 'Origin': origin}))
+            yield cls.url_result(update_url_query(
+                f'https://slideslive.com/embed/presentation/{embed_id}', {
+                    'embed_parent_url': url,
+                    'embed_container_origin': origin,
+                }))
 
     def _parse_slides_xml(self, xml, video_id):
         slides = []
@@ -163,7 +162,6 @@ class SlidesLiveIE(InfoExtractor):
             slides.append({
                 'id': xpath_text(slide, './orderId', 'id'),
                 'time': int_or_none(xpath_text(slide, './timeSec', 'time')),
-                'name': name,
                 'url': f'https://cdn.slideslive.com/data/presentations/{video_id}/slides/big/{name}.jpg',
             })
         return slides
@@ -200,14 +198,13 @@ class SlidesLiveIE(InfoExtractor):
         return m3u8_dict
 
     def _real_extract(self, url):
-        url, smuggled_data = unsmuggle_url(url, {})
-        video_id = self._match_id(url)
+        video_id, original_query = self._match_id(url), parse_qs(url)
         webpage, urlh = self._download_webpage_handle(
             f'https://slideslive.com/embed/presentation/{video_id}', video_id,
-            headers=traverse_obj(smuggled_data, {
-                'Referer': 'Referer',
-                'Origin': 'Origin',
-            }, casesense=False), query=traverse_obj(parse_qs(url), {
+            headers=traverse_obj(original_query, {
+                'Referer': ('embed_parent_url', ...),
+                'Origin': ('embed_container_origin', ...),
+            }, get_all=False), query=traverse_obj(original_query, {
                 'embed_parent_url': 'embed_parent_url',
                 'embed_container_origin': 'embed_container_origin',
             }))
@@ -246,7 +243,7 @@ class SlidesLiveIE(InfoExtractor):
         thumbnails = []
         if url_or_none(player_info.get('thumbnail')):
             thumbnails.append({
-                'id': 'thumbnail',
+                'id': '0',
                 'url': player_info['thumbnail'],
             })
         thumbnails.extend(traverse_obj(slides, (..., {
