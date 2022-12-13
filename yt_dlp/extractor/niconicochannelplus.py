@@ -232,15 +232,14 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
                 live_status = 'was_live'
                 payload = {'broadcast_type': 'dvr'}
 
-                # TODO: do ['video']['allow_dvr_flg'] and ['video']['convert_to_vod_flg'] affect DVR?
-
                 video_allow_dvr_flg = traverse_obj(data_json, ('video', 'allow_dvr_flg'))
                 video_convert_to_vod_flg = traverse_obj(data_json, ('video', 'convert_to_vod_flg'))
 
-                self.report_warning(
-                    f'Live was ended, there might be no videos for download. '
-                    f'allow_dvr_flg = {video_allow_dvr_flg}, convert_to_vod_flg = {video_convert_to_vod_flg}.',
-                    video_id=content_code)
+                self.write_debug(f'allow_dvr_flg = {video_allow_dvr_flg}, convert_to_vod_flg = {video_convert_to_vod_flg}.')
+
+                if not (video_allow_dvr_flg and video_convert_to_vod_flg):
+                    raise ExtractorError(
+                        'Live was ended, there is no video for download.', video_id=content_code, expected=True)
         else:
             # new type appears, we will handle it soon.
             raise ExtractorError(f'Unknown type: {video_type}', video_id=content_code, expected=False)
