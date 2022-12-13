@@ -18,7 +18,7 @@ from ..utils import (
 class SlidesLiveIE(InfoExtractor):
     _VALID_URL = r'https?://slideslive\.com/(?:embed/presentation/)?(?P<id>[0-9]+)'
     _TESTS = [{
-        # service_name = yoda
+        # service_name = yoda, only XML slides info
         'url': 'https://slideslive.com/38902413/gcc-ia16-backend',
         'info_dict': {
             'id': '38902413',
@@ -66,7 +66,7 @@ class SlidesLiveIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }, {
-        # service_name = youtube
+        # service_name = youtube, only XML slides info
         'url': 'https://slideslive.com/38897546/special-metaprednaska-petra-ludwiga-hodnoty-pro-lepsi-spolecnost',
         'md5': '8a79b5e3d700837f40bd2afca3c8fa01',
         'info_dict': {
@@ -99,7 +99,7 @@ class SlidesLiveIE(InfoExtractor):
             'chapters': 'count:168',
         },
     }, {
-        # embed-only presentation
+        # embed-only presentation, only XML slides info
         'url': 'https://slideslive.com/embed/presentation/38925850',
         'info_dict': {
             'id': '38925850',
@@ -110,6 +110,54 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1629671508,
             'upload_date': '20210822',
             'chapters': 'count:7',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        # embed-only presentation, only JSON slides info, /v5/ slides (.png)
+        'url': 'https://slideslive.com/38979920/',
+        'info_dict': {
+            'id': '38979920',
+            'ext': 'mp4',
+            'title': 'MoReL: Multi-omics Relational Learning',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnails': 'count:7',
+            'timestamp': 1654714970,
+            'upload_date': '20220608',
+            'chapters': 'count:6',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        # /v2/ slides (.jpg)
+        'url': 'https://slideslive.com/38954074',
+        'info_dict': {
+            'id': '38954074',
+            'ext': 'mp4',
+            'title': 'Decentralized Attribution of Generative Models',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnails': 'count:16',
+            'timestamp': 1622806321,
+            'upload_date': '20210604',
+            'chapters': 'count:15',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        # /v4/ slides (.png)
+        'url': 'https://slideslive.com/38979570/',
+        'info_dict': {
+            'id': '38979570',
+            'ext': 'mp4',
+            'title': 'Efficient Active Search for Combinatorial Optimization Problems',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnails': 'count:9',
+            'timestamp': 1654714896,
+            'upload_date': '20220608',
+            'chapters': 'count:8',
         },
         'params': {
             'skip_download': 'm3u8',
@@ -129,6 +177,7 @@ class SlidesLiveIE(InfoExtractor):
     }]
 
     _WEBPAGE_TESTS = [{
+        # only XML slides info
         'url': 'https://iclr.cc/virtual_2020/poster_Hklr204Fvr.html',
         'info_dict': {
             'id': '38925850',
@@ -144,6 +193,9 @@ class SlidesLiveIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }]
+
+    _JPG_SLIDE_TMPL = 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s.jpg'
+    _PNG_SLIDE_TMPL = 'https://slides.slideslive.com/%s/slides/original/%s.png'
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
@@ -177,6 +229,7 @@ class SlidesLiveIE(InfoExtractor):
             'VOD-VIDEO-ID': 'service_id',
             'VOD-VIDEO-SERVERS': 'video_servers',
             'VOD-SUBTITLES': 'subtitles',
+            'VOD-SLIDES-JSON-URL': 'slides_json_url',
             'VOD-SLIDES-XML-URL': 'slides_xml_url',
         }
 
@@ -224,26 +277,50 @@ class SlidesLiveIE(InfoExtractor):
         assert service_name in ('url', 'yoda', 'vimeo', 'youtube')
         service_id = player_info['service_id']
 
-        slides_xml = None
-        if player_info.get('slides_xml_url'):
-            slides_xml = self._download_xml(
-                player_info['slides_xml_url'], video_id, fatal=False,
-                note='Downloading slides XML', errnote='Failed to download slides XML')
+        slides, slides_xml = None, None
+        slide_url_template = self._JPG_SLIDE_TMPL
         chapters, thumbnails = [], []
         if url_or_none(player_info.get('thumbnail')):
             thumbnails.append({'url': player_info['thumbnail']})
-        for slide in slides_xml.findall('./slide') if slides_xml else []:
-            name = xpath_text(slide, './slideName', 'name')
-            slide_id = xpath_text(slide, './orderId', 'id')
-            if name:
-                thumbnails.append({
-                    'id': slide_id,
-                    'url': f'https://cdn.slideslive.com/data/presentations/{video_id}/slides/big/{name}.jpg',
+
+        if player_info.get('slides_json_url'):
+            slides = traverse_obj(self._download_json(
+                player_info['slides_json_url'], video_id, fatal=False,
+                note='Downloading slides JSON', errnote=False), 'slides', expected_type=list)
+        if slides:
+            if re.match(r'.+(/v[45]/).+', player_info['slides_json_url']):
+                slide_url_template = self._PNG_SLIDE_TMPL
+            for i in range(len(slides)):
+                slide_name = traverse_obj(slides, (i, 'image', 'name'))
+                slide_id = str(i + 1)
+                if slide_name:
+                    thumbnails.append({
+                        'id': slide_id,
+                        'url': slide_url_template % (video_id, slide_name),
+                    })
+                chapters.append({
+                    'title': slide_id,
+                    'start_time': int_or_none(traverse_obj(slides, (i, 'time')), scale=1000)
                 })
-            chapters.append({
-                'title': slide_id,
-                'start_time': int_or_none(xpath_text(slide, './timeSec', 'time')),
-            })
+
+        if not slides and player_info.get('slides_xml_url'):
+            slides_xml = self._download_xml(
+                player_info['slides_xml_url'], video_id, fatal=False,
+                note='Downloading slides XML', errnote='Failed to download slides info')
+            if re.match(r'.+(/v[45]/).+', player_info['slides_xml_url']):
+                slide_url_template = self._PNG_SLIDE_TMPL
+            for slide in slides_xml.findall('./slide') if slides_xml else []:
+                slide_name = xpath_text(slide, './slideName', 'name')
+                slide_id = xpath_text(slide, './orderId', 'id')
+                if slide_name:
+                    thumbnails.append({
+                        'id': slide_id,
+                        'url': slide_url_template % (video_id, slide_name),
+                    })
+                chapters.append({
+                    'title': slide_id,
+                    'start_time': int_or_none(xpath_text(slide, './timeSec', 'time')),
+                })
 
         subtitles = {}
         for sub in traverse_obj(player_info, ('subtitles', ...), expected_type=dict):
