@@ -26,12 +26,12 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
             'content_providers/channels', item_id=f'channels/{channel_name}',
             note='Fetching channel list', errnote='Unable to fetch channel list',
         )['data']['content_providers']
-
-        for fanclub in fanclub_list_json:
-            if fanclub.get('domain') == f'{self._WEBPAGE_BASE_URL}/{channel_name}':
-                return fanclub['id']
-
-        raise ExtractorError(f'Non-existing channel: {channel_name}', expected=True)
+        fanclub_id = traverse_obj(fanclub_list_json, (
+            lambda _, v: v.get('domain') == f'{self._WEBPAGE_BASE_URL}/{channel_name}', 'id'),
+            get_all=False)
+        if not fanclub_id:
+            raise ExtractorError(f'Channel {channel_name} does not exist', expected=True)
+        return fanclub_id
 
     def _get_channel_info(self, fanclub_site_id):
         return self._call_api(
