@@ -1,5 +1,6 @@
 import re
-
+import requests
+import json
 from .common import InfoExtractor
 from ..utils import ExtractorError
 from ..compat import compat_urlparse
@@ -9,16 +10,46 @@ class TuneInBaseIE(InfoExtractor):
     _API_BASE_URL = 'http://tunein.com/tuner/tune/'
 
     def _real_extract(self, url):
+
         content_id = self._match_id(url)
 
-        content_info = self._download_json(
-            self._API_BASE_URL + self._API_URL_QUERY % content_id,
-            content_id, note='Downloading JSON metadata')
+        # Use a try-except block to handle potential exceptions
+        # when downloading the JSON metadata
+        try:
+            # Use the requests library to download the JSON metadata
+            # from the TuneIn website.
+            response = requests.get(
+                self._API_BASE_URL + self._API_URL_QUERY % content_id
+            )
 
+            # Check the response status code to verify that the download
+            # was successful
+            if response.status_code == 200:
+                # Use the response text as the JSON metadata
+                content_info = response.text
+            else:
+                # If the status code is not 200, raise an ExtractorError
+                # with an appropriate error message
+                raise ExtractorError(
+                    'Failed to download JSON metadata: HTTP %d' % response.status_code,
+                    expected=True
+                )
+        except requests.exceptions.RequestException as e:
+            # If there was an error with the request, raise an
+            # ExtractorError with an appropriate error message
+            raise ExtractorError(
+                'Failed to download JSON metadata: %s' % str(e),
+                expected=True
+            )
+
+        # Parse the JSON metadata to extract the information we need
+        content_info = json.loads(content_info)
         title = content_info['Title']
         thumbnail = content_info.get('Logo')
         location = content_info.get('Location')
         streams_url = content_info.get('StreamUrl')
+        content_id = self._match_id(url)
+
         if not streams_url:
             raise ExtractorError('No downloadable streams found', expected=True)
         if not streams_url.startswith('http://'):
@@ -28,19 +59,20 @@ class TuneInBaseIE(InfoExtractor):
             streams_url, content_id, note='Downloading stream data',
             transform_source=lambda s: re.sub(r'^\s*\((.*)\);\s*$', r'\1', s))['Streams']
 
-        is_live = None
+        is_live = False
+
         formats = []
+
         for stream in streams:
             if stream.get('Type') == 'Live':
                 is_live = True
+
             reliability = stream.get('Reliability')
             format_note = (
-                'Reliability: %d%%' % reliability
-                if reliability is not None else None)
+                f'Reliability: {reliability}%' if reliability is not None else None
+            )
             formats.append({
-                'preference': (
-                    0 if reliability is None or reliability > 90
-                    else 1),
+                'preference': 0 if reliability is None or reliability > 90 else 1,
                 'abr': stream.get('Bandwidth'),
                 'ext': stream.get('MediaType').lower(),
                 'acodec': stream.get('MediaType'),
@@ -100,7 +132,33 @@ class TuneInStationIE(TuneInBaseIE):
     }, {
         'url': 'http://tunein.com/embed/player/s6404/',
         'only_matching': True,
-    }]
+    },
+        {
+        'url': 'https://tunein.com/radio/BBC-World-Service-News-s24948/',
+        'info_dict': {
+            'id': '63219',
+            'title': 'BBC World Service News',
+            'ext': 'mp3',
+        },
+        'params': {
+            'skip_download': False,
+        },
+    }, {
+        'url': 'http://tunein.com/radio/BBC-World-Service-News-s24948/',
+        'only_matching': False,
+    },
+        {
+        'url': 'https://tunein.com/radio/979-WJLB-s29884/',
+        'info_dict': {
+            'id': '72932',
+            'title': '97.9 WJLB',
+            'ext': 'mp3',
+        },
+        'params': {
+            'skip_download': False,
+        },
+    }
+    ]
 
 
 class TuneInProgramIE(TuneInBaseIE):
