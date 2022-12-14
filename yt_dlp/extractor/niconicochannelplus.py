@@ -39,6 +39,13 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
             note='Fetching channel info', errnote='Unable to fetch channel info',
         )['data']['fanclub_site']
 
+    def _get_channel_user_info(self, fanclub_site_id):
+        return self._call_api(
+            f'fanclub_sites/{fanclub_site_id}/user_info', item_id=f'fanclub_sites/{fanclub_site_id}',
+            note='Fetching channel user info', errnote='Unable to fetch channel user info',
+            data=json.dumps('null').encode('ascii'),
+        )['data']['fanclub_site']
+
 
 class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
     IE_NAME = 'NiconicoChannelPlus'
@@ -54,6 +61,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'channel': '前田佳織里の世界攻略計画',
             'channel_id': 'kaorin',
             'channel_url': 'https://nicochannel.jp/kaorin',
+            'age_limit': None,
             'live_status': 'not_live',
             'thumbnail': 'https://nicochannel.jp/public_html/contents/video_pages/74/thumbnail_path',
             'description': '２０２１年１１月に放送された\n「前田佳織里はニコ生がしたい！」アーカイブになります。',
@@ -63,6 +71,30 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'view_count': int,
             'tags': [],
             'upload_date': '20220105',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # real video url, normal channel name, age limited, test purpose channel.
+        'url': 'https://nicochannel.jp/testman/video/smDXbcrtyPNxLx9jc4BW69Ve',
+        'info_dict': {
+            'id': 'smDXbcrtyPNxLx9jc4BW69Ve',
+            'title': 'test oshiro',
+            'ext': 'mp4',
+            'channel': '本番チャンネルプラステストマン',
+            'channel_id': 'testman',
+            'channel_url': 'https://nicochannel.jp/testman',
+            'age_limit': 18,
+            'live_status': 'was_live',
+            'thumbnail': None,
+            'description': None,
+            'timestamp': 1666344616,
+            'duration': 86465,
+            'comment_count': int,
+            'view_count': int,
+            'tags': [],
+            'upload_date': '20221021',
         },
         'params': {
             'skip_download': True,
@@ -134,6 +166,9 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
         channel_name = self._get_channel_info(
             self._find_fanclub_site_id(channel_id)
         ).get('fanclub_site_name')
+        age_limit = traverse_obj(self._get_channel_user_info(
+            self._find_fanclub_site_id(channel_id)
+        ), ('content_provider', 'age_limit'))
 
         data_json = self._call_api(
             f'video_pages/{content_code}', item_id=content_code,
@@ -161,6 +196,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
             'channel_id': channel_id,
             'channel_url': f'{self._WEBPAGE_BASE_URL}/{channel_id}',
 
+            'age_limit': age_limit,
             'live_status': live_status,
 
             'thumbnail': data_json.get('thumbnail_url'),
