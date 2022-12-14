@@ -163,12 +163,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
     def _real_extract(self, url):
         content_code, channel_id = self._match_valid_url(url).group('code', 'channel')
-        channel_name = self._get_channel_base_info(
-            self._find_fanclub_site_id(channel_id)
-        ).get('fanclub_site_name')
-        age_limit = traverse_obj(self._get_channel_user_info(
-            self._find_fanclub_site_id(channel_id)
-        ), ('content_provider', 'age_limit'))
+        fanclub_site_id = self._find_fanclub_site_id(channel_id)
 
         data_json = self._call_api(
             f'video_pages/{content_code}', item_id=content_code,
@@ -192,11 +187,11 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
             '_format_sort_fields': ('tbr', 'vcodec', 'acodec'),
 
-            'channel': channel_name,
+            'channel': self._get_channel_base_info(fanclub_site_id).get('fanclub_site_name'),
             'channel_id': channel_id,
             'channel_url': f'{self._WEBPAGE_BASE_URL}/{channel_id}',
 
-            'age_limit': age_limit,
+            'age_limit': traverse_obj(self._get_channel_user_info(fanclub_site_id), ('content_provider', 'age_limit')),
             'live_status': live_status,
 
             'thumbnail': data_json.get('thumbnail_url'),
