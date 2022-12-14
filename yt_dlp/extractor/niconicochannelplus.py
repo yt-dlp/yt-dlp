@@ -33,10 +33,10 @@ class NiconicoChannelPlusBaseIE(InfoExtractor):
             raise ExtractorError(f'Channel {channel_name} does not exist', expected=True)
         return fanclub_id
 
-    def _get_channel_info(self, fanclub_site_id):
+    def _get_channel_base_info(self, fanclub_site_id):
         return self._call_api(
             f'fanclub_sites/{fanclub_site_id}/page_base_info', item_id=f'fanclub_sites/{fanclub_site_id}',
-            note='Fetching channel info', errnote='Unable to fetch channel info',
+            note='Fetching channel base info', errnote='Unable to fetch channel base info',
         )['data']['fanclub_site']
 
     def _get_channel_user_info(self, fanclub_site_id):
@@ -163,7 +163,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
 
     def _real_extract(self, url):
         content_code, channel_id = self._match_valid_url(url).group('code', 'channel')
-        channel_name = self._get_channel_info(
+        channel_name = self._get_channel_base_info(
             self._find_fanclub_site_id(channel_id)
         ).get('fanclub_site_name')
         age_limit = traverse_obj(self._get_channel_user_info(
@@ -419,7 +419,7 @@ class NiconicoChannelPlusChannelVideosIE(NiconicoChannelPlusChannelBaseIE):
 
         channel_id = self._match_id(url)
         fanclub_site_id = self._find_fanclub_site_id(channel_id)
-        channel_name = self._get_channel_info(fanclub_site_id).get('fanclub_site_name')
+        channel_name = self._get_channel_base_info(fanclub_site_id).get('fanclub_site_name')
         qs = parse_qs(url)
 
         return self.playlist_result(
@@ -476,7 +476,7 @@ class NiconicoChannelPlusChannelLivesIE(NiconicoChannelPlusChannelBaseIE):
 
         channel_id = self._match_id(url)
         fanclub_site_id = self._find_fanclub_site_id(channel_id)
-        channel_name = self._get_channel_info(fanclub_site_id).get('fanclub_site_name')
+        channel_name = self._get_channel_base_info(fanclub_site_id).get('fanclub_site_name')
 
         return self.playlist_result(
             OnDemandPagedList(
