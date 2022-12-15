@@ -15,10 +15,10 @@ from ..utils import (
 )
 
 
-class RTVEALaCartaIE(InfoExtractor):
-    IE_NAME = 'rtve.es:alacarta'
-    IE_DESC = 'RTVE a la carta'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(m/)?(alacarta/play/videos|filmoteca)/[^/]+/[^/]+/(?P<id>\d+)'
+class RTVEPlayIE(InfoExtractor):
+    IE_NAME = 'rtve.es:play'
+    IE_DESC = 'RTVE Play'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(m/)?(play/videos|filmoteca)/[^/]+/[^/]+/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'http://www.rtve.es/play/videos/balonmano/o-swiss-cup-masculina-final-espana-suecia/2491869/',
