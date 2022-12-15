@@ -447,7 +447,7 @@ class InfoExtractor:
 
 
     Subclasses of this should also be added to the list of extractors and
-    should define a _VALID_URL regexp and, re-define the _real_extract() and
+    should define a _VALID_URL regexp (or a list of _VALID_URLS) and, re-define the _real_extract() and
     (optionally) _real_initialize() methods.
 
     Subclasses may also override suitable() if necessary, but ensure the function
@@ -508,6 +508,7 @@ class InfoExtractor:
     IE_DESC = None
     SEARCH_KEY = None
     _VALID_URL = None
+    _VALID_URLS = []
     _EMBED_REGEX = []
 
     def _login_hint(self, method=NO_DEFAULT, netrc=None):
@@ -534,6 +535,13 @@ class InfoExtractor:
     def _match_valid_url(cls, url):
         if cls._VALID_URL is False:
             return None
+
+        if cls._VALID_URLS:
+            if '_VALID_URLS_RE' not in cls.__dict__:
+                cls._VALID_URLS_RE = tuple(map(re.compile, cls._VALID_URLS))
+            return next(filter(None, (
+                valid_url_re.match(url) for valid_url_re in cls._VALID_URLS_RE)), None)
+
         # This does not use has/getattr intentionally - we want to know whether
         # we have cached the regexp for *this* class, whereas getattr would also
         # match the superclass
