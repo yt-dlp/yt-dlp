@@ -34,7 +34,7 @@ class SlidesLiveIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }, {
-        # service_name = yoda
+        # service_name = yoda, /v7/ slides
         'url': 'https://slideslive.com/38935785',
         'info_dict': {
             'id': '38935785',
@@ -42,7 +42,7 @@ class SlidesLiveIE(InfoExtractor):
             'title': 'Offline Reinforcement Learning: From Algorithms to Practical Challenges',
             'upload_date': '20211115',
             'timestamp': 1636996003,
-            'thumbnail': r're:^https?://.*\.jpg',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'thumbnails': 'count:640',
             'chapters': 'count:639',
         },
@@ -50,7 +50,7 @@ class SlidesLiveIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }, {
-        # service_name = yoda
+        # service_name = yoda, /v1/ slides
         'url': 'https://slideslive.com/38973182/how-should-a-machine-learning-researcher-think-about-ai-ethics',
         'info_dict': {
             'id': '38973182',
@@ -163,15 +163,63 @@ class SlidesLiveIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }, {
-        # service_name = youtube
+        # /v10/ slides
+        'url': 'https://slideslive.com/embed/presentation/38979880?embed_parent_url=https%3A%2F%2Fedit.videoken.com%2F',
+        'info_dict': {
+            'id': '38979880',
+            'ext': 'mp4',
+            'title': 'The Representation Power of Neural Networks',
+            'timestamp': 1654714962,
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnails': 'count:22',
+            'upload_date': '20220608',
+            'chapters': 'count:21',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        # /v7/ slides, 2 non-image slides
+        'url': 'https://slideslive.com/embed/presentation/38979682?embed_container_origin=https%3A%2F%2Fedit.videoken.com',
+        'info_dict': {
+            'id': '38979682',
+            'ext': 'mp4',
+            'title': 'LoRA: Low-Rank Adaptation of Large Language Models',
+            'timestamp': 1654714920,
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnails': 'count:30',
+            'upload_date': '20220608',
+            'chapters': 'count:31',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        # /v6/ slides, 1 non-image slide, edit.videoken.com embed
+        'url': 'https://slideslive.com/38979481/',
+        'info_dict': {
+            'id': '38979481',
+            'ext': 'mp4',
+            'title': 'How to Train Your MAML to Excel in Few-Shot Classification',
+            'timestamp': 1654714877,
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnails': 'count:43',
+            'upload_date': '20220608',
+            'chapters': 'count:43',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        # service_name = yoda
         'url': 'https://slideslive.com/38903721/magic-a-scientific-resurrection-of-an-esoteric-legend',
         'only_matching': True,
     }, {
-        # service_name = url
+        # dead link, service_name = url
         'url': 'https://slideslive.com/38922070/learning-transferable-skills-1',
         'only_matching': True,
     }, {
-        # service_name = vimeo
+        # dead link, service_name = vimeo
         'url': 'https://slideslive.com/38921896/retrospectives-a-venue-for-selfreflection-in-ml-research-3',
         'only_matching': True,
     }]
@@ -194,13 +242,10 @@ class SlidesLiveIE(InfoExtractor):
         },
     }]
 
-    _JPG_SLIDE_TMPL = 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s.jpg'
-    _PNG_SLIDE_TMPL = 'https://slides.slideslive.com/%s/slides/original/%s.png'
-
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
         # Reference: https://slideslive.com/embed_presentation.js
-        for embed_id in re.findall(r'(?s)new\s+SlidesLiveEmbed\s*\([^\)]+\bpresentationId:\s*["\'](\d+)["\']', webpage):
+        for embed_id in re.findall(r'(?s)new\s+SlidesLiveEmbed\s*\([^)]+\bpresentationId:\s*["\'](\d+)["\']', webpage):
             url_parsed = urllib.parse.urlparse(url)
             origin = f'{url_parsed.scheme}://{url_parsed.netloc}'
             yield update_url_query(
@@ -216,6 +261,15 @@ class SlidesLiveIE(InfoExtractor):
                 'embed_parent_url': 'Referer',
                 'embed_container_origin': 'Origin',
             }))
+
+    def _get_slide_url_tmpl(self, slides_info_url):
+        slides_version = int(self._search_regex(
+            r'https?://slides\.slideslive\.com/\d+/v(\d+)/\w+\.(?:json|xml)',
+            slides_info_url, 'slides version', default=0))
+        if slides_version < 4:
+            return 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s.jpg'
+        else:
+            return 'https://slides.slideslive.com/%s/slides/original/%s.png'
 
     def _extract_custom_m3u8_info(self, m3u8_data):
         m3u8_dict = {}
@@ -277,8 +331,7 @@ class SlidesLiveIE(InfoExtractor):
         assert service_name in ('url', 'yoda', 'vimeo', 'youtube')
         service_id = player_info['service_id']
 
-        slides, slides_xml, slide_id = None, None, 1
-        slide_url_template = self._JPG_SLIDE_TMPL
+        slides, slides_xml = None, None
         chapters, thumbnails = [], []
         if url_or_none(player_info.get('thumbnail')):
             thumbnails.append({'url': player_info['thumbnail']})
@@ -288,9 +341,8 @@ class SlidesLiveIE(InfoExtractor):
                 player_info['slides_json_url'], video_id, fatal=False,
                 note='Downloading slides JSON', errnote=False), 'slides', expected_type=list)
         if slides:
-            if re.match(r'.+(/v[45]/).+', player_info['slides_json_url']):
-                slide_url_template = self._PNG_SLIDE_TMPL
-            for slide in slides:
+            slide_url_template = self._get_slide_url_tmpl(player_info['slides_json_url'])
+            for slide_id, slide in enumerate(slides, start=1):
                 slide_path = traverse_obj(slide, ('image', 'name'))
                 if slide_path:
                     thumbnails.append({
@@ -301,15 +353,13 @@ class SlidesLiveIE(InfoExtractor):
                     'title': f'Slide {slide_id:03d}',
                     'start_time': int_or_none(slide.get('time'), scale=1000)
                 })
-                slide_id += 1
 
         elif player_info.get('slides_xml_url'):
             slides_xml = self._download_xml(
                 player_info['slides_xml_url'], video_id, fatal=False,
                 note='Downloading slides XML', errnote='Failed to download slides info')
-            if re.match(r'.+(/v[45]/).+', player_info['slides_xml_url']):
-                slide_url_template = self._PNG_SLIDE_TMPL
-            for slide in slides_xml.findall('./slide') if slides_xml else []:
+            slide_url_template = self._get_slide_url_tmpl(player_info['slides_xml_url'])
+            for slide_id, slide in enumerate(slides_xml.findall('./slide') if slides_xml else [], start=1):
                 slide_path = xpath_text(slide, './slideName', 'name')
                 if slide_path:
                     thumbnails.append({
@@ -320,7 +370,6 @@ class SlidesLiveIE(InfoExtractor):
                     'title': f'Slide {slide_id:03d}',
                     'start_time': int_or_none(xpath_text(slide, './timeSec', 'time')),
                 })
-                slide_id += 1
 
         subtitles = {}
         for sub in traverse_obj(player_info, ('subtitles', ...), expected_type=dict):
