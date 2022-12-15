@@ -277,7 +277,7 @@ class SlidesLiveIE(InfoExtractor):
         assert service_name in ('url', 'yoda', 'vimeo', 'youtube')
         service_id = player_info['service_id']
 
-        slides, slides_xml = None, None
+        slides, slides_xml, slide_id = None, None, 1
         slide_url_template = self._JPG_SLIDE_TMPL
         chapters, thumbnails = [], []
         if url_or_none(player_info.get('thumbnail')):
@@ -290,37 +290,37 @@ class SlidesLiveIE(InfoExtractor):
         if slides:
             if re.match(r'.+(/v[45]/).+', player_info['slides_json_url']):
                 slide_url_template = self._PNG_SLIDE_TMPL
-            for i in range(len(slides)):
-                slide_name = traverse_obj(slides, (i, 'image', 'name'))
-                slide_id = str(i + 1)
-                if slide_name:
+            for slide in slides:
+                slide_path = traverse_obj(slide, ('image', 'name'))
+                if slide_path:
                     thumbnails.append({
-                        'id': slide_id,
-                        'url': slide_url_template % (video_id, slide_name),
+                        'id': f'{slide_id:03d}',
+                        'url': slide_url_template % (video_id, slide_path),
                     })
                 chapters.append({
-                    'title': slide_id,
-                    'start_time': int_or_none(traverse_obj(slides, (i, 'time')), scale=1000)
+                    'title': f'Slide {slide_id:03d}',
+                    'start_time': int_or_none(slide.get('time'), scale=1000)
                 })
+                slide_id += 1
 
-        if not slides and player_info.get('slides_xml_url'):
+        elif player_info.get('slides_xml_url'):
             slides_xml = self._download_xml(
                 player_info['slides_xml_url'], video_id, fatal=False,
                 note='Downloading slides XML', errnote='Failed to download slides info')
             if re.match(r'.+(/v[45]/).+', player_info['slides_xml_url']):
                 slide_url_template = self._PNG_SLIDE_TMPL
             for slide in slides_xml.findall('./slide') if slides_xml else []:
-                slide_name = xpath_text(slide, './slideName', 'name')
-                slide_id = xpath_text(slide, './orderId', 'id')
-                if slide_name:
+                slide_path = xpath_text(slide, './slideName', 'name')
+                if slide_path:
                     thumbnails.append({
-                        'id': slide_id,
-                        'url': slide_url_template % (video_id, slide_name),
+                        'id': f'{slide_id:03d}',
+                        'url': slide_url_template % (video_id, slide_path),
                     })
                 chapters.append({
-                    'title': slide_id,
+                    'title': f'Slide {slide_id:03d}',
                     'start_time': int_or_none(xpath_text(slide, './timeSec', 'time')),
                 })
+                slide_id += 1
 
         subtitles = {}
         for sub in traverse_obj(player_info, ('subtitles', ...), expected_type=dict):
