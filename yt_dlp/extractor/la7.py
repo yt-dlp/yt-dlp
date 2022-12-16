@@ -12,10 +12,11 @@ from ..utils import (
 
 class LA7IE(InfoExtractor):
     IE_NAME = 'la7.it'
-    _VALID_URL = r'''(?x)https?://(?:
-        (?:www\.)?la7\.it/([^/]+)/(?:rivedila7|video|news)/|
-        tg\.la7\.it/repliche-tgla7\?id=
-    )(?P<id>.+)'''
+    _VALID_URLS = [
+        r'https?://(?:www\.)?la7\.it/[^/]+/(?:rivedila7|video|news)/.+-(?P<id>\d{5,})',
+        r'https?://tg\.la7\.it/repliche-tgla7\?id=(?P<id>\d{5,})',
+        r'https?://tg\.la7\.it(?:/[^/]+)+-(?P<id>\d{5,})'
+    ]
 
     _TESTS = [{
         # single quality video
@@ -44,7 +45,7 @@ class LA7IE(InfoExtractor):
             'formats': 'count:8',
         },
     }, {
-        'url': 'http://www.la7.it/omnibus/rivedila7/omnibus-news-02-07-2016-189077',
+        'url': 'https://tg.la7.it/repliche-tgla7?id=464601',
         'only_matching': True,
     }]
     _HOST = 'https://awsvodpkg.iltrovatore.it'
