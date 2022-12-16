@@ -74,7 +74,6 @@ class EplusIbIE(InfoExtractor):
             'title': data_json['app_name'],
             'formats': self._extract_m3u8_formats(m3u8_url=traverse_obj(self._parse_json(
                 m3u8_playlist_urls, video_id), 0), video_id=video_id),
-            'ext': 'ts',
 
             # optional metafields
 
