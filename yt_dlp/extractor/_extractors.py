@@ -1479,10 +1479,8 @@ from .radlive import (
 )
 from .rai import (
     RaiPlayIE,
-    RaiPlayLiveIE,
     RaiPlayPlaylistIE,
     RaiPlaySoundIE,
-    RaiPlaySoundLiveIE,
     RaiPlaySoundPlaylistIE,
     RaiNewsIE,
     RaiSudtirolIE,
