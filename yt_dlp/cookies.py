@@ -26,8 +26,7 @@ from .dependencies import (
     sqlite3,
 )
 from .output.logging import Logger, LogLevel, default_logger
-from .output.outputs import StreamOutput
-from .output.progress import Progress
+from .output.outputs import NULL_OUTPUT, StreamOutput
 from .utils import (
     Popen,
     YoutubeDLCookieJar,
@@ -41,27 +40,42 @@ CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'viva
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
-class CookiesProgress(Progress):
+class CookiesStatus:
     _DELAY = 0.1
 
-    def __init__(self, output, lines=1, preserve=False, newline=False):
-        # Only log to ttys
-        if not isinstance(output, StreamOutput) or not output.isatty:
-            output = None
-
-        super().__init__(output, lines, preserve, newline)
+    def __init__(self, logger):
         self._timer = 0
+        self._closed = False
+
+        # Do not print to files/pipes, loggers, or when --no-status is used
+        output = logger.mapping.get(LogLevel.ERROR)
+        self._output = NULL_OUTPUT
+        if logger.disable_progress:
+            return
+
+        if isinstance(output, StreamOutput) and output.isatty:
+            self._output = output
 
     def print(self, message):
+        if not self._output:
+            return
+
         current_time = time.time()
         if current_time - self._timer > self._DELAY:
-            self.print_at_line(f'[Cookies] {message}', 0)
+            self._output.status(self, 0, f'[Cookies] {message}')
             self._timer = current_time
 
-    @classmethod
-    def make_progress(cls, logger):
-        # Does not print to files/pipes, loggers, or when --no-progress is used
-        return super().make_progress(logger, LogLevel.ERROR, lines=1, preserve=False, newline=False)
+    def __enter__(self):
+        self._output.register_status(self, 1)
+        return self
+
+    def __exit__(self, *_):
+        if self._closed or not self._output:
+            return
+
+        self._closed = True
+        self._output.unregister_status(self)
+        return self
 
 
 def wrap_logger(logger):
@@ -169,11 +183,11 @@ def _extract_firefox_cookies(profile, container, logger):
             else:
                 cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
-            with CookiesProgress.make_progress(logger) as progress_bar:
+            with CookiesStatus(logger) as status:
                 table = cursor.fetchall()
                 total_cookie_count = len(table)
                 for i, (host, name, value, path, expiry, is_secure) in enumerate(table):
-                    progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
+                    status.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
                     cookie = http.cookiejar.Cookie(
                         version=0, name=name, value=value, port=None, port_specified=False,
                         domain=host, domain_specified=bool(host), domain_initial_dot=host.startswith('.'),
@@ -291,11 +305,11 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
             jar = YoutubeDLCookieJar()
             failed_cookies = 0
             unencrypted_cookies = 0
-            with CookiesProgress.make_progress(logger) as progress_bar:
+            with CookiesStatus(logger) as status:
                 table = cursor.fetchall()
                 total_cookie_count = len(table)
                 for i, line in enumerate(table):
-                    progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
+                    status.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
                     is_encrypted, cookie = _process_chrome_cookie(decryptor, *line)
                     if not cookie:
                         failed_cookies += 1
@@ -585,9 +599,9 @@ def _parse_safari_cookies_page(data, jar, logger):
 
     p.skip_to(record_offsets[0], 'unknown page header field')
 
-    with CookiesProgress.make_progress(logger) as progress_bar:
+    with CookiesStatus(logger) as status:
         for i, record_offset in enumerate(record_offsets):
-            progress_bar.print(f'Loading cookie {i: 6d}/{number_of_cookies: 6d}')
+            status.print(f'Loading cookie {i: 6d}/{number_of_cookies: 6d}')
             p.skip_to(record_offset, 'space between records')
             record_length = _parse_safari_cookies_record(data[record_offset:], jar, logger)
             p.read_bytes(record_length)
@@ -966,11 +980,11 @@ def _get_column_names(cursor, table_name):
 def _find_most_recently_used_file(root, filename, logger):
     # if there are multiple browser profiles, take the most recently used one
     i, paths = 0, []
-    with CookiesProgress.make_progress(logger) as progress_bar:
+    with CookiesStatus(logger) as status:
         for curr_root, dirs, files in os.walk(root):
             for file in files:
                 i += 1
-                progress_bar.print(f'Searching for "{filename}": {i: 6d} files searched')
+                status.print(f'Searching for "{filename}": {i: 6d} files searched')
                 if file == filename:
                     paths.append(os.path.join(curr_root, file))
     return None if not paths else max(paths, key=lambda path: os.lstat(path).st_mtime)
