@@ -11,6 +11,8 @@ OSC = '\x1B]'
 BEL = '\x07'
 CSI_END = 'm'
 
+ERASE_LINE = f'{CSI}K'
+
 
 class Color(enum.IntFlag):
     """
@@ -144,3 +146,17 @@ def format_text(message, *text_formats):
     @params text_formats    A `TermCode`/`Typeface`/`Color`/`str` specifying the format.
     """
     return f'{TermCode.join(*text_formats)}{message}{RESET}'
+
+
+def move_cursor(distance):
+    if not distance:
+        return ''
+
+    elif distance > 0:
+        return '\n' * distance
+
+    elif distance == -1:
+        return f'\r{CSI}A'
+
+    else:
+        return f'\r{CSI}{-distance}A'

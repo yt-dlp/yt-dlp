@@ -9,15 +9,10 @@ import traceback
 import warnings
 from enum import Enum
 
-from .hoodoo import Color, TermCode, format_text
-from .logging_output import logger as _logging_logger
+from .hoodoo import Color, TermCode
+from .outputs import NULL_OUTPUT, ClassOutput, LoggingOutput, StreamOutput
 from ..compat import functools
-from ..utils import (
-    deprecation_warning,
-    supports_terminal_sequences,
-    variadic,
-    write_string,
-)
+from ..utils import deprecation_warning, variadic
 
 
 class LogLevel(Enum):
@@ -32,63 +27,6 @@ class Verbosity(Enum):
     QUIET = 0
     NORMAL = 1
     VERBOSE = 2
-
-
-class OutputBase:
-    allow_bidi = False
-    use_color = False
-
-    def format(self, text, *text_formats):
-        if not self.use_color:
-            return text
-
-        return format_text(text, *text_formats)
-
-    def log(self, message):
-        pass
-
-
-class StreamOutput(OutputBase):
-    allow_bidi = True
-
-    def __init__(self, stream, use_color=True, encoding=None):
-        self._stream = stream
-        self._encoding = encoding
-        self.use_color = use_color and supports_terminal_sequences(stream)
-
-    def log(self, message):
-        write_string(message, self._stream, self._encoding)
-
-
-class ClassOutput(OutputBase):
-    def __init__(self, func):
-        self._logging_function = func
-
-    def log(self, message):
-        self._logging_function(message.rstrip())
-
-
-class LoggingOutput(OutputBase):
-    def __init__(self, level):
-        self.level = level
-
-    def log(self, message):
-        message = message.rstrip()
-        removable_prefixes = ['[debug] ', 'ERROR: ', 'WARNING: ']
-        for prefix in removable_prefixes:
-            if message.startswith(prefix):
-                message = message[len(prefix):]
-        if message.startswith('['):
-            message = message.partition(']')[2].lstrip()
-        _logging_logger.log(self.level, message)
-
-
-class NullOutput(OutputBase):
-    def __bool__(self):
-        return False
-
-
-NULL_OUTPUT = NullOutput()
 
 
 class Style:
@@ -139,16 +77,16 @@ class Logger:
     """
 
     def __init__(self, screen, verbosity=Verbosity.NORMAL,
-                 *, encoding=None, allow_color=True, disable_progress=False):
+                 *, encoding=None, use_color=None, disable_progress=False):
         self._bidi_initalized = False
         self._pref_encoding = encoding
-        self._allow_color = allow_color
+        self._allow_color = use_color
         self._verbosity = verbosity
         self.message_cache = set()
         self.disable_progress = disable_progress
 
-        screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, allow_color, encoding)
-        self.mapping: dict[LogLevel, OutputBase] = {
+        screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, use_color, encoding)
+        self.mapping = {
             LogLevel.SCREEN: screen_output,
             LogLevel.DEBUG: NULL_OUTPUT,
             LogLevel.INFO: NULL_OUTPUT,
@@ -217,7 +155,7 @@ class Logger:
                 return
             self.message_cache.add(message)
 
-        if logger.allow_bidi and self._bidi_initalized:
+        if logger.ALLOW_BIDI and self._bidi_initalized:
             message = self._apply_bidi_workaround(message)
 
         if prefix:

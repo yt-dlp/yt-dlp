@@ -25,7 +25,8 @@ from .dependencies import (
     secretstorage,
     sqlite3,
 )
-from .output.logging import Logger, LogLevel, StreamOutput, default_logger
+from .output.logging import Logger, LogLevel, default_logger
+from .output.outputs import StreamOutput
 from .output.progress import Progress
 from .utils import (
     Popen,
@@ -45,14 +46,7 @@ class CookiesProgress(Progress):
 
     def __init__(self, output, lines=1, preserve=False, newline=False):
         # Only log to ttys
-        if isinstance(output, StreamOutput):
-            try:
-                if not output._stream.isatty():
-                    output = None
-
-            except BaseException:
-                output = None
-        else:
+        if not isinstance(output, StreamOutput) or not output.isatty:
             output = None
 
         super().__init__(output, lines, preserve, newline)

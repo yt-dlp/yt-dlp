@@ -31,7 +31,8 @@ from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .output.console import Console
-from .output.logging import Logger, LogLevel, StreamOutput, Style, Verbosity
+from .output.logging import Logger, LogLevel, Style, Verbosity
+from .output.outputs import StreamOutput
 from .postprocessor import _PLUGIN_CLASSES as plugin_postprocessors
 from .postprocessor import (
     EmbedThumbnailPP,
@@ -721,17 +722,18 @@ class YoutubeDL:
             else Verbosity.QUIET if params.get('quiet')
             else Verbosity.NORMAL)
 
+        use_color = not params.get('no_color', False)
+        if use_color:
+            use_color = None
         logger = Logger(
             screen, verbosity, encoding=params.get('encoding'),
-            allow_color=not params.get('nocolor', False),
-            disable_progress=bool(params.get('noprogress')))
+            use_color=use_color, disable_progress=bool(params.get('noprogress')))
 
         logger_param = params.get('logger')
-        if logger_param:
-            if logger_param == 'logging':
-                logger.setup_logging_logger()
-            else:
-                logger.setup_class_logger(logger_param)
+        if logger_param == 'logging':
+            logger.setup_logging_logger()
+        elif logger_param:
+            logger.setup_class_logger(logger_param)
         else:
             logger.setup_stream_logger(stdout, sys.stderr, no_warnings=params.get('no_warnings', False))
 

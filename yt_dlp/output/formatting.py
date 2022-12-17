@@ -1,11 +1,9 @@
-import enum
-
 from .hoodoo import Color, TermCode, Typeface, format_text
 from ..utils import format_bytes, timetuple_from_msec, try_call
 
 
-class ProgressStyle(enum.Enum):
-    """ An Enum holding Styles for progress formatting """
+class ProgressStyle:
+    """ A class holding Styles for progress formatting """
     DOWNLOADED_BYTES = TermCode.make(Color.LIGHT | Color.BLUE)
     PERCENT = TermCode.make(Color.LIGHT | Color.BLUE)
     ETA = TermCode.make(Color.YELLOW)

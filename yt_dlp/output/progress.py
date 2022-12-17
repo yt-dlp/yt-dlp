@@ -1,32 +1,6 @@
-import functools
-from threading import Lock
-
 from .formatting import apply_progress_format
-from .hoodoo import CSI
-from .logging import NULL_OUTPUT, LogLevel, StreamOutput, default_logger
-
-ERASE_LINE = f'{CSI}K'
-MOVE_UP = f'{CSI}A'
-MOVE_DOWN = '\n'
-
-
-def move_cursor(distance):
-    return -distance * MOVE_UP if distance < 0 else distance * MOVE_DOWN
-
-
-def _synchronized(func=None):
-    if func is None:
-        return _synchronized
-
-    @functools.wraps(func)
-    def wrapped(self, *args, **kwargs):
-        if not hasattr(self, '__lock'):
-            self.__lock = Lock()
-
-        with self.__lock:
-            return func(self, *args, **kwargs)
-
-    return wrapped
+from .logging import LogLevel, default_logger
+from .outputs import NULL_OUTPUT, StreamOutput
 
 
 class Progress:
@@ -48,57 +22,37 @@ class Progress:
         self.maximum = lines - 1
         self.preserve = preserve
         self.newline = newline
-        self._lastline = 0
-        self._lastlength = 0
+        self._progress_lines = [None] * lines
+        self._closed = False
 
-    @_synchronized
-    def print_at_line(self, text, pos: int):
+        self.output.register_status(self, lines)
+
+    def print(self, pos, text):
+        if not self.output or pos > self.maximum:
+            return
+
+        self._progress_lines[pos] = text
+
+        if self.newline:
+            self.output.log(f'{self._add_line_number(text, pos)}\n')
+            return
+
+        if not self.output.use_color:
+            text = self._add_line_number(text, pos)
+
+        self.output.status(self, pos, text)
+
+    def close(self):
+        if self._closed:
+            return
+
+        self._closed = True
         if not self.output:
             return
 
-        if self.newline:
-            self._write(self._add_line_number(text, pos), '\n')
-            return
-
-        if self.output.use_color:
-            self._write(self._move_to(pos), ERASE_LINE, text)
-            return
-
-        text = self._add_line_number(text, pos)
-        textlen = len(text)
-        if self._lastline == pos:
-            # move cursor at the start of progress when writing to same line
-            prefix = '\r'
-            if self._lastlength > textlen:
-                text += ' ' * (self._lastlength - textlen)
-        else:
-            # otherwise, break the line
-            prefix = '\n'
-
-        self._write(prefix, text)
-        self._lastlength = textlen
-        self._lastline = pos
-
-    @_synchronized
-    def close(self):
-        if not self.output or self.newline:
-            return
-
-        # move cursor to the end of the last line and write line break
-        if self.preserve:
-            if self.output.use_color:
-                self._write(self._move_to(self.maximum), '\n')
-            else:
-                self._write('\n')
-            return
-
-        # Try to clear as many lines as possible
-        if self.output.use_color:
-            self._write(
-                self._move_to(self.maximum), ERASE_LINE,
-                f'{MOVE_UP}{ERASE_LINE}' * self.maximum)
-        else:
-            self._write('\r', ' ' * self._lastlength, '\r')
+        self.output.unregister_status(self)
+        if self.preserve and not self.newline:
+            self.output.log('\n'.join(filter(None, self._progress_lines)))
 
     def __enter__(self):
         return self
@@ -106,18 +60,10 @@ class Progress:
     def __exit__(self, *args):
         self.close()
 
-    def _write(self, *text):
-        self.output.log(''.join(text))
-
     def _add_line_number(self, text, line):
         if self.maximum:
             return f'{line + 1}: {text}'
         return text
-
-    def _move_to(self, line):
-        distance = line - self._lastline
-        self._lastline = line
-        return f'\r{move_cursor(distance)}'
 
 
 class ProgressReporter:
@@ -135,7 +81,7 @@ class ProgressReporter:
         line = progress_dict.get('progress_idx') or 0
         if self.disabled:
             if progress_dict['status'] == 'finished':
-                self._progress.print_at_line(self._finish_template, line)
+                self._progress.print(line, self._finish_template)
 
             return
 
@@ -147,8 +93,8 @@ class ProgressReporter:
             'progress': progress_data,
         }
 
-        self._progress.print_at_line(self._ydl.evaluate_outtmpl(
-            self._screen_template, progress_data), line)
+        self._progress.print(line, self._ydl.evaluate_outtmpl(
+            self._screen_template, progress_data))
 
         if self._console.allow_title_change:
             self._console.change_title(self._ydl.evaluate_outtmpl(
