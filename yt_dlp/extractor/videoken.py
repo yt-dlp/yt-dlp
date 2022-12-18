@@ -1,5 +1,6 @@
 import base64
 import itertools
+import re
 import time
 import urllib.parse
 
@@ -13,16 +14,12 @@ from ..utils import (
 
 
 class VideoKenBaseIE(InfoExtractor):
-    _BASE_URL_RE = r'''(?x)https?://
-        (?P<host>videos\.(?:
-            icts\.res\.in|
-            cncf\.io|
-            neurips\.cc))/'''
     _ORGANIZATIONS = {
         'videos.icts.res.in': 'icts',
         'videos.cncf.io': 'cncf',
         'videos.neurips.cc': 'neurips',
     }
+    _BASE_URL_RE = rf'https?://(?P<host>{"|".join(map(re.escape, _ORGANIZATIONS))})/'
 
     def _get_org_id_and_api_key(self, org, video_id):
         details = self._download_json(
@@ -64,7 +61,7 @@ class VideoKenBaseIE(InfoExtractor):
 
 
 class VideoKenIE(VideoKenBaseIE):
-    _VALID_URL = VideoKenBaseIE._BASE_URL_RE + r'(?:(?:topic|category)/[^/#?]+/)?video/(?P<id>[\w_-]+)'
+    _VALID_URL = VideoKenBaseIE._BASE_URL_RE + r'(?:(?:topic|category)/[^/#?]+/)?video/(?P<id>[\w-]+)'
     _TESTS = [{
         # neurips -> videoken -> slideslive
         'url': 'https://videos.neurips.cc/video/slideslive-38922815',
