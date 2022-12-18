@@ -16,7 +16,7 @@ from ..utils import (
 
 
 class SlidesLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://slideslive\.com/(?:embed/presentation/)?(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://slideslive\.com/(?:embed/(?:presentation/)?)?(?P<id>[0-9]+)'
     _TESTS = [{
         # service_name = yoda, only XML slides info
         'url': 'https://slideslive.com/38902413/gcc-ia16-backend',
