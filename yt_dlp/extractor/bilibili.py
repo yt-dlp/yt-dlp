@@ -1085,7 +1085,7 @@ class BiliLiveIE(InfoExtractor):
                     'ext': fmt.get('format_name'),
                     'vcodec': codec.get('codec_name'),
                     'quality': self._quality(qn),
-                    'source_preference': preference,
+                    'preference': preference,
                     **self._FORMATS[qn],
                 }
 
@@ -1117,7 +1117,6 @@ class BiliLiveIE(InfoExtractor):
             'thumbnail': room_data.get('user_cover'),
             'timestamp': stream_data.get('live_time'),
             'formats': formats,
-            '_format_sort_fields': ['source'],
             'http_headers': {
                 'Referer': url,
             },
