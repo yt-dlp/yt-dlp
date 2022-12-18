@@ -203,6 +203,7 @@ class SlidesLiveIE(InfoExtractor):
                 'id': '38979682-021',
                 'ext': 'mp4',
                 'title': 'LoRA: Low-Rank Adaptation of Large Language Models - Slide 021',
+                'duration': 3,
                 'timestamp': 1654714920,
                 'upload_date': '20220608',
             },
@@ -211,6 +212,7 @@ class SlidesLiveIE(InfoExtractor):
                 'id': '38979682-024',
                 'ext': 'mp4',
                 'title': 'LoRA: Low-Rank Adaptation of Large Language Models - Slide 024',
+                'duration': 4,
                 'timestamp': 1654714920,
                 'upload_date': '20220608',
             },
@@ -242,6 +244,7 @@ class SlidesLiveIE(InfoExtractor):
                 'id': '38979481-013',
                 'ext': 'mp4',
                 'title': 'How to Train Your MAML to Excel in Few-Shot Classification - Slide 013',
+                'duration': 3,
                 'timestamp': 1654714877,
                 'upload_date': '20220608',
             },
@@ -420,7 +423,7 @@ class SlidesLiveIE(InfoExtractor):
                         'id': f'{video_id}-{slide_id:03d}',
                         'title': f'{title} - Slide {slide_id:03d}',
                         'timestamp': timestamp,
-                        'duration': int_or_none(slide.get('duration_ms'), scale=1000),
+                        'duration': int_or_none(traverse_obj(slide, ('video', 'duration_ms')), scale=1000),
                         'formats': formats,
                     })
 
