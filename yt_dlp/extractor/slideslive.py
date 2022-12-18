@@ -180,34 +180,72 @@ class SlidesLiveIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }, {
-        # /v7/ slides, 2 non-image slides
+        # /v7/ slides, 2 video slides
         'url': 'https://slideslive.com/embed/presentation/38979682?embed_container_origin=https%3A%2F%2Fedit.videoken.com',
+        'playlist_count': 3,
         'info_dict': {
-            'id': '38979682',
-            'ext': 'mp4',
+            'id': '38979682-playlist',
             'title': 'LoRA: Low-Rank Adaptation of Large Language Models',
-            'timestamp': 1654714920,
-            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
-            'thumbnails': 'count:30',
-            'upload_date': '20220608',
-            'chapters': 'count:31',
         },
+        'playlist': [{
+            'info_dict': {
+                'id': '38979682',
+                'ext': 'mp4',
+                'title': 'LoRA: Low-Rank Adaptation of Large Language Models',
+                'timestamp': 1654714920,
+                'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+                'thumbnails': 'count:30',
+                'upload_date': '20220608',
+                'chapters': 'count:31',
+            },
+        }, {
+            'info_dict': {
+                'id': '38979682-021',
+                'ext': 'mp4',
+                'title': 'LoRA: Low-Rank Adaptation of Large Language Models - Slide 021',
+                'timestamp': 1654714920,
+                'upload_date': '20220608',
+            },
+        }, {
+            'info_dict': {
+                'id': '38979682-024',
+                'ext': 'mp4',
+                'title': 'LoRA: Low-Rank Adaptation of Large Language Models - Slide 024',
+                'timestamp': 1654714920,
+                'upload_date': '20220608',
+            },
+        }],
         'params': {
             'skip_download': 'm3u8',
         },
     }, {
-        # /v6/ slides, 1 non-image slide, edit.videoken.com embed
+        # /v6/ slides, 1 video slide, edit.videoken.com embed
         'url': 'https://slideslive.com/38979481/',
+        'playlist_count': 2,
         'info_dict': {
-            'id': '38979481',
-            'ext': 'mp4',
+            'id': '38979481-playlist',
             'title': 'How to Train Your MAML to Excel in Few-Shot Classification',
-            'timestamp': 1654714877,
-            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
-            'thumbnails': 'count:43',
-            'upload_date': '20220608',
-            'chapters': 'count:43',
         },
+        'playlist': [{
+            'info_dict': {
+                'id': '38979481',
+                'ext': 'mp4',
+                'title': 'How to Train Your MAML to Excel in Few-Shot Classification',
+                'timestamp': 1654714877,
+                'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+                'thumbnails': 'count:43',
+                'upload_date': '20220608',
+                'chapters': 'count:43',
+            },
+        }, {
+            'info_dict': {
+                'id': '38979481-013',
+                'ext': 'mp4',
+                'title': 'How to Train Your MAML to Excel in Few-Shot Classification - Slide 013',
+                'timestamp': 1654714877,
+                'upload_date': '20220608',
+            },
+        }],
         'params': {
             'skip_download': 'm3u8',
         },
