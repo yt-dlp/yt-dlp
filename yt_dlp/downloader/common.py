@@ -20,6 +20,7 @@ from ..utils import (
     RetryManager,
     classproperty,
     decodeArgument,
+    deprecation_warning,
     encodeFilename,
     format_bytes,
     join_nonempty,
@@ -180,7 +181,9 @@ class FileDownloader:
     @staticmethod
     def parse_bytes(bytestr):
         """Parse a string indicating a byte quantity into an integer."""
-        parse_bytes(bytestr)
+        deprecation_warning('yt_dlp.FileDownloader.parse_bytes is deprecated and '
+                            'may be removed in the future. Use yt_dlp.utils.parse_bytes instead')
+        return parse_bytes(bytestr)
 
     def slow_down(self, start_time, now, byte_counter):
         """Sleep if the download speed is over the rate limit."""

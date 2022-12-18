@@ -1095,19 +1095,28 @@ class ExtractorError(YoutubeDLError):
         self.exc_info = sys.exc_info()  # preserve original exception
         if isinstance(self.exc_info[1], ExtractorError):
             self.exc_info = self.exc_info[1].exc_info
+        super().__init__(self.__msg)
 
-        super().__init__(''.join((
-            format_field(ie, None, '[%s] '),
-            format_field(video_id, None, '%s: '),
-            msg,
-            format_field(cause, None, ' (caused by %r)'),
-            '' if expected else bug_reports_message())))
+    @property
+    def __msg(self):
+        return ''.join((
+            format_field(self.ie, None, '[%s] '),
+            format_field(self.video_id, None, '%s: '),
+            self.orig_msg,
+            format_field(self.cause, None, ' (caused by %r)'),
+            '' if self.expected else bug_reports_message()))
 
     def format_traceback(self):
         return join_nonempty(
             self.traceback and ''.join(traceback.format_tb(self.traceback)),
             self.cause and ''.join(traceback.format_exception(None, self.cause, self.cause.__traceback__)[1:]),
             delim='\n') or None
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if getattr(self, 'msg', None) and name not in ('msg', 'args'):
+            self.msg = self.__msg or type(self).__name__
+            self.args = (self.msg, )  # Cannot be property
 
 
 class UnsupportedError(ExtractorError):
@@ -3563,7 +3572,7 @@ def parse_codecs(codecs_str):
                 hdr = 'HDR10'
             elif parts[:2] == ['vp9', '2']:
                 hdr = 'HDR10'
-        elif parts[0] in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac',
+        elif parts[0] in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-4',
                           'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
             acodec = acodec or full_codec
         elif parts[0] in ('stpp', 'wvtt'):
@@ -3596,7 +3605,7 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
     # TODO: All codecs supported by parse_codecs isn't handled here
     COMPATIBLE_CODECS = {
         'mp4': {
-            'av1', 'hevc', 'avc1', 'mp4a',  # fourcc (m3u8, mpd)
+            'av1', 'hevc', 'avc1', 'mp4a', 'ac-4',  # fourcc (m3u8, mpd)
             'h264', 'aacl', 'ec-3',  # Set in ISM
         },
         'webm': {
@@ -3862,6 +3871,9 @@ class download_range_func:
     def __eq__(self, other):
         return (isinstance(other, download_range_func)
                 and self.chapters == other.chapters and self.ranges == other.ranges)
+
+    def __repr__(self):
+        return f'{type(self).__name__}({self.chapters}, {self.ranges})'
 
 
 def parse_dfxp_time_expr(time_expr):
@@ -5567,17 +5579,39 @@ def supports_terminal_sequences(stream):
         return False
 
 
-def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
+def windows_enable_vt_mode():
+    """Ref: https://bugs.python.org/issue30075 """
     if get_windows_version() < (10, 0, 10586):
         return
-    global WINDOWS_VT_MODE
-    try:
-        Popen.run('', shell=True)
-    except Exception:
-        return
 
-    WINDOWS_VT_MODE = True
-    supports_terminal_sequences.cache_clear()
+    import ctypes
+    import ctypes.wintypes
+    import msvcrt
+
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+
+    dll = ctypes.WinDLL('kernel32', use_last_error=False)
+    handle = os.open('CONOUT$', os.O_RDWR)
+
+    try:
+        h_out = ctypes.wintypes.HANDLE(msvcrt.get_osfhandle(handle))
+        dw_original_mode = ctypes.wintypes.DWORD()
+        success = dll.GetConsoleMode(h_out, ctypes.byref(dw_original_mode))
+        if not success:
+            raise Exception('GetConsoleMode failed')
+
+        success = dll.SetConsoleMode(h_out, ctypes.wintypes.DWORD(
+            dw_original_mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+        if not success:
+            raise Exception('SetConsoleMode failed')
+    except Exception as e:
+        write_string(f'WARNING: Cannot enable VT mode - {e}')
+    else:
+        global WINDOWS_VT_MODE
+        WINDOWS_VT_MODE = True
+        supports_terminal_sequences.cache_clear()
+    finally:
+        os.close(handle)
 
 
 _terminal_sequences_re = re.compile('\033\\[[^m]+m')
@@ -5967,7 +6001,7 @@ def truncate_string(s, left, right=0):
     assert left > 3 and right >= 0
     if s is None or len(s) <= left + right:
         return s
-    return f'{s[:left-3]}...{s[-right:]}'
+    return f'{s[:left-3]}...{s[-right:] if right else ""}'
 
 
 def orderedSet_from_options(options, alias_dict, *, use_regex=False, start=None):
@@ -6014,7 +6048,7 @@ class FormatSorter:
         'vcodec': {'type': 'ordered', 'regex': True,
                    'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
         'acodec': {'type': 'ordered', 'regex': True,
-                   'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
+                   'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'ac-?4', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
         'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                 'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
         'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',

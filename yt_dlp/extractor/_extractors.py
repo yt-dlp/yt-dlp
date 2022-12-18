@@ -78,6 +78,7 @@ from .agora import (
     WyborczaVideoIE,
 )
 from .airmozilla import AirMozillaIE
+from .airtv import AirTVIE
 from .aljazeera import AlJazeeraIE
 from .alphaporno import AlphaPornoIE
 from .amara import AmaraIE
@@ -536,7 +537,7 @@ from .espn import (
     ESPNCricInfoIE,
 )
 from .esri import EsriVideoIE
-from .europa import EuropaIE
+from .europa import EuropaIE, EuroParlWebstreamIE
 from .europeantour import EuropeanTourIE
 from .eurosport import EurosportIE
 from .euscreen import EUScreenIE
@@ -982,6 +983,10 @@ from .mediasite import (
     MediasiteCatalogIE,
     MediasiteNamedCatalogIE,
 )
+from .mediastream import (
+    MediaStreamIE,
+    WinSportsVideoIE,
+)
 from .mediaworksnz import MediaWorksNZVODIE
 from .medici import MediciIE
 from .megaphone import MegaphoneIE
@@ -1211,6 +1216,7 @@ from .nintendo import NintendoIE
 from .nitter import NitterIE
 from .njpwworld import NJPWWorldIE
 from .nobelprize import NobelPrizeIE
+from .noice import NoicePodcastIE
 from .nonktube import NonkTubeIE
 from .noodlemagazine import NoodleMagazineIE
 from .noovo import NoovoIE
@@ -1276,6 +1282,7 @@ from .on24 import On24IE
 from .ondemandkorea import OnDemandKoreaIE
 from .onefootball import OneFootballIE
 from .onenewsnz import OneNewsNZIE
+from .oneplace import OnePlacePodcastIE
 from .onet import (
     OnetIE,
     OnetChannelIE,
@@ -1567,6 +1574,7 @@ from .ruhd import RUHDIE
 from .rule34video import Rule34VideoIE
 from .rumble import (
     RumbleEmbedIE,
+    RumbleIE,
     RumbleChannelIE,
 )
 from .rutube import (
@@ -1639,6 +1647,7 @@ from .shared import (
     VivoIE,
 )
 from .sharevideos import ShareVideosEmbedIE
+from .sibnet import SibnetEmbedIE
 from .shemaroome import ShemarooMeIE
 from .showroomlive import ShowRoomLiveIE
 from .simplecast import (
@@ -2191,6 +2200,7 @@ from .wdr import (
     WDRElefantIE,
     WDRMobileIE,
 )
+from .webcamerapl import WebcameraplIE
 from .webcaster import (
     WebcasterIE,
     WebcasterFeedIE,
@@ -2234,12 +2244,6 @@ from .xhamster import (
     XHamsterIE,
     XHamsterEmbedIE,
     XHamsterUserIE,
-)
-from .xiami import (
-    XiamiSongIE,
-    XiamiAlbumIE,
-    XiamiArtistIE,
-    XiamiCollectionIE
 )
 from .ximalaya import (
     XimalayaIE,
