@@ -1074,6 +1074,8 @@ class BiliLiveIE(InfoExtractor):
         for codec in fmt.get('codec') or []:
             if codec.get('current_qn') != qn:
                 continue
+            if fmt.get('format_name') == "flv" and codec.get('codec_name') in ["hevc", "h265"]:
+                continue
             for url_info in codec['url_info']:
                 yield {
                     'url': f'{url_info["host"]}{codec["base_url"]}{url_info["extra"]}',
