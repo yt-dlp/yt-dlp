@@ -334,7 +334,7 @@ class SlidesLiveIE(InfoExtractor):
         slides, slides_xml = None, None
         chapters, thumbnails = [], []
         if url_or_none(player_info.get('thumbnail')):
-            thumbnails.append({'url': player_info['thumbnail']})
+            thumbnails.append({'id': 'cover', 'url': player_info['thumbnail']})
 
         if player_info.get('slides_json_url'):
             slides = traverse_obj(self._download_json(
