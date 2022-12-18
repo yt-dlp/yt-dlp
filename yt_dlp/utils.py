@@ -6311,7 +6311,7 @@ class FormatSorter:
             # HEVC-over-FLV is out-of-spec by FLV's original spec
             # ref. https://trac.ffmpeg.org/ticket/6389
             # ref. https://github.com/yt-dlp/yt-dlp/pull/5821
-            format['preference'] = -1000
+            format['preference'] = -100
 
         # Determine missing bitrates
         if format.get('tbr') is None:
