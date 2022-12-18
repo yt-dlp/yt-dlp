@@ -2088,6 +2088,13 @@ from .videocampus_sachsen import (
 )
 from .videodetective import VideoDetectiveIE
 from .videofyme import VideofyMeIE
+from .videoken import (
+    VideoKenIE,
+    VideoKenPlayerIE,
+    VideoKenPlaylistIE,
+    VideoKenCategoryIE,
+    VideoKenTopicIE,
+)
 from .videomore import (
     VideomoreIE,
     VideomoreVideoIE,
