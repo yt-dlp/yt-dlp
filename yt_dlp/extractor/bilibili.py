@@ -1074,18 +1074,12 @@ class BiliLiveIE(InfoExtractor):
         for codec in fmt.get('codec') or []:
             if codec.get('current_qn') != qn:
                 continue
-            preference = -1
-            if fmt.get('format_name') == 'flv' and codec.get('codec_name') in ('hevc', 'h265'):
-                # HEVC-over-FLV is out-of-spec from FLV's original spec
-                # ref. https://trac.ffmpeg.org/ticket/6389
-                preference = -10
             for url_info in codec['url_info']:
                 yield {
                     'url': f'{url_info["host"]}{codec["base_url"]}{url_info["extra"]}',
                     'ext': fmt.get('format_name'),
                     'vcodec': codec.get('codec_name'),
                     'quality': self._quality(qn),
-                    'preference': preference,
                     **self._FORMATS[qn],
                 }
 
