@@ -15,8 +15,25 @@ class IVXPlayerIE(InfoExtractor):
             'timestamp': 1670151746,
         }
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://www.cantika.com/video/31737/film-indonesia-di-disney-content-showcase-asia-pacific-2022',
+        'info_dict': {
+            'id': 'fixme',
+            'ext': 'mp4',
+        },
+        'params': {
+            'allowed_extractors': ['ivxplayer']
+        }
+    }, {
+        'url': 'https://www.gooto.com/video/11437/wuling-suv-ramai-dikunjungi-di-giias-2018',
+        'info_dict': {
+            'id': 'fixme',
+            'ext': 'mp4',
+        }
+    }]
 
     def _extract_from_webpage(self, url, webpage):
+        # more info at https://player.ivideosmart.com/ivsplayer/v4/dist/js/loader.js
         player_key, video_id = self._search_regex(
             r'<ivs-player\s*[^>]+data-ivs-key\s*=\s*"(?P<player_key>[\w]+)\s*[^>]+\bdata-ivs-vid="(?P<video_id>[\w-]+)',
             webpage, 'player_key, video_id', group=('player_key', 'video_id'), default=(None, ''))
@@ -44,32 +61,3 @@ class IVXPlayerIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         }
-
-
-class IVXPlayerEmbedIE(InfoExtractor):
-    _VALID_URL = False
-    _WEBPAGE_TESTS = [{
-        'url': 'https://www.cantika.com/video/31737/film-indonesia-di-disney-content-showcase-asia-pacific-2022',
-        'info_dict': {
-            'id': 'fixme',
-            'ext': 'mp4',
-        },
-        'params': {
-            'allowed_extractors': ['ivxplayer.*']
-        }
-    }, {
-        'url': 'https://www.gooto.com/video/11437/wuling-suv-ramai-dikunjungi-di-giias-2018',
-        'info_dict': {
-            'id': 'fixme',
-            'ext': 'mp4',
-        }
-    }]
-
-    def _extract_from_webpage(self, url, webpage):
-        player_key, video_id = self._search_regex(
-            r'<ivs-player\s*[^>]+data-ivs-key\s*=\s*"(?P<player_key>[\w]+)\s*[^>]+\bdata-ivs-vid="(?P<video_id>[\w-]+)',
-            webpage, 'player_key, video_id', group=('player_key', 'video_id'), default=(None, ''))
-        if not player_key:
-            return
-        print(f'ivxplayer:{video_id}:{player_key}')
-        yield self.url_result(f'ivxplayer:{video_id}:{player_key}', IVXPlayerIE, url_transparent=True)
