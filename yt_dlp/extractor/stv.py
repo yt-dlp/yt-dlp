@@ -31,7 +31,7 @@ class STVPlayerIE(InfoExtractor):
         'url': 'https://player.stv.tv/episode/4125/jennifer-saunders-memory-lane',
         'only_matching': True,
     }]
-    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/1486976045/default_default/index.html?videoId=%s'
+    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
     _PTYPE_MAP = {
         'episode': 'episodes',
         'video': 'shortform',
@@ -73,11 +73,12 @@ class STVPlayerIE(InfoExtractor):
             })
 
         programme = result.get('programme') or {}
+        account_id = '6204867266001' if programme.get('drmEnabled') else '1486976045'
 
         return {
             '_type': 'url_transparent',
             'id': video_id,
-            'url': smuggle_url(self.BRIGHTCOVE_URL_TEMPLATE % video_id, {'geo_countries': ['GB']}),
+            'url': smuggle_url(self.BRIGHTCOVE_URL_TEMPLATE % (account_id, video_id), {'geo_countries': ['GB']}),
             'description': result.get('summary'),
             'duration': float_or_none(video.get('length'), 1000),
             'subtitles': subtitles,
