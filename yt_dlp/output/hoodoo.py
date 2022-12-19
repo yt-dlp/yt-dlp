@@ -9,7 +9,7 @@ import enum
 CSI = '\x1B['
 OSC = '\x1B]'
 BEL = '\x07'
-CSI_END = 'm'
+COLOR_END = 'm'
 
 ERASE_LINE = f'{CSI}K'
 
@@ -61,14 +61,14 @@ class TermCode(str):
         Creates a TermCode from the provided text formats
 
         This method combines multiple `Color`s and `Typeface`s into one code.
-        Codes are prefixed by `CSI` and suffixed by `CSI_END`.
+        Codes are prefixed by `CSI` and suffixed by `COLOR_END`.
 
         @params text_formats    A `Typeface`/`Color` specifying the format.
 
         @returns                A `TermCode` combining the specified formats.
         """
         sequence = ';'.join(map(cls._convert_color, text_formats))
-        return cls(f'{CSI}{sequence}{CSI_END}')
+        return cls(f'{CSI}{sequence}{COLOR_END}')
 
     @classmethod
     def join(cls, *text_formats):
@@ -98,19 +98,19 @@ class TermCode(str):
                 codes.append(cls._convert_color(text_format))
 
             # isinstance(text_format, (str, TermCode))
-            elif text_format.startswith(CSI) and text_format.endswith(CSI_END):
+            elif text_format.startswith(CSI) and text_format.endswith(COLOR_END):
                 codes.append(';' if is_color else CSI)
                 is_color = True
-                codes.append(text_format[len(CSI):-len(CSI_END)])
+                codes.append(text_format[len(CSI):-len(COLOR_END)])
 
             else:
                 if is_color:
-                    codes.append(CSI_END)
+                    codes.append(COLOR_END)
                     is_color = False
                 codes.append(text_format)
 
         if is_color:
-            codes.append(CSI_END)
+            codes.append(COLOR_END)
 
         return cls(''.join(codes))
 
@@ -133,7 +133,7 @@ class TermCode(str):
         return str(prefix + text_format)
 
 
-RESET = TermCode(f'{CSI}0{CSI_END}')
+RESET = TermCode(f'{CSI}0{COLOR_END}')
 
 
 def format_text(message, *text_formats):

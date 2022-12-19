@@ -37,7 +37,7 @@ class Progress:
             self.output.log(f'{self._add_line_number(text, pos)}\n')
             return
 
-        if not self.output.use_color:
+        if not self.output.use_term_codes:
             text = self._add_line_number(text, pos)
 
         self.output.status(self, pos, text)
@@ -85,7 +85,7 @@ class ProgressReporter:
 
             return
 
-        apply_progress_format(progress_dict, self._progress.output.use_color)
+        apply_progress_format(progress_dict, self._progress.output.use_term_codes)
 
         progress_data = progress_dict.copy()
         progress_data = {

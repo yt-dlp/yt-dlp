@@ -70,22 +70,21 @@ class Logger:
     and set those for the LogLevel in the mapping of the logger.
     You are free to call any of the setup functions more than once.
 
-    The state of outputs SHOULD NOT be mutated since
-    instances might be shared between multiple `LogLevel`s.
+    Output instances might be shared between `LogLevel`s.
 
     To enable the bidirectional workaround, call `init_bidi_workaround()`.
     """
 
     def __init__(self, screen, verbosity=Verbosity.NORMAL,
-                 *, encoding=None, use_color=None, disable_progress=False):
+                 *, encoding=None, use_term_codes=None, disable_progress=False):
         self._bidi_initalized = False
         self._pref_encoding = encoding
-        self._allow_color = use_color
+        self._use_term_codes = use_term_codes
         self._verbosity = verbosity
         self.message_cache = set()
         self.disable_progress = disable_progress
 
-        screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, use_color, encoding)
+        screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, use_term_codes, encoding)
         self.mapping = {
             LogLevel.SCREEN: screen_output,
             LogLevel.DEBUG: NULL_OUTPUT,
@@ -108,8 +107,8 @@ class Logger:
         return derived
 
     def setup_stream_logger(self, stdout, stderr, *, no_warnings=False):
-        stdout_output = NULL_OUTPUT if stdout is None else StreamOutput(stdout, self._allow_color, self._pref_encoding)
-        stderr_output = NULL_OUTPUT if stderr is None else StreamOutput(stderr, self._allow_color, self._pref_encoding)
+        stdout_output = NULL_OUTPUT if stdout is None else StreamOutput(stdout, self._use_term_codes, self._pref_encoding)
+        stderr_output = NULL_OUTPUT if stderr is None else StreamOutput(stderr, self._use_term_codes, self._pref_encoding)
 
         self.mapping.update({
             LogLevel.DEBUG: (
@@ -122,15 +121,15 @@ class Logger:
         return self
 
     def setup_class_logger(self, logger):
-        debug_logger = ClassOutput(logger.debug)
-        error_logger = ClassOutput(logger.error)
-        warning_logger = ClassOutput(logger.warning)
+        debug_output = ClassOutput(logger.debug)
+        warning_output = ClassOutput(logger.warning)
+        error_output = ClassOutput(logger.error)
 
         self.mapping.update({
-            LogLevel.DEBUG: debug_logger,
-            LogLevel.INFO: debug_logger,
-            LogLevel.WARNING: warning_logger,
-            LogLevel.ERROR: error_logger,
+            LogLevel.DEBUG: debug_output,
+            LogLevel.INFO: debug_output,
+            LogLevel.WARNING: warning_output,
+            LogLevel.ERROR: error_output,
         })
         return self
 
@@ -144,8 +143,8 @@ class Logger:
         return self
 
     def log(self, level, message, *, newline=True, once=False, suppress=False, trace=None, prefix=None):
-        logger = self.mapping.get(level)
-        if not logger or suppress:
+        output = self.mapping.get(level)
+        if not output or suppress:
             return
 
         assert isinstance(message, str)
@@ -155,7 +154,7 @@ class Logger:
                 return
             self.message_cache.add(message)
 
-        if logger.ALLOW_BIDI and self._bidi_initalized:
+        if self._bidi_initalized and output.ALLOW_BIDI:
             message = self._apply_bidi_workaround(message)
 
         if prefix:
@@ -175,7 +174,7 @@ class Logger:
         if newline:
             message += '\n'
 
-        logger.log(message)
+        output.log(message)
 
     def format(self, level, text, *text_formats):
         logger = self.mapping.get(level)

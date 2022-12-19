@@ -133,7 +133,7 @@ def format_percent(percent):
 
 
 def format_speed(speed):
-    """ Format speed as a string /s (width 12) """
+    """ Format speed as a string B/s (width 12) """
     return ' Unknown B/s' if speed is None else f'{format_bytes(speed):>10}/s'
 
 

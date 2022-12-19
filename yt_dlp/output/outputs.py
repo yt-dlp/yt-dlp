@@ -9,10 +9,14 @@ from ..utils import supports_terminal_sequences, write_string
 
 class OutputBase:
     ALLOW_BIDI = False
-    use_color = False
+    _use_term_codes = False
+
+    @property
+    def use_term_codes(self):
+        return self._use_term_codes
 
     def format(self, text, *text_formats):
-        if not self.use_color:
+        if not self.use_term_codes:
             return text
 
         return format_text(text, *text_formats)
@@ -59,7 +63,7 @@ class _StreamOutputGroup:
     def __init__(self):
         self.current_position: int = 0
         self.status_sizes: dict[int, int] = {}
-        self.using_color = False
+        self.using_term_codes = False
 
         self._last_status_id: int | None = None
         self._last_line: int | None = None
@@ -86,31 +90,31 @@ class StreamOutput(OutputBase):
     ALLOW_BIDI = True
     _OUTPUT_GROUPS = defaultdict(_StreamOutputGroup)
 
-    def __init__(self, stream, use_color=None, encoding=None, group_id=None):
+    def __init__(self, stream, use_term_codes=None, encoding=None, group_id=None):
         """
-        @param stream       A writable stream to write the output to.
-        @param use_color    If `True`, use terminal sequences for formatting.
-                            If `None`, automatically determine support using
-                            `supports_terminal_sequences`. Defaults to `None`.
-        @param encoding     The encoding to use when writing to the stream.
-                            If `None`, try to guess encoding from global encoding.
-                            Defaults to `None`.
-        @param group_id     An integer id used to identify an output.
-                            Each stream writing to the same output (eg. stdout/stderr, ...)
-                            should have the same id. If `None`, try to guess by using `isatty()`.
-                            If its result is `True`, the assigned group id will be `0`.
-                            Negative values are reserved. Defaults to `None`.
+        @param stream           A writable stream to write the output to.
+        @param use_term_codes   If `True`, use terminal sequences for formatting.
+                                If `None`, automatically determine support using
+                                `supports_terminal_sequences`. Defaults to `None`.
+        @param encoding         The encoding to use when writing to the stream.
+                                If `None`, try to guess encoding from global encoding.
+                                Defaults to `None`.
+        @param group_id         An integer id used to identify an output.
+                                Each stream writing to the same output (eg. stdout/stderr, ...)
+                                should have the same id. If `None`, try to guess by using `isatty()`.
+                                If its result is `True`, the assigned group id will be `0`.
+                                Negative values are reserved. Defaults to `None`.
         """
         self._stream = stream
         self._encoding = encoding
-        self.use_color = supports_terminal_sequences(stream) if use_color is None else use_color
+        self._use_term_codes = supports_terminal_sequences(stream) if use_term_codes is None else use_term_codes
 
         if group_id is None:
             group_id = 0 if self.isatty else _StreamOutputGroup.next_id()
         self._output_group = self._OUTPUT_GROUPS[group_id]
 
-        if self.use_color:
-            self._output_group.using_color = True
+        if self.use_term_codes:
+            self._output_group.using_term_codes = True
 
     @functools.cached_property
     def isatty(self):
@@ -121,7 +125,7 @@ class StreamOutput(OutputBase):
 
     @_synchronized
     def log(self, message: str):
-        if self._output_group.status_sizes and self._output_group.using_color:
+        if self._output_group.status_sizes and self._output_group.using_term_codes:
             lines = message.count('\n')
             if not message.endswith('\n'):
                 lines += 1
@@ -134,7 +138,7 @@ class StreamOutput(OutputBase):
             message = f'\n{message}'
 
         self._log(message)
-        if self._output_group.using_color:
+        if self._output_group.using_term_codes:
             self._output_group.reset_last_status()
 
         self._output_group.current_position = 0 if message.endswith('\n') else -1
@@ -143,7 +147,7 @@ class StreamOutput(OutputBase):
     def status(self, status, line, message):
         status_id = id(status)
 
-        if not self.use_color:
+        if not self.use_term_codes:
             message_length = len(message)
             previous_length = self._output_group.get_previous_length(status_id, line)
             if previous_length is not None:
@@ -162,7 +166,7 @@ class StreamOutput(OutputBase):
 
     @_synchronized
     def register_status(self, status, lines):
-        if not self.use_color:
+        if not self.use_term_codes:
             return
 
         status_id = id(status)
@@ -170,7 +174,7 @@ class StreamOutput(OutputBase):
 
     @_synchronized
     def unregister_status(self, status):
-        if not self.use_color:
+        if not self.use_term_codes:
             self._output_group.reset_last_status()
             return
 

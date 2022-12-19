@@ -722,12 +722,12 @@ class YoutubeDL:
             else Verbosity.QUIET if params.get('quiet')
             else Verbosity.NORMAL)
 
-        use_color = not params.get('no_color', False)
-        if use_color:
-            use_color = None
+        use_term_codes = not params.get('no_color', False)
+        if use_term_codes:
+            use_term_codes = None
         logger = Logger(
             screen, verbosity, encoding=params.get('encoding'),
-            use_color=use_color, disable_progress=bool(params.get('noprogress')))
+            use_term_codes=use_term_codes, disable_progress=bool(params.get('noprogress')))
 
         logger_param = params.get('logger')
         if logger_param == 'logging':
