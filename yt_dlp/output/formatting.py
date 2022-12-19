@@ -1,8 +1,8 @@
 from .hoodoo import Color, TermCode, Typeface, format_text
-from ..utils import format_bytes, timetuple_from_msec, try_call
+from ..utils import Namespace, format_bytes, timetuple_from_msec, try_call
 
 
-class ProgressStyle:
+class ProgressStyle(metaclass=Namespace):
     """ A class holding Styles for progress formatting """
     DOWNLOADED_BYTES = TermCode.make(Color.LIGHT | Color.BLUE)
     PERCENT = TermCode.make(Color.LIGHT | Color.BLUE)
@@ -28,11 +28,11 @@ def apply_progress_format(progress_dict, use_color=False):
         return
 
     if use_color:
-        for item in ProgressStyle:
-            name = f'_{item.name.lower()}_str'
+        for name, value in ProgressStyle.items_:
+            name = f'_{name.lower()}_str'
             if name not in progress_dict:
                 continue
-            progress_dict[name] = format_text(progress_dict[name], item.value)
+            progress_dict[name] = format_text(progress_dict[name], value)
 
     progress_dict['_default_template'] = default_template % progress_dict
 

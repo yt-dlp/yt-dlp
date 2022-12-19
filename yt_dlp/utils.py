@@ -40,7 +40,6 @@ import sys
 import tempfile
 import time
 import traceback
-import types
 import unicodedata
 import urllib.error
 import urllib.parse
@@ -5875,29 +5874,53 @@ class classproperty:
         return self._cache[cls]
 
 
-class Namespace(types.SimpleNamespace):
+class Namespace(type):
     """Immutable namespace"""
+    def __new__(cls, _cls_name='Namespace', _bases=None, _classdict=None, **kwargs):
+        if _bases is None:
+            assert not _classdict
+            _classdict = kwargs.copy()
+            _classdict['_member_lookup_'] = kwargs
+            return cls(_cls_name, (), _classdict)
 
-    def __iter__(self):
-        return iter(self.__dict__.values())
+        assert _classdict
+        _classdict['_member_lookup_'] = {
+            name: value
+            for name, value in _classdict.items()
+            if not name.startswith('_')
+        }
+        return super().__new__(cls, _cls_name, _bases, _classdict)
+
+    def __init__(cls, *_, **kwargs):
+        # This method is required since Namespace(...) calls `__init__`
+        pass
+
+    def __call__(cls):
+        raise TypeError('Cannot create instance of a Namespace')
+
+    def __setattr__(cls, name, value):
+        raise TypeError('Cannot mutate Namespace')
+
+    def __iter__(cls):
+        return iter(cls._member_lookup_.values())
 
     @property
-    def items_(self):
-        return self.__dict__.items()
+    def items_(cls):
+        return cls._member_lookup_.items()
 
 
-MEDIA_EXTENSIONS = Namespace(
-    common_video=('avi', 'flv', 'mkv', 'mov', 'mp4', 'webm'),
-    video=('3g2', '3gp', 'f4v', 'mk3d', 'divx', 'mpg', 'ogv', 'm4v', 'wmv'),
-    common_audio=('aiff', 'alac', 'flac', 'm4a', 'mka', 'mp3', 'ogg', 'opus', 'wav'),
-    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma'),
-    thumbnails=('jpg', 'png', 'webp'),
-    storyboards=('mhtml', ),
-    subtitles=('srt', 'vtt', 'ass', 'lrc'),
-    manifests=('f4f', 'f4m', 'm3u8', 'smil', 'mpd'),
-)
-MEDIA_EXTENSIONS.video += MEDIA_EXTENSIONS.common_video
-MEDIA_EXTENSIONS.audio += MEDIA_EXTENSIONS.common_audio
+class MEDIA_EXTENSIONS(metaclass=Namespace):
+    common_video = ('avi', 'flv', 'mkv', 'mov', 'mp4', 'webm')
+    video = ('3g2', '3gp', 'f4v', 'mk3d', 'divx', 'mpg', 'ogv', 'm4v', 'wmv') + common_video
+    common_audio = ('aiff', 'alac', 'flac', 'm4a', 'mka', 'mp3', 'ogg', 'opus', 'wav')
+    audio = (
+        'aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r',
+        'oga', 'ogx', 'spx', 'vorbis', 'wma') + common_audio
+    thumbnails = ('jpg', 'png', 'webp')
+    storyboards = ('mhtml', )
+    subtitles = ('srt', 'vtt', 'ass', 'lrc')
+    manifests = ('f4f', 'f4m', 'm3u8', 'smil', 'mpd')
+
 
 KNOWN_EXTENSIONS = (*MEDIA_EXTENSIONS.video, *MEDIA_EXTENSIONS.audio, *MEDIA_EXTENSIONS.manifests)
 
