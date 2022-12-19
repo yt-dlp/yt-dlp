@@ -46,6 +46,9 @@ class ARDMediathekBaseIE(InfoExtractor):
             subtitles['de'] = [{
                 'ext': 'ttml',
                 'url': subtitle_url,
+            }, {
+                'ext': 'vtt',
+                'url': subtitle_url.replace("/ebutt/", "/webvtt/") + ".vtt",
             }]
 
         return {
