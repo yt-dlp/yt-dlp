@@ -1263,7 +1263,10 @@ class InfoExtractor:
         """
         res = self._search_regex(pattern, string, name, default, fatal, flags, group)
         if res:
-            return clean_html(res).strip()
+            if isinstance(res, (list, tuple)):
+                return tuple(clean_html(r) for r in res)
+             else:
+                return clean_html(res)
         else:
             return res
 
