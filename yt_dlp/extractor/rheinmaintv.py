@@ -6,36 +6,40 @@ class RheinMainTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rheinmaintv\.de/sendungen/(?:[a-z-]+/)*(?P<display_id>[a-z-]+)/vom-(?P<date>[0-9]{2}\.[0-9]{2}\.[0-9]{4})(?:/(?P<serial_number>[0-9]+))?'
     _TESTS = [{
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/formationsgemeinschaft-rhein-main-bei-den-deutschen-meisterschaften/vom-14.11.2022/',
-        'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
+        ##'md5': None,  # changes constantly
         'info_dict': {
             'id': 'vom 14.11.2022',
+            'ext': 'mp4',
             'title': 'Formationsgemeinschaft Rhein-Main bei den Deutschen Meisterschaften',
             'alt_title': 'Formationsgemeinschaft Rhein-Main bei den Deutschen Meisterschaften',
             'description': 'Die Lateinformation wollte bei den Deutschen Meisterschaften in die Zwischenrunde. Leider schaffte es das Team nicht.',
             'display_id': 'formationsgemeinschaft-rhein-main-bei-den-deutschen-meisterschaften',
-            'formats': [...],  # len(formats) == 9
+            'formats': [{}, {}, {}, {}, {}, {}, {}, {}, {}],  # contents of the dicts aren't checked
             'subtitles': {},
             'thumbnail': 'https://rmtvmedia0.blob.core.windows.net/b43ca3fa-39b4-4129-9512-116c342b9a05/04_Latein.jpg?sv=2016-05-31&sr=c&sig=I6TEvoc8M2fzN6PwvIuPZ1VxxL06GnvxrjMTo7C3ys0%3D&st=2022-11-14T14%3A30%3A14Z&se=3022-11-15T14%3A30%3A14Z&sp=r',
             'timestamp': 1668526214,
             'duration': 345.0,
-            'view_count': ...
+            'view_count': int,
+            'upload_date': '20221115'
         },
         ##'ism_manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest'
     }, {
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/casino-mainz-bei-den-deutschen-meisterschaften/vom-14.11.2022/',
-        'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
+        ##'md5': None,  # changes constantly
         'info_dict': {
             'id': 'vom 14.11.2022',
+            'ext': 'mp4',
             'title': 'Casino Mainz bei den Deutschen Meisterschaften',
             'alt_title': 'Casino Mainz bei den Deutschen Meisterschaften',
             'description': 'Die Standardformation aus Mainz hoffte auch auf den Sprung in die Zwischenrunde, doch auch für sie war Schluss nach der Vorrunde.',
             'display_id': 'casino-mainz-bei-den-deutschen-meisterschaften',
-            'formats': [...],  # len(formats) == 9
+            'formats': [{}, {}, {}, {}, {}, {}, {}, {}, {}],  # contents of the dicts aren't checked
             'subtitles': {},
             'thumbnail': 'https://rmtvmedia0.blob.core.windows.net/e1cf7655-91b9-4b7e-b19f-a79852c7b41f/06_Standard.jpg?sv=2016-05-31&sr=c&sig=jQPJSdxCxJMX8yUZkFUPNrv1qISb0pCouK9MzAMSOMc%3D&st=2022-11-14T14%3A50%3A02Z&se=3022-11-15T14%3A50%3A02Z&sp=r',
             'timestamp': 1668527402,
             'duration': 348.0,
-            'view_count': ...
+            'view_count': int,
+            'upload_date': '20221115'
         },
         ##'ism_manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest'
     }]
