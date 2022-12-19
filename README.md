@@ -893,11 +893,11 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     specific bitrate like 128K (default 5)
     --remux-video FORMAT            Remux the video into another container if
                                     necessary (currently supported: avi, flv,
-                                    mkv, mov, mp4, webm, aac, aiff, alac, flac,
-                                    m4a, mka, mp3, ogg, opus, vorbis, wav). If
-                                    target container does not support the
-                                    video/audio codec, remuxing will fail. You
-                                    can specify multiple rules; e.g.
+                                    gif, mkv, mov, mp4, webm, aac, aiff, alac,
+                                    flac, m4a, mka, mp3, ogg, opus, vorbis,
+                                    wav). If target container does not support
+                                    the video/audio codec, remuxing will fail.
+                                    You can specify multiple rules; e.g.
                                     "aac>m4a/mov>mp4/mkv" will remux aac to m4a,
                                     mov to mp4 and anything else to mkv
     --recode-video FORMAT           Re-encode the video into another format if
