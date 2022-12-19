@@ -46,8 +46,24 @@ class HiDiveIE(InfoExtractor):
             'Email': username,
             'Password': password,
         })
-        self._download_webpage(
+        loginWebpage = self._download_webpage(
             self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(data))
+        # If the user has multiple profiles, select one.
+        profileIds = re.findall(r'\<button .+data-profile-id="([a-zA-Z0-9]+)".*\>', loginWebpage)
+        if profileIds is None:
+            return # If only one profile, Hidive auto-selects it.
+        profileIdHashes = re.findall(r'\<button .+data-hash="([a-zA-Z0-9]+)".*\>', loginWebpage)
+        # Just pick the first profile, until someone else updates this code to
+        #   support declaring a profile in a config file.
+        profileId = profileIds[0]
+        profileIdHash = profileIdHashes[0]
+        chooseProfileResultWebpage = self._download_json(
+            'https://www.hidive.com/ajax/chooseprofile', '',
+            data=urlencode_postdata({
+                'profileId': profileId,
+                'hash': profileIdHash,
+                'returnUrl': '/dashboard'
+            })) or {}
 
     def _call_api(self, video_id, title, key, data={}, **kwargs):
         data = {
@@ -60,24 +76,22 @@ class HiDiveIE(InfoExtractor):
             'https://www.hidive.com/play/settings', video_id,
             data=urlencode_postdata(data), **kwargs) or {}
 
-    def _extract_subtitles_from_rendition(self, rendition, subtitles, parsed_urls):
-        for cc_file in rendition.get('ccFiles', []):
-            cc_url = url_or_none(try_get(cc_file, lambda x: x[2]))
-            # name is used since we cant distinguish subs with same language code
-            cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
-            if cc_url not in parsed_urls and cc_lang:
-                parsed_urls.add(cc_url)
-                subtitles.setdefault(cc_lang, []).append({'url': cc_url})
-
     def _get_subtitles(self, url, video_id, title, key, parsed_urls):
-        webpage = self._download_webpage(url, video_id, fatal=False) or ''
         subtitles = {}
-        for caption in set(re.findall(r'data-captions=\"([^\"]+)\"', webpage)):
-            renditions = self._call_api(
-                video_id, title, key, {'Captions': caption}, fatal=False,
-                note=f'Downloading {caption} subtitle information').get('renditions') or {}
-            for rendition_id, rendition in renditions.items():
-                self._extract_subtitles_from_rendition(rendition, subtitles, parsed_urls)
+        webpage = self._download_webpage(url, video_id, fatal=False) or ''
+
+        settings = self._call_api(video_id, title, key)
+        for rendition_id, rendition in settings['renditions'].items():
+            audio, version, extra = rendition_id.split('_')
+
+            for cc_file in rendition.get('ccFiles', []):
+                cc_url = url_or_none(try_get(cc_file, lambda x: x[2]))
+                # name is used since we cant distinguish subs with same language code
+                cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
+                if cc_url not in parsed_urls and cc_lang:
+                    parsed_urls.add(cc_url)
+                    subtitles.setdefault(cc_lang, []).append({'url': cc_url})
+
         return subtitles
 
     def _real_extract(self, url):
