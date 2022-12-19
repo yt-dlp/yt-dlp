@@ -1,6 +1,5 @@
 import re
 import urllib.parse
-import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from ..utils import (
@@ -380,73 +379,12 @@ class SlidesLiveIE(InfoExtractor):
             video_id, mpd_id='dash', fatal=False))
         return formats
 
-    def _extract_slides(self, slides, video_id, slides_info_url, player_token, title, timestamp):
-        slides_version = int(self._search_regex(
-            r'https?://slides\.slideslive\.com/\d+/v(\d+)/\w+\.(?:json|xml)',
-            slides_info_url, 'slides version', default=0))
-        if slides_version < 4:
-            slide_url_template = 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s.jpg'
-        else:
-            slide_url_template = 'https://slides.slideslive.com/%s/slides/original/%s.png'
-
-        presentation, entries = [], []
-
-        if isinstance(slides, list):
-            service_data = {}
-            video_slides = traverse_obj(slides, (..., 'video', 'id'))
-            if video_slides:
-                service_data = self._download_json(
-                    f'https://ben.slideslive.com/player/{video_id}/slides_video_service_data',
-                    video_id, fatal=False, query={
-                        'player_token': player_token,
-                        'videos': ','.join(video_slides),
-                    }, note='Downloading video slides info', errnote='Failed to download video slides info') or {}
-            for slide_id, slide in enumerate(slides, start=1):
-                slide_path = traverse_obj(slide, ('image', 'name'))
-                slide_url = slide_url_template % (video_id, slide_path) if slide_path else None
-                presentation.append({
-                    'title': f'Slide {slide_id:03d}',
-                    'id': f'{slide_id:03d}',
-                    'start_time': int_or_none(slide.get('time'), scale=1000),
-                    'url': slide_url,
-                })
-                if not slide_path and traverse_obj(slide, ('video', 'service')) == 'yoda':
-                    slide_path = traverse_obj(slide, ('video', 'id'))
-                    cdn_hostname = traverse_obj(service_data, (
-                        slide_path, 'video_servers', ...), get_all=False)
-                    if not cdn_hostname or not slide_path:
-                        continue
-                    formats = self._extract_formats(cdn_hostname, slide_path, video_id)
-                    if not formats:
-                        continue
-                    entries.append({
-                        'id': f'{video_id}-{slide_id:03d}',
-                        'title': f'{title} - Slide {slide_id:03d}',
-                        'timestamp': timestamp,
-                        'duration': int_or_none(traverse_obj(slide, ('video', 'duration_ms')), scale=1000),
-                        'formats': formats,
-                    })
-
-        elif isinstance(slides, xml.etree.ElementTree.Element):
-            for slide_id, slide in enumerate(slides.findall('./slide'), start=1):
-                slide_path = xpath_text(slide, './slideName', 'name')
-                slide_url = slide_url_template % (video_id, slide_path) if slide_path else None
-                presentation.append({
-                    'title': f'Slide {slide_id:03d}',
-                    'id': f'{slide_id:03d}',
-                    'start_time': int_or_none(xpath_text(slide, './timeSec', 'time')),
-                    'url': slide_url,
-                })
-
-        return presentation, entries
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage, urlh = self._download_embed_webpage_handle(
             video_id, headers=traverse_obj(parse_qs(url), {
-                'Referer': ('embed_parent_url', ...),
-                'Origin': ('embed_container_origin', ...),
-            }, get_all=False))
+                'Referer': ('embed_parent_url', -1),
+                'Origin': ('embed_container_origin', -1)}))
         redirect_url = urlh.geturl()
         if 'domain_not_allowed' in redirect_url:
             domain = traverse_obj(parse_qs(redirect_url), ('allowed_domains[]', ...), get_all=False)
@@ -467,35 +405,49 @@ class SlidesLiveIE(InfoExtractor):
         service_name = player_info['service_name'].lower()
         assert service_name in ('url', 'yoda', 'vimeo', 'youtube')
         service_id = player_info['service_id']
-        title = player_info.get('title') or self._html_search_meta('title', webpage, default='')
-        timestamp = unified_timestamp(player_info.get('timestamp'))
 
-        slides, slides_info_url = None, None
+        slides_info_url = None
+        slides, slides_info = [], []
         if player_info.get('slides_json_url'):
             slides_info_url = player_info['slides_json_url']
             slides = traverse_obj(self._download_json(
                 slides_info_url, video_id, fatal=False,
-                note='Downloading slides JSON', errnote=False), 'slides', expected_type=list)
+                note='Downloading slides JSON', errnote=False), 'slides', expected_type=list) or []
+            for slide_id, slide in enumerate(slides, start=1):
+                slides_info.append((
+                    slide_id, traverse_obj(slide, ('image', 'name')),
+                    int_or_none(slide.get('time'), scale=1000)))
+
         if not slides and player_info.get('slides_xml_url'):
             slides_info_url = player_info['slides_xml_url']
             slides = self._download_xml(
                 slides_info_url, video_id, fatal=False,
                 note='Downloading slides XML', errnote='Failed to download slides info')
-        presentation, entries = self._extract_slides(
-            slides, video_id, slides_info_url, player_token, title, timestamp)
+            for slide_id, slide in enumerate(slides.findall('./slide'), start=1):
+                slides_info.append((
+                    slide_id, xpath_text(slide, './slideName', 'name'),
+                    int_or_none(xpath_text(slide, './timeSec', 'time'))))
+
+        slides_version = int(self._search_regex(
+            r'https?://slides\.slideslive\.com/\d+/v(\d+)/\w+\.(?:json|xml)',
+            slides_info_url, 'slides version', default=0))
+        if slides_version < 4:
+            slide_url_template = 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s.jpg'
+        else:
+            slide_url_template = 'https://slides.slideslive.com/%s/slides/original/%s.png'
 
         chapters, thumbnails = [], []
         if url_or_none(player_info.get('thumbnail')):
             thumbnails.append({'id': 'cover', 'url': player_info['thumbnail']})
-        for slide in presentation:
-            if slide.get('url'):
+        for slide_id, slide_path, start_time in slides_info:
+            if slide_path:
                 thumbnails.append({
-                    'id': slide['id'],
-                    'url': slide['url'],
+                    'id': f'{slide_id:03d}',
+                    'url': slide_url_template % (video_id, slide_path),
                 })
             chapters.append({
-                'title': slide['title'],
-                'start_time': slide['start_time'],
+                'title': f'Slide {slide_id:03d}',
+                'start_time': start_time,
             })
 
         subtitles = {}
@@ -510,8 +462,8 @@ class SlidesLiveIE(InfoExtractor):
 
         info = {
             'id': video_id,
-            'title': title,
-            'timestamp': timestamp,
+            'title': player_info.get('title') or self._html_search_meta('title', webpage, default=''),
+            'timestamp': unified_timestamp(player_info.get('timestamp')),
             'is_live': player_info.get('playlist_type') != 'vod',
             'thumbnails': thumbnails,
             'chapters': chapters,
@@ -536,6 +488,37 @@ class SlidesLiveIE(InfoExtractor):
                     f'https://player.vimeo.com/video/{service_id}',
                     {'http_headers': {'Referer': url}})
 
-        if entries:
-            return self.playlist_result([info, *entries], f'{video_id}-playlist', title)
-        return info
+        video_slides = traverse_obj(slides, (..., 'video', 'id'))
+        if not video_slides:
+            return info
+
+        def entries():
+            yield info
+
+            service_data = self._download_json(
+                f'https://ben.slideslive.com/player/{video_id}/slides_video_service_data',
+                video_id, fatal=False, query={
+                    'player_token': player_token,
+                    'videos': ','.join(video_slides),
+                }, note='Downloading video slides info', errnote='Failed to download video slides info') or {}
+
+            for slide_id, slide in enumerate(slides, 1):
+                if not traverse_obj(slide, ('video', 'service')) == 'yoda':
+                    continue
+                video_path = traverse_obj(slide, ('video', 'id'))
+                cdn_hostname = traverse_obj(service_data, (
+                    video_path, 'video_servers', ...), get_all=False)
+                if not cdn_hostname or not video_path:
+                    continue
+                formats = self._extract_formats(cdn_hostname, video_path, video_id)
+                if not formats:
+                    continue
+                yield {
+                    'id': f'{video_id}-{slide_id:03d}',
+                    'title': f'{info["title"]} - Slide {slide_id:03d}',
+                    'timestamp': info['timestamp'],
+                    'duration': int_or_none(traverse_obj(slide, ('video', 'duration_ms')), scale=1000),
+                    'formats': formats,
+                }
+
+        return self.playlist_result(entries(), f'{video_id}-playlist', info['title'])
