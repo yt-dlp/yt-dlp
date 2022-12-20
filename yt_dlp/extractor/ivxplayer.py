@@ -18,17 +18,23 @@ class IVXPlayerIE(InfoExtractor):
     _WEBPAGE_TESTS = [{
         'url': 'https://www.cantika.com/video/31737/film-indonesia-di-disney-content-showcase-asia-pacific-2022',
         'info_dict': {
-            'id': 'fixme',
+            'id': '2374200',
             'ext': 'mp4',
-        },
-        'params': {
-            'allowed_extractors': ['ivxplayer']
+            'duration': 110,
+            'title': 'Serial Indonesia di Disney Content Showcase Asia Pacific 2022',
+            'timestamp': 1670639416,
+            'upload_date': '20221210',
         }
     }, {
         'url': 'https://www.gooto.com/video/11437/wuling-suv-ramai-dikunjungi-di-giias-2018',
         'info_dict': {
-            'id': 'fixme',
+            'id': '892109',
             'ext': 'mp4',
+            'title': 'Wuling SUV Ramai Dikunjungi di GIIAS 2018',
+            'upload_date': '20180811',
+            'description': 'md5:6d901483d0aacc664aecb4489719aafa',
+            'duration': 75,
+            'timestamp': 1534011263,
         }
     }]
 
@@ -39,8 +45,8 @@ class IVXPlayerIE(InfoExtractor):
             webpage, 'player_key, video_id', group=('player_key', 'video_id'), default=(None, ''))
         if not player_key:
             return
-        print(f'ivxplayer:{video_id}:{player_key}')
-        yield self.url_result(f'ivxplayer:{video_id}:{player_key}', IVXPlayerIE, url_transparent=True)
+        yield self.url_result(f'ivxplayer:{video_id}:{player_key}', ie=IVXPlayerIE)
+        raise self.StopExtraction()
 
     # TODO: migrate tempo.py to use this extractor
     # TODO: only use video_id and player key
