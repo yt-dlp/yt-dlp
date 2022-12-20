@@ -1,5 +1,5 @@
 name: Build
-on: workflow_dispatch
+on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
 
