@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import str_or_none
+from ..utils import try_call
 
 
 class TempoIE(InfoExtractor):
@@ -33,7 +33,7 @@ class TempoIE(InfoExtractor):
         return self.url_result(
             f'ivxplayer:{video_id}:{player_key}', display_id=display_id,
             thumbnail=self._html_search_meta('twitter:image:src', webpage) or self._og_search_thumbnail(webpage),
-            tags=str_or_none(self._html_search_meta('keywords', webpage), '').split(','),
+            tags=try_call(lambda: self._html_search_meta('keywords', webpage)).split(','),
             description=(
                 json_ld_data.get('description') or self._html_search_meta(['description', 'twitter:description'], webpage)
                 or self._og_search_description(webpage)), url_transparent=True)
