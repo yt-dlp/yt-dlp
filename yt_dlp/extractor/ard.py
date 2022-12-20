@@ -48,7 +48,7 @@ class ARDMediathekBaseIE(InfoExtractor):
                 'url': subtitle_url,
             }, {
                 'ext': 'vtt',
-                'url': subtitle_url.replace('/ebutt/"', '/webvtt/') + '.vtt',
+                'url': subtitle_url.replace('/ebutt/', '/webvtt/') + '.vtt',
             }]
 
         return {
