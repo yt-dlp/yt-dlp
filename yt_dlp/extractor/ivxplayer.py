@@ -24,6 +24,7 @@ class IVXPlayerIE(InfoExtractor):
             'title': 'Serial Indonesia di Disney Content Showcase Asia Pacific 2022',
             'timestamp': 1670639416,
             'upload_date': '20221210',
+            'thumbnail': 'https://ivx-image.ivideosmart.com/serve/image/video/2374200?width=300'
         }
     }, {
         'url': 'https://www.gooto.com/video/11437/wuling-suv-ramai-dikunjungi-di-giias-2018',
@@ -35,6 +36,7 @@ class IVXPlayerIE(InfoExtractor):
             'description': 'md5:6d901483d0aacc664aecb4489719aafa',
             'duration': 75,
             'timestamp': 1534011263,
+            'thumbnail': 'https://ivx-image.ivideosmart.com/serve/image/video/892109?width=300'
         }
     }]
 
@@ -66,4 +68,5 @@ class IVXPlayerIE(InfoExtractor):
             'timestamp': parse_iso8601(traverse_obj(json_data, ('ivx', 'published_at'))),
             'formats': formats,
             'subtitles': subtitles,
+            'thumbnail': traverse_obj(json_data, ('ivx', 'thumbnail_url'))
         }
