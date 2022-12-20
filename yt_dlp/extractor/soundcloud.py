@@ -781,15 +781,14 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
         user_id = mobj.group('user_id')
 
         if user_id:
-            user = self._download_json(
-                self._resolv_url(self._API_V1_BASE + 'users/' + user_id),
-                uploader, 'Downloading user info', headers=self._HEADERS)
+            user_info = self._resolv_url(self._API_V1_BASE + 'users/' + user_id)
             resource = 'all'
         else:
-            user = self._download_json(
-                self._resolv_url(self._BASE_URL + uploader),
-                uploader, 'Downloading user info', headers=self._HEADERS)
+            user_info = self._resolv_url(self._BASE_URL + uploader)
             resource = mobj.group('rsrc') or 'all'
+
+        user = self._download_json(
+            user_info, uploader, 'Downloading user info', headers=self._HEADERS)
 
         return self._extract_playlist(
             self._API_V2_BASE + self._BASE_URL_MAP[resource] % user['id'],
