@@ -13,6 +13,7 @@ class IVXPlayerIE(InfoExtractor):
             'upload_date': '20221204',
             'title': 'Film Indonesia di Disney Content Showcase Asia Pacific 2022',
             'timestamp': 1670151746,
+            'thumbnail': 'https://ivx-image.ivideosmart.com/serve/image/video/2366065?width=300'
         }
     }]
     _WEBPAGE_TESTS = [{
