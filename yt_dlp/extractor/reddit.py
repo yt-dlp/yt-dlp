@@ -1,15 +1,15 @@
 import random
-from urllib.parse import urlparse
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    int_or_none,
     float_or_none,
+    int_or_none,
+    traverse_obj,
     try_get,
     unescapeHTML,
     url_or_none,
-    traverse_obj
 )
 
 
@@ -57,6 +57,14 @@ class RedditIE(InfoExtractor):
             'age_limit': 0,
         },
     }, {
+        # videos embedded in reddit text post
+        'url': 'https://www.reddit.com/r/KamenRider/comments/wzqkxp/finale_kamen_rider_revice_episode_50_family_to/',
+        'playlist_count': 2,
+        'info_dict': {
+            'id': 'wzqkxp',
+            'title': 'md5:72d3d19402aa11eff5bd32fc96369b37',
+        },
+    }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
         'only_matching': True,
     }, {
@@ -102,10 +110,6 @@ class RedditIE(InfoExtractor):
         data = data[0]['data']['children'][0]['data']
         video_url = data['url']
 
-        # Avoid recursing into the same reddit URL
-        if 'reddit.com/' in video_url and '/%s/' % video_id in video_url:
-            raise ExtractorError('No media found', expected=True)
-
         over_18 = data.get('over_18')
         if over_18 is True:
             age_limit = 18
@@ -148,6 +152,32 @@ class RedditIE(InfoExtractor):
             'age_limit': age_limit,
         }
 
+        parsed_url = urllib.parse.urlparse(video_url)
+
+        # Check for embeds in text posts, or else raise to avoid recursing into the same reddit URL
+        if 'reddit.com' in parsed_url.netloc and f'/{video_id}/' in parsed_url.path:
+            entries = []
+            for media in traverse_obj(data, ('media_metadata', ...), expected_type=dict):
+                if not media.get('id') or media.get('e') != 'RedditVideo':
+                    continue
+                formats = []
+                if media.get('hlsUrl'):
+                    formats.extend(self._extract_m3u8_formats(
+                        unescapeHTML(media['hlsUrl']), video_id, 'mp4', m3u8_id='hls', fatal=False))
+                if media.get('dashUrl'):
+                    formats.extend(self._extract_mpd_formats(
+                        unescapeHTML(media['dashUrl']), video_id, mpd_id='dash', fatal=False))
+                if formats:
+                    entries.append({
+                        'id': media['id'],
+                        'display_id': video_id,
+                        'formats': formats,
+                        **info,
+                    })
+            if entries:
+                return self.playlist_result(entries, video_id, info.get('title'))
+            raise ExtractorError('No media found', expected=True)
+
         # Check if media is hosted on reddit:
         reddit_video = traverse_obj(data, (('media', 'secure_media'), 'reddit_video'), get_all=False)
         if reddit_video:
@@ -189,7 +219,6 @@ class RedditIE(InfoExtractor):
                 'duration': int_or_none(reddit_video.get('duration')),
             }
 
-        parsed_url = urlparse(video_url)
         if parsed_url.netloc == 'v.redd.it':
             self.raise_no_formats('This video is processing', expected=True, video_id=video_id)
             return {

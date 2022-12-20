@@ -432,19 +432,19 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     explicitly provided IP block in CIDR notation
 
 ## Video Selection:
-    -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the videos
+    -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the items
                                     to download. You can specify a range using
                                     "[START]:[STOP][:STEP]". For backward
                                     compatibility, START-STOP is also supported.
                                     Use negative indices to count from the right
                                     and negative STEP to download in reverse
                                     order. E.g. "-I 1:3,7,-5::2" used on a
-                                    playlist of size 15 will download the videos
+                                    playlist of size 15 will download the items
                                     at index 1,2,3,7,11,13,15
-    --min-filesize SIZE             Do not download any videos smaller than
+    --min-filesize SIZE             Abort download if filesize is smaller than
                                     SIZE, e.g. 50k or 44.6M
-    --max-filesize SIZE             Do not download any videos larger than SIZE,
-                                    e.g. 50k or 44.6M
+    --max-filesize SIZE             Abort download if filesize is larger than
+                                    SIZE, e.g. 50k or 44.6M
     --date DATE                     Download only videos uploaded on this date.
                                     The date can be "YYYYMMDD" or in the format 
                                     [now|today|yesterday][-N[day|week|month|year]].
@@ -491,9 +491,9 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     a file that is in the archive
     --break-on-reject               Stop the download process when encountering
                                     a file that has been filtered out
-    --break-per-input               --break-on-existing, --break-on-reject,
-                                    --max-downloads, and autonumber resets per
-                                    input URL
+    --break-per-input               Alters --max-downloads, --break-on-existing,
+                                    --break-on-reject, and autonumber to reset
+                                    per input URL
     --no-break-per-input            --break-on-existing and similar options
                                     terminates the entire download queue
     --skip-playlist-after-errors N  Number of allowed failures until the rest of
@@ -1046,10 +1046,10 @@ Make chapter entries for, or remove various segments (sponsor,
                                     for, separated by commas. Available
                                     categories are sponsor, intro, outro,
                                     selfpromo, preview, filler, interaction,
-                                    music_offtopic, poi_highlight, chapter, all and
-                                    default (=all). You can prefix the category
-                                    with a "-" to exclude it. See [1] for
-                                    description of the categories. E.g.
+                                    music_offtopic, poi_highlight, chapter, all
+                                    and default (=all). You can prefix the
+                                    category with a "-" to exclude it. See [1]
+                                    for description of the categories. E.g.
                                     --sponsorblock-mark all,-preview
                                     [1] https://wiki.sponsor.ajay.app/w/Segment_Categories
     --sponsorblock-remove CATS      SponsorBlock categories to be removed from
@@ -1058,7 +1058,7 @@ Make chapter entries for, or remove various segments (sponsor,
                                     remove takes precedence. The syntax and
                                     available categories are the same as for
                                     --sponsorblock-mark except that "default"
-                                    refers to "all,-filler" and poi_highlight and
+                                    refers to "all,-filler" and poi_highlight,
                                     chapter are not available
     --sponsorblock-chapter-title TEMPLATE
                                     An output template for the title of the
@@ -1488,7 +1488,7 @@ The available fields are:
  - `source`: The preference of the source
  - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `mms`/`rtsp` > `f4f`/`f4m`)
  - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other)
- - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `eac3` > `ac3` > `dts` > other)
+ - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` `ac4` > > `eac3` > `ac3` > `dts` > other)
  - `codec`: Equivalent to `vcodec,acodec`
  - `vext`: Video Extension (`mp4` > `mov` > `webm` > `flv` > other). If `--prefer-free-formats` is used, `webm` is preferred.
  - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other). If `--prefer-free-formats` is used, the order changes to `ogg` > `opus` > `webm` > `mp3` > `m4a` > `aac`
@@ -1765,6 +1765,7 @@ The following extractors use this feature:
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
 #### tiktok
+* `api_hostname`: Hostname to use for mobile API requests, e.g. `api-h2.tiktokv.com`
 * `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`, e.g. `20.2.1`
 * `manifest_app_version`: Numeric app version to call mobile APIs with, e.g. `221`
 
