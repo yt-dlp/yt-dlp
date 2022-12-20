@@ -6,7 +6,7 @@ class RheinMainTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rheinmaintv\.de/sendungen/(?:[a-z-]+/)*(?P<display_id>[a-z-]+)/vom-(?P<date>[0-9]{2}\.[0-9]{2}\.[0-9]{4})(?:/(?P<serial_number>[0-9]+))?'
     _TESTS = [{
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/formationsgemeinschaft-rhein-main-bei-den-deutschen-meisterschaften/vom-14.11.2022/',
-        ##'md5': None,  # changes constantly
+        ##'md5': ...,  # changing
         'info_dict': {
             'id': 'vom 14.11.2022',
             'ext': 'mp4',
@@ -25,7 +25,7 @@ class RheinMainTVIE(InfoExtractor):
         ##'ism_manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest'
     }, {
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/casino-mainz-bei-den-deutschen-meisterschaften/vom-14.11.2022/',
-        ##'md5': None,  # changes constantly
+        ##'md5': ...,  # changing
         'info_dict': {
             'id': 'vom 14.11.2022',
             'ext': 'mp4',
