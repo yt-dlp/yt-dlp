@@ -644,7 +644,12 @@ from .gamestar import GameStarIE
 from .gaskrank import GaskrankIE
 from .gazeta import GazetaIE
 from .gdcvault import GDCVaultIE
-from .gedidigital import GediDigitalIE
+from .gedidigital import (
+    GediDigitalIE,
+    GediDigitalLegacyIE,
+    RepubblicaTVIE,
+    RepubblicaTVPodcastIE,
+)
 from .generic import GenericIE
 from .genius import (
     GeniusIE,
