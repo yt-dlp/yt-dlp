@@ -50,8 +50,6 @@ class IVXPlayerIE(InfoExtractor):
         yield self.url_result(f'ivxplayer:{video_id}:{player_key}', ie=IVXPlayerIE)
         raise self.StopExtraction()
 
-    # TODO: migrate tempo.py to use this extractor
-    # TODO: only use video_id and player key
     def _real_extract(self, url):
         video_id, player_key = self._match_valid_url(url).group('video_id', 'player_key')
         json_data = self._download_json(
