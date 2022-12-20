@@ -49,7 +49,7 @@ class RheinMainTVIE(InfoExtractor):
         display_id = mobj.group('display_id')
         video_id = 'vom %s' % mobj.group('date')
         if mobj.group('serial_number'):
-             video_id += ' (%s)' % mobj.group('serial_number')
+            video_id += ' (%s)' % mobj.group('serial_number')
         webpage = self._download_webpage(url, video_id)
 
         headline = self._html_search_regex(r'<h1><span class="title">([^<]*)</span>', webpage, 'headline')
@@ -73,7 +73,7 @@ class RheinMainTVIE(InfoExtractor):
 
         def removeprefix(string, prefix):
             return string[len(prefix):] if string.startswith(prefix) else None
-        
+
         def extract_format(internet_media_type, media):  # subtype of media (aka type)
             return removeprefix(internet_media_type, media + '/') if internet_media_type is not None else None
 
