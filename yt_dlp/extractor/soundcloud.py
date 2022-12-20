@@ -51,6 +51,7 @@ class SoundcloudEmbedIE(InfoExtractor):
 class SoundcloudBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'soundcloud'
 
+    _API_V1_BASE = 'https://api.soundcloud.com/'
     _API_V2_BASE = 'https://api-v2.soundcloud.com/'
     _BASE_URL = 'https://soundcloud.com/'
     _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'
@@ -697,12 +698,13 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
 class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
     _VALID_URL = r'''(?x)
                         https?://
-                            (?:(?:www|m)\.)?soundcloud\.com/
+                            (?:(?:(?:www|m)\.)?soundcloud\.com/
                             (?P<user>[^/]+)
                             (?:/
                                 (?P<rsrc>tracks|albums|sets|reposts|likes|spotlight)
                             )?
                             /?(?:[?#].*)?$
+                          |(?:api(?:-v2)?\.soundcloud\.com/users/(?P<user_id>\d+)$))
                     '''
     IE_NAME = 'soundcloud:user'
     _TESTS = [{
@@ -754,6 +756,13 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
             'title': 'Grynpyret (Spotlight)',
         },
         'playlist_mincount': 1,
+    }, {
+        'url': 'https://api.soundcloud.com/users/30909869',
+        'info_dict': {
+            'id': '30909869',
+            'title': 'neilcic (All)',
+        },
+        'playlist_mincount': 23,
     }]
 
     _BASE_URL_MAP = {
@@ -769,12 +778,18 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         uploader = mobj.group('user')
+        user_id = mobj.group('user_id')
 
-        user = self._download_json(
-            self._resolv_url(self._BASE_URL + uploader),
-            uploader, 'Downloading user info', headers=self._HEADERS)
-
-        resource = mobj.group('rsrc') or 'all'
+        if user_id:
+            user = self._download_json(
+                self._resolv_url(self._API_V1_BASE + 'users/' + user_id),
+                uploader, 'Downloading user info', headers=self._HEADERS)
+            resource = 'all'
+        else:
+            user = self._download_json(
+                self._resolv_url(self._BASE_URL + uploader),
+                uploader, 'Downloading user info', headers=self._HEADERS)
+            resource = mobj.group('rsrc') or 'all'
 
         return self._extract_playlist(
             self._API_V2_BASE + self._BASE_URL_MAP[resource] % user['id'],
