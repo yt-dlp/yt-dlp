@@ -1265,7 +1265,7 @@ class InfoExtractor:
         if res:
             if isinstance(res, (list, tuple)):
                 return tuple(clean_html(r) for r in res)
-             else:
+            else:
                 return clean_html(res)
         else:
             return res
