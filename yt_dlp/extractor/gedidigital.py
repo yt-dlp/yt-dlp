@@ -28,7 +28,7 @@ class GediDigitalIE(InfoExtractor):
             (?:/[^/]+){1,2}(?P<date>[\d/]{12})(?P<type>audio|video|playlist)/[^/]+-
             (?P<id>\d{5,})
         )(?:\#(?P<trtId>([\w-]+:)+\d{5,}))?'''
-    _EMBED_REGEX = [rf'<iframe[^>]+src=[\'"](?P<url>{_VALID_URL}[\'"]']
+    _EMBED_REGEX = [rf'(?x)<iframe[^>]+src=[\'"]{_VALID_URL.lstrip("(?x)")}[\'"]']
     _TESTS = [{
         # old video, only http mp4 available
         'url': 'https://www.lastampa.it/politica/2020/09/22/video/il_paradosso_delle_regionali_ecco_perche_la_lega_vince_ma_sembra_aver_perso-375544/',
