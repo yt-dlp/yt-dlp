@@ -2,6 +2,7 @@ from .common import InfoExtractor
 
 from ..utils import (
     HEADRequest,
+    UserNotLive,
     float_or_none,
     merge_dicts,
     str_or_none,
@@ -14,18 +15,17 @@ from ..utils import (
 class KickBaseIE(InfoExtractor):
     _API_HEADERS = {}
 
-    def _real_initialize(self):
-        self._request_webpage(HEADRequest('https://kick.com/'), None, 'Setting up session')
-        xsrf_token = self._get_cookies('https://kick.com/').get('XSRF-TOKEN')
-        if xsrf_token:
-            self._API_HEADERS.update({
-                'Authorization': f'Bearer {xsrf_token.value}',
-                'X-XSRF-TOKEN': xsrf_token.value,
-            })
-        else:
-            self.write_debug('kick.com did not set XSRF-TOKEN cookie')
-
     def _call_api(self, path, display_id, note='Downloading API JSON', headers={}, **kwargs):
+        if not self._API_HEADERS:
+            self._request_webpage(HEADRequest('https://kick.com/'), display_id, 'Setting up session')
+            xsrf_token = self._get_cookies('https://kick.com/').get('XSRF-TOKEN')
+            if xsrf_token:
+                self._API_HEADERS.update({
+                    'Authorization': f'Bearer {xsrf_token.value}',
+                    'X-XSRF-TOKEN': xsrf_token.value,
+                })
+            else:
+                self.write_debug('kick.com did not set XSRF-TOKEN cookie')
         return self._download_json(
             f'https://kick.com/api/v1/{path}', display_id, note=note,
             headers=merge_dicts(headers, self._API_HEADERS), **kwargs)
@@ -34,6 +34,24 @@ class KickBaseIE(InfoExtractor):
 class KickIE(KickBaseIE):
     _VALID_URL = r'https?://(?:www\.)?kick\.com/(?!(?:video|categories|search|auth)(?:[/?#]|$))(?P<id>[\w_]+)'
     _TESTS = [{
+        'url': 'https://kick.com/yuppy',
+        'info_dict': {
+            'id': '6cde1-kickrp-joe-flemmingskick-info-heremust-knowmust-see21',
+            'ext': 'mp4',
+            'title': str,
+            'description': str,
+            'channel': 'yuppy',
+            'channel_id': '33538',
+            'uploader': 'Yuppy',
+            'uploader_id': '33793',
+            'upload_date': str,
+            'live_status': 'is_live',
+            'timestamp': int,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'categories': list,
+        },
+        'skip': 'livestream',
+    }, {
         'url': 'https://kick.com/kmack710',
         'only_matching': True,
     }]
@@ -41,6 +59,8 @@ class KickIE(KickBaseIE):
     def _real_extract(self, url):
         channel = self._match_id(url)
         response = self._call_api(f'channels/{channel}', channel)
+        if not traverse_obj(response, 'livestream', expected_type=dict):
+            raise UserNotLive(video_id=channel)
 
         return {
             'id': str(traverse_obj(
@@ -71,10 +91,10 @@ class KickVODIE(KickBaseIE):
             'id': '54244b5e-050a-4df4-a013-b2433dafbe35',
             'ext': 'mp4',
             'title': 'Making 710-carBoosting. Kinda No Pixel inspired.  !guilded  - !links',
-            'description': 'md5:59f4f360fe253b07b00dde4ca0538d04',
+            'description': 'md5:a0d3546bf7955d0a8252ffe0fd6f518f',
             'channel': 'kmack710',
             'channel_id': '16278',
-            'uploader': 'kmack710',
+            'uploader': 'Kmack710',
             'uploader_id': '16412',
             'upload_date': '20221206',
             'timestamp': 1670318289,
@@ -99,7 +119,7 @@ class KickVODIE(KickBaseIE):
             'description': traverse_obj(response, ('livestream', 'channel', 'user', 'bio')),
             'channel': traverse_obj(response, ('livestream', 'channel', 'slug')),
             'channel_id': str_or_none(traverse_obj(response, ('livestream', 'channel', 'id'))),
-            'uploader': traverse_obj(response, ('livestream', 'channel', 'name')),
+            'uploader': traverse_obj(response, ('livestream', 'channel', 'user', 'username')),
             'uploader_id': str_or_none(traverse_obj(response, ('livestream', 'channel', 'user_id'))),
             'timestamp': unified_timestamp(response.get('created_at')),
             'duration': float_or_none(traverse_obj(response, ('livestream', 'duration')), scale=1000),
