@@ -6,7 +6,7 @@ class RheinMainTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rheinmaintv\.de/sendungen/(?:[a-z-]+/)*(?P<display_id>[a-z-]+)/vom-(?P<date>[0-9]{2}\.[0-9]{2}\.[0-9]{4})(?:/(?P<serial_number>[0-9]+))?'
     _TESTS = [{
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/formationsgemeinschaft-rhein-main-bei-den-deutschen-meisterschaften/vom-14.11.2022/',
-        #'md5': ...,  # checksum is changing
+        # 'md5': ...,  # left out because checksum is changing
         'info_dict': {
             'id': 'vom 14.11.2022',
             'ext': 'mp4',
@@ -276,7 +276,7 @@ class RheinMainTVIE(InfoExtractor):
         }
     }, {
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/casino-mainz-bei-den-deutschen-meisterschaften/vom-14.11.2022/',
-        #'md5': ...,  # checksum is changing
+        # 'md5': ...,  # left out because checksum is changing
         'info_dict': {
             'id': 'vom 14.11.2022',
             'ext': 'mp4',
@@ -555,9 +555,10 @@ class RheinMainTVIE(InfoExtractor):
         source = extract_attributes(source)
         img = extract_attributes(img)
 
-        ##json = self._search_json_ld(webpage, video_id)  # extracts the useless 'contentUrl' (as 'url') instead of the essential 'embedUrl'
+        # json = self._search_json_ld(webpage, video_id)  # uncomment to extract the useless 'contentUrl' (as 'url') instead of the essential 'embedUrl'
+        #                                                 # then use get(json, 'title') instead of get(json, 'name')
         json = self._parse_json(self._search_regex(r'(?s)<script type="application/ld\+json">([^<]*)</script>', webpage, 'json'), video_id)
-        ##json = None  # go without ld+json altogether
+        # json = None  # uncomment to go without ld+json altogether
 
         def get(dictionary, *keys):  # return ..utils.traverse_obj(dictionary, keys)
             for k in keys:
