@@ -3369,7 +3369,7 @@ def js_to_json(code, vars={}, *, strict=False):
             try:
                 if not strict:
                     json.loads(vars[v])
-            except json.decoder.JSONDecodeError:
+            except json.JSONDecodeError:
                 return json.dumps(vars[v])
             else:
                 return vars[v]
@@ -5439,7 +5439,7 @@ def traverse_obj(
 
     The keys in the path can be one of:
         - `None`:           Return the current object.
-        - `str`/`int`:      Return `obj[key]`. For `re.Match, return `obj.group(key)`.
+        - `str`/`int`:      Return `obj[key]`. For `re.Match`, return `obj.group(key)`.
         - `slice`:          Branch out and return all values in `obj[key]`.
         - `Ellipsis`:       Branch out and return a list of all values.
         - `tuple`/`list`:   Branch out and return a list of all matching values.

@@ -32,6 +32,7 @@ from ..utils import (
     unified_timestamp,
     unsmuggle_url,
     url_or_none,
+    urljoin,
     variadic,
     xpath_attr,
     xpath_text,
@@ -1867,11 +1868,13 @@ class GenericIE(InfoExtractor):
                 'display_id': 'kelis-4th-of-july',
                 'ext': 'mp4',
                 'title': 'Kelis - 4th Of July',
-                'thumbnail': 'https://kvs-demo.com/contents/videos_screenshots/0/105/preview.jpg',
+                'description': 'Kelis - 4th Of July',
+                'thumbnail': r're:https://(?:www\.)?kvs-demo.com/contents/videos_screenshots/0/105/preview.jpg',
             },
             'params': {
                 'skip_download': True,
             },
+            'expected_warnings': ['Untested major version'],
         }, {
             # KVS Player
             'url': 'https://www.kvs-demo.com/embed/105/',
@@ -1880,35 +1883,12 @@ class GenericIE(InfoExtractor):
                 'display_id': 'kelis-4th-of-july',
                 'ext': 'mp4',
                 'title': 'Kelis - 4th Of July / Embed Player',
-                'thumbnail': 'https://kvs-demo.com/contents/videos_screenshots/0/105/preview.jpg',
+                'thumbnail': r're:https://(?:www\.)?kvs-demo.com/contents/videos_screenshots/0/105/preview.jpg',
             },
             'params': {
                 'skip_download': True,
             },
         }, {
-            # KVS Player
-            'url': 'https://thisvid.com/videos/french-boy-pantsed/',
-            'md5': '3397979512c682f6b85b3b04989df224',
-            'info_dict': {
-                'id': '2400174',
-                'display_id': 'french-boy-pantsed',
-                'ext': 'mp4',
-                'title': 'French Boy Pantsed - ThisVid.com',
-                'thumbnail': 'https://media.thisvid.com/contents/videos_screenshots/2400000/2400174/preview.mp4.jpg',
-            }
-        }, {
-            # KVS Player
-            'url': 'https://thisvid.com/embed/2400174/',
-            'md5': '3397979512c682f6b85b3b04989df224',
-            'info_dict': {
-                'id': '2400174',
-                'display_id': 'french-boy-pantsed',
-                'ext': 'mp4',
-                'title': 'French Boy Pantsed - ThisVid.com',
-                'thumbnail': 'https://media.thisvid.com/contents/videos_screenshots/2400000/2400174/preview.mp4.jpg',
-            }
-        }, {
-            # KVS Player
             'url': 'https://youix.com/video/leningrad-zoj/',
             'md5': '94f96ba95706dc3880812b27b7d8a2b8',
             'info_dict': {
@@ -1916,8 +1896,8 @@ class GenericIE(InfoExtractor):
                 'display_id': 'leningrad-zoj',
                 'ext': 'mp4',
                 'title': 'Клип: Ленинград - ЗОЖ скачать, смотреть онлайн | Youix.com',
-                'thumbnail': 'https://youix.com/contents/videos_screenshots/18000/18485/preview_480x320_youix_com.mp4.jpg',
-            }
+                'thumbnail': r're:https://youix.com/contents/videos_screenshots/18000/18485/preview(?:_480x320_youix_com.mp4)?\.jpg',
+            },
         }, {
             # KVS Player
             'url': 'https://youix.com/embed/18485',
@@ -1927,19 +1907,20 @@ class GenericIE(InfoExtractor):
                 'display_id': 'leningrad-zoj',
                 'ext': 'mp4',
                 'title': 'Ленинград - ЗОЖ',
-                'thumbnail': 'https://youix.com/contents/videos_screenshots/18000/18485/preview_480x320_youix_com.mp4.jpg',
-            }
+                'thumbnail': r're:https://youix.com/contents/videos_screenshots/18000/18485/preview(?:_480x320_youix_com.mp4)?\.jpg',
+            },
         }, {
             # KVS Player
             'url': 'https://bogmedia.org/videos/21217/40-nochey-40-nights-2016/',
             'md5': '94166bdb26b4cb1fb9214319a629fc51',
             'info_dict': {
                 'id': '21217',
-                'display_id': '40-nochey-40-nights-2016',
+                'display_id': '40-nochey-2016',
                 'ext': 'mp4',
                 'title': '40 ночей (2016) - BogMedia.org',
+                'description': 'md5:4e6d7d622636eb7948275432eb256dc3',
                 'thumbnail': 'https://bogmedia.org/contents/videos_screenshots/21000/21217/preview_480p.mp4.jpg',
-            }
+            },
         },
         {
             # KVS Player (for sites that serve kt_player.js via non-https urls)
@@ -1949,9 +1930,9 @@ class GenericIE(InfoExtractor):
                 'id': '389508',
                 'display_id': 'syren-de-mer-onlyfans-05-07-2020have-a-happy-safe-holiday5f014e68a220979bdb8cd-source',
                 'ext': 'mp4',
-                'title': 'Syren De Mer  onlyfans_05-07-2020Have_a_happy_safe_holiday5f014e68a220979bdb8cd_source / Embed плеер',
-                'thumbnail': 'http://www.camhub.world/contents/videos_screenshots/389000/389508/preview.mp4.jpg',
-            }
+                'title': 'Syren De Mer onlyfans_05-07-2020Have_a_happy_safe_holiday5f014e68a220979bdb8cd_source / Embed плеер',
+                'thumbnail': r're:https?://www\.camhub\.world/contents/videos_screenshots/389000/389508/preview\.mp4\.jpg',
+            },
         },
         {
             # Reddit-hosted video that will redirect and be processed by RedditIE
@@ -2154,7 +2135,8 @@ class GenericIE(InfoExtractor):
                 'age_limit': 0,
                 'direct': True,
             }
-        }, {
+        },
+        {
             'note': 'server returns data in brotli compression by default if `accept-encoding: *` is specified.',
             'url': 'https://www.extra.cz/cauky-lidi-70-dil-babis-predstavil-pohadky-prymulanek-nebo-andrejovy-nove-saty-ac867',
             'info_dict': {
@@ -2168,8 +2150,37 @@ class GenericIE(InfoExtractor):
                 'duration': 318.0,
                 'direct': True,
                 'age_limit': 0,
-            }
-        }
+            },
+        },
+        {
+            'note': 'JW Player embed with unicode-escape sequences in URL',
+            'url': 'https://www.medici.tv/en/concerts/lahav-shani-mozart-mahler-israel-philharmonic-abu-dhabi-classics',
+            'info_dict': {
+                'id': 'm',
+                'ext': 'mp4',
+                'title': 'Lahav Shani conducts the Israel Philharmonic\'s first-ever concert in Abu Dhabi',
+                'description': 'Mahler\'s ',
+                'uploader': 'www.medici.tv',
+                'age_limit': 0,
+                'thumbnail': r're:^https?://.+\.jpg',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
+        {
+            'url': 'https://shooshtime.com/videos/284002/just-out-of-the-shower-joi/',
+            'md5': 'e2f0a4c329f7986280b7328e24036d60',
+            'info_dict': {
+                'id': '284002',
+                'display_id': 'just-out-of-the-shower-joi',
+                'ext': 'mp4',
+                'title': 'Just Out Of The Shower JOI - Shooshtime',
+                'thumbnail': 'https://i.shoosh.co/contents/videos_screenshots/284000/284002/preview.mp4.jpg',
+                'height': 720,
+                'age_limit': 18,
+            },
+        },
     ]
 
     def report_following_redirect(self, new_url):
@@ -2235,43 +2246,87 @@ class GenericIE(InfoExtractor):
             'entries': entries,
         }
 
-    def _kvs_getrealurl(self, video_url, license_code):
+    @classmethod
+    def _kvs_get_real_url(cls, video_url, license_code):
         if not video_url.startswith('function/0/'):
             return video_url  # not obfuscated
 
-        url_path, _, url_query = video_url.partition('?')
-        urlparts = url_path.split('/')[2:]
-        license = self._kvs_getlicensetoken(license_code)
-        newmagic = urlparts[5][:32]
+        parsed = urllib.parse.urlparse(video_url[len('function/0/'):])
+        license = cls._kvs_get_license_token(license_code)
+        urlparts = parsed.path.split('/')
 
-        for o in range(len(newmagic) - 1, -1, -1):
-            new = ''
-            l = (o + sum(int(n) for n in license[o:])) % 32
+        HASH_LENGTH = 32
+        hash = urlparts[3][:HASH_LENGTH]
+        indices = list(range(HASH_LENGTH))
 
-            for i in range(0, len(newmagic)):
-                if i == o:
-                    new += newmagic[l]
-                elif i == l:
-                    new += newmagic[o]
-                else:
-                    new += newmagic[i]
-            newmagic = new
+        # Swap indices of hash according to the destination calculated from the license token
+        accum = 0
+        for src in reversed(range(HASH_LENGTH)):
+            accum += license[src]
+            dest = (src + accum) % HASH_LENGTH
+            indices[src], indices[dest] = indices[dest], indices[src]
 
-        urlparts[5] = newmagic + urlparts[5][32:]
-        return '/'.join(urlparts) + '?' + url_query
+        urlparts[3] = ''.join(hash[index] for index in indices) + urlparts[3][HASH_LENGTH:]
+        return urllib.parse.urlunparse(parsed._replace(path='/'.join(urlparts)))
 
-    def _kvs_getlicensetoken(self, license):
-        modlicense = license.replace('$', '').replace('0', '1')
-        center = int(len(modlicense) / 2)
+    @staticmethod
+    def _kvs_get_license_token(license):
+        license = license.replace('$', '')
+        license_values = [int(char) for char in license]
+
+        modlicense = license.replace('0', '1')
+        center = len(modlicense) // 2
         fronthalf = int(modlicense[:center + 1])
         backhalf = int(modlicense[center:])
+        modlicense = str(4 * abs(fronthalf - backhalf))[:center + 1]
 
-        modlicense = str(4 * abs(fronthalf - backhalf))
-        retval = ''
-        for o in range(0, center + 1):
-            for i in range(1, 5):
-                retval += str((int(license[o + i]) + int(modlicense[o])) % 10)
-        return retval
+        return [
+            (license_values[index + offset] + current) % 10
+            for index, current in enumerate(map(int, modlicense))
+            for offset in range(4)
+        ]
+
+    def _extract_kvs(self, url, webpage, video_id):
+        flashvars = self._search_json(
+            r'(?s:<script\b[^>]*>.*?var\s+flashvars\s*=)',
+            webpage, 'flashvars', video_id, transform_source=js_to_json)
+
+        # extract the part after the last / as the display_id from the
+        # canonical URL.
+        display_id = self._search_regex(
+            r'(?:<link href="https?://[^"]+/(.+?)/?" rel="canonical"\s*/?>'
+            r'|<link rel="canonical" href="https?://[^"]+/(.+?)/?"\s*/?>)',
+            webpage, 'display_id', fatal=False)
+        title = self._html_search_regex(r'<(?:h1|title)>(?:Video: )?(.+?)</(?:h1|title)>', webpage, 'title')
+
+        thumbnail = flashvars['preview_url']
+        if thumbnail.startswith('//'):
+            protocol, _, _ = url.partition('/')
+            thumbnail = protocol + thumbnail
+
+        url_keys = list(filter(re.compile(r'^video_(?:url|alt_url\d*)$').match, flashvars.keys()))
+        formats = []
+        for key in url_keys:
+            if '/get_file/' not in flashvars[key]:
+                continue
+            format_id = flashvars.get(f'{key}_text', key)
+            formats.append({
+                'url': urljoin(url, self._kvs_get_real_url(flashvars[key], flashvars['license_code'])),
+                'format_id': format_id,
+                'ext': 'mp4',
+                **(parse_resolution(format_id) or parse_resolution(flashvars[key])),
+                'http_headers': {'Referer': url},
+            })
+            if not formats[-1].get('height'):
+                formats[-1]['quality'] = 1
+
+        return {
+            'id': flashvars['video_id'],
+            'display_id': display_id,
+            'title': title,
+            'thumbnail': thumbnail,
+            'formats': formats,
+        }
 
     def _real_extract(self, url):
         if url.startswith('//'):
@@ -2580,6 +2635,17 @@ class GenericIE(InfoExtractor):
                 self.report_detected('video.js embed')
                 return [{'formats': formats, 'subtitles': subtitles}]
 
+        # Look for generic KVS player (before json-ld bc of some urls that break otherwise)
+        found = self._search_regex((
+            r'<script\b[^>]+?\bsrc\s*=\s*(["\'])https?://(?:\S+?/)+kt_player\.js\?v=(?P<ver>\d+(?:\.\d+)+)\1[^>]*>',
+            r'kt_player\s*\(\s*(["\'])(?:(?!\1)[\w\W])+\1\s*,\s*(["\'])https?://(?:\S+?/)+kt_player\.swf\?v=(?P<ver>\d+(?:\.\d+)+)\2\s*,',
+        ), webpage, 'KVS player', group='ver', default=False)
+        if found:
+            self.report_detected('KWS Player')
+            if found.split('.')[0] not in ('4', '5', '6'):
+                self.report_warning(f'Untested major version ({found}) in player engine - download may fail.')
+            return [self._extract_kvs(url, webpage, video_id)]
+
         # Looking for http://schema.org/VideoObject
         json_ld = self._search_json_ld(webpage, video_id, default={})
         if json_ld.get('url') not in (url, None):
@@ -2622,52 +2688,6 @@ class GenericIE(InfoExtractor):
                 ['"]?file['"]?\s*:\s*["\'](.*?)["\']''', webpage))
             if found:
                 self.report_detected('JW Player embed')
-        if not found:
-            # Look for generic KVS player
-            found = re.search(r'<script [^>]*?src="https?://.+?/kt_player\.js\?v=(?P<ver>(?P<maj_ver>\d+)(\.\d+)+)".*?>', webpage)
-            if found:
-                self.report_detected('KWS Player')
-                if found.group('maj_ver') not in ['4', '5']:
-                    self.report_warning('Untested major version (%s) in player engine--Download may fail.' % found.group('ver'))
-                flashvars = re.search(r'(?ms)<script.*?>.*?var\s+flashvars\s*=\s*(\{.*?\});.*?</script>', webpage)
-                flashvars = self._parse_json(flashvars.group(1), video_id, transform_source=js_to_json)
-
-                # extract the part after the last / as the display_id from the
-                # canonical URL.
-                display_id = self._search_regex(
-                    r'(?:<link href="https?://[^"]+/(.+?)/?" rel="canonical"\s*/?>'
-                    r'|<link rel="canonical" href="https?://[^"]+/(.+?)/?"\s*/?>)',
-                    webpage, 'display_id', fatal=False
-                )
-                title = self._html_search_regex(r'<(?:h1|title)>(?:Video: )?(.+?)</(?:h1|title)>', webpage, 'title')
-
-                thumbnail = flashvars['preview_url']
-                if thumbnail.startswith('//'):
-                    protocol, _, _ = url.partition('/')
-                    thumbnail = protocol + thumbnail
-
-                url_keys = list(filter(re.compile(r'video_url|video_alt_url\d*').fullmatch, flashvars.keys()))
-                formats = []
-                for key in url_keys:
-                    if '/get_file/' not in flashvars[key]:
-                        continue
-                    format_id = flashvars.get(f'{key}_text', key)
-                    formats.append({
-                        'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
-                        'format_id': format_id,
-                        'ext': 'mp4',
-                        **(parse_resolution(format_id) or parse_resolution(flashvars[key]))
-                    })
-                    if not formats[-1].get('height'):
-                        formats[-1]['quality'] = 1
-
-                return [{
-                    'id': flashvars['video_id'],
-                    'display_id': display_id,
-                    'title': title,
-                    'thumbnail': thumbnail,
-                    'formats': formats,
-                }]
         if not found:
             # Broaden the search a little bit
             found = filter_video(re.findall(r'[^A-Za-z0-9]?(?:file|source)=(http[^\'"&]*)', webpage))
@@ -2748,6 +2768,7 @@ class GenericIE(InfoExtractor):
 
         entries = []
         for video_url in orderedSet(found):
+            video_url = video_url.encode().decode('unicode-escape')
             video_url = unescapeHTML(video_url)
             video_url = video_url.replace('\\/', '/')
             video_url = urllib.parse.urljoin(url, video_url)

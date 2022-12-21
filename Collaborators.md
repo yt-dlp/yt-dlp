@@ -42,7 +42,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 * Improved/fixed support for HiDive, HotStar, Hungama, LBRY, LinkedInLearning, Mxplayer, SonyLiv, TV2, Vimeo, VLive etc
 
 
-## [Lesmiscore](https://github.com/Lesmiscore) (nao20010128nao)
+## [Lesmiscore](https://github.com/Lesmiscore) <sup><sub>(nao20010128nao)</sup></sub>
 
 **Bitcoin**: bc1qfd02r007cutfdjwjmyy9w23rjvtls6ncve7r3s  
 **Monacoin**: mona1q3tf7dzvshrhfe3md379xtvt2n22duhglv5dskr
@@ -50,3 +50,10 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 * Download live from start to end for YouTube
 * Added support for new websites AbemaTV, mildom, PixivSketch, skeb, radiko, voicy, mirrativ, openrec, whowatch, damtomo, 17.live, mixch etc
 * Improved/fixed support for fc2, YahooJapanNews, tver, iwara etc
+
+
+## [bashonly](https://github.com/bashonly)
+
+* `--cookies-from-browser` support for Firefox containers
+* Added support for new websites Genius, Kick, NBCStations, Triller, VideoKen etc
+* Improved/fixed support for Anvato, Brightcove, Instagram, ParamountPlus, Reddit, SlidesLive, TikTok, Twitter, Vimeo etc

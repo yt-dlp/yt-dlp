@@ -109,7 +109,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     opts = optparse.Values({'verbose': True, 'print_help': False})
     try:
         try:
-            if overrideArguments:
+            if overrideArguments is not None:
                 root.append_config(overrideArguments, label='Override')
             else:
                 root.append_config(sys.argv[1:], label='Command-line')
@@ -516,6 +516,11 @@ def create_parser():
         action='store_const', const='::', dest='source_address',
         help='Make all connections via IPv6',
     )
+    network.add_option(
+        '--enable-file-urls', action='store_true',
+        dest='enable_file_urls', default=False,
+        help='Enable file:// URLs. This is disabled by default for security reasons.'
+    )
 
     geo = optparse.OptionGroup(parser, 'Geo-restriction')
     geo.add_option(
@@ -582,8 +587,9 @@ def create_parser():
         '--date',
         metavar='DATE', dest='date', default=None,
         help=(
-            'Download only videos uploaded on this date. The date can be "YYYYMMDD" or in the format '
-            '[now|today|yesterday][-N[day|week|month|year]]. E.g. --date today-2weeks'))
+            'Download only videos uploaded on this date. '
+            'The date can be "YYYYMMDD" or in the format [now|today|yesterday][-N[day|week|month|year]]. '
+            'E.g. "--date today-2weeks" downloads only videos uploaded on the same day two weeks ago'))
     selection.add_option(
         '--datebefore',
         metavar='DATE', dest='datebefore', default=None,
@@ -898,11 +904,11 @@ def create_parser():
             'This option can be used multiple times to set the sleep for the different retry types, '
             'e.g. --retry-sleep linear=1::2 --retry-sleep fragment:exp=1:20'))
     downloader.add_option(
-        '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragment',
+        '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragments',
         action='store_true', dest='skip_unavailable_fragments', default=True,
-        help='Skip unavailable fragments for DASH, hlsnative and ISM downloads (default) (Alias: --no-abort-on-unavailable-fragment)')
+        help='Skip unavailable fragments for DASH, hlsnative and ISM downloads (default) (Alias: --no-abort-on-unavailable-fragments)')
     downloader.add_option(
-        '--abort-on-unavailable-fragment', '--no-skip-unavailable-fragments',
+        '--abort-on-unavailable-fragments', '--no-skip-unavailable-fragments',
         action='store_false', dest='skip_unavailable_fragments',
         help='Abort download if a fragment is unavailable (Alias: --no-skip-unavailable-fragments)')
     downloader.add_option(
@@ -1648,7 +1654,7 @@ def create_parser():
             'Supported values of "WHEN" are the same as that of --use-postprocessor (default: after_move). '
             'Same syntax as the output template can be used to pass any field as arguments to the command. '
             'After download, an additional field "filepath" that contains the final path of the downloaded file '
-            'is also available, and if no fields are passed, %(filepath)q is appended to the end of the command. '
+            'is also available, and if no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
             'This option can be used multiple times'))
     postproc.add_option(
         '--no-exec',
