@@ -380,16 +380,10 @@ SERIES_API = 'https://production-cdn.dr-massive.com/api/page?device=web_browser&
 
 class DRTVSeasonIE(InfoExtractor):
     IE_NAME = 'drtv:season'
-    _VALID_URL = r'''(?x)
-                    https?://
-                        (?:
-                            (?:www\.)?(?:dr\.dk|dr-massive\.com)/drtv/(?:saeson)/
-                        )
-                        (?P<id>[\da-z_-]+)
-                    '''
+    _VALID_URL = r'https?://(?:www\.)?(?:dr\.dk|dr-massive\.com)/drtv/saeson/(?P<display_id>[\w-]+)_(?P<id>\d+)'
     _GEO_COUNTRIES = ['DK']
     _TESTS = [{
-        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_9008',  # Season 2008 of "Frank & Kastaniegaarden"
+        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_9008',
         'info_dict': {
             'id': '9008',
             'display_id': 'frank-and-kastaniegaarden',
@@ -398,7 +392,7 @@ class DRTVSeasonIE(InfoExtractor):
         },
         'playlist_mincount': 8
     }, {
-        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_8761',  # Season 2009 of "Frank & Kastaniegaarden"
+        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_8761',
         'info_dict': {
             'id': '8761',
             'display_id': 'frank-and-kastaniegaarden',
@@ -409,9 +403,8 @@ class DRTVSeasonIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        season_id = self._match_id(url)
-        id_split = season_id.rsplit('_', 1)
-        data = self._download_json(SERIES_API % f'/saeson/{season_id}', season_id)
+        display_id, season_id = self._match_valid_url(url).group('display_id', 'id')
+        data = self._download_json(SERIES_API % f'/saeson/{display_id}_{season_id}', display_id)
 
         entries = [{
             '_type': 'url',
@@ -427,23 +420,18 @@ class DRTVSeasonIE(InfoExtractor):
 
         return {
             '_type': 'playlist',
-            'id': id_split[1],
-            'display_id': id_split[0],
+            'id': season_id,
+            'display_id': display_id,
             'title': traverse_obj(data, ('entries', 0, 'item', 'title')),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
-            'entries': entries
+            'entries': entries,
+            'season_number': traverse_obj(data, ('entries', 0, 'item', 'seasonNumber'))
         }
 
 
 class DRTVSeriesIE(InfoExtractor):
     IE_NAME = 'drtv:series'
-    _VALID_URL = r'''(?x)
-                    https?://
-                        (?:
-                            (?:www\.)?(?:dr\.dk|dr-massive\.com)/drtv/(?:serie)/
-                        )
-                        (?P<id>[\da-z_-]+)
-                    '''
+    _VALID_URL = r'https?://(?:www\.)?(?:dr\.dk|dr-massive\.com)/drtv/serie/(?P<display_id>[\w-]+)_(?P<id>\d+)'
     _GEO_COUNTRIES = ['DK']
     _TESTS = [{
         'url': 'https://www.dr.dk/drtv/serie/frank-and-kastaniegaarden_6954',
@@ -457,9 +445,8 @@ class DRTVSeriesIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        series_id = self._match_id(url)
-        id_split = series_id.rsplit('_', 1)
-        data = self._download_json(SERIES_API % f'/serie/{series_id}', series_id)
+        display_id, series_id = self._match_valid_url(url).group('display_id', 'id')
+        data = self._download_json(SERIES_API % f'/serie/{display_id}_{series_id}', display_id)
 
         entries = [{
             '_type': 'url',
@@ -467,12 +454,13 @@ class DRTVSeriesIE(InfoExtractor):
             'ie_key': DRTVSeasonIE.ie_key(),
             'title': season.get('title'),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'season_number': traverse_obj(data, ('entries', 0, 'item', 'seasonNumber'))
         } for season in traverse_obj(data, ('entries', 0, 'item', 'show', 'seasons', 'items'))]
 
         return {
             '_type': 'playlist',
-            'id': id_split[1],
-            'display_id': id_split[0],
+            'id': series_id,
+            'display_id': display_id,
             'title': traverse_obj(data, ('entries', 0, 'item', 'title')),
             'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
             'entries': entries
