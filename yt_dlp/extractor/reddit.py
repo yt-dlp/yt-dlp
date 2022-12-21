@@ -65,6 +65,25 @@ class RedditIE(InfoExtractor):
             'title': 'md5:72d3d19402aa11eff5bd32fc96369b37',
         },
     }, {
+        # crossposted reddit-hosted media
+        'url': 'https://www.reddit.com/r/dumbfuckers_club/comments/zjjw82/cringe/',
+        'md5': '746180895c7b75a9d6b05341f507699a',
+        'info_dict': {
+            'id': 'a1oneun6pa5a1',
+            'ext': 'mp4',
+            'display_id': 'zjjw82',
+            'title': 'Cringe',
+            'uploader': 'Otaku-senpai69420',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'upload_date': '20221212',
+            'timestamp': 1670812309,
+            'duration': 16,
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'age_limit': 0,
+        },
+    }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
         'only_matching': True,
     }, {
@@ -179,7 +198,8 @@ class RedditIE(InfoExtractor):
             raise ExtractorError('No media found', expected=True)
 
         # Check if media is hosted on reddit:
-        reddit_video = traverse_obj(data, (('media', 'secure_media'), 'reddit_video'), get_all=False)
+        reddit_video = traverse_obj(data, (
+            (None, ('crosspost_parent_list', ...)), ('secure_media', 'media'), 'reddit_video'), get_all=False)
         if reddit_video:
             playlist_urls = [
                 try_get(reddit_video, lambda x: unescapeHTML(x[y]))
