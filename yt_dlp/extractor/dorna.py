@@ -210,6 +210,7 @@ class MotoGPIE(DornaIE):
         },
         'skip': 'Account needed',
     }]
+    _NETRC_MACHINE = 'motogp'
 
     def _real_extract(self, url):
         lang1, lang2, video_id = self._match_valid_url(url).groups()
