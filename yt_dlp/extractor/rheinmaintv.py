@@ -431,7 +431,12 @@ class RheinMainTVIE(InfoExtractor):
                 'ext': 'mp4',
                 'width': 960,
                 'height': 540,
-                'tbr': 2249, 'asr': None, 'vcodec': 'H264', 'acodec': 'none', 'protocol': 'ism', 'fragments': 'count:174',
+                'tbr': 2249,
+                'asr': None,
+                'vcodec': 'H264',
+                'acodec': 'none',
+                'protocol': 'ism',
+                'fragments': 'count:174',
                 'has_drm': False,
                 '_download_params': {
                     'stream_type': 'video',
@@ -567,7 +572,8 @@ class RheinMainTVIE(InfoExtractor):
                 dictionary = dictionary.get(k)
             return dictionary
 
-        formats, subtitles = self._extract_ism_formats_and_subtitles(source['src'] or get(json, 'embedUrl'), video_id)  # attribute 'src' is mandatory
+        ism_manifest_url = source['src'] or get(json, 'embedUrl')  # attribute 'src' is mandatory
+        formats, subtitles = self._extract_ism_formats_and_subtitles(ism_manifest_url, video_id)
 
         def removeprefix(string, prefix):
             return string[len(prefix):] if string.startswith(prefix) else None
@@ -582,9 +588,12 @@ class RheinMainTVIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': headline or img.get('title') or get(json, 'name') or self._og_search_title(webpage) or self._html_extract_title(webpage).removesuffix(' -'),
+            'title': headline or img.get('title') or get(json, 'name') or
+                     self._og_search_title(webpage) or
+                     self._html_extract_title(webpage).removesuffix(' -'),
             'alt_title': img['alt'],  # attribute 'alt' is mandatory
-            'description': get(json, 'description') or self._og_search_description(webpage),
+            'description': get(json, 'description') or
+                           self._og_search_description(webpage),
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
