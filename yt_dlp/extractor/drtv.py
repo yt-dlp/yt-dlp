@@ -20,6 +20,9 @@ from ..utils import (
 )
 
 
+SERIES_API = 'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=%s'
+
+
 class DRTVIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
@@ -142,13 +145,13 @@ class DRTVIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        raw_video_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(url, raw_video_id)
 
         if '>Programmet er ikke længere tilgængeligt' in webpage:
             raise ExtractorError(
-                'Video %s is not available' % video_id, expected=True)
+                'Video %s is not available' % raw_video_id, expected=True)
 
         video_id = self._search_regex(
             (r'data-(?:material-identifier|episode-slug)="([^"]+)"',
@@ -182,6 +185,9 @@ class DRTVIE(InfoExtractor):
 
         data = self._download_json(
             programcard_url, video_id, 'Downloading video JSON', query=query)
+
+        supplementary_data = self._download_json(
+            SERIES_API % f'/episode/{raw_video_id}', raw_video_id) if re.match(r'.+_\d+$', raw_video_id) else {}
 
         title = str_or_none(data.get('Title')) or re.sub(
             r'\s*\|\s*(?:TV\s*\|\s*DR|DRTV)$', '',
@@ -314,8 +320,8 @@ class DRTVIE(InfoExtractor):
             'season': str_or_none(data.get('SeasonTitle')),
             'season_number': int_or_none(data.get('SeasonNumber')),
             'season_id': str_or_none(data.get('SeasonUrn')),
-            'episode': str_or_none(data.get('EpisodeTitle')),
-            'episode_number': int_or_none(data.get('EpisodeNumber')),
+            'episode': traverse_obj(supplementary_data, ('entries', 0, 'item', 'contextualTitle')) or str_or_none(data.get('EpisodeTitle')),
+            'episode_number': traverse_obj(supplementary_data, ('entries', 0, 'item', 'episodeNumber')) or int_or_none(data.get('EpisodeNumber')),
             'release_year': int_or_none(data.get('ProductionYear')),
         }
 
@@ -373,9 +379,6 @@ class DRTVLiveIE(InfoExtractor):
             'formats': formats,
             'is_live': True,
         }
-
-
-SERIES_API = 'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=%s'
 
 
 class DRTVSeasonIE(InfoExtractor):
