@@ -588,12 +588,9 @@ class RheinMainTVIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': headline or img.get('title') or get(json, 'name') or
-                     self._og_search_title(webpage) or
-                     self._html_extract_title(webpage).removesuffix(' -'),
+            'title': headline or img.get('title') or get(json, 'name') or self._og_search_title(webpage) or self._html_extract_title(webpage).removesuffix(' -'),
             'alt_title': img['alt'],  # attribute 'alt' is mandatory
-            'description': get(json, 'description') or
-                           self._og_search_description(webpage),
+            'description': get(json, 'description') or self._og_search_description(webpage),
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
