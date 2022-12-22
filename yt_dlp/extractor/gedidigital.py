@@ -190,6 +190,7 @@ class GediDigitalIE(InfoExtractor):
 
 class RepubblicaTVIE(GediDigitalIE):
     _VALID_URL = r'(?P<url>https?://(?P<type>video)\.repubblica\.it(?:/[^/]+){2,4}/(?P<id>\d+))(?:\#(?P<trtId>([\w-]+:)+\d{5,}))?'
+    _EMBED_REGEX = [rf'<gdwc-video-component[^>]+data-src="{_VALID_URL}']
     _TESTS = [{
         'url': 'https://video.repubblica.it/metropolis/metropolis232-cavoletti-da-bruxelles-manovra-migranti-qatargate-ue-chiama-italia-ospiti-provenzano-giarrusso-e-de-giovanni-con-cuzzocrea-e-folli/434120/435073',
         'info_dict': {
@@ -202,6 +203,22 @@ class RepubblicaTVIE(GediDigitalIE):
             'timestamp': 1671044772,
             'upload_date': '20221214',
             'formats': 'count:6',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://genova.repubblica.it/cronaca/2022/12/22/news/genova_palazzo_ducale_fondi_pnrr_cultura-380257726/?ref=RHLF-BG-I380293053-P13-S1-T1&__vfz=medium%3Dsharebar',
+        'info_dict': {
+            'id': '434699',
+            'ext': 'mp4',
+            'title': '[REP-TV] Genova  pioggia di soldi dal Pnrr per il Palazzo Ducale e il restauro della Torre Grimaldina (434699-435663)',
+            'description': 'md5:43b3945e22345c2bc95b3095f5a274ef',
+            'thumbnail': r're:^https://www\.repstatic\.it/.+-thumb-full-.+\.jpg',
+            'duration': 121,
+            'upload_date': '20221222',
+            'timestamp': 1671723271,
         },
         'params': {
             'skip_download': True,
