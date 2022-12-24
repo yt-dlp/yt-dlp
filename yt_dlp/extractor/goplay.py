@@ -81,7 +81,6 @@ class GoPlayIE(InfoExtractor):
 
         formats, subs = self._extract_m3u8_formats_and_subtitles(
             api['video']['S'], video_id, ext='mp4', m3u8_id='HLS')
-        self._sort_formats(formats)
 
         info_dict.update({
             'id': video_id,

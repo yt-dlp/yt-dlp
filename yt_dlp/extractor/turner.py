@@ -174,7 +174,6 @@ class TurnerBaseIE(AdobePassIE):
                             else:
                                 f['tbr'] = int(mobj.group(1))
                 formats.append(f)
-        self._sort_formats(formats)
 
         for source in video_data.findall('closedCaptions/source'):
             for track in source.findall('track'):
@@ -249,7 +248,6 @@ class TurnerBaseIE(AdobePassIE):
                         'start_time': start_time,
                         'end_time': start_time + chapter_duration,
                     })
-        self._sort_formats(formats)
 
         return {
             'formats': formats,

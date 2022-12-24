@@ -1,5 +1,6 @@
 import base64
 import calendar
+import collections
 import copy
 import datetime
 import enum
@@ -387,6 +388,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?piped\.adminforge\.de',
         r'(?:www\.)?watch\.whatevertinfoil\.de',
         r'(?:www\.)?piped\.qdi\.fi',
+        r'(?:www\.)?piped\.video',
+        r'(?:www\.)?piped\.aeong\.one',
     )
 
     # extracted from account/account_menu ep
@@ -1050,7 +1053,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             <a\s[^>]*\bhref="(?P<url>https://www\.youtube\.com/watch\?v=[0-9A-Za-z_-]{11})"
             \s[^>]*\bclass="[^"]*\blazy-load-youtube''',
     ]
-    _RETURN_TYPE = 'video'  # While there are "multifeed" test cases, they don't seem to actually exist anymore
+    _RETURN_TYPE = 'video'  # XXX: How to handle multifeed?
 
     _PLAYER_INFO_RE = (
         r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/player',
@@ -1581,66 +1584,99 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'skip': 'This live event has ended.',
         },
         {
-            # Multifeed videos (multiple cameras), URL is for Main Camera
-            'url': 'https://www.youtube.com/watch?v=jvGDaLqkpTg',
+            # Multifeed videos (multiple cameras), URL can be of any Camera
+            'url': 'https://www.youtube.com/watch?v=zaPI8MvL8pg',
             'info_dict': {
-                'id': 'jvGDaLqkpTg',
-                'title': 'Tom Clancy Free Weekend Rainbow Whatever',
-                'description': 'md5:e03b909557865076822aa169218d6a5d',
+                'id': 'zaPI8MvL8pg',
+                'title': 'Terraria 1.2 Live Stream | Let\'s Play - Part 04',
+                'description': 'md5:563ccbc698b39298481ca3c571169519',
             },
             'playlist': [{
                 'info_dict': {
-                    'id': 'jvGDaLqkpTg',
+                    'id': 'j5yGuxZ8lLU',
                     'ext': 'mp4',
-                    'title': 'Tom Clancy Free Weekend Rainbow Whatever (Main Camera)',
-                    'description': 'md5:e03b909557865076822aa169218d6a5d',
-                    'duration': 10643,
-                    'upload_date': '20161111',
-                    'uploader': 'Team PGP',
-                    'uploader_id': 'UChORY56LMMETTuGjXaJXvLg',
-                    'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UChORY56LMMETTuGjXaJXvLg',
+                    'title': 'Terraria 1.2 Live Stream | Let\'s Play - Part 04 (Chris)',
+                    'uploader': 'WiiLikeToPlay',
+                    'description': 'md5:563ccbc698b39298481ca3c571169519',
+                    'uploader_url': 'http://www.youtube.com/user/WiiRikeToPray',
+                    'duration': 10120,
+                    'channel_follower_count': int,
+                    'channel_url': 'https://www.youtube.com/channel/UCN2XePorRokPB9TEgRZpddg',
+                    'availability': 'public',
+                    'playable_in_embed': True,
+                    'upload_date': '20131105',
+                    'uploader_id': 'WiiRikeToPray',
+                    'categories': ['Gaming'],
+                    'live_status': 'was_live',
+                    'tags': 'count:24',
+                    'release_timestamp': 1383701910,
+                    'thumbnail': 'https://i.ytimg.com/vi/j5yGuxZ8lLU/maxresdefault.jpg',
+                    'comment_count': int,
+                    'age_limit': 0,
+                    'like_count': int,
+                    'channel_id': 'UCN2XePorRokPB9TEgRZpddg',
+                    'channel': 'WiiLikeToPlay',
+                    'view_count': int,
+                    'release_date': '20131106',
                 },
             }, {
                 'info_dict': {
-                    'id': '3AKt1R1aDnw',
+                    'id': 'zaPI8MvL8pg',
                     'ext': 'mp4',
-                    'title': 'Tom Clancy Free Weekend Rainbow Whatever (Camera 2)',
-                    'description': 'md5:e03b909557865076822aa169218d6a5d',
-                    'duration': 10991,
-                    'upload_date': '20161111',
-                    'uploader': 'Team PGP',
-                    'uploader_id': 'UChORY56LMMETTuGjXaJXvLg',
-                    'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UChORY56LMMETTuGjXaJXvLg',
+                    'title': 'Terraria 1.2 Live Stream | Let\'s Play - Part 04 (Tyson)',
+                    'uploader_id': 'WiiRikeToPray',
+                    'availability': 'public',
+                    'channel_url': 'https://www.youtube.com/channel/UCN2XePorRokPB9TEgRZpddg',
+                    'channel': 'WiiLikeToPlay',
+                    'uploader_url': 'http://www.youtube.com/user/WiiRikeToPray',
+                    'channel_follower_count': int,
+                    'description': 'md5:563ccbc698b39298481ca3c571169519',
+                    'duration': 10108,
+                    'age_limit': 0,
+                    'like_count': int,
+                    'tags': 'count:24',
+                    'channel_id': 'UCN2XePorRokPB9TEgRZpddg',
+                    'uploader': 'WiiLikeToPlay',
+                    'release_timestamp': 1383701915,
+                    'comment_count': int,
+                    'upload_date': '20131105',
+                    'thumbnail': 'https://i.ytimg.com/vi/zaPI8MvL8pg/maxresdefault.jpg',
+                    'release_date': '20131106',
+                    'playable_in_embed': True,
+                    'live_status': 'was_live',
+                    'categories': ['Gaming'],
+                    'view_count': int,
                 },
             }, {
                 'info_dict': {
-                    'id': 'RtAMM00gpVc',
+                    'id': 'R7r3vfO7Hao',
                     'ext': 'mp4',
-                    'title': 'Tom Clancy Free Weekend Rainbow Whatever (Camera 3)',
-                    'description': 'md5:e03b909557865076822aa169218d6a5d',
-                    'duration': 10995,
-                    'upload_date': '20161111',
-                    'uploader': 'Team PGP',
-                    'uploader_id': 'UChORY56LMMETTuGjXaJXvLg',
-                    'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UChORY56LMMETTuGjXaJXvLg',
-                },
-            }, {
-                'info_dict': {
-                    'id': '6N2fdlP3C5U',
-                    'ext': 'mp4',
-                    'title': 'Tom Clancy Free Weekend Rainbow Whatever (Camera 4)',
-                    'description': 'md5:e03b909557865076822aa169218d6a5d',
-                    'duration': 10990,
-                    'upload_date': '20161111',
-                    'uploader': 'Team PGP',
-                    'uploader_id': 'UChORY56LMMETTuGjXaJXvLg',
-                    'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UChORY56LMMETTuGjXaJXvLg',
+                    'title': 'Terraria 1.2 Live Stream | Let\'s Play - Part 04 (Spencer)',
+                    'thumbnail': 'https://i.ytimg.com/vi/R7r3vfO7Hao/maxresdefault.jpg',
+                    'channel_id': 'UCN2XePorRokPB9TEgRZpddg',
+                    'like_count': int,
+                    'availability': 'public',
+                    'playable_in_embed': True,
+                    'upload_date': '20131105',
+                    'description': 'md5:563ccbc698b39298481ca3c571169519',
+                    'uploader_id': 'WiiRikeToPray',
+                    'uploader_url': 'http://www.youtube.com/user/WiiRikeToPray',
+                    'channel_follower_count': int,
+                    'tags': 'count:24',
+                    'release_date': '20131106',
+                    'uploader': 'WiiLikeToPlay',
+                    'comment_count': int,
+                    'channel_url': 'https://www.youtube.com/channel/UCN2XePorRokPB9TEgRZpddg',
+                    'channel': 'WiiLikeToPlay',
+                    'categories': ['Gaming'],
+                    'release_timestamp': 1383701914,
+                    'live_status': 'was_live',
+                    'age_limit': 0,
+                    'duration': 10128,
+                    'view_count': int,
                 },
             }],
-            'params': {
-                'skip_download': True,
-            },
-            'skip': 'Not multifeed anymore',
+            'params': {'skip_download': True},
         },
         {
             # Multifeed video with comma in title (see https://github.com/ytdl-org/youtube-dl/issues/8536)
@@ -2480,6 +2516,34 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'note': '6 channel audio',
             'url': 'https://www.youtube.com/watch?v=zgdo7-RRjgo',
             'only_matching': True,
+        }, {
+            'note': 'Multiple HLS formats with same itag',
+            'url': 'https://www.youtube.com/watch?v=kX3nB4PpJko',
+            'info_dict': {
+                'id': 'kX3nB4PpJko',
+                'ext': 'mp4',
+                'categories': ['Entertainment'],
+                'description': 'md5:e8031ff6e426cdb6a77670c9b81f6fa6',
+                'uploader_url': 'http://www.youtube.com/user/MrBeast6000',
+                'live_status': 'not_live',
+                'duration': 937,
+                'channel_follower_count': int,
+                'thumbnail': 'https://i.ytimg.com/vi_webp/kX3nB4PpJko/maxresdefault.webp',
+                'title': 'Last To Take Hand Off Jet, Keeps It!',
+                'channel': 'MrBeast',
+                'playable_in_embed': True,
+                'view_count': int,
+                'upload_date': '20221112',
+                'uploader': 'MrBeast',
+                'uploader_id': 'MrBeast6000',
+                'channel_url': 'https://www.youtube.com/channel/UCX6OQ3DkcsbYNE6H8uQQuVA',
+                'age_limit': 0,
+                'availability': 'public',
+                'channel_id': 'UCX6OQ3DkcsbYNE6H8uQQuVA',
+                'like_count': int,
+                'tags': [],
+            },
+            'params': {'extractor_args': {'youtube': {'player_client': ['ios']}}, 'format': '233-1'},
         }
     ]
 
@@ -3472,7 +3536,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return live_status
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, live_status, duration):
-        itags, stream_ids = {}, []
+        itags, stream_ids = collections.defaultdict(set), []
         itag_qualities, res_qualities = {}, {0: None}
         q = qualities([
             # Normally tiny is the smallest video-only formats. But
@@ -3554,10 +3618,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             video_id=video_id, only_once=True)
                     throttled = True
 
-            if itag:
-                itags[itag] = 'https'
-                stream_ids.append(stream_id)
-
             tbr = float_or_none(fmt.get('averageBitrate') or fmt.get('bitrate'), 1000)
             language_preference = (
                 10 if audio_track.get('audioIsDefault') and 10
@@ -3616,6 +3676,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 }
                 if dct.get('ext'):
                     dct['container'] = dct['ext'] + '_dash'
+
+            if itag:
+                itags[itag].add(('https', dct.get('language')))
+                stream_ids.append(stream_id)
             yield dct
 
         needs_live_processing = self._needs_live_processing(live_status, duration)
@@ -3636,13 +3700,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             skip_manifests.add('dash')
 
         def process_manifest_format(f, proto, itag):
-            if itag in itags:
-                if itags[itag] == proto or f'{itag}-{proto}' in itags:
-                    return False
-                itag = f'{itag}-{proto}'
-            if itag:
+            key = (proto, f.get('language'))
+            if key in itags[itag]:
+                return False
+            itags[itag].add(key)
+
+            if any(p != proto for p, _ in itags[itag]):
+                f['format_id'] = f'{itag}-{proto}'
+            elif itag:
                 f['format_id'] = itag
-                itags[itag] = proto
 
             f['quality'] = q(itag_qualities.get(try_get(f, lambda f: f['format_id'].split('-')[0]), -1))
             if f['quality'] == -1 and f.get('height'):
@@ -3939,10 +4005,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 
-        # source_preference is lower for throttled/potentially damaged formats
-        self._sort_formats(formats, (
-            'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto'))
-
         info = {
             'id': video_id,
             'title': video_title,
@@ -3972,6 +4034,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'playable_in_embed': get_first(playability_statuses, 'playableInEmbed'),
             'live_status': live_status,
             'release_timestamp': live_start_time,
+            '_format_sort_fields': (  # source_preference is lower for throttled/potentially damaged formats
+                'quality', 'res', 'fps', 'hdr:12', 'source', 'vcodec:vp9.2', 'channels', 'acodec', 'lang', 'proto')
         }
 
         subtitles = {}
@@ -4021,7 +4085,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not trans_code:
                         continue
                     orig_trans_code = trans_code
-                    if caption_track.get('kind') != 'asr':
+                    if caption_track.get('kind') != 'asr' and trans_code != 'und':
                         if not get_translated_subs:
                             continue
                         trans_code += f'-{lang_code}'
@@ -4318,6 +4382,25 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             elif key.startswith('grid') and key.endswith('Renderer'):
                 return renderer
 
+    def _extract_channel_renderer(self, renderer):
+        channel_id = renderer['channelId']
+        title = self._get_text(renderer, 'title')
+        channel_url = f'https://www.youtube.com/channel/{channel_id}'
+        return {
+            '_type': 'url',
+            'url': channel_url,
+            'id': channel_id,
+            'ie_key': YoutubeTabIE.ie_key(),
+            'channel': title,
+            'channel_id': channel_id,
+            'channel_url': channel_url,
+            'title': title,
+            'channel_follower_count': self._get_count(renderer, 'subscriberCountText'),
+            'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
+            'playlist_count': self._get_count(renderer, 'videoCountText'),
+            'description': self._get_text(renderer, 'descriptionSnippet'),
+        }
+
     def _grid_entries(self, grid_renderer):
         for item in grid_renderer['items']:
             if not isinstance(item, dict):
@@ -4343,9 +4426,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             # channel
             channel_id = renderer.get('channelId')
             if channel_id:
-                yield self.url_result(
-                    'https://www.youtube.com/channel/%s' % channel_id,
-                    ie=YoutubeTabIE.ie_key(), video_title=title)
+                yield self._extract_channel_renderer(renderer)
                 continue
             # generic endpoint URL support
             ep_url = urljoin('https://www.youtube.com/', try_get(
@@ -5698,7 +5779,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'cole-dlp-test-acc',
             'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel': 'cole-dlp-test-acc',
-            'channel_follower_count': int,
         },
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
@@ -5866,7 +5946,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'cole-dlp-test-acc - Shorts',
             'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel': 'cole-dlp-test-acc',
-            'channel_follower_count': int,
             'description': 'test description',
             'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
@@ -5912,8 +5991,40 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'channel': str,
             }
         }],
-        'params': {'extract_flat': True},
+        'params': {'extract_flat': True, 'playlist_items': '1'},
         'playlist_mincount': 1
+    }, {
+        # Channel renderer metadata. Contains number of videos on the channel
+        'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/channels',
+        'info_dict': {
+            'id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'title': 'cole-dlp-test-acc - Channels',
+            'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel': 'cole-dlp-test-acc',
+            'description': 'test description',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'tags': [],
+            'uploader': 'cole-dlp-test-acc',
+            'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+
+        },
+        'playlist': [{
+            'info_dict': {
+                '_type': 'url',
+                'ie_key': 'YoutubeTab',
+                'url': 'https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'id': 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'channel_id': 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'title': 'PewDiePie',
+                'channel': 'PewDiePie',
+                'channel_url': 'https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'thumbnails': list,
+                'channel_follower_count': int,
+                'playlist_count': int
+            }
+        }],
+        'params': {'extract_flat': True},
     }]
 
     @classmethod
@@ -6467,6 +6578,30 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
             #     'title': '#cats',
             # }],
         },
+    }, {
+        # Channel results
+        'url': 'https://www.youtube.com/results?search_query=kurzgesagt&sp=EgIQAg%253D%253D',
+        'info_dict': {
+            'id': 'kurzgesagt',
+            'title': 'kurzgesagt',
+        },
+        'playlist': [{
+            'info_dict': {
+                '_type': 'url',
+                'id': 'UCsXVk37bltHxD1rDPwtNM8Q',
+                'url': 'https://www.youtube.com/channel/UCsXVk37bltHxD1rDPwtNM8Q',
+                'ie_key': 'YoutubeTab',
+                'channel': 'Kurzgesagt – In a Nutshell',
+                'description': 'md5:4ae48dfa9505ffc307dad26342d06bfc',
+                'title': 'Kurzgesagt – In a Nutshell',
+                'channel_id': 'UCsXVk37bltHxD1rDPwtNM8Q',
+                'playlist_count': int,  # XXX: should have a way of saying > 1
+                'channel_url': 'https://www.youtube.com/channel/UCsXVk37bltHxD1rDPwtNM8Q',
+                'thumbnails': list
+            }
+        }],
+        'params': {'extract_flat': True, 'playlist_items': '1'},
+        'playlist_mincount': 1,
     }, {
         'url': 'https://www.youtube.com/results?q=test&sp=EgQIBBgB',
         'only_matching': True,

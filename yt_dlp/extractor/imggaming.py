@@ -103,7 +103,6 @@ class ImgGamingBaseIE(InfoExtractor):
                 formats.extend(self._extract_mpd_formats(
                     media_url, media_id, mpd_id='dash', fatal=False,
                     headers=self._MANIFEST_HEADERS))
-        self._sort_formats(formats)
 
         subtitles = {}
         for subtitle in video_data.get('subtitles', []):

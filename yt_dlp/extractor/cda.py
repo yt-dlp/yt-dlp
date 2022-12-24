@@ -305,6 +305,4 @@ class CDAIE(InfoExtractor):
 
             extract_format(webpage, resolution)
 
-        self._sort_formats(formats)
-
         return merge_dicts(info_dict, info)

@@ -88,8 +88,6 @@ class WeiboIE(InfoExtractor):
                 'height': res,
             })
 
-        self._sort_formats(formats)
-
         uploader = self._og_search_property(
             'nick-name', webpage, 'uploader', default=None)
 

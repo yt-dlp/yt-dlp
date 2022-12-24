@@ -110,7 +110,6 @@ class ZDFBaseIE(InfoExtractor):
                                 'class': track.get('class'),
                                 'language': track.get('language'),
                             })
-        self._sort_formats(formats, ('tbr', 'res', 'quality', 'language_preference'))
 
         duration = float_or_none(try_get(
             ptmd, lambda x: x['attributes']['duration']['value']), scale=1000)
@@ -121,6 +120,7 @@ class ZDFBaseIE(InfoExtractor):
             'duration': duration,
             'formats': formats,
             'subtitles': self._extract_subtitles(ptmd),
+            '_format_sort_fields': ('tbr', 'res', 'quality', 'language_preference'),
         }
 
     def _extract_player(self, webpage, video_id, fatal=True):
@@ -318,7 +318,6 @@ class ZDFIE(ZDFBaseIE):
             format_urls = set()
             for f in formitaeten or []:
                 self._extract_format(content_id, formats, format_urls, f)
-        self._sort_formats(formats)
 
         thumbnails = []
         teaser_bild = document.get('teaserBild')

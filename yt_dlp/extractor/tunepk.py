@@ -57,7 +57,6 @@ class TunePkIE(InfoExtractor):
 
         formats = self._parse_jwplayer_formats(
             details['player']['sources'], video_id)
-        self._sort_formats(formats)
 
         description = self._og_search_description(
             webpage, default=None) or self._html_search_meta(

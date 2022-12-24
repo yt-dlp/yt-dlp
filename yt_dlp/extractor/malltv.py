@@ -72,7 +72,6 @@ class MallTVIE(InfoExtractor):
 
         formats = self._extract_m3u8_formats(
             video['VideoSource'], video_id, 'mp4', 'm3u8_native')
-        self._sort_formats(formats)
 
         subtitles = {}
         for s in (video.get('Subtitles') or {}):

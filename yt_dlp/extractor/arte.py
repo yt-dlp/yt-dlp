@@ -186,7 +186,6 @@ class ArteTVIE(ArteTVBaseIE):
 
         formats.extend(secondary_formats)
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats)
 
         metadata = config['data']['attributes']['metadata']
 

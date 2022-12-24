@@ -28,7 +28,6 @@ class VODPlatformIE(InfoExtractor):
 
         formats = self._extract_wowza_formats(
             hidden_inputs.get('HiddenmyhHlsLink') or hidden_inputs['HiddenmyDashLink'], video_id, skip_protocols=['f4m', 'smil'])
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

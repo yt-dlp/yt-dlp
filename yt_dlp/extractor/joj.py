@@ -81,7 +81,6 @@ class JojIE(InfoExtractor):
                         r'(\d+)[pP]', format_id or path, 'height',
                         default=None)),
                 })
-        self._sort_formats(formats)
 
         thumbnail = self._og_search_thumbnail(webpage)
 

@@ -67,7 +67,6 @@ class DailyWireIE(DailyWireBaseIE):
             format_, subs_ = self._extract_m3u8_formats_and_subtitles(url, slug)
             formats.extend(format_)
             self._merge_subtitles(subs_, target=subtitles)
-        self._sort_formats(formats)
         return {
             'id': episode_info['id'],
             'display_id': slug,

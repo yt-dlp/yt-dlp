@@ -89,7 +89,6 @@ class IndavideoEmbedIE(InfoExtractor):
                 'url': video_url,
                 'height': height,
             })
-        self._sort_formats(formats)
 
         timestamp = video.get('date')
         if timestamp:

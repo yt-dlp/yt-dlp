@@ -60,7 +60,6 @@ class ClypIE(InfoExtractor):
                         'format_id': format_id,
                         'vcodec': 'none',
                     })
-        self._sort_formats(formats)
 
         title = metadata['Title']
         description = metadata.get('Description')

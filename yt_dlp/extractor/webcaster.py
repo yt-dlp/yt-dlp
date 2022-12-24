@@ -50,7 +50,6 @@ class WebcasterIE(InfoExtractor):
                             'format_note': track.get('title'),
                         })
                     formats.extend(m3u8_formats)
-        self._sort_formats(formats)
 
         thumbnail = xpath_text(video, './/image', 'thumbnail')
 

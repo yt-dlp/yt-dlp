@@ -84,8 +84,6 @@ class ImgurIE(InfoExtractor):
                 },
             })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'formats': formats,
@@ -138,7 +136,7 @@ class ImgurGalleryIE(InfoExtractor):
         return self.url_result('http://imgur.com/%s' % gallery_id, ImgurIE.ie_key(), gallery_id)
 
 
-class ImgurAlbumIE(ImgurGalleryIE):
+class ImgurAlbumIE(ImgurGalleryIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'imgur:album'
     _VALID_URL = r'https?://(?:i\.)?imgur\.com/a/(?P<id>[a-zA-Z0-9]+)'
 

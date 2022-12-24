@@ -456,10 +456,6 @@ class PornHubIE(PornHubBaseIE):
                 continue
             add_format(video_url)
 
-        # field_preference is unnecessary here, but kept for code-similarity with youtube-dl
-        self._sort_formats(
-            formats, field_preference=('height', 'width', 'fps', 'format_id'))
-
         model_profile = self._search_json(
             r'var\s+MODEL_PROFILE\s*=', webpage, 'model profile', video_id, fatal=False)
         video_uploader = self._html_search_regex(

@@ -172,7 +172,6 @@ class ITVIE(InfoExtractor):
                 formats.append({
                     'url': href,
                 })
-        self._sort_formats(formats)
         info = self._search_json_ld(webpage, video_id, default={})
         if not info:
             json_ld = self._parse_json(self._search_regex(

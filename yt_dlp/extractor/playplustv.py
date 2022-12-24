@@ -79,7 +79,6 @@ class PlayPlusTVIE(InfoExtractor):
                 'width': int_or_none(file_info.get('width')),
                 'height': int_or_none(file_info.get('height')),
             })
-        self._sort_formats(formats)
 
         thumbnails = []
         for thumb in media.get('thumbs', []):

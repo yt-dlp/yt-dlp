@@ -253,8 +253,6 @@ class GoogleDriveIE(InfoExtractor):
         if not formats and reason:
             self.raise_no_formats(reason, expected=True)
 
-        self._sort_formats(formats)
-
         hl = get_value('hl')
         subtitles_id = None
         ttsurl = get_value('ttsurl')
