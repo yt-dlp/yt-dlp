@@ -266,19 +266,16 @@ class NetverseSearchIE(SearchInfoExtractor):
     }]
 
     def _search_results(self, query):
-        last_page_number = None
+        last_page = None
         for i in itertools.count(1):
             search_data = self._download_json(
                 'https://api.netverse.id/search/elastic/search', query,
-                query={'q': query, 'page': i}, note=f'Downloading result from page {i}')
+                query={'q': query, 'page': i}, note=f'Downloading page {i}')
 
-            if not traverse_obj(search_data, ('response', 'data')):
-                break
+            videos = traverse_obj(search_data, ('response', 'data', ...))
+            for video in videos:
+                yield self.url_result(f'https://netverse.id/video/{video["slug"]}', NetverseIE)
 
-            for video in traverse_obj(search_data, ('response', 'data')):
-                yield self.url_result(f'https://netverse.id/video/{video["slug"]}', NetverseIE.ie_key())
-
-            if not last_page_number:
-                last_page_number = traverse_obj(search_data, ('response', 'lastpage'))
-            if i >= (last_page_number or 0):
+            last_page = last_page or traverse_obj(search_data, ('response', 'lastpage'))
+            if i >= (last_page or 0):
                 break
