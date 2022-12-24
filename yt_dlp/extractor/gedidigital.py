@@ -15,7 +15,7 @@ from ..utils import (
 
 
 class GediDigitalIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
+    _VALID_URL = r'''(?x:
         (?P<url>
             https?://(?:www\.)?
             (?:
@@ -27,8 +27,8 @@ class GediDigitalIE(InfoExtractor):
             )\.it
             (?:/[^/]+){1,2}(?P<date>[\d/]{12})(?P<type>audio|video|playlist)/[^/]+-
             (?P<id>\d{5,})
-        )(?:\#(?P<trtId>([\w-]+:)+\d{5,}))?'''
-    _EMBED_REGEX = [rf'(?x)<iframe[^>]+src=[\'"]{_VALID_URL.lstrip("(?x)")}[\'"]']
+        )(?:\#(?P<trtId>([\w-]+:)+\d{5,}))?)'''
+    _EMBED_REGEX = [rf'<iframe[^>]+src=[\'"]{_VALID_URL}']
     _TESTS = [{
         # old video, only http mp4 available
         'url': 'https://www.lastampa.it/politica/2020/09/22/video/il_paradosso_delle_regionali_ecco_perche_la_lega_vince_ma_sembra_aver_perso-375544/',
@@ -110,6 +110,17 @@ class GediDigitalIE(InfoExtractor):
         # new url for video in GediDigitalLegacy
         'url': 'https://espresso.repubblica.it/video/2020/10/08/video/festival_emergency_villa_la_buona_informazione_aiuta_la_salute_-321887259/',
         'only_matching': True,
+    }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://nixxo.github.io/yt-dpl-test-pages/gedidigital-iframes.html',
+        'info_dict': {
+            **_TESTS[1]['info_dict'],
+            # description in embeds is cropped from original lenght
+            'description': 'md5:054880e1a8463570348d1c104a0ca690'
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
