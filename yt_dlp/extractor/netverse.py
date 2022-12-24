@@ -277,5 +277,5 @@ class NetverseSearchIE(SearchInfoExtractor):
                 yield self.url_result(f'https://netverse.id/video/{video["slug"]}', NetverseIE)
 
             last_page = last_page or traverse_obj(search_data, ('response', 'lastpage'))
-            if i >= (last_page or 0):
+            if not videos or i >= (last_page or 0):
                 break
