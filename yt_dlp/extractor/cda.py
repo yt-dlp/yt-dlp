@@ -150,7 +150,7 @@ class CDAIE(InfoExtractor):
             'filesize': quality.get('length'),
         } for quality in meta['qualities'] if quality.get('file')]
 
-        if meta.get('premium') and not meta.get('premium_free') and len(formats) == 0:
+        if meta.get('premium') and not meta.get('premium_free') and not formats:
             raise ExtractorError(
                 'No video formats and video requires CDA Premium - do you have a subscription?', expected=True)
 
