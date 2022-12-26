@@ -117,7 +117,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'season_number': 1,
             'episode': 'To the Future',
             'episode_number': 73,
-            'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg$',
+            'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
         },
         'params': {'skip_download': 'm3u8', 'format': 'all[format_id~=hardsub]'},
     }, {
