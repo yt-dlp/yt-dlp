@@ -3,6 +3,7 @@ import errno
 import json
 import os
 import re
+from urllib.parse import quote
 import shutil
 import traceback
 
@@ -24,7 +25,8 @@ class Cache:
     def _get_cache_fn(self, section, key, dtype):
         assert re.match(r'^[a-zA-Z0-9_.-]+$', section), \
             'invalid section %r' % section
-        assert re.match(r'^[a-zA-Z0-9_.-]+$', key), 'invalid key %r' % key
+        # encode non-ascii characters
+        key = quote(key).replace('%', ',')
         return os.path.join(
             self._get_root_dir(), section, f'{key}.{dtype}')
 
