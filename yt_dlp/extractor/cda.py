@@ -4,6 +4,7 @@ import datetime
 import hashlib
 import hmac
 import json
+import random
 import re
 
 from .common import InfoExtractor
@@ -31,7 +32,6 @@ class CDAIE(InfoExtractor):
     _BASE_API_URL = 'https://api.cda.pl'
     _API_HEADERS = {
         'Accept': 'application/vnd.cda.public+json',
-        'User-Agent': 'pl.cda 1.0 (version 1.2.88 build 15306; Android 9; Xiaomi Redmi 3S)',
     }
     # hardcoded in the app
     _LOGIN_REQUEST_AUTH = 'Basic YzU3YzBlZDUtYTIzOC00MWQwLWI2NjQtNmZmMWMxY2Y2YzVlOklBTm95QlhRRVR6U09MV1hnV3MwMW0xT2VyNWJNZzV4clRNTXhpNGZJUGVGZ0lWUlo5UGVYTDhtUGZaR1U1U3Q'
@@ -101,9 +101,39 @@ class CDAIE(InfoExtractor):
             }, **kwargs)
 
     def _perform_login(self, username, password):
-        # hack to allow e-mails as a key
-        cache_username = username.replace('@', '___')
-        cached_bearer = self.cache.load(self._BEARER_CACHE, cache_username) or {}
+        app_version = random.choice((
+            '1.2.88 build 15306',
+            '1.2.174 build 18469',
+        ))
+        android_version = random.randrange(8, 14)
+        phone_model = random.choice((
+            # x-kom.pl top selling Android smartphones, as of 2022-12-26
+            # https://www.x-kom.pl/g-4/c/1590-smartfony-i-telefony.html?f201-system-operacyjny=61322-android
+            'ASUS ZenFone 8',
+            'Motorola edge 20 5G',
+            'Motorola edge 30 neo 5G',
+            'Motorola moto g22',
+            'OnePlus Nord 2T 5G',
+            'Samsung Galaxy A32 SM‑A325F',
+            'Samsung Galaxy M13',
+            'Samsung Galaxy S20 FE 5G',
+            'Xiaomi 11T',
+            'Xiaomi POCO M4 Pro',
+            'Xiaomi Redmi 10',
+            'Xiaomi Redmi 10C',
+            'Xiaomi Redmi 9C NFC',
+            'Xiaomi Redmi Note 10 Pro',
+            'Xiaomi Redmi Note 11 Pro',
+            'Xiaomi Redmi Note 11',
+            'Xiaomi Redmi Note 11S 5G',
+            'Xiaomi Redmi Note 11S',
+            'realme 10',
+            'realme 9 Pro+',
+            'vivo Y33s',
+        ))
+        self._API_HEADERS['User-Agent'] = f'pl.cda 1.0 (version {app_version}; Android {android_version}; {phone_model})'
+
+        cached_bearer = self.cache.load(self._BEARER_CACHE, username) or {}
         if cached_bearer.get('valid_until', 0) > datetime.datetime.now().timestamp() + 5:
             self._API_HEADERS['Authorization'] = f'Bearer {cached_bearer["token"]}'
             return
@@ -122,7 +152,7 @@ class CDAIE(InfoExtractor):
                 'login': username,
                 'password': password_hash,
             })
-        self.cache.store(self._BEARER_CACHE, cache_username, {
+        self.cache.store(self._BEARER_CACHE, username, {
             'token': token_res['access_token'],
             'valid_until': token_res['expires_in'] + datetime.datetime.now().timestamp(),
         })
