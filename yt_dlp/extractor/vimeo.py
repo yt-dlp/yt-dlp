@@ -2,6 +2,7 @@ import base64
 import functools
 import re
 import itertools
+import urllib.error
 
 from .common import InfoExtractor
 from ..compat import (
@@ -311,7 +312,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                             )
                             \.
                         )?
-                        vimeo(?:pro)?\.com/
+                        vimeo\.com/
                         (?!(?:channels|album|showcase)/[^/?#]+/?(?:$|[?#])|[^/]+/review/|ondemand/)
                         (?:[^/]+/)*?
                         (?:
@@ -354,31 +355,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'format': 'best[protocol=https]',
             },
             'skip': 'No longer available'
-        },
-        {
-            'url': 'http://vimeopro.com/openstreetmapus/state-of-the-map-us-2013/video/68093876',
-            'md5': '3b5ca6aa22b60dfeeadf50b72e44ed82',
-            'note': 'Vimeo Pro video (#1197)',
-            'info_dict': {
-                'id': '68093876',
-                'ext': 'mp4',
-                'uploader_url': r're:https?://(?:www\.)?vimeo\.com/openstreetmapus',
-                'uploader_id': 'openstreetmapus',
-                'uploader': 'OpenStreetMap US',
-                'title': 'Andy Allan - Putting the Carto into OpenStreetMap Cartography',
-                'description': 'md5:2c362968038d4499f4d79f88458590c1',
-                'duration': 1595,
-                'upload_date': '20130610',
-                'timestamp': 1370893156,
-                'license': 'by',
-                'thumbnail': 'https://i.vimeocdn.com/video/440260469-19b0d92fca3bd84066623b53f1eb8aaa3980c6c809e2d67b6b39ab7b4a77a344-d_960',
-                'view_count': int,
-                'comment_count': int,
-                'like_count': int,
-            },
-            'params': {
-                'format': 'best[protocol=https]',
-            },
         },
         {
             'url': 'http://player.vimeo.com/video/54469442',
@@ -837,15 +813,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         if unlisted_hash:
             return self._extract_from_api(video_id, unlisted_hash)
 
-        orig_url = url
-        is_pro = 'vimeopro.com/' in url
-        if is_pro:
-            # some videos require portfolio_id to be present in player url
-            # https://github.com/ytdl-org/youtube-dl/issues/20070
-            url = self._extract_url(url, self._download_webpage(url, video_id))
-            if not url:
-                url = 'https://vimeo.com/' + video_id
-        elif any(p in url for p in ('play_redirect_hls', 'moogaloop.swf')):
+        if any(p in url for p in ('play_redirect_hls', 'moogaloop.swf')):
             url = 'https://vimeo.com/' + video_id
 
         self._try_album_password(url)
@@ -947,14 +915,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             video_description = self._html_search_meta(
                 ['description', 'og:description', 'twitter:description'],
                 webpage, default=None)
-        if not video_description and is_pro:
-            orig_webpage = self._download_webpage(
-                orig_url, video_id,
-                note='Downloading webpage for description',
-                fatal=False)
-            if orig_webpage:
-                video_description = self._html_search_meta(
-                    'description', orig_webpage, default=None)
         if not video_description:
             self.report_warning('Cannot find video description')
 
@@ -1393,3 +1353,89 @@ class VHXEmbedIE(VimeoBaseInfoExtractor):
         info = self._parse_config(config, video_id)
         info['id'] = video_id
         return info
+
+
+class VimeoProIE(VimeoBaseInfoExtractor):
+    IE_NAME = 'vimeo:pro'
+    _VALID_URL = r'https?://(?:www\.)?vimeopro\.com/[^/?#]+/(?P<slug>[^/?#]+)(?:(?:/videos?/(?P<id>[0-9]+)))?'
+    _TESTS = [{
+        # Vimeo URL derived from video_id
+        'url': 'http://vimeopro.com/openstreetmapus/state-of-the-map-us-2013/video/68093876',
+        'md5': '3b5ca6aa22b60dfeeadf50b72e44ed82',
+        'note': 'Vimeo Pro video (#1197)',
+        'info_dict': {
+            'id': '68093876',
+            'ext': 'mp4',
+            'uploader_url': r're:https?://(?:www\.)?vimeo\.com/openstreetmapus',
+            'uploader_id': 'openstreetmapus',
+            'uploader': 'OpenStreetMap US',
+            'title': 'Andy Allan - Putting the Carto into OpenStreetMap Cartography',
+            'description': 'md5:2c362968038d4499f4d79f88458590c1',
+            'duration': 1595,
+            'upload_date': '20130610',
+            'timestamp': 1370893156,
+            'license': 'by',
+            'thumbnail': 'https://i.vimeocdn.com/video/440260469-19b0d92fca3bd84066623b53f1eb8aaa3980c6c809e2d67b6b39ab7b4a77a344-d_960',
+            'view_count': int,
+            'comment_count': int,
+            'like_count': int,
+            'tags': 'count:1',
+        },
+        'params': {
+            'format': 'best[protocol=https]',
+        },
+    }, {
+        # password-protected VimeoPro page with Vimeo player embed
+        'url': 'https://vimeopro.com/cadfem/simulation-conference-mechanische-systeme-in-perfektion',
+        'info_dict': {
+            'id': '764543723',
+            'ext': 'mp4',
+            'title': 'Mechanische Systeme in Perfektion: Realität erfassen, Innovation treiben',
+            'thumbnail': 'https://i.vimeocdn.com/video/1543784598-a1a750494a485e601110136b9fe11e28c2131942452b3a5d30391cb3800ca8fd-d_1280',
+            'description': 'md5:2a9d195cd1b0f6f79827107dc88c2420',
+            'uploader': 'CADFEM',
+            'uploader_id': 'cadfem',
+            'uploader_url': 'https://vimeo.com/cadfem',
+            'duration': 12505,
+            'chapters': 'count:10',
+        },
+        'params': {
+            'videopassword': 'Conference2022',
+            'skip_download': True,
+        },
+    }]
+
+    def _real_extract(self, url):
+        display_id, video_id = self._match_valid_url(url).group('slug', 'id')
+        if video_id:
+            display_id = video_id
+        webpage = self._download_webpage(url, display_id)
+
+        password_form = self._search_regex(
+            r'(?is)<form[^>]+?method=["\']post["\'][^>]*>(.+?password.+?)</form>',
+            webpage, 'password form', default=None)
+        if password_form:
+            try:
+                webpage = self._download_webpage(url, display_id, data=urlencode_postdata({
+                    'password': self._get_video_password(),
+                    **self._hidden_inputs(password_form),
+                }), note='Logging in with video password')
+            except ExtractorError as e:
+                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 418:
+                    raise ExtractorError('Wrong video password', expected=True)
+                raise
+
+        description = None
+        # even if we have video_id, some videos require player URL with portfolio_id query param
+        # https://github.com/ytdl-org/youtube-dl/issues/20070
+        vimeo_url = VimeoIE._extract_url(url, webpage)
+        if vimeo_url:
+            description = self._html_search_meta('description', webpage, default=None)
+        elif video_id:
+            vimeo_url = f'https://vimeo.com/{video_id}'
+        else:
+            raise ExtractorError(
+                'No Vimeo embed or video ID could be found in VimeoPro page', expected=True)
+
+        return self.url_result(vimeo_url, VimeoIE, video_id, url_transparent=True,
+                               description=description)

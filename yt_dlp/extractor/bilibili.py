@@ -1034,7 +1034,7 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
 
 
 class BiliLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://live.bilibili.com/(?P<id>\d+)'
+    _VALID_URL = r'https?://live.bilibili.com/(blanc/)?(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://live.bilibili.com/196',
@@ -1049,6 +1049,9 @@ class BiliLiveIE(InfoExtractor):
         'skip': 'not live'
     }, {
         'url': 'https://live.bilibili.com/196?broadcast_type=0&is_room_feed=1?spm_id_from=333.999.space_home.strengthen_live_card.click',
+        'only_matching': True
+    }, {
+        'url': 'https://live.bilibili.com/blanc/196',
         'only_matching': True
     }]
 
