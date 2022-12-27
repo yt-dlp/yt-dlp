@@ -319,20 +319,23 @@ class TxxxIE(InfoExtractor):
         }
     }]
 
-    def _call_api(self, url, video_id, **kwargs):
-        content = self._download_json(url, video_id, headers={
-            'Referer': url,
-            'X-Requested-With': 'XMLHttpRequest',
-        }, **kwargs)
-        if content.get('error'):
-            raise ExtractorError(f'Txxx said: {content["error"]}', expected=True, video_id=video_id)
-        return content
+    def _call_api(self, url, video_id, fatal=False, **kwargs):
+        content = self._download_json(url, video_id, fatal=fatal, **kwargs)
+        if traverse_obj(content, 'error'):
+            raise self._error_or_warning(ExtractorError(
+                f'Txxx said: {content["error"]}', expected=True), fatal=fatal)
+        return content or {}
 
     def _real_extract(self, url):
         video_id, host, display_id = self._match_valid_url(url).group('id', 'host', 'display_id')
+        headers = {
+            'Referer': url,
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+
         video_file = self._call_api(
             f'https://{host}/api/videofile.php?video_id={video_id}&lifetime=8640000',
-            video_id, note='Downloading video file info')
+            video_id, fatal=True, note='Downloading video file info', headers=headers)
 
         formats = [{
             'url': urljoin(f'https://{host}', decode_base64(video['video_url'])),
@@ -343,7 +346,7 @@ class TxxxIE(InfoExtractor):
         slug = f'{1E6 * (int(video_id) // 1E6)}/{1000 * (int(video_id) // 1000)}'
         video_info = self._call_api(
             f'https://{host}/api/json/video/86400/{slug}/{video_id}.json',
-            video_id, note='Downloading video info')
+            video_id, note='Downloading video info', headers=headers)
 
         return {
             'id': video_id,
