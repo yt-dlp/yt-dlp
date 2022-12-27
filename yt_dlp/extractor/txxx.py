@@ -13,9 +13,8 @@ from ..utils import (
 )
 
 
-class TxxxBaseIE(InfoExtractor):
-    # some non-standard characters are used in the base64 string
-    _BASE64_CHAR_REPL_MAP = {
+def decode_base64(text):
+    return base64.b64decode(text.translate(text.maketrans({
         '\u0405': 'S',
         '\u0406': 'I',
         '\u0408': 'J',
@@ -32,39 +31,37 @@ class TxxxBaseIE(InfoExtractor):
         ',': '/',
         '.': '+',
         '~': '=',
-    }
-
-    def _decode_base64(self, text):
-        text = text.translate(text.maketrans(self._BASE64_CHAR_REPL_MAP))
-        return base64.b64decode(text).decode('utf-8')
-
-    def _get_format_id(self, format_id):
-        return try_call(lambda: variadic(format_id)[0].lstrip('_'))
+    }))).decode()
 
 
-class TxxxIE(TxxxBaseIE):
-    _VALID_URL = r'''(?x)
-                     https?://
-                     (?:(?:www\.)?(?P<host>
-                         hclips\.com|
-                         hdzog\.com|
-                         hdzog\.tube|
-                         hotmovs\.com|
-                         hotmovs\.tube|
-                         inporn\.com|
-                         privatehomeclips\.com|
-                         tubepornclassic\.com|
-                         txxx\.com|
-                         txxx\.tube|
-                         upornia\.com|
-                         upornia\.tube|
-                         vjav\.com|
-                         vjav\.tube|
-                         vxxx\.com|
-                         voyeurhit\.com|
-                         voyeurhit\.tube))
-                     (?:/(?:video/|videos/|video-|embed/)(?P<id>\d+)/(?P<display_id>([^/?]+)?))
-                  '''
+def make_format_id(format_id):
+    return try_call(lambda: variadic(format_id)[0].lstrip('_'))
+
+
+class TxxxIE(InfoExtractor):
+    _DOMAINS = (
+        'hclips.com',
+        'hdzog.com',
+        'hdzog.tube',
+        'hotmovs.com',
+        'hotmovs.tube',
+        'inporn.com',
+        'privatehomeclips.com',
+        'tubepornclassic.com',
+        'txxx.com',
+        'txxx.tube',
+        'upornia.com',
+        'upornia.tube',
+        'vjav.com',
+        'vjav.tube',
+        'vxxx.com',
+        'voyeurhit.com',
+        'voyeurhit.tub',
+    )
+    _VALID_URL = rf'''(?x)
+        https?://(?:www\.)?(?P<host>{"|".join(map(re.escape, _DOMAINS))})/
+        (?:videos?[/-]|embed/)(?P<id>\d+)(?:/(?P<display_id>[^/?#]+))?
+    '''
     _TESTS = [{
         'url': 'https://txxx.com/videos/16574965/digital-desire-malena-morgan/',
         'md5': 'c54e4ace54320aaf8e2a72df87859391',
@@ -322,38 +319,31 @@ class TxxxIE(TxxxBaseIE):
         }
     }]
 
-    def _real_extract(self, url):
-        video_id, host, display_id = self._match_valid_url(url).group('id', 'host', 'display_id')
-        group_1 = str(1000 * (int(video_id) // 1000))
-        group_2 = str(1000000 * (int(video_id) // 1000000))
-
-        headers = {
+    def _call_api(self, url, video_id, **kwargs):
+        content = self._download_json(url, video_id, headers={
             'Referer': url,
             'X-Requested-With': 'XMLHttpRequest',
-        }
+        }, **kwargs)
+        if content.get('error'):
+            raise ExtractorError(f'Txxx said: {content["error"]}', expected=True, video_id=video_id)
+        return content
 
-        video_info = self._call_api(
-            f'https://{host}/api/json/video/86400/{group_2}/{group_1}/{video_id}.json',
-            video_id, 'Downloading video info', headers)
+    def _real_extract(self, url):
+        video_id, host, display_id = self._match_valid_url(url).group('id', 'host', 'display_id')
         video_file = self._call_api(
             f'https://{host}/api/videofile.php?video_id={video_id}&lifetime=8640000',
-            video_id, 'Downloading video file info', headers)
+            video_id, note='Downloading video file info')
 
-        formats = []
-        for index, video in enumerate(video_file):
-            format_id = self._get_format_id(video.get('format'))
-            video_url = self._decode_base64(video.get('video_url'))
-            if not video_url:
-                continue
-            # some hosts only return the path
-            if video_url.startswith('/'):
-                video_url = urljoin(f'https://{host}', video_url)
-            formats.append({
-                'url': video_url,
-                'format_id': format_id,
-                'quality': index,
-            })
-        self._sort_formats(formats)
+        formats = [{
+            'url': urljoin(f'https://{host}', decode_base64(video['video_url'])),
+            'format_id': make_format_id(video.get('format')),
+            'quality': index,
+        } for index, video in enumerate(video_file) if video.get('video_url')]
+
+        slug = f'{1E6 * (int(video_id) // 1E6)}/{1000 * (int(video_id) // 1000)}'
+        video_info = self._call_api(
+            f'https://{host}/api/json/video/86400/{slug}/{video_id}.json',
+            video_id, note='Downloading video info')
 
         return {
             'id': video_id,
@@ -368,15 +358,9 @@ class TxxxIE(TxxxBaseIE):
             'formats': formats,
         }
 
-    def _call_api(self, url, video_id, note='Downloading JSON metadata', headers=None):
-        content = self._download_json(url, video_id, note=note, headers=headers)
-        if 'error' in content:
-            raise ExtractorError(f'Txxx said: {content["error"]}', expected=True, video_id=video_id)
-        return content
 
-
-class PornTopIE(TxxxBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?porntop\.com/video/(?P<id>\d+)/(?P<display_id>([^/?]+)?)'
+class PornTopIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?porntop\.com/video/(?P<id>\d+)(?:/(?P<display_id>[^/?]+))?'
     _TESTS = [{
         'url': 'https://porntop.com/video/101569/triple-threat-with-lia-lor-malena-morgan-and-dani-daniels/',
         'md5': '612ba7b3cb99455b382972948e200b08',
@@ -427,15 +411,15 @@ class PornTopIE(TxxxBaseIE):
                 dislikes = stat['userInteractionCount']
 
         # actual urls are in this scrambled json object
-        urls_json_text = self._decode_base64(self._search_regex(
+        urls_json_text = decode_base64(self._search_regex(
             r"window\.initPlayer\(.*}}},\s*'(?P<json_b64c>[^']+)'",
             webpage, 'json_urls', group='json_b64c'))
         video_file = self._parse_json(urls_json_text, video_id, fatal=True)
 
         formats = []
         for index, video in enumerate(video_file):
-            format_id = self._get_format_id(video.get('format'))
-            video_url = self._decode_base64(video.get('video_url'))
+            format_id = make_format_id(video.get('format'))
+            video_url = decode_base64(video.get('video_url'))
             if not video_url:
                 continue
             if video_url.startswith('/'):
@@ -462,7 +446,7 @@ class PornTopIE(TxxxBaseIE):
         }
 
 
-class PornZogIE(TxxxBaseIE):
+class PornZogIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?pornzog\.com/video/(?P<id>\d+)/'
     _TESTS = [{
         'url': 'https://pornzog.com/video/9125519/michelle-malone-dreamgirls-wild-wet-3/',
