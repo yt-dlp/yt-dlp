@@ -182,7 +182,7 @@ class CDAIE(InfoExtractor):
 
         if meta.get('premium') and not meta.get('premium_free') and not formats:
             raise ExtractorError(
-                'No video formats and video requires CDA Premium - do you have a subscription?', expected=True)
+                'Video requires CDA Premium - subscription needed', expected=True)
 
         return {
             'id': video_id,
@@ -203,7 +203,7 @@ class CDAIE(InfoExtractor):
             f'{self._BASE_URL}/video/{video_id}/vfilm', video_id)
 
         if 'Ten film jest dostępny dla użytkowników premium' in webpage:
-            self.raise_login_required('This video is only available for premium users', method='password')
+            self.raise_login_required('This video is only available for premium users')
 
         if re.search(r'niedostępn[ey] w(?:&nbsp;|\s+)Twoim kraju\s*<', webpage):
             self.raise_geo_restricted()
