@@ -3,7 +3,7 @@ import errno
 import json
 import os
 import re
-from urllib.parse import quote
+import urllib.parse
 import shutil
 import traceback
 
@@ -23,12 +23,9 @@ class Cache:
         return expand_path(res)
 
     def _get_cache_fn(self, section, key, dtype):
-        assert re.match(r'^[a-zA-Z0-9_.-]+$', section), \
-            'invalid section %r' % section
-        # encode non-ascii characters
-        key = quote(key).replace('%', ',')
-        return os.path.join(
-            self._get_root_dir(), section, f'{key}.{dtype}')
+        assert re.match(r'^[\w+.-]+$', section), f'invalid section {section!r}'
+        key = urllib.parse.quote(key, safe='').replace('%', ',')  # encode non-ascii characters
+        return os.path.join(self._get_root_dir(), section, f'{key}.{dtype}')
 
     @property
     def enabled(self):
