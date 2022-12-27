@@ -132,7 +132,7 @@ class PolskieRadioLegacyIE(PolskieRadioBaseExtractor):
 
 class PolskieRadioIE(InfoExtractor):
     # new next.js sites, excluding radiokierowcow.pl
-    _VALID_URL = r'https?://(?:[^/]+\.)?polskieradio(?:24)?\.pl/artykul/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?polskieradio(?:24)?\.pl/artykul/(?P<id>\d+)(?:,[^/]+)?'
     _TESTS = [{
         'url': 'https://jedynka.polskieradio.pl/artykul/1587943',
         'info_dict': {
@@ -222,67 +222,63 @@ class PolskieRadioAuditionIE(InfoExtractor):
             query=query, headers={'x-api-key': '9bf6c5a2-a7d0-4980-9ed7-a3f7291f2a81'})
 
     def _entries(self, playlist_id, has_episodes, has_articles):
-        if has_episodes:
-            not_empty = True
-            i = 0
-            while not_empty:
-                page = self._call_lp3(
-                    'AudioArticle/GetListByCategoryId', {
-                        'categoryId': playlist_id,
-                        'PageSize': 10,
-                        'skip': i,
-                        'format': 400,
-                    }, playlist_id, f'Downloading episode list (page #{i})')
-                for episode in page['data']:
-                    yield {
-                        'id': str(episode['id']),
-                        'title': episode['title'],
-                        'url': episode['file'],
-                        'duration': int_or_none(episode.get('duration')),
-                        'timestamp': parse_iso8601(episode.get('datePublic')),
-                    }
-                not_empty = len(page['data']) > 0
-                i += 1
+        for i in itertools.count(1) if has_episodes else []:
+            page = self._call_lp3(
+                'AudioArticle/GetListByCategoryId', {
+                    'categoryId': playlist_id,
+                    'PageSize': 10,
+                    'skip': i,
+                    'format': 400,
+                }, playlist_id, f'Downloading episode list (page #{i})')
+            if not traverse_obj(page, 'data'):
+                break
+            for episode in page['data']:
+                yield {
+                    'id': str(episode['id']),
+                    'title': episode['title'],
+                    'url': episode['file'],
+                    'duration': int_or_none(episode.get('duration')),
+                    'timestamp': parse_iso8601(episode.get('datePublic')),
+                }
 
-        if has_articles:
-            not_empty = True
-            i = 0
-            while not_empty:
-                page = self._call_lp3(
-                    'Article/GetListByCategoryId', {
-                        'categoryId': playlist_id,
-                        'PageSize': 9,
-                        'skip': i,
-                        'format': 400,
-                    }, playlist_id, f'Downloading article list (page #{i})')
-                for article in page['data']:
-                    yield {
-                        '_type': 'url_transparent',
-                        'id': str(article['id']),
-                        'title': article['shortTitle'],
-                        'url': article['url'],
-                        'ie_key': PolskieRadioIE,
-                        'description': traverse_obj(article, ('description', 'lead')),
-                        'timestamp': parse_iso8601(article.get('datePublic')),
-                    }
-                not_empty = len(page['data']) > 0
-                i += 1
+        for i in itertools.count(1) if has_articles else []:
+            page = self._call_lp3(
+                'Article/GetListByCategoryId', {
+                    'categoryId': playlist_id,
+                    'PageSize': 9,
+                    'skip': i,
+                    'format': 400,
+                }, playlist_id, f'Downloading article list (page #{i})')
+            if not traverse_obj(page, 'data'):
+                break
+            for article in page['data']:
+                yield {
+                    '_type': 'url_transparent',
+                    'id': str(article['id']),
+                    'title': article['shortTitle'],
+                    'url': article['url'],
+                    'ie_key': PolskieRadioIE.ie_key(),
+                    'description': traverse_obj(article, ('description', 'lead')),
+                    'timestamp': parse_iso8601(article.get('datePublic')),
+                }
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
         page_props = traverse_obj(
             self._search_nextjs_data(self._download_webpage(url, playlist_id), playlist_id),
-            ('props', 'pageProps', ('data', None)))
-        details = page_props.get('details', {})
+            ('props', 'pageProps'))
+        if page_props.get('data'):
+            page_props = page_props['data']
 
-        has_episodes = len(page_props.get('episodes', ())) > 0 or len(page_props.get('audios', ())) > 0
-        has_articles = len(page_props.get('articles', ())) > 0
+        has_episodes = bool(traverse_obj(page_props, 'episodes', 'audios'))
+        has_articles = bool(traverse_obj(page_props, 'articles'))
 
         return self.playlist_result(
             self._entries(playlist_id, has_episodes, has_articles), playlist_id,
-            details.get('name'), traverse_obj(details, ('description', 'lead')),
-            thumbnail=details.get('photo'))
+            title=traverse_obj(page_props, ('details', 'name')),
+            description=traverse_obj(page_props, ('details', 'description', 'lead')),
+            thumbnail=traverse_obj(page_props, ('details', 'photo')))
 
 
 class PolskieRadioCategoryIE(InfoExtractor):
