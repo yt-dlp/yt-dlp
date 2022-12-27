@@ -53,7 +53,7 @@ class PolskieRadioBaseExtractor(InfoExtractor):
 class PolskieRadioLegacyIE(PolskieRadioBaseExtractor):
     # legacy sites
     IE_NAME = 'polskieradio:legacy'
-    _VALID_URL = r'https?://(?:www\.)?polskieradio(?:24)?\.pl/\d+/\d+/[Aa]rtykul/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?polskieradio(?:24)?\.pl/\d+/\d+/[Aa]rtykul/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.polskieradio.pl/8/2382/Artykul/2534482,Zagarysci-Poezja-jak-spoiwo',
         'info_dict': {
@@ -90,9 +90,8 @@ class PolskieRadioLegacyIE(PolskieRadioBaseExtractor):
         playlist_id = self._match_id(url)
 
         webpage, urlh = self._download_webpage_handle(url, playlist_id)
-        # follow redirect if old url was supplied
         if PolskieRadioIE.suitable(urlh.url):
-            return self.url_result(urlh.url, ie=PolskieRadioIE.ie_key(), video_id=playlist_id)
+            return self.url_result(urlh.url, PolskieRadioIE, playlist_id)
 
         content = self._search_regex(
             r'(?s)<div[^>]+class="\s*this-article\s*"[^>]*>(.+?)<div[^>]+class="tags"[^>]*>',
@@ -133,7 +132,7 @@ class PolskieRadioLegacyIE(PolskieRadioBaseExtractor):
 
 class PolskieRadioIE(InfoExtractor):
     # new next.js sites, excluding radiokierowcow.pl
-    _VALID_URL = r'https?://(?:[^/]+\.)?polskieradio(?:24)?\.pl/artykul/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?polskieradio(?:24)?\.pl/artykul/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://jedynka.polskieradio.pl/artykul/1587943',
         'info_dict': {
@@ -274,9 +273,7 @@ class PolskieRadioAuditionIE(InfoExtractor):
 
         page_props = traverse_obj(
             self._search_nextjs_data(self._download_webpage(url, playlist_id), playlist_id),
-            ('props', 'pageProps'))
-        if page_props.get('data'):
-            page_props = page_props['data']
+            ('props', 'pageProps', ('data', None)))
         details = page_props.get('details', {})
 
         has_episodes = len(page_props.get('episodes', ())) > 0 or len(page_props.get('audios', ())) > 0
@@ -343,9 +340,8 @@ class PolskieRadioCategoryIE(InfoExtractor):
     def _real_extract(self, url):
         category_id = self._match_id(url)
         webpage, urlh = self._download_webpage_handle(url, category_id)
-        # follow redirect if old url was supplied
         if PolskieRadioAuditionIE.suitable(urlh.url):
-            return self.url_result(urlh.url, ie=PolskieRadioAuditionIE.ie_key(), video_id=category_id)
+            return self.url_result(urlh.url, PolskieRadioAuditionIE, category_id)
         title = self._html_search_regex(
             r'<title>([^<]+) - [^<]+ - [^<]+</title>',
             webpage, 'title', fatal=False)
