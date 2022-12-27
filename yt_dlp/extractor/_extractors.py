@@ -173,10 +173,8 @@ from .beeg import BeegIE
 from .behindkink import BehindKinkIE
 from .bellmedia import BellMediaIE
 from .beatbump import (
-    BeatBumpAlbumIE,
-    BeatBumpArtistIE,
+    BeatBumpVideoIE,
     BeatBumpPlaylistIE,
-    BeatBumpVideoIE
 )
 from .beatport import BeatportIE
 from .berufetv import BerufeTVIE
