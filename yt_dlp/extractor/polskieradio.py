@@ -132,7 +132,7 @@ class PolskieRadioLegacyIE(PolskieRadioBaseExtractor):
 
 class PolskieRadioIE(InfoExtractor):
     # new next.js sites, excluding radiokierowcow.pl
-    _VALID_URL = r'https?://(?:[^/]+\.)?polskieradio(?:24)?\.pl/artykul/(?P<id>\d+)(?:,[^/]+)?'
+    _VALID_URL = r'https?://(?:[^/]+\.)?polskieradio(?:24)?\.pl/artykul/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://jedynka.polskieradio.pl/artykul/1587943',
         'info_dict': {
@@ -229,14 +229,14 @@ class PolskieRadioAuditionIE(InfoExtractor):
                     'PageSize': 10,
                     'skip': i,
                     'format': 400,
-                }, playlist_id, f'Downloading episode list (page #{i})')
+                }, playlist_id, f'Downloading episode list page {i}')
             if not traverse_obj(page, 'data'):
                 break
             for episode in page['data']:
                 yield {
                     'id': str(episode['id']),
-                    'title': episode['title'],
                     'url': episode['file'],
+                    'title': episode.get('title'),
                     'duration': int_or_none(episode.get('duration')),
                     'timestamp': parse_iso8601(episode.get('datePublic')),
                 }
@@ -248,16 +248,16 @@ class PolskieRadioAuditionIE(InfoExtractor):
                     'PageSize': 9,
                     'skip': i,
                     'format': 400,
-                }, playlist_id, f'Downloading article list (page #{i})')
+                }, playlist_id, f'Downloading article list page {i}')
             if not traverse_obj(page, 'data'):
                 break
             for article in page['data']:
                 yield {
                     '_type': 'url_transparent',
-                    'id': str(article['id']),
-                    'title': article['shortTitle'],
-                    'url': article['url'],
                     'ie_key': PolskieRadioIE.ie_key(),
+                    'id': str(article['id']),
+                    'url': article['url'],
+                    'title': article.get('shortTitle'),
                     'description': traverse_obj(article, ('description', 'lead')),
                     'timestamp': parse_iso8601(article.get('datePublic')),
                 }
@@ -267,9 +267,7 @@ class PolskieRadioAuditionIE(InfoExtractor):
 
         page_props = traverse_obj(
             self._search_nextjs_data(self._download_webpage(url, playlist_id), playlist_id),
-            ('props', 'pageProps'))
-        if page_props.get('data'):
-            page_props = page_props['data']
+            ('props', 'pageProps', ('data', None)), get_all=False)
 
         has_episodes = bool(traverse_obj(page_props, 'episodes', 'audios'))
         has_articles = bool(traverse_obj(page_props, 'articles'))
@@ -309,7 +307,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if PolskieRadioLegacyIE.suitable(url) else super(PolskieRadioCategoryIE, cls).suitable(url)
+        return False if PolskieRadioLegacyIE.suitable(url) else super().suitable(url)
 
     def _entries(self, url, page, category_id):
         content = page
@@ -322,7 +320,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
                 if not href:
                     continue
                 yield self.url_result(
-                    compat_urlparse.urljoin(url, href), PolskieRadioIE.ie_key(),
+                    compat_urlparse.urljoin(url, href), PolskieRadioLegacyIE,
                     entry_id, entry.get('title'))
             mobj = re.search(
                 r'<div[^>]+class=["\']next["\'][^>]*>\s*<a[^>]+href=(["\'])(?P<url>(?:(?!\1).)+)\1',
@@ -473,7 +471,7 @@ class PolskieRadioPodcastListIE(PolskieRadioPodcastBaseExtractor):
             'entries': InAdvancePagedList(
                 get_page, math.ceil(data['itemCount'] / self._PAGE_SIZE), self._PAGE_SIZE),
             'id': str(data['id']),
-            'title': data['title'],
+            'title': data.get('title'),
             'description': data.get('description'),
             'uploader': data.get('announcer'),
         }
@@ -489,6 +487,10 @@ class PolskieRadioPodcastIE(PolskieRadioPodcastBaseExtractor):
             'ext': 'mp3',
             'title': 'Theresa May rezygnuje. Co dalej z brexitem?',
             'description': 'md5:e41c409a29d022b70ef0faa61dbded60',
+            'episode': 'Theresa May rezygnuje. Co dalej z brexitem?',
+            'duration': 2893,
+            'thumbnail': 'https://static.prsa.pl/images/58649376-c8a0-4ba2-a714-78b383285f5f.jpg',
+            'series': 'Raport o stanie świata',
         },
     }]
 

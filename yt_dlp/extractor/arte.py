@@ -195,7 +195,6 @@ class ArteTVIE(ArteTVBaseIE):
             else:
                 self.report_warning(f'Skipping stream with unknown protocol {stream["protocol"]}')
 
-
         formats.extend(secondary_formats)
         self._remove_duplicate_formats(formats)
 
