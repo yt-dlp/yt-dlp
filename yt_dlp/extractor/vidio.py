@@ -156,8 +156,6 @@ class VidioIE(VidioBaseIE):
             formats, subs = self._extract_m3u8_formats_and_subtitles(
                 hls_url, display_id, 'mp4', 'm3u8_native')
 
-        self._sort_formats(formats)
-
         get_first = lambda x: try_get(data, lambda y: y[x + 's'][0], dict) or {}
         channel = get_first('channel')
         user = get_first('user')
@@ -293,7 +291,6 @@ class VidioLiveIE(VidioBaseIE):
             if stream_meta.get('stream_url'):
                 formats.extend(self._extract_m3u8_formats(
                     stream_meta['stream_url'], display_id, 'mp4', 'm3u8_native'))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

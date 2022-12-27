@@ -109,7 +109,6 @@ class TVNetIE(InfoExtractor):
             stream_urls.add(stream_url)
             formats.extend(self._extract_m3u8_formats(
                 stream_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False))
-        self._sort_formats(formats)
 
         # better support for radio streams
         if title.startswith('VOV'):

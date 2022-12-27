@@ -189,8 +189,6 @@ class RUTVIE(InfoExtractor):
                 })
                 formats.append(fmt)
 
-        self._sort_formats(formats, ('source', ))
-
         return {
             'id': video_id,
             'title': title,
@@ -201,4 +199,5 @@ class RUTVIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'is_live': is_live,
+            '_format_sort_fields': ('source', ),
         }

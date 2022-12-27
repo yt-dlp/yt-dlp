@@ -12,7 +12,7 @@ from ..utils import (
 )
 
 
-class CBSNewsEmbedIE(CBSIE):
+class CBSNewsEmbedIE(CBSIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'cbsnews:embed'
     _VALID_URL = r'https?://(?:www\.)?cbsnews\.com/embed/video[^#]*#(?P<id>.+)'
     _TESTS = [{
@@ -27,7 +27,7 @@ class CBSNewsEmbedIE(CBSIE):
         return self._extract_video_info(item['mpxRefId'], 'cbsnews')
 
 
-class CBSNewsIE(CBSIE):
+class CBSNewsIE(CBSIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'cbsnews'
     IE_DESC = 'CBS News'
     _VALID_URL = r'https?://(?:www\.)?cbsnews\.com/(?:news|video)/(?P<id>[\da-z_-]+)'
@@ -132,7 +132,6 @@ class CBSNewsLiveVideoIE(InfoExtractor):
             })
 
         formats = self._extract_akamai_formats(video_info['url'], display_id)
-        self._sort_formats(formats)
 
         return {
             'id': display_id,

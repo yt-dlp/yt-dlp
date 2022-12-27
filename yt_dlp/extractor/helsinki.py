@@ -29,7 +29,6 @@ class HelsinkiIE(InfoExtractor):
             'url': s['file'],
             'ext': 'mp4',
         } for s in params['sources']]
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

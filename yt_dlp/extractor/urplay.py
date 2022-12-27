@@ -14,12 +14,13 @@ class URPlayIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ur(?:play|skola)\.se/(?:program|Produkter)/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://urplay.se/program/203704-ur-samtiden-livet-universum-och-rymdens-markliga-musik-om-vetenskap-kritiskt-tankande-och-motstand',
-        'md5': 'ff5b0c89928f8083c74bbd5099c9292d',
+        'md5': '5ba36643c77cc3d34ffeadad89937d1e',
         'info_dict': {
             'id': '203704',
             'ext': 'mp4',
             'title': 'UR Samtiden - Livet, universum och rymdens märkliga musik : Om vetenskap, kritiskt tänkande och motstånd',
             'description': 'md5:5344508a52aa78c1ced6c1b8b9e44e9a',
+            'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1513292400,
             'upload_date': '20171214',
             'series': 'UR Samtiden - Livet, universum och rymdens märkliga musik',
@@ -30,18 +31,41 @@ class URPlayIE(InfoExtractor):
             'age_limit': 15,
         },
     }, {
+        'url': 'https://urplay.se/program/222967-en-foralders-dagbok-mitt-barn-skadar-sig-sjalv',
+        'info_dict': {
+            'id': '222967',
+            'ext': 'mp4',
+            'title': 'En förälders dagbok : Mitt barn skadar sig själv',
+            'description': 'md5:9f771eef03a732a213b367b52fe826ca',
+            'thumbnail': r're:^https?://.+\.jpg',
+            'timestamp': 1629676800,
+            'upload_date': '20210823',
+            'series': 'En förälders dagbok',
+            'duration': 1740,
+            'age_limit': 15,
+            'episode_number': 3,
+            'categories': 'count:2',
+            'tags': 'count:7',
+            'episode': 'Mitt barn skadar sig själv',
+        },
+    }, {
         'url': 'https://urskola.se/Produkter/190031-Tripp-Trapp-Trad-Sovkudde',
         'info_dict': {
             'id': '190031',
             'ext': 'mp4',
             'title': 'Tripp, Trapp, Träd : Sovkudde',
             'description': 'md5:b86bffdae04a7e9379d1d7e5947df1d1',
+            'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1440086400,
             'upload_date': '20150820',
             'series': 'Tripp, Trapp, Träd',
             'duration': 865,
+            'age_limit': 1,
+            'episode_number': 1,
+            'categories': [],
             'tags': ['Sova'],
             'episode': 'Sovkudde',
+            'season': 'Säsong 1',
         },
     }, {
         'url': 'http://urskola.se/Produkter/155794-Smasagor-meankieli-Grodan-i-vida-varlden',
@@ -69,14 +93,13 @@ class URPlayIE(InfoExtractor):
         urplayer_streams = urplayer_data.get('streamingInfo', {})
 
         for k, v in urplayer_streams.get('raw', {}).items():
-            if not (k in ('sd', 'hd') and isinstance(v, dict)):
+            if not (k in ('sd', 'hd', 'mp3', 'm4a') and isinstance(v, dict)):
                 continue
             file_http = v.get('location')
             if file_http:
                 formats.extend(self._extract_wowza_formats(
                     'http://%s/%splaylist.m3u8' % (host, file_http),
                     video_id, skip_protocols=['f4m', 'rtmp', 'rtsp']))
-        self._sort_formats(formats)
 
         subtitles = {}
 

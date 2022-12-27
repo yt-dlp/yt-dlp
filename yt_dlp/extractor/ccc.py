@@ -64,7 +64,6 @@ class CCCIE(InfoExtractor):
                 'language': language,
                 'vcodec': vcodec,
             })
-        self._sort_formats(formats)
 
         return {
             'id': event_id,

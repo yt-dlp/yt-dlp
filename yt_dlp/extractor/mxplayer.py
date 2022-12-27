@@ -4,6 +4,7 @@ from ..utils import (
     int_or_none,
     traverse_obj,
     try_get,
+    urljoin,
 )
 
 
@@ -147,6 +148,17 @@ class MxplayerIE(InfoExtractor):
             'format': 'bv',
             'skip_download': True,
         },
+    }, {
+        'url': 'https://www.mxplayer.in/movie/watch-deewane-huye-paagal-movie-online-4f9175c40a11c3994182a65afdd37ec6?watch=true',
+        'info_dict': {
+            'id': '4f9175c40a11c3994182a65afdd37ec6',
+            'display_id': 'watch-deewane-huye-paagal-movie-online',
+            'title': 'Deewane Huye Paagal',
+            'duration': 9037,
+            'ext': 'mp4',
+            'description': 'md5:d17bd5c651016c4ed2e6f8a4ace15534',
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
@@ -157,21 +169,24 @@ class MxplayerIE(InfoExtractor):
         data_json = self._download_json(
             f'https://api.mxplay.com/v1/web/detail/video?type={video_type}&id={video_id}', display_id)
 
-        streams = traverse_obj(data_json, ('stream', {'m3u8': ('hls', 'high'), 'mpd': ('dash', 'high')}))
-        formats, dash_subs = self._extract_mpd_formats_and_subtitles(
-            f'https://llvod.mxplay.com/{streams["mpd"]}', display_id, fatal=False)
-        hls_frmts, hls_subs = self._extract_m3u8_formats_and_subtitles(
-            f'https://llvod.mxplay.com/{streams["m3u8"]}', display_id, fatal=False)
-
-        formats.extend(hls_frmts)
-        self._sort_formats(formats)
+        formats, subtitles = [], {}
+        m3u8_url = urljoin('https://llvod.mxplay.com/', traverse_obj(
+            data_json, ('stream', (('thirdParty', 'hlsUrl'), ('hls', 'high'))), get_all=False))
+        if m3u8_url:
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, display_id, 'mp4', fatal=False)
+        mpd_url = urljoin('https://llvod.mxplay.com/', traverse_obj(
+            data_json, ('stream', (('thirdParty', 'dashUrl'), ('dash', 'high'))), get_all=False))
+        if mpd_url:
+            fmts, subs = self._extract_mpd_formats_and_subtitles(mpd_url, display_id, fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
         season = traverse_obj(data_json, ('container', 'title'))
         return {
             'id': video_id,
             'title': data_json.get('title'),
             'formats': formats,
-            'subtitles': self._merge_subtitles(dash_subs, hls_subs),
+            'subtitles': subtitles,
             'display_id': display_id,
             'duration': data_json.get('duration'),
             'series': traverse_obj(data_json, ('container', 'container', 'title')),

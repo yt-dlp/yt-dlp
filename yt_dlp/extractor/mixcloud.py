@@ -169,8 +169,6 @@ class MixcloudIE(MixcloudBaseIE):
         if not formats and cloudcast.get('isExclusive'):
             self.raise_login_required(metadata_available=True)
 
-        self._sort_formats(formats)
-
         comments = []
         for edge in (try_get(cloudcast, lambda x: x['comments']['edges']) or []):
             node = edge.get('node') or {}

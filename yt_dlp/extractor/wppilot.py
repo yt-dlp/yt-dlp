@@ -138,8 +138,6 @@ class WPPilotIE(WPPilotBaseIE):
                         random.choice(fmt['url']),
                         video_id, live=True))
 
-        self._sort_formats(formats)
-
         channel['formats'] = formats
         return channel
 

@@ -410,8 +410,6 @@ class PolskieRadioPlayerIE(InfoExtractor):
                     'url': stream_url,
                 })
 
-        self._sort_formats(formats)
-
         return {
             'id': compat_str(channel['id']),
             'formats': formats,

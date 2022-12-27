@@ -39,7 +39,6 @@ class YnetIE(InfoExtractor):
         if m:
             title = m.group('title')
         formats = self._extract_f4m_formats(f4m_url, video_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -155,7 +155,6 @@ class InstagramBaseIE(InfoExtractor):
         } for format in videos_list or []]
         if dash_manifest_raw:
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash_manifest_raw, media_id), mpd_id='dash'))
-        self._sort_formats(formats)
 
         thumbnails = [{
             'url': thumbnail.get('url'),
@@ -494,7 +493,6 @@ class InstagramIE(InstagramBaseIE):
         dash = traverse_obj(media, ('dash_info', 'video_dash_manifest'))
         if dash:
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash, video_id), mpd_id='dash'))
-        self._sort_formats(formats)
 
         comment_data = traverse_obj(media, ('edge_media_to_parent_comment', 'edges'))
         comments = [{
