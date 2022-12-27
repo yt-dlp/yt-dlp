@@ -184,6 +184,10 @@ from .bbc import (
 from .beeg import BeegIE
 from .behindkink import BehindKinkIE
 from .bellmedia import BellMediaIE
+from .beatbump import (
+    BeatBumpVideoIE,
+    BeatBumpPlaylistIE,
+)
 from .beatport import BeatportIE
 from .berufetv import BerufeTVIE
 from .bet import BetIE
@@ -1905,6 +1909,7 @@ from .trovo import (
     TrovoChannelVodIE,
     TrovoChannelClipIE,
 )
+from .trtcocuk import TrtCocukVideoIE
 from .trueid import TrueIDIE
 from .trunews import TruNewsIE
 from .truth import TruthIE
