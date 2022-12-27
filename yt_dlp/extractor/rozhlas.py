@@ -1,9 +1,10 @@
+import json
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     remove_start,
+    extract_attributes,
 )
-
 
 class RozhlasIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?prehravac\.rozhlas\.cz/audio/(?P<id>[0-9]+)'
@@ -44,4 +45,54 @@ class RozhlasIE(InfoExtractor):
             'description': description,
             'duration': duration,
             'vcodec': 'none',
+        }
+
+class RozhlasVltavaIE(InfoExtractor):
+    _VALID_URL = r'https?://(vltava|wave)\.rozhlas\.cz/[a-z|-]*-(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://vltava.rozhlas.cz/henry-miller-obratnik-raka-8876625/1',
+        'md5': '504c902dbc9e9a1fd50326eccf02a7e2',
+        'info_dict': {
+            'id': '8876625',
+            'ext': 'mp3',
+            'title': 'Henry Miller: Obratník Raka',
+            'description': 'Nelítostný útok na konvence v klíčovém románu 20. století. Mladý spisovatel Henry Miller chce v Paříži třicátých let „vypsat celou pravdu o životě“. Připravila Petra Hynčíková. V režii Lukáše Kopeckého účinkuje Petr Kubes. Natočeno v brněnském studiu Českého rozhlasu v roce 2022. Premiéru poslouchejte on-line po dobu čtyř týdnů po odvysílání. Pořad není vhodný pro děti a mladistvé.'
+        }
+    }]
+
+    def _real_extract(self, url):
+        webpage = self._download_webpage(url, None)
+        
+        playerDiv = ''
+        for k, line in enumerate(webpage.split("\n")) :
+            if line.find('mujRozhlasPlayer') != -1 :
+                playerDiv = line.strip()
+        
+        jsonString = extract_attributes(playerDiv)['data-player']
+        jsonData = json.loads(jsonString)
+
+        entries = []
+        for entry in jsonData["data"]['playlist']:
+            format = {
+                'url': entry["audioLinks"][0]['url'],
+                'ext': entry["audioLinks"][0]['variant'],
+                'format_id': entry["audioLinks"][0]['variant'],
+                'abr': entry["audioLinks"][0]['bitrate'],
+                'acodec': entry["audioLinks"][0]['variant'],
+                'vcodec': 'none',
+            }
+            temp = {
+                'id': entry["meta"]['ga']['contentId'],
+                'title': entry["title"],
+                'description': entry["meta"]['ga']['contentEvent'],
+                'duration': entry["duration"],
+                'formats': [format],
+            }
+            entries.append(temp)
+
+        return {
+            '_type': 'playlist',
+            'id': jsonData["data"]['embedId'],
+            'title': jsonData["data"]['series']['title'],
+            'entries': entries,
         }
