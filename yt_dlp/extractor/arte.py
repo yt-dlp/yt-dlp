@@ -43,7 +43,6 @@ class ArteTVIE(ArteTVBaseIE):
             'thumbnail': r're:https://api-cdn\.arte\.tv/.+940x530',
             'timestamp': 1604417980,
             'ext': 'mp4',
-            'chapters': []
         },
         'params': {'skip_download': 'm3u8'}
     }, {
@@ -58,7 +57,6 @@ class ArteTVIE(ArteTVBaseIE):
             'description': 'md5:5890f36fe7dccfadb8b7c0891de54786',
             'title': 'La chaleur, supplice des arbres de rue',
             'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/CPE2sQDtD8GLQgt8DuYHLf/940x530',
-            'chapters': []
         },
         'params': {'skip_download': 'm3u8'}
     }, {
@@ -81,6 +79,7 @@ class ArteTVIE(ArteTVBaseIE):
             'upload_date': '20221114',
             'ext': 'mp4',
         },
+        'expected_warnings': ['geo restricted']
     }]
 
     _GEO_BYPASS = True
@@ -202,15 +201,6 @@ class ArteTVIE(ArteTVBaseIE):
         self._remove_duplicate_formats(formats)
 
         metadata = config['data']['attributes']['metadata']
-        chapters = []
-        for chapter in traverse_obj(config, ('data', 'attributes', 'chapters', 'elements'),
-                                    expected_type=list) or []:
-            cue = int_or_none(chapter.get('startTime'))
-            if cue is not None:
-                chapters.append({
-                    'start_time': cue,
-                    'title': chapter.get('title'),
-                })
 
         return {
             'id': metadata['providerId'],
@@ -228,7 +218,10 @@ class ArteTVIE(ArteTVBaseIE):
                 {'url': image['url'], 'id': image.get('caption')}
                 for image in metadata.get('images') or [] if url_or_none(image.get('url'))
             ],
-            'chapters': chapters,
+            'chapters': traverse_obj(config, ('data', 'attributes', 'chapters', 'elements', ..., {
+                'start_time': 'startTime',
+                'title': 'title',
+            })) or None,
         }
 
 
