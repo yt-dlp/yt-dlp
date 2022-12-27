@@ -65,6 +65,20 @@ class ArteTVIE(ArteTVBaseIE):
     }, {
         'url': 'https://api.arte.tv/api/player/v2/config/de/LIVE',
         'only_matching': True,
+    }, {
+        'url': 'https://www.arte.tv/de/videos/110203-006-A/zaz/',
+        'info_dict': {
+            'id': '110203-006-A',
+            'chapters': 'count:15',
+            'description': 'md5:cf592f1df52fe52007e3f8eac813c084',
+            'alt_title': 'Zaz',
+            'title': 'Baloise Session 2022',
+            'timestamp': 1668445200,
+            'duration': 4054,
+            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/ubQjmVCGyRx3hmBuZEK9QZ/940x530',
+            'upload_date': '20221114',
+            'ext': 'mp4',
+        },
     }]
 
     _GEO_BYPASS = True
@@ -181,13 +195,18 @@ class ArteTVIE(ArteTVBaseIE):
                 self.report_warning(f'Skipping stream with unknown protocol {stream["protocol"]}')
 
             # TODO: chapters from stream['segments']?
-            # The JS also looks for chapters in config['data']['attributes']['chapters'],
-            # but I am yet to find a video having those
 
         formats.extend(secondary_formats)
         self._remove_duplicate_formats(formats)
 
         metadata = config['data']['attributes']['metadata']
+        chapters = traverse_obj(config, ('data', 'attributes', 'chapters', 'elements'), expected_type=list)
+        if chapters:
+            chapters = [{
+                'start_time': chap.get('startTime'),
+                'end_time': next_chap.get('startTime'),
+                'title': chap.get('title')
+            } for chap, next_chap in zip(chapters, chapters[1:])]
 
         return {
             'id': metadata['providerId'],
@@ -205,6 +224,7 @@ class ArteTVIE(ArteTVBaseIE):
                 {'url': image['url'], 'id': image.get('caption')}
                 for image in metadata.get('images') or [] if url_or_none(image.get('url'))
             ],
+            'chapters': chapters or None
         }
 
 
