@@ -195,7 +195,6 @@ class ArteTVIE(ArteTVBaseIE):
             else:
                 self.report_warning(f'Skipping stream with unknown protocol {stream["protocol"]}')
 
-            # TODO: chapters from stream['segments']?
 
         formats.extend(secondary_formats)
         self._remove_duplicate_formats(formats)
@@ -218,6 +217,7 @@ class ArteTVIE(ArteTVBaseIE):
                 {'url': image['url'], 'id': image.get('caption')}
                 for image in metadata.get('images') or [] if url_or_none(image.get('url'))
             ],
+            # TODO: chapters may also be in stream['segments']?
             'chapters': traverse_obj(config, ('data', 'attributes', 'chapters', 'elements', ..., {
                 'start_time': 'startTime',
                 'title': 'title',
