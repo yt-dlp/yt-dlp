@@ -1548,19 +1548,6 @@ class GenericIE(InfoExtractor):
             'add_ie': ['WashingtonPost'],
         },
         {
-            # Mediaset embed
-            'url': 'http://www.tgcom24.mediaset.it/politica/serracchiani-voglio-vivere-in-una-societa-aperta-reazioni-sproporzionate-_3071354-201702a.shtml',
-            'info_dict': {
-                'id': '720642',
-                'ext': 'mp4',
-                'title': 'Serracchiani: "Voglio vivere in una società aperta, con tutela del patto di fiducia"',
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'add_ie': ['Mediaset'],
-        },
-        {
             # JOJ.sk embeds
             'url': 'https://www.noviny.sk/slovensko/238543-slovenskom-sa-prehnala-vlna-silnych-burok',
             'info_dict': {
@@ -1864,11 +1851,6 @@ class GenericIE(InfoExtractor):
                 'title': 'I AM BIO Podcast | BIO',
             },
             'playlist_mincount': 52,
-        },
-        {
-            # Sibnet embed (https://help.sibnet.ru/?sibnet_video_embed)
-            'url': 'https://phpbb3.x-tk.ru/bbcode-video-sibnet-t24.html',
-            'only_matching': True,
         }, {
             # WimTv embed player
             'url': 'http://www.msmotor.tv/wearefmi-pt-2-2021/',
@@ -2189,6 +2171,13 @@ class GenericIE(InfoExtractor):
 
         self._downloader.write_debug(f'Identified {num} {name}{format_field(note, None, "; %s")}')
 
+    def _fragment_query(self, url):
+        if self._configuration_arg('fragment_query'):
+            query_string = urllib.parse.urlparse(url).query
+            if query_string:
+                return {'extra_param_to_segment_url': query_string}
+        return {}
+
     def _extract_rss(self, url, video_id, doc):
         NS_MAP = {
             'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd',
@@ -2351,8 +2340,10 @@ class GenericIE(InfoExtractor):
             subtitles = {}
             if format_id.endswith('mpegurl'):
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
+                info_dict.update(self._fragment_query(url))
             elif format_id.endswith('mpd') or format_id.endswith('dash+xml'):
                 formats, subtitles = self._extract_mpd_formats_and_subtitles(url, video_id, headers=headers)
+                info_dict.update(self._fragment_query(url))
             elif format_id == 'f4m':
                 formats = self._extract_f4m_formats(url, video_id, headers=headers)
             else:
@@ -2365,7 +2356,7 @@ class GenericIE(InfoExtractor):
             info_dict.update({
                 'formats': formats,
                 'subtitles': subtitles,
-                'http_headers': headers,
+                'http_headers': headers or None,
             })
             return info_dict
 
@@ -2379,6 +2370,7 @@ class GenericIE(InfoExtractor):
         if first_bytes.startswith(b'#EXTM3U'):
             self.report_detected('M3U playlist')
             info_dict['formats'], info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
+            info_dict.update(self._fragment_query(url))
             return info_dict
 
         # Maybe it's a direct link to a video?
@@ -2429,6 +2421,7 @@ class GenericIE(InfoExtractor):
                     doc,
                     mpd_base_url=full_response.geturl().rpartition('/')[0],
                     mpd_url=url)
+                info_dict.update(self._fragment_query(url))
                 self.report_detected('DASH manifest')
                 return info_dict
             elif re.match(r'^{http://ns\.adobe\.com/f4m/[12]\.0}manifest$', doc.tag):
@@ -2541,7 +2534,10 @@ class GenericIE(InfoExtractor):
                         m3u8_id='hls', fatal=False)
                     formats.extend(fmts)
                     self._merge_subtitles(subs, target=subtitles)
-                else:
+                for fmt in formats:
+                    fmt.update(self._fragment_query(src))
+
+                if not formats:
                     formats.append({
                         'url': src,
                         'ext': (mimetype2ext(src_type)
@@ -2776,8 +2772,10 @@ class GenericIE(InfoExtractor):
                 return [self._extract_xspf_playlist(video_url, video_id)]
             elif ext == 'm3u8':
                 entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4', headers=headers)
+                entry_info_dict.update(self._fragment_query(video_url))
             elif ext == 'mpd':
                 entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_mpd_formats_and_subtitles(video_url, video_id, headers=headers)
+                entry_info_dict.update(self._fragment_query(video_url))
             elif ext == 'f4m':
                 entry_info_dict['formats'] = self._extract_f4m_formats(video_url, video_id, headers=headers)
             elif re.search(r'(?i)\.(?:ism|smil)/manifest', video_url) and video_url != url:
