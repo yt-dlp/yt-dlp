@@ -896,7 +896,7 @@ class YoutubeDL:
         @param tb          If given, is additional traceback information
         @param is_error    Whether to raise error according to ignorerrors
         """
-        self.logger.handle_error(message, trace=tb, is_error=is_error, prefix=False)
+        self.logger.handle_error(message, tb=tb, is_error=is_error, prefix=False)
 
     def report_warning(self, message, only_once=False):
         '''
@@ -916,7 +916,7 @@ class YoutubeDL:
         Do the same as trouble, but prefixes the message with 'ERROR:', colored
         in red if stderr is a tty file.
         '''
-        self.logger.handle_error(message, trace=tb, is_error=is_error)
+        self.logger.handle_error(message, tb=tb, is_error=is_error)
 
     def write_debug(self, message, only_once=False):
         '''Log debug message or Print message to stderr'''
@@ -3552,7 +3552,7 @@ class YoutubeDL:
                 Style.SUPPRESS)
 
         def make_delim(delim, fallback):
-            delim = self.logger.try_encoding(LogLevel.SCREEN, delim, fallback, self.params.get('encoding'))
+            delim = self.logger.encode(LogLevel.SCREEN, delim, fallback, self.params.get('encoding'))
             return self.logger.format(LogLevel.SCREEN, delim, Style.DELIM)
 
         delim = make_delim('\u2502', '|')

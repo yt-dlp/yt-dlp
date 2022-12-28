@@ -86,7 +86,7 @@ class _StreamOutputGroup:
 
 
 class StreamOutput(OutputBase):
-    """ A managed output for writing to a stream """
+    """A managed output for writing to a stream"""
     ALLOW_BIDI = True
     _OUTPUT_GROUPS = defaultdict(_StreamOutputGroup)
 
@@ -122,6 +122,11 @@ class StreamOutput(OutputBase):
             return bool(self._stream.isatty())
         except Exception:
             return False
+
+    @functools.cached_property
+    def encoding(self):
+        # stream.encoding can be None. See https://github.com/yt-dlp/yt-dlp/issues/2711
+        return self._encoding or getattr(self._stream, 'encoding', None) or 'ascii'
 
     @_synchronized
     def log(self, message: str):

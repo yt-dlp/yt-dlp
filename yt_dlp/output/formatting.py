@@ -3,7 +3,7 @@ from ..utils import Namespace, format_bytes, timetuple_from_msec, try_call
 
 
 class ProgressStyle(metaclass=Namespace):
-    """ A class holding Styles for progress formatting """
+    """A class holding Styles for progress formatting"""
     DOWNLOADED_BYTES = TermCode.make(Color.LIGHT | Color.BLUE)
     PERCENT = TermCode.make(Color.LIGHT | Color.BLUE)
     ETA = TermCode.make(Color.YELLOW)
@@ -112,7 +112,7 @@ def format_and_get_default_template(progress_dict):
 
 
 def format_seconds(seconds, eta=False):
-    """ Format seconds as hours, minutes and seconds (width 8) """
+    """Format seconds as hours, minutes and seconds (width 8)"""
     if seconds is None:
         return ' Unknown'
     time = timetuple_from_msec(int(seconds) * 1000)
@@ -133,10 +133,10 @@ def format_percent(percent):
 
 
 def format_speed(speed):
-    """ Format speed as a string B/s (width 12) """
+    """Format speed as a string B/s (width 12)"""
     return ' Unknown B/s' if speed is None else f'{format_bytes(speed):>10}/s'
 
 
 def format_speed_rate(rate):
-    """ Format speed rate as a string multiplier (width 5) """
+    """Format speed rate as a string multiplier (width 5)"""
     return ' ---x' if rate is None else f'{rate:>4.1f}x'

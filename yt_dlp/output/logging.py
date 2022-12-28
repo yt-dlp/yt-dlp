@@ -12,7 +12,7 @@ from enum import Enum
 from .hoodoo import Color, TermCode
 from .outputs import NULL_OUTPUT, ClassOutput, LoggingOutput, StreamOutput
 from ..compat import functools
-from ..utils import deprecation_warning, variadic
+from ..utils import Namespace, deprecation_warning, variadic
 
 
 class LogLevel(Enum):
@@ -29,7 +29,7 @@ class Verbosity(Enum):
     VERBOSE = 2
 
 
-class Style:
+class Style(metaclass=Namespace):
     HEADER = TermCode.make(Color.YELLOW)
     EMPHASIS = TermCode.make(Color.LIGHT | Color.BLUE)
     FILENAME = TermCode.make(Color.GREEN)
@@ -41,7 +41,7 @@ class Style:
 
 
 def redirect_warnings(logger):
-    """ Redirect messages from the `warnings` module to a `Logger` """
+    """Redirect messages from the `warnings` module to a `Logger`"""
     _old_showwarning = warnings.showwarning
 
     def _warnings_showwarning(message, category, filename, lineno, file=None, line=None):
@@ -62,7 +62,7 @@ class Logger:
     A YoutubeDL output/logging facility
 
     After instancing all `LogLevel`s beside `LogLevel.SCREEN` are NULL_OUTPUT.
-    To initialize them to the appropriate values one SHOULD call one of:
+    To initialize them to the appropriate values you SHOULD call one of:
     - `setup_stream_logger`
     - `setup_class_logger`
     - `setup_logging_logger`
@@ -94,6 +94,20 @@ class Logger:
         }
 
     def make_derived(self, **overrides):
+        """
+        Create a derived logger.
+
+        Derived loggers copy the mapping and settings and
+        apply the provided wrapper functions.
+
+        They inherit the message cache for compatibility reason.
+        If you need to reset the cache, create a new set and
+        assign it to the `message_cache` attribute.
+
+        @kwparams overrides     Wrapper functions to wrap the specified names with.
+
+        @return                 The newly created derived logger.
+        """
         derived = copy.copy(self)
         for name, wrapper in overrides.items():
             base = getattr(derived, name, None)
@@ -107,6 +121,13 @@ class Logger:
         return derived
 
     def setup_stream_logger(self, stdout, stderr, *, no_warnings=False):
+        """
+        Setup the Logger with the provided streams
+
+        @param stdout       The stream to use as stdout.
+        @param stderr       The stream to use as stderr.
+        @param no_warnings  Do not output warnings. Defaults to False.
+        """
         stdout_output = NULL_OUTPUT if stdout is None else StreamOutput(stdout, self._use_term_codes, self._pref_encoding)
         stderr_output = NULL_OUTPUT if stderr is None else StreamOutput(stderr, self._use_term_codes, self._pref_encoding)
 
@@ -121,6 +142,18 @@ class Logger:
         return self
 
     def setup_class_logger(self, logger):
+        """
+        Setup the Logger with the provided class
+
+        This class should have a `debug`, `warning` and `error`
+        method each taking a string.
+
+        For compatibility reasons both `LogLevel.DEBUG` and `LogLevel.INFO`
+        are passed into the classes `debug` function.
+        Messages for `LogLevel.DEBUG` will have a prefix of `'[debug] '`.
+
+        @param logger   The logger class to set the logger up with.
+        """
         debug_output = ClassOutput(logger.debug)
         warning_output = ClassOutput(logger.warning)
         error_output = ClassOutput(logger.error)
@@ -134,6 +167,7 @@ class Logger:
         return self
 
     def setup_logging_logger(self):
+        """Setup the Logger with the logging module"""
         self.mapping.update({
             LogLevel.DEBUG: LoggingOutput(logging.DEBUG),
             LogLevel.INFO: LoggingOutput(logging.INFO),
@@ -142,9 +176,28 @@ class Logger:
         })
         return self
 
-    def log(self, level, message, *, newline=True, once=False, suppress=False, trace=None, prefix=None):
+    def log(self, level, message, *, newline=True, once=False, tb=None, prefix=None):
+        """
+        Log a message to a specified `LogLevel`
+
+        @param level    The LogLevel which to write the message as.
+                        It will be used to lookup the output in the mapping.
+        @param message  The message to log to the output.
+        @param newline  Append a newline to the message. Defaults to True.
+        @param once     Print a message only once.
+                        If True, the message will not be printed if
+                        the same message with `once=True` is
+                        found in the message cache. Defaults to False.
+        @param tb       A preformatted traceback string.
+                        If not None and the LogLevel is Error,
+                        use this trace instead of calculating it from stack.
+                        Defaults to None.
+        @param prefix   A prefix or multiple prefixes (variadic).
+                        If not None, prepend the prefixes to the message.
+                        Defaults to None.
+        """
         output = self.mapping.get(level)
-        if not output or suppress:
+        if not output:
             return
 
         assert isinstance(message, str)
@@ -157,13 +210,13 @@ class Logger:
         if self._bidi_initalized and output.ALLOW_BIDI:
             message = self._apply_bidi_workaround(message)
 
-        if prefix:
+        if prefix is not None:
             message = ' '.join((*map(str, variadic(prefix)), message))
 
         if level is LogLevel.ERROR and self._verbosity is Verbosity.VERBOSE:
             message += '\n'
-            if trace is not None:
-                message += str(trace)
+            if tb is not None:
+                message += str(tb)
 
             elif sys.exc_info()[0]:  # called from an except block
                 message += traceback.format_exc()
@@ -177,22 +230,44 @@ class Logger:
         output.log(message)
 
     def format(self, level, text, *text_formats):
-        logger = self.mapping.get(level)
-        if not logger:
+        """
+        Format text using specified text formats
+
+        @param level            The LogLevel for which to try the encoding.
+                                It will be used to lookup the output in the mapping.
+        @param text             The text to format. It will be wrapped in the
+                                color start and end sequences.
+        @params text_formats    A TermCode, Color or Typeface.
+
+        @returns                The text with the requested formatting if supported.
+        """
+        output = self.mapping.get(level)
+        if not output:
             return text
 
-        return logger.format(str(text), *text_formats)
+        return output.format(str(text), *text_formats)
 
-    def try_encoding(self, level, text, fallback_text, pref_encoding=None):
-        logger = self.mapping.get(level)
-        if not isinstance(logger, StreamOutput):
+    def encode(self, level, text, fallback, encoding=None):
+        """
+        Try to encode text with the specified encoding
+
+        If the initial round trip failed, use the fallback text instead.
+
+        @param level        The LogLevel for which to try the encoding.
+                            It will be used to lookup the output in the mapping.
+        @param text         The text to try and encode.
+        @param fallback     The fallback text to use if encoding failed.
+        @param encoding     The encoding to use for the process.
+                            If None, try and guess from the specified output.
+        """
+        output = self.mapping.get(level)
+        if not isinstance(output, StreamOutput):
             return text
 
-        # stream.encoding can be None. See https://github.com/yt-dlp/yt-dlp/issues/2711
-        encoding = pref_encoding or getattr(logger._stream, 'encoding', None) or 'ascii'
+        encoding = encoding or output.encoding
         round_trip = text.encode(encoding, 'ignore').decode(encoding)
 
-        return text if round_trip == text else fallback_text
+        return text if round_trip == text else fallback
 
     def screen(self, message, newline=True):
         """Print message to screen"""
@@ -209,7 +284,8 @@ class Logger:
             else quiet if quiet is not None
             else self._verbosity is Verbosity.QUIET)
 
-        self.log(LogLevel.INFO, message, suppress=suppress, newline=newline, once=once)
+        if not suppress:
+            self.log(LogLevel.INFO, message, newline=newline, once=once)
 
     def warning(self, message, once=False):
         """
@@ -217,41 +293,61 @@ class Logger:
         If stderr is a tty file the prefix will be colored
         """
         self.log(LogLevel.WARNING, message, once=once,
-                 prefix=self.format(LogLevel.WARNING, "WARNING:", Style.WARNING))
+                 prefix=self.format(LogLevel.WARNING, 'WARNING:', Style.WARNING))
 
     def deprecation_warning(self, message, *, stacklevel=0):
+        """
+        Print a deprecation with `LogLevel.ERROR`
+
+        The message will be prefixed with `ERROR:`.
+
+        @kwparam stacklevel The stacklevel at which the error happened.
+                            Defaults to 0.
+        """
         deprecation_warning(
             message, stacklevel=stacklevel + 1, printer=self.handle_error,
             is_error=False, prefix=True)
 
     def deprecated_feature(self, message):
+        """
+        Print a warning for a deprecated feature
+
+        The same warning will only be printed once.
+        The message is prefixed by `Deprecated Feature:`
+        """
         self.log(LogLevel.WARNING, message, once=True,
-                 prefix=self.format(LogLevel.WARNING, "Deprecated Feature:", Style.ERROR))
+                 prefix=self.format(LogLevel.WARNING, 'Deprecated Feature:', Style.ERROR))
 
     def error(self, message, once=False):
         """Print message to stderr"""
         self.log(LogLevel.ERROR, message, once=once)
 
-    def handle_error(self, message, trace=None, is_error=True, prefix=True):
+    def handle_error(self, message, *, tb=None, is_error=True, prefix=True):
         """
         Determine action to take when a download problem appears.
         Optionally prefix the message with 'ERROR:'.
         If stderr is a tty the prefix will be colored.
 
-        @param trace       If given, is additional traceback information
-        @param is_error    Useful only in a derived logger
+        @param tb       If not None, this is used as the additional traceback
+                        information instead. Defaults to None.
+        @param is_error Useful only in a derived logger.
+                        `YoutubeDL` derives this logger and uses the parameter.
+                        For more info read the `YoutubeDL._setup_output` function.
+                        Defaults to True.
+        @param prefix   If True, prefix the message with `ERROR:`.
+                        Defaults to True.
         """
         if prefix:
-            prefix = self.format(LogLevel.ERROR, "ERROR:", Style.ERROR)
+            prefix = self.format(LogLevel.ERROR, 'ERROR:', Style.ERROR)
 
-        self.log(LogLevel.ERROR, message, trace=trace, prefix=prefix)
+        self.log(LogLevel.ERROR, message, tb=tb, prefix=prefix)
 
     def init_bidi_workaround(self):
         """
         Initialize the bidirectional workaround
 
-        It raises `ImportError` systems not providing the `pty` module.
-        This is notably the case on Windows machines.
+        It raises `ImportError` on systems not providing the `pty` module
+        (This is most notably the case on Windows machines).
         It also requires either `bidiv` or `fribidi` to be accessible.
 
         The width of the terminal will be collected once at startup only.

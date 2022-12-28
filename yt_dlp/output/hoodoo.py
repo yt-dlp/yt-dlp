@@ -50,7 +50,7 @@ class Typeface(enum.Enum):
 
 
 class TermCode(str):
-    """ A string wrapper representing a terminal code """
+    """A string wrapper representing a terminal code"""
 
     def __repr__(self):
         return f'{type(self).__name__}({str(self)!r})'
