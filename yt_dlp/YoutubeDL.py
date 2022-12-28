@@ -747,8 +747,8 @@ class YoutubeDL:
             return wrapper
 
         def handle_error(func):
-            def wrapper(message, trace=None, is_error=True, prefix=True):
-                func(message, trace=trace, is_error=is_error, prefix=prefix)
+            def wrapper(message, tb=None, is_error=True, prefix=True):
+                func(message, tb=tb, is_error=is_error, prefix=prefix)
                 if not is_error:
                     return
                 if not self.params.get('ignoreerrors'):
