@@ -88,15 +88,18 @@ class TwitCastingIE(InfoExtractor):
     def _real_extract(self, url):
         uploader_id, video_id = self._match_valid_url(url).groups()
 
+        webpage, urlh = self._download_webpage_handle(url, video_id)
         video_password = self.get_param('videopassword')
         request_data = None
         if video_password:
             request_data = urlencode_postdata({
                 'password': video_password,
+                **self._hidden_inputs(webpage),
             }, encoding='utf-8')
-        webpage, urlh = self._download_webpage_handle(
-            url, video_id, data=request_data,
-            headers={'Origin': 'https://twitcasting.tv'})
+            webpage, urlh = self._download_webpage_handle(
+                url, video_id, data=request_data,
+                headers={'Origin': 'https://twitcasting.tv'},
+                note='Trying video password')
         if urlh.geturl() != url and request_data:
             webpage = self._download_webpage(
                 urlh.geturl(), video_id, data=request_data,
