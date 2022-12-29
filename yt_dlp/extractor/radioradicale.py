@@ -30,7 +30,7 @@ class RadioRadicaleIE(InfoExtractor):
 
         video_info = self._search_json(
             r'jQuery\.extend\(Drupal\.settings\s*,',
-            webpage, 'video_info', video_id).get('RRscheda')
+            webpage, 'video_info', video_id)['RRscheda']
         json_ld = self._search_json_ld(webpage, video_id)
 
         formats = []
@@ -38,10 +38,10 @@ class RadioRadicaleIE(InfoExtractor):
             formats.extend(
                 self._extract_m3u8_formats(source.get('src'), video_id))
 
-        subtitles = {sub.get('srclang'): [{
+        subtitles = {sub.get('srclang') or 'und': [{
             'url': sub.get('src'),
             'name': sub.get('label')
-        }] for sub in traverse_obj(video_info, ('playlist', 0, 'subtitles'))}
+        }] for sub in traverse_obj(video_info, ('playlist', 0, 'subtitles', ...))}
 
         return {
             'id': video_id,
