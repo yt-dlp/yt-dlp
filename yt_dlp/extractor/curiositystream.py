@@ -1,9 +1,9 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import ExtractorError, int_or_none, urlencode_postdata
-import urllib.parse
 
 
 class CuriosityStreamBaseIE(InfoExtractor):
