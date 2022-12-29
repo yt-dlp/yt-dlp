@@ -313,6 +313,7 @@ class TikTokBaseIE(InfoExtractor):
             'uploader_id': str_or_none(author_info.get('uid')),
             'uploader_url': user_url,
             'track': music_track,
+            'track_id': str_or_none(music_info.get('id')),
             'album': str_or_none(music_info.get('album')) or None,
             'artist': music_author or None,
             'timestamp': int_or_none(aweme_detail.get('create_time')),
@@ -390,6 +391,7 @@ class TikTokBaseIE(InfoExtractor):
             'uploader_id': str_or_none(traverse_obj(author_info, 'id', 'uid', 'authorId')),
             'uploader_url': user_url,
             'track': str_or_none(music_info.get('title')),
+            'track_id': str_or_none(music_info.get('id')),
             'album': str_or_none(music_info.get('album')) or None,
             'artist': str_or_none(music_info.get('authorName')),
             'formats': formats,
@@ -430,6 +432,7 @@ class TikTokIE(TikTokBaseIE):
             'artist': 'Ysrbeats',
             'album': 'Lehanga',
             'track': 'Lehanga',
+            'track_id': '6716465478027447045',
         }
     }, {
         'url': 'https://www.tiktok.com/@patroxofficial/video/6742501081818877190?langCountry=en',
@@ -455,6 +458,7 @@ class TikTokIE(TikTokBaseIE):
             'comment_count': int,
             'artist': 'Evan Todd, Jessica Keenan Wynn, Alice Lee, Barrett Wilbert Weed & Jon Eidson',
             'track': 'Big Fun',
+            'track_id': '209649576000286720',
         }
     }, {
         # Banned audio, only available on the app
@@ -469,6 +473,7 @@ class TikTokIE(TikTokBaseIE):
             'uploader_id': '6974687867511718913',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAbhBwQC-R1iKoix6jDFsF-vBdfx2ABoDjaZrM9fX6arU3w71q3cOWgWuTXn1soZ7d',
             'track': 'Boka Dance',
+            'track_id': '6984138615588653826',
             'artist': 'md5:29f238c49bc0c176cb3cef1a9cea9fa6',
             'timestamp': 1626121503,
             'duration': 18,
@@ -492,6 +497,7 @@ class TikTokIE(TikTokBaseIE):
             'uploader_id': '7036055384943690754',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAATh8Vewkn0LYM7Fo03iec3qKdeCUOcBIouRk1mkiag6h3o_pQu_dUXvZ2EZlGST7_',
             'track': 'Promoted Music',
+            'track_id': '7042692955299203841',
             'timestamp': 1639754738,
             'duration': 30,
             'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
@@ -515,6 +521,7 @@ class TikTokIE(TikTokBaseIE):
             'uploader_id': '6820838815978423302',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAA0tF1nBwQVVMyrGu3CqttkNgM68Do1OXUFuCY0CRQk8fEtSVDj89HqoqvbSTmUP2W',
             'track': 'original sound',
+            'track_id': '7059698289792273198',
             'timestamp': 1643714123,
             'duration': 6,
             'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
