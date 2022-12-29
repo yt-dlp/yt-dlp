@@ -1196,7 +1196,6 @@ from .niconico import (
     NiconicoUserIE,
     NiconicoSeriesIE,
     NiconicoHistoryIE,
-    NiconicoLikeHistoryIE,
     NicovideoSearchDateIE,
     NicovideoSearchIE,
     NicovideoSearchURLIE,
