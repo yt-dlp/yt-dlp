@@ -19,13 +19,8 @@ from ..utils import (
 
 class DornaBaseIE(InfoExtractor):
     _LANGS = r'(?:en|it|de|es|fr)'
-    _DORNA_URLS = {
-        'GET_TOKEN': 'https://sso.dorna.com/api/login/token',
-        'AUTHORIZE': 'https://sso.dorna.com/login/authorize',
-        'CHECK_LOGIN': 'https://sso.dorna.com/api/login/v1/me',
-    }
+    _DORNA_DOMAIN = 'https://sso.dorna.com'
     _LANG = None
-    _WEBSITE = None
     _HOST = None
     _SECURE_HOST = None
     _LOGIN_URL = None
@@ -33,48 +28,44 @@ class DornaBaseIE(InfoExtractor):
     def _perform_login(self, username, password):
         def check_login():
             me = self._download_json(
-                self._DORNA_URLS['CHECK_LOGIN'], None, 'Check Login status',
+                f'{self._DORNA_DOMAIN}/api/login/v1/me', None, 'Check Login status',
                 expected_status=401)
             return me.get('email') == username
 
-        try:
-            if check_login():
-                return
+        if check_login():
+            return
 
-            webpage, urlh = self._download_webpage_handle(
-                self._LOGIN_URL, None, 'Downloading login page')
-            login_params = parse_qs(urlh.geturl())
+        webpage, urlh = self._download_webpage_handle(
+            self._LOGIN_URL, None, 'Downloading login page')
+        login_params = parse_qs(urlh.geturl())
 
-            if not login_params.get('client_id'):
-                msg = self._search_regex(
-                    r'(Request unsuccessful\. Incapsula incident ID: \d+-\d+)',
-                    webpage, 'login_page', fatal=False) or 'Error dowloading login page'
-                raise ExtractorError(msg, expected=True)
+        if not login_params.get('client_id'):
+            msg = self._search_regex(
+                r'(Request unsuccessful\. Incapsula incident ID: \d+-\d+)',
+                webpage, 'login_page', fatal=False) or 'Error dowloading login page'
+            raise ExtractorError(msg, expected=True)
 
-            data = json.dumps({
-                'grant_type': 'password',
-                'username': username,
-                'password': password,
-                'origin_client_id': login_params['client_id'][0],
-                'client_id': 'b32ca14f-0709-495a-9184-8bd848cf7e6b',
-            }).encode('ascii')
-            token = self._download_json(
-                self._DORNA_URLS['GET_TOKEN'], None, 'Logging in...', data=data)
+        data = json.dumps({
+            'grant_type': 'password',
+            'username': username,
+            'password': password,
+            'origin_client_id': login_params['client_id'][0],
+            'client_id': 'b32ca14f-0709-495a-9184-8bd848cf7e6b',
+        }).encode('ascii')
+        token = self._download_json(
+            f'{self._DORNA_DOMAIN}/api/login/token', None, 'Logging in...', data=data)
 
-            if not token.get('token_type') == 'Bearer' or token.get('access_token') is None:
-                self.report_warning('Error retrieving access token')
+        if token.get('token_type') != 'Bearer' or not token.get('access_token'):
+            self.report_warning('Error retrieving access token')
 
-            _, urlh = self._download_webpage_handle(
-                update_url_query(self._DORNA_URLS['AUTHORIZE'], login_params),
-                None, 'Authorization...')
+        _, urlh = self._download_webpage_handle(
+            update_url_query(f'{self._DORNA_DOMAIN}/login/authorize', login_params),
+            None, 'Authorization...')
 
-            # if redirects to homepage, login is successful
-            if (not urlh.geturl().strip('/') in (self._HOST, self._SECURE_HOST)
-                    or not check_login()):
-                self.report_warning(f'Error finalizing login process: {urlh.geturl()}')
-
-        except ExtractorError as e:
-            raise e
+        # if redirects to homepage, login is successful
+        if (not urlh.geturl().strip('/') in (self._HOST, self._SECURE_HOST)
+                or not check_login()):
+            self.report_warning(f'Error finalizing login process: {urlh.geturl()}')
 
     def _chapters_from_url(self, url):
         if not url:
@@ -105,20 +96,6 @@ class DornaBaseIE(InfoExtractor):
 
     def _get_motogpapp_data(self, path, request_id):
         return self._download_json(f'{self._SECURE_HOST}/{self._LANG}/motogpapp/{path}/{request_id}', request_id, fatal=False) or {}
-
-    def _get_upload_data(self, video_id):
-        data = self._get_motogpapp_data('video_landing', video_id)
-        return {
-            'upload_date': unified_strdate(data.get('created')),
-            'timestamp': data.get('created_timestamp'),
-        }
-
-    def _get_gallery_data(self, gallery_id):
-        data = self._get_motogpapp_data('video/gallery', gallery_id)
-        return {
-            'title': traverse_obj(data, ('gallery', 'title')),
-            'items_id': traverse_obj(data, ('gallery', 'videos', ..., 'nid'))
-        }
 
     def _get_media_infos(self, video_id, login_method='any'):
         formats = []
@@ -162,14 +139,14 @@ class DornaBaseIE(InfoExtractor):
         }
 
 
-class MotoGPIE(DornaIE):
+class MotoGPIE(DornaBaseIE):
     # login only works reliably with cookies, usr:psw triggers re-captcha most of the time
     _HOST = 'https://www.motogp.com'
     _SECURE_HOST = 'https://secure.motogp.com'
     _LOGIN_URL = f'{_SECURE_HOST}/en/user/login?return_to={_HOST}'
     _VALID_URL = rf'''(?x)(?:
-                              motogp:({DornaIE._LANGS}):|
-                              (?:{_HOST}|{_SECURE_HOST})/({DornaIE._LANGS})/videos/.+/
+                              motogp:(?P<lang1>{DornaBaseIE._LANGS}):|
+                              (?:{_HOST}|{_SECURE_HOST})/(?P<lang2>{DornaBaseIE._LANGS})/videos/.+/
                           )(?P<id>\d{{5,}})'''
     _TESTS = [{
         # Free video: no account required
@@ -208,11 +185,21 @@ class MotoGPIE(DornaIE):
             'skip_download': True,
         },
         'skip': 'Account needed',
+    }, {
+        'url': 'motogp:it:304604',
+        'only_matching': True,
     }]
     _NETRC_MACHINE = 'motogp'
 
+    def _get_upload_data(self, video_id):
+        data = self._get_motogpapp_data('video_landing', video_id)
+        return {
+            'upload_date': unified_strdate(data.get('created')),
+            'timestamp': data.get('created_timestamp'),
+        }
+
     def _real_extract(self, url):
-        lang1, lang2, video_id = self._match_valid_url(url).groups()
+        lang1, lang2, video_id = self._match_valid_url(url).group('lang1', 'lang2', 'id')
         self._LANG = lang1 or lang2
 
         return {
@@ -223,7 +210,7 @@ class MotoGPIE(DornaIE):
 
 
 class MotoGPGalleryIE(MotoGPIE):
-    _VALID_URL = rf'(?:{MotoGPIE._HOST}|{MotoGPIE._SECURE_HOST})/(?P<lang>{DornaIE._LANGS})/video_gallery/.+/(?P<id>\d{{5,}})'
+    _VALID_URL = rf'(?:{MotoGPIE._HOST}|{MotoGPIE._SECURE_HOST})/(?P<lang>{DornaBaseIE._LANGS})/video_gallery/.+/(?P<id>\d{{5,}})'
     _TESTS = [{
         'url': 'https://www.motogp.com/en/video_gallery/2022/07/08/behind-the-scenes/429173',
         'info_dict': {
@@ -233,6 +220,13 @@ class MotoGPGalleryIE(MotoGPIE):
         'playlist_min_count': 40,
     }]
 
+    def _get_gallery_data(self, gallery_id):
+        data = self._get_motogpapp_data('video/gallery', gallery_id)
+        return {
+            'title': traverse_obj(data, ('gallery', 'title')),
+            'items_id': traverse_obj(data, ('gallery', 'videos', ..., 'nid'))
+        }
+
     def _real_extract(self, url):
         self._LANG, gallery_id = self._match_valid_url(url).groups()
         gallery_data = self._get_gallery_data(gallery_id)
@@ -241,11 +235,11 @@ class MotoGPGalleryIE(MotoGPIE):
             gallery_id, playlist_title=gallery_data.get('title'))
 
 
-class WorldSBKIE(DornaIE):
+class WorldSBKIE(DornaBaseIE):
     _HOST = 'https://www.worldsbk.com'
     _SECURE_HOST = 'https://secure.worldsbk.com'
     _LOGIN_URL = f'{_SECURE_HOST}/en/user/login?return_to={_HOST}'
-    _VALID_URL = rf'(?:{_HOST}|{_SECURE_HOST})/(?P<lang>{DornaIE._LANGS})/videos/(?P<year>\d+)/(?P<id>[^/"?]+)'
+    _VALID_URL = rf'(?:{_HOST}|{_SECURE_HOST})/(?P<lang>{DornaBaseIE._LANGS})/videos/(?P<year>\d+)/(?P<id>[^/"?]+)'
     _EMBED_REGEX = [
         rf'<a\s*class="videoplay"\s*href="(?P<url>{_VALID_URL})">',
         rf'href="(?P<url>{_VALID_URL})"\s*class="videoplay"',
@@ -355,7 +349,7 @@ class WorldSBKIE(DornaIE):
 
 
 class WorldSBKPlaylistIE(WorldSBKIE):
-    _VALID_URL = rf'(?:{WorldSBKIE._HOST}|{WorldSBKIE._SECURE_HOST})/{DornaIE._LANGS}/videos/(?P<id>\w+)_videos'
+    _VALID_URL = rf'(?:{WorldSBKIE._HOST}|{WorldSBKIE._SECURE_HOST})/{DornaBaseIE._LANGS}/videos/(?P<id>\w+)_videos'
     _TESTS = [{
         'url': 'https://www.worldsbk.com/en/videos/all_videos',
         'info_dict': {
@@ -377,7 +371,7 @@ class WorldSBKPlaylistIE(WorldSBKIE):
         page = self._download_json(url, playlist_id)
 
         for link in re.finditer(
-                rf'id="{playlist_id}_videos_(?P<video_id>[\d_]+)"[^/]+href="(?P<video_url>(?:{self._HOST}|{self._SECURE_HOST})/(?:{DornaIE._LANGS})/videos/.+\?from_list={playlist_id}_videos)"',
+                rf'id="{playlist_id}_videos_(?P<video_id>[\d_]+)"[^/]+href="(?P<video_url>(?:{self._HOST}|{self._SECURE_HOST})/(?:{DornaBaseIE._LANGS})/videos/.+\?from_list={playlist_id}_videos)"',
                 page.get('html')):
             self._LAST_VIDEO_ID = link.group('video_id')
             yield self.url_result(link.group('video_url'), ie=WorldSBKIE)
