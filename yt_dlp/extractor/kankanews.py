@@ -44,5 +44,5 @@ class KankaNewsIE(InfoExtractor):
             'id': video_id,
             'url': meta['videourl'],
             'title': self._search_regex(r'g\.title\s*=\s*"([^"]+)"', webpage, 'title'),
-            'thumbnail': meta['titlepic'],
+            'thumbnail': meta.get('titlepic'),
         }
