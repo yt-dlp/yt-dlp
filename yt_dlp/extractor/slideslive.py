@@ -473,9 +473,7 @@ class SlidesLiveIE(InfoExtractor):
         if service_name == 'url':
             info['url'] = service_id
         elif service_name == 'yoda':
-            info.update({
-                'formats': self._extract_formats(player_info['video_servers'][0], service_id, video_id),
-            })
+            info['formats'] = self._extract_formats(player_info['video_servers'][0], service_id, video_id)
         else:
             info.update({
                 '_type': 'url_transparent',
