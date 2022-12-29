@@ -552,7 +552,8 @@ class RheinMainTVIE(InfoExtractor):
         video_id = mobj.group('video_id').replace('/', '-')
         webpage = self._download_webpage(url, video_id)
 
-        source, img = self._search_regex(r'(?s)(?P<source><source[^>]*>)(?P<img><img[^>]*>)', webpage, 'video', group=('source', 'img'))
+        source, img = self._search_regex(r'(?s)(?P<source><source[^>]*>)(?P<img><img[^>]*>)',
+                                         webpage, 'video', group=('source', 'img'))
         source = extract_attributes(source)
         img = extract_attributes(img)
 
@@ -562,7 +563,7 @@ class RheinMainTVIE(InfoExtractor):
         json_ld = self._json_ld(raw_json_ld, video_id)
 
         ism_manifest_url = (
-            source['src']  # attribute 'src' is mandatory
+            source.get('src')
             or next(json_ld.get('embedUrl') for json_ld in raw_json_ld if json_ld.get('@type') == 'VideoObject')
         )
         formats, subtitles = self._extract_ism_formats_and_subtitles(ism_manifest_url, video_id)
@@ -581,22 +582,17 @@ class RheinMainTVIE(InfoExtractor):
         return {
             'id': video_id,
             'title': (  # superfluous parentheses to make flake8 happy
-                self._html_search_regex(r'<h1><span class="title">([^<]*)</span>', webpage, 'headline')
+                self._html_search_regex(r'<h1><span class="title">([^<]*)</span>',
+                                        webpage, 'headline', default=None)
                 or img.get('title') or json_ld.get('title') or self._og_search_title(webpage)
                 or self._html_extract_title(webpage).removesuffix(' -')
             ),
-            'alt_title': img['alt'],  # attribute 'alt' is mandatory
-            'description': (  # superfluous parentheses to make flake8 happy
-                json_ld.get('description')
-                or self._og_search_description(webpage)
-            ),
+            'alt_title': img.get('alt'),
+            'description': json_ld.get('description') or self._og_search_description(webpage),
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnails': (  # superfluous parentheses to make flake8 happy
-                [{'url': img['src']}]  # attribute 'src' is mandatory
-                or json_ld.get('thumbnails')
-            ),
+            'thumbnails': [{'url': img['src']}] if 'src' in img else json_ld.get('thumbnails'),
             'timestamp': json_ld.get('timestamp'),
             'duration': json_ld.get('duration'),
             'view_count': json_ld.get('view_count')
