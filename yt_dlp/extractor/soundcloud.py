@@ -783,7 +783,7 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
 
 
 class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:(?:api\.soundcloud\.com/users/(?P<user_id>\d+)$))'
+    _VALID_URL = r'https?://(?:api\.soundcloud\.com/users/(?P<user_id>\d+)$)'
     IE_NAME = 'soundcloud:user_permalink'
     _TESTS = [{
         'url': 'https://api.soundcloud.com/users/30909869',
