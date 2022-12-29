@@ -23,7 +23,6 @@ import unicodedata
 import urllib.request
 from string import ascii_letters
 
-from .plugins import directories as plugin_directories
 from .cache import Cache
 from .compat import compat_os_name, compat_shlex_quote
 from .cookies import load_cookies
@@ -33,6 +32,7 @@ from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
+from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_postprocessors
 from .postprocessor import (
     EmbedThumbnailPP,
@@ -3814,6 +3814,7 @@ class YoutubeDL:
         plugin_dirs = plugin_directories()
         if plugin_dirs:
             write_debug(f'Plugin directories: {plugin_dirs}')
+
         # Not implemented
         if False and self.params.get('call_home'):
             ipaddr = self.urlopen('https://yt-dl.org/ip').read().decode()

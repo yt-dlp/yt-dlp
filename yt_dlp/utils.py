@@ -5333,15 +5333,9 @@ def get_executable_path():
     return os.path.dirname(os.path.abspath(_get_variant_and_executable_path()[1]))
 
 
-# TODO: move to compat utils (see network rework)
-def load_plugins(*args, **kwargs):
-    """ For compatability. Do not use """
-    from .plugins import load_plugins
-    return load_plugins(*args, **kwargs)
-
-
 def get_user_config_dirs(package_name):
     locations = set()
+
     # .config (e.g. ~/.config/package_name)
     xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
     config_dir = os.path.join(xdg_config_home, package_name)
@@ -5360,7 +5354,7 @@ def get_user_config_dirs(package_name):
     if os.path.isdir(user_config_directory):
         locations.add(user_config_directory)
 
-    return list(locations)
+    return locations
 
 
 def get_system_config_dirs(package_name):
@@ -5369,7 +5363,7 @@ def get_system_config_dirs(package_name):
     system_config_directory = os.path.join('/etc', package_name)
     if os.path.isdir(system_config_directory):
         locations.add(system_config_directory)
-    return list(locations)
+    return locations
 
 
 def traverse_obj(
@@ -6343,3 +6337,10 @@ class FormatSorter:
 # Deprecated
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
+
+
+def load_plugins(name, suffix, namespace):
+    from .plugins import load_plugins
+    ret = load_plugins(name, suffix)
+    namespace.update(ret)
+    return ret

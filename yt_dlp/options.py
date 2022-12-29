@@ -84,32 +84,27 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             return system_conf, system_conf_file
         return default if default is not None else [], None
 
-    def add_config(label, path, user=False, system=False):
+    def add_config(label, path=None, func=None):
         """ Adds config and returns whether to continue """
         if root.parse_known_args()[0].ignoreconfig:
             return False
-        # Multiple package names can be given here
-        # E.g. ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
-        # the configuration file in any of these three packages
-        for package in ('yt-dlp',):
-            if user:
-                args, current_path = _read_user_conf(package, default=None)
-            elif system:
-                args, current_path = _read_system_conf(package, default=None)
-            else:
-                current_path = os.path.join(path, '%s.conf' % package)
-                args = Config.read_file(current_path, default=None)
-            if args is not None:
-                root.append_config(args, current_path, label=label)
-                return True
+        elif func:
+            assert path is None
+            args, current_path = func('yt-dlp')
+        else:
+            current_path = os.path.join(path, 'yt-dlp.conf')
+            args = Config.read_file(current_path, default=None)
+        if args is not None:
+            root.append_config(args, current_path, label=label)
+            return True
         return True
 
     def load_configs():
         yield not ignore_config_files
         yield add_config('Portable', get_executable_path())
         yield add_config('Home', expand_path(root.parse_known_args()[0].paths.get('home', '')).strip())
-        yield add_config('User', None, user=True)
-        yield add_config('System', None, system=True)
+        yield add_config('User', func=_read_user_conf)
+        yield add_config('System', func=_read_system_conf)
 
     opts = optparse.Values({'verbose': True, 'print_help': False})
     try:

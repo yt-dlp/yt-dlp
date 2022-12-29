@@ -1,5 +1,5 @@
 from yt_dlp.postprocessor.common import PostProcessor
 
 
-class NormalPluginPP(PostProcessor):
+class ZippedPluginPP(PostProcessor):
     pass

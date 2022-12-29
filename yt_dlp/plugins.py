@@ -1,8 +1,8 @@
 import contextlib
 import importlib
+import importlib.abc
 import importlib.machinery
 import importlib.util
-import importlib.abc
 import inspect
 import itertools
 import os
@@ -14,26 +14,29 @@ import zipimport
 from pathlib import Path
 from zipfile import ZipFile
 
+from .compat import functools  # isort: split
 from .compat import compat_expanduser
-
 from .utils import (
-    write_string,
-    get_user_config_dirs,
+    get_executable_path,
     get_system_config_dirs,
-    get_executable_path
+    get_user_config_dirs,
+    write_string,
 )
 
 PACKAGE_NAME = 'yt_dlp_plugins'
 COMPAT_PACKAGE_NAME = 'ytdlp_plugins'
 
-_INITIALIZED = False
-
 
 class PluginLoader(importlib.abc.Loader):
-    """ Dummy loader for virtual namespace packages """
+    """Dummy loader for virtual namespace packages"""
 
     def exec_module(self, module):
         return None
+
+
+@functools.cache
+def dirs_in_zip(archive):
+    return set(itertools.chain.from_iterable(Path(file).parents for file in ZipFile(archive).namelist()))
 
 
 class PluginFinder(importlib.abc.MetaPathFinder):
@@ -44,25 +47,15 @@ class PluginFinder(importlib.abc.MetaPathFinder):
     """
 
     def __init__(self, *packages):
-        self.packages = set()
         self._zip_content_cache = {}
-
-        for name in packages:
-            self.packages.update(self.partition(name))
-
-    @staticmethod
-    def partition(name):
-        yield from itertools.accumulate(name.split('.'), lambda a, b: '.'.join((a, b)))
-
-    def zip_has_dir(self, archive, path):
-        if archive not in self._zip_content_cache:
-            self._zip_content_cache[archive] = [Path(name) for name in ZipFile(archive).namelist()]
-        return any(path in file.parents for file in self._zip_content_cache[archive])
+        self.packages = set(itertools.chain.from_iterable(
+            itertools.accumulate(name.split('.'), lambda a, b: '.'.join((a, b)))
+            for name in packages))
 
     def search_locations(self, fullname):
         candidate_locations = []
 
-        def _get_package_paths(root_paths, containing_folder='plugins'):
+        def _get_package_paths(*root_paths, containing_folder='plugins'):
             for config_dir in map(Path, root_paths):
                 plugin_dir = config_dir / containing_folder
                 if not plugin_dir.is_dir():
@@ -70,20 +63,19 @@ class PluginFinder(importlib.abc.MetaPathFinder):
                 yield from plugin_dir.iterdir()
 
         # Load from yt-dlp config folders
-        candidate_locations.extend(
-            _get_package_paths(get_user_config_dirs('yt-dlp') + get_system_config_dirs('yt-dlp'),
-                               containing_folder='plugins'))
+        candidate_locations.extend(_get_package_paths(
+            *get_user_config_dirs('yt-dlp'), *get_system_config_dirs('yt-dlp'),
+            containing_folder='plugins'))
 
         # Load from yt-dlp-plugins folders
         candidate_locations.extend(_get_package_paths(
-            [
-                get_executable_path(),
-                compat_expanduser('~'),
-                '/etc',
-                os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
-            ], containing_folder='yt-dlp-plugins'))
+            get_executable_path(),
+            compat_expanduser('~'),
+            '/etc',
+            os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config'),
+            containing_folder='yt-dlp-plugins'))
 
-        candidate_locations.extend([Path(path) for path in sys.path])  # PYTHONPATH
+        candidate_locations.extend(map(Path, sys.path))  # PYTHONPATH
 
         parts = Path(*fullname.split('.'))
         locations = set()
@@ -93,7 +85,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
                 locations.add(str(candidate))
             elif path.name and any(path.with_suffix(suffix).is_file() for suffix in {'.zip', '.egg', '.whl'}):
                 with contextlib.suppress(FileNotFoundError):
-                    if self.zip_has_dir(path, parts):
+                    if parts in dirs_in_zip(path):
                         locations.add(str(candidate))
         return locations
 
@@ -110,20 +102,10 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         return spec
 
     def invalidate_caches(self):
-        self._zip_content_cache.clear()
+        dirs_in_zip.cache_clear()
         for package in self.packages:
             if package in sys.modules:
                 del sys.modules[package]
-
-
-def initialize():
-    global _INITIALIZED
-    if _INITIALIZED:
-        return
-
-    sys.meta_path.insert(
-        0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'))
-    _INITIALIZED = True
 
 
 def directories():
@@ -138,26 +120,17 @@ def iter_modules(subpackage):
         yield from pkgutil.iter_modules(path=pkg.__path__, prefix=f'{fullname}.')
 
 
-def load_plugins(name, suffix, namespace=None):
+def load_module(module, module_name, suffix):
+    return inspect.getmembers(module, lambda obj: (
+        inspect.isclass(obj)
+        and obj.__name__.endswith(suffix)
+        and obj.__module__.startswith(module_name)
+        and not obj.__name__.startswith('_')
+        and obj.__name__ in getattr(module, '__all__', [obj.__name__])))
+
+
+def load_plugins(name, suffix):
     classes = {}
-    namespace = namespace or {}
-
-    def gen_predicate(package_name, module):
-        def check_predicate(obj):
-            return (inspect.isclass(obj)
-                    and obj.__name__.endswith(suffix)
-                    and obj.__module__.startswith(package_name)
-                    and not obj.__name__.startswith('_')
-                    and obj.__name__ in getattr(module, '__all__', [obj.__name__]))
-
-        return check_predicate
-
-    def load_module(module, module_name):
-        module_classes = dict(inspect.getmembers(module, gen_predicate(module_name, module)))
-        name_collisions = (
-            set(classes.keys()) | set(namespace.keys())) & set(module_classes.keys())
-        classes.update({key: value for key, value in module_classes.items()
-                        if key not in name_collisions})
 
     for finder, module_name, _ in iter_modules(name):
         if re.match(r'^(\w+\.)*_', module_name):
@@ -176,7 +149,7 @@ def load_plugins(name, suffix, namespace=None):
         except Exception:
             write_string(f'Error while importing module {module_name!r}\n{traceback.format_exc(limit=-1)}')
             continue
-        load_module(module, module_name)
+        classes.update(load_module(module, module_name, suffix))
 
     # Compat: old plugin system using __init__.py
     # Note: plugins imported this way do not show up in directories()
@@ -187,10 +160,11 @@ def load_plugins(name, suffix, namespace=None):
         plugins = importlib.util.module_from_spec(spec)
         sys.modules[spec.name] = plugins
         spec.loader.exec_module(plugins)
-        load_module(plugins, spec.name)
+        classes.update(load_module(plugins, spec.name, suffix))
 
-    namespace.update(classes)
     return classes
 
 
-initialize()
+sys.meta_path.insert(0, PluginFinder(f'{PACKAGE_NAME}.extractor', f'{PACKAGE_NAME}.postprocessor'))
+
+__all__ = ['directories', 'load_plugins', 'PACKAGE_NAME', 'COMPAT_PACKAGE_NAME']
