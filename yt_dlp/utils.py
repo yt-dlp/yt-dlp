@@ -3467,13 +3467,13 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'x-mpegurl': 'm3u8',
 
         # audio
-        ('audio', 'mp4'): 'm4a',
+        'audio/mp4': 'm4a',
         # Per RFC 3003, audio/mpeg can be .mp1, .mp2 or .mp3.
         # Using .mp3 as it's the most popular one
-        ('audio', 'mpeg'): 'mp3',
-        ('audio', 'webm'): 'weba',
-        ('audio', 'x-matroska'): 'mka',
-        ('audio', 'x-mpegurl'): 'm3u',
+        'audio/mpeg': 'mp3',
+        'audio/webm': 'weba',
+        'audio/x-matroska': 'mka',
+        'audio/x-mpegurl': 'm3u',
         'midi': 'mid',
         'ogg': 'ogg',
         'wav': 'wav',
@@ -3504,35 +3504,23 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         'ttaf+xml': 'dfxp',
         'ttml+xml': 'ttml',
         'x-ms-sami': 'sami',
-    }
 
-    mimetype = mt.partition(';')[0].strip().lower()
-    prefix, _, identifier = mimetype.rpartition('/')
-
-    if prefix:
-        value = prefix, identifier
-        ext = MAP.get(value)
-        if ext:
-            return ext
-
-    ext = MAP.get(identifier)
-    if ext:
-        return ext
-
-    SUFFIX_MAP = {
+        # misc
         'gzip': 'gz',
         'json': 'json',
         'xml': 'xml',
         'zip': 'zip',
     }
-    suffix = identifier.rpartition('+')[2]
-    ext = SUFFIX_MAP.get(suffix)
+
+    mimetype = mt.partition(';')[0].strip().lower()
+    _, _, subtype = mimetype.rpartition('/')
+
+    ext = traverse_obj(MAP, mimetype, subtype, subtype.rsplit('+')[-1])
     if ext:
         return ext
-
-    if default is not NO_DEFAULT:
+    elif default is not NO_DEFAULT:
         return default
-    return identifier.replace('+', '.')
+    return subtype.replace('+', '.')
 
 
 def ext2mimetype(ext_or_url):
