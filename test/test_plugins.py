@@ -17,14 +17,6 @@ class TestPlugins(unittest.TestCase):
 
     TEST_PLUGIN_DIR = TEST_DATA_DIR / PACKAGE_NAME
 
-    def test_plugin_directory_structure(self):
-        # XXX: doesn't test much?
-        self.assertFalse(self.TEST_PLUGIN_DIR.joinpath('__init__.py').exists())
-        self.assertTrue(self.TEST_PLUGIN_DIR.joinpath('extractor').is_dir())
-        self.assertFalse(self.TEST_PLUGIN_DIR.joinpath('extractor', '__init__.py').exists())
-        self.assertTrue(self.TEST_PLUGIN_DIR.joinpath('postprocessor').is_dir())
-        self.assertFalse(self.TEST_PLUGIN_DIR.joinpath('postprocessor', '__init__.py').exists())
-
     def test_directories_containing_plugins(self):
         self.assertIn(self.TEST_PLUGIN_DIR, map(Path, directories()))
 

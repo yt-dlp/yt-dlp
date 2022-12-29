@@ -7,7 +7,6 @@ import inspect
 import itertools
 import os
 import pkgutil
-import re
 import sys
 import traceback
 import zipimport
@@ -36,7 +35,9 @@ class PluginLoader(importlib.abc.Loader):
 
 @functools.cache
 def dirs_in_zip(archive):
-    return set(itertools.chain.from_iterable(Path(file).parents for file in ZipFile(archive).namelist()))
+    with ZipFile(archive) as zip:
+        return set(itertools.chain.from_iterable(
+            Path(file).parents for file in zip.namelist()))
 
 
 class PluginFinder(importlib.abc.MetaPathFinder):
@@ -133,7 +134,7 @@ def load_plugins(name, suffix):
     classes = {}
 
     for finder, module_name, _ in iter_modules(name):
-        if re.match(r'^(\w+\.)*_', module_name):
+        if any(x.startswith('_') for x in module_name.split('.')):
             continue
         try:
             if sys.version_info < (3, 10) and isinstance(finder, zipimport.zipimporter):
