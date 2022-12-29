@@ -800,8 +800,7 @@ class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
             self._resolv_url(url), user_id, 'Downloading user info', headers=self._HEADERS)
 
         return self._extract_playlist(
-            f'{self._API_V2_BASE}stream/users/{user["id"]}',
-            str_or_none(user.get('id')), user.get('username'))
+            f'{self._API_V2_BASE}stream/users/{user["id"]}', user['id'], user.get('username'))
 
 
 class SoundcloudTrackStationIE(SoundcloudPagedPlaylistBaseIE):
