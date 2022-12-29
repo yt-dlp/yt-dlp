@@ -30,9 +30,8 @@ class KikaIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        doc = self._download_json("https://www.kika.de/_next-api/proxy/v1/videos/video%s" % (video_id), video_id)
-        video_assets = self._download_json(doc.get('assets').get('url'), video_id)
-        formats = list(self._extract_formats(video_assets, video_id))
+        doc = self._download_json(f'https://www.kika.de/_next-api/proxy/v1/videos/video{video_id}', video_id)
+        video_assets = self._download_json(doc['assets']['url'], video_id)
 
         subtitles = {}
         ttml_resource = video_assets.get('videoSubtitle')
@@ -54,7 +53,7 @@ class KikaIE(InfoExtractor):
             'description': doc.get('description'),
             'timestamp': parse_iso8601(doc.get('date')),
             'duration': parse_duration(doc.get('duration')),
-            'formats': formats,
+            'formats': list(self._extract_formats(video_assets, video_id)),
             'subtitles': subtitles,
             'uploader': 'KIKA'
         }
