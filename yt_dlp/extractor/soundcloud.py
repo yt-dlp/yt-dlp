@@ -789,7 +789,7 @@ class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
         'url': 'https://api.soundcloud.com/users/30909869',
         'info_dict': {
             'id': '30909869',
-            'title': 'neilcic (permalink)',
+            'title': 'User permalink: 30909869',
         },
         'playlist_mincount': 23,
     }]
@@ -798,13 +798,9 @@ class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
         mobj = self._match_valid_url(url)
         user_id = mobj.group('user_id')
 
-        user = self._download_json(
-            self._resolv_url(url), 'user:' + user_id,
-            'Downloading user info', headers=self._HEADERS)
-
         return self._extract_playlist(
-            self._API_V2_BASE + 'stream/users/%s' % user['id'],
-            str_or_none(user.get('id')), '%s (permalink)' % user['username'])
+            self._API_V2_BASE + 'stream/users/%s' % user_id,
+            user_id, 'User permalink: %s' % user_id)
 
 
 class SoundcloudTrackStationIE(SoundcloudPagedPlaylistBaseIE):
