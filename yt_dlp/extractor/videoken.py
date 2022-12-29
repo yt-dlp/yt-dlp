@@ -84,7 +84,7 @@ class VideoKenIE(VideoKenBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
-        'expected_warnings': ['Failed to download API JSON'],
+        'expected_warnings': ['Failed to download VideoKen API JSON'],
     }, {
         # neurips -> videoken -> slideslive -> youtube
         'url': 'https://videos.neurips.cc/topic/machine%20learning/video/slideslive-38923348',
@@ -118,7 +118,7 @@ class VideoKenIE(VideoKenBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
-        'expected_warnings': ['Failed to download API JSON'],
+        'expected_warnings': ['Failed to download VideoKen API JSON'],
     }, {
         # icts -> videoken -> youtube
         'url': 'https://videos.icts.res.in/topic/random%20variable/video/zysIsojYdvc',
