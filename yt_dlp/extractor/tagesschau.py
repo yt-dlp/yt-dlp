@@ -139,8 +139,6 @@ class TagesschauIE(InfoExtractor):
         timestamp = video_info.get('timestamp')
         title = title or video_info.get('description')
 
-        self._sort_formats(formats)
-
         return {
             'id': display_id,
             'title': title,

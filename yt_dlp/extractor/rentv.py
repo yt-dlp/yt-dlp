@@ -47,7 +47,6 @@ class RENTVIE(InfoExtractor):
                 formats.append({
                     'url': src,
                 })
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': title,

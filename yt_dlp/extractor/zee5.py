@@ -146,7 +146,6 @@ class Zee5IE(InfoExtractor):
         if not asset_data.get('hls_url'):
             self.raise_login_required(self._LOGIN_HINT, metadata_available=True, method=None)
         formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(asset_data['hls_url'], video_id, 'mp4', fatal=False)
-        self._sort_formats(formats)
 
         subtitles = {}
         for sub in asset_data.get('subtitle_url', []):

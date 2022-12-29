@@ -41,7 +41,9 @@ class InfoExtractorTestRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 class DummyIE(InfoExtractor):
-    pass
+    def _sort_formats(self, formats, field_preference=[]):
+        self._downloader.sort_formats(
+            {'formats': formats, '_format_sort_fields': field_preference})
 
 
 class TestInfoExtractor(unittest.TestCase):

@@ -58,7 +58,6 @@ class SverigesRadioBaseIE(InfoExtractor):
                 'vcodec': 'none',
                 'url': audio_url,
             })
-        self._sort_formats(formats)
 
         return {
             'id': audio_id,

@@ -88,7 +88,6 @@ class DigitalConcertHallIE(InfoExtractor):
             m3u8_url = traverse_obj(
                 stream_info, ('channel', lambda k, _: k.startswith('vod_mixed'), 'stream', 0, 'url'), get_all=False)
             formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', 'm3u8_native', fatal=False)
-            self._sort_formats(formats)
 
             yield {
                 'id': video_id,

@@ -76,7 +76,6 @@ class VideoPressIE(InfoExtractor):
                 'width': int_or_none(video.get('width')),
                 'height': int_or_none(video.get('height')),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

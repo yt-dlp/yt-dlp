@@ -177,7 +177,6 @@ class CrackleIE(InfoExtractor):
                 })
         if not formats and has_drm:
             self.report_drm(video_id)
-        self._sort_formats(formats)
 
         description = media.get('Description')
         duration = int_or_none(media.get(

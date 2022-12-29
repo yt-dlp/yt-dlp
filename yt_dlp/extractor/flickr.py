@@ -89,7 +89,6 @@ class FlickrIE(InfoExtractor):
                     'url': stream['_content'],
                     'quality': preference(stream_type),
                 })
-            self._sort_formats(formats)
 
             owner = video_info.get('owner', {})
             uploader_id = owner.get('nsid')

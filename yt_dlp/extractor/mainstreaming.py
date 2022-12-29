@@ -197,8 +197,6 @@ class MainStreamingIE(InfoExtractor):
             subtitles = self._merge_subtitles(m3u8_subs, mpd_subs)
             formats.extend(m3u8_formats + mpd_formats)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,

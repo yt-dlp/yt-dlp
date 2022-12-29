@@ -102,8 +102,6 @@ class IGNIE(IGNBaseIE):
                 'url': mezzanine_url,
             })
 
-        self._sort_formats(formats)
-
         thumbnails = []
         for thumbnail in (video.get('thumbnails') or []):
             thumbnail_url = thumbnail.get('url')

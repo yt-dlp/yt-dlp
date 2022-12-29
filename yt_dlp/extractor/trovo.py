@@ -95,7 +95,6 @@ class TrovoIE(TrovoBaseIE):
                 'tbr': stream_info.get('bitrate'),
                 'http_headers': self._HEADERS,
             })
-        self._sort_formats(formats)
 
         info = {
             'id': program_id,
@@ -222,7 +221,6 @@ class TrovoVodIE(TrovoBaseIE):
                 'url': play_url,
                 'http_headers': self._HEADERS,
             })
-        self._sort_formats(formats)
 
         category = vod_info.get('categoryName')
         get_count = lambda x: int_or_none(vod_info.get(x + 'Num'))

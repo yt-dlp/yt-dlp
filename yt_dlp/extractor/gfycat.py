@@ -127,7 +127,6 @@ class GfycatIE(InfoExtractor):
                 'filesize': filesize,
                 'quality': quality(format_id),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

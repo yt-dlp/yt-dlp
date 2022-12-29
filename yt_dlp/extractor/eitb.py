@@ -71,8 +71,6 @@ class EitbIE(InfoExtractor):
                 '%s?hdcore=3.7.0' % hds_url.replace('euskalsvod', 'euskalvod'),
                 video_id, f4m_id='hds', fatal=False))
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': media.get('NAME_ES') or media.get('name') or media['NAME_EU'],

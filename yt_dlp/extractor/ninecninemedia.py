@@ -43,7 +43,6 @@ class NineCNineMediaIE(InfoExtractor):
         formats.extend(self._extract_mpd_formats(
             manifest_base_url + 'mpd', content_id,
             mpd_id='dash', fatal=False))
-        self._sort_formats(formats)
 
         thumbnails = []
         for image in (content.get('Images') or []):

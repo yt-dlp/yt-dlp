@@ -342,7 +342,6 @@ class FFmpegFD(ExternalFD):
             and cls.can_download(info_dict))
 
     def _call_downloader(self, tmpfilename, info_dict):
-        urls = [f['url'] for f in info_dict.get('requested_formats', [])] or [info_dict['url']]
         ffpp = FFmpegPostProcessor(downloader=self)
         if not ffpp.available:
             self.report_error('m3u8 download detected but ffmpeg could not be found. Please install')
@@ -371,16 +370,6 @@ class FFmpegFD(ExternalFD):
             # https://github.com/ytdl-org/youtube-dl/issues/11800#issuecomment-275037127
             # http://trac.ffmpeg.org/ticket/6125#comment:10
             args += ['-seekable', '1' if seekable else '0']
-
-        http_headers = None
-        if info_dict.get('http_headers'):
-            youtubedl_headers = handle_youtubedl_headers(info_dict['http_headers'])
-            http_headers = [
-                # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
-                # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
-                '-headers',
-                ''.join(f'{key}: {val}\r\n' for key, val in youtubedl_headers.items())
-            ]
 
         env = None
         proxy = self.params.get('proxy')
@@ -434,21 +423,26 @@ class FFmpegFD(ExternalFD):
 
         start_time, end_time = info_dict.get('section_start') or 0, info_dict.get('section_end')
 
-        for i, url in enumerate(urls):
-            if http_headers is not None and re.match(r'^https?://', url):
-                args += http_headers
+        selected_formats = info_dict.get('requested_formats') or [info_dict]
+        for i, fmt in enumerate(selected_formats):
+            if fmt.get('http_headers') and re.match(r'^https?://', fmt['url']):
+                headers_dict = handle_youtubedl_headers(fmt['http_headers'])
+                # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
+                # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
+                args.extend(['-headers', ''.join(f'{key}: {val}\r\n' for key, val in headers_dict.items())])
+
             if start_time:
                 args += ['-ss', str(start_time)]
             if end_time:
                 args += ['-t', str(end_time - start_time)]
 
-            args += self._configuration_args((f'_i{i + 1}', '_i')) + ['-i', url]
+            args += self._configuration_args((f'_i{i + 1}', '_i')) + ['-i', fmt['url']]
 
         if not (start_time or end_time) or not self.params.get('force_keyframes_at_cuts'):
             args += ['-c', 'copy']
 
         if info_dict.get('requested_formats') or protocol == 'http_dash_segments':
-            for (i, fmt) in enumerate(info_dict.get('requested_formats') or [info_dict]):
+            for i, fmt in enumerate(selected_formats):
                 stream_number = fmt.get('manifest_stream_number', 0)
                 args.extend(['-map', f'{i}:{stream_number}'])
 
@@ -488,8 +482,9 @@ class FFmpegFD(ExternalFD):
         args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
         self._debug_cmd(args)
 
+        piped = any(fmt['url'] in ('-', 'pipe:') for fmt in selected_formats)
         with Popen(args, stdin=subprocess.PIPE, env=env) as proc:
-            if url in ('-', 'pipe:'):
+            if piped:
                 self.on_process_started(proc, proc.stdin)
             try:
                 retval = proc.wait()
@@ -499,7 +494,7 @@ class FFmpegFD(ExternalFD):
                 # produces a file that is playable (this is mostly useful for live
                 # streams). Note that Windows is not affected and produces playable
                 # files (see https://github.com/ytdl-org/youtube-dl/issues/8300).
-                if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32' and url not in ('-', 'pipe:'):
+                if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32' and not piped:
                     proc.communicate_or_kill(b'q')
                 else:
                     proc.kill(timeout=None)

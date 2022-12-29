@@ -106,7 +106,7 @@ def generator(test_case, tname):
             params = tc.get('params', {})
             if not info_dict.get('id'):
                 raise Exception(f'Test {tname} definition incorrect - "id" key is not present')
-            elif not info_dict.get('ext'):
+            elif not info_dict.get('ext') and info_dict.get('_type', 'video') == 'video':
                 if params.get('skip_download') and params.get('ignore_no_formats_error'):
                     continue
                 raise Exception(f'Test {tname} definition incorrect - "ext" key must be present to define the output file')
@@ -213,6 +213,8 @@ def generator(test_case, tname):
                 tc_res_dict = res_dict['entries'][tc_num]
                 # First, check test cases' data against extracted data alone
                 expect_info_dict(self, tc_res_dict, tc.get('info_dict', {}))
+                if tc_res_dict.get('_type', 'video') != 'video':
+                    continue
                 # Now, check downloaded file consistency
                 tc_filename = get_tc_filename(tc)
                 if not test_case.get('params', {}).get('skip_download', False):

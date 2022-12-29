@@ -50,7 +50,6 @@ class CellebriteIE(InfoExtractor):
             f'https://play.vidyard.com/player/{player_uuid}.json', display_id)['payload']['chapters'][0]
 
         formats, subtitles = self._get_formats_and_subtitles(json_data['sources'], display_id)
-        self._sort_formats(formats)
         return {
             'id': str(json_data['videoId']),
             'title': json_data.get('name') or self._og_search_title(webpage),

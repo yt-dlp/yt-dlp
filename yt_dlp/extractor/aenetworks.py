@@ -8,7 +8,7 @@ from ..utils import (
 )
 
 
-class AENetworksBaseIE(ThePlatformIE):
+class AENetworksBaseIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _BASE_URL_REGEX = r'''(?x)https?://
         (?:(?:www|play|watch)\.)?
         (?P<domain>
@@ -62,7 +62,6 @@ class AENetworksBaseIE(ThePlatformIE):
             subtitles = self._merge_subtitles(subtitles, tp_subtitles)
         if last_e and not formats:
             raise last_e
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'formats': formats,
@@ -304,7 +303,6 @@ class HistoryTopicIE(AENetworksBaseIE):
 class HistoryPlayerIE(AENetworksBaseIE):
     IE_NAME = 'history:player'
     _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:history|biography)\.com)/player/(?P<id>\d+)'
-    _TESTS = []
 
     def _real_extract(self, url):
         domain, video_id = self._match_valid_url(url).groups()

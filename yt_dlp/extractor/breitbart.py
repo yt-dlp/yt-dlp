@@ -24,7 +24,6 @@ class BreitBartIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         formats = self._extract_m3u8_formats(f'https://cdn.jwplayer.com/manifests/{video_id}.m3u8', video_id, ext='mp4')
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': self._generic_title('', webpage),

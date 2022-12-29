@@ -133,7 +133,6 @@ class RTVSLOIE(InfoExtractor):
         if any('dummy_720p.mp4' in x.get('manifest_url', '') for x in formats) and meta.get('stub') == 'error':
             raise ExtractorError(f'{self.IE_NAME} said: Clip not available', expected=True)
 
-        self._sort_formats(formats)
         return {
             'id': v_id,
             'webpage_url': ''.join(traverse_obj(meta, ('canonical', ('domain', 'path')))),
