@@ -1034,7 +1034,7 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
 
 
 class BiliLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://live.bilibili.com/(blanc/)?(?P<id>\d+)'
+    _VALID_URL = r'https?://live.bilibili.com/(?:blanc/)?(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://live.bilibili.com/196',
@@ -1114,6 +1114,7 @@ class BiliLiveIE(InfoExtractor):
             'thumbnail': room_data.get('user_cover'),
             'timestamp': stream_data.get('live_time'),
             'formats': formats,
+            'is_live': True,
             'http_headers': {
                 'Referer': url,
             },
