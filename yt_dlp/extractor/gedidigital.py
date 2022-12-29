@@ -7,6 +7,7 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     js_to_json,
+    merge_dicts,
     mimetype2ext,
     parse_duration,
     traverse_obj,
@@ -114,9 +115,16 @@ class GediDigitalIE(InfoExtractor):
     _WEBPAGE_TESTS = [{
         'url': 'https://nixxo.github.io/yt-dpl-test-pages/gedidigital-iframes.html',
         'info_dict': {
-            **_TESTS[1]['info_dict'],
+            'id': '12408715',
+            'ext': 'mp4',
+            'title': 'Scandalo Qatargate, ecco chi sono i parlamentari coinvolti e cosa rischiano',
             # description in embeds is cropped from original lenght
-            'description': 'md5:054880e1a8463570348d1c104a0ca690'
+            'description': 'md5:054880e1a8463570348d1c104a0ca690',
+            'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?\.jpg',
+            'duration': 122,
+            'timestamp': 1670866318,
+            'upload_date': '20221212',
+            'formats': 'count:10',
         },
         'params': {
             'skip_download': True,
@@ -126,7 +134,6 @@ class GediDigitalIE(InfoExtractor):
     def _real_extract(self, url):
         url, media_type, media_id, track_id = self._match_valid_url(url).group(
             'url', 'type', 'id', 'trtId')
-        self.IE_NAME = f'gedi:{media_type}'
 
         webpage = self._download_webpage(url, media_id)
 
@@ -177,23 +184,19 @@ class GediDigitalIE(InfoExtractor):
                     playlist_entries, playlist_id=media_id,
                     playlist_title=self._generic_title(url, webpage))
 
-        extra_data = self._search_json_ld(webpage, media_id, default={})
+        media_data = merge_dicts(media_data, self._search_json_ld(webpage, media_id, default={}))
 
         return {
             'id': track_id or media_id,
-            'title': (media_data.get('videoTitle')
-                      or media_data.get('title')
-                      or extra_data.get('title')),
+            'title': traverse_obj(media_data, 'videoTitle', 'title'),
             'description': (clean_html(get_element_by_class('story__summary', webpage)
                                        or get_element_by_class('detail_summary', webpage))
-                            or extra_data.get('description')),
+                            or media_data.get('description')),
             'duration': int_or_none(media_data.get('videoLenght')
                                     or parse_duration(media_data.get('duration'))
-                                    or extra_data.get('duration')),
-            'thumbnail': (media_data.get('posterSrc')
-                          or media_data.get('image')
-                          or traverse_obj(extra_data, ('thumbnails', 0, 'url'))),
-            'timestamp': (extra_data.get('timestamp')
+                                    or media_data.get('duration')),
+            'thumbnail': traverse_obj(media_data, 'posterSrc', 'image', ('thumbnails', 0, 'url')),
+            'timestamp': (media_data.get('timestamp')
                           or unified_timestamp(media_data.get('pubdate'))),
             'formats': formats,
         }
