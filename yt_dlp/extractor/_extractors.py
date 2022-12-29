@@ -1160,6 +1160,7 @@ from .neteasemusic import (
 from .netverse import (
     NetverseIE,
     NetversePlaylistIE,
+    NetverseSearchIE,
 )
 from .newgrounds import (
     NewgroundsIE,
