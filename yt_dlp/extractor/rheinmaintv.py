@@ -1,14 +1,14 @@
-from ..utils import extract_attributes, float_or_none, int_or_none, parse_iso8601
+from ..utils import extract_attributes
 from .common import InfoExtractor
 
 
 class RheinMainTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rheinmaintv\.de/sendungen/(?:[a-z-]+/)*(?P<display_id>[a-z-]+)/vom-(?P<date>[0-9]{2}\.[0-9]{2}\.[0-9]{4})(?:/(?P<serial_number>[0-9]+))?'
+    _VALID_URL = r'https?://(?:www\.)?rheinmaintv\.de/sendungen/(?:[a-z-]+/)*(?P<video_id>(?P<display_id>[a-z-]+)/vom-[0-9]{2}\.[0-9]{2}\.[0-9]{4}(?:/[0-9]+)?)'
     _TESTS = [{
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/formationsgemeinschaft-rhein-main-bei-den-deutschen-meisterschaften/vom-14.11.2022/',
-        # 'md5': ...,  # left out because checksum is changing
+        # no (fixed) md5 sum for fragmented formats
         'info_dict': {
-            'id': 'vom 14.11.2022',
+            'id': 'formationsgemeinschaft-rhein-main-bei-den-deutschen-meisterschaften-vom-14.11.2022',
             'ext': 'mp4',
             'title': 'Formationsgemeinschaft Rhein-Main bei den Deutschen Meisterschaften',
             'alt_title': 'Formationsgemeinschaft Rhein-Main bei den Deutschen Meisterschaften',
@@ -276,9 +276,9 @@ class RheinMainTVIE(InfoExtractor):
         }
     }, {
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/casino-mainz-bei-den-deutschen-meisterschaften/vom-14.11.2022/',
-        # 'md5': ...,  # left out because checksum is changing
+        # no (fixed) md5 sum for fragmented formats
         'info_dict': {
-            'id': 'vom 14.11.2022',
+            'id': 'casino-mainz-bei-den-deutschen-meisterschaften-vom-14.11.2022',
             'ext': 'mp4',
             'title': 'Casino Mainz bei den Deutschen Meisterschaften',
             'alt_title': 'Casino Mainz bei den Deutschen Meisterschaften',
@@ -549,30 +549,22 @@ class RheinMainTVIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         display_id = mobj.group('display_id')
-        video_id = 'vom %s' % mobj.group('date')
-        if mobj.group('serial_number'):
-            video_id += ' (%s)' % mobj.group('serial_number')
+        video_id = mobj.group('video_id').replace('/', '-')
         webpage = self._download_webpage(url, video_id)
-
-        headline = self._html_search_regex(r'<h1><span class="title">([^<]*)</span>', webpage, 'headline')
 
         source, img = self._search_regex(r'(?s)(?P<source><source[^>]*>)(?P<img><img[^>]*>)', webpage, 'video', group=('source', 'img'))
         source = extract_attributes(source)
         img = extract_attributes(img)
 
-        # json = self._search_json_ld(webpage, video_id)  # uncomment to extract the useless 'contentUrl' (as 'url') instead of the essential 'embedUrl'
-        #                                                 # then use get(json, 'title') instead of get(json, 'name')
-        json = self._parse_json(self._search_regex(r'(?s)<script type="application/ld\+json">([^<]*)</script>', webpage, 'json'), video_id)
-        # json = None  # uncomment to go without ld+json altogether
+        # Work around the broken method self._json_ld (called by self._search_json_ld) -
+        # it extracts the useless 'contentUrl' (as 'url') instead of the essential 'embedUrl'.
+        raw_json_ld = list(self._yield_json_ld(webpage, video_id))
+        json_ld = self._json_ld(raw_json_ld, video_id)
 
-        def get(dictionary, *keys):  # return ..utils.traverse_obj(dictionary, keys)
-            for k in keys:
-                if dictionary is None:
-                    return None
-                dictionary = dictionary.get(k)
-            return dictionary
-
-        ism_manifest_url = source['src'] or get(json, 'embedUrl')  # attribute 'src' is mandatory
+        ism_manifest_url = (
+            source['src']  # attribute 'src' is mandatory
+            or next(json_ld.get('embedUrl') for json_ld in raw_json_ld if json_ld.get('@type') == 'VideoObject')
+        )
         formats, subtitles = self._extract_ism_formats_and_subtitles(ism_manifest_url, video_id)
 
         def removeprefix(string, prefix):
@@ -588,14 +580,24 @@ class RheinMainTVIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': headline or img.get('title') or get(json, 'name') or self._og_search_title(webpage) or self._html_extract_title(webpage).removesuffix(' -'),
+            'title': (  # superfluous parentheses to make flake8 happy
+                self._html_search_regex(r'<h1><span class="title">([^<]*)</span>', webpage, 'headline')
+                or img.get('title') or json_ld.get('title') or self._og_search_title(webpage)
+                or self._html_extract_title(webpage).removesuffix(' -')
+            ),
             'alt_title': img['alt'],  # attribute 'alt' is mandatory
-            'description': get(json, 'description') or self._og_search_description(webpage),
+            'description': (  # superfluous parentheses to make flake8 happy
+                json_ld.get('description')
+                or self._og_search_description(webpage)
+            ),
             'display_id': display_id,
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': img['src'] or get(json, 'thumbnailUrl'),  # attribute 'src' is mandatory
-            'timestamp': parse_iso8601(get(json, 'uploadDate')),
-            'duration': float_or_none(get(json, 'duration')),
-            'view_count': int_or_none(get(json, 'interactionStatistic', 'userInteractionCount'))
+            'thumbnails': (  # superfluous parentheses to make flake8 happy
+                [{'url': img['src']}]  # attribute 'src' is mandatory
+                or json_ld.get('thumbnails')
+            ),
+            'timestamp': json_ld.get('timestamp'),
+            'duration': json_ld.get('duration'),
+            'view_count': json_ld.get('view_count')
         }
