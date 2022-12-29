@@ -26,6 +26,66 @@ class YoukuIE(InfoExtractor):
     '''
 
     _TESTS = [{
+        # MD5 is unstable
+        'url': 'http://v.youku.com/v_show/id_XMTc1ODE5Njcy.html',
+        'info_dict': {
+            'id': 'XMTc1ODE5Njcy',
+            'title': '★Smile﹗♡ Git Fresh -Booty Music舞蹈.',
+            'ext': 'mp4',
+            'duration': 74.73,
+            'thumbnail': r're:^https?://.*',
+            'uploader': '。躲猫猫、',
+            'uploader_id': '36017967',
+            'uploader_url': 'http://i.youku.com/u/UMTQ0MDcxODY4',
+            'tags': list,
+        }
+    }, {
+        'url': 'http://player.youku.com/player.php/sid/XNDgyMDQ2NTQw/v.swf',
+        'only_matching': True,
+    }, {
+        'url': 'http://v.youku.com/v_show/id_XODgxNjg1Mzk2_ev_1.html',
+        'info_dict': {
+            'id': 'XODgxNjg1Mzk2',
+            'ext': 'mp4',
+            'title': '武媚娘传奇 85',
+            'duration': 1999.61,
+            'thumbnail': r're:^https?://.*',
+            'uploader': '疯狂豆花',
+            'uploader_id': '62583473',
+            'uploader_url': 'http://i.youku.com/u/UMjUwMzMzODky',
+            'tags': list,
+        },
+    }, {
+        'url': 'http://v.youku.com/v_show/id_XMTI1OTczNDM5Mg==.html',
+        'info_dict': {
+            'id': 'XMTI1OTczNDM5Mg',
+            'ext': 'mp4',
+            'title': '花千骨 04',
+            'duration': 2363,
+            'thumbnail': r're:^https?://.*',
+            'uploader': '放剧场-花千骨',
+            'uploader_id': '772849359',
+            'uploader_url': 'http://i.youku.com/u/UMzA5MTM5NzQzNg==',
+            'tags': list,
+        },
+    }, {
+        'url': 'http://v.youku.com/v_show/id_XNjA1NzA2Njgw.html',
+        'note': 'Video protected with password',
+        'info_dict': {
+            'id': 'XNjA1NzA2Njgw',
+            'ext': 'mp4',
+            'title': '邢義田复旦讲座之想象中的胡人—从“左衽孔子”说起',
+            'duration': 7264.5,
+            'thumbnail': r're:^https?://.*',
+            'uploader': 'FoxJin1006',
+            'uploader_id': '322014285',
+            'uploader_url': 'http://i.youku.com/u/UMTI4ODA1NzE0MA==',
+            'tags': list,
+        },
+        'params': {
+            'videopassword': '100600',
+        },
+    }, {
         # /play/get.json contains streams with "channel_type":"tail"
         'url': 'http://v.youku.com/v_show/id_XOTUxMzg4NDMy.html',
         'info_dict': {
