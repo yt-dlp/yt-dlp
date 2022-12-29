@@ -17,7 +17,7 @@ from ..utils import (
 )
 
 
-class DornaIE(InfoExtractor):
+class DornaBaseIE(InfoExtractor):
     _LANGS = r'(?:en|it|de|es|fr)'
     _DORNA_URLS = {
         'GET_TOKEN': 'https://sso.dorna.com/api/login/token',
@@ -34,8 +34,8 @@ class DornaIE(InfoExtractor):
         def check_login():
             me = self._download_json(
                 self._DORNA_URLS['CHECK_LOGIN'], None, 'Check Login status',
-                expected_status=(401))
-            return True if me.get('email') == username else False
+                expected_status=401)
+            return me.get('email') == username
 
         try:
             if check_login():
@@ -59,8 +59,7 @@ class DornaIE(InfoExtractor):
                 'client_id': 'b32ca14f-0709-495a-9184-8bd848cf7e6b',
             }).encode('ascii')
             token = self._download_json(
-                self._DORNA_URLS['GET_TOKEN'], None, 'Logging in...', data=data,
-            )
+                self._DORNA_URLS['GET_TOKEN'], None, 'Logging in...', data=data)
 
             if not token.get('token_type') == 'Bearer' or token.get('access_token') is None:
                 self.report_warning('Error retrieving access token')
