@@ -51,12 +51,12 @@ class CiscoWebexIE(InfoExtractor):
 
         if urlh.status == 403:
             if stream['code'] == 53004:
-                self.raise_login_required(method='cookies')
+                self.raise_login_required()
             if stream['code'] == 53005:
-                if not password:
-                    raise ExtractorError(
-                        'This video is protected by a password, use the --video-password option', expected=True)
-                raise ExtractorError('Wrong password', expected=True)
+                if password:
+                    raise ExtractorError('Wrong password', expected=True)
+                raise ExtractorError(
+                    'This video is protected by a password, use the --video-password option', expected=True)
             raise ExtractorError(f'{self.IE_NAME} said: {stream["code"]} - {stream["message"]}', expected=True)
 
         if urlh.status == 429:
