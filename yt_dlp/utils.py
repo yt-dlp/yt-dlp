@@ -6307,6 +6307,12 @@ class FormatSorter:
         # if format.get('preference') is None and format.get('ext') in ('f4f', 'f4m'):  # Not supported?
         #    format['preference'] = -1000
 
+        if format.get('preference') is None and format.get('ext') == 'flv' and re.match('[hx]265|he?vc?', format.get('vcodec') or ''):
+            # HEVC-over-FLV is out-of-spec by FLV's original spec
+            # ref. https://trac.ffmpeg.org/ticket/6389
+            # ref. https://github.com/yt-dlp/yt-dlp/pull/5821
+            format['preference'] = -100
+
         # Determine missing bitrates
         if format.get('tbr') is None:
             if format.get('vbr') is not None and format.get('abr') is not None:

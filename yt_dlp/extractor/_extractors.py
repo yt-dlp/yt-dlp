@@ -184,6 +184,10 @@ from .bbc import (
 from .beeg import BeegIE
 from .behindkink import BehindKinkIE
 from .bellmedia import BellMediaIE
+from .beatbump import (
+    BeatBumpVideoIE,
+    BeatBumpPlaylistIE,
+)
 from .beatport import BeatportIE
 from .berufetv import BerufeTVIE
 from .bet import BetIE
@@ -827,6 +831,7 @@ from .jwplatform import JWPlatformIE
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
 from .kanal2 import Kanal2IE
+from .kankanews import KankaNewsIE
 from .karaoketv import KaraoketvIE
 from .karrierevideos import KarriereVideosIE
 from .keezmovies import KeezMoviesIE
@@ -1155,6 +1160,7 @@ from .neteasemusic import (
 from .netverse import (
     NetverseIE,
     NetversePlaylistIE,
+    NetverseSearchIE,
 )
 from .newgrounds import (
     NewgroundsIE,
@@ -1405,6 +1411,8 @@ from .pokergo import (
 from .polsatgo import PolsatGoIE
 from .polskieradio import (
     PolskieRadioIE,
+    PolskieRadioLegacyIE,
+    PolskieRadioAuditionIE,
     PolskieRadioCategoryIE,
     PolskieRadioPlayerIE,
     PolskieRadioPodcastIE,
@@ -1905,6 +1913,7 @@ from .trovo import (
     TrovoChannelVodIE,
     TrovoChannelClipIE,
 )
+from .trtcocuk import TrtCocukVideoIE
 from .trueid import TrueIDIE
 from .trunews import TruNewsIE
 from .truth import TruthIE

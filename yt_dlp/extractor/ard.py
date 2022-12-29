@@ -46,6 +46,9 @@ class ARDMediathekBaseIE(InfoExtractor):
             subtitles['de'] = [{
                 'ext': 'ttml',
                 'url': subtitle_url,
+            }, {
+                'ext': 'vtt',
+                'url': subtitle_url.replace('/ebutt/', '/webvtt/') + '.vtt',
             }]
 
         return {
@@ -286,16 +289,16 @@ class ARDMediathekIE(ARDMediathekBaseIE):
 class ARDIE(InfoExtractor):
     _VALID_URL = r'(?P<mainurl>https?://(?:www\.)?daserste\.de/(?:[^/?#&]+/)+(?P<id>[^/?#&]+))\.html'
     _TESTS = [{
-        # available till 7.01.2022
-        'url': 'https://www.daserste.de/information/talk/maischberger/videos/maischberger-die-woche-video100.html',
-        'md5': '867d8aa39eeaf6d76407c5ad1bb0d4c1',
+        # available till 7.12.2023
+        'url': 'https://www.daserste.de/information/talk/maischberger/videos/maischberger-video-424.html',
+        'md5': 'a438f671e87a7eba04000336a119ccc4',
         'info_dict': {
-            'id': 'maischberger-die-woche-video100',
-            'display_id': 'maischberger-die-woche-video100',
+            'id': 'maischberger-video-424',
+            'display_id': 'maischberger-video-424',
             'ext': 'mp4',
-            'duration': 3687.0,
-            'title': 'maischberger. die woche vom 7. Januar 2021',
-            'upload_date': '20210107',
+            'duration': 4452.0,
+            'title': 'maischberger am 07.12.2022',
+            'upload_date': '20221207',
             'thumbnail': r're:^https?://.*\.jpg$',
         },
     }, {
