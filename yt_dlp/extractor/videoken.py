@@ -8,6 +8,7 @@ import urllib.parse
 from .common import InfoExtractor
 from .slideslive import SlidesLiveIE
 from ..utils import (
+    ExtractorError,
     InAdvancePagedList,
     int_or_none,
     traverse_obj,
@@ -83,6 +84,7 @@ class VideoKenIE(VideoKenBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
+        'expected_warnings': ['Failed to download API JSON'],
     }, {
         # neurips -> videoken -> slideslive -> youtube
         'url': 'https://videos.neurips.cc/topic/machine%20learning/video/slideslive-38923348',
@@ -116,6 +118,7 @@ class VideoKenIE(VideoKenBaseIE):
         'params': {
             'skip_download': 'm3u8',
         },
+        'expected_warnings': ['Failed to download API JSON'],
     }, {
         # icts -> videoken -> youtube
         'url': 'https://videos.icts.res.in/topic/random%20variable/video/zysIsojYdvc',
@@ -163,11 +166,21 @@ class VideoKenIE(VideoKenBaseIE):
         hostname, video_id = self._match_valid_url(url).group('host', 'id')
         org_id, _ = self._get_org_id_and_api_key(self._ORGANIZATIONS[hostname], video_id)
         details = self._download_json(
-            'https://analytics.videoken.com/api/embedded/videodetails/', video_id, query={
-                'video': video_id,
+            'https://analytics.videoken.com/api/videoinfo_private', video_id, query={
+                'videoid': video_id,
                 'org_id': org_id,
-            }, headers={'Accept': 'application/json'}, note='Downloading API JSON')
-        return next(self._extract_videos({'videos': [details]}, url))
+            }, headers={'Accept': 'application/json'}, note='Downloading VideoKen API JSON',
+            errnote='Failed to download VideoKen API JSON', fatal=False)
+        if details:
+            return next(self._extract_videos({'videos': [details]}, url))
+        # fallback for API error 400 response
+        elif video_id.startswith('slideslive-'):
+            return self.url_result(
+                self._create_slideslive_url(None, video_id, url), SlidesLiveIE, video_id)
+        elif re.match(r'^[\w-]{11}$', video_id):
+            self.url_result(video_id, 'Youtube', video_id)
+        else:
+            raise ExtractorError('Unable to extract without VideoKen API response')
 
 
 class VideoKenPlayerIE(VideoKenBaseIE):
@@ -210,7 +223,7 @@ class VideoKenPlaylistIE(VideoKenBaseIE):
         hostname, playlist_id = self._match_valid_url(url).group('host', 'id')
         org_id, _ = self._get_org_id_and_api_key(self._ORGANIZATIONS[hostname], playlist_id)
         videos = self._download_json(
-            f'https://analytics.videoken.com/api/videolake/{org_id}/playlistitems/{playlist_id}/',
+            f'https://analytics.videoken.com/api/{org_id}/playlistitems/{playlist_id}/',
             playlist_id, headers={'Accept': 'application/json'}, note='Downloading API JSON')
         return self.playlist_result(self._extract_videos(videos, url), playlist_id, videos.get('title'))
 
@@ -271,14 +284,14 @@ class VideoKenTopicIE(VideoKenBaseIE):
         'url': 'https://videos.neurips.cc/topic/machine%20learning/',
         'playlist_mincount': 500,
         'info_dict': {
-            'id': 'machine%20learning',
+            'id': 'machine_learning',
             'title': 'machine learning',
         },
     }, {
         'url': 'https://videos.icts.res.in/topic/gravitational%20waves/',
         'playlist_mincount': 77,
         'info_dict': {
-            'id': 'gravitational%20waves',
+            'id': 'gravitational_waves',
             'title': 'gravitational waves'
         },
     }, {
@@ -313,6 +326,7 @@ class VideoKenTopicIE(VideoKenBaseIE):
     def _real_extract(self, url):
         hostname, topic_id = self._match_valid_url(url).group('host', 'id')
         topic = urllib.parse.unquote(topic_id)
+        topic_id = topic.replace(' ', '_')
         org_id, api_key = self._get_org_id_and_api_key(self._ORGANIZATIONS[hostname], topic)
         search_id = base64.b64encode(f':{topic}:{int(time.time())}:transient'.encode()).decode()
         total_pages = int_or_none(self._get_topic_page(
