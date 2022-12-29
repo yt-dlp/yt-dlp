@@ -118,8 +118,7 @@ class GediDigitalIE(InfoExtractor):
             'id': '12408715',
             'ext': 'mp4',
             'title': 'Scandalo Qatargate, ecco chi sono i parlamentari coinvolti e cosa rischiano',
-            # description in embeds is cropped from original lenght
-            'description': 'md5:054880e1a8463570348d1c104a0ca690',
+            'description': 'md5:3213071f7d82d38300c4f22d4d47dddc',
             'thumbnail': r're:^https://www\.repstatic\.it/video/photo/.+?\.jpg',
             'duration': 122,
             'timestamp': 1670866318,
@@ -135,7 +134,7 @@ class GediDigitalIE(InfoExtractor):
         url, media_type, media_id, track_id = self._match_valid_url(url).group(
             'url', 'type', 'id', 'trtId')
 
-        webpage = self._download_webpage(url, media_id)
+        webpage = self._download_webpage(url.replace('/embed/', '/'), media_id)
 
         formats = []
         if media_type == 'video':
