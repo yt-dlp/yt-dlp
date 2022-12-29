@@ -21,7 +21,7 @@ class AmazonStoreIE(InfoExtractor):
         'url': 'https://www.amazon.co.uk/dp/B098XNCHLD/',
         'info_dict': {
             'id': 'B098XNCHLD',
-            'title': 'md5:dae240564cbb2642170c02f7f0d7e472',
+            'title': str,
         },
         'playlist_mincount': 1,
         'playlist': [{
@@ -38,7 +38,7 @@ class AmazonStoreIE(InfoExtractor):
         'url': 'https://www.amazon.in/Sony-WH-1000XM4-Cancelling-Headphones-Bluetooth/dp/B0863TXGM3',
         'info_dict': {
             'id': 'B0863TXGM3',
-            'title': 'md5:f62b7bc5591a6107553bfff00d6e49fc',
+            'title': str,
         },
         'playlist_mincount': 4,
         'expected_warnings': ['Unable to extract data'],
@@ -46,7 +46,7 @@ class AmazonStoreIE(InfoExtractor):
         'url': 'https://www.amazon.com/dp/B0845NXCXF/',
         'info_dict': {
             'id': 'B0845NXCXF',
-            'title': 'md5:bc326d312f60341be949cbd148464568',
+            'title': str,
         },
         'playlist-mincount': 1,
         'expected_warnings': ['Unable to extract data'],
@@ -54,7 +54,7 @@ class AmazonStoreIE(InfoExtractor):
         'url': 'https://www.amazon.es/Samsung-Smartphone-s-AMOLED-Quad-c%C3%A1mara-espa%C3%B1ola/dp/B08WX337PQ',
         'info_dict': {
             'id': 'B08WX337PQ',
-            'title': 'md5:5e5eb8299878adc1b2a0e9e4a56af50b',
+            'title': str,
         },
         'playlist_mincount': 1,
         'expected_warnings': ['Unable to extract data'],
