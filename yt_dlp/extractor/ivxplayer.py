@@ -41,15 +41,14 @@ class IVXPlayerIE(InfoExtractor):
         }
     }]
 
-    def _extract_from_webpage(self, url, webpage):
+    def _extract_embed_urls(cls, url, webpage):
         # more info at https://player.ivideosmart.com/ivsplayer/v4/dist/js/loader.js
-        player_key, video_id = self._search_regex(
+        mobj = self._search_regex(
             r'<ivs-player\s*[^>]+data-ivs-key\s*=\s*"(?P<player_key>[\w]+)\s*[^>]+\bdata-ivs-vid="(?P<video_id>[\w-]+)',
-            webpage, 'player_key, video_id', group=('player_key', 'video_id'), default=(None, ''))
-        if not player_key:
-            return
-        yield self.url_result(f'ivxplayer:{video_id}:{player_key}', ie=IVXPlayerIE)
-        raise self.StopExtraction()
+            webpage)
+        if mobj:
+            yield f'ivxplayer:{mobj.group("player_key")}:{mobj.group("video_id")}'
+            raise self.StopExtraction()
 
     def _real_extract(self, url):
         video_id, player_key = self._match_valid_url(url).group('video_id', 'player_key')

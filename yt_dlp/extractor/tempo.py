@@ -24,16 +24,15 @@ class TempoIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        player_key, video_id = self._search_regex(
-            r'<ivs-player\s*[^>]+data-ivs-key\s*=\s*"(?P<player_key>[\w]+)\s*[^>]+\bdata-ivs-vid="(?P<video_id>[\w-]+)',
-            webpage, 'player_key, video_id', group=('player_key', 'video_id'))
+        _, player_key, video_id = next(IVXPlayerIE._extract_embed_urls(url, webpage)).split(':')
 
         json_ld_data = self._search_json_ld(webpage, display_id)
 
         return self.url_result(
             f'ivxplayer:{video_id}:{player_key}', display_id=display_id,
             thumbnail=self._html_search_meta('twitter:image:src', webpage) or self._og_search_thumbnail(webpage),
-            tags=try_call(lambda: self._html_search_meta('keywords', webpage)).split(','),
-            description=(
-                json_ld_data.get('description') or self._html_search_meta(['description', 'twitter:description'], webpage)
-                or self._og_search_description(webpage)), url_transparent=True)
+            tags=try_call(lambda: self._html_search_meta('keywords', webpage).split(',')),
+            description=(json_ld_data.get('description')
+                         or self._html_search_meta(('description', 'twitter:description'), webpage)
+                         or self._og_search_description(webpage)),
+            url_transparent=True)
