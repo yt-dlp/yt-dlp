@@ -1,4 +1,4 @@
-from ..utils import extract_attributes, mimetype2ext
+from ..utils import extract_attributes, mimetype2ext, remove_end
 from .common import InfoExtractor
 
 
@@ -580,7 +580,7 @@ class RheinMainTVIE(InfoExtractor):
                 self._html_search_regex(r'<h1><span class="title">([^<]*)</span>',
                                         webpage, 'headline', default=None)
                 or img.get('title') or json_ld.get('title') or self._og_search_title(webpage)
-                or self._html_extract_title(webpage).removesuffix(' -'),
+                or remove_end(self._html_extract_title(webpage), ' -'),
             'alt_title': img.get('alt'),
             'description': json_ld.get('description') or self._og_search_description(webpage),
             'display_id': display_id,
