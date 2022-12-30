@@ -24,7 +24,9 @@ class TempoIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        _, player_key, video_id = next(IVXPlayerIE._extract_embed_urls(url, webpage)).split(':')
+        player_key, video_id = self._search_regex(
+            r'<ivs-player\s*[^>]+data-ivs-key\s*=\s*"(?P<player_key>[\w]+)\s*[^>]+\bdata-ivs-vid="(?P<video_id>[\w-]+)',
+            webpage, 'player_key, video_id', group=('player_key', 'video_id'))
 
         json_ld_data = self._search_json_ld(webpage, display_id)
 
