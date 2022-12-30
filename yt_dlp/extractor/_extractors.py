@@ -802,7 +802,6 @@ from .iwara import (
     IwaraPlaylistIE,
     IwaraUserIE,
 )
-from .ivxplayer import IVXPlayerIE
 from .ixigua import IxiguaIE
 from .izlesene import IzleseneIE
 from .jable import (
@@ -1818,7 +1817,7 @@ from .telequebec import (
 )
 from .teletask import TeleTaskIE
 from .telewebion import TelewebionIE
-from .tempo import TempoIE
+from .tempo import TempoIE, IVXPlayerIE
 from .tencent import (
     IflixEpisodeIE,
     IflixSeriesIE,
