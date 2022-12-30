@@ -1586,14 +1586,16 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--parse-metadata',
-        metavar='FROM:TO', dest='parse_metadata', action='append',
+        metavar='[WHEN:]FROM:TO', dest='parse_metadata', **when_prefix('pre_process'),
         help=(
-            'Parse additional metadata like title/artist from other fields; '
-            'see "MODIFYING METADATA" for details'))
+            'Parse additional metadata like title/artist from other fields; see "MODIFYING METADATA" for details. '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: pre_process)'))
     postproc.add_option(
         '--replace-in-metadata',
-        dest='parse_metadata', metavar='FIELDS REGEX REPLACE', action='append', nargs=3,
-        help='Replace text in a metadata field using the given regex. This option can be used multiple times')
+        dest='parse_metadata', metavar='[WHEN:]FIELDS REGEX REPLACE', nargs=3, **when_prefix('pre_process'),
+        help=(
+            'Replace text in a metadata field using the given regex. This option can be used multiple times. '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: pre_process)'))
     postproc.add_option(
         '--xattrs', '--xattr',
         action='store_true', dest='xattrs', default=False,

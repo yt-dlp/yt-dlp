@@ -952,13 +952,18 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     mkv/mka video files
     --no-embed-info-json            Do not embed the infojson as an attachment
                                     to the video file
-    --parse-metadata FROM:TO        Parse additional metadata like title/artist
+    --parse-metadata [WHEN:]FROM:TO
+                                    Parse additional metadata like title/artist
                                     from other fields; see "MODIFYING METADATA"
-                                    for details
-    --replace-in-metadata FIELDS REGEX REPLACE
+                                    for details. Supported values of "WHEN" are
+                                    the same as that of --use-postprocessor
+                                    (default: pre_process)
+    --replace-in-metadata [WHEN:]FIELDS REGEX REPLACE
                                     Replace text in a metadata field using the
                                     given regex. This option can be used
-                                    multiple times
+                                    multiple times. Supported values of "WHEN"
+                                    are the same as that of --use-postprocessor
+                                    (default: pre_process)
     --xattrs                        Write metadata to the video file's xattrs
                                     (using dublin core and xdg standards)
     --concat-playlist POLICY        Concatenate videos in a playlist. One of
