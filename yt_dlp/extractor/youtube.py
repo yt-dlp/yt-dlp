@@ -2544,6 +2544,35 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'tags': [],
             },
             'params': {'extractor_args': {'youtube': {'player_client': ['ios']}}, 'format': '233-1'},
+        }, {
+            'note': 'Audio formats with Dynamic Range Compression',
+            'url': 'https://www.youtube.com/watch?v=Tq92D6wQ1mg',
+            'info_dict': {
+                'id': 'Tq92D6wQ1mg',
+                'ext': 'weba',
+                'title': '[MMD] Adios - EVERGLOW [+Motion DL]',
+                'channel_url': 'https://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
+                'channel_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
+                'channel_follower_count': int,
+                'description': 'md5:17eccca93a786d51bc67646756894066',
+                'upload_date': '20191228',
+                'uploader_url': 'http://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
+                'tags': ['mmd', 'dance', 'mikumikudance', 'kpop', 'vtuber'],
+                'playable_in_embed': True,
+                'like_count': int,
+                'categories': ['Entertainment'],
+                'thumbnail': 'https://i.ytimg.com/vi/Tq92D6wQ1mg/sddefault.jpg',
+                'age_limit': 18,
+                'channel': 'Projekt Melody',
+                'uploader_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
+                'view_count': int,
+                'availability': 'needs_auth',
+                'comment_count': int,
+                'live_status': 'not_live',
+                'uploader': 'Projekt Melody',
+                'duration': 106,
+            },
+            'params': {'extractor_args': {'youtube': {'player_client': ['tv_embedded']}}, 'format': '251-drc'},
         }
     ]
 
@@ -3553,7 +3582,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             itag = str_or_none(fmt.get('itag'))
             audio_track = fmt.get('audioTrack') or {}
-            stream_id = '%s.%s' % (itag or '', audio_track.get('id', ''))
+            stream_id = (itag, audio_track.get('id'), fmt.get('isDrc'))
             if stream_id in stream_ids:
                 continue
 
@@ -3634,11 +3663,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
-                'format_id': itag,
+                'format_id': f'{itag}{"-drc" if fmt.get("isDrc") else ""}',
                 'format_note': join_nonempty(
                     '%s%s' % (audio_track.get('displayName') or '',
                               ' (default)' if language_preference > 0 else ''),
                     fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
+                    'DRC' if fmt.get('isDrc') else None,
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                     throttled and 'THROTTLED', is_damaged and 'DAMAGED', delim=', '),
@@ -3647,7 +3677,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'fps': int_or_none(fmt.get('fps')) or None,
                 'audio_channels': fmt.get('audioChannels'),
                 'height': height,
-                'quality': q(quality),
+                'quality': q(quality) - bool(fmt.get('isDrc')) / 2,
                 'has_drm': bool(fmt.get('drmFamilies')),
                 'tbr': tbr,
                 'url': fmt_url,

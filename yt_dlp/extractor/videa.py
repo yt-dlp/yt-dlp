@@ -119,7 +119,7 @@ class VideaIE(InfoExtractor):
             result += s[i - (self._STATIC_SECRET.index(l[i]) - 31)]
 
         query = parse_qs(player_url)
-        random_seed = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
+        random_seed = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
         query['_s'] = random_seed
         query['_t'] = result[:16]
 

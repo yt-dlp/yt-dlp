@@ -277,6 +277,20 @@ def create_parser():
             out_dict[key] = out_dict.get(key, []) + [val] if append else val
         setattr(parser.values, option.dest, out_dict)
 
+    def when_prefix(default):
+        return {
+            'default': {},
+            'type': 'str',
+            'action': 'callback',
+            'callback': _dict_from_options_callback,
+            'callback_kwargs': {
+                'allowed_keys': '|'.join(map(re.escape, POSTPROCESS_WHEN)),
+                'default_key': default,
+                'multiple_keys': False,
+                'append': True,
+            },
+        }
+
     parser = _YoutubeDLOptionParser()
     alias_group = optparse.OptionGroup(parser, 'Aliases')
     Formatter = string.Formatter()
@@ -1086,28 +1100,16 @@ def create_parser():
         help='Do not download the video but write all related files (Alias: --no-download)')
     verbosity.add_option(
         '-O', '--print',
-        metavar='[WHEN:]TEMPLATE', dest='forceprint', default={}, type='str',
-        action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={
-            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
-            'default_key': 'video',
-            'multiple_keys': False,
-            'append': True,
-        }, help=(
+        metavar='[WHEN:]TEMPLATE', dest='forceprint', **when_prefix('video'),
+        help=(
             'Field name or output template to print to screen, optionally prefixed with when to print it, separated by a ":". '
-            'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: video). '
             'Implies --quiet. Implies --simulate unless --no-simulate or later stages of WHEN are used. '
             'This option can be used multiple times'))
     verbosity.add_option(
         '--print-to-file',
-        metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', default={}, type='str', nargs=2,
-        action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={
-            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
-            'default_key': 'video',
-            'multiple_keys': False,
-            'append': True,
-        }, help=(
+        metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', nargs=2, **when_prefix('video'),
+        help=(
             'Append given template to the file. The values of WHEN and TEMPLATE are same as that of --print. '
             'FILE uses the same syntax as the output template. This option can be used multiple times'))
     verbosity.add_option(
@@ -1584,14 +1586,16 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--parse-metadata',
-        metavar='FROM:TO', dest='parse_metadata', action='append',
+        metavar='[WHEN:]FROM:TO', dest='parse_metadata', **when_prefix('pre_process'),
         help=(
-            'Parse additional metadata like title/artist from other fields; '
-            'see "MODIFYING METADATA" for details'))
+            'Parse additional metadata like title/artist from other fields; see "MODIFYING METADATA" for details. '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: pre_process)'))
     postproc.add_option(
         '--replace-in-metadata',
-        dest='parse_metadata', metavar='FIELDS REGEX REPLACE', action='append', nargs=3,
-        help='Replace text in a metadata field using the given regex. This option can be used multiple times')
+        dest='parse_metadata', metavar='[WHEN:]FIELDS REGEX REPLACE', nargs=3, **when_prefix('pre_process'),
+        help=(
+            'Replace text in a metadata field using the given regex. This option can be used multiple times. '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: pre_process)'))
     postproc.add_option(
         '--xattrs', '--xattr',
         action='store_true', dest='xattrs', default=False,
@@ -1629,16 +1633,10 @@ def create_parser():
         help='Location of the ffmpeg binary; either the path to the binary or its containing directory')
     postproc.add_option(
         '--exec',
-        metavar='[WHEN:]CMD', dest='exec_cmd', default={}, type='str',
-        action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={
-            'allowed_keys': '|'.join(map(re.escape, POSTPROCESS_WHEN)),
-            'default_key': 'after_move',
-            'multiple_keys': False,
-            'append': True,
-        }, help=(
-            'Execute a command, optionally prefixed with when to execute it (after_move if unspecified), separated by a ":". '
-            'Supported values of "WHEN" are the same as that of --use-postprocessor. '
+        metavar='[WHEN:]CMD', dest='exec_cmd', **when_prefix('after_move'),
+        help=(
+            'Execute a command, optionally prefixed with when to execute it, separated by a ":". '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: after_move). '
             'Same syntax as the output template can be used to pass any field as arguments to the command. '
             'After download, an additional field "filepath" that contains the final path of the downloaded file '
             'is also available, and if no fields are passed, %(filepath)q is appended to the end of the command. '
@@ -1714,7 +1712,8 @@ def create_parser():
             'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
             'The "when" argument determines when the postprocessor is invoked. '
             'It can be one of "pre_process" (after video extraction), "after_filter" (after video passes filter), '
-            '"before_dl" (before each video download), "post_process" (after each video download; default), '
+            '"video" (after --format; before --print/--output), "before_dl" (before each video download), '
+            '"post_process" (after each video download; default), '
             '"after_move" (after moving video file to it\'s final locations), '
             '"after_video" (after downloading and processing all formats of a video), '
             'or "playlist" (at end of playlist). '

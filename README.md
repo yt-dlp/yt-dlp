@@ -721,7 +721,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     screen, optionally prefixed with when to
                                     print it, separated by a ":". Supported
                                     values of "WHEN" are the same as that of
-                                    --use-postprocessor, and "video" (default).
+                                    --use-postprocessor (default: video).
                                     Implies --quiet. Implies --simulate unless
                                     --no-simulate or later stages of WHEN are
                                     used. This option can be used multiple times
@@ -948,13 +948,18 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     mkv/mka video files
     --no-embed-info-json            Do not embed the infojson as an attachment
                                     to the video file
-    --parse-metadata FROM:TO        Parse additional metadata like title/artist
+    --parse-metadata [WHEN:]FROM:TO
+                                    Parse additional metadata like title/artist
                                     from other fields; see "MODIFYING METADATA"
-                                    for details
-    --replace-in-metadata FIELDS REGEX REPLACE
+                                    for details. Supported values of "WHEN" are
+                                    the same as that of --use-postprocessor
+                                    (default: pre_process)
+    --replace-in-metadata [WHEN:]FIELDS REGEX REPLACE
                                     Replace text in a metadata field using the
                                     given regex. This option can be used
-                                    multiple times
+                                    multiple times. Supported values of "WHEN"
+                                    are the same as that of --use-postprocessor
+                                    (default: pre_process)
     --xattrs                        Write metadata to the video file's xattrs
                                     (using dublin core and xdg standards)
     --concat-playlist POLICY        Concatenate videos in a playlist. One of
@@ -975,18 +980,18 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --ffmpeg-location PATH          Location of the ffmpeg binary; either the
                                     path to the binary or its containing directory
     --exec [WHEN:]CMD               Execute a command, optionally prefixed with
-                                    when to execute it (after_move if
-                                    unspecified), separated by a ":". Supported
-                                    values of "WHEN" are the same as that of
-                                    --use-postprocessor. Same syntax as the
-                                    output template can be used to pass any
-                                    field as arguments to the command. After
-                                    download, an additional field "filepath"
-                                    that contains the final path of the
-                                    downloaded file is also available, and if no
-                                    fields are passed, %(filepath)q is appended
-                                    to the end of the command. This option can
-                                    be used multiple times
+                                    when to execute it, separated by a ":".
+                                    Supported values of "WHEN" are the same as
+                                    that of --use-postprocessor (default:
+                                    after_move). Same syntax as the output
+                                    template can be used to pass any field as
+                                    arguments to the command. After download, an
+                                    additional field "filepath" that contains
+                                    the final path of the downloaded file is
+                                    also available, and if no fields are passed,
+                                    %(filepath)q is appended to the end of the
+                                    command. This option can be used multiple
+                                    times
     --no-exec                       Remove any previously defined --exec
     --convert-subs FORMAT           Convert the subtitles to another format
                                     (currently supported: ass, lrc, srt, vtt)
@@ -1024,14 +1029,16 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     postprocessor is invoked. It can be one of
                                     "pre_process" (after video extraction),
                                     "after_filter" (after video passes filter),
-                                    "before_dl" (before each video download),
-                                    "post_process" (after each video download;
-                                    default), "after_move" (after moving video
-                                    file to it's final locations), "after_video"
-                                    (after downloading and processing all
-                                    formats of a video), or "playlist" (at end
-                                    of playlist). This option can be used
-                                    multiple times to add different postprocessors
+                                    "video" (after --format; before
+                                    --print/--output), "before_dl" (before each
+                                    video download), "post_process" (after each
+                                    video download; default), "after_move"
+                                    (after moving video file to it's final
+                                    locations), "after_video" (after downloading
+                                    and processing all formats of a video), or
+                                    "playlist" (at end of playlist). This option
+                                    can be used multiple times to add different
+                                    postprocessors
 
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,

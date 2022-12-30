@@ -3361,7 +3361,13 @@ def js_to_json(code, vars={}, *, strict=False):
                 return f'"{i}":' if v.endswith(':') else str(i)
 
         if v in vars:
-            return json.dumps(vars[v])
+            try:
+                if not strict:
+                    json.loads(vars[v])
+            except json.decoder.JSONDecodeError:
+                return json.dumps(vars[v])
+            else:
+                return vars[v]
 
         if not strict:
             return f'"{v}"'
@@ -3396,7 +3402,7 @@ def qualities(quality_ids):
     return q
 
 
-POSTPROCESS_WHEN = ('pre_process', 'after_filter', 'before_dl', 'post_process', 'after_move', 'after_video', 'playlist')
+POSTPROCESS_WHEN = ('pre_process', 'after_filter', 'video', 'before_dl', 'post_process', 'after_move', 'after_video', 'playlist')
 
 
 DEFAULT_OUTTMPL = {
@@ -3651,7 +3657,7 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
 
     COMPATIBLE_EXTS = (
         {'mp3', 'mp4', 'm4a', 'm4p', 'm4b', 'm4r', 'm4v', 'ismv', 'isma', 'mov'},
-        {'webm'},
+        {'webm', 'weba'},
     )
     for ext in preferences or vexts:
         current_exts = {ext, *vexts, *aexts}
@@ -5957,7 +5963,7 @@ MEDIA_EXTENSIONS = Namespace(
     common_video=('avi', 'flv', 'mkv', 'mov', 'mp4', 'webm'),
     video=('3g2', '3gp', 'f4v', 'mk3d', 'divx', 'mpg', 'ogv', 'm4v', 'wmv'),
     common_audio=('aiff', 'alac', 'flac', 'm4a', 'mka', 'mp3', 'ogg', 'opus', 'wav'),
-    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma'),
+    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma', 'weba'),
     thumbnails=('jpg', 'png', 'webp'),
     storyboards=('mhtml', ),
     subtitles=('srt', 'vtt', 'ass', 'lrc'),
@@ -6089,9 +6095,9 @@ class FormatSorter:
         'vext': {'type': 'ordered', 'field': 'video_ext',
                  'order': ('mp4', 'mov', 'webm', 'flv', '', 'none'),
                  'order_free': ('webm', 'mp4', 'mov', 'flv', '', 'none')},
-        'aext': {'type': 'ordered', 'field': 'audio_ext',
-                 'order': ('m4a', 'aac', 'mp3', 'ogg', 'opus', 'webm', '', 'none'),
-                 'order_free': ('ogg', 'opus', 'webm', 'mp3', 'm4a', 'aac', '', 'none')},
+        'aext': {'type': 'ordered', 'regex': True, 'field': 'audio_ext',
+                 'order': ('m4a', 'aac', 'mp3', 'ogg', 'opus', 'web[am]', '', 'none'),
+                 'order_free': ('ogg', 'opus', 'web[am]', 'mp3', 'm4a', 'aac', '', 'none')},
         'hidden': {'visible': False, 'forced': True, 'type': 'extractor', 'max': -1000},
         'aud_or_vid': {'visible': False, 'forced': True, 'type': 'multiple',
                        'field': ('vcodec', 'acodec'),

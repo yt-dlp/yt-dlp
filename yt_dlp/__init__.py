@@ -386,10 +386,12 @@ def validate_options(opts):
                 raise ValueError(f'{cmd} is invalid; {err}')
             yield action
 
-    parse_metadata = opts.parse_metadata or []
     if opts.metafromtitle is not None:
-        parse_metadata.append('title:%s' % opts.metafromtitle)
-    opts.parse_metadata = list(itertools.chain(*map(metadataparser_actions, parse_metadata)))
+        opts.parse_metadata.setdefault('pre_process', []).append('title:%s' % opts.metafromtitle)
+    opts.parse_metadata = {
+        k: list(itertools.chain(*map(metadataparser_actions, v)))
+        for k, v in opts.parse_metadata.items()
+    }
 
     # Other options
     if opts.playlist_items is not None:
@@ -561,11 +563,11 @@ def validate_options(opts):
 def get_postprocessors(opts):
     yield from opts.add_postprocessors
 
-    if opts.parse_metadata:
+    for when, actions in opts.parse_metadata.items():
         yield {
             'key': 'MetadataParser',
-            'actions': opts.parse_metadata,
-            'when': 'pre_process'
+            'actions': actions,
+            'when': when
         }
     sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
     if sponsorblock_query:
