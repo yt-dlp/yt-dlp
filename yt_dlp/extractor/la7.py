@@ -12,7 +12,7 @@ from ..utils import (
 
 class LA7IE(InfoExtractor):
     IE_NAME = 'la7.it'
-    _VALID_URLS = [
+    _VALID_URL = [
         r'https?://(?:www\.)?la7\.it/[^/]+/(?:rivedila7|video|news)/.+-(?P<id>\d{5,})',
         r'https?://tg\.la7\.it/repliche-tgla7\?id=(?P<id>\d{5,})',
         r'https?://tg\.la7\.it(?:/[^/]+)+-(?P<id>\d{5,})'

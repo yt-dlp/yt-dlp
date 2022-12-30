@@ -235,7 +235,7 @@ class RaiBaseIE(InfoExtractor):
 
 
 class RaiPlayIE(RaiBaseIE):
-    _VALID_URLS = [
+    _VALID_URL = [
         rf'(?P<base>https?://(?:www\.)?raiplay\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)',
         r'(?P<base>https?://(?:www\.)?raiplay\.it/dirette/(?P<id>[^/?#&]+))',
     ]
@@ -441,7 +441,7 @@ class RaiPlayPlaylistIE(InfoExtractor):
 
 
 class RaiPlaySoundIE(RaiBaseIE):
-    _VALID_URLS = [
+    _VALID_URL = [
         rf'(?P<base>https?://(?:www\.)?raiplaysound\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)',
         r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?P<id>[^/?#&]+)$)',
     ]
