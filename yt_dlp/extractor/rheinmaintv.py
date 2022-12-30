@@ -1,4 +1,4 @@
-from ..utils import extract_attributes
+from ..utils import extract_attributes, mimetype2ext
 from .common import InfoExtractor
 
 
@@ -557,8 +557,8 @@ class RheinMainTVIE(InfoExtractor):
         source = extract_attributes(source)
         img = extract_attributes(img)
 
-        # Work around the broken method self._json_ld (called by self._search_json_ld) -
-        # it extracts the useless 'contentUrl' (as 'url') instead of the essential 'embedUrl'.
+        # Work around the method self._json_ld (called by self._search_json_ld), which
+        # extracts the useless 'contentUrl' (as 'url') instead of the essential 'embedUrl'.
         raw_json_ld = list(self._yield_json_ld(webpage, video_id))
         json_ld = self._json_ld(raw_json_ld, video_id)
 
@@ -568,25 +568,19 @@ class RheinMainTVIE(InfoExtractor):
         )
         formats, subtitles = self._extract_ism_formats_and_subtitles(ism_manifest_url, video_id)
 
-        def removeprefix(string, prefix):
-            return string[len(prefix):] if string.startswith(prefix) else None
-
-        def extract_format(internet_media_type, media):  # subtype of media (aka type)
-            return removeprefix(internet_media_type, media + '/') if internet_media_type is not None else None
-
-        extension = extract_format(source.get('type'), 'video')  # use video format as filename extension (!?)
+        extension = mimetype2ext(source.get('type'))
+        # Override fixed extension .ismv for fragmented video formats - this looks scary.
         if extension:
             for f in formats:
                 f['ext'] = extension
 
         return {
             'id': video_id,
-            'title': (  # superfluous parentheses to make flake8 happy
+            'title':
                 self._html_search_regex(r'<h1><span class="title">([^<]*)</span>',
                                         webpage, 'headline', default=None)
                 or img.get('title') or json_ld.get('title') or self._og_search_title(webpage)
-                or self._html_extract_title(webpage).removesuffix(' -')
-            ),
+                or self._html_extract_title(webpage).removesuffix(' -'),
             'alt_title': img.get('alt'),
             'description': json_ld.get('description') or self._og_search_description(webpage),
             'display_id': display_id,
