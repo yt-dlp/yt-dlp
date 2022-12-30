@@ -303,7 +303,8 @@ class BiliBiliIE(BilibiliBaseIE):
                 getter=lambda entry: f'https://www.bilibili.com/video/{video_id}?p={entry["page"]}')
 
         if is_anthology:
-            title += f' p{part_id:02d} {traverse_obj(page_list_json, ((part_id or 1) - 1, "part")) or ""}'
+            part_id = part_id or 1
+            title += f' p{part_id:02d} {traverse_obj(page_list_json, (part_id - 1, "part")) or ""}'
 
         aid = video_data.get('aid')
         old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
