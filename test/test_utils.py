@@ -1953,6 +1953,8 @@ Line 1
             vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['m4a']), 'mkv')
         self.assertEqual(get_compatible_ext(
             vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['webm']), 'webm')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['weba']), 'webm')
 
         self.assertEqual(get_compatible_ext(
             vcodecs=['h264'], acodecs=['mp4a'], vexts=['mov'], aexts=['m4a']), 'mp4')
