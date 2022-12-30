@@ -3395,7 +3395,7 @@ def qualities(quality_ids):
     return q
 
 
-POSTPROCESS_WHEN = ('pre_process', 'after_filter', 'before_dl', 'post_process', 'after_move', 'after_video', 'playlist')
+POSTPROCESS_WHEN = ('pre_process', 'after_filter', 'video', 'before_dl', 'post_process', 'after_move', 'after_video', 'playlist')
 
 
 DEFAULT_OUTTMPL = {
