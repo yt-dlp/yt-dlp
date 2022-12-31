@@ -15,7 +15,6 @@ from .utils import (
     Popen,
     cached_method,
     deprecation_warning,
-    remove_end,
     shell_quote,
     system_identifier,
     traverse_obj,
@@ -43,7 +42,8 @@ def _get_variant_and_executable_path():
             # Ref: https://en.wikipedia.org/wiki/Uname#Examples
             if machine[1:] in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
                 machine = '_x86' if platform.architecture()[0][:2] == '32' else ''
-        return f'{remove_end(sys.platform, "32")}{machine}_exe', path
+        # NB: https://github.com/yt-dlp/yt-dlp/issues/5632
+        return f'{sys.platform}{machine}_exe', path
 
     path = os.path.dirname(__file__)
     if isinstance(__loader__, zipimporter):
@@ -74,8 +74,8 @@ def current_git_head():
 _FILE_SUFFIXES = {
     'zip': '',
     'py2exe': '_min.exe',
-    'win_exe': '.exe',
-    'win_x86_exe': '_x86.exe',
+    'win32_exe': '.exe',
+    'win32_x86_exe': '_x86.exe',
     'darwin_exe': '_macos',
     'darwin_legacy_exe': '_macos_legacy',
     'linux_exe': '_linux',
