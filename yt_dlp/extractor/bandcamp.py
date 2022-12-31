@@ -29,11 +29,18 @@ class BandcampIE(InfoExtractor):
         'info_dict': {
             'id': '1812978515',
             'ext': 'mp3',
-            'title': "youtube-dl  \"'/\\ä↭ - youtube-dl  \"'/\\ä↭ - youtube-dl test song \"'/\\ä↭",
+            'title': 'youtube-dl "\'/\\ä↭ - youtube-dl "\'/\\ä↭ - youtube-dl test song "\'/\\ä↭',
             'duration': 9.8485,
-            'uploader': 'youtube-dl  "\'/\\ä↭',
+            'uploader': 'youtube-dl "\'/\\ä↭',
             'upload_date': '20121129',
             'timestamp': 1354224127,
+            'track': 'youtube-dl "\'/\\ä↭ - youtube-dl test song "\'/\\ä↭',
+            'album_artist': 'youtube-dl "\'/\\ä↭',
+            'track_id': '1812978515',
+            'artist': 'youtube-dl "\'/\\ä↭',
+            'uploader_url': 'https://youtube-dl.bandcamp.com',
+            'uploader_id': 'youtube-dl',
+            'thumbnail': 'https://f4.bcbits.com/img/a3216802731_5.jpg',
         },
         '_skip': 'There is a limit of 200 free downloads / month for the test song'
     }, {
@@ -41,7 +48,8 @@ class BandcampIE(InfoExtractor):
         'url': 'http://benprunty.bandcamp.com/track/lanius-battle',
         'info_dict': {
             'id': '2650410135',
-            'ext': 'aiff',
+            'ext': 'm4a',
+            'acodec': r're:[fa]lac',
             'title': 'Ben Prunty - Lanius (Battle)',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Ben Prunty',
@@ -56,6 +64,8 @@ class BandcampIE(InfoExtractor):
             'artist': 'Ben Prunty',
             'album_artist': 'Ben Prunty',
             'album': 'FTL: Advanced Edition Soundtrack',
+            'uploader_url': 'https://benprunty.bandcamp.com',
+            'uploader_id': 'benprunty',
         },
     }, {
         # no free download, mp3 128
@@ -78,6 +88,8 @@ class BandcampIE(InfoExtractor):
             'artist': 'Mastodon',
             'album_artist': 'Mastodon',
             'album': 'Call of the Mastodon',
+            'uploader_url': 'https://relapsealumni.bandcamp.com',
+            'uploader_id': 'relapsealumni',
         },
     }, {
         # track from compilation album (artist/album_artist difference)
