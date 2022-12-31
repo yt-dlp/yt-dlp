@@ -29,11 +29,18 @@ class BandcampIE(InfoExtractor):
         'info_dict': {
             'id': '1812978515',
             'ext': 'mp3',
-            'title': "youtube-dl  \"'/\\ä↭ - youtube-dl  \"'/\\ä↭ - youtube-dl test song \"'/\\ä↭",
+            'title': 'youtube-dl "\'/\\ä↭ - youtube-dl "\'/\\ä↭ - youtube-dl test song "\'/\\ä↭',
             'duration': 9.8485,
-            'uploader': 'youtube-dl  "\'/\\ä↭',
+            'uploader': 'youtube-dl "\'/\\ä↭',
             'upload_date': '20121129',
             'timestamp': 1354224127,
+            'track': 'youtube-dl "\'/\\ä↭ - youtube-dl test song "\'/\\ä↭',
+            'album_artist': 'youtube-dl "\'/\\ä↭',
+            'track_id': '1812978515',
+            'artist': 'youtube-dl "\'/\\ä↭',
+            'uploader_url': 'https://youtube-dl.bandcamp.com',
+            'uploader_id': 'youtube-dl',
+            'thumbnail': 'https://f4.bcbits.com/img/a3216802731_5.jpg',
         },
         '_skip': 'There is a limit of 200 free downloads / month for the test song'
     }, {
@@ -41,7 +48,8 @@ class BandcampIE(InfoExtractor):
         'url': 'http://benprunty.bandcamp.com/track/lanius-battle',
         'info_dict': {
             'id': '2650410135',
-            'ext': 'aiff',
+            'ext': 'm4a',
+            'acodec': r're:[fa]lac',
             'title': 'Ben Prunty - Lanius (Battle)',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Ben Prunty',
@@ -54,7 +62,10 @@ class BandcampIE(InfoExtractor):
             'track_number': 1,
             'track_id': '2650410135',
             'artist': 'Ben Prunty',
+            'album_artist': 'Ben Prunty',
             'album': 'FTL: Advanced Edition Soundtrack',
+            'uploader_url': 'https://benprunty.bandcamp.com',
+            'uploader_id': 'benprunty',
         },
     }, {
         # no free download, mp3 128
@@ -75,7 +86,34 @@ class BandcampIE(InfoExtractor):
             'track_number': 5,
             'track_id': '2584466013',
             'artist': 'Mastodon',
+            'album_artist': 'Mastodon',
             'album': 'Call of the Mastodon',
+            'uploader_url': 'https://relapsealumni.bandcamp.com',
+            'uploader_id': 'relapsealumni',
+        },
+    }, {
+        # track from compilation album (artist/album_artist difference)
+        'url': 'https://diskotopia.bandcamp.com/track/safehouse',
+        'md5': '19c5337bca1428afa54129f86a2f6a69',
+        'info_dict': {
+            'id': '1978174799',
+            'ext': 'mp3',
+            'title': 'submerse - submerse - Safehouse',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'submerse',
+            'timestamp': 1480779297,
+            'upload_date': '20161203',
+            'release_timestamp': 1481068800,
+            'release_date': '20161207',
+            'duration': 154.066,
+            'track': 'submerse - Safehouse',
+            'track_number': 3,
+            'track_id': '1978174799',
+            'artist': 'submerse',
+            'album_artist': 'Diskotopia',
+            'album': 'DSK F/W 2016-2017 Free Compilation',
+            'uploader_url': 'https://diskotopia.bandcamp.com',
+            'uploader_id': 'diskotopia',
         },
     }]
 
@@ -121,6 +159,9 @@ class BandcampIE(InfoExtractor):
         embed = self._extract_data_attr(webpage, title, 'embed', False)
         current = tralbum.get('current') or {}
         artist = embed.get('artist') or current.get('artist') or tralbum.get('artist')
+        album_artist = self._html_search_regex(
+            r'<h3 class="albumTitle">[\S\s]*?by\s*<span>\s*<a href="[^>]+">\s*([^>]+?)\s*</a>',
+            webpage, 'album artist', fatal=False)
         timestamp = unified_timestamp(
             current.get('publish_date') or tralbum.get('album_publish_date'))
 
@@ -205,6 +246,7 @@ class BandcampIE(InfoExtractor):
             'track_id': track_id,
             'artist': artist,
             'album': embed.get('album_title'),
+            'album_artist': album_artist,
             'formats': formats,
         }
 
