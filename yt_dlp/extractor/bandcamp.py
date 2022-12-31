@@ -54,6 +54,7 @@ class BandcampIE(InfoExtractor):
             'track_number': 1,
             'track_id': '2650410135',
             'artist': 'Ben Prunty',
+            'album_artist': 'Ben Prunty',
             'album': 'FTL: Advanced Edition Soundtrack',
         },
     }, {
@@ -75,7 +76,32 @@ class BandcampIE(InfoExtractor):
             'track_number': 5,
             'track_id': '2584466013',
             'artist': 'Mastodon',
+            'album_artist': 'Mastodon',
             'album': 'Call of the Mastodon',
+        },
+    }, {
+        # track from compilation album (artist/album_artist difference)
+        'url': 'https://diskotopia.bandcamp.com/track/safehouse',
+        'md5': '19c5337bca1428afa54129f86a2f6a69',
+        'info_dict': {
+            'id': '1978174799',
+            'ext': 'mp3',
+            'title': 'submerse - submerse - Safehouse',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'submerse',
+            'timestamp': 1480779297,
+            'upload_date': '20161203',
+            'release_timestamp': 1481068800,
+            'release_date': '20161207',
+            'duration': 154.066,
+            'track': 'submerse - Safehouse',
+            'track_number': 3,
+            'track_id': '1978174799',
+            'artist': 'submerse',
+            'album_artist': 'Diskotopia',
+            'album': 'DSK F/W 2016-2017 Free Compilation',
+            'uploader_url': 'https://diskotopia.bandcamp.com',
+            'uploader_id': 'diskotopia',
         },
     }]
 
