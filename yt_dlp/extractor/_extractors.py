@@ -91,6 +91,9 @@ from .amazon import (
     AmazonStoreIE,
     AmazonReviewsIE,
 )
+from .floatplane import (
+    FloatplaneIE
+)
 from .amazonminitv import (
     AmazonMiniTVIE,
     AmazonMiniTVSeasonIE,
