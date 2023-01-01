@@ -3714,6 +3714,8 @@ class InfoExtractor:
             while getattr(super_class, '__wrapped__', None):
                 super_class = super_class.__wrapped__
             setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
+            from ..plugins import _EXTRACTOR_PLUGIN_OVERRIDES
+            _EXTRACTOR_PLUGIN_OVERRIDES.append((plugin_name, cls, super_class))
 
         return super().__init_subclass__(**kwargs)
 
