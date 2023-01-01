@@ -61,6 +61,8 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Modifying metadata examples](#modifying-metadata-examples)
 * [EXTRACTOR ARGUMENTS](#extractor-arguments)
 * [PLUGINS](#plugins)
+    * [Installing Plugins](#installing-plugins)
+    * [Developing Plugins](#developing-plugins)
 * [EMBEDDING YT-DLP](#embedding-yt-dlp)
     * [Embedding examples](#embedding-examples)
 * [DEPRECATED OPTIONS](#deprecated-options)
@@ -1110,15 +1112,20 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * If `-P` is not given, the current directory is searched
 1. **User Configuration**:
     * `${XDG_CONFIG_HOME}/yt-dlp/config` (recommended on Linux/macOS)
+    * `${XDG_CONFIG_HOME}/yt-dlp/config.txt`
     * `${XDG_CONFIG_HOME}/yt-dlp.conf`
     * `${APPDATA}/yt-dlp/config` (recommended on Windows)
     * `${APPDATA}/yt-dlp/config.txt`
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
+    * `~/.yt-dlp/config`
+    * `~/.yt-dlp/config.txt`
 
     See also: [Notes about environment variables](#notes-about-environment-variables)
 1. **System Configuration**:
     * `/etc/yt-dlp.conf`
+    * `/etc/yt-dlp/config`
+    * `/etc/yt-dlp/config.txt`
 
 E.g. with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
 ```
@@ -1789,19 +1796,68 @@ NOTE: These options may be changed/removed in the future without concern for bac
 
 # PLUGINS
 
-Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`; where `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`). Plugins are currently not supported for the `pip` version
+Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. **Use plugins at your own risk and only if you trust the code!**
 
-Plugins can be of `<type>`s `extractor` or `postprocessor`. Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
+Plugins can be of `<type>`s `extractor` or `postprocessor`. 
+- Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. 
+- Extractor plugins take priority over builtin extractors.
+- Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
 
-See [ytdlp_plugins](ytdlp_plugins) for example plugins.
 
-Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. Use plugins at your own risk and only if you trust the code
+Plugins are loaded from the namespace packages `yt_dlp_plugins.extractor` and `yt_dlp_plugins.postprocessor`.
 
-If you are a plugin author, add [ytdlp-plugins](https://github.com/topics/ytdlp-plugins) as a topic to your repository for discoverability
+In other words, the file structure on the disk looks something like:
+    
+        yt_dlp_plugins/
+            extractor/
+                myplugin.py
+            postprocessor/
+                myplugin.py
+
+yt-dlp looks for these `yt_dlp_plugins` namespace folders in many locations (see below) and loads in plugins from **all** of them.
 
 See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plugins)
 
+## Installing Plugins
 
+Plugins can be installed using various methods and locations.
+
+1. **Configuration directories**:
+   Plugin packages (containing a `yt_dlp_plugins` namespace folder) can be dropped into the following standard [configuration locations](#configuration):
+    * **User Plugins**
+      * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Linux/macOS)
+      * `${XDG_CONFIG_HOME}/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+      * `${APPDATA}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Windows)
+      * `~/.yt-dlp/plugins/<package name>/yt_dlp_plugins/`
+      * `~/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+    * **System Plugins**
+      * `/etc/yt-dlp/plugins/<package name>/yt_dlp_plugins/`
+      * `/etc/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+2. **Executable location**: Plugin packages can similarly be installed in a `yt-dlp-plugins` directory under the executable location:
+    * Binary: where `<root-dir>/yt-dlp.exe`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+    * Source: where `<root-dir>/yt_dlp/__main__.py`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+
+3. **pip and other locations in `PYTHONPATH`**
+    * Plugin packages can be installed and managed using `pip`. See [ytdlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for an example.
+      * Note: plugin files between plugin packages installed with pip must have unique filenames
+    * Any path in `PYTHONPATH` is searched in for the `yt_dlp_plugins` namespace folder.
+      * Note: This does not apply for Pyinstaller/py2exe builds.
+
+
+.zip, .egg and .whl archives containing a `yt_dlp_plugins` namespace folder in their root are also supported. These can be placed in the same locations `yt_dlp_plugins` namespace folders can be found.
+- e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/mypluginpkg.zip` where `mypluginpkg.zip` contains `yt_dlp_plugins/<type>/myplugin.py`
+
+Run yt-dlp with `--verbose`/`-v` to check if the plugin has been loaded.
+
+## Developing Plugins
+
+See [ytdlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for a sample plugin package with instructions on how to set up an environment for plugin development. 
+
+All public classes with a name ending in `IE` are imported from each file. This respects underscore prefix (e.g. `_MyBasePluginIE` is private) and `__all__`. Modules can similarly be excluded by prefixing the module name with an underscore (e.g. `_myplugin.py`)
+
+If you are a plugin author, add [yt-dlp-plugins](https://github.com/topics/yt-dlp-plugins) as a topic to your repository for discoverability
+
+See the [Developer Instructions](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#developer-instructions) on how to write and test an extractor.
 
 # EMBEDDING YT-DLP
 
