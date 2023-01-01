@@ -363,6 +363,10 @@ class Aria2cFD(ExternalFD):
         }
         self._hook_progress(status, info_dict)
 
+        def get_stat(key, *obj, average=False):
+            val = tuple(filter(None, map(float, traverse_obj(obj, (..., ..., key))))) or [0]
+            return sum(val) / (len(val) if average else 1)
+
         with Popen(cmd, text=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE) as p:
             # Add a small sleep so that RPC client can receive response,
             # or the connection stalls infinitely
@@ -373,10 +377,6 @@ class Aria2cFD(ExternalFD):
                 # Ref: https://aria2.github.io/manual/en/html/aria2c.html#aria2.tellActive
                 active = send_rpc('aria2.tellActive')
                 completed = send_rpc('aria2.tellStopped', [0, frag_count])
-
-                def get_stat(key, *obj, average=False):
-                    val = tuple(filter(None, map(float, traverse_obj(obj, (..., ..., key))))) or [0]
-                    return sum(val) / (len(val) if average else 1)
 
                 downloaded = get_stat('totalLength', completed) + get_stat('completedLength', active)
                 speed = get_stat('downloadSpeed', active)
