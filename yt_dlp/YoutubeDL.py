@@ -3460,7 +3460,8 @@ class YoutubeDL:
         return infodict
 
     def run_all_pps(self, key, info, *, additional_pps=None):
-        self._forceprint(key, info)
+        if key != 'video':
+            self._forceprint(key, info)
         for pp in (additional_pps or []) + self._pps[key]:
             info = self.run_pp(pp, info)
         return info

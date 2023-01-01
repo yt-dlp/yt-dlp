@@ -703,7 +703,7 @@ def parse_options(argv=None):
 
     postprocessors = list(get_postprocessors(opts))
 
-    print_only = bool(opts.forceprint) and all(k not in opts.forceprint for k in POSTPROCESS_WHEN[2:])
+    print_only = bool(opts.forceprint) and all(k not in opts.forceprint for k in POSTPROCESS_WHEN[3:])
     any_getting = any(getattr(opts, k) for k in (
         'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
         'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
