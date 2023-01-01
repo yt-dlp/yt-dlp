@@ -39,29 +39,29 @@ class HiDiveIE(InfoExtractor):
         form = self._search_regex(
             r'(?s)<form[^>]+action="/account/login"[^>]*>(.+?)</form>',
             webpage, 'login form', default=None)
-        if not form:  # logged in
+        if not form: # already logged in, so no more actions to take.
             return
         data = self._hidden_inputs(form)
         data.update({
             'Email': username,
             'Password': password,
         })
-        loginWebpage = self._download_webpage(
+        login_webpage = self._download_webpage(
             self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(data))
-        # If the user has multiple profiles, select one.
-        profileIds = re.findall(r'\<button .+data-profile-id="([a-zA-Z0-9]+)".*\>', loginWebpage)
-        if profileIds is None:
-            return # If only one profile, Hidive auto-selects it.
-        profileIdHashes = re.findall(r'\<button .+data-hash="([a-zA-Z0-9]+)".*\>', loginWebpage)
-        # Just pick the first profile, until someone else updates this code to
-        #   support declaring a profile in a config file.
-        profileId = profileIds[0]
-        profileIdHash = profileIdHashes[0]
-        chooseProfileResultWebpage = self._download_json(
-            'https://www.hidive.com/ajax/chooseprofile', '',
+        # If the user has multiple profiles on their account, select one.
+        # For now pick the first profile. In the future, when someone has a use-case, they can update
+        #    this code to support that. Maybe the user would need to declare the index number of the profile
+        #    in a config file, and this part reads that config and selects the profile in the Nth position.
+        #    In that case, `_search_regex` likely wouldn't work, as it selects the first match.
+        profile_id = self._search_regex(r'\<button .+?data-profile-id="(\w+)".*?\>', login_webpage, 'profile_id')
+        if profile_id is None:
+            return # If only one profile, Hidive auto-selects it, so no more actions to take.
+        profile_id_hash = self._search_regex(r'\<button .+?data-hash="(\w+)".*?\>', login_webpage, 'profile_id_hash')
+        self._request_webpage(
+            'https://www.hidive.com/ajax/chooseprofile', None,
             data=urlencode_postdata({
-                'profileId': profileId,
-                'hash': profileIdHash,
+                'profileId': profile_id,
+                'hash': profile_id_hash,
                 'returnUrl': '/dashboard'
             })) or {}
 
@@ -76,17 +76,18 @@ class HiDiveIE(InfoExtractor):
             'https://www.hidive.com/play/settings', video_id,
             data=urlencode_postdata(data), **kwargs) or {}
 
-    def _get_subtitles(self, url, video_id, title, key, parsed_urls):
+    def _get_subtitles(self, settings, url, video_id, title, key, parsed_urls):
         subtitles = {}
-        webpage = self._download_webpage(url, video_id, fatal=False) or ''
 
-        settings = self._call_api(video_id, title, key)
         for rendition_id, rendition in settings['renditions'].items():
             audio, version, extra = rendition_id.split('_')
 
             for cc_file in rendition.get('ccFiles', []):
+                # cc_file[0]: subtitle language code, e.g. 'en'
+                # cc_file[1]: subtitle name, e.g. 'English Caps', 'English Subs'
+                # cc_file[2]: subtitle URL (likely vtt format), e.g. 'English Caps', 'English Subs'
+                # cc_file[3]: ???, e.g. 'default'
                 cc_url = url_or_none(try_get(cc_file, lambda x: x[2]))
-                # name is used since we cant distinguish subs with same language code
                 cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
                 if cc_url not in parsed_urls and cc_lang:
                     parsed_urls.add(cc_url)
@@ -121,7 +122,7 @@ class HiDiveIE(InfoExtractor):
         return {
             'id': video_id,
             'title': video_id,
-            'subtitles': self.extract_subtitles(url, video_id, title, key, parsed_urls),
+            'subtitles': self.extract_subtitles(settings, url, video_id, title, key, parsed_urls),
             'formats': formats,
             'series': title,
             'season_number': int_or_none(
