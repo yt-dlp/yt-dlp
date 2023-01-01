@@ -2720,8 +2720,10 @@ def _get_exe_version_output(exe, args):
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
-        stdout, _, _ = Popen.run([encodeArgument(exe)] + args, text=True,
-                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, _, ret = Popen.run([encodeArgument(exe)] + args, text=True,
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        if ret:
+            return None
     except OSError:
         return False
     return stdout
@@ -2739,11 +2741,15 @@ def detect_exe_version(output, version_re=None, unrecognized='present'):
 
 
 def get_exe_version(exe, args=['--version'],
-                    version_re=None, unrecognized='present'):
+                    version_re=None, unrecognized=('present', 'broken')):
     """ Returns the version of the specified executable,
     or False if the executable is not present """
+    unrecognized = variadic(unrecognized)
+    assert len(unrecognized) in (1, 2)
     out = _get_exe_version_output(exe, args)
-    return detect_exe_version(out, version_re, unrecognized) if out else False
+    if out is None:
+        return unrecognized[-1]
+    return out and detect_exe_version(out, version_re, unrecognized[0])
 
 
 def frange(start=0, stop=None, step=1):
