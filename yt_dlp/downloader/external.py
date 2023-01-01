@@ -263,10 +263,11 @@ class Aria2cFD(ExternalFD):
         return fn if os.path.isabs(fn) else f'.{os.path.sep}{fn}'
 
     def _call_downloader(self, tmpfilename, info_dict):
-        info_dict['__rpc'] = {
-            'port': find_available_port() or 19190,
-            'secret': str(uuid.uuid4()),
-        }
+        if 'no-external-downloader-progress' not in self.params.get('compat_opts', []):
+            info_dict['__rpc'] = {
+                'port': find_available_port() or 19190,
+                'secret': str(uuid.uuid4()),
+            }
         return super()._call_downloader(tmpfilename, info_dict)
 
     def _make_cmd(self, tmpfilename, info_dict):

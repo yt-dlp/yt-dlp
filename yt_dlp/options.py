@@ -464,14 +464,14 @@ def create_parser():
             'allowed_values': {
                 'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
-                'no-attach-info-json', 'embed-metadata', 'embed-thumbnail-atomicparsley',
-                'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
+                'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
+                'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
             }, 'aliases': {
                 'youtube-dl': ['all', '-multistreams'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat'],
                 '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
-                '2022': [],
+                '2022': ['no-external-downloader-progress'],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
