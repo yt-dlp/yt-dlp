@@ -1,8 +1,9 @@
 from .common import InfoExtractor
 
 from ..utils import (
-    UnsupportedError,
+    ExtractorError,
     parse_iso8601,
+    determine_ext,
     unified_strdate,
     traverse_obj
 )
@@ -18,49 +19,43 @@ class FloatplaneIE(InfoExtractor):
             'title': 'TQ: Are Intel Arc Graphics A Bad Idea?',
             'thumbnail': r're:^https?://.*\.jpg$',
         },
-        'skip': 'Requires premium Floatplane account',
+        # 'skip': 'Requires premium Floatplane account',
     }]
 
     def _real_initialize(self):
         self._download_webpage(
             'https://www.floatplane.com/', None,
             note='Fetching session cookie')
-        self.session_id = self._get_cookies(
-            'https://www.floatplane.com')['sails.sid'].value
+
+        sessionIdCookie = self._get_cookies(
+            'https://www.floatplane.com').get('sails.sid')
+
+        if sessionIdCookie is None:
+            raise ExtractorError(
+                'Cookie not found for floatplane.com.  Please login in your browser and retype', expected=True)
+
+        self.session_id = sessionIdCookie.value
 
     def _real_extract(self, url):
         post_id = self._match_id(url)
 
-        headers = {'Cookie': f"sails.sid={self.session_id}"}
-
-        ###
-        # Fetch post details
-        ###
-        post_api_url = f"https://www.floatplane.com/api/v3/content/post?id={post_id}"
+        self._set_cookie("floatplane.com", "Cookie", f'sails.sid={self.session_id}')
 
         post_metadata = self._download_json(
-            post_api_url, post_id, headers=headers, note='Fetching post details')
+            f'https://www.floatplane.com/api/v3/content/post?id={post_id}', post_id, note='Fetching post details')
 
         if not traverse_obj(post_metadata, ('metadata', 'hasVideo')):
-            raise UnsupportedError(
-                'Provided Floatplane post does not contain a video')
+            raise ExtractorError(
+                'Provided Floatplane post does not contain a video', expected=True)
 
-        ###
-        # Fetch video details
-        ###
         video_id = traverse_obj(post_metadata, ('videoAttachments', 0, 'id'))
-        video_api_url = f"https://www.floatplane.com/api/v3/content/video?id={video_id}"
 
         video_metadata = self._download_json(
-            video_api_url, post_id, headers=headers, note='Fetching video details')
+            f'https://www.floatplane.com/api/v3/content/video?id={video_id}', post_id, note='Fetching video details')
 
-        ###
-        # Fetch video format details
-        ###
-        video_format_api_url = f"https://www.floatplane.com/api/v2/cdn/delivery?type=vod&guid={video_metadata['guid']}"
-
+        video_guid = video_metadata['guid']
         video_format_metadata = self._download_json(
-            video_format_api_url, post_id, headers=headers, note='Fetching video format details')
+            f'https://www.floatplane.com/api/v2/cdn/delivery?type=vod&guid={video_guid}', post_id, note='Fetching video format details')
 
         # Generate formats
         remote_qualities = traverse_obj(
@@ -71,36 +66,28 @@ class FloatplaneIE(InfoExtractor):
         format_path_template = traverse_obj(
             video_format_metadata, ('resource', 'uri'))
         formats = []
-        for currentFormat in remote_qualities:
-            currentParams = remote_qualities_params[currentFormat['name']]
-            extension = currentParams["2"].split(
-                '.')[1]  # Get 'mp4' from '720p.mp4'
+        for current_format in remote_qualities:
+            current_params = remote_qualities_params[current_format['name']]
+            extension = determine_ext(current_params["2"])  # Get 'mp4' from '720p.mp4'
 
-            replaced_path = format_path_template.replace('{qualityLevelParams.2}', currentParams['2']).replace(
-                '{qualityLevelParams.4}', currentParams['4'])
+            replaced_path = format_path_template.replace('{qualityLevelParams.2}', current_params['2']).replace(
+                '{qualityLevelParams.4}', current_params['4'])
 
             formats.append({
-                'format_id': currentFormat['name'],
-                'width': currentFormat['width'],
-                'height': currentFormat['height'],
-                'quality': 1,
+                'format_id': current_format['name'],
+                'width': current_format.get('width'),
+                'height': current_format.get('height'),
                 'url': f"{remote_cdn}{replaced_path}",
                 'ext': extension
             })
 
-        ###
-        # Fetch creator details
-        ###
         creator_id = traverse_obj(post_metadata, ('creator', 'id'))
         creator_url_name = traverse_obj(post_metadata, ('creator', 'urlname'))
 
         creator_api_url = f"https://www.floatplane.com/api/v2/plan/info?creatorId={creator_id}"
 
         creator_metadata = self._download_json(
-            creator_api_url, post_id, headers=headers, note='Fetching creator details')
-
-        uploader = traverse_obj(post_metadata, ('creator', 'title'))
-        uploader_url = f"https://www.floatplane.com/channel/{creator_url_name}/home"
+            creator_api_url, post_id, note='Fetching creator details')
 
         return {
             'url': url,
@@ -108,6 +95,11 @@ class FloatplaneIE(InfoExtractor):
             'id': post_id,
             'title': post_metadata['title'],
             'description': post_metadata.get('text'),
+
+            'channel': traverse_obj(post_metadata, ('creator', 'title')),
+            'channel_id': creator_id,
+            'channel_url': f"https://www.floatplane.com/channel/{creator_url_name}/home",
+            'channel_follower_count': creator_metadata['totalSubscriberCount'],
 
             # Video metadata
             'formats': formats,
@@ -123,15 +115,4 @@ class FloatplaneIE(InfoExtractor):
 
             # I think all content on Floatplane is 'premium' only?
             'availability': self._availability(needs_premium=True),
-
-            # Don't think Floatplane distinguishes between
-            # channels and uploaders, so fill out both?
-            'uploader': uploader,
-            'uploader_id': creator_id,
-            'uploader_url': uploader_url,
-
-            'channel': uploader,
-            'channel_id': creator_id,
-            'channel_url': uploader_url,
-            'channel_follower_count': creator_metadata['totalSubscriberCount'],
         }
