@@ -470,6 +470,8 @@ def create_parser():
             }, 'aliases': {
                 'youtube-dl': ['all', '-multistreams'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat'],
+                '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
+                '2022': [],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '

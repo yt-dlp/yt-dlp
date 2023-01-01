@@ -159,6 +159,8 @@ For ease of use, a few more compat options are available:
 * `--compat-options all`: Use all compat options (Do NOT use)
 * `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams`
 * `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect`
+* `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
+* `--compat-options 2022`: Currently does nothing. Use this to enable all future compat options
 
 
 # INSTALLATION
