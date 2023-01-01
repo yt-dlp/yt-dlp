@@ -26,7 +26,6 @@ from ..utils import (
     handle_youtubedl_headers,
     remove_end,
     sanitized_Request,
-    try_call,
     traverse_obj,
 )
 
@@ -335,12 +334,11 @@ class Aria2cFD(ExternalFD):
         }).encode('utf-8')
         request = sanitized_Request(
             f'http://localhost:{rpc_port}/jsonrpc',
-            headers={
+            data=d, headers={
                 'Content-Type': 'application/json',
                 'Content-Length': f'{len(d)}',
                 'Ytdl-request-proxy': '__noproxy__',
-            },
-            data=d)
+            })
         with self.ydl.urlopen(request) as r:
             resp = json.load(r)
         assert resp.get('id') == sanitycheck, 'Something went wrong with RPC server'
