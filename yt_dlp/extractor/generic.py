@@ -935,17 +935,21 @@ class GenericIE(InfoExtractor):
                 'timestamp': int,
                 'title': 'Os Guinness // Is It Fools Talk? // Unbelievable? Conference 2014',
             },
+            'skip': 'Paywall, probably broken',
         },
         # Kaltura embed with single quotes
         {
             'url': 'http://fod.infobase.com/p_ViewPlaylist.aspx?AssignmentID=NUN8ZY',
             'info_dict': {
                 'id': '0_izeg5utt',
-                'ext': 'mp4',
+                'ext': 'f4v',
                 'title': '35871',
                 'timestamp': 1355743100,
                 'upload_date': '20121217',
                 'uploader_id': 'cplapp@learn360.com',
+                'view_count': int,
+                'duration': 3403,
+                'thumbnail': r're:https?://\w+.kaltura.com/',
             },
             'add_ie': ['Kaltura'],
         },
@@ -958,26 +962,25 @@ class GenericIE(InfoExtractor):
                 'title': '06_matthew_brender_raj_dutt',
                 'timestamp': 1466638791,
                 'upload_date': '20160622',
+                'thumbnail': r're:https?://\w+.kaltura.com/',
+                'view_count': int,
+                'duration': 331,
             },
             'add_ie': ['Kaltura'],
-            'expected_warnings': [
-                'Could not send HEAD request'
-            ],
-            'params': {
-                'skip_download': True,
-            }
         },
         {
             # Kaltura embedded, some fileExt broken (#11480)
             'url': 'http://www.cornell.edu/video/nima-arkani-hamed-standard-models-of-particle-physics',
             'info_dict': {
                 'id': '1_sgtvehim',
-                'ext': 'mp4',
+                'ext': 'mov',
                 'title': 'Our "Standard Models" of particle physics and cosmology',
-                'description': 'md5:67ea74807b8c4fea92a6f38d6d323861',
                 'timestamp': 1321158993,
                 'upload_date': '20111113',
                 'uploader_id': 'kps1',
+                'duration': 5420,
+                'thumbnail': r're:https?://\w+.kaltura.com/',
+                'view_count': int,
             },
             'add_ie': ['Kaltura'],
         },
@@ -989,27 +992,12 @@ class GenericIE(InfoExtractor):
                 'id': '0_f2cfbpwy',
                 'ext': 'mp4',
                 'title': 'I. M. Pei: A Centennial Celebration',
-                'description': 'md5:1db8f40c69edc46ca180ba30c567f37c',
                 'upload_date': '20170403',
                 'uploader_id': 'batchUser',
                 'timestamp': 1491232186,
-            },
-            'add_ie': ['Kaltura'],
-        },
-        {
-            # Kaltura iframe embed, more sophisticated
-            'url': 'http://www.cns.nyu.edu/~eero/math-tools/Videos/lecture-05sep2017.html',
-            'info_dict': {
-                'id': '1_9gzouybz',
-                'ext': 'mp4',
-                'title': 'lecture-05sep2017',
-                'description': 'md5:40f347d91fd4ba047e511c5321064b49',
-                'upload_date': '20170913',
-                'uploader_id': 'eps2',
-                'timestamp': 1505340777,
-            },
-            'params': {
-                'skip_download': True,
+                'thumbnail': r're:https?://\w+.kaltura.com/',
+                'duration': 6073,
+                'view_count': int,
             },
             'add_ie': ['Kaltura'],
         },
@@ -2153,6 +2141,20 @@ class GenericIE(InfoExtractor):
                 'thumbnail': r're:^https://media.autoweek.nl/m/.+\.jpg$',
                 'age_limit': 0,
                 'direct': True,
+            }
+        }, {
+            'url': 'https://mediaspace.carleton.ca/media/4705_0_2021/1_5hgwu9bi',
+            'info_dict': {
+                'id': '1_5hgwu9bi',
+                'ext': 'mp4',
+                'thumbnail': 'https://cfvod.kaltura.com/p/2011531/sp/201153100/thumbnail/entry_id/1_5hgwu9bi/version/100011',
+                'upload_date': '20210908',
+                'timestamp': 1631110578,
+                'description': '4705 2020 lec 0',
+                'view_count': int,
+                'duration': 2687,
+                'title': '4705_0_2021',
+                'uploader_id': '',
             }
         }
     ]
