@@ -52,10 +52,9 @@ class FloatplaneIE(InfoExtractor):
 
         video_metadata = self._download_json(
             f'https://www.floatplane.com/api/v3/content/video?id={video_id}', post_id, note='Fetching video details')
-
-        video_guid = video_metadata['guid']
+        
         video_format_metadata = self._download_json(
-            f'https://www.floatplane.com/api/v2/cdn/delivery?type=vod&guid={video_guid}', post_id, note='Fetching video format details')
+            f'https://www.floatplane.com/api/v2/cdn/delivery?type=vod&guid={video_metadata["guid"]}', post_id, note='Fetching video format details')
 
         # Generate formats
         remote_qualities = traverse_obj(
