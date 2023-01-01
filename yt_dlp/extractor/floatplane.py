@@ -19,7 +19,7 @@ class FloatplaneIE(InfoExtractor):
             'title': 'TQ: Are Intel Arc Graphics A Bad Idea?',
             'thumbnail': r're:^https?://.*\.jpg$',
         },
-        # 'skip': 'Requires premium Floatplane account',
+        'skip': 'Requires premium Floatplane account',
     }]
 
     def _real_initialize(self):
@@ -52,7 +52,7 @@ class FloatplaneIE(InfoExtractor):
 
         video_metadata = self._download_json(
             f'https://www.floatplane.com/api/v3/content/video?id={video_id}', post_id, note='Fetching video details')
-        
+
         video_format_metadata = self._download_json(
             f'https://www.floatplane.com/api/v2/cdn/delivery?type=vod&guid={video_metadata["guid"]}', post_id, note='Fetching video format details')
 
