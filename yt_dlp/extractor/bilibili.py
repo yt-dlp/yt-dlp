@@ -20,9 +20,11 @@ from ..utils import (
     parse_count,
     parse_qs,
     qualities,
+    smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
+    unsmuggle_url,
     url_or_none,
     urlencode_postdata,
 )
@@ -881,16 +883,12 @@ class BiliIntlBaseIE(InfoExtractor):
 
         return formats
 
-    def _extract_video_info(self, video_data, *, ep_id=None, aid=None):
+    def _parse_video_metadata(self, video_data):
         return {
-            'id': ep_id or aid,
             'title': video_data.get('title_display') or video_data.get('title'),
             'thumbnail': video_data.get('cover'),
             'episode_number': int_or_none(self._search_regex(
                 r'^E(\d+)(?:$| - )', video_data.get('title_display') or '', 'episode number', default=None)),
-            'formats': self._get_formats(ep_id=ep_id, aid=aid),
-            'subtitles': self._get_subtitles(ep_id=ep_id, aid=aid),
-            'extractor_key': BiliIntlIE.ie_key(),
         }
 
     def _perform_login(self, username, password):
@@ -975,9 +973,16 @@ class BiliIntlIE(BiliIntlBaseIE):
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        season_id, ep_id, aid = self._match_valid_url(url).group('season_id', 'ep_id', 'aid')
-        video_id = ep_id or aid
+    def _make_url(video_id, series_id=None):
+        if series_id:
+            return f'https://www.bilibili.tv/en/play/{series_id}/{video_id}'
+        return f'https://www.bilibili.tv/en/video/{video_id}'
+
+    def _extract_video_metadata(self, url, video_id, season_id):
+        url, smuggled_data = unsmuggle_url(url, {})
+        if smuggled_data.get('title'):
+            return smuggled_data
+
         webpage = self._download_webpage(url, video_id)
         # Bstation layout
         initial_data = (
@@ -989,13 +994,26 @@ class BiliIntlIE(BiliIntlBaseIE):
         if season_id and not video_data:
             # Non-Bstation layout, read through episode list
             season_json = self._call_api(f'/web/v2/ogv/play/episodes?season_id={season_id}&platform=web', video_id)
-            video_data = traverse_obj(season_json,
-                                      ('sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == ep_id),
-                                      expected_type=dict, get_all=False)
-        return self._extract_video_info(video_data or {}, ep_id=ep_id, aid=aid)
+            video_data = traverse_obj(season_json, (
+                'sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == video_id
+            ), expected_type=dict, get_all=False)
+
+        return self._parse_video_metadata(video_data)
+
+    def _real_extract(self, url):
+        season_id, ep_id, aid = self._match_valid_url(url).group('season_id', 'ep_id', 'aid')
+        video_id = ep_id or aid
+
+        return {
+            'id': video_id,
+            **self._extract_video_metadata(url, video_id, season_id),
+            'formats': self._get_formats(ep_id=ep_id, aid=aid),
+            'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
+        }
 
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
+    IE_NAME = 'biliintl:series'
     _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?play/(?P<id>\d+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.bilibili.tv/en/play/34613',
@@ -1021,9 +1039,12 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
 
     def _entries(self, series_id):
         series_json = self._call_api(f'/web/v2/ogv/play/episodes?season_id={series_id}&platform=web', series_id)
-        for episode in traverse_obj(series_json, ('sections', ..., 'episodes', ...), expected_type=dict, default=[]):
-            episode_id = str(episode.get('episode_id'))
-            yield self._extract_video_info(episode, ep_id=episode_id)
+        for episode in traverse_obj(series_json, ('sections', ..., 'episodes', ...), expected_type=dict):
+            episode_id = str(episode['episode_id'])
+            yield self.url_result(smuggle_url(
+                BiliIntlIE._make_url(episode_id, series_id),
+                self._parse_video_metadata(episode)
+            ), BiliIntlIE, episode_id)
 
     def _real_extract(self, url):
         series_id = self._match_id(url)

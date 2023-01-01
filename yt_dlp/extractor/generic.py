@@ -2154,6 +2154,21 @@ class GenericIE(InfoExtractor):
                 'age_limit': 0,
                 'direct': True,
             }
+        }, {
+            'note': 'server returns data in brotli compression by default if `accept-encoding: *` is specified.',
+            'url': 'https://www.extra.cz/cauky-lidi-70-dil-babis-predstavil-pohadky-prymulanek-nebo-andrejovy-nove-saty-ac867',
+            'info_dict': {
+                'id': 'cauky-lidi-70-dil-babis-predstavil-pohadky-prymulanek-nebo-andrejovy-nove-saty-ac867',
+                'ext': 'mp4',
+                'title': 'čauky lidi 70 finall',
+                'description': 'čauky lidi 70 finall',
+                'thumbnail': 'h',
+                'upload_date': '20220606',
+                'timestamp': 1654513791,
+                'duration': 318.0,
+                'direct': True,
+                'age_limit': 0,
+            }
         }
     ]
 
@@ -2312,7 +2327,7 @@ class GenericIE(InfoExtractor):
         # It may probably better to solve this by checking Content-Type for application/octet-stream
         # after a HEAD request, but not sure if we can rely on this.
         full_response = self._request_webpage(url, video_id, headers={
-            'Accept-Encoding': '*',
+            'Accept-Encoding': 'identity',
             **smuggled_data.get('http_headers', {})
         })
         new_url = full_response.geturl()

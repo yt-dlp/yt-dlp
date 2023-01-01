@@ -18,7 +18,6 @@ import html.entities
 import html.parser
 import http.client
 import http.cookiejar
-import importlib.util
 import inspect
 import io
 import itertools
@@ -2722,8 +2721,10 @@ def _get_exe_version_output(exe, args):
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
-        stdout, _, _ = Popen.run([encodeArgument(exe)] + args, text=True,
-                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, _, ret = Popen.run([encodeArgument(exe)] + args, text=True,
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        if ret:
+            return None
     except OSError:
         return False
     return stdout
@@ -2741,11 +2742,15 @@ def detect_exe_version(output, version_re=None, unrecognized='present'):
 
 
 def get_exe_version(exe, args=['--version'],
-                    version_re=None, unrecognized='present'):
+                    version_re=None, unrecognized=('present', 'broken')):
     """ Returns the version of the specified executable,
     or False if the executable is not present """
+    unrecognized = variadic(unrecognized)
+    assert len(unrecognized) in (1, 2)
     out = _get_exe_version_output(exe, args)
-    return detect_exe_version(out, version_re, unrecognized) if out else False
+    if out is None:
+        return unrecognized[-1]
+    return out and detect_exe_version(out, version_re, unrecognized[0])
 
 
 def frange(start=0, stop=None, step=1):
@@ -5239,6 +5244,15 @@ def random_birthday(year_field, month_field, day_field):
     }
 
 
+def find_available_port(interface=''):
+    try:
+        with socket.socket() as sock:
+            sock.bind((interface, 0))
+            return sock.getsockname()[1]
+    except OSError:
+        return None
+
+
 # Templates for internet shortcut files, which are plain text files.
 DOT_URL_LINK_TEMPLATE = '''\
 [InternetShortcut]
@@ -5373,22 +5387,37 @@ def get_executable_path():
     return os.path.dirname(os.path.abspath(_get_variant_and_executable_path()[1]))
 
 
-def load_plugins(name, suffix, namespace):
-    classes = {}
-    with contextlib.suppress(FileNotFoundError):
-        plugins_spec = importlib.util.spec_from_file_location(
-            name, os.path.join(get_executable_path(), 'ytdlp_plugins', name, '__init__.py'))
-        plugins = importlib.util.module_from_spec(plugins_spec)
-        sys.modules[plugins_spec.name] = plugins
-        plugins_spec.loader.exec_module(plugins)
-        for name in dir(plugins):
-            if name in namespace:
-                continue
-            if not name.endswith(suffix):
-                continue
-            klass = getattr(plugins, name)
-            classes[name] = namespace[name] = klass
-    return classes
+def get_user_config_dirs(package_name):
+    locations = set()
+
+    # .config (e.g. ~/.config/package_name)
+    xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
+    config_dir = os.path.join(xdg_config_home, package_name)
+    if os.path.isdir(config_dir):
+        locations.add(config_dir)
+
+    # appdata (%APPDATA%/package_name)
+    appdata_dir = os.getenv('appdata')
+    if appdata_dir:
+        config_dir = os.path.join(appdata_dir, package_name)
+        if os.path.isdir(config_dir):
+            locations.add(config_dir)
+
+    # home (~/.package_name)
+    user_config_directory = os.path.join(compat_expanduser('~'), '.%s' % package_name)
+    if os.path.isdir(user_config_directory):
+        locations.add(user_config_directory)
+
+    return locations
+
+
+def get_system_config_dirs(package_name):
+    locations = set()
+    # /etc/package_name
+    system_config_directory = os.path.join('/etc', package_name)
+    if os.path.isdir(system_config_directory):
+        locations.add(system_config_directory)
+    return locations
 
 
 def traverse_obj(
@@ -6368,3 +6397,10 @@ class FormatSorter:
 # Deprecated
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
+
+
+def load_plugins(name, suffix, namespace):
+    from .plugins import load_plugins
+    ret = load_plugins(name, suffix)
+    namespace.update(ret)
+    return ret

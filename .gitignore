@@ -120,9 +120,5 @@ yt-dlp.zip
 */extractor/lazy_extractors.py
 
 # Plugins
-ytdlp_plugins/extractor/*
-!ytdlp_plugins/extractor/__init__.py
-!ytdlp_plugins/extractor/sample.py
-ytdlp_plugins/postprocessor/*
-!ytdlp_plugins/postprocessor/__init__.py
-!ytdlp_plugins/postprocessor/sample.py
+ytdlp_plugins/*
+yt-dlp-plugins/*
