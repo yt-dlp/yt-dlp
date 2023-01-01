@@ -28,7 +28,6 @@ class EllenTubeBaseIE(InfoExtractor):
                     entry_protocol='m3u8_native', m3u8_id='hls')
                 duration = int_or_none(entry.get('duration'))
                 break
-        self._sort_formats(formats)
 
         def get_insight(kind):
             return int_or_none(try_get(

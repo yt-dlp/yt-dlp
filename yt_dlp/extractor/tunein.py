@@ -49,7 +49,6 @@ class TuneInBaseIE(InfoExtractor):
                 'source_preference': reliability,
                 'format_note': format_note,
             })
-        self._sort_formats(formats)
 
         return {
             'id': content_id,

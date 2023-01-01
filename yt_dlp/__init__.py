@@ -16,11 +16,9 @@ import sys
 
 from .compat import compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
-from .downloader import FileDownloader
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
-from .extractor.common import InfoExtractor
 from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
@@ -40,6 +38,7 @@ from .utils import (
     DateRange,
     DownloadCancelled,
     DownloadError,
+    FormatSorter,
     GeoUtils,
     PlaylistEntries,
     SameFileError,
@@ -50,6 +49,7 @@ from .utils import (
     format_field,
     int_or_none,
     match_filter_func,
+    parse_bytes,
     parse_duration,
     preferredencoding,
     read_batch_urls,
@@ -91,12 +91,11 @@ def get_urls(urls, batchfile, verbose):
 
 
 def print_extractor_information(opts, urls):
-    # Importing GenericIE is currently slow since it imports other extractors
-    # TODO: Move this back to module level after generalization of embed detection
-    from .extractor.generic import GenericIE
-
     out = ''
     if opts.list_extractors:
+        # Importing GenericIE is currently slow since it imports YoutubeIE
+        from .extractor.generic import GenericIE
+
         urls = dict.fromkeys(urls, False)
         for ie in list_extractor_classes(opts.age_limit):
             out += ie.IE_NAME + (' (CURRENTLY BROKEN)' if not ie.working() else '') + '\n'
@@ -152,7 +151,7 @@ def set_compat_opts(opts):
         else:
             opts.embed_infojson = False
     if 'format-sort' in opts.compat_opts:
-        opts.format_sort.extend(InfoExtractor.FormatSort.ytdl_default)
+        opts.format_sort.extend(FormatSorter.ytdl_default)
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
     _audio_multistreams_set = set_default_compat('multistreams', 'allow_multiple_audio_streams', False, remove_compat=False)
     if _video_multistreams_set is False and _audio_multistreams_set is False:
@@ -227,7 +226,7 @@ def validate_options(opts):
 
     # Format sort
     for f in opts.format_sort:
-        validate_regex('format sorting', f, InfoExtractor.FormatSort.regex)
+        validate_regex('format sorting', f, FormatSorter.regex)
 
     # Postprocessor formats
     validate_regex('merge output format', opts.merge_output_format,
@@ -281,19 +280,19 @@ def validate_options(opts):
             raise ValueError(f'invalid {key} retry sleep expression {expr!r}')
 
     # Bytes
-    def parse_bytes(name, value):
+    def validate_bytes(name, value):
         if value is None:
             return None
-        numeric_limit = FileDownloader.parse_bytes(value)
+        numeric_limit = parse_bytes(value)
         validate(numeric_limit is not None, 'rate limit', value)
         return numeric_limit
 
-    opts.ratelimit = parse_bytes('rate limit', opts.ratelimit)
-    opts.throttledratelimit = parse_bytes('throttled rate limit', opts.throttledratelimit)
-    opts.min_filesize = parse_bytes('min filesize', opts.min_filesize)
-    opts.max_filesize = parse_bytes('max filesize', opts.max_filesize)
-    opts.buffersize = parse_bytes('buffer size', opts.buffersize)
-    opts.http_chunk_size = parse_bytes('http chunk size', opts.http_chunk_size)
+    opts.ratelimit = validate_bytes('rate limit', opts.ratelimit)
+    opts.throttledratelimit = validate_bytes('throttled rate limit', opts.throttledratelimit)
+    opts.min_filesize = validate_bytes('min filesize', opts.min_filesize)
+    opts.max_filesize = validate_bytes('max filesize', opts.max_filesize)
+    opts.buffersize = validate_bytes('buffer size', opts.buffersize)
+    opts.http_chunk_size = validate_bytes('http chunk size', opts.http_chunk_size)
 
     # Output templates
     def validate_outtmpl(tmpl, msg):
@@ -351,7 +350,7 @@ def validate_options(opts):
         mobj = re.fullmatch(r'''(?x)
             (?P<name>[^+:]+)
             (?:\s*\+\s*(?P<keyring>[^:]+))?
-            (?:\s*:\s*(?P<profile>.+?))?
+            (?:\s*:\s*(?!:)(?P<profile>.+?))?
             (?:\s*::\s*(?P<container>.+))?
         ''', opts.cookiesfrombrowser)
         if mobj is None:
@@ -387,10 +386,12 @@ def validate_options(opts):
                 raise ValueError(f'{cmd} is invalid; {err}')
             yield action
 
-    parse_metadata = opts.parse_metadata or []
     if opts.metafromtitle is not None:
-        parse_metadata.append('title:%s' % opts.metafromtitle)
-    opts.parse_metadata = list(itertools.chain(*map(metadataparser_actions, parse_metadata)))
+        opts.parse_metadata.setdefault('pre_process', []).append('title:%s' % opts.metafromtitle)
+    opts.parse_metadata = {
+        k: list(itertools.chain(*map(metadataparser_actions, v)))
+        for k, v in opts.parse_metadata.items()
+    }
 
     # Other options
     if opts.playlist_items is not None:
@@ -562,11 +563,11 @@ def validate_options(opts):
 def get_postprocessors(opts):
     yield from opts.add_postprocessors
 
-    if opts.parse_metadata:
+    for when, actions in opts.parse_metadata.items():
         yield {
             'key': 'MetadataParser',
-            'actions': opts.parse_metadata,
-            'when': 'pre_process'
+            'actions': actions,
+            'when': when
         }
     sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
     if sponsorblock_query:
@@ -702,7 +703,7 @@ def parse_options(argv=None):
 
     postprocessors = list(get_postprocessors(opts))
 
-    print_only = bool(opts.forceprint) and all(k not in opts.forceprint for k in POSTPROCESS_WHEN[2:])
+    print_only = bool(opts.forceprint) and all(k not in opts.forceprint for k in POSTPROCESS_WHEN[3:])
     any_getting = any(getattr(opts, k) for k in (
         'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
         'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'

@@ -128,10 +128,6 @@ class ThreeQSDNIE(InfoExtractor):
                         'vcodec': 'none' if height == 0 else None,
                         'width': int(height * aspect) if height and aspect else None,
                     })
-        # It seems like this would be correctly handled by default
-        # However, unless someone can confirm this, the old
-        # behaviour is being kept as-is
-        self._sort_formats(formats, ('res', 'source_preference'))
 
         for subtitle in (config.get('subtitles') or []):
             src = subtitle.get('src')
@@ -153,4 +149,8 @@ class ThreeQSDNIE(InfoExtractor):
             'is_live': live,
             'formats': formats,
             'subtitles': subtitles,
+            # It seems like this would be correctly handled by default
+            # However, unless someone can confirm this, the old
+            # behaviour is being kept as-is
+            '_format_sort_fields': ('res', 'source_preference')
         }

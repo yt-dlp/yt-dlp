@@ -168,7 +168,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             }, data=b'')['token']
 
         links_url = try_get(options, lambda x: x['video']['url']) or (video_base_url + 'link')
-        self._K = ''.join([random.choice('0123456789abcdef') for _ in range(16)])
+        self._K = ''.join(random.choices('0123456789abcdef', k=16))
         message = bytes_to_intlist(json.dumps({
             'k': self._K,
             't': token,
@@ -235,7 +235,6 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                     for f in m3u8_formats:
                         f['language'] = 'fr'
                 formats.extend(m3u8_formats)
-        self._sort_formats(formats)
 
         video = (self._download_json(
             self._API_BASE_URL + 'video/%s' % video_id, video_id,

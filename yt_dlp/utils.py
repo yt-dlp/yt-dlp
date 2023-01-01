@@ -18,7 +18,6 @@ import html.entities
 import html.parser
 import http.client
 import http.cookiejar
-import importlib.util
 import inspect
 import io
 import itertools
@@ -1095,19 +1094,28 @@ class ExtractorError(YoutubeDLError):
         self.exc_info = sys.exc_info()  # preserve original exception
         if isinstance(self.exc_info[1], ExtractorError):
             self.exc_info = self.exc_info[1].exc_info
+        super().__init__(self.__msg)
 
-        super().__init__(''.join((
-            format_field(ie, None, '[%s] '),
-            format_field(video_id, None, '%s: '),
-            msg,
-            format_field(cause, None, ' (caused by %r)'),
-            '' if expected else bug_reports_message())))
+    @property
+    def __msg(self):
+        return ''.join((
+            format_field(self.ie, None, '[%s] '),
+            format_field(self.video_id, None, '%s: '),
+            self.orig_msg,
+            format_field(self.cause, None, ' (caused by %r)'),
+            '' if self.expected else bug_reports_message()))
 
     def format_traceback(self):
         return join_nonempty(
             self.traceback and ''.join(traceback.format_tb(self.traceback)),
             self.cause and ''.join(traceback.format_exception(None, self.cause, self.cause.__traceback__)[1:]),
             delim='\n') or None
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if getattr(self, 'msg', None) and name not in ('msg', 'args'):
+            self.msg = self.__msg or type(self).__name__
+            self.args = (self.msg, )  # Cannot be property
 
 
 class UnsupportedError(ExtractorError):
@@ -2289,15 +2297,24 @@ def format_bytes(bytes):
     return format_decimal_suffix(bytes, '%.2f%sB', factor=1024) or 'N/A'
 
 
-def lookup_unit_table(unit_table, s):
+def lookup_unit_table(unit_table, s, strict=False):
+    num_re = NUMBER_RE if strict else NUMBER_RE.replace(R'\.', '[,.]')
     units_re = '|'.join(re.escape(u) for u in unit_table)
-    m = re.match(
-        r'(?P<num>[0-9]+(?:[,.][0-9]*)?)\s*(?P<unit>%s)\b' % units_re, s)
+    m = (re.fullmatch if strict else re.match)(
+        rf'(?P<num>{num_re})\s*(?P<unit>{units_re})\b', s)
     if not m:
         return None
-    num_str = m.group('num').replace(',', '.')
+
+    num = float(m.group('num').replace(',', '.'))
     mult = unit_table[m.group('unit')]
-    return int(float(num_str) * mult)
+    return round(num * mult)
+
+
+def parse_bytes(s):
+    """Parse a string indicating a byte quantity into an integer"""
+    return lookup_unit_table(
+        {u: 1024**i for i, u in enumerate(['', *'KMGTPEZY'])},
+        s.upper(), strict=True)
 
 
 def parse_filesize(s):
@@ -2703,8 +2720,10 @@ def _get_exe_version_output(exe, args):
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
-        stdout, _, _ = Popen.run([encodeArgument(exe)] + args, text=True,
-                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, _, ret = Popen.run([encodeArgument(exe)] + args, text=True,
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        if ret:
+            return None
     except OSError:
         return False
     return stdout
@@ -2722,11 +2741,15 @@ def detect_exe_version(output, version_re=None, unrecognized='present'):
 
 
 def get_exe_version(exe, args=['--version'],
-                    version_re=None, unrecognized='present'):
+                    version_re=None, unrecognized=('present', 'broken')):
     """ Returns the version of the specified executable,
     or False if the executable is not present """
+    unrecognized = variadic(unrecognized)
+    assert len(unrecognized) in (1, 2)
     out = _get_exe_version_output(exe, args)
-    return detect_exe_version(out, version_re, unrecognized) if out else False
+    if out is None:
+        return unrecognized[-1]
+    return out and detect_exe_version(out, version_re, unrecognized[0])
 
 
 def frange(start=0, stop=None, step=1):
@@ -2950,10 +2973,10 @@ class PlaylistEntries:
             self.is_exhausted = True
 
         requested_entries = info_dict.get('requested_entries')
-        self.is_incomplete = bool(requested_entries)
+        self.is_incomplete = requested_entries is not None
         if self.is_incomplete:
             assert self.is_exhausted
-            self._entries = [self.MissingEntry] * max(requested_entries)
+            self._entries = [self.MissingEntry] * max(requested_entries or [0])
             for i, entry in zip(requested_entries, entries):
                 self._entries[i - 1] = entry
         elif isinstance(entries, (list, PagedList, LazyList)):
@@ -3022,7 +3045,7 @@ class PlaylistEntries:
                     if not self.is_incomplete:
                         raise self.IndexError()
                 if entry is self.MissingEntry:
-                    raise EntryNotInPlaylist(f'Entry {i} cannot be found')
+                    raise EntryNotInPlaylist(f'Entry {i + 1} cannot be found')
                 return entry
         else:
             def get_entry(i):
@@ -3342,7 +3365,13 @@ def js_to_json(code, vars={}, *, strict=False):
                 return f'"{i}":' if v.endswith(':') else str(i)
 
         if v in vars:
-            return json.dumps(vars[v])
+            try:
+                if not strict:
+                    json.loads(vars[v])
+            except json.decoder.JSONDecodeError:
+                return json.dumps(vars[v])
+            else:
+                return vars[v]
 
         if not strict:
             return f'"{v}"'
@@ -3377,7 +3406,7 @@ def qualities(quality_ids):
     return q
 
 
-POSTPROCESS_WHEN = ('pre_process', 'after_filter', 'before_dl', 'post_process', 'after_move', 'after_video', 'playlist')
+POSTPROCESS_WHEN = ('pre_process', 'after_filter', 'video', 'before_dl', 'post_process', 'after_move', 'after_video', 'playlist')
 
 
 DEFAULT_OUTTMPL = {
@@ -3462,67 +3491,93 @@ def error_to_str(err):
     return f'{type(err).__name__}: {err}'
 
 
-def mimetype2ext(mt):
-    if mt is None:
+def mimetype2ext(mt, default=NO_DEFAULT):
+    if not isinstance(mt, str):
+        if default is not NO_DEFAULT:
+            return default
         return None
 
-    mt, _, params = mt.partition(';')
-    mt = mt.strip()
-
-    FULL_MAP = {
-        'audio/mp4': 'm4a',
-        # Per RFC 3003, audio/mpeg can be .mp1, .mp2 or .mp3. Here use .mp3 as
-        # it's the most popular one
-        'audio/mpeg': 'mp3',
-        'audio/x-wav': 'wav',
-        'audio/wav': 'wav',
-        'audio/wave': 'wav',
-    }
-
-    ext = FULL_MAP.get(mt)
-    if ext is not None:
-        return ext
-
-    SUBTYPE_MAP = {
+    MAP = {
+        # video
         '3gpp': '3gp',
-        'smptett+xml': 'tt',
-        'ttaf+xml': 'dfxp',
-        'ttml+xml': 'ttml',
-        'x-flv': 'flv',
-        'x-mp4-fragmented': 'mp4',
-        'x-ms-sami': 'sami',
-        'x-ms-wmv': 'wmv',
+        'mp2t': 'ts',
+        'mp4': 'mp4',
+        'mpeg': 'mpeg',
         'mpegurl': 'm3u8',
-        'x-mpegurl': 'm3u8',
-        'vnd.apple.mpegurl': 'm3u8',
+        'quicktime': 'mov',
+        'webm': 'webm',
+        'vp9': 'vp9',
+        'x-flv': 'flv',
+        'x-m4v': 'm4v',
+        'x-matroska': 'mkv',
+        'x-mng': 'mng',
+        'x-mp4-fragmented': 'mp4',
+        'x-ms-asf': 'asf',
+        'x-ms-wmv': 'wmv',
+        'x-msvideo': 'avi',
+
+        # application (streaming playlists)
         'dash+xml': 'mpd',
         'f4m+xml': 'f4m',
         'hds+xml': 'f4m',
+        'vnd.apple.mpegurl': 'm3u8',
         'vnd.ms-sstr+xml': 'ism',
-        'quicktime': 'mov',
-        'mp2t': 'ts',
+        'x-mpegurl': 'm3u8',
+
+        # audio
+        'audio/mp4': 'm4a',
+        # Per RFC 3003, audio/mpeg can be .mp1, .mp2 or .mp3.
+        # Using .mp3 as it's the most popular one
+        'audio/mpeg': 'mp3',
+        'audio/webm': 'weba',
+        'audio/x-matroska': 'mka',
+        'audio/x-mpegurl': 'm3u',
+        'midi': 'mid',
+        'ogg': 'ogg',
+        'wav': 'wav',
+        'wave': 'wav',
+        'x-aac': 'aac',
+        'x-flac': 'flac',
+        'x-m4a': 'm4a',
+        'x-realaudio': 'ra',
         'x-wav': 'wav',
-        'filmstrip+json': 'fs',
+
+        # image
+        'avif': 'avif',
+        'bmp': 'bmp',
+        'gif': 'gif',
+        'jpeg': 'jpg',
+        'png': 'png',
         'svg+xml': 'svg',
-    }
+        'tiff': 'tif',
+        'vnd.wap.wbmp': 'wbmp',
+        'webp': 'webp',
+        'x-icon': 'ico',
+        'x-jng': 'jng',
+        'x-ms-bmp': 'bmp',
 
-    _, _, subtype = mt.rpartition('/')
-    ext = SUBTYPE_MAP.get(subtype.lower())
-    if ext is not None:
-        return ext
+        # caption
+        'filmstrip+json': 'fs',
+        'smptett+xml': 'tt',
+        'ttaf+xml': 'dfxp',
+        'ttml+xml': 'ttml',
+        'x-ms-sami': 'sami',
 
-    SUFFIX_MAP = {
+        # misc
+        'gzip': 'gz',
         'json': 'json',
         'xml': 'xml',
         'zip': 'zip',
-        'gzip': 'gz',
     }
 
-    _, _, suffix = subtype.partition('+')
-    ext = SUFFIX_MAP.get(suffix)
-    if ext is not None:
-        return ext
+    mimetype = mt.partition(';')[0].strip().lower()
+    _, _, subtype = mimetype.rpartition('/')
 
+    ext = traverse_obj(MAP, mimetype, subtype, subtype.rsplit('+')[-1])
+    if ext:
+        return ext
+    elif default is not NO_DEFAULT:
+        return default
     return subtype.replace('+', '.')
 
 
@@ -3554,7 +3609,7 @@ def parse_codecs(codecs_str):
                 hdr = 'HDR10'
             elif parts[:2] == ['vp9', '2']:
                 hdr = 'HDR10'
-        elif parts[0] in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac',
+        elif parts[0] in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-4',
                           'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
             acodec = acodec or full_codec
         elif parts[0] in ('stpp', 'wvtt'):
@@ -3587,7 +3642,7 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
     # TODO: All codecs supported by parse_codecs isn't handled here
     COMPATIBLE_CODECS = {
         'mp4': {
-            'av1', 'hevc', 'avc1', 'mp4a',  # fourcc (m3u8, mpd)
+            'av1', 'hevc', 'avc1', 'mp4a', 'ac-4',  # fourcc (m3u8, mpd)
             'h264', 'aacl', 'ec-3',  # Set in ISM
         },
         'webm': {
@@ -3606,7 +3661,7 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
 
     COMPATIBLE_EXTS = (
         {'mp3', 'mp4', 'm4a', 'm4p', 'm4b', 'm4r', 'm4v', 'ismv', 'isma', 'mov'},
-        {'webm'},
+        {'webm', 'weba'},
     )
     for ext in preferences or vexts:
         current_exts = {ext, *vexts, *aexts}
@@ -3616,7 +3671,7 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
     return 'mkv' if allow_mkv else preferences[-1]
 
 
-def urlhandle_detect_ext(url_handle):
+def urlhandle_detect_ext(url_handle, default=NO_DEFAULT):
     getheader = url_handle.headers.get
 
     cd = getheader('Content-Disposition')
@@ -3627,7 +3682,13 @@ def urlhandle_detect_ext(url_handle):
             if e:
                 return e
 
-    return mimetype2ext(getheader('Content-Type'))
+    meta_ext = getheader('x-amz-meta-name')
+    if meta_ext:
+        e = meta_ext.rpartition('.')[2]
+        if e:
+            return e
+
+    return mimetype2ext(getheader('Content-Type'), default=default)
 
 
 def encode_data_uri(data, mime_type):
@@ -3853,6 +3914,9 @@ class download_range_func:
     def __eq__(self, other):
         return (isinstance(other, download_range_func)
                 and self.chapters == other.chapters and self.ranges == other.ranges)
+
+    def __repr__(self):
+        return f'{type(self).__name__}({self.chapters}, {self.ranges})'
 
 
 def parse_dfxp_time_expr(time_expr):
@@ -5322,22 +5386,37 @@ def get_executable_path():
     return os.path.dirname(os.path.abspath(_get_variant_and_executable_path()[1]))
 
 
-def load_plugins(name, suffix, namespace):
-    classes = {}
-    with contextlib.suppress(FileNotFoundError):
-        plugins_spec = importlib.util.spec_from_file_location(
-            name, os.path.join(get_executable_path(), 'ytdlp_plugins', name, '__init__.py'))
-        plugins = importlib.util.module_from_spec(plugins_spec)
-        sys.modules[plugins_spec.name] = plugins
-        plugins_spec.loader.exec_module(plugins)
-        for name in dir(plugins):
-            if name in namespace:
-                continue
-            if not name.endswith(suffix):
-                continue
-            klass = getattr(plugins, name)
-            classes[name] = namespace[name] = klass
-    return classes
+def get_user_config_dirs(package_name):
+    locations = set()
+
+    # .config (e.g. ~/.config/package_name)
+    xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
+    config_dir = os.path.join(xdg_config_home, package_name)
+    if os.path.isdir(config_dir):
+        locations.add(config_dir)
+
+    # appdata (%APPDATA%/package_name)
+    appdata_dir = os.getenv('appdata')
+    if appdata_dir:
+        config_dir = os.path.join(appdata_dir, package_name)
+        if os.path.isdir(config_dir):
+            locations.add(config_dir)
+
+    # home (~/.package_name)
+    user_config_directory = os.path.join(compat_expanduser('~'), '.%s' % package_name)
+    if os.path.isdir(user_config_directory):
+        locations.add(user_config_directory)
+
+    return locations
+
+
+def get_system_config_dirs(package_name):
+    locations = set()
+    # /etc/package_name
+    system_config_directory = os.path.join('/etc', package_name)
+    if os.path.isdir(system_config_directory):
+        locations.add(system_config_directory)
+    return locations
 
 
 def traverse_obj(
@@ -5567,17 +5646,39 @@ def supports_terminal_sequences(stream):
         return False
 
 
-def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
+def windows_enable_vt_mode():
+    """Ref: https://bugs.python.org/issue30075 """
     if get_windows_version() < (10, 0, 10586):
         return
-    global WINDOWS_VT_MODE
-    try:
-        Popen.run('', shell=True)
-    except Exception:
-        return
 
-    WINDOWS_VT_MODE = True
-    supports_terminal_sequences.cache_clear()
+    import ctypes
+    import ctypes.wintypes
+    import msvcrt
+
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+
+    dll = ctypes.WinDLL('kernel32', use_last_error=False)
+    handle = os.open('CONOUT$', os.O_RDWR)
+
+    try:
+        h_out = ctypes.wintypes.HANDLE(msvcrt.get_osfhandle(handle))
+        dw_original_mode = ctypes.wintypes.DWORD()
+        success = dll.GetConsoleMode(h_out, ctypes.byref(dw_original_mode))
+        if not success:
+            raise Exception('GetConsoleMode failed')
+
+        success = dll.SetConsoleMode(h_out, ctypes.wintypes.DWORD(
+            dw_original_mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+        if not success:
+            raise Exception('SetConsoleMode failed')
+    except Exception as e:
+        write_string(f'WARNING: Cannot enable VT mode - {e}')
+    else:
+        global WINDOWS_VT_MODE
+        WINDOWS_VT_MODE = True
+        supports_terminal_sequences.cache_clear()
+    finally:
+        os.close(handle)
 
 
 _terminal_sequences_re = re.compile('\033\\[[^m]+m')
@@ -5848,7 +5949,7 @@ def cached_method(f):
         bound_args.apply_defaults()
         key = tuple(bound_args.arguments.values())[1:]
 
-        cache = vars(self).setdefault('__cached_method__cache', {}).setdefault(f.__name__, {})
+        cache = vars(self).setdefault('_cached_method__cache', {}).setdefault(f.__name__, {})
         if key not in cache:
             cache[key] = f(self, *args, **kwargs)
         return cache[key]
@@ -5856,14 +5957,23 @@ def cached_method(f):
 
 
 class classproperty:
-    """property access for class methods"""
+    """property access for class methods with optional caching"""
+    def __new__(cls, func=None, *args, **kwargs):
+        if not func:
+            return functools.partial(cls, *args, **kwargs)
+        return super().__new__(cls)
 
-    def __init__(self, func):
+    def __init__(self, func, *, cache=False):
         functools.update_wrapper(self, func)
         self.func = func
+        self._cache = {} if cache else None
 
     def __get__(self, _, cls):
-        return self.func(cls)
+        if self._cache is None:
+            return self.func(cls)
+        elif cls not in self._cache:
+            self._cache[cls] = self.func(cls)
+        return self._cache[cls]
 
 
 class Namespace(types.SimpleNamespace):
@@ -5881,7 +5991,7 @@ MEDIA_EXTENSIONS = Namespace(
     common_video=('avi', 'flv', 'mkv', 'mov', 'mp4', 'webm'),
     video=('3g2', '3gp', 'f4v', 'mk3d', 'divx', 'mpg', 'ogv', 'm4v', 'wmv'),
     common_audio=('aiff', 'alac', 'flac', 'm4a', 'mka', 'mp3', 'ogg', 'opus', 'wav'),
-    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma'),
+    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma', 'weba'),
     thumbnails=('jpg', 'png', 'webp'),
     storyboards=('mhtml', ),
     subtitles=('srt', 'vtt', 'ass', 'lrc'),
@@ -5958,7 +6068,7 @@ def truncate_string(s, left, right=0):
     assert left > 3 and right >= 0
     if s is None or len(s) <= left + right:
         return s
-    return f'{s[:left-3]}...{s[-right:]}'
+    return f'{s[:left-3]}...{s[-right:] if right else ""}'
 
 
 def orderedSet_from_options(options, alias_dict, *, use_regex=False, start=None):
@@ -5991,6 +6101,305 @@ def orderedSet_from_options(options, alias_dict, *, use_regex=False, start=None)
     return orderedSet(requested)
 
 
+class FormatSorter:
+    regex = r' *((?P<reverse>\+)?(?P<field>[a-zA-Z0-9_]+)((?P<separator>[~:])(?P<limit>.*?))?)? *$'
+
+    default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
+               'res', 'fps', 'hdr:12', 'vcodec:vp9.2', 'channels', 'acodec',
+               'size', 'br', 'asr', 'proto', 'ext', 'hasaud', 'source', 'id')  # These must not be aliases
+    ytdl_default = ('hasaud', 'lang', 'quality', 'tbr', 'filesize', 'vbr',
+                    'height', 'width', 'proto', 'vext', 'abr', 'aext',
+                    'fps', 'fs_approx', 'source', 'id')
+
+    settings = {
+        'vcodec': {'type': 'ordered', 'regex': True,
+                   'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
+        'acodec': {'type': 'ordered', 'regex': True,
+                   'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'ac-?4', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
+        'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
+                'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
+        'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
+                  'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.*', '.*dash', 'websocket_frag', 'rtmpe?', '', 'mms|rtsp', 'ws|websocket', 'f4']},
+        'vext': {'type': 'ordered', 'field': 'video_ext',
+                 'order': ('mp4', 'mov', 'webm', 'flv', '', 'none'),
+                 'order_free': ('webm', 'mp4', 'mov', 'flv', '', 'none')},
+        'aext': {'type': 'ordered', 'regex': True, 'field': 'audio_ext',
+                 'order': ('m4a', 'aac', 'mp3', 'ogg', 'opus', 'web[am]', '', 'none'),
+                 'order_free': ('ogg', 'opus', 'web[am]', 'mp3', 'm4a', 'aac', '', 'none')},
+        'hidden': {'visible': False, 'forced': True, 'type': 'extractor', 'max': -1000},
+        'aud_or_vid': {'visible': False, 'forced': True, 'type': 'multiple',
+                       'field': ('vcodec', 'acodec'),
+                       'function': lambda it: int(any(v != 'none' for v in it))},
+        'ie_pref': {'priority': True, 'type': 'extractor'},
+        'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
+        'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
+        'lang': {'convert': 'float', 'field': 'language_preference', 'default': -1},
+        'quality': {'convert': 'float', 'default': -1},
+        'filesize': {'convert': 'bytes'},
+        'fs_approx': {'convert': 'bytes', 'field': 'filesize_approx'},
+        'id': {'convert': 'string', 'field': 'format_id'},
+        'height': {'convert': 'float_none'},
+        'width': {'convert': 'float_none'},
+        'fps': {'convert': 'float_none'},
+        'channels': {'convert': 'float_none', 'field': 'audio_channels'},
+        'tbr': {'convert': 'float_none'},
+        'vbr': {'convert': 'float_none'},
+        'abr': {'convert': 'float_none'},
+        'asr': {'convert': 'float_none'},
+        'source': {'convert': 'float', 'field': 'source_preference', 'default': -1},
+
+        'codec': {'type': 'combined', 'field': ('vcodec', 'acodec')},
+        'br': {'type': 'combined', 'field': ('tbr', 'vbr', 'abr'), 'same_limit': True},
+        'size': {'type': 'combined', 'same_limit': True, 'field': ('filesize', 'fs_approx')},
+        'ext': {'type': 'combined', 'field': ('vext', 'aext')},
+        'res': {'type': 'multiple', 'field': ('height', 'width'),
+                'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
+
+        # Actual field names
+        'format_id': {'type': 'alias', 'field': 'id'},
+        'preference': {'type': 'alias', 'field': 'ie_pref'},
+        'language_preference': {'type': 'alias', 'field': 'lang'},
+        'source_preference': {'type': 'alias', 'field': 'source'},
+        'protocol': {'type': 'alias', 'field': 'proto'},
+        'filesize_approx': {'type': 'alias', 'field': 'fs_approx'},
+        'audio_channels': {'type': 'alias', 'field': 'channels'},
+
+        # Deprecated
+        'dimension': {'type': 'alias', 'field': 'res', 'deprecated': True},
+        'resolution': {'type': 'alias', 'field': 'res', 'deprecated': True},
+        'extension': {'type': 'alias', 'field': 'ext', 'deprecated': True},
+        'bitrate': {'type': 'alias', 'field': 'br', 'deprecated': True},
+        'total_bitrate': {'type': 'alias', 'field': 'tbr', 'deprecated': True},
+        'video_bitrate': {'type': 'alias', 'field': 'vbr', 'deprecated': True},
+        'audio_bitrate': {'type': 'alias', 'field': 'abr', 'deprecated': True},
+        'framerate': {'type': 'alias', 'field': 'fps', 'deprecated': True},
+        'filesize_estimate': {'type': 'alias', 'field': 'size', 'deprecated': True},
+        'samplerate': {'type': 'alias', 'field': 'asr', 'deprecated': True},
+        'video_ext': {'type': 'alias', 'field': 'vext', 'deprecated': True},
+        'audio_ext': {'type': 'alias', 'field': 'aext', 'deprecated': True},
+        'video_codec': {'type': 'alias', 'field': 'vcodec', 'deprecated': True},
+        'audio_codec': {'type': 'alias', 'field': 'acodec', 'deprecated': True},
+        'video': {'type': 'alias', 'field': 'hasvid', 'deprecated': True},
+        'has_video': {'type': 'alias', 'field': 'hasvid', 'deprecated': True},
+        'audio': {'type': 'alias', 'field': 'hasaud', 'deprecated': True},
+        'has_audio': {'type': 'alias', 'field': 'hasaud', 'deprecated': True},
+        'extractor': {'type': 'alias', 'field': 'ie_pref', 'deprecated': True},
+        'extractor_preference': {'type': 'alias', 'field': 'ie_pref', 'deprecated': True},
+    }
+
+    def __init__(self, ydl, field_preference):
+        self.ydl = ydl
+        self._order = []
+        self.evaluate_params(self.ydl.params, field_preference)
+        if ydl.params.get('verbose'):
+            self.print_verbose_info(self.ydl.write_debug)
+
+    def _get_field_setting(self, field, key):
+        if field not in self.settings:
+            if key in ('forced', 'priority'):
+                return False
+            self.ydl.deprecated_feature(f'Using arbitrary fields ({field}) for format sorting is '
+                                        'deprecated and may be removed in a future version')
+            self.settings[field] = {}
+        propObj = self.settings[field]
+        if key not in propObj:
+            type = propObj.get('type')
+            if key == 'field':
+                default = 'preference' if type == 'extractor' else (field,) if type in ('combined', 'multiple') else field
+            elif key == 'convert':
+                default = 'order' if type == 'ordered' else 'float_string' if field else 'ignore'
+            else:
+                default = {'type': 'field', 'visible': True, 'order': [], 'not_in_list': (None,)}.get(key, None)
+            propObj[key] = default
+        return propObj[key]
+
+    def _resolve_field_value(self, field, value, convertNone=False):
+        if value is None:
+            if not convertNone:
+                return None
+        else:
+            value = value.lower()
+        conversion = self._get_field_setting(field, 'convert')
+        if conversion == 'ignore':
+            return None
+        if conversion == 'string':
+            return value
+        elif conversion == 'float_none':
+            return float_or_none(value)
+        elif conversion == 'bytes':
+            return parse_bytes(value)
+        elif conversion == 'order':
+            order_list = (self._use_free_order and self._get_field_setting(field, 'order_free')) or self._get_field_setting(field, 'order')
+            use_regex = self._get_field_setting(field, 'regex')
+            list_length = len(order_list)
+            empty_pos = order_list.index('') if '' in order_list else list_length + 1
+            if use_regex and value is not None:
+                for i, regex in enumerate(order_list):
+                    if regex and re.match(regex, value):
+                        return list_length - i
+                return list_length - empty_pos  # not in list
+            else:  # not regex or  value = None
+                return list_length - (order_list.index(value) if value in order_list else empty_pos)
+        else:
+            if value.isnumeric():
+                return float(value)
+            else:
+                self.settings[field]['convert'] = 'string'
+                return value
+
+    def evaluate_params(self, params, sort_extractor):
+        self._use_free_order = params.get('prefer_free_formats', False)
+        self._sort_user = params.get('format_sort', [])
+        self._sort_extractor = sort_extractor
+
+        def add_item(field, reverse, closest, limit_text):
+            field = field.lower()
+            if field in self._order:
+                return
+            self._order.append(field)
+            limit = self._resolve_field_value(field, limit_text)
+            data = {
+                'reverse': reverse,
+                'closest': False if limit is None else closest,
+                'limit_text': limit_text,
+                'limit': limit}
+            if field in self.settings:
+                self.settings[field].update(data)
+            else:
+                self.settings[field] = data
+
+        sort_list = (
+            tuple(field for field in self.default if self._get_field_setting(field, 'forced'))
+            + (tuple() if params.get('format_sort_force', False)
+                else tuple(field for field in self.default if self._get_field_setting(field, 'priority')))
+            + tuple(self._sort_user) + tuple(sort_extractor) + self.default)
+
+        for item in sort_list:
+            match = re.match(self.regex, item)
+            if match is None:
+                raise ExtractorError('Invalid format sort string "%s" given by extractor' % item)
+            field = match.group('field')
+            if field is None:
+                continue
+            if self._get_field_setting(field, 'type') == 'alias':
+                alias, field = field, self._get_field_setting(field, 'field')
+                if self._get_field_setting(alias, 'deprecated'):
+                    self.ydl.deprecated_feature(f'Format sorting alias {alias} is deprecated and may '
+                                                f'be removed in a future version. Please use {field} instead')
+            reverse = match.group('reverse') is not None
+            closest = match.group('separator') == '~'
+            limit_text = match.group('limit')
+
+            has_limit = limit_text is not None
+            has_multiple_fields = self._get_field_setting(field, 'type') == 'combined'
+            has_multiple_limits = has_limit and has_multiple_fields and not self._get_field_setting(field, 'same_limit')
+
+            fields = self._get_field_setting(field, 'field') if has_multiple_fields else (field,)
+            limits = limit_text.split(':') if has_multiple_limits else (limit_text,) if has_limit else tuple()
+            limit_count = len(limits)
+            for (i, f) in enumerate(fields):
+                add_item(f, reverse, closest,
+                         limits[i] if i < limit_count
+                         else limits[0] if has_limit and not has_multiple_limits
+                         else None)
+
+    def print_verbose_info(self, write_debug):
+        if self._sort_user:
+            write_debug('Sort order given by user: %s' % ', '.join(self._sort_user))
+        if self._sort_extractor:
+            write_debug('Sort order given by extractor: %s' % ', '.join(self._sort_extractor))
+        write_debug('Formats sorted by: %s' % ', '.join(['%s%s%s' % (
+            '+' if self._get_field_setting(field, 'reverse') else '', field,
+            '%s%s(%s)' % ('~' if self._get_field_setting(field, 'closest') else ':',
+                          self._get_field_setting(field, 'limit_text'),
+                          self._get_field_setting(field, 'limit'))
+            if self._get_field_setting(field, 'limit_text') is not None else '')
+            for field in self._order if self._get_field_setting(field, 'visible')]))
+
+    def _calculate_field_preference_from_value(self, format, field, type, value):
+        reverse = self._get_field_setting(field, 'reverse')
+        closest = self._get_field_setting(field, 'closest')
+        limit = self._get_field_setting(field, 'limit')
+
+        if type == 'extractor':
+            maximum = self._get_field_setting(field, 'max')
+            if value is None or (maximum is not None and value >= maximum):
+                value = -1
+        elif type == 'boolean':
+            in_list = self._get_field_setting(field, 'in_list')
+            not_in_list = self._get_field_setting(field, 'not_in_list')
+            value = 0 if ((in_list is None or value in in_list) and (not_in_list is None or value not in not_in_list)) else -1
+        elif type == 'ordered':
+            value = self._resolve_field_value(field, value, True)
+
+        # try to convert to number
+        val_num = float_or_none(value, default=self._get_field_setting(field, 'default'))
+        is_num = self._get_field_setting(field, 'convert') != 'string' and val_num is not None
+        if is_num:
+            value = val_num
+
+        return ((-10, 0) if value is None
+                else (1, value, 0) if not is_num  # if a field has mixed strings and numbers, strings are sorted higher
+                else (0, -abs(value - limit), value - limit if reverse else limit - value) if closest
+                else (0, value, 0) if not reverse and (limit is None or value <= limit)
+                else (0, -value, 0) if limit is None or (reverse and value == limit) or value > limit
+                else (-1, value, 0))
+
+    def _calculate_field_preference(self, format, field):
+        type = self._get_field_setting(field, 'type')  # extractor, boolean, ordered, field, multiple
+        get_value = lambda f: format.get(self._get_field_setting(f, 'field'))
+        if type == 'multiple':
+            type = 'field'  # Only 'field' is allowed in multiple for now
+            actual_fields = self._get_field_setting(field, 'field')
+
+            value = self._get_field_setting(field, 'function')(get_value(f) for f in actual_fields)
+        else:
+            value = get_value(field)
+        return self._calculate_field_preference_from_value(format, field, type, value)
+
+    def calculate_preference(self, format):
+        # Determine missing protocol
+        if not format.get('protocol'):
+            format['protocol'] = determine_protocol(format)
+
+        # Determine missing ext
+        if not format.get('ext') and 'url' in format:
+            format['ext'] = determine_ext(format['url'])
+        if format.get('vcodec') == 'none':
+            format['audio_ext'] = format['ext'] if format.get('acodec') != 'none' else 'none'
+            format['video_ext'] = 'none'
+        else:
+            format['video_ext'] = format['ext']
+            format['audio_ext'] = 'none'
+        # if format.get('preference') is None and format.get('ext') in ('f4f', 'f4m'):  # Not supported?
+        #    format['preference'] = -1000
+
+        if format.get('preference') is None and format.get('ext') == 'flv' and re.match('[hx]265|he?vc?', format.get('vcodec') or ''):
+            # HEVC-over-FLV is out-of-spec by FLV's original spec
+            # ref. https://trac.ffmpeg.org/ticket/6389
+            # ref. https://github.com/yt-dlp/yt-dlp/pull/5821
+            format['preference'] = -100
+
+        # Determine missing bitrates
+        if format.get('tbr') is None:
+            if format.get('vbr') is not None and format.get('abr') is not None:
+                format['tbr'] = format.get('vbr', 0) + format.get('abr', 0)
+        else:
+            if format.get('vcodec') != 'none' and format.get('vbr') is None:
+                format['vbr'] = format.get('tbr') - format.get('abr', 0)
+            if format.get('acodec') != 'none' and format.get('abr') is None:
+                format['abr'] = format.get('tbr') - format.get('vbr', 0)
+
+        return tuple(self._calculate_field_preference(format, field) for field in self._order)
+
+
 # Deprecated
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)
+
+
+def load_plugins(name, suffix, namespace):
+    from .plugins import load_plugins
+    ret = load_plugins(name, suffix)
+    namespace.update(ret)
+    return ret

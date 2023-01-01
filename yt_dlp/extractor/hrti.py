@@ -144,7 +144,6 @@ class HRTiIE(HRTiBaseIE):
         formats = self._extract_m3u8_formats(
             m3u8_url, display_id, 'mp4', entry_protocol='m3u8_native',
             m3u8_id='hls')
-        self._sort_formats(formats)
 
         description = clean_html(title_info.get('summary_long'))
         age_limit = parse_age_limit(video.get('parental_control', {}).get('rating'))

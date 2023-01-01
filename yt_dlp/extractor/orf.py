@@ -134,8 +134,6 @@ class ORFTVthekIE(InfoExtractor):
                 HEADRequest(http_url), video_id, fatal=False, note='Testing for geoblocking',
                 errnote=f'This video seems to be blocked outside of {geo_str}. You may want to try the streaming-* formats')
 
-        self._sort_formats(formats)
-
         subtitles = {}
         for sub in sd.get('subtitles', []):
             sub_src = sub.get('src')
@@ -407,7 +405,6 @@ class ORFIPTVIE(InfoExtractor):
                     format_url, video_id, 'mp4', m3u8_id=format_id))
             else:
                 continue
-        self._sort_formats(formats)
 
         title = remove_end(self._og_search_title(webpage), ' - iptv.ORF.at')
         description = self._og_search_description(webpage)
@@ -507,7 +504,6 @@ class ORFFM4StoryIE(InfoExtractor):
                         format_url, video_id, 'mp4', m3u8_id=format_id))
                 else:
                     continue
-            self._sort_formats(formats)
 
             title = remove_end(self._og_search_title(webpage), ' - fm4.ORF.at')
             if idx >= 1:

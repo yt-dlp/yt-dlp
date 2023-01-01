@@ -249,9 +249,6 @@ class CeskaTelevizeIE(InfoExtractor):
                     'is_live': is_live,
                 })
 
-        for e in entries:
-            self._sort_formats(e['formats'])
-
         if len(entries) == 1:
             return entries[0]
         return self.playlist_result(entries, playlist_id, playlist_title, playlist_description)

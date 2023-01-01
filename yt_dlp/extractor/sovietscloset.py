@@ -104,7 +104,6 @@ class SovietsClosetIE(SovietsClosetBaseIE):
         thumbnail_url = self._search_regex(r'(https?://.*?thumbnail\.jpg)', iframe, 'thumbnail url')
 
         m3u8_formats = self._extract_m3u8_formats(m3u8_url, video_id, headers=self.MEDIADELIVERY_REFERER)
-        self._sort_formats(m3u8_formats)
 
         if not m3u8_formats:
             duration = None

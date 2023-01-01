@@ -181,7 +181,6 @@ class VideomoreIE(InfoExtractor):
                 if error in ('Данное видео недоступно для просмотра на территории этой страны', 'Данное видео доступно для просмотра только на территории России'):
                     self.raise_geo_restricted(countries=['RU'], metadata_available=True)
                 self.raise_no_formats(error, expected=True)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

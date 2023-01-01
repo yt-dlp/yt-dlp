@@ -538,7 +538,10 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
 
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = (*MEDIA_EXTENSIONS.common_video, *sorted(MEDIA_EXTENSIONS.common_audio + ('aac', 'vorbis')))
+    SUPPORTED_EXTS = (
+        *sorted((*MEDIA_EXTENSIONS.common_video, 'gif')),
+        *sorted((*MEDIA_EXTENSIONS.common_audio, 'aac', 'vorbis')),
+    )
     FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
     _ACTION = 'converting'
 

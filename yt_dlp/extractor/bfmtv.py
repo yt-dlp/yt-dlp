@@ -42,7 +42,7 @@ class BFMTVIE(BFMTVBaseIE):
         return self._brightcove_url_result(video_block['videoid'], video_block)
 
 
-class BFMTVLiveIE(BFMTVIE):
+class BFMTVLiveIE(BFMTVIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'bfmtv:live'
     _VALID_URL = BFMTVBaseIE._VALID_URL_BASE + '(?P<id>(?:[^/]+/)?en-direct)'
     _TESTS = [{

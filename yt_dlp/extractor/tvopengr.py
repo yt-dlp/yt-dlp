@@ -69,7 +69,6 @@ class TVOpenGrWatchIE(TVOpenGrBaseIE):
                 continue
             formats.extend(formats_)
             self._merge_subtitles(subs_, target=subs)
-        self._sort_formats(formats)
         return formats, subs
 
     def _real_extract(self, url):
