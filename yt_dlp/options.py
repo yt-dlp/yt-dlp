@@ -58,8 +58,8 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             assert tail == PACKAGE_NAME or (head, tail) == (compat_expanduser('~'), f'.{PACKAGE_NAME}')
 
             yield read_config(head, f'{PACKAGE_NAME}.conf')
-            if tail != PACKAGE_NAME:  # ~/.PACKAGE_NAME
-                yield read_config(config_dir, f'{PACKAGE_NAME}.conf.txt')
+            if tail.startswith('.'):  # ~/.PACKAGE_NAME
+                yield read_config(head, f'{PACKAGE_NAME}.conf.txt')
             yield read_config(config_dir, 'config')
             yield read_config(config_dir, 'config.txt')
 

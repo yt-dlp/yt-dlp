@@ -1122,11 +1122,11 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * `${XDG_CONFIG_HOME}/yt-dlp.conf`
     * `${XDG_CONFIG_HOME}/yt-dlp/config` (recommended on Linux/macOS)
     * `${XDG_CONFIG_HOME}/yt-dlp/config.txt`
+    * `~/yt-dlp.conf`
+    * `~/yt-dlp.conf.txt`
     * `${APPDATA}/yt-dlp.conf`
     * `${APPDATA}/yt-dlp/config` (recommended on Windows)
     * `${APPDATA}/yt-dlp/config.txt`
-    * `~/yt-dlp.conf`
-    * `~/yt-dlp.conf.txt`
     * `~/.yt-dlp/config`
     * `~/.yt-dlp/config.txt`
 
@@ -1837,6 +1837,7 @@ Plugins can be installed using various methods and locations.
       * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Linux/macOS)
       * `${XDG_CONFIG_HOME}/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
       * `${APPDATA}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Windows)
+      * `${APPDATA}/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
       * `~/.yt-dlp/plugins/<package name>/yt_dlp_plugins/`
       * `~/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
     * **System Plugins**

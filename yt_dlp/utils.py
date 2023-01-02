@@ -5397,7 +5397,7 @@ def get_user_config_dirs(package_name):
         yield os.path.join(appdata_dir, package_name)
 
     # home (~/.package_name)
-    yield os.path.join(compat_expanduser('~'), '.%s' % package_name)
+    yield os.path.join(compat_expanduser('~'), f'.{package_name}')
 
 
 def get_system_config_dirs(package_name):

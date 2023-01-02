@@ -5,7 +5,6 @@ import importlib.machinery
 import importlib.util
 import inspect
 import itertools
-import os
 import pkgutil
 import sys
 import traceback
@@ -14,7 +13,6 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from .compat import functools  # isort: split
-from .compat import compat_expanduser
 from .utils import (
     get_executable_path,
     get_system_config_dirs,
@@ -65,15 +63,15 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
         # Load from yt-dlp config folders
         candidate_locations.extend(_get_package_paths(
-            *get_user_config_dirs('yt-dlp'), *get_system_config_dirs('yt-dlp'),
+            *get_user_config_dirs('yt-dlp'),
+            *get_system_config_dirs('yt-dlp'),
             containing_folder='plugins'))
 
         # Load from yt-dlp-plugins folders
         candidate_locations.extend(_get_package_paths(
             get_executable_path(),
-            compat_expanduser('~'),
-            '/etc',
-            os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config'),
+            *get_user_config_dirs(''),
+            *get_system_config_dirs(''),
             containing_folder='yt-dlp-plugins'))
 
         candidate_locations.extend(map(Path, sys.path))  # PYTHONPATH
