@@ -24,7 +24,6 @@ from .utils import (
 
 PACKAGE_NAME = 'yt_dlp_plugins'
 COMPAT_PACKAGE_NAME = 'ytdlp_plugins'
-_EXTRACTOR_PLUGIN_OVERRIDES = []
 
 
 class PluginLoader(importlib.abc.Loader):
