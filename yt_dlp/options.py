@@ -587,8 +587,9 @@ def create_parser():
         '--date',
         metavar='DATE', dest='date', default=None,
         help=(
-            'Download only videos uploaded on this date. The date can be "YYYYMMDD" or in the format '
-            '[now|today|yesterday][-N[day|week|month|year]]. E.g. --date today-2weeks'))
+            'Download only videos uploaded on this date. '
+            'The date can be "YYYYMMDD" or in the format [now|today|yesterday][-N[day|week|month|year]]. '
+            'E.g. "--date today-2weeks" downloads only videos uploaded on the same day two weeks ago'))
     selection.add_option(
         '--datebefore',
         metavar='DATE', dest='datebefore', default=None,
@@ -1653,7 +1654,7 @@ def create_parser():
             'Supported values of "WHEN" are the same as that of --use-postprocessor (default: after_move). '
             'Same syntax as the output template can be used to pass any field as arguments to the command. '
             'After download, an additional field "filepath" that contains the final path of the downloaded file '
-            'is also available, and if no fields are passed, %(filepath)q is appended to the end of the command. '
+            'is also available, and if no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
             'This option can be used multiple times'))
     postproc.add_option(
         '--no-exec',
