@@ -14,12 +14,50 @@ class FloatplaneIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.floatplane.com/post/DdShecU983',
         'info_dict': {
-            'id': 'DdShecU983',
-            'ext': 'mp4',
-            'title': 'TQ: Are Intel Arc Graphics A Bad Idea?',
-            'thumbnail': r're:^https?://.*\.jpg$',
+               'id': 'DdShecU983',
+               'ext': 'mp4',
+               'channel': 'LinusTechTips',
+               'title': 'TQ: Are Intel Arc Graphics A Bad Idea?',
+               'description': '<p><br /></p>',
+               'thumbnail': r're:^https?://.*\.jpeg$',
+               'webpage_url': 'https://www.floatplane.com/post/DdShecU983',
+               'channel_url': 'https://www.floatplane.com/channel/linustechtips/home',
+               'channel_id': '59f94c0bdd241b70349eb72b',
+               'duration': 230,
+               'release_date': '20221230',
+               'release_timestamp': 1672418880,
+               'availability': 'premium_only',
+               'channel_follower_count': int,
+               'like_count': int,
+               'dislike_count': int,
+               'comment_count': int,
+               'formats': list
         },
-        'skip': 'Requires premium Floatplane account',
+        'skip': 'Requires an active Floatplane subscription to LinusTechTips',
+    },
+        {
+            'url': 'https://www.floatplane.com/post/g6IutvvaDF',
+            'info_dict': {
+                'id': 'g6IutvvaDF',
+                'ext': 'mp4',
+                'channel': 'LinusTechTips',
+                'title': 'The Most Average PC 2022',
+                'description': '<p>RIP the GTX 1060 6GB. The 1650 is now in first place, so we went digging through the rest of the Steam Hardware Survey to see if any other major changes have come about in the last two years. </p>',
+                'thumbnail': r're:^https?://.*\.jpeg$',
+                'webpage_url': 'https://www.floatplane.com/post/g6IutvvaDF',
+                'channel_url': 'https://www.floatplane.com/channel/linustechtips/home',
+                'channel_id': '59f94c0bdd241b70349eb72b',
+                'duration': 825,
+                'release_date': '20221226',
+                'release_timestamp': 1672075140,
+                'availability': 'premium_only',
+                'channel_follower_count': int,
+                'like_count': int,
+                'dislike_count': int,
+                'comment_count': int,
+                'formats': list
+            },
+            'skip': 'Requires an active Floatplane subscription to LinusTechTips',
     }]
 
     def _real_initialize(self):
@@ -42,7 +80,7 @@ class FloatplaneIE(InfoExtractor):
         self._set_cookie("floatplane.com", "Cookie", f'sails.sid={self.session_id}')
 
         post_metadata = self._download_json(
-            f'https://www.floatplane.com/api/v3/content/post?id={post_id}', post_id, note='Fetching post details')
+            f'https://www.floatplane.com/api/v3/content/post?id={post_id}', post_id, note='Fetching post details', errnote='Failed to fetch post details, do you have an active Floatplane subscription for this creator?')
 
         if not traverse_obj(post_metadata, ('metadata', 'hasVideo')):
             raise ExtractorError(
