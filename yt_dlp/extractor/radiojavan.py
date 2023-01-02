@@ -90,6 +90,84 @@ class RadioJavanPodcastsIE(InfoExtractor):
         }
 
 
+class RadioJavanMp3IE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/mp3s/mp3/(?P<id>[^/]+)/?'
+    _TEST = {
+        'url': 'https://www.radiojavan.com/mp3s/mp3/Ell3-Baroon',
+        'md5': 'cb877362f8e8fabb1aad6e2f1bf1bf97',
+        'info_dict': {
+            'id': 'Ell3-Baroon',
+            'ext': 'mp3',
+            'title': 'Ell3 - Baroon',
+            'alt_title': 'Ell3 - Baroon Song | ال بارون',
+            'track': 'Baroon',
+            'artist': 'Ell3',
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'upload_date': '20221226',
+            'view_count': int,
+            'like_count': int,
+        }
+    }
+
+    def _real_extract(self, url):
+        mp3_id = self._match_id(url)
+
+        download_host = self._download_json(
+            'https://www.radiojavan.com/mp3s/mp3_host', mp3_id,
+            data=urlencode_postdata({'id': mp3_id}),
+            headers={
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Referer': url,
+            }).get('host', 'https://host2.rj-mw1.com')
+
+        mp3_url = self._download_json(
+            f'https://www.radiojavan.com/mp3s/mp3/{mp3_id}?setup=1', None,
+            data=b'',
+            headers={
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Referer': url,
+            }).get('currentMP3Url')
+
+        webpage = self._download_webpage(url, mp3_id)
+
+        artist = self._search_regex(
+            r'<span class="artist">([^<]+?)<',
+            webpage, 'artist', fatal=False)
+
+        song = self._search_regex(
+            r'<span class="song">([^<]+?)<',
+            webpage, 'song', fatal=False)
+
+        title = f'{artist} - {song}'
+        alt_title = self._og_search_title(webpage)
+        thumbnail = self._og_search_thumbnail(webpage)
+
+        upload_date = unified_strdate(self._search_regex(
+            re.compile('class="dateAdded">Date added: ([^<]+)<', re.IGNORECASE | re.MULTILINE),
+            webpage, 'upload date', fatal=False))
+
+        view_count = str_to_int(self._search_regex(
+            r'class="views">Plays: ([\d,]+)',
+            webpage, 'view count', fatal=False))
+        like_count = str_to_int(self._search_regex(
+            r'class="rating">([\d,]+) likes',
+            webpage, 'like count', fatal=False))
+
+        return {
+            'id': mp3_id,
+            'title': title,
+            'alt_title': alt_title,
+            'track': song,
+            'artist': artist,
+            'url': f'{download_host}/media/{mp3_url}.mp3',
+            'thumbnail': thumbnail,
+            'upload_date': upload_date,
+            'view_count': view_count,
+            'like_count': like_count,
+        }
+
+
 class RadioJavanIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/videos/video/(?P<id>[^/]+)/?'
     _TEST = {

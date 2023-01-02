@@ -1481,7 +1481,8 @@ from .radiocanada import (
 from .radiode import RadioDeIE
 from .radiojavan import (
     RadioJavanIE,
-    RadioJavanPodcastsIE
+    RadioJavanMp3IE,
+    RadioJavanPodcastsIE,
 )
 from .radiobremen import RadioBremenIE
 from .radiofrance import FranceCultureIE, RadioFranceIE
