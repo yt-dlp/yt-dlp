@@ -109,7 +109,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     opts = optparse.Values({'verbose': True, 'print_help': False})
     try:
         try:
-            if overrideArguments:
+            if overrideArguments is not None:
                 root.append_config(overrideArguments, label='Override')
             else:
                 root.append_config(sys.argv[1:], label='Command-line')
@@ -904,11 +904,11 @@ def create_parser():
             'This option can be used multiple times to set the sleep for the different retry types, '
             'e.g. --retry-sleep linear=1::2 --retry-sleep fragment:exp=1:20'))
     downloader.add_option(
-        '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragment',
+        '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragments',
         action='store_true', dest='skip_unavailable_fragments', default=True,
-        help='Skip unavailable fragments for DASH, hlsnative and ISM downloads (default) (Alias: --no-abort-on-unavailable-fragment)')
+        help='Skip unavailable fragments for DASH, hlsnative and ISM downloads (default) (Alias: --no-abort-on-unavailable-fragments)')
     downloader.add_option(
-        '--abort-on-unavailable-fragment', '--no-skip-unavailable-fragments',
+        '--abort-on-unavailable-fragments', '--no-skip-unavailable-fragments',
         action='store_false', dest='skip_unavailable_fragments',
         help='Abort download if a fragment is unavailable (Alias: --no-skip-unavailable-fragments)')
     downloader.add_option(

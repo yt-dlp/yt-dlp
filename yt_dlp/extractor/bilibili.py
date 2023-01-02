@@ -1013,7 +1013,7 @@ class BiliIntlIE(BiliIntlBaseIE):
 
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
-    IE_NAME = 'biliintl:series'
+    IE_NAME = 'biliIntl:series'
     _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?play/(?P<id>\d+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.bilibili.tv/en/play/34613',

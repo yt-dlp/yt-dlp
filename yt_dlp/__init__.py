@@ -332,7 +332,7 @@ def validate_options(opts):
                     mobj = range_ != '-' and re.fullmatch(r'([^-]+)?\s*-\s*([^-]+)?', range_)
                     dur = mobj and (parse_timestamp(mobj.group(1) or '0'), parse_timestamp(mobj.group(2) or 'inf'))
                     if None in (dur or [None]):
-                        raise ValueError(f'invalid {name} time range "{regex}". Must be of the form *start-end')
+                        raise ValueError(f'invalid {name} time range "{regex}". Must be of the form "*start-end"')
                     ranges.append(dur)
                 continue
             try:

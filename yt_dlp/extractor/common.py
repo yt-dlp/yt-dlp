@@ -1262,7 +1262,9 @@ class InfoExtractor:
         Like _search_regex, but strips HTML tags and unescapes entities.
         """
         res = self._search_regex(pattern, string, name, default, fatal, flags, group)
-        if res:
+        if isinstance(res, tuple):
+            return [clean_html(r).strip() for r in res]
+        elif res:
             return clean_html(res).strip()
         else:
             return res
@@ -3512,7 +3514,7 @@ class InfoExtractor:
         elif cls.IE_DESC:
             desc += f' {cls.IE_DESC}'
         if cls.SEARCH_KEY:
-            desc += f'; "{cls.SEARCH_KEY}:" prefix'
+            desc += f'{";" if cls.IE_DESC else ""} "{cls.SEARCH_KEY}:" prefix'
             if search_examples:
                 _COUNTS = ('', '5', '10', 'all')
                 desc += f' (e.g. "{cls.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(search_examples)}")'

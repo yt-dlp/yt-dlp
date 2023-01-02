@@ -3392,6 +3392,7 @@ class YoutubeDL:
             reject = lambda k, v: v is None or k.startswith('__') or k in {
                 'requested_downloads', 'requested_formats', 'requested_subtitles', 'requested_entries',
                 'entries', 'filepath', '_filename', 'infojson_filename', 'original_url', 'playlist_autonumber',
+                '_format_sort_fields',
             }
         else:
             reject = lambda k, v: False
