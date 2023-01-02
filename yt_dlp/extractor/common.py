@@ -3255,7 +3255,7 @@ class InfoExtractor:
         # JWPlayer backward compatibility: single playlist item
         # https://github.com/jwplayer/jwplayer/blob/v7.7.0/src/js/playlist/playlist.js#L10
         if not isinstance(playlist_items, list):
-            playlist_items = (playlist_items,)
+            playlist_items = (playlist_items or jwplayer_data,)
 
         for video_data in playlist_items:
             if not isinstance(video_data, dict):

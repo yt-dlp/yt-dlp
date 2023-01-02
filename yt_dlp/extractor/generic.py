@@ -1889,30 +1889,6 @@ class GenericIE(InfoExtractor):
                 'skip_download': True,
             },
         }, {
-            # KVS Player
-            'url': 'https://thisvid.com/videos/french-boy-pantsed/',
-            'md5': '3397979512c682f6b85b3b04989df224',
-            'info_dict': {
-                'id': '2400174',
-                'display_id': 'french-boy-pantsed',
-                'ext': 'mp4',
-                'title': 'French Boy Pantsed - ThisVid.com',
-                'thumbnail': 'https://media.thisvid.com/contents/videos_screenshots/2400000/2400174/preview.mp4.jpg',
-            },
-            'skip': 'Video does not exist anymore',
-        }, {
-            # KVS Player
-            'url': 'https://thisvid.com/embed/2400174/',
-            'md5': '3397979512c682f6b85b3b04989df224',
-            'info_dict': {
-                'id': '2400174',
-                'display_id': 'french-boy-pantsed',
-                'ext': 'mp4',
-                'title': 'French Boy Pantsed - ThisVid.com',
-                'thumbnail': 'https://media.thisvid.com/contents/videos_screenshots/2400000/2400174/preview.mp4.jpg',
-            },
-            'skip': 'Video does not exist anymore',
-        }, {
             'url': 'https://youix.com/video/leningrad-zoj/',
             'md5': '94f96ba95706dc3880812b27b7d8a2b8',
             'info_dict': {
@@ -2200,30 +2176,6 @@ class GenericIE(InfoExtractor):
                 'thumbnail': 'https://i.shoosh.co/contents/videos_screenshots/284000/284002/preview.mp4.jpg',
                 'height': 720,
                 'age_limit': 18,
-            },
-        },
-        {
-            # KVS Player (also checked in thisvid.py)
-            'url': 'https://thisvid.com/videos/sitting-on-ball-tight-jeans/',
-            'info_dict': {
-                'id': '3533241',
-                'ext': 'mp4',
-                'description': 'md5:372353bb995883d1b65fddf507489acd',
-                'display_id': 'sitting-on-ball-tight-jeans',
-                'age_limit': 18,
-                'title': 'Sitting on ball tight jeans - ThisVid.com',
-                'thumbnail': r're:https?://\w+\.thisvid\.com/(?:[^/]+/)+3533241/preview\.jpg',
-            },
-        },
-        {
-            # KVS Embed (also checked in thisvid.py)
-            'url': 'https://thisvid.com/embed/3533241/',
-            'info_dict': {
-                'id': '3533241',
-                'ext': 'mp4',
-                'title': 'Sitting on ball tight jeans - ThisVid.com',
-                'display_id': 'sitting-on-ball-tight-jeans',
-                'thumbnail': r're:https?://\w+\.thisvid\.com/(?:[^/]+/)+3533241/preview\.jpg',
             },
         },
     ]
