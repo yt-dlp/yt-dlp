@@ -2135,7 +2135,8 @@ class GenericIE(InfoExtractor):
                 'age_limit': 0,
                 'direct': True,
             }
-        }, {
+        },
+        {
             'note': 'server returns data in brotli compression by default if `accept-encoding: *` is specified.',
             'url': 'https://www.extra.cz/cauky-lidi-70-dil-babis-predstavil-pohadky-prymulanek-nebo-andrejovy-nove-saty-ac867',
             'info_dict': {
@@ -2149,7 +2150,23 @@ class GenericIE(InfoExtractor):
                 'duration': 318.0,
                 'direct': True,
                 'age_limit': 0,
-            }
+            },
+        },
+        {
+            'note': 'JW Player embed with unicode-escape sequences in URL',
+            'url': 'https://www.medici.tv/en/concerts/lahav-shani-mozart-mahler-israel-philharmonic-abu-dhabi-classics',
+            'info_dict': {
+                'id': 'm',
+                'ext': 'mp4',
+                'title': 'Lahav Shani conducts the Israel Philharmonic\'s first-ever concert in Abu Dhabi',
+                'description': 'Mahler\'s ',
+                'uploader': 'www.medici.tv',
+                'age_limit': 0,
+                'thumbnail': r're:^https?://.+\.jpg',
+            },
+            'params': {
+                'skip_download': True,
+            },
         },
         {
             'url': 'https://shooshtime.com/videos/284002/just-out-of-the-shower-joi/',
@@ -2751,6 +2768,7 @@ class GenericIE(InfoExtractor):
 
         entries = []
         for video_url in orderedSet(found):
+            video_url = video_url.encode().decode('unicode-escape')
             video_url = unescapeHTML(video_url)
             video_url = video_url.replace('\\/', '/')
             video_url = urllib.parse.urljoin(url, video_url)
