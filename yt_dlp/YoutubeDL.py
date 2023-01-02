@@ -619,12 +619,6 @@ class YoutubeDL:
                 '         If you experience any issues while using this option, '
                 f'{self._format_err("DO NOT", self.Styles.ERROR)} open a bug report')
 
-        if self.params.get('enable_file_urls'):
-            self.report_warning(
-                f'You have enabled support for file:// URLs. '
-                'These are disabled by default in yt-dlp for security reasons. '
-                f'{self._format_err("Use at your own risk.", self.Styles.ERROR)}')
-
         if self.params.get('bidi_workaround', False):
             try:
                 import pty
