@@ -19,11 +19,13 @@ class RadioJavanIE(InfoExtractor):
             'id': 'chaartaar-ashoobam',
             'ext': 'mp4',
             'title': 'Chaartaar - Ashoobam',
+            'alt_title': 'Chaartaar - Ashoobam Video | چارتار آشوبم',
+            'track': 'Ashoobam',
+            'artist': 'Chaartaar',
             'thumbnail': r're:^https?://.*\.jpe?g$',
             'upload_date': '20150215',
             'view_count': int,
             'like_count': int,
-            'dislike_count': int,
         }
     }
 
@@ -34,7 +36,7 @@ class RadioJavanIE(InfoExtractor):
             'https://www.radiojavan.com/videos/video_host', video_id,
             data=urlencode_postdata({'id': video_id}),
             headers={
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Referer': url,
             }).get('host', 'https://host1.rjmusicmedia.com')
 
@@ -51,7 +53,16 @@ class RadioJavanIE(InfoExtractor):
             })
             formats.append(f)
 
-        title = self._og_search_title(webpage)
+        artist = self._search_regex(
+            r'<span class="artist">([^<]+?)<',
+            webpage, 'artist', fatal=False)
+
+        song = self._search_regex(
+            r'<span class="song">([^<]+?)<',
+            webpage, 'song', fatal=False)
+
+        title = f'{artist} - {song}'
+        alt_title = self._og_search_title(webpage)
         thumbnail = self._og_search_thumbnail(webpage)
 
         upload_date = unified_strdate(self._search_regex(
@@ -64,17 +75,17 @@ class RadioJavanIE(InfoExtractor):
         like_count = str_to_int(self._search_regex(
             r'class="rating">([\d,]+) likes',
             webpage, 'like count', fatal=False))
-        dislike_count = str_to_int(self._search_regex(
-            r'class="rating">([\d,]+) dislikes',
-            webpage, 'dislike count', fatal=False))
 
         return {
             'id': video_id,
             'title': title,
+            'alt_title': alt_title,
+            'cast': [artist],
+            'track': song,
+            'artist': artist,
             'thumbnail': thumbnail,
             'upload_date': upload_date,
             'view_count': view_count,
             'like_count': like_count,
-            'dislike_count': dislike_count,
             'formats': formats,
         }
