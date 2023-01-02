@@ -1351,7 +1351,8 @@ class YoutubeDL:
     def _match_entry(self, info_dict, incomplete=False, silent=False):
         """ Returns None if the file should be downloaded """
 
-        video_title = info_dict.get('title', info_dict.get('id', 'entry'))
+        video_id = info_dict.get('id', 'entry')
+        video_title = info_dict.get('title', video_id)
 
         def check_filter():
             if 'title' in info_dict:
@@ -1402,7 +1403,8 @@ class YoutubeDL:
             return None
 
         if self.in_download_archive(info_dict):
-            reason = f'{self._format_screen(video_title, self.Styles.FILENAME)} has already been recorded in the archive'
+            reason = (f'{self._format_screen(video_id, self.Styles.FILENAME)} - {self._format_screen(video_title, self.Styles.FILENAME)}'
+                      ' has already been recorded in the archive')
             break_opt, break_err = 'break_on_existing', ExistingVideoReached
         else:
             reason = check_filter()
@@ -1459,8 +1461,7 @@ class YoutubeDL:
 
             temp_id = ie.get_temp_id(url)
             if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': key}):
-                self.to_screen(f'[{key}] '
-                               f'{self._format_screen(temp_id, self.Styles.ID)}: '
+                self.to_screen(f'[{key}] {self._format_screen(temp_id, self.Styles.ID)}: '
                                'has already been recorded in the archive'
                                )
                 if self.params.get('break_on_existing', False):
