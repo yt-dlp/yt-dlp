@@ -529,7 +529,7 @@ class IqIE(InfoExtractor):
         webpack_js = self._download_webpage(webpack_js_url, video_id, note='Downloading webpack JS', errnote='Unable to download webpack JS')
         webpack_map = self._search_json(
             r'["\']\s*\+\s*', webpack_js, 'JS locations', video_id,
-            contains_pattern=r'({\s*(?:\d+\s*:\s*["\'][\da-f]+["\']\s*,?\s*)+})',
+            contains_pattern=r'{\s*(?:\d+\s*:\s*["\'][\da-f]+["\']\s*,?\s*)+}',
             end_pattern=r'\[\w+\]\+["\']\.js', transform_source=js_to_json)
 
         for module_index in reversed(webpack_map):
@@ -549,7 +549,7 @@ class IqIE(InfoExtractor):
         extracted_bid_tags = self._search_json(
             r'function\s*\([^)]*\)\s*\{\s*"use strict";?\s*var \w\s*=\s*',
             self._extract_vms_player_js(webpage, video_id), 'video tags', video_id,
-            contains_pattern=r'({\s*\d+\s*:\s*\{\s*nbid\s*:.+}\s*})',
+            contains_pattern=r'{\s*\d+\s*:\s*\{\s*nbid\s*:.+}\s*}',
             end_pattern=r'\s*,\s*\w\s*=\s*\{\s*getNewVd', fatal=False, transform_source=js_to_json)
         if not extracted_bid_tags:
             return
