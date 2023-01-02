@@ -50,3 +50,10 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 * Download live from start to end for YouTube
 * Added support for new websites AbemaTV, mildom, PixivSketch, skeb, radiko, voicy, mirrativ, openrec, whowatch, damtomo, 17.live, mixch etc
 * Improved/fixed support for fc2, YahooJapanNews, tver, iwara etc
+
+
+## [bashonly](https://github.com/bashonly)
+
+* `--cookies-from-browser` support for Firefox containers
+* Added support for new websites Genius, Kick, NBCStations, Triller, VideoKen etc
+* Improved/fixed support for Anvato, Brightcove, Instagram, ParamountPlus, Reddit, SlidesLive, TikTok, Twitter, Vimeo etc
