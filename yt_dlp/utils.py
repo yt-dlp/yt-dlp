@@ -5659,9 +5659,11 @@ def windows_enable_vt_mode():
 
     dll = ctypes.WinDLL('kernel32', use_last_error=False)
 
+    # `CONOUT$` might not always exist in GUI environments
+    # Ref: https://github.com/KurtBestor/Hitomi-Downloader/issues/5592
     try:
         handle = os.open('CONOUT$', os.O_RDWR)
-    except OSError: # GUI environment
+    except OSError:
         return
 
     try:
