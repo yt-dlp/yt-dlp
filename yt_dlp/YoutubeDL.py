@@ -3815,11 +3815,9 @@ class YoutubeDL:
                 for name, klass in plugins.items()]
             if plugin_type == 'Extractor':
                 display_list.extend([f'{plugin_name} (for {parent.__name__})' for plugin_name, _, parent in _EXTRACTOR_PLUGIN_OVERRIDES])
-
             if not display_list:
                 continue
-
-            write_debug(f'{plugin_type} Plugins: %s' % (', '.join(sorted(display_list))))
+            write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')
 
         plugin_dirs = plugin_directories()
         if plugin_dirs:
