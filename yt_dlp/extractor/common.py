@@ -1400,16 +1400,12 @@ class InfoExtractor:
             r'>\s*(?:18\s+U(?:\.S\.C\.|SC)\s+)?(?:§+\s*)?2257\b',
         ]
 
-        current = None
+        age_limit = 0
         for marker in AGE_LIMIT_MARKERS:
-            match = re.search(marker, html)
-            if not match:
-                continue
-            new = int_or_none(match.groups() and match.group(1), default=18)
-            if current is None or (new is not None and new > current):
-                current = new
-
-        return current
+            mobj = re.search(marker, html)
+            if mobj:
+                age_limit = max(age_limit, int(traverse_obj(mobj, 1, default=18)))
+        return age_limit
 
     def _media_rating_search(self, html):
         # See http://www.tjg-designs.com/WP/metadata-code-examples-adding-metadata-to-your-web-pages/
@@ -3226,7 +3222,7 @@ class InfoExtractor:
 
     def _find_jwplayer_data(self, webpage, video_id=None, transform_source=js_to_json):
         mobj = re.search(
-            r'''(?s)jwplayer\s*\(\s*(?P<quote>'|")(?!(?P=quote)).+(?P=quote)\s*\)(?!</script>).*?\.\s*setup\s*\(\s*(?P<options>(?:\([^)]*\)|[^)])+)\s*\)''',
+            r'''(?s)jwplayer\s*\(\s*(?P<q>'|")(?!(?P=q)).+(?P=q)\s*\)(?!</script>).*?\.\s*setup\s*\(\s*(?P<options>(?:\([^)]*\)|[^)])+)\s*\)''',
             webpage)
         if mobj:
             try:
@@ -3255,13 +3251,14 @@ class InfoExtractor:
         # JWPlayer backward compatibility: single playlist item
         # https://github.com/jwplayer/jwplayer/blob/v7.7.0/src/js/playlist/playlist.js#L10
         if not isinstance(playlist_items, list):
-            playlist_items = (playlist_items or jwplayer_data,)
+            playlist_items = (playlist_items or jwplayer_data, )
 
         for video_data in playlist_items:
             if not isinstance(video_data, dict):
                 continue
-            # JWPlayer backward compatibility: flattened sources
+            # JWPlayer backward compatibility: flattened sources/flattened playlists
             # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/playlist/item.js#L29-L35
+            # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/api/config.js#L81-L96
             if 'sources' not in video_data:
                 video_data['sources'] = [video_data]
 

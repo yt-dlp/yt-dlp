@@ -11,17 +11,12 @@ from ..utils import (
 
 
 class PeekVidsBaseIE(InfoExtractor):
-    _DOMAIN = None
-
-    def _get_detail(self, html):
-        ...
-
-    def _extract_single(self, url):
-        video_id = self._match_id(url)
+    def _real_extract(self, url):
+        domain, video_id = self._match_valid_url(url).group('domain', 'id')
         webpage = self._download_webpage(url, video_id, expected_status=429)
         if '>Rate Limit Exceeded' in webpage:
             raise ExtractorError(
-                'You are suspected as a bot. Wait or pass the captcha on the site and provide cookies.',
+                f'You are suspected as a bot. Wait, or pass the captcha on the site and provide cookies. {self._login_hint()}',
                 video_id=video_id, expected=True)
 
         title = self._html_search_regex(r'(?s)<h1\b[^>]*>(.+?)</h1>', webpage, 'title')
@@ -29,7 +24,7 @@ class PeekVidsBaseIE(InfoExtractor):
         display_id = video_id
         video_id = self._search_regex(r'(?s)<video\b[^>]+\bdata-id\s*=\s*["\']?([\w-]+)', webpage, 'short video ID')
         srcs = self._download_json(
-            f'https://{self._DOMAIN}/v-alt/{video_id}', video_id,
+            f'https://www.{domain}/v-alt/{video_id}', video_id,
             note='Downloading list of source files')
 
         formats = []
@@ -38,14 +33,14 @@ class PeekVidsBaseIE(InfoExtractor):
             if not f_url:
                 continue
 
-            match = re.match(r'^data-src(\d{3,})$', k)
-            if not match:
+            height = self._search_regex(r'^data-src(\d{3,})$', k, 'height', default=None)
+            if not height:
                 continue
 
             formats.append({
                 'url': f_url,
-                'format_id': match.group(1),
-                'height': int_or_none(match.group(1)),
+                'format_id': height,
+                'height': int_or_none(height),
             })
 
         if not formats:
@@ -55,10 +50,9 @@ class PeekVidsBaseIE(InfoExtractor):
         info.pop('url', None)
 
         # may not have found the thumbnail if it was in a list in the ld+json
-        if 'thumbnail' not in info:
-            info['thumbnail'] = self._og_search_thumbnail(webpage)
-
-        detail = self._get_detail(webpage) or ''
+        info.setdefault('thumbnail', self._og_search_thumbnail(webpage))
+        detail = (get_element_by_class('detail-video-block', webpage)
+                  or get_element_by_class('detail-block', webpage) or '')
         info['description'] = self._html_search_regex(
             rf'(?s)(.+?)(?:{re.escape(info.get("description", ""))}\s*<|<ul\b)',
             detail, 'description', default=None) or None
@@ -83,7 +77,7 @@ class PeekVidsBaseIE(InfoExtractor):
 
 class PeekVidsIE(PeekVidsBaseIE):
     _VALID_URL = r'''(?x)
-        https?://(?:www\.)?peekvids\.com/
+        https?://(?:www\.)?(?P<domain>peekvids\.com)/
         (?:(?:[^/?#]+/){2}|embed/?\?(?:[^#]*&)?v=)
         (?P<id>[^/?&#]*)
     '''
@@ -107,17 +101,10 @@ class PeekVidsIE(PeekVidsBaseIE):
             'tags': list,
         },
     }]
-    _DOMAIN = 'www.peekvids.com'
-
-    def _get_detail(self, html):
-        return get_element_by_class('detail-video-block', html)
-
-    def _real_extract(self, url):
-        return self._extract_single(url)
 
 
 class PlayVidsIE(PeekVidsBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?playvids\.com/(?:embed/|\w\w?/)?(?P<id>[^/?#]*)'
+    _VALID_URL = r'https?://(?:www\.)?(?P<domain>playvids\.com)/(?:embed/|\w\w?/)?(?P<id>[^/?#]*)'
     _TESTS = [{
         'url': 'https://www.playvids.com/U3pBrYhsjXM/pc/dane-jones-cute-redhead-with-perfect-tits-with-mini-vamp',
         'md5': '2f12e50213dd65f142175da633c4564c',
@@ -202,10 +189,3 @@ class PlayVidsIE(PeekVidsBaseIE):
             'tags': list,
         },
     }]
-    _DOMAIN = 'www.playvids.com'
-
-    def _get_detail(self, html):
-        return get_element_by_class('detail-block', html)
-
-    def _real_extract(self, url):
-        return self._extract_single(url)

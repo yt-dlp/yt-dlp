@@ -2284,8 +2284,9 @@ class GenericIE(InfoExtractor):
         ]
 
     def _extract_kvs(self, url, webpage, video_id):
-        flashvars = re.search(r'(?s)<script\b[^>]*>.*?var\s+flashvars\s*=\s*(\{.+?\});.*?</script>', webpage)
-        flashvars = self._parse_json(flashvars.group(1), video_id, transform_source=js_to_json)
+        flashvars = self._search_json(
+            r'(?s)<script\b[^>]*>.*?var\s+flashvars\s*=',
+            webpage, 'flashvars', video_id, transform_source=js_to_json)
 
         # extract the part after the last / as the display_id from the
         # canonical URL.
@@ -2632,14 +2633,14 @@ class GenericIE(InfoExtractor):
                 return [{'formats': formats, 'subtitles': subtitles}]
 
         # Look for generic KVS player (before json-ld bc of some urls that break otherwise)
-        found = (
-            re.search(r'<script\b[^>]+?\bsrc\s*=\s*(["\'])https?://(?:\S+?/)+kt_player\.js\?v=(?P<ver>(?P<maj_ver>\d+)(?:\.\d+)+)\1[^>]*>', webpage)
-            or re.search(r'kt_player\s*\(\s*(["\'])(?:(?!\1)[\w\W])+\1\s*,\s*(["\'])https?://(?:\S+?/)+kt_player\.swf\?v=(?P<ver>(?P<maj_ver>\d+)(?:\.\d+)+)\2\s*,', webpage))
+        found = self._search_regex((
+            r'<script\b[^>]+?\bsrc\s*=\s*(["\'])https?://(?:\S+?/)+kt_player\.js\?v=(?P<ver>\d+(?:\.\d+)+)\1[^>]*>',
+            r'kt_player\s*\(\s*(["\'])(?:(?!\1)[\w\W])+\1\s*,\s*(["\'])https?://(?:\S+?/)+kt_player\.swf\?v=(?P<ver>\d+(?:\.\d+)+)\2\s*,',
+        ), webpage, 'KVS player', group='ver', default=False)
         if found:
             self.report_detected('KWS Player')
-            if found.group('maj_ver') not in ('4', '5', '6'):
-                self.report_warning(f'Untested major version ({found.group("ver")}) in player engine - download may fail')
-
+            if found.split('.')[0] not in ('4', '5', '6'):
+                self.report_warning(f'Untested major version ({found}) in player engine - download may fail.')
             return [self._extract_kvs(url, webpage, video_id)]
 
         # Looking for http://schema.org/VideoObject
