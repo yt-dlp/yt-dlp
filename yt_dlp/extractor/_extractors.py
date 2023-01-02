@@ -1479,7 +1479,10 @@ from .radiocanada import (
     RadioCanadaAudioVideoIE,
 )
 from .radiode import RadioDeIE
-from .radiojavan import RadioJavanIE
+from .radiojavan import (
+    RadioJavanIE,
+    RadioJavanPodcastsIE
+)
 from .radiobremen import RadioBremenIE
 from .radiofrance import FranceCultureIE, RadioFranceIE
 from .radiozet import RadioZetPodcastIE
