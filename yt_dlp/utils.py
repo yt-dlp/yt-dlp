@@ -5658,7 +5658,11 @@ def windows_enable_vt_mode():
     ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
 
     dll = ctypes.WinDLL('kernel32', use_last_error=False)
-    handle = os.open('CONOUT$', os.O_RDWR)
+
+    try:
+        handle = os.open('CONOUT$', os.O_RDWR)
+    except OSError: # GUI environment
+        return
 
     try:
         h_out = ctypes.wintypes.HANDLE(msvcrt.get_osfhandle(handle))
