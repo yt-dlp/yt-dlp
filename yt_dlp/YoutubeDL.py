@@ -33,7 +33,7 @@ from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
 from .plugins import directories as plugin_directories
-from .postprocessor import _PLUGIN_CLASSES as plugin_postprocessors
+from .postprocessor import _PLUGIN_CLASSES as plugin_pps
 from .postprocessor import (
     EmbedThumbnailPP,
     FFmpegFixupDuplicateMoovPP,
@@ -3731,8 +3731,8 @@ class YoutubeDL:
         # These imports can be slow. So import them only as needed
         from .extractor.extractors import _LAZY_LOADER
         from .extractor.extractors import (
-            _PLUGIN_CLASSES as plugin_extractors,
-            _PLUGIN_OVERRIDES as extractor_plugin_overrides
+            _PLUGIN_CLASSES as plugin_ies,
+            _PLUGIN_OVERRIDES as plugin_ie_overrides
         )
 
         def get_encoding(stream):
@@ -3811,13 +3811,13 @@ class YoutubeDL:
                 proxy_map.update(handler.proxies)
         write_debug(f'Proxy map: {proxy_map}')
 
-        for plugin_type, plugins in {'Extractor': plugin_extractors, 'Post-Processor': plugin_postprocessors}.items():
+        for plugin_type, plugins in {'Extractor': plugin_ies, 'Post-Processor': plugin_pps}.items():
             display_list = ['%s%s' % (
                 klass.__name__, '' if klass.__name__ == name else f' as {name}')
                 for name, klass in plugins.items()]
             if plugin_type == 'Extractor':
-                display_list.extend(
-                    f'{plugins[-1].IE_NAME.partition("+")[2]} ({parent.__name__})' for parent, plugins in extractor_plugin_overrides.items())
+                display_list.extend(f'{plugins[-1].IE_NAME.partition("+")[2]} ({parent.__name__})'
+                                    for parent, plugins in plugin_ie_overrides.items())
             if not display_list:
                 continue
             write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')
