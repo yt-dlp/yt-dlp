@@ -1119,9 +1119,10 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * `yt-dlp.conf` in the home path given by `-P`
     * If `-P` is not given, the current directory is searched
 1. **User Configuration**:
+    * `${XDG_CONFIG_HOME}/yt-dlp.conf`
     * `${XDG_CONFIG_HOME}/yt-dlp/config` (recommended on Linux/macOS)
     * `${XDG_CONFIG_HOME}/yt-dlp/config.txt`
-    * `${XDG_CONFIG_HOME}/yt-dlp.conf`
+    * `${APPDATA}/yt-dlp.conf`
     * `${APPDATA}/yt-dlp/config` (recommended on Windows)
     * `${APPDATA}/yt-dlp/config.txt`
     * `~/yt-dlp.conf`
