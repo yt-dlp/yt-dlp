@@ -1396,10 +1396,20 @@ class InfoExtractor:
         # And then there are the jokers who advertise that they use RTA, but actually don't.
         AGE_LIMIT_MARKERS = [
             r'Proudly Labeled <a href="http://www\.rtalabel\.org/" title="Restricted to Adults">RTA</a>',
+            r'>[^<]*you acknowledge you are at least (\d+) years old',
+            r'>\s*(?:18\s+U(?:\.S\.C\.|SC)\s+)?(?:§+\s*)?2257\b',
         ]
-        if any(re.search(marker, html) for marker in AGE_LIMIT_MARKERS):
-            return 18
-        return 0
+
+        current = None
+        for marker in AGE_LIMIT_MARKERS:
+            match = re.search(marker, html)
+            if not match:
+                continue
+            new = int_or_none(match.groups() and match.group(1), default=18)
+            if current is None or (new is not None and new > current):
+                current = new
+
+        return current
 
     def _media_rating_search(self, html):
         # See http://www.tjg-designs.com/WP/metadata-code-examples-adding-metadata-to-your-web-pages/
@@ -3216,7 +3226,7 @@ class InfoExtractor:
 
     def _find_jwplayer_data(self, webpage, video_id=None, transform_source=js_to_json):
         mobj = re.search(
-            r'(?s)jwplayer\((?P<quote>[\'"])[^\'" ]+(?P=quote)\)(?!</script>).*?\.setup\s*\((?P<options>[^)]+)\)',
+            r'''(?s)jwplayer\s*\(\s*(?P<quote>'|")(?!(?P=quote)).+(?P=quote)\s*\)(?!</script>).*?\.\s*setup\s*\(\s*(?P<options>(?:\([^)]*\)|[^)])+)\s*\)''',
             webpage)
         if mobj:
             try:
@@ -3237,19 +3247,19 @@ class InfoExtractor:
 
     def _parse_jwplayer_data(self, jwplayer_data, video_id=None, require_title=True,
                              m3u8_id=None, mpd_id=None, rtmp_params=None, base_url=None):
-        # JWPlayer backward compatibility: flattened playlists
-        # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/api/config.js#L81-L96
-        if 'playlist' not in jwplayer_data:
-            jwplayer_data = {'playlist': [jwplayer_data]}
-
         entries = []
+        if not isinstance(jwplayer_data, dict):
+            return entries
 
+        playlist_items = jwplayer_data.get('playlist')
         # JWPlayer backward compatibility: single playlist item
         # https://github.com/jwplayer/jwplayer/blob/v7.7.0/src/js/playlist/playlist.js#L10
-        if not isinstance(jwplayer_data['playlist'], list):
-            jwplayer_data['playlist'] = [jwplayer_data['playlist']]
+        if not isinstance(playlist_items, list):
+            playlist_items = (playlist_items,)
 
-        for video_data in jwplayer_data['playlist']:
+        for video_data in playlist_items:
+            if not isinstance(video_data, dict):
+                continue
             # JWPlayer backward compatibility: flattened sources
             # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/playlist/item.js#L29-L35
             if 'sources' not in video_data:
@@ -3287,6 +3297,13 @@ class InfoExtractor:
                 'timestamp': int_or_none(video_data.get('pubdate')),
                 'duration': float_or_none(jwplayer_data.get('duration') or video_data.get('duration')),
                 'subtitles': subtitles,
+                'alt_title': clean_html(video_data.get('subtitle')),  # attributes used e.g. by Tele5 ...
+                'genre': clean_html(video_data.get('genre')),
+                'channel': clean_html(dict_get(video_data, ('category', 'channel'))),
+                'season_number': int_or_none(video_data.get('season')),
+                'episode_number': int_or_none(video_data.get('episode')),
+                'release_year': int_or_none(video_data.get('releasedate')),
+                'age_limit': int_or_none(video_data.get('age_restriction')),
             }
             # https://github.com/jwplayer/jwplayer/blob/master/src/js/utils/validator.js#L32
             if len(formats) == 1 and re.search(r'^(?:http|//).*(?:youtube\.com|youtu\.be)/.+', formats[0]['url']):
@@ -3304,7 +3321,7 @@ class InfoExtractor:
 
     def _parse_jwplayer_formats(self, jwplayer_sources_data, video_id=None,
                                 m3u8_id=None, mpd_id=None, rtmp_params=None, base_url=None):
-        urls = []
+        urls = set()
         formats = []
         for source in jwplayer_sources_data:
             if not isinstance(source, dict):
@@ -3313,14 +3330,14 @@ class InfoExtractor:
                 base_url, self._proto_relative_url(source.get('file')))
             if not source_url or source_url in urls:
                 continue
-            urls.append(source_url)
+            urls.add(source_url)
             source_type = source.get('type') or ''
             ext = mimetype2ext(source_type) or determine_ext(source_url)
-            if source_type == 'hls' or ext == 'm3u8':
+            if source_type == 'hls' or ext == 'm3u8' or 'format=m3u8-aapl' in source_url:
                 formats.extend(self._extract_m3u8_formats(
                     source_url, video_id, 'mp4', entry_protocol='m3u8_native',
                     m3u8_id=m3u8_id, fatal=False))
-            elif source_type == 'dash' or ext == 'mpd':
+            elif source_type == 'dash' or ext == 'mpd' or 'format=mpd-time-csf' in source_url:
                 formats.extend(self._extract_mpd_formats(
                     source_url, video_id, mpd_id=mpd_id, fatal=False))
             elif ext == 'smil':
@@ -3335,13 +3352,12 @@ class InfoExtractor:
                     'ext': ext,
                 })
             else:
+                format_id = str_or_none(source.get('label'))
                 height = int_or_none(source.get('height'))
-                if height is None:
+                if height is None and format_id:
                     # Often no height is provided but there is a label in
                     # format like "1080p", "720p SD", or 1080.
-                    height = int_or_none(self._search_regex(
-                        r'^(\d{3,4})[pP]?(?:\b|$)', str(source.get('label') or ''),
-                        'height', default=None))
+                    height = parse_resolution(format_id).get('height')
                 a_format = {
                     'url': source_url,
                     'width': int_or_none(source.get('width')),
@@ -3349,6 +3365,7 @@ class InfoExtractor:
                     'tbr': int_or_none(source.get('bitrate'), scale=1000),
                     'filesize': int_or_none(source.get('filesize')),
                     'ext': ext,
+                    'format_id': format_id
                 }
                 if source_url.startswith('rtmp'):
                     a_format['ext'] = 'flv'
