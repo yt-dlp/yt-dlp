@@ -527,11 +527,12 @@ class IqIE(InfoExtractor):
         webpack_js_url = self._proto_relative_url(self._search_regex(
             r'<script src="((?:https?)?//stc.iqiyipic.com/_next/static/chunks/webpack-\w+\.js)"', webpage, 'webpack URL'))
         webpack_js = self._download_webpage(webpack_js_url, video_id, note='Downloading webpack JS', errnote='Unable to download webpack JS')
-        webpack_map = self._parse_json(self._search_regex(
-            r'["\']\s*\+\s*(\{\s*(?:\d+\s*:\s*["\'][\da-f]+["\']\s*,?\s*)+})\[\w+\]\+["\']\.js', webpack_js, 'JS locations'),
-            video_id, transform_source=js_to_json)
+        webpack_map = self._search_json(
+            r'["\']\s*\+\s*', webpack_js, 'JS locations', video_id,
+            contains_pattern=r'({\s*(?:\d+\s*:\s*["\'][\da-f]+["\']\s*,?\s*)+})',
+            end_pattern=r'\[\w+\]\+["\']\.js', transform_source=js_to_json)
 
-        for module_index in reversed(list(webpack_map.keys())):
+        for module_index in reversed(webpack_map):
             module_js = self._download_webpage(
                 f'https://stc.iqiyipic.com/_next/static/chunks/{module_index}.{webpack_map[module_index]}.js',
                 video_id, note=f'Downloading #{module_index} module JS', errnote='Unable to download module JS', fatal=False) or ''
@@ -545,11 +546,11 @@ class IqIE(InfoExtractor):
                                   self._extract_vms_player_js(webpage, video_id), 'signature function')
 
     def _update_bid_tags(self, webpage, video_id):
-        extracted_bid_tags = self._parse_json(
-            self._search_regex(
-                r'function\s*\([^)]*\)\s*\{\s*"use strict";?\s*var \w\s*=\s*(\{\s*\d+\s*:\s*\{\s*nbid\s*:.+}\s*})\s*,\s*\w\s*=\s*\{\s*getNewVd',
-                self._extract_vms_player_js(webpage, video_id), 'video tags', default=''),
-            video_id, transform_source=js_to_json, fatal=False)
+        extracted_bid_tags = self._search_json(
+            r'function\s*\([^)]*\)\s*\{\s*"use strict";?\s*var \w\s*=\s*',
+            self._extract_vms_player_js(webpage, video_id), 'video tags', video_id,
+            contains_pattern=r'({\s*\d+\s*:\s*\{\s*nbid\s*:.+}\s*})',
+            end_pattern=r'\s*,\s*\w\s*=\s*\{\s*getNewVd', fatal=False, transform_source=js_to_json)
         if not extracted_bid_tags:
             return
         self._BID_TAGS = {
