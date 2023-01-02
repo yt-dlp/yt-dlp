@@ -3730,8 +3730,10 @@ class YoutubeDL:
 
         # These imports can be slow. So import them only as needed
         from .extractor.extractors import _LAZY_LOADER
-        from .extractor.extractors import _PLUGIN_CLASSES as plugin_extractors
-        from .plugins import _EXTRACTOR_PLUGIN_OVERRIDES
+        from .extractor.extractors import (
+            _PLUGIN_CLASSES as plugin_extractors,
+            _PLUGIN_OVERRIDES as extractor_plugin_overrides
+        )
 
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
@@ -3814,7 +3816,8 @@ class YoutubeDL:
                 klass.__name__, '' if klass.__name__ == name else f' as {name}')
                 for name, klass in plugins.items()]
             if plugin_type == 'Extractor':
-                display_list.extend([f'{plugin_name} (for {parent.__name__})' for plugin_name, _, parent in _EXTRACTOR_PLUGIN_OVERRIDES])
+                display_list.extend(
+                    f'{plugins[-1].IE_NAME.partition("+")[2]} ({parent.__name__})' for parent, plugins in extractor_plugin_overrides.items())
             if not display_list:
                 continue
             write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')
