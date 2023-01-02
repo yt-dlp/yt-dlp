@@ -1548,19 +1548,6 @@ class GenericIE(InfoExtractor):
             'add_ie': ['WashingtonPost'],
         },
         {
-            # Mediaset embed
-            'url': 'http://www.tgcom24.mediaset.it/politica/serracchiani-voglio-vivere-in-una-societa-aperta-reazioni-sproporzionate-_3071354-201702a.shtml',
-            'info_dict': {
-                'id': '720642',
-                'ext': 'mp4',
-                'title': 'Serracchiani: "Voglio vivere in una società aperta, con tutela del patto di fiducia"',
-            },
-            'params': {
-                'skip_download': True,
-            },
-            'add_ie': ['Mediaset'],
-        },
-        {
             # JOJ.sk embeds
             'url': 'https://www.noviny.sk/slovensko/238543-slovenskom-sa-prehnala-vlna-silnych-burok',
             'info_dict': {
@@ -1864,11 +1851,6 @@ class GenericIE(InfoExtractor):
                 'title': 'I AM BIO Podcast | BIO',
             },
             'playlist_mincount': 52,
-        },
-        {
-            # Sibnet embed (https://help.sibnet.ru/?sibnet_video_embed)
-            'url': 'https://phpbb3.x-tk.ru/bbcode-video-sibnet-t24.html',
-            'only_matching': True,
         }, {
             # WimTv embed player
             'url': 'http://www.msmotor.tv/wearefmi-pt-2-2021/',
@@ -2172,6 +2154,21 @@ class GenericIE(InfoExtractor):
                 'age_limit': 0,
                 'direct': True,
             }
+        }, {
+            'note': 'server returns data in brotli compression by default if `accept-encoding: *` is specified.',
+            'url': 'https://www.extra.cz/cauky-lidi-70-dil-babis-predstavil-pohadky-prymulanek-nebo-andrejovy-nove-saty-ac867',
+            'info_dict': {
+                'id': 'cauky-lidi-70-dil-babis-predstavil-pohadky-prymulanek-nebo-andrejovy-nove-saty-ac867',
+                'ext': 'mp4',
+                'title': 'čauky lidi 70 finall',
+                'description': 'čauky lidi 70 finall',
+                'thumbnail': 'h',
+                'upload_date': '20220606',
+                'timestamp': 1654513791,
+                'duration': 318.0,
+                'direct': True,
+                'age_limit': 0,
+            }
         }
     ]
 
@@ -2330,7 +2327,7 @@ class GenericIE(InfoExtractor):
         # It may probably better to solve this by checking Content-Type for application/octet-stream
         # after a HEAD request, but not sure if we can rely on this.
         full_response = self._request_webpage(url, video_id, headers={
-            'Accept-Encoding': '*',
+            'Accept-Encoding': 'identity',
             **smuggled_data.get('http_headers', {})
         })
         new_url = full_response.geturl()
@@ -2374,7 +2371,7 @@ class GenericIE(InfoExtractor):
             info_dict.update({
                 'formats': formats,
                 'subtitles': subtitles,
-                'http_headers': headers,
+                'http_headers': headers or None,
             })
             return info_dict
 

@@ -61,6 +61,8 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Modifying metadata examples](#modifying-metadata-examples)
 * [EXTRACTOR ARGUMENTS](#extractor-arguments)
 * [PLUGINS](#plugins)
+    * [Installing Plugins](#installing-plugins)
+    * [Developing Plugins](#developing-plugins)
 * [EMBEDDING YT-DLP](#embedding-yt-dlp)
     * [Embedding examples](#embedding-examples)
 * [DEPRECATED OPTIONS](#deprecated-options)
@@ -151,12 +153,15 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * When `--embed-subs` and `--write-subs` are used together, the subtitles are written to disk and also embedded in the media file. You can use just `--embed-subs` to embed the subs and automatically delete the separate file. See [#630 (comment)](https://github.com/yt-dlp/yt-dlp/issues/630#issuecomment-893659460) for more info. `--compat-options no-keep-subs` can be used to revert this
 * `certifi` will be used for SSL root certificates, if installed. If you want to use system certificates (e.g. self-signed), use `--compat-options no-certifi`
 * yt-dlp's sanitization of invalid characters in filenames is different/smarter than in youtube-dl. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
+* yt-dlp tries to parse the external downloader outputs into the standard progress output if possible (Currently implemented: `aria2c`). You can use `--compat-options no-external-downloader-progress` to get the downloader output as-is
 
 For ease of use, a few more compat options are available:
 
 * `--compat-options all`: Use all compat options (Do NOT use)
 * `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams`
 * `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect`
+* `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
+* `--compat-options 2022`: Same as `--compat-options no-external-downloader-progress`. Use this to enable all future compat options
 
 
 # INSTALLATION
@@ -435,19 +440,19 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     explicitly provided IP block in CIDR notation
 
 ## Video Selection:
-    -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the videos
+    -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the items
                                     to download. You can specify a range using
                                     "[START]:[STOP][:STEP]". For backward
                                     compatibility, START-STOP is also supported.
                                     Use negative indices to count from the right
                                     and negative STEP to download in reverse
                                     order. E.g. "-I 1:3,7,-5::2" used on a
-                                    playlist of size 15 will download the videos
+                                    playlist of size 15 will download the items
                                     at index 1,2,3,7,11,13,15
-    --min-filesize SIZE             Do not download any videos smaller than
+    --min-filesize SIZE             Abort download if filesize is smaller than
                                     SIZE, e.g. 50k or 44.6M
-    --max-filesize SIZE             Do not download any videos larger than SIZE,
-                                    e.g. 50k or 44.6M
+    --max-filesize SIZE             Abort download if filesize is larger than
+                                    SIZE, e.g. 50k or 44.6M
     --date DATE                     Download only videos uploaded on this date.
                                     The date can be "YYYYMMDD" or in the format 
                                     [now|today|yesterday][-N[day|week|month|year]].
@@ -494,9 +499,9 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     a file that is in the archive
     --break-on-reject               Stop the download process when encountering
                                     a file that has been filtered out
-    --break-per-input               --break-on-existing, --break-on-reject,
-                                    --max-downloads, and autonumber resets per
-                                    input URL
+    --break-per-input               Alters --max-downloads, --break-on-existing,
+                                    --break-on-reject, and autonumber to reset
+                                    per input URL
     --no-break-per-input            --break-on-existing and similar options
                                     terminates the entire download queue
     --skip-playlist-after-errors N  Number of allowed failures until the rest of
@@ -728,7 +733,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     screen, optionally prefixed with when to
                                     print it, separated by a ":". Supported
                                     values of "WHEN" are the same as that of
-                                    --use-postprocessor, and "video" (default).
+                                    --use-postprocessor (default: video).
                                     Implies --quiet. Implies --simulate unless
                                     --no-simulate or later stages of WHEN are
                                     used. This option can be used multiple times
@@ -896,11 +901,11 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     specific bitrate like 128K (default 5)
     --remux-video FORMAT            Remux the video into another container if
                                     necessary (currently supported: avi, flv,
-                                    mkv, mov, mp4, webm, aac, aiff, alac, flac,
-                                    m4a, mka, mp3, ogg, opus, vorbis, wav). If
-                                    target container does not support the
-                                    video/audio codec, remuxing will fail. You
-                                    can specify multiple rules; e.g.
+                                    gif, mkv, mov, mp4, webm, aac, aiff, alac,
+                                    flac, m4a, mka, mp3, ogg, opus, vorbis,
+                                    wav). If target container does not support
+                                    the video/audio codec, remuxing will fail.
+                                    You can specify multiple rules; e.g.
                                     "aac>m4a/mov>mp4/mkv" will remux aac to m4a,
                                     mov to mp4 and anything else to mkv
     --recode-video FORMAT           Re-encode the video into another format if
@@ -955,13 +960,18 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     mkv/mka video files
     --no-embed-info-json            Do not embed the infojson as an attachment
                                     to the video file
-    --parse-metadata FROM:TO        Parse additional metadata like title/artist
+    --parse-metadata [WHEN:]FROM:TO
+                                    Parse additional metadata like title/artist
                                     from other fields; see "MODIFYING METADATA"
-                                    for details
-    --replace-in-metadata FIELDS REGEX REPLACE
+                                    for details. Supported values of "WHEN" are
+                                    the same as that of --use-postprocessor
+                                    (default: pre_process)
+    --replace-in-metadata [WHEN:]FIELDS REGEX REPLACE
                                     Replace text in a metadata field using the
                                     given regex. This option can be used
-                                    multiple times
+                                    multiple times. Supported values of "WHEN"
+                                    are the same as that of --use-postprocessor
+                                    (default: pre_process)
     --xattrs                        Write metadata to the video file's xattrs
                                     (using dublin core and xdg standards)
     --concat-playlist POLICY        Concatenate videos in a playlist. One of
@@ -982,18 +992,18 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --ffmpeg-location PATH          Location of the ffmpeg binary; either the
                                     path to the binary or its containing directory
     --exec [WHEN:]CMD               Execute a command, optionally prefixed with
-                                    when to execute it (after_move if
-                                    unspecified), separated by a ":". Supported
-                                    values of "WHEN" are the same as that of
-                                    --use-postprocessor. Same syntax as the
-                                    output template can be used to pass any
-                                    field as arguments to the command. After
-                                    download, an additional field "filepath"
-                                    that contains the final path of the
-                                    downloaded file is also available, and if no
-                                    fields are passed, %(filepath)q is appended
-                                    to the end of the command. This option can
-                                    be used multiple times
+                                    when to execute it, separated by a ":".
+                                    Supported values of "WHEN" are the same as
+                                    that of --use-postprocessor (default:
+                                    after_move). Same syntax as the output
+                                    template can be used to pass any field as
+                                    arguments to the command. After download, an
+                                    additional field "filepath" that contains
+                                    the final path of the downloaded file is
+                                    also available, and if no fields are passed,
+                                    %(filepath)q is appended to the end of the
+                                    command. This option can be used multiple
+                                    times
     --no-exec                       Remove any previously defined --exec
     --convert-subs FORMAT           Convert the subtitles to another format
                                     (currently supported: ass, lrc, srt, vtt)
@@ -1031,14 +1041,16 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     postprocessor is invoked. It can be one of
                                     "pre_process" (after video extraction),
                                     "after_filter" (after video passes filter),
-                                    "before_dl" (before each video download),
-                                    "post_process" (after each video download;
-                                    default), "after_move" (after moving video
-                                    file to it's final locations), "after_video"
-                                    (after downloading and processing all
-                                    formats of a video), or "playlist" (at end
-                                    of playlist). This option can be used
-                                    multiple times to add different postprocessors
+                                    "video" (after --format; before
+                                    --print/--output), "before_dl" (before each
+                                    video download), "post_process" (after each
+                                    video download; default), "after_move"
+                                    (after moving video file to it's final
+                                    locations), "after_video" (after downloading
+                                    and processing all formats of a video), or
+                                    "playlist" (at end of playlist). This option
+                                    can be used multiple times to add different
+                                    postprocessors
 
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
@@ -1049,10 +1061,10 @@ Make chapter entries for, or remove various segments (sponsor,
                                     for, separated by commas. Available
                                     categories are sponsor, intro, outro,
                                     selfpromo, preview, filler, interaction,
-                                    music_offtopic, poi_highlight, chapter, all and
-                                    default (=all). You can prefix the category
-                                    with a "-" to exclude it. See [1] for
-                                    description of the categories. E.g.
+                                    music_offtopic, poi_highlight, chapter, all
+                                    and default (=all). You can prefix the
+                                    category with a "-" to exclude it. See [1]
+                                    for description of the categories. E.g.
                                     --sponsorblock-mark all,-preview
                                     [1] https://wiki.sponsor.ajay.app/w/Segment_Categories
     --sponsorblock-remove CATS      SponsorBlock categories to be removed from
@@ -1061,7 +1073,7 @@ Make chapter entries for, or remove various segments (sponsor,
                                     remove takes precedence. The syntax and
                                     available categories are the same as for
                                     --sponsorblock-mark except that "default"
-                                    refers to "all,-filler" and poi_highlight and
+                                    refers to "all,-filler" and poi_highlight,
                                     chapter are not available
     --sponsorblock-chapter-title TEMPLATE
                                     An output template for the title of the
@@ -1106,15 +1118,20 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * If `-P` is not given, the current directory is searched
 1. **User Configuration**:
     * `${XDG_CONFIG_HOME}/yt-dlp/config` (recommended on Linux/macOS)
+    * `${XDG_CONFIG_HOME}/yt-dlp/config.txt`
     * `${XDG_CONFIG_HOME}/yt-dlp.conf`
     * `${APPDATA}/yt-dlp/config` (recommended on Windows)
     * `${APPDATA}/yt-dlp/config.txt`
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
+    * `~/.yt-dlp/config`
+    * `~/.yt-dlp/config.txt`
 
     See also: [Notes about environment variables](#notes-about-environment-variables)
 1. **System Configuration**:
     * `/etc/yt-dlp.conf`
+    * `/etc/yt-dlp/config`
+    * `/etc/yt-dlp/config.txt`
 
 E.g. with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
 ```
@@ -1491,7 +1508,7 @@ The available fields are:
  - `source`: The preference of the source
  - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `mms`/`rtsp` > `f4f`/`f4m`)
  - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other)
- - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `eac3` > `ac3` > `dts` > other)
+ - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` `ac4` > > `eac3` > `ac3` > `dts` > other)
  - `codec`: Equivalent to `vcodec,acodec`
  - `vext`: Video Extension (`mp4` > `mov` > `webm` > `flv` > other). If `--prefer-free-formats` is used, `webm` is preferred.
  - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other). If `--prefer-free-formats` is used, the order changes to `ogg` > `opus` > `webm` > `mp3` > `m4a` > `aac`
@@ -1768,6 +1785,7 @@ The following extractors use this feature:
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
 #### tiktok
+* `api_hostname`: Hostname to use for mobile API requests, e.g. `api-h2.tiktokv.com`
 * `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`, e.g. `20.2.1`
 * `manifest_app_version`: Numeric app version to call mobile APIs with, e.g. `221`
 
@@ -1784,19 +1802,68 @@ NOTE: These options may be changed/removed in the future without concern for bac
 
 # PLUGINS
 
-Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`; where `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`). Plugins are currently not supported for the `pip` version
+Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. **Use plugins at your own risk and only if you trust the code!**
 
-Plugins can be of `<type>`s `extractor` or `postprocessor`. Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
+Plugins can be of `<type>`s `extractor` or `postprocessor`. 
+- Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. 
+- Extractor plugins take priority over builtin extractors.
+- Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
 
-See [ytdlp_plugins](ytdlp_plugins) for example plugins.
 
-Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. Use plugins at your own risk and only if you trust the code
+Plugins are loaded from the namespace packages `yt_dlp_plugins.extractor` and `yt_dlp_plugins.postprocessor`.
 
-If you are a plugin author, add [ytdlp-plugins](https://github.com/topics/ytdlp-plugins) as a topic to your repository for discoverability
+In other words, the file structure on the disk looks something like:
+    
+        yt_dlp_plugins/
+            extractor/
+                myplugin.py
+            postprocessor/
+                myplugin.py
+
+yt-dlp looks for these `yt_dlp_plugins` namespace folders in many locations (see below) and loads in plugins from **all** of them.
 
 See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plugins)
 
+## Installing Plugins
 
+Plugins can be installed using various methods and locations.
+
+1. **Configuration directories**:
+   Plugin packages (containing a `yt_dlp_plugins` namespace folder) can be dropped into the following standard [configuration locations](#configuration):
+    * **User Plugins**
+      * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Linux/macOS)
+      * `${XDG_CONFIG_HOME}/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+      * `${APPDATA}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Windows)
+      * `~/.yt-dlp/plugins/<package name>/yt_dlp_plugins/`
+      * `~/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+    * **System Plugins**
+      * `/etc/yt-dlp/plugins/<package name>/yt_dlp_plugins/`
+      * `/etc/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+2. **Executable location**: Plugin packages can similarly be installed in a `yt-dlp-plugins` directory under the executable location:
+    * Binary: where `<root-dir>/yt-dlp.exe`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+    * Source: where `<root-dir>/yt_dlp/__main__.py`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+
+3. **pip and other locations in `PYTHONPATH`**
+    * Plugin packages can be installed and managed using `pip`. See [ytdlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for an example.
+      * Note: plugin files between plugin packages installed with pip must have unique filenames
+    * Any path in `PYTHONPATH` is searched in for the `yt_dlp_plugins` namespace folder.
+      * Note: This does not apply for Pyinstaller/py2exe builds.
+
+
+.zip, .egg and .whl archives containing a `yt_dlp_plugins` namespace folder in their root are also supported. These can be placed in the same locations `yt_dlp_plugins` namespace folders can be found.
+- e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/mypluginpkg.zip` where `mypluginpkg.zip` contains `yt_dlp_plugins/<type>/myplugin.py`
+
+Run yt-dlp with `--verbose`/`-v` to check if the plugin has been loaded.
+
+## Developing Plugins
+
+See [ytdlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for a sample plugin package with instructions on how to set up an environment for plugin development. 
+
+All public classes with a name ending in `IE` are imported from each file. This respects underscore prefix (e.g. `_MyBasePluginIE` is private) and `__all__`. Modules can similarly be excluded by prefixing the module name with an underscore (e.g. `_myplugin.py`)
+
+If you are a plugin author, add [yt-dlp-plugins](https://github.com/topics/yt-dlp-plugins) as a topic to your repository for discoverability
+
+See the [Developer Instructions](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#developer-instructions) on how to write and test an extractor.
 
 # EMBEDDING YT-DLP
 

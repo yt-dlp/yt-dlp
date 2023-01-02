@@ -29,6 +29,8 @@ from .utils import (
     expand_path,
     format_field,
     get_executable_path,
+    get_system_config_dirs,
+    get_user_config_dirs,
     join_nonempty,
     orderedSet_from_options,
     remove_end,
@@ -42,62 +44,67 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     if ignore_config_files == 'if_override':
         ignore_config_files = overrideArguments is not None
 
-    def _readUserConf(package_name, default=[]):
-        # .config
+    def _load_from_config_dirs(config_dirs):
+        for config_dir in config_dirs:
+            conf_file_path = os.path.join(config_dir, 'config')
+            conf = Config.read_file(conf_file_path, default=None)
+            if conf is None:
+                conf_file_path += '.txt'
+                conf = Config.read_file(conf_file_path, default=None)
+            if conf is not None:
+                return conf, conf_file_path
+        return None, None
+
+    def _read_user_conf(package_name, default=None):
+        # .config/package_name.conf
         xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
-        userConfFile = os.path.join(xdg_config_home, package_name, 'config')
-        if not os.path.isfile(userConfFile):
-            userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
-        userConf = Config.read_file(userConfFile, default=None)
-        if userConf is not None:
-            return userConf, userConfFile
+        user_conf_file = os.path.join(xdg_config_home, '%s.conf' % package_name)
+        user_conf = Config.read_file(user_conf_file, default=None)
+        if user_conf is not None:
+            return user_conf, user_conf_file
 
-        # appdata
-        appdata_dir = os.getenv('appdata')
-        if appdata_dir:
-            userConfFile = os.path.join(appdata_dir, package_name, 'config')
-            userConf = Config.read_file(userConfFile, default=None)
-            if userConf is None:
-                userConfFile += '.txt'
-                userConf = Config.read_file(userConfFile, default=None)
-        if userConf is not None:
-            return userConf, userConfFile
+        # home (~/package_name.conf or ~/package_name.conf.txt)
+        user_conf_file = os.path.join(compat_expanduser('~'), '%s.conf' % package_name)
+        user_conf = Config.read_file(user_conf_file, default=None)
+        if user_conf is None:
+            user_conf_file += '.txt'
+            user_conf = Config.read_file(user_conf_file, default=None)
+        if user_conf is not None:
+            return user_conf, user_conf_file
 
-        # home
-        userConfFile = os.path.join(compat_expanduser('~'), '%s.conf' % package_name)
-        userConf = Config.read_file(userConfFile, default=None)
-        if userConf is None:
-            userConfFile += '.txt'
-            userConf = Config.read_file(userConfFile, default=None)
-        if userConf is not None:
-            return userConf, userConfFile
+        # Package config directories (e.g. ~/.config/package_name/package_name.txt)
+        user_conf, user_conf_file = _load_from_config_dirs(get_user_config_dirs(package_name))
+        if user_conf is not None:
+            return user_conf, user_conf_file
+        return default if default is not None else [], None
 
-        return default, None
+    def _read_system_conf(package_name, default=None):
+        system_conf, system_conf_file = _load_from_config_dirs(get_system_config_dirs(package_name))
+        if system_conf is not None:
+            return system_conf, system_conf_file
+        return default if default is not None else [], None
 
-    def add_config(label, path, user=False):
+    def add_config(label, path=None, func=None):
         """ Adds config and returns whether to continue """
         if root.parse_known_args()[0].ignoreconfig:
             return False
-        # Multiple package names can be given here
-        # E.g. ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
-        # the configuration file of any of these three packages
-        for package in ('yt-dlp',):
-            if user:
-                args, current_path = _readUserConf(package, default=None)
-            else:
-                current_path = os.path.join(path, '%s.conf' % package)
-                args = Config.read_file(current_path, default=None)
-            if args is not None:
-                root.append_config(args, current_path, label=label)
-                return True
+        elif func:
+            assert path is None
+            args, current_path = func('yt-dlp')
+        else:
+            current_path = os.path.join(path, 'yt-dlp.conf')
+            args = Config.read_file(current_path, default=None)
+        if args is not None:
+            root.append_config(args, current_path, label=label)
+            return True
         return True
 
     def load_configs():
         yield not ignore_config_files
         yield add_config('Portable', get_executable_path())
         yield add_config('Home', expand_path(root.parse_known_args()[0].paths.get('home', '')).strip())
-        yield add_config('User', None, user=True)
-        yield add_config('System', '/etc')
+        yield add_config('User', func=_read_user_conf)
+        yield add_config('System', func=_read_system_conf)
 
     opts = optparse.Values({'verbose': True, 'print_help': False})
     try:
@@ -277,6 +284,20 @@ def create_parser():
             out_dict[key] = out_dict.get(key, []) + [val] if append else val
         setattr(parser.values, option.dest, out_dict)
 
+    def when_prefix(default):
+        return {
+            'default': {},
+            'type': 'str',
+            'action': 'callback',
+            'callback': _dict_from_options_callback,
+            'callback_kwargs': {
+                'allowed_keys': '|'.join(map(re.escape, POSTPROCESS_WHEN)),
+                'default_key': default,
+                'multiple_keys': False,
+                'append': True,
+            },
+        }
+
     parser = _YoutubeDLOptionParser()
     alias_group = optparse.OptionGroup(parser, 'Aliases')
     Formatter = string.Formatter()
@@ -443,12 +464,14 @@ def create_parser():
             'allowed_values': {
                 'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
-                'no-attach-info-json', 'embed-metadata', 'embed-thumbnail-atomicparsley',
-                'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
+                'no-attach-info-json', 'embed-thumbnail-atomicparsley', 'no-external-downloader-progress',
+                'embed-metadata', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-youtube-prefer-utc-upload-date',
             }, 'aliases': {
                 'youtube-dl': ['all', '-multistreams'],
                 'youtube-dlc': ['all', '-no-youtube-channel-redirect', '-no-live-chat'],
+                '2021': ['2022', 'no-certifi', 'filename-sanitization', 'no-youtube-prefer-utc-upload-date'],
+                '2022': ['no-external-downloader-progress'],
             }
         }, help=(
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
@@ -543,10 +566,10 @@ def create_parser():
         '-I', '--playlist-items',
         dest='playlist_items', metavar='ITEM_SPEC', default=None,
         help=(
-            'Comma separated playlist_index of the videos to download. '
+            'Comma separated playlist_index of the items to download. '
             'You can specify a range using "[START]:[STOP][:STEP]". For backward compatibility, START-STOP is also supported. '
             'Use negative indices to count from the right and negative STEP to download in reverse order. '
-            'E.g. "-I 1:3,7,-5::2" used on a playlist of size 15 will download the videos at index 1,2,3,7,11,13,15'))
+            'E.g. "-I 1:3,7,-5::2" used on a playlist of size 15 will download the items at index 1,2,3,7,11,13,15'))
     selection.add_option(
         '--match-title',
         dest='matchtitle', metavar='REGEX',
@@ -562,7 +585,7 @@ def create_parser():
     selection.add_option(
         '--max-filesize',
         metavar='SIZE', dest='max_filesize', default=None,
-        help='Abort download if filesize if larger than SIZE, e.g. 50k or 44.6M')
+        help='Abort download if filesize is larger than SIZE, e.g. 50k or 44.6M')
     selection.add_option(
         '--date',
         metavar='DATE', dest='date', default=None,
@@ -643,7 +666,7 @@ def create_parser():
     selection.add_option(
         '--break-per-input',
         action='store_true', dest='break_per_url', default=False,
-        help='--break-on-existing, --break-on-reject, --max-downloads, and autonumber resets per input URL')
+        help='Alters --max-downloads, --break-on-existing, --break-on-reject, and autonumber to reset per input URL')
     selection.add_option(
         '--no-break-per-input',
         action='store_false', dest='break_per_url',
@@ -1094,28 +1117,16 @@ def create_parser():
         help='Do not download the video but write all related files (Alias: --no-download)')
     verbosity.add_option(
         '-O', '--print',
-        metavar='[WHEN:]TEMPLATE', dest='forceprint', default={}, type='str',
-        action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={
-            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
-            'default_key': 'video',
-            'multiple_keys': False,
-            'append': True,
-        }, help=(
+        metavar='[WHEN:]TEMPLATE', dest='forceprint', **when_prefix('video'),
+        help=(
             'Field name or output template to print to screen, optionally prefixed with when to print it, separated by a ":". '
-            'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: video). '
             'Implies --quiet. Implies --simulate unless --no-simulate or later stages of WHEN are used. '
             'This option can be used multiple times'))
     verbosity.add_option(
         '--print-to-file',
-        metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', default={}, type='str', nargs=2,
-        action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={
-            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
-            'default_key': 'video',
-            'multiple_keys': False,
-            'append': True,
-        }, help=(
+        metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', nargs=2, **when_prefix('video'),
+        help=(
             'Append given template to the file. The values of WHEN and TEMPLATE are same as that of --print. '
             'FILE uses the same syntax as the output template. This option can be used multiple times'))
     verbosity.add_option(
@@ -1592,14 +1603,16 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--parse-metadata',
-        metavar='FROM:TO', dest='parse_metadata', action='append',
+        metavar='[WHEN:]FROM:TO', dest='parse_metadata', **when_prefix('pre_process'),
         help=(
-            'Parse additional metadata like title/artist from other fields; '
-            'see "MODIFYING METADATA" for details'))
+            'Parse additional metadata like title/artist from other fields; see "MODIFYING METADATA" for details. '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: pre_process)'))
     postproc.add_option(
         '--replace-in-metadata',
-        dest='parse_metadata', metavar='FIELDS REGEX REPLACE', action='append', nargs=3,
-        help='Replace text in a metadata field using the given regex. This option can be used multiple times')
+        dest='parse_metadata', metavar='[WHEN:]FIELDS REGEX REPLACE', nargs=3, **when_prefix('pre_process'),
+        help=(
+            'Replace text in a metadata field using the given regex. This option can be used multiple times. '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: pre_process)'))
     postproc.add_option(
         '--xattrs', '--xattr',
         action='store_true', dest='xattrs', default=False,
@@ -1637,16 +1650,10 @@ def create_parser():
         help='Location of the ffmpeg binary; either the path to the binary or its containing directory')
     postproc.add_option(
         '--exec',
-        metavar='[WHEN:]CMD', dest='exec_cmd', default={}, type='str',
-        action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={
-            'allowed_keys': '|'.join(map(re.escape, POSTPROCESS_WHEN)),
-            'default_key': 'after_move',
-            'multiple_keys': False,
-            'append': True,
-        }, help=(
-            'Execute a command, optionally prefixed with when to execute it (after_move if unspecified), separated by a ":". '
-            'Supported values of "WHEN" are the same as that of --use-postprocessor. '
+        metavar='[WHEN:]CMD', dest='exec_cmd', **when_prefix('after_move'),
+        help=(
+            'Execute a command, optionally prefixed with when to execute it, separated by a ":". '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor (default: after_move). '
             'Same syntax as the output template can be used to pass any field as arguments to the command. '
             'After download, an additional field "filepath" that contains the final path of the downloaded file '
             'is also available, and if no fields are passed, %(filepath)q is appended to the end of the command. '
@@ -1722,7 +1729,8 @@ def create_parser():
             'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
             'The "when" argument determines when the postprocessor is invoked. '
             'It can be one of "pre_process" (after video extraction), "after_filter" (after video passes filter), '
-            '"before_dl" (before each video download), "post_process" (after each video download; default), '
+            '"video" (after --format; before --print/--output), "before_dl" (before each video download), '
+            '"post_process" (after each video download; default), '
             '"after_move" (after moving video file to it\'s final locations), '
             '"after_video" (after downloading and processing all formats of a video), '
             'or "playlist" (at end of playlist). '

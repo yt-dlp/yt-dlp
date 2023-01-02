@@ -782,6 +782,27 @@ class SoundcloudUserIE(SoundcloudPagedPlaylistBaseIE):
             '%s (%s)' % (user['username'], resource.capitalize()))
 
 
+class SoundcloudUserPermalinkIE(SoundcloudPagedPlaylistBaseIE):
+    _VALID_URL = r'https?://api\.soundcloud\.com/users/(?P<id>\d+)'
+    IE_NAME = 'soundcloud:user:permalink'
+    _TESTS = [{
+        'url': 'https://api.soundcloud.com/users/30909869',
+        'info_dict': {
+            'id': '30909869',
+            'title': 'neilcic',
+        },
+        'playlist_mincount': 23,
+    }]
+
+    def _real_extract(self, url):
+        user_id = self._match_id(url)
+        user = self._download_json(
+            self._resolv_url(url), user_id, 'Downloading user info', headers=self._HEADERS)
+
+        return self._extract_playlist(
+            f'{self._API_V2_BASE}stream/users/{user["id"]}', str(user['id']), user.get('username'))
+
+
 class SoundcloudTrackStationIE(SoundcloudPagedPlaylistBaseIE):
     _VALID_URL = r'https?://(?:(?:www|m)\.)?soundcloud\.com/stations/track/[^/]+/(?P<id>[^/?#&]+)'
     IE_NAME = 'soundcloud:trackstation'

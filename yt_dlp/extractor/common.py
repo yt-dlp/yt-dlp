@@ -71,6 +71,7 @@ from ..utils import (
     str_to_int,
     strip_or_none,
     traverse_obj,
+    truncate_string,
     try_call,
     try_get,
     unescapeHTML,
@@ -673,7 +674,8 @@ class InfoExtractor:
             for _ in range(2):
                 try:
                     self.initialize()
-                    self.write_debug('Extracting URL: %s' % url)
+                    self.to_screen('Extracting URL: %s' % (
+                        url if self.get_param('verbose') else truncate_string(url, 100, 20)))
                     ie_result = self._real_extract(url)
                     if ie_result is None:
                         return None
@@ -1757,6 +1759,9 @@ class InfoExtractor:
     def _extract_f4m_formats(self, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
                              transform_source=lambda s: fix_xml_ampersands(s).strip(),
                              fatal=True, m3u8_id=None, data=None, headers={}, query={}):
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         res = self._download_xml_handle(
             manifest_url, video_id, 'Downloading f4m manifest',
             'Unable to download f4m manifest',
@@ -1905,6 +1910,17 @@ class InfoExtractor:
             preference=None, quality=None, m3u8_id=None, note=None,
             errnote=None, fatal=True, live=False, data=None, headers={},
             query={}):
+
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
+        if not m3u8_url:
+            if errnote is not False:
+                errnote = errnote or 'Failed to obtain m3u8 URL'
+                if fatal:
+                    raise ExtractorError(errnote, video_id=video_id)
+                self.report_warning(f'{errnote}{bug_reports_message()}')
+            return [], {}
 
         res = self._download_webpage_handle(
             m3u8_url, video_id,
@@ -2177,6 +2193,9 @@ class InfoExtractor:
         return '/'.join(out)
 
     def _extract_smil_formats_and_subtitles(self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None):
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         res = self._download_smil(smil_url, video_id, fatal=fatal, transform_source=transform_source)
         if res is False:
             assert not fatal
@@ -2452,6 +2471,10 @@ class InfoExtractor:
     def _extract_mpd_formats_and_subtitles(
             self, mpd_url, video_id, mpd_id=None, note=None, errnote=None,
             fatal=True, data=None, headers={}, query={}):
+
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         res = self._download_xml_handle(
             mpd_url, video_id,
             note='Downloading MPD manifest' if note is None else note,
@@ -2821,6 +2844,9 @@ class InfoExtractor:
         return fmts
 
     def _extract_ism_formats_and_subtitles(self, ism_url, video_id, ism_id=None, note=None, errnote=None, fatal=True, data=None, headers={}, query={}):
+        if self.get_param('ignore_no_formats_error'):
+            fatal = False
+
         res = self._download_xml_handle(
             ism_url, video_id,
             note='Downloading ISM manifest' if note is None else note,
