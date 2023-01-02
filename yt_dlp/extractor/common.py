@@ -3248,17 +3248,17 @@ class InfoExtractor:
             return entries
 
         playlist_items = jwplayer_data.get('playlist')
-        # JWPlayer backward compatibility: single playlist item
+        # JWPlayer backward compatibility: single playlist item/flattened playlists
         # https://github.com/jwplayer/jwplayer/blob/v7.7.0/src/js/playlist/playlist.js#L10
+        # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/api/config.js#L81-L96
         if not isinstance(playlist_items, list):
             playlist_items = (playlist_items or jwplayer_data, )
 
         for video_data in playlist_items:
             if not isinstance(video_data, dict):
                 continue
-            # JWPlayer backward compatibility: flattened sources/flattened playlists
+            # JWPlayer backward compatibility: flattened sources
             # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/playlist/item.js#L29-L35
-            # https://github.com/jwplayer/jwplayer/blob/v7.4.3/src/js/api/config.js#L81-L96
             if 'sources' not in video_data:
                 video_data['sources'] = [video_data]
 

@@ -2152,20 +2152,6 @@ class GenericIE(InfoExtractor):
             }
         },
         {
-            'url': 'https://mrdeepfakes.com/video/5/selena-gomez-pov-deep-fakes',
-            'md5': 'fec4ad5ec150f655e0c74c696a4a2ff4',
-            'info_dict': {
-                'id': '5',
-                'display_id': 'selena-gomez-pov-deep-fakes',
-                'ext': 'mp4',
-                'title': 'Selena Gomez POV (Deep Fakes) DeepFake Porn - MrDeepFakes',
-                'description': 'md5:17d1f84b578c9c26875ac5ef9a932354',
-                'thumbnail': 'https://mrdeepfakes.com/contents/videos_screenshots/0/5/preview.jpg',
-                'height': 720,
-                'age_limit': 18,
-            },
-        },
-        {
             'url': 'https://shooshtime.com/videos/284002/just-out-of-the-shower-joi/',
             'md5': 'e2f0a4c329f7986280b7328e24036d60',
             'info_dict': {
@@ -2285,7 +2271,7 @@ class GenericIE(InfoExtractor):
 
     def _extract_kvs(self, url, webpage, video_id):
         flashvars = self._search_json(
-            r'(?s)<script\b[^>]*>.*?var\s+flashvars\s*=',
+            r'(?s:<script\b[^>]*>.*?var\s+flashvars\s*=)',
             webpage, 'flashvars', video_id, transform_source=js_to_json)
 
         # extract the part after the last / as the display_id from the
