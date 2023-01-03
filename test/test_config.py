@@ -60,6 +60,8 @@ class TestCache(unittest.TestCase):
             mock.read_file = read_file
 
             parseOpts()
+            from pprint import pprint
+            pprint(files)
             self.assertEqual(files, self.expected,
                              'Not all expected locations have been checked')
 
