@@ -32,6 +32,7 @@ from .utils import (
     get_system_config_dirs,
     get_user_config_dirs,
     join_nonempty,
+    orderedSet,
     orderedSet_from_options,
     remove_end,
     write_string,
@@ -69,8 +70,8 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             return False
         elif func:
             assert path is None
-            args, current_path = next(
-                filter(None, _load_from_config_dirs(func(PACKAGE_NAME))), (None, None))
+            args, current_path = next(filter(None, _load_from_config_dirs(
+                orderedSet(func(PACKAGE_NAME), lazy=True))), (None, None))
         else:
             current_path = os.path.join(path, 'yt-dlp.conf')
             args = Config.read_file(current_path, default=None)

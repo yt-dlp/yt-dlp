@@ -17,6 +17,7 @@ from .utils import (
     get_executable_path,
     get_system_config_dirs,
     get_user_config_dirs,
+    orderedSet,
     write_string,
 )
 
@@ -55,7 +56,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         candidate_locations = []
 
         def _get_package_paths(*root_paths, containing_folder='plugins'):
-            for config_dir in map(Path, root_paths):
+            for config_dir in orderedSet(map(Path, root_paths), lazy=True):
                 plugin_dir = config_dir / containing_folder
                 if not plugin_dir.is_dir():
                     continue
