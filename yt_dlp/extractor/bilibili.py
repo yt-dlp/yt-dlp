@@ -1020,9 +1020,9 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
         'playlist_mincount': 15,
         'info_dict': {
             'id': '34613',
-            'title': 'Fly Me to the Moon',
-            'description': 'md5:a861ee1c4dc0acfad85f557cc42ac627',
-            'categories': ['Romance', 'Comedy', 'Slice of life'],
+            'title': 'TONIKAWA: Over the Moon For You',
+            'description': 'md5:297b5a17155eb645e14a14b385ab547e',
+            'categories': ['Slice of life', 'Comedy', 'Romance'],
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'view_count': int,
         },
@@ -1033,11 +1033,11 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
         'url': 'https://www.bilibili.tv/en/media/1048837',
         'info_dict': {
             'id': '1048837',
-            'thumbnail': 'https://pic.bstarstatic.com/ogv/561b0ce01af1604517f5a5487c2c7156b203c389.jpg',
             'title': 'SPY×FAMILY',
             'description': 'md5:b4434eb1a9a97ad2bccb779514b89f17',
-            'view_count': int,
             'categories': ['Adventure', 'Action', 'Comedy'],
+            'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.jpg$',
+            'view_count': int,
         },
         'playlist_mincount': 25,
     }, {
