@@ -10,6 +10,37 @@ from ..utils import (
 )
 
 
+class RadioJavanPlaylistMp3IE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/playlists/playlist/mp3/(?P<id>[^/]+)/?'
+    IE_NAME = 'radiojavan:playlist:mp3'
+    _TEST = {
+        'url': 'https://www.radiojavan.com/playlists/playlist/mp3/6449cdabd351',
+        'info_dict': {
+            'id': '6449cdabd351',
+            'title': 'Top Songs Pop',
+        },
+        'playlist_mincount': 5,
+    }
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, playlist_id)
+
+        title = self._search_regex(
+            r'class="title">([^<]+?)<',
+            webpage, 'title', fatal=False)
+
+        playlist_items = []
+
+        for match in re.finditer(r'href="(/mp3s/playlist_start\?id=[^<]+?index=[\d]+?")', webpage, re.IGNORECASE | re.MULTILINE):
+            url_path = match.group(1).replace('&amp;', '&')
+            url = f'https://www.radiojavan.com{url_path}'
+            playlist_items.append(self.url_result(url=url, url_transparent=False))
+
+        return self.playlist_result(entries=playlist_items, playlist_id=playlist_id, playlist_title=title, multi_video=False)
+
+
 class RadioJavanPodcastsIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/podcasts/podcast/(?P<id>[^/]+)/?'
     _TEST = {
@@ -91,8 +122,8 @@ class RadioJavanPodcastsIE(InfoExtractor):
 
 
 class RadioJavanMp3IE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/mp3s/mp3/(?P<id>[^/]+)/?'
-    _TEST = {
+    _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/mp3s/(mp3/(?P<id>[^/]+)|playlist_start\?id=(?P<playlist_id>[^/]+)&index=(?P<index>[\d]+))/?'
+    _TESTS = [{
         'url': 'https://www.radiojavan.com/mp3s/mp3/Ell3-Baroon',
         'md5': 'cb877362f8e8fabb1aad6e2f1bf1bf97',
         'info_dict': {
@@ -107,10 +138,40 @@ class RadioJavanMp3IE(InfoExtractor):
             'view_count': int,
             'like_count': int,
         }
-    }
+    }, {
+        'url': 'https://www.radiojavan.com/mp3s/playlist_start?id=6449cdabd351&index=0',
+        'info_dict': {
+            'id': str,  # This is a playlist item and could simply change in future, thus we validate by type
+            'title': str,
+            'alt_title': str,
+            'track': str,
+            'artist': str,
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'upload_date': str,
+            'view_count': int,
+            'like_count': int,
+        },
+        'params': {
+            # This is playlist item and it could change later,
+            # so we provide an output name so we will not get 'info file not found' as we validating title by type
+            'outtmpl': 'RJPlaylistMP3',
+            # It is a random track, thus, we are unable to validate it's md5.
+            'skip_download': True,
+            'ignore_no_formats_error': True,
+        }
+    }]
 
     def _real_extract(self, url):
-        mp3_id = self._match_id(url)
+        mp3_id, playlist_id, mp3_playlist_index = self._match_valid_url(url).group('id', 'playlist_id', 'index')
+
+        webpage = self._download_webpage(url, mp3_id if mp3_id is not None else playlist_id)
+
+        song_link = self._search_regex(
+            r'rel="canonical" href="([^<]+?)"',
+            webpage, 'song link', fatal=False)
+
+        if mp3_id is None:
+            mp3_id = self._match_valid_url(song_link).group('id')
 
         download_host = self._download_json(
             'https://www.radiojavan.com/mp3s/mp3_host', mp3_id,
@@ -121,15 +182,13 @@ class RadioJavanMp3IE(InfoExtractor):
             }).get('host', 'https://host2.rj-mw1.com')
 
         mp3_url = self._download_json(
-            f'https://www.radiojavan.com/mp3s/mp3/{mp3_id}?setup=1', None,
+            song_link + '?setup=1', None,
             data=b'',
             headers={
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'X-Requested-With': 'XMLHttpRequest',
                 'Referer': url,
             }).get('currentMP3Url')
-
-        webpage = self._download_webpage(url, mp3_id)
 
         artist = self._search_regex(
             r'<span class="artist">([^<]+?)<',

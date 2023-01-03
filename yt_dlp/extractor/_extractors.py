@@ -1483,6 +1483,7 @@ from .radiojavan import (
     RadioJavanIE,
     RadioJavanMp3IE,
     RadioJavanPodcastsIE,
+    RadioJavanPlaylistMp3IE,
 )
 from .radiobremen import RadioBremenIE
 from .radiofrance import FranceCultureIE, RadioFranceIE
