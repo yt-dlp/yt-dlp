@@ -1014,21 +1014,32 @@ class BiliIntlIE(BiliIntlBaseIE):
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
     IE_NAME = 'biliIntl:series'
-    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?play/(?P<id>\d+)/?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?(?:play|media)/(?P<id>\d+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.bilibili.tv/en/play/34613',
         'playlist_mincount': 15,
         'info_dict': {
             'id': '34613',
-            'title': 'Fly Me to the Moon',
-            'description': 'md5:a861ee1c4dc0acfad85f557cc42ac627',
-            'categories': ['Romance', 'Comedy', 'Slice of life'],
+            'title': 'TONIKAWA: Over the Moon For You',
+            'description': 'md5:297b5a17155eb645e14a14b385ab547e',
+            'categories': ['Slice of life', 'Comedy', 'Romance'],
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'view_count': int,
         },
         'params': {
             'skip_download': True,
         },
+    }, {
+        'url': 'https://www.bilibili.tv/en/media/1048837',
+        'info_dict': {
+            'id': '1048837',
+            'title': 'SPY×FAMILY',
+            'description': 'md5:b4434eb1a9a97ad2bccb779514b89f17',
+            'categories': ['Adventure', 'Action', 'Comedy'],
+            'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.jpg$',
+            'view_count': int,
+        },
+        'playlist_mincount': 25,
     }, {
         'url': 'https://www.biliintl.com/en/play/34613',
         'only_matching': True,
