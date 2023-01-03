@@ -10,6 +10,39 @@ from ..utils import (
 )
 
 
+class RadioJavanPodcastShowIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/podcasts/browse/show/(?P<id>[^/]+)/?'
+    IE_NAME = 'radiojavan:playlist:podcasts'
+    _TEST = {
+        'url': 'https://www.radiojavan.com/podcasts/browse/show/Abo-Atash',
+        'info_dict': {
+            'id': 'Abo-Atash',
+            'title': 'Abo Atash',
+        },
+        'playlist_mincount': 5,
+    }
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, playlist_id)
+
+        title = self._search_regex(
+            r'class="title">([^<]+?)<',
+            webpage, 'title', fatal=False)
+
+        playlist_items = []
+
+        for match in re.finditer(r'href="(/podcasts/podcast/([^<]+))"', webpage, re.IGNORECASE | re.MULTILINE):
+            url_path = match.group(1).replace('&amp;', '&')
+            url = f'https://www.radiojavan.com{url_path}'
+            playlist_items.append(self.url_result(url=url, url_transparent=False))
+
+        playlist_items.reverse()
+
+        return self.playlist_result(entries=playlist_items, playlist_id=playlist_id, playlist_title=title, multi_video=False)
+
+
 class RadioJavanPlaylistMp3IE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/playlists/playlist/mp3/(?P<id>[^/]+)/?'
     IE_NAME = 'radiojavan:playlist:mp3'
