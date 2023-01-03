@@ -21,7 +21,7 @@ class Porn91IE(InfoExtractor):
             'title': '18岁大一漂亮学妹，水嫩性感，再爽一次！',
             'ext': 'mp4',
             'duration': 431,
-            'comment_count': 94,
+            'comment_count': int,
             'age_limit': 18,
         }
     }, {
@@ -32,7 +32,7 @@ class Porn91IE(InfoExtractor):
             'title': '“老师下面都湿了，快给我”',
             'ext': 'mp4',
             'duration': 617,
-            'comment_count': 19,
+            'comment_count': int,
             'age_limit': 18,
         }
     }, {
@@ -43,7 +43,7 @@ class Porn91IE(InfoExtractor):
             'title': '见过卖老婆的，那你见过卖亲闺女的吗？',
             'ext': 'mp4',
             'duration': 244,
-            'comment_count': 13,
+            'comment_count': int,
             'age_limit': 18,
         }
     }]
@@ -59,7 +59,7 @@ class Porn91IE(InfoExtractor):
             raise ExtractorError('91 Porn says: Daily limit 10 videos exceeded', expected=True)
 
         title = self._search_regex(
-            r'<title\s?[^>]*>([^<]+)</title>',
+            r'<title[^>]*>([^<]+)</title>',
             webpage, 'title')
         title = title.replace('\n', '').replace('Chinese homemade video', '').strip()
 
@@ -72,11 +72,11 @@ class Porn91IE(InfoExtractor):
             r"src=\'([^\']+)\'", video_link_url, 'video link')
 
         duration = parse_duration(self._search_regex(
-            r'时长:\s*<span\s?[^>]*>\s*(\d+:\d+)\s*</span>',
+            r'时长:\s*<span[^>]*>\s*(\d+:\d+)\s*</span>',
             webpage, 'duration', fatal=False))
 
         comment_count = int_or_none(self._search_regex(
-            r'留言:\s*<span\s?[^>]*>\s*(\d+)\s*</span>', webpage, 'comment count', fatal=False))
+            r'留言:\s*<span[^>]*>\s*(\d+)\s*</span>', webpage, 'comment count', fatal=False))
 
         return {
             'id': video_id,
