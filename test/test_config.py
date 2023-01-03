@@ -61,7 +61,7 @@ class TestCache(unittest.TestCase):
 
             parseOpts()
             from pprint import pprint
-            pprint(files)
+            pprint(files, stream=sys.stderr)
             self.assertEqual(files, self.expected,
                              'Not all expected locations have been checked')
 
