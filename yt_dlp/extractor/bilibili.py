@@ -1014,7 +1014,7 @@ class BiliIntlIE(BiliIntlBaseIE):
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
     IE_NAME = 'biliIntl:series'
-    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?play/(?P<id>\d+)/?(?:[?#]|$)'
+    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?(?:play|media)/(?P<id>\d+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.bilibili.tv/en/play/34613',
         'playlist_mincount': 15,
@@ -1029,6 +1029,17 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
         'params': {
             'skip_download': True,
         },
+    }, {
+        'url': 'https://www.bilibili.tv/en/media/1048837',
+        'info_dict': {
+            'id': '1048837',
+            'thumbnail': 'https://pic.bstarstatic.com/ogv/561b0ce01af1604517f5a5487c2c7156b203c389.jpg',
+            'title': 'SPY×FAMILY',
+            'description': 'md5:b4434eb1a9a97ad2bccb779514b89f17',
+            'view_count': int,
+            'categories': ['Adventure', 'Action', 'Comedy'],
+        },
+        'playlist_mincount': 25,
     }, {
         'url': 'https://www.biliintl.com/en/play/34613',
         'only_matching': True,
