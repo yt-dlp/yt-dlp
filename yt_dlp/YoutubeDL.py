@@ -586,7 +586,6 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
 
-        windows_enable_vt_mode()
         stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
         self._out_files = Namespace(
             out=stdout,
@@ -595,6 +594,12 @@ class YoutubeDL:
             console=None if compat_os_name == 'nt' else next(
                 filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None)
         )
+
+        try:
+            windows_enable_vt_mode()
+        except Exception as e:
+            self.write_debug(f'Failed to enable VT mode: {e}')
+
         self._allow_colors = Namespace(**{
             type_: not self.params.get('no_color') and supports_terminal_sequences(stream)
             for type_, stream in self._out_files.items_ if type_ != 'console'
