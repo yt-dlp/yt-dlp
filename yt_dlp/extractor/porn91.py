@@ -59,8 +59,7 @@ class Porn91IE(InfoExtractor):
             raise ExtractorError('91 Porn says: Daily limit 10 videos exceeded', expected=True)
 
         title = self._search_regex(
-            r'<title[^>]*>([^<]+)</title>',
-            webpage, 'title')
+            r'<title[^>]*>([^<]+)</title>', webpage, 'title')
         title = title.replace('\n', '').replace('Chinese homemade video', '').strip()
 
         video_link_url = self._search_regex(
@@ -72,8 +71,7 @@ class Porn91IE(InfoExtractor):
             r"src=\'([^\']+)\'", video_link_url, 'video link')
 
         duration = parse_duration(self._search_regex(
-            r'时长:\s*<span[^>]*>\s*(\d+:\d+)\s*</span>',
-            webpage, 'duration', fatal=False))
+            r'时长:\s*<span[^>]*>\s*(\d+:\d+)\s*</span>', webpage, 'duration', fatal=False))
 
         comment_count = int_or_none(self._search_regex(
             r'留言:\s*<span[^>]*>\s*(\d+)\s*</span>', webpage, 'comment count', fatal=False))
