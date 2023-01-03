@@ -3529,7 +3529,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         # Per RFC 3003, audio/mpeg can be .mp1, .mp2 or .mp3.
         # Using .mp3 as it's the most popular one
         'audio/mpeg': 'mp3',
-        'audio/webm': 'weba',
+        'audio/webm': 'webm',
         'audio/x-matroska': 'mka',
         'audio/x-mpegurl': 'm3u',
         'midi': 'mid',
