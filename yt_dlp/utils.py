@@ -3529,7 +3529,6 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         # Per RFC 3003, audio/mpeg can be .mp1, .mp2 or .mp3.
         # Using .mp3 as it's the most popular one
         'audio/mpeg': 'mp3',
-        'audio/webm': 'weba',
         'audio/x-matroska': 'mka',
         'audio/x-mpegurl': 'm3u',
         'midi': 'mid',
@@ -3661,7 +3660,7 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
 
     COMPATIBLE_EXTS = (
         {'mp3', 'mp4', 'm4a', 'm4p', 'm4b', 'm4r', 'm4v', 'ismv', 'isma', 'mov'},
-        {'webm', 'weba'},
+        {'webm'},
     )
     for ext in preferences or vexts:
         current_exts = {ext, *vexts, *aexts}
@@ -5991,7 +5990,7 @@ MEDIA_EXTENSIONS = Namespace(
     common_video=('avi', 'flv', 'mkv', 'mov', 'mp4', 'webm'),
     video=('3g2', '3gp', 'f4v', 'mk3d', 'divx', 'mpg', 'ogv', 'm4v', 'wmv'),
     common_audio=('aiff', 'alac', 'flac', 'm4a', 'mka', 'mp3', 'ogg', 'opus', 'wav'),
-    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma', 'weba'),
+    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma'),
     thumbnails=('jpg', 'png', 'webp'),
     storyboards=('mhtml', ),
     subtitles=('srt', 'vtt', 'ass', 'lrc'),

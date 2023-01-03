@@ -2549,7 +2549,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'url': 'https://www.youtube.com/watch?v=Tq92D6wQ1mg',
             'info_dict': {
                 'id': 'Tq92D6wQ1mg',
-                'ext': 'weba',
+                'ext': 'webm',
                 'title': '[MMD] Adios - EVERGLOW [+Motion DL]',
                 'channel_url': 'https://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
                 'channel_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
