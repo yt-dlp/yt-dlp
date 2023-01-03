@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # Allow direct execution
+import os
 import os.path
 import sys
 
@@ -10,9 +11,10 @@ import unittest
 import unittest.mock
 from pathlib import Path
 
+from yt_dlp.compat import compat_expanduser
 from yt_dlp.options import create_parser, parseOpts
 from yt_dlp.utils import Config, get_executable_path
-from yt_dlp.compat import compat_expanduser
+
 
 def flatten(iterable):
     return list(item for items in iterable for item in items)
@@ -20,14 +22,13 @@ def flatten(iterable):
 
 class TestCache(unittest.TestCase):
     def setUp(self):
-
         xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
         appdata_dir = os.getenv('appdata')
         home_dir = compat_expanduser('~')
-        self.expected_groups = [list(map(Path, items)) for items in [[
+        self.expected_groups = [[
             Path(get_executable_path(), 'yt-dlp.conf'),  # Portable
         ], [
-            'yt-dlp.conf',   # Home?
+            Path('yt-dlp.conf'),   # Home?
         ], [
             Path(xdg_config_home, 'yt-dlp.conf'),
             Path(xdg_config_home, 'yt-dlp', 'config'),
@@ -45,9 +46,10 @@ class TestCache(unittest.TestCase):
             Path('/etc/yt-dlp.conf'),
             Path('/etc/yt-dlp/config'),
             Path('/etc/yt-dlp/config.txt'),
-        ]]]
+        ]]
         self.expected = flatten(self.expected_groups)
         sys.argv = ['yt-dlp']
+        self.maxDiff = None
 
     def test_config_locations(self):
         files = []
@@ -60,8 +62,6 @@ class TestCache(unittest.TestCase):
             mock.read_file = read_file
 
             parseOpts()
-            from pprint import pprint
-            pprint(files, stream=sys.stderr)
             self.assertEqual(files, self.expected,
                              'Not all expected locations have been checked')
 
