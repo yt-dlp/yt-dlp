@@ -2125,6 +2125,8 @@ class InfoExtractor:
                             'abr': abr,
                         })
                     codecs = parse_codecs(last_stream_inf.get('CODECS'))
+                    for k, v in force_codecs.items():
+                        codecs.setdefault(k, v)
                     audio_group_id = last_stream_inf.get('AUDIO')
                     # As per [1, 4.3.4.1.1] any EXT-X-STREAM-INF tag which
                     # references a rendition group MUST have a CODECS attribute.
@@ -2136,16 +2138,32 @@ class InfoExtractor:
                     # ignore references to rendition groups and treat them
                     # as complete formats.
 
-                    def xor(x, y):
-                        return bool((x and not y) or (not x and y))
+                    # updates acodec for audio only formats with
+                    # the same GROUP-ID
+                    for f_id in [join_nonempty(m3u8_id, audio_group_id, ag.get('NAME')) for ag in groups.get(audio_group_id) or []]:
+                        for fmt in formats:
+                            if fmt['format_id'].startswith(f_id) and fmt.get('vcodec') == 'none':
+                                fmt['acodec'] = codecs.get('acodec')
+                                break
 
-                    if audio_group_id and xor(codecs, force_codecs) and f.get('vcodec') != 'none' and force_codecs.get('vcodec') != 'none':
+                    fixed = False
+                    # Trying to set Video-only (and Audio-only???) streams based on the manifest url (be very strict to avoid issues). Eg:
+                    # .../chunklist_b5210000_vo_...
+                    # .../v9/prog_index.m3u8...
+                    # .../index-f14-v1.m3u8?...
+                    if re.search(r'chunklist\w*?_vo_|/v\d{1,2}/\w*?index\.m3u8|index-f\d{1,2}-v\d{1,2}\.m3u8', f['url']):
+                        codecs['acodec'] = 'none'
+                        fixed = True
+                    # Audio only: very likely not necessary
+                    elif re.search(r'chunklist\w*?_ao_|/a\d{1,2}/\w*?index\.m3u8|index-f\d{1,2}-a\d{1,2}\.m3u8', f['url']):
+                        codecs['vcodec'] = 'none'
+                        fixed = True
+
+                    if audio_group_id and codecs and not force_codecs and f.get('vcodec') != 'none' and not fixed:
                         audio_group = groups.get(audio_group_id)
                         if audio_group and audio_group[0].get('URI'):
-                            # TODO: update acodec for audio only formats with
-                            # the same GROUP-ID
-                            codecs = codecs or force_codecs
                             codecs['acodec'] = 'none'
+
                     f.update(codecs)
                     if not f.get('ext'):
                         f['ext'] = 'm4a' if f.get('vcodec') == 'none' else 'mp4'
