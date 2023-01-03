@@ -76,6 +76,7 @@ class RadioJavanPlaylistMp3IE(InfoExtractor):
 
 class RadioJavanPodcastsIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/podcasts/podcast/(?P<id>[^/]+)/?'
+    IE_NAME = 'radiojavan:podcast'
     _TEST = {
         'url': 'https://www.radiojavan.com/podcasts/podcast/Abo-Atash-118',
         'md5': 'c74b6a5adbd99c4b38a0f266dd6fdf4a',
@@ -156,6 +157,7 @@ class RadioJavanPodcastsIE(InfoExtractor):
 
 class RadioJavanMp3IE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/mp3s/(mp3/(?P<id>[^/]+)|playlist_start\?id=(?P<playlist_id>[^/]+)&index=(?P<index>[\d]+))/?'
+    IE_NAME = 'radiojavan:mp3'
     _TESTS = [{
         'url': 'https://www.radiojavan.com/mp3s/mp3/Ell3-Baroon',
         'md5': 'cb877362f8e8fabb1aad6e2f1bf1bf97',
@@ -262,6 +264,7 @@ class RadioJavanMp3IE(InfoExtractor):
 
 class RadioJavanIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?radiojavan\.com/videos/video/(?P<id>[^/]+)/?'
+    IE_NAME = 'radiojavan:video'
     _TEST = {
         'url': 'http://www.radiojavan.com/videos/video/chaartaar-ashoobam',
         'md5': 'e85208ffa3ca8b83534fca9fe19af95b',
