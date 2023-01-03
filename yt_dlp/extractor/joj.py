@@ -31,7 +31,8 @@ class JojIE(InfoExtractor):
         'info_dict': {
             'id': 'CSM0Na0l0p1',
             'ext': 'mp4',
-            'title': 'Extrémne rodiny 2 - POKRAČOVANIE (2012\\/04\\/09 21:30:00)',
+            'height': 576,
+            'title': 'Extrémne rodiny 2 - POKRAČOVANIE (2012/04/09 21:30:00)',
             'duration': 3937,
             'thumbnail': r're:^https?://.*?$',
         }
@@ -52,10 +53,10 @@ class JojIE(InfoExtractor):
         webpage = self._download_webpage(
             'https://media.joj.sk/embed/%s' % video_id, video_id)
 
-        title = self._search_regex(
-            (r'videoTitle\s*:\s*(["\'])(?P<title>(?:(?!\1).)+)\1',
-             r'<title>(?P<title>[^<]+)'), webpage, 'title',
-            default=None, group='title') or self._og_search_title(webpage)
+        title = (self._search_json(r'videoTitle\s*:', webpage, 'title', video_id,
+                                   contains_pattern=r'["\'].+["\']', default=None)
+                 or self._html_extract_title(webpage, default=None)
+                 or self._og_search_title(webpage))
 
         bitrates = self._parse_json(
             self._search_regex(
