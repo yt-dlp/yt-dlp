@@ -25,29 +25,34 @@ class TestCache(unittest.TestCase):
         xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
         appdata_dir = os.getenv('appdata')
         home_dir = compat_expanduser('~')
-        self.expected_groups = [[
-            Path(get_executable_path(), 'yt-dlp.conf'),  # Portable
-        ], [
-            Path('yt-dlp.conf'),   # Home?
-        ], [
-            Path(xdg_config_home, 'yt-dlp.conf'),
-            Path(xdg_config_home, 'yt-dlp', 'config'),
-            Path(xdg_config_home, 'yt-dlp', 'config.txt'),
-            *([
-                Path(appdata_dir, 'yt-dlp.conf'),
-                Path(appdata_dir, 'yt-dlp', 'config'),
-                Path(appdata_dir, 'yt-dlp', 'config.txt'),
-            ] if appdata_dir else []),
-            Path(home_dir, 'yt-dlp.conf'),
-            Path(home_dir, 'yt-dlp.conf.txt'),
-            Path(home_dir, '.yt-dlp', 'config'),
-            Path(home_dir, '.yt-dlp', 'config.txt'),
-        ], [
-            Path('/etc/yt-dlp.conf'),
-            Path('/etc/yt-dlp/config'),
-            Path('/etc/yt-dlp/config.txt'),
-        ]]
-        self.expected = flatten(self.expected_groups)
+        self.expected_groups = {
+            "Portable": [
+                Path(get_executable_path(), 'yt-dlp.conf'),
+            ],
+            "Home": [
+                Path('yt-dlp.conf'),
+            ],
+            "User": [
+                Path(xdg_config_home, 'yt-dlp.conf'),
+                Path(xdg_config_home, 'yt-dlp', 'config'),
+                Path(xdg_config_home, 'yt-dlp', 'config.txt'),
+                *([
+                    Path(appdata_dir, 'yt-dlp.conf'),
+                    Path(appdata_dir, 'yt-dlp', 'config'),
+                    Path(appdata_dir, 'yt-dlp', 'config.txt'),
+                ] if appdata_dir else []),
+                Path(home_dir, 'yt-dlp.conf'),
+                Path(home_dir, 'yt-dlp.conf.txt'),
+                Path(home_dir, '.yt-dlp', 'config'),
+                Path(home_dir, '.yt-dlp', 'config.txt'),
+            ],
+            "System": [
+                Path('/etc/yt-dlp.conf'),
+                Path('/etc/yt-dlp/config'),
+                Path('/etc/yt-dlp/config.txt'),
+            ]
+        }
+        self.expected = flatten(self.expected_groups.values())
         sys.argv = ['yt-dlp']
         self.maxDiff = None
 
@@ -83,18 +88,15 @@ class TestCache(unittest.TestCase):
         return files, opts
 
     def test_config_grouping(self):
-        for group_index, group in enumerate(self.expected_groups):
+        for name, group in self.expected_groups.items():
             for index, path in enumerate(group):
-                with self.subTest(f'Config group {group_index}, index {index}'):
-                    expected_groups = (
-                        self.expected_groups[:group_index]
-                        + [self.expected_groups[group_index][:index + 1]]
-                        + self.expected_groups[group_index + 1:])
-
-                    expected_result = flatten(expected_groups)
+                with self.subTest(f'Config group {name}, index {index}'):
                     result, opts = self._test_config_group(path)
+                    expected_groups = self.expected_groups.copy()
+                    expected_groups[name] = expected_groups[name][:index + 1]
+
                     self.assertEqual(
-                        result, expected_result,
+                        result, flatten(expected_groups.values()),
                         'The remaining files in the group were not skipped')
                     self.assertEqual(
                         Path(opts.outtmpl['default']), path,
