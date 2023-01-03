@@ -11,8 +11,8 @@ import unittest.mock
 from pathlib import Path
 
 from yt_dlp.options import create_parser, parseOpts
-from yt_dlp.utils import Config
-
+from yt_dlp.utils import Config, get_executable_path
+from yt_dlp.compat import compat_expanduser
 
 def flatten(iterable):
     return list(item for items in iterable for item in items)
@@ -20,21 +20,27 @@ def flatten(iterable):
 
 class TestCache(unittest.TestCase):
     def setUp(self):
+
+        xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
+        appdata_dir = os.getenv('appdata')
+        home_dir = compat_expanduser('~')
         self.expected_groups = [list(map(Path, items)) for items in [[
-            'D:/Documents/GitHub/Grub4K/yt-dlp/yt-dlp.conf',
+            os.path.join(get_executable_path(), 'yt-dlp.conf'),  # Portable
         ], [
-            'yt-dlp.conf',
+            'yt-dlp.conf',   # Home?
         ], [
-            'C:/Users/grub4k/.config/yt-dlp.conf',
-            'C:/Users/grub4k/.config/yt-dlp/config',
-            'C:/Users/grub4k/.config/yt-dlp/config.txt',
-            'C:/Users/grub4k/AppData/Roaming/yt-dlp.conf',
-            'C:/Users/grub4k/AppData/Roaming/yt-dlp/config',
-            'C:/Users/grub4k/AppData/Roaming/yt-dlp/config.txt',
-            'C:/Users/grub4k/yt-dlp.conf',
-            'C:/Users/grub4k/yt-dlp.conf.txt',
-            'C:/Users/grub4k/.yt-dlp/config',
-            'C:/Users/grub4k/.yt-dlp/config.txt',
+            os.path.join(xdg_config_home, 'yt-dlp.conf'),
+            os.path.join(xdg_config_home, 'yt-dlp', 'config'),
+            os.path.join(xdg_config_home, 'yt-dlp', 'config.txt'),
+            *([
+                os.path.join(appdata_dir, 'yt-dlp.conf'),
+                os.path.join(appdata_dir, 'yt-dlp', 'config'),
+                os.path.join(appdata_dir, 'yt-dlp', 'config.txt'),
+            ] if appdata_dir else []),
+            os.path.join(home_dir, 'yt-dlp.conf'),
+            os.path.join(home_dir, 'yt-dlp.conf.txt'),
+            os.path.join(home_dir, '.yt-dlp', 'config'),
+            os.path.join(home_dir, '.yt-dlp', 'config.txt'),
         ], [
             '/etc/yt-dlp.conf',
             '/etc/yt-dlp/config',
