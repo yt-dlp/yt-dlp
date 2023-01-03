@@ -25,26 +25,26 @@ class TestCache(unittest.TestCase):
         appdata_dir = os.getenv('appdata')
         home_dir = compat_expanduser('~')
         self.expected_groups = [list(map(Path, items)) for items in [[
-            os.path.join(get_executable_path(), 'yt-dlp.conf'),  # Portable
+            Path(get_executable_path(), 'yt-dlp.conf'),  # Portable
         ], [
             'yt-dlp.conf',   # Home?
         ], [
-            os.path.join(xdg_config_home, 'yt-dlp.conf'),
-            os.path.join(xdg_config_home, 'yt-dlp', 'config'),
-            os.path.join(xdg_config_home, 'yt-dlp', 'config.txt'),
+            Path(xdg_config_home, 'yt-dlp.conf'),
+            Path(xdg_config_home, 'yt-dlp', 'config'),
+            Path(xdg_config_home, 'yt-dlp', 'config.txt'),
             *([
-                os.path.join(appdata_dir, 'yt-dlp.conf'),
-                os.path.join(appdata_dir, 'yt-dlp', 'config'),
-                os.path.join(appdata_dir, 'yt-dlp', 'config.txt'),
+                Path(appdata_dir, 'yt-dlp.conf'),
+                Path(appdata_dir, 'yt-dlp', 'config'),
+                Path(appdata_dir, 'yt-dlp', 'config.txt'),
             ] if appdata_dir else []),
-            os.path.join(home_dir, 'yt-dlp.conf'),
-            os.path.join(home_dir, 'yt-dlp.conf.txt'),
-            os.path.join(home_dir, '.yt-dlp', 'config'),
-            os.path.join(home_dir, '.yt-dlp', 'config.txt'),
+            Path(home_dir, 'yt-dlp.conf'),
+            Path(home_dir, 'yt-dlp.conf.txt'),
+            Path(home_dir, '.yt-dlp', 'config'),
+            Path(home_dir, '.yt-dlp', 'config.txt'),
         ], [
-            '/etc/yt-dlp.conf',
-            '/etc/yt-dlp/config',
-            '/etc/yt-dlp/config.txt',
+            Path('/etc/yt-dlp.conf'),
+            Path('/etc/yt-dlp/config'),
+            Path('/etc/yt-dlp/config.txt'),
         ]]]
         self.expected = flatten(self.expected_groups)
         sys.argv = ['yt-dlp']
