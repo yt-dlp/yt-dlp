@@ -1039,6 +1039,7 @@ from .mediasite import (
 )
 from .mediastream import (
     MediaStreamIE,
+    Canal1IE,
     WinSportsVideoIE,
 )
 from .mediaworksnz import MediaWorksNZVODIE
