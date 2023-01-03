@@ -3530,7 +3530,7 @@ def mimetype2ext(mt, default=NO_DEFAULT):
         # Per RFC 3003, audio/mpeg can be .mp1, .mp2 or .mp3.
         # Using .mp3 as it's the most popular one
         'audio/mpeg': 'mp3',
-        'audio/webm': 'weba',
+        'audio/webm': 'webm',
         'audio/x-matroska': 'mka',
         'audio/x-mpegurl': 'm3u',
         'midi': 'mid',
@@ -5660,7 +5660,6 @@ def windows_enable_vt_mode():
 
     dll = ctypes.WinDLL('kernel32', use_last_error=False)
     handle = os.open('CONOUT$', os.O_RDWR)
-
     try:
         h_out = ctypes.wintypes.HANDLE(msvcrt.get_osfhandle(handle))
         dw_original_mode = ctypes.wintypes.DWORD()
@@ -5672,14 +5671,12 @@ def windows_enable_vt_mode():
             dw_original_mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
         if not success:
             raise Exception('SetConsoleMode failed')
-    except Exception as e:
-        write_string(f'WARNING: Cannot enable VT mode - {e}')
-    else:
-        global WINDOWS_VT_MODE
-        WINDOWS_VT_MODE = True
-        supports_terminal_sequences.cache_clear()
     finally:
         os.close(handle)
+
+    global WINDOWS_VT_MODE
+    WINDOWS_VT_MODE = True
+    supports_terminal_sequences.cache_clear()
 
 
 _terminal_sequences_re = re.compile('\033\\[[^m]+m')

@@ -262,7 +262,8 @@ class Aria2cFD(ExternalFD):
         return fn if os.path.isabs(fn) else f'.{os.path.sep}{fn}'
 
     def _call_downloader(self, tmpfilename, info_dict):
-        if 'no-external-downloader-progress' not in self.params.get('compat_opts', []):
+        # FIXME: Disabled due to https://github.com/yt-dlp/yt-dlp/issues/5931
+        if False and 'no-external-downloader-progress' not in self.params.get('compat_opts', []):
             info_dict['__rpc'] = {
                 'port': find_available_port() or 19190,
                 'secret': str(uuid.uuid4()),
