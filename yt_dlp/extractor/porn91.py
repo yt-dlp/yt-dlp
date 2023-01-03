@@ -1,13 +1,12 @@
+import urllib.parse
+
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote
-)
 from ..utils import (
     parse_duration,
     int_or_none,
+    remove_end,
     ExtractorError,
 )
-
 
 class Porn91IE(InfoExtractor):
     IE_NAME = '91porn'
@@ -58,17 +57,14 @@ class Porn91IE(InfoExtractor):
         if '作为游客，你每天只可观看10个视频' in webpage:
             raise ExtractorError('91 Porn says: Daily limit 10 videos exceeded', expected=True)
 
-        title = self._search_regex(
-            r'<title[^>]*>([^<]+)</title>', webpage, 'title')
-        title = title.replace('\n', '').replace('Chinese homemade video', '').strip()
+        title = self._html_extract_title(webpage)
+        title = remove_end(title.replace('\n', ''), 'Chinese homemade video').strip()
 
         video_link_url = self._search_regex(
-            r'document\.write\(\s*strencode2\s*\((\s*(?:\"[^\"]+\")|(?:\'[^\']+\'))\s*\)\s*\)\s*;?',
+            r'document\.write\(\s*strencode2\s*\(\s*((?:"[^"]+\")|(?:\'[^\']+\'))\s*\)\s*\)',
             webpage, 'video link')
-
-        video_link_url = compat_urllib_parse_unquote(video_link_url)
         video_link_url = self._search_regex(
-            r"src=\'([^\']+)\'", video_link_url, 'video link')
+            r"src=\'([^\']+)\'", urllib.parse.unquote(video_link_url), 'unquoted video link')
 
         duration = parse_duration(self._search_regex(
             r'时长:\s*<span[^>]*>\s*(\d+:\d+)\s*</span>', webpage, 'duration', fatal=False))
