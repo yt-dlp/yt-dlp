@@ -70,13 +70,17 @@ class TestCache(unittest.TestCase):
             self.assertEqual(files, self.expected,
                              'Not all expected locations have been checked')
 
-    def _test_config_group(self, stop_path):
+    def _test_config_group(self, stop_index):
         files = []
+        index = 0
 
         def read_file(filename, default=[]):
+            nonlocal index
+            index += 1
+
             filepath = Path(filename)
             files.append(filepath)
-            if filepath == stop_path:
+            if index == stop_index:
                 return ['-o', filename]
 
         with unittest.mock.patch('yt_dlp.options.Config') as mock:
@@ -88,10 +92,12 @@ class TestCache(unittest.TestCase):
         return files, opts
 
     def test_config_grouping(self):
+        total_index = 0
         for name, group in self.expected_groups.items():
             for index, path in enumerate(group):
+                total_index += 1
                 with self.subTest(f'Config group {name}, index {index}'):
-                    result, opts = self._test_config_group(path)
+                    result, opts = self._test_config_group(total_index)
                     expected_groups = self.expected_groups.copy()
                     expected_groups[name] = expected_groups[name][:index + 1]
 
