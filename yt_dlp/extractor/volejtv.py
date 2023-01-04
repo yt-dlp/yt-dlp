@@ -27,7 +27,7 @@ class VolejTVIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         json_data = self._search_json(
-            r'<\s*!\[CDATA[^=]+=\s*', webpage, 'CDATA', video_id)
+            r'<\s*!\[CDATA[^=]+=', webpage, 'CDATA', video_id)
         formats, subtitle = self._extract_m3u8_formats_and_subtitles(
             json_data['urls']['hls'], video_id)
         return {
