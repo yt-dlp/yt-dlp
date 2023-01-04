@@ -3,13 +3,13 @@
 # Allow direct execution
 import os
 import sys
+import unittest
+import unittest.mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import contextlib
 import itertools
-import unittest
-import unittest.mock
 from pathlib import Path
 
 from yt_dlp.compat import compat_expanduser
@@ -78,9 +78,6 @@ def _generate_expected_groups():
 class TestConfig(unittest.TestCase):
     maxDiff = None
 
-    def setUp(self):
-        sys.argv = ['yt-dlp']
-
     @set_environ()
     def test_config__ENVIRON_DEFAULTS_sanity(self):
         expected = make_expected()
@@ -129,21 +126,20 @@ class TestConfig(unittest.TestCase):
                 return ['-o', f'{encountered}']
 
         with ConfigMock(read_file):
-            _, opts, _ = parseOpts()
+            _, opts, _ = parseOpts([], False)
 
         return paths, opts
 
     @set_environ()
     def test_config_early_exit_commandline(self):
-        sys.argv = ['yt-dlp', '--ignore-config']
-        self._early_exit_test(0)
+        self._early_exit_test(0, '--ignore-config')
 
     @set_environ()
     def test_config_early_exit_files(self):
         for index, _ in enumerate(make_expected(), 1):
             self._early_exit_test(index)
 
-    def _early_exit_test(self, allowed_reads):
+    def _early_exit_test(self, allowed_reads, *args):
         reads = 0
 
         def read_file(filename, default=[]):
@@ -156,19 +152,18 @@ class TestConfig(unittest.TestCase):
                 return ['--ignore-config']
 
         with ConfigMock(read_file):
-            parseOpts()
+            parseOpts(args, False)
 
     @set_environ()
     def test_config_override_commandline(self):
-        sys.argv = ['yt-dlp', '-o', 'pass']
-        self._override_test(0)
+        self._override_test(0, '-o', 'pass')
 
     @set_environ()
     def test_config_override_files(self):
         for index, _ in enumerate(make_expected(), 1):
             self._override_test(index)
 
-    def _override_test(self, start_index):
+    def _override_test(self, start_index, *args):
         index = 0
 
         def read_file(filename, default=[]):
@@ -181,7 +176,7 @@ class TestConfig(unittest.TestCase):
                 return ['-o', 'pass']
 
         with ConfigMock(read_file):
-            _, opts, _ = parseOpts()
+            _, opts, _ = parseOpts(args, False)
 
         self.assertEqual(
             opts.outtmpl['default'], 'pass',
@@ -203,8 +198,7 @@ def make_expected(*filepaths):
 
 
 def make_expected_groups(*filepaths):
-    expected_groups = _generate_expected_groups()
-    return _filter_expected_groups(expected_groups, filepaths)
+    return _filter_expected_groups(_generate_expected_groups(), filepaths)
 
 
 def expected_from_expected_groups(expected_groups, *filepaths):

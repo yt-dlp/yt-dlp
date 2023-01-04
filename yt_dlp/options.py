@@ -8,6 +8,7 @@ import shutil
 import string
 import sys
 
+from .compat import compat_expanduser
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
 from .postprocessor import (
@@ -54,6 +55,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     def _load_from_config_dirs(config_dirs):
         for config_dir in config_dirs:
             head, tail = os.path.split(config_dir)
+            assert tail == PACKAGE_NAME or config_dir == os.path.join(compat_expanduser('~'), f'.{PACKAGE_NAME}')
 
             yield read_config(head, f'{PACKAGE_NAME}.conf')
             if tail.startswith('.'):  # ~/.PACKAGE_NAME
