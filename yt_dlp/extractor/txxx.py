@@ -97,7 +97,7 @@ class TxxxIE(InfoExtractor):
         'md5': '1fcff3748b0c5b41fe41d0afa22409e1',
         'info_dict': {
             'id': '68925',
-            'display_id': '',
+            'display_id': '68925',
             'ext': 'mp4',
             'title': 'Malena Morgan',
             'uploader': 'Huge Hughes',
@@ -372,7 +372,7 @@ class PornTopIE(InfoExtractor):
             'display_id': 'triple-threat-with-lia-lor-malena-morgan-and-dani-daniels',
             'ext': 'mp4',
             'title': 'Triple Threat With Lia Lor, Malena Morgan And Dani Daniels',
-            'description': 'md5:c511b7de2d6135c14868f0e6b0940c41',
+            'description': 'md5:285357d9d3a00ce5acb29f39f826dbf6',
             'uploader': 'PatrickBush',
             'duration': 480,
             'view_count': int,
@@ -455,7 +455,7 @@ class PornZogIE(InfoExtractor):
         'url': 'https://pornzog.com/video/9125519/michelle-malone-dreamgirls-wild-wet-3/',
         'info_dict': {
             'id': '5119660',
-            'display_id': '',
+            'display_id': '5119660',
             'ext': 'mp4',
             'title': 'Michelle Malone - Dreamgirls - Wild Wet 3',
             'uploader': 'FallenAngel12',
