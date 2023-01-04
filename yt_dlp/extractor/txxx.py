@@ -343,7 +343,7 @@ class TxxxIE(InfoExtractor):
             'quality': index,
         } for index, video in enumerate(video_file) if video.get('video_url')]
 
-        slug = f'{1E6 * (int(video_id) // 1E6)}/{1000 * (int(video_id) // 1000)}'
+        slug = f'{int(1E6 * (int(video_id) // 1E6))}/{1000 * (int(video_id) // 1000)}'
         video_info = self._call_api(
             f'https://{host}/api/json/video/86400/{slug}/{video_id}.json',
             video_id, note='Downloading video info', headers=headers)
