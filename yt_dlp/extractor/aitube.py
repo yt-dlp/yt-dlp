@@ -21,6 +21,7 @@ class AitubeKZVideoIE(InfoExtractor):
             'upload_date': '20221102',
             'timestamp': 1667370519,
             'title': 'Ангел хранитель 1 серия',
+            'channel_follower_count': int,
         }
     }, {
         # embed url
@@ -44,7 +45,7 @@ class AitubeKZVideoIE(InfoExtractor):
 
         return merge_dicts({
             'id': video_id,
-            'title': nextjs_data.get('title') or self._html_search_meta('og:title', webpage),
+            'title': nextjs_data.get('title') or self._html_search_meta(['name', 'og:title'], webpage),
             'description': nextjs_data.get('description'),
             'formats': formats,
             'subtitles': subtitles,
@@ -55,4 +56,5 @@ class AitubeKZVideoIE(InfoExtractor):
             'channel_id': nextjs_data.get('channelId'),
             'thumbnail': nextjs_data.get('coverUrl'),
             'comment_count': nextjs_data.get('commentCount'),
+            'channel_follower_count': int_or_none(nextjs_data.get('channelSubscriberCount')),
         }, json_ld_data)
