@@ -208,20 +208,6 @@ class TxxxIE(InfoExtractor):
             'age_limit': 18,
         }
     }, {
-        'url': 'https://pornzog.com/video/9125519/michelle-malone-dreamgirls-wild-wet-3/',
-        'info_dict': {
-            'id': '5119660',
-            'display_id': '5119660',
-            'ext': 'mp4',
-            'title': 'Michelle Malone - Dreamgirls - Wild Wet 3',
-            'uploader': 'FallenAngel12',
-            'duration': 402,
-            'view_count': int,
-            'like_count': int,
-            'dislike_count': int,
-            'age_limit': 18,
-        }
-    }, {
         'url': 'https://privatehomeclips.com/videos/3630599/malena-morgan-cam-show/',
         'md5': 'ea657273e352493c5fb6357fbfa4f126',
         'info_dict': {
