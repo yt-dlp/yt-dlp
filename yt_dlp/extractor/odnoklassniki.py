@@ -11,6 +11,7 @@ from ..utils import (
     int_or_none,
     qualities,
     smuggle_url,
+    traverse_obj,
     unescapeHTML,
     unified_strdate,
     unsmuggle_url,
@@ -153,6 +154,26 @@ class OdnoklassnikiIE(InfoExtractor):
             'title': 'Быковское крещение',
             'duration': 3038.181,
         },
+        'skip': 'HTTP Error 400',
+    }, {
+        'note': 'subtitles',
+        'url': 'https://ok.ru/video/4249587550747',
+        'info_dict': {
+            'id': '4249587550747',
+            'ext': 'mp4',
+            'title': 'Small Country An African Childhood (2020) (1080p) +subtitle',
+            'uploader': 'Sunflower Movies',
+            'uploader_id': '595802161179',
+            'upload_date': '20220816',
+            'duration': 6728,
+            'age_limit': 0,
+            'thumbnail': r're:^https?://i\.mycdn\.me/videoPreview\?.+',
+            'like_count': int,
+            'subtitles': dict,
+        },
+        'params': {
+            'skip_download': True,
+        },
     }, {
         'url': 'http://ok.ru/web-api/video/moviePlayer/20079905452',
         'only_matching': True,
@@ -202,6 +223,7 @@ class OdnoklassnikiIE(InfoExtractor):
             'like_count': 0,
             'duration': 10444,
         },
+        'skip': 'Site no longer embeds',
     }]
 
     @classmethod
@@ -294,6 +316,16 @@ class OdnoklassnikiIE(InfoExtractor):
 
         like_count = int_or_none(metadata.get('likeCount'))
 
+        subtitles = {}
+        for sub in traverse_obj(metadata, ('movie', 'subtitleTracks', ...), expected_type=dict):
+            sub_url = sub.get('url')
+            if not sub_url:
+                continue
+            subtitles.setdefault(sub.get('language') or 'en', []).append({
+                'url': sub_url,
+                'ext': 'vtt',
+            })
+
         info = {
             'id': video_id,
             'title': title,
@@ -305,6 +337,7 @@ class OdnoklassnikiIE(InfoExtractor):
             'like_count': like_count,
             'age_limit': age_limit,
             'start_time': start_time,
+            'subtitles': subtitles,
         }
 
         # pladform
