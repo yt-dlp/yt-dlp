@@ -48,25 +48,41 @@ class RozhlasIE(InfoExtractor):
         }
 
 class RozhlasVltavaIE(InfoExtractor):
-    _VALID_URL = r'https?://(vltava|wave)\.rozhlas\.cz/[a-z|-]*-(?P<id>\d+)'
+    _VALID_URL = r'https?://((vltava|wave|radiozurnal|dvojka|plus|sport|d-dur|jazz|junior|pohoda)\.rozhlas|english\.radio)\.cz/[a-z|-]*-(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://vltava.rozhlas.cz/henry-miller-obratnik-raka-8876625/1',
-        'md5': '504c902dbc9e9a1fd50326eccf02a7e2',
+        'url': 'https://wave.rozhlas.cz/papej-masicko-porcujeme-a-bilancujeme-filmy-a-serialy-ktere-letos-zabily-8891337',
+        'md5': 'ba2fdbc1242fc16771c7695d271ec355',
         'info_dict': {
-            'id': '8876625',
+            'id': '8891337',
             'ext': 'mp3',
-            'title': 'Henry Miller: Obratník Raka',
-            'description': 'Nelítostný útok na konvence v klíčovém románu 20. století. Mladý spisovatel Henry Miller chce v Paříži třicátých let „vypsat celou pravdu o životě“. Připravila Petra Hynčíková. V režii Lukáše Kopeckého účinkuje Petr Kubes. Natočeno v brněnském studiu Českého rozhlasu v roce 2022. Premiéru poslouchejte on-line po dobu čtyř týdnů po odvysílání. Pořad není vhodný pro děti a mladistvé.'
+            'title': 'Máte po celé sezóně poslouchání Čelistí právo na wellness, nebo můžete být rádi, že jste vůbec naživu? Poslechněte si filmově kritickou bilanci všeho, co v uplynulých měsících stálo za vidění',
+            'description': '8888928: Vánoce s Radiem Wave | 7702992: Český rozhlas má nadílku pro každého',
+            'duration': 1574
         }
     }]
 
-    def _real_extract(self, url):
-        webpage = self._download_webpage(url, None)
-        
+    def find_element(self, webpage):
+        """
+        Use utils.get_element_text_and_html_by_tag() instead when it accepts less strict html.
+        """
         playerDiv = ''
         for k, line in enumerate(webpage.split("\n")) :
             if line.find('mujRozhlasPlayer') != -1 :
                 playerDiv = line.strip()
+                break
+        
+        if playerDiv.count('<div') > 1:
+            for k, element in enumerate(playerDiv.split('<div')) :
+                if element.count('mujRozhlasPlayer') == 1:
+                    playerDiv = '<div' + element
+                    break
+        
+        return playerDiv
+
+    def _real_extract(self, url):
+        webpage = self._download_webpage(url, None)
+        
+        playerDiv = self.find_element(webpage)
         
         jsonString = extract_attributes(playerDiv)['data-player']
         jsonData = json.loads(jsonString)
@@ -82,7 +98,8 @@ class RozhlasVltavaIE(InfoExtractor):
                 'vcodec': 'none',
             }
             temp = {
-                'id': entry["meta"]['ga']['contentId'],
+                #'id': entry["meta"]['ga']['contentId'],
+                'id': self._match_id(url),
                 'title': entry["title"],
                 'description': entry["meta"]['ga']['contentEvent'],
                 'duration': entry["duration"],
@@ -96,3 +113,4 @@ class RozhlasVltavaIE(InfoExtractor):
             'title': jsonData["data"]['series']['title'],
             'entries': entries,
         }
+
