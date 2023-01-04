@@ -8,6 +8,7 @@ from .common import InfoExtractor
 from ..aes import aes_cbc_encrypt_bytes
 from ..utils import (
     ExtractorError,
+    float_or_none,
     determine_ext,
     int_or_none,
     js_to_json,
@@ -18,6 +19,13 @@ from ..utils import (
 
 class TencentBaseIE(InfoExtractor):
     """Subclasses must set _API_URL, _APP_VERSION, _PLATFORM, _HOST, _REFERER"""
+
+    def _check_api_response(self, api_response):
+        if api_response.get('em') != 0 and api_response.get('exem') != 0:
+            if '您所在区域暂无此内容版权' in api_response.get('msg'):
+                self.raise_geo_restricted()
+            raise ExtractorError(f'Tencent said: {api_response.get("msg")}')
+        return None
 
     def _get_ckey(self, video_id, url, guid):
         ua = self.get_param('http_headers')['User-Agent']
@@ -47,6 +55,13 @@ class TencentBaseIE(InfoExtractor):
             'sphttps': '1',  # Enable HTTPS
             'otype': 'json',
             'spwm': '1',
+            'hevclv': '28',  # Enable HEVC
+            'drm': '40',  # Enable DRM
+            # For HDR
+            'spvideo': '4',
+            'spaudio': '64',
+            'spsfrhdr': '100',
+            'defnpayver': '4',
             # For SHD
             'host': self._HOST,
             'referer': self._REFERER,
@@ -63,7 +78,10 @@ class TencentBaseIE(InfoExtractor):
 
     def _extract_video_formats_and_subtitles(self, api_response, video_id):
         video_response = api_response['vl']['vi'][0]
-        video_width, video_height = video_response.get('vw'), video_response.get('vh')
+        has_drm, video_width, video_height = video_response.get('drm') == 1, video_response.get('vw'), video_response.get('vh'),
+        format_response = next(filter(lambda f: f.get('br') == video_response.get('br'), api_response['fl']['fi']))
+        abr, vbr = float_or_none(format_response.get('audiobandwidth'), scale=1000), float_or_none(format_response.get('bandwidth'), scale=1000)
+        is_hdr, format_name = format_response.get('name') == 'hdr10', f'{format_response.get("sname")} ({format_response.get("resolution")})'
 
         formats, subtitles = [], {}
         for video_format in video_response['ul']['ui']:
@@ -84,6 +102,16 @@ class TencentBaseIE(InfoExtractor):
                     'ext': 'mp4',
                 })
 
+        for f in formats:
+            f['abr'] = abr
+            f['vbr'] = vbr
+            f['fps'] = format_response.get('vfps')
+            f['format'] = format_name
+            f['format_id '] = format_response.get('formatdefn')
+            f['format_note'] = format_name + (' HDR' if is_hdr else '')
+            f['dynamic_range'] = 'hdr10' if is_hdr else None
+            f['has_drm '] = has_drm
+
         return formats, subtitles
 
     def _extract_video_native_subtitles(self, api_response, subtitles_format):
@@ -97,21 +125,30 @@ class TencentBaseIE(InfoExtractor):
 
         return subtitles
 
+    def _extract_all_video_quality(self, api_response):
+        quality = []
+        formats_response = api_response['fl']['fi']
+        for f in formats_response:
+            quality.append(f.get('name'))
+        return quality
+
     def _extract_all_video_formats_and_subtitles(self, url, video_id, series_id):
+        first_api_response = self._get_video_api_response(url, video_id, series_id, 'vtt', 'hls', 'hd')
+        self._check_api_response(first_api_response)
+        api_responses = [first_api_response]
+        quality = self._extract_all_video_quality(first_api_response)
+        print(quality)
+        for q in quality:
+            if q != 'sd' and q != 'hd':
+                api_response = self._get_video_api_response(
+                    url, video_id, series_id, 'vtt', 'hls', q)
+                self._check_api_response(api_response)
+                api_responses.append(api_response)
+
         formats, subtitles = [], {}
-        for video_format, subtitle_format, video_quality in (
-                # '': 480p, 'shd': 720p, 'fhd': 1080p
-                ('mp4', 'srt', ''), ('hls', 'vtt', 'shd'), ('hls', 'vtt', 'fhd')):
-            api_response = self._get_video_api_response(
-                url, video_id, series_id, subtitle_format, video_format, video_quality)
-
-            if api_response.get('em') != 0 and api_response.get('exem') != 0:
-                if '您所在区域暂无此内容版权' in api_response.get('msg'):
-                    self.raise_geo_restricted()
-                raise ExtractorError(f'Tencent said: {api_response.get("msg")}')
-
+        for api_response in api_responses:
             fmts, subs = self._extract_video_formats_and_subtitles(api_response, video_id)
-            native_subtitles = self._extract_video_native_subtitles(api_response, subtitle_format)
+            native_subtitles = self._extract_video_native_subtitles(api_response, 'vtt')
 
             formats.extend(fmts)
             self._merge_subtitles(subs, native_subtitles, target=subtitles)
@@ -147,27 +184,31 @@ class VQQVideoIE(VQQBaseIE):
 
     _TESTS = [{
         'url': 'https://v.qq.com/x/page/q326831cny0.html',
-        'md5': '826ef93682df09e3deac4a6e6e8cdb6e',
+        'md5': '84568b3722e15e9cd023b5594558c4a7',
         'info_dict': {
             'id': 'q326831cny0',
             'ext': 'mp4',
             'title': '我是选手：雷霆裂阵，终极时刻',
             'description': 'md5:e7ed70be89244017dac2a835a10aeb1e',
             'thumbnail': r're:^https?://[^?#]+q326831cny0',
+            'format_id ': 'shd',
+            'has_drm ': False,
         },
     }, {
         'url': 'https://v.qq.com/x/page/o3013za7cse.html',
-        'md5': 'b91cbbeada22ef8cc4b06df53e36fa21',
+        'md5': 'cc431c4f9114a55643893c2c8ebf5592',
         'info_dict': {
             'id': 'o3013za7cse',
             'ext': 'mp4',
             'title': '欧阳娜娜VLOG',
             'description': 'md5:29fe847497a98e04a8c3826e499edd2e',
             'thumbnail': r're:^https?://[^?#]+o3013za7cse',
+            'format_id ': 'shd',
+            'has_drm ': False,
         },
     }, {
         'url': 'https://v.qq.com/x/cover/7ce5noezvafma27/a00269ix3l8.html',
-        'md5': '71459c5375c617c265a22f083facce67',
+        'md5': '87968df6238a65d2478f19c25adf850b',
         'info_dict': {
             'id': 'a00269ix3l8',
             'ext': 'mp4',
@@ -175,10 +216,12 @@ class VQQVideoIE(VQQBaseIE):
             'description': 'md5:8cae3534327315b3872fbef5e51b5c5b',
             'thumbnail': r're:^https?://[^?#]+7ce5noezvafma27',
             'series': '鸡毛飞上天',
+            'format_id ': 'shd',
+            'has_drm ': False,
         },
     }, {
         'url': 'https://v.qq.com/x/cover/mzc00200p29k31e/s0043cwsgj0.html',
-        'md5': '96b9fd4a189fdd4078c111f21d7ac1bc',
+        'md5': 'fadd10bf88aec3420f06f19ee1d24c5b',
         'info_dict': {
             'id': 's0043cwsgj0',
             'ext': 'mp4',
@@ -186,6 +229,8 @@ class VQQVideoIE(VQQBaseIE):
             'description': 'md5:1d8c3a0b8729ae3827fa5b2d3ebd5213',
             'thumbnail': r're:^https?://[^?#]+s0043cwsgj0',
             'series': '青年理工工作者生活研究所',
+            'format_id ': 'shd',
+            'has_drm ': False,
         },
     }, {
         # Geo-restricted to China
