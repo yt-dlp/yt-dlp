@@ -62,6 +62,7 @@ class TxxxIE(InfoExtractor):
         https?://(?:www\.)?(?P<host>{"|".join(map(re.escape, _DOMAINS))})/
         (?:videos?[/-]|embed/)(?P<id>\d+)(?:/(?P<display_id>[^/?#]+))?
     '''
+    _EMBED_REGEX = [rf'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?(?:{"|".join(map(re.escape, _DOMAINS))})/embed/[^"\']*)\1']
     _TESTS = [{
         'url': 'https://txxx.com/videos/16574965/digital-desire-malena-morgan/',
         'md5': 'c54e4ace54320aaf8e2a72df87859391',
@@ -192,6 +193,20 @@ class TxxxIE(InfoExtractor):
             'title': 'Malena Morgan - Solo',
             'uploader': 'Ashley Oxy',
             'duration': 480,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
+        }
+    }, {
+        'url': 'https://pornzog.com/video/9125519/michelle-malone-dreamgirls-wild-wet-3/',
+        'info_dict': {
+            'id': '5119660',
+            'display_id': '5119660',
+            'ext': 'mp4',
+            'title': 'Michelle Malone - Dreamgirls - Wild Wet 3',
+            'uploader': 'FallenAngel12',
+            'duration': 402,
             'view_count': int,
             'like_count': int,
             'dislike_count': int,
@@ -447,31 +462,3 @@ class PornTopIE(InfoExtractor):
             'age_limit': 18,
             'formats': formats,
         }
-
-
-class PornZogIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?pornzog\.com/video/(?P<id>\d+)/'
-    _TESTS = [{
-        'url': 'https://pornzog.com/video/9125519/michelle-malone-dreamgirls-wild-wet-3/',
-        'info_dict': {
-            'id': '5119660',
-            'display_id': '5119660',
-            'ext': 'mp4',
-            'title': 'Michelle Malone - Dreamgirls - Wild Wet 3',
-            'uploader': 'FallenAngel12',
-            'duration': 402,
-            'view_count': int,
-            'like_count': int,
-            'dislike_count': int,
-            'age_limit': 18,
-        }
-    }]
-
-    def _real_extract(self, url):
-        # this host just embed videos from other hosts in the txxx network
-        # so just redirect
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-
-        new_url = self._html_search_regex(r'<iframe\s+src="([^"]*)"', webpage, 'newurl')
-        return self.url_result(new_url)
