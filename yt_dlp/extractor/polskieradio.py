@@ -2,6 +2,7 @@ import itertools
 import json
 import math
 import re
+from urllib.parse import unquote, urlencode
 
 from .common import InfoExtractor
 from ..compat import (
@@ -282,11 +283,8 @@ class PolskieRadioAuditionIE(InfoExtractor):
 class PolskieRadioCategoryIE(InfoExtractor):
     # legacy sites
     IE_NAME = 'polskieradio:category'
-    _VALID_URL = r'https?://(?:www\.)?polskieradio\.pl/\d+(?:,[^/]+)?/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?polskieradio\.pl/(?:\d+(?:,[^/]+)?/|[^/]+/Tag)(?P<id>\d+)'
     _TESTS = [{
-        'url': 'http://www.polskieradio.pl/7/129,Sygnaly-dnia?ref=source',
-        'only_matching': True
-    }, {
         'url': 'http://www.polskieradio.pl/37,RedakcjaKatolicka/4143,Kierunek-Krakow',
         'info_dict': {
             'id': '4143',
@@ -301,6 +299,36 @@ class PolskieRadioCategoryIE(InfoExtractor):
         },
         'playlist_mincount': 61
     }, {
+        # billennium tabs
+        'url': 'https://www.polskieradio.pl/8/2385',
+        'info_dict': {
+            'id': '2385',
+            'title': 'Droga przez mąkę',
+        },
+        'playlist_mincount': 111,
+    }, {
+        'url': 'https://www.polskieradio.pl/10/4930',
+        'info_dict': {
+            'id': '4930',
+            'title': 'Teraz Kpop!',
+        },
+        'playlist_mincount': 392,
+    }, {
+        # post back pages, audio content directly without articles
+        'url': 'https://www.polskieradio.pl/8,dwojka/7376,nowa-mowa',
+        'info_dict': {
+            'id': '7376',
+            'title': 'Nowa mowa',
+        },
+        'playlist_mincount': 244,
+    }, {
+        'url': 'https://www.polskieradio.pl/Krzysztof-Dziuba/Tag175458',
+        'info_dict': {
+            'id': '175458',
+            'title': 'Krzysztof Dziuba',
+        },
+        'playlist_mincount': 420,
+    }, {
         'url': 'http://www.polskieradio.pl/8,Dwojka/196,Publicystyka',
         'only_matching': True,
     }]
@@ -311,9 +339,12 @@ class PolskieRadioCategoryIE(InfoExtractor):
 
     def _entries(self, url, page, category_id):
         content = page
+        is_billennium_tabs = 'onclick="TB_LoadTab(' in page
+        is_post_back = 'onclick="__doPostBack(' in page
+        pagination = page if is_billennium_tabs else None
         for page_num in itertools.count(2):
             for a_entry, entry_id in re.findall(
-                    r'(?s)<article[^>]+>.*?(<a[^>]+href=["\']/\d+/\d+/Artykul/(\d+)[^>]+>).*?</article>',
+                    r'(?s)<article[^>]+>.*?(<a[^>]+href=["\'](?:(?:https?)?://[^/]+)?/\d+/\d+/Artykul/(\d+)[^>]+>).*?</article>',
                     content):
                 entry = extract_attributes(a_entry)
                 href = entry.get('href')
@@ -322,14 +353,66 @@ class PolskieRadioCategoryIE(InfoExtractor):
                 yield self.url_result(
                     compat_urlparse.urljoin(url, href), PolskieRadioLegacyIE,
                     entry_id, entry.get('title'))
-            mobj = re.search(
-                r'<div[^>]+class=["\']next["\'][^>]*>\s*<a[^>]+href=(["\'])(?P<url>(?:(?!\1).)+)\1',
-                content)
-            if not mobj:
-                break
-            next_url = compat_urlparse.urljoin(url, mobj.group('url'))
-            content = self._download_webpage(
-                next_url, category_id, 'Downloading page %s' % page_num)
+            for a_entry in re.findall(r'<span data-media=({[^ ]+})', content):
+                media = self._parse_json(a_entry, category_id)
+                yield {
+                    'url': media['file'],
+                    'id': media.get('uid'),
+                    'title': unquote(media.get('title')),
+                    'description': unquote(media.get('desc')),
+                    'duration': media.get('length'),
+                }
+            if is_billennium_tabs:
+                mobj = re.search(
+                    r'<div[^>]+class=["\']next["\'][^>]*>\s*<a[^>]+onclick=(["\'])TB_LoadTab\((?P<params>(?:(?!\1).)+)\);\1',
+                    pagination)
+                if not mobj:
+                    break
+                params = self._parse_json('[' + js_to_json(unescapeHTML(mobj.group('params'))) + ']', category_id)
+                tab_content = self._download_json(
+                    'https://www.polskieradio.pl/CMS/TemplateBoxesManagement/TemplateBoxTabContent.aspx/GetTabContent',
+                    category_id, 'Downloading page %s' % page_num, data=json.dumps({
+                        'tabId': params[1],
+                        'boxInstanceId': params[0],
+                        'sectionId': params[3],
+                        'categoryId': params[4],
+                        'categoryType': params[2],
+                        'subjectIds': params[6],
+                        'tagIndexId': params[7],
+                        'queryString': params[8],
+                        'name': params[9],
+                        'pageNumber': page_num,
+                        'pagerMode': params[5],
+                        'openArticlesInParentTemplate': params[10],
+                        'idSectionFromUrl': params[11],
+                        'maxDocumentAge': params[12],
+                        'showCategoryForArticle': params[13],
+                    }).encode('utf-8'), headers={'content-type': 'application/json'})
+                content = tab_content['d']['Content']
+                pagination = tab_content['d']['PagerContent']
+            elif is_post_back:
+                mobj = re.search(
+                    r'onclick=(["\'])__doPostBack\((["\'])(?P<target>[\w$]+)\2\s*,\s*(["\'])Next\4',
+                    content)
+                if not mobj:
+                    break
+                aspnetform = self._hidden_inputs(content)
+                content = self._download_webpage(
+                    url, category_id, 'Downloading page %s' % page_num,
+                    data=urlencode({
+                        **aspnetform,
+                        '__EVENTTARGET': mobj.group('target'),
+                        '__EVENTARGUMENT': 'Next',
+                    }).encode('utf-8'))
+            else:
+                mobj = re.search(
+                    r'<div[^>]+class=["\']next["\'][^>]*>\s*<a[^>]+href=(["\'])(?P<url>(?:(?!\1).)+)\1',
+                    content)
+                if not mobj:
+                    break
+                next_url = compat_urlparse.urljoin(url, mobj.group('url'))
+                content = self._download_webpage(
+                    next_url, category_id, 'Downloading page %s' % page_num)
 
     def _real_extract(self, url):
         category_id = self._match_id(url)
@@ -337,7 +420,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
         if PolskieRadioAuditionIE.suitable(urlh.url):
             return self.url_result(urlh.url, PolskieRadioAuditionIE, category_id)
         title = self._html_search_regex(
-            r'<title>([^<]+) - [^<]+ - [^<]+</title>',
+            r'<title>([^<]+)(?: - [^<]+ - [^<]+| w [Pp]olskie[Rr]adio\.pl\s*)</title>',
             webpage, 'title', fatal=False)
         return self.playlist_result(
             self._entries(url, webpage, category_id),
