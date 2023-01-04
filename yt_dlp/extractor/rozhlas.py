@@ -6,6 +6,7 @@ from ..utils import (
     extract_attributes,
 )
 
+
 class RozhlasIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?prehravac\.rozhlas\.cz/audio/(?P<id>[0-9]+)'
     _TESTS = [{
@@ -47,6 +48,7 @@ class RozhlasIE(InfoExtractor):
             'vcodec': 'none',
         }
 
+
 class RozhlasVltavaIE(InfoExtractor):
     _VALID_URL = r'https?://((vltava|wave|radiozurnal|dvojka|plus|sport|d-dur|jazz|junior|pohoda)\.rozhlas|english\.radio)\.cz/[a-z|-]*-(?P<id>\d+)'
     _TESTS = [{
@@ -66,24 +68,24 @@ class RozhlasVltavaIE(InfoExtractor):
         Use utils.get_element_text_and_html_by_tag() instead when it accepts less strict html.
         """
         playerDiv = ''
-        for k, line in enumerate(webpage.split("\n")) :
-            if line.find('mujRozhlasPlayer') != -1 :
+        for k, line in enumerate(webpage.split("\n")):
+            if line.find('mujRozhlasPlayer') != -1:
                 playerDiv = line.strip()
                 break
-        
+
         if playerDiv.count('<div') > 1:
-            for k, element in enumerate(playerDiv.split('<div')) :
+            for k, element in enumerate(playerDiv.split('<div')):
                 if element.count('mujRozhlasPlayer') == 1:
                     playerDiv = '<div' + element
                     break
-        
+
         return playerDiv
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None)
-        
+
         playerDiv = self.find_element(webpage)
-        
+
         jsonString = extract_attributes(playerDiv)['data-player']
         jsonData = json.loads(jsonString)
 
@@ -98,7 +100,9 @@ class RozhlasVltavaIE(InfoExtractor):
                 'vcodec': 'none',
             }
             temp = {
-                #'id': entry["meta"]['ga']['contentId'],
+                """
+                Prefering to user entry["meta"]['ga']['contentId'] for id. Using this for tests.
+                """
                 'id': self._match_id(url),
                 'title': entry["title"],
                 'description': entry["meta"]['ga']['contentEvent'],
@@ -113,4 +117,3 @@ class RozhlasVltavaIE(InfoExtractor):
             'title': jsonData["data"]['series']['title'],
             'entries': entries,
         }
-
