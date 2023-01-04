@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    js_to_json,
     parse_duration,
     traverse_obj,
     try_call,
@@ -36,6 +37,14 @@ def decode_base64(text):
 
 def make_format_id(format_id):
     return try_call(lambda: variadic(format_id)[0].lstrip('_'))
+
+
+def get_formats(host, video_file):
+    return [{
+        'url': urljoin(f'https://{host}', decode_base64(video['video_url'])),
+        'format_id': make_format_id(video.get('format')),
+        'quality': index,
+    } for index, video in enumerate(video_file) if video.get('video_url')]
 
 
 class TxxxIE(InfoExtractor):
@@ -352,11 +361,7 @@ class TxxxIE(InfoExtractor):
             f'https://{host}/api/videofile.php?video_id={video_id}&lifetime=8640000',
             video_id, fatal=True, note='Downloading video file info', headers=headers)
 
-        formats = [{
-            'url': urljoin(f'https://{host}', decode_base64(video['video_url'])),
-            'format_id': make_format_id(video.get('format')),
-            'quality': index,
-        } for index, video in enumerate(video_file) if video.get('video_url')]
+        formats = get_formats(host, video_file)
 
         slug = f'{int(1E6 * (int(video_id) // 1E6))}/{1000 * (int(video_id) // 1000)}'
         video_info = self._call_api(
@@ -378,7 +383,7 @@ class TxxxIE(InfoExtractor):
 
 
 class PornTopIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?porntop\.com/video/(?P<id>\d+)(?:/(?P<display_id>[^/?]+))?'
+    _VALID_URL = r'https?://(?P<host>(?:www\.)?porntop\.com)/video/(?P<id>\d+)(?:/(?P<display_id>[^/?]+))?'
     _TESTS = [{
         'url': 'https://porntop.com/video/101569/triple-threat-with-lia-lor-malena-morgan-and-dani-daniels/',
         'md5': '612ba7b3cb99455b382972948e200b08',
@@ -398,7 +403,7 @@ class PornTopIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
+        video_id, host, display_id = self._match_valid_url(url).group('id', 'host', 'display_id')
 
         webpage = self._download_webpage(url, video_id)
 
@@ -411,10 +416,8 @@ class PornTopIE(InfoExtractor):
         video_obj_text = re.sub(r'parseInt\([^\d]+(\d+)[^\d]+\)', r'\1', video_obj_text)
         # remove the function at "duration"
         video_obj_text = re.sub(r'\(function\(duration\).*\(([^)]+)\)(\s*,\s*"thumbnailUrl")', r'\1\2', video_obj_text)
-        # change single quote to double quote
-        video_obj_text = video_obj_text.replace("'", '"')
         # parse the string
-        video_obj = self._parse_json(video_obj_text, video_id, fatal=True)
+        video_obj = self._parse_json(video_obj_text, video_id, transform_source=js_to_json, fatal=True)
 
         views = 0
         likes = 0
@@ -434,20 +437,7 @@ class PornTopIE(InfoExtractor):
             webpage, 'json_urls', group='json_b64c'))
         video_file = self._parse_json(urls_json_text, video_id, fatal=True)
 
-        formats = []
-        for index, video in enumerate(video_file):
-            format_id = make_format_id(video.get('format'))
-            video_url = decode_base64(video.get('video_url'))
-            if not video_url:
-                continue
-            if video_url.startswith('/'):
-                video_url = urljoin('https://porntop.com', video_url)
-            formats.append({
-                'url': video_url,
-                'format_id': format_id,
-                'quality': index,
-            })
-        self._sort_formats(formats)
+        formats = get_formats(host, video_file)
 
         return {
             'id': video_id,
