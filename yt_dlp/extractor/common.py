@@ -1262,13 +1262,10 @@ class InfoExtractor:
         Like _search_regex, but strips HTML tags and unescapes entities.
         """
         res = self._search_regex(pattern, string, name, default, fatal, flags, group)
-        if res:
-            if isinstance(res, (list, tuple)):
-                return tuple(clean_html(r) for r in res)
-            else:
-                return clean_html(res)
+        if isinstance(res, (list, tuple)):
+            return tuple(clean_html(r) for r in res)
         else:
-            return res
+            return clean_html(res)
 
     def _get_netrc_login_info(self, netrc_machine=None):
         username = None
