@@ -3,8 +3,9 @@ from ..utils import int_or_none, merge_dicts
 
 
 class AitubeKZVideoIE(InfoExtractor):
-    _VALID_URL = r'https?://aitube\.kz/(?:video|embed/)\?id=(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://aitube\.kz/(?:video|embed/)\?(?:[^\?]+)?id=(?P<id>[\w-]+)'
     _TESTS = [{
+        # id paramater as first parameter
         'url': 'https://aitube.kz/video?id=9291d29b-c038-49a1-ad42-3da2051d353c&playlistId=d55b1f5f-ef2a-4f23-b646-2a86275b86b7&season=1',
         'info_dict': {
             'id': '9291d29b-c038-49a1-ad42-3da2051d353c',
@@ -22,7 +23,12 @@ class AitubeKZVideoIE(InfoExtractor):
             'title': 'Ангел хранитель 1 серия',
         }
     }, {
+        # embed url
         'url': 'https://aitube.kz/embed/?id=9291d29b-c038-49a1-ad42-3da2051d353c',
+        'only_matching': True,
+    }, {
+        # id parameter is not as first paramater
+        'url': 'https://aitube.kz/video?season=1&id=9291d29b-c038-49a1-ad42-3da2051d353c&playlistId=d55b1f5f-ef2a-4f23-b646-2a86275b86b7',
         'only_matching': True,
     }]
 
