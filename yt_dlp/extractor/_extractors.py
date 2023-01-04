@@ -669,6 +669,7 @@ from .globo import (
     GloboIE,
     GloboArticleIE,
 )
+from .gmanetwork import GMANetworkVideoIE
 from .go import GoIE
 from .godtube import GodTubeIE
 from .gofile import GofileIE
