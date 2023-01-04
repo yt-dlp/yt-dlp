@@ -68,7 +68,7 @@ class GMANetworkVideoIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
         # webpage route
         youtube_id = self._search_regex(
-            r'var\s*YOUTUBE_VIDEO\s*=\s*[\'"]+(?P<yt_id>\w+)', webpage, 'youtube_id')
+            r'var\s*YOUTUBE_VIDEO\s*=\s*[\'"]+(?P<yt_id>[\w-]+)', webpage, 'youtube_id', fatal=False)
         if youtube_id:
             return self.url_result(youtube_id, YoutubeIE, youtube_id)
 
