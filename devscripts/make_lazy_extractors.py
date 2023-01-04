@@ -59,7 +59,7 @@ def main():
 
 
 def get_all_ies():
-    PLUGINS_DIRNAME = 'ytdlp_plugins'
+    PLUGINS_DIRNAME = 'yt_dlp_plugins'
     BLOCKED_DIRNAME = f'{PLUGINS_DIRNAME}_blocked'
     if os.path.exists(PLUGINS_DIRNAME):
         # os.rename cannot be used, e.g. in Docker. See https://github.com/yt-dlp/yt-dlp/pull/4958
