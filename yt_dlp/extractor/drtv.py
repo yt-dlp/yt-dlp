@@ -187,7 +187,8 @@ class DRTVIE(InfoExtractor):
             programcard_url, video_id, 'Downloading video JSON', query=query)
 
         supplementary_data = self._download_json(
-            SERIES_API % f'/episode/{raw_video_id}', raw_video_id) if re.match(r'.+_\d+$', raw_video_id) else {}
+            SERIES_API % f'/episode/{raw_video_id}', raw_video_id,
+            default={}) if re.search(r'_\d+$', raw_video_id) else {}
 
         title = str_or_none(data.get('Title')) or re.sub(
             r'\s*\|\s*(?:TV\s*\|\s*DR|DRTV)$', '',
