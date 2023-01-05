@@ -1,4 +1,3 @@
-import json
 import re
 from .common import InfoExtractor
 from ..utils import (
@@ -70,11 +69,10 @@ class RozhlasVltavaIE(InfoExtractor):
 
         player_div = re.findall("<div class=\"mujRozhlasPlayer\" data-player='.*'>", webpage)[0]  # Use utils.get_element_text_and_html_by_tag() instead when it accepts less strict html.
 
-        json_string = extract_attributes(player_div).get('data-player')
-        json_data = json.loads(json_string)
+        data = self._parse_json(extract_attributes(player_div).get('data-player'), video_id).get('data')
 
         entries = []
-        for entry in json_data.get("data").get('playlist'):
+        for entry in data.get('playlist'):
             entry0 = entry.get('audioLinks')[0]
             entries.append({
                 'id': self._match_id(url),  # Prefering to user entry.get('meta').get('ga').get('contentId') for id. Using this because of tests.
@@ -93,7 +91,7 @@ class RozhlasVltavaIE(InfoExtractor):
 
         return {
             '_type': 'playlist',
-            'id': json_data.get('data').get('embedId'),
-            'title': json_data.get('data').get('series').get('title'),
+            'id': data.get('embedId'),
+            'title': data.get('series').get('title'),
             'entries': entries,
         }
