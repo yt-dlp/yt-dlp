@@ -304,13 +304,13 @@ class CBCGemIE(InfoExtractor):
     def _get_claims_token(self, email, password):
         if not self.claims_token_valid():
             self._claims_token = self._new_claims_token(email, password)
-            self._downloader.cache.store(self._NETRC_MACHINE, 'claims_token', self._claims_token)
+            self.cache.store(self._NETRC_MACHINE, 'claims_token', self._claims_token)
         return self._claims_token
 
     def _real_initialize(self):
         if self.claims_token_valid():
             return
-        self._claims_token = self._downloader.cache.load(self._NETRC_MACHINE, 'claims_token')
+        self._claims_token = self.cache.load(self._NETRC_MACHINE, 'claims_token')
 
     def _find_secret_formats(self, formats, video_id):
         """ Find a valid video url and convert it to the secret variant """
@@ -379,8 +379,6 @@ class CBCGemIE(InfoExtractor):
                 # isn't chosen by default, as most people won't want it.
                 if 'descriptive' in format['format_id'].lower():
                     format['preference'] = -2
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

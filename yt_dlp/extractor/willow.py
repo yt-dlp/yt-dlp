@@ -41,7 +41,6 @@ class WillowIE(InfoExtractor):
             raise ExtractorError('No videos found')
 
         formats = self._extract_m3u8_formats(video['secureurl'], video_id, 'mp4')
-        self._sort_formats(formats)
 
         return {
             'id': str(video.get('content_id')),

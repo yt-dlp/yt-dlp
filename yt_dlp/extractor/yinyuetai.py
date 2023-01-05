@@ -41,7 +41,6 @@ class YinYueTaiIE(InfoExtractor):
             'ext': 'mp4',
             'tbr': format_info.get('bitrate'),
         } for format_info in info['videoUrlModels']]
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

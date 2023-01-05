@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
@@ -6,23 +7,21 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
 import copy
 import json
-from test.helper import FakeYDL, assertRegexpMatches
+import urllib.error
 
+from test.helper import FakeYDL, assertRegexpMatches
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import (
-    compat_os_name,
-    compat_setenv,
-    compat_str,
-    compat_urllib_error,
-)
+from yt_dlp.compat import compat_os_name
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
 from yt_dlp.utils import (
     ExtractorError,
     LazyList,
+    OnDemandPagedList,
     int_or_none,
     match_filter_func,
 )
@@ -39,7 +38,7 @@ class YDL(FakeYDL):
     def process_info(self, info_dict):
         self.downloaded_info_dicts.append(info_dict.copy())
 
-    def to_screen(self, msg):
+    def to_screen(self, msg, *args, **kwargs):
         self.msgs.append(msg)
 
     def dl(self, *args, **kwargs):
@@ -69,8 +68,7 @@ class TestFormatSelection(unittest.TestCase):
             {'ext': 'mp4', 'height': 460, 'url': TEST_URL},
         ]
         info_dict = _make_result(formats)
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['ext'], 'webm')
@@ -83,8 +81,7 @@ class TestFormatSelection(unittest.TestCase):
             {'ext': 'mp4', 'height': 1080, 'url': TEST_URL},
         ]
         info_dict['formats'] = formats
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['ext'], 'mp4')
@@ -98,8 +95,7 @@ class TestFormatSelection(unittest.TestCase):
             {'ext': 'flv', 'height': 720, 'url': TEST_URL},
         ]
         info_dict['formats'] = formats
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['ext'], 'mp4')
@@ -111,15 +107,14 @@ class TestFormatSelection(unittest.TestCase):
             {'ext': 'webm', 'height': 720, 'url': TEST_URL},
         ]
         info_dict['formats'] = formats
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['ext'], 'webm')
 
     def test_format_selection(self):
         formats = [
-            {'format_id': '35', 'ext': 'mp4', 'preference': 1, 'url': TEST_URL},
+            {'format_id': '35', 'ext': 'mp4', 'preference': 0, 'url': TEST_URL},
             {'format_id': 'example-with-dashes', 'ext': 'webm', 'preference': 1, 'url': TEST_URL},
             {'format_id': '45', 'ext': 'webm', 'preference': 2, 'url': TEST_URL},
             {'format_id': '47', 'ext': 'webm', 'preference': 3, 'url': TEST_URL},
@@ -187,22 +182,19 @@ class TestFormatSelection(unittest.TestCase):
 
         info_dict = _make_result(formats)
         ydl = YDL({'format': 'best'})
-        ie = YoutubeIE(ydl)
-        ie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(copy.deepcopy(info_dict))
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], 'aac-64')
 
         ydl = YDL({'format': 'mp3'})
-        ie = YoutubeIE(ydl)
-        ie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(copy.deepcopy(info_dict))
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], 'mp3-64')
 
         ydl = YDL({'prefer_free_formats': True})
-        ie = YoutubeIE(ydl)
-        ie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(copy.deepcopy(info_dict))
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], 'ogg-64')
@@ -347,8 +339,7 @@ class TestFormatSelection(unittest.TestCase):
 
         info_dict = _make_result(list(formats_order), extractor='youtube')
         ydl = YDL({'format': 'bestvideo+bestaudio'})
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], '248+172')
@@ -356,40 +347,35 @@ class TestFormatSelection(unittest.TestCase):
 
         info_dict = _make_result(list(formats_order), extractor='youtube')
         ydl = YDL({'format': 'bestvideo[height>=999999]+bestaudio/best'})
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], '38')
 
         info_dict = _make_result(list(formats_order), extractor='youtube')
         ydl = YDL({'format': 'bestvideo/best,bestaudio'})
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
         self.assertEqual(downloaded_ids, ['137', '141'])
 
         info_dict = _make_result(list(formats_order), extractor='youtube')
         ydl = YDL({'format': '(bestvideo[ext=mp4],bestvideo[ext=webm])+bestaudio'})
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
         self.assertEqual(downloaded_ids, ['137+141', '248+141'])
 
         info_dict = _make_result(list(formats_order), extractor='youtube')
         ydl = YDL({'format': '(bestvideo[ext=mp4],bestvideo[ext=webm])[height<=720]+bestaudio'})
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
         self.assertEqual(downloaded_ids, ['136+141', '247+141'])
 
         info_dict = _make_result(list(formats_order), extractor='youtube')
         ydl = YDL({'format': '(bestvideo[ext=none]/bestvideo[ext=webm])+bestaudio'})
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
         self.assertEqual(downloaded_ids, ['248+141'])
@@ -397,16 +383,14 @@ class TestFormatSelection(unittest.TestCase):
         for f1, f2 in zip(formats_order, formats_order[1:]):
             info_dict = _make_result([f1, f2], extractor='youtube')
             ydl = YDL({'format': 'best/bestvideo'})
-            yie = YoutubeIE(ydl)
-            yie._sort_formats(info_dict['formats'])
+            ydl.sort_formats(info_dict)
             ydl.process_ie_result(info_dict)
             downloaded = ydl.downloaded_info_dicts[0]
             self.assertEqual(downloaded['format_id'], f1['format_id'])
 
             info_dict = _make_result([f2, f1], extractor='youtube')
             ydl = YDL({'format': 'best/bestvideo'})
-            yie = YoutubeIE(ydl)
-            yie._sort_formats(info_dict['formats'])
+            ydl.sort_formats(info_dict)
             ydl.process_ie_result(info_dict)
             downloaded = ydl.downloaded_info_dicts[0]
             self.assertEqual(downloaded['format_id'], f1['format_id'])
@@ -481,7 +465,7 @@ class TestFormatSelection(unittest.TestCase):
         for f in formats:
             f['url'] = 'http://_/'
             f['ext'] = 'unknown'
-        info_dict = _make_result(formats)
+        info_dict = _make_result(formats, _format_sort_fields=('id', ))
 
         ydl = YDL({'format': 'best[filesize<3000]'})
         ydl.process_ie_result(info_dict)
@@ -663,13 +647,17 @@ class TestYoutubeDL(unittest.TestCase):
         'playlist_autonumber': 2,
         '__last_playlist_index': 100,
         'n_entries': 10,
-        'formats': [{'id': 'id 1'}, {'id': 'id 2'}, {'id': 'id 3'}]
+        'formats': [
+            {'id': 'id 1', 'height': 1080, 'width': 1920},
+            {'id': 'id 2', 'height': 720},
+            {'id': 'id 3'}
+        ]
     }
 
     def test_prepare_outtmpl_and_filename(self):
         def test(tmpl, expected, *, info=None, **params):
             params['outtmpl'] = tmpl
-            ydl = YoutubeDL(params)
+            ydl = FakeYDL(params)
             ydl._num_downloads = 1
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
@@ -723,13 +711,14 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)s', '-abcd', info={'id': '-abcd'})
         test('%(id)s', '.abcd', info={'id': '.abcd'})
         test('%(id)s', 'ab__cd', info={'id': 'ab__cd'})
-        test('%(id)s', ('ab:cd', 'ab -cd'), info={'id': 'ab:cd'})
+        test('%(id)s', ('ab:cd', 'ab：cd'), info={'id': 'ab:cd'})
         test('%(id.0)s', '-', info={'id': '--'})
 
         # Invalid templates
         self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%(title)'), ValueError))
         test('%(invalid@tmpl|def)s', 'none', outtmpl_na_placeholder='none')
         test('%(..)s', 'NA')
+        test('%(formats.{id)s', 'NA')
 
         # Entire info_dict
         def expect_same_infodict(out):
@@ -771,7 +760,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('a%(width|)d', 'a', outtmpl_na_placeholder='none')
 
         FORMATS = self.outtmpl_info['formats']
-        sanitize = lambda x: x.replace(':', ' -').replace('"', "'").replace('\n', ' ')
+        sanitize = lambda x: x.replace(':', '：').replace('"', "＂").replace('\n', ' ')
 
         # Custom type casting
         test('%(formats.:.id)l', 'id 1, id 2, id 3')
@@ -789,13 +778,13 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(filesize)#D', '1Ki')
         test('%(height)5.2D', ' 1.08k')
         test('%(title4)#S', 'foo_bar_test')
-        test('%(title4).10S', ('foo \'bar\' ', 'foo \'bar\'' + ('#' if compat_os_name == 'nt' else ' ')))
+        test('%(title4).10S', ('foo ＂bar＂ ', 'foo ＂bar＂' + ('#' if compat_os_name == 'nt' else ' ')))
         if compat_os_name == 'nt':
-            test('%(title4)q', ('"foo \\"bar\\" test"', "'foo _'bar_' test'"))
-            test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', "'id 1' 'id 2' 'id 3'"))
-            test('%(formats.0.id)#q', ('"id 1"', "'id 1'"))
+            test('%(title4)q', ('"foo \\"bar\\" test"', "＂foo ⧹＂bar⧹＂ test＂"))
+            test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', '＂id 1＂ ＂id 2＂ ＂id 3＂'))
+            test('%(formats.0.id)#q', ('"id 1"', '＂id 1＂'))
         else:
-            test('%(title4)q', ('\'foo "bar" test\'', "'foo 'bar' test'"))
+            test('%(title4)q', ('\'foo "bar" test\'', '\'foo ＂bar＂ test\''))
             test('%(formats.:.id)#q', "'id 1' 'id 2' 'id 3'")
             test('%(formats.0.id)#q', "'id 1'")
 
@@ -814,6 +803,12 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats.:2:-1)r', repr(FORMATS[:2:-1]))
         test('%(formats.0.id.-1+id)f', '1235.000000')
         test('%(formats.0.id.-1+formats.1.id.-1)d', '3')
+        out = json.dumps([{'id': f['id'], 'height.:2': str(f['height'])[:2]}
+                          if 'height' in f else {'id': f['id']}
+                          for f in FORMATS])
+        test('%(formats.:.{id,height.:2})j', (out, sanitize(out)))
+        test('%(formats.:.{id,height}.id)l', ', '.join(f['id'] for f in FORMATS))
+        test('%(.{id,title})j', ('{"id": "1234"}', '{＂id＂： ＂1234＂}'))
 
         # Alternates
         test('%(title,id)s', '1234')
@@ -840,21 +835,21 @@ class TestYoutubeDL(unittest.TestCase):
         # test('%(foo|)s', ('', '_'))  # fixme
 
         # Environment variable expansion for prepare_filename
-        compat_setenv('__yt_dlp_var', 'expanded')
+        os.environ['__yt_dlp_var'] = 'expanded'
         envvar = '%__yt_dlp_var%' if compat_os_name == 'nt' else '$__yt_dlp_var'
         test(envvar, (envvar, 'expanded'))
         if compat_os_name == 'nt':
             test('%s%', ('%s%', '%s%'))
-            compat_setenv('s', 'expanded')
+            os.environ['s'] = 'expanded'
             test('%s%', ('%s%', 'expanded'))  # %s% should be expanded before escaping %s
-            compat_setenv('(test)s', 'expanded')
+            os.environ['(test)s'] = 'expanded'
             test('%(test)s%', ('NA%', 'expanded'))  # Environment should take priority over template
 
         # Path expansion and escaping
         test('Hello %(title1)s', 'Hello $PATH')
         test('Hello %(title2)s', 'Hello %PATH%')
-        test('%(title3)s', ('foo/bar\\test', 'foo_bar_test'))
-        test('folder/%(title3)s', ('folder/foo/bar\\test', 'folder%sfoo_bar_test' % os.path.sep))
+        test('%(title3)s', ('foo/bar\\test', 'foo⧸bar⧹test'))
+        test('folder/%(title3)s', ('folder/foo/bar\\test', 'folder%sfoo⧸bar⧹test' % os.path.sep))
 
     def test_format_note(self):
         ydl = YoutubeDL()
@@ -989,41 +984,80 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertEqual(res, [])
 
     def test_playlist_items_selection(self):
-        entries = [{
-            'id': compat_str(i),
-            'title': compat_str(i),
-            'url': TEST_URL,
-        } for i in range(1, 5)]
-        playlist = {
-            '_type': 'playlist',
-            'id': 'test',
-            'entries': entries,
-            'extractor': 'test:playlist',
-            'extractor_key': 'test:playlist',
-            'webpage_url': 'http://example.com',
-        }
+        INDICES, PAGE_SIZE = list(range(1, 11)), 3
 
-        def get_downloaded_info_dicts(params):
+        def entry(i, evaluated):
+            evaluated.append(i)
+            return {
+                'id': str(i),
+                'title': str(i),
+                'url': TEST_URL,
+            }
+
+        def pagedlist_entries(evaluated):
+            def page_func(n):
+                start = PAGE_SIZE * n
+                for i in INDICES[start: start + PAGE_SIZE]:
+                    yield entry(i, evaluated)
+            return OnDemandPagedList(page_func, PAGE_SIZE)
+
+        def page_num(i):
+            return (i + PAGE_SIZE - 1) // PAGE_SIZE
+
+        def generator_entries(evaluated):
+            for i in INDICES:
+                yield entry(i, evaluated)
+
+        def list_entries(evaluated):
+            return list(generator_entries(evaluated))
+
+        def lazylist_entries(evaluated):
+            return LazyList(generator_entries(evaluated))
+
+        def get_downloaded_info_dicts(params, entries):
             ydl = YDL(params)
-            # make a deep copy because the dictionary and nested entries
-            # can be modified
-            ydl.process_ie_result(copy.deepcopy(playlist))
+            ydl.process_ie_result({
+                '_type': 'playlist',
+                'id': 'test',
+                'extractor': 'test:playlist',
+                'extractor_key': 'test:playlist',
+                'webpage_url': 'http://example.com',
+                'entries': entries,
+            })
             return ydl.downloaded_info_dicts
 
-        def test_selection(params, expected_ids):
-            results = [
-                (v['playlist_autonumber'] - 1, (int(v['id']), v['playlist_index']))
-                for v in get_downloaded_info_dicts(params)]
-            self.assertEqual(results, list(enumerate(zip(expected_ids, expected_ids))))
+        def test_selection(params, expected_ids, evaluate_all=False):
+            expected_ids = list(expected_ids)
+            if evaluate_all:
+                generator_eval = pagedlist_eval = INDICES
+            elif not expected_ids:
+                generator_eval = pagedlist_eval = []
+            else:
+                generator_eval = INDICES[0: max(expected_ids)]
+                pagedlist_eval = INDICES[PAGE_SIZE * page_num(min(expected_ids)) - PAGE_SIZE:
+                                         PAGE_SIZE * page_num(max(expected_ids))]
 
-        test_selection({}, [1, 2, 3, 4])
-        test_selection({'playlistend': 10}, [1, 2, 3, 4])
-        test_selection({'playlistend': 2}, [1, 2])
-        test_selection({'playliststart': 10}, [])
-        test_selection({'playliststart': 2}, [2, 3, 4])
-        test_selection({'playlist_items': '2-4'}, [2, 3, 4])
+            for name, func, expected_eval in (
+                ('list', list_entries, INDICES),
+                ('Generator', generator_entries, generator_eval),
+                # ('LazyList', lazylist_entries, generator_eval),  # Generator and LazyList follow the exact same code path
+                ('PagedList', pagedlist_entries, pagedlist_eval),
+            ):
+                evaluated = []
+                entries = func(evaluated)
+                results = [(v['playlist_autonumber'] - 1, (int(v['id']), v['playlist_index']))
+                           for v in get_downloaded_info_dicts(params, entries)]
+                self.assertEqual(results, list(enumerate(zip(expected_ids, expected_ids))), f'Entries of {name} for {params}')
+                self.assertEqual(sorted(evaluated), expected_eval, f'Evaluation of {name} for {params}')
+
+        test_selection({}, INDICES)
+        test_selection({'playlistend': 20}, INDICES, True)
+        test_selection({'playlistend': 2}, INDICES[:2])
+        test_selection({'playliststart': 11}, [], True)
+        test_selection({'playliststart': 2}, INDICES[1:])
+        test_selection({'playlist_items': '2-4'}, INDICES[1:4])
         test_selection({'playlist_items': '2,4'}, [2, 4])
-        test_selection({'playlist_items': '10'}, [])
+        test_selection({'playlist_items': '20'}, [], True)
         test_selection({'playlist_items': '0'}, [])
 
         # Tests for https://github.com/ytdl-org/youtube-dl/issues/10591
@@ -1032,15 +1066,37 @@ class TestYoutubeDL(unittest.TestCase):
 
         # Tests for https://github.com/yt-dlp/yt-dlp/issues/720
         # https://github.com/yt-dlp/yt-dlp/issues/302
-        test_selection({'playlistreverse': True}, [4, 3, 2, 1])
-        test_selection({'playliststart': 2, 'playlistreverse': True}, [4, 3, 2])
+        test_selection({'playlistreverse': True}, INDICES[::-1])
+        test_selection({'playliststart': 2, 'playlistreverse': True}, INDICES[:0:-1])
         test_selection({'playlist_items': '2,4', 'playlistreverse': True}, [4, 2])
         test_selection({'playlist_items': '4,2'}, [4, 2])
+
+        # Tests for --playlist-items start:end:step
+        test_selection({'playlist_items': ':'}, INDICES, True)
+        test_selection({'playlist_items': '::1'}, INDICES, True)
+        test_selection({'playlist_items': '::-1'}, INDICES[::-1], True)
+        test_selection({'playlist_items': ':6'}, INDICES[:6])
+        test_selection({'playlist_items': ':-6'}, INDICES[:-5], True)
+        test_selection({'playlist_items': '-1:6:-2'}, INDICES[:4:-2], True)
+        test_selection({'playlist_items': '9:-6:-2'}, INDICES[8:3:-2], True)
+
+        test_selection({'playlist_items': '1:inf:2'}, INDICES[::2], True)
+        test_selection({'playlist_items': '-2:inf'}, INDICES[-2:], True)
+        test_selection({'playlist_items': ':inf:-1'}, [], True)
+        test_selection({'playlist_items': '0-2:2'}, [2])
+        test_selection({'playlist_items': '1-:2'}, INDICES[::2], True)
+        test_selection({'playlist_items': '0--2:2'}, INDICES[1:-1:2], True)
+
+        test_selection({'playlist_items': '10::3'}, [10], True)
+        test_selection({'playlist_items': '-1::3'}, [10], True)
+        test_selection({'playlist_items': '11::3'}, [], True)
+        test_selection({'playlist_items': '-15::2'}, INDICES[1::2], True)
+        test_selection({'playlist_items': '-15::15'}, [], True)
 
     def test_urlopen_no_file_protocol(self):
         # see https://github.com/ytdl-org/youtube-dl/issues/8227
         ydl = YDL()
-        self.assertRaises(compat_urllib_error.URLError, ydl.urlopen, 'file:///etc/passwd')
+        self.assertRaises(urllib.error.URLError, ydl.urlopen, 'file:///etc/passwd')
 
     def test_do_not_override_ie_key_in_url_transparent(self):
         ydl = YDL()
@@ -1126,7 +1182,7 @@ class TestYoutubeDL(unittest.TestCase):
 
             def _entries(self):
                 for n in range(3):
-                    video_id = compat_str(n)
+                    video_id = str(n)
                     yield {
                         '_type': 'url_transparent',
                         'ie_key': VideoIE.ie_key(),

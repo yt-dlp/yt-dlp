@@ -162,8 +162,6 @@ class MDRIE(InfoExtractor):
 
                     formats.append(f)
 
-        self._sort_formats(formats)
-
         description = xpath_text(doc, './broadcast/broadcastDescription', 'description')
         timestamp = parse_iso8601(
             xpath_text(

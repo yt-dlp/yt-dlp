@@ -12,11 +12,14 @@ from ..compat import (
     compat_urllib_parse_urlparse,
 )
 from ..utils import (
+    ExtractorError,
+    UserNotLive,
+    base_url,
     clean_html,
     dict_get,
-    ExtractorError,
     float_or_none,
     int_or_none,
+    make_archive_id,
     parse_duration,
     parse_iso8601,
     parse_qs,
@@ -52,6 +55,7 @@ class TwitchBaseIE(InfoExtractor):
         'VideoPreviewOverlay': '3006e77e51b128d838fa4e835723ca4dc9a05c5efd4466c1085215c6e437e65c',
         'VideoMetadata': '226edb3e692509f727fd56821f5653c05740242c82b0388883e0c0e75dcbf687',
         'VideoPlayer_ChapterSelectButtonVideo': '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
+        'VideoPlayer_VODSeekbarPreviewVideo': '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
     }
 
     def _perform_login(self, username, password):
@@ -129,7 +133,6 @@ class TwitchBaseIE(InfoExtractor):
                         'quality': 10,
                         'format_note': 'Source',
                     })
-        self._sort_formats(formats)
 
     def _download_base_gql(self, video_id, ops, note, fatal=True):
         headers = {
@@ -202,6 +205,14 @@ class TwitchVodIE(TwitchBaseIE):
             'uploader_id': 'riotgames',
             'view_count': int,
             'start_time': 310,
+            'chapters': [
+                {
+                    'start_time': 0,
+                    'end_time': 17208,
+                    'title': 'League of Legends'
+                }
+            ],
+            'live_status': 'was_live',
         },
         'params': {
             # m3u8 download
@@ -270,10 +281,80 @@ class TwitchVodIE(TwitchBaseIE):
                     'title': 'Art'
                 }
             ],
+            'live_status': 'was_live',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'view_count': int,
         },
         'params': {
             'skip_download': True
+        },
+    }, {
+        'note': 'Storyboards',
+        'url': 'https://www.twitch.tv/videos/635475444',
+        'info_dict': {
+            'id': 'v635475444',
+            'format_id': 'sb0',
+            'ext': 'mhtml',
+            'title': 'Riot Games',
+            'duration': 11643,
+            'uploader': 'Riot Games',
+            'uploader_id': 'riotgames',
+            'timestamp': 1590770569,
+            'upload_date': '20200529',
+            'chapters': [
+                {
+                    'start_time': 0,
+                    'end_time': 573,
+                    'title': 'League of Legends'
+                },
+                {
+                    'start_time': 573,
+                    'end_time': 3922,
+                    'title': 'Legends of Runeterra'
+                },
+                {
+                    'start_time': 3922,
+                    'end_time': 11643,
+                    'title': 'Art'
+                }
+            ],
+            'live_status': 'was_live',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'view_count': int,
+            'columns': int,
+            'rows': int,
+        },
+        'params': {
+            'format': 'mhtml',
+            'skip_download': True
         }
+    }, {
+        'note': 'VOD with single chapter',
+        'url': 'https://www.twitch.tv/videos/1536751224',
+        'info_dict': {
+            'id': 'v1536751224',
+            'ext': 'mp4',
+            'title': 'Porter Robinson Star Guardian Stream Tour with LilyPichu',
+            'duration': 8353,
+            'uploader': 'Riot Games',
+            'uploader_id': 'riotgames',
+            'timestamp': 1658267731,
+            'upload_date': '20220719',
+            'chapters': [
+                {
+                    'start_time': 0,
+                    'end_time': 8353,
+                    'title': 'League of Legends'
+                }
+            ],
+            'live_status': 'was_live',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'view_count': int,
+        },
+        'params': {
+            'skip_download': True
+        },
+        'expected_warnings': ['Unable to download JSON metadata: HTTP Error 403: Forbidden']
     }]
 
     def _download_info(self, item_id):
@@ -290,16 +371,23 @@ class TwitchVodIE(TwitchBaseIE):
                     'includePrivate': False,
                     'videoID': item_id,
                 },
+            }, {
+                'operationName': 'VideoPlayer_VODSeekbarPreviewVideo',
+                'variables': {
+                    'includePrivate': False,
+                    'videoID': item_id,
+                },
             }],
             'Downloading stream metadata GraphQL')
 
         video = traverse_obj(data, (0, 'data', 'video'))
         video['moments'] = traverse_obj(data, (1, 'data', 'video', 'moments', 'edges', ..., 'node'))
+        video['storyboard'] = traverse_obj(data, (2, 'data', 'video', 'seekPreviewsURL'), expected_type=url_or_none)
 
         if video is None:
             raise ExtractorError(
                 'Video %s does not exist' % item_id, expected=True)
-        return self._extract_info_gql(video, item_id)
+        return video
 
     def _extract_info(self, info):
         status = info.get('status')
@@ -338,8 +426,14 @@ class TwitchVodIE(TwitchBaseIE):
             'was_live': True,
         }
 
-    def _extract_moments(self, info, item_id):
-        for moment in info.get('moments') or []:
+    def _extract_chapters(self, info, item_id):
+        if not info.get('moments'):
+            game = traverse_obj(info, ('game', 'displayName'))
+            if game:
+                yield {'title': game}
+            return
+
+        for moment in info['moments']:
             start_time = int_or_none(moment.get('positionMilliseconds'), 1000)
             duration = int_or_none(moment.get('durationMilliseconds'), 1000)
             name = str_or_none(moment.get('description'))
@@ -378,15 +472,49 @@ class TwitchVodIE(TwitchBaseIE):
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
             'view_count': int_or_none(info.get('viewCount')),
-            'chapters': list(self._extract_moments(info, item_id)),
+            'chapters': list(self._extract_chapters(info, item_id)),
             'is_live': is_live,
             'was_live': True,
         }
 
+    def _extract_storyboard(self, item_id, storyboard_json_url, duration):
+        if not duration or not storyboard_json_url:
+            return
+        spec = self._download_json(storyboard_json_url, item_id, 'Downloading storyboard metadata JSON', fatal=False) or []
+        # sort from highest quality to lowest
+        # This makes sb0 the highest-quality format, sb1 - lower, etc which is consistent with youtube sb ordering
+        spec.sort(key=lambda x: int_or_none(x.get('width')) or 0, reverse=True)
+        base = base_url(storyboard_json_url)
+        for i, s in enumerate(spec):
+            count = int_or_none(s.get('count'))
+            images = s.get('images')
+            if not (images and count):
+                continue
+            fragment_duration = duration / len(images)
+            yield {
+                'format_id': f'sb{i}',
+                'format_note': 'storyboard',
+                'ext': 'mhtml',
+                'protocol': 'mhtml',
+                'acodec': 'none',
+                'vcodec': 'none',
+                'url': urljoin(base, images[0]),
+                'width': int_or_none(s.get('width')),
+                'height': int_or_none(s.get('height')),
+                'fps': count / duration,
+                'rows': int_or_none(s.get('rows')),
+                'columns': int_or_none(s.get('cols')),
+                'fragments': [{
+                    'url': urljoin(base, path),
+                    'duration': fragment_duration,
+                } for path in images],
+            }
+
     def _real_extract(self, url):
         vod_id = self._match_id(url)
 
-        info = self._download_info(vod_id)
+        video = self._download_info(vod_id)
+        info = self._extract_info_gql(video, vod_id)
         access_token = self._download_access_token(vod_id, 'video', 'id')
 
         formats = self._extract_m3u8_formats(
@@ -402,6 +530,8 @@ class TwitchVodIE(TwitchBaseIE):
                     'nauthsig': access_token['signature'],
                 })),
             vod_id, 'mp4', entry_protocol='m3u8_native')
+
+        formats.extend(self._extract_storyboard(vod_id, video.get('storyboard'), info.get('duration')))
 
         self._prefer_source(formats)
         info['formats'] = formats
@@ -850,7 +980,7 @@ class TwitchStreamIE(TwitchBaseIE):
         stream = user['stream']
 
         if not stream:
-            raise ExtractorError('%s is offline' % channel_name, expected=True)
+            raise UserNotLive(video_id=channel_name)
 
         access_token = self._download_access_token(
             channel_name, 'stream', 'channelName')
@@ -1013,7 +1143,6 @@ class TwitchClipsIE(TwitchBaseIE):
                 'height': int_or_none(option.get('quality')),
                 'fps': int_or_none(option.get('frameRate')),
             })
-        self._sort_formats(formats)
 
         thumbnails = []
         for thumbnail_id in ('tiny', 'small', 'medium'):
@@ -1032,10 +1161,13 @@ class TwitchClipsIE(TwitchBaseIE):
                 })
             thumbnails.append(thumb)
 
+        old_id = self._search_regex(r'%7C(\d+)(?:-\d+)?.mp4', formats[-1]['url'], 'old id', default=None)
+
         return {
             'id': clip.get('id') or video_id,
+            '_old_archive_ids': [make_archive_id(self, old_id)] if old_id else None,
             'display_id': video_id,
-            'title': clip.get('title') or video_id,
+            'title': clip.get('title'),
             'formats': formats,
             'duration': int_or_none(clip.get('durationSeconds')),
             'view_count': int_or_none(clip.get('viewCount')),

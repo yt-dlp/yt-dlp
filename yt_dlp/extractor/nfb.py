@@ -35,7 +35,6 @@ class NFBIE(InfoExtractor):
             player, 'source', default=None, fatal=True)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(source, video_id, ext='mp4')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

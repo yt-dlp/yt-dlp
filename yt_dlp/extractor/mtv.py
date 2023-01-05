@@ -102,8 +102,6 @@ class MTVServicesInfoExtractor(InfoExtractor):
                     }])
                 except (KeyError, TypeError):
                     raise ExtractorError('Invalid rendition field.')
-        if formats:
-            self._sort_formats(formats)
         return formats
 
     def _extract_subtitles(self, mdoc, mtvn_id):
@@ -201,8 +199,6 @@ class MTVServicesInfoExtractor(InfoExtractor):
         # http://www.southpark.de/alle-episoden/s14e01-sexual-healing)
         if not formats:
             return None
-
-        self._sort_formats(formats)
 
         return {
             'title': title,
@@ -331,6 +327,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
 class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
     IE_NAME = 'mtvservices:embedded'
     _VALID_URL = r'https?://media\.mtvnservices\.com/embed/(?P<mgid>.+?)(\?|/|$)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1']
 
     _TEST = {
         # From http://www.thewrap.com/peter-dinklage-sums-up-game-of-thrones-in-45-seconds-video/
@@ -345,13 +342,6 @@ class MTVServicesEmbeddedIE(MTVServicesInfoExtractor):
             'upload_date': '20140515',
         },
     }
-
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//media\.mtvnservices\.com/embed/.+?)\1', webpage)
-        if mobj:
-            return mobj.group('url')
 
     def _get_feed_url(self, uri, url=None):
         video_id = self._id_from_uri(uri)
@@ -542,7 +532,7 @@ class MTVItaliaIE(MTVServicesInfoExtractor):
         }
 
 
-class MTVItaliaProgrammaIE(MTVItaliaIE):
+class MTVItaliaProgrammaIE(MTVItaliaIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'mtv.it:programma'
     _VALID_URL = r'https?://(?:www\.)?mtv\.it/(?:programmi|playlist)/(?P<id>[0-9a-z]+)'
     _TESTS = [{

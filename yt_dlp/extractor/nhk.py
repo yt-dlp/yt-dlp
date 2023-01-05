@@ -11,7 +11,7 @@ from ..utils import (
 
 
 class NhkBaseIE(InfoExtractor):
-    _API_URL_TEMPLATE = 'https://api.nhk.or.jp/nhkworld/%sod%slist/v7a/%s/%s/%s/all%s.json'
+    _API_URL_TEMPLATE = 'https://nwapi.nhk.jp/nhkworld/%sod%slist/v7b/%s/%s/%s/all%s.json'
     _BASE_URL_REGEX = r'https?://www3\.nhk\.or\.jp/nhkworld/(?P<lang>[a-z]{2})/ondemand'
     _TYPE_REGEX = r'/(?P<type>video|audio)/'
 
@@ -27,7 +27,7 @@ class NhkBaseIE(InfoExtractor):
     def _extract_episode_info(self, url, episode=None):
         fetch_episode = episode is None
         lang, m_type, episode_id = NhkVodIE._match_valid_url(url).groups()
-        if episode_id.isdigit():
+        if len(episode_id) == 7:
             episode_id = episode_id[:4] + '-' + episode_id[4:]
 
         is_video = m_type == 'video'
@@ -78,7 +78,6 @@ class NhkBaseIE(InfoExtractor):
                     m3u8_id='hls', fatal=False)
                 for f in info['formats']:
                     f['language'] = lang
-                self._sort_formats(info['formats'])
             else:
                 info.update({
                     '_type': 'url_transparent',
@@ -89,7 +88,8 @@ class NhkBaseIE(InfoExtractor):
 
 
 class NhkVodIE(NhkBaseIE):
-    _VALID_URL = r'%s%s(?P<id>\d{7}|[^/]+?-\d{8}-[0-9a-z]+)' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
+    # the 7-character IDs can have alphabetic chars too: assume [a-z] rather than just [a-f], eg
+    _VALID_URL = r'%s%s(?P<id>[0-9a-z]{7}|[^/]+?-\d{8}-[0-9a-z]+)' % (NhkBaseIE._BASE_URL_REGEX, NhkBaseIE._TYPE_REGEX)
     # Content available only for a limited period of time. Visit
     # https://www3.nhk.or.jp/nhkworld/en/ondemand/ for working samples.
     _TESTS = [{
@@ -129,6 +129,19 @@ class NhkVodIE(NhkBaseIE):
     }, {
         'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/audio/j_art-20150903-1/',
         'only_matching': True,
+    }, {
+        # video, alphabetic character in ID #29670
+        'url': 'https://www3.nhk.or.jp/nhkworld/en/ondemand/video/9999a34/',
+        'only_matching': True,
+        'info_dict': {
+            'id': 'qfjay6cg',
+            'ext': 'mp4',
+            'title': 'DESIGN TALKS plus - Fishermen’s Finery',
+            'description': 'md5:8a8f958aaafb0d7cb59d38de53f1e448',
+            'thumbnail': r're:^https?:/(/[a-z0-9.-]+)+\.jpg\?w=1920&h=1080$',
+            'upload_date': '20210615',
+            'timestamp': 1623722008,
+        }
     }]
 
     def _real_extract(self, url):
@@ -226,7 +239,6 @@ class NhkForSchoolBangumiIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             f'https://nhks-vh.akamaihd.net/i/das/{video_id[0:8]}/{video_id}_V_000.f4v/master.m3u8',
             video_id, ext='mp4', m3u8_id='hls')
-        self._sort_formats(formats)
 
         duration = parse_duration(base_values.get('r_duration'))
 
@@ -307,8 +319,7 @@ class NhkForSchoolProgramListIE(InfoExtractor):
 
         webpage = self._download_webpage(f'https://www.nhk.or.jp/school/{program_id}/', program_id)
 
-        title = (self._og_search_title(webpage)
-                 or self._html_extract_title(webpage)
+        title = (self._generic_title('', webpage)
                  or self._html_search_regex(r'<h3>([^<]+?)とは？\s*</h3>', webpage, 'title', fatal=False))
         title = re.sub(r'\s*\|\s*NHK\s+for\s+School\s*$', '', title) if title else None
         description = self._html_search_regex(

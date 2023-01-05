@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
@@ -6,9 +7,10 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import FakeYDL, is_download_test
 
+from test.helper import FakeYDL, is_download_test
 from yt_dlp.extractor import YoutubeIE, YoutubeTabIE
+from yt_dlp.utils import ExtractorError
 
 
 @is_download_test
@@ -51,6 +53,18 @@ class TestYoutubeLists(unittest.TestCase):
         self.assertEqual(video['title'], 'youtube-dl test video "\'/\\ä↭𝕐')
         self.assertEqual(video['duration'], 10)
         self.assertEqual(video['uploader'], 'Philipp Hagemeister')
+
+    def test_youtube_channel_no_uploads(self):
+        dl = FakeYDL()
+        dl.params['extract_flat'] = True
+        ie = YoutubeTabIE(dl)
+        # no uploads
+        with self.assertRaisesRegex(ExtractorError, r'no uploads'):
+            ie.extract('https://www.youtube.com/channel/UC2yXPzFejc422buOIzn_0CA')
+
+        # no uploads and no UCID given
+        with self.assertRaisesRegex(ExtractorError, r'no uploads'):
+            ie.extract('https://www.youtube.com/news')
 
 
 if __name__ == '__main__':

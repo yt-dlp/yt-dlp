@@ -1,13 +1,8 @@
 import itertools
 
 from .common import InfoExtractor
-from ..utils import (
-    qualities,
-    compat_str,
-    parse_duration,
-    parse_iso8601,
-    str_to_int,
-)
+from ..compat import compat_str
+from ..utils import parse_duration, parse_iso8601, qualities, str_to_int
 
 
 class GigaIE(InfoExtractor):
@@ -64,7 +59,6 @@ class GigaIE(InfoExtractor):
                 'format_id': '%s-%s' % (fmt['quality'], fmt['type'].split('/')[-1]),
                 'quality': quality(fmt['quality']),
             })
-        self._sort_formats(formats)
 
         title = self._html_search_meta(
             'title', webpage, 'title', fatal=True)

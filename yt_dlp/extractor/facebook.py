@@ -1,18 +1,18 @@
 import json
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import (
     compat_etree_fromstring,
     compat_str,
     compat_urllib_parse_unquote,
-    compat_urllib_parse_unquote_plus,
 )
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     error_to_compat_str,
-    ExtractorError,
     float_or_none,
     get_element_by_id,
     get_first,
@@ -57,6 +57,13 @@ class FacebookIE(InfoExtractor):
                 )
                 (?P<id>[0-9]+)
                 '''
+    _EMBED_REGEX = [
+        r'<iframe[^>]+?src=(["\'])(?P<url>https?://www\.facebook\.com/(?:video/embed|plugins/video\.php).+?)\1',
+        # Facebook API embed https://developers.facebook.com/docs/plugins/embedded-video-player
+        r'''(?x)<div[^>]+
+                class=(?P<q1>[\'"])[^\'"]*\bfb-(?:video|post)\b[^\'"]*(?P=q1)[^>]+
+                data-href=(?P<q2>[\'"])(?P<url>(?:https?:)?//(?:www\.)?facebook.com/.+?)(?P=q2)''',
+    ]
     _LOGIN_URL = 'https://www.facebook.com/login.php?next=http%3A%2F%2Ffacebook.com%2Fhome.php&login_attempt=1'
     _CHECKPOINT_URL = 'https://www.facebook.com/checkpoint/?next=http%3A%2F%2Ffacebook.com%2Fhome.php&_fb_noscript=1'
     _NETRC_MACHINE = 'facebook'
@@ -311,21 +318,6 @@ class FacebookIE(InfoExtractor):
         'graphURI': '/api/graphql/'
     }
 
-    @staticmethod
-    def _extract_urls(webpage):
-        urls = []
-        for mobj in re.finditer(
-                r'<iframe[^>]+?src=(["\'])(?P<url>https?://www\.facebook\.com/(?:video/embed|plugins/video\.php).+?)\1',
-                webpage):
-            urls.append(mobj.group('url'))
-        # Facebook API embed
-        # see https://developers.facebook.com/docs/plugins/embedded-video-player
-        for mobj in re.finditer(r'''(?x)<div[^>]+
-                class=(?P<q1>[\'"])[^\'"]*\bfb-(?:video|post)\b[^\'"]*(?P=q1)[^>]+
-                data-href=(?P<q2>[\'"])(?P<url>(?:https?:)?//(?:www\.)?facebook.com/.+?)(?P=q2)''', webpage):
-            urls.append(mobj.group('url'))
-        return urls
-
     def _perform_login(self, username, password):
         login_page_req = sanitized_Request(self._LOGIN_URL)
         self._set_cookie('facebook.com', 'locale', 'en_US')
@@ -467,15 +459,14 @@ class FacebookIE(InfoExtractor):
             dash_manifest = video.get('dash_manifest')
             if dash_manifest:
                 formats.extend(self._parse_mpd_formats(
-                    compat_etree_fromstring(compat_urllib_parse_unquote_plus(dash_manifest))))
+                    compat_etree_fromstring(urllib.parse.unquote_plus(dash_manifest))))
 
-        def process_formats(formats):
+        def process_formats(info):
             # Downloads with browser's User-Agent are rate limited. Working around
             # with non-browser User-Agent.
-            for f in formats:
+            for f in info['formats']:
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
-
-            self._sort_formats(formats, ('res', 'quality'))
+            info['_format_sort_fields'] = ('res', 'quality')
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
@@ -518,7 +509,6 @@ class FacebookIE(InfoExtractor):
                                 'url': playable_url,
                             })
                     extract_dash_manifest(video, formats)
-                    process_formats(formats)
                     v_id = video.get('videoId') or video.get('id') or video_id
                     info = {
                         'id': v_id,
@@ -529,6 +519,7 @@ class FacebookIE(InfoExtractor):
                         'timestamp': int_or_none(video.get('publish_time')),
                         'duration': float_or_none(video.get('playable_duration_in_ms'), 1000),
                     }
+                    process_formats(info)
                     description = try_get(video, lambda x: x['savable_description']['text'])
                     title = video.get('name')
                     if title:
@@ -695,13 +686,12 @@ class FacebookIE(InfoExtractor):
             if subtitles_src:
                 subtitles.setdefault('en', []).append({'url': subtitles_src})
 
-        process_formats(formats)
-
         info_dict = {
             'id': video_id,
             'formats': formats,
             'subtitles': subtitles,
         }
+        process_formats(info_dict)
         info_dict.update(extract_metadata(webpage))
 
         return info_dict
@@ -780,3 +770,30 @@ class FacebookRedirectURLIE(InfoExtractor):
         if not redirect_url:
             raise ExtractorError('Invalid facebook redirect URL', expected=True)
         return self.url_result(redirect_url)
+
+
+class FacebookReelIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/reel/(?P<id>\d+)'
+    IE_NAME = 'facebook:reel'
+
+    _TESTS = [{
+        'url': 'https://www.facebook.com/reel/1195289147628387',
+        'md5': 'c4ff9a7182ff9ff7d6f7a83603bae831',
+        'info_dict': {
+            'id': '1195289147628387',
+            'ext': 'mp4',
+            'title': 'md5:9f5b142921b2dc57004fa13f76005f87',
+            'description': 'md5:24ea7ef062215d295bdde64e778f5474',
+            'uploader': 'Beast Camp Training',
+            'uploader_id': '1738535909799870',
+            'duration': 9.536,
+            'thumbnail': r're:^https?://.*',
+            'upload_date': '20211121',
+            'timestamp': 1637502604,
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self.url_result(
+            f'https://m.facebook.com/watch/?v={video_id}&_rdr', FacebookIE, video_id)

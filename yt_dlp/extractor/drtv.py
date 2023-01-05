@@ -300,8 +300,6 @@ class DRTVIE(InfoExtractor):
                 'Unfortunately, DR is not allowed to show this program outside Denmark.',
                 countries=self._GEO_COUNTRIES)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,
@@ -366,7 +364,6 @@ class DRTVLiveIE(InfoExtractor):
                         formats.extend(self._extract_f4m_formats(update_url_query(
                             '%s/%s' % (server, stream_path), {'hdcore': '3.7.0'}),
                             channel_id, f4m_id=link_type, fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': channel_id,

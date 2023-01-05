@@ -7,6 +7,7 @@ from ..utils import (
     js_to_json,
     sanitized_Request,
     urlencode_postdata,
+    traverse_obj,
 )
 
 
@@ -21,6 +22,19 @@ class TubiTvIE(InfoExtractor):
     _NETRC_MACHINE = 'tubitv'
     _GEO_COUNTRIES = ['US']
     _TESTS = [{
+        'url': 'https://tubitv.com/movies/383676/tracker',
+        'md5': '566fa0f76870302d11af0de89511d3f0',
+        'info_dict': {
+            'id': '383676',
+            'ext': 'mp4',
+            'title': 'Tracker',
+            'description': 'md5:ff320baf43d0ad2655e538c1d5cd9706',
+            'uploader_id': 'f866e2677ea2f0dff719788e4f7f9195',
+            'release_year': 2010,
+            'thumbnail': r're:^https?://.+\.(jpe?g|png)$',
+            'duration': 6122,
+        },
+    }, {
         'url': 'http://tubitv.com/video/283829/the_comedian_at_the_friday',
         'md5': '43ac06be9326f41912dc64ccf7a80320',
         'info_dict': {
@@ -30,11 +44,9 @@ class TubiTvIE(InfoExtractor):
             'description': 'A stand up comedian is forced to look at the decisions in his life while on a one week trip to the west coast.',
             'uploader_id': 'bc168bee0d18dd1cb3b86c68706ab434',
         },
+        'skip': 'Content Unavailable'
     }, {
         'url': 'http://tubitv.com/tv-shows/321886/s01_e01_on_nom_stories',
-        'only_matching': True,
-    }, {
-        'url': 'http://tubitv.com/movies/383676/tracker',
         'only_matching': True,
     }, {
         'url': 'https://tubitv.com/movies/560057/penitentiary?start=true',
@@ -46,10 +58,12 @@ class TubiTvIE(InfoExtractor):
             'uploader_id': 'd8fed30d4f24fcb22ec294421b9defc2',
             'release_year': 1979,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'skip': 'Content Unavailable'
     }]
+
+    # DRM formats are included only to raise appropriate error
+    _UNPLAYABLE_FORMATS = ('hlsv6_widevine', 'hlsv6_widevine_nonclearlead', 'hlsv6_playready_psshv0',
+                           'hlsv6_fairplay', 'dash_widevine', 'dash_widevine_nonclearlead')
 
     def _perform_login(self, username, password):
         self.report_login()
@@ -68,18 +82,26 @@ class TubiTvIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_data = self._download_json(
-            'http://tubitv.com/oz/videos/%s/content' % video_id, video_id)
+        video_data = self._download_json(f'https://tubitv.com/oz/videos/{video_id}/content', video_id, query={
+            'video_resources': ['dash', 'hlsv3', 'hlsv6', *self._UNPLAYABLE_FORMATS],
+        })
         title = video_data['title']
 
         formats = []
-        url = video_data['url']
-        # URL can be sometimes empty. Does this only happen when there is DRM?
-        if url:
-            formats = self._extract_m3u8_formats(
-                self._proto_relative_url(url),
-                video_id, 'mp4', 'm3u8_native')
-        self._sort_formats(formats)
+        drm_formats = False
+
+        for resource in video_data['video_resources']:
+            if resource['type'] in ('dash', ):
+                formats += self._extract_mpd_formats(resource['manifest']['url'], video_id, mpd_id=resource['type'], fatal=False)
+            elif resource['type'] in ('hlsv3', 'hlsv6'):
+                formats += self._extract_m3u8_formats(resource['manifest']['url'], video_id, 'mp4', m3u8_id=resource['type'], fatal=False)
+            elif resource['type'] in self._UNPLAYABLE_FORMATS:
+                drm_formats = True
+
+        if not formats and drm_formats:
+            self.report_drm(video_id)
+        elif not formats and not video_data.get('policy_match'):  # policy_match is False if content was removed
+            raise ExtractorError('This content is currently unavailable', expected=True)
 
         thumbnails = []
         for thumbnail_url in video_data.get('thumbnails', []):
@@ -135,6 +157,8 @@ class TubiTvShowIE(InfoExtractor):
             show_webpage, 'data'), show_name, transform_source=js_to_json)['video']
 
         for episode_id in show_json['fullContentById'].keys():
+            if traverse_obj(show_json, ('byId', episode_id, 'type')) == 's':
+                continue
             yield self.url_result(
                 'tubitv:%s' % episode_id,
                 ie=TubiTvIE.ie_key(), video_id=episode_id)

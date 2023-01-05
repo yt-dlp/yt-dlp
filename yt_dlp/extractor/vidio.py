@@ -67,10 +67,10 @@ class VidioBaseIE(InfoExtractor):
 
 
 class VidioIE(VidioBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?vidio\.com/watch/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?vidio\.com/(watch|embed)/(?P<id>\d+)-(?P<display_id>[^/?#&]+)'
     _TESTS = [{
         'url': 'http://www.vidio.com/watch/165683-dj_ambred-booyah-live-2015',
-        'md5': 'cd2801394afc164e9775db6a140b91fe',
+        'md5': 'abac81b1a205a8d94c609a473b5ea62a',
         'info_dict': {
             'id': '165683',
             'display_id': 'dj_ambred-booyah-live-2015',
@@ -89,7 +89,8 @@ class VidioIE(VidioBaseIE):
             'view_count': int,
             'dislike_count': int,
             'comment_count': int,
-            'tags': 'count:4',
+            'tags': 'count:3',
+            'uploader_url': 'https://www.vidio.com/@twelvepictures',
         },
     }, {
         'url': 'https://www.vidio.com/watch/77949-south-korea-test-fires-missile-that-can-strike-all-of-the-north',
@@ -98,6 +99,30 @@ class VidioIE(VidioBaseIE):
         # Premier-exclusive video
         'url': 'https://www.vidio.com/watch/1550718-stand-by-me-doraemon',
         'only_matching': True
+    }, {
+        # embed url from https://enamplus.liputan6.com/read/5033648/video-fakta-temuan-suspek-cacar-monyet-di-jawa-tengah
+        'url': 'https://www.vidio.com/embed/7115874-fakta-temuan-suspek-cacar-monyet-di-jawa-tengah',
+        'info_dict': {
+            'id': '7115874',
+            'ext': 'mp4',
+            'channel_id': '40172876',
+            'comment_count': int,
+            'uploader_id': 'liputan6',
+            'view_count': int,
+            'dislike_count': int,
+            'upload_date': '20220804',
+            'uploader': 'Liputan6.com',
+            'display_id': 'fakta-temuan-suspek-cacar-monyet-di-jawa-tengah',
+            'channel': 'ENAM PLUS 165',
+            'timestamp': 1659605520,
+            'title': 'Fakta Temuan Suspek Cacar Monyet di Jawa Tengah',
+            'duration': 59,
+            'like_count': int,
+            'tags': ['monkeypox indonesia', 'cacar monyet menyebar', 'suspek cacar monyet di indonesia', 'fakta', 'hoax atau bukan?', 'jawa tengah'],
+            'thumbnail': 'https://thumbor.prod.vidiocdn.com/83PN-_BKm5sS7emLtRxl506MLqQ=/640x360/filters:quality(70)/vidio-web-prod-video/uploads/video/image/7115874/fakta-suspek-cacar-monyet-di-jawa-tengah-24555a.jpg',
+            'uploader_url': 'https://www.vidio.com/@liputan6',
+            'description': 'md5:6d595a18d3b19ee378e335a6f288d5ac',
+        },
     }]
 
     def _real_extract(self, url):
@@ -131,8 +156,6 @@ class VidioIE(VidioBaseIE):
             formats, subs = self._extract_m3u8_formats_and_subtitles(
                 hls_url, display_id, 'mp4', 'm3u8_native')
 
-        self._sort_formats(formats)
-
         get_first = lambda x: try_get(data, lambda y: y[x + 's'][0], dict) or {}
         channel = get_first('channel')
         user = get_first('user')
@@ -152,7 +175,7 @@ class VidioIE(VidioBaseIE):
             'uploader': user.get('name'),
             'timestamp': parse_iso8601(video.get('created_at')),
             'uploader_id': username,
-            'uploader_url': format_field(username, template='https://www.vidio.com/@%s'),
+            'uploader_url': format_field(username, None, 'https://www.vidio.com/@%s'),
             'channel': channel.get('name'),
             'channel_id': str_or_none(channel.get('id')),
             'view_count': get_count('view_count'),
@@ -268,7 +291,6 @@ class VidioLiveIE(VidioBaseIE):
             if stream_meta.get('stream_url'):
                 formats.extend(self._extract_m3u8_formats(
                     stream_meta['stream_url'], display_id, 'mp4', 'm3u8_native'))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -283,5 +305,5 @@ class VidioLiveIE(VidioBaseIE):
             'uploader': user.get('name'),
             'timestamp': parse_iso8601(stream_meta.get('start_time')),
             'uploader_id': username,
-            'uploader_url': format_field(username, template='https://www.vidio.com/@%s'),
+            'uploader_url': format_field(username, None, 'https://www.vidio.com/@%s'),
         }

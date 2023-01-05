@@ -1,16 +1,28 @@
 #!/usr/bin/env python3
 
-# yt-dlp --help | make_readme.py
-# This must be run in a console of correct width
+"""
+yt-dlp --help | make_readme.py
+This must be run in a console of correct width
+"""
+
+# Allow direct execution
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 import functools
 import re
-import sys
+
+from devscripts.utils import read_file, write_file
 
 README_FILE = 'README.md'
 
 OPTIONS_START = 'General Options:'
 OPTIONS_END = 'CONFIGURATION'
 EPILOG_START = 'See full documentation'
+ALLOWED_OVERSHOOT = 2
 
 DISABLE_PATCH = object()
 
@@ -28,10 +40,15 @@ def apply_patch(text, patch):
 
 options = take_section(sys.stdin.read(), f'\n  {OPTIONS_START}', f'\n{EPILOG_START}', shift=1)
 
+max_width = max(map(len, options.split('\n')))
 switch_col_width = len(re.search(r'(?m)^\s{5,}', options).group())
 delim = f'\n{" " * switch_col_width}'
 
 PATCHES = (
+    (   # Standardize update message
+        r'(?m)^(    -U, --update\s+).+(\n    \s.+)*$',
+        r'\1Update this program to the latest version',
+    ),
     (  # Headings
         r'(?m)^  (\w.+\n)(    (?=\w))?',
         r'## \1'
@@ -44,6 +61,12 @@ PATCHES = (
         rf'(?m)({delim}\S+)+$',
         lambda mobj: ''.join((delim, mobj.group(0).replace(delim, '')))
     ),
+    (  # Allow overshooting last line
+        rf'(?m)^(?P<prev>.+)${delim}(?P<current>.+)$(?!{delim})',
+        lambda mobj: (mobj.group().replace(delim, ' ')
+                      if len(mobj.group()) - len(delim) + 1 <= max_width + ALLOWED_OVERSHOOT
+                      else mobj.group())
+    ),
     (  # Avoid newline when a space is available b/w switch and description
         DISABLE_PATCH,  # This creates issues with prepare_manpage
         r'(?m)^(\s{4}-.{%d})(%s)' % (switch_col_width - 6, delim),
@@ -51,12 +74,10 @@ PATCHES = (
     ),
 )
 
-with open(README_FILE, encoding='utf-8') as f:
-    readme = f.read()
+readme = read_file(README_FILE)
 
-with open(README_FILE, 'w', encoding='utf-8') as f:
-    f.write(''.join((
-        take_section(readme, end=f'## {OPTIONS_START}'),
-        functools.reduce(apply_patch, PATCHES, options),
-        take_section(readme, f'# {OPTIONS_END}'),
-    )))
+write_file(README_FILE, ''.join((
+    take_section(readme, end=f'## {OPTIONS_START}'),
+    functools.reduce(apply_patch, PATCHES, options),
+    take_section(readme, f'# {OPTIONS_END}'),
+)))

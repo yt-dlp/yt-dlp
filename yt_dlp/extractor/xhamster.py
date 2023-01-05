@@ -21,7 +21,7 @@ from ..utils import (
 
 
 class XHamsterIE(InfoExtractor):
-    _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.com)'
+    _DOMAINS = r'(?:xhamster\.(?:com|one|desi)|xhms\.pro|xhamster\d+\.com|xhday\.com)'
     _VALID_URL = r'''(?x)
                     https?://
                         (?:.+?\.)?%s/
@@ -32,7 +32,7 @@ class XHamsterIE(InfoExtractor):
                     ''' % _DOMAINS
     _TESTS = [{
         'url': 'https://xhamster.com/videos/femaleagent-shy-beauty-takes-the-bait-1509445',
-        'md5': '98b4687efb1ffd331c4197854dc09e8f',
+        'md5': '34e1ab926db5dc2750fed9e1f34304bb',
         'info_dict': {
             'id': '1509445',
             'display_id': 'femaleagent-shy-beauty-takes-the-bait',
@@ -41,6 +41,7 @@ class XHamsterIE(InfoExtractor):
             'timestamp': 1350194821,
             'upload_date': '20121014',
             'uploader': 'Ruseful2011',
+            'uploader_id': 'ruseful2011',
             'duration': 893,
             'age_limit': 18,
         },
@@ -70,6 +71,7 @@ class XHamsterIE(InfoExtractor):
             'timestamp': 1454948101,
             'upload_date': '20160208',
             'uploader': 'parejafree',
+            'uploader_id': 'parejafree',
             'duration': 72,
             'age_limit': 18,
         },
@@ -114,6 +116,9 @@ class XHamsterIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'http://de.xhamster.com/videos/skinny-girl-fucks-herself-hard-in-the-forest-xhnBJZx',
+        'only_matching': True,
+    }, {
+        'url': 'https://xhday.com/videos/strapless-threesome-xhh7yVf',
         'only_matching': True,
     }]
 
@@ -229,7 +234,6 @@ class XHamsterIE(InfoExtractor):
                                         'Referer': standard_url,
                                     },
                                 })
-            self._sort_formats(formats)
 
             categories_list = video.get('categories')
             if isinstance(categories_list, list):
@@ -244,7 +248,6 @@ class XHamsterIE(InfoExtractor):
                 categories = None
 
             uploader_url = url_or_none(try_get(video, lambda x: x['author']['pageURL']))
-
             return {
                 'id': video_id,
                 'display_id': display_id,
@@ -263,7 +266,7 @@ class XHamsterIE(InfoExtractor):
                 'dislike_count': int_or_none(try_get(
                     video, lambda x: x['rating']['dislikes'], int)),
                 'comment_count': int_or_none(video.get('views')),
-                'age_limit': age_limit,
+                'age_limit': age_limit if age_limit is not None else 18,
                 'categories': categories,
                 'formats': formats,
             }
@@ -306,8 +309,6 @@ class XHamsterIE(InfoExtractor):
             formats.append({
                 'url': video_url,
             })
-
-        self._sort_formats(formats)
 
         # Only a few videos have an description
         mobj = re.search(r'<span>Description: </span>([^<]+)', webpage)
@@ -369,6 +370,7 @@ class XHamsterIE(InfoExtractor):
 
 class XHamsterEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://(?:.+?\.)?%s/xembed\.php\?video=(?P<id>\d+)' % XHamsterIE._DOMAINS
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?xhamster\.com/xembed\.php\?video=\d+)\1']
     _TEST = {
         'url': 'http://xhamster.com/xembed.php?video=3328539',
         'info_dict': {
@@ -382,12 +384,6 @@ class XHamsterEmbedIE(InfoExtractor):
             'age_limit': 18,
         }
     }
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [url for _, url in re.findall(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?xhamster\.com/xembed\.php\?video=\d+)\1',
-            webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -423,6 +419,9 @@ class XHamsterUserIE(InfoExtractor):
             'id': 'firatkaan',
         },
         'playlist_mincount': 1,
+    }, {
+        'url': 'https://xhday.com/users/mobhunter',
+        'only_matching': True,
     }]
 
     def _entries(self, user_id):

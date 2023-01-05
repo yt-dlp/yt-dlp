@@ -88,7 +88,6 @@ class GaiaIE(InfoExtractor):
             media_id, headers=headers)
         formats = self._extract_m3u8_formats(
             media['mediaUrls']['bcHLS'], media_id, 'mp4')
-        self._sort_formats(formats)
 
         subtitles = {}
         text_tracks = media.get('textTracks', {})

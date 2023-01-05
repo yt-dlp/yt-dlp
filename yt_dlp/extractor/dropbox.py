@@ -53,8 +53,8 @@ class DropboxIE(InfoExtractor):
             else:
                 raise ExtractorError('Password protected video, use --video-password <password>', expected=True)
 
-        json_string = self._html_search_regex(r'InitReact\.mountComponent\(.*?,\s*(\{.+\})\s*?\)', webpage, 'Info JSON')
-        info_json = self._parse_json(json_string, video_id).get('props')
+        info_json = self._search_json(r'InitReact\.mountComponent\(.*?,', webpage, 'mountComponent', video_id,
+                                      contains_pattern=r'{.+?"preview".+?}', end_pattern=r'\)')['props']
         transcode_url = traverse_obj(info_json, ((None, 'preview'), 'file', 'preview', 'content', 'transcode_url'), get_all=False)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(transcode_url, video_id)
 
@@ -63,7 +63,6 @@ class DropboxIE(InfoExtractor):
             video_url = re.sub(r'[?&]dl=0', '', url)
             video_url += ('?' if '?' not in video_url else '&') + 'dl=1'
             formats.append({'url': video_url, 'format_id': 'original', 'format_note': 'Original', 'quality': 1})
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

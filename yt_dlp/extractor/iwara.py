@@ -1,16 +1,16 @@
 import itertools
 import re
-import urllib
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     mimetype2ext,
     remove_end,
+    strip_or_none,
+    unified_strdate,
     url_or_none,
     urljoin,
-    unified_strdate,
-    strip_or_none,
 )
 
 
@@ -115,8 +115,6 @@ class IwaraIE(IwaraBaseIE):
                 'width': int_or_none(height / 9.0 * 16.0 if height else None),
                 'quality': 1 if format_id == 'Source' else 0,
             })
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

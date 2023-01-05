@@ -5,13 +5,15 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     age_restricted,
     clean_html,
-    ExtractorError,
     int_or_none,
-    OnDemandPagedList,
+    traverse_obj,
     try_get,
     unescapeHTML,
+    unsmuggle_url,
     urlencode_postdata,
 )
 
@@ -97,6 +99,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                         [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
                     '''
     IE_NAME = 'dailymotion'
+    _EMBED_REGEX = [r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1']
     _TESTS = [{
         'url': 'http://www.dailymotion.com/video/x5kesuj_office-christmas-party-review-jason-bateman-olivia-munn-t-j-miller_news',
         'md5': '074b95bdee76b9e3654137aee9c79dfe',
@@ -206,20 +209,16 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
       }
       xid'''
 
-    @staticmethod
-    def _extract_urls(webpage):
-        urls = []
-        # Look for embedded Dailymotion player
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
         # https://developer.dailymotion.com/player#player-parameters
-        for mobj in re.finditer(
-                r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1', webpage):
-            urls.append(unescapeHTML(mobj.group('url')))
+        yield from super()._extract_embed_urls(url, webpage)
         for mobj in re.finditer(
                 r'(?s)DM\.player\([^,]+,\s*{.*?video[\'"]?\s*:\s*["\']?(?P<id>[0-9a-zA-Z]+).+?}\s*\);', webpage):
-            urls.append('https://www.dailymotion.com/embed/video/' + mobj.group('id'))
-        return urls
+            yield from 'https://www.dailymotion.com/embed/video/' + mobj.group('id')
 
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url)
         video_id, playlist_id = self._match_valid_url(url).groups()
 
         if playlist_id:
@@ -252,7 +251,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         metadata = self._download_json(
             'https://www.dailymotion.com/player/metadata/video/' + xid,
             xid, 'Downloading metadata JSON',
-            query={'app': 'com.dailymotion.neon'})
+            query=traverse_obj(smuggled_data, 'query') or {'app': 'com.dailymotion.neon'})
 
         error = metadata.get('error')
         if error:
@@ -294,7 +293,6 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             f['url'] = f['url'].split('#')[0]
             if not f.get('fps') and f['format_id'].endswith('@60'):
                 f['fps'] = 60
-        self._sort_formats(formats)
 
         subtitles = {}
         subtitles_data = try_get(metadata, lambda x: x['subtitles']['data'], dict) or {}
@@ -374,6 +372,15 @@ class DailymotionPlaylistIE(DailymotionPlaylistBaseIE):
         'playlist_mincount': 20,
     }]
     _OBJECT_TYPE = 'collection'
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        # Look for embedded Dailymotion playlist player (#3822)
+        for mobj in re.finditer(
+                r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.[a-z]{2,3}/widget/jukebox\?.+?)\1',
+                webpage):
+            for p in re.findall(r'list\[\]=/playlist/([^/]+)/', unescapeHTML(mobj.group('url'))):
+                yield '//dailymotion.com/playlist/%s' % p
 
 
 class DailymotionUserIE(DailymotionPlaylistBaseIE):

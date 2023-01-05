@@ -78,7 +78,7 @@ class FC2IE(InfoExtractor):
         webpage = None
         if not url.startswith('fc2:'):
             webpage = self._download_webpage(url, video_id)
-            self._downloader.cookiejar.clear_session_cookies()  # must clear
+            self.cookiejar.clear_session_cookies()  # must clear
             self._login()
 
         title, thumbnail, description = None, None, None
@@ -250,7 +250,6 @@ class FC2LiveIE(InfoExtractor):
                             'Referer': url,
                         }))
 
-        self._sort_formats(formats)
         for fmt in formats:
             fmt.update({
                 'protocol': 'fc2_live',

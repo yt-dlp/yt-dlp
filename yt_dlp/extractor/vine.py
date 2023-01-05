@@ -10,6 +10,7 @@ from ..utils import (
 
 class VineIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?vine\.co/(?:v|oembed)/(?P<id>\w+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=[\'"](?P<url>(?:https?:)?//(?:www\.)?vine\.co/v/[^/]+/embed/(?:simple|postcard))']
     _TESTS = [{
         'url': 'https://vine.co/v/b9KOOWX7HUx',
         'md5': '2f36fed6235b16da96ce9b4dc890940d',
@@ -85,11 +86,10 @@ class VineIE(InfoExtractor):
                     'quality': quality,
                 })
         self._check_formats(formats, video_id)
-        self._sort_formats(formats)
 
         username = data.get('username')
 
-        alt_title = format_field(username, template='Vine by %s')
+        alt_title = format_field(username, None, 'Vine by %s')
 
         return {
             'id': video_id,

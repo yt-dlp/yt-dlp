@@ -56,13 +56,15 @@ class FoxNewsIE(AMPIE):
         },
     ]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'<(?:amp-)?iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//video\.foxnews\.com/v/video-embed\.html?.*?\bvideo_id=\d+.*?)\1',
-                webpage)]
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        for mobj in re.finditer(
+                r'''(?x)
+                    <(?:script|(?:amp-)?iframe)[^>]+\bsrc=["\']
+                    (?:https?:)?//video\.foxnews\.com/v/(?:video-embed\.html|embed\.js)\?
+                    (?:[^>"\']+&)?(?:video_)?id=(?P<video_id>\d+)
+                ''', webpage):
+            yield f'https://video.foxnews.com/v/video-embed.html?video_id={mobj.group("video_id")}'
 
     def _real_extract(self, url):
         host, video_id = self._match_valid_url(url).groups()
@@ -71,6 +73,29 @@ class FoxNewsIE(AMPIE):
             'http://%s/v/feed/video/%s.js?template=fox' % (host, video_id))
         info['id'] = video_id
         return info
+
+
+class FoxNewsVideoIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?foxnews\.com/video/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.foxnews.com/video/6313058664112',
+        'info_dict': {
+            'id': '6313058664112',
+            'ext': 'mp4',
+            'thumbnail': r're:https://.+/1280x720/match/image\.jpg',
+            'upload_date': '20220930',
+            'description': 'New York City, Kids Therapy, Biden',
+            'duration': 2415,
+            'title': 'Gutfeld! - Thursday, September 29',
+            'timestamp': 1664527538,
+        },
+        'expected_warnings': ['Ignoring subtitle tracks'],
+        'params': {'skip_download': 'm3u8'},
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self.url_result(f'https://video.foxnews.com/v/{video_id}', FoxNewsIE, video_id)
 
 
 class FoxNewsArticleIE(InfoExtractor):
@@ -122,4 +147,4 @@ class FoxNewsArticleIE(InfoExtractor):
                 'http://video.foxnews.com/v/' + video_id, FoxNewsIE.ie_key())
 
         return self.url_result(
-            FoxNewsIE._extract_urls(webpage)[0], FoxNewsIE.ie_key())
+            next(FoxNewsIE._extract_embed_urls(url, webpage)), FoxNewsIE.ie_key())

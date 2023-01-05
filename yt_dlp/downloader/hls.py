@@ -1,12 +1,12 @@
 import binascii
 import io
 import re
+import urllib.parse
 
 from . import get_suitable_downloader
 from .external import FFmpegFD
 from .fragment import FragmentFD
 from .. import webvtt
-from ..compat import compat_urlparse
 from ..dependencies import Cryptodome_AES
 from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
 
@@ -61,12 +61,18 @@ class HlsFD(FragmentFD):
         s = urlh.read().decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
-        if can_download and not Cryptodome_AES and '#EXT-X-KEY:METHOD=AES-128' in s:
-            if FFmpegFD.available():
+        if can_download:
+            has_ffmpeg = FFmpegFD.available()
+            no_crypto = not Cryptodome_AES and '#EXT-X-KEY:METHOD=AES-128' in s
+            if no_crypto and has_ffmpeg:
                 can_download, message = False, 'The stream has AES-128 encryption and pycryptodomex is not available'
-            else:
+            elif no_crypto:
                 message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodomex are available; '
                            'Decryption will be performed natively, but will be extremely slow')
+            elif info_dict.get('extractor_key') == 'Generic' and re.search(r'(?m)#EXT-X-MEDIA-SEQUENCE:(?!0$)', s):
+                install_ffmpeg = '' if has_ffmpeg else 'install ffmpeg and '
+                message = ('Live HLS streams are not supported by the native downloader. If this is a livestream, '
+                           f'please {install_ffmpeg}add "--downloader ffmpeg --hls-use-mpegts" to your command')
         if not can_download:
             has_drm = re.search('|'.join([
                 r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
@@ -140,7 +146,7 @@ class HlsFD(FragmentFD):
         extra_query = None
         extra_param_to_segment_url = info_dict.get('extra_param_to_segment_url')
         if extra_param_to_segment_url:
-            extra_query = compat_urlparse.parse_qs(extra_param_to_segment_url)
+            extra_query = urllib.parse.parse_qs(extra_param_to_segment_url)
         i = 0
         media_sequence = 0
         decrypt_info = {'METHOD': 'NONE'}
@@ -162,7 +168,7 @@ class HlsFD(FragmentFD):
                     frag_url = (
                         line
                         if re.match(r'^https?://', line)
-                        else compat_urlparse.urljoin(man_url, line))
+                        else urllib.parse.urljoin(man_url, line))
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
@@ -187,7 +193,7 @@ class HlsFD(FragmentFD):
                     frag_url = (
                         map_info.get('URI')
                         if re.match(r'^https?://', map_info.get('URI'))
-                        else compat_urlparse.urljoin(man_url, map_info.get('URI')))
+                        else urllib.parse.urljoin(man_url, map_info.get('URI')))
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
@@ -215,7 +221,7 @@ class HlsFD(FragmentFD):
                         if 'IV' in decrypt_info:
                             decrypt_info['IV'] = binascii.unhexlify(decrypt_info['IV'][2:].zfill(32))
                         if not re.match(r'^https?://', decrypt_info['URI']):
-                            decrypt_info['URI'] = compat_urlparse.urljoin(
+                            decrypt_info['URI'] = urllib.parse.urljoin(
                                 man_url, decrypt_info['URI'])
                         if extra_query:
                             decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)

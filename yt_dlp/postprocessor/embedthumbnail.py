@@ -92,7 +92,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         if info['ext'] == 'mp3':
             options = [
                 '-c', 'copy', '-map', '0:0', '-map', '1:0', '-write_id3v1', '1', '-id3v2_version', '3',
-                '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment="Cover (front)"']
+                '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment=Cover (front)']
 
             self._report_run('ffmpeg', filename)
             self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
@@ -139,7 +139,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if not success:
                 success = True
                 atomicparsley = next((
-                    x for x in ['AtomicParsley', 'atomicparsley']
+                    # libatomicparsley.so : See https://github.com/xibr/ytdlp-lazy/issues/1
+                    x for x in ['AtomicParsley', 'atomicparsley', 'libatomicparsley.so']
                     if check_executable(x, ['-v'])), None)
                 if atomicparsley is None:
                     self.to_screen('Neither mutagen nor AtomicParsley was found. Falling back to ffmpeg')
@@ -157,14 +158,12 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
                     self._report_run('atomicparsley', filename)
                     self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
-                    p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    stdout, stderr = p.communicate_or_kill()
-                    if p.returncode != 0:
-                        msg = stderr.decode('utf-8', 'replace').strip()
-                        self.report_warning(f'Unable to embed thumbnails using AtomicParsley; {msg}')
+                    stdout, stderr, returncode = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if returncode:
+                        self.report_warning(f'Unable to embed thumbnails using AtomicParsley; {stderr.strip()}')
                     # for formats that don't support thumbnails (like 3gp) AtomicParsley
                     # won't create to the temporary file
-                    if b'No changes' in stdout:
+                    if 'No changes' in stdout:
                         self.report_warning('The file format doesn\'t support embedding a thumbnail')
                         success = False
 

@@ -12,8 +12,10 @@ from ..utils import (
     int_or_none,
     parse_age_limit,
     parse_duration,
+    traverse_obj,
     try_get,
     unified_timestamp,
+    url_or_none,
 )
 
 
@@ -34,7 +36,8 @@ class FOXIE(InfoExtractor):
             'creator': 'FOX',
             'series': 'Gotham',
             'age_limit': 14,
-            'episode': 'Aftermath: Bruce Wayne Develops Into The Dark Knight'
+            'episode': 'Aftermath: Bruce Wayne Develops Into The Dark Knight',
+            'thumbnail': r're:^https?://.*\.jpg$',
         },
         'params': {
             'skip_download': True,
@@ -129,7 +132,6 @@ class FOXIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, 'mp4',
             entry_protocol='m3u8_native', m3u8_id='hls')
-        self._sort_formats(formats)
 
         data = try_get(
             video, lambda x: x['trackingData']['properties'], dict) or {}
@@ -165,6 +167,7 @@ class FOXIE(InfoExtractor):
             'season_number': int_or_none(video.get('seasonNumber')),
             'episode': video.get('name'),
             'episode_number': int_or_none(video.get('episodeNumber')),
+            'thumbnail': traverse_obj(video, ('images', 'still', 'raw'), expected_type=url_or_none),
             'release_year': int_or_none(video.get('releaseYear')),
             'subtitles': subtitles,
         }
