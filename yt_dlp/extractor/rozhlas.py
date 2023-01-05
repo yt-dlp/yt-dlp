@@ -64,9 +64,8 @@ class RozhlasVltavaIE(InfoExtractor):
     }]
 
     def find_element(self, webpage):
-        """
-        Use utils.get_element_text_and_html_by_tag() instead when it accepts less strict html.
-        """
+        # Use utils.get_element_text_and_html_by_tag() instead when it accepts less strict html.
+
         playerDiv = ''
         for k, line in enumerate(webpage.split("\n")):
             if line.find('mujRozhlasPlayer') != -1:
