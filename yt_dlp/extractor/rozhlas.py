@@ -91,22 +91,20 @@ class RozhlasVltavaIE(InfoExtractor):
         entries = []
         for entry in json_data.get("data").get('playlist'):
             entry0 = entry.get('audioLinks')[0]
-            format = {
-                'url': entry0.get('url'),
-                'ext': entry0.get('variant'),
-                'format_id': entry0.get('variant'),
-                'abr': entry0.get('bitrate'),
-                'acodec': entry0.get('variant'),
-                'vcodec': 'none',
-            }
-            temp = {
+            entries.append({
                 'id': self._match_id(url),  # Prefering to user entry.get('meta').get('ga').get('contentId') for id. Using this because of tests.
                 'title': entry.get('title'),
                 'description': entry.get('meta').get('ga').get('contentEvent'),
                 'duration': entry.get('duration'),
-                'formats': [format],
-            }
-            entries.append(temp)
+                'formats': [{
+                    'url': entry0.get('url'),
+                    'ext': entry0.get('variant'),
+                    'format_id': entry0.get('variant'),
+                    'abr': entry0.get('bitrate'),
+                    'acodec': entry0.get('variant'),
+                    'vcodec': 'none',
+                }],
+            })
 
         return {
             '_type': 'playlist',
