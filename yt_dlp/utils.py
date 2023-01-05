@@ -1211,6 +1211,11 @@ class RejectedVideoReached(DownloadCancelled):
     msg = 'Encountered a video that did not match filter, stopping due to --break-on-reject'
 
 
+class BreakingMatchFilterReach(DownloadCancelled):
+    """ --breaking-match-filters triggered """
+    msg = 'Encountered a video that did not match a filter defined by --breaking-match-filters'
+
+
 class MaxDownloadsReached(DownloadCancelled):
     """ --max-downloads limit has been reached. """
     msg = 'Maximum number of downloads reached, stopping due to --max-downloads'
@@ -3024,7 +3029,7 @@ class PlaylistEntries:
                 try:
                     # TODO: Add auto-generated fields
                     self.ydl._match_entry(entry, incomplete=True, silent=True)
-                except (ExistingVideoReached, RejectedVideoReached):
+                except (ExistingVideoReached, RejectedVideoReached, BreakingMatchFilterReach):
                     return
 
     def get_full_count(self):

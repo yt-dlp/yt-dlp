@@ -82,6 +82,7 @@ from .utils import (
     PostProcessingError,
     ReExtractInfo,
     RejectedVideoReached,
+    BreakingMatchFilterReach,
     SameFileError,
     UnavailableVideoError,
     UserNotLive,
@@ -415,6 +416,8 @@ class YoutubeDL:
                        - If it returns utils.NO_DEFAULT, the user is interactively
                          asked whether to download the video.
                        match_filter_func in utils.py is one example for this.
+    breaking_match_filter: Same as "--match-filters" but breaks when
+                           a filter rejects a video.
     no_color:          Do not emit color codes in output.
     geo_bypass:        Bypass geographic restriction via faking X-Forwarded-For
                        HTTP header
@@ -1372,11 +1375,12 @@ class YoutubeDL:
         video_title = info_dict.get('title', info_dict.get('id', 'entry'))
 
         def check_filter():
+            '''Return (category, reason) if a the video is rejected or (None, None) otherwise'''
             if _type in ('playlist', 'multi_video'):
-                return
+                return (None, None)
             elif _type in ('url', 'url_transparent') and not try_call(
                     lambda: self.get_info_extractor(info_dict['ie_key']).is_single_video(info_dict['url'])):
-                return
+                return (None, None)
 
             if 'title' in info_dict:
                 # This can happen when we're just evaluating the playlist
@@ -1384,27 +1388,27 @@ class YoutubeDL:
                 matchtitle = self.params.get('matchtitle', False)
                 if matchtitle:
                     if not re.search(matchtitle, title, re.IGNORECASE):
-                        return '"' + title + '" title did not match pattern "' + matchtitle + '"'
+                        return ('title', '"' + title + '" title did not match pattern "' + matchtitle + '"')
                 rejecttitle = self.params.get('rejecttitle', False)
                 if rejecttitle:
                     if re.search(rejecttitle, title, re.IGNORECASE):
-                        return '"' + title + '" title matched reject pattern "' + rejecttitle + '"'
+                        return ('title', '"' + title + '" title matched reject pattern "' + rejecttitle + '"')
 
             date = info_dict.get('upload_date')
             if date is not None:
                 dateRange = self.params.get('daterange', DateRange())
                 if date not in dateRange:
-                    return f'{date_from_str(date).isoformat()} upload date is not in range {dateRange}'
+                    return ('daterange', f'{date_from_str(date).isoformat()} upload date is not in range {dateRange}')
             view_count = info_dict.get('view_count')
             if view_count is not None:
                 min_views = self.params.get('min_views')
                 if min_views is not None and view_count < min_views:
-                    return 'Skipping %s, because it has not reached minimum view count (%d/%d)' % (video_title, view_count, min_views)
+                    return ('min_views', 'Skipping %s, because it has not reached minimum view count (%d/%d)' % (video_title, view_count, min_views))
                 max_views = self.params.get('max_views')
                 if max_views is not None and view_count > max_views:
-                    return 'Skipping %s, because it has exceeded the maximum view count (%d/%d)' % (video_title, view_count, max_views)
+                    return ('max_views', 'Skipping %s, because it has exceeded the maximum view count (%d/%d)' % (video_title, view_count, max_views))
             if age_restricted(info_dict.get('age_limit'), self.params.get('age_limit')):
-                return 'Skipping "%s" because it is age restricted' % video_title
+                return ('age_limit', 'Skipping "%s" because it is age restricted' % video_title)
 
             match_filter = self.params.get('match_filter')
             if match_filter is not None:
@@ -1419,19 +1423,41 @@ class YoutubeDL:
                         reply = input(self._format_screen(
                             f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS)).lower().strip()
                         if reply in {'y', ''}:
-                            return None
+                            return (None, None)
                         elif reply == 'n':
-                            return f'Skipping {video_title}'
+                            return ('match_filter', f'Skipping {video_title}')
                 elif ret is not None:
-                    return ret
-            return None
+                    return ('match_filter', ret)
+
+            breaking_match_filter = self.params.get('breaking_match_filter')
+            if breaking_match_filter is not None:
+                try:
+                    ret = breaking_match_filter(info_dict, incomplete=incomplete)
+                except TypeError:
+                    # For backward compatibility
+                    ret = None if incomplete else breaking_match_filter(info_dict)
+                if ret is NO_DEFAULT:
+                    while True:
+                        filename = self._format_screen(self.prepare_filename(info_dict), self.Styles.FILENAME)
+                        reply = input(self._format_screen(
+                            f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS)).lower().strip()
+                        if reply in {'y', ''}:
+                            return (None, None)
+                        elif reply == 'n':
+                            return ('breaking_match_filter', f'Skipping {video_title}')
+                elif ret is not None:
+                    return ('breaking_match_filter', ret)
+            return (None, None)
 
         if self.in_download_archive(info_dict):
             reason = '%s has already been recorded in the archive' % video_title
             break_opt, break_err = 'break_on_existing', ExistingVideoReached
         else:
-            reason = check_filter()
-            break_opt, break_err = 'break_on_reject', RejectedVideoReached
+            (category, reason) = check_filter()
+            if category == 'breaking_match_filter':
+                break_opt, break_err = 'breaking_match_filter', BreakingMatchFilterReach
+            else:
+                break_opt, break_err = 'break_on_reject', RejectedVideoReached
         if reason is not None:
             if not silent:
                 self.to_screen('[download] ' + reason)

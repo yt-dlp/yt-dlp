@@ -485,6 +485,8 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     dogs" (caseless). Use "--match-filter -" to
                                     interactively ask whether to download each
                                     video
+    --breaking-match-filters FILTER Same as "--match-filters" but breaks when
+                                    a filter rejects a video.
     --no-match-filter               Do not use generic video filter (default)
     --no-playlist                   Download only the video, if the URL refers
                                     to a video and a playlist

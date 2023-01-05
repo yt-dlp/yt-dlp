@@ -626,6 +626,10 @@ def create_parser():
             'that contains the phrase "cats & dogs" (caseless). '
             'Use "--match-filter -" to interactively ask whether to download each video'))
     selection.add_option(
+        '--breaking-match-filters',
+        metavar='FILTER', dest='breaking_match_filter', action='append',
+        help=('Same as "--match-filters" but breaks when a filter rejects a video.'))
+    selection.add_option(
         '--no-match-filter',
         metavar='FILTER', dest='match_filter', action='store_const', const=None,
         help='Do not use generic video filter (default)')
