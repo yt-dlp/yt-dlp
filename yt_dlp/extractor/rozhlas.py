@@ -66,30 +66,30 @@ class RozhlasVltavaIE(InfoExtractor):
     def find_element(self, webpage):
         # Use utils.get_element_text_and_html_by_tag() instead when it accepts less strict html.
 
-        playerDiv = ''
+        player_div = ''
         for k, line in enumerate(webpage.split("\n")):
             if line.find('mujRozhlasPlayer') != -1:
-                playerDiv = line.strip()
+                player_div = line.strip()
                 break
 
-        if playerDiv.count('<div') > 1:
-            for k, element in enumerate(playerDiv.split('<div')):
+        if player_div.count('<div') > 1:
+            for k, element in enumerate(player_div.split('<div')):
                 if element.count('mujRozhlasPlayer') == 1:
-                    playerDiv = '<div' + element
+                    player_div = '<div' + element
                     break
 
-        return playerDiv
+        return player_div
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None)
 
-        playerDiv = self.find_element(webpage)
+        player_div = self.find_element(webpage)
 
-        jsonString = extract_attributes(playerDiv).get('data-player')
-        jsonData = json.loads(jsonString)
+        json_string = extract_attributes(player_div).get('data-player')
+        json_data = json.loads(json_string)
 
         entries = []
-        for entry in jsonData.get("data").get('playlist'):
+        for entry in json_data.get("data").get('playlist'):
             entry0 = entry.get('audioLinks')[0]
             format = {
                 'url': entry0.get('url'),
@@ -110,7 +110,7 @@ class RozhlasVltavaIE(InfoExtractor):
 
         return {
             '_type': 'playlist',
-            'id': jsonData.get('data').get('embedId'),
-            'title': jsonData.get('data').get('series').get('title'),
+            'id': json_data.get('data').get('embedId'),
+            'title': json_data.get('data').get('series').get('title'),
             'entries': entries,
         }
