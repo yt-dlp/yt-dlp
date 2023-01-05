@@ -76,10 +76,6 @@ class TencentBaseIE(InfoExtractor):
 
     def _extract_video_formats_and_subtitles(self, api_response, video_id):
         video_response = api_response['vl']['vi'][0]
-        has_drm, video_width, video_height = video_response.get('drm') == 1, video_response.get('vw'), video_response.get('vh'),
-        format_response = next(filter(lambda f: f.get('br') == video_response.get('br'), api_response['fl']['fi']))
-        abr, vbr = float_or_none(format_response.get('audiobandwidth'), scale=1000), float_or_none(format_response.get('bandwidth'), scale=1000)
-        is_hdr, format_name = format_response.get('name') == 'hdr10', f'{format_response.get("sname")} ({format_response.get("resolution")})'
 
         formats, subtitles = [], {}
         for video_format in video_response['ul']['ui']:
@@ -87,28 +83,37 @@ class TencentBaseIE(InfoExtractor):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     video_format['url'] + traverse_obj(video_format, ('hls', 'pt'), default=''),
                     video_id, 'mp4', fatal=False)
-                for f in fmts:
-                    f.update({'width': video_width, 'height': video_height})
 
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             else:
                 formats.append({
                     'url': f'{video_format["url"]}{video_response["fn"]}?vkey={video_response["fvkey"]}',
-                    'width': video_width,
-                    'height': video_height,
                     'ext': 'mp4',
                 })
 
+        identifier = video_response.get('br')
+        format_response = traverse_obj(
+            api_response, ('fl', 'fi', lambda _, v: v['br'] == identifier),
+            expected_type=dict, get_all=False) or {}
+        drm = format_response.get('drm')
+        format_id = format_response.get('name')
+        is_hdr = format_id == 'hdr10'
+        format_name = f'{format_response.get("sname")} ({format_response.get("resolution")})' + (' HDR' if is_hdr else '')
+        common_info = {
+            'width': video_response.get('vw'),
+            'height': video_response.get('vh'),
+            'abr': float_or_none(format_response.get('audiobandwidth'), scale=1000),
+            'vbr': float_or_none(format_response.get('bandwidth'), scale=1000),
+            'fps': format_response.get('vfps'),
+            'format': format_name,
+            'format_id ': format_id,
+            'format_note': format_name,
+            'dynamic_range': 'hdr10' if is_hdr else None,
+            'has_drm': True if drm is not None and drm != 0 else False,
+        }
         for f in formats:
-            f['abr'] = abr
-            f['vbr'] = vbr
-            f['fps'] = format_response.get('vfps')
-            f['format'] = format_name
-            f['format_id '] = format_response.get('formatdefn')
-            f['format_note'] = format_name + (' HDR' if is_hdr else '')
-            f['dynamic_range'] = 'hdr10' if is_hdr else None
-            f['has_drm '] = has_drm
+            f.update(common_info)
 
         return formats, subtitles
 
