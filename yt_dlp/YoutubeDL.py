@@ -2703,10 +2703,6 @@ class YoutubeDL:
 
         format_selector = self.format_selector
         if format_selector is None:
-            # Save preferred format for merge before it is overridden
-            # FIXME: This looks rather misplaced here, to say the least
-            if self.params.get('merge_output_format') is None:
-                self.params['merge_output_format'] = info_dict.get('ext')
             req_format = self._default_format_spec(info_dict, download=download)
             self.write_debug('Default format spec: %s' % req_format)
             format_selector = self.build_format_selector(req_format)
