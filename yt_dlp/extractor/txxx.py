@@ -417,11 +417,9 @@ class PornTopIE(InfoExtractor):
             elif stat['interactionType'] == 'http://schema.org/DislikeAction':
                 dislikes = stat['userInteractionCount']
 
-        # actual urls are in this scrambled json object
-        urls_json_text = decode_base64(self._search_regex(
+        video_file = self._parse_json(decode_base64(self._search_regex(
             r"window\.initPlayer\(.*}}},\s*'(?P<json_b64c>[^']+)'",
-            webpage, 'json_urls', group='json_b64c'))
-        video_file = self._parse_json(urls_json_text, video_id, fatal=True)
+            webpage, 'json_urls', group='json_b64c')), video_id)
 
         formats = get_formats(host, video_file)
 
