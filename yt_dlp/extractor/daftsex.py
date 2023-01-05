@@ -12,9 +12,9 @@ from ..utils import (
 
 
 class DaftsexIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?daftsex\.com/watch/(?P<id>-?\d+_\d+)'
+    _VALID_URL = r'https?://(?:www\.)?daft\.sex/watch/(?P<id>-?\d+_\d+)'
     _TESTS = [{
-        'url': 'https://daftsex.com/watch/-35370899_456246186',
+        'url': 'https://daft.sex/watch/-35370899_456246186',
         'md5': 'd95135e6cea2d905bea20dbe82cda64a',
         'info_dict': {
             'id': '-35370899_456246186',
@@ -26,7 +26,7 @@ class DaftsexIE(InfoExtractor):
             'thumbnail': r're:https://[^/]+/impf/-43BuMDIawmBGr3GLcZ93CYwWf2PBv_tVWoS1A/dnu41DnARU4\.jpg\?size=800x450&quality=96&keep_aspect_ratio=1&background=000000&sign=6af2c26ff4a45e55334189301c867384&type=video_thumb',
         },
     }, {
-        'url': 'https://daftsex.com/watch/-156601359_456242791',
+        'url': 'https://daft.sex/watch/-156601359_456242791',
         'info_dict': {
             'id': '-156601359_456242791',
             'ext': 'mp4',
@@ -60,7 +60,7 @@ class DaftsexIE(InfoExtractor):
             webpage, 'player color', fatal=False) or ''
 
         embed_page = self._download_webpage(
-            'https://daxab.com/player/%s?color=%s' % (player_hash, player_color),
+            'https://dxb.to/player/%s?color=%s' % (player_hash, player_color),
             video_id, headers={'Referer': url})
         video_params = self._parse_json(
             self._search_regex(
