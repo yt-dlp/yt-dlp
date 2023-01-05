@@ -86,34 +86,32 @@ class RozhlasVltavaIE(InfoExtractor):
 
         playerDiv = self.find_element(webpage)
 
-        jsonString = extract_attributes(playerDiv)['data-player']
+        jsonString = extract_attributes(playerDiv).get('data-player')
         jsonData = json.loads(jsonString)
 
         entries = []
-        for entry in jsonData["data"]['playlist']:
+        for entry in jsonData.get("data").get('playlist'):
+            entry0 = entry.get('audioLinks')[0]
             format = {
-                'url': entry["audioLinks"][0]['url'],
-                'ext': entry["audioLinks"][0]['variant'],
-                'format_id': entry["audioLinks"][0]['variant'],
-                'abr': entry["audioLinks"][0]['bitrate'],
-                'acodec': entry["audioLinks"][0]['variant'],
+                'url': entry0.get('url'),
+                'ext': entry0.get('variant'),
+                'format_id': entry0.get('variant'),
+                'abr': entry0.get('bitrate'),
+                'acodec': entry0.get('variant'),
                 'vcodec': 'none',
             }
             temp = {
-                """
-                Prefering to user entry["meta"]['ga']['contentId'] for id. Using this for tests.
-                """
-                'id': self._match_id(url),
-                'title': entry["title"],
-                'description': entry["meta"]['ga']['contentEvent'],
-                'duration': entry["duration"],
+                'id': self._match_id(url),  # Prefering to user entry.get('meta').get('ga').get('contentId') for id. Using this because of tests.
+                'title': entry.get('title'),
+                'description': entry.get('meta').get('ga').get('contentEvent'),
+                'duration': entry.get('duration'),
                 'formats': [format],
             }
             entries.append(temp)
 
         return {
             '_type': 'playlist',
-            'id': jsonData["data"]['embedId'],
-            'title': jsonData["data"]['series']['title'],
+            'id': jsonData.get('data').get('embedId'),
+            'title': jsonData.get('data').get('series').get('title'),
             'entries': entries,
         }
