@@ -1,5 +1,5 @@
-from ..utils import extract_attributes, mimetype2ext, remove_end
 from .common import InfoExtractor
+from ..utils import extract_attributes, mimetype2ext, remove_end
 
 
 class RheinMainTVIE(InfoExtractor):
@@ -9,7 +9,7 @@ class RheinMainTVIE(InfoExtractor):
         # no (fixed) md5 sum for fragmented formats
         'info_dict': {
             'id': 'formationsgemeinschaft-rhein-main-bei-den-deutschen-meisterschaften-vom-14.11.2022',
-            'ext': 'ismv',
+            'ext': 'mp4',
             'title': 'Formationsgemeinschaft Rhein-Main bei den Deutschen Meisterschaften',
             'alt_title': 'Formationsgemeinschaft Rhein-Main bei den Deutschen Meisterschaften',
             'description': 'Die Lateinformation wollte bei den Deutschen Meisterschaften in die Zwischenrunde. Leider schaffte es das Team nicht.',
@@ -18,7 +18,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': 'aac_UND_2_129-128',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
-                'ext': 'isma',
+                'ext': 'mp4',
                 'width': None,
                 'height': None,
                 'tbr': 128,
@@ -46,7 +46,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '401',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 320,
                 'height': 180,
                 'tbr': 401,
@@ -74,7 +74,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '653',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 640,
                 'height': 360,
                 'tbr': 653,
@@ -102,7 +102,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '1005',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 640,
                 'height': 360,
                 'tbr': 1005,
@@ -130,7 +130,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '1505',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 960,
                 'height': 540,
                 'tbr': 1505,
@@ -158,7 +158,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '2260',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 960,
                 'height': 540,
                 'tbr': 2260,
@@ -186,7 +186,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '3415',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 1280,
                 'height': 720,
                 'tbr': 3415,
@@ -214,7 +214,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '4706',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 1920,
                 'height': 1080,
                 'tbr': 4706,
@@ -242,7 +242,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '6021',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 1920,
                 'height': 1080,
                 'tbr': 6021,
@@ -279,7 +279,7 @@ class RheinMainTVIE(InfoExtractor):
         # no (fixed) md5 sum for fragmented formats
         'info_dict': {
             'id': 'casino-mainz-bei-den-deutschen-meisterschaften-vom-14.11.2022',
-            'ext': 'ismv',
+            'ext': 'mp4',
             'title': 'Casino Mainz bei den Deutschen Meisterschaften',
             'alt_title': 'Casino Mainz bei den Deutschen Meisterschaften',
             'description': 'Die Standardformation aus Mainz hoffte auch auf den Sprung in die Zwischenrunde, doch auch für sie war Schluss nach der Vorrunde.',
@@ -288,7 +288,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': 'aac_UND_2_129-128',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
-                'ext': 'isma',
+                'ext': 'mp4',
                 'width': None,
                 'height': None,
                 'tbr': 128,
@@ -316,7 +316,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '400',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 320,
                 'height': 180,
                 'tbr': 400,
@@ -344,7 +344,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '650',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 640,
                 'height': 360,
                 'tbr': 650,
@@ -372,7 +372,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '1000',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 640,
                 'height': 360,
                 'tbr': 1000,
@@ -400,7 +400,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '1498',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 960,
                 'height': 540,
                 'tbr': 1498,
@@ -428,7 +428,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '2249',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 960,
                 'height': 540,
                 'tbr': 2249,
@@ -456,7 +456,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '3398',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 1280,
                 'height': 720,
                 'tbr': 3398,
@@ -484,7 +484,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '4689',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 1920,
                 'height': 1080,
                 'tbr': 4689,
@@ -512,7 +512,7 @@ class RheinMainTVIE(InfoExtractor):
                 'format_id': '5995',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
                 'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
-                'ext': 'ismv',
+                'ext': 'mp4',
                 'width': 1920,
                 'height': 1080,
                 'tbr': 5995,
@@ -567,6 +567,13 @@ class RheinMainTVIE(InfoExtractor):
             or next(json_ld.get('embedUrl') for json_ld in raw_json_ld if json_ld.get('@type') == 'VideoObject')
         )
         formats, subtitles = self._extract_ism_formats_and_subtitles(ism_manifest_url, video_id)
+        # The extensions returned by the function call above ('ismv' for video,
+        # 'isma' for audio) are inaccurate and need to be overwritten.
+        # Any extension in the info_dict itself would be discarded.
+        ext = mimetype2ext(source.get('type'))
+        if ext:
+            for f in formats:
+                f['ext'] = ext
 
         return {
             'id': video_id,
@@ -578,7 +585,6 @@ class RheinMainTVIE(InfoExtractor):
             'alt_title': img.get('alt'),
             'description': json_ld.get('description') or self._og_search_description(webpage),
             'display_id': display_id,
-            'ext': mimetype2ext(source.get('type')),  # currently not used - it gets overridden by the chosen best format
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': [{'url': img['src']}] if 'src' in img else json_ld.get('thumbnails'),
