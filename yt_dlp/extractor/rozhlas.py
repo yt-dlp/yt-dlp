@@ -81,7 +81,8 @@ class RozhlasVltavaIE(InfoExtractor):
         return player_div
 
     def _real_extract(self, url):
-        webpage = self._download_webpage(url, None)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
 
         player_div = self.find_element(webpage)
 
