@@ -93,5 +93,6 @@ class RozhlasVltavaIE(InfoExtractor):
             '_type': 'playlist',
             'id': data.get('embedId'),
             'title': data.get('series').get('title'),
+            'formats': entries[0].get('formats') if len(entries) == 1 else None,
             'entries': entries,
         }
