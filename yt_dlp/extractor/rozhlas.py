@@ -57,8 +57,8 @@ class RozhlasVltavaIE(InfoExtractor):
         'info_dict': {
             'id': '8891337',
             'ext': 'mp3',
-            'title': 'Máte po celé sezóně poslouchání Čelistí právo na wellness, nebo můžete být rádi, že jste vůbec naživu? Poslechněte si filmově kritickou bilanci všeho, co v uplynulých měsících stálo za vidění',
-            'description': '8888928: Vánoce s Radiem Wave | 7702992: Český rozhlas má nadílku pro každého',
+            'title': 'md5:1c6d29fb9564e1f17fc1bb83ae7da0bc',
+            'description': 'md5:bbab1431c3472304b4863faea414cd2b',
             'duration': 1574
         }
     }]
