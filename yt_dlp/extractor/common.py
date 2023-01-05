@@ -1267,7 +1267,7 @@ class InfoExtractor:
         elif res:
             return clean_html(res).strip()
         else:
-            return clean_html(res)
+            return res
 
     def _get_netrc_login_info(self, netrc_machine=None):
         username = None
