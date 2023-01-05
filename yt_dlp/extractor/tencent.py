@@ -59,9 +59,7 @@ class TencentBaseIE(InfoExtractor):
             'drm': '40',  # Enable DRM
             # For HDR
             'spvideo': '4',
-            'spaudio': '64',
             'spsfrhdr': '100',
-            'defnpayver': '4',
             # For SHD
             'host': self._HOST,
             'referer': self._REFERER,
@@ -137,7 +135,6 @@ class TencentBaseIE(InfoExtractor):
         self._check_api_response(first_api_response)
         api_responses = [first_api_response]
         quality = self._extract_all_video_quality(first_api_response)
-        print(quality)
         for q in quality:
             if q != 'sd' and q != 'hd':
                 api_response = self._get_video_api_response(
