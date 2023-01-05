@@ -1,4 +1,5 @@
 import json
+import re
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -63,28 +64,11 @@ class RozhlasVltavaIE(InfoExtractor):
         }
     }]
 
-    def find_element(self, webpage):
-        # Use utils.get_element_text_and_html_by_tag() instead when it accepts less strict html.
-
-        player_div = ''
-        for k, line in enumerate(webpage.split("\n")):
-            if line.find('mujRozhlasPlayer') != -1:
-                player_div = line.strip()
-                break
-
-        if player_div.count('<div') > 1:
-            for k, element in enumerate(player_div.split('<div')):
-                if element.count('mujRozhlasPlayer') == 1:
-                    player_div = '<div' + element
-                    break
-
-        return player_div
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        player_div = self.find_element(webpage)
+        player_div = re.findall("<div class=\"mujRozhlasPlayer\" data-player='.*'>", webpage)[0]  # Use utils.get_element_text_and_html_by_tag() instead when it accepts less strict html.
 
         json_string = extract_attributes(player_div).get('data-player')
         json_data = json.loads(json_string)
