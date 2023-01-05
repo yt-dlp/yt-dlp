@@ -313,7 +313,7 @@ class ZenYandexChannelIE(InfoExtractor):
         'url': 'https://zen.yandex.ru/jony_me',
         'info_dict': {
             'id': 'jony_me',
-            'description': 'md5:264d4a51e2e938cb758a6aa232817e40',
+            'description': 'md5:ce0a5cad2752ab58701b5497835b2cc5',
             'title': 'JONY ',
         },
         'playlist_mincount': 10,
@@ -370,7 +370,7 @@ class ZenYandexChannelIE(InfoExtractor):
         if retpath and host:
             item_id = self._match_id(retpath)
             container = self._search_regex(r'element2\.value\s*=\s*\'(.*?)\';', webpage, 'container')
-            _ = self._request_webpage(host, item_id, note='Redirecting', data=urlencode_postdata({
+            self._request_webpage(host, item_id, note='Redirecting', data=urlencode_postdata({
                 'retpath': retpath,
                 'container': container,
             }))
