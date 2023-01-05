@@ -306,7 +306,7 @@ class ZenYandexChannelIE(InfoExtractor):
             'description': 'md5:517b7c97d8ca92e940f5af65448fd928',
             'title': 'AcademeG DailyStream',
         },
-        'playlist_mincount': 10,
+        'playlist_mincount': 100,
     }, {
         # Test that the playlist extractor finishes extracting when the
         # channel has less than one page
@@ -327,7 +327,7 @@ class ZenYandexChannelIE(InfoExtractor):
             'title': 'Татьяна Рева',
             'entries': 'maxcount:200',
         },
-        'playlist_mincount': 10,
+        'playlist_mincount': 25,
     }, {
         'url': 'https://dzen.ru/id/606fd806cc13cb3c58c05cf5',
         'info_dict': {
