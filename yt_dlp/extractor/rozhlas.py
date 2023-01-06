@@ -65,7 +65,7 @@ class RozhlasVltavaIE(InfoExtractor):
             'info_dict': {
                 'id': '10520988',
                 'ext': 'mp3',
-                'title': "Papej masíčko! Porcujeme a bilancujeme filmy a seriály, které to letos zabily",
+                'title': 'Papej masíčko! Porcujeme a bilancujeme filmy a seriály, které to letos zabily',
                 'description': 'md5:xxx',
                 'duration': 1574,
                 'artist': 'Aleš Stuchlý',
@@ -76,7 +76,7 @@ class RozhlasVltavaIE(InfoExtractor):
         'url': 'https://wave.rozhlas.cz/poslechnete-si-neklid-podcastovy-thriller-o-vine-strachu-a-vztahu-ktery-zasel-8554744',
         'info_dict': {
             'id': 8554744,
-            'title': "Poslechněte si Neklid. Podcastový thriller o vině, strachu a vztahu, který zašel příliš daleko",
+            'title': 'Poslechněte si Neklid. Podcastový thriller o vině, strachu a vztahu, který zašel příliš daleko',
         },
         'playlist_count': 5,
         'playlist': [{
@@ -151,38 +151,32 @@ class RozhlasVltavaIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        player_div = re.findall("<div class=\"mujRozhlasPlayer\" data-player='.*'>", webpage)[0]  # Use utils.get_element_text_and_html_by_tag() instead when it accepts less strict html.
+        # FIXME: Use get_element_text_and_html_by_tag when it accepts less strict html
+        player_div = self._parse_json(extract_attributes(self._search_regex(
+            '<div class="mujRozhlasPlayer" data-player=\'[^>]+\'>',
+            webpage, 'player'))['data-player'], video_id)['data']
 
-        data = self._parse_json(extract_attributes(player_div).get('data-player'), video_id).get('data')
-
-        entries = []
-        for entry in data.get('playlist'):
-            formats = []
-            for audio_link in entry.get('audioLinks'):
-                formats.append({
-                    'url': audio_link.get('url'),
-                    'ext': audio_link.get('variant'),
-                    'format_id': audio_link.get('variant'),
-                    'abr': audio_link.get('bitrate'),
-                    'acodec': audio_link.get('variant'),
-                    'vcodec': 'none',
-                })
-            entries.append({
-                'id': traverse_obj(entry, ('meta', 'ga', 'contentId')),
-                'title': traverse_obj(entry, ('meta', 'ga', 'contentName')),
-                'description': entry.get('title'),
-                'duration': entry.get('duration'),
-                'formats': formats,
-                'artist': traverse_obj(entry, ('meta', 'ga', 'contentAuthor')),
-                'channel_id': traverse_obj(entry, ('meta', 'ga', 'contentCreator')),
-                'chapter': traverse_obj(entry, ('meta', 'ga', 'contentNameShort')) if traverse_obj(entry, ('meta', 'ga', 'contentSerialPart')) is not None else None,
-                'chapter_number': int(traverse_obj(entry, ('meta', 'ga', 'contentSerialPart'))) if traverse_obj(entry, ('meta', 'ga', 'contentSerialPart')) is not None else None,
-            })
 
         return {
             '_type': 'playlist',
             'id': data.get('embedId'),
             'title': traverse_obj(data, ('series', 'title')),
-            'formats': entries[0].get('formats') if len(entries) == 1 else None,
-            'entries': entries,
+            'entries': [{
+                'id': entry['meta']['ga']['contentId'],
+                'title': traverse_obj(entry, ('meta', 'ga', 'contentName')),
+                'description': entry.get('title'),
+                'duration': entry.get('duration'),
+                'artist': traverse_obj(entry, ('meta', 'ga', 'contentAuthor')),
+                'channel_id': traverse_obj(entry, ('meta', 'ga', 'contentCreator')),
+                'chapter': traverse_obj(entry, ('meta', 'ga', 'contentNameShort')),
+                'chapter_number': int_or_none(traverse_obj(entry, ('meta', 'ga', 'contentSerialPart'))),
+                'formats': [{
+                    'url': audio_link['url'],
+                    'ext': audio_link.get('variant'),
+                    'format_id': audio_link.get('variant'),
+                    'abr': audio_link.get('bitrate'),
+                    'acodec': audio_link.get('variant'),
+                    'vcodec': 'none',
+                } for audio_link in entry['audioLinks']],
+            } for entry in data['playlist']],
         }
