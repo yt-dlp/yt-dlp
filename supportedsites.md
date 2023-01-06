@@ -52,6 +52,7 @@
  - **afreecatv:user**
  - **AirMozilla**
  - **AirTV**
+ - **AitubeKZVideo**
  - **AliExpressLive**
  - **AlJazeera**
  - **Allocine**
@@ -352,6 +353,8 @@
  - **DrTuber**
  - **drtv**
  - **drtv:live**
+ - **drtv:season**
+ - **drtv:series**
  - **DTube**
  - **duboku**: www.duboku.io
  - **duboku:list**: www.duboku.io entire series
@@ -1374,10 +1377,14 @@
  - **ThisAmericanLife**
  - **ThisAV**
  - **ThisOldHouse**
+ - **ThisVid**
+ - **ThisVidMember**
+ - **ThisVidPlaylist**
  - **ThreeSpeak**
  - **ThreeSpeakUser**
  - **TikTok**
  - **tiktok:effect**: (**Currently broken**)
+ - **tiktok:live**
  - **tiktok:sound**: (**Currently broken**)
  - **tiktok:tag**: (**Currently broken**)
  - **tiktok:user**: (**Currently broken**)
@@ -1579,6 +1586,7 @@
  - **VoiceRepublic**
  - **voicy**
  - **voicy:channel**
+ - **VolejTV**
  - **Voot**
  - **VootSeries**
  - **VoxMedia**
@@ -1650,6 +1658,7 @@
  - **WWE**
  - **wyborcza:video**
  - **WyborczaPodcast**
+ - **Xanimu**
  - **XBef**
  - **XboxClips**
  - **XFileShare**: XFileShare based sites: Aparat, ClipWatching, GoUnlimited, GoVid, HolaVid, Streamty, TheVideoBee, Uqload, VidBom, vidlo, VidLocker, VidShare, VUp, WolfStream, XVideoSharing
