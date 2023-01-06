@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..compat import compat_b64decode
 from ..utils import (
+    ExtractorError,
     int_or_none,
     js_to_json,
     parse_count,
@@ -15,27 +16,22 @@ class DaftsexIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?daft\.sex/watch/(?P<id>-?\d+_\d+)'
     _TESTS = [{
         'url': 'https://daft.sex/watch/-35370899_456246186',
-        'md5': 'd95135e6cea2d905bea20dbe82cda64a',
+        'md5': '64c04ef7b4c7b04b308f3b0c78efe7cd',
         'info_dict': {
             'id': '-35370899_456246186',
             'ext': 'mp4',
             'title': 'just relaxing',
-            'description': 'just relaxing - Watch video Watch video in high quality',
+            'description': 'just relaxing – Watch video Watch video in high quality',
             'upload_date': '20201113',
             'timestamp': 1605261911,
-            'thumbnail': r're:https://[^/]+/impf/-43BuMDIawmBGr3GLcZ93CYwWf2PBv_tVWoS1A/dnu41DnARU4\.jpg\?size=800x450&quality=96&keep_aspect_ratio=1&background=000000&sign=6af2c26ff4a45e55334189301c867384&type=video_thumb',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'age_limit': 18,
+            'duration': 15.0,
+            'view_count': int
         },
-    }, {
+    }, {  # deleted / private video
         'url': 'https://daft.sex/watch/-156601359_456242791',
-        'info_dict': {
-            'id': '-156601359_456242791',
-            'ext': 'mp4',
-            'title': 'Skye Blue - Dinner And A Show',
-            'description': 'Skye Blue - Dinner And A Show - Watch video Watch video in high quality',
-            'upload_date': '20200916',
-            'timestamp': 1600250735,
-            'thumbnail': 'https://psv153-1.crazycloud.ru/videos/-156601359/456242791/thumb.jpg?extra=i3D32KaBbBFf9TqDRMAVmQ',
-        },
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -94,15 +90,19 @@ class DaftsexIE(InfoExtractor):
                 'age_limit': 18,
             }
 
-        item = self._download_json(
+        items = self._download_json(
             f'{server_domain}/method/video.get/{video_id}', video_id,
             headers={'Referer': url}, query={
                 'token': video_params['video']['access_token'],
                 'videos': video_id,
                 'ckey': video_params['c_key'],
                 'credentials': video_params['video']['credentials'],
-            })['response']['items'][0]
+            })['response']['items']
 
+        if not isinstance(items, list) or len(items) < 1:
+            raise ExtractorError('Video %s is not available' % video_id, expected=True)
+
+        item = items[0]
         formats = []
         for f_id, f_url in item.get('files', {}).items():
             if f_id == 'external':
