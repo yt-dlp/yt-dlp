@@ -5,7 +5,7 @@ from .common import InfoExtractor
 
 
 class XanimuIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?xanimu\.com/(?:(?P<id>\d+)-)?(?P<display_id>[^/]*)/?'
+    _VALID_URL = r'https?://(?:www\.)?xanimu\.com/(?:(?P<id>\d+)-)?(?P<display_id>[^/]+)/?'
     _TESTS = [{
         'url': 'https://xanimu.com/51944-the-princess-the-frog-hentai/',
         'md5': '899b88091d753d92dad4cb63bbf357a7',
