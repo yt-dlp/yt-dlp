@@ -1,8 +1,6 @@
 import itertools
 import json
-import time
 import urllib.error
-import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, parse_iso8601
@@ -18,7 +16,7 @@ class NebulaBaseIE(InfoExtractor):
 
     def _perform_nebula_auth(self, username, password):
         if not username or not password:
-            self.raise_login_required()
+            self.raise_login_required(method='password')
 
         data = json.dumps({'email': username, 'password': password}).encode('utf8')
         response = self._download_json(
@@ -32,37 +30,9 @@ class NebulaBaseIE(InfoExtractor):
             note='Logging in to Nebula with supplied credentials',
             errnote='Authentication failed or rejected')
         if not response or not response.get('key'):
-            self.raise_login_required()
-
-        # save nebula token as cookie
-        self._set_cookie(
-            'nebula.app', 'nebula-auth',
-            urllib.parse.quote(
-                json.dumps({
-                    "apiToken": response["key"],
-                    "isLoggingIn": False,
-                    "isLoggingOut": False,
-                }, separators=(",", ":"))),
-            expire_time=int(time.time()) + 86400 * 365,
-        )
+            self.raise_login_required(method='password')
 
         return response['key']
-
-    def _retrieve_nebula_api_token(self, username=None, password=None):
-        """
-        Check cookie jar for valid token. Try to authenticate using credentials if no valid token
-        can be found in the cookie jar.
-        """
-        nebula_cookies = self._get_cookies('https://nebula.app')
-        nebula_cookie = nebula_cookies.get('nebula-auth')
-        if nebula_cookie:
-            self.to_screen('Authenticating to Nebula with token from cookie jar')
-            nebula_cookie_value = urllib.parse.unquote(nebula_cookie.value)
-            nebula_api_token = self._parse_json(nebula_cookie_value, None).get('apiToken')
-            if nebula_api_token:
-                return nebula_api_token
-
-        return self._perform_nebula_auth(username, password)
 
     def _call_nebula_api(self, url, video_id=None, method='GET', auth_type='api', note=''):
         assert method in ('GET', 'POST',)
@@ -135,7 +105,7 @@ class NebulaBaseIE(InfoExtractor):
         }
 
     def _perform_login(self, username=None, password=None):
-        self._nebula_api_token = self._retrieve_nebula_api_token(username, password)
+        self._nebula_api_token = self._perform_nebula_auth(username, password)
         self._nebula_bearer_token = self._fetch_nebula_bearer_token()
 
 
