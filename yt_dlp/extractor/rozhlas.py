@@ -66,7 +66,7 @@ class RozhlasVltavaIE(InfoExtractor):
                 'ext': 'mp3',
                 'title': "Papej masíčko! Porcujeme a bilancujeme filmy a seriály, které to letos zabily",
                 'description': 'Máte po celé sezóně poslouchání Čelistí právo na wellness, nebo můžete být rádi, '
-                    'že jste vůbec naživu? Poslechněte si filmově kritickou bilanci všeho, co v uplynulých měsících stálo za vidění',
+                'že jste vůbec naživu? Poslechněte si filmově kritickou bilanci všeho, co v uplynulých měsících stálo za vidění',
                 'duration': 1574,
                 'artist': 'Aleš Stuchlý',
                 'channel_id': 'radio-wave',
@@ -175,8 +175,8 @@ class RozhlasVltavaIE(InfoExtractor):
                 'formats': formats,
                 'artist': entry.get('meta').get('ga').get('contentAuthor'),
                 'channel_id': entry.get('meta').get('ga').get('contentCreator'),
-                'chapter': entry.get('meta').get('ga').get('contentNameShort') if entry.get('meta').get('ga').get('contentSerialPart') != None else None,
-                'chapter_number': int(entry.get('meta').get('ga').get('contentSerialPart')) if entry.get('meta').get('ga').get('contentSerialPart') != None else None,
+                'chapter': entry.get('meta').get('ga').get('contentNameShort') if entry.get('meta').get('ga').get('contentSerialPart') is not None else None,
+                'chapter_number': int(entry.get('meta').get('ga').get('contentSerialPart')) if entry.get('meta').get('ga').get('contentSerialPart') is not None else None,
             })
 
         return {
