@@ -475,6 +475,8 @@ from .drtuber import DrTuberIE
 from .drtv import (
     DRTVIE,
     DRTVLiveIE,
+    DRTVSeasonIE,
+    DRTVSeriesIE,
 )
 from .dtube import DTubeIE
 from .dvtv import DVTVIE
