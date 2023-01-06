@@ -1410,44 +1410,31 @@ class YoutubeDL:
             if age_restricted(info_dict.get('age_limit'), self.params.get('age_limit')):
                 return ('age_limit', 'Skipping "%s" because it is age restricted' % video_title)
 
-            match_filter = self.params.get('match_filter')
-            if match_filter is not None:
-                try:
-                    ret = match_filter(info_dict, incomplete=incomplete)
-                except TypeError:
-                    # For backward compatibility
-                    ret = None if incomplete else match_filter(info_dict)
-                if ret is NO_DEFAULT:
-                    while True:
-                        filename = self._format_screen(self.prepare_filename(info_dict), self.Styles.FILENAME)
-                        reply = input(self._format_screen(
-                            f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS)).lower().strip()
-                        if reply in {'y', ''}:
-                            return (None, None)
-                        elif reply == 'n':
-                            return ('match_filter', f'Skipping {video_title}')
-                elif ret is not None:
-                    return ('match_filter', ret)
+            def exec_filters(key):
+                filters = self.params.get(key)
+                if filters is not None:
+                    try:
+                        ret = filters(info_dict, incomplete=incomplete)
+                    except TypeError:
+                        # For backward compatibility
+                        ret = None if incomplete else filters(info_dict)
+                    if ret is NO_DEFAULT:
+                        while True:
+                            filename = self._format_screen(self.prepare_filename(info_dict), self.Styles.FILENAME)
+                            reply = input(self._format_screen(
+                                f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS)).lower().strip()
+                            if reply in {'y', ''}:
+                                return (None, None)
+                            elif reply == 'n':
+                                return (key, f'Skipping {video_title}')
+                    elif ret is not None:
+                        return (key, ret)
+                return (None, None)
 
-            breaking_match_filter = self.params.get('breaking_match_filter')
-            if breaking_match_filter is not None:
-                try:
-                    ret = breaking_match_filter(info_dict, incomplete=incomplete)
-                except TypeError:
-                    # For backward compatibility
-                    ret = None if incomplete else breaking_match_filter(info_dict)
-                if ret is NO_DEFAULT:
-                    while True:
-                        filename = self._format_screen(self.prepare_filename(info_dict), self.Styles.FILENAME)
-                        reply = input(self._format_screen(
-                            f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS)).lower().strip()
-                        if reply in {'y', ''}:
-                            return (None, None)
-                        elif reply == 'n':
-                            return ('breaking_match_filter', f'Skipping {video_title}')
-                elif ret is not None:
-                    return ('breaking_match_filter', ret)
-            return (None, None)
+            r = exec_filters('match_filter')
+            if r != (None, None):
+                return r
+            return exec_filters('breaking_match_filter')
 
         if self.in_download_archive(info_dict):
             reason = '%s has already been recorded in the archive' % video_title
