@@ -43,7 +43,7 @@ class EplusIbIE(InfoExtractor):
                 'Due to technical limitations, the download will be interrupted after one hour')
             live_status = 'is_live'
         elif delivery_status == 'STOPPED':
-            if archive_mode == 'ON':  # I didn't see values other than "ON"
+            if archive_mode == 'ON':
                 raise UserNotLive(
                     'This event has ended, but the archive has not been generated yet')
             raise ExtractorError(
