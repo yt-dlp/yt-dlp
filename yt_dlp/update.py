@@ -264,7 +264,8 @@ class Updater:
                 self._report_error('Unable to overwrite current version')
                 return os.rename(old_filename, self.filename)
 
-        if detect_variant() in ('win32_exe', 'py2exe'):
+        variant = detect_variant()
+        if variant.startswith('win') or variant == 'py2exe':
             atexit.register(Popen, f'ping 127.0.0.1 -n 5 -w 1000 & del /F "{old_filename}"',
                             shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         elif old_filename:
