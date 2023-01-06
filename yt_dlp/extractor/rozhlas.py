@@ -152,7 +152,7 @@ class RozhlasVltavaIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         # FIXME: Use get_element_text_and_html_by_tag when it accepts less strict html
-        player_div = self._parse_json(extract_attributes(self._search_regex(
+        data = self._parse_json(extract_attributes(self._search_regex(
             '<div class="mujRozhlasPlayer" data-player=\'[^>]+\'>',
             webpage, 'player'))['data-player'], video_id)['data']
 
