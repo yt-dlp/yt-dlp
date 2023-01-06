@@ -21,10 +21,12 @@ class TencentBaseIE(InfoExtractor):
     """Subclasses must set _API_URL, _APP_VERSION, _PLATFORM, _HOST, _REFERER"""
 
     def _check_api_response(self, api_response):
-        if api_response.get('em') != 0 and api_response.get('exem') != 0:
-            if '您所在区域暂无此内容版权' in api_response.get('msg'):
+        code = api_response.get('code')
+        msg = api_response.get('msg')
+        if code != '0.0' and msg is not None:
+            if msg in ('您所在区域暂无此内容版权（如设置VPN请关闭后重试）', 'This content is not available in your area due to copyright restrictions. Please choose other videos.'):
                 self.raise_geo_restricted()
-            raise ExtractorError(f'Tencent said: {api_response.get("msg")}')
+            raise ExtractorError(f'Tencent said: {msg}')
         return None
 
     def _get_ckey(self, video_id, url, guid):
@@ -166,7 +168,7 @@ class TencentBaseIE(InfoExtractor):
 
     def _get_clean_title(self, title):
         return re.sub(
-            r'\s*[_\-]\s*(?:Watch online|腾讯视频|(?:高清)?1080P在线观看平台).*?$',
+            r'\s*[_\-]\s*(?:Watch online|Watch HD Video Online|WeTV|腾讯视频|(?:高清)?1080P在线观看平台).*?$',
             '', title or '').strip() or None
 
 
@@ -373,6 +375,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'episode': 'Episode 1',
             'episode_number': 1,
             'duration': 2835,
+            'format_id ': 'shd',
         },
     }, {
         'url': 'https://wetv.vip/en/play/u37kgfnfzs73kiu/p0039b9nvik',
@@ -387,6 +390,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'episode': 'Episode 1',
             'episode_number': 1,
             'duration': 2454,
+            'format_id ': 'shd',
         },
     }, {
         'url': 'https://wetv.vip/en/play/lcxgwod5hapghvw-WeTV-PICK-A-BOO/i0042y00lxp-Zhao-Lusi-Describes-The-First-Experiences-She-Had-In-Who-Rules-The-World-%7C-WeTV-PICK-A-BOO',
@@ -396,11 +400,12 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'ext': 'mp4',
             'title': 'md5:f7a0857dbe5fbbe2e7ad630b92b54e6a',
             'description': 'md5:76260cb9cdc0ef76826d7ca9d92fadfa',
-            'thumbnail': r're:^https?://[^?#]+lcxgwod5hapghvw',
+            'thumbnail': r're:^https?://[^?#]+i0042y00lxp',
             'series': 'WeTV PICK-A-BOO',
             'episode': 'Episode 0',
             'episode_number': 0,
             'duration': 442,
+            'format_id ': 'shd',
         },
     }]
 
@@ -460,6 +465,7 @@ class IflixEpisodeIE(IflixBaseIE):
             'episode': 'Episode 1',
             'episode_number': 1,
             'duration': 2639,
+            'format_id ': 'shd',
         },
     }, {
         'url': 'https://www.iflix.com/en/play/fvvrcc3ra9lbtt1-Take-My-Brother-Away/i0029sd3gm1-EP1%EF%BC%9ATake-My-Brother-Away',
@@ -474,6 +480,7 @@ class IflixEpisodeIE(IflixBaseIE):
             'episode': 'Episode 1',
             'episode_number': 1,
             'duration': 228,
+            'format_id ': 'shd',
         },
     }]
 
