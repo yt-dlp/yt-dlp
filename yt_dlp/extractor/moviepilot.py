@@ -1,6 +1,6 @@
 from .dailymotion import DailymotionIE
 from .common import InfoExtractor
-from ..utils import traverse_obj
+from ..utils import ExtractorError
 
 
 class MoviepilotIE(InfoExtractor):
@@ -89,18 +89,19 @@ class MoviepilotIE(InfoExtractor):
         clip_store = self._search_json(
             r'<script id="__NEXT_DATA__" type="application/json">',
             webpage, 'clip store', video_id, fatal=True)
-        clip = traverse_obj(clip_store, ('props', 'initialProps', 'pageProps'),
-                            expected_type=dict) or {}
 
-        # poster = traverse_obj(clip, ('poster', 'url'), expected_type=str) or ""
-        # movie_date = traverse_obj(clip, ('dataLayer', 'releasedata'), expected_type=str) or ""
-        # movie_rating = traverse_obj(clip, ('dataLayer', 'ageRestriction'), expected_type=int) or 0
+        try:
+            clip = clip_store['props']['initialProps']['pageProps']
+        except KeyError as err:
+            raise ExtractorError(
+                'Unable to extract "clip" - Unexpected JSON',
+                cause=err, video_id=video_id)
 
         return {
             '_type': 'url_transparent',
             'ie_key': DailymotionIE.ie_key(),
             'display_id': video_id,
-            'title': clip.get('title', ''),
-            'url': "https://www.dailymotion.com/video/" + clip['videoRemoteId'],
-            'description': clip.get('summary', ''),
+            'title': clip.get('title'),
+            'url': f'https://www.dailymotion.com/video/{clip["videoRemoteId"]}',
+            'description': clip.get('summary'),
         }
