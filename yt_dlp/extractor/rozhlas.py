@@ -51,7 +51,7 @@ class RozhlasIE(InfoExtractor):
 
 
 class RozhlasVltavaIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:vltava|wave|radiozurnal|dvojka|plus|sport|d-dur|jazz|junior|pohoda)\.rozhlas|english\.radio)\.cz/[a-z|-]*-(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:\w+\.rozhlas|english\.radio)\.cz/[\w-]+-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://wave.rozhlas.cz/papej-masicko-porcujeme-a-bilancujeme-filmy-a-serialy-ktere-letos-zabily-8891337',
         'md5': 'ba2fdbc1242fc16771c7695d271ec355',
@@ -66,8 +66,7 @@ class RozhlasVltavaIE(InfoExtractor):
                 'id': '10520988',
                 'ext': 'mp3',
                 'title': "Papej masíčko! Porcujeme a bilancujeme filmy a seriály, které to letos zabily",
-                'description': 'Máte po celé sezóně poslouchání Čelistí právo na wellness, nebo můžete být rádi, '
-                'že jste vůbec naživu? Poslechněte si filmově kritickou bilanci všeho, co v uplynulých měsících stálo za vidění',
+                'description': 'md5:xxx',
                 'duration': 1574,
                 'artist': 'Aleš Stuchlý',
                 'channel_id': 'radio-wave',
