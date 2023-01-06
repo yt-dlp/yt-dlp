@@ -1263,11 +1263,8 @@ class InfoExtractor:
         """
         res = self._search_regex(pattern, string, name, default, fatal, flags, group)
         if isinstance(res, tuple):
-            return [clean_html(r).strip() for r in res]
-        elif res:
-            return clean_html(res).strip()
-        else:
-            return res
+            return tuple(map(clean_html, res))
+        return clean_html(res)
 
     def _get_netrc_login_info(self, netrc_machine=None):
         username = None

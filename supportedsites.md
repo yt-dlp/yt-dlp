@@ -1199,7 +1199,6 @@
  - **SaltTVLive**: [<abbr title="netrc machine"><em>salttv</em></abbr>]
  - **SaltTVRecordings**: [<abbr title="netrc machine"><em>salttv</em></abbr>]
  - **SampleFocus**
- - **SamplePlugin**: (**Currently broken**)
  - **Sangiin**: 参議院インターネット審議中継 (archive)
  - **Sapo**: SAPO Vídeos
  - **savefrom.net**
@@ -1694,7 +1693,7 @@
  - **YouPorn**
  - **YourPorn**
  - **YourUpload**
- - **youtube+sample+NSIG+AGB**: YouTube
+ - **youtube**: YouTube
  - **youtube:clip**
  - **youtube:favorites**: YouTube liked videos; ":ytfav" keyword (requires cookies)
  - **youtube:history**: Youtube watch history; ":ythis" keyword (requires cookies)

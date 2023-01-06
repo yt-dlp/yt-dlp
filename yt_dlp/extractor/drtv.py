@@ -2,14 +2,13 @@ import binascii
 import hashlib
 import re
 
-
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
-    int_or_none,
     float_or_none,
+    int_or_none,
     mimetype2ext,
     str_or_none,
     traverse_obj,
@@ -18,7 +17,6 @@ from ..utils import (
     update_url_query,
     url_or_none,
 )
-
 
 SERIES_API = 'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=%s'
 
