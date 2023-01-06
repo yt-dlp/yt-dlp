@@ -8,7 +8,6 @@ from .common import InfoExtractor
 from ..compat import (
     compat_str,
     compat_urllib_parse_unquote,
-    compat_urlparse
 )
 from ..utils import (
     determine_ext,
@@ -23,6 +22,7 @@ from ..utils import (
     unified_timestamp,
     unescapeHTML,
     url_or_none,
+    urljoin,
 )
 
 
@@ -351,66 +351,57 @@ class PolskieRadioCategoryIE(InfoExtractor):
                 if not href:
                     continue
                 yield self.url_result(
-                    compat_urlparse.urljoin(url, href), PolskieRadioLegacyIE,
+                    urljoin(url, href), PolskieRadioLegacyIE,
                     entry_id, entry.get('title'))
             for a_entry in re.findall(r'<span data-media=({[^ ]+})', content):
                 media = self._parse_json(a_entry, category_id)
                 yield {
                     'url': media['file'],
-                    'id': media.get('uid'),
+                    'id': media['uid'],
                     'title': unquote(media.get('title')),
                     'description': unquote(media.get('desc')),
                     'duration': media.get('length'),
                 }
             if is_billennium_tabs:
-                mobj = re.search(
+                params = self._search_regex(
                     r'<div[^>]+class=["\']next["\'][^>]*>\s*<a[^>]+onclick=(["\'])TB_LoadTab\((?P<params>(?:(?!\1).)+)\);\1',
-                    pagination)
-                if not mobj:
+                    pagination, 'next page params', group='params', default=None)
+                if not params:
                     break
-                params = self._parse_json('[' + js_to_json(unescapeHTML(mobj.group('params'))) + ']', category_id)
+                params = self._parse_json('[' + js_to_json(unescapeHTML(params)) + ']', category_id)
                 tab_content = self._download_json(
                     'https://www.polskieradio.pl/CMS/TemplateBoxesManagement/TemplateBoxTabContent.aspx/GetTabContent',
-                    category_id, 'Downloading page %s' % page_num, data=json.dumps({
-                        'tabId': params[1],
-                        'boxInstanceId': params[0],
-                        'sectionId': params[3],
-                        'categoryId': params[4],
-                        'categoryType': params[2],
-                        'subjectIds': params[6],
-                        'tagIndexId': params[7],
-                        'queryString': params[8],
-                        'name': params[9],
-                        'pageNumber': page_num,
-                        'pagerMode': params[5],
-                        'openArticlesInParentTemplate': params[10],
-                        'idSectionFromUrl': params[11],
-                        'maxDocumentAge': params[12],
-                        'showCategoryForArticle': params[13],
-                    }).encode('utf-8'), headers={'content-type': 'application/json'})
-                content = tab_content['d']['Content']
-                pagination = tab_content['d']['PagerContent']
+                    category_id, 'Downloading page %s' % page_num, headers={'content-type': 'application/json'},
+                    data=json.dumps(
+                        dict(zip((
+                            'boxInstanceId', 'tabId', 'categoryType', 'sectionId', 'categoryId', 'pagerMode',
+                            'subjectIds', 'tagIndexId', 'queryString', 'name', 'openArticlesInParentTemplate',
+                            'idSectionFromUrl', 'maxDocumentAge', 'showCategoryForArticle', 'pageNumber'
+                        ), params)),
+                    ).encode('utf-8'))['d']
+                content = tab_content['Content']
+                pagination = tab_content.get('PagerContent', '')
             elif is_post_back:
-                mobj = re.search(
+                target = self._search_regex(
                     r'onclick=(["\'])__doPostBack\((["\'])(?P<target>[\w$]+)\2\s*,\s*(["\'])Next\4',
-                    content)
-                if not mobj:
+                    content, 'pagination postback target', group='target', default=None)
+                if not target:
                     break
                 aspnetform = self._hidden_inputs(content)
                 content = self._download_webpage(
                     url, category_id, 'Downloading page %s' % page_num,
                     data=urlencode({
                         **aspnetform,
-                        '__EVENTTARGET': mobj.group('target'),
+                        '__EVENTTARGET': target,
                         '__EVENTARGUMENT': 'Next',
                     }).encode('utf-8'))
             else:
-                mobj = re.search(
+                next_url = self._search_regex(
                     r'<div[^>]+class=["\']next["\'][^>]*>\s*<a[^>]+href=(["\'])(?P<url>(?:(?!\1).)+)\1',
-                    content)
-                if not mobj:
+                    content, 'next page url', group='url', default=None)
+                if not next_url:
                     break
-                next_url = compat_urlparse.urljoin(url, mobj.group('url'))
+                next_url = urljoin(url, next_url)
                 content = self._download_webpage(
                     next_url, category_id, 'Downloading page %s' % page_num)
 
