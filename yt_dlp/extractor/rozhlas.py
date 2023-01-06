@@ -55,12 +55,20 @@ class RozhlasVltavaIE(InfoExtractor):
         'url': 'https://wave.rozhlas.cz/papej-masicko-porcujeme-a-bilancujeme-filmy-a-serialy-ktere-letos-zabily-8891337',
         'md5': 'ba2fdbc1242fc16771c7695d271ec355',
         'info_dict': {
-            'id': '8891337',
-            'ext': 'mp3',
-            'title': 'md5:1c6d29fb9564e1f17fc1bb83ae7da0bc',
-            'description': 'md5:bbab1431c3472304b4863faea414cd2b',
-            'duration': 1574
-        }
+            'id': 8891337,
+            'title': 'md5:21f99739d04ab49d8c189ec711eef4ec',
+        },
+        'playlist_count': 1,
+        'playlist': [{
+            'md5': 'ba2fdbc1242fc16771c7695d271ec355',
+            'info_dict': {
+                'id': '8891337',
+                'ext': 'mp3',
+                'title': "md5:1c6d29fb9564e1f17fc1bb83ae7da0bc",
+                'description': 'md5:bbab1431c3472304b4863faea414cd2b',
+                'duration': 1574,
+            },
+        }]
     }]
 
     def _real_extract(self, url):
