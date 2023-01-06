@@ -4,6 +4,7 @@ from ..utils import (
     int_or_none,
     remove_start,
     extract_attributes,
+    traverse_obj,
 )
 
 
@@ -168,21 +169,21 @@ class RozhlasVltavaIE(InfoExtractor):
                     'vcodec': 'none',
                 })
             entries.append({
-                'id': entry.get('meta').get('ga').get('contentId'),
-                'title': entry.get('meta').get('ga').get('contentName'),
+                'id': traverse_obj(entry, ('meta', 'ga', 'contentId')),
+                'title': traverse_obj(entry, ('meta', 'ga', 'contentName')),
                 'description': entry.get('title'),
                 'duration': entry.get('duration'),
                 'formats': formats,
-                'artist': entry.get('meta').get('ga').get('contentAuthor'),
-                'channel_id': entry.get('meta').get('ga').get('contentCreator'),
-                'chapter': entry.get('meta').get('ga').get('contentNameShort') if entry.get('meta').get('ga').get('contentSerialPart') is not None else None,
-                'chapter_number': int(entry.get('meta').get('ga').get('contentSerialPart')) if entry.get('meta').get('ga').get('contentSerialPart') is not None else None,
+                'artist': traverse_obj(entry, ('meta', 'ga', 'contentAuthor')),
+                'channel_id': traverse_obj(entry, ('meta', 'ga', 'contentCreator')),
+                'chapter': traverse_obj(entry, ('meta', 'ga', 'contentNameShort')) if traverse_obj(entry, ('meta', 'ga', 'contentSerialPart')) is not None else None,
+                'chapter_number': int(traverse_obj(entry, ('meta', 'ga', 'contentSerialPart'))) if traverse_obj(entry, ('meta', 'ga', 'contentSerialPart')) is not None else None,
             })
 
         return {
             '_type': 'playlist',
             'id': data.get('embedId'),
-            'title': data.get('series').get('title'),
+            'title': traverse_obj(data, ('series', 'title')),
             'formats': entries[0].get('formats') if len(entries) == 1 else None,
             'entries': entries,
         }
