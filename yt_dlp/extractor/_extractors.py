@@ -2269,6 +2269,7 @@ from .wsj import (
     WSJArticleIE,
 )
 from .wwe import WWEIE
+from .xanimu import XanimuIE
 from .xbef import XBefIE
 from .xboxclips import XboxClipsIE
 from .xfileshare import XFileShareIE
