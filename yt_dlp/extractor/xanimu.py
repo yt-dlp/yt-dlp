@@ -24,14 +24,13 @@ class XanimuIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_valid_url(url).group('id')
-
+        video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
         formats = []
         for format in ['videoHigh', 'videoLow']:
             format_url = self._search_json(r'var\s+%s\s*=' % re.escape(format), webpage, format,
-                                           video_id, default=None, contains_pattern=r'\s*[\'"]([^\'"]+)[\'"]')
+                                           video_id, default=None, contains_pattern=r'[\'"]([^\'"]+)[\'"]')
             if format_url:
                 formats.append({
                     'url': format_url,
