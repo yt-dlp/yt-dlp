@@ -475,6 +475,8 @@ from .drtuber import DrTuberIE
 from .drtv import (
     DRTVIE,
     DRTVLiveIE,
+    DRTVSeasonIE,
+    DRTVSeriesIE,
 )
 from .dtube import DTubeIE
 from .dvtv import DVTVIE
@@ -1890,6 +1892,7 @@ from .tiktok import (
     TikTokEffectIE,
     TikTokTagIE,
     TikTokVMIE,
+    TikTokLiveIE,
     DouyinIE,
 )
 from .tinypic import TinyPicIE
@@ -2268,6 +2271,7 @@ from .wsj import (
     WSJArticleIE,
 )
 from .wwe import WWEIE
+from .xanimu import XanimuIE
 from .xbef import XBefIE
 from .xboxclips import XboxClipsIE
 from .xfileshare import XFileShareIE

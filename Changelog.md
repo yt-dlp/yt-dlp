@@ -11,7 +11,29 @@
 -->
 
 
-## 2023.01.02
+### 2023.01.06
+
+* Fix config locations by [Grub4k](https://github.com/Grub4k), [coletdjnz](https://github.com/coletdjnz), [pukkandan](https://github.com/pukkandan)
+* [downloader/aria2c] Disable native progress
+* [utils] `mimetype2ext`: `weba` is not standard
+* [utils] `windows_enable_vt_mode`: Better error handling
+* [build] Add minimal `pyproject.toml`
+* [update] Fix updater file removal on windows by [Grub4K](https://github.com/Grub4K)
+* [cleanup] Misc fixes and cleanup
+* [extractor/aitube] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/drtv] Add series extractors by [FrederikNS](https://github.com/FrederikNS)
+* [extractor/volejtv] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/xanimu] Add extractor by [JChris246](https://github.com/JChris246)
+* [extractor/youtube] Retry manifest refresh for live-from-start by [mzhou](https://github.com/mzhou)
+* [extractor/biliintl] Add `/media` to `VALID_URL` by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/biliIntl] Add fallback to `video_data` by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/crunchyroll:show] Add `language` to entries by [Chrissi2812](https://github.com/Chrissi2812)
+* [extractor/joj] Fix extractor by [OndrejBakan](https://github.com/OndrejBakan), [pukkandan](https://github.com/pukkandan)
+* [extractor/nbc] Update graphql query by [jacobtruman](https://github.com/jacobtruman)
+* [extractor/reddit] Add subreddit as `channel_id` by [gschizas](https://github.com/gschizas)
+* [extractor/tiktok] Add `TikTokLive` extractor by [JC-Chung](https://github.com/JC-Chung)
+
+### 2023.01.02
 
 * **Improve plugin architecture** by [Grub4K](https://github.com/Grub4K), [coletdjnz](https://github.com/coletdjnz), [flashdagger](https://github.com/flashdagger), [pukkandan](https://github.com/pukkandan)
     * Plugins can be loaded in any distribution of yt-dlp (binary, pip, source, etc.) and can be distributed and installed as packages. See [the readme](https://github.com/yt-dlp/yt-dlp/tree/05997b6e98e638d97d409c65bb5eb86da68f3b64#plugins) for more information

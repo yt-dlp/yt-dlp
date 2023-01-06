@@ -5,7 +5,6 @@ import importlib.machinery
 import importlib.util
 import inspect
 import itertools
-import os
 import pkgutil
 import sys
 import traceback
@@ -14,11 +13,11 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from .compat import functools  # isort: split
-from .compat import compat_expanduser
 from .utils import (
     get_executable_path,
     get_system_config_dirs,
     get_user_config_dirs,
+    orderedSet,
     write_string,
 )
 
@@ -57,7 +56,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         candidate_locations = []
 
         def _get_package_paths(*root_paths, containing_folder='plugins'):
-            for config_dir in map(Path, root_paths):
+            for config_dir in orderedSet(map(Path, root_paths), lazy=True):
                 plugin_dir = config_dir / containing_folder
                 if not plugin_dir.is_dir():
                     continue
@@ -65,15 +64,15 @@ class PluginFinder(importlib.abc.MetaPathFinder):
 
         # Load from yt-dlp config folders
         candidate_locations.extend(_get_package_paths(
-            *get_user_config_dirs('yt-dlp'), *get_system_config_dirs('yt-dlp'),
+            *get_user_config_dirs('yt-dlp'),
+            *get_system_config_dirs('yt-dlp'),
             containing_folder='plugins'))
 
         # Load from yt-dlp-plugins folders
         candidate_locations.extend(_get_package_paths(
             get_executable_path(),
-            compat_expanduser('~'),
-            '/etc',
-            os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config'),
+            *get_user_config_dirs(''),
+            *get_system_config_dirs(''),
             containing_folder='yt-dlp-plugins'))
 
         candidate_locations.extend(map(Path, sys.path))  # PYTHONPATH

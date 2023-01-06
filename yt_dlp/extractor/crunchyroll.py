@@ -291,7 +291,8 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
                         'season_id': episode.get('season_id'),
                         'season_number': episode.get('season_number'),
                         'episode': episode.get('title'),
-                        'episode_number': episode.get('sequence_number')
+                        'episode_number': episode.get('sequence_number'),
+                        'language': episode.get('audio_locale'),
                     }
 
         return self.playlist_result(entries(), internal_id, series_response.get('title'))
