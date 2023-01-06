@@ -136,21 +136,28 @@ class TencentBaseIE(InfoExtractor):
         return quality
 
     def _extract_all_video_formats_and_subtitles(self, url, video_id, series_id):
-        first_api_response = self._get_video_api_response(url, video_id, series_id, 'vtt', 'hls', 'hd')
+        first_api_response = self._get_video_api_response(url, video_id, series_id, 'srt', 'hls', 'hd')
         self._check_api_response(first_api_response)
-        api_responses = [first_api_response]
+        api_responses = [{
+            'response': first_api_response,
+            'subtitle_format': 'srt',
+        }]
         quality = self._extract_all_video_quality(first_api_response)
         for q in quality:
-            if q != 'sd' and q != 'hd':
+            if q not in ('ld', 'sd', 'hd'):
                 api_response = self._get_video_api_response(
                     url, video_id, series_id, 'vtt', 'hls', q)
                 self._check_api_response(api_response)
-                api_responses.append(api_response)
+                api_responses.append({
+                    'response': api_response,
+                    'subtitle_format': 'vtt',
+                })
 
         formats, subtitles = [], {}
         for api_response in api_responses:
-            fmts, subs = self._extract_video_formats_and_subtitles(api_response, video_id)
-            native_subtitles = self._extract_video_native_subtitles(api_response, 'vtt')
+            response = api_response.get('response')
+            fmts, subs = self._extract_video_formats_and_subtitles(response, video_id)
+            native_subtitles = self._extract_video_native_subtitles(response, api_response.get('subtitle_format'))
 
             formats.extend(fmts)
             self._merge_subtitles(subs, native_subtitles, target=subtitles)
