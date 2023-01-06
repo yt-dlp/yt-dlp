@@ -1,11 +1,11 @@
 import urllib.parse
-
+import calendar
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     parse_duration,
     int_or_none,
-    parse_iso8601,
+    date_from_str,
     remove_end,
     ExtractorError,
 )
@@ -23,7 +23,7 @@ class Porn91IE(InfoExtractor):
             'description': '想看我拍新的系列都请帮我加精跟5星好评哦！希望大家鼎力支持，谢过了。我再重申，这次是朋友介绍安排的漂亮学生，费用不低，不过胜在年轻听话，水嫩性感，很超值的女生（6分05有91验证）。PS:本人强壮耐久，事业型男，愿意结交江浙沪的漂亮学妹，加Q：2889560495，语音验证性别，欢迎女生约我，或者靠谱男来一起泡美眉。',
             'ext': 'mp4',
             'duration': 431,
-            'timestamp': None,
+            'release_date': '20150520',
             'comment_count': int,
             'view_count': int,
             'age_limit': 18,
@@ -37,7 +37,7 @@ class Porn91IE(InfoExtractor):
             'description': '疫情开放  炮友出圈',
             'ext': 'm3u8',
             'duration': 617,
-            'timestamp': None,
+            'release_date': '20221231',
             'comment_count': int,
             'view_count': int,
             'age_limit': 18,
@@ -51,7 +51,7 @@ class Porn91IE(InfoExtractor):
             'description': '疫情当下，如何约炮？',
             'ext': 'm3u8',
             'duration': 244,
-            'timestamp': None,
+            'release_date': '20221231',
             'comment_count': int,
             'view_count': int,
             'age_limit': 18,
@@ -77,8 +77,9 @@ class Porn91IE(InfoExtractor):
         video_link_url = self._search_regex(
             r"src=\'([^\']+)\'", urllib.parse.unquote(video_link_url), 'unquoted video link')
 
-        timestamp = parse_iso8601(self._search_regex(
-            r'<span\s+class=["\']title-yakov["\']>(\d{4}-\d{2}-\d{2})</span>', webpage, 'timestamp', fatal=False))
+        release_date = self._search_regex(
+            r'<span\s+class=["\']title-yakov["\']>(\d{4}-\d{2}-\d{2})</span>', webpage, 'timestamp', fatal=False)
+        release_date = release_date.replace('-', '') if release_date else None
 
         description = self._search_regex(
             r'<span\s+class=["\']more title["\']>([^<]*)<br', webpage, 'description', fatal=False).strip()
@@ -97,7 +98,7 @@ class Porn91IE(InfoExtractor):
             'url': video_link_url,
             'ext': determine_ext(video_link_url),
             'title': title,
-            'timestamp': timestamp,
+            'release_date': release_date,
             'description': description,
             'duration': duration,
             'comment_count': comment_count,
