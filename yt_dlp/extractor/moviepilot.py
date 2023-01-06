@@ -90,12 +90,7 @@ class MoviepilotIE(InfoExtractor):
             r'<script id="__NEXT_DATA__" type="application/json">',
             webpage, 'clip store', video_id, fatal=True)
 
-        try:
-            clip = clip_store['props']['initialProps']['pageProps']
-        except KeyError as err:
-            raise ExtractorError(
-                'Unable to extract "clip" - Unexpected JSON',
-                cause=err, video_id=video_id)
+        clip = clip_store['props']['initialProps']['pageProps']
 
         return {
             '_type': 'url_transparent',
