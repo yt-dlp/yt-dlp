@@ -29,9 +29,18 @@ class DaftsexIE(InfoExtractor):
             'duration': 15.0,
             'view_count': int
         },
-    }, {  # deleted / private video
+    }, {
         'url': 'https://daft.sex/watch/-156601359_456242791',
-        'only_matching': True,
+        'info_dict': {
+            'id': '-156601359_456242791',
+            'ext': 'mp4',
+            'title': 'Skye Blue - Dinner And A Show',
+            'description': 'Skye Blue - Dinner And A Show - Watch video Watch video in high quality',
+            'upload_date': '20200916',
+            'timestamp': 1600250735,
+            'thumbnail': 'https://psv153-1.crazycloud.ru/videos/-156601359/456242791/thumb.jpg?extra=i3D32KaBbBFf9TqDRMAVmQ',
+        },
+        'skip': 'deleted / private'
     }]
 
     def _real_extract(self, url):
@@ -99,8 +108,8 @@ class DaftsexIE(InfoExtractor):
                 'credentials': video_params['video']['credentials'],
             })['response']['items']
 
-        if not isinstance(items, list) or len(items) < 1:
-            raise ExtractorError('Video %s is not available' % video_id, expected=True)
+        if not items:
+            raise ExtractorError('Video is not available', video_id=video_id, expected=True)
 
         item = items[0]
         formats = []
