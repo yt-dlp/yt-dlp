@@ -328,6 +328,21 @@ class TxxxIE(InfoExtractor):
             'age_limit': 18,
         }
     }]
+    _WEBPAGE_TESTS = [{
+        'url': 'https://pornzog.com/video/9125519/michelle-malone-dreamgirls-wild-wet-3/',
+        'info_dict': {
+            'id': '5119660',
+            'display_id': '5119660',
+            'ext': 'mp4',
+            'title': 'Michelle Malone - Dreamgirls - Wild Wet 3',
+            'uploader': 'FallenAngel12',
+            'duration': 402,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'age_limit': 18,
+        }
+    }]
 
     def _call_api(self, url, video_id, fatal=False, **kwargs):
         content = self._download_json(url, video_id, fatal=fatal, **kwargs)
