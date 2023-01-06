@@ -5387,36 +5387,22 @@ def get_executable_path():
 
 
 def get_user_config_dirs(package_name):
-    locations = set()
-
     # .config (e.g. ~/.config/package_name)
     xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
-    config_dir = os.path.join(xdg_config_home, package_name)
-    if os.path.isdir(config_dir):
-        locations.add(config_dir)
+    yield os.path.join(xdg_config_home, package_name)
 
     # appdata (%APPDATA%/package_name)
     appdata_dir = os.getenv('appdata')
     if appdata_dir:
-        config_dir = os.path.join(appdata_dir, package_name)
-        if os.path.isdir(config_dir):
-            locations.add(config_dir)
+        yield os.path.join(appdata_dir, package_name)
 
     # home (~/.package_name)
-    user_config_directory = os.path.join(compat_expanduser('~'), '.%s' % package_name)
-    if os.path.isdir(user_config_directory):
-        locations.add(user_config_directory)
-
-    return locations
+    yield os.path.join(compat_expanduser('~'), f'.{package_name}')
 
 
 def get_system_config_dirs(package_name):
-    locations = set()
     # /etc/package_name
-    system_config_directory = os.path.join('/etc', package_name)
-    if os.path.isdir(system_config_directory):
-        locations.add(system_config_directory)
-    return locations
+    yield os.path.join('/etc', package_name)
 
 
 def traverse_obj(
