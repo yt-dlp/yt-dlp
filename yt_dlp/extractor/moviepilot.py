@@ -86,11 +86,7 @@ class MoviepilotIE(InfoExtractor):
 
         webpage = self._download_webpage(f'https://www.moviepilot.de/movies/{video_id}/trailer', video_id)
 
-        clip_store = self._search_json(
-            r'<script id="__NEXT_DATA__" type="application/json">',
-            webpage, 'clip store', video_id, fatal=True)
-
-        clip = clip_store['props']['initialProps']['pageProps']
+        clip = self._search_nextjs_data(webpage, video_id)['props']['initialProps']['pageProps']
 
         return {
             '_type': 'url_transparent',
