@@ -102,12 +102,15 @@ class BoxCastVideoIE(InfoExtractor):
             broadcast_json_data = self._download_json(
                 f'https://api.boxcast.com/broadcasts/{display_id}', display_id)
 
-        print(broadcast_json_data.get('preview'))
         return {
             'id': str(broadcast_json_data['id']),
-            'title': broadcast_json_data.get('name'),
-            'description': broadcast_json_data.get('description') or None,
-            'thumbnail': broadcast_json_data.get('preview'),
+            'title': (broadcast_json_data.get('name')
+                      or self._html_search_meta(['og:title', 'twitter:title'], webpage)),
+            'description': (broadcast_json_data.get('description')
+                            or self._html_search_meta(['og:description', 'twitter:description'], webpage)
+                            or None),
+            'thumbnail': (broadcast_json_data.get('preview')
+                          or self._html_search_meta(['og:image', 'twitter:image'], webpage)),
             'formats': formats,
             'subtitles': subtitles,
             'release_timestamp': unified_timestamp(broadcast_json_data.get('streamed_at')),
