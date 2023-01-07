@@ -147,36 +147,39 @@ class RozhlasVltavaIE(InfoExtractor):
         }]
     }]
 
+    def _extract_video(self, entry):
+        chapter_number = int_or_none(traverse_obj(entry, ('meta', 'ga', 'contentSerialPart')))
+        return {
+            'id': entry['meta']['ga']['contentId'],
+            'title': traverse_obj(entry, ('meta', 'ga', 'contentName')),
+            'description': entry.get('title'),
+            'duration': entry.get('duration'),
+            'artist': traverse_obj(entry, ('meta', 'ga', 'contentAuthor')),
+            'channel_id': traverse_obj(entry, ('meta', 'ga', 'contentCreator')),
+            'chapter': traverse_obj(entry, ('meta', 'ga', 'contentNameShort')) if chapter_number else None,
+            'chapter_number': chapter_number,
+            'formats': [{
+                'url': audio_link['url'],
+                'ext': audio_link.get('variant'),
+                'format_id': audio_link.get('variant'),
+                'abr': audio_link.get('bitrate'),
+                'acodec': audio_link.get('variant'),
+                'vcodec': 'none',
+            } for audio_link in entry['audioLinks']],
+        }
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
         # FIXME: Use get_element_text_and_html_by_tag when it accepts less strict html
-        data = self._parse_json(extract_attributes(re.findall(
-            '<div class="mujRozhlasPlayer" data-player=\'[^\n]+\'>',
-            webpage)[0])['data-player'], video_id)['data']
-
+        data = self._parse_json(extract_attributes(self._search_regex(
+            r'(<div class="mujRozhlasPlayer" data-player=\'[^\']+\'>)',
+            webpage, 'player'))['data-player'], video_id)['data']
 
         return {
             '_type': 'playlist',
             'id': data.get('embedId'),
             'title': traverse_obj(data, ('series', 'title')),
-            'entries': [{
-                'id': entry['meta']['ga']['contentId'],
-                'title': traverse_obj(entry, ('meta', 'ga', 'contentName')),
-                'description': entry.get('title'),
-                'duration': entry.get('duration'),
-                'artist': traverse_obj(entry, ('meta', 'ga', 'contentAuthor')),
-                'channel_id': traverse_obj(entry, ('meta', 'ga', 'contentCreator')),
-                'chapter': traverse_obj(entry, ('meta', 'ga', 'contentNameShort')) if traverse_obj(entry, ('meta', 'ga', 'contentSerialPart')) is not None else None,
-                'chapter_number': int_or_none(traverse_obj(entry, ('meta', 'ga', 'contentSerialPart'))),
-                'formats': [{
-                    'url': audio_link['url'],
-                    'ext': audio_link.get('variant'),
-                    'format_id': audio_link.get('variant'),
-                    'abr': audio_link.get('bitrate'),
-                    'acodec': audio_link.get('variant'),
-                    'vcodec': 'none',
-                } for audio_link in entry['audioLinks']],
-            } for entry in data['playlist']],
+            'entries': map(self._extract_video, data['playlist']),
         }
