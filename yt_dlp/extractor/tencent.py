@@ -21,13 +21,11 @@ class TencentBaseIE(InfoExtractor):
     """Subclasses must set _API_URL, _APP_VERSION, _PLATFORM, _HOST, _REFERER"""
 
     def _check_api_response(self, api_response):
-        code = api_response.get('code')
         msg = api_response.get('msg')
-        if code != '0.0' and msg is not None:
+        if api_response.get('code') != '0.0' and msg is not None:
             if msg in ('您所在区域暂无此内容版权（如设置VPN请关闭后重试）', 'This content is not available in your area due to copyright restrictions. Please choose other videos.'):
                 self.raise_geo_restricted()
             raise ExtractorError(f'Tencent said: {msg}')
-        return None
 
     def _get_ckey(self, video_id, url, guid):
         ua = self.get_param('http_headers')['User-Agent']
@@ -98,7 +96,6 @@ class TencentBaseIE(InfoExtractor):
         format_response = traverse_obj(
             api_response, ('fl', 'fi', lambda _, v: v['br'] == identifier),
             expected_type=dict, get_all=False) or {}
-        drm = format_response.get('drm')
         format_id = format_response.get('name')
         is_hdr = format_id == 'hdr10'
         format_name = f'{format_response.get("sname")} ({format_response.get("resolution")})' + (' HDR' if is_hdr else '')
@@ -112,54 +109,40 @@ class TencentBaseIE(InfoExtractor):
             'format_id ': format_id,
             'format_note': format_name,
             'dynamic_range': 'hdr10' if is_hdr else None,
-            'has_drm': True if drm is not None and drm != 0 else False,
+            'has_drm': True if format_response.get('drm') != 0 else False,
         }
         for f in formats:
             f.update(common_info)
 
         return formats, subtitles
 
-    def _extract_video_native_subtitles(self, api_response, subtitles_format):
+    def _extract_video_native_subtitles(self, api_response):
         subtitles = {}
         for subtitle in traverse_obj(api_response, ('sfl', 'fi')) or ():
             subtitles.setdefault(subtitle['lang'].lower(), []).append({
                 'url': subtitle['url'],
-                'ext': subtitles_format,
+                'ext': 'srt' if subtitle.get('captionType') == 1 else 'vtt',
                 'protocol': 'm3u8_native' if determine_ext(subtitle['url']) == 'm3u8' else 'http',
             })
 
         return subtitles
 
-    def _extract_all_video_quality(self, api_response):
-        quality = []
-        formats_response = api_response['fl']['fi']
-        for f in formats_response:
-            quality.append(f.get('name'))
-        return quality
-
     def _extract_all_video_formats_and_subtitles(self, url, video_id, series_id):
-        first_api_response = self._get_video_api_response(url, video_id, series_id, 'srt', 'hls', 'hd')
-        self._check_api_response(first_api_response)
-        api_responses = [{
-            'response': first_api_response,
-            'subtitle_format': 'srt',
-        }]
-        quality = self._extract_all_video_quality(first_api_response)
-        for q in quality:
+        api_response = self._get_video_api_response(url, video_id, series_id, 'srt', 'hls', 'hd')
+        self._check_api_response(api_response)
+        api_responses = [api_response]
+        qualities = traverse_obj(api_response, ('fl', 'fi', ..., 'name')) or ('shd', 'fhd')
+        for q in qualities:
             if q not in ('ld', 'sd', 'hd'):
                 api_response = self._get_video_api_response(
                     url, video_id, series_id, 'vtt', 'hls', q)
                 self._check_api_response(api_response)
-                api_responses.append({
-                    'response': api_response,
-                    'subtitle_format': 'vtt',
-                })
+                api_responses.append(api_response)
 
         formats, subtitles = [], {}
         for api_response in api_responses:
-            response = api_response.get('response')
-            fmts, subs = self._extract_video_formats_and_subtitles(response, video_id)
-            native_subtitles = self._extract_video_native_subtitles(response, api_response.get('subtitle_format'))
+            fmts, subs = self._extract_video_formats_and_subtitles(api_response, video_id)
+            native_subtitles = self._extract_video_native_subtitles(api_response)
 
             formats.extend(fmts)
             self._merge_subtitles(subs, native_subtitles, target=subtitles)
