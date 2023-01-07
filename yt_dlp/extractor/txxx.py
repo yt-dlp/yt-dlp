@@ -426,10 +426,9 @@ class PornTopIE(InfoExtractor):
 
         formats = get_formats(host, video_file)
 
-        info.update({
+        return merge_dicts({
             'id': video_id,
             'display_id': display_id,
             'age_limit': 18,
             'formats': formats,
-        })
-        return info
+        }, info)
