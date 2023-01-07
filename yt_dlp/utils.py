@@ -5557,6 +5557,9 @@ def traverse_obj(
             if key is ... or isinstance(key, (list, tuple)) or callable(key):
                 has_branched = True
 
+            if __debug__ and callable(key):
+                inspect.signature(key).bind(None, None)
+
             key_func = functools.partial(apply_key, key)
             objs = itertools.chain.from_iterable(map(key_func, objs))
 

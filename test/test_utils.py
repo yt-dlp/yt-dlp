@@ -2015,6 +2015,11 @@ Line 1
                          msg='function as query key should perform a filter based on (key, value)')
         self.assertCountEqual(traverse_obj(_TEST_DATA, lambda _, x: isinstance(x[0], str)), {'str'},
                               msg='exceptions in the query function should be catched')
+        if __debug__:
+            with self.assertRaises(Exception, msg='Unassignable parameters should raise in debug'):
+                traverse_obj(_TEST_DATA, lambda a: ...)
+            with self.assertRaises(Exception, msg='Unassignable parameters should raise in debug'):
+                traverse_obj(_TEST_DATA, lambda a, b, c: ...)
 
         # Test set as key (transformation)
         self.assertEqual(traverse_obj('str', ({str.upper}, )), 'STR',
