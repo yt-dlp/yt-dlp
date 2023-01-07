@@ -400,6 +400,9 @@ class PornTopIE(InfoExtractor):
             'like_count': int,
             'dislike_count': int,
             'age_limit': 18,
+            'timestamp': 1609455029,
+            'upload_date': '20201231',
+            'thumbnail': 'https://tn.porntop.com/media/tn/sources/101569_1.jpg',
         }
     }]
 
@@ -413,24 +416,12 @@ class PornTopIE(InfoExtractor):
             r'<script[^>]*>[^<]*schemaJson\s*=\s*(?P<json_ld>[^<]+VideoObject[^<]+)\s*;\s*var\s+script\s*=[^<]*</script>',
             webpage, 'VideoObject', group='json_ld')
         # there are javascript code within the declaration that would break json parsing
-        # the statistics values look like this: parseInt("2697"). remove the parseInt() function
-        video_obj_text = re.sub(r'parseInt\([^\d]+(\d+)[^\d]+\)', r'\1', video_obj_text)
         # remove the function at "duration"
-        video_obj_text = re.sub(r'\(function\(duration\).*\(([^)]+)\)(\s*,\s*"thumbnailUrl")', r'\1\2', video_obj_text)
+        video_obj_text = re.sub(r'\(function\([^)]*\)\s*\{[^}]*\}\s*\)\(\s*(["\'][^)]*["\'])\s*\)', r'\1', video_obj_text)
         # parse the string
-        video_obj = self._parse_json(video_obj_text, video_id, transform_source=js_to_json, fatal=True)
-
-        views = 0
-        likes = 0
-        dislikes = 0
-        stats_obj = traverse_obj(video_obj, 'interactionStatistic', ...)
-        for stat in stats_obj:
-            if stat['interactionType'] == 'http://schema.org/WatchAction':
-                views = stat['userInteractionCount']
-            elif stat['interactionType'] == 'http://schema.org/LikeAction':
-                likes = stat['userInteractionCount']
-            elif stat['interactionType'] == 'http://schema.org/DislikeAction':
-                dislikes = stat['userInteractionCount']
+        info = self._json_ld(
+            self._parse_json(video_obj_text, video_id, transform_source=js_to_json, fatal=True),
+            video_id)
 
         video_file = self._parse_json(decode_base64(self._search_regex(
             r"window\.initPlayer\(.*}}},\s*'(?P<json_b64c>[^']+)'",
@@ -438,16 +429,10 @@ class PornTopIE(InfoExtractor):
 
         formats = get_formats(host, video_file)
 
-        return {
+        info.update({
             'id': video_id,
             'display_id': display_id,
-            'title': video_obj.get('name') or self._html_search_meta('og:title', webpage, 'title', fatal=True),
-            'description': video_obj.get('description') or self._html_search_meta('description', webpage, 'description'),
-            'uploader': video_obj.get('author'),
-            'duration': parse_duration(video_obj.get('duration')),
-            'view_count': int_or_none(views),
-            'like_count': int_or_none(likes),
-            'dislike_count': int_or_none(dislikes),
             'age_limit': 18,
             'formats': formats,
-        }
+        })
+        return info
