@@ -5434,6 +5434,8 @@ def traverse_obj(
         - `function`:       Branch out and return values filtered by the function.
                             Read as: `[value for key, value in obj if function(key, value)]`.
                             For `Sequence`s, `key` is the index of the value.
+                            For `re.Match`es, `key` is the group number (0 = full match)
+                            as well as additionally any group names, if given.
         - `dict`            Transform the current object and return a matching dict.
                             Read as: `{key: traverse_obj(obj, path) for key, path in dct.items()}`.
 
@@ -5500,7 +5502,9 @@ def traverse_obj(
             elif isinstance(obj, collections.abc.Mapping):
                 iter_obj = obj.items()
             elif isinstance(obj, re.Match):
-                iter_obj = enumerate((obj.group(), *obj.groups()))
+                iter_obj = itertools.chain(
+                    enumerate((obj.group(), *obj.groups())),
+                    obj.groupdict().items())
             elif traverse_string:
                 iter_obj = enumerate(str(obj))
             else:

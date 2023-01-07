@@ -2210,6 +2210,8 @@ Line 1
                          msg='failing str key on a `re.Match` should return `default`')
         self.assertEqual(traverse_obj(mobj, 8), None,
                          msg='failing int key on a `re.Match` should return `default`')
+        self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 'group')), ['0123', '3'],
+                         msg='function on a `re.Match` should give group name as well')
 
 
 if __name__ == '__main__':
