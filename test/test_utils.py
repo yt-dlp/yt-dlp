@@ -2016,6 +2016,22 @@ Line 1
         self.assertCountEqual(traverse_obj(_TEST_DATA, lambda _, x: isinstance(x[0], str)), {'str'},
                               msg='exceptions in the query function should be catched')
 
+        # Test set as key (transformation)
+        self.assertEqual(traverse_obj('str', ({str.upper}, )), 'STR',
+                         msg='Set should function as a transformation')
+        self.assertEqual(traverse_obj(_TEST_DATA, {dict}), _TEST_DATA,
+                         msg='A single set should be treated as a path')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str.upper})), ['STR'],
+                         msg='Transformation function should not raise')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str}, {str.upper})),
+                         [str(item).upper() for item in _TEST_DATA.values() if item is not None],
+                         msg='Any callable in the set should be treated as a transformation function')
+        if __debug__:
+            with self.assertRaises(Exception, msg='Sets with length != 1 should raise in debug'):
+                traverse_obj(_TEST_DATA, set())
+            with self.assertRaises(Exception, msg='Sets with length != 1 should raise in debug'):
+                traverse_obj(_TEST_DATA, {str.upper, str})
+
         # Test alternative paths
         self.assertEqual(traverse_obj(_TEST_DATA, 'fail', 'str'), 'str',
                          msg='multiple `paths` should be treated as alternative paths')

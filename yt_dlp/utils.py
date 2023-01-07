@@ -5424,6 +5424,8 @@ def traverse_obj(
 
     The keys in the path can be one of:
         - `None`:           Return the current object.
+        - `set`:            Requires the only item in the set to be a function,
+                            like `{func}`. Returns `func(obj)`.
         - `str`/`int`:      Return `obj[key]`. For `re.Match`, return `obj.group(key)`.
         - `slice`:          Branch out and return all values in `obj[key]`.
         - `Ellipsis`:       Branch out and return a list of all values.
@@ -5472,6 +5474,10 @@ def traverse_obj(
 
         elif key is None:
             yield obj
+
+        elif isinstance(key, set):
+            assert len(key) == 1
+            yield try_call(next(iter(key)), args=(obj,))
 
         elif isinstance(key, (list, tuple)):
             for branch in key:
@@ -5541,7 +5547,7 @@ def traverse_obj(
         objs = (start_obj,)
         has_branched = False
 
-        for key in variadic(path):
+        for key in variadic(path, (str, bytes, dict, set)):
             if is_user_input and key == ':':
                 key = ...
 
