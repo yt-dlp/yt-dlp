@@ -66,7 +66,7 @@ class RozhlasVltavaIE(InfoExtractor):
                 'id': '10520988',
                 'ext': 'mp3',
                 'title': 'Papej masíčko! Porcujeme a bilancujeme filmy a seriály, které to letos zabily',
-                'description': 'md5:xxx',
+                'description': 'md5:1c6d29fb9564e1f17fc1bb83ae7da0bc',
                 'duration': 1574,
                 'artist': 'Aleš Stuchlý',
                 'channel_id': 'radio-wave',
@@ -152,9 +152,9 @@ class RozhlasVltavaIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         # FIXME: Use get_element_text_and_html_by_tag when it accepts less strict html
-        data = self._parse_json(extract_attributes(self._search_regex(
-            '<div class="mujRozhlasPlayer" data-player=\'[^>]+\'>',
-            webpage, 'player'))['data-player'], video_id)['data']
+        data = self._parse_json(extract_attributes(re.findall(
+            '<div class="mujRozhlasPlayer" data-player=\'[^\n]+\'>',
+            webpage)[0])['data-player'], video_id)['data']
 
 
         return {
@@ -168,7 +168,7 @@ class RozhlasVltavaIE(InfoExtractor):
                 'duration': entry.get('duration'),
                 'artist': traverse_obj(entry, ('meta', 'ga', 'contentAuthor')),
                 'channel_id': traverse_obj(entry, ('meta', 'ga', 'contentCreator')),
-                'chapter': traverse_obj(entry, ('meta', 'ga', 'contentNameShort')),
+                'chapter': traverse_obj(entry, ('meta', 'ga', 'contentNameShort')) if traverse_obj(entry, ('meta', 'ga', 'contentSerialPart')) is not None else None,
                 'chapter_number': int_or_none(traverse_obj(entry, ('meta', 'ga', 'contentSerialPart'))),
                 'formats': [{
                     'url': audio_link['url'],
