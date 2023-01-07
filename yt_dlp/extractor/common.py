@@ -3806,7 +3806,6 @@ class SelfHostedInfoExtractor(InfoExtractor):
     _BASE_IES = None
     _NODEINFO_SOFTWARES = {}  # {string: software}
     _SH_VALID_CONTENT_REGEXES = ()
-    _NODEINFO_CACHE = {}
 
     @classproperty
     def IE_NAME(cls):
@@ -3824,7 +3823,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
             hostname = traverse_obj(
                 ie._match_valid_url(url), lambda k, _: k.startswith('domain'), get_all=False)
             if hostname:
-                return ie, hostname.encode('idna').decode('utf-8')
+                return ie, hostname.encode('idna').decode()
         return None, None
 
     @staticmethod
