@@ -90,15 +90,17 @@ class BoxCastVideoIE(InfoExtractor):
 
         if not webpage_json_data:
             # call api only if webpage_json_data didn't return expected result
+            # api info at https://support.boxcast.com/en/articles/4235158-build-a-custom-viewer-experience-with-boxcast-api
+            # sometimes the using rest.boxcast.com as api domain also works
             view_json_data = self._download_json(
-                f'https://rest.boxcast.com/broadcasts/{display_id}/view', display_id)
+                f'https://api.boxcast.com/broadcasts/{display_id}/view', display_id)
 
             fmts, subs = self._extract_m3u8_formats_and_subtitles(view_json_data['playlist'], display_id)
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
             broadcast_json_data = self._download_json(
-                f'https://rest.boxcast.com/broadcasts/{display_id}', display_id)
+                f'https://api.boxcast.com/broadcasts/{display_id}', display_id)
 
         print(broadcast_json_data.get('preview'))
         return {
