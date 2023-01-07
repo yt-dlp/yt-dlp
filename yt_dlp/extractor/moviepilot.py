@@ -1,6 +1,5 @@
 from .dailymotion import DailymotionIE
 from .common import InfoExtractor
-from ..utils import ExtractorError
 
 
 class MoviepilotIE(InfoExtractor):
