@@ -415,9 +415,6 @@ class PornTopIE(InfoExtractor):
         video_obj_text = self._search_regex(
             r'<script[^>]*>[^<]*schemaJson\s*=\s*(?P<json_ld>[^<]+VideoObject[^<]+)\s*;\s*var\s+script\s*=[^<]*</script>',
             webpage, 'VideoObject', group='json_ld')
-        # there are javascript code within the declaration that would break json parsing
-        # remove the function at "duration"
-        video_obj_text = re.sub(r'\(function\([^)]*\)\s*\{[^}]*\}\s*\)\(\s*(["\'][^)]*["\'])\s*\)', r'\1', video_obj_text)
         # parse the string
         info = self._json_ld(
             self._parse_json(video_obj_text, video_id, transform_source=js_to_json, fatal=True),
