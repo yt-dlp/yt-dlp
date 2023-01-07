@@ -9,7 +9,7 @@ from ..utils import (
 )
 
 
-class AMCNetworksIE(ThePlatformIE):
+class AMCNetworksIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'https?://(?:www\.)?(?P<site>amc|bbcamerica|ifc|(?:we|sundance)tv)\.com/(?P<id>(?:movies|shows(?:/[^/]+)+)/[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.bbcamerica.com/shows/the-graham-norton-show/videos/tina-feys-adorable-airline-themed-family-dinner--51631',
@@ -106,7 +106,6 @@ class AMCNetworksIE(ThePlatformIE):
         media_url = update_url_query(media_url, query)
         formats, subtitles = self._extract_theplatform_smil(
             media_url, video_id)
-        self._sort_formats(formats)
 
         thumbnails = []
         thumbnail_urls = [properties.get('imageDesktop')]

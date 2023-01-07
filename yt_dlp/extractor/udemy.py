@@ -11,8 +11,10 @@ from ..utils import (
     int_or_none,
     js_to_json,
     sanitized_Request,
+    smuggle_url,
     try_get,
     unescapeHTML,
+    unsmuggle_url,
     url_or_none,
     urlencode_postdata,
 )
@@ -106,7 +108,7 @@ class UdemyIE(InfoExtractor):
             % (course_id, lecture_id),
             lecture_id, 'Downloading lecture JSON', query={
                 'fields[lecture]': 'title,description,view_html,asset',
-                'fields[asset]': 'asset_type,stream_url,thumbnail_url,download_urls,stream_urls,captions,data',
+                'fields[asset]': 'asset_type,stream_url,thumbnail_url,download_urls,stream_urls,captions,data,course_is_drmed',
             })
 
     def _handle_error(self, response):
@@ -199,16 +201,19 @@ class UdemyIE(InfoExtractor):
 
     def _real_extract(self, url):
         lecture_id = self._match_id(url)
+        course_id = unsmuggle_url(url, {})[1].get('course_id')
 
-        webpage = self._download_webpage(url, lecture_id)
-
-        course_id, _ = self._extract_course_info(webpage, lecture_id)
+        webpage = None
+        if not course_id:
+            webpage = self._download_webpage(url, lecture_id)
+            course_id, _ = self._extract_course_info(webpage, lecture_id)
 
         try:
             lecture = self._download_lecture(course_id, lecture_id)
         except ExtractorError as e:
             # Error could possibly mean we are not enrolled in the course
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+                webpage = webpage or self._download_webpage(url, lecture_id)
                 self._enroll_course(url, webpage, course_id)
                 lecture = self._download_lecture(course_id, lecture_id)
             else:
@@ -391,7 +396,8 @@ class UdemyIE(InfoExtractor):
                 if f.get('url'):
                     formats.append(f)
 
-        self._sort_formats(formats)
+        if not formats and asset.get('course_is_drmed'):
+            self.report_drm(video_id)
 
         return {
             'id': video_id,
@@ -405,7 +411,7 @@ class UdemyIE(InfoExtractor):
         }
 
 
-class UdemyCourseIE(UdemyIE):
+class UdemyCourseIE(UdemyIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = 'udemy:course'
     _VALID_URL = r'https?://(?:[^/]+\.)?udemy\.com/(?P<id>[^/?#&]+)'
     _TESTS = [{
@@ -451,7 +457,9 @@ class UdemyCourseIE(UdemyIE):
                 if lecture_id:
                     entry = {
                         '_type': 'url_transparent',
-                        'url': 'https://www.udemy.com/%s/learn/v4/t/lecture/%s' % (course_path, entry['id']),
+                        'url': smuggle_url(
+                            f'https://www.udemy.com/{course_path}/learn/v4/t/lecture/{entry["id"]}',
+                            {'course_id': course_id}),
                         'title': entry.get('title'),
                         'ie_key': UdemyIE.ie_key(),
                     }

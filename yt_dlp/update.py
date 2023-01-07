@@ -15,6 +15,7 @@ from .utils import (
     Popen,
     cached_method,
     deprecation_warning,
+    remove_end,
     shell_quote,
     system_identifier,
     traverse_obj,
@@ -29,15 +30,20 @@ API_URL = f'https://api.github.com/repos/{REPOSITORY}/releases'
 @functools.cache
 def _get_variant_and_executable_path():
     """@returns (variant, executable_path)"""
-    if hasattr(sys, 'frozen'):
+    if getattr(sys, 'frozen', False):
         path = sys.executable
         if not hasattr(sys, '_MEIPASS'):
             return 'py2exe', path
-        if sys._MEIPASS == os.path.dirname(path):
+        elif sys._MEIPASS == os.path.dirname(path):
             return f'{sys.platform}_dir', path
-        if sys.platform == 'darwin' and version_tuple(platform.mac_ver()[0]) < (10, 15):
-            return 'darwin_legacy_exe', path
-        return f'{sys.platform}_exe', path
+        elif sys.platform == 'darwin':
+            machine = '_legacy' if version_tuple(platform.mac_ver()[0]) < (10, 15) else ''
+        else:
+            machine = f'_{platform.machine().lower()}'
+            # Ref: https://en.wikipedia.org/wiki/Uname#Examples
+            if machine[1:] in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
+                machine = '_x86' if platform.architecture()[0][:2] == '32' else ''
+        return f'{remove_end(sys.platform, "32")}{machine}_exe', path
 
     path = os.path.dirname(__file__)
     if isinstance(__loader__, zipimporter):
@@ -68,10 +74,13 @@ def current_git_head():
 _FILE_SUFFIXES = {
     'zip': '',
     'py2exe': '_min.exe',
-    'win32_exe': '.exe',
+    'win_exe': '.exe',
+    'win_x86_exe': '_x86.exe',
     'darwin_exe': '_macos',
     'darwin_legacy_exe': '_macos_legacy',
     'linux_exe': '_linux',
+    'linux_aarch64_exe': '_linux_aarch64',
+    'linux_armv7l_exe': '_linux_armv7l',
 }
 
 _NON_UPDATEABLE_REASONS = {
@@ -161,10 +170,7 @@ class Updater:
     @functools.cached_property
     def release_name(self):
         """The release filename"""
-        label = _FILE_SUFFIXES[detect_variant()]
-        if label and platform.architecture()[0][:2] == '32':
-            label = f'_x86{label}'
-        return f'yt-dlp{label}'
+        return f'yt-dlp{_FILE_SUFFIXES[detect_variant()]}'
 
     @functools.cached_property
     def release_hash(self):
@@ -174,6 +180,7 @@ class Updater:
 
     def _report_error(self, msg, expected=False):
         self.ydl.report_error(msg, tb=False if expected else None)
+        self.ydl._download_retcode = 100
 
     def _report_permission_error(self, file):
         self._report_error(f'Unable to write to {file}; Try running as administrator', True)
@@ -257,7 +264,8 @@ class Updater:
                 self._report_error('Unable to overwrite current version')
                 return os.rename(old_filename, self.filename)
 
-        if detect_variant() in ('win32_exe', 'py2exe'):
+        variant = detect_variant()
+        if variant.startswith('win') or variant == 'py2exe':
             atexit.register(Popen, f'ping 127.0.0.1 -n 5 -w 1000 & del /F "{old_filename}"',
                             shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         elif old_filename:
@@ -281,7 +289,7 @@ class Updater:
         # There is no sys.orig_argv in py < 3.10. Also, it can be [] when frozen
         if getattr(sys, 'orig_argv', None):
             return sys.orig_argv
-        elif hasattr(sys, 'frozen'):
+        elif getattr(sys, 'frozen', False):
             return sys.argv
 
     def restart(self):

@@ -145,6 +145,159 @@ class BrightcoveLegacyIE(InfoExtractor):
         }
     ]
 
+    _WEBPAGE_TESTS = [{
+        # embedded brightcove video
+        # it also tests brightcove videos that need to set the 'Referer'
+        # in the http requests
+        'url': 'http://www.bfmtv.com/video/bfmbusiness/cours-bourse/cours-bourse-l-analyse-technique-154522/',
+        'info_dict': {
+            'id': '2765128793001',
+            'ext': 'mp4',
+            'title': 'Le cours de bourse : l’analyse technique',
+            'description': 'md5:7e9ad046e968cb2d1114004aba466fd9',
+            'uploader': 'BFM BUSINESS',
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': '404 Not Found',
+    }, {
+        # embedded with itemprop embedURL and video id spelled as `idVideo`
+        'url': 'http://bfmbusiness.bfmtv.com/mediaplayer/chroniques/olivier-delamarche/',
+        'info_dict': {
+            'id': '5255628253001',
+            'ext': 'mp4',
+            'title': 'md5:37c519b1128915607601e75a87995fc0',
+            'description': 'md5:37f7f888b434bb8f8cc8dbd4f7a4cf26',
+            'uploader': 'BFM BUSINESS',
+            'uploader_id': '876450612001',
+            'timestamp': 1482255315,
+            'upload_date': '20161220',
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': 'Redirects, page gone',
+    }, {
+        # https://github.com/ytdl-org/youtube-dl/issues/2253
+        'url': 'http://bcove.me/i6nfkrc3',
+        'md5': '0ba9446db037002366bab3b3eb30c88c',
+        'info_dict': {
+            'id': '3101154703001',
+            'ext': 'mp4',
+            'title': 'Still no power',
+            'uploader': 'thestar.com',
+            'description': 'Mississauga resident David Farmer is still out of power as a result of the ice storm a month ago. To keep the house warm, Farmer cuts wood from his property for a wood burning stove downstairs.',
+        },
+        'skip': 'video gone',
+    }, {
+        # https://github.com/ytdl-org/youtube-dl/issues/3541
+        'url': 'http://www.kijk.nl/sbs6/leermijvrouwenkennen/videos/jqMiXKAYan2S/aflevering-1',
+        'info_dict': {
+            'id': '3866516442001',
+            'ext': 'mp4',
+            'title': 'Leer mij vrouwen kennen: Aflevering 1',
+            'description': 'Leer mij vrouwen kennen: Aflevering 1',
+            'uploader': 'SBS Broadcasting',
+        },
+        'skip': 'Restricted to Netherlands, 404 Not Found',
+        'params': {
+            'skip_download': True,  # m3u8 download
+        },
+    }, {
+        # Brightcove video in <iframe>
+        'url': 'http://www.un.org/chinese/News/story.asp?NewsID=27724',
+        'md5': '36d74ef5e37c8b4a2ce92880d208b968',
+        'info_dict': {
+            'id': '5360463607001',
+            'ext': 'mp4',
+            'title': '叙利亚失明儿童在废墟上演唱《心跳》  呼吁获得正常童年生活',
+            'description': '联合国儿童基金会中东和北非区域大使、作曲家扎德·迪拉尼（Zade Dirani）在3月15日叙利亚冲突爆发7周年纪念日之际发布了为叙利亚谱写的歌曲《心跳》（HEARTBEAT），为受到六年冲突影响的叙利亚儿童发出强烈呐喊，呼吁世界做出共同努力，使叙利亚儿童重新获得享有正常童年生活的权利。',
+            'uploader': 'United Nations',
+            'uploader_id': '1362235914001',
+            'timestamp': 1489593889,
+            'upload_date': '20170315',
+        },
+        'skip': '404 Not Found',
+    }, {
+        # Brightcove with UUID in videoPlayer
+        'url': 'http://www8.hp.com/cn/zh/home.html',
+        'info_dict': {
+            'id': '5255815316001',
+            'ext': 'mp4',
+            'title': 'Sprocket Video - China',
+            'description': 'Sprocket Video - China',
+            'uploader': 'HP-Video Gallery',
+            'timestamp': 1482263210,
+            'upload_date': '20161220',
+            'uploader_id': '1107601872001',
+        },
+        'params': {
+            'skip_download': True,  # m3u8 download
+        },
+        'skip': 'video rotates...weekly?',
+    }, {
+        # Multiple brightcove videos
+        # https://github.com/ytdl-org/youtube-dl/issues/2283
+        'url': 'http://www.newyorker.com/online/blogs/newsdesk/2014/01/always-never-nuclear-command-and-control.html',
+        'info_dict': {
+            'id': 'always-never',
+            'title': 'Always / Never - The New Yorker',
+        },
+        'playlist_count': 3,
+        'params': {
+            'extract_flat': False,
+            'skip_download': True,
+        },
+        'skip': 'Redirects, page gone',
+    }, {
+        # BrightcoveInPageEmbed embed
+        'url': 'http://www.geekandsundry.com/tabletop-bonus-wils-final-thoughts-on-dread/',
+        'info_dict': {
+            'id': '4238694884001',
+            'ext': 'flv',
+            'title': 'Tabletop: Dread, Last Thoughts',
+            'description': 'Tabletop: Dread, Last Thoughts',
+            'duration': 51690,
+        },
+        'skip': 'Redirects, page gone',
+    }, {
+        # Brightcove embed, with no valid 'renditions' but valid 'IOSRenditions'
+        # This video can't be played in browsers if Flash disabled and UA set to iPhone, which is actually a false alarm
+        'url': 'https://dl.dropboxusercontent.com/u/29092637/interview.html',
+        'info_dict': {
+            'id': '4785848093001',
+            'ext': 'mp4',
+            'title': 'The Cardinal Pell Interview',
+            'description': 'Sky News Contributor Andrew Bolt interviews George Pell in Rome, following the Cardinal\'s evidence before the Royal Commission into Child Abuse. ',
+            'uploader': 'GlobeCast Australia - GlobeStream',
+            'uploader_id': '2733773828001',
+            'upload_date': '20160304',
+            'timestamp': 1457083087,
+        },
+        'params': {
+            # m3u8 downloads
+            'skip_download': True,
+        },
+        'skip': '404 Not Found',
+    }, {
+        # Brightcove embed with whitespace around attribute names
+        'url': 'http://www.stack.com/video/3167554373001/learn-to-hit-open-three-pointers-with-damian-lillard-s-baseline-drift-drill',
+        'info_dict': {
+            'id': '3167554373001',
+            'ext': 'mp4',
+            'title': "Learn to Hit Open Three-Pointers With Damian Lillard's Baseline Drift Drill",
+            'description': 'md5:57bacb0e0f29349de4972bfda3191713',
+            'uploader_id': '1079349493',
+            'upload_date': '20140207',
+            'timestamp': 1391810548,
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': '410 Gone',
+    }]
+
     @classmethod
     def _build_brightcove_url(cls, object_str):
         """
@@ -281,6 +434,11 @@ class BrightcoveLegacyIE(InfoExtractor):
         return [src for _, src in re.findall(
             r'<iframe[^>]+src=([\'"])((?:https?:)?//link\.brightcove\.com/services/player/(?!\1).+)\1', webpage)]
 
+    def _extract_from_webpage(self, url, webpage):
+        bc_urls = self._extract_brightcove_urls(webpage)
+        for bc_url in bc_urls:
+            yield self.url_result(smuggle_url(bc_url, {'Referer': url}), BrightcoveLegacyIE)
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
@@ -336,136 +494,7 @@ class BrightcoveLegacyIE(InfoExtractor):
         raise UnsupportedError(url)
 
 
-class BrightcoveNewIE(AdobePassIE):
-    IE_NAME = 'brightcove:new'
-    _VALID_URL = r'https?://players\.brightcove\.net/(?P<account_id>\d+)/(?P<player_id>[^/]+)_(?P<embed>[^/]+)/index\.html\?.*(?P<content_type>video|playlist)Id=(?P<video_id>\d+|ref:[^&]+)'
-    _TESTS = [{
-        'url': 'http://players.brightcove.net/929656772001/e41d32dc-ec74-459e-a845-6c69f7b724ea_default/index.html?videoId=4463358922001',
-        'md5': 'c8100925723840d4b0d243f7025703be',
-        'info_dict': {
-            'id': '4463358922001',
-            'ext': 'mp4',
-            'title': 'Meet the man behind Popcorn Time',
-            'description': 'md5:eac376a4fe366edc70279bfb681aea16',
-            'duration': 165.768,
-            'timestamp': 1441391203,
-            'upload_date': '20150904',
-            'uploader_id': '929656772001',
-            'formats': 'mincount:20',
-        },
-    }, {
-        # with rtmp streams
-        'url': 'http://players.brightcove.net/4036320279001/5d112ed9-283f-485f-a7f9-33f42e8bc042_default/index.html?videoId=4279049078001',
-        'info_dict': {
-            'id': '4279049078001',
-            'ext': 'mp4',
-            'title': 'Titansgrave: Chapter 0',
-            'description': 'Titansgrave: Chapter 0',
-            'duration': 1242.058,
-            'timestamp': 1433556729,
-            'upload_date': '20150606',
-            'uploader_id': '4036320279001',
-            'formats': 'mincount:39',
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        }
-    }, {
-        # playlist stream
-        'url': 'https://players.brightcove.net/1752604059001/S13cJdUBz_default/index.html?playlistId=5718313430001',
-        'info_dict': {
-            'id': '5718313430001',
-            'title': 'No Audio Playlist',
-        },
-        'playlist_count': 7,
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        }
-    }, {
-        'url': 'http://players.brightcove.net/5690807595001/HyZNerRl7_default/index.html?playlistId=5743160747001',
-        'only_matching': True,
-    }, {
-        # ref: prefixed video id
-        'url': 'http://players.brightcove.net/3910869709001/21519b5c-4b3b-4363-accb-bdc8f358f823_default/index.html?videoId=ref:7069442',
-        'only_matching': True,
-    }, {
-        # non numeric ref: prefixed video id
-        'url': 'http://players.brightcove.net/710858724001/default_default/index.html?videoId=ref:event-stream-356',
-        'only_matching': True,
-    }, {
-        # unavailable video without message but with error_code
-        'url': 'http://players.brightcove.net/1305187701/c832abfb-641b-44eb-9da0-2fe76786505f_default/index.html?videoId=4377407326001',
-        'only_matching': True,
-    }]
-
-    @staticmethod
-    def _extract_url(ie, webpage):
-        urls = BrightcoveNewIE._extract_brightcove_urls(ie, webpage)
-        return urls[0] if urls else None
-
-    @staticmethod
-    def _extract_brightcove_urls(ie, webpage):
-        # Reference:
-        # 1. http://docs.brightcove.com/en/video-cloud/brightcove-player/guides/publish-video.html#setvideoiniframe
-        # 2. http://docs.brightcove.com/en/video-cloud/brightcove-player/guides/publish-video.html#tag
-        # 3. http://docs.brightcove.com/en/video-cloud/brightcove-player/guides/publish-video.html#setvideousingjavascript
-        # 4. http://docs.brightcove.com/en/video-cloud/brightcove-player/guides/in-page-embed-player-implementation.html
-        # 5. https://support.brightcove.com/en/video-cloud/docs/dynamically-assigning-videos-player
-
-        entries = []
-
-        # Look for iframe embeds [1]
-        for _, url in re.findall(
-                r'<iframe[^>]+src=(["\'])((?:https?:)?//players\.brightcove\.net/\d+/[^/]+/index\.html.+?)\1', webpage):
-            entries.append(url if url.startswith('http') else 'http:' + url)
-
-        # Look for <video> tags [2] and embed_in_page embeds [3]
-        # [2] looks like:
-        for video, script_tag, account_id, player_id, embed in re.findall(
-                r'''(?isx)
-                    (<video(?:-js)?\s+[^>]*\bdata-video-id\s*=\s*['"]?[^>]+>)
-                    (?:.*?
-                        (<script[^>]+
-                            src=["\'](?:https?:)?//players\.brightcove\.net/
-                            (\d+)/([^/]+)_([^/]+)/index(?:\.min)?\.js
-                        )
-                    )?
-                ''', webpage):
-            attrs = extract_attributes(video)
-
-            # According to examples from [4] it's unclear whether video id
-            # may be optional and what to do when it is
-            video_id = attrs.get('data-video-id')
-            if not video_id:
-                continue
-
-            account_id = account_id or attrs.get('data-account')
-            if not account_id:
-                continue
-
-            player_id = player_id or attrs.get('data-player') or 'default'
-            embed = embed or attrs.get('data-embed') or 'default'
-
-            bc_url = 'http://players.brightcove.net/%s/%s_%s/index.html?videoId=%s' % (
-                account_id, player_id, embed, video_id)
-
-            # Some brightcove videos may be embedded with video tag only and
-            # without script tag or any mentioning of brightcove at all. Such
-            # embeds are considered ambiguous since they are matched based only
-            # on data-video-id and data-account attributes and in the wild may
-            # not be brightcove embeds at all. Let's check reconstructed
-            # brightcove URLs in case of such embeds and only process valid
-            # ones. By this we ensure there is indeed a brightcove embed.
-            if not script_tag and not ie._is_valid_url(
-                    bc_url, video_id, 'possible brightcove video'):
-                continue
-
-            entries.append(bc_url)
-
-        return entries
-
+class BrightcoveNewBaseIE(AdobePassIE):
     def _parse_brightcove_metadata(self, json_data, video_id, headers={}):
         title = json_data['name'].strip()
 
@@ -546,8 +575,6 @@ class BrightcoveNewIE(AdobePassIE):
                 self.raise_no_formats(
                     error.get('message') or error.get('error_subcode') or error['error_code'], expected=True)
 
-        self._sort_formats(formats)
-
         for f in formats:
             f.setdefault('http_headers', {}).update(headers)
 
@@ -589,6 +616,244 @@ class BrightcoveNewIE(AdobePassIE):
             'tags': json_data.get('tags', []),
             'is_live': is_live,
         }
+
+
+class BrightcoveNewIE(BrightcoveNewBaseIE):
+    IE_NAME = 'brightcove:new'
+    _VALID_URL = r'https?://players\.brightcove\.net/(?P<account_id>\d+)/(?P<player_id>[^/]+)_(?P<embed>[^/]+)/index\.html\?.*(?P<content_type>video|playlist)Id=(?P<video_id>\d+|ref:[^&]+)'
+    _TESTS = [{
+        'url': 'http://players.brightcove.net/929656772001/e41d32dc-ec74-459e-a845-6c69f7b724ea_default/index.html?videoId=4463358922001',
+        'md5': 'c8100925723840d4b0d243f7025703be',
+        'info_dict': {
+            'id': '4463358922001',
+            'ext': 'mp4',
+            'title': 'Meet the man behind Popcorn Time',
+            'description': 'md5:eac376a4fe366edc70279bfb681aea16',
+            'duration': 165.768,
+            'timestamp': 1441391203,
+            'upload_date': '20150904',
+            'uploader_id': '929656772001',
+            'formats': 'mincount:20',
+        },
+        'skip': '404 Not Found',
+    }, {
+        # with rtmp streams
+        'url': 'http://players.brightcove.net/4036320279001/5d112ed9-283f-485f-a7f9-33f42e8bc042_default/index.html?videoId=4279049078001',
+        'info_dict': {
+            'id': '4279049078001',
+            'ext': 'mp4',
+            'title': 'Titansgrave: Chapter 0',
+            'description': 'Titansgrave: Chapter 0',
+            'duration': 1242.058,
+            'timestamp': 1433556729,
+            'upload_date': '20150606',
+            'uploader_id': '4036320279001',
+            'formats': 'mincount:39',
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        }
+    }, {
+        # playlist stream
+        'url': 'https://players.brightcove.net/1752604059001/S13cJdUBz_default/index.html?playlistId=5718313430001',
+        'info_dict': {
+            'id': '5718313430001',
+            'title': 'No Audio Playlist',
+        },
+        'playlist_count': 7,
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        }
+    }, {
+        'url': 'http://players.brightcove.net/5690807595001/HyZNerRl7_default/index.html?playlistId=5743160747001',
+        'only_matching': True,
+    }, {
+        # ref: prefixed video id
+        'url': 'http://players.brightcove.net/3910869709001/21519b5c-4b3b-4363-accb-bdc8f358f823_default/index.html?videoId=ref:7069442',
+        'only_matching': True,
+    }, {
+        # non numeric ref: prefixed video id
+        'url': 'http://players.brightcove.net/710858724001/default_default/index.html?videoId=ref:event-stream-356',
+        'only_matching': True,
+    }, {
+        # unavailable video without message but with error_code
+        'url': 'http://players.brightcove.net/1305187701/c832abfb-641b-44eb-9da0-2fe76786505f_default/index.html?videoId=4377407326001',
+        'only_matching': True,
+    }]
+
+    _WEBPAGE_TESTS = [{
+        # brightcove player url embed
+        'url': 'https://nbc-2.com/weather/forecast/2022/11/16/forecast-warmest-day-of-the-week/',
+        'md5': '2934d5372b354d27083ccf8575dbfee2',
+        'info_dict': {
+            'id': '6315650313112',
+            'title': 'First Alert Forecast: November 15, 2022',
+            'ext': 'mp4',
+            'tags': ['nbc2', 'forecast'],
+            'uploader_id': '6146886170001',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'timestamp': 1668574571,
+            'duration': 233.375,
+            'upload_date': '20221116',
+        },
+    }, {
+        # embedded with video tag only
+        'url': 'https://www.gooddishtv.com/tiktok-rapping-chef-mr-pyrex',
+        'info_dict': {
+            'id': 'tiktok-rapping-chef-mr-pyrex',
+            'title': 'TikTok\'s Rapping Chef Makes Jambalaya for the Hosts',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'age_limit': 0,
+            'description': 'Just in time for Mardi Gras',
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': '6299189544001',
+                'ext': 'mp4',
+                'title': 'TGD_01-032_5',
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'tags': [],
+                'timestamp': 1646078943,
+                'uploader_id': '1569565978001',
+                'upload_date': '20220228',
+                'duration': 217.195,
+            },
+        }, {
+            'info_dict': {
+                'id': '6305565995112',
+                'ext': 'mp4',
+                'title': 'TGD 01-087 (Airs 05.25.22)_Segment 5',
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'tags': [],
+                'timestamp': 1651604591,
+                'uploader_id': '1569565978001',
+                'upload_date': '20220503',
+                'duration': 310.421,
+            },
+        }],
+    }, {
+        # Brightcove:new type [2].
+        'url': 'http://www.delawaresportszone.com/video-st-thomas-more-earns-first-trip-to-basketball-semis',
+        'md5': '2b35148fcf48da41c9fb4591650784f3',
+        'info_dict': {
+            'id': '5348741021001',
+            'ext': 'mp4',
+            'upload_date': '20170306',
+            'uploader_id': '4191638492001',
+            'timestamp': 1488769918,
+            'title': 'VIDEO:  St. Thomas More earns first trip to basketball semis',
+        },
+        'skip': '404 Not Found',
+    }, {
+        # Alternative brightcove <video> attributes
+        'url': 'http://www.programme-tv.net/videos/extraits/81095-guillaume-canet-evoque-les-rumeurs-d-infidelite-de-marion-cotillard-avec-brad-pitt-dans-vivement-dimanche/',
+        'info_dict': {
+            'id': '81095-guillaume-canet-evoque-les-rumeurs-d-infidelite-de-marion-cotillard-avec-brad-pitt-dans-vivement-dimanche',
+            'title': "Guillaume Canet évoque les rumeurs d'infidélité de Marion Cotillard avec Brad Pitt dans Vivement Dimanche, Extraits : toutes les vidéos avec Télé-Loisirs",
+        },
+        'playlist': [{
+            'md5': '732d22ba3d33f2f3fc253c39f8f36523',
+            'info_dict': {
+                'id': '5311302538001',
+                'ext': 'mp4',
+                'title': "Guillaume Canet évoque les rumeurs d'infidélité de Marion Cotillard avec Brad Pitt dans Vivement Dimanche",
+                'description': "Guillaume Canet évoque les rumeurs d'infidélité de Marion Cotillard avec Brad Pitt dans Vivement Dimanche (France 2, 5 février 2017)",
+                'timestamp': 1486321708,
+                'upload_date': '20170205',
+                'uploader_id': '800000640001',
+            },
+            'only_matching': True,
+        }],
+        'skip': '404 Not Found',
+    }, {
+        # Brightcove URL in single quotes
+        'url': 'http://www.sportsnet.ca/baseball/mlb/sn-presents-russell-martin-world-citizen/',
+        'md5': '4ae374f1f8b91c889c4b9203c8c752af',
+        'info_dict': {
+            'id': '4255764656001',
+            'ext': 'mp4',
+            'title': 'SN Presents: Russell Martin, World Citizen',
+            'description': 'To understand why he was the Toronto Blue Jays’ top off-season priority is to appreciate his background and upbringing in Montreal, where he first developed his baseball skills. Written and narrated by Stephen Brunt.',
+            'uploader': 'Rogers Sportsnet',
+            'uploader_id': '1704050871',
+            'upload_date': '20150525',
+            'timestamp': 1432570283,
+        },
+        'skip': 'Page no longer has URL, now has javascript',
+    }]
+
+    @staticmethod
+    def _extract_url(ie, webpage):
+        urls = BrightcoveNewIE._extract_brightcove_urls(ie, webpage)
+        return urls[0] if urls else None
+
+    @staticmethod
+    def _extract_brightcove_urls(ie, webpage):
+        # Reference:
+        # 1. http://docs.brightcove.com/en/video-cloud/brightcove-player/guides/publish-video.html#setvideoiniframe
+        # 2. http://docs.brightcove.com/en/video-cloud/brightcove-player/guides/publish-video.html#tag
+        # 3. http://docs.brightcove.com/en/video-cloud/brightcove-player/guides/publish-video.html#setvideousingjavascript
+        # 4. http://docs.brightcove.com/en/video-cloud/brightcove-player/guides/in-page-embed-player-implementation.html
+        # 5. https://support.brightcove.com/en/video-cloud/docs/dynamically-assigning-videos-player
+
+        entries = []
+
+        # Look for iframe embeds [1]
+        for _, url in re.findall(
+                r'<iframe[^>]+src=(["\'])((?:https?:)?//players\.brightcove\.net/\d+/[^/]+/index\.html.+?)\1', webpage):
+            entries.append(url if url.startswith('http') else 'http:' + url)
+
+        # Look for <video> tags [2] and embed_in_page embeds [3]
+        # [2] looks like:
+        for video, script_tag, account_id, player_id, embed in re.findall(
+                r'''(?isx)
+                    (<video(?:-js)?\s+[^>]*\bdata-video-id\s*=\s*['"]?[^>]+>)
+                    (?:.*?
+                        (<script[^>]+
+                            src=["\'](?:https?:)?//players\.brightcove\.net/
+                            (\d+)/([^/]+)_([^/]+)/index(?:\.min)?\.js
+                        )
+                    )?
+                ''', webpage):
+            attrs = extract_attributes(video)
+
+            # According to examples from [4] it's unclear whether video id
+            # may be optional and what to do when it is
+            video_id = attrs.get('data-video-id')
+            if not video_id:
+                continue
+
+            account_id = account_id or attrs.get('data-account')
+            if not account_id:
+                continue
+
+            player_id = player_id or attrs.get('data-player') or 'default'
+            embed = embed or attrs.get('data-embed') or 'default'
+
+            bc_url = 'http://players.brightcove.net/%s/%s_%s/index.html?videoId=%s' % (
+                account_id, player_id, embed, video_id)
+
+            # Some brightcove videos may be embedded with video tag only and
+            # without script tag or any mentioning of brightcove at all. Such
+            # embeds are considered ambiguous since they are matched based only
+            # on data-video-id and data-account attributes and in the wild may
+            # not be brightcove embeds at all. Let's check reconstructed
+            # brightcove URLs in case of such embeds and only process valid
+            # ones. By this we ensure there is indeed a brightcove embed.
+            if not script_tag and not ie._is_valid_url(
+                    bc_url, video_id, 'possible brightcove video'):
+                continue
+
+            entries.append(bc_url)
+
+        return entries
+
+    def _extract_from_webpage(self, url, webpage):
+        bc_urls = self._extract_brightcove_urls(self, webpage)
+        for bc_url in bc_urls:
+            yield self.url_result(smuggle_url(bc_url, {'referrer': url}), BrightcoveNewIE)
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -632,7 +897,7 @@ class BrightcoveNewIE(AdobePassIE):
 
         api_url = 'https://edge.api.brightcove.com/playback/v1/accounts/%s/%ss/%s' % (account_id, content_type, video_id)
         headers = {}
-        referrer = smuggled_data.get('referrer')
+        referrer = smuggled_data.get('referrer')  # XXX: notice the spelling/case of the key
         if referrer:
             headers.update({
                 'Referer': referrer,

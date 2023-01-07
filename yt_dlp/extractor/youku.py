@@ -96,31 +96,41 @@ class YoukuIE(InfoExtractor):
             'thumbnail': r're:^https?://.*',
             'uploader': '明月庄主moon',
             'uploader_id': '38465621',
-            'uploader_url': 'http://i.youku.com/u/UMTUzODYyNDg0',
+            'uploader_url': 'https://www.youku.com/profile/index/?uid=UMTUzODYyNDg0',
             'tags': list,
         },
     }, {
-        'url': 'http://video.tudou.com/v/XMjIyNzAzMTQ4NA==.html?f=46177805',
+        'url': 'https://v.youku.com/v_show/id_XNTA2NTA0MjA1Mg==.html',
         'info_dict': {
-            'id': 'XMjIyNzAzMTQ4NA',
+            'id': 'XNTA2NTA0MjA1Mg',
             'ext': 'mp4',
-            'title': '卡马乔国足开大脚长传冲吊集锦',
-            'duration': 289,
+            'title': 'Minecraft我的世界：建造超大巨型航空飞机，菜鸟vs高手vs黑客',
+            'duration': 542.13,
             'thumbnail': r're:^https?://.*',
-            'uploader': '阿卜杜拉之星',
-            'uploader_id': '2382249',
-            'uploader_url': 'http://i.youku.com/u/UOTUyODk5Ng==',
+            'uploader': '波哥游戏解说',
+            'uploader_id': '156688084',
+            'uploader_url': 'https://www.youku.com/profile/index/?uid=UNjI2NzUyMzM2',
             'tags': list,
         },
     }, {
-        'url': 'http://video.tudou.com/v/XMjE4ODI3OTg2MA==.html',
-        'only_matching': True,
+        'url': 'https://v.youku.com/v_show/id_XNTE1MzczOTg4MA==.html',
+        'info_dict': {
+            'id': 'XNTE1MzczOTg4MA',
+            'ext': 'mp4',
+            'title': '国产超A特工片',
+            'duration': 362.97,
+            'thumbnail': r're:^https?://.*',
+            'uploader': '陈晓娟说历史',
+            'uploader_id': '1640913339',
+            'uploader_url': 'https://www.youku.com/profile/index/?uid=UNjU2MzY1MzM1Ng==',
+            'tags': list,
+        },
     }]
 
     @staticmethod
     def get_ysuid():
-        return '%d%s' % (int(time.time()), ''.join([
-            random.choice(string.ascii_letters) for i in range(3)]))
+        return '%d%s' % (int(time.time()), ''.join(
+            random.choices(string.ascii_letters, k=3)))
 
     def get_format_name(self, fm):
         _dict = {
@@ -151,7 +161,7 @@ class YoukuIE(InfoExtractor):
         # request basic data
         basic_data_params = {
             'vid': video_id,
-            'ccode': '0532',
+            'ccode': '0524',
             'client_ip': '192.168.1.1',
             'utid': cna,
             'client_ts': time.time() / 1000,
@@ -198,7 +208,6 @@ class YoukuIE(InfoExtractor):
             'width': stream.get('width'),
             'height': stream.get('height'),
         } for stream in data['stream'] if stream.get('channel_type') != 'tail']
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

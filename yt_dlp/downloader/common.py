@@ -15,15 +15,17 @@ from ..minicurses import (
 from ..utils import (
     IDENTITY,
     NO_DEFAULT,
-    NUMBER_RE,
     LockingUnsupportedError,
     Namespace,
     RetryManager,
     classproperty,
     decodeArgument,
+    deprecation_warning,
     encodeFilename,
     format_bytes,
     join_nonempty,
+    parse_bytes,
+    remove_start,
     sanitize_open,
     shell_quote,
     timeconvert,
@@ -120,11 +122,11 @@ class FileDownloader:
         time = timetuple_from_msec(seconds * 1000)
         if time.hours > 99:
             return '--:--:--'
-        if not time.hours:
-            return '%02d:%02d' % time[1:-1]
         return '%02d:%02d:%02d' % time[:-1]
 
-    format_eta = format_seconds
+    @classmethod
+    def format_eta(cls, seconds):
+        return f'{remove_start(cls.format_seconds(seconds), "00:"):>8s}'
 
     @staticmethod
     def calc_percent(byte_counter, data_len):
@@ -179,12 +181,9 @@ class FileDownloader:
     @staticmethod
     def parse_bytes(bytestr):
         """Parse a string indicating a byte quantity into an integer."""
-        matchobj = re.match(rf'(?i)^({NUMBER_RE})([kMGTPEZY]?)$', bytestr)
-        if matchobj is None:
-            return None
-        number = float(matchobj.group(1))
-        multiplier = 1024.0 ** 'bkmgtpezy'.index(matchobj.group(2).lower())
-        return int(round(number * multiplier))
+        deprecation_warning('yt_dlp.FileDownloader.parse_bytes is deprecated and '
+                            'may be removed in the future. Use yt_dlp.utils.parse_bytes instead')
+        return parse_bytes(bytestr)
 
     def slow_down(self, start_time, now, byte_counter):
         """Sleep if the download speed is over the rate limit."""
@@ -332,6 +331,8 @@ class FileDownloader:
                     return tmpl
             return default
 
+        _format_bytes = lambda k: f'{format_bytes(s.get(k)):>10s}'
+
         if s['status'] == 'finished':
             if self.params.get('noprogress'):
                 self.to_screen('[download] Download completed')
@@ -339,7 +340,7 @@ class FileDownloader:
             s.update({
                 'speed': speed,
                 '_speed_str': self.format_speed(speed).strip(),
-                '_total_bytes_str': format_bytes(s.get('total_bytes')),
+                '_total_bytes_str': _format_bytes('total_bytes'),
                 '_elapsed_str': self.format_seconds(s.get('elapsed')),
                 '_percent_str': self.format_percent(100),
             })
@@ -354,15 +355,15 @@ class FileDownloader:
             return
 
         s.update({
-            '_eta_str': self.format_eta(s.get('eta')),
+            '_eta_str': self.format_eta(s.get('eta')).strip(),
             '_speed_str': self.format_speed(s.get('speed')),
             '_percent_str': self.format_percent(try_call(
                 lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
                 lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
                 lambda: s['downloaded_bytes'] == 0 and 0)),
-            '_total_bytes_str': format_bytes(s.get('total_bytes')),
-            '_total_bytes_estimate_str': format_bytes(s.get('total_bytes_estimate')),
-            '_downloaded_bytes_str': format_bytes(s.get('downloaded_bytes')),
+            '_total_bytes_str': _format_bytes('total_bytes'),
+            '_total_bytes_estimate_str': _format_bytes('total_bytes_estimate'),
+            '_downloaded_bytes_str': _format_bytes('downloaded_bytes'),
             '_elapsed_str': self.format_seconds(s.get('elapsed')),
         })
 

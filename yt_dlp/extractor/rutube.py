@@ -81,7 +81,6 @@ class RutubeBaseIE(InfoExtractor):
                     'url': format_url,
                     'format_id': format_id,
                 })
-        self._sort_formats(formats)
         return formats
 
     def _download_and_extract_formats(self, video_id, query=None):
@@ -92,12 +91,12 @@ class RutubeBaseIE(InfoExtractor):
 class RutubeIE(RutubeBaseIE):
     IE_NAME = 'rutube'
     IE_DESC = 'Rutube videos'
-    _VALID_URL = r'https?://rutube\.ru/(?:video|(?:play/)?embed)/(?P<id>[\da-z]{32})'
-    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//rutube\.ru/embed/[\da-z]{32}.*?)\1']
+    _VALID_URL = r'https?://rutube\.ru/(?:video(?:/private)?|(?:play/)?embed)/(?P<id>[\da-z]{32})'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//rutube\.ru/(?:play/)?embed/[\da-z]{32}.*?)\1']
 
     _TESTS = [{
         'url': 'http://rutube.ru/video/3eac3b4561676c17df9132a9a1e62e3e/',
-        'md5': '1d24f180fac7a02f3900712e5a5764d6',
+        'md5': 'e33ac625efca66aba86cbec9851f2692',
         'info_dict': {
             'id': '3eac3b4561676c17df9132a9a1e62e3e',
             'ext': 'mp4',
@@ -109,6 +108,10 @@ class RutubeIE(RutubeBaseIE):
             'timestamp': 1381943602,
             'upload_date': '20131016',
             'age_limit': 0,
+            'view_count': int,
+            'thumbnail': 'http://pic.rutubelist.ru/video/d2/a0/d2a0aec998494a396deafc7ba2c82add.jpg',
+            'category': ['Новости и СМИ'],
+
         },
     }, {
         'url': 'http://rutube.ru/play/embed/a10e53b86e8f349080f718582ce4c661',
@@ -122,6 +125,24 @@ class RutubeIE(RutubeBaseIE):
     }, {
         'url': 'https://rutube.ru/video/10b3a03fc01d5bbcc632a2f3514e8aab/?pl_type=source',
         'only_matching': True,
+    }, {
+        'url': 'https://rutube.ru/video/private/884fb55f07a97ab673c7d654553e0f48/?p=x2QojCumHTS3rsKHWXN8Lg',
+        'md5': 'd106225f15d625538fe22971158e896f',
+        'info_dict': {
+            'id': '884fb55f07a97ab673c7d654553e0f48',
+            'ext': 'mp4',
+            'title': 'Яцуноками, Nioh2',
+            'description': 'Nioh2: финал сражения с боссом Яцуноками',
+            'duration': 15,
+            'uploader': 'mexus',
+            'uploader_id': '24222106',
+            'timestamp': 1670646232,
+            'upload_date': '20221210',
+            'age_limit': 0,
+            'view_count': int,
+            'thumbnail': 'http://pic.rutubelist.ru/video/f2/d4/f2d42b54be0a6e69c1c22539e3152156.jpg',
+            'category': ['Видеоигры'],
+        },
     }]
 
     @classmethod
@@ -130,8 +151,9 @@ class RutubeIE(RutubeBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        info = self._download_and_extract_info(video_id)
-        info['formats'] = self._download_and_extract_formats(video_id)
+        query = parse_qs(url)
+        info = self._download_and_extract_info(video_id, query)
+        info['formats'] = self._download_and_extract_formats(video_id, query)
         return info
 
 
@@ -240,7 +262,6 @@ class RutubeMovieIE(RutubePlaylistBaseIE):
     IE_NAME = 'rutube:movie'
     IE_DESC = 'Rutube movies'
     _VALID_URL = r'https?://rutube\.ru/metainfo/tv/(?P<id>\d+)'
-    _TESTS = []
 
     _MOVIE_TEMPLATE = 'http://rutube.ru/api/metainfo/tv/%s/?format=json'
     _PAGE_TEMPLATE = 'http://rutube.ru/api/metainfo/tv/%s/video?page=%s&format=json'

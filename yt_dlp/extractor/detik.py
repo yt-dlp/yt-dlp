@@ -1,122 +1,159 @@
 from .common import InfoExtractor
-from ..utils import merge_dicts, str_or_none
+from ..utils import int_or_none, merge_dicts, try_call, url_basename
 
 
-class Detik20IE(InfoExtractor):
-    IE_NAME = '20.detik.com'
-    _VALID_URL = r'https?://20\.detik\.com/((?!program)[\w-]+)/[\d-]+/(?P<id>[\w-]+)'
-    _TESTS = [{
-        # detikflash
-        'url': 'https://20.detik.com/detikflash/20220705-220705098/zulhas-klaim-sukses-turunkan-harga-migor-jawa-bali',
+class DetikEmbedIE(InfoExtractor):
+    _VALID_URL = False
+    _WEBPAGE_TESTS = [{
+        # cnn embed
+        'url': 'https://www.cnnindonesia.com/embed/video/846189',
         'info_dict': {
-            'id': '220705098',
+            'id': '846189',
             'ext': 'mp4',
-            'duration': 157,
-            'thumbnail': 'https://cdnv.detik.com/videoservice/AdminTV/2022/07/05/bfe0384db04f4bbb9dd5efc869c5d4b1-20220705164334-0s.jpg?w=650&q=80',
-            'description': 'md5:ac18dcee5b107abbec1ed46e0bf400e3',
-            'title': 'Zulhas Klaim Sukses Turunkan Harga Migor Jawa-Bali',
-            'tags': ['zulkifli hasan', 'menteri perdagangan', 'minyak goreng'],
-            'timestamp': 1657039548,
-            'upload_date': '20220705'
+            'description': 'md5:ece7b003b3ee7d81c6a5cfede7d5397d',
+            'thumbnail': r're:https?://akcdn\.detik\.net\.id/visual/2022/09/11/thumbnail-video-1_169.jpeg',
+            'title': 'Video CNN Indonesia - VIDEO: Momen Charles Disambut Meriah usai Dilantik jadi Raja Inggris',
+            'age_limit': 0,
+            'tags': ['raja charles', ' raja charles iii', ' ratu elizabeth', ' ratu elizabeth meninggal dunia', ' raja inggris', ' inggris'],
+            'release_timestamp': 1662869995,
+            'release_date': '20220911',
+            'uploader': 'REUTERS'
         }
     }, {
-        # e-flash
-        'url': 'https://20.detik.com/e-flash/20220705-220705109/ahli-level-ppkm-jadi-payung-strategi-protokol-kesehatan',
-        'info_dict': {
-            'id': '220705109',
-            'ext': 'mp4',
-            'tags': ['ppkm jabodetabek', 'dicky budiman', 'ppkm'],
-            'upload_date': '20220705',
-            'duration': 110,
-            'title': 'Ahli: Level PPKM Jadi Payung Strategi Protokol Kesehatan',
-            'thumbnail': 'https://cdnv.detik.com/videoservice/AdminTV/2022/07/05/Ahli-_Level_PPKM_Jadi_Payung_Strat_jOgUMCN-20220705182313-custom.jpg?w=650&q=80',
-            'description': 'md5:4eb825a9842e6bdfefd66f47b364314a',
-            'timestamp': 1657045255,
-        }
-    }, {
-        # otobuzz
+        # 20.detik
         'url': 'https://20.detik.com/otobuzz/20220704-220704093/mulai-rp-10-jutaan-ini-skema-kredit-mitsubishi-pajero-sport',
         'info_dict': {
+            'display_id': 'mulai-rp-10-jutaan-ini-skema-kredit-mitsubishi-pajero-sport',
             'id': '220704093',
             'ext': 'mp4',
-            'tags': ['cicilan mobil', 'mitsubishi pajero sport', 'mitsubishi', 'pajero sport'],
-            'timestamp': 1656951521,
-            'duration': 83,
-            'upload_date': '20220704',
-            'thumbnail': 'https://cdnv.detik.com/videoservice/AdminTV/2022/07/04/5d6187e402ec4a91877755a5886ff5b6-20220704161859-0s.jpg?w=650&q=80',
             'description': 'md5:9b2257341b6f375cdcf90106146d5ffb',
+            'thumbnail': r're:https?://cdnv\.detik\.com/videoservice/AdminTV/2022/07/04/5d6187e402ec4a91877755a5886ff5b6-20220704161859-0s.jpg',
             'title': 'Mulai Rp 10 Jutaan! Ini Skema Kredit Mitsubishi Pajero Sport',
-        }
-    }, {
-        # sport-buzz
-        'url': 'https://20.detik.com/sport-buzz/20220704-220704054/crash-crash-horor-di-paruh-pertama-motogp-2022',
-        'info_dict': {
-            'id': '220704054',
-            'ext': 'mp4',
-            'thumbnail': 'https://cdnv.detik.com/videoservice/AdminTV/2022/07/04/6b172c6fb564411996ea145128315630-20220704090746-0s.jpg?w=650&q=80',
-            'title': 'Crash-crash Horor di Paruh Pertama MotoGP 2022',
-            'description': 'md5:fbcc6687572ad7d16eb521b76daa50e4',
-            'timestamp': 1656925591,
-            'duration': 107,
-            'tags': ['marc marquez', 'fabio quartararo', 'francesco bagnaia', 'motogp crash', 'motogp 2022'],
+            'timestamp': 1656951521,
             'upload_date': '20220704',
+            'duration': 83.0,
+            'tags': ['cicilan mobil', 'mitsubishi pajero sport', 'mitsubishi', 'pajero sport'],
+            'release_timestamp': 1656926321,
+            'release_date': '20220704',
+            'age_limit': 0,
+            'uploader': 'Ridwan Arifin '  # TODO: strip trailling whitespace at uploader
         }
     }, {
-        # adu-perspektif
-        'url': 'https://20.detik.com/adu-perspektif/20220518-220518144/24-tahun-reformasi-dan-alarm-demokrasi-dari-filipina',
+        # pasangmata.detik
+        'url': 'https://pasangmata.detik.com/contribution/366649',
         'info_dict': {
-            'id': '220518144',
+            'id': '366649',
             'ext': 'mp4',
-            'title': '24 Tahun Reformasi dan Alarm Demokrasi dari Filipina',
-            'upload_date': '20220518',
-            'timestamp': 1652913823,
-            'duration': 185.0,
-            'tags': ['politik', 'adu perspektif', 'indonesia', 'filipina', 'demokrasi'],
-            'description': 'md5:8eaaf440b839c3d02dca8c9bbbb099a9',
-            'thumbnail': 'https://cdnv.detik.com/videoservice/AdminTV/2022/05/18/adpers_18_mei_compressed-20220518230458-custom.jpg?w=650&q=80',
+            'title': 'Saling Dorong Aparat dan Pendemo di Aksi Tolak Kenaikan BBM',
+            'description': 'md5:7a6580876c8381c454679e028620bea7',
+            'age_limit': 0,
+            'tags': 'count:17',
+            'thumbnail': 'https://akcdn.detik.net.id/community/data/media/thumbs-pasangmata/2022/09/08/366649-16626229351533009620.mp4-03.jpg',
         }
     }, {
-        # sosok
-        'url': 'https://20.detik.com/sosok/20220702-220703032/resa-boenard-si-princess-bantar-gebang',
+        # insertlive embed
+        'url': 'https://www.insertlive.com/embed/video/290482',
         'info_dict': {
-            'id': '220703032',
+            'id': '290482',
             'ext': 'mp4',
-            'timestamp': 1656824438,
-            'thumbnail': 'https://cdnv.detik.com/videoservice/AdminTV/2022/07/02/SOSOK_BGBJ-20220702191138-custom.jpg?w=650&q=80',
-            'title': 'Resa Boenard Si \'Princess Bantar Gebang\'',
-            'description': 'md5:84ea66306a0285330de6a13fc6218b78',
-            'tags': ['sosok', 'sosok20d', 'bantar gebang', 'bgbj', 'resa boenard', 'bantar gebang bgbj', 'bgbj bantar gebang', 'sosok bantar gebang', 'sosok bgbj', 'bgbj resa boenard'],
-            'upload_date': '20220703',
-            'duration': 650,
+            'release_timestamp': 1663063704,
+            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/13/leonardo-dicaprio_169.png?w=600&q=90',
+            'age_limit': 0,
+            'description': 'Aktor Leonardo DiCaprio memang baru saja putus dari kekasihnya yang bernama Camilla Morrone.',
+            'release_date': '20220913',
+            'title': 'Diincar Leonardo DiCaprio, Gigi Hadid Ngaku Tertarik Tapi Belum Cinta',
+            'tags': ['leonardo dicaprio', ' gigi hadid', ' hollywood'],
+            'uploader': '!nsertlive',
         }
     }, {
-        # viral
-        'url': 'https://20.detik.com/viral/20220603-220603135/merasakan-bus-imut-tanpa-pengemudi-muter-muter-di-kawasan-bsd-city',
+        # beautynesia embed
+        'url': 'https://www.beautynesia.id/embed/video/261636',
         'info_dict': {
-            'id': '220603135',
+            'id': '261636',
             'ext': 'mp4',
-            'description': 'md5:4771fe101aa303edb829c59c26f9e7c6',
-            'timestamp': 1654304305,
-            'title': 'Merasakan Bus Imut Tanpa Pengemudi, Muter-muter di Kawasan BSD City',
-            'tags': ['viral', 'autonomous vehicle', 'electric', 'shuttle bus'],
-            'thumbnail': 'https://cdnv.detik.com/videoservice/AdminTV/2022/06/03/VIRAL_BUS_NO_SUPIR-20220604004707-custom.jpg?w=650&q=80',
-            'duration': 593,
-            'upload_date': '20220604',
+            'age_limit': 0,
+            'release_timestamp': 1662375600,
+            'description': 'Menurut ramalan astrologi, tiga zodiak ini bakal hoki sepanjang September 2022.',
+            'title': '3 Zodiak Paling Beruntung Selama September 2022',
+            'release_date': '20220905',
+            'tags': ['zodiac update', ' zodiak', ' ramalan bintang', ' zodiak beruntung 2022', ' zodiak hoki september 2022', ' zodiak beruntung september 2022'],
+            'thumbnail': 'https://akcdn.detik.net.id/visual/2022/09/05/3-zodiak-paling-beruntung-selama-september-2022_169.jpeg?w=600&q=90',
+            'uploader': 'amh',
+        }
+    }, {
+        # cnbcindonesia embed
+        'url': 'https://www.cnbcindonesia.com/embed/video/371839',
+        'info_dict': {
+            'id': '371839',
+            'ext': 'mp4',
+            'title': 'Puluhan Pejabat Rusia Tuntut Putin Mundur',
+            'tags': ['putin'],
+            'age_limit': 0,
+            'thumbnail': 'https://awsimages.detik.net.id/visual/2022/09/13/cnbc-indonesia-tv-3_169.png?w=600&q=80',
+            'description': 'md5:8b9111e37555fcd95fe549a9b4ae6fdc',
+        }
+    }, {
+        # detik shortlink (we can get it from https://dtk.id/?<url>)
+        'url': 'https://dtk.id/NkISKr',
+        'info_dict': {
+            'id': '220914049',
+            'ext': 'mp4',
+            'release_timestamp': 1663114488,
+            'uploader': 'Tim 20Detik',
+            'title': 'Pakar Bicara soal Tim Khusus Jokowi dan Mereka yang Pro ke Bjorka',
+            'age_limit': 0,
+            'thumbnail': 'https://cdnv.detik.com/videoservice/AdminTV/2022/09/14/f15cae71d7b640c58e75b254ecbb1ce1-20220914071613-0s.jpg?w=400&q=80',
+            'display_id': 'pakar-bicara-soal-tim-khusus-jokowi-dan-mereka-yang-pro-ke-bjorka',
+            'upload_date': '20220914',
+            'release_date': '20220914',
+            'description': 'md5:5eb03225f7ee40207dd3a1e18a73f1ff',
+            'timestamp': 1663139688,
+            'duration': 213.0,
+            'tags': ['hacker bjorka', 'bjorka', 'hacker bjorka bocorkan data rahasia presiden jokowi', 'jokowi'],
         }
     }]
 
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        json_ld_data = self._search_json_ld(webpage, display_id)
+    def _extract_from_webpage(self, url, webpage):
+        player_type, video_data = self._search_regex(
+            r'<script\s*[^>]+src="https?://(aws)?cdn\.detik\.net\.id/(?P<type>flowplayer|detikVideo)[^>]+>\s*(?P<video_data>{[^}]+})',
+            webpage, 'playerjs', group=('type', 'video_data'), default=(None, ''))
+        if not player_type:
+            return
 
-        video_url = self._html_search_regex(
-            r'videoUrl\s*:\s*"(?P<video_url>[^"]+)', webpage, 'videoUrl')
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id, ext='mp4')
+        display_id, extra_info_dict = url_basename(url), {}
 
-        return merge_dicts(json_ld_data, {
-            'id': self._html_search_meta('video_id', webpage),
+        if player_type == 'flowplayer':
+            video_json_data = self._parse_json(video_data.replace('\'', '"'), display_id)
+            video_url = video_json_data['videoUrl']
+
+            extra_info_dict = {
+                'id': self._search_regex(r'identifier\s*:\s*\'([^\']+)', webpage, 'identifier'),
+                'thumbnail': video_json_data.get('imageUrl'),
+            }
+
+        elif player_type == 'detikVideo':
+            video_url = self._search_regex(
+                r'videoUrl\s*:\s*[\'"]?([^"\']+)', video_data, 'videoUrl')
+            extra_info_dict = {
+                'id': self._html_search_meta(['video_id', 'dtk:video_id'], webpage),
+                'thumbnail': self._search_regex(r'imageUrl\s*:\s*[\'"]?([^"\']+)', video_data, 'videoUrl'),
+                'duration': int_or_none(self._html_search_meta('duration', webpage, fatal=False, default=None)),
+                'release_timestamp': int_or_none(self._html_search_meta('dtk:publishdateunix', webpage, fatal=False, default=None), 1000),
+                'timestamp': int_or_none(self._html_search_meta('dtk:createdateunix', webpage, fatal=False, default=None), 1000),
+                'uploader': self._search_regex(
+                    r'([^-]+)', self._html_search_meta('dtk:author', webpage, default='').strip(), 'uploader',
+                    default=None)
+            }
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, display_id)
+
+        json_ld_data = self._search_json_ld(webpage, display_id, default={})
+        yield merge_dicts(json_ld_data, extra_info_dict, {
+            'display_id': display_id,
+            'title': self._html_search_meta(['og:title', 'originalTitle'], webpage) or self._html_extract_title(webpage),
+            'description': self._html_search_meta(['og:description', 'twitter:description', 'description'], webpage),
             'formats': formats,
             'subtitles': subtitles,
-            'tags': str_or_none(self._html_search_meta(['keywords', 'keyword', 'dtk:keywords'], webpage), '').split(','),
+            'tags': try_call(lambda: self._html_search_meta(
+                ['keywords', 'keyword', 'dtk:keywords'], webpage).split(',')),
         })

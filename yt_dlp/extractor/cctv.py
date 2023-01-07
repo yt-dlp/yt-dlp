@@ -170,8 +170,6 @@ class CCTVIE(InfoExtractor):
                 hls_url, video_id, 'mp4', entry_protocol='m3u8_native',
                 m3u8_id='hls', fatal=False))
 
-        self._sort_formats(formats)
-
         uploader = data.get('editer_name')
         description = self._html_search_meta(
             'description', webpage, default=None)

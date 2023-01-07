@@ -134,7 +134,6 @@ class DisneyIE(InfoExtractor):
             self.raise_no_formats(
                 '%s said: %s' % (self.IE_NAME, page_data['translations']['video_expired']),
                 expected=True)
-        self._sort_formats(formats)
 
         subtitles = {}
         for caption in video_data.get('captions', []):

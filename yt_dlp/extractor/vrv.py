@@ -30,7 +30,7 @@ class VRVBaseIE(InfoExtractor):
         base_url = self._API_DOMAIN + '/core/' + path
         query = [
             ('oauth_consumer_key', self._API_PARAMS['oAuthKey']),
-            ('oauth_nonce', ''.join([random.choice(string.ascii_letters) for _ in range(32)])),
+            ('oauth_nonce', ''.join(random.choices(string.ascii_letters, k=32))),
             ('oauth_signature_method', 'HMAC-SHA1'),
             ('oauth_timestamp', int(time.time())),
         ]
@@ -192,7 +192,6 @@ class VRVIE(VRVBaseIE):
                     formats.extend(self._extract_vrv_formats(
                         stream.get('url'), video_id, stream_type.split('_')[1],
                         audio_locale, stream.get('hardsub_locale')))
-        self._sort_formats(formats)
 
         subtitles = {}
         for k in ('captions', 'subtitles'):

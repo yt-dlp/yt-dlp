@@ -1,4 +1,5 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -23,7 +24,7 @@ class CuriosityStreamBaseIE(InfoExtractor):
             auth_cookie = self._get_cookies('https://curiositystream.com').get('auth_token')
             if auth_cookie:
                 self.write_debug('Obtained auth_token cookie')
-                self._auth_token = auth_cookie.value
+                self._auth_token = urllib.parse.unquote(auth_cookie.value)
         if self._auth_token:
             headers['X-Auth-Token'] = self._auth_token
         result = self._download_json(
@@ -54,8 +55,11 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
             'description': 'Vint Cerf, Google\'s Chief Internet Evangelist, describes how he and Bob Kahn created the internet.',
             'channel': 'Curiosity Stream',
             'categories': ['Technology', 'Interview'],
-            'average_rating': 96.79,
+            'average_rating': float,
             'series_id': '2',
+            'thumbnail': r're:https://img.curiositystream.com/.+\.jpg',
+            'tags': [],
+            'duration': 158
         },
         'params': {
             # m3u8 download
@@ -117,7 +121,6 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
                             'format_id': 'http',
                         })
                     formats.append(fmt)
-        self._sort_formats(formats)
 
         title = media['title']
 

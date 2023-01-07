@@ -212,7 +212,7 @@ class PhantomJSwrapper:
             'jscode': jscode,
         }))
 
-        stdout = self.execute(jscode, video_id, note2)
+        stdout = self.execute(jscode, video_id, note=note2)
 
         with open(self._TMP_FILES['html'].name, 'rb') as f:
             html = f.read().decode('utf-8')

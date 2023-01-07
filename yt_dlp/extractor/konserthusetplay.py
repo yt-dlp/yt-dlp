@@ -95,8 +95,6 @@ class KonserthusetPlayIE(InfoExtractor):
                 'url': fallback_url,
             })
 
-        self._sort_formats(formats)
-
         title = player_config.get('title') or media['title']
         description = player_config.get('mediaInfo', {}).get('description')
         thumbnail = media.get('image')

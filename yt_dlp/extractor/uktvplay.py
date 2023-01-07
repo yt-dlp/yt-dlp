@@ -2,7 +2,7 @@ from .common import InfoExtractor
 
 
 class UKTVPlayIE(InfoExtractor):
-    _VALID_URL = r'https?://uktvplay\.(?:uktv\.)?co\.uk/(?:.+?\?.*?\bvideo=|([^/]+/)*watch-online/)(?P<id>\d+)'
+    _VALID_URL = r'https?://uktvplay\.(?:uktv\.)?co\.uk/(?:.+?\?.*?\bvideo=|([^/]+/)*)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://uktvplay.uktv.co.uk/shows/world-at-war/c/200/watch-online/?video=2117008346001',
         'info_dict': {
@@ -21,6 +21,9 @@ class UKTVPlayIE(InfoExtractor):
         'expected_warnings': ['Failed to download MPD manifest']
     }, {
         'url': 'https://uktvplay.uktv.co.uk/shows/africa/watch-online/5983349675001',
+        'only_matching': True,
+    }, {
+        'url': 'https://uktvplay.co.uk/shows/hornby-a-model-world/series-1/episode-1/6276739790001?autoplaying=true',
         'only_matching': True,
     }]
     # BRIGHTCOVE_URL_TEMPLATE = 'https://players.brightcove.net/1242911124001/OrCyvJ2gyL_default/index.html?videoId=%s'

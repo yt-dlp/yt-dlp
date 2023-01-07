@@ -73,7 +73,7 @@ class ERTFlixCodenameIE(ERTFlixBaseIE):
     },
     ]
 
-    def _extract_formats_and_subs(self, video_id, allow_none=True):
+    def _extract_formats_and_subs(self, video_id):
         media_info = self._call_api(video_id, codename=video_id)
         formats, subs = [], {}
         for media_file in try_get(media_info, lambda x: x['MediaFiles'], list) or []:
@@ -97,8 +97,6 @@ class ERTFlixCodenameIE(ERTFlixBaseIE):
                 formats.extend(formats_)
                 self._merge_subtitles(subs_, target=subs)
 
-        if formats or not allow_none:
-            self._sort_formats(formats)
         return formats, subs
 
     def _real_extract(self, url):
@@ -292,7 +290,6 @@ class ERTWebtvEmbedIE(InfoExtractor):
         formats, subs = self._extract_m3u8_formats_and_subtitles(
             f'https://mediastream.ert.gr/vodedge/_definst_/mp4:dvrorigin/{video_id}/playlist.m3u8',
             video_id, 'mp4')
-        self._sort_formats(formats)
         thumbnail_id = parse_qs(url).get('bgimg', [None])[0]
         if thumbnail_id and not thumbnail_id.startswith('http'):
             thumbnail_id = f'https://program.ert.gr{thumbnail_id}'

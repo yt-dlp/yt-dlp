@@ -137,7 +137,6 @@ class HKETVIE(InfoExtractor):
                 'width': w,
                 'height': h,
             })
-        self._sort_formats(formats)
 
         subtitles = {}
         tracks = try_get(playlist0, lambda x: x['tracks'], list) or []

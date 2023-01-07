@@ -161,7 +161,7 @@ The same applies for changes to the documentation, code style, or overarching ch
 
 ## Adding support for a new site
 
-If you want to add support for a new site, first of all **make sure** this site is **not dedicated to [copyright infringement](https://www.github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free)**. yt-dlp does **not support** such sites thus pull requests adding support for them **will be rejected**.
+If you want to add support for a new site, first of all **make sure** this site is **not dedicated to [copyright infringement](#is-the-website-primarily-used-for-piracy)**. yt-dlp does **not support** such sites thus pull requests adding support for them **will be rejected**.
 
 After you have ensured this site is distributing its content legally, you can follow this quick list (assuming your service is called `yourextractor`):
 
@@ -351,8 +351,9 @@ Say you extracted a list of thumbnails into `thumbnail_data` and want to iterate
 ```python
 thumbnail_data = data.get('thumbnails') or []
 thumbnails = [{
-    'url': item['url']
-} for item in thumbnail_data]  # correct
+    'url': item['url'],
+    'height': item.get('h'),
+} for item in thumbnail_data if item.get('url')]  # correct
 ```
 
 and not like:
@@ -360,12 +361,27 @@ and not like:
 ```python
 thumbnail_data = data.get('thumbnails')
 thumbnails = [{
-    'url': item['url']
+    'url': item['url'],
+    'height': item.get('h'),
 } for item in thumbnail_data]  # incorrect
 ```
 
 In this case, `thumbnail_data` will be `None` if the field was not found and this will cause the loop `for item in thumbnail_data` to raise a fatal error. Using `or []` avoids this error and results in setting an empty list in `thumbnails` instead.
 
+Alternately, this can be further simplified by using `traverse_obj`
+
+```python
+thumbnails = [{
+    'url': item['url'],
+    'height': item.get('h'),
+} for item in traverse_obj(data, ('thumbnails', lambda _, v: v['url']))]
+```
+
+or, even better,
+
+```python
+thumbnails = traverse_obj(data, ('thumbnails', ..., {'url': 'url', 'height': 'h'}))
+```
 
 ### Provide fallbacks
 

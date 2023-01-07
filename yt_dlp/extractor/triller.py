@@ -15,11 +15,11 @@ from ..utils import (
 
 class TrillerBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'triller'
-    _AUTH_TOKEN = None
     _API_BASE_URL = 'https://social.triller.co/v1.5'
+    _API_HEADERS = {'Origin': 'https://triller.co'}
 
     def _perform_login(self, username, password):
-        if self._AUTH_TOKEN:
+        if self._API_HEADERS.get('Authorization'):
             return
 
         user_check = self._download_json(
@@ -46,13 +46,13 @@ class TrillerBaseIE(InfoExtractor):
                 raise ExtractorError('Unable to login: Incorrect password', expected=True)
             raise ExtractorError('Unable to login')
 
-        self._AUTH_TOKEN = login['auth_token']
+        self._API_HEADERS['Authorization'] = f'Bearer {login["auth_token"]}'
 
     def _get_comments(self, video_id, limit=15):
         comment_info = self._download_json(
             f'{self._API_BASE_URL}/api/videos/{video_id}/comments_v2',
             video_id, fatal=False, note='Downloading comments API JSON',
-            headers={'Origin': 'https://triller.co'}, query={'limit': limit}) or {}
+            headers=self._API_HEADERS, query={'limit': limit}) or {}
         if not comment_info.get('comments'):
             return
         for comment_dict in comment_info['comments']:
@@ -114,7 +114,6 @@ class TrillerBaseIE(InfoExtractor):
             formats.extend(self._extract_m3u8_formats(
                 manifest_url, video_id, 'mp4', entry_protocol='m3u8_native',
                 m3u8_id='hls', fatal=False))
-        self._sort_formats(formats)
 
         comment_count = int_or_none(video_info.get('comment_count'))
 
@@ -210,9 +209,7 @@ class TrillerIE(TrillerBaseIE):
             f'{self._API_BASE_URL}/api/videos/{video_uuid}',
             video_uuid, note='Downloading video info API JSON',
             errnote='Unable to download video info API JSON',
-            headers={
-                'Origin': 'https://triller.co',
-            }), ('videos', 0))
+            headers=self._API_HEADERS), ('videos', 0))
         if not video_info:
             raise ExtractorError('No video info found in API response')
 
@@ -242,19 +239,17 @@ class TrillerUserIE(TrillerBaseIE):
     }]
 
     def _real_initialize(self):
-        if not self._AUTH_TOKEN:
+        if not self._API_HEADERS.get('Authorization'):
             guest = self._download_json(
                 f'{self._API_BASE_URL}/user/create_guest',
-                None, note='Creating guest session', data=b'', headers={
-                    'Origin': 'https://triller.co',
-                }, query={
+                None, note='Creating guest session', data=b'', headers=self._API_HEADERS, query={
                     'platform': 'Web',
                     'app_version': '',
                 })
             if not guest.get('auth_token'):
                 raise ExtractorError('Unable to fetch required auth token for user extraction')
 
-            self._AUTH_TOKEN = guest['auth_token']
+            self._API_HEADERS['Authorization'] = f'Bearer {guest["auth_token"]}'
 
     def _extract_video_list(self, username, user_id, limit=6):
         query = {
@@ -266,10 +261,8 @@ class TrillerUserIE(TrillerBaseIE):
                     video_list = self._download_json(
                         f'{self._API_BASE_URL}/api/users/{user_id}/videos',
                         username, note=f'Downloading user video list page {page}',
-                        errnote='Unable to download user video list', headers={
-                            'Authorization': f'Bearer {self._AUTH_TOKEN}',
-                            'Origin': 'https://triller.co',
-                        }, query=query)
+                        errnote='Unable to download user video list', headers=self._API_HEADERS,
+                        query=query)
                 except ExtractorError as e:
                     if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
                         retry.error = e
@@ -291,10 +284,7 @@ class TrillerUserIE(TrillerBaseIE):
         user_info = self._check_user_info(self._download_json(
             f'{self._API_BASE_URL}/api/users/by_username/{username}',
             username, note='Downloading user info',
-            errnote='Failed to download user info', headers={
-                'Authorization': f'Bearer {self._AUTH_TOKEN}',
-                'Origin': 'https://triller.co',
-            }).get('user', {}))
+            errnote='Failed to download user info', headers=self._API_HEADERS).get('user', {}))
 
         user_id = str_or_none(user_info.get('user_id'))
         videos = self._extract_video_list(username, user_id)

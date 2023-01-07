@@ -2,10 +2,10 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
-    clean_html,
     ExtractorError,
-    js_to_json,
     base_url,
+    clean_html,
+    js_to_json,
     url_basename,
     urljoin,
 )
@@ -196,7 +196,6 @@ class RCSBaseIE(InfoExtractor):
                 'format_id': 'http-mp4',
                 'url': urls['mp4']
             })
-        self._sort_formats(formats)
         return formats
 
     def _real_extract(self, url):
@@ -337,7 +336,7 @@ class RCSEmbedsIE(RCSBaseIE):
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
-        return cls._sanitize_urls(tuple(super()._extract_embed_urls(url, webpage)))
+        return cls._sanitize_urls(list(super()._extract_embed_urls(url, webpage)))
 
 
 class RCSIE(RCSBaseIE):

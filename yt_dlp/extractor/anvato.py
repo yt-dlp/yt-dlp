@@ -5,30 +5,69 @@ import random
 import re
 import time
 
-from .anvato_token_generator import NFLTokenGenerator
 from .common import InfoExtractor
 from ..aes import aes_encrypt
-from ..compat import compat_str
 from ..utils import (
     bytes_to_intlist,
     determine_ext,
-    intlist_to_bytes,
     int_or_none,
+    intlist_to_bytes,
     join_nonempty,
+    smuggle_url,
     strip_jsonp,
+    traverse_obj,
     unescapeHTML,
     unsmuggle_url,
 )
 
 
 def md5_text(s):
-    if not isinstance(s, compat_str):
-        s = compat_str(s)
-    return hashlib.md5(s.encode('utf-8')).hexdigest()
+    return hashlib.md5(str(s).encode()).hexdigest()
 
 
 class AnvatoIE(InfoExtractor):
     _VALID_URL = r'anvato:(?P<access_key_or_mcp>[^:]+):(?P<id>\d+)'
+
+    _API_BASE_URL = 'https://tkx.mp.lura.live/rest/v2'
+    _ANVP_RE = r'<script[^>]+\bdata-anvp\s*=\s*(["\'])(?P<anvp>(?:(?!\1).)+)\1'
+    _AUTH_KEY = b'\x31\xc2\x42\x84\x9e\x73\xa0\xce'  # from anvplayer.min.js
+
+    _TESTS = [{
+        # from https://www.nfl.com/videos/baker-mayfield-s-game-changing-plays-from-3-td-game-week-14
+        'url': 'anvato:GXvEgwyJeWem8KCYXfeoHWknwP48Mboj:899441',
+        'md5': '921919dab3cd0b849ff3d624831ae3e2',
+        'info_dict': {
+            'id': '899441',
+            'ext': 'mp4',
+            'title': 'Baker Mayfield\'s game-changing plays from 3-TD game Week 14',
+            'description': 'md5:85e05a3cc163f8c344340f220521136d',
+            'upload_date': '20201215',
+            'timestamp': 1608009755,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'uploader': 'NFL',
+            'tags': ['Baltimore Ravens at Cleveland Browns (2020-REG-14)', 'Baker Mayfield', 'Game Highlights',
+                     'Player Highlights', 'Cleveland Browns', 'league'],
+            'duration': 157,
+            'categories': ['Entertainment', 'Game', 'Highlights'],
+        },
+    }, {
+        # from https://ktla.com/news/99-year-old-woman-learns-to-fly-in-torrance-checks-off-bucket-list-dream/
+        'url': 'anvato:X8POa4zpGZMmeiq0wqiO8IP5rMqQM9VN:8032455',
+        'md5': '837718bcfb3a7778d022f857f7a9b19e',
+        'info_dict': {
+            'id': '8032455',
+            'ext': 'mp4',
+            'title': '99-year-old woman learns to fly plane in Torrance, checks off bucket list dream',
+            'description': 'md5:0a12bab8159445e78f52a297a35c6609',
+            'upload_date': '20220928',
+            'timestamp': 1664408881,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'uploader': 'LIN',
+            'tags': ['video', 'news', '5live'],
+            'duration': 155,
+            'categories': ['News'],
+        },
+    }]
 
     # Copied from anvplayer.min.js
     _ANVACK_TABLE = {
@@ -202,86 +241,74 @@ class AnvatoIE(InfoExtractor):
         'telemundo': 'anvato_mcp_telemundo_web_prod_c5278d51ad46fda4b6ca3d0ea44a7846a054f582'
     }
 
+    def _generate_nfl_token(self, anvack, mcp_id):
+        reroute = self._download_json(
+            'https://api.nfl.com/v1/reroute', mcp_id, data=b'grant_type=client_credentials',
+            headers={'X-Domain-Id': 100}, note='Fetching token info')
+        token_type = reroute.get('token_type') or 'Bearer'
+        auth_token = f'{token_type} {reroute["access_token"]}'
+        response = self._download_json(
+            'https://api.nfl.com/v3/shield/', mcp_id, data=json.dumps({
+                'query': '''{
+  viewer {
+    mediaToken(anvack: "%s", id: %s) {
+      token
+    }
+  }
+}''' % (anvack, mcp_id),
+            }).encode(), headers={
+                'Authorization': auth_token,
+                'Content-Type': 'application/json',
+            }, note='Fetching NFL API token')
+        return traverse_obj(response, ('data', 'viewer', 'mediaToken', 'token'))
+
     _TOKEN_GENERATORS = {
-        'GXvEgwyJeWem8KCYXfeoHWknwP48Mboj': NFLTokenGenerator,
+        'GXvEgwyJeWem8KCYXfeoHWknwP48Mboj': _generate_nfl_token,
     }
 
-    _API_KEY = '3hwbSuqqT690uxjNYBktSQpa5ZrpYYR0Iofx7NcJHyA'
-
-    _ANVP_RE = r'<script[^>]+\bdata-anvp\s*=\s*(["\'])(?P<anvp>(?:(?!\1).)+)\1'
-    _AUTH_KEY = b'\x31\xc2\x42\x84\x9e\x73\xa0\xce'
-
-    _TESTS = [{
-        # from https://www.boston25news.com/news/watch-humpback-whale-breaches-right-next-to-fishing-boat-near-nh/817484874
-        'url': 'anvato:8v9BEynrwx8EFLYpgfOWcG1qJqyXKlRM:4465496',
-        'info_dict': {
-            'id': '4465496',
-            'ext': 'mp4',
-            'title': 'VIDEO: Humpback whale breaches right next to NH boat',
-            'description': 'VIDEO: Humpback whale breaches right next to NH boat. Footage courtesy: Zach Fahey.',
-            'duration': 22,
-            'timestamp': 1534855680,
-            'upload_date': '20180821',
-            'uploader': 'ANV',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # from https://sanfrancisco.cbslocal.com/2016/06/17/source-oakland-cop-on-leave-for-having-girlfriend-help-with-police-reports/
-        'url': 'anvato:DVzl9QRzox3ZZsP9bNu5Li3X7obQOnqP:3417601',
-        'only_matching': True,
-    }]
-
-    def __init__(self, *args, **kwargs):
-        super(AnvatoIE, self).__init__(*args, **kwargs)
-        self.__server_time = None
-
     def _server_time(self, access_key, video_id):
-        if self.__server_time is not None:
-            return self.__server_time
+        return int_or_none(traverse_obj(self._download_json(
+            f'{self._API_BASE_URL}/server_time', video_id, query={'anvack': access_key},
+            note='Fetching server time', fatal=False), 'server_time')) or int(time.time())
 
-        self.__server_time = int(self._download_json(
-            self._api_prefix(access_key) + 'server_time?anvack=' + access_key, video_id,
-            note='Fetching server time')['server_time'])
-
-        return self.__server_time
-
-    def _api_prefix(self, access_key):
-        return 'https://tkx2-%s.anvato.net/rest/v2/' % ('prod' if 'prod' in access_key else 'stage')
-
-    def _get_video_json(self, access_key, video_id):
+    def _get_video_json(self, access_key, video_id, extracted_token):
         # See et() in anvplayer.min.js, which is an alias of getVideoJSON()
-        video_data_url = self._api_prefix(access_key) + 'mcp/video/%s?anvack=%s' % (video_id, access_key)
+        video_data_url = f'{self._API_BASE_URL}/mcp/video/{video_id}?anvack={access_key}'
         server_time = self._server_time(access_key, video_id)
-        input_data = '%d~%s~%s' % (server_time, md5_text(video_data_url), md5_text(server_time))
+        input_data = f'{server_time}~{md5_text(video_data_url)}~{md5_text(server_time)}'
 
         auth_secret = intlist_to_bytes(aes_encrypt(
             bytes_to_intlist(input_data[:64]), bytes_to_intlist(self._AUTH_KEY)))
-
-        video_data_url += '&X-Anvato-Adst-Auth=' + base64.b64encode(auth_secret).decode('ascii')
+        query = {
+            'X-Anvato-Adst-Auth': base64.b64encode(auth_secret).decode('ascii'),
+            'rtyp': 'fp',
+        }
         anvrid = md5_text(time.time() * 1000 * random.random())[:30]
         api = {
             'anvrid': anvrid,
             'anvts': server_time,
         }
-        if self._TOKEN_GENERATORS.get(access_key) is not None:
-            api['anvstk2'] = self._TOKEN_GENERATORS[access_key].generate(self, access_key, video_id)
+        if extracted_token is not None:
+            api['anvstk2'] = extracted_token
+        elif self._TOKEN_GENERATORS.get(access_key) is not None:
+            api['anvstk2'] = self._TOKEN_GENERATORS[access_key](self, access_key, video_id)
+        elif self._ANVACK_TABLE.get(access_key) is not None:
+            api['anvstk'] = md5_text(f'{access_key}|{anvrid}|{server_time}|{self._ANVACK_TABLE[access_key]}')
         else:
-            api['anvstk'] = md5_text('%s|%s|%d|%s' % (
-                access_key, anvrid, server_time,
-                self._ANVACK_TABLE.get(access_key, self._API_KEY)))
+            api['anvstk2'] = 'default'
 
         return self._download_json(
-            video_data_url, video_id, transform_source=strip_jsonp,
-            data=json.dumps({'api': api}).encode('utf-8'))
+            video_data_url, video_id, transform_source=strip_jsonp, query=query,
+            data=json.dumps({'api': api}, separators=(',', ':')).encode('utf-8'))
 
-    def _get_anvato_videos(self, access_key, video_id):
-        video_data = self._get_video_json(access_key, video_id)
+    def _get_anvato_videos(self, access_key, video_id, token):
+        video_data = self._get_video_json(access_key, video_id, token)
 
         formats = []
         for published_url in video_data['published_urls']:
-            video_url = published_url['embed_url']
+            video_url = published_url.get('embed_url')
+            if not video_url:
+                continue
             media_format = published_url.get('format')
             ext = determine_ext(video_url)
 
@@ -296,15 +323,27 @@ class AnvatoIE(InfoExtractor):
                 'tbr': tbr or None,
             }
 
-            if media_format == 'm3u8' and tbr is not None:
+            vtt_subs, hls_subs = {}, {}
+            if media_format == 'vtt':
+                _, vtt_subs = self._extract_m3u8_formats_and_subtitles(
+                    video_url, video_id, m3u8_id='vtt', fatal=False)
+                continue
+            elif media_format == 'm3u8' and tbr is not None:
                 a_format.update({
                     'format_id': join_nonempty('hls', tbr),
                     'ext': 'mp4',
                 })
             elif media_format == 'm3u8-variant' or ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    video_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                    m3u8_id='hls', fatal=False))
+                # For some videos the initial m3u8 URL returns JSON instead
+                manifest_json = self._download_json(
+                    video_url, video_id, note='Downloading manifest JSON', errnote=False)
+                if manifest_json:
+                    video_url = manifest_json.get('master_m3u8')
+                    if not video_url:
+                        continue
+                hls_fmts, hls_subs = self._extract_m3u8_formats_and_subtitles(
+                    video_url, video_id, ext='mp4', m3u8_id='hls', fatal=False)
+                formats.extend(hls_fmts)
                 continue
             elif ext == 'mp3' or media_format == 'mp3':
                 a_format['vcodec'] = 'none'
@@ -315,8 +354,6 @@ class AnvatoIE(InfoExtractor):
                 })
             formats.append(a_format)
 
-        self._sort_formats(formats)
-
         subtitles = {}
         for caption in video_data.get('captions', []):
             a_caption = {
@@ -324,6 +361,7 @@ class AnvatoIE(InfoExtractor):
                 'ext': 'tt' if caption.get('format') == 'SMPTE-TT' else None
             }
             subtitles.setdefault(caption['language'], []).append(a_caption)
+        subtitles = self._merge_subtitles(subtitles, hls_subs, vtt_subs)
 
         return {
             'id': video_id,
@@ -349,7 +387,10 @@ class AnvatoIE(InfoExtractor):
                 access_key = cls._MCP_TO_ACCESS_KEY_TABLE.get((anvplayer_data.get('mcp') or '').lower())
             if not (video_id or '').isdigit() or not access_key:
                 continue
-            yield cls.url_result(f'anvato:{access_key}:{video_id}', AnvatoIE, video_id)
+            url = f'anvato:{access_key}:{video_id}'
+            if anvplayer_data.get('token'):
+                url = smuggle_url(url, {'token': anvplayer_data['token']})
+            yield cls.url_result(url, AnvatoIE, video_id)
 
     def _extract_anvato_videos(self, webpage, video_id):
         anvplayer_data = self._parse_json(
@@ -357,7 +398,7 @@ class AnvatoIE(InfoExtractor):
                 self._ANVP_RE, webpage, 'Anvato player data', group='anvp'),
             video_id)
         return self._get_anvato_videos(
-            anvplayer_data['accessKey'], anvplayer_data['video'])
+            anvplayer_data['accessKey'], anvplayer_data['video'], 'default')  # cbslocal token = 'default'
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -365,9 +406,7 @@ class AnvatoIE(InfoExtractor):
             'countries': smuggled_data.get('geo_countries'),
         })
 
-        mobj = self._match_valid_url(url)
-        access_key, video_id = mobj.group('access_key_or_mcp', 'id')
+        access_key, video_id = self._match_valid_url(url).group('access_key_or_mcp', 'id')
         if access_key not in self._ANVACK_TABLE:
-            access_key = self._MCP_TO_ACCESS_KEY_TABLE.get(
-                access_key) or access_key
-        return self._get_anvato_videos(access_key, video_id)
+            access_key = self._MCP_TO_ACCESS_KEY_TABLE.get(access_key) or access_key
+        return self._get_anvato_videos(access_key, video_id, smuggled_data.get('token'))

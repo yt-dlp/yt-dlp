@@ -424,6 +424,4 @@ class F4mFD(FragmentFD):
                     msg = 'Missed %d fragments' % (fragments_list[0][1] - (frag_i + 1))
                     self.report_warning(msg)
 
-        self._finish_frag_download(ctx, info_dict)
-
-        return True
+        return self._finish_frag_download(ctx, info_dict)

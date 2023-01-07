@@ -95,8 +95,6 @@ class WatIE(InfoExtractor):
             if manifest_urls:
                 extract_formats(manifest_urls)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,

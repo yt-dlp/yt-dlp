@@ -194,8 +194,6 @@ class RCTIPlusIE(RCTIPlusBaseIE):
             if 'akamaized' in f['url'] or 'cloudfront' in f['url']:
                 f.setdefault('http_headers', {})['Referer'] = 'https://www.rctiplus.com/'  # Referer header is required for akamai/cloudfront CDNs
 
-        self._sort_formats(formats)
-
         return {
             'id': video_meta.get('product_id') or video_json.get('product_id'),
             'title': dict_get(video_meta, ('title', 'name')) or dict_get(video_json, ('content_name', 'assets_name')),
