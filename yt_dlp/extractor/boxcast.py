@@ -11,7 +11,7 @@ from ..utils import (
 class BoxCastVideoIE(InfoExtractor):
     _VALID_URL = r'''(?x)(?:
                     https?://boxcast\.tv/
-                    (?:view-embed|channel|video-portal/(?:\w+/?){2})/
+                    (?:view-embed/|channel/\w+\?(?:[^/#&]+&?)?b=|video-portal/(?:\w+/?){2})
                     (?P<id>[\w-]+))
                 '''
     _TESTS = [{
@@ -27,19 +27,6 @@ class BoxCastVideoIE(InfoExtractor):
             'uploader': 'Children\'s Health Defense',
         }
     }, {
-        'url': 'https://boxcast.tv/channel/jvltpdusdnxekwvgv5gs',
-        'info_dict': {
-            'id': 'ezh0napskpalrimsx78m',
-            'ext': 'mp4',
-            'release_date': '20221121',
-            'thumbnail': r're:https://uploads\.boxcast\.com/(?:[\w-]+/){3}.+\.jpg$',
-            'title': 'Graveside Service | Thomas Harkelrode',
-            'uploader': 'Company 119',
-            'release_timestamp': 1669055702,
-            'description': 'Remembering Tommy Harkelrode | Nov 21, 2022',
-            'uploader_id': 'zqmbqegelwyknzleyyd3',
-        }
-    }, {
         'url': 'https://boxcast.tv/video-portal/vctwevwntun3o0ikq7af/rvyblnn0fxbfjx5nwxhl/otbpltj2kzkveo2qz3ad',
         'info_dict': {
             'id': 'otbpltj2kzkveo2qz3ad',
@@ -47,7 +34,20 @@ class BoxCastVideoIE(InfoExtractor):
             'uploader_id': 'vctwevwntun3o0ikq7af',
             'uploader': 'Legacy Christian Church',
             'title': 'The Quest | 1: Beginner\'s Bay | Jamie Schools',
-            'thumbnail': r're:https?://uploads.boxcast.com/(?:[\w-]+/){3}The_Quest2.jpg'
+            'thumbnail': r're:https?://uploads.boxcast.com/(?:[\w-]+/){3}.+\.jpg'
+        }
+    }, {
+        'url': 'https://boxcast.tv/channel/z03fqwaeaby5lnaawox2?b=ssihlw5gvfij2by8tkev',
+        'info_dict': {
+            'id': 'ssihlw5gvfij2by8tkev',
+            'ext': 'mp4',
+            'thumbnail': r're:https?://uploads.boxcast.com/(?:[\w-]+/){3}.+\.jpg$',
+            'release_date': '20230101',
+            'uploader_id': 'ds25vaazhlu4ygcvffid',
+            'release_timestamp': 1672543201,
+            'uploader': 'Lighthouse Ministries International  - Beltsville, Maryland',
+            'description': 'md5:ac23e3d01b0b0be592e8f7fe0ec3a340',
+            'title': 'New Year\'s Eve CROSSOVER Service at LHMI | December 31, 2022',
         }
     }]
     _WEBPAGE_TESTS = [{
