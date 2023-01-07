@@ -62,13 +62,13 @@ class EmbedlyIE(InfoExtractor):
     }]
 
     @classmethod
-    def _extract_embed_urls(cls, url, webpage):
-        # Bypass suitable check
+    def _extract_from_webpage(cls, url, webpage):
+        # Bypass "ie=cls" and suitable check
         for mobj in re.finditer(r'class=["\']embedly-card["\'][^>]href=["\'](?P<url>[^"\']+)', webpage):
-            yield mobj.group('url')
+            yield cls.url_result(mobj.group('url'))
 
         for mobj in re.finditer(r'class=["\']embedly-embed["\'][^>]src=["\'][^"\']*url=(?P<url>[^&]+)', webpage):
-            yield urllib.parse.unquote(mobj.group('url'))
+            yield cls.url_result(urllib.parse.unquote(mobj.group('url')))
 
     def _real_extract(self, url):
         qs = parse_qs(url)
