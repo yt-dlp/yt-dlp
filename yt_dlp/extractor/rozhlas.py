@@ -1,11 +1,5 @@
-import re
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    remove_start,
-    extract_attributes,
-    traverse_obj,
-)
+from ..utils import extract_attributes, int_or_none, remove_start, traverse_obj
 
 
 class RozhlasIE(InfoExtractor):
