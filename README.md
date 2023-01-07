@@ -8,7 +8,7 @@
 [![License: Unlicense](https://img.shields.io/badge/-Unlicense-blue.svg?style=for-the-badge)](LICENSE "License")
 [![CI Status](https://img.shields.io/github/actions/workflow/status/observeroftime02/yt-dlp-daily/core.yml?branch=master&label=Tests&style=for-the-badge)](https://github.com/observeroftime02/yt-dlp-daily/actions "CI Status")
 [![Commits](https://img.shields.io/github/commit-activity/m/observeroftime02/yt-dlp-daily?label=commits&style=for-the-badge)](https://github.com/observeroftime02/yt-dlp-daily/commits "Commit History")
-[![Last Commit](https://img.shields.io/github/last-commit/observeroftime02/yt-dlp-daily/master?label=&style=for-the-badge&display_timestamp=committer)](https://github.com/observeroftime02/yt-dlp-daily/commits "Commit History")
+[![Last Commit](https://img.shields.io/github/last-commit/observeroftime02/yt-dlp-daily?style=for-the-badge)](https://github.com/observeroftime02/yt-dlp-daily/commits "Commit History")
 
 </div>
 <!-- MANPAGE: END EXCLUDED SECTION -->
