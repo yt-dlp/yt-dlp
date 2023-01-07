@@ -11,15 +11,15 @@ import sys
 from .compat import compat_expanduser
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
-from .postprocessor import (
+from .postprocessor.ffmpeg import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoRemuxerPP,
-    SponsorBlockPP,
 )
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
+from .postprocessor.sponsorblock import SponsorBlockPP
 from .update import detect_variant, is_non_updateable
 from .utils import (
     OUTTMPL_TYPES,
@@ -435,6 +435,12 @@ def create_parser():
         '--no-colors', '--no-colours',
         action='store_true', dest='no_color', default=False,
         help='Do not emit color codes in output (Alias: --no-colours)')
+    general.add_option(
+        '--plugin-dirs',
+        metavar='PATH', dest='plugin_dirs', action='append',
+        help=(
+            'Directory to search for plugins. Can be used multiple times to add multiple directories. '
+            'Add "no-default" to disable the default plugin directories'))
     general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',

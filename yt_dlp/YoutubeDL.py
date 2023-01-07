@@ -31,9 +31,15 @@ from .downloader.rtmp import rtmpdump_version
 from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
+from .globals import (
+    IN_CLI,
+    LAZY_EXTRACTORS,
+    plugin_ies,
+    plugin_overrides,
+    plugin_pps,
+)
 from .minicurses import format_text
 from .plugins import directories as plugin_directories
-from .postprocessor import _PLUGIN_CLASSES as plugin_pps
 from .postprocessor import (
     EmbedThumbnailPP,
     FFmpegFixupDuplicateMoovPP,
@@ -3733,15 +3739,6 @@ class YoutubeDL:
         if not self.params.get('verbose'):
             return
 
-        from . import _IN_CLI  # Must be delayed import
-
-        # These imports can be slow. So import them only as needed
-        from .extractor.extractors import _LAZY_LOADER
-        from .extractor.extractors import (
-            _PLUGIN_CLASSES as plugin_ies,
-            _PLUGIN_OVERRIDES as plugin_ie_overrides
-        )
-
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
             if not supports_terminal_sequences(stream):
@@ -3774,17 +3771,17 @@ class YoutubeDL:
             __version__,
             f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
-            '' if _IN_CLI else 'API',
+            '' if IN_CLI.get() else 'API',
             delim=' '))
 
-        if not _IN_CLI:
+        if not IN_CLI.get():
             write_debug(f'params: {self.params}')
 
-        if not _LAZY_LOADER:
-            if os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
-                write_debug('Lazy loading extractors is forcibly disabled')
-            else:
-                write_debug('Lazy loading extractors is disabled')
+        lazy_extractors = LAZY_EXTRACTORS.get()
+        if lazy_extractors is None:
+            write_debug('Lazy loading extractors is disabled')
+        elif not lazy_extractors:
+            write_debug('Lazy loading extractors is forcibly disabled')
         if self.params['compat_opts']:
             write_debug('Compatibility options: %s' % ', '.join(self.params['compat_opts']))
 
@@ -3818,13 +3815,13 @@ class YoutubeDL:
                 proxy_map.update(handler.proxies)
         write_debug(f'Proxy map: {proxy_map}')
 
-        for plugin_type, plugins in {'Extractor': plugin_ies, 'Post-Processor': plugin_pps}.items():
-            display_list = ['%s%s' % (
-                klass.__name__, '' if klass.__name__ == name else f' as {name}')
-                for name, klass in plugins.items()]
+        for plugin_type, plugins in (('Extractor', plugin_ies), ('Post-Processor', plugin_pps)):
+            display_list = [
+                klass.__name__ if klass.__name__ == name else f'{klass.__name__} as {name}'
+                for name, klass in plugins.get().items()]
             if plugin_type == 'Extractor':
                 display_list.extend(f'{plugins[-1].IE_NAME.partition("+")[2]} ({parent.__name__})'
-                                    for parent, plugins in plugin_ie_overrides.items())
+                                    for parent, plugins in plugin_overrides.get().items())
             if not display_list:
                 continue
             write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')

@@ -5,7 +5,6 @@ import hashlib
 import http.client
 import http.cookiejar
 import http.cookies
-import inspect
 import itertools
 import json
 import math
@@ -3724,16 +3723,8 @@ class InfoExtractor:
 
     @classmethod
     def __init_subclass__(cls, *, plugin_name=None, **kwargs):
-        if plugin_name:
-            mro = inspect.getmro(cls)
-            super_class = cls.__wrapped__ = mro[mro.index(cls) + 1]
-            cls.PLUGIN_NAME, cls.ie_key = plugin_name, super_class.ie_key
-            cls.IE_NAME = f'{super_class.IE_NAME}+{plugin_name}'
-            while getattr(super_class, '__wrapped__', None):
-                super_class = super_class.__wrapped__
-            setattr(sys.modules[super_class.__module__], super_class.__name__, cls)
-            _PLUGIN_OVERRIDES[super_class].append(cls)
-
+        if plugin_name is not None:
+            cls._plugin_name = plugin_name
         return super().__init_subclass__(**kwargs)
 
 
@@ -3789,6 +3780,3 @@ class UnsupportedURLIE(InfoExtractor):
 
     def _real_extract(self, url):
         raise UnsupportedError(url)
-
-
-_PLUGIN_OVERRIDES = collections.defaultdict(list)

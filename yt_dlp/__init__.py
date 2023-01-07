@@ -19,8 +19,10 @@ from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
+from .globals import IN_CLI
 from .options import parseOpts
-from .postprocessor import (
+from .plugins import load_all_plugin_types
+from .postprocessor.ffmpeg import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
     FFmpegPostProcessor,
@@ -28,9 +30,8 @@ from .postprocessor import (
     FFmpegThumbnailsConvertorPP,
     FFmpegVideoConvertorPP,
     FFmpegVideoRemuxerPP,
-    MetadataFromFieldPP,
-    MetadataParserPP,
 )
+from .postprocessor.metadataparser import MetadataFromFieldPP, MetadataParserPP
 from .update import Updater
 from .utils import (
     NO_DEFAULT,
@@ -62,8 +63,6 @@ from .utils import (
     write_string,
 )
 from .YoutubeDL import YoutubeDL
-
-_IN_CLI = False
 
 
 def _exit(status=0, *args):
@@ -394,6 +393,10 @@ def validate_options(opts):
     }
 
     # Other options
+    opts.plugin_dirs = opts.plugin_dirs or []
+    if 'no-default' not in opts.plugin_dirs:
+        opts.plugin_dirs.append(...)
+
     if opts.playlist_items is not None:
         try:
             tuple(PlaylistEntries.parse_playlist_items(opts.playlist_items))
@@ -927,6 +930,9 @@ def _real_main(argv=None):
     if opts.ffmpeg_location:
         FFmpegPostProcessor._ffmpeg_location.set(opts.ffmpeg_location)
 
+    # load all plugins into the global lookup
+    load_all_plugin_types()
+
     with YoutubeDL(ydl_opts) as ydl:
         pre_process = opts.update_self or opts.rm_cachedir
         actual_use = all_urls or opts.load_info_filename
@@ -964,8 +970,7 @@ def _real_main(argv=None):
 
 
 def main(argv=None):
-    global _IN_CLI
-    _IN_CLI = True
+    IN_CLI.set(True)
     try:
         _exit(*variadic(_real_main(argv)))
     except DownloadError:

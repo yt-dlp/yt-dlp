@@ -1,28 +1,25 @@
-import contextlib
+import inspect
 import os
 
-from ..plugins import load_plugins
+from ..globals import LAZY_EXTRACTORS, extractors
 
-# NB: Must be before other imports so that plugins can be correctly injected
-_PLUGIN_CLASSES = load_plugins('extractor', 'IE')
-
-_LAZY_LOADER = False
+_CLASS_LOOKUP = None
 if not os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
-    with contextlib.suppress(ImportError):
-        from .lazy_extractors import *  # noqa: F403
-        from .lazy_extractors import _ALL_CLASSES
-        _LAZY_LOADER = True
+    try:
+        from .lazy_extractors import _CLASS_LOOKUP
+        LAZY_EXTRACTORS.set(True)
+    except ImportError:
+        LAZY_EXTRACTORS.set(None)
 
-if not _LAZY_LOADER:
-    from ._extractors import *  # noqa: F403
-    _ALL_CLASSES = [  # noqa: F811
-        klass
-        for name, klass in globals().items()
+if not _CLASS_LOOKUP:
+    from . import _extractors
+
+    _CLASS_LOOKUP = {
+        name: value
+        for name, value in inspect.getmembers(_extractors)
         if name.endswith('IE') and name != 'GenericIE'
-    ]
-    _ALL_CLASSES.append(GenericIE)  # noqa: F405
+    }
+    _CLASS_LOOKUP['GenericIE'] = _extractors.GenericIE
 
-globals().update(_PLUGIN_CLASSES)
-_ALL_CLASSES[:0] = _PLUGIN_CLASSES.values()
-
-from .common import _PLUGIN_OVERRIDES  # noqa: F401
+extractors.set(_CLASS_LOOKUP)
+globals().update(_CLASS_LOOKUP)
