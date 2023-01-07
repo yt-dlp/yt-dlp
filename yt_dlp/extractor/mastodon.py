@@ -35,14 +35,20 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
 
     _NETRC_MACHINE = 'mastodon'
     SH_KEY = 'mastodon'
-    _NODEINFO_SOFTWARES = {k: v for v, k in (
-        ('mastodon', ',"settings":{"known_fediverse":'),  # Mastodon initial-state
-        ('mastodon', '<li><a href="https://docs.joinmastodon.org/">Documentation</a></li>'),
-        ('pleroma', '<title>Pleroma</title>'),
-        ('pleroma', '<noscript>To use Pleroma, please enable JavaScript.</noscript>'),
-        ('pleroma', '<noscript>To use Soapbox, please enable JavaScript.</noscript>'),
-        ('gab', 'Alternatively, try one of the <a href="https://apps.gab.com">native apps</a> for Gab Social for your platform.'),
-    )}
+    _NODEINFO_SOFTWARES = {
+        'mastodon': (
+            ',"settings":{"known_fediverse":',  # Mastodon initial-state
+            '<li><a href="https://docs.joinmastodon.org/">Documentation</a></li>',
+        ),
+        'pleroma': (
+            '<title>Pleroma</title>',
+            '<noscript>To use Pleroma, please enable JavaScript.</noscript>',
+            '<noscript>To use Soapbox, please enable JavaScript.</noscript>',
+        ),
+        'gab': (
+            'Alternatively, try one of the <a href="https://apps.gab.com">native apps</a> for Gab Social for your platform.',
+        ),
+    }
     _SH_VALID_CONTENT_REGEXES = (
         # double quotes on Mastodon, single quotes on Gab Social
         r'<script id=[\'"]initial-state[\'"] type=[\'"]application/json[\'"]>{"meta":{"streaming_api_base_url":"wss://',
@@ -54,8 +60,8 @@ class MastodonBaseIE(SelfHostedInfoExtractor):
 
     def _determine_instance_software(self, host, webpage=None):
         if webpage:
-            for string, hostname in self._NODEINFO_SOFTWARES.items():
-                if string in webpage:
+            for hostname, strings in self._NODEINFO_SOFTWARES.items():
+                if any(string in webpage for string in strings):
                     return hostname
             # TODO: peertube support
 

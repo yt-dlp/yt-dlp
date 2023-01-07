@@ -3804,7 +3804,7 @@ class SelfHostedInfoExtractor(InfoExtractor):
     # TODO: FIx lazy extraction
 
     _BASE_IES = None
-    _NODEINFO_SOFTWARES = {}  # {string: software}
+    _NODEINFO_SOFTWARES = {}  # {software: (string, ...)}
     _SH_VALID_CONTENT_REGEXES = ()
 
     @classproperty
@@ -3856,12 +3856,12 @@ class SelfHostedInfoExtractor(InfoExtractor):
             return ie
 
         self.to_screen(f'Testing if {hostname} is a {self.SH_KEY} instance')
-        if self._probe_webpage(webpage) or self._fetch_nodeinfo_software(hostname) in self._NODEINFO_SOFTWARES.values():
+        if self._probe_webpage(webpage) or self._fetch_nodeinfo_software(hostname) in self._NODEINFO_SOFTWARES:
             self._KNOWN_INSTANCES.add(hostname)
             return ie
 
     def _probe_webpage(self, webpage):
-        return (any(p in webpage for p in self._NODEINFO_SOFTWARES.keys())
+        return (any(p in webpage for p in itertools.chain(*self._NODEINFO_SOFTWARES.values()))
                 or any(re.match(regex, webpage) for regex in self._SH_VALID_CONTENT_REGEXES))
 
     _NODEINFO_CACHE = {}
