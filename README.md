@@ -6,9 +6,9 @@
 [![Release version](https://img.shields.io/github/v/release/observeroftime02/yt-dlp-daily?color=brightgreen&label=Download&style=for-the-badge)](#installation "Installation")
 [![Supported Sites](https://img.shields.io/badge/-Supported_Sites-brightgreen.svg?style=for-the-badge)](supportedsites.md "Supported Sites")
 [![License: Unlicense](https://img.shields.io/badge/-Unlicense-blue.svg?style=for-the-badge)](LICENSE "License")
-[![CI Status](https://img.shields.io/github/workflow/status/observeroftime02/yt-dlp-daily/Core%20Tests/master?label=Tests&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/actions "CI Status")
-[![Commits](https://img.shields.io/github/commit-activity/m/observeroftime02/yt-dlp-daily?label=commits&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
-[![Last Commit](https://img.shields.io/github/last-commit/observeroftime02/yt-dlp-daily/master?label=&style=for-the-badge&display_timestamp=committer)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
+[![CI Status](https://img.shields.io/github/actions/workflow/status/observeroftime02/yt-dlp-daily/core.yml?branch=master&label=Tests&style=for-the-badge)](https://github.com/observeroftime02/yt-dlp-daily/actions "CI Status")
+[![Commits](https://img.shields.io/github/commit-activity/m/observeroftime02/yt-dlp-daily?label=commits&style=for-the-badge)](https://github.com/observeroftime02/yt-dlp-daily/commits "Commit History")
+[![Last Commit](https://img.shields.io/github/last-commit/observeroftime02/yt-dlp-daily/master?label=&style=for-the-badge&display_timestamp=committer)](https://github.com/observeroftime02/yt-dlp-daily/commits "Commit History")
 
 </div>
 <!-- MANPAGE: END EXCLUDED SECTION -->
@@ -118,7 +118,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Self-updater**: The releases can be updated using `yt-dlp -U`
 
-See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/commits) for the full list of changes
+See [changelog](Changelog.md) or [commits](https://github.com/observeroftime02/yt-dlp-daily/commits) for the full list of changes
 
 Features marked with a **\*** have been back-ported to youtube-dl
 
@@ -163,13 +163,13 @@ For ease of use, a few more compat options are available:
 # INSTALLATION
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
-[![Windows](https://img.shields.io/badge/-Windows_x64-blue.svg?style=for-the-badge&logo=windows)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)
-[![Unix](https://img.shields.io/badge/-Linux/BSD-red.svg?style=for-the-badge&logo=linux)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)
-[![MacOS](https://img.shields.io/badge/-MacOS-lightblue.svg?style=for-the-badge&logo=apple)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)
+[![Windows](https://img.shields.io/badge/-Windows_x64-blue.svg?style=for-the-badge&logo=windows)](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp.exe)
+[![Unix](https://img.shields.io/badge/-Linux/BSD-red.svg?style=for-the-badge&logo=linux)](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp)
+[![MacOS](https://img.shields.io/badge/-MacOS-lightblue.svg?style=for-the-badge&logo=apple)](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp_macos)
 [![PyPi](https://img.shields.io/badge/-PyPi-blue.svg?logo=pypi&labelColor=555555&style=for-the-badge)](https://pypi.org/project/yt-dlp)
-[![Source Tarball](https://img.shields.io/badge/-Source_tar-green.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
+[![Source Tarball](https://img.shields.io/badge/-Source_tar-green.svg?style=for-the-badge)](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp.tar.gz)
 [![Other variants](https://img.shields.io/badge/-Other-grey.svg?style=for-the-badge)](#release-files)
-[![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases)
+[![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/observeroftime02/yt-dlp-daily/releases)
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 You can install yt-dlp using [the binaries](#release-files), [PIP](https://pypi.org/project/yt-dlp) or one using a third-party package manager. See [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) for detailed instructions
@@ -190,35 +190,35 @@ For other third-party package managers, see [the wiki](https://github.com/yt-dlp
 
 File|Description
 :---|:---
-[yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)|Platform-independent [zipimport](https://docs.python.org/3/library/zipimport.html) binary. Needs Python (recommended for **Linux/BSD**)
-[yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)|Windows (Win7 SP1+) standalone x64 binary (recommended for **Windows**)
-[yt-dlp_macos](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)|Universal MacOS (10.15+) standalone executable (recommended for **MacOS**)
+[yt-dlp](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp)|Platform-independent [zipimport](https://docs.python.org/3/library/zipimport.html) binary. Needs Python (recommended for **Linux/BSD**)
+[yt-dlp.exe](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp.exe)|Windows (Win7 SP1+) standalone x64 binary (recommended for **Windows**)
+[yt-dlp_macos](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp_macos)|Universal MacOS (10.15+) standalone executable (recommended for **MacOS**)
 
 #### Alternatives
 
 File|Description
 :---|:---
-[yt-dlp_x86.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe)|Windows (Vista SP2+) standalone x86 (32-bit) binary
-[yt-dlp_min.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_min.exe)|Windows (Win7 SP1+) standalone x64 binary built with `py2exe`<br/> ([Not recommended](#standalone-py2exe-builds-windows))
-[yt-dlp_linux](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux)|Linux standalone x64 binary
-[yt-dlp_linux.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux.zip)|Unpackaged Linux executable (no auto-update)
-[yt-dlp_linux_armv7l](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_armv7l)|Linux standalone armv7l (32-bit) binary
-[yt-dlp_linux_aarch64](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64)|Linux standalone aarch64 (64-bit) binary
-[yt-dlp_win.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip)|Unpackaged Windows executable (no auto-update)
-[yt-dlp_macos.zip](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS (10.15+) executable (no auto-update)
-[yt-dlp_macos_legacy](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos_legacy)|MacOS (10.9+) standalone x64 executable
+[yt-dlp_x86.exe](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp_x86.exe)|Windows (Vista SP2+) standalone x86 (32-bit) binary
+[yt-dlp_min.exe](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp_min.exe)|Windows (Win7 SP1+) standalone x64 binary built with `py2exe`<br/> ([Not recommended](#standalone-py2exe-builds-windows))
+[yt-dlp_linux](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp_linux)|Linux standalone x64 binary
+[yt-dlp_linux.zip](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp_linux.zip)|Unpackaged Linux executable (no auto-update)
+[yt-dlp_linux_armv7l](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp_linux_armv7l)|Linux standalone armv7l (32-bit) binary
+[yt-dlp_linux_aarch64](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp_linux_aarch64)|Linux standalone aarch64 (64-bit) binary
+[yt-dlp_win.zip](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp_win.zip)|Unpackaged Windows executable (no auto-update)
+[yt-dlp_macos.zip](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp_macos.zip)|Unpackaged MacOS (10.15+) executable (no auto-update)
+[yt-dlp_macos_legacy](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp_macos_legacy)|MacOS (10.9+) standalone x64 executable
 
 #### Misc
 
 File|Description
 :---|:---
-[yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)|Source tarball
-[SHA2-512SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS)|GNU-style SHA512 sums
-[SHA2-256SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS)|GNU-style SHA256 sums
+[yt-dlp.tar.gz](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp.tar.gz)|Source tarball
+[SHA2-512SUMS](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/SHA2-512SUMS)|GNU-style SHA512 sums
+[SHA2-256SUMS](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/SHA2-256SUMS)|GNU-style SHA256 sums
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 
-**Note**: The manpages, shell completion files etc. are available in the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
+**Note**: The manpages, shell completion files etc. are available in the [source tarball](https://github.com/observeroftime02/yt-dlp-daily/releases/latest/download/yt-dlp.tar.gz)
 
 ## DEPENDENCIES
 Python versions 3.7+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
