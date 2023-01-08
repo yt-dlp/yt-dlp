@@ -1555,7 +1555,10 @@ from .rokfin import (
 )
 from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE
-from .rozhlas import RozhlasIE
+from .rozhlas import (
+    RozhlasIE,
+    RozhlasVltavaIE,
+)
 from .rte import RteIE, RteRadioIE
 from .rtlnl import (
     RtlNlIE,
