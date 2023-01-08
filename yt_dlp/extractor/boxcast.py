@@ -72,28 +72,19 @@ class BoxCastVideoIE(InfoExtractor):
             r'var\s*BOXCAST_PRELOAD\s*=', webpage, 'BOXCAST_PRELOAD', display_id,
             transform_source=js_to_json, default={})
 
+        # Ref: https://support.boxcast.com/en/articles/4235158-build-a-custom-viewer-experience-with-boxcast-api
+        broadcast_json_data = (
+            traverse_obj(webpage_json_data, ('broadcast', 'data'))
+            or self._download_json(f'https://api.boxcast.com/broadcasts/{display_id}', display_id))
+        view_json_data = (
+            traverse_obj(webpage_json_data, ('view', 'data'))
+            or self._download_json(f'https://api.boxcast.com/broadcasts/{display_id}/view',
+                                   display_id, fatal=False) or {})
+                
         formats, subtitles = [], {}
-        broadcast_json_data = traverse_obj(webpage_json_data, ('broadcast', 'data'), default={})
-
-        if traverse_obj(webpage_json_data, ('view', 'data', 'status'), get_all=False) == 'recorded':
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                webpage_json_data['view']['data']['playlist'], display_id)
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
-
-        if not webpage_json_data:
-            # call api only if webpage_json_data didn't return expected result
-            # api info at https://support.boxcast.com/en/articles/4235158-build-a-custom-viewer-experience-with-boxcast-api
-            # sometimes the using rest.boxcast.com as api domain also works
-            view_json_data = self._download_json(
-                f'https://api.boxcast.com/broadcasts/{display_id}/view', display_id)
-
-            fmts, subs = self._extract_m3u8_formats_and_subtitles(view_json_data['playlist'], display_id)
-            formats.extend(fmts)
-            self._merge_subtitles(subs, target=subtitles)
-
-            broadcast_json_data = self._download_json(
-                f'https://api.boxcast.com/broadcasts/{display_id}', display_id)
+        if view_json_data.get('status') == 'recorded':
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                view_json_data['playlist'], display_id)
 
         return {
             'id': str(broadcast_json_data['id']),
