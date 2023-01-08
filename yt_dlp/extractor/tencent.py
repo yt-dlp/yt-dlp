@@ -109,7 +109,7 @@ class TencentBaseIE(InfoExtractor):
             'format_id ': format_id,
             'format_note': format_name,
             'dynamic_range': 'hdr10' if is_hdr else None,
-            'has_drm': True if format_response.get('drm') != 0 else False,
+            'has_drm': format_response.get('drm', 0) != 0,
         }
         for f in formats:
             f.update(common_info)
