@@ -80,7 +80,7 @@ class BoxCastVideoIE(InfoExtractor):
             traverse_obj(webpage_json_data, ('view', 'data'))
             or self._download_json(f'https://api.boxcast.com/broadcasts/{display_id}/view',
                                    display_id, fatal=False) or {})
-                
+
         formats, subtitles = [], {}
         if view_json_data.get('status') == 'recorded':
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
