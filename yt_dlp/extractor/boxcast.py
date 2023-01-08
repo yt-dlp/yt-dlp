@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     js_to_json,
@@ -14,6 +12,7 @@ class BoxCastVideoIE(InfoExtractor):
                     (?:view-embed/|channel/\w+\?(?:[^/#&]+&?)?b=|video-portal/(?:\w+/?){2})
                     (?P<id>[\w-]+))
                 '''
+    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>https?://boxcast\.tv/view-embed/[\w-]+)']
     _TESTS = [{
         'url': 'https://boxcast.tv/view-embed/in-the-midst-of-darkness-light-prevails-an-interdisciplinary-symposium-ozmq5eclj50ujl4bmpwx',
         'info_dict': {
@@ -63,14 +62,6 @@ class BoxCastVideoIE(InfoExtractor):
             'uploader': 'Children\'s Health Defense',
         }
     }]
-
-    @classmethod
-    def _extract_embed_urls(cls, url, webpage):
-        mobj = re.search(
-            r'<iframe[^>]+src=["\'](?P<url>https?://boxcast\.tv/view-embed/[\w-]+)',
-            webpage)
-        if mobj:
-            yield mobj.group('url')
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
