@@ -8,11 +8,11 @@ from ..utils import (
 
 class BoxCastVideoIE(InfoExtractor):
     _VALID_URL = r'''(?x)(
-        https?://boxcast\.tv/(?:
-            view-embed/|
-            channel/\w+\?(?:[^#]+&)?b=|
-            video-portal/(?:\w+/){2}
-        )(?P<id>[\w-]+)
+            https?://boxcast\.tv/(?:
+                view-embed/|
+                channel/\w+\?(?:[^#]+&)?b=|
+                video-portal/(?:\w+/){2}
+            )(?P<id>[\w-]+))
                 '''
     _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>https?://boxcast\.tv/view-embed/[\w-]+)']
     _TESTS = [{
