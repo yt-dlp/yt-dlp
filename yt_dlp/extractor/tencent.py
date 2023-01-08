@@ -106,7 +106,7 @@ class TencentBaseIE(InfoExtractor):
             'vbr': float_or_none(format_response.get('bandwidth'), scale=1000),
             'fps': format_response.get('vfps'),
             'format': format_name,
-            'format_id ': format_id,
+            'format_id': format_id,
             'format_note': format_name,
             'dynamic_range': 'hdr10' if is_hdr else None,
             'has_drm': format_response.get('drm', 0) != 0,
@@ -185,8 +185,8 @@ class VQQVideoIE(VQQBaseIE):
             'title': '我是选手：雷霆裂阵，终极时刻',
             'description': 'md5:e7ed70be89244017dac2a835a10aeb1e',
             'thumbnail': r're:^https?://[^?#]+q326831cny0',
-            'format_id ': 'shd',
-            'has_drm ': False,
+            'format_id': r're:^shd',
+            'has_drm': False,
         },
     }, {
         'url': 'https://v.qq.com/x/page/o3013za7cse.html',
@@ -197,8 +197,8 @@ class VQQVideoIE(VQQBaseIE):
             'title': '欧阳娜娜VLOG',
             'description': 'md5:29fe847497a98e04a8c3826e499edd2e',
             'thumbnail': r're:^https?://[^?#]+o3013za7cse',
-            'format_id ': 'shd',
-            'has_drm ': False,
+            'format_id': r're:^shd',
+            'has_drm': False,
         },
     }, {
         'url': 'https://v.qq.com/x/cover/7ce5noezvafma27/a00269ix3l8.html',
@@ -210,8 +210,8 @@ class VQQVideoIE(VQQBaseIE):
             'description': 'md5:8cae3534327315b3872fbef5e51b5c5b',
             'thumbnail': r're:^https?://[^?#]+7ce5noezvafma27',
             'series': '鸡毛飞上天',
-            'format_id ': 'shd',
-            'has_drm ': False,
+            'format_id': r're:^shd',
+            'has_drm': False,
         },
     }, {
         'url': 'https://v.qq.com/x/cover/mzc00200p29k31e/s0043cwsgj0.html',
@@ -223,8 +223,8 @@ class VQQVideoIE(VQQBaseIE):
             'description': 'md5:1d8c3a0b8729ae3827fa5b2d3ebd5213',
             'thumbnail': r're:^https?://[^?#]+s0043cwsgj0',
             'series': '青年理工工作者生活研究所',
-            'format_id ': 'shd',
-            'has_drm ': False,
+            'format_id': r're:^shd',
+            'has_drm': False,
         },
     }, {
         # Geo-restricted to China
@@ -358,7 +358,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'episode': 'Episode 1',
             'episode_number': 1,
             'duration': 2835,
-            'format_id ': 'shd',
+            'format_id': r're:^shd',
         },
     }, {
         'url': 'https://wetv.vip/en/play/u37kgfnfzs73kiu/p0039b9nvik',
@@ -373,7 +373,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'episode': 'Episode 1',
             'episode_number': 1,
             'duration': 2454,
-            'format_id ': 'shd',
+            'format_id': r're:^shd',
         },
     }, {
         'url': 'https://wetv.vip/en/play/lcxgwod5hapghvw-WeTV-PICK-A-BOO/i0042y00lxp-Zhao-Lusi-Describes-The-First-Experiences-She-Had-In-Who-Rules-The-World-%7C-WeTV-PICK-A-BOO',
@@ -388,7 +388,7 @@ class WeTvEpisodeIE(WeTvBaseIE):
             'episode': 'Episode 0',
             'episode_number': 0,
             'duration': 442,
-            'format_id ': 'shd',
+            'format_id': r're:^shd',
         },
     }]
 
@@ -448,7 +448,7 @@ class IflixEpisodeIE(IflixBaseIE):
             'episode': 'Episode 1',
             'episode_number': 1,
             'duration': 2639,
-            'format_id ': 'shd',
+            'format_id': r're:^shd',
         },
     }, {
         'url': 'https://www.iflix.com/en/play/fvvrcc3ra9lbtt1-Take-My-Brother-Away/i0029sd3gm1-EP1%EF%BC%9ATake-My-Brother-Away',
@@ -463,7 +463,7 @@ class IflixEpisodeIE(IflixBaseIE):
             'episode': 'Episode 1',
             'episode_number': 1,
             'duration': 228,
-            'format_id ': 'shd',
+            'format_id': r're:^shd',
         },
     }]
 
