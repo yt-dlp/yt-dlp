@@ -72,11 +72,8 @@ class NebulaBaseIE(InfoExtractor):
         manifest_url = stream_info['manifest']
         return self._extract_m3u8_formats_and_subtitles(manifest_url, slug)
 
-    def _build_video_info(self, episode, fetch_formats_and_subs=True):
-        if fetch_formats_and_subs:
-            fmts, subs = self._fetch_video_formats(episode['slug'])
-        else:
-            fmts, subs = [], []
+    def _build_video_info(self, episode):
+        fmts, subs = self._fetch_video_formats(episode['slug'])
         channel_slug = episode['channel_slug']
         channel_title = episode['channel_title']
         return {
@@ -84,7 +81,7 @@ class NebulaBaseIE(InfoExtractor):
             'display_id': episode['slug'],
             'formats': fmts,
             'subtitles': subs,
-            'url_result': f'https://nebula.app/{episode["slug"]}' if not fetch_formats_and_subs else '',
+            'webpage_url': f'https://nebula.tv/{episode["slug"]}',
             'title': episode['title'],
             'description': episode['description'],
             'timestamp': parse_iso8601(episode['published_at']),
@@ -96,10 +93,10 @@ class NebulaBaseIE(InfoExtractor):
             'duration': episode['duration'],
             'channel': channel_title,
             'channel_id': channel_slug,
-            'channel_url': f'https://nebula.app/{channel_slug}',
+            'channel_url': f'https://nebula.tv/{channel_slug}',
             'uploader': channel_title,
             'uploader_id': channel_slug,
-            'uploader_url': f'https://nebula.app/{channel_slug}',
+            'uploader_url': f'https://nebula.tv/{channel_slug}',
             'series': channel_title,
             'creator': channel_title,
         }
@@ -113,7 +110,7 @@ class NebulaIE(NebulaBaseIE):
     _VALID_URL = rf'{_BASE_URL_RE}/videos/(?P<id>[-\w]+)'
     _TESTS = [
         {
-            'url': 'https://nebula.app/videos/that-time-disney-remade-beauty-and-the-beast',
+            'url': 'https://nebula.tv/videos/that-time-disney-remade-beauty-and-the-beast',
             'md5': '14944cfee8c7beeea106320c47560efc',
             'info_dict': {
                 'id': '5c271b40b13fd613090034fd',
@@ -127,17 +124,17 @@ class NebulaIE(NebulaBaseIE):
                 'uploader': 'Lindsay Ellis',
                 'uploader_id': 'lindsayellis',
                 'timestamp': 1533009600,
-                'uploader_url': 'https://nebula.app/lindsayellis',
+                'uploader_url': 'https://nebula.tv/lindsayellis',
                 'series': 'Lindsay Ellis',
                 'display_id': 'that-time-disney-remade-beauty-and-the-beast',
-                'channel_url': 'https://nebula.app/lindsayellis',
+                'channel_url': 'https://nebula.tv/lindsayellis',
                 'creator': 'Lindsay Ellis',
                 'duration': 2212,
                 'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
             },
         },
         {
-            'url': 'https://nebula.app/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
+            'url': 'https://nebula.tv/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
             'md5': 'd05739cf6c38c09322422f696b569c23',
             'info_dict': {
                 'id': '5e7e78171aaf320001fbd6be',
@@ -154,13 +151,13 @@ class NebulaIE(NebulaBaseIE):
                 'display_id': 'the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
                 'creator': 'Real Engineering',
                 'duration': 841,
-                'channel_url': 'https://nebula.app/realengineering',
-                'uploader_url': 'https://nebula.app/realengineering',
+                'channel_url': 'https://nebula.tv/realengineering',
+                'uploader_url': 'https://nebula.tv/realengineering',
                 'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
             },
         },
         {
-            'url': 'https://nebula.app/videos/money-episode-1-the-draw',
+            'url': 'https://nebula.tv/videos/money-episode-1-the-draw',
             'md5': 'ebe28a7ad822b9ee172387d860487868',
             'info_dict': {
                 'id': '5e779ebdd157bc0001d1c75a',
@@ -173,9 +170,9 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'tom-scott-presents-money',
                 'uploader': 'Tom Scott Presents: Money',
                 'uploader_id': 'tom-scott-presents-money',
-                'uploader_url': 'https://nebula.app/tom-scott-presents-money',
+                'uploader_url': 'https://nebula.tv/tom-scott-presents-money',
                 'duration': 825,
-                'channel_url': 'https://nebula.app/tom-scott-presents-money',
+                'channel_url': 'https://nebula.tv/tom-scott-presents-money',
                 'series': 'Tom Scott Presents: Money',
                 'display_id': 'money-episode-1-the-draw',
                 'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
@@ -205,7 +202,7 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
     _VALID_URL = rf'{_BASE_URL_RE}/myshows'
     _TESTS = [
         {
-            'url': 'https://nebula.app/myshows',
+            'url': 'https://nebula.tv/myshows',
             'playlist_mincount': 1,
             'info_dict': {
                 'id': 'myshows',
@@ -233,7 +230,7 @@ class NebulaChannelIE(NebulaBaseIE):
     _VALID_URL = rf'{_BASE_URL_RE}/(?!myshows|videos/)(?P<id>[-\w]+)'
     _TESTS = [
         {
-            'url': 'https://nebula.app/tom-scott-presents-money',
+            'url': 'https://nebula.tv/tom-scott-presents-money',
             'info_dict': {
                 'id': 'tom-scott-presents-money',
                 'title': 'Tom Scott Presents: Money',
@@ -241,7 +238,7 @@ class NebulaChannelIE(NebulaBaseIE):
             },
             'playlist_count': 5,
         }, {
-            'url': 'https://nebula.app/lindsayellis',
+            'url': 'https://nebula.tv/lindsayellis',
             'info_dict': {
                 'id': 'lindsayellis',
                 'title': 'Lindsay Ellis',
@@ -255,7 +252,7 @@ class NebulaChannelIE(NebulaBaseIE):
         episodes = channel['episodes']['results']
         for page_num in itertools.count(2):
             for episode in episodes:
-                yield self._build_video_info(episode, fetch_formats_and_subs=False)
+                yield self._build_video_info(episode)
             next_url = channel['episodes']['next']
             if not next_url:
                 break
