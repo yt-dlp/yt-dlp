@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -39,7 +37,7 @@ class HiDiveIE(InfoExtractor):
         form = self._search_regex(
             r'(?s)<form[^>]+action="/account/login"[^>]*>(.+?)</form>',
             webpage, 'login form', default=None)
-        if not form: # already logged in
+        if not form:  # already logged in
             return
         data = self._hidden_inputs(form)
         data.update({
@@ -51,7 +49,7 @@ class HiDiveIE(InfoExtractor):
         # If the user has multiple profiles on their account, select one. For now pick the first profile.
         profile_id = self._search_regex(r'<button [^>]+?data-profile-id="(\w+)"', login_webpage, 'profile_id')
         if profile_id is None:
-            return # If only one profile, Hidive auto-selects it
+            return  # If only one profile, Hidive auto-selects it
         profile_id_hash = self._search_regex(r'\<button [^>]+?data-hash="(\w+)"', login_webpage, 'profile_id_hash')
         self._request_webpage(
             'https://www.hidive.com/ajax/chooseprofile', None,
