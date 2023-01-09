@@ -39,7 +39,7 @@ class HiDiveIE(InfoExtractor):
         form = self._search_regex(
             r'(?s)<form[^>]+action="/account/login"[^>]*>(.+?)</form>',
             webpage, 'login form', default=None)
-        if not form: # already logged in, so no more actions to take.
+        if not form: # already logged in
             return
         data = self._hidden_inputs(form)
         data.update({
@@ -48,22 +48,18 @@ class HiDiveIE(InfoExtractor):
         })
         login_webpage = self._download_webpage(
             self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(data))
-        # If the user has multiple profiles on their account, select one.
-        # For now pick the first profile. In the future, when someone has a use-case, they can update
-        #    this code to support that. Maybe the user would need to declare the index number of the profile
-        #    in a config file, and this part reads that config and selects the profile in the Nth position.
-        #    In that case, `_search_regex` likely wouldn't work, as it selects the first match.
-        profile_id = self._search_regex(r'\<button .+?data-profile-id="(\w+)".*?\>', login_webpage, 'profile_id')
+        # If the user has multiple profiles on their account, select one. For now pick the first profile.
+        profile_id = self._search_regex(r'<button [^>]+?data-profile-id="(\w+)"', login_webpage, 'profile_id')
         if profile_id is None:
-            return # If only one profile, Hidive auto-selects it, so no more actions to take.
-        profile_id_hash = self._search_regex(r'\<button .+?data-hash="(\w+)".*?\>', login_webpage, 'profile_id_hash')
+            return # If only one profile, Hidive auto-selects it
+        profile_id_hash = self._search_regex(r'\<button [^>]+?data-hash="(\w+)"', login_webpage, 'profile_id_hash')
         self._request_webpage(
             'https://www.hidive.com/ajax/chooseprofile', None,
             data=urlencode_postdata({
                 'profileId': profile_id,
                 'hash': profile_id_hash,
                 'returnUrl': '/dashboard'
-            })) or {}
+            }))
 
     def _call_api(self, video_id, title, key, data={}, **kwargs):
         data = {
@@ -76,29 +72,11 @@ class HiDiveIE(InfoExtractor):
             'https://www.hidive.com/play/settings', video_id,
             data=urlencode_postdata(data), **kwargs) or {}
 
-    def _get_subtitles(self, settings, url, video_id, title, key, parsed_urls):
-        subtitles = {}
-
-        for rendition_id, rendition in settings['renditions'].items():
-            audio, version, extra = rendition_id.split('_')
-
-            for cc_file in rendition.get('ccFiles', []):
-                # cc_file[0]: subtitle language code, e.g. 'en'
-                # cc_file[1]: subtitle name, e.g. 'English Caps', 'English Subs'
-                # cc_file[2]: subtitle URL (likely vtt format), e.g. 'English Caps', 'English Subs'
-                # cc_file[3]: ???, e.g. 'default'
-                cc_url = url_or_none(try_get(cc_file, lambda x: x[2]))
-                cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
-                if cc_url not in parsed_urls and cc_lang:
-                    parsed_urls.add(cc_url)
-                    subtitles.setdefault(cc_lang, []).append({'url': cc_url})
-
-        return subtitles
-
     def _real_extract(self, url):
         video_id, title, key = self._match_valid_url(url).group('id', 'title', 'key')
         settings = self._call_api(video_id, title, key)
 
+        # Guard against insufficient permissions to download.
         restriction = settings.get('restrictionReason')
         if restriction == 'RegionRestricted':
             self.raise_geo_restricted()
@@ -106,6 +84,7 @@ class HiDiveIE(InfoExtractor):
             raise ExtractorError(
                 '%s said: %s' % (self.IE_NAME, restriction), expected=True)
 
+        # Extract video format options.
         formats, parsed_urls = [], {None}
         for rendition_id, rendition in settings['renditions'].items():
             audio, version, extra = rendition_id.split('_')
@@ -119,10 +98,25 @@ class HiDiveIE(InfoExtractor):
                     f['format_note'] = f'{version}, {extra}'
                 formats.extend(frmt)
 
+        # Extract subtitle options.
+        subtitles = {}
+        for rendition_id, rendition in settings['renditions'].items():
+            audio, version, extra = rendition_id.split('_')
+            for cc_file in rendition.get('ccFiles', []):
+                # cc_file[0]: subtitle language code, e.g. 'en'
+                # cc_file[1]: subtitle name, e.g. 'English Caps', 'English Subs'
+                # cc_file[2]: subtitle URL (likely vtt format), e.g. 'English Caps', 'English Subs'
+                # cc_file[3]: ???, e.g. 'default'
+                cc_url = url_or_none(try_get(cc_file, lambda x: x[2]))
+                cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
+                if cc_url not in parsed_urls and cc_lang:
+                    parsed_urls.add(cc_url)
+                    subtitles.setdefault(cc_lang, []).append({'url': cc_url})
+
         return {
             'id': video_id,
             'title': video_id,
-            'subtitles': self.extract_subtitles(settings, url, video_id, title, key, parsed_urls),
+            'subtitles': subtitles,
             'formats': formats,
             'series': title,
             'season_number': int_or_none(
