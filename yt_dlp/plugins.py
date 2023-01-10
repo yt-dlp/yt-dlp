@@ -58,7 +58,10 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         def _get_package_paths(*root_paths, containing_folder='plugins'):
             for config_dir in orderedSet(map(Path, root_paths), lazy=True):
                 plugin_dir = config_dir / containing_folder
-                if not plugin_dir.is_dir():
+                try:
+                    if not plugin_dir.is_dir():
+                        continue
+                except PermissionError:
                     continue
                 yield from plugin_dir.iterdir()
 
