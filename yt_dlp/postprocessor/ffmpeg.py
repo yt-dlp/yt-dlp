@@ -508,7 +508,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         if acodec != 'copy':
             more_opts = self._quality_args(acodec)
 
-        temp_path = new_path = f'{os.path.splitext(path)[0]}.{extension}'
+        temp_path = new_path = replace_extension(path, extension, information['ext'])
 
         if new_path == path:
             if acodec == 'copy':
