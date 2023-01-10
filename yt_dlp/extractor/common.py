@@ -2146,20 +2146,14 @@ class InfoExtractor:
                                 fmt['acodec'] = codecs.get('acodec')
                                 break
 
-                    fixed = False
-                    # Trying to set Video-only (and Audio-only???) streams based on the manifest url (be very strict to avoid issues). Eg:
+                    # Trying to set Video-only streams based on the manifest url (be very strict to avoid issues). Eg:
                     # .../chunklist_b5210000_vo_...
                     # .../v9/prog_index.m3u8...
                     # .../index-f14-v1.m3u8?...
-                    if re.search(r'chunklist\w*?_vo_|/v\d{1,2}/\w*?index\.m3u8|index-f\d{1,2}-v\d{1,2}\.m3u8', f['url']):
+                    if re.search(r'chunklist\w*?_vo_|/v\d{1,2}/\w*?index\.m3u8|index(?:-f\d{1,2})?-v\d{1,2}\.m3u8', f['url']):
                         codecs['acodec'] = 'none'
-                        fixed = True
-                    # Audio only: very likely not necessary
-                    elif re.search(r'chunklist\w*?_ao_|/a\d{1,2}/\w*?index\.m3u8|index-f\d{1,2}-a\d{1,2}\.m3u8', f['url']):
-                        codecs['vcodec'] = 'none'
-                        fixed = True
 
-                    if audio_group_id and codecs and not force_codecs and f.get('vcodec') != 'none' and not fixed:
+                    if audio_group_id and codecs and not force_codecs and f.get('vcodec') != 'none':
                         audio_group = groups.get(audio_group_id)
                         if audio_group and audio_group[0].get('URI'):
                             codecs['acodec'] = 'none'
