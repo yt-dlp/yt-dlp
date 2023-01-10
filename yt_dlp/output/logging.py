@@ -16,6 +16,11 @@ from ..utils import Namespace, deprecation_warning, variadic
 
 
 class LogLevel(Enum):
+    """
+    Represents a LogLevel
+
+    Each LogLevel has a dedicated output in the Logger mapping.
+    """
     SCREEN = 0
     DEBUG = 10
     INFO = 20
@@ -24,6 +29,11 @@ class LogLevel(Enum):
 
 
 class Verbosity(Enum):
+    """
+    Represents a Verbosity
+
+    Verbosity acts as a filter for certain logging events.
+    """
     QUIET = 0
     NORMAL = 1
     VERBOSE = 2

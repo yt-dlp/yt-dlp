@@ -1,6 +1,7 @@
 from .formatting import apply_progress_format
 from .logging import LogLevel, default_logger
 from .outputs import NULL_OUTPUT, StreamOutput
+from ..utils import remove_end
 
 
 class Progress:
@@ -23,9 +24,7 @@ class Progress:
         self.preserve = preserve
         self.newline = newline
         self._progress_lines = [None] * lines
-        self._closed = False
-
-        self.output.register_status(self, lines)
+        self._status_id = self.output.register_status(lines) if output else None
 
     def print(self, pos, text):
         if not self.output or pos > self.maximum:
@@ -34,23 +33,21 @@ class Progress:
         self._progress_lines[pos] = text
 
         if self.newline:
-            self.output.log(f'{self._add_line_number(text, pos)}\n')
+            text = self._add_line_number(remove_end(text, '\n'), pos)
+            self.output.log(f'{text}\n')
             return
 
         if not self.output.use_term_codes:
             text = self._add_line_number(text, pos)
 
-        self.output.status(self, pos, text)
+        self.output.status(self._status_id, pos, text)
 
     def close(self):
-        if self._closed:
+        if self._status_id is None:
             return
 
-        self._closed = True
-        if not self.output:
-            return
-
-        self.output.unregister_status(self)
+        self.output.unregister_status(self._status_id)
+        self._status_id = None
         if self.preserve and not self.newline:
             self.output.log('\n'.join(filter(None, self._progress_lines)))
 
@@ -79,13 +76,13 @@ class ProgressReporter:
 
     def report_progress(self, progress_dict):
         line = progress_dict.get('progress_idx') or 0
+        apply_progress_format(progress_dict, self._progress.output.use_term_codes)
+
         if self.disabled:
             if progress_dict['status'] == 'finished':
                 self._progress.print(line, self._finish_template)
 
             return
-
-        apply_progress_format(progress_dict, self._progress.output.use_term_codes)
 
         progress_data = progress_dict.copy()
         progress_data = {

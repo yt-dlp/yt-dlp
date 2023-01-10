@@ -149,6 +149,12 @@ def format_text(message, *text_formats):
 
 
 def move_cursor(distance):
+    """
+    Make a vertical cursor movement sequence
+
+    @param distance The vertical amount of columns to move the cursor by.
+                    Negative moves up, positive down.
+    """
     if not distance:
         return ''
 

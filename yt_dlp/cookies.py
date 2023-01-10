@@ -45,14 +45,14 @@ class CookiesStatus:
 
     def __init__(self, logger):
         self._timer = 0
-        self._closed = False
+        self._status_id = None
 
-        # Do not print to files/pipes, loggers, or when --no-status is used
-        output = logger.mapping.get(LogLevel.ERROR)
+        # Do not print to files/pipes, loggers or when --no-status is used
         self._output = NULL_OUTPUT
         if logger.disable_progress:
             return
 
+        output = logger.mapping.get(LogLevel.ERROR)
         if isinstance(output, StreamOutput) and output.isatty:
             self._output = output
 
@@ -62,19 +62,20 @@ class CookiesStatus:
 
         current_time = time.time()
         if current_time - self._timer > self._DELAY:
-            self._output.status(self, 0, f'[Cookies] {message}')
+            self._output.status(self._status_id, 0, f'[Cookies] {message}')
             self._timer = current_time
 
     def __enter__(self):
-        self._output.register_status(self, 1)
+        if self._status_id is None:
+            self._status_id = self._output.register_status()
         return self
 
     def __exit__(self, *_):
-        if self._closed or not self._output:
+        if self._status_id is None:
             return
 
-        self._closed = True
-        self._output.unregister_status(self)
+        self._output.unregister_status(self._status_id)
+        self._status_id = None
         return self
 
 

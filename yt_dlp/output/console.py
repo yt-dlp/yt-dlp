@@ -9,6 +9,14 @@ class Console:
     RESTORE_TITLE = TermCode(f'{CSI}23;0t')
 
     def __init__(self, encoding=None, allow_title_change=False):
+        """
+        A class representing a console
+
+        @param encoding             The encoding to use for the console.
+                                    Defaults to None.
+        @param allow_title_change   If False, do not allow the console
+                                    title to be changed. Defaults to False.
+        """
         self.initialized = False
         self.stream = None
         self._stream_encoding = encoding
@@ -41,24 +49,52 @@ class Console:
         self._title_func = self._change_title_win_api
 
     def change_title(self, title):
+        """
+        Change the title of the console
+
+        Has no effect if there is no known way to set the title.
+        Will use either terminal sequences or Windows API.
+
+        @param title    A string to set the console title to.
+        """
         if self._title_func is None:
             return
 
         self._title_func(title)
 
     def send_code(self, code):
+        """
+        Send a console code to the console stream
+
+        This has no effect if there is no known console stream
+        supporting terminal sequences.
+
+        @param code A string or TermCode to send to the console.
+        """
         if not self.initialized:
             return
 
         write_string(code, self.stream, self._stream_encoding)
 
     def save_title(self):
+        """
+        Save the current title on the stack
+
+        This sends a console sequence to save
+        the current title on the stack
+        """
         if not self.allow_title_change:
             return
 
         self.send_code(self.SAVE_TITLE)
 
     def restore_title(self):
+        """
+        Restore the last title from the stack
+
+        This sends a console sequence to restore
+        the last title from the stack
+        """
         if not self.allow_title_change:
             return
 

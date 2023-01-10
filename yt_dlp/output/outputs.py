@@ -8,6 +8,14 @@ from ..utils import supports_terminal_sequences, write_string
 
 
 class OutputBase:
+    """
+    The base for every output
+
+    Each output will always have the following attributes:
+    @param ALLOW_BIDI       Allow the use of the bidi workaround
+                            for the specified output.
+    @param use_term_codes   Use terminal codes for the output.
+    """
     ALLOW_BIDI = False
     _use_term_codes = False
 
@@ -16,24 +24,70 @@ class OutputBase:
         return self._use_term_codes
 
     def format(self, text, *text_formats):
+        """
+        Format text using specified text formats
+
+        @param text             The text to format. It will be wrapped in the
+                                color start and end sequences.
+        @params text_formats    A TermCode, Color or Typeface.
+
+        @returns                The text with the requested formatting if supported.
+        """
         if not self.use_term_codes:
             return text
 
         return format_text(text, *text_formats)
 
-    def _log(self, message):
-        ...
+    @classmethod
+    def _log(cls, message):
+        raise NotImplementedError(
+            f'At least `{cls.__name__}._log` or both `{cls.__name__}.log` '
+            + f'and `{cls.__name__}.status` must be implemented in subclass')
 
     def log(self, message):
+        """Log a message to the output"""
         self._log(message.rstrip())
 
-    def status(self, message):
+    def status(self, status_id, line, message):
+        """
+        Send a status update to the output
+
+        `register_status` MUST be called before calling the
+        `status` function with that specific `status_id`.
+
+        @param status_id    The id for the status to write to.
+        @param line         The line index to write to.
+                            Must be smaller than the registered line count.
+        @param message      The content to write to the status line.
+                            It SHOULD NOT contain newlines besides
+                            an optional trailing one.
+        """
         self._log(message.rstrip())
 
-    def register_status(self, status, lines):
-        pass
+    def register_status(self, lines=1):
+        """
+        Register status lines with the output
 
-    def unregister_status(self, status):
+        Does nothing for this output and always returns `0`.
+
+        @param lines    The amount of lines this status output occupies.
+                        Defaults to 1.
+        @returns        The integer `status_id` for that status.
+        """
+        return 0
+
+    def unregister_status(self, status_id):
+        """
+        Unregister status lines with the output
+
+        After unregistering that `status_id`,
+        the `status` or `unregister_status` functions
+        MUST NOT be called with that specific `status_id` again.
+
+        Does nothing for this output.
+
+        @param status_id    The id for the status to unregister.
+        """
         pass
 
 
@@ -54,11 +108,16 @@ def _synchronized(func=None):
 
 class _StreamOutputGroup:
     _CURRENT_ID = 0
+    _CURRENT_STATUS_ID = 0
 
     @classmethod
     def next_id(cls):
         cls._CURRENT_ID -= 1
         return cls._CURRENT_ID
+
+    def next_status_id(self):
+        self._CURRENT_STATUS_ID += 1
+        return self._CURRENT_STATUS_ID
 
     def __init__(self):
         self.current_position: int = 0
@@ -136,7 +195,8 @@ class StreamOutput(OutputBase):
                 lines += 1
 
             message = ''.join((
-                self._move_to(None, lines - 1), move_cursor(-self._output_group.current_position),
+                self._move_to(None, lines - 1),
+                move_cursor(-self._output_group.current_position),
                 f'{CSI}{lines}L{message}'))
 
         elif self._output_group.current_position == -1:
@@ -149,9 +209,7 @@ class StreamOutput(OutputBase):
         self._output_group.current_position = 0 if message.endswith('\n') else -1
 
     @_synchronized
-    def status(self, status, line, message):
-        status_id = id(status)
-
+    def status(self, status_id, line, message):
         if not self.use_term_codes:
             message_length = len(message)
             previous_length = self._output_group.get_previous_length(status_id, line)
@@ -167,25 +225,45 @@ class StreamOutput(OutputBase):
             self._output_group.current_position = 0 if message.endswith('\n') else -1
             return
 
+        # XXX: This fails for non trailing newlines
         self._log(f'{self._move_to(status_id, line)}\r{ERASE_LINE}{message}')
+        if message.endswith('\n'):
+            self._output_group.current_position += 1
 
     @_synchronized
-    def register_status(self, status, lines):
+    def register_status(self, lines=1):
+        """
+        Register status lines with the output
+
+        @param lines    The amount of lines this status occupies.
+                        Defaults to 1.
+        @returns        The integer `status_id` for that status.
+        """
         if not self.use_term_codes:
             return
 
-        status_id = id(status)
+        status_id = self._output_group.next_status_id()
         self._output_group.status_sizes[status_id] = lines
+        return status_id
 
     @_synchronized
-    def unregister_status(self, status):
+    def unregister_status(self, status_id):
+        """
+        Unregister status lines with the output
+
+        After unregistering that `status_id`,
+        the `status` or `unregister_status` functions
+        MUST NOT be called with that specific `status_id` again.
+
+        The status lines will be removed from the status section.
+
+        @param status_id    The id for the status to unregister.
+        """
         if not self.use_term_codes:
             self._output_group.reset_last_status()
             return
 
-        status_id = id(status)
         self._log(f'{self._move_to(status_id, 0)}{CSI}{self._output_group.status_sizes[status_id]}M')
-
         del self._output_group.status_sizes[status_id]
 
     def _log(self, message):
@@ -207,6 +285,7 @@ class StreamOutput(OutputBase):
 
 
 class ClassOutput(OutputBase):
+    """An output for writing to class functions"""
     def __init__(self, func):
         self._logging_function = func
 
@@ -215,6 +294,7 @@ class ClassOutput(OutputBase):
 
 
 class LoggingOutput(OutputBase):
+    """An output for writing to the logging module"""
     REMOVABLE_PREFIXES = {'[debug] ', 'ERROR: ', 'WARNING: '}
 
     def __init__(self, level):
@@ -230,10 +310,11 @@ class LoggingOutput(OutputBase):
 
 
 class NullOutput(OutputBase):
+    """A dummy output having no effect"""
     def log(self, message):
         pass
 
-    def status(self, status, line, message):
+    def status(self, status_id, line, message):
         pass
 
     def __bool__(self):
