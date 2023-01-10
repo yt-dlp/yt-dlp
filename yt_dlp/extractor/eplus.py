@@ -33,7 +33,7 @@ class EplusIbIE(InfoExtractor):
         delivery_status = traverse_obj(data_json, 'delivery_status')
         archive_mode = traverse_obj(data_json, 'archive_mode')
 
-        self.to_screen(f'delivery_status = {delivery_status}, archive_mode = {archive_mode}')
+        self.write_debug(f'delivery_status = {delivery_status}, archive_mode = {archive_mode}')
 
         if delivery_status == 'PREPARING':
             raise UserNotLive('This event has not started yet')
