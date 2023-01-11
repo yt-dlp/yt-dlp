@@ -5,15 +5,285 @@ from ..utils import extract_attributes, mimetype2ext, remove_end
 class RheinMainTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rheinmaintv\.de/sendungen/(?:[a-z-]+/)*(?P<video_id>(?P<display_id>[a-z-]+)/vom-[0-9]{2}\.[0-9]{2}\.[0-9]{4}(?:/[0-9]+)?)'
     _TESTS = [{
+        'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/auf-dem-weg-zur-deutschen-meisterschaft/vom-07.11.2022/',
+        # no (fixed) md5 sum for fragmented formats
+        'info_dict': {
+            'id': 'auf-dem-weg-zur-deutschen-meisterschaft-vom-07.11.2022',
+            'display_id': 'auf-dem-weg-zur-deutschen-meisterschaft',
+            'title': 'Auf dem Weg zur Deutschen Meisterschaft',
+            'alt_title': 'Auf dem Weg zur Deutschen Meisterschaft',
+            'description': 'Die Lateinformation der FG Rhein-Main fährt am kommenden Wochenende zur Deutschen Meisterschaft nach Bremen. Im Training holen sich die Tänzerinnen und Tänzer den letzten Schliff.',
+            'ext': 'mp4',
+            'formats': [{
+                'format_id': 'aac_UND_2_129-128',
+                'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'ext': 'mp4',
+                'width': None,
+                'height': None,
+                'tbr': 128,
+                'asr': 48000,
+                'vcodec': 'none',
+                'acodec': 'AACL',
+                'protocol': 'ism',
+                'fragments': 'count:122',
+                'has_drm': False,
+                '_download_params': {
+                    'stream_type': 'audio',
+                    'duration': 2428373333,
+                    'timescale': 10000000,
+                    'width': 0,
+                    'height': 0,
+                    'fourcc': 'AACL',
+                    'language': 'und',
+                    'codec_private_data': '1190',
+                    'sampling_rate': 48000,
+                    'channels': 2,
+                    'bits_per_sample': 16,
+                    'nal_unit_length_field': 4
+                }
+            }, {
+                'format_id': '403',
+                'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'ext': 'mp4',
+                'width': 320,
+                'height': 180,
+                'tbr': 403,
+                'asr': None,
+                'vcodec': 'H264',
+                'acodec': 'none',
+                'protocol': 'ism',
+                'fragments': 'count:122',
+                'has_drm': False,
+                '_download_params': {
+                    'stream_type': 'video',
+                    'duration': 2428373333,
+                    'timescale': 10000000,
+                    'width': 320,
+                    'height': 180,
+                    'fourcc': 'H264',
+                    'language': 'und',
+                    'codec_private_data': '000000016764000DACD941419F9F011000000300100000030320F14299600000000168EBECB22C',
+                    'sampling_rate': None,
+                    'channels': 2,
+                    'bits_per_sample': 16,
+                    'nal_unit_length_field': 4
+                }
+            }, {
+                'format_id': '654',
+                'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'ext': 'mp4',
+                'width': 640,
+                'height': 360,
+                'tbr': 654,
+                'asr': None,
+                'vcodec': 'H264',
+                'acodec': 'none',
+                'protocol': 'ism',
+                'fragments': 'count:122',
+                'has_drm': False,
+                '_download_params': {
+                    'stream_type': 'video',
+                    'duration': 2428373333,
+                    'timescale': 10000000,
+                    'width': 640,
+                    'height': 360,
+                    'fourcc': 'H264',
+                    'language': 'und',
+                    'codec_private_data': '000000016764001EACD940A02FF97011000003000100000300320F162D960000000168EBECB22C',
+                    'sampling_rate': None,
+                    'channels': 2,
+                    'bits_per_sample': 16,
+                    'nal_unit_length_field': 4
+                }
+            }, {
+                'format_id': '1007',
+                'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'ext': 'mp4',
+                'width': 640,
+                'height': 360,
+                'tbr': 1007,
+                'asr': None,
+                'vcodec': 'H264',
+                'acodec': 'none',
+                'protocol': 'ism',
+                'fragments': 'count:122',
+                'has_drm': False,
+                '_download_params': {
+                    'stream_type': 'video',
+                    'duration': 2428373333,
+                    'timescale': 10000000,
+                    'width': 640,
+                    'height': 360,
+                    'fourcc': 'H264',
+                    'language': 'und',
+                    'codec_private_data': '000000016764001EACD940A02FF97011000003000100000300320F162D960000000168EBECB22C',
+                    'sampling_rate': None,
+                    'channels': 2,
+                    'bits_per_sample': 16,
+                    'nal_unit_length_field': 4
+                }
+            }, {
+                'format_id': '1497',
+                'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'ext': 'mp4',
+                'width': 960,
+                'height': 540,
+                'tbr': 1497,
+                'asr': None,
+                'vcodec': 'H264',
+                'acodec': 'none',
+                'protocol': 'ism',
+                'fragments': 'count:122',
+                'has_drm': False,
+                '_download_params': {
+                    'stream_type': 'video',
+                    'duration': 2428373333,
+                    'timescale': 10000000,
+                    'width': 960,
+                    'height': 540,
+                    'fourcc': 'H264',
+                    'language': 'und',
+                    'codec_private_data': '000000016764001FACD940F0117EF011000003000100000300320F1831960000000168EBECB22C',
+                    'sampling_rate': None,
+                    'channels': 2,
+                    'bits_per_sample': 16,
+                    'nal_unit_length_field': 4
+                }
+            }, {
+                'format_id': '2266',
+                'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'ext': 'mp4',
+                'width': 960,
+                'height': 540,
+                'tbr': 2266,
+                'asr': None,
+                'vcodec': 'H264',
+                'acodec': 'none',
+                'protocol': 'ism',
+                'fragments': 'count:122',
+                'has_drm': False,
+                '_download_params': {
+                    'stream_type': 'video',
+                    'duration': 2428373333,
+                    'timescale': 10000000,
+                    'width': 960,
+                    'height': 540,
+                    'fourcc': 'H264',
+                    'language': 'und',
+                    'codec_private_data': '000000016764001FACD940F0117EF011000003000100000300320F1831960000000168EBECB22C',
+                    'sampling_rate': None,
+                    'channels': 2,
+                    'bits_per_sample': 16,
+                    'nal_unit_length_field': 4
+                }
+            }, {
+                'format_id': '3424',
+                'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'ext': 'mp4',
+                'width': 1280,
+                'height': 720,
+                'tbr': 3424,
+                'asr': None,
+                'vcodec': 'H264',
+                'acodec': 'none',
+                'protocol': 'ism',
+                'fragments': 'count:122',
+                'has_drm': False,
+                '_download_params': {
+                    'stream_type': 'video',
+                    'duration': 2428373333,
+                    'timescale': 10000000,
+                    'width': 1280,
+                    'height': 720,
+                    'fourcc': 'H264',
+                    'language': 'und',
+                    'codec_private_data': '000000016764001FACD9405005BB011000000300100000030320F18319600000000168EBECB22C',
+                    'sampling_rate': None,
+                    'channels': 2,
+                    'bits_per_sample': 16,
+                    'nal_unit_length_field': 4
+                }
+            }, {
+                'format_id': '4691',
+                'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'ext': 'mp4',
+                'width': 1920,
+                'height': 1080,
+                'tbr': 4691,
+                'asr': None,
+                'vcodec': 'H264',
+                'acodec': 'none',
+                'protocol': 'ism',
+                'fragments': 'count:122',
+                'has_drm': False,
+                '_download_params': {
+                    'stream_type': 'video',
+                    'duration': 2428373333,
+                    'timescale': 10000000,
+                    'width': 1920,
+                    'height': 1080,
+                    'fourcc': 'H264',
+                    'language': 'und',
+                    'codec_private_data': '0000000167640028ACD940780227E5C044000003000400000300C83C60C6580000000168EBECB22C',
+                    'sampling_rate': None,
+                    'channels': 2,
+                    'bits_per_sample': 16,
+                    'nal_unit_length_field': 4
+                }
+            }, {
+                'format_id': '6038',
+                'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'manifest_url': 'https://rmtvmedia.streaming.mediaservices.windows.net/671861ca-c9a7-4162-9a87-d7787d282eed/Formationsgemeinschaft%20RheinMain.ism/manifest',
+                'ext': 'mp4',
+                'width': 1920,
+                'height': 1080,
+                'tbr': 6038,
+                'asr': None,
+                'vcodec': 'H264',
+                'acodec': 'none',
+                'protocol': 'ism',
+                'fragments': 'count:122',
+                'has_drm': False,
+                '_download_params': {
+                    'stream_type': 'video',
+                    'duration': 2428373333,
+                    'timescale': 10000000,
+                    'width': 1920,
+                    'height': 1080,
+                    'fourcc': 'H264',
+                    'language': 'und',
+                    'codec_private_data': '0000000167640028ACD940780227E5C044000003000400000300C83C60C6580000000168EBECB22C',
+                    'sampling_rate': None,
+                    'channels': 2,
+                    'bits_per_sample': 16,
+                    'nal_unit_length_field': 4
+                }
+            }],
+            'subtitles': {},
+            'thumbnail': 'https://rmtvmedia0.blob.core.windows.net/a0631411-b183-484b-ab6a-4e37a5831402/FormationsgemeinschaftRheinMain.jpg?sv=2016-05-31&sr=c&sig=iYdkgclsnXr2vDF%2B93jKTq702tsaWMtdxeeJHjV8iK4%3D&st=2022-11-07T17%3A44%3A17Z&se=3022-11-08T17%3A44%3A17Z&sp=r',
+            'timestamp': 1667933057,
+            'duration': 243.0,
+            'view_count': int,
+            'upload_date': '20221108'
+        }
+    }, {
         'url': 'https://www.rheinmaintv.de/sendungen/beitrag-video/formationsgemeinschaft-rhein-main-bei-den-deutschen-meisterschaften/vom-14.11.2022/',
         # no (fixed) md5 sum for fragmented formats
         'info_dict': {
             'id': 'formationsgemeinschaft-rhein-main-bei-den-deutschen-meisterschaften-vom-14.11.2022',
-            'ext': 'mp4',
+            'display_id': 'formationsgemeinschaft-rhein-main-bei-den-deutschen-meisterschaften',
             'title': 'Formationsgemeinschaft Rhein-Main bei den Deutschen Meisterschaften',
             'alt_title': 'Formationsgemeinschaft Rhein-Main bei den Deutschen Meisterschaften',
             'description': 'Die Lateinformation wollte bei den Deutschen Meisterschaften in die Zwischenrunde. Leider schaffte es das Team nicht.',
-            'display_id': 'formationsgemeinschaft-rhein-main-bei-den-deutschen-meisterschaften',
+            'ext': 'mp4',
             'formats': [{
                 'format_id': 'aac_UND_2_129-128',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/30dd92a2-20ad-4a02-97cc-c33edf83fe25/FGRheinMainDM2022.ism/manifest',
@@ -279,11 +549,11 @@ class RheinMainTVIE(InfoExtractor):
         # no (fixed) md5 sum for fragmented formats
         'info_dict': {
             'id': 'casino-mainz-bei-den-deutschen-meisterschaften-vom-14.11.2022',
-            'ext': 'mp4',
+            'display_id': 'casino-mainz-bei-den-deutschen-meisterschaften',
             'title': 'Casino Mainz bei den Deutschen Meisterschaften',
             'alt_title': 'Casino Mainz bei den Deutschen Meisterschaften',
             'description': 'Die Standardformation aus Mainz hoffte auch auf den Sprung in die Zwischenrunde, doch auch für sie war Schluss nach der Vorrunde.',
-            'display_id': 'casino-mainz-bei-den-deutschen-meisterschaften',
+            'ext': 'mp4',
             'formats': [{
                 'format_id': 'aac_UND_2_129-128',
                 'url': 'https://rmtvmedia.streaming.mediaservices.windows.net/ee75c842-1751-44bc-bc16-bd9dcefc4303/CasinoMainz.ism/manifest',
@@ -567,9 +837,9 @@ class RheinMainTVIE(InfoExtractor):
             or next(json_ld.get('embedUrl') for json_ld in raw_json_ld if json_ld.get('@type') == 'VideoObject')
         )
         formats, subtitles = self._extract_ism_formats_and_subtitles(ism_manifest_url, video_id)
-        # The extensions returned by the function call above ('ismv' for video,
-        # 'isma' for audio) are inaccurate and need to be overwritten.
-        # Any extension in the info_dict itself would be discarded.
+        # Override fixed extensions ('ismv' for video, 'isma' for audio) in the formats.
+        # This is equivalent to setting merge_output_format (at least for 'mp4').
+        # Currently, any extension given in the info_dict itself is discarded.
         ext = mimetype2ext(source.get('type'))
         if ext:
             for f in formats:
@@ -577,6 +847,7 @@ class RheinMainTVIE(InfoExtractor):
 
         return {
             'id': video_id,
+            'display_id': display_id,
             'title':
                 self._html_search_regex(r'<h1><span class="title">([^<]*)</span>',
                                         webpage, 'headline', default=None)
@@ -584,7 +855,7 @@ class RheinMainTVIE(InfoExtractor):
                 or remove_end(self._html_extract_title(webpage), ' -'),
             'alt_title': img.get('alt'),
             'description': json_ld.get('description') or self._og_search_description(webpage),
-            'display_id': display_id,
+            'ext': mimetype2ext(source.get('type')),
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': [{'url': img['src']}] if 'src' in img else json_ld.get('thumbnails'),
