@@ -10,7 +10,7 @@ from ..utils import (
 
 class EplusIbIE(InfoExtractor):
     IE_NAME = 'eplus:inbound'
-    IE_DESC = 'e+ (イープラス)'
+    IE_DESC = 'e+ (イープラス) overseas'
     _VALID_URL = r'https?://live\.eplus\.jp/ex/player\?ib=(?P<id>([A-Za-z\d]|%2B|%2F){86}(%3D){2})'
     _TESTS = [{
         # simple fake url
