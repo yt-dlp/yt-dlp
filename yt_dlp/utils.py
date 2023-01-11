@@ -5478,7 +5478,7 @@ def traverse_obj(
             yield obj
 
         elif isinstance(key, set):
-            assert len(key) == 1
+            assert len(key) == 1, 'Set should only be used to wrap a single transformation'
             yield try_call(next(iter(key)), args=(obj,))
 
         elif isinstance(key, (list, tuple)):
@@ -5562,6 +5562,7 @@ def traverse_obj(
                 has_branched = True
 
             if __debug__ and callable(key):
+                # Verify function signature
                 inspect.signature(key).bind(None, None)
 
             key_func = functools.partial(apply_key, key)

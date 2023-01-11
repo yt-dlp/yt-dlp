@@ -2016,9 +2016,9 @@ Line 1
         self.assertCountEqual(traverse_obj(_TEST_DATA, lambda _, x: isinstance(x[0], str)), {'str'},
                               msg='exceptions in the query function should be catched')
         if __debug__:
-            with self.assertRaises(Exception, msg='Unassignable parameters should raise in debug'):
+            with self.assertRaises(Exception, msg='Wrong function signature should raise in debug'):
                 traverse_obj(_TEST_DATA, lambda a: ...)
-            with self.assertRaises(Exception, msg='Unassignable parameters should raise in debug'):
+            with self.assertRaises(Exception, msg='Wrong function signature should raise in debug'):
                 traverse_obj(_TEST_DATA, lambda a, b, c: ...)
 
         # Test set as key (transformation)
