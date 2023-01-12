@@ -157,6 +157,7 @@ class RCSBaseIE(InfoExtractor):
         return formats
 
     def _real_extract(self, url):
+        display_id = None
         cdn, video_id = self._match_valid_url(url).group('cdn', 'id')
         video_data = None
 
@@ -171,6 +172,7 @@ class RCSBaseIE(InfoExtractor):
                     extract_attributes(data_config).get('data-config'),
                     video_id, fatal=False) or {}
                 cdn = f'{data_config["newspaper"]}.it' if data_config.get('newspaper') else cdn
+                display_id = video_id
                 video_id = data_config.get('uuid') or video_id
                 url = f'https://video.{cdn}/video-json/{video_id}'
             else:
@@ -183,6 +185,7 @@ class RCSBaseIE(InfoExtractor):
                     webpage, video_id, group='url', default=None)
                 if json_url:
                     video_data = self._download_json(sanitize_url(json_url, scheme='https'), video_id)
+                    display_id = video_id
                     video_id = video_data.get('id') or video_id
 
         if not video_data:
@@ -208,6 +211,7 @@ class RCSBaseIE(InfoExtractor):
 
         return {
             'id': video_id,
+            'display_id': display_id,
             'title': video_data.get('title'),
             'description': (clean_html(video_data.get('description'))
                             or clean_html(video_data.get('htmlDescription'))
@@ -294,7 +298,7 @@ class RCSIE(RCSBaseIE):
                     |(?:gazzanet\.)?gazzetta\.it)
                     /(?!video-embed/)[^?#]+?/(?P<id>[^/\?]+)(?=\?|/$|$)'''
     _TESTS = [{
-        # json iframe from directly from id
+        # json iframe directly from id
         'url': 'https://video.corriere.it/sport/formula-1/vettel-guida-ferrari-sf90-mugello-suo-fianco-c-elecrerc-bendato-video-esilarante/b727632a-f9d0-11ea-91b0-38d50a849abb',
         'md5': '14946840dec46ecfddf66ba4eea7d2b2',
         'info_dict': {
@@ -310,6 +314,7 @@ class RCSIE(RCSBaseIE):
         'md5': 'f22a92d9e666e80f2fffbf2825359c81',
         'info_dict': {
             'id': '5b7cd134-e2c1-11ea-89b3-b56dd0df2aa2',
+            'display_id': 'norvegia-il-nuovo-ponte-spettacolare-sopra-la-cascata-di-voringsfossen',
             'ext': 'mp4',
             'title': 'La nuova spettacolare attrazione in Norvegia: il ponte sopra Vøringsfossen',
             'description': 'md5:18b35a291f6746c0c8dacd16e5f5f4f8',
@@ -333,6 +338,7 @@ class RCSIE(RCSBaseIE):
         'md5': '2dfdce7af249654ad27eeba03fe1e08d',
         'info_dict': {
             'id': 'd8f6c8d0-f7d7-11e8-bfca-f74cf4634191',
+            'display_id': 'milano-varallo-sesia-sul-treno-a-vapore',
             'ext': 'mp4',
             'title': 'Milano-Varallo Sesia sul treno a vapore',
             'description': 'md5:6348f47aac230397fe341a74f7678d53',
@@ -356,6 +362,7 @@ class RCSVariousIE(RCSBaseIE):
         'md5': '3b7a683d105a7313ec7513b014443631',
         'info_dict': {
             'id': 'leitv-0000125151',
+            'display_id': 'mal-di-testa',
             'ext': 'mp4',
             'title': 'Cervicalgia e mal di testa, il video con i suggerimenti dell\'esperto',
             'description': 'md5:ae21418f34cee0b8d02a487f55bcabb5',
@@ -366,6 +373,7 @@ class RCSVariousIE(RCSBaseIE):
         'md5': '3989b6d603482611a2abd2f32b79f739',
         'info_dict': {
             'id': 'youreporter-0000332574',
+            'display_id': 'fiume-sesia-3-ottobre-2020',
             'ext': 'mp4',
             'title': 'Fiume Sesia 3 ottobre 2020',
             'description': 'md5:0070eef1cc884d13c970a4125063de55',
@@ -376,6 +384,7 @@ class RCSVariousIE(RCSBaseIE):
         'md5': '187cce524dfd0343c95646c047375fc4',
         'info_dict': {
             'id': 'amica-0001225365',
+            'display_id': 'saint-omer-al-cinema-il-film-leone-dargento-che-ribalta-gli-stereotipi',
             'ext': 'mp4',
             'title': '"Saint Omer": al cinema il film Leone d\'argento che ribalta gli stereotipi',
             'description': 'md5:b1c8869c2dcfd6073a2a311ba0008aa8',
