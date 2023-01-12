@@ -447,8 +447,11 @@ class InfoExtractor:
 
 
     Subclasses of this should also be added to the list of extractors and
-    should define a _VALID_URL regexp (a single string or a list) and, re-define the _real_extract() and
-    (optionally) _real_initialize() methods.
+    should define _VALID_URL as a regexp, or list (or tuple) of regexps, and
+    re-define the _real_extract() and (optionally) _real_initialize() methods.
+    The list syntax for _VALID_URL simplifies matching disparate URL patterns
+    where conditional groups or subclass IEs would be needed to target the
+    different locations of the ID field with a single regexp.
 
     Subclasses may also override suitable() if necessary, but ensure the function
     signature is preserved and that this function imports everything it needs
