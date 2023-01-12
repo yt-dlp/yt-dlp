@@ -1071,7 +1071,9 @@ class BiliIntlIE(BiliIntlBaseIE):
         chapters = None
 
         if ep_id:
-            intro_ending_json = self._call_api(f'/web/v2/ogv/play/episode?episode_id={ep_id}&platform=web', video_id)
+            intro_ending_json = self._call_api(
+                f'/web/v2/ogv/play/episode?episode_id={ep_id}&platform=web',
+                video_id, fatal=False) or {}
             if intro_ending_json.get('skip'):
                 # FIXME: start time and end time seems a bit off a few second even it corrext based on ogv.*.js
                 # ref: https://p.bstarstatic.com/fe-static/bstar-web-new/assets/ogv.2b147442.js
