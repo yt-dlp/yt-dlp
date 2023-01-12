@@ -182,7 +182,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             self.to_screen(
                 'To get all formats of a hardsub language, use '
                 '"--extractor-args crunchyrollbeta:hardsub=<language_code or all>". '
-                'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta for more info',
+                'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta-crunchyroll for more info',
                 only_once=True)
         else:
             full_format_langs = set(map(str.lower, available_formats))
@@ -291,7 +291,8 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
                         'season_id': episode.get('season_id'),
                         'season_number': episode.get('season_number'),
                         'episode': episode.get('title'),
-                        'episode_number': episode.get('sequence_number')
+                        'episode_number': episode.get('sequence_number'),
+                        'language': episode.get('audio_locale'),
                     }
 
         return self.playlist_result(entries(), internal_id, series_response.get('title'))

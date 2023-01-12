@@ -16,13 +16,16 @@ from ..utils import (
     format_field,
     int_or_none,
     make_archive_id,
+    merge_dicts,
     mimetype2ext,
     parse_count,
     parse_qs,
     qualities,
+    smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
+    unsmuggle_url,
     url_or_none,
     urlencode_postdata,
 )
@@ -303,7 +306,8 @@ class BiliBiliIE(BilibiliBaseIE):
                 getter=lambda entry: f'https://www.bilibili.com/video/{video_id}?p={entry["page"]}')
 
         if is_anthology:
-            title += f' p{part_id:02d} {traverse_obj(page_list_json, ((part_id or 1) - 1, "part")) or ""}'
+            part_id = part_id or 1
+            title += f' p{part_id:02d} {traverse_obj(page_list_json, (part_id - 1, "part")) or ""}'
 
         aid = video_data.get('aid')
         old_video_id = format_field(aid, None, f'%s_part{part_id or 1}')
@@ -880,16 +884,12 @@ class BiliIntlBaseIE(InfoExtractor):
 
         return formats
 
-    def _extract_video_info(self, video_data, *, ep_id=None, aid=None):
+    def _parse_video_metadata(self, video_data):
         return {
-            'id': ep_id or aid,
             'title': video_data.get('title_display') or video_data.get('title'),
             'thumbnail': video_data.get('cover'),
             'episode_number': int_or_none(self._search_regex(
                 r'^E(\d+)(?:$| - )', video_data.get('title_display') or '', 'episode number', default=None)),
-            'formats': self._get_formats(ep_id=ep_id, aid=aid),
-            'subtitles': self._get_subtitles(ep_id=ep_id, aid=aid),
-            'extractor_key': BiliIntlIE.ie_key(),
         }
 
     def _perform_login(self, username, password):
@@ -935,6 +935,10 @@ class BiliIntlIE(BiliIntlBaseIE):
             'title': 'E2 - The First Night',
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'episode_number': 2,
+            'upload_date': '20201009',
+            'episode': 'Episode 2',
+            'timestamp': 1602259500,
+            'description': 'md5:297b5a17155eb645e14a14b385ab547e',
         }
     }, {
         # Non-Bstation page
@@ -945,6 +949,10 @@ class BiliIntlIE(BiliIntlBaseIE):
             'title': 'E3 - Who?',
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'episode_number': 3,
+            'description': 'md5:e1a775e71a35c43f141484715470ad09',
+            'episode': 'Episode 3',
+            'upload_date': '20211219',
+            'timestamp': 1639928700,
         }
     }, {
         # Subtitle with empty content
@@ -957,6 +965,17 @@ class BiliIntlIE(BiliIntlBaseIE):
             'episode_number': 140,
         },
         'skip': 'According to the copyright owner\'s request, you may only watch the video after you log in.'
+    }, {
+        'url': 'https://www.bilibili.tv/en/video/2041863208',
+        'info_dict': {
+            'id': '2041863208',
+            'ext': 'mp4',
+            'timestamp': 1670874843,
+            'description': 'Scheduled for April 2023.\nStudio: ufotable',
+            'thumbnail': r're:https?://pic[-\.]bstarstatic.+/ugc/.+\.jpg$',
+            'upload_date': '20221212',
+            'title': 'Kimetsu no Yaiba Season 3 Official Trailer - Bstation',
+        }
     }, {
         'url': 'https://www.biliintl.com/en/play/34613/341736',
         'only_matching': True,
@@ -974,42 +993,78 @@ class BiliIntlIE(BiliIntlBaseIE):
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        season_id, ep_id, aid = self._match_valid_url(url).group('season_id', 'ep_id', 'aid')
-        video_id = ep_id or aid
+    def _make_url(video_id, series_id=None):
+        if series_id:
+            return f'https://www.bilibili.tv/en/play/{series_id}/{video_id}'
+        return f'https://www.bilibili.tv/en/video/{video_id}'
+
+    def _extract_video_metadata(self, url, video_id, season_id):
+        url, smuggled_data = unsmuggle_url(url, {})
+        if smuggled_data.get('title'):
+            return smuggled_data
+
         webpage = self._download_webpage(url, video_id)
         # Bstation layout
         initial_data = (
             self._search_json(r'window\.__INITIAL_(?:DATA|STATE)__\s*=', webpage, 'preload state', video_id, default={})
             or self._search_nuxt_data(webpage, video_id, '__initialState', fatal=False, traverse=None))
         video_data = traverse_obj(
-            initial_data, ('OgvVideo', 'epDetail'), ('UgcVideo', 'videoData'), ('ugc', 'archive'), expected_type=dict)
+            initial_data, ('OgvVideo', 'epDetail'), ('UgcVideo', 'videoData'), ('ugc', 'archive'), expected_type=dict) or {}
 
         if season_id and not video_data:
             # Non-Bstation layout, read through episode list
             season_json = self._call_api(f'/web/v2/ogv/play/episodes?season_id={season_id}&platform=web', video_id)
-            video_data = traverse_obj(season_json,
-                                      ('sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == ep_id),
-                                      expected_type=dict, get_all=False)
-        return self._extract_video_info(video_data or {}, ep_id=ep_id, aid=aid)
+            video_data = traverse_obj(season_json, (
+                'sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == video_id
+            ), expected_type=dict, get_all=False)
+
+        # XXX: webpage metadata may not accurate, it just used to not crash when video_data not found
+        return merge_dicts(
+            self._parse_video_metadata(video_data), self._search_json_ld(webpage, video_id), {
+                'title': self._html_search_meta('og:title', webpage),
+                'description': self._html_search_meta('og:description', webpage)
+            })
+
+    def _real_extract(self, url):
+        season_id, ep_id, aid = self._match_valid_url(url).group('season_id', 'ep_id', 'aid')
+        video_id = ep_id or aid
+
+        return {
+            'id': video_id,
+            **self._extract_video_metadata(url, video_id, season_id),
+            'formats': self._get_formats(ep_id=ep_id, aid=aid),
+            'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
+        }
 
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?play/(?P<id>\d+)/?(?:[?#]|$)'
+    IE_NAME = 'biliIntl:series'
+    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?(?:play|media)/(?P<id>\d+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.bilibili.tv/en/play/34613',
         'playlist_mincount': 15,
         'info_dict': {
             'id': '34613',
-            'title': 'Fly Me to the Moon',
-            'description': 'md5:a861ee1c4dc0acfad85f557cc42ac627',
-            'categories': ['Romance', 'Comedy', 'Slice of life'],
+            'title': 'TONIKAWA: Over the Moon For You',
+            'description': 'md5:297b5a17155eb645e14a14b385ab547e',
+            'categories': ['Slice of life', 'Comedy', 'Romance'],
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'view_count': int,
         },
         'params': {
             'skip_download': True,
         },
+    }, {
+        'url': 'https://www.bilibili.tv/en/media/1048837',
+        'info_dict': {
+            'id': '1048837',
+            'title': 'SPY×FAMILY',
+            'description': 'md5:b4434eb1a9a97ad2bccb779514b89f17',
+            'categories': ['Adventure', 'Action', 'Comedy'],
+            'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.jpg$',
+            'view_count': int,
+        },
+        'playlist_mincount': 25,
     }, {
         'url': 'https://www.biliintl.com/en/play/34613',
         'only_matching': True,
@@ -1020,9 +1075,12 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
 
     def _entries(self, series_id):
         series_json = self._call_api(f'/web/v2/ogv/play/episodes?season_id={series_id}&platform=web', series_id)
-        for episode in traverse_obj(series_json, ('sections', ..., 'episodes', ...), expected_type=dict, default=[]):
-            episode_id = str(episode.get('episode_id'))
-            yield self._extract_video_info(episode, ep_id=episode_id)
+        for episode in traverse_obj(series_json, ('sections', ..., 'episodes', ...), expected_type=dict):
+            episode_id = str(episode['episode_id'])
+            yield self.url_result(smuggle_url(
+                BiliIntlIE._make_url(episode_id, series_id),
+                self._parse_video_metadata(episode)
+            ), BiliIntlIE, episode_id)
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
@@ -1034,7 +1092,7 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
 
 
 class BiliLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://live.bilibili.com/(?P<id>\d+)'
+    _VALID_URL = r'https?://live.bilibili.com/(?:blanc/)?(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://live.bilibili.com/196',
@@ -1049,6 +1107,9 @@ class BiliLiveIE(InfoExtractor):
         'skip': 'not live'
     }, {
         'url': 'https://live.bilibili.com/196?broadcast_type=0&is_room_feed=1?spm_id_from=333.999.space_home.strengthen_live_card.click',
+        'only_matching': True
+    }, {
+        'url': 'https://live.bilibili.com/blanc/196',
         'only_matching': True
     }]
 
@@ -1111,6 +1172,7 @@ class BiliLiveIE(InfoExtractor):
             'thumbnail': room_data.get('user_cover'),
             'timestamp': stream_data.get('live_time'),
             'formats': formats,
+            'is_live': True,
             'http_headers': {
                 'Referer': url,
             },

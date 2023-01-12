@@ -32,7 +32,7 @@ class TencentBaseIE(InfoExtractor):
             padding_mode='whitespace').hex().upper()
 
     def _get_video_api_response(self, video_url, video_id, series_id, subtitle_format, video_format, video_quality):
-        guid = ''.join([random.choice(string.digits + string.ascii_lowercase) for _ in range(16)])
+        guid = ''.join(random.choices(string.digits + string.ascii_lowercase, k=16))
         ckey = self._get_ckey(video_id, video_url, guid)
         query = {
             'vid': video_id,
@@ -55,7 +55,7 @@ class TencentBaseIE(InfoExtractor):
             'platform': self._PLATFORM,
             # For VQQ
             'guid': guid,
-            'flowid': ''.join(random.choice(string.digits + string.ascii_lowercase) for _ in range(32)),
+            'flowid': ''.join(random.choices(string.digits + string.ascii_lowercase, k=32)),
         }
 
         return self._search_json(r'QZOutputJson=', self._download_webpage(
