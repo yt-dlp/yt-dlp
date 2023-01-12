@@ -420,13 +420,16 @@ class BiliBiliBangumiMediaIE(InfoExtractor):
         webpage = self._download_webpage(url, media_id)
 
         initial_state = self._search_json(r'window\.__INITIAL_STATE__\s*=', webpage, 'initial_state', media_id)
+        media_info_param = initial_state['mediaInfo']['param']
         episode_list = self._download_json(
             'https://api.bilibili.com/pgc/web/season/section', media_id,
-            query={'season_id': initial_state['mediaInfo']['season_id']},
+            query={'season_id': media_info_param['season_id']},
             note='Downloading season info')['result']['main_section']['episodes']
+        season_type = media_info_param['season_type']
+        ep_suffix = '话' if season_type == 1 or season_type == 4 else '集'
 
         return self.playlist_result((
-            self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['aid'])
+            self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['aid'], (f"第{entry['title']}{ep_suffix}" if entry['title'].isnumeric() else entry['title']) + f" {entry['long_title']}")
             for entry in episode_list), media_id)
 
 
