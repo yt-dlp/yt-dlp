@@ -1,14 +1,11 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     unified_strdate,
-    compat_str,
     determine_ext,
+    join_nonempty,
     update_url_query,
 )
 
@@ -119,18 +116,13 @@ class DisneyIE(InfoExtractor):
                         continue
                     formats.append(f)
                 continue
-            format_id = []
-            if flavor_format:
-                format_id.append(flavor_format)
-            if tbr:
-                format_id.append(compat_str(tbr))
             ext = determine_ext(flavor_url)
             if flavor_format == 'applehttp' or ext == 'm3u8':
                 ext = 'mp4'
             width = int_or_none(flavor.get('width'))
             height = int_or_none(flavor.get('height'))
             formats.append({
-                'format_id': '-'.join(format_id),
+                'format_id': join_nonempty(flavor_format, tbr),
                 'url': flavor_url,
                 'width': width,
                 'height': height,
@@ -142,7 +134,6 @@ class DisneyIE(InfoExtractor):
             self.raise_no_formats(
                 '%s said: %s' % (self.IE_NAME, page_data['translations']['video_expired']),
                 expected=True)
-        self._sort_formats(formats)
 
         subtitles = {}
         for caption in video_data.get('captions', []):

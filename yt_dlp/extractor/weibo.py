@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 
 import json
@@ -73,8 +70,7 @@ class WeiboIE(InfoExtractor):
             webpage = self._download_webpage(
                 url, video_id, note='Revisiting webpage')
 
-        title = self._html_search_regex(
-            r'<title>(.+?)</title>', webpage, 'title')
+        title = self._html_extract_title(webpage)
 
         video_formats = compat_parse_qs(self._search_regex(
             r'video-sources=\\\"(.+?)\"', webpage, 'video_sources'))
@@ -91,8 +87,6 @@ class WeiboIE(InfoExtractor):
                 'url': vid_url,
                 'height': res,
             })
-
-        self._sort_formats(formats)
 
         uploader = self._og_search_property(
             'nick-name', webpage, 'uploader', default=None)

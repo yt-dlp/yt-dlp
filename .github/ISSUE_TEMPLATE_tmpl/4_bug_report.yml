@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a bug unrelated to any particular site or extractor
+labels: [triage, bug]
+body:
+  %(no_skip)s
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: |
+        Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
+      options:
+        - label: I'm reporting a bug unrelated to a specific site
+          required: true
+        - label: I've verified that I'm running yt-dlp version **%(version)s** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
+          required: true
+        - label: I've checked that all provided URLs are playable in a browser with the same IP and same login details
+          required: true
+        - label: I've checked that all URLs and arguments with special characters are [properly quoted or escaped](https://github.com/yt-dlp/yt-dlp/wiki/FAQ#video-url-contains-an-ampersand--and-im-getting-some-strange-output-1-2839-or-v-is-not-recognized-as-an-internal-or-external-command)
+          required: true
+        - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues **including closed ones**. DO NOT post duplicates
+          required: true
+        - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
+          required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Provide a description that is worded well enough to be understood
+      description: See [is-the-description-of-the-issue-itself-sufficient](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-description-of-the-issue-itself-sufficient)
+      placeholder: Provide any additional information, any suggested solutions, and as much context and examples as possible
+    validations:
+      required: true
+  %(verbose)s

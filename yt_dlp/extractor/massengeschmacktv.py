@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -66,8 +64,6 @@ class MassengeschmackTVIE(InfoExtractor):
                 'filesize': parse_filesize(filesize),
                 'vcodec': 'none' if format_id.startswith('Audio') else None,
             })
-
-        self._sort_formats(formats)
 
         return {
             'id': episode,

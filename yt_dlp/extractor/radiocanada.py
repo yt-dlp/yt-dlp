@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
@@ -117,7 +113,6 @@ class RadioCanadaIE(InfoExtractor):
             raise ExtractorError(
                 '%s said: %s' % (self.IE_NAME, error), expected=True)
         formats = self._extract_m3u8_formats(v_url, video_id, 'mp4')
-        self._sort_formats(formats)
 
         subtitles = {}
         closed_caption_url = get_meta('closedCaption') or get_meta('closedCaptionHTML5')

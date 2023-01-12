@@ -1,13 +1,7 @@
-# coding: utf-8
-from __future__ import unicode_literals
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse,
-)
-from ..utils import (
-    unified_strdate,
-)
+from ..utils import unified_strdate
 
 
 class UrortIE(InfoExtractor):
@@ -34,7 +28,7 @@ class UrortIE(InfoExtractor):
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
 
-        fstr = compat_urllib_parse.quote("InternalBandUrl eq '%s'" % playlist_id)
+        fstr = urllib.parse.quote("InternalBandUrl eq '%s'" % playlist_id)
         json_url = 'http://urort.p3.no/breeze/urort/TrackDTOViews?$filter=%s&$orderby=Released%%20desc&$expand=Tags%%2CFiles' % fstr
         songs = self._download_json(json_url, playlist_id)
         entries = []
@@ -46,7 +40,6 @@ class UrortIE(InfoExtractor):
                 'url': 'http://p3urort.blob.core.windows.net/tracks/%s' % f['FileRef'],
                 'quality': 3 if f['FileType'] == 'mp3' else 2,
             } for f in s['Files']]
-            self._sort_formats(formats)
             e = {
                 'id': '%d-%s' % (s['BandId'], s['$id']),
                 'title': s['Title'],

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .turner import TurnerBaseIE
@@ -199,7 +196,6 @@ class TeamcocoIE(TurnerBaseIE):
                         'format_id': format_id,
                         'quality': get_quality(format_id),
                     })
-            self._sort_formats(formats)
             info['formats'] = formats
 
         return info

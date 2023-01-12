@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 import os.path
 
@@ -61,8 +58,6 @@ class DemocracynowIE(InfoExtractor):
                 'url': media_url,
                 'vcodec': 'none' if key == 'audio' else None,
             })
-
-        self._sort_formats(formats)
 
         default_lang = 'en'
         subtitles = {}

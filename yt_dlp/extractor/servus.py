@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -107,7 +104,6 @@ class ServusIE(InfoExtractor):
                     'width': int_or_none(resource.get('width')),
                     'height': int_or_none(resource.get('height')),
                 })
-        self._sort_formats(formats)
 
         attrs = {}
         for attribute in video['attributes']:

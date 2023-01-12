@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import re
 
@@ -43,14 +40,15 @@ class ARDMediathekBaseIE(InfoExtractor):
                     'This video is not available due to geoblocking',
                     countries=self._GEO_COUNTRIES, metadata_available=True)
 
-        self._sort_formats(formats)
-
         subtitles = {}
         subtitle_url = media_info.get('_subtitleUrl')
         if subtitle_url:
             subtitles['de'] = [{
                 'ext': 'ttml',
                 'url': subtitle_url,
+            }, {
+                'ext': 'vtt',
+                'url': subtitle_url.replace('/ebutt/', '/webvtt/') + '.vtt',
             }]
 
         return {
@@ -265,7 +263,6 @@ class ARDMediathekIE(ARDMediathekBaseIE):
                     'format_id': fid,
                     'url': furl,
                 })
-            self._sort_formats(formats)
             info = {
                 'formats': formats,
             }
@@ -280,7 +277,7 @@ class ARDMediathekIE(ARDMediathekBaseIE):
 
         info.update({
             'id': video_id,
-            'title': self._live_title(title) if info.get('is_live') else title,
+            'title': title,
             'description': description,
             'thumbnail': thumbnail,
         })
@@ -292,16 +289,16 @@ class ARDMediathekIE(ARDMediathekBaseIE):
 class ARDIE(InfoExtractor):
     _VALID_URL = r'(?P<mainurl>https?://(?:www\.)?daserste\.de/(?:[^/?#&]+/)+(?P<id>[^/?#&]+))\.html'
     _TESTS = [{
-        # available till 7.01.2022
-        'url': 'https://www.daserste.de/information/talk/maischberger/videos/maischberger-die-woche-video100.html',
-        'md5': '867d8aa39eeaf6d76407c5ad1bb0d4c1',
+        # available till 7.12.2023
+        'url': 'https://www.daserste.de/information/talk/maischberger/videos/maischberger-video-424.html',
+        'md5': 'a438f671e87a7eba04000336a119ccc4',
         'info_dict': {
-            'id': 'maischberger-die-woche-video100',
-            'display_id': 'maischberger-die-woche-video100',
+            'id': 'maischberger-video-424',
+            'display_id': 'maischberger-video-424',
             'ext': 'mp4',
-            'duration': 3687.0,
-            'title': 'maischberger. die woche vom 7. Januar 2021',
-            'upload_date': '20210107',
+            'duration': 4452.0,
+            'title': 'maischberger am 07.12.2022',
+            'upload_date': '20221207',
             'thumbnail': r're:^https?://.*\.jpg$',
         },
     }, {
@@ -374,11 +371,25 @@ class ARDIE(InfoExtractor):
                     continue
                 f['url'] = format_url
             formats.append(f)
-        self._sort_formats(formats)
+
+        _SUB_FORMATS = (
+            ('./dataTimedText', 'ttml'),
+            ('./dataTimedTextNoOffset', 'ttml'),
+            ('./dataTimedTextVtt', 'vtt'),
+        )
+
+        subtitles = {}
+        for subsel, subext in _SUB_FORMATS:
+            for node in video_node.findall(subsel):
+                subtitles.setdefault('de', []).append({
+                    'url': node.attrib['url'],
+                    'ext': subext,
+                })
 
         return {
             'id': xpath_text(video_node, './videoId', default=display_id),
             'formats': formats,
+            'subtitles': subtitles,
             'display_id': display_id,
             'title': video_node.find('./title').text,
             'duration': parse_duration(video_node.find('./duration').text),
@@ -388,7 +399,14 @@ class ARDIE(InfoExtractor):
 
 
 class ARDBetaMediathekIE(ARDMediathekBaseIE):
-    _VALID_URL = r'https://(?:(?:beta|www)\.)?ardmediathek\.de/(?P<client>[^/]+)/(?P<mode>player|live|video|sendung|sammlung)/(?P<display_id>(?:[^/]+/)*)(?P<video_id>[a-zA-Z0-9]+)'
+    _VALID_URL = r'''(?x)https://
+        (?:(?:beta|www)\.)?ardmediathek\.de/
+        (?:(?P<client>[^/]+)/)?
+        (?:player|live|video|(?P<playlist>sendung|sammlung))/
+        (?:(?P<display_id>(?(playlist)[^?#]+?|[^?#]+))/)?
+        (?P<id>(?(playlist)|Y3JpZDovL)[a-zA-Z0-9]+)
+        (?(playlist)/(?P<season>\d+)?/?(?:[?#]|$))'''
+
     _TESTS = [{
         'url': 'https://www.ardmediathek.de/mdr/video/die-robuste-roswita/Y3JpZDovL21kci5kZS9iZWl0cmFnL2Ntcy84MWMxN2MzZC0wMjkxLTRmMzUtODk4ZS0wYzhlOWQxODE2NGI/',
         'md5': 'a1dc75a39c61601b980648f7c9f9f71d',
@@ -402,6 +420,25 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
             'timestamp': 1596658200,
             'upload_date': '20200805',
             'ext': 'mp4',
+        },
+        'skip': 'Error',
+    }, {
+        'url': 'https://www.ardmediathek.de/video/tagesschau-oder-tagesschau-20-00-uhr/das-erste/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhZ2Vzc2NoYXUvZmM4ZDUxMjgtOTE0ZC00Y2MzLTgzNzAtNDZkNGNiZWJkOTll',
+        'md5': 'f1837e563323b8a642a8ddeff0131f51',
+        'info_dict': {
+            'id': '10049223',
+            'ext': 'mp4',
+            'title': 'tagesschau, 20:00 Uhr',
+            'timestamp': 1636398000,
+            'description': 'md5:39578c7b96c9fe50afdf5674ad985e6b',
+            'upload_date': '20211108',
+        },
+    }, {
+        'url': 'https://www.ardmediathek.de/sendung/beforeigners/beforeigners/staffel-1/Y3JpZDovL2Rhc2Vyc3RlLmRlL2JlZm9yZWlnbmVycw/1',
+        'playlist_count': 6,
+        'info_dict': {
+            'id': 'Y3JpZDovL2Rhc2Vyc3RlLmRlL2JlZm9yZWlnbmVycw',
+            'title': 'beforeigners/beforeigners/staffel-1',
         },
     }, {
         'url': 'https://beta.ardmediathek.de/ard/video/Y3JpZDovL2Rhc2Vyc3RlLmRlL3RhdG9ydC9mYmM4NGM1NC0xNzU4LTRmZGYtYWFhZS0wYzcyZTIxNGEyMDE',
@@ -425,6 +462,12 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
     }, {
         # playlist of type 'sammlung'
         'url': 'https://www.ardmediathek.de/ard/sammlung/team-muenster/5JpTzLSbWUAK8184IOvEir/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.ardmediathek.de/video/coronavirus-update-ndr-info/astrazeneca-kurz-lockdown-und-pims-syndrom-81/ndr/Y3JpZDovL25kci5kZS84NzE0M2FjNi0wMWEwLTQ5ODEtOTE5NS1mOGZhNzdhOTFmOTI/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.ardmediathek.de/ard/player/Y3JpZDovL3dkci5kZS9CZWl0cmFnLWQ2NDJjYWEzLTMwZWYtNGI4NS1iMTI2LTU1N2UxYTcxOGIzOQ/tatort-duo-koeln-leipzig-ihr-kinderlein-kommet',
         'only_matching': True,
     }]
 
@@ -522,23 +565,16 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
                 break
             pageNumber = pageNumber + 1
 
-        return self.playlist_result(entries, playlist_title=display_id)
+        return self.playlist_result(entries, playlist_id, playlist_title=display_id)
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('video_id')
-        display_id = mobj.group('display_id')
-        if display_id:
-            display_id = display_id.rstrip('/')
-        if not display_id:
-            display_id = video_id
+        video_id, display_id, playlist_type, client, season_number = self._match_valid_url(url).group(
+            'id', 'display_id', 'playlist', 'client', 'season')
+        display_id, client = display_id or video_id, client or 'ard'
 
-        if mobj.group('mode') in ('sendung', 'sammlung'):
-            # this is a playlist-URL
-            return self._ARD_extract_playlist(
-                url, video_id, display_id,
-                mobj.group('client'),
-                mobj.group('mode'))
+        if playlist_type:
+            # TODO: Extract only specified season
+            return self._ARD_extract_playlist(url, video_id, display_id, client, playlist_type)
 
         player_page = self._download_json(
             'https://api.ardmediathek.de/public-gateway',
@@ -574,7 +610,7 @@ class ARDBetaMediathekIE(ARDMediathekBaseIE):
       }
     }
   }
-}''' % (mobj.group('client'), video_id),
+}''' % (client, video_id),
             }).encode(), headers={
                 'Content-Type': 'application/json'
             })['data']['playerPage']

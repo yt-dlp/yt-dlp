@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -52,7 +50,6 @@ class RadioJavanIE(InfoExtractor):
                 'format_id': format_id,
             })
             formats.append(f)
-        self._sort_formats(formats)
 
         title = self._og_search_title(webpage)
         thumbnail = self._og_search_thumbnail(webpage)

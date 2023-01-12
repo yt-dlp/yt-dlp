@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
 
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
-import collections
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-from test.helper import gettestcases
+import collections
 
-from yt_dlp.extractor import (
-    FacebookIE,
-    gen_extractors,
-    YoutubeIE,
-)
+from test.helper import gettestcases
+from yt_dlp.extractor import FacebookIE, YoutubeIE, gen_extractors
 
 
 class TestAllURLsMatching(unittest.TestCase):
@@ -38,7 +33,6 @@ class TestAllURLsMatching(unittest.TestCase):
         assertTab('https://www.youtube.com/AsapSCIENCE')
         assertTab('https://www.youtube.com/embedded')
         assertTab('https://www.youtube.com/playlist?list=UUBABnxM4Ar9ten8Mdjj1j0Q')
-        assertTab('https://www.youtube.com/course?list=ECUl4u3cNGP61MdtwGTqZA0MreSaDybji8')
         assertTab('https://www.youtube.com/playlist?list=PLwP_SiAcdui0KVebT0mU9Apz359a4ubsC')
         assertTab('https://www.youtube.com/watch?v=AV6J6_AeFEQ&playnext=1&list=PL4023E734DA416012')  # 668
         self.assertFalse('youtube:playlist' in self.matching_ies('PLtS2H6bU1M'))
@@ -82,11 +76,11 @@ class TestAllURLsMatching(unittest.TestCase):
             url = tc['url']
             for ie in ies:
                 if type(ie).__name__ in ('GenericIE', tc['name'] + 'IE'):
-                    self.assertTrue(ie.suitable(url), '%s should match URL %r' % (type(ie).__name__, url))
+                    self.assertTrue(ie.suitable(url), f'{type(ie).__name__} should match URL {url!r}')
                 else:
                     self.assertFalse(
                         ie.suitable(url),
-                        '%s should not match URL %r . That URL belongs to %s.' % (type(ie).__name__, url, tc['name']))
+                        f'{type(ie).__name__} should not match URL {url!r} . That URL belongs to {tc["name"]}.')
 
     def test_keywords(self):
         self.assertMatch(':ytsubs', ['youtube:subscriptions'])
@@ -121,7 +115,7 @@ class TestAllURLsMatching(unittest.TestCase):
         for (ie_name, ie_list) in name_accu.items():
             self.assertEqual(
                 len(ie_list), 1,
-                'Multiple extractors with the same IE_NAME "%s" (%s)' % (ie_name, ', '.join(ie_list)))
+                f'Multiple extractors with the same IE_NAME "{ie_name}" ({", ".join(ie_list)})')
 
 
 if __name__ == '__main__':

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -51,8 +48,6 @@ class Lecture2GoIE(InfoExtractor):
                     'format_id': protocol,
                     'url': url,
                 })
-
-        self._sort_formats(formats)
 
         creator = self._html_search_regex(
             r'<div[^>]+id="description">([^<]+)</div>', webpage, 'creator', fatal=False)

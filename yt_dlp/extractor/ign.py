@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -103,8 +101,6 @@ class IGNIE(IGNBaseIE):
                 'quality': 1,
                 'url': mezzanine_url,
             })
-
-        self._sort_formats(formats)
 
         thumbnails = []
         for thumbnail in (video.get('thumbnails') or []):

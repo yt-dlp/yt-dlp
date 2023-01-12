@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -13,7 +10,7 @@ from ..utils import (
 )
 
 
-class AMPIE(InfoExtractor):
+class AMPIE(InfoExtractor):  # XXX: Conventionally, base classes should end with BaseIE/InfoExtractor
     # parse Akamai Adaptive Media Player feed
     def _extract_feed_info(self, url):
         feed = self._download_json(
@@ -86,8 +83,6 @@ class AMPIE(InfoExtractor):
                     'filesize': int_or_none(media.get('fileSize')),
                     'ext': ext,
                 })
-
-        self._sort_formats(formats)
 
         timestamp = unified_timestamp(item.get('pubDate'), ' ') or parse_iso8601(item.get('dc-date'))
 

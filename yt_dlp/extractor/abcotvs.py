@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -82,7 +78,6 @@ class ABCOTVSIE(InfoExtractor):
                 'url': mp4_url,
                 'width': 640,
             })
-        self._sort_formats(formats)
 
         image = video.get('image') or {}
 
@@ -123,7 +118,6 @@ class ABCOTVSClipsIE(InfoExtractor):
         title = video_data['title']
         formats = self._extract_m3u8_formats(
             video_data['videoURL'].split('?')[0], video_id, 'mp4')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

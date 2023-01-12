@@ -1,8 +1,5 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, join_nonempty
 
 
 class TOnlineIE(InfoExtractor):
@@ -30,13 +27,8 @@ class TOnlineIE(InfoExtractor):
             asset_source = asset.get('source') or asset.get('source2')
             if not asset_source:
                 continue
-            formats_id = []
-            for field_key in ('type', 'profile'):
-                field_value = asset.get(field_key)
-                if field_value:
-                    formats_id.append(field_value)
             formats.append({
-                'format_id': '-'.join(formats_id),
+                'format_id': join_nonempty('type', 'profile', from_dict=asset),
                 'url': asset_source,
             })
 

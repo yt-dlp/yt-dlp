@@ -1,5 +1,8 @@
 name: Core Tests
 on: [push, pull_request]
+permissions:
+  contents: read
+
 jobs:
   tests:
     name: Core Tests
@@ -8,24 +11,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04]
-        # py3.9 is in quick-test
-        python-version: [3.7, 3.8, 3.10-dev, pypy-3.6, pypy-3.7]
+        os: [ubuntu-latest]
+        # CPython 3.11 is in quick-test
+        python-version: ['3.8', '3.9', '3.10', pypy-3.7, pypy-3.8]
         run-tests-ext: [sh]
         include:
-        # atleast one of the tests must be in windows
+        # atleast one of each CPython/PyPy tests must be in windows
         - os: windows-latest
-          python-version: 3.6
+          python-version: '3.7'
+          run-tests-ext: bat
+        - os: windows-latest
+          python-version: pypy-3.9
           run-tests-ext: bat
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install pytest
       run: pip install pytest
     - name: Run tests
       continue-on-error: False
-      run: ./devscripts/run_tests.${{ matrix.run-tests-ext }} core
-  # Linter is in quick-test
+      run: |
+        python3 -m yt_dlp -v || true  # Print debug head
+        ./devscripts/run_tests.${{ matrix.run-tests-ext }} core

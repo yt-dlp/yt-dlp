@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_urlparse
 from ..utils import (
@@ -80,7 +77,7 @@ class NextMediaIE(InfoExtractor):
         return self._og_search_property('description', page)
 
 
-class NextMediaActionNewsIE(NextMediaIE):
+class NextMediaActionNewsIE(NextMediaIE):  # XXX: Do not subclass from concrete IE
     IE_DESC = '蘋果日報 - 動新聞'
     _VALID_URL = r'https?://hk\.dv\.nextmedia\.com/actionnews/[^/]+/(?P<date>\d+)/(?P<id>\d+)/\d+'
     _TESTS = [{
@@ -105,7 +102,7 @@ class NextMediaActionNewsIE(NextMediaIE):
         return self._extract_from_nextmedia_page(news_id, url, article_page)
 
 
-class AppleDailyIE(NextMediaIE):
+class AppleDailyIE(NextMediaIE):  # XXX: Do not subclass from concrete IE
     IE_DESC = '臺灣蘋果日報'
     _VALID_URL = r'https?://(www|ent)\.appledaily\.com\.tw/[^/]+/[^/]+/[^/]+/(?P<date>\d+)/(?P<id>\d+)(/.*)?'
     _TESTS = [{

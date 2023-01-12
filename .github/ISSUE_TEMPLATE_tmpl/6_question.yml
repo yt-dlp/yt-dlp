@@ -1,0 +1,37 @@
+name: Ask question
+description: Ask yt-dlp related question
+labels: [question]
+body:
+  %(no_skip)s
+  - type: markdown
+    attributes:
+      value: |
+        ### Make sure you are **only** asking a question and not reporting a bug or requesting a feature.
+        If your question contains "isn't working" or "can you add", this is most likely the wrong template.
+        If you are in doubt whether this is the right template, **USE ANOTHER TEMPLATE**!
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: |
+        Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
+      options:
+        - label: I'm asking a question and **not** reporting a bug or requesting a feature
+          required: true
+        - label: I've looked through the [README](https://github.com/yt-dlp/yt-dlp#readme)
+          required: true
+        - label: I've verified that I'm running yt-dlp version **%(version)s** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
+          required: true
+        - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar questions **including closed ones**. DO NOT post duplicates
+          required: true
+        - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
+          required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Please make sure the question is worded well enough to be understood
+      description: See [is-the-description-of-the-issue-itself-sufficient](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-description-of-the-issue-itself-sufficient)
+      placeholder: Provide any additional information and as much context and examples as possible
+    validations:
+      required: true
+  %(verbose_optional)s

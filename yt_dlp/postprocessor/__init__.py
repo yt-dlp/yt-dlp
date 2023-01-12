@@ -1,23 +1,25 @@
 # flake8: noqa: F401
 
-from ..utils import load_plugins
-
+from .common import PostProcessor
 from .embedthumbnail import EmbedThumbnailPP
-from .exec import ExecPP, ExecAfterDownloadPP
+from .exec import ExecAfterDownloadPP, ExecPP
 from .ffmpeg import (
-    FFmpegPostProcessor,
+    FFmpegConcatPP,
+    FFmpegCopyStreamPP,
     FFmpegEmbedSubtitlePP,
     FFmpegExtractAudioPP,
+    FFmpegFixupDuplicateMoovPP,
     FFmpegFixupDurationPP,
-    FFmpegFixupStretchedPP,
-    FFmpegFixupTimestampPP,
     FFmpegFixupM3u8PP,
     FFmpegFixupM4aPP,
+    FFmpegFixupStretchedPP,
+    FFmpegFixupTimestampPP,
     FFmpegMergerPP,
     FFmpegMetadataPP,
+    FFmpegPostProcessor,
+    FFmpegSplitChaptersPP,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
-    FFmpegSplitChaptersPP,
     FFmpegVideoConvertorPP,
     FFmpegVideoRemuxerPP,
 )
@@ -31,13 +33,15 @@ from .movefilesafterdownload import MoveFilesAfterDownloadPP
 from .sponskrub import SponSkrubPP
 from .sponsorblock import SponsorBlockPP
 from .xattrpp import XAttrMetadataPP
+from ..plugins import load_plugins
 
-_PLUGIN_CLASSES = load_plugins('postprocessor', 'PP', globals())
+_PLUGIN_CLASSES = load_plugins('postprocessor', 'PP')
 
 
 def get_postprocessor(key):
     return globals()[key + 'PP']
 
 
-__all__ = [name for name in globals().keys() if name.endswith('IE')]
-__all__.append('FFmpegPostProcessor')
+globals().update(_PLUGIN_CLASSES)
+__all__ = [name for name in globals().keys() if name.endswith('PP')]
+__all__.extend(('PostProcessor', 'FFmpegPostProcessor'))

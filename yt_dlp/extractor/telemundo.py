@@ -1,6 +1,3 @@
-# coding=utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     try_get,
@@ -34,8 +31,7 @@ class TelemundoIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        metadata = self._parse_json(
-            self._search_regex(r'<[^>]+id="__NEXT_DATA__"[^>]+>([^<]+)', webpage, 'JSON metadata'), video_id)
+        metadata = self._search_nextjs_data(webpage, video_id)
         redirect_url = try_get(
             metadata,
             lambda x: x['props']['initialState']['video']['associatedPlaylists'][0]['videos'][0]['videoAssets'][0]['publicUrl'])
@@ -44,7 +40,6 @@ class TelemundoIE(InfoExtractor):
             redirect_url + '?format=redirect&manifest=m3u&format=redirect&Tracking=true&Embedded=true&formats=MPEG4'),
             video_id, 'Processing m3u8').geturl()
         formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
-        self._sort_formats(formats)
         date = unified_timestamp(try_get(
             metadata, lambda x: x['props']['initialState']['video']['associatedPlaylists'][0]['videos'][0]['datePublished'].split(' ', 1)[1]))
         return {

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
@@ -62,7 +60,6 @@ class ClypIE(InfoExtractor):
                         'format_id': format_id,
                         'vcodec': 'none',
                     })
-        self._sort_formats(formats)
 
         title = metadata['Title']
         description = metadata.get('Description')

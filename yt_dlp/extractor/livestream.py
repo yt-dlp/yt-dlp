@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 import itertools
 
@@ -25,6 +23,8 @@ from ..utils import (
 class LivestreamIE(InfoExtractor):
     IE_NAME = 'livestream'
     _VALID_URL = r'https?://(?:new\.)?livestream\.com/(?:accounts/(?P<account_id>\d+)|(?P<account_name>[^/]+))/(?:events/(?P<event_id>\d+)|(?P<event_name>[^/]+))(?:/videos/(?P<id>\d+))?'
+    _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://(?:new\.)?livestream\.com/[^"]+/player[^"]+)"']
+
     _TESTS = [{
         'url': 'http://new.livestream.com/CoheedandCambria/WebsterHall/videos/4719370',
         'md5': '53274c76ba7754fb0e8d072716f2292b',
@@ -126,7 +126,6 @@ class LivestreamIE(InfoExtractor):
         if f4m_url:
             formats.extend(self._extract_f4m_formats(
                 f4m_url, video_id, f4m_id='hds', fatal=False))
-        self._sort_formats(formats)
 
         comments = [{
             'author_id': comment.get('author_id'),
@@ -171,12 +170,11 @@ class LivestreamIE(InfoExtractor):
                 'url': rtsp_url,
                 'format_id': 'rtsp',
             })
-        self._sort_formats(formats)
 
         return {
             'id': broadcast_id,
             'formats': formats,
-            'title': self._live_title(stream_info['stream_title']) if is_live else stream_info['stream_title'],
+            'title': stream_info['stream_title'],
             'thumbnail': stream_info.get('thumbnail_url'),
             'is_live': is_live,
         }
@@ -300,7 +298,6 @@ class LivestreamOriginalIE(InfoExtractor):
                 'format_id': 'rtsp',
             })
 
-        self._sort_formats(formats)
         return formats
 
     def _extract_folder(self, url, folder_id):
@@ -344,7 +341,7 @@ class LivestreamOriginalIE(InfoExtractor):
             is_live = video_data.get('isLive')
             info.update({
                 'id': content_id,
-                'title': self._live_title(info['title']) if is_live else info['title'],
+                'title': info['title'],
                 'formats': self._extract_video_formats(video_data, content_id),
                 'is_live': is_live,
             })

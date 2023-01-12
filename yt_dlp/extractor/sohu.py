@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -179,7 +176,6 @@ class SohuIE(InfoExtractor):
                     'height': int_or_none(data.get('height')),
                     'fps': int_or_none(data.get('fps')),
                 })
-            self._sort_formats(formats)
 
             playlist.append({
                 'id': '%s_part%d' % (video_id, i + 1),

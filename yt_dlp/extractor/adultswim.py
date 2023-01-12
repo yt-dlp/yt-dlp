@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .turner import TurnerBaseIE
@@ -183,7 +180,6 @@ class AdultSwimIE(TurnerBaseIE):
                         info['subtitles'].setdefault('en', []).append({
                             'url': asset_url,
                         })
-            self._sort_formats(info['formats'])
 
             return info
         else:

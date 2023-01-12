@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import (
     compat_HTTPError,
@@ -75,12 +72,11 @@ class TVPlayerIE(InfoExtractor):
             raise
 
         formats = self._extract_m3u8_formats(response['stream'], display_id, 'mp4')
-        self._sort_formats(formats)
 
         return {
             'id': resource_id,
             'display_id': display_id,
-            'title': self._live_title(title),
+            'title': title,
             'formats': formats,
             'is_live': True,
         }

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
@@ -42,8 +39,7 @@ class Varzesh3IE(InfoExtractor):
         video_url = self._search_regex(
             r'<source[^>]+src="([^"]+)"', webpage, 'video url')
 
-        title = remove_start(self._html_search_regex(
-            r'<title>([^<]+)</title>', webpage, 'title'), 'ویدیو ورزش 3 | ')
+        title = remove_start(self._html_extract_title(webpage), 'ویدیو ورزش 3 | ')
 
         description = self._html_search_regex(
             r'(?s)<div class="matn">(.+?)</div>',

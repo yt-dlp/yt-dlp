@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -48,7 +46,6 @@ class VoiceRepublicIE(InfoExtractor):
             'ext': determine_ext(talk_url) or format_id,
             'vcodec': 'none',
         } for format_id, talk_url in talk['media_links'].items()]
-        self._sort_formats(formats)
 
         return {
             'id': compat_str(talk.get('id') or display_id),

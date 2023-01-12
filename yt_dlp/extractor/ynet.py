@@ -1,11 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
 import json
+import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote_plus
 
 
 class YnetIE(InfoExtractor):
@@ -34,7 +31,7 @@ class YnetIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        content = compat_urllib_parse_unquote_plus(self._og_search_video_url(webpage))
+        content = urllib.parse.unquote_plus(self._og_search_video_url(webpage))
         config = json.loads(self._search_regex(r'config=({.+?})$', content, 'video config'))
         f4m_url = config['clip']['url']
         title = self._og_search_title(webpage)
@@ -42,7 +39,6 @@ class YnetIE(InfoExtractor):
         if m:
             title = m.group('title')
         formats = self._extract_f4m_formats(f4m_url, video_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

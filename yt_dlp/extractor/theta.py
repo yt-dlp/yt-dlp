@@ -1,12 +1,9 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import try_get
 
 
 class ThetaStreamIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?theta\.tv/(?!video/)(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?theta\.tv/(?!video/)(?P<id>[a-z0-9-]+)'
     _TESTS = [{
         'url': 'https://www.theta.tv/davirus',
         'skip': 'The live may have ended',
@@ -25,6 +22,14 @@ class ThetaStreamIE(InfoExtractor):
             'title': 'Mystery Science Theatre 3000 24/7 Powered by the THETA Network.',
             'thumbnail': r're:https://user-prod-theta-tv\.imgix\.net/.+\.jpg',
         }
+    }, {
+        'url': 'https://www.theta.tv/contv-anime',
+        'info_dict': {
+            'id': 'ConTVAnime',
+            'ext': 'mp4',
+            'title': 'CONTV ANIME 24/7. Powered by THETA Network.',
+            'thumbnail': r're:https://user-prod-theta-tv\.imgix\.net/.+\.jpg',
+        }
     }]
 
     def _real_extract(self, url):
@@ -36,7 +41,6 @@ class ThetaStreamIE(InfoExtractor):
             if data.get('type') != 'embed' and data.get('resolution') in ('master', 'source'))
 
         formats = self._extract_m3u8_formats(m3u8_playlist, channel_id, 'mp4', m3u8_id='hls', live=True)
-        self._sort_formats(formats)
 
         channel = try_get(info, lambda x: x['user']['username'])  # using this field instead of channel_id due to capitalization
 
@@ -73,7 +77,6 @@ class ThetaVideoIE(InfoExtractor):
         m3u8_playlist = try_get(info, lambda x: x['video_urls'][0]['url'])
 
         formats = self._extract_m3u8_formats(m3u8_playlist, video_id, 'mp4', m3u8_id='hls')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
@@ -81,7 +78,6 @@ class IzleseneIE(InfoExtractor):
                 'ext': ext,
                 'height': height,
             })
-        self._sort_formats(formats)
 
         description = self._og_search_description(webpage, default=None)
         thumbnail = video.get('posterURL') or self._proto_relative_url(

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import collections
 import json
 import os
@@ -162,14 +160,7 @@ query viewClip {
   }
 }'''
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login page')
 
@@ -418,8 +409,6 @@ query viewClip {
                         'source_preference': int_or_none(clip_url_data.get('rank')),
                     })
                     formats.append(clip_f)
-
-        self._sort_formats(formats)
 
         duration = int_or_none(
             clip.get('duration')) or parse_duration(clip.get('formattedDuration'))

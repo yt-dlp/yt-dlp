@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -56,7 +53,6 @@ class TurboIE(InfoExtractor):
                     'url': child.text,
                     'quality': get_quality(quality),
                 })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

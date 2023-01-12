@@ -1,22 +1,17 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import threading
 
+from . import get_suitable_downloader
 from .common import FileDownloader
-from ..downloader import get_suitable_downloader
-from ..extractor.niconico import NiconicoIE
 from ..utils import sanitized_Request
 
 
 class NiconicoDmcFD(FileDownloader):
     """ Downloading niconico douga from DMC with heartbeat """
 
-    FD_NAME = 'niconico_dmc'
-
     def real_download(self, filename, info_dict):
-        self.to_screen('[%s] Downloading from DMC' % self.FD_NAME)
+        from ..extractor.niconico import NiconicoIE
 
+        self.to_screen('[%s] Downloading from DMC' % self.FD_NAME)
         ie = NiconicoIE(self.ydl)
         info_dict, heartbeat_info_dict = ie._get_heartbeat_info(info_dict)
 
@@ -54,4 +49,4 @@ class NiconicoDmcFD(FileDownloader):
                 with heartbeat_lock:
                     timer[0].cancel()
                     download_complete = True
-            return success
+        return success

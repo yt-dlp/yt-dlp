@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -11,13 +8,28 @@ from ..utils import (
 
 
 class BongaCamsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<host>(?:[^/]+\.)?bongacams\d*\.com)/(?P<id>[^/?&#]+)'
+    _VALID_URL = r'https?://(?P<host>(?:[^/]+\.)?bongacams\d*\.(?:com|net))/(?P<id>[^/?&#]+)'
     _TESTS = [{
         'url': 'https://de.bongacams.com/azumi-8',
         'only_matching': True,
     }, {
         'url': 'https://cn.bongacams.com/azumi-8',
         'only_matching': True,
+    }, {
+        'url': 'https://de.bongacams.net/claireashton',
+        'info_dict': {
+            'id': 'claireashton',
+            'ext': 'mp4',
+            'title': r're:ClaireAshton \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+            'age_limit': 18,
+            'uploader_id': 'ClaireAshton',
+            'uploader': 'ClaireAshton',
+            'like_count': int,
+            'is_live': True,
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
@@ -45,11 +57,10 @@ class BongaCamsIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             '%s/hls/stream_%s/playlist.m3u8' % (server_url, uploader_id),
             channel_id, 'mp4', m3u8_id='hls', live=True)
-        self._sort_formats(formats)
 
         return {
             'id': channel_id,
-            'title': self._live_title(uploader or uploader_id),
+            'title': uploader or uploader_id,
             'uploader': uploader,
             'uploader_id': uploader_id,
             'like_count': like_count,

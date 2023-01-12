@@ -1,14 +1,11 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import json
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote_plus
 from ..utils import (
-    clean_html,
     ExtractorError,
+    clean_html,
     int_or_none,
     str_to_int,
     url_or_none,
@@ -35,7 +32,6 @@ class ChingariBaseIE(InfoExtractor):
                 'url': base_url + '/apipublic' + media_data['path'],
                 'quality': 10,
             })
-        self._sort_formats(formats)
         timestamp = str_to_int(post_data.get('created_at'))
         if timestamp:
             timestamp = int_or_none(timestamp, 1000)
@@ -48,8 +44,10 @@ class ChingariBaseIE(InfoExtractor):
 
         return {
             'id': id,
-            'title': compat_urllib_parse_unquote_plus(clean_html(post_data.get('caption'))),
-            'description': compat_urllib_parse_unquote_plus(clean_html(post_data.get('caption'))),
+            'extractor_key': ChingariIE.ie_key(),
+            'extractor': 'Chingari',
+            'title': urllib.parse.unquote_plus(clean_html(post_data.get('caption'))),
+            'description': urllib.parse.unquote_plus(clean_html(post_data.get('caption'))),
             'duration': media_data.get('duration'),
             'thumbnail': url_or_none(thumbnail),
             'like_count': post_data.get('likeCount'),
@@ -67,7 +65,7 @@ class ChingariBaseIE(InfoExtractor):
 
 
 class ChingariIE(ChingariBaseIE):
-    _VALID_URL = r'(?:https?://)(?:www\.)?chingari\.io/share/post\?id=(?P<id>[^&/#?]+)'
+    _VALID_URL = r'https?://(?:www\.)?chingari\.io/share/post\?id=(?P<id>[^&/#?]+)'
     _TESTS = [{
         'url': 'https://chingari.io/share/post?id=612f8f4ce1dc57090e8a7beb',
         'info_dict': {
@@ -102,14 +100,14 @@ class ChingariIE(ChingariBaseIE):
 
 
 class ChingariUserIE(ChingariBaseIE):
-    _VALID_URL = r'(?:https?://)(?:www\.)?chingari\.io/(?!share/post)(?P<id>[^/?]+)'
+    _VALID_URL = r'https?://(?:www\.)?chingari\.io/(?!share/post)(?P<id>[^/?]+)'
     _TESTS = [{
         'url': 'https://chingari.io/dada1023',
-        'playlist_mincount': 3,
         'info_dict': {
             'id': 'dada1023',
         },
-        'entries': [{
+        'params': {'playlistend': 3},
+        'playlist': [{
             'url': 'https://chingari.io/share/post?id=614781f3ade60b3a0bfff42a',
             'info_dict': {
                 'id': '614781f3ade60b3a0bfff42a',

@@ -1,55 +1,83 @@
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
+from ..utils import (
+    try_get,
+)
 
 
 class AlJazeeraIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?aljazeera\.com/(?P<type>program/[^/]+|(?:feature|video)s)/\d{4}/\d{1,2}/\d{1,2}/(?P<id>[^/?&#]+)'
+    _VALID_URL = r'https?://(?P<base>\w+\.aljazeera\.\w+)/(?P<type>programs?/[^/]+|(?:feature|video|new)s)?/\d{4}/\d{1,2}/\d{1,2}/(?P<id>[^/?&#]+)'
 
     _TESTS = [{
-        'url': 'https://www.aljazeera.com/program/episode/2014/9/19/deliverance',
+        'url': 'https://balkans.aljazeera.net/videos/2021/11/6/pojedini-domovi-u-sarajevu-jos-pod-vodom-mjestanima-se-dostavlja-hrana',
         'info_dict': {
-            'id': '3792260579001',
+            'id': '6280641530001',
             'ext': 'mp4',
-            'title': 'The Slum - Episode 1: Deliverance',
-            'description': 'As a birth attendant advocating for family planning, Remy is on the frontline of Tondo\'s battle with overcrowding.',
-            'uploader_id': '665003303001',
-            'timestamp': 1411116829,
-            'upload_date': '20140919',
+            'title': 'Pojedini domovi u Sarajevu još pod vodom, mještanima se dostavlja hrana',
+            'timestamp': 1636219149,
+            'description': 'U sarajevskim naseljima Rajlovac i Reljevo stambeni objekti, ali i industrijska postrojenja i dalje su pod vodom.',
+            'upload_date': '20211106',
+        }
+    }, {
+        'url': 'https://balkans.aljazeera.net/videos/2021/11/6/djokovic-usao-u-finale-mastersa-u-parizu',
+        'info_dict': {
+            'id': '6280654936001',
+            'ext': 'mp4',
+            'title': 'Đoković ušao u finale Mastersa u Parizu',
+            'timestamp': 1636221686,
+            'description': 'Novak Đoković je u polufinalu Mastersa u Parizu nakon preokreta pobijedio Poljaka Huberta Hurkacza.',
+            'upload_date': '20211106',
         },
-        'add_ie': ['BrightcoveNew'],
-        'skip': 'Not accessible from Travis CI server',
-    }, {
-        'url': 'https://www.aljazeera.com/videos/2017/5/11/sierra-leone-709-carat-diamond-to-be-auctioned-off',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.aljazeera.com/features/2017/8/21/transforming-pakistans-buses-into-art',
-        'only_matching': True,
     }]
-    BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_default/index.html?videoId=%s'
+    BRIGHTCOVE_URL_RE = r'https?://players.brightcove.net/(?P<account>\d+)/(?P<player_id>[a-zA-Z0-9]+)_(?P<embed>[^/]+)/index.html\?videoId=(?P<id>\d+)'
 
     def _real_extract(self, url):
-        post_type, name = self._match_valid_url(url).groups()
+        base, post_type, id = self._match_valid_url(url).groups()
+        wp = {
+            'balkans.aljazeera.net': 'ajb',
+            'chinese.aljazeera.net': 'chinese',
+            'mubasher.aljazeera.net': 'ajm',
+        }.get(base) or 'aje'
         post_type = {
             'features': 'post',
             'program': 'episode',
+            'programs': 'episode',
             'videos': 'video',
+            'news': 'news',
         }[post_type.split('/')[0]]
         video = self._download_json(
-            'https://www.aljazeera.com/graphql', name, query={
+            f'https://{base}/graphql', id, query={
+                'wp-site': wp,
                 'operationName': 'ArchipelagoSingleArticleQuery',
                 'variables': json.dumps({
-                    'name': name,
+                    'name': id,
                     'postType': post_type,
                 }),
             }, headers={
-                'wp-site': 'aje',
-            })['data']['article']['video']
-        video_id = video['id']
-        account_id = video.get('accountId') or '665003303001'
-        player_id = video.get('playerId') or 'BkeSH5BDb'
-        return self.url_result(
-            self.BRIGHTCOVE_URL_TEMPLATE % (account_id, player_id, video_id),
-            'BrightcoveNew', video_id)
+                'wp-site': wp,
+            })
+        video = try_get(video, lambda x: x['data']['article']['video']) or {}
+        video_id = video.get('id')
+        account = video.get('accountId') or '911432371001'
+        player_id = video.get('playerId') or 'csvTfAlKW'
+        embed = 'default'
+
+        if video_id is None:
+            webpage = self._download_webpage(url, id)
+
+            account, player_id, embed, video_id = self._search_regex(self.BRIGHTCOVE_URL_RE, webpage, 'video id',
+                                                                     group=(1, 2, 3, 4), default=(None, None, None, None))
+
+            if video_id is None:
+                return {
+                    '_type': 'url_transparent',
+                    'url': url,
+                    'ie_key': 'Generic'
+                }
+
+        return {
+            '_type': 'url_transparent',
+            'url': f'https://players.brightcove.net/{account}/{player_id}_{embed}/index.html?videoId={video_id}',
+            'ie_key': 'BrightcoveNew'
+        }

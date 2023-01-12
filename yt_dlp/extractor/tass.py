@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -51,7 +48,6 @@ class TassIE(InfoExtractor):
                 'format_id': label,
                 'quality': quality(label),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

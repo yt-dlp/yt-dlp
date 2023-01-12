@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -11,11 +8,12 @@ class AZMedienIE(InfoExtractor):
     IE_DESC = 'AZ Medien videos'
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:www\.)?
+                        (?:www\.|tv\.)?
                         (?P<host>
                             telezueri\.ch|
                             telebaern\.tv|
-                            telem1\.ch
+                            telem1\.ch|
+                            tvo-online\.ch
                         )/
                         [^/]+/
                         (?P<id>
@@ -30,7 +28,7 @@ class AZMedienIE(InfoExtractor):
                     '''
 
     _TESTS = [{
-        'url': 'https://www.telezueri.ch/sonntalk/bundesrats-vakanzen-eu-rahmenabkommen-133214569',
+        'url': 'https://tv.telezueri.ch/sonntalk/bundesrats-vakanzen-eu-rahmenabkommen-133214569',
         'info_dict': {
             'id': '1_anruz3wy',
             'ext': 'mp4',
@@ -38,6 +36,9 @@ class AZMedienIE(InfoExtractor):
             'uploader_id': 'TVOnline',
             'upload_date': '20180930',
             'timestamp': 1538328802,
+            'view_count': int,
+            'thumbnail': 'http://cfvod.kaltura.com/p/1719221/sp/171922100/thumbnail/entry_id/1_anruz3wy/version/100031',
+            'duration': 1930
         },
         'params': {
             'skip_download': True,

@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     encode_base_n,
@@ -110,7 +106,6 @@ class EpornerIE(InfoExtractor):
                         'height': height,
                         'fps': fps,
                     })
-        self._sort_formats(formats)
 
         json_ld = self._search_json_ld(webpage, display_id, default={})
 

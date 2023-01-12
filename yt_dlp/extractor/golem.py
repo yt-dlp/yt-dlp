@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
@@ -54,7 +51,6 @@ class GolemIE(InfoExtractor):
                 'filesize': self._int(e.findtext('filesize'), 'filesize'),
                 'ext': determine_ext(e.findtext('./filename')),
             })
-        self._sort_formats(formats)
         info['formats'] = formats
 
         thumbnails = []

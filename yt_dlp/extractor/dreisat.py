@@ -1,9 +1,7 @@
-from __future__ import unicode_literals
-
 from .zdf import ZDFIE
 
 
-class DreiSatIE(ZDFIE):
+class DreiSatIE(ZDFIE):  # XXX: Do not subclass from concrete IE
     IE_NAME = '3sat'
     _VALID_URL = r'https?://(?:www\.)?3sat\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)\.html'
     _TESTS = [{

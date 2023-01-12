@@ -1,12 +1,12 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import re
 
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
+    get_element_by_class,
     parse_count,
+    remove_end,
     unified_strdate,
     js_to_json,
     OnDemandPagedList,
@@ -35,7 +35,7 @@ class TokentubeIE(InfoExtractor):
             'id': '3950239124',
             'ext': 'mp4',
             'title': 'Linux Ubuntu Studio perus käyttö',
-            'description': 'md5:854ff1dc732ff708976de2880ea32050',
+            'description': 'md5:46077d0daaba1974f2dc381257f9d64c',
             'uploader': 'jyrilehtonen',
             'upload_date': '20210825',
         },
@@ -45,7 +45,7 @@ class TokentubeIE(InfoExtractor):
             'id': '3582463289',
             'ext': 'mp4',
             'title': 'Police for Freedom - toiminta aloitetaan Suomessa ❤️??',
-            'description': 'md5:cd92e620d7f5fa162e8410d0fc9a08be',
+            'description': 'md5:37ebf1cb44264e0bf23ed98b337ee63e',
             'uploader': 'Voitontie',
             'upload_date': '20210428',
         }
@@ -90,9 +90,10 @@ class TokentubeIE(InfoExtractor):
             r'<a\s*class="place-left"[^>]+>(.+?)</a>',
             webpage, 'uploader', fatal=False)
 
-        description = self._html_search_meta('description', webpage)
+        description = (clean_html(get_element_by_class('p-d-txt', webpage))
+                       or self._html_search_meta(('og:description', 'description', 'twitter:description'), webpage))
 
-        self._sort_formats(formats)
+        description = remove_end(description, 'Category')
 
         return {
             'id': video_id,

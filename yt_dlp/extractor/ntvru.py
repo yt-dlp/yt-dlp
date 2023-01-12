@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -118,7 +115,6 @@ class NTVRuIE(InfoExtractor):
                 'url': file_,
                 'filesize': int_or_none(xpath_text(video, './%ssize' % format_id)),
             })
-        self._sort_formats(formats)
 
         return {
             'id': xpath_text(video, './id'),

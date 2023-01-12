@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
@@ -73,8 +70,6 @@ class EitbIE(InfoExtractor):
             formats.extend(self._extract_f4m_formats(
                 '%s?hdcore=3.7.0' % hds_url.replace('euskalsvod', 'euskalvod'),
                 video_id, f4m_id='hds', fatal=False))
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

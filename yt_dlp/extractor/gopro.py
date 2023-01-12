@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -80,8 +77,6 @@ class GoProIE(InfoExtractor):
                 'width': int_or_none(fmt.get('width')),
                 'height': int_or_none(fmt.get('height')),
             })
-
-        self._sort_formats(formats)
 
         title = str_or_none(
             try_get(metadata, lambda x: x['collection']['title'])

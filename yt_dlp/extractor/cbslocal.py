@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .anvato import AnvatoIE
 from .sendtonews import SendtoNewsIE
 from ..compat import compat_urlparse
@@ -10,7 +7,7 @@ from ..utils import (
 )
 
 
-class CBSLocalIE(AnvatoIE):
+class CBSLocalIE(AnvatoIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL_BASE = r'https?://[a-z]+\.cbslocal\.com/'
     _VALID_URL = _VALID_URL_BASE + r'video/(?P<id>\d+)'
 
@@ -50,7 +47,7 @@ class CBSLocalIE(AnvatoIE):
             'anvato:anvato_cbslocal_app_web_prod_547f3e49241ef0e5d30c79b2efbca5d92c698f67:' + mcp_id, 'Anvato', mcp_id)
 
 
-class CBSLocalArticleIE(AnvatoIE):
+class CBSLocalArticleIE(AnvatoIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = CBSLocalIE._VALID_URL_BASE + r'\d+/\d+/\d+/(?P<id>[0-9a-z-]+)'
 
     _TESTS = [{

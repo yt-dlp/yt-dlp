@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -16,7 +13,6 @@ class BpbIE(InfoExtractor):
 
     _TEST = {
         'url': 'http://www.bpb.de/mediathek/297/joachim-gauck-zu-1989-und-die-erinnerung-an-die-ddr',
-        # md5 fails in Python 2.6 due to buggy server response and wrong handling of urllib2
         'md5': 'c4f84c8a8044ca9ff68bb8441d300b3f',
         'info_dict': {
             'id': '297',
@@ -51,8 +47,6 @@ class BpbIE(InfoExtractor):
                 'format_note': quality,
                 'format_id': '%s-%s' % (quality, determine_ext(video_url)),
             })
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

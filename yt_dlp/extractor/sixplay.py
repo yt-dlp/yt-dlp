@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
@@ -108,7 +104,6 @@ class SixPlayIE(InfoExtractor):
                     'quality': quality_key(quality),
                     'ext': ext,
                 })
-        self._sort_formats(formats)
 
         def get(getter):
             for src in (data, clip_data):

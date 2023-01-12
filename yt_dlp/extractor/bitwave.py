@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 
 
@@ -47,11 +45,10 @@ class BitwaveStreamIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             channel['data']['url'], username,
             'mp4')
-        self._sort_formats(formats)
 
         return {
             'id': username,
-            'title': self._live_title(channel['data']['title']),
+            'title': channel['data']['title'],
             'uploader': username,
             'uploader_id': username,
             'formats': formats,

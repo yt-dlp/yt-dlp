@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -13,7 +10,7 @@ from ..utils import (
 
 
 class XNXXIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:video|www)\.xnxx\.com/video-?(?P<id>[0-9a-z]+)/'
+    _VALID_URL = r'https?://(?:video|www)\.xnxx3?\.com/video-?(?P<id>[0-9a-z]+)/'
     _TESTS = [{
         'url': 'http://www.xnxx.com/video-55awb78/skyrim_test_video',
         'md5': '7583e96c15c0f21e9da3453d9920fbba',
@@ -31,6 +28,9 @@ class XNXXIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'http://www.xnxx.com/video-55awb78/',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.xnxx3.com/video-55awb78/',
         'only_matching': True,
     }]
 
@@ -64,7 +64,6 @@ class XNXXIE(InfoExtractor):
                     'format_id': format_id,
                     'quality': -1 if format_id == 'low' else 0,
                 })
-        self._sort_formats(formats)
 
         thumbnail = self._og_search_thumbnail(webpage, default=None) or get(
             'ThumbUrl', fatal=False) or get('ThumbUrl169', fatal=False)

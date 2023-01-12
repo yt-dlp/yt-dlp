@@ -1,11 +1,7 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import hashlib
 import json
 import random
-import re
 import time
 
 from .adobepass import AdobePassIE
@@ -41,6 +37,7 @@ class ViceBaseIE(InfoExtractor):
 class ViceIE(ViceBaseIE, AdobePassIE):
     IE_NAME = 'vice'
     _VALID_URL = r'https?://(?:(?:video|vms)\.vice|(?:www\.)?vice(?:land|tv))\.com/(?P<locale>[^/]+)/(?:video/[^/]+|embed)/(?P<id>[\da-f]{24})'
+    _EMBED_REGEX = [r'<iframe\b[^>]+\bsrc=["\'](?P<url>(?:https?:)?//video\.vice\.com/[^/]+/embed/[\da-f]{24})']
     _TESTS = [{
         'url': 'https://video.vice.com/en_us/video/pet-cremator/58c69e38a55424f1227dc3f7',
         'info_dict': {
@@ -106,17 +103,6 @@ class ViceIE(ViceBaseIE, AdobePassIE):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe\b[^>]+\bsrc=["\']((?:https?:)?//video\.vice\.com/[^/]+/embed/[\da-f]{24})',
-            webpage)
-
-    @staticmethod
-    def _extract_url(webpage):
-        urls = ViceIE._extract_urls(webpage)
-        return urls[0] if urls else None
-
     def _real_extract(self, url):
         locale, video_id = self._match_valid_url(url).groups()
 
@@ -164,7 +150,6 @@ class ViceIE(ViceBaseIE, AdobePassIE):
         video_data = preplay['video']
         formats = self._extract_m3u8_formats(
             preplay['playURL'], video_id, 'mp4', 'm3u8_native')
-        self._sort_formats(formats)
         episode = video_data.get('episode') or {}
         channel = video_data.get('channel') or {}
         season = video_data.get('season') or {}
@@ -290,7 +275,6 @@ class ViceArticleIE(ViceBaseIE):
         },
         'params': {
             'skip_download': True,
-            'format': 'bestvideo',
         },
         'add_ie': [ViceIE.ie_key()],
     }, {

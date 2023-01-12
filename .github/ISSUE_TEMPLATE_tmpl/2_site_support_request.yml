@@ -1,0 +1,52 @@
+name: Site support request
+description: Request support for a new site
+labels: [triage, site-request]
+body:
+  %(no_skip)s
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: |
+        Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
+      options:
+        - label: I'm reporting a new site support request
+          required: true
+        - label: I've verified that I'm running yt-dlp version **%(version)s** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
+          required: true
+        - label: I've checked that all provided URLs are playable in a browser with the same IP and same login details
+          required: true
+        - label: I've checked that none of provided URLs [violate any copyrights](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-website-primarily-used-for-piracy) or contain any [DRM](https://en.wikipedia.org/wiki/Digital_rights_management) to the best of my knowledge
+          required: true
+        - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues **including closed ones**. DO NOT post duplicates
+          required: true
+        - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
+          required: true
+        - label: I've read about [sharing account credentials](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#are-you-willing-to-share-account-details-if-needed) and am willing to share it if required
+  - type: input
+    id: region
+    attributes:
+      label: Region
+      description: Enter the country/region that the site is accessible from
+      placeholder: India
+  - type: textarea
+    id: example-urls
+    attributes:
+      label: Example URLs
+      description: |
+        Provide all kinds of example URLs for which support should be added
+      placeholder: |
+        - Single video: https://www.youtube.com/watch?v=BaW_jenozKc
+        - Single video: https://youtu.be/BaW_jenozKc
+        - Playlist: https://www.youtube.com/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Provide a description that is worded well enough to be understood
+      description: See [is-the-description-of-the-issue-itself-sufficient](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#is-the-description-of-the-issue-itself-sufficient)
+      placeholder: Provide any additional information, any suggested solutions, and as much context and examples as possible
+    validations:
+      required: true
+  %(verbose)s

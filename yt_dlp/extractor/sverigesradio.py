@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -61,7 +58,6 @@ class SverigesRadioBaseIE(InfoExtractor):
                 'vcodec': 'none',
                 'url': audio_url,
             })
-        self._sort_formats(formats)
 
         return {
             'id': audio_id,

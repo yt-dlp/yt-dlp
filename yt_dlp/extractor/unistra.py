@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -49,7 +47,6 @@ class UnistraIE(InfoExtractor):
                 'format_id': format_id,
                 'quality': quality(format_id)
             })
-        self._sort_formats(formats)
 
         title = self._html_search_regex(
             r'<title>UTV - (.*?)</', webpage, 'title')

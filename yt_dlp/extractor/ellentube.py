@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
@@ -26,12 +23,11 @@ class EllenTubeBaseIE(InfoExtractor):
         duration = None
         for entry in data.get('media'):
             if entry.get('id') == 'm3u8':
-                formats = self._extract_m3u8_formats(
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                     entry['url'], video_id, 'mp4',
                     entry_protocol='m3u8_native', m3u8_id='hls')
                 duration = int_or_none(entry.get('duration'))
                 break
-        self._sort_formats(formats)
 
         def get_insight(kind):
             return int_or_none(try_get(
@@ -48,6 +44,7 @@ class EllenTubeBaseIE(InfoExtractor):
             'view_count': get_insight('view'),
             'like_count': get_insight('like'),
             'formats': formats,
+            'subtitles': subtitles,
         }
 
 

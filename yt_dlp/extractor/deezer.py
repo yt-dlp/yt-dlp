@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -64,7 +62,6 @@ class DeezerPlaylistIE(DeezerBaseInfoExtractor):
                 'preference': -100,  # Only the first 30 seconds
                 'ext': 'mp3',
             }]
-            self._sort_formats(formats)
             artists = ', '.join(
                 orderedSet(a.get('ART_NAME') for a in s.get('ARTISTS')))
             entries.append({
@@ -117,7 +114,6 @@ class DeezerAlbumIE(DeezerBaseInfoExtractor):
                 'preference': -100,  # Only the first 30 seconds
                 'ext': 'mp3',
             }]
-            self._sort_formats(formats)
             artists = ', '.join(
                 orderedSet(a.get('ART_NAME') for a in s.get('ARTISTS')))
             entries.append({

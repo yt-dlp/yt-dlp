@@ -1,13 +1,10 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from .jwplatform import JWPlatformIE
 
 
 class SpiegelIE(InfoExtractor):
     _UUID_RE = r'[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}'
-    _VALID_URL = r'https?://(?:www\.)?(?:spiegel|manager-magazin)\.de(?:/[^/]+)+/[^/]*-(?P<id>[0-9]+|%s)(?:-embed|-iframe)?(?:\.html)?(?:#.*)?$' % _UUID_RE
+    _VALID_URL = r'https?://(?:www\.)?(?:spiegel|manager-magazin)\.de(?:/[^/]+)+/[^/]*-(?P<id>[0-9]+|%s)(?:-embed|-iframe)?(?:\.html)?(?:$|[#?])' % _UUID_RE
     _TESTS = [{
         'url': 'http://www.spiegel.de/video/vulkan-tungurahua-in-ecuador-ist-wieder-aktiv-video-1259285.html',
         'md5': '50c7948883ec85a3e431a0a44b7ad1d6',

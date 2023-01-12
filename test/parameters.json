@@ -9,7 +9,7 @@
     "forcetitle": false,
     "forceurl": false,
     "force_write_download_archive": false,
-    "format": "best",
+    "format": "b/bv",
     "ignoreerrors": false,
     "listformats": null,
     "logtostderr": false,
@@ -44,6 +44,6 @@
     "writesubtitles": false,
     "allsubtitles": false,
     "listsubtitles": false,
-    "socket_timeout": 20,
-    "fixup": "never"
+    "fixup": "never",
+    "allow_playlist_files": false
 }

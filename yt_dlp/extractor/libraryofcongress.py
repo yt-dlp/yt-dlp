@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -128,8 +125,6 @@ class LibraryOfCongressIE(InfoExtractor):
                 'format_id': format_id,
                 'filesize_approx': parse_filesize(m.group('size')),
             })
-
-        self._sort_formats(formats)
 
         duration = float_or_none(data.get('duration'))
         view_count = int_or_none(data.get('viewCount'))

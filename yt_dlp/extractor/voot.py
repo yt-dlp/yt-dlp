@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -15,9 +12,9 @@ class VootIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     (?:
                         voot:|
-                        (?:https?://)(?:www\.)?voot\.com/?
+                        https?://(?:www\.)?voot\.com/?
                         (?:
-                            movies/[^/]+/|
+                            movies?/[^/]+/|
                             (?:shows|kids)/(?:[^/]+/){4}
                         )
                      )
@@ -50,6 +47,9 @@ class VootIE(InfoExtractor):
     }, {
         'url': 'https://www.voot.com/movies/pandavas-5/424627',
         'only_matching': True,
+    }, {
+        'url': 'https://www.voot.com/movie/fight-club/621842',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -73,7 +73,6 @@ class VootIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             'https://cdnapisec.kaltura.com/p/1982551/playManifest/pt/https/f/applehttp/t/web/e/' + entry_id,
             video_id, 'mp4', m3u8_id='hls')
-        self._sort_formats(formats)
 
         description, series, season_number, episode, episode_number = [None] * 5
 

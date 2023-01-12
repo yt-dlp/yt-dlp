@@ -2,3 +2,5 @@
 
 Makefile* text whitespace=-tab-in-indent
 *.sh text eol=lf
+*.md diff=markdown
+*.py diff=python

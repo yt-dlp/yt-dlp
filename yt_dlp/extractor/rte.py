@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -96,8 +93,6 @@ class RteBaseIE(InfoExtractor):
                 if hds_url:
                     formats.extend(self._extract_f4m_formats(
                         hds_url, item_id, f4m_id='hds', fatal=False))
-
-        self._sort_formats(formats)
 
         info_dict['formats'] = formats
         return info_dict

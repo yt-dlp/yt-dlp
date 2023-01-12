@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     HEADRequest,
@@ -101,7 +97,6 @@ class SinaIE(InfoExtractor):
                     'quality': preference(quality_id),
                     'ext': 'mp4',
                 })
-            self._sort_formats(formats)
 
             return {
                 'id': video_id,

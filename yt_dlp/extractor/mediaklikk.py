@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from ..utils import (
     unified_strdate
 )
@@ -12,8 +9,8 @@ from ..compat import (
 
 
 class MediaKlikkIE(InfoExtractor):
-    _VALID_URL = r'''(?x)^https?:\/\/(?:www\.)?
-                        (?:mediaklikk|m4sport|hirado|petofilive)\.hu\/.*?videok?\/
+    _VALID_URL = r'''(?x)https?://(?:www\.)?
+                        (?:mediaklikk|m4sport|hirado|petofilive)\.hu/.*?(?:videok?|cikk)/
                         (?:(?P<year>[0-9]{4})/(?P<month>[0-9]{1,2})/(?P<day>[0-9]{1,2})/)?
                         (?P<id>[^/#?_]+)'''
 
@@ -92,7 +89,6 @@ class MediaKlikkIE(InfoExtractor):
 
         formats = self._extract_wowza_formats(
             playlist_url, video_id, skip_protocols=['f4m', 'smil', 'dash'])
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

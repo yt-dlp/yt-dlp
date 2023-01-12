@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -85,7 +82,6 @@ class XstreamIE(InfoExtractor):
                     'url': media_url,
                     'tbr': tbr,
                 })
-        self._sort_formats(formats)
 
         link = find_xpath_attr(
             entry, xpath_with_ns('./atom:link', NS_MAP), 'rel', 'original')

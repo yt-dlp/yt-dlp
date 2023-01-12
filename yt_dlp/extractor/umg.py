@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -89,7 +86,6 @@ class UMGDeIE(InfoExtractor):
         if not formats:
             for format_id in (867, 836, 940):
                 add_m3u8_format(format_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

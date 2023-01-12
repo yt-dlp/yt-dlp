@@ -1,11 +1,9 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    join_nonempty,
     xpath_text,
 )
 
@@ -34,12 +32,9 @@ class WebcasterIE(InfoExtractor):
 
         title = xpath_text(video, './/event_name', 'event name', fatal=True)
 
-        def make_id(parts, separator):
-            return separator.join(filter(None, parts))
-
         formats = []
         for format_id in (None, 'noise'):
-            track_tag = make_id(('track', format_id), '_')
+            track_tag = join_nonempty('track', format_id, delim='_')
             for track in video.findall('.//iphone/%s' % track_tag):
                 track_url = track.text
                 if not track_url:
@@ -48,14 +43,13 @@ class WebcasterIE(InfoExtractor):
                     m3u8_formats = self._extract_m3u8_formats(
                         track_url, video_id, 'mp4',
                         entry_protocol='m3u8_native',
-                        m3u8_id=make_id(('hls', format_id), '-'), fatal=False)
+                        m3u8_id=join_nonempty('hls', format_id, delim='-'), fatal=False)
                     for f in m3u8_formats:
                         f.update({
                             'source_preference': 0 if format_id == 'noise' else 1,
                             'format_note': track.get('title'),
                         })
                     formats.extend(m3u8_formats)
-        self._sort_formats(formats)
 
         thumbnail = xpath_text(video, './/image', 'thumbnail')
 
@@ -69,27 +63,23 @@ class WebcasterIE(InfoExtractor):
 
 class WebcasterFeedIE(InfoExtractor):
     _VALID_URL = r'https?://bl\.webcaster\.pro/feed/start/free_(?P<id>[^/]+)'
+    _EMBED_REGEX = [r'<(?:object|a[^>]+class=["\']webcaster-player["\'])[^>]+data(?:-config)?=(["\']).*?config=(?P<url>https?://bl\.webcaster\.pro/feed/start/free_.*?)(?:[?&]|\1)']
     _TEST = {
         'url': 'http://bl.webcaster.pro/feed/start/free_c8cefd240aa593681c8d068cff59f407_hd/q393859/eb173f99dd5f558674dae55f4ba6806d/1480289104',
         'only_matching': True,
     }
 
-    @staticmethod
-    def _extract_url(ie, webpage):
-        mobj = re.search(
-            r'<(?:object|a[^>]+class=["\']webcaster-player["\'])[^>]+data(?:-config)?=(["\']).*?config=(?P<url>https?://bl\.webcaster\.pro/feed/start/free_.*?)(?:[?&]|\1)',
-            webpage)
-        if mobj:
-            return mobj.group('url')
+    def _extract_from_webpage(self, url, webpage):
+        yield from super()._extract_from_webpage(url, webpage)
+
         for secure in (True, False):
-            video_url = ie._og_search_video_url(
-                webpage, secure=secure, default=None)
+            video_url = self._og_search_video_url(webpage, secure=secure, default=None)
             if video_url:
                 mobj = re.search(
                     r'config=(?P<url>https?://bl\.webcaster\.pro/feed/start/free_[^?&=]+)',
                     video_url)
                 if mobj:
-                    return mobj.group('url')
+                    yield self.url_result(mobj.group('url'), self)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

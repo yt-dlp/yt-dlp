@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -100,8 +97,6 @@ class SapoIE(InfoExtractor):
                 'width': 1280,
                 'height': 720,
             })
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

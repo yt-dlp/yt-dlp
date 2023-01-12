@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -42,7 +39,6 @@ class UstudioIE(InfoExtractor):
             } for item in config.findall('./qualities/quality/%s' % kind) if item.get('url')]
 
         formats = extract('video')
-        self._sort_formats(formats)
 
         webpage = self._download_webpage(url, display_id)
 
@@ -101,7 +97,6 @@ class UstudioEmbedIE(InfoExtractor):
                     'width': int_or_none(quality.get('width')),
                     'height': height,
                 })
-        self._sort_formats(formats)
 
         thumbnails = []
         for image in video_data.get('images', []):

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -87,11 +84,10 @@ class CamModelsIE(InfoExtractor):
                 else:
                     continue
                 formats.append(f)
-        self._sort_formats(formats)
 
         return {
             'id': user_id,
-            'title': self._live_title(user_id),
+            'title': user_id,
             'is_live': True,
             'formats': formats,
             'age_limit': 18

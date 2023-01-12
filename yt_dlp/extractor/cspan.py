@@ -1,8 +1,7 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
+from ..compat import compat_HTMLParseError
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -11,14 +10,16 @@ from ..utils import (
     get_element_by_attribute,
     get_element_by_class,
     int_or_none,
+    join_nonempty,
     js_to_json,
     merge_dicts,
     parse_iso8601,
+    parse_qs,
     smuggle_url,
     str_to_int,
     unescapeHTML,
 )
-from .senateisvp import SenateISVPIE
+from .senategov import SenateISVPIE
 from .ustream import UstreamIE
 
 
@@ -126,8 +127,12 @@ class CSpanIE(InfoExtractor):
                         ext = 'vtt'
                     subtitle['ext'] = ext
             ld_info = self._search_json_ld(webpage, video_id, default={})
-            title = get_element_by_class('video-page-title', webpage) or \
-                self._og_search_title(webpage)
+            try:
+                title = get_element_by_class('video-page-title', webpage)
+            except compat_HTMLParseError:
+                title = None
+            if title is None:
+                title = self._og_search_title(webpage)
             description = get_element_by_attribute('itemprop', 'description', webpage) or \
                 self._html_search_meta(['og:description', 'description'], webpage)
             return merge_dicts(info, ld_info, {
@@ -158,7 +163,7 @@ class CSpanIE(InfoExtractor):
                 video_id = m.group('id')
                 video_type = 'program' if m.group('type') == 'prog' else 'clip'
             else:
-                senate_isvp_url = SenateISVPIE._search_iframe_url(webpage)
+                senate_isvp_url = SenateISVPIE._extract_url(webpage)
                 if senate_isvp_url:
                     title = self._og_search_title(webpage)
                     surl = smuggle_url(senate_isvp_url, {'force_title': title})
@@ -213,7 +218,6 @@ class CSpanIE(InfoExtractor):
                     path, video_id, 'mp4', entry_protocol='m3u8_native',
                     m3u8_id='hls') if determine_ext(path) == 'm3u8' else [{'url': path, }]
             add_referer(formats)
-            self._sort_formats(formats)
             entries.append({
                 'id': '%s_%d' % (video_id, partnum + 1),
                 'title': (
@@ -242,3 +246,41 @@ class CSpanIE(InfoExtractor):
                 'title': title,
                 'id': 'c' + video_id if video_type == 'clip' else video_id,
             }
+
+
+class CSpanCongressIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?c-span\.org/congress/'
+    _TESTS = [{
+        'url': 'https://www.c-span.org/congress/?chamber=house&date=2017-12-13&t=1513208380',
+        'info_dict': {
+            'id': 'house_2017-12-13',
+            'title': 'Congressional Chronicle - Members of Congress, Hearings and More',
+            'description': 'md5:54c264b7a8f219937987610243305a84',
+            'thumbnail': r're:https://ximage.c-spanvideo.org/.+',
+            'ext': 'mp4'
+        }
+    }]
+
+    def _real_extract(self, url):
+        query = parse_qs(url)
+        video_date = query.get('date', [None])[0]
+        video_id = join_nonempty(query.get('chamber', ['senate'])[0], video_date, delim='_')
+        webpage = self._download_webpage(url, video_id)
+        if not video_date:
+            jwp_date = re.search(r'jwsetup.clipprogdate = \'(?P<date>\d{4}-\d{2}-\d{2})\';', webpage)
+            if jwp_date:
+                video_id = f'{video_id}_{jwp_date.group("date")}'
+        jwplayer_data = self._parse_json(
+            self._search_regex(r'jwsetup\s*=\s*({(?:.|\n)[^;]+});', webpage, 'player config'),
+            video_id, transform_source=js_to_json)
+
+        title = self._generic_title('', webpage)
+        description = (self._og_search_description(webpage, default=None)
+                       or self._html_search_meta('description', webpage, 'description', default=None))
+
+        return {
+            **self._parse_jwplayer_data(jwplayer_data, video_id, False),
+            'title': re.sub(r'\s+', ' ', title.split('|')[0]).strip(),
+            'description': description,
+            'http_headers': {'Referer': 'https://www.c-span.org/'},
+        }

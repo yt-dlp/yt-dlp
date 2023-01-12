@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import int_or_none
 
@@ -53,8 +50,6 @@ class FilmmoduIE(InfoExtractor):
             'height': int_or_none(source.get('res')),
             'protocol': 'm3u8_native',
         } for source in data['sources']]
-
-        self._sort_formats(formats)
 
         subtitles = {}
 

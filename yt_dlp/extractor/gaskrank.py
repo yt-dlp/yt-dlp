@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 from .common import InfoExtractor
 from ..utils import (
@@ -96,6 +93,5 @@ class GaskrankIE(InfoExtractor):
             'view_count': view_count,
             'average_rating': average_rating,
         })
-        self._sort_formats(entry['formats'])
 
         return entry

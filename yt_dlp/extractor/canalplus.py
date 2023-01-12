@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     # ExtractorError,
@@ -90,7 +86,6 @@ class CanalplusIE(InfoExtractor):
                     'format_id': format_id,
                     'quality': preference(format_id),
                 })
-        self._sort_formats(formats)
 
         thumbnails = [{
             'id': image_id,

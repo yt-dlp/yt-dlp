@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -103,6 +100,34 @@ class SkyNewsIE(SkyBaseIE):
         },
         'add_ie': ['BrightcoveNew'],
     }
+
+
+class SkyNewsStoryIE(SkyBaseIE):
+    IE_NAME = 'sky:news:story'
+    _VALID_URL = r'https?://news\.sky\.com/story/[0-9a-z-]+-(?P<id>[0-9]+)'
+    _TEST = {
+        'url': 'https://news.sky.com/story/budget-2021-chancellor-rishi-sunak-vows-address-will-deliver-strong-economy-fit-for-a-new-age-of-optimism-12445425',
+        'info_dict': {
+            'id': 'ref:0714acb9-123d-42c8-91b8-5c1bc6c73f20',
+            'title': 'md5:e408dd7aad63f31a1817bbe40c7d276f',
+            'description': 'md5:a881e12f49212f92be2befe4a09d288a',
+            'ext': 'mp4',
+            'upload_date': '20211027',
+            'timestamp': 1635317494,
+            'uploader_id': '6058004172001',
+        }
+    }
+
+    def _real_extract(self, url):
+        article_id = self._match_id(url)
+        webpage = self._download_webpage(url, article_id)
+
+        entries = [self._process_ooyala_element(webpage, sdc_el, url)
+                   for sdc_el in re.findall(self._SDC_EL_REGEX, webpage)]
+
+        return self.playlist_result(
+            entries, article_id, self._og_search_title(webpage),
+            self._html_search_meta(['og:description', 'description'], webpage))
 
 
 class SkySportsNewsIE(SkyBaseIE):

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -7,7 +5,7 @@ from ..aes import aes_decrypt_text
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     determine_ext,
-    ExtractorError,
+    format_field,
     int_or_none,
     str_to_int,
     strip_or_none,
@@ -69,7 +67,7 @@ class KeezMoviesIE(InfoExtractor):
                     video_url, title, 32).decode('utf-8')
             formats.append({
                 'url': format_url,
-                'format_id': '%dp' % height if height else None,
+                'format_id': format_field(height, None, '%dp'),
                 'height': height,
                 'tbr': tbr,
             })
@@ -103,12 +101,6 @@ class KeezMoviesIE(InfoExtractor):
             if 'title="This video is no longer available"' in webpage:
                 self.raise_no_formats(
                     'Video %s is no longer available' % video_id, expected=True)
-
-        try:
-            self._sort_formats(formats)
-        except ExtractorError:
-            if fatal:
-                raise
 
         if not title:
             title = self._html_search_regex(

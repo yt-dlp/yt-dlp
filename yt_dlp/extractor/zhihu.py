@@ -1,8 +1,5 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
-from ..utils import float_or_none, int_or_none
+from ..utils import format_field, float_or_none, int_or_none
 
 
 class ZhihuIE(InfoExtractor):
@@ -48,7 +45,6 @@ class ZhihuIE(InfoExtractor):
                 'url': play_url,
                 'width': int_or_none(q.get('width')),
             })
-        self._sort_formats(formats)
 
         author = zvideo.get('author') or {}
         url_token = author.get('url_token')
@@ -61,7 +57,7 @@ class ZhihuIE(InfoExtractor):
             'uploader': author.get('name'),
             'timestamp': int_or_none(zvideo.get('published_at')),
             'uploader_id': author.get('id'),
-            'uploader_url': 'https://www.zhihu.com/people/' + url_token if url_token else None,
+            'uploader_url': format_field(url_token, None, 'https://www.zhihu.com/people/%s'),
             'duration': float_or_none(video.get('duration')),
             'view_count': int_or_none(zvideo.get('play_count')),
             'like_count': int_or_none(zvideo.get('liked_count')),

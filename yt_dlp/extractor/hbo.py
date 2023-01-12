@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -115,7 +112,6 @@ class HBOBaseIE(InfoExtractor):
                         'width': format_info.get('width'),
                         'height': format_info.get('height'),
                     })
-        self._sort_formats(formats)
 
         thumbnails = []
         card_sizes = xpath_element(video_data, 'titleCardSizes')

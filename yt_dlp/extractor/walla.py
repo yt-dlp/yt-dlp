@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -72,7 +69,6 @@ class WallaIE(InfoExtractor):
             if m:
                 fmt['height'] = int(m.group('height'))
             formats.append(fmt)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

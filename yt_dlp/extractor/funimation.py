@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import random
 import re
 import string
@@ -8,16 +5,18 @@ import string
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
+    ExtractorError,
     determine_ext,
     int_or_none,
+    join_nonempty,
     js_to_json,
+    make_archive_id,
     orderedSet,
     qualities,
     str_or_none,
     traverse_obj,
     try_get,
     urlencode_postdata,
-    ExtractorError,
 )
 
 
@@ -35,9 +34,8 @@ class FunimationBaseIE(InfoExtractor):
                 note='Checking geo-location', errnote='Unable to fetch geo-location information'),
             'region') or 'US'
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
+    def _perform_login(self, username, password):
+        if self._TOKEN:
             return
         try:
             data = self._download_json(
@@ -46,7 +44,7 @@ class FunimationBaseIE(InfoExtractor):
                     'username': username,
                     'password': password,
                 }))
-            return data['token']
+            FunimationBaseIE._TOKEN = data['token']
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
                 error = self._parse_json(e.cause.read().decode(), None)['error']
@@ -89,8 +87,6 @@ class FunimationPageIE(FunimationBaseIE):
     def _real_initialize(self):
         if not self._REGION:
             FunimationBaseIE._REGION = self._get_region()
-        if not self._TOKEN:
-            FunimationBaseIE._TOKEN = self._login()
 
     def _real_extract(self, url):
         locale, show, episode = self._match_valid_url(url).group('lang', 'show', 'episode')
@@ -153,10 +149,6 @@ class FunimationIE(FunimationBaseIE):
         },
     }]
 
-    def _real_initialize(self):
-        if not self._TOKEN:
-            FunimationBaseIE._TOKEN = self._login()
-
     @staticmethod
     def _get_experiences(episode):
         for lang, lang_data in episode.get('languages', {}).items():
@@ -218,7 +210,7 @@ class FunimationIE(FunimationBaseIE):
             page = self._download_json(
                 'https://www.funimation.com/api/showexperience/%s/' % experience_id,
                 display_id, headers=headers, expected_status=403, query={
-                    'pinst_id': ''.join([random.choice(string.digits + string.ascii_letters) for _ in range(8)]),
+                    'pinst_id': ''.join(random.choices(string.digits + string.ascii_letters, k=8)),
                 }, note=f'Downloading {format_name} JSON')
             sources = page.get('items') or []
             if not sources:
@@ -251,11 +243,14 @@ class FunimationIE(FunimationBaseIE):
                         'language_preference': language_preference(lang.lower()),
                     })
                 formats.extend(current_formats)
+        if not formats and (requested_languages or requested_versions):
+            self.raise_no_formats(
+                'There are no video formats matching the requested languages/versions', expected=True, video_id=display_id)
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats, ('lang', 'source'))
 
         return {
-            'id': initial_experience_id if only_initial_experience else episode_id,
+            'id': episode_id,
+            '_old_archive_ids': [make_archive_id(self, initial_experience_id)],
             'display_id': display_id,
             'duration': duration,
             'title': episode['episodeTitle'],
@@ -270,12 +265,13 @@ class FunimationIE(FunimationBaseIE):
             'formats': formats,
             'thumbnails': thumbnails,
             'subtitles': subtitles,
+            '_format_sort_fields': ('lang', 'source'),
         }
 
     def _get_subtitles(self, subtitles, experience_id, episode, display_id, format_name):
         if isinstance(episode, str):
             webpage = self._download_webpage(
-                f'https://www.funimation.com/player/{experience_id}', display_id,
+                f'https://www.funimation.com/player/{experience_id}/', display_id,
                 fatal=False, note=f'Downloading player webpage for {format_name}')
             episode, _, _ = self._get_episode(webpage, episode_id=episode, fatal=False)
 
@@ -288,10 +284,11 @@ class FunimationIE(FunimationBaseIE):
                     sub_type = sub_type if sub_type != 'FULL' else None
                     current_sub = {
                         'url': text_track['src'],
-                        'name': ' '.join(filter(None, (version, text_track.get('label'), sub_type)))
+                        'name': join_nonempty(version, text_track.get('label'), sub_type, delim=' ')
                     }
-                    lang = '_'.join(filter(None, (
-                        text_track.get('language', 'und'), version if version != 'Simulcast' else None, sub_type)))
+                    lang = join_nonempty(text_track.get('language', 'und'),
+                                         version if version != 'Simulcast' else None,
+                                         sub_type, delim='_')
                     if current_sub not in subtitles.get(lang, []):
                         subtitles.setdefault(lang, []).append(current_sub)
         return subtitles
@@ -338,7 +335,7 @@ class FunimationShowIE(FunimationBaseIE):
             'https://prod-api-funimationnow.dadcdigital.com/api/funimation/episodes/?limit=99999&title_id=%s'
             % show_info.get('id'), display_id)
 
-        vod_items = traverse_obj(items_info, ('items', ..., re.compile('(?i)mostRecent[AS]vod').match, 'item'))
+        vod_items = traverse_obj(items_info, ('items', ..., lambda k, _: re.match(r'(?i)mostRecent[AS]vod', k), 'item'))
 
         return {
             '_type': 'playlist',

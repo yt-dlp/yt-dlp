@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -75,8 +72,6 @@ class TeacherTubeIE(InfoExtractor):
                 'quality': quality(determine_ext(media_url))
             } for media_url in set(media_urls)
         ]
-
-        self._sort_formats(formats)
 
         thumbnail = self._og_search_thumbnail(
             webpage, default=None) or self._html_search_meta(

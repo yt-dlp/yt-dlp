@@ -18,8 +18,13 @@ from ..utils import (
     urlencode_postdata,
 )
 
-# TODO Search 'https://etv.err.ee/otsing?phrase=4x4&page=3'
-# 'https://etv.err.ee/otsing?phrase=4x4-&from=02.06.2021&to=24.06.2021&page=1'
+# TODO  Search 'https://etv.err.ee/otsing?phrase=4x4&page=3'
+#       'https://etv.err.ee/otsing?phrase=4x4-&from=02.06.2021&to=24.06.2021&page=1'
+# TODO  ERR rolled out new archive site that makes errarhiiv.py obsolete.
+# TODO  Checkout warning about "Ignoring subtitle tracks found in the HLS
+#       manifest"
+# TODO  Try to resolve unknown languages.
+# TODO  Try to resolve bizarre delays in some subtitle tracks.
 
 
 def json_find_node(obj, criteria):
@@ -229,7 +234,6 @@ class ERRBaseIE(InfoExtractor):
                 m3u8_format['format_note'] = '%dp' % m3u8_format['height']
                 m3u8_format['format'] = "%(format_id)s - %(width)dx%(height)d (%(format_note)s)" % m3u8_format
             formats.append(m3u8_format)
-        self._sort_formats(formats)
         return formats
 
     def _extract_ids(self, url):

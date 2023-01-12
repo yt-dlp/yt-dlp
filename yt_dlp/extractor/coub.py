@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -57,7 +54,7 @@ class CoubIE(InfoExtractor):
 
         file_versions = coub['file_versions']
 
-        QUALITIES = ('low', 'med', 'high')
+        QUALITIES = ('low', 'med', 'high', 'higher')
 
         MOBILE = 'mobile'
         IPHONE = 'iphone'
@@ -86,6 +83,7 @@ class CoubIE(InfoExtractor):
                     'format_id': '%s-%s-%s' % (HTML5, kind, quality),
                     'filesize': int_or_none(item.get('size')),
                     'vcodec': 'none' if kind == 'audio' else None,
+                    'acodec': 'none' if kind == 'video' else None,
                     'quality': quality_key(quality),
                     'source_preference': preference_key(HTML5),
                 })
@@ -105,8 +103,6 @@ class CoubIE(InfoExtractor):
                 'format_id': '%s-audio' % MOBILE,
                 'source_preference': preference_key(MOBILE),
             })
-
-        self._sort_formats(formats)
 
         thumbnail = coub.get('picture')
         duration = float_or_none(coub.get('duration'))

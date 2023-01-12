@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import itertools
 import re
 
@@ -131,7 +129,6 @@ class XTubeIE(InfoExtractor):
                     })
 
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats)
 
         if not title:
             title = self._search_regex(

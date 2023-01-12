@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import json
 import re
@@ -163,7 +160,6 @@ class MailRuIE(InfoExtractor):
                 'height': height,
                 'http_headers': headers,
             })
-        self._sort_formats(formats)
 
         meta_data = video_data['meta']
         title = remove_end(meta_data['title'], '.mp4')

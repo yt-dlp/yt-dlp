@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -65,7 +63,6 @@ class FreesoundIE(InfoExtractor):
             'format_note': channels,
             'quality': quality,
         } for quality, format_url in enumerate(audio_urls)]
-        self._sort_formats(formats)
 
         return {
             'id': audio_id,
