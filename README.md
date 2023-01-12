@@ -10,7 +10,7 @@
 [![Discord](https://img.shields.io/discord/807245652072857610?color=blue&labelColor=555555&label=&logo=discord&style=for-the-badge)](https://discord.gg/H5MNcFW63r "Discord")
 [![Supported Sites](https://img.shields.io/badge/-Supported_Sites-brightgreen.svg?style=for-the-badge)](supportedsites.md "Supported Sites")
 [![License: Unlicense](https://img.shields.io/badge/-Unlicense-blue.svg?style=for-the-badge)](LICENSE "License")
-[![CI Status](https://img.shields.io/github/workflow/status/yt-dlp/yt-dlp/Core%20Tests/master?label=Tests&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/actions "CI Status")
+[![CI Status](https://img.shields.io/github/actions/workflow/status/yt-dlp/yt-dlp/core.yml?branch=master&label=Tests&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/actions "CI Status")
 [![Commits](https://img.shields.io/github/commit-activity/m/yt-dlp/yt-dlp?label=commits&style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
 [![Last Commit](https://img.shields.io/github/last-commit/yt-dlp/yt-dlp/master?label=&style=for-the-badge&display_timestamp=committer)](https://github.com/yt-dlp/yt-dlp/commits "Commit History")
 
@@ -61,6 +61,8 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Modifying metadata examples](#modifying-metadata-examples)
 * [EXTRACTOR ARGUMENTS](#extractor-arguments)
 * [PLUGINS](#plugins)
+    * [Installing Plugins](#installing-plugins)
+    * [Developing Plugins](#developing-plugins)
 * [EMBEDDING YT-DLP](#embedding-yt-dlp)
     * [Embedding examples](#embedding-examples)
 * [DEPRECATED OPTIONS](#deprecated-options)
@@ -74,13 +76,13 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 # NEW FEATURES
 
-* Merged with **youtube-dl v2021.12.17+ [commit/de39d12](https://github.com/ytdl-org/youtube-dl/commit/de39d128)** <!--([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))--> and **youtube-dlc v2020.11.11-3+ [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
+* Merged with **youtube-dl v2021.12.17+ [commit/195f22f](https://github.com/ytdl-org/youtube-dl/commit/195f22f)** <!--([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))--> and **youtube-dlc v2020.11.11-3+ [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
 
 * **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in YouTube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection than what is possible by simply using `--format` ([examples](#format-selection-examples))
 
-* **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that the NicoNico livestreams are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
+* **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that NicoNico livestreams are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
 * **YouTube improvements**:
     * Supports Clips, Stories (`ytstories:<channel UCID>`), Search (including filters)**\***, YouTube Music Search, Channel-specific search, Search prefixes (`ytsearch:`, `ytsearchdate:`)**\***, Mixes, YouTube Music Albums/Channels ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723)), and Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`, `:ytnotif`)
@@ -151,12 +153,15 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * When `--embed-subs` and `--write-subs` are used together, the subtitles are written to disk and also embedded in the media file. You can use just `--embed-subs` to embed the subs and automatically delete the separate file. See [#630 (comment)](https://github.com/yt-dlp/yt-dlp/issues/630#issuecomment-893659460) for more info. `--compat-options no-keep-subs` can be used to revert this
 * `certifi` will be used for SSL root certificates, if installed. If you want to use system certificates (e.g. self-signed), use `--compat-options no-certifi`
 * yt-dlp's sanitization of invalid characters in filenames is different/smarter than in youtube-dl. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
+* yt-dlp tries to parse the external downloader outputs into the standard progress output if possible (Currently implemented: [~~aria2c~~](https://github.com/yt-dlp/yt-dlp/issues/5931)). You can use `--compat-options no-external-downloader-progress` to get the downloader output as-is
 
 For ease of use, a few more compat options are available:
 
 * `--compat-options all`: Use all compat options (Do NOT use)
 * `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams`
 * `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect`
+* `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
+* `--compat-options 2022`: Same as `--compat-options no-external-downloader-progress`. Use this to enable all future compat options
 
 
 # INSTALLATION
@@ -179,7 +184,7 @@ You can use `yt-dlp -U` to update if you are [using the release binaries](#relea
 
 If you [installed with PIP](https://github.com/yt-dlp/yt-dlp/wiki/Installation#with-pip), simply re-run the same command that was used to install the program
 
-For other third-party package managers, see [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation) or refer their documentation
+For other third-party package managers, see [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation#third-party-package-managers) or refer their documentation
 
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
@@ -217,7 +222,7 @@ File|Description
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 
-Note: The manpages, shell completion files etc. are available in the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
+**Note**: The manpages, shell completion files etc. are available in the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
 ## DEPENDENCIES
 Python versions 3.7+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
@@ -233,8 +238,9 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging separate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. License [depends on the build](https://www.ffmpeg.org/legal.html)
 
-    <!-- TODO: ffmpeg has merged this patch. Remove this note once there is new release -->
-    **Note**: There are some regressions in newer ffmpeg versions that causes various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
+    There are bugs in ffmpeg that causes various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for some of these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
+    
+    **Important**: What you need is ffmpeg *binary*, **NOT** [the python package of the same name](https://pypi.org/project/ffmpeg)
 
 ### Networking
 * [**certifi**](https://github.com/certifi/python-certifi)\* - Provides Mozilla's root certificate bundle. Licensed under [MPLv2](https://github.com/certifi/python-certifi/blob/master/LICENSE)
@@ -281,7 +287,7 @@ On some systems, you may need to use `py` or `python` instead of `python3`.
 
 `pyinst.py` accepts any arguments that can be passed to `pyinstaller`, such as `--onefile/-F` or `--onedir/-D`, which is further [documented here](https://pyinstaller.org/en/stable/usage.html#what-to-generate).
 
-Note that pyinstaller with versions below 4.4 [do not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment.
+**Note**: Pyinstaller versions below 4.4 [do not support](https://github.com/pyinstaller/pyinstaller#requirements-and-tested-platforms) Python installed from the Windows store without using a virtual environment.
 
 **Important**: Running `pyinstaller` directly **without** using `pyinst.py` is **not** officially supported. This may or may not work correctly.
 
@@ -414,6 +420,8 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --source-address IP             Client-side IP address to bind to
     -4, --force-ipv4                Make all connections via IPv4
     -6, --force-ipv6                Make all connections via IPv6
+    --enable-file-urls              Enable file:// URLs. This is disabled by
+                                    default for security reasons.
 
 ## Geo-restriction:
     --geo-verification-proxy URL    Use this proxy to verify the IP address for
@@ -448,7 +456,9 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --date DATE                     Download only videos uploaded on this date.
                                     The date can be "YYYYMMDD" or in the format 
                                     [now|today|yesterday][-N[day|week|month|year]].
-                                    E.g. --date today-2weeks
+                                    E.g. "--date today-2weeks" downloads
+                                    only videos uploaded on the same day two
+                                    weeks ago
     --datebefore DATE               Download only videos uploaded on or before
                                     this date. The date formats accepted is the
                                     same as --date
@@ -525,8 +535,8 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     linear=1::2 --retry-sleep fragment:exp=1:20
     --skip-unavailable-fragments    Skip unavailable fragments for DASH,
                                     hlsnative and ISM downloads (default)
-                                    (Alias: --no-abort-on-unavailable-fragment)
-    --abort-on-unavailable-fragment
+                                    (Alias: --no-abort-on-unavailable-fragments)
+    --abort-on-unavailable-fragments
                                     Abort download if a fragment is unavailable
                                     (Alias: --no-skip-unavailable-fragments)
     --keep-fragments                Keep downloaded fragments on disk after
@@ -725,7 +735,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     screen, optionally prefixed with when to
                                     print it, separated by a ":". Supported
                                     values of "WHEN" are the same as that of
-                                    --use-postprocessor, and "video" (default).
+                                    --use-postprocessor (default: video).
                                     Implies --quiet. Implies --simulate unless
                                     --no-simulate or later stages of WHEN are
                                     used. This option can be used multiple times
@@ -893,11 +903,11 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     specific bitrate like 128K (default 5)
     --remux-video FORMAT            Remux the video into another container if
                                     necessary (currently supported: avi, flv,
-                                    mkv, mov, mp4, webm, aac, aiff, alac, flac,
-                                    m4a, mka, mp3, ogg, opus, vorbis, wav). If
-                                    target container does not support the
-                                    video/audio codec, remuxing will fail. You
-                                    can specify multiple rules; e.g.
+                                    gif, mkv, mov, mp4, webm, aac, aiff, alac,
+                                    flac, m4a, mka, mp3, ogg, opus, vorbis,
+                                    wav). If target container does not support
+                                    the video/audio codec, remuxing will fail.
+                                    You can specify multiple rules; e.g.
                                     "aac>m4a/mov>mp4/mkv" will remux aac to m4a,
                                     mov to mp4 and anything else to mkv
     --recode-video FORMAT           Re-encode the video into another format if
@@ -952,13 +962,18 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     mkv/mka video files
     --no-embed-info-json            Do not embed the infojson as an attachment
                                     to the video file
-    --parse-metadata FROM:TO        Parse additional metadata like title/artist
+    --parse-metadata [WHEN:]FROM:TO
+                                    Parse additional metadata like title/artist
                                     from other fields; see "MODIFYING METADATA"
-                                    for details
-    --replace-in-metadata FIELDS REGEX REPLACE
+                                    for details. Supported values of "WHEN" are
+                                    the same as that of --use-postprocessor
+                                    (default: pre_process)
+    --replace-in-metadata [WHEN:]FIELDS REGEX REPLACE
                                     Replace text in a metadata field using the
                                     given regex. This option can be used
-                                    multiple times
+                                    multiple times. Supported values of "WHEN"
+                                    are the same as that of --use-postprocessor
+                                    (default: pre_process)
     --xattrs                        Write metadata to the video file's xattrs
                                     (using dublin core and xdg standards)
     --concat-playlist POLICY        Concatenate videos in a playlist. One of
@@ -979,18 +994,18 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --ffmpeg-location PATH          Location of the ffmpeg binary; either the
                                     path to the binary or its containing directory
     --exec [WHEN:]CMD               Execute a command, optionally prefixed with
-                                    when to execute it (after_move if
-                                    unspecified), separated by a ":". Supported
-                                    values of "WHEN" are the same as that of
-                                    --use-postprocessor. Same syntax as the
-                                    output template can be used to pass any
-                                    field as arguments to the command. After
-                                    download, an additional field "filepath"
-                                    that contains the final path of the
-                                    downloaded file is also available, and if no
-                                    fields are passed, %(filepath)q is appended
-                                    to the end of the command. This option can
-                                    be used multiple times
+                                    when to execute it, separated by a ":".
+                                    Supported values of "WHEN" are the same as
+                                    that of --use-postprocessor (default:
+                                    after_move). Same syntax as the output
+                                    template can be used to pass any field as
+                                    arguments to the command. After download, an
+                                    additional field "filepath" that contains
+                                    the final path of the downloaded file is
+                                    also available, and if no fields are passed,
+                                    %(filepath,_filename|)q is appended to the
+                                    end of the command. This option can be used
+                                    multiple times
     --no-exec                       Remove any previously defined --exec
     --convert-subs FORMAT           Convert the subtitles to another format
                                     (currently supported: ass, lrc, srt, vtt)
@@ -1028,14 +1043,16 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     postprocessor is invoked. It can be one of
                                     "pre_process" (after video extraction),
                                     "after_filter" (after video passes filter),
-                                    "before_dl" (before each video download),
-                                    "post_process" (after each video download;
-                                    default), "after_move" (after moving video
-                                    file to it's final locations), "after_video"
-                                    (after downloading and processing all
-                                    formats of a video), or "playlist" (at end
-                                    of playlist). This option can be used
-                                    multiple times to add different postprocessors
+                                    "video" (after --format; before
+                                    --print/--output), "before_dl" (before each
+                                    video download), "post_process" (after each
+                                    video download; default), "after_move"
+                                    (after moving video file to it's final
+                                    locations), "after_video" (after downloading
+                                    and processing all formats of a video), or
+                                    "playlist" (at end of playlist). This option
+                                    can be used multiple times to add different
+                                    postprocessors
 
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
@@ -1102,16 +1119,22 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * `yt-dlp.conf` in the home path given by `-P`
     * If `-P` is not given, the current directory is searched
 1. **User Configuration**:
-    * `${XDG_CONFIG_HOME}/yt-dlp/config` (recommended on Linux/macOS)
     * `${XDG_CONFIG_HOME}/yt-dlp.conf`
+    * `${XDG_CONFIG_HOME}/yt-dlp/config` (recommended on Linux/macOS)
+    * `${XDG_CONFIG_HOME}/yt-dlp/config.txt`
+    * `${APPDATA}/yt-dlp.conf`
     * `${APPDATA}/yt-dlp/config` (recommended on Windows)
     * `${APPDATA}/yt-dlp/config.txt`
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
+    * `~/.yt-dlp/config`
+    * `~/.yt-dlp/config.txt`
 
     See also: [Notes about environment variables](#notes-about-environment-variables)
 1. **System Configuration**:
     * `/etc/yt-dlp.conf`
+    * `/etc/yt-dlp/config`
+    * `/etc/yt-dlp/config.txt`
 
 E.g. with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
 ```
@@ -1130,7 +1153,7 @@ E.g. with the following configuration file yt-dlp will always extract the audio,
 -o ~/YouTube/%(title)s.%(ext)s
 ```
 
-Note that options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`. They must also be quoted when necessary as-if it were a UNIX shell.
+**Note**: Options in configuration file are just the same options aka switches used in regular command line calls; thus there **must be no whitespace** after `-` or `--`, e.g. `-o` or `--proxy` but not `- o` or `-- proxy`. They must also be quoted when necessary as-if it were a UNIX shell.
 
 You can use `--ignore-config` if you want to disable all configuration files for a particular yt-dlp run. If `--ignore-config` is found inside any configuration file, no further configuration will be loaded. For example, having the option in the portable configuration file prevents loading of home, user, and system configurations. Additionally, (for backward compatibility) if `--ignore-config` is found inside the system configuration file, the user configuration is not loaded.
 
@@ -1206,7 +1229,7 @@ Additionally, you can set different output templates for the various metadata fi
 
 <a id="outtmpl-postprocess-note"></a>
 
-Note: Due to post-processing (i.e. merging etc.), the actual output filename might differ. Use `--print after_move:filepath` to get the name after all post-processing is complete.
+**Note**: Due to post-processing (i.e. merging etc.), the actual output filename might differ. Use `--print after_move:filepath` to get the name after all post-processing is complete.
 
 The available fields are:
 
@@ -1327,7 +1350,7 @@ Available only in `--sponsorblock-chapter-title`:
 
 Each aforementioned sequence when referenced in an output template will be replaced by the actual value corresponding to the sequence name. E.g. for `-o %(title)s-%(id)s.%(ext)s` and an mp4 video with title `yt-dlp test video` and id `BaW_jenozKc`, this will result in a `yt-dlp test video-BaW_jenozKc.mp4` file created in the current directory.
 
-Note that some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
+**Note**: Some of the sequences are not guaranteed to be present since they depend on the metadata obtained by a particular extractor. Such sequences will be replaced with placeholder value provided with `--output-na-placeholder` (`NA` by default).
 
 **Tip**: Look at the `-j` output to identify which fields are available for the particular URL
 
@@ -1468,7 +1491,7 @@ Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends
 
 Any string comparison may be prefixed with negation `!` in order to produce an opposite comparison, e.g. `!*=` (does not contain). The comparand of a string comparison needs to be quoted with either double or single quotes if it contains spaces or special characters other than `._-`.
 
-Note that none of the aforementioned meta fields are guaranteed to be present since this solely depends on the metadata obtained by particular extractor, i.e. the metadata offered by the website. Any other field made available by the extractor can also be used for filtering.
+**Note**: None of the aforementioned meta fields are guaranteed to be present since this solely depends on the metadata obtained by particular extractor, i.e. the metadata offered by the website. Any other field made available by the extractor can also be used for filtering.
 
 Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "[height<=?720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s. You can also use the filters with `all` to download all formats that satisfy the filter, e.g. `-f "all[vcodec=none]"` selects all audio-only formats.
 
@@ -1721,7 +1744,7 @@ Some extractors accept additional arguments which can be passed using `--extract
 The following extractors use this feature:
 
 #### youtube
-* `lang`: Language code to prefer translated metadata of this language (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube.py](https://github.com/yt-dlp/yt-dlp/blob/c26f9b991a0681fd3ea548d535919cec1fbbd430/yt_dlp/extractor/youtube.py#L381-L390) for list of supported content language codes
+* `lang`: Prefer translated metadata (`title`, `description` etc) of this language code (case-sensitive). By default, the video primary language metadata is preferred, with a fallback to `en` translated. See [youtube.py](https://github.com/yt-dlp/yt-dlp/blob/c26f9b991a0681fd3ea548d535919cec1fbbd430/yt_dlp/extractor/youtube.py#L381-L390) for list of supported content language codes
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and [auto-translated subtitles](https://github.com/yt-dlp/yt-dlp/issues/4090#issuecomment-1158102032) respectively
 * `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (e.g. `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly, the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
@@ -1775,26 +1798,78 @@ The following extractors use this feature:
 #### twitter
 * `force_graphql`: Force usage of the GraphQL API. By default it will only be used if login cookies are provided
 
-NOTE: These options may be changed/removed in the future without concern for backward compatibility
+**Note**: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
 
 
 # PLUGINS
 
-Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`; where `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`). Plugins are currently not supported for the `pip` version
+Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. **Use plugins at your own risk and only if you trust the code!**
 
-Plugins can be of `<type>`s `extractor` or `postprocessor`. Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
+Plugins can be of `<type>`s `extractor` or `postprocessor`. 
+- Extractor plugins do not need to be enabled from the CLI and are automatically invoked when the input URL is suitable for it. 
+- Extractor plugins take priority over builtin extractors.
+- Postprocessor plugins can be invoked using `--use-postprocessor NAME`.
 
-See [ytdlp_plugins](ytdlp_plugins) for example plugins.
 
-Note that **all** plugins are imported even if not invoked, and that **there are no checks** performed on plugin code. Use plugins at your own risk and only if you trust the code
+Plugins are loaded from the namespace packages `yt_dlp_plugins.extractor` and `yt_dlp_plugins.postprocessor`.
 
-If you are a plugin author, add [ytdlp-plugins](https://github.com/topics/ytdlp-plugins) as a topic to your repository for discoverability
+In other words, the file structure on the disk looks something like:
+    
+        yt_dlp_plugins/
+            extractor/
+                myplugin.py
+            postprocessor/
+                myplugin.py
+
+yt-dlp looks for these `yt_dlp_plugins` namespace folders in many locations (see below) and loads in plugins from **all** of them.
 
 See the [wiki for some known plugins](https://github.com/yt-dlp/yt-dlp/wiki/Plugins)
 
+## Installing Plugins
 
+Plugins can be installed using various methods and locations.
+
+1. **Configuration directories**:
+   Plugin packages (containing a `yt_dlp_plugins` namespace folder) can be dropped into the following standard [configuration locations](#configuration):
+    * **User Plugins**
+      * `${XDG_CONFIG_HOME}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Linux/macOS)
+      * `${XDG_CONFIG_HOME}/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+      * `${APPDATA}/yt-dlp/plugins/<package name>/yt_dlp_plugins/` (recommended on Windows)
+      * `${APPDATA}/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+      * `~/.yt-dlp/plugins/<package name>/yt_dlp_plugins/`
+      * `~/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+    * **System Plugins**
+      * `/etc/yt-dlp/plugins/<package name>/yt_dlp_plugins/`
+      * `/etc/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+2. **Executable location**: Plugin packages can similarly be installed in a `yt-dlp-plugins` directory under the executable location:
+    * Binary: where `<root-dir>/yt-dlp.exe`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+    * Source: where `<root-dir>/yt_dlp/__main__.py`, `<root-dir>/yt-dlp-plugins/<package name>/yt_dlp_plugins/`
+
+3. **pip and other locations in `PYTHONPATH`**
+    * Plugin packages can be installed and managed using `pip`. See [yt-dlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) for an example.
+      * Note: plugin files between plugin packages installed with pip must have unique filenames.
+    * Any path in `PYTHONPATH` is searched in for the `yt_dlp_plugins` namespace folder.
+      * Note: This does not apply for Pyinstaller/py2exe builds.
+
+
+`.zip`, `.egg` and `.whl` archives containing a `yt_dlp_plugins` namespace folder in their root are also supported as plugin packages.
+* e.g. `${XDG_CONFIG_HOME}/yt-dlp/plugins/mypluginpkg.zip` where `mypluginpkg.zip` contains `yt_dlp_plugins/<type>/myplugin.py`
+
+Run yt-dlp with `--verbose` to check if the plugin has been loaded.
+
+## Developing Plugins
+
+See the [yt-dlp-sample-plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) repo for a template plugin package and the [Plugin Development](https://github.com/yt-dlp/yt-dlp/wiki/Plugin-Development) section of the wiki for a plugin development guide.
+
+All public classes with a name ending in `IE`/`PP` are imported from each file for extractors and postprocessors repectively. This respects underscore prefix (e.g. `_MyBasePluginIE` is private) and `__all__`. Modules can similarly be excluded by prefixing the module name with an underscore (e.g. `_myplugin.py`).
+
+To replace an existing extractor with a subclass of one, set the `plugin_name` class keyword argument (e.g. `class MyPluginIE(ABuiltInIE, plugin_name='myplugin')` will replace `ABuiltInIE` with `MyPluginIE`). Since the extractor replaces the parent, you should exclude the subclass extractor from being imported separately by making it private using one of the methods described above.
+
+If you are a plugin author, add [yt-dlp-plugins](https://github.com/topics/yt-dlp-plugins) as a topic to your repository for discoverability.
+
+See the [Developer Instructions](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#developer-instructions) on how to write and test an extractor.
 
 # EMBEDDING YT-DLP
 
