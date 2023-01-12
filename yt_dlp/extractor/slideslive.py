@@ -431,7 +431,7 @@ class SlidesLiveIE(InfoExtractor):
         slides_version = int(self._search_regex(
             r'https?://slides\.slideslive\.com/\d+/v(\d+)/\w+\.(?:json|xml)',
             slides_info_url, 'slides version', default=0))
-        if slides_version < 4:
+        if slides_version < 3:
             slide_url_template = 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s.jpg'
         else:
             slide_url_template = 'https://slides.slideslive.com/%s/slides/original/%s.png'
