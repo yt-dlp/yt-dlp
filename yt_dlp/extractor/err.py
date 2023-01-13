@@ -18,13 +18,12 @@ from ..utils import (
     urlencode_postdata,
 )
 
-# TODO  Search 'https://etv.err.ee/otsing?phrase=4x4&page=3'
+# TODO  Implement search 'https://etv.err.ee/otsing?phrase=4x4&page=3'
 #       'https://etv.err.ee/otsing?phrase=4x4-&from=02.06.2021&to=24.06.2021&page=1'
+# TODO  Try to resolve unknown languages in audio tracks.
 # TODO  ERR rolled out new archive site that makes errarhiiv.py obsolete.
-# TODO  Checkout warning about "Ignoring subtitle tracks found in the HLS
-#       manifest"
-# TODO  Try to resolve unknown languages.
-# TODO  Try to resolve bizarre delays in some subtitle tracks.
+# TODO  Support for jupiterplus.ee
+#       -   https://jupiterpluss.err.ee/1608585151/4x4-chukotka
 
 
 def json_find_node(obj, criteria):
@@ -182,9 +181,19 @@ class ERRBaseIE(InfoExtractor):
         return format_desc['format_id']
 
     def _extract_formats(self, master_url, video_id, headers=None):
+        formats, subtitles = self._extract_formats_and_subtitles(master_url, video_id, headers=None)
+        return formats
+
+    def _extract_formats_and_subtitles(self, master_url, video_id, headers=None):
         m3u8_formats = []
+        m3u8_subtitles = []
         try:
-            m3u8_formats = self._extract_m3u8_formats(master_url, video_id, headers=headers)
+            m3u8_formats, m3u8_subtitles = self._extract_m3u8_formats_and_subtitles(master_url, video_id, headers=headers)
+            # FIXME Remove dump_json when done
+            if m3u8_formats:
+                self._debug_dump_json(m3u8_formats, msg="M3U8 FORMATS\n")
+            if m3u8_subtitles:
+                self._debug_dump_json(m3u8_subtitles, msg="M3U8 SUBTITLES\n")
         except ExtractorError as ex:
             if isinstance(ex.cause, compat_HTTPError) and ex.cause.code == 404:
                 self.report_warning(
@@ -234,7 +243,7 @@ class ERRBaseIE(InfoExtractor):
                 m3u8_format['format_note'] = '%dp' % m3u8_format['height']
                 m3u8_format['format'] = "%(format_id)s - %(width)dx%(height)d (%(format_note)s)" % m3u8_format
             formats.append(m3u8_format)
-        return formats
+        return formats, m3u8_subtitles
 
     def _extract_ids(self, url):
         if '_VALID_URL_RE' not in type(self).__dict__:
@@ -288,6 +297,11 @@ class ERRBaseIE(InfoExtractor):
         """Prettyprints json structure  only if verbose flag is set"""
         self._debug_message(
             (msg if msg else '') + json.dumps(obj, indent=4, sort_keys=sort_keys))
+
+    def _debug_dump_json(self, obj, sort_keys=False, msg=None):
+        """Prettyprints json structure"""
+        self.to_screen('[debug] ' + (msg if msg else '') + json.dumps(obj, indent=4, sort_keys=sort_keys))
+
 
 
 class ERRNewsIE(ERRBaseIE):
@@ -460,7 +474,7 @@ class ERRTVIE(ERRBaseIE):
     _ERR_API_LOGIN = '%(prefix)s/api/auth/login'
     _ERR_LOGIN_DATA = {}
     _ERR_LOGIN_SUPPORTED = True
-    _NETRC_MACHINE = 'err'
+    _NETRC_MACHINE = 'err.ee'
     _VALID_URL = r'(?P<prefix>(?P<scheme>https?)://(?P<channel>%(channels)s).err.ee)/(?:(?:(?P<id>\d+)(?:/(?P<display_id>[^/#?]+))?)|(?P<playlist_id>[^/#?]*))(?P<leftover>[/?#].+)?\Z' % {
         'channels': _ERR_CHANNELS
     }
@@ -656,7 +670,10 @@ class ERRTVIE(ERRBaseIE):
 
         if 'url' in info:
             headers = self._get_request_headers(info['url'], ['Referer', 'Origin'])
-            info['formats'] = self._extract_formats(info['url'], video_id, headers=headers)
+            info['formats'], subtitles = self._extract_formats_and_subtitles(info['url'], video_id, headers=headers)
+            if subtitles:
+                # Only override when available
+                info['subtitles'] = subtitles
         return info
 
     def _extract_entry(self, obj, channel=None, extract_medias=True, extract_thumbnails=True):
@@ -862,7 +879,13 @@ class ERRTVIE(ERRBaseIE):
             else self._ERR_API_GET_CONTENT
         headers = self._get_request_headers(api_get_content % url_dict,
                                             ['Referer', 'Origin', 'x-srh', 'Cookie'])
-        return self._download_json(api_get_content % url_dict, video_id, headers=headers)
+        # TODO remove when ready DEBUG >>>
+        obj = self._download_json(api_get_content % url_dict, video_id, headers=headers)
+        self._debug_json(obj, msg="API_GET_CONTENT_JSON")
+        return obj
+        # TODO remove when ready DEBUG <<<
+        # TODO uncomment when ready
+        # return self._download_json(api_get_content % url_dict, video_id, headers=headers)
 
     def _api_get_parent_content(self, url_dict, video_id):
         headers = self._get_request_headers(self._ERR_API_GET_PARENT_CONTENT % url_dict,
