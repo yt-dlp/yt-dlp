@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    parse_duration,
     parse_qs,
     smuggle_url,
     traverse_obj,
@@ -369,15 +370,47 @@ class SlidesLiveIE(InfoExtractor):
 
         return m3u8_dict
 
-    def _extract_formats(self, cdn_hostname, path, video_id):
-        formats = []
-        formats.extend(self._extract_m3u8_formats(
+    def _parse_m3u8_vod_duration(self, m3u8_vod, video_id):
+        # SlidesLive VOD m3u8 does not contain '#EXT-X-PLAYLIST-TYPE:VOD'
+        if '#EXT-X-ENDLIST' not in m3u8_vod:
+            return None
+
+        return int(sum(
+            float(line[len('#EXTINF:'):].split(',')[0])
+            for line in m3u8_vod.splitlines() if line.startswith('#EXTINF:'))) or None
+
+    def _extract_mpd_vod_duration(
+            self, mpd_url, video_id, note=None, errnote=None, data=None, headers={}, query={}):
+
+        mpd_doc = self._download_xml(
+            mpd_url, video_id,
+            note='Downloading MPD VOD manifest' if note is None else note,
+            errnote='Failed to download VOD manifest' if errnote is None else errnote,
+            fatal=False, data=data, headers=headers, query=query) or {}
+        return int_or_none(parse_duration(mpd_doc.get('mediaPresentationDuration')))
+
+    def _extract_formats_and_duration(self, cdn_hostname, path, video_id, skip_duration=False):
+        formats, duration = [], None
+
+        hls_formats = self._extract_m3u8_formats(
             f'https://{cdn_hostname}/{path}/master.m3u8',
-            video_id, 'mp4', m3u8_id='hls', fatal=False, live=True))
-        formats.extend(self._extract_mpd_formats(
-            f'https://{cdn_hostname}/{path}/master.mpd',
-            video_id, mpd_id='dash', fatal=False))
-        return formats
+            video_id, 'mp4', m3u8_id='hls', fatal=False, live=True)
+        if hls_formats:
+            if not skip_duration:
+                duration = self._extract_m3u8_vod_duration(
+                    hls_formats[0]['url'], video_id, note='Extracting duration from HLS manifest')
+            formats.extend(hls_formats)
+
+        dash_formats = self._extract_mpd_formats(
+            f'https://{cdn_hostname}/{path}/master.mpd', video_id, mpd_id='dash', fatal=False)
+        if dash_formats:
+            if not duration and not skip_duration:
+                duration = self._extract_mpd_vod_duration(
+                    f'https://{cdn_hostname}/{path}/master.mpd', video_id,
+                    note='Extracting duration from DASH manifest')
+            formats.extend(dash_formats)
+
+        return formats, duration
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -473,7 +506,17 @@ class SlidesLiveIE(InfoExtractor):
         if service_name == 'url':
             info['url'] = service_id
         elif service_name == 'yoda':
-            info['formats'] = self._extract_formats(player_info['video_servers'][0], service_id, video_id)
+            formats, duration = self._extract_formats_and_duration(
+                player_info['video_servers'][0], service_id, video_id)
+            if not duration:
+                last_start_time = traverse_obj(
+                    info, ('chapters', -1, 'start_time'), expected_type=int_or_none)
+                if last_start_time:
+                    info['chapters'][-1]['end_time'] = last_start_time + 1
+            info.update({
+                'duration': duration,
+                'formats': formats,
+            })
         else:
             info.update({
                 '_type': 'url_transparent',
@@ -508,7 +551,8 @@ class SlidesLiveIE(InfoExtractor):
                     video_path, 'video_servers', ...), get_all=False)
                 if not cdn_hostname or not video_path:
                     continue
-                formats = self._extract_formats(cdn_hostname, video_path, video_id)
+                formats, _ = self._extract_formats_and_duration(
+                    cdn_hostname, video_path, video_id, skip_duration=True)
                 if not formats:
                     continue
                 yield {
