@@ -537,8 +537,9 @@ class SlidesLiveIE(InfoExtractor):
             if not duration:
                 last_start_time = traverse_obj(
                     info, ('chapters', -1, 'start_time'), expected_type=int_or_none)
+                # if chapters, prevent core code from setting the last chapter's end_time as None
                 if last_start_time:
-                    info['chapters'][-1]['end_time'] = last_start_time + 1
+                    info['chapters'][-1]['end_time'] = last_start_time
             info.update({
                 'duration': duration,
                 'formats': formats,
