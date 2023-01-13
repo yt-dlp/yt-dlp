@@ -1062,6 +1062,7 @@ from .mirrativ import (
 from .mirrorcouk import MirrorCoUKIE
 from .mit import TechTVMITIE, OCWMITIE
 from .mitele import MiTeleIE
+from .mixbox import MixBoxHomepageIE
 from .mixch import (
     MixchIE,
     MixchArchiveIE,
