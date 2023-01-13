@@ -30,6 +30,7 @@ class SlidesLiveIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg',
             'thumbnails': 'count:42',
             'chapters': 'count:41',
+            'duration': 1638,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -46,6 +47,7 @@ class SlidesLiveIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'thumbnails': 'count:640',
             'chapters': 'count:639',
+            'duration': 9832,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -62,6 +64,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1643728135,
             'thumbnails': 'count:3',
             'chapters': 'count:2',
+            'duration': 5889,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -111,6 +114,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1629671508,
             'upload_date': '20210822',
             'chapters': 'count:7',
+            'duration': 326,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -127,6 +131,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1654714970,
             'upload_date': '20220608',
             'chapters': 'count:6',
+            'duration': 171,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -143,6 +148,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1622806321,
             'upload_date': '20210604',
             'chapters': 'count:15',
+            'duration': 306,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -159,6 +165,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1654714896,
             'upload_date': '20220608',
             'chapters': 'count:8',
+            'duration': 295,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -175,6 +182,7 @@ class SlidesLiveIE(InfoExtractor):
             'thumbnails': 'count:22',
             'upload_date': '20220608',
             'chapters': 'count:21',
+            'duration': 294,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -197,6 +205,7 @@ class SlidesLiveIE(InfoExtractor):
                 'thumbnails': 'count:30',
                 'upload_date': '20220608',
                 'chapters': 'count:31',
+                'duration': 272,
             },
         }, {
             'info_dict': {
@@ -238,6 +247,7 @@ class SlidesLiveIE(InfoExtractor):
                 'thumbnails': 'count:43',
                 'upload_date': '20220608',
                 'chapters': 'count:43',
+                'duration': 315,
             },
         }, {
             'info_dict': {
@@ -287,6 +297,23 @@ class SlidesLiveIE(InfoExtractor):
             'skip_download': 'm3u8',
         },
     }, {
+        # /v3/ slides, .png only, service_name = yoda
+        'url': 'https://slideslive.com/38983994',
+        'info_dict': {
+            'id': '38983994',
+            'ext': 'mp4',
+            'title': 'Zero-Shot AutoML with Pretrained Models',
+            'timestamp': 1662384834,
+            'upload_date': '20220905',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnails': 'count:23',
+            'chapters': 'count:22',
+            'duration': 295,
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
         # service_name = yoda
         'url': 'https://slideslive.com/38903721/magic-a-scientific-resurrection-of-an-esoteric-legend',
         'only_matching': True,
@@ -312,6 +339,7 @@ class SlidesLiveIE(InfoExtractor):
             'timestamp': 1629671508,
             'upload_date': '20210822',
             'chapters': 'count:7',
+            'duration': 326,
         },
         'params': {
             'skip_download': 'm3u8',
