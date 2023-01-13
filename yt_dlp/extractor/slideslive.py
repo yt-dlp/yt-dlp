@@ -467,44 +467,42 @@ class SlidesLiveIE(InfoExtractor):
         assert service_name in ('url', 'yoda', 'vimeo', 'youtube')
         service_id = player_info['service_id']
 
-        slides_info_url = None
-        slides, slides_info = [], []
+        slide_url_template = 'https://slides.slideslive.com/%s/slides/original/%s%s'
+        slides, slides_info = {}, []
+
         if player_info.get('slides_json_url'):
-            slides_info_url = player_info['slides_json_url']
-            slides = traverse_obj(self._download_json(
-                slides_info_url, video_id, fatal=False,
-                note='Downloading slides JSON', errnote=False), 'slides', expected_type=list) or []
-            for slide_id, slide in enumerate(slides, start=1):
+            slides = self._download_json(
+                player_info['slides_json_url'], video_id, fatal=False,
+                note='Downloading slides JSON', errnote=False) or {}
+            slide_ext_default = '.png'
+            slide_quality = traverse_obj(slides, ('slide_qualities', 0))
+            if slide_quality:
+                slide_ext_default = '.jpg'
+                slide_url_template = f'https://cdn.slideslive.com/data/presentations/%s/slides/{slide_quality}/%s%s'
+            for slide_id, slide in enumerate(traverse_obj(slides, ('slides', ...), expected_type=dict), 1):
                 slides_info.append((
                     slide_id, traverse_obj(slide, ('image', 'name')),
+                    traverse_obj(slide, ('image', 'extname'), default=slide_ext_default),
                     int_or_none(slide.get('time'), scale=1000)))
 
         if not slides and player_info.get('slides_xml_url'):
-            slides_info_url = player_info['slides_xml_url']
             slides = self._download_xml(
-                slides_info_url, video_id, fatal=False,
+                player_info['slides_xml_url'], video_id, fatal=False,
                 note='Downloading slides XML', errnote='Failed to download slides info')
-            for slide_id, slide in enumerate(slides.findall('./slide'), start=1):
+            slide_url_template = 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s%s'
+            for slide_id, slide in enumerate(slides.findall('./slide') if slides else [], 1):
                 slides_info.append((
-                    slide_id, xpath_text(slide, './slideName', 'name'),
+                    slide_id, xpath_text(slide, './slideName', 'name'), '.jpg',
                     int_or_none(xpath_text(slide, './timeSec', 'time'))))
-
-        slides_version = int(self._search_regex(
-            r'https?://slides\.slideslive\.com/\d+/v(\d+)/\w+\.(?:json|xml)',
-            slides_info_url, 'slides version', default=0))
-        if slides_version < 3:
-            slide_url_template = 'https://cdn.slideslive.com/data/presentations/%s/slides/big/%s.jpg'
-        else:
-            slide_url_template = 'https://slides.slideslive.com/%s/slides/original/%s.png'
 
         chapters, thumbnails = [], []
         if url_or_none(player_info.get('thumbnail')):
             thumbnails.append({'id': 'cover', 'url': player_info['thumbnail']})
-        for slide_id, slide_path, start_time in slides_info:
+        for slide_id, slide_path, slide_ext, start_time in slides_info:
             if slide_path:
                 thumbnails.append({
                     'id': f'{slide_id:03d}',
-                    'url': slide_url_template % (video_id, slide_path),
+                    'url': slide_url_template % (video_id, slide_path, slide_ext),
                 })
             chapters.append({
                 'title': f'Slide {slide_id:03d}',
@@ -557,7 +555,7 @@ class SlidesLiveIE(InfoExtractor):
                     f'https://player.vimeo.com/video/{service_id}',
                     {'http_headers': {'Referer': url}})
 
-        video_slides = traverse_obj(slides, (..., 'video', 'id'))
+        video_slides = traverse_obj(slides, ('slides', ..., 'video', 'id'))
         if not video_slides:
             return info
 
@@ -571,7 +569,7 @@ class SlidesLiveIE(InfoExtractor):
                     'videos': ','.join(video_slides),
                 }, note='Downloading video slides info', errnote='Failed to download video slides info') or {}
 
-            for slide_id, slide in enumerate(slides, 1):
+            for slide_id, slide in enumerate(traverse_obj(slides, ('slides', ...)), 1):
                 if not traverse_obj(slide, ('video', 'service')) == 'yoda':
                     continue
                 video_path = traverse_obj(slide, ('video', 'id'))
