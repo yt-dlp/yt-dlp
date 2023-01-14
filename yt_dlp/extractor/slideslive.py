@@ -5,7 +5,6 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
-    parse_duration,
     parse_qs,
     smuggle_url,
     traverse_obj,
