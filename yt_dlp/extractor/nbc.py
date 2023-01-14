@@ -8,19 +8,21 @@ from .adobepass import AdobePassIE
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
+    HEADRequest,
+    RegexNotFoundError,
+    UserNotLive,
+    clean_html,
     int_or_none,
     parse_age_limit,
     parse_duration,
-    RegexNotFoundError,
     smuggle_url,
-    str_or_none,
     traverse_obj,
     try_get,
-    unified_strdate,
+    unescapeHTML,
     unified_timestamp,
     update_url_query,
     url_basename,
-    variadic,
+    xpath_attr,
 )
 
 
@@ -600,31 +602,35 @@ class NBCStationsIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'https://www.nbclosangeles.com/news/local/large-structure-fire-in-downtown-la-prompts-smoke-odor-advisory/2968618/',
-        'md5': '462041d91bd762ef5a38b7d85d6dc18f',
         'info_dict': {
             'id': '2968618',
             'ext': 'mp4',
             'title': 'Large Structure Fire in Downtown LA Prompts Smoke Odor Advisory',
-            'description': None,
+            'description': 'md5:417ed3c2d91fe9d301e6db7b0942f182',
             'timestamp': 1661135892,
-            'upload_date': '20220821',
+            'upload_date': '20220822',
             'uploader': 'NBC 4',
-            'uploader_id': 'KNBC',
+            'channel_id': 'KNBC',
             'channel': 'nbclosangeles',
+        },
+        'params': {
+            'skip_download': 'm3u8',
         },
     }, {
         'url': 'https://www.telemundoarizona.com/responde/huracan-complica-reembolso-para-televidente-de-tucson/2247002/',
-        'md5': '0917dcf7885be1023a9220630d415f67',
         'info_dict': {
             'id': '2247002',
             'ext': 'mp4',
-            'title': 'Huracán complica que televidente de Tucson reciba reembolso',
+            'title': 'Huracán complica que televidente de Tucson reciba  reembolso',
             'description': 'md5:af298dc73aab74d4fca6abfb12acb6cf',
             'timestamp': 1660886507,
             'upload_date': '20220819',
             'uploader': 'Telemundo Arizona',
-            'uploader_id': 'KTAZ',
+            'channel_id': 'KTAZ',
             'channel': 'telemundoarizona',
+        },
+        'params': {
+            'skip_download': 'm3u8',
         },
     }]
 
@@ -644,48 +650,39 @@ class NBCStationsIE(InfoExtractor):
             r'<script>var\s*nbc\s*=', webpage, 'NBC JSON data', video_id)
         pdk_acct = nbc_data.get('pdkAcct') or 'Yh1nAC'
         fw_ssid = traverse_obj(nbc_data, ('video', 'fwSSID'))
-        fw_network_id = traverse_obj(nbc_data, ('video', 'fwNetworkID'), default='382114')
 
-        video_data = self._parse_json(self._html_search_regex(
-            r'data-videos="([^"]*)"', webpage, 'video data', default='{}'), video_id)
-        video_data = variadic(video_data)[0]
-        video_data.update(self._parse_json(self._html_search_regex(
-            r'data-meta="([^"]*)"', webpage, 'metadata', default='{}'), video_id))
+        video_data = self._search_json(
+            r'data-videos="\[', webpage, 'video data', video_id, default={}, transform_source=unescapeHTML)
+        video_data.update(self._search_json(
+            r'data-meta="', webpage, 'metadata', video_id, default={}, transform_source=unescapeHTML))
+        if not video_data:
+            raise ExtractorError('No video metadata found in webpage', expected=True)
 
-        formats = []
+        info, formats, subtitles = {}, [], {}
+        is_live = int_or_none(video_data.get('mpx_is_livestream')) == 1
+        query = {
+            'formats': 'MPEG-DASH none,M3U none,MPEG-DASH none,MPEG4,MP3',
+            'format': 'SMIL',
+            'fwsitesection': fw_ssid,
+            'fwNetworkID': traverse_obj(nbc_data, ('video', 'fwNetworkID'), default='382114'),
+            'pprofile': 'ots_desktop_html',
+            'sensitive': 'false',
+            'w': '1920',
+            'h': '1080',
+            'mode': 'LIVE' if is_live else 'on-demand',
+            'vpaid': 'script',
+            'schema': '2.0',
+            'sdk': 'PDK 6.1.3',
+        }
 
-        if video_data.get('mpx_is_livestream') == '1':
-            live = True
-            player_id = traverse_obj(
-                video_data, 'mpx_m3upid', ('video', 'meta', 'mpx_m3upid'), 'mpx_pid',
-                ('video', 'meta', 'mpx_pid'), 'pid_streaming_web_medium')
-            query = {
-                'mbr': 'true',
-                'assetTypes': 'LegacyRelease',
-                'fwsitesection': fw_ssid,
-                'fwNetworkID': fw_network_id,
-                'pprofile': 'ots_desktop_html',
-                'sensitive': 'false',
-                'w': '1920',
-                'h': '1080',
-                'rnd': '1660303',
-                'mode': 'LIVE',
-                'format': 'SMIL',
-                'tracking': 'true',
-                'formats': 'M3U+none,MPEG-DASH+none,MPEG4,MP3',
-                'vpaid': 'script',
-                'schema': '2.0',
-                'SDK': 'PDK+6.1.3',
-            }
-            info = {
-                'title': f'{channel} livestream',
-            }
+        if is_live:
+            player_id = traverse_obj(video_data, ((None, ('video', 'meta')), (
+                'mpx_m3upid', 'mpx_pid', 'pid_streaming_web_medium')), get_all=False)
+            info['title'] = f'{channel} livestream'
 
         else:
-            live = False
-            player_id = traverse_obj(
-                video_data, ('video', 'meta', 'pid_streaming_web_high'), 'pid_streaming_web_high',
-                ('video', 'meta', 'mpx_pid'), 'mpx_pid')
+            player_id = traverse_obj(video_data, (
+                (None, ('video', 'meta')), ('pid_streaming_web_high', 'mpx_pid')), get_all=False)
 
             date_string = traverse_obj(video_data, 'date_string', 'date_gmt')
             if date_string:
@@ -693,63 +690,58 @@ class NBCStationsIE(InfoExtractor):
                     r'datetime="([^"]+)"', date_string, 'date string', fatal=False)
             else:
                 date_string = traverse_obj(
-                    nbc_data, ('dataLayer', 'adobe', 'prop70'), ('dataLayer', 'adobe', 'eVar70'),
-                    ('dataLayer', 'adobe', 'eVar59'))
+                    nbc_data, ('dataLayer', 'adobe', ('prop70', 'eVar70', 'eVar59')), get_all=False)
 
-            video_url = traverse_obj(video_data, ('video', 'meta', 'mp4_url'), 'mp4_url')
+            video_url = traverse_obj(video_data, ((None, ('video', 'meta')), 'mp4_url'), get_all=False)
             if video_url:
-                height = url_basename(video_url).split('-')[1].split('p')[0]
+                height = self._search_regex(r'\d+-(\d+)p', url_basename(video_url), 'height', default=None)
                 formats.append({
                     'url': video_url,
                     'ext': 'mp4',
                     'width': int_or_none(self._RESOLUTIONS.get(height)),
                     'height': int_or_none(height),
-                    'format_id': f'http-{height}',
+                    'format_id': 'http-mp4',
                 })
 
-            query = {
-                'mbr': 'true',
-                'assetTypes': 'LegacyRelease',
-                'fwsitesection': fw_ssid,
-                'fwNetworkID': fw_network_id,
-                'format': 'redirect',
-                'manifest': 'm3u',
-                'Tracking': 'true',
-                'Embedded': 'true',
-                'formats': 'MPEG4',
-            }
-            info = {
-                'title': video_data.get('title') or traverse_obj(
-                    nbc_data, ('dataLayer', 'contenttitle'), ('dataLayer', 'title'),
-                    ('dataLayer', 'adobe', 'prop22'), ('dataLayer', 'id')),
-                'description': traverse_obj(video_data, 'summary', 'excerpt', 'video_hero_text'),
-                'upload_date': str_or_none(unified_strdate(date_string)),
-                'timestamp': int_or_none(unified_timestamp(date_string)),
-            }
+            info.update({
+                'title': video_data.get('title') or traverse_obj(nbc_data, (
+                    'dataLayer', (None, 'adobe'), ('contenttitle', 'title', 'prop22')), get_all=False),
+                'description':
+                    traverse_obj(video_data, 'summary', 'excerpt', 'video_hero_text')
+                    or clean_html(traverse_obj(nbc_data, ('dataLayer', 'summary'))),
+                'timestamp': unified_timestamp(date_string),
+            })
 
-        if not player_id:
-            raise ExtractorError(
-                'No video player ID or livestream player ID found in webpage', expected=True)
+        smil = None
+        if player_id and fw_ssid:
+            smil = self._download_xml(
+                f'https://link.theplatform.com/s/{pdk_acct}/{player_id}', video_id,
+                note='Downloading SMIL data', query=query, fatal=is_live)
+        if smil:
+            manifest_url = xpath_attr(smil, './/{*}video', 'src', fatal=is_live)
+            subtitles = self._parse_smil_subtitles(smil, '*')
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                manifest_url, video_id, 'mp4', m3u8_id='hls', fatal=is_live,
+                live=is_live, errnote='No HLS formats found')
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
-        headers = {'Origin': f'https://www.{channel}.com'}
-        manifest, urlh = self._download_webpage_handle(
-            f'https://link.theplatform.com/s/{pdk_acct}/{player_id}', video_id,
-            headers=headers, query=query, note='Downloading manifest')
-        if live:
-            manifest_url = self._search_regex(r'<video src="([^"]*)', manifest, 'manifest URL')
-        else:
-            manifest_url = urlh.geturl()
-
-        formats.extend(self._extract_m3u8_formats(
-            manifest_url, video_id, 'mp4', headers=headers, m3u8_id='hls',
-            fatal=live, live=live, errnote='No HLS formats found'))
+        if not formats:
+            self.raise_no_formats('No video content found in webpage', expected=True)
+        elif is_live:
+            try:
+                self._request_webpage(
+                    HEADRequest(formats[0]['url']), video_id, note='Checking live status')
+            except ExtractorError:
+                raise UserNotLive(video_id=channel)
 
         return {
-            'id': str_or_none(video_id),
+            'id': video_id,
             'channel': channel,
-            'uploader': str_or_none(nbc_data.get('on_air_name')),
-            'uploader_id': str_or_none(nbc_data.get('callLetters')),
+            'channel_id': nbc_data.get('callLetters'),
+            'uploader': nbc_data.get('on_air_name'),
             'formats': formats,
-            'is_live': live,
+            'subtitles': subtitles,
+            'is_live': is_live,
             **info,
         }
