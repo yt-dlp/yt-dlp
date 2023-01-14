@@ -3,7 +3,7 @@ from .. import traverse_obj
 from ..utils import (
     float_or_none,
     int_or_none,
-    unified_timestamp,
+    unified_timestamp, ExtractorError,
 )
 
 
@@ -88,7 +88,7 @@ class ServusIE(InfoExtractor):
 
     def _report_errors(self, video):
         if 'playabilityErrors' not in video:
-            self.report_warning('No videoUrl, and also no information about errors')
+            raise ExtractorError('No videoUrl, and also no information about errors')
         for error in video.get('playabilityErrors'):
             if error == 'FSK_BLOCKED':
                 details = video['playabilityErrorDetails']['FSK_BLOCKED']
@@ -97,7 +97,6 @@ class ServusIE(InfoExtractor):
                         f'Only playable from {details["minEveningHour"]}:00 to {details["maxMorningHour"]}:00',
                         expected=True)
             elif error == 'NOT_YET_AVAILABLE':
-                self.report_warning('Only available after '
-                                    + video.get('currentSunrise'))
+                raise ExtractorError('Only available after ' + video.get('currentSunrise'), expected=True)
             else:
-                self.report_warning(f'Not playable: {error}')
+                raise ExtractorError(f'Not playable: {error}')
