@@ -72,7 +72,7 @@ class ServusIE(InfoExtractor):
             'duration': float_or_none(video.get('duration')),
             'timestamp': unified_timestamp(video.get('currentSunrise')),
             'series': season,
-            'season': video.get('season'),
+            'season': season,
             'season_number': season_number,
             'episode': episode,
             'episode_number': episode_number,
