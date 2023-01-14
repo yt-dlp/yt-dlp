@@ -302,6 +302,11 @@ class FFmpegPostProcessor(PostProcessor):
             None)
         return num, len(streams)
 
+    def _fixup_chapters(self, chapters, filepath):
+        if chapters and chapters[-1]['end_time'] is None:
+            chapters[-1]['end_time'] = self._get_real_video_duration(filepath)
+        return chapters
+
     def _get_real_video_duration(self, filepath, fatal=True):
         try:
             duration = float_or_none(
@@ -683,7 +688,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         files_to_delete, options = [], []
         if self._add_chapters and info.get('chapters'):
             metadata_filename = replace_extension(filename, 'meta')
-            options.extend(self._get_chapter_opts(info['chapters'], metadata_filename))
+            options.extend(self._get_chapter_opts(
+                self._fixup_chapters(info['chapters'], filename), metadata_filename))
             files_to_delete.append(metadata_filename)
         if self._add_metadata:
             options.extend(self._get_metadata_opts(info))
@@ -1041,12 +1047,12 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        chapters = info.get('chapters') or []
-        if not chapters:
+        if not info.get('chapters'):
             self.to_screen('Chapter information is unavailable')
             return [], info
 
         in_file = info['filepath']
+        chapters = self._fixup_chapters(info['chapters'], in_file)
         if self._force_keyframes and len(chapters) > 1:
             in_file = self.force_keyframes(in_file, (c['start_time'] for c in chapters))
         self.to_screen('Splitting video by chapters; %d chapters found' % len(chapters))
