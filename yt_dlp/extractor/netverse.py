@@ -1,6 +1,6 @@
 import itertools
 
-from .common import InfoExtractor
+from .common import InfoExtractor, SearchInfoExtractor
 from .dailymotion import DailymotionIE
 from ..utils import smuggle_url, traverse_obj
 
@@ -251,3 +251,31 @@ class NetversePlaylistIE(NetverseBaseIE):
             self.parse_playlist(playlist_data['response'], playlist_id),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'slug')),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'title')))
+
+
+class NetverseSearchIE(SearchInfoExtractor):
+    _SEARCH_KEY = 'netsearch'
+
+    _TESTS = [{
+        'url': 'netsearch10:tetangga',
+        'info_dict': {
+            'id': 'tetangga',
+            'title': 'tetangga',
+        },
+        'playlist_count': 10,
+    }]
+
+    def _search_results(self, query):
+        last_page = None
+        for i in itertools.count(1):
+            search_data = self._download_json(
+                'https://api.netverse.id/search/elastic/search', query,
+                query={'q': query, 'page': i}, note=f'Downloading page {i}')
+
+            videos = traverse_obj(search_data, ('response', 'data', ...))
+            for video in videos:
+                yield self.url_result(f'https://netverse.id/video/{video["slug"]}', NetverseIE)
+
+            last_page = last_page or traverse_obj(search_data, ('response', 'lastpage'))
+            if not videos or i >= (last_page or 0):
+                break

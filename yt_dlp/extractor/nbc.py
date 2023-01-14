@@ -136,6 +136,7 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
         query = {
             'mbr': 'true',
             'manifest': 'm3u',
+            'switch': 'HLSServiceSecure',
         }
         video_id = video_data['mpxGuid']
         tp_path = 'NnzsPC/media/guid/%s/%s' % (video_data.get('mpxAccountId') or '2410887629', video_id)
