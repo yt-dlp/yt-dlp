@@ -398,15 +398,6 @@ class SlidesLiveIE(InfoExtractor):
 
         return m3u8_dict
 
-    def _parse_m3u8_vod_duration(self, m3u8_vod, video_id):
-        # SlidesLive VOD m3u8 does not contain '#EXT-X-PLAYLIST-TYPE:VOD'
-        if '#EXT-X-ENDLIST' not in m3u8_vod:
-            return None
-
-        return int(sum(
-            float(line[len('#EXTINF:'):].split(',')[0])
-            for line in m3u8_vod.splitlines() if line.startswith('#EXTINF:'))) or None
-
     def _extract_formats_and_duration(self, cdn_hostname, path, video_id, skip_duration=False):
         formats, duration = [], None
 

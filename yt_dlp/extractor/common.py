@@ -2178,7 +2178,7 @@ class InfoExtractor:
         return self._parse_m3u8_vod_duration(m3u8_vod or '', video_id)
 
     def _parse_m3u8_vod_duration(self, m3u8_vod, video_id):
-        if '#EXT-X-PLAYLIST-TYPE:VOD' not in m3u8_vod:
+        if '#EXT-X-ENDLIST' not in m3u8_vod:
             return None
 
         return int(sum(
