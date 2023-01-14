@@ -20,6 +20,10 @@ from ..utils import (
 class TencentBaseIE(InfoExtractor):
     """Subclasses must set _API_URL, _APP_VERSION, _PLATFORM, _HOST, _REFERER"""
 
+    @property
+    def _VIDEO_CODEC(self):
+        return self._configuration_arg('video_codec', ['hevc'], ie_key="tencent")[0].lower()
+
     def _check_api_response(self, api_response):
         msg = api_response.get('msg')
         if api_response.get('code') != '0.0' and msg is not None:
@@ -55,7 +59,7 @@ class TencentBaseIE(InfoExtractor):
             'sphttps': '1',  # Enable HTTPS
             'otype': 'json',
             'spwm': '1',
-            'hevclv': '28',  # Enable HEVC
+            'hevclv': '' if self._VIDEO_CODEC != 'hevc' else '28',  # Enable HEVC
             'drm': '40',  # Enable DRM
             # For HDR
             'spvideo': '4',
