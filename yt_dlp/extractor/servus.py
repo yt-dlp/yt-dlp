@@ -105,7 +105,7 @@ class ServusIE(InfoExtractor):
             'thumbnail': video.get('poster'),
             'duration': float_or_none(video.get('duration')),
             'timestamp': unified_timestamp(video.get('currentSunrise')),
-            'series': season,
+            'series': video.get('label'),
             'season': season,
             'season_number': season_number,
             'episode': episode,
