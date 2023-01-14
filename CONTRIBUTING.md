@@ -161,7 +161,7 @@ The same applies for changes to the documentation, code style, or overarching ch
 
 ## Adding support for a new site
 
-If you want to add support for a new site, first of all **make sure** this site is **not dedicated to [copyright infringement](https://www.github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free)**. yt-dlp does **not support** such sites thus pull requests adding support for them **will be rejected**.
+If you want to add support for a new site, first of all **make sure** this site is **not dedicated to [copyright infringement](#is-the-website-primarily-used-for-piracy)**. yt-dlp does **not support** such sites thus pull requests adding support for them **will be rejected**.
 
 After you have ensured this site is distributing its content legally, you can follow this quick list (assuming your service is called `yourextractor`):
 
@@ -195,7 +195,7 @@ After you have ensured this site is distributing its content legally, you can fo
                 # * A value
                 # * MD5 checksum; start the string with md5:
                 # * A regular expression; start the string with re:
-                # * Any Python type (for example int or float)
+                # * Any Python type, e.g. int or float
             }
         }]
 
@@ -222,7 +222,7 @@ After you have ensured this site is distributing its content legally, you can fo
 
         $ flake8 yt_dlp/extractor/yourextractor.py
 
-1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.6 and above. Backward compatibility is not required for even older versions of Python.
+1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.7 and above. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
         $ git add yt_dlp/extractor/_extractors.py
@@ -261,7 +261,7 @@ The aforementioned metafields are the critical data that the extraction does not
 
 For pornographic sites, appropriate `age_limit` must also be returned.
 
-The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
+The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - e.g. when the video is a live stream that has not started yet.
 
 [Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 
@@ -351,8 +351,9 @@ Say you extracted a list of thumbnails into `thumbnail_data` and want to iterate
 ```python
 thumbnail_data = data.get('thumbnails') or []
 thumbnails = [{
-    'url': item['url']
-} for item in thumbnail_data]  # correct
+    'url': item['url'],
+    'height': item.get('h'),
+} for item in thumbnail_data if item.get('url')]  # correct
 ```
 
 and not like:
@@ -360,12 +361,27 @@ and not like:
 ```python
 thumbnail_data = data.get('thumbnails')
 thumbnails = [{
-    'url': item['url']
+    'url': item['url'],
+    'height': item.get('h'),
 } for item in thumbnail_data]  # incorrect
 ```
 
 In this case, `thumbnail_data` will be `None` if the field was not found and this will cause the loop `for item in thumbnail_data` to raise a fatal error. Using `or []` avoids this error and results in setting an empty list in `thumbnails` instead.
 
+Alternately, this can be further simplified by using `traverse_obj`
+
+```python
+thumbnails = [{
+    'url': item['url'],
+    'height': item.get('h'),
+} for item in traverse_obj(data, ('thumbnails', lambda _, v: v['url']))]
+```
+
+or, even better,
+
+```python
+thumbnails = traverse_obj(data, ('thumbnails', ..., {'url': 'url', 'height': 'h'}))
+```
 
 ### Provide fallbacks
 

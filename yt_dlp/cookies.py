@@ -1,9 +1,10 @@
 import base64
 import contextlib
-import ctypes
 import http.cookiejar
+import http.cookies
 import json
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -25,7 +26,14 @@ from .dependencies import (
     sqlite3,
 )
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
-from .utils import Popen, YoutubeDLCookieJar, error_to_str, expand_path
+from .utils import (
+    Popen,
+    YoutubeDLCookieJar,
+    error_to_str,
+    expand_path,
+    is_path_like,
+    try_call,
+)
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
@@ -86,11 +94,12 @@ def _create_progress_bar(logger):
 def load_cookies(cookie_file, browser_specification, ydl):
     cookie_jars = []
     if browser_specification is not None:
-        browser_name, profile, keyring = _parse_browser_specification(*browser_specification)
-        cookie_jars.append(extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring))
+        browser_name, profile, keyring, container = _parse_browser_specification(*browser_specification)
+        cookie_jars.append(
+            extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring, container=container))
 
     if cookie_file is not None:
-        is_filename = YoutubeDLCookieJar.is_path(cookie_file)
+        is_filename = is_path_like(cookie_file)
         if is_filename:
             cookie_file = expand_path(cookie_file)
 
@@ -102,9 +111,9 @@ def load_cookies(cookie_file, browser_specification, ydl):
     return _merge_cookie_jars(cookie_jars)
 
 
-def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None):
+def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None, container=None):
     if browser_name == 'firefox':
-        return _extract_firefox_cookies(profile, logger)
+        return _extract_firefox_cookies(profile, container, logger)
     elif browser_name == 'safari':
         return _extract_safari_cookies(profile, logger)
     elif browser_name in CHROMIUM_BASED_BROWSERS:
@@ -113,7 +122,7 @@ def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(),
         raise ValueError(f'unknown browser: {browser_name}')
 
 
-def _extract_firefox_cookies(profile, logger):
+def _extract_firefox_cookies(profile, container, logger):
     logger.info('Extracting cookies from firefox')
     if not sqlite3:
         logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
@@ -132,11 +141,36 @@ def _extract_firefox_cookies(profile, logger):
         raise FileNotFoundError(f'could not find firefox cookies database in {search_root}')
     logger.debug(f'Extracting cookies from: "{cookie_database_path}"')
 
+    container_id = None
+    if container not in (None, 'none'):
+        containers_path = os.path.join(os.path.dirname(cookie_database_path), 'containers.json')
+        if not os.path.isfile(containers_path) or not os.access(containers_path, os.R_OK):
+            raise FileNotFoundError(f'could not read containers.json in {search_root}')
+        with open(containers_path) as containers:
+            identities = json.load(containers).get('identities', [])
+        container_id = next((context.get('userContextId') for context in identities if container in (
+            context.get('name'),
+            try_call(lambda: re.fullmatch(r'userContext([^\.]+)\.label', context['l10nID']).group())
+        )), None)
+        if not isinstance(container_id, int):
+            raise ValueError(f'could not find firefox container "{container}" in containers.json')
+
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
-            cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
+            if isinstance(container_id, int):
+                logger.debug(
+                    f'Only loading cookies from firefox container "{container}", ID {container_id}')
+                cursor.execute(
+                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE originAttributes LIKE ? OR originAttributes LIKE ?',
+                    (f'%userContextId={container_id}', f'%userContextId={container_id}&%'))
+            elif container == 'none':
+                logger.debug('Only loading cookies not belonging to any container')
+                cursor.execute(
+                    'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE NOT INSTR(originAttributes,"userContextId=")')
+            else:
+                cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
             with _create_progress_bar(logger) as progress_bar:
                 table = cursor.fetchall()
@@ -811,12 +845,15 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
 def _get_mac_keyring_password(browser_keyring_name, logger):
     logger.debug('using find-generic-password to obtain password from OSX keychain')
     try:
-        stdout, _, _ = Popen.run(
+        stdout, _, returncode = Popen.run(
             ['security', 'find-generic-password',
              '-w',  # write password to stdout
              '-a', browser_keyring_name,  # match 'account'
              '-s', f'{browser_keyring_name} Safe Storage'],  # match 'service'
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        if returncode:
+            logger.warning('find-generic-password failed')
+            return None
         return stdout.rstrip(b'\n')
     except Exception as e:
         logger.warning(f'exception running find-generic-password: {error_to_str(e)}')
@@ -876,10 +913,12 @@ def _decrypt_windows_dpapi(ciphertext, logger):
     References:
         - https://docs.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptunprotectdata
     """
-    from ctypes.wintypes import DWORD
+
+    import ctypes
+    import ctypes.wintypes
 
     class DATA_BLOB(ctypes.Structure):
-        _fields_ = [('cbData', DWORD),
+        _fields_ = [('cbData', ctypes.wintypes.DWORD),
                     ('pbData', ctypes.POINTER(ctypes.c_char))]
 
     buffer = ctypes.create_string_buffer(ciphertext)
@@ -947,11 +986,102 @@ def _is_path(value):
     return os.path.sep in value
 
 
-def _parse_browser_specification(browser_name, profile=None, keyring=None):
+def _parse_browser_specification(browser_name, profile=None, keyring=None, container=None):
     if browser_name not in SUPPORTED_BROWSERS:
         raise ValueError(f'unsupported browser: "{browser_name}"')
     if keyring not in (None, *SUPPORTED_KEYRINGS):
         raise ValueError(f'unsupported keyring: "{keyring}"')
-    if profile is not None and _is_path(profile):
-        profile = os.path.expanduser(profile)
-    return browser_name, profile, keyring
+    if profile is not None and _is_path(expand_path(profile)):
+        profile = expand_path(profile)
+    return browser_name, profile, keyring, container
+
+
+class LenientSimpleCookie(http.cookies.SimpleCookie):
+    """More lenient version of http.cookies.SimpleCookie"""
+    # From https://github.com/python/cpython/blob/v3.10.7/Lib/http/cookies.py
+    # We use Morsel's legal key chars to avoid errors on setting values
+    _LEGAL_KEY_CHARS = r'\w\d' + re.escape('!#$%&\'*+-.:^_`|~')
+    _LEGAL_VALUE_CHARS = _LEGAL_KEY_CHARS + re.escape('(),/<=>?@[]{}')
+
+    _RESERVED = {
+        "expires",
+        "path",
+        "comment",
+        "domain",
+        "max-age",
+        "secure",
+        "httponly",
+        "version",
+        "samesite",
+    }
+
+    _FLAGS = {"secure", "httponly"}
+
+    # Added 'bad' group to catch the remaining value
+    _COOKIE_PATTERN = re.compile(r"""
+        \s*                            # Optional whitespace at start of cookie
+        (?P<key>                       # Start of group 'key'
+        [""" + _LEGAL_KEY_CHARS + r"""]+?# Any word of at least one letter
+        )                              # End of group 'key'
+        (                              # Optional group: there may not be a value.
+        \s*=\s*                          # Equal Sign
+        (                                # Start of potential value
+        (?P<val>                           # Start of group 'val'
+        "(?:[^\\"]|\\.)*"                    # Any doublequoted string
+        |                                    # or
+        \w{3},\s[\w\d\s-]{9,11}\s[\d:]{8}\sGMT # Special case for "expires" attr
+        |                                    # or
+        [""" + _LEGAL_VALUE_CHARS + r"""]*     # Any word or empty string
+        )                                  # End of group 'val'
+        |                                  # or
+        (?P<bad>(?:\\;|[^;])*?)            # 'bad' group fallback for invalid values
+        )                                # End of potential value
+        )?                             # End of optional value group
+        \s*                            # Any number of spaces.
+        (\s+|;|$)                      # Ending either at space, semicolon, or EOS.
+        """, re.ASCII | re.VERBOSE)
+
+    def load(self, data):
+        # Workaround for https://github.com/yt-dlp/yt-dlp/issues/4776
+        if not isinstance(data, str):
+            return super().load(data)
+
+        morsel = None
+        for match in self._COOKIE_PATTERN.finditer(data):
+            if match.group('bad'):
+                morsel = None
+                continue
+
+            key, value = match.group('key', 'val')
+
+            is_attribute = False
+            if key.startswith('$'):
+                key = key[1:]
+                is_attribute = True
+
+            lower_key = key.lower()
+            if lower_key in self._RESERVED:
+                if morsel is None:
+                    continue
+
+                if value is None:
+                    if lower_key not in self._FLAGS:
+                        morsel = None
+                        continue
+                    value = True
+                else:
+                    value, _ = self.value_decode(value)
+
+                morsel[key] = value
+
+            elif is_attribute:
+                morsel = None
+
+            elif value is not None:
+                morsel = self.get(key, http.cookies.Morsel())
+                real_value, coded_value = self.value_decode(value)
+                morsel.set(key, real_value, coded_value)
+                self[key] = morsel
+
+            else:
+                morsel = None

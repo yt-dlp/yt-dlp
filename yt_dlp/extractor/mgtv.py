@@ -67,7 +67,7 @@ class MGTVIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         tk2 = base64.urlsafe_b64encode(
-            f'did={compat_str(uuid.uuid4()).encode()}|pno=1030|ver=0.3.0301|clit={int(time.time())}'.encode())[::-1]
+            f'did={str(uuid.uuid4())}|pno=1030|ver=0.3.0301|clit={int(time.time())}'.encode())[::-1]
         try:
             api_data = self._download_json(
                 'https://pcweb.api.mgtv.com/player/video', video_id, query={
@@ -117,7 +117,6 @@ class MGTVIE(InfoExtractor):
                 },
                 'format_note': stream.get('name'),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -137,14 +136,15 @@ class MGTVIE(InfoExtractor):
             url_sub = sub.get('url')
             if not url_sub:
                 continue
-            locale = sub.get('captionCountrySimpleName')
+            locale = sub.get('captionSimpleName') or 'en'
             sub = self._download_json(f'{domain}{url_sub}', video_id, fatal=False,
                                       note=f'Download subtitle for locale {sub.get("name")} ({locale})') or {}
             sub_url = url_or_none(sub.get('info'))
             if not sub_url:
                 continue
-            subtitles.setdefault(locale or 'en', []).append({
+            subtitles.setdefault(locale.lower(), []).append({
                 'url': sub_url,
+                'name': sub.get('name'),
                 'ext': 'srt'
             })
         return subtitles

@@ -92,7 +92,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         if info['ext'] == 'mp3':
             options = [
                 '-c', 'copy', '-map', '0:0', '-map', '1:0', '-write_id3v1', '1', '-id3v2_version', '3',
-                '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment="Cover (front)"']
+                '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment=Cover (front)']
 
             self._report_run('ffmpeg', filename)
             self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
@@ -139,7 +139,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if not success:
                 success = True
                 atomicparsley = next((
-                    x for x in ['AtomicParsley', 'atomicparsley']
+                    # libatomicparsley.so : See https://github.com/xibr/ytdlp-lazy/issues/1
+                    x for x in ['AtomicParsley', 'atomicparsley', 'libatomicparsley.so']
                     if check_executable(x, ['-v'])), None)
                 if atomicparsley is None:
                     self.to_screen('Neither mutagen nor AtomicParsley was found. Falling back to ffmpeg')

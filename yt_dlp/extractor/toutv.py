@@ -9,7 +9,7 @@ from ..utils import (
 )
 
 
-class TouTvIE(RadioCanadaIE):
+class TouTvIE(RadioCanadaIE):  # XXX: Do not subclass from concrete IE
     _NETRC_MACHINE = 'toutv'
     IE_NAME = 'tou.tv'
     _VALID_URL = r'https?://ici\.tou\.tv/(?P<id>[a-zA-Z0-9_-]+(?:/S[0-9]+[EC][0-9]+)?)'

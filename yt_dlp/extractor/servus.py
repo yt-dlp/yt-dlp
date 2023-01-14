@@ -57,7 +57,6 @@ class ServusIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             video['videoUrl'], video_id, 'mp4', entry_protocol='m3u8_native',
             m3u8_id='hls')
-        self._sort_formats(formats)
 
         season = video.get('season')
         season_number = int_or_none(self._search_regex(

@@ -234,7 +234,6 @@ class XHamsterIE(InfoExtractor):
                                         'Referer': standard_url,
                                     },
                                 })
-            self._sort_formats(formats)
 
             categories_list = video.get('categories')
             if isinstance(categories_list, list):
@@ -311,8 +310,6 @@ class XHamsterIE(InfoExtractor):
                 'url': video_url,
             })
 
-        self._sort_formats(formats)
-
         # Only a few videos have an description
         mobj = re.search(r'<span>Description: </span>([^<]+)', webpage)
         description = mobj.group(1) if mobj else None
@@ -373,6 +370,7 @@ class XHamsterIE(InfoExtractor):
 
 class XHamsterEmbedIE(InfoExtractor):
     _VALID_URL = r'https?://(?:.+?\.)?%s/xembed\.php\?video=(?P<id>\d+)' % XHamsterIE._DOMAINS
+    _EMBED_REGEX = [r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?xhamster\.com/xembed\.php\?video=\d+)\1']
     _TEST = {
         'url': 'http://xhamster.com/xembed.php?video=3328539',
         'info_dict': {
@@ -386,12 +384,6 @@ class XHamsterEmbedIE(InfoExtractor):
             'age_limit': 18,
         }
     }
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [url for _, url in re.findall(
-            r'<iframe[^>]+?src=(["\'])(?P<url>(?:https?:)?//(?:www\.)?xhamster\.com/xembed\.php\?video=\d+)\1',
-            webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

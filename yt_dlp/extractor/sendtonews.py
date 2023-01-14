@@ -43,14 +43,14 @@ class SendtoNewsIE(InfoExtractor):
     _URL_TEMPLATE = '//embed.sendtonews.com/player2/embedplayer.php?SC=%s'
 
     @classmethod
-    def _extract_url(cls, webpage):
+    def _extract_embed_urls(cls, url, webpage):
         mobj = re.search(r'''(?x)<script[^>]+src=([\'"])
             (?:https?:)?//embed\.sendtonews\.com/player/responsiveembed\.php\?
                 .*\bSC=(?P<SC>[0-9a-zA-Z-]+).*
             \1>''', webpage)
         if mobj:
             sc = mobj.group('SC')
-            return cls._URL_TEMPLATE % sc
+            yield cls._URL_TEMPLATE % sc
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
@@ -77,9 +77,6 @@ class SendtoNewsIE(InfoExtractor):
                     'format_id': '%s-%d' % (determine_protocol(f), tbr),
                     'tbr': tbr,
                 })
-            # 'tbr' was explicitly set to be preferred over 'height' originally,
-            # So this is being kept unless someone can confirm this is unnecessary
-            self._sort_formats(info_dict['formats'], ('tbr', 'res'))
 
             thumbnails = []
             if video.get('thumbnailUrl'):
@@ -98,6 +95,9 @@ class SendtoNewsIE(InfoExtractor):
                 'thumbnails': thumbnails,
                 'duration': float_or_none(video.get('SM_length')),
                 'timestamp': parse_iso8601(video.get('S_sysDate'), delimiter=' '),
+                # 'tbr' was explicitly set to be preferred over 'height' originally,
+                # So this is being kept unless someone can confirm this is unnecessary
+                '_format_sort_fields': ('tbr', 'res')
             })
             entries.append(info_dict)
 

@@ -1,3 +1,4 @@
+import functools
 import re
 
 from .common import InfoExtractor
@@ -5,6 +6,7 @@ from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
+    smuggle_url,
     unsmuggle_url,
     url_or_none,
 )
@@ -18,6 +20,7 @@ class EaglePlatformIE(InfoExtractor):
                     )
                     (?P<id>\d+)
                 '''
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//.+?\.media\.eagleplatform\.com/index/player\?.+?)\1']
     _TESTS = [{
         # http://lenta.ru/news/2015/03/06/navalny/
         'url': 'http://lentaru.media.eagleplatform.com/index/player?player=new&record_id=227304&player_template_id=5201',
@@ -52,14 +55,14 @@ class EaglePlatformIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_url(webpage):
-        # Regular iframe embedding
-        mobj = re.search(
-            r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//.+?\.media\.eagleplatform\.com/index/player\?.+?)\1',
-            webpage)
-        if mobj is not None:
-            return mobj.group('url')
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        add_referer = functools.partial(smuggle_url, data={'referrer': url})
+
+        res = tuple(super()._extract_embed_urls(url, webpage))
+        if res:
+            return map(add_referer, res)
+
         PLAYER_JS_RE = r'''
                         <script[^>]+
                             src=(?P<qjs>["\'])(?:https?:)?//(?P<host>(?:(?!(?P=qjs)).)+\.media\.eagleplatform\.com)/player/player\.js(?P=qjs)
@@ -74,7 +77,7 @@ class EaglePlatformIE(InfoExtractor):
                         data-id=["\'](?P<id>\d+)
             ''' % PLAYER_JS_RE, webpage)
         if mobj is not None:
-            return 'eagleplatform:%(host)s:%(id)s' % mobj.groupdict()
+            return [add_referer('eagleplatform:%(host)s:%(id)s' % mobj.groupdict())]
         # Generalization of "Javascript code usage", "Combined usage" and
         # "Usage without attaching to DOM" embeddings (see
         # http://dultonmedia.github.io/eplayer/)
@@ -95,7 +98,7 @@ class EaglePlatformIE(InfoExtractor):
                     </script>
             ''' % PLAYER_JS_RE, webpage)
         if mobj is not None:
-            return 'eagleplatform:%(host)s:%(id)s' % mobj.groupdict()
+            return [add_referer('eagleplatform:%(host)s:%(id)s' % mobj.groupdict())]
 
     @staticmethod
     def _handle_error(response):
@@ -189,8 +192,6 @@ class EaglePlatformIE(InfoExtractor):
                 f['url'] = format_url
                 formats.append(f)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,
@@ -201,3 +202,14 @@ class EaglePlatformIE(InfoExtractor):
             'age_limit': age_limit,
             'formats': formats,
         }
+
+
+class ClipYouEmbedIE(InfoExtractor):
+    _VALID_URL = False
+
+    @classmethod
+    def _extract_embed_urls(cls, url, webpage):
+        mobj = re.search(
+            r'<iframe[^>]+src="https?://(?P<host>media\.clipyou\.ru)/index/player\?.*\brecord_id=(?P<id>\d+).*"', webpage)
+        if mobj is not None:
+            yield smuggle_url('eagleplatform:%(host)s:%(id)s' % mobj.groupdict(), {'referrer': url})

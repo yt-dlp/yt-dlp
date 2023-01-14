@@ -5,17 +5,18 @@ import string
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
+    ExtractorError,
     determine_ext,
     int_or_none,
     join_nonempty,
     js_to_json,
+    make_archive_id,
     orderedSet,
     qualities,
     str_or_none,
     traverse_obj,
     try_get,
     urlencode_postdata,
-    ExtractorError,
 )
 
 
@@ -209,7 +210,7 @@ class FunimationIE(FunimationBaseIE):
             page = self._download_json(
                 'https://www.funimation.com/api/showexperience/%s/' % experience_id,
                 display_id, headers=headers, expected_status=403, query={
-                    'pinst_id': ''.join([random.choice(string.digits + string.ascii_letters) for _ in range(8)]),
+                    'pinst_id': ''.join(random.choices(string.digits + string.ascii_letters, k=8)),
                 }, note=f'Downloading {format_name} JSON')
             sources = page.get('items') or []
             if not sources:
@@ -246,10 +247,10 @@ class FunimationIE(FunimationBaseIE):
             self.raise_no_formats(
                 'There are no video formats matching the requested languages/versions', expected=True, video_id=display_id)
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats, ('lang', 'source'))
 
         return {
-            'id': initial_experience_id if only_initial_experience else episode_id,
+            'id': episode_id,
+            '_old_archive_ids': [make_archive_id(self, initial_experience_id)],
             'display_id': display_id,
             'duration': duration,
             'title': episode['episodeTitle'],
@@ -264,6 +265,7 @@ class FunimationIE(FunimationBaseIE):
             'formats': formats,
             'thumbnails': thumbnails,
             'subtitles': subtitles,
+            '_format_sort_fields': ('lang', 'source'),
         }
 
     def _get_subtitles(self, subtitles, experience_id, episode, display_id, format_name):

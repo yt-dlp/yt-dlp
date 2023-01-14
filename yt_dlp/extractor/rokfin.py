@@ -112,7 +112,6 @@ class RokfinIE(InfoExtractor):
                 self.raise_no_formats(
                     f'Stream is offline; scheduled for {datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
                     video_id=video_id, expected=True)
-        self._sort_formats(formats)
 
         uploader = traverse_obj(metadata, ('createdBy', 'username'), ('creator', 'username'))
         timestamp = (scheduled or float_or_none(metadata.get('postedAtMilli'), 1000)

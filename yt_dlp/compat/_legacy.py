@@ -22,10 +22,14 @@ import urllib.request
 import xml.etree.ElementTree as etree
 from subprocess import DEVNULL
 
-from .compat_utils import passthrough_module  # isort: split
-from .asyncio import run as compat_asyncio_run  # noqa: F401
-from .re import Pattern as compat_Pattern  # noqa: F401
-from .re import match as compat_Match  # noqa: F401
+# isort: split
+import asyncio  # noqa: F401
+import re  # noqa: F401
+from asyncio import run as compat_asyncio_run  # noqa: F401
+from re import Pattern as compat_Pattern  # noqa: F401
+from re import match as compat_Match  # noqa: F401
+
+from .compat_utils import passthrough_module
 from ..dependencies import Cryptodome_AES as compat_pycrypto_AES  # noqa: F401
 from ..dependencies import brotli as compat_brotli  # noqa: F401
 from ..dependencies import websockets as compat_websockets  # noqa: F401
@@ -44,6 +48,7 @@ def compat_setenv(key, value, env=os.environ):
 
 
 compat_basestring = str
+compat_casefold = str.casefold
 compat_chr = chr
 compat_collections_abc = collections.abc
 compat_cookiejar = http.cookiejar

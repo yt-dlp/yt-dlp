@@ -6,6 +6,7 @@ from ..compat import (
     compat_urlparse,
 )
 from ..utils import (
+    clean_html,
     determine_ext,
     ExtractorError,
     filter_dict,
@@ -45,10 +46,13 @@ class RaiBaseIE(InfoExtractor):
         for platform in ('mon', 'flash', 'native'):
             relinker = self._download_xml(
                 relinker_url, video_id,
-                note='Downloading XML metadata for platform %s' % platform,
+                note=f'Downloading XML metadata for platform {platform}',
                 transform_source=fix_xml_ampersands,
                 query={'output': 45, 'pl': platform},
                 headers=self.geo_verification_headers())
+
+            if xpath_text(relinker, './license_url', default='{}') != '{}':
+                self.report_drm(video_id)
 
             if not geoprotection:
                 geoprotection = xpath_text(
@@ -99,7 +103,7 @@ class RaiBaseIE(InfoExtractor):
                 formats.append({
                     'url': media_url,
                     'tbr': bitrate if bitrate > 0 else None,
-                    'format_id': 'http-%d' % bitrate if bitrate > 0 else 'http',
+                    'format_id': f'http-{bitrate if bitrate > 0 else "http"}',
                 })
 
         if not formats and geoprotection is True:
@@ -152,7 +156,7 @@ class RaiBaseIE(InfoExtractor):
             br = int_or_none(tbr)
             if len(fmts) == 1 and not br:
                 br = fmts[0].get('tbr')
-            if br > 300:
+            if br and br > 300:
                 tbr = compat_str(math.floor(br / 100) * 100)
             else:
                 tbr = '250'
@@ -171,11 +175,11 @@ class RaiBaseIE(InfoExtractor):
                 'vcodec': format_copy.get('vcodec'),
                 'acodec': format_copy.get('acodec'),
                 'fps': format_copy.get('fps'),
-                'format_id': 'https-%s' % tbr,
+                'format_id': f'https-{tbr}',
             } if format_copy else {
                 'width': _QUALITY[tbr][0],
                 'height': _QUALITY[tbr][1],
-                'format_id': 'https-%s' % tbr,
+                'format_id': f'https-{tbr}',
                 'tbr': int(tbr),
             }
 
@@ -198,8 +202,8 @@ class RaiBaseIE(InfoExtractor):
                 'url': _MP4_TMPL % (relinker_url, q),
                 'protocol': 'https',
                 'ext': 'mp4',
+                **get_format_info(q)
             }
-            fmt.update(get_format_info(q))
             formats.append(fmt)
         return formats
 
@@ -230,7 +234,7 @@ class RaiBaseIE(InfoExtractor):
 
 
 class RaiPlayIE(RaiBaseIE):
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/.+?-(?P<id>%s))\.(?:html|json)' % RaiBaseIE._UUID_RE
+    _VALID_URL = rf'(?P<base>https?://(?:www\.)?raiplay\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)'
     _TESTS = [{
         'url': 'http://www.raiplay.it/video/2014/04/Report-del-07042014-cb27157f-9dd0-4aee-b788-b1f67643a391.html',
         'md5': '8970abf8caf8aef4696e7b1f2adfc696',
@@ -248,6 +252,10 @@ class RaiPlayIE(RaiBaseIE):
             'subtitles': {
                 'it': 'count:4',
             },
+            'release_year': 2022,
+            'episode': 'Espresso nel caffè - 07/04/2014',
+            'timestamp': 1396919880,
+            'upload_date': '20140408',
         },
         'params': {
             'skip_download': True,
@@ -267,6 +275,12 @@ class RaiPlayIE(RaiBaseIE):
             'duration': 6493,
             'series': 'Blanca',
             'season': 'Season 1',
+            'episode_number': 1,
+            'release_year': 2021,
+            'season_number': 1,
+            'episode': 'Senza occhi',
+            'timestamp': 1637318940,
+            'upload_date': '20211119',
         },
     }, {
         'url': 'http://www.raiplay.it/video/2016/11/gazebotraindesi-efebe701-969c-4593-92f3-285f0d1ce750.html?',
@@ -277,7 +291,7 @@ class RaiPlayIE(RaiBaseIE):
         'only_matching': True,
     }, {
         # DRM protected
-        'url': 'https://www.raiplay.it/video/2020/09/Lo-straordinario-mondo-di-Zoey-S1E1-Lo-straordinario-potere-di-Zoey-ed493918-1d32-44b7-8454-862e473d00ff.html',
+        'url': 'https://www.raiplay.it/video/2021/06/Lo-straordinario-mondo-di-Zoey-S2E1-Lo-straordinario-ritorno-di-Zoey-3ba992de-2332-41ad-9214-73e32ab209f4.html',
         'only_matching': True,
     }]
 
@@ -299,7 +313,6 @@ class RaiPlayIE(RaiBaseIE):
         video = media['video']
 
         relinker_info = self._extract_relinker_info(video['content_url'], video_id)
-        self._sort_formats(relinker_info['formats'])
 
         thumbnails = []
         for _, value in media.get('images', {}).items():
@@ -320,13 +333,13 @@ class RaiPlayIE(RaiBaseIE):
 
         alt_title = join_nonempty(media.get('subtitle'), media.get('toptitle'), delim=' - ')
 
-        info = {
+        return {
             'id': remove_start(media.get('id'), 'ContentItem-') or video_id,
             'display_id': video_id,
             'title': title,
-            'alt_title': strip_or_none(alt_title),
+            'alt_title': strip_or_none(alt_title or None),
             'description': media.get('description'),
-            'uploader': strip_or_none(media.get('channel')),
+            'uploader': strip_or_none(media.get('channel') or None),
             'creator': strip_or_none(media.get('editor') or None),
             'duration': parse_duration(video.get('duration')),
             'timestamp': unified_timestamp(date_published),
@@ -337,14 +350,12 @@ class RaiPlayIE(RaiBaseIE):
             'episode': media.get('episode_title'),
             'episode_number': int_or_none(media.get('episode')),
             'subtitles': subtitles,
-            'release_year': traverse_obj(media, ('track_info', 'edit_year')),
+            'release_year': int_or_none(traverse_obj(media, ('track_info', 'edit_year'))),
+            **relinker_info
         }
 
-        info.update(relinker_info)
-        return info
 
-
-class RaiPlayLiveIE(RaiPlayIE):
+class RaiPlayLiveIE(RaiPlayIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/dirette/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'http://www.raiplay.it/dirette/rainews24',
@@ -357,6 +368,9 @@ class RaiPlayLiveIE(RaiPlayIE):
             'uploader': 'Rai News 24',
             'creator': 'Rai News 24',
             'is_live': True,
+            'live_status': 'is_live',
+            'upload_date': '20090502',
+            'timestamp': 1241276220,
         },
         'params': {
             'skip_download': True,
@@ -407,7 +421,7 @@ class RaiPlayPlaylistIE(InfoExtractor):
                 if not s_id:
                     continue
                 medias = self._download_json(
-                    '%s/%s.json' % (base, s_id), s_id,
+                    f'{base}/{s_id}.json', s_id,
                     'Downloading content set JSON', fatal=False)
                 if not medias:
                     continue
@@ -426,7 +440,7 @@ class RaiPlayPlaylistIE(InfoExtractor):
 
 
 class RaiPlaySoundIE(RaiBaseIE):
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/.+?-(?P<id>%s))\.(?:html|json)' % RaiBaseIE._UUID_RE
+    _VALID_URL = rf'(?P<base>https?://(?:www\.)?raiplaysound\.it/.+?-(?P<id>{RaiBaseIE._UUID_RE}))\.(?:html|json)'
     _TESTS = [{
         'url': 'https://www.raiplaysound.it/audio/2021/12/IL-RUGGITO-DEL-CONIGLIO-1ebae2a7-7cdb-42bb-842e-fe0d193e9707.html',
         'md5': '8970abf8caf8aef4696e7b1f2adfc696',
@@ -434,11 +448,16 @@ class RaiPlaySoundIE(RaiBaseIE):
             'id': '1ebae2a7-7cdb-42bb-842e-fe0d193e9707',
             'ext': 'mp3',
             'title': 'Il Ruggito del Coniglio del 10/12/2021',
+            'alt_title': 'md5:0e6476cd57858bb0f3fcc835d305b455',
             'description': 'md5:2a17d2107e59a4a8faa0e18334139ee2',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'rai radio 2',
             'duration': 5685,
             'series': 'Il Ruggito del Coniglio',
+            'episode': 'Il Ruggito del Coniglio del 10/12/2021',
+            'creator': 'rai radio 2',
+            'timestamp': 1638346620,
+            'upload_date': '20211201',
         },
         'params': {
             'skip_download': True,
@@ -470,7 +489,7 @@ class RaiPlaySoundIE(RaiBaseIE):
             'id': uid or audio_id,
             'display_id': audio_id,
             'title': traverse_obj(media, 'title', 'episode_title'),
-            'alt_title': traverse_obj(media, ('track_info', 'media_name')),
+            'alt_title': traverse_obj(media, ('track_info', 'media_name'), expected_type=strip_or_none),
             'description': media.get('description'),
             'uploader': traverse_obj(media, ('track_info', 'channel'), expected_type=strip_or_none),
             'creator': traverse_obj(media, ('track_info', 'editor'), expected_type=strip_or_none),
@@ -484,7 +503,7 @@ class RaiPlaySoundIE(RaiBaseIE):
         }
 
 
-class RaiPlaySoundLiveIE(RaiPlaySoundIE):
+class RaiPlaySoundLiveIE(RaiPlaySoundIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?P<id>[^/?#&]+)$)'
     _TESTS = [{
         'url': 'https://www.raiplaysound.it/radio2',
@@ -492,10 +511,13 @@ class RaiPlaySoundLiveIE(RaiPlaySoundIE):
             'id': 'b00a50e6-f404-4af6-8f8c-ff3b9af73a44',
             'display_id': 'radio2',
             'ext': 'mp4',
-            'title': 'Rai Radio 2',
+            'title': r're:Rai Radio 2 \d+-\d+-\d+ \d+:\d+',
+            'thumbnail': r're:https://www.raiplaysound.it/dl/img/.+?png',
             'uploader': 'rai radio 2',
+            'series': 'Rai Radio 2',
             'creator': 'raiplaysound',
             'is_live': True,
+            'live_status': 'is_live',
         },
         'params': {
             'skip_download': 'live',
@@ -544,11 +566,11 @@ class RaiPlaySoundPlaylistIE(InfoExtractor):
 
 
 class RaiIE(RaiBaseIE):
-    _VALID_URL = r'https?://[^/]+\.(?:rai\.(?:it|tv)|rainews\.it)/.+?-(?P<id>%s)(?:-.+?)?\.html' % RaiBaseIE._UUID_RE
+    _VALID_URL = rf'https?://[^/]+\.(?:rai\.(?:it|tv))/.+?-(?P<id>{RaiBaseIE._UUID_RE})(?:-.+?)?\.html'
     _TESTS = [{
         # var uniquename = "ContentItem-..."
         # data-id="ContentItem-..."
-        'url': 'http://www.raisport.rai.it/dl/raiSport/media/rassegna-stampa-04a9f4bd-b563-40cf-82a6-aad3529cb4a9.html',
+        'url': 'https://www.raisport.rai.it/dl/raiSport/media/rassegna-stampa-04a9f4bd-b563-40cf-82a6-aad3529cb4a9.html',
         'info_dict': {
             'id': '04a9f4bd-b563-40cf-82a6-aad3529cb4a9',
             'ext': 'mp4',
@@ -559,20 +581,8 @@ class RaiIE(RaiBaseIE):
         },
         'skip': 'This content is available only in Italy',
     }, {
-        # with ContentItem in many metas
-        'url': 'http://www.rainews.it/dl/rainews/media/Weekend-al-cinema-da-Hollywood-arriva-il-thriller-di-Tate-Taylor-La-ragazza-del-treno-1632c009-c843-4836-bb65-80c33084a64b.html',
-        'info_dict': {
-            'id': '1632c009-c843-4836-bb65-80c33084a64b',
-            'ext': 'mp4',
-            'title': 'Weekend al cinema, da Hollywood arriva il thriller di Tate Taylor "La ragazza del treno"',
-            'description': 'I film in uscita questa settimana.',
-            'thumbnail': r're:^https?://.*\.png$',
-            'duration': 833,
-            'upload_date': '20161103',
-        }
-    }, {
         # with ContentItem in og:url
-        'url': 'http://www.rai.it/dl/RaiTV/programmi/media/ContentItem-efb17665-691c-45d5-a60c-5301333cbb0c.html',
+        'url': 'https://www.rai.it/dl/RaiTV/programmi/media/ContentItem-efb17665-691c-45d5-a60c-5301333cbb0c.html',
         'md5': '06345bd97c932f19ffb129973d07a020',
         'info_dict': {
             'id': 'efb17665-691c-45d5-a60c-5301333cbb0c',
@@ -581,42 +591,17 @@ class RaiIE(RaiBaseIE):
             'description': 'TG1 edizione integrale ore 20:00 del giorno 03/11/2016',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 2214,
-            'upload_date': '20161103',
+            'upload_date': '20161103'
         }
-    }, {
-        # initEdizione('ContentItem-...'
-        'url': 'http://www.tg1.rai.it/dl/tg1/2010/edizioni/ContentSet-9b6e0cba-4bef-4aef-8cf0-9f7f665b7dfb-tg1.html?item=undefined',
-        'info_dict': {
-            'id': 'c2187016-8484-4e3a-8ac8-35e475b07303',
-            'ext': 'mp4',
-            'title': r're:TG1 ore \d{2}:\d{2} del \d{2}/\d{2}/\d{4}',
-            'duration': 2274,
-            'upload_date': '20170401',
-        },
-        'skip': 'Changes daily',
-    }, {
-        # HLS live stream with ContentItem in og:url
-        'url': 'http://www.rainews.it/dl/rainews/live/ContentItem-3156f2f2-dc70-4953-8e2f-70d7489d4ce9.html',
-        'info_dict': {
-            'id': '3156f2f2-dc70-4953-8e2f-70d7489d4ce9',
-            'ext': 'mp4',
-            'title': 'La diretta di Rainews24',
-        },
-        'params': {
-            'skip_download': True,
-        },
     }, {
         # Direct MMS URL
         'url': 'http://www.rai.it/dl/RaiTV/programmi/media/ContentItem-b63a4089-ac28-48cf-bca5-9f5b5bc46df5.html',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.rainews.it/tgr/marche/notiziari/video/2019/02/ContentItem-6ba945a2-889c-4a80-bdeb-8489c70a8db9.html',
         'only_matching': True,
     }]
 
     def _extract_from_content_id(self, content_id, url):
         media = self._download_json(
-            'http://www.rai.tv/dl/RaiTV/programmi/media/ContentItem-%s.html?json' % content_id,
+            f'https://www.rai.tv/dl/RaiTV/programmi/media/ContentItem-{content_id}.html?json',
             content_id, 'Downloading video JSON')
 
         title = media['name'].strip()
@@ -635,8 +620,6 @@ class RaiIE(RaiBaseIE):
         else:
             raise ExtractorError('not a media file')
 
-        self._sort_formats(relinker_info['formats'])
-
         thumbnails = []
         for image_type in ('image', 'image_medium', 'image_300'):
             thumbnail_url = media.get(image_type)
@@ -647,20 +630,17 @@ class RaiIE(RaiBaseIE):
 
         subtitles = self._extract_subtitles(url, media)
 
-        info = {
+        return {
             'id': content_id,
             'title': title,
-            'description': strip_or_none(media.get('desc')),
+            'description': strip_or_none(media.get('desc') or None),
             'thumbnails': thumbnails,
-            'uploader': media.get('author'),
+            'uploader': strip_or_none(media.get('author') or None),
             'upload_date': unified_strdate(media.get('date')),
             'duration': parse_duration(media.get('length')),
             'subtitles': subtitles,
+            **relinker_info
         }
-
-        info.update(relinker_info)
-
-        return info
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -674,20 +654,20 @@ class RaiIE(RaiBaseIE):
              'twitter:player', 'jsonlink'), webpage, default=None)
         if content_item_url:
             content_item_id = self._search_regex(
-                r'ContentItem-(%s)' % self._UUID_RE, content_item_url,
+                rf'ContentItem-({self._UUID_RE})', content_item_url,
                 'content item id', default=None)
 
         if not content_item_id:
             content_item_id = self._search_regex(
-                r'''(?x)
+                rf'''(?x)
                     (?:
                         (?:initEdizione|drawMediaRaiTV)\(|
                         <(?:[^>]+\bdata-id|var\s+uniquename)=|
                         <iframe[^>]+\bsrc=
                     )
                     (["\'])
-                    (?:(?!\1).)*\bContentItem-(?P<id>%s)
-                ''' % self._UUID_RE,
+                    (?:(?!\1).)*\bContentItem-(?P<id>{self._UUID_RE})
+                ''',
                 webpage, 'content item id', default=None, group='id')
 
         content_item_ids = set()
@@ -720,18 +700,121 @@ class RaiIE(RaiBaseIE):
 
         relinker_info = self._extract_relinker_info(
             urljoin(url, relinker_url), video_id)
-        self._sort_formats(relinker_info['formats'])
 
         title = self._search_regex(
             r'var\s+videoTitolo\s*=\s*([\'"])(?P<title>[^\'"]+)\1',
             webpage, 'title', group='title',
             default=None) or self._og_search_title(webpage)
 
-        info = {
+        return {
             'id': video_id,
             'title': title,
+            **relinker_info
         }
 
-        info.update(relinker_info)
 
-        return info
+class RaiNewsIE(RaiIE):  # XXX: Do not subclass from concrete IE
+    _VALID_URL = rf'https?://(www\.)?rainews\.it/(?!articoli)[^?#]+-(?P<id>{RaiBaseIE._UUID_RE})(?:-[^/?#]+)?\.html'
+    _EMBED_REGEX = [rf'<iframe[^>]+data-src="(?P<url>/iframe/[^?#]+?{RaiBaseIE._UUID_RE}\.html)']
+    _TESTS = [{
+        # new rainews player (#3911)
+        'url': 'https://www.rainews.it/rubriche/24mm/video/2022/05/24mm-del-29052022-12cf645d-1ffd-4220-b27c-07c226dbdecf.html',
+        'info_dict': {
+            'id': '12cf645d-1ffd-4220-b27c-07c226dbdecf',
+            'ext': 'mp4',
+            'title': 'Puntata del 29/05/2022',
+            'duration': 1589,
+            'upload_date': '20220529',
+            'uploader': 'rainews',
+        }
+    }, {
+        # old content with fallback method to extract media urls
+        'url': 'https://www.rainews.it/dl/rainews/media/Weekend-al-cinema-da-Hollywood-arriva-il-thriller-di-Tate-Taylor-La-ragazza-del-treno-1632c009-c843-4836-bb65-80c33084a64b.html',
+        'info_dict': {
+            'id': '1632c009-c843-4836-bb65-80c33084a64b',
+            'ext': 'mp4',
+            'title': 'Weekend al cinema, da Hollywood arriva il thriller di Tate Taylor "La ragazza del treno"',
+            'description': 'I film in uscita questa settimana.',
+            'thumbnail': r're:^https?://.*\.png$',
+            'duration': 833,
+            'upload_date': '20161103'
+        },
+        'expected_warnings': ['unable to extract player_data'],
+    }, {
+        # iframe + drm
+        'url': 'https://www.rainews.it/iframe/video/2022/07/euro2022-europei-calcio-femminile-italia-belgio-gol-0-1-video-4de06a69-de75-4e32-a657-02f0885f8118.html',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, video_id)
+
+        player_data = self._search_json(
+            r'<rainews-player\s*data=\'', webpage, 'player_data', video_id,
+            transform_source=clean_html, fatal=False)
+        track_info = player_data.get('track_info')
+        relinker_url = traverse_obj(player_data, 'mediapolis', 'content_url')
+
+        if not relinker_url:
+            # fallback on old implementation for some old content
+            try:
+                return self._extract_from_content_id(video_id, url)
+            except GeoRestrictedError:
+                raise
+            except ExtractorError as e:
+                raise ExtractorError('Relinker URL not found', cause=e)
+
+        relinker_info = self._extract_relinker_info(urljoin(url, relinker_url), video_id)
+
+        return {
+            'id': video_id,
+            'title': track_info.get('title') or self._og_search_title(webpage),
+            'upload_date': unified_strdate(track_info.get('date')),
+            'uploader': strip_or_none(track_info.get('editor') or None),
+            **relinker_info
+        }
+
+
+class RaiSudtirolIE(RaiBaseIE):
+    _VALID_URL = r'https?://raisudtirol\.rai\.it/.+?media=(?P<id>[TP]tv\d+)'
+    _TESTS = [{
+        'url': 'https://raisudtirol.rai.it/la/index.php?media=Ptv1619729460',
+        'info_dict': {
+            'id': 'Ptv1619729460',
+            'ext': 'mp4',
+            'title': 'Euro: trasmisciun d\'economia - 29-04-2021 20:51',
+            'series': 'Euro: trasmisciun d\'economia',
+            'upload_date': '20210429',
+            'thumbnail': r're:https://raisudtirol\.rai\.it/img/.+?\.jpg',
+            'uploader': 'raisudtirol',
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+
+        video_date = self._html_search_regex(r'<span class="med_data">(.+?)</span>', webpage, 'video_date', fatal=False)
+        video_title = self._html_search_regex(r'<span class="med_title">(.+?)</span>', webpage, 'video_title', fatal=False)
+        video_url = self._html_search_regex(r'sources:\s*\[\{file:\s*"(.+?)"\}\]', webpage, 'video_url')
+        video_thumb = self._html_search_regex(r'image: \'(.+?)\'', webpage, 'video_thumb', fatal=False)
+
+        return {
+            'id': video_id,
+            'title': join_nonempty(video_title, video_date, delim=' - '),
+            'series': video_title,
+            'upload_date': unified_strdate(video_date),
+            'thumbnail': urljoin('https://raisudtirol.rai.it/', video_thumb),
+            'uploader': 'raisudtirol',
+            'formats': [{
+                'format_id': 'https-mp4',
+                'url': self._proto_relative_url(video_url),
+                'width': 1024,
+                'height': 576,
+                'fps': 25,
+                'vcodec': 'h264',
+                'acodec': 'aac',
+            }],
+        }

@@ -14,8 +14,8 @@ from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import compat_os_name
 from ..utils import (
     DownloadError,
+    RetryManager,
     encodeFilename,
-    error_to_compat_str,
     sanitized_Request,
     traverse_obj,
 )
@@ -65,10 +65,9 @@ class FragmentFD(FileDownloader):
     """
 
     def report_retry_fragment(self, err, frag_index, count, retries):
-        self.to_screen(
-            '\r[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
-            % (error_to_compat_str(err), frag_index, count, self.format_retries(retries)))
-        self.sleep_retry('fragment', count)
+        self.deprecation_warning('yt_dlp.downloader.FragmentFD.report_retry_fragment is deprecated. '
+                                 'Use yt_dlp.downloader.FileDownloader.report_retry instead')
+        return self.report_retry(err, count, retries, frag_index)
 
     def report_skip_fragment(self, frag_index, err=None):
         err = f' {err};' if err else ''
@@ -296,16 +295,23 @@ class FragmentFD(FileDownloader):
                 self.try_remove(ytdl_filename)
         elapsed = time.time() - ctx['started']
 
-        if ctx['tmpfilename'] == '-':
-            downloaded_bytes = ctx['complete_frags_downloaded_bytes']
+        to_file = ctx['tmpfilename'] != '-'
+        if to_file:
+            downloaded_bytes = os.path.getsize(encodeFilename(ctx['tmpfilename']))
         else:
+            downloaded_bytes = ctx['complete_frags_downloaded_bytes']
+
+        if not downloaded_bytes:
+            if to_file:
+                self.try_remove(ctx['tmpfilename'])
+            self.report_error('The downloaded file is empty')
+            return False
+        elif to_file:
             self.try_rename(ctx['tmpfilename'], ctx['filename'])
-            if self.params.get('updatetime', True):
-                filetime = ctx.get('fragment_filetime')
-                if filetime:
-                    with contextlib.suppress(Exception):
-                        os.utime(ctx['filename'], (time.time(), filetime))
-            downloaded_bytes = os.path.getsize(encodeFilename(ctx['filename']))
+            filetime = ctx.get('fragment_filetime')
+            if self.params.get('updatetime', True) and filetime:
+                with contextlib.suppress(Exception):
+                    os.utime(ctx['filename'], (time.time(), filetime))
 
         self._hook_progress({
             'downloaded_bytes': downloaded_bytes,
@@ -317,6 +323,7 @@ class FragmentFD(FileDownloader):
             'max_progress': ctx.get('max_progress'),
             'progress_idx': ctx.get('progress_idx'),
         }, info_dict)
+        return True
 
     def _prepare_external_frag_download(self, ctx):
         if 'live' not in ctx:
@@ -347,6 +354,8 @@ class FragmentFD(FileDownloader):
             return _key_cache[url]
 
         def decrypt_fragment(fragment, frag_content):
+            if frag_content is None:
+                return
             decrypt_info = fragment.get('decrypt_info')
             if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
                 return frag_content
@@ -361,7 +370,7 @@ class FragmentFD(FileDownloader):
 
         return decrypt_fragment
 
-    def download_and_append_fragments_multiple(self, *args, pack_func=None, finish_func=None):
+    def download_and_append_fragments_multiple(self, *args, **kwargs):
         '''
         @params (ctx1, fragments1, info_dict1), (ctx2, fragments2, info_dict2), ...
                 all args must be either tuple or list
@@ -369,7 +378,7 @@ class FragmentFD(FileDownloader):
         interrupt_trigger = [True]
         max_progress = len(args)
         if max_progress == 1:
-            return self.download_and_append_fragments(*args[0], pack_func=pack_func, finish_func=finish_func)
+            return self.download_and_append_fragments(*args[0], **kwargs)
         max_workers = self.params.get('concurrent_fragment_downloads', 1)
         if max_progress > 1:
             self._prepare_multiline_status(max_progress)
@@ -379,8 +388,7 @@ class FragmentFD(FileDownloader):
             ctx['max_progress'] = max_progress
             ctx['progress_idx'] = idx
             return self.download_and_append_fragments(
-                ctx, fragments, info_dict, pack_func=pack_func, finish_func=finish_func,
-                tpe=tpe, interrupt_trigger=interrupt_trigger)
+                ctx, fragments, info_dict, **kwargs, tpe=tpe, interrupt_trigger=interrupt_trigger)
 
         class FTPE(concurrent.futures.ThreadPoolExecutor):
             # has to stop this or it's going to wait on the worker thread itself
@@ -427,18 +435,12 @@ class FragmentFD(FileDownloader):
         return result
 
     def download_and_append_fragments(
-            self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None,
-            tpe=None, interrupt_trigger=None):
-        if not interrupt_trigger:
-            interrupt_trigger = (True, )
+            self, ctx, fragments, info_dict, *, is_fatal=(lambda idx: False),
+            pack_func=(lambda content, idx: content), finish_func=None,
+            tpe=None, interrupt_trigger=(True, )):
 
-        fragment_retries = self.params.get('fragment_retries', 0)
-        is_fatal = (
-            ((lambda _: False) if info_dict.get('is_live') else (lambda idx: idx == 0))
-            if self.params.get('skip_unavailable_fragments', True) else (lambda _: True))
-
-        if not pack_func:
-            pack_func = lambda frag_content, _: frag_content
+        if not self.params.get('skip_unavailable_fragments', True):
+            is_fatal = lambda _: True
 
         def download_fragment(fragment, ctx):
             if not interrupt_trigger[0]:
@@ -452,32 +454,25 @@ class FragmentFD(FileDownloader):
                 headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
 
             # Never skip the first fragment
-            fatal, count = is_fatal(fragment.get('index') or (frag_index - 1)), 0
-            while count <= fragment_retries:
+            fatal = is_fatal(fragment.get('index') or (frag_index - 1))
+
+            def error_callback(err, count, retries):
+                if fatal and count > retries:
+                    ctx['dest_stream'].close()
+                self.report_retry(err, count, retries, frag_index, fatal)
+                ctx['last_error'] = err
+
+            for retry in RetryManager(self.params.get('fragment_retries'), error_callback):
                 try:
                     ctx['fragment_count'] = fragment.get('fragment_count')
-                    if self._download_fragment(ctx, fragment['url'], info_dict, headers):
-                        break
-                    return
+                    if not self._download_fragment(ctx, fragment['url'], info_dict, headers):
+                        return
                 except (urllib.error.HTTPError, http.client.IncompleteRead) as err:
-                    # Unavailable (possibly temporary) fragments may be served.
-                    # First we try to retry then either skip or abort.
-                    # See https://github.com/ytdl-org/youtube-dl/issues/10165,
-                    # https://github.com/ytdl-org/youtube-dl/issues/10448).
-                    count += 1
-                    ctx['last_error'] = err
-                    if count <= fragment_retries:
-                        self.report_retry_fragment(err, frag_index, count, fragment_retries)
-                except DownloadError:
-                    # Don't retry fragment if error occurred during HTTP downloading
-                    # itself since it has own retry settings
-                    if not fatal:
-                        break
-                    raise
-
-            if count > fragment_retries and fatal:
-                ctx['dest_stream'].close()
-                self.report_error('Giving up after %s fragment retries' % fragment_retries)
+                    retry.error = err
+                    continue
+                except DownloadError:  # has own retry settings
+                    if fatal:
+                        raise
 
         def append_fragment(frag_content, frag_index, ctx):
             if frag_content:
@@ -534,5 +529,4 @@ class FragmentFD(FileDownloader):
         if finish_func is not None:
             ctx['dest_stream'].write(finish_func())
             ctx['dest_stream'].flush()
-        self._finish_frag_download(ctx, info_dict)
-        return True
+        return self._finish_frag_download(ctx, info_dict)

@@ -41,7 +41,6 @@ class ThetaStreamIE(InfoExtractor):
             if data.get('type') != 'embed' and data.get('resolution') in ('master', 'source'))
 
         formats = self._extract_m3u8_formats(m3u8_playlist, channel_id, 'mp4', m3u8_id='hls', live=True)
-        self._sort_formats(formats)
 
         channel = try_get(info, lambda x: x['user']['username'])  # using this field instead of channel_id due to capitalization
 
@@ -78,7 +77,6 @@ class ThetaVideoIE(InfoExtractor):
         m3u8_playlist = try_get(info, lambda x: x['video_urls'][0]['url'])
 
         formats = self._extract_m3u8_formats(m3u8_playlist, video_id, 'mp4', m3u8_id='hls')
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

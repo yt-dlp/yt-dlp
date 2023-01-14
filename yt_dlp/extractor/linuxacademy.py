@@ -75,9 +75,8 @@ class LinuxAcademyIE(InfoExtractor):
 
     def _perform_login(self, username, password):
         def random_string():
-            return ''.join([
-                random.choice('0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._~')
-                for _ in range(32)])
+            return ''.join(random.choices(
+                '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._~', k=32))
 
         webpage, urlh = self._download_webpage_handle(
             self._AUTHORIZE_URL, None, 'Downloading authorize page', query={
@@ -218,7 +217,6 @@ class LinuxAcademyIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             m3u8_url, item_id, 'mp4', entry_protocol='m3u8_native',
             m3u8_id='hls')
-        self._sort_formats(formats)
         info = {
             'id': item_id,
             'formats': formats,

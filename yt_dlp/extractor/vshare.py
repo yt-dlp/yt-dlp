@@ -1,11 +1,10 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import ExtractorError, decode_packed_codes
 
 
 class VShareIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?vshare\.io/[dv]/(?P<id>[^/?#&]+)'
+    _EMBED_REGEX = [r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?vshare\.io/v/[^/?#&]+)']
     _TESTS = [{
         'url': 'https://vshare.io/d/0f64ce6',
         'md5': '17b39f55b5497ae8b59f5fbce8e35886',
@@ -18,12 +17,6 @@ class VShareIE(InfoExtractor):
         'url': 'https://vshare.io/v/0f64ce6/width-650/height-430/1',
         'only_matching': True,
     }]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return re.findall(
-            r'<iframe[^>]+?src=["\'](?P<url>(?:https?:)?//(?:www\.)?vshare\.io/v/[^/?#&]+)',
-            webpage)
 
     def _extract_packed(self, webpage):
         packed = self._search_regex(
@@ -55,8 +48,6 @@ class VShareIE(InfoExtractor):
         info = self._parse_html5_media_entries(
             url, '<video>%s</video>' % self._extract_packed(webpage),
             video_id)[0]
-
-        self._sort_formats(info['formats'])
 
         info.update({
             'id': video_id,

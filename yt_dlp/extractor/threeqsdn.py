@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
@@ -16,6 +14,7 @@ class ThreeQSDNIE(InfoExtractor):
     IE_NAME = '3qsdn'
     IE_DESC = '3Q SDN'
     _VALID_URL = r'https?://playout\.3qsdn\.com/(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
+    _EMBED_REGEX = [r'<iframe[^>]+\b(?:data-)?src=(["\'])(?P<url>%s.*?)\1' % _VALID_URL]
     _TESTS = [{
         # https://player.3qsdn.com/demo.html
         'url': 'https://playout.3qsdn.com/7201c779-6b3c-11e7-a40e-002590c750be',
@@ -76,12 +75,13 @@ class ThreeQSDNIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_url(webpage):
-        mobj = re.search(
-            r'<iframe[^>]+\b(?:data-)?src=(["\'])(?P<url>%s.*?)\1' % ThreeQSDNIE._VALID_URL, webpage)
-        if mobj:
-            return mobj.group('url')
+    def _extract_from_webpage(self, url, webpage):
+        for res in super()._extract_from_webpage(url, webpage):
+            yield {
+                **res,
+                '_type': 'url_transparent',
+                'uploader': self._search_regex(r'^(?:https?://)?([^/]*)/.*', url, 'video uploader'),
+            }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -128,10 +128,6 @@ class ThreeQSDNIE(InfoExtractor):
                         'vcodec': 'none' if height == 0 else None,
                         'width': int(height * aspect) if height and aspect else None,
                     })
-        # It seems like this would be correctly handled by default
-        # However, unless someone can confirm this, the old
-        # behaviour is being kept as-is
-        self._sort_formats(formats, ('res', 'source_preference'))
 
         for subtitle in (config.get('subtitles') or []):
             src = subtitle.get('src')
@@ -153,4 +149,8 @@ class ThreeQSDNIE(InfoExtractor):
             'is_live': live,
             'formats': formats,
             'subtitles': subtitles,
+            # It seems like this would be correctly handled by default
+            # However, unless someone can confirm this, the old
+            # behaviour is being kept as-is
+            '_format_sort_fields': ('res', 'source_preference')
         }
