@@ -2185,6 +2185,16 @@ class InfoExtractor:
             float(line[len('#EXTINF:'):].split(',')[0])
             for line in m3u8_vod.splitlines() if line.startswith('#EXTINF:'))) or None
 
+    def _extract_mpd_vod_duration(
+            self, mpd_url, video_id, note=None, errnote=None, data=None, headers={}, query={}):
+
+        mpd_doc = self._download_xml(
+            mpd_url, video_id,
+            note='Downloading MPD VOD manifest' if note is None else note,
+            errnote='Failed to download VOD manifest' if errnote is None else errnote,
+            fatal=False, data=data, headers=headers, query=query) or {}
+        return int_or_none(parse_duration(mpd_doc.get('mediaPresentationDuration')))
+
     @staticmethod
     def _xpath_ns(path, namespace=None):
         if not namespace:
