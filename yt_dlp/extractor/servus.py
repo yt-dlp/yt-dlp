@@ -1,9 +1,10 @@
 from .common import InfoExtractor
-from .. import traverse_obj
 from ..utils import (
+    ExtractorError,
     float_or_none,
     int_or_none,
-    unified_timestamp, ExtractorError,
+    traverse_obj,
+    unified_timestamp,
 )
 
 
