@@ -93,9 +93,9 @@ class ServusIE(InfoExtractor):
             if error == 'FSK_BLOCKED':
                 details = video['playabilityErrorDetails']['FSK_BLOCKED']
                 if 'minEveningHour' in details:
-                    self.report_warning('Only playable from '
-                                        + f'{details["minEveningHour"]}:00 to '
-                                        + f'{details["maxMorningHour"]}:00')
+                    raise ExtractorError(
+                        f'Only playable from {details["minEveningHour"]}:00 to {details["maxMorningHour"]}:00',
+                        expected=True)
             elif error == 'NOT_YET_AVAILABLE':
                 self.report_warning('Only available after '
                                     + video.get('currentSunrise'))
