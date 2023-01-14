@@ -27,7 +27,7 @@ from ..utils import (
 
 
 class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
-    _VALID_URL = r'https?(?P<permalink>://(?:www\.)?nbc\.com/(?:classic-tv/)?[^/]+/video/[^/]+/(?P<id>n?\d+))'
+    _VALID_URL = r'https?(?P<permalink>://(?:www\.)?nbc\.com/(?:classic-tv/)?[^/]+/video/[^/]+/(?P<id>(?:NBCE|n)?\d+))'
 
     _TESTS = [
         {
@@ -40,10 +40,18 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'timestamp': 1424246400,
                 'upload_date': '20150218',
                 'uploader': 'NBCU-COM',
+                'episode': 'Jimmy Fallon Surprises Fans at Ben & Jerry\'s',
+                'episode_number': 86,
+                'season': 'Season 2',
+                'season_number': 2,
+                'series': 'Tonight Show: Jimmy Fallon',
+                'duration': 237.0,
+                'chapters': 'count:1',
+                'tags': 'count:4',
+                'thumbnail': r're:https?://.+\.jpg',
             },
             'params': {
-                # m3u8 download
-                'skip_download': True,
+                'skip_download': 'm3u8',
             },
         },
         {
@@ -57,11 +65,7 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'upload_date': '20141206',
                 'uploader': 'NBCU-COM',
             },
-            'params': {
-                # m3u8 download
-                'skip_download': True,
-            },
-            'skip': 'Only works from US',
+            'skip': 'page not found',
         },
         {
             # HLS streams requires the 'hdnea3' cookie
@@ -75,10 +79,59 @@ class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
                 'upload_date': '20090315',
                 'uploader': 'NBCU-COM',
             },
-            'params': {
-                'skip_download': True,
+            'skip': 'page not found',
+        },
+        {
+            # manifest url does not have extension
+            'url': 'https://www.nbc.com/the-golden-globe-awards/video/oprah-winfrey-receives-cecil-b-de-mille-award-at-the-2018-golden-globes/3646439',
+            'info_dict': {
+                'id': '3646439',
+                'ext': 'mp4',
+                'title': 'Oprah Winfrey Receives Cecil B. de Mille Award at the 2018 Golden Globes',
+                'episode': 'Oprah Winfrey Receives Cecil B. de Mille Award at the 2018 Golden Globes',
+                'episode_number': 1,
+                'season': 'Season 75',
+                'season_number': 75,
+                'series': 'The Golden Globe Awards',
+                'description': 'Oprah Winfrey receives the Cecil B. de Mille Award at the 75th Annual Golden Globe Awards.',
+                'uploader': 'NBCU-COM',
+                'upload_date': '20180107',
+                'timestamp': 1515312000,
+                'duration': 570.0,
+                'tags': 'count:8',
+                'thumbnail': r're:https?://.+\.jpg',
+                'chapters': 'count:1',
             },
-            'skip': 'Only works from US',
+            'params': {
+                'skip_download': 'm3u8',
+            },
+        },
+        {
+            # new video_id format
+            'url': 'https://www.nbc.com/quantum-leap/video/bens-first-leap-nbcs-quantum-leap/NBCE125189978',
+            'info_dict': {
+                'id': 'NBCE125189978',
+                'ext': 'mp4',
+                'title': 'Ben\'s First Leap | NBC\'s Quantum Leap',
+                'description': 'md5:a82762449b7ec4bb83291a7b355ebf8e',
+                'uploader': 'NBCU-COM',
+                'series': 'Quantum Leap',
+                'season': 'Season 1',
+                'season_number': 1,
+                'episode': 'Ben\'s First Leap | NBC\'s Quantum Leap',
+                'episode_number': 1,
+                'duration': 170.171,
+                'chapters': [],
+                'timestamp': 1663956155,
+                'upload_date': '20220923',
+                'tags': 'count:10',
+                'age_limit': 0,
+                'thumbnail': r're:https?://.+\.jpg',
+            },
+            'expected_warnings': ['Ignoring subtitle tracks'],
+            'params': {
+                'skip_download': 'm3u8',
+            },
         },
         {
             'url': 'https://www.nbc.com/classic-tv/charles-in-charge/video/charles-in-charge-pilot/n3310',
