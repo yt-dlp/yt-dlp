@@ -18,6 +18,7 @@ class ServusIE(InfoExtractor):
                         /(?P<id>[aA]{2}-?\w+|\d+-\d+)
                     '''
     _TESTS = [{
+        # URL schema v3
         'url': 'https://www.servustv.com/natur/v/aa-28bycqnh92111/',
         'info_dict': {
             'id': 'AA-28BYCQNH92111',
@@ -36,13 +37,46 @@ class ServusIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'}
     }, {
-        'url': 'https://www.pm-wissen.com/videos/aa-24mus4g2w2112/',
-        'only_matching': True,
-    }, {
         'url': 'https://www.servustv.com/natur/v/aa-1xg5xwmgw2112/',
         'only_matching': True,
     }, {
         'url': 'https://www.servustv.com/natur/v/aansszcx3yi9jmlmhdc1/',
+        'only_matching': True,
+    }, {
+        # URL schema v2
+        'url': 'https://www.servustv.com/videos/aa-1t6vbu5pw1w12/',
+        'md5': '60474d4c21f3eb148838f215c37f02b9',
+        'info_dict': {
+            'id': 'AA-1T6VBU5PW1W12',
+            'ext': 'mp4',
+            'title': 'Die Grünen aus Sicht des Volkes',
+            'alt_title': 'Talk im Hangar-7 Voxpops Gruene',
+            'description': 'md5:1247204d85783afe3682644398ff2ec4',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 62.442,
+            'timestamp': 1605193976,
+            'upload_date': '20201112',
+            'series': 'Talk im Hangar-7',
+            'season': 'Season 9',
+            'season_number': 9,
+            'episode': 'Episode 31 - September 14',
+            'episode_number': 31,
+        }
+    }, {
+        # URL schema v1
+        'url': 'https://www.servus.com/de/p/Die-Gr%C3%BCnen-aus-Sicht-des-Volkes/AA-1T6VBU5PW1W12/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.servus.com/at/p/Wie-das-Leben-beginnt/1309984137314-381415152/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.servus.com/tv/videos/aa-1t6vbu5pw1w12/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.servus.com/tv/videos/1380889096408-1235196658/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.pm-wissen.com/videos/aa-24mus4g2w2112/',
         'only_matching': True,
     }]
 
