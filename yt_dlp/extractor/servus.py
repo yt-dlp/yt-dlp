@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from .. import traverse_obj
 from ..utils import (
     float_or_none,
     int_or_none,
@@ -53,7 +54,6 @@ class ServusIE(InfoExtractor):
             video_id, 'Downloading video JSON')
         if 'videoUrl' not in video:
             self._report_errors(video)
-            return None
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             video['videoUrl'], video_id, 'mp4', m3u8_id='hls')
 
@@ -67,7 +67,7 @@ class ServusIE(InfoExtractor):
         return {
             'id': video_id,
             'title': video.get('title'),
-            'description': self._get_description(video, video_id),
+            'description': self._get_description(video_id) or video.get('description'),
             'thumbnail': video.get('poster'),
             'duration': float_or_none(video.get('duration')),
             'timestamp': unified_timestamp(video.get('currentSunrise')),
@@ -80,15 +80,11 @@ class ServusIE(InfoExtractor):
             'subtitles': subtitles,
         }
 
-    def _get_description(self, video, video_id):
-        info = self._download_json("https://backend.servustv.com/wp-json/rbmh/v2/media_asset/aa_id/%s?fieldset=page" % video_id,
-                                   video_id, fatal=False)
-        if not info:
-            return video.get('description')
-        description = info.get('stv_long_description') \
-            or info.get("stv_short_description") \
-            or video.get('description')
-        return description
+    def _get_description(self, video_id):
+        info = self._download_json(
+            f'https://backend.servustv.com/wp-json/rbmh/v2/media_asset/aa_id/{video_id}?fieldset=page',
+            video_id, fatal=False)
+        return traverse_obj(info, 'stv_long_description', 'stv_short_description')
 
     def _report_errors(self, video):
         if 'playabilityErrors' not in video:
