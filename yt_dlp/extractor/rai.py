@@ -56,10 +56,6 @@ class RaiBaseIE(InfoExtractor):
 
         # geo flag is a bit unreliable and not properly set all the time
         geoprotection = xpath_text(relinker, './geoprotection', default='N') == 'Y'
-        if '/video_no_available.mp4' in media_url:
-            # This does not imply geo restriction (e.g.
-            # http://www.raisport.rai.it/dl/raiSport/media/rassegna-stampa-04a9f4bd-b563-40cf-82a6-aad3529cb4a9.html)
-            self.report_warning('Video not available. Likely due to geo-restriction.')
 
         ext = determine_ext(media_url)
         formats = []
@@ -92,7 +88,7 @@ class RaiBaseIE(InfoExtractor):
         else:
             raise ExtractorError('Unrecognized media file found')
 
-        if not formats and geoprotection is True:
+        if (not formats and geoprotection is True) or '/video_no_available.mp4' in media_url:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
         if not audio_only:
@@ -146,13 +142,21 @@ class RaiBaseIE(InfoExtractor):
             # multiple video with the same resolution but different bitrate
             format_copy = format_copy[0] or format_copy[1] or {}
             return {
+                'format_id': f'https-{tbr}',
                 'width': format_copy.get('width'),
                 'height': format_copy.get('height'),
                 'tbr': format_copy.get('tbr'),
                 'vcodec': format_copy.get('vcodec'),
                 'acodec': format_copy.get('acodec'),
                 'fps': format_copy.get('fps'),
+            } if format_copy else {
                 'format_id': f'https-{tbr}',
+                'width': _QUALITY[tbr][0],
+                'height': _QUALITY[tbr][1],
+                'tbr': tbr,
+                'vcodec': 'avc1',
+                'acodec': 'mp4a',
+                'fps': 25,
             }
 
         # filter out single-stream formats
