@@ -126,6 +126,9 @@ class ServusIE(InfoExtractor):
         if not playability_errors:
             raise ExtractorError('No videoUrl, and also no information about errors')
 
+        if len(playability_errors) > 1:
+            self.report_warning(f'Encountered multiple error codes: {playability_errors}')
+
         if 'FSK_BLOCKED' in playability_errors:
             details = traverse_obj(video, ('playabilityErrorDetails', 'FSK_BLOCKED'))
             if details:
@@ -142,4 +145,4 @@ class ServusIE(InfoExtractor):
                 raise ExtractorError(f'Only available after {available_from}', expected=True)
             raise ExtractorError(f'Not yet available, could not determine when it will be available', expected=True)
 
-        raise ExtractorError(f'Not playable: {playability_errors}')
+        raise ExtractorError(f'Not playable, error code not handled yet: {playability_errors}')
