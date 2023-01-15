@@ -954,6 +954,85 @@ class TestUtil(unittest.TestCase):
         )
         self.assertEqual(escape_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
 
+    def test_js_to_json_vars_strings(self):
+        self.assertDictEqual(
+            json.loads(js_to_json(
+                '''{
+                    'null': a,
+                    'nullStr': b,
+                    'true': c,
+                    'trueStr': d,
+                    'false': e,
+                    'falseStr': f,
+                    'unresolvedVar': g,
+                }''',
+                {
+                    'a': 'null',
+                    'b': '"null"',
+                    'c': 'true',
+                    'd': '"true"',
+                    'e': 'false',
+                    'f': '"false"',
+                    'g': 'var',
+                }
+            )),
+            {
+                'null': None,
+                'nullStr': 'null',
+                'true': True,
+                'trueStr': 'true',
+                'false': False,
+                'falseStr': 'false',
+                'unresolvedVar': 'var'
+            }
+        )
+
+        self.assertDictEqual(
+            json.loads(js_to_json(
+                '''{
+                    'int': a,
+                    'intStr': b,
+                    'float': c,
+                    'floatStr': d,
+                }''',
+                {
+                    'a': '123',
+                    'b': '"123"',
+                    'c': '1.23',
+                    'd': '"1.23"',
+                }
+            )),
+            {
+                'int': 123,
+                'intStr': '123',
+                'float': 1.23,
+                'floatStr': '1.23',
+            }
+        )
+
+        self.assertDictEqual(
+            json.loads(js_to_json(
+                '''{
+                    'object': a,
+                    'objectStr': b,
+                    'array': c,
+                    'arrayStr': d,
+                }''',
+                {
+                    'a': '{}',
+                    'b': '"{}"',
+                    'c': '[]',
+                    'd': '"[]"',
+                }
+            )),
+            {
+                'object': {},
+                'objectStr': '{}',
+                'array': [],
+                'arrayStr': '[]',
+            }
+        )
+
     def test_js_to_json_realworld(self):
         inp = '''{
             'clip':{'provider':'pseudo'}
@@ -1874,6 +1953,8 @@ Line 1
             vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['m4a']), 'mkv')
         self.assertEqual(get_compatible_ext(
             vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['webm']), 'webm')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['weba']), 'webm')
 
         self.assertEqual(get_compatible_ext(
             vcodecs=['h264'], acodecs=['mp4a'], vexts=['mov'], aexts=['m4a']), 'mp4')
