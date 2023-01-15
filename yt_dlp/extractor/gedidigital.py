@@ -240,7 +240,7 @@ class RepubblicaTVIE(GediDigitalIE):
             'id': '434699',
             'ext': 'mp4',
             'title': '[REP-TV] Genova  pioggia di soldi dal Pnrr per il Palazzo Ducale e il restauro della Torre Grimaldina (434699-435663)',
-            'description': 'md5:43b3945e22345c2bc95b3095f5a274ef',
+            'description': 'md5:b86313bc45c7c6967a40df16db490a84',
             'thumbnail': r're:^https://www\.repstatic\.it/.+-thumb-full-.+\.jpg',
             'duration': 121,
             'upload_date': '20221222',
@@ -261,6 +261,23 @@ class RepubblicaTVPodcastIE(GediDigitalIE):
             'title': 'La giornata - Podcast - La Repubblica',
         },
         'playlist_count_min': 30,
+    }, {
+        # single episode
+        'url': 'https://www.repubblica.it/podcast/la-giornata#rep-locali:articolo:383127029',
+        'info_dict': {
+            'id': 'rep-locali:articolo:383127029',
+            'ext': 'm4a',
+            'title': 'La maternità va alla guerra',
+            'description': 'md5:38c3488ae796f28c12fa2a7c812c0583',
+            'thumbnail': r're:^https://www\.repstatic\.it/.+/img/.+\.jpg',
+            'duration': 503,
+            'timestamp': 1673481600,
+            'upload_date': '20230112',
+            'formats': 'count:3',
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
 
