@@ -164,19 +164,32 @@ class GediDigitalIE(InfoExtractor):
                 rf'audioSource{media_id}\s*=', webpage, 'media_data', media_id,
                 contains_pattern=r'\[(?s:.+)\];', transform_source=js_to_json)
             if media_type == 'audio':
-                track_id = traverse_obj(media_data, (0, 'trtId'))
+                track_id = traverse_obj(media_data, (0, 'trtId'), (0, 'original_id'))
 
             playlist_entries = []
             for episode in media_data:
-                if track_id == episode['trtId']:
-                    if 'm3u8' == determine_ext(episode.get('audio_url')):
+                if track_id == traverse_obj(episode, 'trtId', 'original_id'):
+                    if episode.get('audio_url_hls'):
+                        formats.extend(self._extract_m3u8_formats(
+                            episode['audio_url_hls'], media_id, m3u8_id='audio-hls'))
+                    elif 'm3u8' == determine_ext(episode.get('audio_url')):
                         formats.extend(self._extract_m3u8_formats(
                             episode['audio_url'], media_id, m3u8_id='audio-hls'))
+                    elif 'mp3' == determine_ext(episode.get('audio_url')):
+                        formats.append({
+                            'format_id': 'audio-mp3',
+                            'url': episode['audio_url'],
+                            'acodec': 'mp3',
+                            'vcodec': 'none',
+                        })
+                    else:
+                        self.raise_no_formats("Audio format not recognized")
                     media_data = episode
                     break
                 elif not track_id:
                     # if no specific episode is selected return a playlist
-                    playlist_entries.append(self.url_result(f'{url}#{episode["trtId"]}'))
+                    playlist_entries.append(self.url_result(
+                        f'{url}#{traverse_obj(episode, "trtId", "original_id")}'))
 
             if playlist_entries:
                 return self.playlist_result(
@@ -196,7 +209,7 @@ class GediDigitalIE(InfoExtractor):
                                     or media_data.get('duration')),
             'thumbnail': traverse_obj(media_data, 'posterSrc', 'image', ('thumbnails', 0, 'url')),
             'timestamp': (media_data.get('timestamp')
-                          or unified_timestamp(media_data.get('pubdate'))),
+                          or unified_timestamp(media_data.get('pubdate') or media_data.get('pub_date'))),
             'formats': formats,
         }
 
