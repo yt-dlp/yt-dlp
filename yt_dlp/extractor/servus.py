@@ -135,7 +135,7 @@ class ServusIE(InfoExtractor):
                 raise ExtractorError(
                     f'Only playable from {details.get("minEveningHour")}:00 to {details.get("maxMorningHour")}:00',
                     expected=True)
-            raise ExtractorError(f'Blocked by FSK, could not determine the time where the video is available',
+            raise ExtractorError('Blocked by FSK, could not determine the time where the video is available',
                                  expected=True)
 
         if 'NOT_YET_AVAILABLE' in playability_errors:
@@ -143,6 +143,6 @@ class ServusIE(InfoExtractor):
                                           'currentSunrise')
             if available_from:
                 raise ExtractorError(f'Only available after {available_from}', expected=True)
-            raise ExtractorError(f'Not yet available, could not determine when it will be available', expected=True)
+            raise ExtractorError('Not yet available, could not determine when it will be available', expected=True)
 
         raise ExtractorError(f'Not playable, error code not handled yet: {playability_errors}')
