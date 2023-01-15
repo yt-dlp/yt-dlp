@@ -126,16 +126,16 @@ class ServusIE(InfoExtractor):
         if not playability_errors:
             raise ExtractorError('No videoUrl, and also no information about errors')
 
-        if playability_errors.get('FSK_BLOCKED'):
-            details = playability_errors.get('FSK_BLOCKED')
-            if details.get('minEveningHour'):
+        if 'FSK_BLOCKED' in playability_errors:
+            details = traverse_obj(video, 'playabilityErrorDetails', 'FSK_BLOCKED')
+            if details:
                 raise ExtractorError(
                     f'Only playable from {details.get("minEveningHour")}:00 to {details.get("maxMorningHour")}:00',
                     expected=True)
             raise ExtractorError(f'Blocked by FSK, could not determine the time where the video is available',
                                  expected=True)
 
-        if playability_errors.get('NOT_YET_AVAILABLE'):
+        if 'NOT_YET_AVAILABLE' in playability_errors:
             raise ExtractorError(f'Only available after {video.get("currentSunrise")}', expected=True)
 
         raise ExtractorError(f'Not playable: {playability_errors}')
