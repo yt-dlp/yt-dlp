@@ -136,6 +136,10 @@ class ServusIE(InfoExtractor):
                                  expected=True)
 
         if 'NOT_YET_AVAILABLE' in playability_errors:
-            raise ExtractorError(f'Only available after {video.get("currentSunrise")}', expected=True)
+            available_from = traverse_obj(video, ('playabilityErrorDetails', 'NOT_YET_AVAILABLE', 'availableFrom'),
+                                          'currentSunrise')
+            if available_from:
+                raise ExtractorError(f'Only available after {available_from}', expected=True)
+            raise ExtractorError(f'Not yet available, could not determine when it will be available', expected=True)
 
         raise ExtractorError(f'Not playable: {playability_errors}')
