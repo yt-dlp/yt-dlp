@@ -7,30 +7,37 @@ from .common import InfoExtractor
 class SportDeutschlandIE(InfoExtractor):
     _VALID_URL = r'https?://sportdeutschland\.tv/(?P<id>(?:[^/]+/)?[^?#/&]+)'
     _TESTS = [{
-        'url': 'https://sportdeutschland.tv/badminton/re-live-deutsche-meisterschaften-2020-halbfinals?playlistId=0',
+        'url': 'https://sportdeutschland.tv/blauweissbuchholztanzsport/buchholzer-formationswochenende-2023-samstag-1-bundesliga-landesliga',
         'info_dict': {
-            'id': '5318cac0275701382770543d7edaf0a0',
+            'id': '983758e9-5829-454d-a3cf-eb27bccc3c94',
             'ext': 'mp4',
-            'title': 'Re-live: Deutsche Meisterschaften 2020 - Halbfinals - Teil 1',
-            'duration': 16106.36,
-        },
-        'params': {
-            'noplaylist': True,
-            # m3u8 download
-            'skip_download': True,
-        },
+            'title': 'Buchholzer Formationswochenende 2023 - Samstag - 1. Bundesliga / Landesliga',
+            'description': '14:30 Uhr Turnierbeginn Landesliga Nord Gruppe A - 16:10 Uhr Finalrunde Landesliga Nord Gruppe A - 17:15 Uhr Siegerehrung Landesliga Nord Gruppe A - 19:00 Uhr Turnierbeginn 1. Bundesliga - 21:20 Uhr Finalrunde 1. Bundesliga - 22:30 Uhr Siegerehrung 1. Bundesliga',
+            'live_status': 'was_live',
+            'channel': 'Blau-Weiss Buchholz Tanzsport',
+            'channel_url': 'https://sportdeutschland.tv/blauweissbuchholztanzsport',
+            'channel_id': '93ec33c9-48be-43b6-b404-e016b64fdfa3',
+            'display_id': '9839a5c7-0dbb-48a8-ab63-3b408adc7b54',
+            'duration': 32447,
+            'upload_date': '20230114',
+            'timestamp': 1673730018.0,
+        }
     }, {
-        'url': 'https://sportdeutschland.tv/badminton/re-live-deutsche-meisterschaften-2020-halbfinals?playlistId=0',
+        'url': 'https://sportdeutschland.tv/deutscherbadmintonverband/bwf-tour-1-runde-feld-1-yonex-gainward-german-open-2022-0',
         'info_dict': {
-            'id': 'c6e2fdd01f63013854c47054d2ab776f',
-            'title': 'Re-live: Deutsche Meisterschaften 2020 - Halbfinals',
-            'description': 'md5:5263ff4c31c04bb780c9f91130b48530',
-            'duration': 31397,
-        },
-        'playlist_count': 2,
-    }, {
-        'url': 'https://sportdeutschland.tv/freeride-world-tour-2021-fieberbrunn-oesterreich',
-        'only_matching': True,
+            'id': '95b97d9a-04f6-4880-9039-182985c33943',
+            'ext': 'mp4',
+            'title': 'BWF Tour: 1. Runde Feld 1 - YONEX GAINWARD German Open 2022',
+            'description': 'md5:2afb5996ceb9ac0b2ac81f563d3a883e',
+            'live_status': 'was_live',
+            'channel': 'Deutscher Badminton Verband',
+            'channel_url': 'https://sportdeutschland.tv/deutscherbadmintonverband',
+            'channel_id': '93ca5866-2551-49fc-8424-6db35af58920',
+            'display_id': '95c80c52-6b9a-4ae9-9197-984145adfced',
+            'duration': 41097,
+            'upload_date': '20220309',
+            'timestamp': 1646860727.0,
+        }
     }]
 
     def _real_extract(self, url):
