@@ -1,14 +1,7 @@
-from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    float_or_none,
-    int_or_none,
-    parse_iso8601,
-    parse_qs,
-    strip_or_none,
-    try_get,
-)
+import time
+import datetime
 
+from .common import InfoExtractor
 
 class SportDeutschlandIE(InfoExtractor):
     _VALID_URL = r'https?://sportdeutschland\.tv/(?P<id>(?:[^/]+/)?[^?#/&]+)'
@@ -41,55 +34,72 @@ class SportDeutschlandIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        data = self._download_json(
-            'https://backend.sportdeutschland.tv/api/permalinks/' + display_id,
+        meta = self._download_json(
+            'https://api.sportdeutschland.tv/api/stateless/frontend/assets/' + display_id,
             display_id, query={'access_token': 'true'})
-        asset = data['asset']
-        title = (asset.get('title') or asset['label']).strip()
-        asset_id = asset.get('id') or asset.get('uuid')
+
+        asset_id = meta.get('id') or meta.get('uuid')
+        profile = meta.get('profile')
+
         info = {
             'id': asset_id,
-            'title': title,
-            'description': clean_html(asset.get('body') or asset.get('description')) or asset.get('teaser'),
-            'duration': int_or_none(asset.get('seconds')),
+            'title': (meta.get('title') or meta.get('name')).strip(),
+            'description': meta.get('description'),
+            'channel': profile.get('name'),
+            'channel_id': profile.get('id'),
+            'channel_url': 'https://sportdeutschland.tv/' + profile.get('slug'),
+            'is_live': meta.get('currently_live'),
+            'was_live': meta.get('was_live')
         }
-        videos = asset.get('videos') or []
-        if len(videos) > 1:
-            playlist_id = parse_qs(url).get('playlistId', [None])[0]
-            if not self._yes_playlist(playlist_id, asset_id):
-                videos = [videos[int(playlist_id)]]
 
-            def entries():
-                for i, video in enumerate(videos, 1):
-                    video_id = video.get('uuid')
-                    video_url = video.get('url')
-                    if not (video_id and video_url):
-                        continue
-                    formats = self._extract_m3u8_formats(
-                        video_url.replace('.smil', '.m3u8'), video_id, 'mp4', fatal=False)
-                    if not formats and not self.get_param('ignore_no_formats'):
-                        continue
-                    yield {
-                        'id': video_id,
-                        'formats': formats,
-                        'title': title + ' - ' + (video.get('label') or 'Teil %d' % i),
-                        'duration': float_or_none(video.get('duration')),
-                    }
+        videos = meta.get('videos') or []
+        
+        if len(videos) > 1:
             info.update({
                 '_type': 'multi_video',
-                'entries': entries(),
-            })
-        else:
-            formats = self._extract_m3u8_formats(
-                videos[0]['url'].replace('.smil', '.m3u8'), asset_id, 'mp4')
-            section_title = strip_or_none(try_get(data, lambda x: x['section']['title']))
-            info.update({
-                'formats': formats,
-                'display_id': asset.get('permalink'),
-                'thumbnail': try_get(asset, lambda x: x['images'][0]),
-                'categories': [section_title] if section_title else None,
-                'view_count': int_or_none(asset.get('views')),
-                'is_live': asset.get('is_live') is True,
-                'timestamp': parse_iso8601(asset.get('date') or asset.get('published_at')),
-            })
+                'entries': self.processVideoOrStream(asset_id, video)
+            } for video in enumerate(videos))
+
+        elif len(videos) == 1:
+            info.update(
+                self.processVideoOrStream(asset_id, videos[0])
+            )
+
+
+        livestream = meta.get('livestream')
+
+        if livestream is not None:
+            info.update(
+                self.processVideoOrStream(asset_id, livestream)
+            )
+
+
         return info
+
+
+    def processVideoOrStream(self, asset_id, video):
+        video_id = video.get('id')
+        video_src = video.get('src')
+        video_type = video.get('type')
+
+        token_data = self._download_json(
+            'https://api.sportdeutschland.tv/api/frontend/asset-token/' + asset_id
+            + '?type=' + video_type
+            + '&playback_id=' + video_src,
+            video_id
+            )
+
+        m3u8_url = "https://stream.mux.com/" + video_src + '.m3u8?token=' + token_data.get('token')
+        formats = self._extract_m3u8_formats(m3u8_url, video_id)
+
+        videoData = {
+            'display_id': video_id,
+            'formats': formats,
+        }
+        if video_type == 'mux_vod':
+            videoData.update({
+                'duration': video.get('duration'),
+                'timestamp': time.mktime(datetime.datetime.fromisoformat(video.get('created_at')).timetuple())
+            })
+
+        return videoData
