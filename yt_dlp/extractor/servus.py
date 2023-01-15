@@ -120,11 +120,13 @@ class ServusIE(InfoExtractor):
         info = self._download_json(
             f'https://backend.servustv.com/wp-json/rbmh/v2/media_asset/aa_id/{video_id}?fieldset=page',
             video_id, fatal=False)
-        short_description = unescapeHTML(traverse_obj(info, 'stv_short_description'))
-        long_description = unescapeHTML(traverse_obj(info, 'stv_long_description'))
+
+        short_description = unescapeHTML(traverse_obj(info, 'stv_short_description', expected_type=str))
+        long_description = unescapeHTML(traverse_obj(info, 'stv_long_description', expected_type=str, default=''))
+        long_description = long_description.replace('\n\n', '\n')
 
         if short_description and long_description:
-            return f'{short_description}\n\n\n{long_description}'
+            return f'{short_description}\n\n{long_description}'
         return long_description or short_description
 
     def _report_errors(self, video):
