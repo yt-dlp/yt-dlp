@@ -5,6 +5,7 @@ from ..utils import (
     int_or_none,
     traverse_obj,
     unified_timestamp,
+    unescapeHTML,
 )
 
 
@@ -25,7 +26,7 @@ class ServusIE(InfoExtractor):
             'id': 'AA-28BYCQNH92111',
             'ext': 'mp4',
             'title': 'Klettersteige in den Alpen',
-            'description': 'md5:ce695f9466883c1e32ef79eae5b5765a',
+            'description': 'md5:6f681e794bb41ebddd5c3de7d2717a68',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 2823,
             'timestamp': 1655752333,
@@ -119,7 +120,12 @@ class ServusIE(InfoExtractor):
         info = self._download_json(
             f'https://backend.servustv.com/wp-json/rbmh/v2/media_asset/aa_id/{video_id}?fieldset=page',
             video_id, fatal=False)
-        return traverse_obj(info, 'stv_long_description', 'stv_short_description')
+        short_description = unescapeHTML(traverse_obj(info, 'stv_short_description'))
+        long_description = unescapeHTML(traverse_obj(info, 'stv_long_description'))
+
+        if short_description and long_description:
+            return f'{short_description}\n\n\n{long_description}'
+        return long_description or short_description
 
     def _report_errors(self, video):
         playability_errors = video.get('playabilityErrors')
