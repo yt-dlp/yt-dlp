@@ -127,7 +127,7 @@ class ServusIE(InfoExtractor):
             raise ExtractorError('No videoUrl, and also no information about errors')
 
         if 'FSK_BLOCKED' in playability_errors:
-            details = traverse_obj(video, 'playabilityErrorDetails', 'FSK_BLOCKED')
+            details = traverse_obj(video, ('playabilityErrorDetails', 'FSK_BLOCKED'))
             if details:
                 raise ExtractorError(
                     f'Only playable from {details.get("minEveningHour")}:00 to {details.get("maxMorningHour")}:00',
