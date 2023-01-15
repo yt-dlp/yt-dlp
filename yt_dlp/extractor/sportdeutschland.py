@@ -3,6 +3,7 @@ import datetime
 
 from .common import InfoExtractor
 
+
 class SportDeutschlandIE(InfoExtractor):
     _VALID_URL = r'https?://sportdeutschland\.tv/(?P<id>(?:[^/]+/)?[^?#/&]+)'
     _TESTS = [{
@@ -53,18 +54,17 @@ class SportDeutschlandIE(InfoExtractor):
         }
 
         videos = meta.get('videos') or []
-        
+
         if len(videos) > 1:
             info.update({
                 '_type': 'multi_video',
                 'entries': self.processVideoOrStream(asset_id, video)
-            } for video in enumerate(videos))
+            } for video in enumerate(videos) if video.get('formats'))
 
         elif len(videos) == 1:
             info.update(
                 self.processVideoOrStream(asset_id, videos[0])
             )
-
 
         livestream = meta.get('livestream')
 
@@ -73,9 +73,7 @@ class SportDeutschlandIE(InfoExtractor):
                 self.processVideoOrStream(asset_id, livestream)
             )
 
-
         return info
-
 
     def processVideoOrStream(self, asset_id, video):
         video_id = video.get('id')
@@ -87,7 +85,7 @@ class SportDeutschlandIE(InfoExtractor):
             + '?type=' + video_type
             + '&playback_id=' + video_src,
             video_id
-            )
+        )
 
         m3u8_url = "https://stream.mux.com/" + video_src + '.m3u8?token=' + token_data.get('token')
         formats = self._extract_m3u8_formats(m3u8_url, video_id)
