@@ -87,7 +87,7 @@ class ServusIE(InfoExtractor):
         video = self._download_json(
             'https://api-player.redbull.com/stv/servus-tv?timeZone=Europe/Berlin',
             video_id, 'Downloading video JSON', query={'videoId': video_id})
-        if 'videoUrl' not in video:
+        if video.get('videoUrl'):
             self._report_errors(video)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             video['videoUrl'], video_id, 'mp4', m3u8_id='hls')
