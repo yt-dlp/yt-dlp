@@ -130,27 +130,35 @@ class ServusIE(InfoExtractor):
         return long_description or short_description
 
     def _report_errors(self, video):
-        playability_errors = video.get('playabilityErrors')
+        playability_errors = traverse_obj(video, ('playabilityErrors', ...))
+        assert isinstance(playability_errors, list)
         if not playability_errors:
-            raise ExtractorError('No videoUrl, and also no information about errors')
-
-        if len(playability_errors) > 1:
-            self.report_warning(f'Encountered multiple error codes: {playability_errors}')
+            raise ExtractorError('No videoUrl and no information about errors')
 
         if 'FSK_BLOCKED' in playability_errors:
-            details = traverse_obj(video, ('playabilityErrorDetails', 'FSK_BLOCKED'))
+            details = traverse_obj(video, ('playabilityErrorDetails', 'FSK_BLOCKED'), expected_type=dict)
+            assert isinstance(details, dict) or details is None
+            message = ''
             if details:
-                raise ExtractorError(
-                    f'Only playable from {details.get("minEveningHour")}:00 to {details.get("maxMorningHour")}:00',
-                    expected=True)
-            raise ExtractorError('Blocked by FSK, could not determine the time where the video is available',
-                                 expected=True)
+                if details.get('minEveningHour') is not None:
+                    message += f' from {details["minEveningHour"]:0>2}:00'
+                if details.get('maxMorningHour') is not None:
+                    message += f' to {details["maxMorningHour"]:0>2}:00'
+                if message and details.get('minAge') is not None:
+                    message += f' (Minimum age {details["minAge"]})'
 
-        if 'NOT_YET_AVAILABLE' in playability_errors:
-            available_from = traverse_obj(video, ('playabilityErrorDetails', 'NOT_YET_AVAILABLE', 'availableFrom'),
-                                          'currentSunrise')
-            if available_from:
-                raise ExtractorError(f'Only available after {available_from}', expected=True)
-            raise ExtractorError('Not yet available, could not determine when it will be available', expected=True)
+            message = (
+                f'Only available{message}' if message
+                else 'Blocked by FSK with unknown availability')
 
-        raise ExtractorError(f'Not playable, error code not handled yet: {playability_errors}')
+        elif 'NOT_YET_AVAILABLE' in playability_errors:
+            available_from = traverse_obj(
+                video, ('playabilityErrorDetails', 'NOT_YET_AVAILABLE', 'availableFrom'), 'currentSunrise')
+            message = (
+                f'Only available from {available_from}' if available_from
+                else 'Video not yet available with unknown availability')
+
+        else:
+            message = f'Video unavailable: {", ".join(playability_errors)}'
+
+        raise ExtractorError(message, expected=True)
