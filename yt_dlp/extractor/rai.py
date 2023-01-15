@@ -91,7 +91,7 @@ class RaiBaseIE(InfoExtractor):
         if (not formats and geoprotection is True) or '/video_no_available.mp4' in media_url:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
-        if not audio_only:
+        if not audio_only and not is_live:
             formats.extend(self._create_http_urls(media_url, relinker_url, formats))
 
         return filter_dict({
