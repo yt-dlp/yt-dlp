@@ -28,7 +28,7 @@ from .compat import compat_os_name, compat_shlex_quote
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
-from .extractor import gen_extractor_classes, get_info_extractor
+from .extractor import gen_extractor_classes, get_info_extractor, import_extractors
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .globals import (
@@ -3777,6 +3777,7 @@ class YoutubeDL:
         if not IN_CLI.get():
             write_debug(f'params: {self.params}')
 
+        import_extractors()
         lazy_extractors = LAZY_EXTRACTORS.get()
         if lazy_extractors is None:
             write_debug('Lazy loading extractors is disabled')

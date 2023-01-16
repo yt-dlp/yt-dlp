@@ -28,11 +28,13 @@ from .utils import (
     get_system_config_dirs,
     get_user_config_dirs,
     merge_dicts,
+    orderedSet,
     write_string,
 )
 
 PACKAGE_NAME = 'yt_dlp_plugins'
 COMPAT_PACKAGE_NAME = 'ytdlp_plugins'
+_BASE_PACKAGE_PATH = Path(__file__).parent
 
 
 class PluginType(enum.Enum):
@@ -55,41 +57,43 @@ class PluginLoader(importlib.abc.Loader):
 
 @functools.cache
 def dirs_in_zip(archive):
-    with contextlib.suppress(FileNotFoundError):
-        with ZipFile(archive) as zip:
+    try:
+        with ZipFile(archive) as zip_:
             return set(itertools.chain.from_iterable(
-                Path(file).parents for file in zip.namelist()))
+                Path(file).parents for file in zip_.namelist()))
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        write_string(f'WARNING: Could not read zip file {archive}: {e}\n')
     return ()
 
 
 def default_plugin_paths():
-    seen = set()
-
-    def _get_unique_package_paths(*root_paths, containing_folder):
-        for config_dir in map(Path, root_paths):
-            plugin_dir = config_dir / containing_folder
-            # if plugin_dir in seen:
-            #     continue
-            seen.add(plugin_dir)
-            if not plugin_dir.is_dir():
+    def _get_package_paths(*root_paths, containing_folder):
+        for config_dir in orderedSet(map(Path, root_paths), lazy=True):
+            # We need to filter the base path added when running __main__.py directly
+            if config_dir == _BASE_PACKAGE_PATH:
                 continue
-            yield from plugin_dir.iterdir()
+            with contextlib.suppress(OSError):
+                for item in (config_dir / containing_folder).iterdir():
+                    yield item
 
     # Load from yt-dlp config folders
-    yield from _get_unique_package_paths(
+    yield from _get_package_paths(
         *get_user_config_dirs('yt-dlp'),
         *get_system_config_dirs('yt-dlp'),
         containing_folder='plugins')
 
     # Load from yt-dlp-plugins folders
-    yield from _get_unique_package_paths(
+    yield from _get_package_paths(
         get_executable_path(),
         *get_user_config_dirs(''),
         *get_system_config_dirs(''),
         containing_folder='yt-dlp-plugins')
 
     # Load from PYTHONPATH folders
-    yield from map(Path, sys.path)
+    yield from (path for path in map(Path, sys.path) if path != _BASE_PACKAGE_PATH)
+    # yield from _get_package_paths(*sys.path, containing_folder='')
 
 
 class PluginFinder(importlib.abc.MetaPathFinder):
@@ -109,26 +113,21 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         candidate_locations = itertools.chain.from_iterable(
             default_plugin_paths() if candidate is ...
             else Path(candidate).iterdir()
-            for candidate in plugin_dirs.get((..., )))
+            for candidate in plugin_dirs.get())
 
         parts = Path(*fullname.split('.'))
-        locations = dict()
-        for path in dict.fromkeys(candidate_locations):
+        for path in orderedSet(candidate_locations, lazy=True):
             candidate = path / parts
-            # print(candidate)
             if candidate.is_dir():
-                locations[candidate] = None
-            elif path.name and any(path.with_suffix(suffix).is_file() for suffix in {'.zip', '.egg', '.whl'}):
-                if parts in dirs_in_zip(path):
-                    locations[candidate] = None
-
-        return list(map(str, locations))
+                yield candidate
+            elif path.suffix in ('.zip', '.egg', '.whl') and parts in dirs_in_zip(path):
+                yield candidate
 
     def find_spec(self, fullname, path=None, target=None):
         if fullname not in self.packages:
             return None
 
-        search_locations = self.search_locations(fullname)
+        search_locations = list(map(str, self.search_locations(fullname)))
         if not search_locations:
             return None
 
@@ -200,10 +199,12 @@ def load_plugins(plugin_type: PluginType):
             spec.loader.exec_module(plugins)
             classes.update(load_module(plugins, spec.name, suffix))
 
+    regular_plugins = {}
     # __init_subclass__ was removed so we manually add overrides
     for name, klass in classes.items():
         plugin_name = getattr(klass, '_plugin_name', None)
         if not plugin_name:
+            regular_plugins[name] = klass
             continue
 
         # FIXME: Most likely something wrong here
@@ -217,13 +218,13 @@ def load_plugins(plugin_type: PluginType):
         plugin_overrides.get()[super_class].append(klass)
 
     # Add the classes into the global plugin lookup
-    plugin_destination.set(classes)
+    plugin_destination.set(regular_plugins)
     # We want to prepend to the main lookup
     current = destination.get()
-    result = merge_dicts(classes, current)
+    result = merge_dicts(regular_plugins, current)
     destination.set(result)
 
-    return classes
+    return result
 
 
 def load_all_plugin_types():

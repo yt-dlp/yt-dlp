@@ -1,7 +1,7 @@
 import inspect
 import os
 
-from ..globals import LAZY_EXTRACTORS, extractors
+from ..globals import LAZY_EXTRACTORS, extractors as _extractors_context
 
 _CLASS_LOOKUP = None
 if not os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
@@ -21,5 +21,14 @@ if not _CLASS_LOOKUP:
     }
     _CLASS_LOOKUP['GenericIE'] = _extractors.GenericIE
 
-extractors.set(_CLASS_LOOKUP)
-globals().update(_CLASS_LOOKUP)
+# We want to append to the main lookup
+_current = _extractors_context.get()
+for name, ie in _CLASS_LOOKUP.items():
+    _current.setdefault(name, ie)
+
+
+def __getattr__(name):
+    value = _CLASS_LOOKUP.get(name)
+    if not value:
+        raise AttributeError(f'module {__name__} has no attribute {name}')
+    return value
