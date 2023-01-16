@@ -1,8 +1,6 @@
 import urllib.parse
-import calendar
 from .common import InfoExtractor
 from ..utils import (
-    date_from_str,
     determine_ext,
     int_or_none,
     parse_duration,
@@ -10,6 +8,7 @@ from ..utils import (
     unified_strdate,
     ExtractorError,
 )
+
 
 class Porn91IE(InfoExtractor):
     IE_NAME = '91porn'
@@ -19,15 +18,15 @@ class Porn91IE(InfoExtractor):
        'url': 'http://91porn.com/view_video.php?viewkey=7e42283b4f5ab36da134',
        'md5': 'd869db281402e0ef4ddef3c38b866f86',
        'info_dict': {
-           'id': '7e42283b4f5ab36da134',
-           'title': '18岁大一漂亮学妹，水嫩性感，再爽一次！',
-           'description': '想看我拍新的系列都请帮我加精跟5星好评哦！希望大家鼎力支持，谢过了。我再重申，这次是朋友介绍安排的漂亮学生，费用不低，不过胜在年轻听话，水嫩性感，很超值的女生（6分05有91验证）。PS:本人强壮耐久，事业型男，愿意结交江浙沪的漂亮学妹，加Q：2889560495，语音验证性别，欢迎女生约我，或者靠谱男来一起泡美眉。',
-           'ext': 'mp4',
-           'duration': 431,
-           'upload_date': '20150520',
-           'comment_count': int,
-           'view_count': int,
-           'age_limit': 18,
+            'id': '7e42283b4f5ab36da134',
+            'title': '18岁大一漂亮学妹，水嫩性感，再爽一次！',
+            'description': '想看我拍新的系列都请帮我加精跟5星好评哦！希望大家鼎力支持，谢过了。我再重申，这次是朋友介绍安排的漂亮学生，费用不低，不过胜在年轻听话，水嫩性感，很超值的女生（6分05有91验证）。PS:本人强壮耐久，事业型男，愿意结交江浙沪的漂亮学妹，加Q：2889560495，语音验证性别，欢迎女生约我，或者靠谱男来一起泡美眉。',
+            'ext': 'mp4',
+            'duration': 431,
+            'upload_date': '20150520',
+            'comment_count': int,
+            'view_count': int,
+            'age_limit': 18,
        }
     }, {
         'url': 'https://91porn.com/view_video.php?viewkey=726186267387ffe1e5e6',
