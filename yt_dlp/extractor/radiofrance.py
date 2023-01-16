@@ -1,7 +1,13 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import parse_duration, unified_strdate
+from ..utils import (
+    parse_duration,
+    strftime_or_none,
+    traverse_obj,
+    unified_strdate,
+    urljoin,
+)
 
 
 class RadioFranceIE(InfoExtractor):
@@ -102,3 +108,51 @@ class FranceCultureIE(InfoExtractor):
             'upload_date': unified_strdate(self._search_regex(
                 r'"datePublished"\s*:\s*"([^"]+)', webpage, 'timestamp', fatal=False))
         }
+
+
+class RadioFranceProgramScheduleIE(InfoExtractor):
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?radiofrance\.fr/
+        (?P<station>franceculture|fip|francemusique|mouv|franceinter)/
+        grille-programmes(?:\?date=(?P<date>[\d-]+))?
+    '''
+
+    _TESTS = [{
+        'url': 'https://www.radiofrance.fr/franceinter/grille-programmes?date=17-02-2023',
+        'info_dict': {
+            'id': 'franceinter-program-20230217',
+            'upload_date': '20230217',
+        },
+        'playlist_count': 25,
+    }, {
+        'url': 'https://www.radiofrance.fr/franceculture/grille-programmes?date=01-02-2023',
+        'info_dict': {
+            'id': 'franceculture-program-20230201',
+            'upload_date': '20230201',
+        },
+        'playlist_count': 25,
+    }, {
+        'url': 'https://www.radiofrance.fr/franceculture/grille-programmes',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        station, date = self._match_valid_url(url).group('station', 'date')
+
+        api_response = self._download_json(
+            f'https://www.radiofrance.fr/api/v2.1/stations/{station}/programs', f'{station}-program',
+            query={'date': date} if date is not None else {})
+
+        upload_date = strftime_or_none(api_response.get('date'), '%Y%m%d')
+
+        entries = []
+        for entry in api_response['steps']:
+            path = traverse_obj(entry, ('expression', 'path'))
+            if path is None:
+                continue
+
+            entries.append(self.url_result(
+                urljoin(url, f'/{path}'), ie=FranceCultureIE, video_title=traverse_obj(entry, ('expression', 'title')),
+                thumbnail=traverse_obj(entry, ('expression', 'visual', 'src')), timestamp=entry.get('startTime')))
+
+        return self.playlist_result(entries, f'{station}-program-{upload_date}', upload_date=upload_date)
