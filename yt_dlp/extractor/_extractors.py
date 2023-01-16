@@ -1533,6 +1533,7 @@ from .radiofrance import (
     RadioFranceLiveIE,
     RadioFrancePodcastIE,
     RadioFranceProfileIE,
+    RadioFranceProgramScheduleIE,
 )
 from .radiozet import RadioZetPodcastIE
 from .radiokapital import (
