@@ -51,8 +51,8 @@ class Porn91IE(InfoExtractor):
         webpage = self._download_webpage(
             'http://91porn.com/view_video.php?viewkey=%s' % video_id, video_id)
 
-        if '作为游客，你每天只可观看10个视频' in webpage:
-            raise ExtractorError('91 Porn says: Daily limit 10 videos exceeded', expected=True)
+        if '作为游客，你每天只可观看15个视频' in webpage:
+            raise ExtractorError('91 Porn says: Daily limit 15 videos exceeded', expected=True)
 
         title = self._html_extract_title(webpage)
         title = remove_end(title.replace('\n', ''), 'Chinese homemade video').strip()
