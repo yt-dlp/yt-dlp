@@ -2,7 +2,7 @@ from yt_dlp.extractor.common import InfoExtractor
 
 
 class NormalPluginIE(InfoExtractor):
-    REPLACED = False
+    REPLACED = True
 
 
 class _IgnoreUnderscorePluginIE(InfoExtractor):
