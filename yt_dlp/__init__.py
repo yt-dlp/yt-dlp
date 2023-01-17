@@ -444,7 +444,7 @@ def validate_options(opts):
     def report_args_compat(name, value, key1, key2=None, where=None):
         if key1 in value and key2 not in value:
             opts.logger.warning(f'{name.title()} arguments given without specifying name. '
-                            f'The arguments will be given to {where or f"all {name}s"}')
+                                f'The arguments will be given to {where or f"all {name}s"}')
             return True
         return False
 

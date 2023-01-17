@@ -85,6 +85,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
         yield add_config('System', func=get_system_config_dirs)
 
     opts = optparse.Values({'verbose': True, 'print_help': False})
+    build_logger = True
     try:
         try:
             if overrideArguments is not None:
@@ -114,14 +115,16 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             opts, _ = root.parse_known_args(strict=False)
         raise
     except (SystemExit, KeyboardInterrupt):
-        opts.verbose = False
+        build_logger = False
         raise
     finally:
-        logger = _create_cli_logger(opts)
-        for line in f'\n{root}'.split('\n| ')[1:]:
-            logger.debug(line)
+        if build_logger:
+            logger = _create_cli_logger(opts)
+            for line in f'\n{root}'.split('\n| ')[1:]:
+                logger.debug(line)
         if opts.print_help:
-            logger.screen('')
+            if build_logger:
+                logger.screen('')
             root.parser.print_help()
     if opts.print_help:
         sys.exit()

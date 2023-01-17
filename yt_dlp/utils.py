@@ -2055,7 +2055,7 @@ def write_string(s, out=None, encoding=None):
 def deprecation_warning(msg, *, printer=None, stacklevel=0, __internal=False, **kwargs):
     if not printer:
         from .output.logging import default_logger
-        printer = lambda m: default_logger.deprecation_warning(m, stacklevel=stacklevel+1)
+        printer = lambda m: default_logger.deprecation_warning(m, stacklevel=stacklevel + 1)
 
     if not __internal:
         printer(f'`{__name__}.deprecation_warning` is deprecated and may be removed '
