@@ -8,10 +8,12 @@ import shutil
 import string
 import sys
 
-from .YoutubeDL import YoutubeDL
 from .compat import compat_expanduser
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
+from .output.helper import _make_ydl_logger
+from .output.logging import LogLevel
+from .output.outputs import StreamOutput
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
@@ -120,10 +122,18 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     finally:
         if build_logger:
             logger = _create_cli_logger(opts)
-            for line in f'\n{root}'.split('\n| ')[1:]:
-                logger.debug(line)
+            if opts.verbose:
+                # Set no forced encoding to avoid malformed output
+                output = logger.mapping[LogLevel.DEBUG]
+                if isinstance(output, StreamOutput):
+                    prev_encoding = output.encoding
+                    output.encoding = None
+                for line in f'\n{root}'.split('\n| ')[1:]:
+                    logger.debug(line)
+                if isinstance(output, StreamOutput):
+                    output.encoding = prev_encoding
         if opts.print_help:
-            if build_logger:
+            if build_logger and opts.verbose:
                 logger.screen('')
             root.parser.print_help()
     if opts.print_help:
@@ -149,11 +159,7 @@ def _create_cli_logger(opts):
         'verbose': opts.verbose,
     }
 
-    logger = YoutubeDL._make_ydl_logger(params)
-    if opts.bidi_workaround:
-        YoutubeDL._logger_setup_bidi(logger, from_cli=True)
-
-    return logger
+    return _make_ydl_logger(params)
 
 
 class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):

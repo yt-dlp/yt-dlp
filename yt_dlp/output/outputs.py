@@ -190,14 +190,15 @@ class StreamOutput(OutputBase):
             self._flush = None
 
         # stream.encoding can be None. See https://github.com/yt-dlp/yt-dlp/issues/2711
-        self._encoding = encoding or getattr(stream, 'encoding', None)
-        self._strict_encoding = self._encoding or 'ascii'
+        self._base_encoding = getattr(stream, 'encoding', None)
+        self._strict_encoding = self._base_encoding or 'ascii'
 
         if 'b' in getattr(stream, 'mode', ''):
-            self._encoding = self._encoding or preferredencoding()
+            self._base_encoding = self._base_encoding or preferredencoding()
         elif hasattr(stream, 'buffer'):
-            self._encoding = self._encoding or preferredencoding()
+            self._base_encoding = self._base_encoding or preferredencoding()
             self._buffer = stream.buffer
+        self._encoding = encoding or self._base_encoding
 
         try:
             self._isatty = bool(stream.isatty())
@@ -222,6 +223,10 @@ class StreamOutput(OutputBase):
     @property
     def encoding(self):
         return self._encoding
+
+    @encoding.setter
+    def encoding(self, value):
+        self._encoding = value or self._base_encoding
 
     def encode(self, text, fallback, encoding=None):
         encoding = encoding or self._strict_encoding
@@ -250,8 +255,8 @@ class StreamOutput(OutputBase):
             # Workaround for conhost breaking up newlines incorrectly
             string = self._apply_conhost_workaround(string)
 
-        if self._encoding:
-            string = string.encode(self._encoding, 'ignore')
+        if self.encoding:
+            string = string.encode(self.encoding, 'ignore')
 
         self._buffer.write(string)
         if self._flush:
@@ -391,7 +396,7 @@ class LoggingOutput(OutputBase):
             if string.startswith(prefix):
                 string = string[len(prefix):]
         if string.startswith('['):
-            string = string.partition(']')[2].lstrip()
+            string = string.partition('] ')[2]
         _logging_logger.log(self.level, string)
 
 

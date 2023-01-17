@@ -87,7 +87,7 @@ class Logger:
 
     def __init__(self, screen, verbosity=Verbosity.NORMAL,
                  *, encoding=None, use_term_codes=None, disable_progress=False):
-        self._bidi_initalized = False
+        self._bidi_initialized = None
         self._pref_encoding = encoding
         self._use_term_codes = use_term_codes
         self._verbosity = verbosity
@@ -105,8 +105,8 @@ class Logger:
         }
 
     @property
-    def bidi_initalized(self):
-        return self._bidi_initalized
+    def bidi_initialized(self):
+        return self._bidi_initialized
 
     def make_derived(self, **overrides):
         """
@@ -222,7 +222,7 @@ class Logger:
                 return
             self.message_cache.add(message)
 
-        if self._bidi_initalized and output.ALLOW_BIDI:
+        if self._bidi_initialized and output.ALLOW_BIDI:
             message = self._apply_bidi_workaround(message)
 
         if prefix is not None:
@@ -370,9 +370,18 @@ class Logger:
         call `init_bidi_workaround` after the resize, which will spawn a new
         bidi executable with the updated width.
         """
+        try:
+            self._init_bidi_workaround()
+            self._bidi_initialized = True
+
+        except Exception as error:
+            self._bidi_initialized = False
+            raise error
+
+    def _init_bidi_workaround(self):
         import pty
 
-        if self._bidi_initalized:
+        if self._bidi_initialized:
             self._bidi_reader.close()
             self._bidi_process.terminate()
 
@@ -389,7 +398,6 @@ class Logger:
         assert _output_process.stdin is not None
         self._bidi_writer = _output_process.stdin
         self._bidi_reader = os.fdopen(master, 'rb')
-        self._bidi_initalized = True
 
     def _apply_bidi_workaround(self, message):
         # `init_bidi_workaround()` MUST have been called prior.

@@ -30,8 +30,9 @@ from .downloader.rtmp import rtmpdump_version
 from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
+from .output import helper as output_helper
 from .output.console import Console
-from .output.logging import Logger, LogLevel, Style, Verbosity
+from .output.logging import Logger, LogLevel, Style
 from .output.outputs import StreamOutput
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
@@ -143,7 +144,6 @@ from .utils import (
     url_basename,
     variadic,
     version_tuple,
-    windows_enable_vt_mode,
     write_json_file,
 )
 from .version import RELEASE_GIT_HEAD, VARIANT, __version__
@@ -579,7 +579,16 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
 
-        self._setup_output()
+        logger = self.params.get('logger')
+        if isinstance(logger, Logger):
+            logger = output_helper.wrap_debug(logger)
+        else:
+            logger = output_helper._make_ydl_logger(self.params)
+        self.logger = output_helper._wrap_handle_error(self, logger)
+
+        self.console = Console(
+            encoding=self.params.get('encoding'),
+            allow_title_change=bool(self.params.get('consoletitle') and not self.params.get('simulate')))
 
         # The code is left like this to be reused for future deprecations
         MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
@@ -605,6 +614,9 @@ class YoutubeDL:
         self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
         if auto_init and auto_init != 'no_verbose_header':
             self.print_debug_header()
+
+        if self.params.get('bidi_workaround', False):
+            output_helper._setup_bidi(self.logger)
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
@@ -709,118 +721,6 @@ class YoutubeDL:
             return archive
 
         self.archive = preload_download_archive(self.params.get('download_archive'))
-
-    @staticmethod
-    def make_logger(params):
-        screen = sys.stderr if params.get('logtostderr') else sys.stdout
-        stdout = sys.stderr if params.get('quiet') else screen
-        verbosity = (
-            Verbosity.VERBOSE if params.get('verbose')
-            else Verbosity.QUIET if params.get('quiet')
-            else Verbosity.NORMAL)
-
-        use_term_codes = not params.get('no_color', False)
-        if use_term_codes:
-            use_term_codes = None
-        logger = Logger(
-            screen, verbosity, encoding=params.get('encoding'),
-            use_term_codes=use_term_codes, disable_progress=bool(params.get('noprogress')))
-
-        logger_param = params.get('logger')
-        if logger_param == 'logging':
-            logger.setup_logging_logger()
-        elif logger_param:
-            logger.setup_class_logger(logger_param)
-        else:
-            logger.setup_stream_logger(stdout, sys.stderr, no_warnings=params.get('no_warnings', False))
-
-        return logger
-
-    @staticmethod
-    def _logger_wrap_debug(logger):
-        def debug(func):
-            def wrapper(message, once=True):
-                func(f'[debug] {message}', once=once)
-
-            return wrapper
-
-        _debug_wrap_indicator = '__ydl_debug_wrapped'
-        if not getattr(logger, _debug_wrap_indicator, None):
-            logger = logger.make_derived(debug=debug)
-            setattr(logger, _debug_wrap_indicator, True)
-
-        return logger
-
-    def _logger_wrap_handle_error(self, logger):
-        ignore_errors = bool(self.params.get('ignoreerrors'))
-
-        def handle_error(func):
-            def wrapper(message, tb=None, is_error=True, prefix=True):
-                func(message, tb=tb, is_error=is_error, prefix=prefix)
-                if not is_error:
-                    return
-                if not ignore_errors:
-                    raise DownloadError(message, sys.exc_info())
-
-                self._download_retcode = 1
-
-            return wrapper
-
-        _error_wrap_indicator = '__ydl_error_wrapped'
-        if not getattr(logger, _error_wrap_indicator, None):
-            logger = logger.make_derived(handle_error=handle_error)
-            setattr(logger, _error_wrap_indicator, True)
-
-        return logger
-
-    @staticmethod
-    def _logger_setup_bidi(logger, from_cli=False):
-        if logger.bidi_initalized:
-            return
-
-        try:
-            logger.init_bidi_workaround()
-
-        except OSError as ose:
-            if ose.errno != errno.ENOENT:
-                raise
-
-            name = '--bidi-workaround' if from_cli else 'bidi_workaround parameter'
-            logger.warning(
-                f'Could not find any bidi executable, ignoring {name}. '
-                'Make sure that either bidiv or fribidi are available as executables in your $PATH.')
-
-        except ImportError:
-            logger.warning('Could not import pty (perhaps not on *nix?), ignoring --bidi-workaround.')
-
-    @classmethod
-    def _make_ydl_logger(cls, params):
-        error = None
-        try:
-            windows_enable_vt_mode()
-        except Exception as e:
-            error = e
-
-        logger = cls._logger_wrap_debug(cls.make_logger(params))
-        if error:
-            logger.debug(f'Failed to enable VT mode: {error}')
-
-        return logger
-
-    def _setup_output(self):
-        logger = self.params.get('logger')
-        if isinstance(logger, Logger):
-            logger = self._logger_wrap_debug(logger)
-        else:
-            logger = self._make_ydl_logger(self.params)
-        self.logger = self._logger_wrap_handle_error(logger)
-
-        if self.params.get('bidi_workaround', False):
-            self._logger_setup_bidi(self.logger)
-
-        self.console = Console(
-            encoding=self.params.get('encoding'),
-            allow_title_change=bool(self.params.get('consoletitle') and not self.params.get('simulate')))
 
     def warn_if_short_id(self, argv):
         # short YouTube ID starting with dash?
@@ -3692,32 +3592,45 @@ class YoutubeDL:
             _PLUGIN_OVERRIDES as plugin_ie_overrides
         )
 
-        def get_encoding(stream):
-            ret = str(getattr(stream, 'encoding', f'missing ({type(stream).__name__})'))
-            if not supports_terminal_sequences(stream):
-                from .utils import WINDOWS_VT_MODE  # Must be imported locally
-                ret += ' (No VT)' if WINDOWS_VT_MODE is False else ' (No ANSI)'
-            return ret
-
         encodings = (
             ('locale', locale.getpreferredencoding()),
             ('fs', sys.getfilesystemencoding()),
             ('pref', self.get_encoding()))
 
+        def get_stream_info(output):
+            if not isinstance(output, StreamOutput):
+                return type(output).__name__
+            more_info = []
+            stream = output._stream
+            ret = getattr(stream, 'encoding', NO_DEFAULT)
+            if ret is NO_DEFAULT:
+                ret = 'missing'
+                more_info.append(type(stream).__name__)
+            if not supports_terminal_sequences(stream):
+                from .utils import WINDOWS_VT_MODE  # Must be imported locally
+                more_info.append('No VT' if WINDOWS_VT_MODE is False else 'No ANSI')
+
+            return f'{ret} ({", ".join(more_info)})' if more_info else str(ret)
+
         levels = (LogLevel.SCREEN, LogLevel.INFO, LogLevel.ERROR)
         outputs = (self.logger.mapping[level] for level in levels)
         logger_encodings = (
-            (level.name.lower(), get_encoding(output._stream))
-            for level, output in zip(levels, outputs)
-            if isinstance(output, StreamOutput))
+            (level.name.lower(), get_stream_info(output))
+            for level, output in zip(levels, outputs))
 
-        write_debug = functools.partial(self.logger.log, LogLevel.DEBUG, prefix='[debug]')
-        write_debug('Encodings: ' + ', '.join(map(' '.join, (*encodings, *logger_encodings))))
+        # Set no forced encoding to avoid malformed output
+        output = self.logger.mapping[LogLevel.DEBUG]
+        if isinstance(output, StreamOutput):
+            prev_encoding = output.encoding
+            output.encoding = None
+        self.logger.debug('Encodings: ' + ', '.join(map(' '.join, (*encodings, *logger_encodings))))
+        if isinstance(output, StreamOutput):
+            output.encoding = prev_encoding
 
         source = detect_variant()
         if VARIANT not in (None, 'pip'):
             source += '*'
-        write_debug(join_nonempty(
+        self.logger.debug(join_nonempty(
             f'{"yt-dlp" if REPOSITORY == "yt-dlp/yt-dlp" else REPOSITORY} version',
             __version__,
             f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',
@@ -3726,19 +3639,19 @@ class YoutubeDL:
             delim=' '))
 
         if not _IN_CLI:
-            write_debug(f'params: {self.params}')
+            self.logger.debug(f'params: {self.params}')
 
         if not _LAZY_LOADER:
             if os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
-                write_debug('Lazy loading extractors is forcibly disabled')
+                self.logger.debug('Lazy loading extractors is forcibly disabled')
             else:
-                write_debug('Lazy loading extractors is disabled')
+                self.logger.debug('Lazy loading extractors is disabled')
         if self.params['compat_opts']:
-            write_debug('Compatibility options: %s' % ', '.join(self.params['compat_opts']))
+            self.logger.debug('Compatibility options: %s' % ', '.join(self.params['compat_opts']))
 
         if current_git_head():
-            write_debug(f'Git HEAD: {current_git_head()}')
-        write_debug(system_identifier())
+            self.logger.debug(f'Git HEAD: {current_git_head()}')
+        self.logger.debug(system_identifier())
 
         exe_versions, ffmpeg_features = FFmpegPostProcessor.get_versions_and_features(self)
         ffmpeg_features = {key for key, val in ffmpeg_features.items() if val}
@@ -3750,12 +3663,12 @@ class YoutubeDL:
         exe_str = ', '.join(
             f'{exe} {v}' for exe, v in sorted(exe_versions.items()) if v
         ) or 'none'
-        write_debug('exe versions: %s' % exe_str)
+        self.logger.debug('exe versions: %s' % exe_str)
 
         from .compat.compat_utils import get_package_info
         from .dependencies import available_dependencies
 
-        write_debug('Optional libraries: %s' % (', '.join(sorted({
+        self.logger.debug('Optional libraries: %s' % (', '.join(sorted({
             join_nonempty(*get_package_info(m)) for m in available_dependencies.values()
         })) or 'none'))
 
@@ -3764,7 +3677,7 @@ class YoutubeDL:
         for handler in self._opener.handlers:
             if hasattr(handler, 'proxies'):
                 proxy_map.update(handler.proxies)
-        write_debug(f'Proxy map: {proxy_map}')
+        self.logger.debug(f'Proxy map: {proxy_map}')
 
         for plugin_type, plugins in {'Extractor': plugin_ies, 'Post-Processor': plugin_pps}.items():
             display_list = ['%s%s' % (
@@ -3775,16 +3688,16 @@ class YoutubeDL:
                                     for parent, plugins in plugin_ie_overrides.items())
             if not display_list:
                 continue
-            write_debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')
+            self.logger.debug(f'{plugin_type} Plugins: {", ".join(sorted(display_list))}')
 
         plugin_dirs = plugin_directories()
         if plugin_dirs:
-            write_debug(f'Plugin directories: {plugin_dirs}')
+            self.logger.debug(f'Plugin directories: {plugin_dirs}')
 
         # Not implemented
         if False and self.params.get('call_home'):
             ipaddr = self.urlopen('https://yt-dl.org/ip').read().decode()
-            write_debug('Public IP address: %s' % ipaddr)
+            self.logger.debug('Public IP address: %s' % ipaddr)
             latest_version = self.urlopen(
                 'https://yt-dl.org/latest/version').read().decode()
             if version_tuple(latest_version) > version_tuple(__version__):
