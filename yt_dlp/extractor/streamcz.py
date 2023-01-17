@@ -66,7 +66,7 @@ class StreamCZIE(InfoExtractor):
                     'duration': float_or_none(stream.get('duration'), scale=1000),
                     'width': traverse_obj(stream, ('resolution', 0)),
                     'height': traverse_obj(stream, ('resolution', 1)) or int_or_none(format_id.replace('p', '')),
-                    **parse_codecs(stream.get('codec')),
+                    **parse_codecs(stream.get('codec'), self.logger),
                 }
 
     def _real_extract(self, url):

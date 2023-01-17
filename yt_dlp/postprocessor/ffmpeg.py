@@ -15,7 +15,6 @@ from ..utils import (
     Popen,
     PostProcessingError,
     _get_exe_version_output,
-    deprecation_warning,
     detect_exe_version,
     determine_ext,
     dfxp2srt,
@@ -1065,11 +1064,6 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
     def __init__(self, downloader=None, format=None):
         super().__init__(downloader)
         self.mapping = format
-
-    @classmethod
-    def is_webp(cls, path):
-        deprecation_warning(f'{cls.__module__}.{cls.__name__}.is_webp is deprecated')
-        return imghdr.what(path) == 'webp'
 
     def fixup_webp(self, info, idx=-1):
         thumbnail_filename = info['thumbnails'][idx]['filepath']

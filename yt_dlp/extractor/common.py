@@ -30,7 +30,6 @@ from ..utils import (
     JSON_LD_RE,
     NO_DEFAULT,
     ExtractorError,
-    FormatSorter,
     GeoRestrictedError,
     GeoUtils,
     LenientJSONDecoder,
@@ -42,7 +41,6 @@ from ..utils import (
     bug_reports_message,
     classproperty,
     clean_html,
-    deprecation_warning,
     determine_ext,
     dict_get,
     encode_data_uri,
@@ -1695,17 +1693,6 @@ class InfoExtractor:
             html, '%s form' % form_id, group='form')
         return self._hidden_inputs(form)
 
-    @classproperty(cache=True)
-    def FormatSort(cls):
-        class FormatSort(FormatSorter):
-            def __init__(ie, *args, **kwargs):
-                super().__init__(ie._downloader, *args, **kwargs)
-
-        deprecation_warning(
-            'yt_dlp.InfoExtractor.FormatSort is deprecated and may be removed in the future. '
-            'Use yt_dlp.utils.FormatSorter instead')
-        return FormatSort
-
     def _sort_formats(self, formats, field_preference=[]):
         if not field_preference:
             self._downloader.deprecation_warning(
@@ -2136,7 +2123,7 @@ class InfoExtractor:
                             'vbr': vbr,
                             'abr': abr,
                         })
-                    codecs = parse_codecs(last_stream_inf.get('CODECS'))
+                    codecs = parse_codecs(last_stream_inf.get('CODECS'), self.logger)
                     f.update(codecs)
                     audio_group_id = last_stream_inf.get('AUDIO')
                     # As per [1, 4.3.4.1.1] any EXT-X-STREAM-INF tag which
@@ -2613,7 +2600,7 @@ class InfoExtractor:
                     if mime_type == 'application/x-rawcc':
                         codecs = {'scodec': codec_str}
                     else:
-                        codecs = parse_codecs(codec_str)
+                        codecs = parse_codecs(codec_str, self.logger)
                     if content_type not in ('video', 'audio', 'text'):
                         if mime_type == 'image/jpeg':
                             content_type = mime_type
@@ -2993,7 +2980,7 @@ class InfoExtractor:
             ctr = re.search(r'(?P<mimetype>[^/]+/[^;]+)(?:;\s*codecs="?(?P<codecs>[^"]+))?', content_type)
             if ctr:
                 mimetype, codecs = ctr.groups()
-                f = parse_codecs(codecs)
+                f = parse_codecs(codecs, self.logger)
                 f['ext'] = mimetype2ext(mimetype)
                 return f
             return {}

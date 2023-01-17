@@ -12,7 +12,7 @@ from enum import Enum
 from .hoodoo import Color, TermCode
 from .outputs import NULL_OUTPUT, ClassOutput, LoggingOutput, StreamOutput
 from ..compat import functools
-from ..utils import Namespace, deprecation_warning, variadic
+from ..utils import Namespace, bug_reports_message, variadic
 
 
 class LogLevel(Enum):
@@ -92,6 +92,7 @@ class Logger:
         self._use_term_codes = use_term_codes
         self._verbosity = verbosity
         self.message_cache = set()
+        self.deprecation_cache = set()
         self.disable_progress = disable_progress
 
         screen_output = NULL_OUTPUT if screen is None else StreamOutput(screen, use_term_codes, encoding)
@@ -102,6 +103,10 @@ class Logger:
             LogLevel.ERROR: NULL_OUTPUT,
             LogLevel.WARNING: NULL_OUTPUT,
         }
+
+    @property
+    def bidi_initalized(self):
+        return self._bidi_initalized
 
     def make_derived(self, **overrides):
         """
@@ -271,13 +276,7 @@ class Logger:
                             If None, try and guess from the specified output.
         """
         output = self.mapping.get(level)
-        if not isinstance(output, StreamOutput):
-            return text
-
-        encoding = encoding or output.encoding
-        round_trip = text.encode(encoding, 'ignore').decode(encoding)
-
-        return text if round_trip == text else fallback
+        return output.encode(text, fallback, encoding) if output else text
 
     def screen(self, message, newline=True):
         """Print message to screen"""
@@ -314,9 +313,15 @@ class Logger:
         @kwparam stacklevel The stacklevel at which the error happened.
                             Defaults to 0.
         """
-        deprecation_warning(
-            message, stacklevel=stacklevel + 1, printer=self.handle_error,
-            is_error=False, prefix=True)
+        from .. import _IN_CLI
+        if _IN_CLI:
+            if message in self.deprecation_cache:
+                return
+            self.deprecation_cache.add(message)
+            self.handle_error(f'{message}{bug_reports_message()}', is_error=False)
+            return
+
+        warnings.warn(DeprecationWarning(message), stacklevel=stacklevel + 3)
 
     def deprecated_feature(self, message):
         """
@@ -396,4 +401,4 @@ class Logger:
         return result[:-1]
 
 
-default_logger = Logger(None, Verbosity.QUIET).setup_stream_logger(None, sys.stderr)
+default_logger = Logger(None, Verbosity.NORMAL).setup_stream_logger(sys.stderr, sys.stderr)

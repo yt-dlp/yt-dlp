@@ -8,6 +8,7 @@ import shutil
 import string
 import sys
 
+from .YoutubeDL import YoutubeDL
 from .compat import compat_expanduser
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
@@ -25,7 +26,6 @@ from .utils import (
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
     Config,
-    deprecation_warning,
     expand_path,
     format_field,
     get_executable_path,
@@ -34,7 +34,6 @@ from .utils import (
     join_nonempty,
     orderedSet_from_options,
     remove_end,
-    write_string,
 )
 from .version import __version__
 
@@ -118,16 +117,40 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
         opts.verbose = False
         raise
     finally:
-        verbose = opts.verbose and f'\n{root}'.replace('\n| ', '\n[debug] ')[1:]
-        if verbose:
-            write_string(f'{verbose}\n')
+        logger = _create_cli_logger(opts)
+        for line in f'\n{root}'.split('\n| ')[1:]:
+            logger.debug(line)
         if opts.print_help:
-            if verbose:
-                write_string('\n')
+            logger.screen('')
             root.parser.print_help()
     if opts.print_help:
         sys.exit()
+    opts.logger = logger
     return root.parser, opts, args
+
+
+def _create_cli_logger(opts):
+    # Sadly some duplication, but we need to keep compat
+    any_getting = any(getattr(opts, k) for k in (
+        'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
+        'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
+    ))
+
+    params = {
+        'encoding': opts.encoding,
+        'logtostderr': opts.outtmpl.get('default') == '-',
+        'no_color': opts.no_color,
+        'no_warnings': opts.no_warnings,
+        'noprogress': opts.quiet if opts.noprogress is None else opts.noprogress,
+        'quiet': opts.quiet or any_getting or opts.print_json or bool(opts.forceprint),
+        'verbose': opts.verbose,
+    }
+
+    logger = YoutubeDL._make_ydl_logger(params)
+    if opts.bidi_workaround:
+        YoutubeDL._logger_setup_bidi(logger, from_cli=True)
+
+    return logger
 
 
 class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
@@ -1860,9 +1883,3 @@ def create_parser():
     parser.add_option_group(extractor)
 
     return parser
-
-
-def _hide_login_info(opts):
-    deprecation_warning(f'"{__name__}._hide_login_info" is deprecated and may be removed '
-                        'in a future version. Use "yt_dlp.utils.Config.hide_login_info" instead')
-    return Config.hide_login_info(opts)

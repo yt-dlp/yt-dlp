@@ -73,7 +73,7 @@ class SeznamZpravyIE(InfoExtractor):
                 'width': int_or_none(width),
                 'height': int_or_none(height),
             }
-            f.update(parse_codecs(format_data.get('codec')))
+            f.update(parse_codecs(format_data.get('codec'), self.logger))
             formats.append(f)
 
         pls = sdn_data.get('pls', {})

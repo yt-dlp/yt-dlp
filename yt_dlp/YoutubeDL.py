@@ -318,7 +318,7 @@ class YoutubeDL:
                        on geo-restricted sites.
     socket_timeout:    Time to wait for unresponsive hosts, in seconds
     bidi_workaround:   Work around buggy terminals without bidirectional text
-                       support, using fridibi
+                       support, using fridibi or bidiv
     debug_printtraffic:Print out sent and received HTTP traffic
     default_search:    Prepend this string if an input url is not valid.
                        'auto' for elaborate guessing
@@ -579,7 +579,7 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
 
-        self._setup_output(params)
+        self._setup_output()
 
         # The code is left like this to be reused for future deprecations
         MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
@@ -619,11 +619,6 @@ class YoutubeDL:
         check_deprecated('autonumber', '--auto-number', '-o "%(autonumber)s-%(title)s.%(ext)s"')
         check_deprecated('usetitle', '--title', '-o "%(title)s-%(id)s.%(ext)s"')
         check_deprecated('useid', '--id', '-o "%(id)s.%(ext)s"')
-
-        for msg in self.params.get('_warnings', []):
-            self.report_warning(msg)
-        for msg in self.params.get('_deprecation_warnings', []):
-            self.deprecated_feature(msg)
 
         if 'list-formats' in self.params['compat_opts']:
             self.params['listformats_table'] = False
@@ -741,49 +736,87 @@ class YoutubeDL:
 
         return logger
 
-    def _setup_output(self, params):
+    @staticmethod
+    def _logger_wrap_debug(logger):
         def debug(func):
             def wrapper(message, once=True):
                 func(f'[debug] {message}', once=once)
 
             return wrapper
 
+        _debug_wrap_indicator = '__ydl_debug_wrapped'
+        if not getattr(logger, _debug_wrap_indicator, None):
+            logger = logger.make_derived(debug=debug)
+            setattr(logger, _debug_wrap_indicator, True)
+
+        return logger
+
+    def _logger_wrap_handle_error(self, logger):
+        ignore_errors = bool(self.params.get('ignoreerrors'))
+
         def handle_error(func):
             def wrapper(message, tb=None, is_error=True, prefix=True):
                 func(message, tb=tb, is_error=is_error, prefix=prefix)
                 if not is_error:
                     return
-                if not self.params.get('ignoreerrors'):
+                if not ignore_errors:
                     raise DownloadError(message, sys.exc_info())
 
                 self._download_retcode = 1
 
             return wrapper
 
+        _error_wrap_indicator = '__ydl_error_wrapped'
+        if not getattr(logger, _error_wrap_indicator, None):
+            logger = logger.make_derived(handle_error=handle_error)
+            setattr(logger, _error_wrap_indicator, True)
+
+        return logger
+
+    @staticmethod
+    def _logger_setup_bidi(logger, from_cli=False):
+        if logger.bidi_initalized:
+            return
+
+        try:
+            logger.init_bidi_workaround()
+
+        except OSError as ose:
+            if ose.errno != errno.ENOENT:
+                raise
+
+            name = '--bidi-workaround' if from_cli else 'bidi_workaround parameter'
+            logger.warning(
+                f'Could not find any bidi executable, ignoring {name}. '
+                'Make sure that either bidiv or fribidi are available as executables in your $PATH.')
+
+        except ImportError:
+            logger.warning('Could not import pty (perhaps not on *nix?), ignoring --bidi-workaround.')
+
+    @classmethod
+    def _make_ydl_logger(cls, params):
         error = None
         try:
             windows_enable_vt_mode()
         except Exception as e:
             error = e
 
-        self.logger = self.make_logger(params).make_derived(debug=debug, handle_error=handle_error)
+        logger = cls._logger_wrap_debug(cls.make_logger(params))
         if error:
-            self.logger.debug(f'Failed to enable VT mode: {error}')
+            logger.debug(f'Failed to enable VT mode: {error}')
 
-        if params.get('bidi_workaround', False):
-            try:
-                self.logger.init_bidi_workaround()
+        return logger
 
-            except OSError as ose:
-                if ose.errno != errno.ENOENT:
-                    raise
+    def _setup_output(self):
+        logger = self.params.get('logger')
+        if isinstance(logger, Logger):
+            logger = self._logger_wrap_debug(logger)
+        else:
+            logger = self._make_ydl_logger(self.params)
+        self.logger = self._logger_wrap_handle_error(logger)
 
-                self.logger.warning(
-                    'Could not find any bidi executable, ignoring --bidi-workaround. '
-                    'Make sure that either bidiv or fribidi are available as executables in your $PATH.')
-
-            except ImportError:
-                self.logger.warning('Could not import pty (perhaps not on *nix?), ignoring --bidi-workaround.')
+        if self.params.get('bidi_workaround', False):
+            self._logger_setup_bidi(self.logger)
 
         self.console = Console(
             encoding=self.params.get('encoding'),

@@ -74,13 +74,14 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
             return self._downloader.report_warning(text, *args, **kwargs)
 
     def deprecation_warning(self, msg):
-        warn = getattr(self._downloader, 'deprecation_warning', deprecation_warning)
-        return warn(msg, stacklevel=1)
+        if self._downloader:
+            return self._downloader.deprecated_feature(msg)
+        return deprecation_warning(msg, stacklevel=1, __internal=True)
 
     def deprecated_feature(self, msg):
         if self._downloader:
             return self._downloader.deprecated_feature(msg)
-        return deprecation_warning(msg, stacklevel=1)
+        return deprecation_warning(msg, stacklevel=1, __internal=True)
 
     def report_error(self, text, *args, **kwargs):
         self.deprecation_warning('"yt_dlp.postprocessor.PostProcessor.report_error" is deprecated. '

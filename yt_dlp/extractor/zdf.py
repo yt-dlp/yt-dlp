@@ -62,7 +62,7 @@ class ZDFBaseIE(InfoExtractor):
             new_formats = self._extract_f4m_formats(
                 update_url_query(format_url, {'hdcore': '3.7.0'}), video_id, f4m_id='hds', fatal=False)
         else:
-            f = parse_codecs(meta.get('mimeCodec'))
+            f = parse_codecs(meta.get('mimeCodec'), self.logger)
             if not f and meta.get('type'):
                 data = meta['type'].split('_')
                 if try_get(data, lambda x: x[2]) == ext:

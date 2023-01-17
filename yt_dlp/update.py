@@ -312,7 +312,7 @@ def update_self(to_screen, verbose, opener):
     import traceback
 
     deprecation_warning(f'"{__name__}.update_self" is deprecated and may be removed '
-                        f'in a future version. Use "{__name__}.run_update(ydl)" instead')
+                        f'in a future version. Use "{__name__}.run_update(ydl)" instead', __internal=True)
 
     printfn = to_screen
 

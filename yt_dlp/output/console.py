@@ -1,7 +1,7 @@
 import sys
 
 from .hoodoo import BEL, CSI, TermCode
-from ..utils import supports_terminal_sequences, write_string
+from .outputs import StreamOutput, NULL_OUTPUT
 
 
 class Console:
@@ -18,13 +18,14 @@ class Console:
                                     title to be changed. Defaults to False.
         """
         self.initialized = False
-        self.stream = None
-        self._stream_encoding = encoding
+        self.output = NULL_OUTPUT
 
         for stream in (sys.stderr, sys.stdout):
-            if supports_terminal_sequences(stream):
-                self.stream = stream
+            output = StreamOutput(stream, encoding=encoding)
+            if output.use_term_codes:
+                self.output = output
                 self.initialized = True
+                break
 
         self.allow_title_change = allow_title_change
         self._title_func = None
@@ -74,7 +75,7 @@ class Console:
         if not self.initialized:
             return
 
-        write_string(code, self.stream, self._stream_encoding)
+        self.output.write(code)
 
     def save_title(self):
         """

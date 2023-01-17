@@ -24,7 +24,7 @@ class AcFunVideoBaseIE(InfoExtractor):
                     'width': int_or_none(video.get('width')),
                     'height': int_or_none(video.get('height')),
                     'tbr': float_or_none(video.get('avgBitrate')),
-                    **parse_codecs(video.get('codecs', ''))
+                    **parse_codecs(video.get('codecs', ''), self.logger)
                 })
 
         return {

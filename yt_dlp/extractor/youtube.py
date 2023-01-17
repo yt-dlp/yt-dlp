@@ -3694,7 +3694,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 r'((?:[^/]+)/(?:[^;]+))(?:;\s*codecs="([^"]+)")?', fmt.get('mimeType') or '')
             if mime_mobj:
                 dct['ext'] = mimetype2ext(mime_mobj.group(1))
-                dct.update(parse_codecs(mime_mobj.group(2)))
+                dct.update(parse_codecs(mime_mobj.group(2), self.logger))
             no_audio = dct.get('acodec') == 'none'
             no_video = dct.get('vcodec') == 'none'
             if no_audio:

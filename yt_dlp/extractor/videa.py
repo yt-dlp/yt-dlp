@@ -158,7 +158,7 @@ class VideaIE(InfoExtractor):
                     'md5': hash_value,
                     'expires': source_exp,
                 })
-            f = parse_codecs(source.get('codecs'))
+            f = parse_codecs(source.get('codecs'), self.logger)
             f.update({
                 'url': self._proto_relative_url(source_url),
                 'ext': mimetype2ext(source.get('mimetype')) or 'mp4',

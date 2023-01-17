@@ -105,7 +105,7 @@ class GabIE(InfoExtractor):
                 continue
             metadata = media['meta']
             format_metadata = {
-                'acodec': parse_codecs(metadata.get('audio_encode')).get('acodec'),
+                'acodec': parse_codecs(metadata.get('audio_encode'), self.logger).get('acodec'),
                 'asr': int_or_none((metadata.get('audio_bitrate') or '').split(' ')[0]),
                 'fps': metadata.get('fps'),
             }

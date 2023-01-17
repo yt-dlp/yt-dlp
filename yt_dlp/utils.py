@@ -843,7 +843,7 @@ def escapeHTML(text):
 
 def process_communicate_or_kill(p, *args, **kwargs):
     deprecation_warning(f'"{__name__}.process_communicate_or_kill" is deprecated and may be removed '
-                        f'in a future version. Use "{__name__}.Popen.communicate_or_kill" instead')
+                        f'in a future version. Use "{__name__}.Popen.communicate_or_kill" instead', __internal=True)
     return Popen.communicate_or_kill(p, *args, **kwargs)
 
 
@@ -1560,11 +1560,19 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
         'CookieFileEntry',
         ('domain_name', 'include_subdomains', 'path', 'https_only', 'expires_at', 'name', 'value'))
 
-    def __init__(self, filename=None, *args, **kwargs):
+    def __init__(self, filename=None, *args, logger=None, **kwargs):
         super().__init__(None, *args, **kwargs)
         if is_path_like(filename):
             filename = os.fspath(filename)
         self.filename = filename
+        if logger:
+            self._logger = logger
+        else:
+            from .output.logging import default_logger
+            deprecation_warning(
+                f'Calling {type(self).__name__} without the '
+                '`logger` parameter is deprecated', __internal=True)
+            self._logger = default_logger
 
     @staticmethod
     def _true_or_false(cndn):
@@ -1654,7 +1662,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                         raise http.cookiejar.LoadError(
                             'Cookies file must be Netscape formatted, not JSON. See  '
                             'https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp')
-                    write_string(f'WARNING: skipping cookie file entry due to {e}: {line!r}\n')
+                    self._logger.warning(f'skipping cookie file entry due to {e}: {line!r}')
                     continue
         cf.seek(0)
         self._really_load(cf, filename, ignore_discard, ignore_expires)
@@ -2000,7 +2008,7 @@ class DateRange:
 
 def platform_name():
     """ Returns the platform name as a str """
-    deprecation_warning(f'"{__name__}.platform_name" is deprecated, use "platform.platform" instead')
+    deprecation_warning(f'"{__name__}.platform_name" is deprecated, use "platform.platform" instead', __internal=True)
     return platform.platform()
 
 
@@ -2034,38 +2042,25 @@ def get_windows_version():
 
 
 def write_string(s, out=None, encoding=None):
-    assert isinstance(s, str)
-    out = out or sys.stderr
+    from .output.outputs import StreamOutput
 
-    if compat_os_name == 'nt' and supports_terminal_sequences(out):
-        s = re.sub(r'([\r\n]+)', r' \1', s)
+    deprecation_warning(
+        f'`{__name__}.write_string` is deprecated and may be removed '
+        + 'in a future version. Use a `StreamOutput` or `Logger` instead',
+        stacklevel=1, __internal=True)
 
-    enc, buffer = None, out
-    if 'b' in getattr(out, 'mode', ''):
-        enc = encoding or preferredencoding()
-    elif hasattr(out, 'buffer'):
-        buffer = out.buffer
-        enc = encoding or getattr(out, 'encoding', None) or preferredencoding()
-
-    buffer.write(s.encode(enc, 'ignore') if enc else s)
-    out.flush()
+    StreamOutput(out or sys.stderr, encoding=encoding).write(s)
 
 
-def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
-    from . import _IN_CLI
-    if _IN_CLI:
-        if msg in deprecation_warning._cache:
-            return
-        deprecation_warning._cache.add(msg)
-        if printer:
-            return printer(f'{msg}{bug_reports_message()}', **kwargs)
-        return write_string(f'ERROR: {msg}{bug_reports_message()}\n', **kwargs)
-    else:
-        import warnings
-        warnings.warn(DeprecationWarning(msg), stacklevel=stacklevel + 3)
+def deprecation_warning(msg, *, printer=None, stacklevel=0, __internal=False, **kwargs):
+    if not printer:
+        from .output.logging import default_logger
+        printer = lambda m: default_logger.deprecation_warning(m, stacklevel=stacklevel+1)
 
-
-deprecation_warning._cache = set()
+    if not __internal:
+        printer(f'`{__name__}.deprecation_warning` is deprecated and may be removed '
+                + 'in a future version. Use `Logger.deprecation_warning` instead')
+    printer(msg)
 
 
 def bytes_to_intlist(bs):
@@ -3588,8 +3583,13 @@ def ext2mimetype(ext_or_url):
     return mimetypes.guess_type(ext_or_url)[0]
 
 
-def parse_codecs(codecs_str):
+def parse_codecs(codecs_str, logger=None):
     # http://tools.ietf.org/html/rfc6381
+    if logger is None:
+        from .output.logging import default_logger
+        deprecation_warning('Calling parse_codecs without the `logger` parameter is deprecated.', __internal=True)
+        logger = default_logger
+
     if not codecs_str:
         return {}
     split_codecs = list(filter(None, map(
@@ -3614,7 +3614,7 @@ def parse_codecs(codecs_str):
         elif parts[0] in ('stpp', 'wvtt'):
             scodec = scodec or full_codec
         else:
-            write_string(f'WARNING: Unknown codec {full_codec}\n')
+            logger.warning(f'Unknown codec {full_codec}')
     if vcodec or acodec or scodec:
         return {
             'vcodec': vcodec or 'none',
@@ -5024,7 +5024,7 @@ def decode_base_n(string, n=None, table=None):
 
 def decode_base(value, digits):
     deprecation_warning(f'{__name__}.decode_base is deprecated and may be removed '
-                        f'in a future version. Use {__name__}.decode_base_n instead')
+                        f'in a future version. Use {__name__}.decode_base_n instead', __internal=True)
     return decode_base_n(value, table=digits)
 
 
@@ -5575,7 +5575,7 @@ def traverse_obj(
 
 def traverse_dict(dictn, keys, casesense=True):
     deprecation_warning(f'"{__name__}.traverse_dict" is deprecated and may be removed '
-                        f'in a future version. Use "{__name__}.traverse_obj" instead')
+                        f'in a future version. Use "{__name__}.traverse_obj" instead', __internal=True)
     return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 
@@ -5712,9 +5712,15 @@ def parse_http_range(range):
     return int(crg.group(1)), int_or_none(crg.group(2)), int_or_none(crg.group(3))
 
 
-def read_stdin(what):
+def read_stdin(what, logger=None):
     eof = 'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'
-    write_string(f'Reading {what} from STDIN - EOF ({eof}) to end:\n')
+    message = f'Reading {what} from STDIN - EOF ({eof}) to end:'
+    if not logger:
+        from .output.logging import default_logger
+        deprecation_warning('Calling read_stdin without passing the logger parameter is deprecated.', __internal=True)
+        default_logger.info(message)
+    else:
+        logger.screen(message)
     return sys.stdin
 
 

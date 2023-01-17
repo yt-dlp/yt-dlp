@@ -7,18 +7,17 @@ import inspect
 import itertools
 import pkgutil
 import sys
-import traceback
 import zipimport
 from pathlib import Path
 from zipfile import ZipFile
 
 from .compat import functools  # isort: split
+from .output.logging import default_logger
 from .utils import (
     get_executable_path,
     get_system_config_dirs,
     get_user_config_dirs,
     orderedSet,
-    write_string,
 )
 
 PACKAGE_NAME = 'yt_dlp_plugins'
@@ -147,7 +146,7 @@ def load_plugins(name, suffix):
                 sys.modules[module_name] = module
                 spec.loader.exec_module(module)
         except Exception:
-            write_string(f'Error while importing module {module_name!r}\n{traceback.format_exc(limit=-1)}')
+            default_logger.handle_error(f'Could not import module {module_name!r}')
             continue
         classes.update(load_module(module, module_name, suffix))
 
