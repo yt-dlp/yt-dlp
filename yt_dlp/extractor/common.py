@@ -2123,7 +2123,7 @@ class InfoExtractor:
                             'vbr': vbr,
                             'abr': abr,
                         })
-                    codecs = parse_codecs(last_stream_inf.get('CODECS'), self.logger)
+                    codecs = parse_codecs(last_stream_inf.get('CODECS'))
                     f.update(codecs)
                     audio_group_id = last_stream_inf.get('AUDIO')
                     # As per [1, 4.3.4.1.1] any EXT-X-STREAM-INF tag which
@@ -2600,7 +2600,7 @@ class InfoExtractor:
                     if mime_type == 'application/x-rawcc':
                         codecs = {'scodec': codec_str}
                     else:
-                        codecs = parse_codecs(codec_str, self.logger)
+                        codecs = parse_codecs(codec_str)
                     if content_type not in ('video', 'audio', 'text'):
                         if mime_type == 'image/jpeg':
                             content_type = mime_type
@@ -2980,7 +2980,7 @@ class InfoExtractor:
             ctr = re.search(r'(?P<mimetype>[^/]+/[^;]+)(?:;\s*codecs="?(?P<codecs>[^"]+))?', content_type)
             if ctr:
                 mimetype, codecs = ctr.groups()
-                f = parse_codecs(codecs, self.logger)
+                f = parse_codecs(codecs)
                 f['ext'] = mimetype2ext(mimetype)
                 return f
             return {}

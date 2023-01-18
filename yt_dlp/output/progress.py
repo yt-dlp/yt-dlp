@@ -1,12 +1,12 @@
 from .formatting import apply_progress_format
-from .logging import LogLevel, default_logger
+from .logging import LogLevel
 from .outputs import NULL_OUTPUT, StreamOutput
 from ..utils import remove_end
 
 
 class Progress:
     @classmethod
-    def make_progress(cls, logger=default_logger, level=LogLevel.INFO,
+    def make_progress(cls, logger, level=LogLevel.INFO,
                       *, lines=1, preserve=True, newline=False):
         if logger.disable_progress:
             output = NULL_OUTPUT

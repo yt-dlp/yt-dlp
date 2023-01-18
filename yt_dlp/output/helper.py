@@ -2,7 +2,7 @@ import errno
 import sys
 
 from .logging import Verbosity, Logger
-from ..utils import DownloadError, windows_enable_vt_mode
+from ..utils import windows_enable_vt_mode
 
 
 def make_logger(params):
@@ -42,29 +42,6 @@ def wrap_debug(logger):
     if not getattr(logger, _debug_wrap_indicator, None):
         logger = logger.make_derived(debug=debug)
         setattr(logger, _debug_wrap_indicator, True)
-
-    return logger
-
-
-def _wrap_handle_error(ydl, logger):
-    ignore_errors = bool(ydl.params.get('ignoreerrors'))
-
-    def handle_error(func):
-        def wrapper(message, tb=None, is_error=True, prefix=True):
-            func(message, tb=tb, is_error=is_error, prefix=prefix)
-            if not is_error:
-                return
-            if not ignore_errors:
-                raise DownloadError(message, sys.exc_info())
-
-            ydl._download_retcode = 1
-
-        return wrapper
-
-    _error_wrap_indicator = '__ydl_error_wrapped'
-    if not getattr(logger, _error_wrap_indicator, None):
-        logger = logger.make_derived(handle_error=handle_error)
-        setattr(logger, _error_wrap_indicator, True)
 
     return logger
 

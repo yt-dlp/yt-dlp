@@ -62,7 +62,7 @@ def redirect_warnings(logger):
         module = inspect.getmodule(None, filename)
         if module:
             filename = module.__name__
-        logger.warning(f'{category.__name__}: {message} ({filename}:{lineno})')
+        logger.warning(f'{category.__name__} ({filename}:{lineno}): {message}')
 
     warnings.showwarning = _warnings_showwarning
 
@@ -115,9 +115,9 @@ class Logger:
         Derived loggers copy the mapping and settings and
         apply the provided wrapper functions.
 
-        They inherit the message cache for compatibility reason.
+        They inherit the message and deprecation cache for compatibility reason.
         If you need to reset the cache, create a new set and
-        assign it to the `message_cache` attribute.
+        assign it to the `message_cache`/`deprecation_cache` attribute.
 
         @kwparams overrides     Wrapper functions to wrap the specified names with.
 
@@ -306,11 +306,12 @@ class Logger:
 
     def deprecation_warning(self, message, *, stacklevel=0):
         """
-        Print a deprecation with `LogLevel.ERROR`
+        Issue a deprecation warning
 
-        The message will be prefixed with `ERROR:`.
+        Issues a `DeprecationWarning` using `warnings.warn`.
+        If run from the cli, print the message prefixed with `ERROR:` instead.
 
-        @kwparam stacklevel The stacklevel at which the error happened.
+        @kwparam stacklevel The stacklevel at which the deprecation happened.
                             Defaults to 0.
         """
         from .. import _IN_CLI
@@ -321,7 +322,7 @@ class Logger:
             self.handle_error(f'{message}{bug_reports_message()}', is_error=False)
             return
 
-        warnings.warn(DeprecationWarning(message), stacklevel=stacklevel + 3)
+        warnings.warn(DeprecationWarning(message), stacklevel=stacklevel + 1)
 
     def deprecated_feature(self, message):
         """
@@ -334,7 +335,7 @@ class Logger:
                  prefix=self.format(LogLevel.WARNING, 'Deprecated Feature:', Style.ERROR))
 
     def error(self, message, once=False):
-        """Print message to stderr"""
+        """Print message to the error output"""
         self.log(LogLevel.ERROR, message, once=once)
 
     def handle_error(self, message, *, tb=None, is_error=True, prefix=True):
@@ -409,4 +410,4 @@ class Logger:
         return result[:-1]
 
 
-default_logger = Logger(None, Verbosity.NORMAL).setup_stream_logger(sys.stderr, sys.stderr)
+default_logger = Logger(sys.stderr).setup_stream_logger(None, sys.stderr)

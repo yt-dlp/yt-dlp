@@ -7,12 +7,13 @@ import inspect
 import itertools
 import pkgutil
 import sys
+import traceback
+import warnings
 import zipimport
 from pathlib import Path
 from zipfile import ZipFile
 
 from .compat import functools  # isort: split
-from .output.logging import default_logger
 from .utils import (
     get_executable_path,
     get_system_config_dirs,
@@ -146,7 +147,7 @@ def load_plugins(name, suffix):
                 sys.modules[module_name] = module
                 spec.loader.exec_module(module)
         except Exception:
-            default_logger.handle_error(f'Could not import module {module_name!r}')
+            warnings.warn(ImportWarning(f'Error in module {module_name!r}\n{traceback.format_exc(limit=1)}'))
             continue
         classes.update(load_module(module, module_name, suffix))
 

@@ -113,12 +113,12 @@ def load_cookies(cookie_file, browser_specification, logger):
         if is_filename:
             cookie_file = expand_path(cookie_file)
 
-        jar = YoutubeDLCookieJar(cookie_file, logger=logger)
+        jar = YoutubeDLCookieJar(cookie_file)
         if not is_filename or os.access(cookie_file, os.R_OK):
             jar.load(ignore_discard=True, ignore_expires=True)
         cookie_jars.append(jar)
 
-    return _merge_cookie_jars(cookie_jars, logger)
+    return _merge_cookie_jars(cookie_jars)
 
 
 def extract_cookies_from_browser(browser_name, profile=None, logger=default_logger, *, keyring=None, container=None):
@@ -139,7 +139,7 @@ def _extract_firefox_cookies(profile, container, logger):
     if not sqlite3:
         logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
                        'Please use a python interpreter compiled with sqlite3 support')
-        return YoutubeDLCookieJar(logger=logger)
+        return YoutubeDLCookieJar()
 
     if profile is None:
         search_root = _firefox_browser_dir()
@@ -183,7 +183,7 @@ def _extract_firefox_cookies(profile, container, logger):
                     'SELECT host, name, value, path, expiry, isSecure FROM moz_cookies WHERE NOT INSTR(originAttributes,"userContextId=")')
             else:
                 cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
-            jar = YoutubeDLCookieJar(logger=logger)
+            jar = YoutubeDLCookieJar()
             with CookiesStatus(logger) as status:
                 table = cursor.fetchall()
                 total_cookie_count = len(table)
@@ -272,7 +272,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
     if not sqlite3:
         logger.warning(f'Cannot extract cookies from {browser_name} without sqlite3 support. '
                        'Please use a python interpreter compiled with sqlite3 support')
-        return YoutubeDLCookieJar(logger=logger)
+        return YoutubeDLCookieJar()
 
     config = _get_chromium_based_browser_settings(browser_name)
 
@@ -303,7 +303,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
             column_names = _get_column_names(cursor, 'cookies')
             secure_column = 'is_secure' if 'is_secure' in column_names else 'secure'
             cursor.execute(f'SELECT host_key, name, value, encrypted_value, path, expires_utc, {secure_column} FROM cookies')
-            jar = YoutubeDLCookieJar(logger=logger)
+            jar = YoutubeDLCookieJar()
             failed_cookies = 0
             unencrypted_cookies = 0
             with CookiesStatus(logger) as status:
@@ -660,7 +660,7 @@ def parse_safari_cookies(data, jar=None, logger=default_logger):
     """
     logger = wrap_logger(logger)
     if jar is None:
-        jar = YoutubeDLCookieJar(logger=logger)
+        jar = YoutubeDLCookieJar()
     page_sizes, body_start = _parse_safari_cookies_header(data, logger)
     p = DataParser(data[body_start:], logger)
     for page_size in page_sizes:
@@ -991,8 +991,8 @@ def _find_most_recently_used_file(root, filename, logger):
     return None if not paths else max(paths, key=lambda path: os.lstat(path).st_mtime)
 
 
-def _merge_cookie_jars(jars, logger):
-    output_jar = YoutubeDLCookieJar(logger=logger)
+def _merge_cookie_jars(jars):
+    output_jar = YoutubeDLCookieJar()
     for jar in jars:
         for cookie in jar:
             output_jar.set_cookie(cookie)

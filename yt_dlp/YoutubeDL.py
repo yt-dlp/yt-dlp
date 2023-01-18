@@ -579,16 +579,7 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
 
-        logger = self.params.get('logger')
-        if isinstance(logger, Logger):
-            logger = output_helper.wrap_debug(logger)
-        else:
-            logger = output_helper._make_ydl_logger(self.params)
-        self.logger = output_helper._wrap_handle_error(self, logger)
-
-        self.console = Console(
-            encoding=self.params.get('encoding'),
-            allow_title_change=bool(self.params.get('consoletitle') and not self.params.get('simulate')))
+        self._setup_output()
 
         # The code is left like this to be reused for future deprecations
         MIN_SUPPORTED, MIN_RECOMMENDED = (3, 7), (3, 7)
@@ -721,6 +712,38 @@ class YoutubeDL:
             return archive
 
         self.archive = preload_download_archive(self.params.get('download_archive'))
+
+    def _setup_output(self):
+        logger = self.params.get('logger')
+        if isinstance(logger, Logger):
+            logger = output_helper.wrap_debug(logger)
+        else:
+            logger = output_helper._make_ydl_logger(self.params)
+
+        ignore_errors = bool(self.params.get('ignoreerrors'))
+
+        def handle_error(func):
+            def wrapper(message, tb=None, is_error=True, prefix=True):
+                func(message, tb=tb, is_error=is_error, prefix=prefix)
+                if not is_error:
+                    return
+                if not ignore_errors:
+                    raise DownloadError(message, sys.exc_info())
+
+                self._download_retcode = 1
+
+            return wrapper
+
+        _error_wrap_indicator = '__ydl_error_wrapped'
+        if not getattr(logger, _error_wrap_indicator, None):
+            logger = logger.make_derived(handle_error=handle_error)
+            setattr(logger, _error_wrap_indicator, True)
+
+        self.logger = logger
+
+        self.console = Console(
+            encoding=self.params.get('encoding'),
+            allow_title_change=bool(self.params.get('consoletitle') and not self.params.get('simulate')))
 
     def warn_if_short_id(self, argv):
         # short YouTube ID starting with dash?

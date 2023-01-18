@@ -60,7 +60,7 @@ class NewstubeIE(InfoExtractor):
             source_type = source.get('Type')
             if source_type:
                 f.update(parse_codecs(self._search_regex(
-                    r'codecs="([^"]+)"', source_type, 'codecs', fatal=False), self.logger))
+                    r'codecs="([^"]+)"', source_type, 'codecs', fatal=False)))
             formats.append(f)
 
         self._check_formats(formats, video_guid)

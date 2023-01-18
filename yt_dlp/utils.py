@@ -43,6 +43,7 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
+import warnings
 import xml.etree.ElementTree
 import zlib
 
@@ -1560,19 +1561,11 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
         'CookieFileEntry',
         ('domain_name', 'include_subdomains', 'path', 'https_only', 'expires_at', 'name', 'value'))
 
-    def __init__(self, filename=None, *args, logger=None, **kwargs):
+    def __init__(self, filename=None, *args, **kwargs):
         super().__init__(None, *args, **kwargs)
         if is_path_like(filename):
             filename = os.fspath(filename)
         self.filename = filename
-        if logger:
-            self._logger = logger
-        else:
-            from .output.logging import default_logger
-            deprecation_warning(
-                f'Calling {type(self).__name__} without the '
-                '`logger` parameter is deprecated', __internal=True)
-            self._logger = default_logger
 
     @staticmethod
     def _true_or_false(cndn):
@@ -1662,7 +1655,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                         raise http.cookiejar.LoadError(
                             'Cookies file must be Netscape formatted, not JSON. See  '
                             'https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp')
-                    self._logger.warning(f'skipping cookie file entry due to {e}: {line!r}')
+                    warnings.warn(Warning(f'Skipping cookie file entry due to {e}: {line!r}'))
                     continue
         cf.seek(0)
         self._really_load(cf, filename, ignore_discard, ignore_expires)
@@ -3583,13 +3576,8 @@ def ext2mimetype(ext_or_url):
     return mimetypes.guess_type(ext_or_url)[0]
 
 
-def parse_codecs(codecs_str, logger=None):
+def parse_codecs(codecs_str):
     # http://tools.ietf.org/html/rfc6381
-    if logger is None:
-        from .output.logging import default_logger
-        deprecation_warning('Calling parse_codecs without the `logger` parameter is deprecated.', __internal=True)
-        logger = default_logger
-
     if not codecs_str:
         return {}
     split_codecs = list(filter(None, map(
@@ -3614,7 +3602,7 @@ def parse_codecs(codecs_str, logger=None):
         elif parts[0] in ('stpp', 'wvtt'):
             scodec = scodec or full_codec
         else:
-            logger.warning(f'Unknown codec {full_codec}')
+            warnings.warn(Warning(f'Unknown codec {full_codec}'))
     if vcodec or acodec or scodec:
         return {
             'vcodec': vcodec or 'none',
@@ -5712,15 +5700,10 @@ def parse_http_range(range):
     return int(crg.group(1)), int_or_none(crg.group(2)), int_or_none(crg.group(3))
 
 
-def read_stdin(what, logger=None):
+def read_stdin(what):
+    from .output.logging import default_logger
     eof = 'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'
-    message = f'Reading {what} from STDIN - EOF ({eof}) to end:'
-    if not logger:
-        from .output.logging import default_logger
-        deprecation_warning('Calling read_stdin without passing the logger parameter is deprecated.', __internal=True)
-        default_logger.info(message)
-    else:
-        logger.screen(message)
+    default_logger.screen(f'Reading {what} from STDIN - EOF ({eof}) to end:')
     return sys.stdin
 
 
