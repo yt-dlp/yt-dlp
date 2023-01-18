@@ -3,7 +3,7 @@ import json
 import re
 
 from .common import InfoExtractor
-from .theplatform import ThePlatformIE
+from .theplatform import ThePlatformIE, default_ns
 from .adobepass import AdobePassIE
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
@@ -700,7 +700,7 @@ class NBCStationsIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         nbc_data = self._search_json(
-            r'<script>var\s*nbc\s*=', webpage, 'NBC JSON data', video_id)
+            r'<script>\s*var\s+nbc\s*=', webpage, 'NBC JSON data', video_id)
         pdk_acct = nbc_data.get('pdkAcct') or 'Yh1nAC'
         fw_ssid = traverse_obj(nbc_data, ('video', 'fwSSID'))
 
@@ -771,8 +771,8 @@ class NBCStationsIE(InfoExtractor):
                 f'https://link.theplatform.com/s/{pdk_acct}/{player_id}', video_id,
                 note='Downloading SMIL data', query=query, fatal=is_live)
         if smil:
-            manifest_url = xpath_attr(smil, './/{*}video', 'src', fatal=is_live)
-            subtitles = self._parse_smil_subtitles(smil, '*')
+            manifest_url = xpath_attr(smil, f'.//{{{default_ns}}}video', 'src', fatal=is_live)
+            subtitles = self._parse_smil_subtitles(smil, default_ns)
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 manifest_url, video_id, 'mp4', m3u8_id='hls', fatal=is_live,
                 live=is_live, errnote='No HLS formats found')
