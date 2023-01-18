@@ -9,8 +9,8 @@ import types
 
 import yt_dlp.extractor
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_os_name
-from yt_dlp.utils import preferredencoding, write_string
+from yt_dlp.output.outputs import StreamOutput
+from yt_dlp.output.hoodoo import Color
 
 if 'pytest' in sys.modules:
     import pytest
@@ -18,6 +18,8 @@ if 'pytest' in sys.modules:
 else:
     def is_download_test(testClass):
         return testClass
+
+stderr_output = StreamOutput(sys.stderr)
 
 
 def get_params(override=None):
@@ -49,14 +51,8 @@ def report_warning(message, *args, **kwargs):
     Print the message to stderr, it will be prefixed with 'WARNING:'
     If stderr is a tty file the 'WARNING:' will be colored
     '''
-    if sys.stderr.isatty() and compat_os_name != 'nt':
-        _msg_header = '\033[0;33mWARNING:\033[0m'
-    else:
-        _msg_header = 'WARNING:'
-    output = f'{_msg_header} {message}\n'
-    if 'b' in getattr(sys.stderr, 'mode', ''):
-        output = output.encode(preferredencoding())
-    sys.stderr.write(output)
+    prefix = stderr_output.format("WARNING:", Color.YELLOW)
+    stderr_output.write(f'{prefix} {message}\n')
 
 
 class FakeYDL(YoutubeDL):
@@ -263,7 +259,7 @@ def expect_info_dict(self, got_dict, expected_dict):
             f'    {_repr(k)}: {_repr(test_info_dict[k])},\n'
             for k in missing_keys)
         info_dict_str = '\n\'info_dict\': {\n' + info_dict_str + '},\n'
-        write_string(info_dict_str.replace('\n', '\n        '), out=sys.stderr)
+        stderr_output.write(info_dict_str.replace('\n', '\n        '))
         self.assertFalse(
             missing_keys,
             'Missing keys in test definition: %s' % (

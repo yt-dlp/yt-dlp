@@ -1,12 +1,12 @@
 import importlib
 import random
 import re
+import warnings
 
 from ..utils import (
     age_restricted,
     bug_reports_message,
     classproperty,
-    write_string,
 )
 
 # These bloat the lazy_extractors, so allow them to passthrough silently
@@ -20,8 +20,9 @@ class LazyLoadMetaClass(type):
         if ('_real_class' not in cls.__dict__
                 and name not in ALLOWED_CLASSMETHODS and not _WARNED):
             _WARNED = True
-            write_string('WARNING: Falling back to normal extractor since lazy extractor '
-                         f'{cls.__name__} does not have attribute {name}{bug_reports_message()}\n')
+            warnings.warn(Warning(
+                'Falling back to normal extractor since lazy extractor '
+                f'{cls.__name__} does not have attribute {name}{bug_reports_message()}'))
         return getattr(cls.real_class, name)
 
 
