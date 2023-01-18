@@ -12,7 +12,7 @@ from ..utils import (
 
 class Porn91IE(InfoExtractor):
     IE_NAME = '91porn'
-    _VALID_URL = r'(?:https?://)(?:www\.|)91porn\.com/.*([\?&]{1})viewkey=(?P<id>[\w\d]+)'
+    _VALID_URL = r'(?:https?://)(?:www\.|)91porn\.com/.*([\?&])viewkey=(?P<id>[\w\d]+)'
 
     _TESTS = [{
        'url': 'http://91porn.com/view_video.php?viewkey=7e42283b4f5ab36da134',
