@@ -51,6 +51,9 @@ class Porn91IE(InfoExtractor):
         webpage = self._download_webpage(
             'http://91porn.com/view_video.php?viewkey=%s' % video_id, video_id)
 
+        if '视频不存在,可能已经被删除或者被举报为不良内容!' in webpage:
+            raise ExtractorError('91 Porn says: Video does not exist', expected=True)
+
         if '作为游客，你每天只可观看15个视频' in webpage:
             raise ExtractorError('91 Porn says: Daily limit 15 videos exceeded', expected=True)
 
