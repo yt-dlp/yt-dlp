@@ -15,6 +15,7 @@ from ..utils import (
 
 class RadikoBaseIE(InfoExtractor):
     _FULL_KEY = None
+    _TIMEZONE_STR = '+09:00'
 
     def _auth_client(self):
         _, auth1_handle = self._download_webpage_handle(
@@ -73,8 +74,8 @@ class RadikoBaseIE(InfoExtractor):
         prog = None
         for p in station_program.findall('.//prog'):
             ft_str, to_str = p.attrib['ft'], p.attrib['to']
-            ft = unified_timestamp(ft_str, False)
-            to = unified_timestamp(to_str, False)
+            ft = unified_timestamp(ft_str + self._TIMEZONE_STR, False)
+            to = unified_timestamp(to_str + self._TIMEZONE_STR, False)
             if ft <= cursor and cursor < to:
                 prog = p
                 break
@@ -146,7 +147,7 @@ class RadikoIE(RadikoBaseIE):
 
     def _real_extract(self, url):
         station, video_id = self._match_valid_url(url).groups()
-        vid_int = unified_timestamp(video_id, False)
+        vid_int = unified_timestamp(video_id + self._TIMEZONE_STR, False)
         prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, vid_int)
 
         auth_cache = self.cache.load('radiko', 'auth_data')
