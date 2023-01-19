@@ -81,11 +81,14 @@ class Porn91IE(InfoExtractor):
         view_count = int_or_none(self._search_regex(
             r'热度:\s*<span[^>]*>\s*(\d+)\s*</span>', webpage, 'view count', fatal=False))
 
+        formats, subtitles = self._get_formats_and_subtitle(video_link_url, video_id)
+
         return {
             'id': video_id,
             'url': video_link_url,
-            'ext': determine_ext(video_link_url),
             'title': title,
+            'formats': formats,
+            'subtitles': subtitles,
             'upload_date': upload_date,
             'description': description,
             'duration': duration,
@@ -93,3 +96,14 @@ class Porn91IE(InfoExtractor):
             'view_count': view_count,
             'age_limit': 18,
         }
+
+    def _get_formats_and_subtitle(self, video_link_url, video_id):
+        formats, subtitles = [], {}
+        ext = determine_ext(video_link_url)
+        if ext == 'm3u8':
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(video_link_url, video_id)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+        else:
+            formats.append({'url': video_link_url, 'ext': ext})
+        return formats, subtitles
