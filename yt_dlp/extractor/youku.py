@@ -129,8 +129,8 @@ class YoukuIE(InfoExtractor):
 
     @staticmethod
     def get_ysuid():
-        return '%d%s' % (int(time.time()), ''.join([
-            random.choice(string.ascii_letters) for i in range(3)]))
+        return '%d%s' % (int(time.time()), ''.join(
+            random.choices(string.ascii_letters, k=3)))
 
     def get_format_name(self, fm):
         _dict = {

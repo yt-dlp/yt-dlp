@@ -79,6 +79,7 @@ from .agora import (
 )
 from .airmozilla import AirMozillaIE
 from .airtv import AirTVIE
+from .aitube import AitubeKZVideoIE
 from .aljazeera import AlJazeeraIE
 from .alphaporno import AlphaPornoIE
 from .amara import AmaraIE
@@ -474,6 +475,8 @@ from .drtuber import DrTuberIE
 from .drtv import (
     DRTVIE,
     DRTVLiveIE,
+    DRTVSeasonIE,
+    DRTVSeriesIE,
 )
 from .dtube import DTubeIE
 from .dvtv import DVTVIE
@@ -1552,7 +1555,10 @@ from .rokfin import (
 )
 from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE
-from .rozhlas import RozhlasIE
+from .rozhlas import (
+    RozhlasIE,
+    RozhlasVltavaIE,
+)
 from .rte import RteIE, RteRadioIE
 from .rtlnl import (
     RtlNlIE,
@@ -1872,6 +1878,11 @@ from .theweatherchannel import TheWeatherChannelIE
 from .thisamericanlife import ThisAmericanLifeIE
 from .thisav import ThisAVIE
 from .thisoldhouse import ThisOldHouseIE
+from .thisvid import (
+    ThisVidIE,
+    ThisVidMemberIE,
+    ThisVidPlaylistIE,
+)
 from .threespeak import (
     ThreeSpeakIE,
     ThreeSpeakUserIE,
@@ -1884,6 +1895,7 @@ from .tiktok import (
     TikTokEffectIE,
     TikTokTagIE,
     TikTokVMIE,
+    TikTokLiveIE,
     DouyinIE,
 )
 from .tinypic import TinyPicIE
@@ -2179,6 +2191,7 @@ from .voicy import (
     VoicyIE,
     VoicyChannelIE,
 )
+from .volejtv import VolejTVIE
 from .voot import (
     VootIE,
     VootSeriesIE,
@@ -2261,6 +2274,7 @@ from .wsj import (
     WSJArticleIE,
 )
 from .wwe import WWEIE
+from .xanimu import XanimuIE
 from .xbef import XBefIE
 from .xboxclips import XboxClipsIE
 from .xfileshare import XFileShareIE
