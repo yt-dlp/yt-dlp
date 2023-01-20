@@ -1659,11 +1659,9 @@ class InfoExtractor:
         if js is None:
             return {}
 
-        args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
-
-        for key, val in args.items():
-            if val in ('undefined', 'void 0'):
-                args[key] = 'null'
+        args = dict(zip(arg_keys.split(','),
+                        [json.dumps(v) for v in self._parse_json(f'[{arg_vals}]',
+                         video_id, transform_source=js_to_json, fatal=fatal) or []]))
 
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
