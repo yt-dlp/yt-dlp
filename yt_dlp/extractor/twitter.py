@@ -814,6 +814,14 @@ class TwitterIE(TwitterBaseIE):
             'tweet_results', 'result'
         ), expected_type=dict, default={}, get_all=False)
 
+        # sometimes actual tweet might also be wrapped in "TweetWithVisibilityResults"
+        # https://twitter.com/TaylorLorenz/status/1616319245847265280
+        if result.get('tweet'):
+            result = result['tweet']
+
+        if result.get('__typename') not in ('Tweet', None):
+            self.report_warning(f'Unknown typename: {result.get("__typename")}', twid, only_once=True)
+
         if 'tombstone' in result:
             cause = traverse_obj(result, ('tombstone', 'text', 'text'), expected_type=str)
             raise ExtractorError(f'Twitter API says: {cause or "Unknown error"}', expected=True)
