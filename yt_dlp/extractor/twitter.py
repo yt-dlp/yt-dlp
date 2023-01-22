@@ -770,6 +770,29 @@ class TwitterIE(TwitterBaseIE):
         },
         'params': {'noplaylist': True},
     }, {
+        # id pointing to TweetWithVisibilityResults type entity which wraps the actual Tweet over
+        # note the id different between extraction and url
+        'url': 'https://twitter.com/TaylorLorenz/status/1616319245847265280',
+        'info_dict': {
+            'id': '1616319220941459456',
+            'display_id': '1616319245847265280',
+            'ext': 'mp4',
+            'title': 'Taylor Lorenz - https://t.co/At4wldvH6r',
+            'description': 'https://t.co/At4wldvH6r',
+            'duration': 9.078,
+            'timestamp': 1674195512.0,
+            'upload_date': '20230120',
+            'uploader': 'Taylor Lorenz',
+            'uploader_id': 'TaylorLorenz',
+            'uploader_url': 'https://twitter.com/TaylorLorenz',
+            'age_limit': 0,
+            'thumbnail': r're:https?://pbs\.twimg\.com/.+',
+            'tags': [],
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+        },
+    }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
         'only_matching': True,
@@ -811,13 +834,8 @@ class TwitterIE(TwitterBaseIE):
         result = traverse_obj(data, (
             'threaded_conversation_with_injections_v2', 'instructions', 0, 'entries',
             lambda _, v: v['entryId'] == f'tweet-{twid}', 'content', 'itemContent',
-            'tweet_results', 'result'
+            'tweet_results', 'result', ('tweet', None),
         ), expected_type=dict, default={}, get_all=False)
-
-        # sometimes actual tweet might also be wrapped in "TweetWithVisibilityResults"
-        # https://twitter.com/TaylorLorenz/status/1616319245847265280
-        if result.get('tweet'):
-            result = result['tweet']
 
         if result.get('__typename') not in ('Tweet', None):
             self.report_warning(f'Unknown typename: {result.get("__typename")}', twid, only_once=True)
