@@ -1,6 +1,7 @@
 import time
-from hashlib import md5
+import hashlib
 import re
+import urllib
 
 from .common import InfoExtractor
 from ..utils import (
@@ -13,7 +14,7 @@ from ..utils import (
 
 class DouyuTVIE(InfoExtractor):
     IE_DESC = '斗鱼'
-    _VALID_URL = r'https?://(?:www\.)?douyu(?:tv)?\.com/(topic/.*rid=|(?:[^/]+/))*(?P<id>[A-Za-z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?douyu(?:tv)?\.com/(topic/\w+\?rid=|(?:[^/]+/))*(?P<id>[A-Za-z0-9]+)/?$'
     _TESTS = [{
         'url': 'http://www.douyutv.com/iseven',
         'info_dict': {
@@ -65,13 +66,12 @@ class DouyuTVIE(InfoExtractor):
         'info_dict': {
             'id': '6560603',
             'display_id': '6560603',
-            'ext': 'm3u8',
-            'title': str,
-            'description': str,
+            'ext': 'flv',
+            'title': 're:^阿余：新年快乐恭喜发财！ [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'description': 're:.*直播时间.*',
             'thumbnail': r're:^https?://.*\.png',
             'uploader': '阿涛皎月Carry',
             'live_status': 'is_live',
-            'is_live': True,
         },
         'params': {
             'skip_download': True,
@@ -96,23 +96,22 @@ class DouyuTVIE(InfoExtractor):
                 r'"room_id\\?"\s*:\s*(\d+),', page, 'room id')
 
         # Grab metadata from API
-        tt = int(time.time())
-        auth = md5(f'room/{video_id}?aid=wp&client_sys=wp&time={tt}zNzMV1y4EMxOHS6I5WKm'.encode('utf-8')).hexdigest()
+        params = {
+            'aid': 'wp',
+            'client_sys': 'wp',
+            'time': int(time.time()),
+        }
+        params['auth'] = hashlib.md5(
+            f'room/{video_id}?{urllib.parse.urlencode(params)}zNzMV1y4EMxOHS6I5WKm'.encode()).hexdigest()
         room = self._download_json(
             f'http://www.douyutv.com/api/v1/room/{room_id}', video_id,
-            note='Downloading room info', query={
-                'aid': 'wp',
-                'client_sys': 'wp',
-                'time': tt,
-                'auth': auth
-            })['data']
+            note='Downloading room info', query=params)['data']
 
         # 1 = live, 2 = offline
         if room.get('show_status') == '2':
             raise ExtractorError('Live stream is offline', expected=True)
 
-        has_url = room.get('hls_url')
-        video_url = 'https://hls3-akm.douyucdn.cn/' + self._search_regex(r'(live/.*)', has_url, 'Extract has_url')
+        video_url = urljoin('https://hls3-akm.douyucdn.cn/', self._search_regex(r'(live/.*)', room['hls_url'], 'URL'))
         formats, subs = self._extract_m3u8_formats_and_subtitles(video_url, room_id)
 
         title = unescapeHTML(room['room_name'])
