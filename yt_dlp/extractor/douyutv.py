@@ -1,5 +1,5 @@
 import time
-import hashlib
+from hashlib import md5
 import re
 
 from .common import InfoExtractor
@@ -13,7 +13,7 @@ from ..utils import (
 
 class DouyuTVIE(InfoExtractor):
     IE_DESC = '斗鱼'
-    _VALID_URL = r'https?://(?:www\.)?douyu(?:tv)?\.com/(?:[^/]+/)*(?P<id>[A-Za-z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?douyu(?:tv)?\.com/(topic/.*rid=|(?:[^/]+/))*(?P<id>[A-Za-z0-9]+)'
     _TESTS = [{
         'url': 'http://www.douyutv.com/iseven',
         'info_dict': {
@@ -61,6 +61,22 @@ class DouyuTVIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
+        'url': 'https://www.douyu.com/topic/ydxc?rid=6560603',
+        'info_dict': {
+            'id': '6560603',
+            'display_id': '6560603',
+            'ext': 'm3u8',
+            'title': str,
+            'description': str,
+            'thumbnail': r're:^https?://.*\.png',
+            'uploader': '阿涛皎月Carry',
+            'live_status': 'is_live',
+            'is_live': True,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
         'url': 'http://www.douyu.com/xiaocang',
         'only_matching': True,
     }, {
@@ -79,28 +95,25 @@ class DouyuTVIE(InfoExtractor):
             room_id = self._html_search_regex(
                 r'"room_id\\?"\s*:\s*(\d+),', page, 'room id')
 
-        # Grab metadata from mobile API
+        # Grab metadata from API
+        tt = int(time.time())
+        auth = md5(f'room/{video_id}?aid=wp&client_sys=wp&time={tt}zNzMV1y4EMxOHS6I5WKm'.encode('utf-8')).hexdigest()
         room = self._download_json(
-            'http://m.douyu.com/html5/live?roomId=%s' % room_id, video_id,
-            note='Downloading room info')['data']
+            f'http://www.douyutv.com/api/v1/room/{room_id}', video_id,
+            note='Downloading room info', query={
+                'aid': 'wp',
+                'client_sys': 'wp',
+                'time': tt,
+                'auth': auth
+            })['data']
 
         # 1 = live, 2 = offline
         if room.get('show_status') == '2':
             raise ExtractorError('Live stream is offline', expected=True)
 
-        # Grab the URL from PC client API
-        # The m3u8 url from mobile API requires re-authentication every 5 minutes
-        tt = int(time.time())
-        signContent = 'lapi/live/thirdPart/getPlay/%s?aid=pcclient&rate=0&time=%d9TUk5fjjUjg9qIMH3sdnh' % (room_id, tt)
-        sign = hashlib.md5(signContent.encode('ascii')).hexdigest()
-        video_url = self._download_json(
-            'http://coapi.douyucdn.cn/lapi/live/thirdPart/getPlay/' + room_id,
-            video_id, note='Downloading video URL info',
-            query={'rate': 0}, headers={
-                'auth': sign,
-                'time': str(tt),
-                'aid': 'pcclient'
-            })['data']['live_url']
+        has_url = room.get('hls_url')
+        video_url = 'https://hls3-akm.douyucdn.cn/' + self._search_regex(r'(live/.*)', has_url, 'Extract has_url')
+        formats, subs = self._extract_m3u8_formats_and_subtitles(video_url, room_id)
 
         title = unescapeHTML(room['room_name'])
         description = room.get('show_details')
@@ -110,12 +123,13 @@ class DouyuTVIE(InfoExtractor):
         return {
             'id': room_id,
             'display_id': video_id,
-            'url': video_url,
             'title': title,
             'description': description,
             'thumbnail': thumbnail,
             'uploader': uploader,
             'is_live': True,
+            'subtitles': subs,
+            'formats': formats,
         }
 
 
