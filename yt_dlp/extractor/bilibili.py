@@ -1042,6 +1042,32 @@ class BiliIntlIE(BiliIntlBaseIE):
                 'description': self._html_search_meta('og:description', webpage)
             })
 
+    def _get_comments_reply(self, root_id, next_id=0, display_id=None):
+        comment_api_raw_data = self._download_json(
+            'https://api.bilibili.tv/reply/web/detail', display_id,
+            note=f'Downloading reply comment of {root_id}',
+            query={
+                'platform': 'web',
+                'ps': 3,  # comment's reply per page (default: 3)
+                'root': root_id,
+                'next': next_id,
+            })
+
+        for replies in traverse_obj(comment_api_raw_data, ('data', 'replies', ...)) or ():
+            yield {
+                'author': traverse_obj(replies, ('member', 'name')),
+                'author_id': traverse_obj(replies, ('member', 'mid')),
+                'author_thumbnail': traverse_obj(replies, ('member', 'face')),
+                'text': traverse_obj(replies, ('content', 'message')),
+                'id': replies.get('rpid'),
+                'like_count': int_or_none(replies.get('like_count')),
+                'parent': replies.get('parent')
+            }
+
+            if (not traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end'))):
+                yield self._get_comments_reply(
+                    root_id, traverse_obj(comment_api_raw_data, ('data', 'cursor', 'next')), display_id)
+
     def _get_comments(self, ep_id):
         for i in itertools.count(0):
             comment_api_raw_data = self._download_json(
@@ -1056,13 +1082,17 @@ class BiliIntlIE(BiliIntlBaseIE):
                     'sort_type': 1,  # 1: best, 2: recent
                 })
 
-            yield from traverse_obj(comment_api_raw_data, ('data', 'replies', ..., {
-                'author': ('member', 'name'),
-                'author_id': ('member', 'mid'),
-                'author_thumbnail': ('member', 'face'),
-                'text': ('content', 'message'),
-                'id': 'rpid',
-            }))
+            for replies in traverse_obj(comment_api_raw_data, ('data', 'replies', ...)) or ():
+                yield {
+                    'author': traverse_obj(replies, ('member', 'name')),
+                    'author_id': traverse_obj(replies, ('member', 'mid')),
+                    'author_thumbnail': traverse_obj(replies, ('member', 'face')),
+                    'text': traverse_obj(replies, ('content', 'message')),
+                    'id': replies.get('rpid'),
+                    'like_count': int_or_none(replies.get('like_count'))
+                }
+                if replies.get('count') > 0:
+                    yield from self._get_comments_reply(replies.get('rpid'), display_id=ep_id)
 
             if traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end')):
                 break
