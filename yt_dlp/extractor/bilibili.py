@@ -1071,7 +1071,6 @@ class BiliIntlIE(BiliIntlBaseIE):
                     root_id, traverse_obj(comment_api_raw_data, ('data', 'cursor', 'next')), display_id)
 
     def _get_comments(self, ep_id):
-        # TODO: extract flying comment from https://api.bilibili.tv/dm/web/list?platform=web&oid={ep_id}&type=2&segment_index=1
         for i in itertools.count(0):
             comment_api_raw_data = self._download_json(
                 'https://api.bilibili.tv/reply/web/root', ep_id,
