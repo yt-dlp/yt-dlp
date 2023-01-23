@@ -977,6 +977,23 @@ class BiliIntlIE(BiliIntlBaseIE):
             'title': 'Kimetsu no Yaiba Season 3 Official Trailer - Bstation',
         }
     }, {
+        'url': 'https://www.bilibili.tv/en/play/34580/340317',
+        'info_dict': {
+            'id': '340317',
+            'ext': 'mp4',
+            'timestamp': 1604057820,
+            'upload_date': '20201030',
+            'episode_number': 5,
+            'title': 'E5 - My Own Steel',
+            'description': 'md5:2b17ab10aebb33e3c2a54da9e8e487e2',
+            'thumbnail': 'https://pic.bstarstatic.com/ogv/cf22d9fa9e7162ae285ed6d3b2f9f332c7afdeb6.png',
+            'episode': 'Episode 5',
+            'comment_count': int
+        },
+        'params': {
+            'getcomments': True
+        }
+    }, {
         'url': 'https://www.biliintl.com/en/play/34613/341736',
         'only_matching': True,
     }, {
@@ -1025,6 +1042,31 @@ class BiliIntlIE(BiliIntlBaseIE):
                 'description': self._html_search_meta('og:description', webpage)
             })
 
+    def _get_comments(self, ep_id):
+        for i in itertools.count(0):
+            comment_api_raw_data = self._download_json(
+                'https://api.bilibili.tv/reply/web/root', ep_id,
+                note=f'Downloading comment page {i}',
+                query={
+                    'platform': 'web',
+                    'pn': i,  # page number
+                    'ps': 20,  # comment per page (default: 20), if ps > 60, some metadata lost
+                    'oid': ep_id,
+                    'type': 3,
+                    'sort_type': 1,  # 1: best, 2: recent
+                })
+
+            yield from traverse_obj(comment_api_raw_data, ('data', 'replies', ..., {
+                'author': ('member', 'name'),
+                'author_id': ('member', 'mid'),
+                'author_thumbnail': ('member', 'face'),
+                'text': ('content', 'message'),
+                'id': 'rpid',
+            }))
+
+            if traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end')):
+                break
+
     def _real_extract(self, url):
         season_id, ep_id, aid = self._match_valid_url(url).group('season_id', 'ep_id', 'aid')
         video_id = ep_id or aid
@@ -1034,6 +1076,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             **self._extract_video_metadata(url, video_id, season_id),
             'formats': self._get_formats(ep_id=ep_id, aid=aid),
             'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
+            '__post_extractor': self.extract_comments(ep_id) if ep_id else None
         }
 
 
