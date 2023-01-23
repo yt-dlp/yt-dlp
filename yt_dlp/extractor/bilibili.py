@@ -25,6 +25,7 @@ from ..utils import (
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
+    unified_timestamp,
     unsmuggle_url,
     url_or_none,
     urlencode_postdata,
@@ -975,7 +976,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             'thumbnail': r're:https?://pic[-\.]bstarstatic.+/ugc/.+\.jpg$',
             'upload_date': '20221212',
             'title': 'Kimetsu no Yaiba Season 3 Official Trailer - Bstation',
-        }
+        },
     }, {
         'url': 'https://www.bilibili.tv/en/play/34580/340317',
         'info_dict': {
@@ -986,7 +987,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             'episode_number': 5,
             'title': 'E5 - My Own Steel',
             'description': 'md5:2b17ab10aebb33e3c2a54da9e8e487e2',
-            'thumbnail': 'https://pic.bstarstatic.com/ogv/cf22d9fa9e7162ae285ed6d3b2f9f332c7afdeb6.png',
+            'thumbnail': r're:https?://pic\.bstarstatic\.com/ogv/.+\.png$',
             'episode': 'Episode 5',
             'comment_count': int
         },
@@ -1061,7 +1062,8 @@ class BiliIntlIE(BiliIntlBaseIE):
                 'text': traverse_obj(replies, ('content', 'message')),
                 'id': replies.get('rpid'),
                 'like_count': int_or_none(replies.get('like_count')),
-                'parent': replies.get('parent')
+                'parent': replies.get('parent'),
+                'timestamp': unified_timestamp(replies.get('ctime_text'))
             }
 
             if (not traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end'))):
@@ -1069,6 +1071,7 @@ class BiliIntlIE(BiliIntlBaseIE):
                     root_id, traverse_obj(comment_api_raw_data, ('data', 'cursor', 'next')), display_id)
 
     def _get_comments(self, ep_id):
+        # TODO: extract flying comment from https://api.bilibili.tv/dm/web/list?platform=web&oid={ep_id}&type=2&segment_index=1
         for i in itertools.count(0):
             comment_api_raw_data = self._download_json(
                 'https://api.bilibili.tv/reply/web/root', ep_id,
@@ -1076,7 +1079,7 @@ class BiliIntlIE(BiliIntlBaseIE):
                 query={
                     'platform': 'web',
                     'pn': i,  # page number
-                    'ps': 20,  # comment per page (default: 20), if ps > 60, some metadata lost
+                    'ps': 20,  # comment per page (default: 20)
                     'oid': ep_id,
                     'type': 3,
                     'sort_type': 1,  # 1: best, 2: recent
@@ -1089,7 +1092,8 @@ class BiliIntlIE(BiliIntlBaseIE):
                     'author_thumbnail': traverse_obj(replies, ('member', 'face')),
                     'text': traverse_obj(replies, ('content', 'message')),
                     'id': replies.get('rpid'),
-                    'like_count': int_or_none(replies.get('like_count'))
+                    'like_count': int_or_none(replies.get('like_count')),
+                    'timestamp': unified_timestamp(replies.get('ctime_text'))
                 }
                 if replies.get('count') > 0:
                     yield from self._get_comments_reply(replies.get('rpid'), display_id=ep_id)
