@@ -1777,7 +1777,7 @@ class YoutubeDL:
         return {
             **info,
             'playlist_index': 0,
-            '__last_playlist_index': max(ie_result['requested_entries'] or (0, 0)),
+            '__last_playlist_index': max(ie_result.get('requested_entries') or (0, 0)),
             'extractor': ie_result['extractor'],
             'extractor_key': ie_result['extractor_key'],
         }
