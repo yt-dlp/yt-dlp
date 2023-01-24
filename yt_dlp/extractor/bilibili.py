@@ -1080,7 +1080,7 @@ class BiliIntlIE(BiliIntlBaseIE):
                     'pn': i,  # page number
                     'ps': 20,  # comment per page (default: 20)
                     'oid': ep_id,
-                    'type': 3,
+                    'type': 3,  # 1: user generated content, 3: series content
                     'sort_type': 1,  # 1: best, 2: recent
                 })
 
