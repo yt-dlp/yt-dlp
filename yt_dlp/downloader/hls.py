@@ -140,6 +140,7 @@ class HlsFD(FragmentFD):
         else:
             self._prepare_and_start_frag_download(ctx, info_dict)
 
+
         extra_state = ctx.setdefault('extra_state', {})
 
         format_index = info_dict.get('format_index')
@@ -206,6 +207,7 @@ class HlsFD(FragmentFD):
                         }
 
                     fragments.append({
+                        'init_fragment': True,
                         'frag_index': frag_index,
                         'url': frag_url,
                         'decrypt_info': decrypt_info,
@@ -245,9 +247,20 @@ class HlsFD(FragmentFD):
                     discontinuity_count += 1
                 i += 1
 
-        # We only download the first fragment during the test
+        # We only download one fragment during the test. Just picking the first
+        # one would often hit upon a media initialization section which is too
+        # short too pass the greater than 10000B test. To avoid that we choose
+        # the first non-initialization fragment.
         if self.params.get('test', False):
-            fragments = [fragments[0] if fragments else None]
+            frags = None
+            if fragments:
+                for frag in fragments:
+                    if 'init_fragment' in frag:
+                        continue
+                    else:
+                        frags = [frag]
+                        break
+            fragments = frags
 
         if real_downloader:
             info_dict['fragments'] = fragments
