@@ -978,6 +978,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             'title': 'Kimetsu no Yaiba Season 3 Official Trailer - Bstation',
         },
     }, {
+        # episode comment extraction
         'url': 'https://www.bilibili.tv/en/play/34580/340317',
         'info_dict': {
             'id': '340317',
@@ -990,6 +991,22 @@ class BiliIntlIE(BiliIntlBaseIE):
             'thumbnail': r're:https?://pic\.bstarstatic\.com/ogv/.+\.png$',
             'episode': 'Episode 5',
             'comment_count': int
+        },
+        'params': {
+            'getcomments': True
+        }
+    }, {
+        # user generated content comment extraction
+        'url': 'https://www.bilibili.tv/en/video/2045730385',
+        'info_dict': {
+            'id': '2045730385',
+            'ext': 'mp4',
+            'description': 'md5:693b6f3967fb4e7e7764ea817857c33a',
+            'timestamp': 1667891924,
+            'upload_date': '20221108',
+            'title': 'That Time I Got Reincarnated as a Slime: Scarlet Bond - Official Trailer 3| AnimeStan - Bstation',
+            'comment_count': int,
+            'thumbnail': 'https://pic.bstarstatic.com/ugc/f6c363659efd2eabe5683fbb906b1582.jpg',
         },
         'params': {
             'getcomments': True
@@ -1070,17 +1087,17 @@ class BiliIntlIE(BiliIntlBaseIE):
                 yield self._get_comments_reply(
                     root_id, traverse_obj(comment_api_raw_data, ('data', 'cursor', 'next')), display_id)
 
-    def _get_comments(self, ep_id):
+    def _get_comments(self, video_id, video_type):
         for i in itertools.count(0):
             comment_api_raw_data = self._download_json(
-                'https://api.bilibili.tv/reply/web/root', ep_id,
+                'https://api.bilibili.tv/reply/web/root', video_id,
                 note=f'Downloading comment page {i}',
                 query={
                     'platform': 'web',
                     'pn': i,  # page number
                     'ps': 20,  # comment per page (default: 20)
-                    'oid': ep_id,
-                    'type': 3,  # 1: user generated content, 3: series content
+                    'oid': video_id,
+                    'type': 3 if video_type == "episode" else 1,  # 1: user generated content, 3: series content
                     'sort_type': 1,  # 1: best, 2: recent
                 })
 
@@ -1092,10 +1109,11 @@ class BiliIntlIE(BiliIntlBaseIE):
                     'text': traverse_obj(replies, ('content', 'message')),
                     'id': replies.get('rpid'),
                     'like_count': int_or_none(replies.get('like_count')),
-                    'timestamp': unified_timestamp(replies.get('ctime_text'))
+                    'timestamp': unified_timestamp(replies.get('ctime_text')),
+                    'author_is_uploader': traverse_obj(replies, ('member', 'type')),
                 }
                 if replies.get('count') > 0:
-                    yield from self._get_comments_reply(replies.get('rpid'), display_id=ep_id)
+                    yield from self._get_comments_reply(replies.get('rpid'), display_id=video_id)
 
             if traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end')):
                 break
@@ -1109,7 +1127,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             **self._extract_video_metadata(url, video_id, season_id),
             'formats': self._get_formats(ep_id=ep_id, aid=aid),
             'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
-            '__post_extractor': self.extract_comments(ep_id) if ep_id else None
+            '__post_extractor': self.extract_comments(video_id, "episode" if ep_id else "user_generated")
         }
 
 
