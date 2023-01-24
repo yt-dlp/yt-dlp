@@ -92,9 +92,8 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
         if not cfg_url:
             inputs = self._hidden_inputs(webpage)
             if inputs.get('vkey') and inputs.get('nkey'):
-                cfg_url = f'https://www.{host}.com/cdn/cdn.php'
+                cfg_url = f"https://cdn-fck.{host}.com/{host}/{inputs['vkey']}.fid"
                 query.update({
-                    'file': inputs['vkey'],
                     'key': inputs['nkey'],
                     'VID': video_id,
                     'premium': '1',
