@@ -22,8 +22,6 @@ from ..utils import (
 #       'https://etv.err.ee/otsing?phrase=4x4-&from=02.06.2021&to=24.06.2021&page=1'
 # TODO  Try to resolve unknown languages in audio tracks.
 # TODO  ERR rolled out new archive site that makes errarhiiv.py obsolete.
-# TODO  Support for jupiterplus.ee
-#       -   https://jupiterpluss.err.ee/1608585151/4x4-chukotka
 
 
 def json_find_node(obj, criteria):
@@ -31,7 +29,7 @@ def json_find_node(obj, criteria):
     criteria and returns it. None if nothing is found.
     '''
     if not isinstance(criteria, dict):
-        raise TypeError("Should be dictionary, but is %s" % type(criteria))
+        raise TypeError('Should be dictionary, but is %s' % type(criteria))
     if isinstance(obj, (tuple, list)):
         for element in obj:
             val = json_find_node(element, criteria)
@@ -190,14 +188,14 @@ class ERRBaseIE(InfoExtractor):
         try:
             m3u8_formats, m3u8_subtitles = self._extract_m3u8_formats_and_subtitles(master_url, video_id, headers=headers)
             # FIXME Remove dump_json when done
-            if m3u8_formats:
-                self._debug_dump_json(m3u8_formats, msg="M3U8 FORMATS\n")
-            if m3u8_subtitles:
-                self._debug_dump_json(m3u8_subtitles, msg="M3U8 SUBTITLES\n")
+            ## if m3u8_formats:
+            ##     self._dump_json(m3u8_formats, msg='M3U8 FORMATS\n')
+            ## if m3u8_subtitles:
+            ##     self._dump_json(m3u8_subtitles, msg='M3U8 SUBTITLES\n')
         except ExtractorError as ex:
             if isinstance(ex.cause, compat_HTTPError) and ex.cause.code == 404:
                 self.report_warning(
-                    "master url links to nonexistent resource '%s'" %
+                    'master url links to nonexistent resource \'%s\'' %
                     master_url)
             raise ex
 
@@ -237,11 +235,11 @@ class ERRBaseIE(InfoExtractor):
             m3u8_format['format_id'] = self._assign_format_id(m3u8_format)
 
             if m3u8_format.get('vcodec', 'none') == 'none':
-                m3u8_format['format'] = "%(format_id)s - audio only" % m3u8_format
+                m3u8_format['format'] = '%(format_id)s - audio only' % m3u8_format
 
             if m3u8_format.get('vcodec', 'none') != 'none':
                 m3u8_format['format_note'] = '%dp' % m3u8_format['height']
-                m3u8_format['format'] = "%(format_id)s - %(width)dx%(height)d (%(format_note)s)" % m3u8_format
+                m3u8_format['format'] = '%(format_id)s - %(width)dx%(height)d (%(format_note)s)' % m3u8_format
             formats.append(m3u8_format)
         return formats, m3u8_subtitles
 
@@ -264,7 +262,7 @@ class ERRBaseIE(InfoExtractor):
         # Sometimes title would still contain suffixes ' | Vikerraadio | ERR '
         info['title'] = info['title'].split('|')[0].strip().strip('.')
         if not info['title']:
-            raise ExtractorError("Couldn't extract title")
+            raise ExtractorError('Couldn\'t extract title')
         info['title'] = sanitize_title(info['title'])
         info['description'] = (
             self._html_search_meta('description', webpage)
@@ -298,9 +296,14 @@ class ERRBaseIE(InfoExtractor):
         self._debug_message(
             (msg if msg else '') + json.dumps(obj, indent=4, sort_keys=sort_keys))
 
-    def _debug_dump_json(self, obj, sort_keys=False, msg=None):
-        """Prettyprints json structure"""
-        self.to_screen('[debug] ' + (msg if msg else '') + json.dumps(obj, indent=4, sort_keys=sort_keys))
+    def _dump_json(self, obj, sort_keys=False, msg=None, filename=None):
+        """Dumps prettyprinted json structure"""
+        if filename:
+            with open(filename, mode='a', encoding='utf-8') as f:
+                f.write(f'\n{msg}\n')
+                f.write(json.dumps(obj, indent=4, sort_keys=sort_keys))
+        else:
+            self.to_screen('[debug] ' + (msg if msg else '') + json.dumps(obj, indent=4, sort_keys=sort_keys))
 
 
 
@@ -313,7 +316,7 @@ class ERRNewsIE(ERRBaseIE):
     _TESTS = [{
         # Single video linked to an article
         'url': 'https://sport.err.ee/1608242040/kirt-tuli-lukata-selg-sirgu-ja-oelda-mis-seis-on',
-        'md5': 'd1121ad50f14d73583dc43699e3d0578',
+        'md5': '7cc3b40f4d45106896978aa66f3f497e',
         'info_dict': {
             'id': '1608242040',
             'display_id': 'kirt-tuli-lukata-selg-sirgu-ja-oelda-mis-seis-on',
@@ -325,6 +328,9 @@ class ERRNewsIE(ERRBaseIE):
             'upload_date': '20210610',
             'uploader': 'ERR',
             'timestamp': 1623322980,
+            'categories': ['Kergejõustik'],
+            'creator': 'Juhan Kilumets - ERR',
+            'tags': ['odavise', 'magnus kirt'],
         }
     }, {
         # Multiple videos in one article
@@ -339,7 +345,11 @@ class ERRNewsIE(ERRBaseIE):
             'description': 'md5:62eb6e3ffc51ce68a3c0c060e26f4c0e',
             'uploader': 'ERR',
             'timestamp': 1622376000,
-        },
+            'creator': 'ERR',
+            'categories': ['Kergejõustik'],
+            'tags': ['kristjan rosenberg', 'maicel uibo', 'damian warner', 'götzise mitmevõistlus', 'risto lillemets'],
+            'upload_date': '20210530',
+            },
         'playlist_count': 7,
         'params': {
             'format': 'bestaudio',
@@ -355,6 +365,11 @@ class ERRNewsIE(ERRBaseIE):
             'description': 'md5:1635e54e66d7e6ad92d1d74185068791',
             'uploader': 'ERR',
             'timestamp': 1623658200,
+            'tags': ['iggy pop'],
+            'creator': 'ERR',
+            'thumbnail': 'https://s.err.ee/photo/crop/2021/06/14/1038456he481t24.jpg',
+            'categories': ['Muusika'],
+            'upload_date': '20210614',
         },
         'playlist_count': 3,
         'params': {
@@ -371,6 +386,11 @@ class ERRNewsIE(ERRBaseIE):
             'description': 'md5:c4566d404a363836031c9585e8907f0f',
             'uploader': 'ERR',
             'timestamp': 1623394980,
+            'tags': ['jaak heinrich jagor', 'staadionijutud'],
+            'categories': ['Kergejõustik'],
+            'upload_date': '20210611',
+            'creator': 'ERR',
+            'thumbnail': 'https://s.err.ee/photo/crop/2021/06/11/1035948h5a18t24.jpg',
         },
         'playlist_count': 1,
         'params': {
@@ -443,7 +463,7 @@ class ERRNewsIE(ERRBaseIE):
             url_list.append((prefix + m[1], m[2]))
         mobj = re.findall(r'<iframe.+?src=(["\'])(?P<url>//.*?/media/embed/(\d+?))\1', webpage, flags=re.DOTALL)
         for m in mobj:
-            url_list.append((scheme + ":" + m[1], m[2]))
+            url_list.append((scheme + ':' + m[1], m[2]))
         # Embedded Youtube/Soundcloud
         sites = r'youtube\.com|soundcloud\.com'
         mobj = re.findall(
@@ -457,7 +477,8 @@ class ERRNewsIE(ERRBaseIE):
 
         info.update(self._postprocess_entries(entries, info))
 
-        self._debug_json(info, msg="INFO\n", sort_keys=True)
+        self._debug_json(info, msg='INFO\n', sort_keys=True)
+        #self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{video_id}')
 
         return info
 
@@ -481,7 +502,7 @@ class ERRTVIE(ERRBaseIE):
     _TESTS = [{
         # 0 etv.err.ee
         'url': 'https://etv.err.ee/1608179695/osoon',
-        'md5': 'c9efd4e9685d974cdbb089f940c8b563',
+        'md5': 'f3e007333f44b084a3bbe69a4b8b75e0',
         'info_dict': {
             'id': '1608179695',
             'display_id': 'osoon',
@@ -497,9 +518,18 @@ class ERRTVIE(ERRBaseIE):
             'upload_date': '20210415',
             'uploader': 'ETV - ERR',
             'timestamp': 1618518000,
+            'season': 'Season 28',
+            'content_type': 'episode',
+            'geoblocked': False,
+            'release_timestamp': 1655009100,
+            'drm': False,
+            'release_date': '20220612',
+            'media_type': 'video',
+            'alt_title': 'Ornitoloogiaühing 100',
+            'series_type': 2,
             'subtitles': {
                 'et': [
-                    {'url': 'https://etv.err.ee/subtitles/file/91558/91558_VA.vtt'},
+                    {'url': r're:^https?://.+\.err\.ee/hls/vod/1260307/3/v/index-f3\.m3u8'},
                 ],
             },
         },
@@ -510,15 +540,15 @@ class ERRTVIE(ERRBaseIE):
     }, {
         # 1 etv2.err.ee
         'url': 'https://etv2.err.ee/1027382/tahelaev',
-        'md5': '8627a7a99d4fe294d4d5b4fd0271ff84',
+        'md5': 'a4af76897e2462417d503c03d114ca28',
         'info_dict': {
             'id': '1027382',
             'display_id': 'tahelaev',
             'ext': 'mp4',
-            'title': 'Teemaõhtu - Ilon Wikland 90 - 2020 jaanuar - Ilon Wikland osa - 299',
+            'title': 'Teemaõhtu - Ilon Wikland 90 - 202001 - Ilon Wikland osa - 299',
             'episode': 'Ilon Wikland osa - 299',
             'series': 'Teemaõhtu. Ilon Wikland 90',
-            'season': '2020 jaanuar',
+            'season': '202001',
             'episode_id': '20200123',
             'thumbnail':
             'https://s.err.ee/photo/crop/2014/01/03/260872hb306t8.jpg',
@@ -526,6 +556,14 @@ class ERRTVIE(ERRBaseIE):
             'upload_date': '20200123',
             'uploader': 'ETV2 - ERR',
             'timestamp': 1579788000,
+            'series_type': 1,
+            'drm': False,
+            'content_type': 'episode',
+            'alt_title': 'Ilon Wikland',
+            'release_timestamp': 1581276300,
+            'release_date': '20200209',
+            'geoblocked': False,
+            'media_type': 'video',
         },
         'params': {
             'format': 'bestvideo',
@@ -535,24 +573,31 @@ class ERRTVIE(ERRBaseIE):
         # 2 etvpluss.err.ee
         'url':
         'https://etvpluss.err.ee/1203535/bodroe-utro',
-        'md5': '8b215bd17ead4652d711e4e9d33bbdc5',
+        'md5': '43d59b96b1c5b7da5d3a1ea74089aad2',
         'info_dict': {
             'id': '1203535',
             'display_id': 'bodroe-utro',
             'ext': 'mp4',
-            'title': 'Бодрое утро - S01E01',
+            'title': 'Бодрое утро - 202012',
             'series': 'Бодрое утро',
-            'season_number': 1,
-            'episode_number': 1,
+            'series_type': 1,
+            'season': '202012',
+            'episode_id': '20201210',
             'thumbnail':
             'https://s.err.ee/photo/crop/2019/08/26/676848h2901t8.jpg',
             'description': 'md5:a7c4c787156cd7e11201249cf0ad9c1c',
             'upload_date': '20201210',
             'uploader': 'ETVPLUSS - ERR',
             'timestamp': 1607605201,
+            'content_type': 'episode',
+            'release_timestamp': 1660624200,
+            'release_date': '20220816',
+            'geoblocked': False,
+            'drm': False,
+            'media_type': 'video',
             'subtitles': {
                 'et': [
-                    {'url': 'https://etvpluss.err.ee/subtitles/file/69451/69451_ET.vtt'},
+                    {'url': r're:^https?://.+\.err\.ee/hls/vod/1143697/2/v/index-f3\.m3u8'},
                 ],
             },
         },
@@ -592,9 +637,9 @@ class ERRTVIE(ERRBaseIE):
         if login_data.get('success', False):
             self._ERR_LOGIN_DATA = login_data
             self._set_cookie('.err.ee', 'atlId', login_data['user']['atlId'])
-            self._set_cookie('.err.ee', 'allowCookiesV2', "true")
+            self._set_cookie('.err.ee', 'allowCookiesV2', 'true')
         else:
-            self.report_warning("Login failed")
+            self.report_warning('Login failed')
 
     def _set_headers(self, url_dict):
         self._ERR_HEADERS['Origin'] = '%(prefix)s' % url_dict
@@ -698,7 +743,7 @@ class ERRTVIE(ERRBaseIE):
             # 5 is shortSeriesList.
             if info['series_type'] == 1:
                 updated = date.fromtimestamp(info['timestamp'])
-                info['season'] = updated.strftime('%Y %B')
+                info['season'] = updated.strftime('%Y%m')
                 info['episode_id'] = updated.strftime('%Y%m%d')
             else:
                 info['episode_number'] = obj['episode']
@@ -749,7 +794,7 @@ class ERRTVIE(ERRBaseIE):
             if not json_has_value(info, 'episode') and obj['subHeading']:
                 # 'subHeading' in that format is only available in SHOWDATA
                 # Sometimes subHeading can be complex
-                # e.g. "subHeading": "Hooaeg: 28, Osa: 1044, 2021 Ornitoloogia\u00fching 100"
+                # e.g. 'subHeading': 'Hooaeg: 28, Osa: 1044, 2021 Ornitoloogia\u00fching 100'
                 mobj = re.match(r'Osa:\s*\d+(?:,\s*(?P<episode>.*?))?\Z', obj['subHeading'])
                 if mobj and mobj.group('episode'):
                     info['episode'] = sanitize_title(mobj.group('episode'))
@@ -760,7 +805,7 @@ class ERRTVIE(ERRBaseIE):
             if json_has_value(info, 'series'):
                 name.append(info['series'])
             if json_has_value(info, 'season_number') and json_has_value(info, 'episode_number'):
-                name.append("S%02dE%02d" % (info['season_number'], info['episode_number']))
+                name.append('S%02dE%02d' % (info['season_number'], info['episode_number']))
             elif json_has_value(info, 'season'):
                 name.append(info['season'])
             if json_has_value(info, 'episode'):
@@ -881,7 +926,8 @@ class ERRTVIE(ERRBaseIE):
                                             ['Referer', 'Origin', 'x-srh', 'Cookie'])
         # TODO remove when ready DEBUG >>>
         obj = self._download_json(api_get_content % url_dict, video_id, headers=headers)
-        self._debug_json(obj, msg="API_GET_CONTENT_JSON")
+        self._debug_json(obj, msg='API_GET_CONTENT_JSON')
+        #self._dump_json(obj, msg='API_GET_CONTENT_JSON\n', sort_keys=False, filename=f'DEBUG-{video_id}')
         return obj
         # TODO remove when ready DEBUG <<<
         # TODO uncomment when ready
@@ -965,7 +1011,8 @@ class ERRTVIE(ERRBaseIE):
                 else:
                     info.update(entry)
 
-        self._debug_json(info, msg="INFO\n", sort_keys=True)
+        self._debug_json(info, msg='INFO\n', sort_keys=True)
+        self._dump_json(info, msg='INFO\n', sort_keys=True, filename=f'DEBUG-{info["id"]}')
 
         return info
 
@@ -980,21 +1027,29 @@ class ERRJupiterIE(ERRTVIE):
     _TESTS = [{
         # 0 An episode
         'url': 'https://jupiter.err.ee/1103424/paevabiit',
-        'md5': 'bead930fdeaea26641a2c38c24bdb92c',
+        'md5': '8e95250be144d6f29d7069492e4ddea9',
         'info_dict': {
             'id': '1103424',
             'display_id': 'paevabiit',
             'ext': 'mp4',
-            'title': 'Jaanidisko - S01E01 - Päevabiit',
+            'title': 'Retrodisko - S01E01 - Päevabiit',
             'episode': 'Päevabiit',
             'episode_number': 1,
-            'series': 'Jaanidisko',
+            'series': 'Retrodisko',
             'thumbnail':
             'https://s.err.ee/photo/crop/2020/06/17/789134h64bct8.jpg',
-            'description': 'md5:8af132e26303de959172b152aca63c42',
+            'description': 'md5:3c046120981d3c75e595201398e98044',
             'upload_date': '20200618',
             'timestamp': 1592474400,
             'uploader': 'ERR',
+            'drm': False,
+            'season_number': 1,
+            'series_type': 5,
+            'season': 'Season 1',
+            'alt_title': 'Päevabiit - Rock ja pop',
+            'geoblocked': False,
+            'media_type': 'video',
+            'content_type': 'episode',
         },
         'params': {
             'format': 'bestvideo',
@@ -1038,6 +1093,7 @@ class ERRJupiterIE(ERRTVIE):
             'display_id': 'pealtnagija',
             'title': 'Pealtnägija',
             'description': 'md5:62428ca943255a1694d9751f22eacc12',
+            'series_type': 2,
         },
         'playlist_mincount': 228,
         'params': {
@@ -1053,11 +1109,72 @@ class ERRJupiterIE(ERRTVIE):
             'display_id': 'alpimaja',
             'title': 'Alpimaja',
             'description': 'md5:033da58263dc0bf37f48cdb4355d97b6',
+            'series_type': 5,
         },
         'playlist_count': 5,
         'params': {
             'format': 'bestvideo',
             'noplaylist': False,
+        },
+    }]
+
+
+class ERRJupiterPlussIE(ERRJupiterIE):
+    IE_DESC = 'jupiterpluss.err.ee'
+    _VALID_URL = r'(?P<prefix>(?P<scheme>https?)://jupiterpluss.err.ee)/(?:(?P<id>\d+)(?:/(?P<display_id>[^/#?]*))?)(?P<leftover>.+)?\Z'
+    _TESTS = [{
+        'url': 'https://jupiterpluss.err.ee/1608841228/kofe',
+        'md5': 'b81565b54b9536d426c66eae92bb4b03',
+        'info_dict': {
+            'id': '1608841228',
+            'ext': 'mp4',
+            'drm': False,
+            'season': '202301',
+            'content_type': 'episode',
+            'uploader': 'ERR',
+            'upload_date': '20230105',
+            'description': 'md5:76d6311ac807d7a03a93c61f7222cfb9',
+            'series_type': 1,
+            'geoblocked': False,
+            'series': 'Кофе+',
+            'display_id': 'kofe',
+            'media_type': 'video',
+            'episode': 'Kohv+*',
+            'title': 'Кофе - 202301 - Kohv',
+            'thumbnail': 'https://s.err.ee/photo/crop/2023/01/20/1755467he7d9t8.jpg',
+            'timestamp': 1672936800,
+            'episode_id': '20230105',
+        },
+        'params': {
+            'format': 'bestvideo',
+            'noplaylist': True,
+        },
+    }, {
+        'url': 'https://jupiterpluss.err.ee/1608835006/orbita',
+        'md5': '26c09d50117c923b63f8484ce840aba9',
+        'info_dict': {
+            'id': '1608835006',
+            'ext': 'mp4',
+            'geoblocked': False,
+            'content_type': 'episode',
+            'upload_date': '20221229',
+            'thumbnail': 'https://s.err.ee/photo/crop/2023/01/14/1748770hab6dt8.png',
+            'display_id': 'orbita',
+            'episode': 'Orbiit*',
+            'episode_id': '20221229',
+            'title': 'Орбита - 202212 - Orbiit',
+            'season': '202212',
+            'series': 'Орбита',
+            'drm': False,
+            'description': 'md5:a0c5d97e29a2ade260511472fa6cad9b',
+            'series_type': 1,
+            'timestamp': 1672332000,
+            'uploader': 'ERR',
+            'media_type': 'video',
+        },
+        'params': {
+            'format': 'bestvideo',
+            'noplaylist': True,
         },
     }]
 
@@ -1074,12 +1191,12 @@ class ERRRadioIE(ERRTVIE):
     _TESTS = [{
         # 0 vikerraadio.err.ee
         'url': 'https://vikerraadio.err.ee/795251/linnukool-mailopu-helid',
-        'md5': '64ccb8cfb5b5f88aa5af3305bdcabe47',
+        'md5': 'e46459636cd56e18507faa883970dabf',
         'info_dict': {
             'id': '795251',
             'display_id': 'linnukool-mailopu-helid',
             'ext': 'm4a',
-            'title': 'Linnu- ja loomakool - 2015 juuni - Mailõpu helid',
+            'title': 'Linnu- ja loomakool - 201506 - Mailõpu helid',
             'episode': 'Mailõpu helid',
             'episode_id': '20150601',
             'series': 'Linnu- ja loomakool',
@@ -1091,6 +1208,12 @@ class ERRRadioIE(ERRTVIE):
             'timestamp': 1433149200,
             'content_type': 'episode',
             'series_type': 1,
+            'release_timestamp': 1433149200,
+            'season': '201506',
+            'geoblocked': False,
+            'media_type': 'audio',
+            'release_date': '20150601',
+            'drm': False,
         },
         'params': {
             'format': 'bestaudio',
@@ -1100,12 +1223,12 @@ class ERRRadioIE(ERRTVIE):
         # 1 klassikaraadio.err.ee
         'url':
         'https://klassikaraadio.err.ee/1608237795/miraaz-carl-friedrich-abel-1723-1787-gambasonaadid',
-        'md5': '5c425f0c302396e194e796230b2c4cbd',
+        'md5': 'd9f43a58c1a16a09e68866289a4ae792',
         'info_dict': {
             'id': '1608237795',
             'display_id': 'miraaz-carl-friedrich-abel-1723-1787-gambasonaadid',
             'ext': 'm4a',
-            'title': 'Miraaž - 2021 juuni - Carl Friedrich Abel (1723-1787) - Gambasonaadid',
+            'title': 'Miraaž - 202106 - Carl Friedrich Abel (1723-1787) - Gambasonaadid',
             'episode': 'Carl Friedrich Abel (1723-1787) - Gambasonaadid',
             'episode_id': '20210609',
             'series': 'Miraaž',
@@ -1117,6 +1240,13 @@ class ERRRadioIE(ERRTVIE):
             'timestamp': 1623243600,
             'content_type': 'episode',
             'series_type': 1,
+            'geoblocked': False,
+            'release_date': '20210620',
+            'release_timestamp': 1624205100,
+            'season': '202106',
+            'media_type': 'audio',
+            'drm': False,
+
         },
         'params': {
             'format': 'bestaudio',
@@ -1126,12 +1256,12 @@ class ERRRadioIE(ERRTVIE):
         # 2 r2.err.ee
         'url':
         'https://r2.err.ee/1608243180/kuuldemang-hannes-hamburg-kulupoletajad',
-        'md5': 'e26ce26bb5c12845af83adc263a5f7df',
+        'md5': 'd21ec36fec8d12c1c76c028501d2b415',
         'info_dict': {
             'id': '1608243180',
             'display_id': 'kuuldemang-hannes-hamburg-kulupoletajad',
             'ext': 'm4a',
-            'title': 'Kuuldem\xe4ng - 2021 juuni - Hannes Hamburg Kulupõletajad',
+            'title': 'Kuuldem\xe4ng - 202106 - Hannes Hamburg Kulupõletajad',
             'episode': 'Hannes Hamburg Kulupõletajad',
             'episode_id': '20210615',
             'series': 'Kuuldemäng',
@@ -1143,6 +1273,12 @@ class ERRRadioIE(ERRTVIE):
             'timestamp': 1623744000,
             'content_type': 'episode',
             'series_type': 1,
+            'geoblocked': False,
+            'season': '202106',
+            'release_date': '20210620',
+            'drm': False,
+            'media_type': 'audio',
+            'release_timestamp': 1624161600,
         },
         'params': {
             'format': 'bestaudio',
@@ -1151,12 +1287,12 @@ class ERRRadioIE(ERRTVIE):
     }, {
         # 3 r4.err.ee
         'url': 'https://r4.err.ee/1608218368/razbor-poljotov',
-        'md5': 'c2a9950899792ba9d7628618bc14b213',
+        'md5': 'c7554f8fc4a05997bb50dc038eb68624',
         'info_dict': {
             'id': '1608218368',
             'display_id': 'razbor-poljotov',
             'ext': 'm4a',
-            'title': 'Разбор полетов - 2021 mai - Разбор полётов',
+            'title': 'Разбор полетов - 202105 - Разбор полётов',
             'episode': 'Разбор полётов',
             'series': 'Разбор полетов',
             'thumbnail':
@@ -1165,6 +1301,15 @@ class ERRRadioIE(ERRTVIE):
             'upload_date': '20210531',
             'uploader': 'raadio 4 - радио 4 - ERR',
             'timestamp': 1622460600,
+            'episode_id': '20210531',
+            'media_type': 'audio',
+            'drm': False,
+            'content_type': 'episode',
+            'geoblocked': False,
+            'release_date': '20210602',
+            'series_type': 1,
+            'season': '202105',
+            'release_timestamp': 1622631900,
         },
         'params': {
             'format': 'bestaudio',

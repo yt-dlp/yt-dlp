@@ -538,6 +538,7 @@ from .err import (
     ERRRadioIE,
     ERRTVIE,
     ERRJupiterIE,
+    ERRJupiterPlussIE,
 )
 from .errarhiiv import (
     ERRArhiivIE,
