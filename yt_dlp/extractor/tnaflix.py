@@ -89,9 +89,12 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
         query = {}
 
         # check for TNAFlix-style config
+        inputs = self._hidden_inputs(webpage)
+            
         if not cfg_url:
-            inputs = self._hidden_inputs(webpage)
-            if inputs.get('vkey') and inputs.get('nkey'):
+            cfg_url = inputs.get('config')
+
+        if not cfg_url and inputs.get('vkey') and inputs.get('nkey'):
                 cfg_url = f'http://cdn-fck.{host}.com/{host}/{inputs["vkey"]}.fid'
                 query.update({
                     'key': inputs['nkey'],
