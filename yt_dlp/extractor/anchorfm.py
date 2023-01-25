@@ -11,6 +11,9 @@ from ..utils import (
 
 class AnchorFMEpisodeIE(InfoExtractor):
     _VALID_URL = r'https?://anchor\.fm/(?P<channel_name>\w+)/(?:embed/)?episodes/[\w-]+-(?P<episode_id>\w+)'
+    _EMBED_REGEX = [
+        '<iframe[^>]+src=[\'"](?P<url>[^"]+)'
+    ]
     _TESTS = [{
         'url': 'https://anchor.fm/lovelyti/episodes/Chrisean-Rock-takes-to-twitter-to-announce-shes-pregnant--Blueface-denies-he-is-the-father-e1tpt3d',
         'info_dict': {
@@ -49,6 +52,28 @@ class AnchorFMEpisodeIE(InfoExtractor):
             'season': 'Season 2',
             'season_number': 2,
             'episode_id': 'e1shjqd',
+        }
+    }]
+
+    _WEBPAGE_TESTS = [{
+        'url': 'https://podcast.tempo.co/podcast/192/perang-bintang-di-balik-kasus-ferdy-sambo-dan-ismail-bolong',
+        'info_dict': {
+            'id': 'e1shjqd',
+            'ext': 'mp3',
+            'release_date': '20221221',
+            'duration': 1042.008,
+            'season': 'Season 2',
+            'modified_timestamp': 1671590834,
+            'uploader_id': '2585461',
+            'modified_date': '20221221',
+            'description': 'md5:9e95ad9293bf00178bf8d33e9cb92c41',
+            'season_number': 2,
+            'title': 'S2E75 Perang Bintang di Balik Kasus Ferdy Sambo dan Ismail Bolong',
+            'release_timestamp': 1671595916,
+            'episode_id': 'e1shjqd',
+            'thumbnail': 'https://s3-us-west-2.amazonaws.com/anchor-generated-image-bank/production/podcast_uploaded_episode400/2627805/2627805-1671590688729-4db3882ac9e4b.jpg',
+            'uploader': 'Podcast Tempo',
+            'channel': 'apakatatempo',
         }
     }]
 
