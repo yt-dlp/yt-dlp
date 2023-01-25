@@ -81,28 +81,27 @@ class TNAFlixNetworkBaseIE(InfoExtractor):
             display_id = video_id
 
         webpage = self._download_webpage(url, display_id)
+        inputs = self._hidden_inputs(webpage)
+        query = {}
 
         # check for MovieFap-style config
         cfg_url = self._proto_relative_url(self._html_search_regex(
             self._CONFIG_REGEX, webpage, 'flashvars.config', default=None,
             group='url'), 'http:')
-        query = {}
 
-        # check for TNAFlix-style config
-        inputs = self._hidden_inputs(webpage)
-            
         if not cfg_url:
             cfg_url = inputs.get('config')
 
+        # check for TNAFlix-style config
         if not cfg_url and inputs.get('vkey') and inputs.get('nkey'):
-                cfg_url = f'http://cdn-fck.{host}.com/{host}/{inputs["vkey"]}.fid'
-                query.update({
-                    'key': inputs['nkey'],
-                    'VID': video_id,
-                    'premium': '1',
-                    'vip': '1',
-                    'alpha': '',
-                })
+            cfg_url = f'http://cdn-fck.{host}.com/{host}/{inputs["vkey"]}.fid'
+            query.update({
+                'key': inputs['nkey'],
+                'VID': video_id,
+                'premium': '1',
+                'vip': '1',
+                'alpha': '',
+            })
 
         formats, json_ld = [], {}
 
