@@ -2106,7 +2106,7 @@ if sys.platform == 'win32':
             ('hEvent', ctypes.wintypes.HANDLE),
         ]
 
-    kernel32 = ctypes.windll.kernel32
+    kernel32 = ctypes.WinDLL('kernel32')
     LockFileEx = kernel32.LockFileEx
     LockFileEx.argtypes = [
         ctypes.wintypes.HANDLE,     # hFile
