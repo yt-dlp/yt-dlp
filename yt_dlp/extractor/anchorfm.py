@@ -11,9 +11,7 @@ from ..utils import (
 
 class AnchorFMEpisodeIE(InfoExtractor):
     _VALID_URL = r'https?://anchor\.fm/(?P<channel_name>\w+)/(?:embed/)?episodes/[\w-]+-(?P<episode_id>\w+)'
-    _EMBED_REGEX = [
-        '<iframe[^>]+src=[\'"](?P<url>[^"]+)'
-    ]
+    _EMBED_REGEX = [rf'<iframe[^>]+\bsrc=[\'"](?P<url>{_VALID_URL})']
     _TESTS = [{
         'url': 'https://anchor.fm/lovelyti/episodes/Chrisean-Rock-takes-to-twitter-to-announce-shes-pregnant--Blueface-denies-he-is-the-father-e1tpt3d',
         'info_dict': {
@@ -86,12 +84,13 @@ class AnchorFMEpisodeIE(InfoExtractor):
             'title': traverse_obj(api_data, ('episode', 'title')),
             'url': traverse_obj(api_data, ('episode', 'episodeEnclosureUrl')) or api_data['episodeAudios'][0]['url'],
             'ext': 'mp3',
+            'vcodec': 'none',
             'thumbnail': traverse_obj(api_data, ('episode', 'episodeImage')),
             'description': clean_html(traverse_obj(api_data, ('episode', ('description', 'descriptionPreview')), get_all=False)),
             'duration': float_or_none(traverse_obj(api_data, ('episode', 'duration')), 1000),
             'modified_timestamp': unified_timestamp(traverse_obj(api_data, ('episode', 'modified'))),
             'release_timestamp': int_or_none(traverse_obj(api_data, ('episode', 'publishOnUnixTimestamp'))),
-            'episode_id': episode_id or traverse_obj(api_data, ('episode', 'episodeId')),
+            'episode_id': episode_id,
             'uploader': traverse_obj(api_data, ('creator', 'name')),
             'uploader_id': str_or_none(traverse_obj(api_data, ('creator', 'userId'))),
             'season_number': int_or_none(traverse_obj(api_data, ('episode', 'podcastSeasonNumber'))),
