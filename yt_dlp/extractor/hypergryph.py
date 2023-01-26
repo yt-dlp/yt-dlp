@@ -1,0 +1,34 @@
+from .common import InfoExtractor
+from ..utils import traverse_obj
+
+
+class MonsterSirenHypergryphMusicIE(InfoExtractor):
+    _VALID_URL = r'https?://monster-siren\.hypergryph\.com/music/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://monster-siren.hypergryph.com/music/514562',
+        'info_dict': {
+            'id': '514562',
+            'ext': 'wav',
+            'artist': ['塞壬唱片-MSR'],
+            'album': 'Flame Shadow',
+            'title': 'Flame Shadow',
+        }
+    }]
+
+    def _real_extract(self, url):
+        audio_id = self._match_id(url)
+        webpage = self._download_webpage(url, audio_id)
+        json_data = self._search_regex(
+            r'window\.g_initialProps\s*=\s*(.+);', webpage, 'window.g_initialProps')
+
+        # undefined is not valid value for json file
+        json_data = json_data.replace("undefined", "null")
+        json_data = self._parse_json(json_data, audio_id)
+        return {
+            'id': audio_id or json_data['player']['songDetail']['cid'],
+            'title': traverse_obj(json_data, ('player', 'songDetail', 'name')),
+            'url': traverse_obj(json_data, ('player', 'songDetail', 'sourceUrl')),
+            'ext': 'wav',
+            'artist': traverse_obj(json_data, ('player', 'songDetail', 'artists')),
+            'album': traverse_obj(json_data, ('musicPlay', 'albumDetail', 'name'))
+        }
