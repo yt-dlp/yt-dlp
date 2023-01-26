@@ -11,8 +11,10 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     strip_or_none,
+    traverse_obj,
     try_get,
     smuggle_url,
+    unified_timestamp,
     unsmuggle_url,
     url_or_none,
 )
@@ -409,6 +411,9 @@ class ViuOTTIndonesiaIE(InfoExtractor):
             'title': 'Detective Conan - Episode 793',
             'duration': 1476,
             'description': 'md5:b79d55345bc1e0217ece22616267c9a5',
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1165863189/d-1',
+            'upload_date': '20210101',
+            'timestamp': 1609459200,
         }
     }, {
         'url': 'https://www.viu.com/ott/id/id/all/video-korean-reality-tv_shows-entertainment_weekly_episode_1622-1118617054',
@@ -420,6 +425,10 @@ class ViuOTTIndonesiaIE(InfoExtractor):
             'description': 'md5:6d68ca450004020113e9bf27ad99f0f8',
             'title': 'Entertainment Weekly - Episode 1622',
             'duration': 4729,
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1120187848/d-1',
+            'timestamp': 1420070400,
+            'upload_date': '20150101',
+            'cast': ['Shin Hyun-joon', 'Lee Da-Hee']
         }
     }]
 
@@ -459,7 +468,8 @@ class ViuOTTIndonesiaIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-
+        series_json = list(filter(
+            lambda x: x.get('@type') == 'TVEpisode', self._yield_json_ld(webpage, display_id)))[0]
         initial_state_json = self._search_json(
             r'window\.__INITIAL_STATE__\s*=', webpage, 'window.__INITIAL_STATE__',
             display_id)['content']['clipDetails']
@@ -475,11 +485,14 @@ class ViuOTTIndonesiaIE(InfoExtractor):
             video_data['playUrl'], display_id)
 
         return {
-            'id': str(initial_state_json['id']),
+            'id': display_id,
             'title': initial_state_json.get('title'),
             'description': initial_state_json.get('description'),
             'duration': initial_state_json.get('duration'),
+            'thumbnail': traverse_obj(series_json, ('image', 'url')),
+            'timestamp': unified_timestamp(series_json.get('dateCreated')),
             'formats': formats,
             'subtitles': subtitles,
-            'episode_number': int_or_none(initial_state_json.get('episode_no'))
+            'episode_number': int_or_none(initial_state_json.get('episode_no')),
+            'cast': traverse_obj(series_json, ('actor', ..., 'name'), default=None)
         }
