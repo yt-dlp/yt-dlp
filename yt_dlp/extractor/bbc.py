@@ -317,16 +317,26 @@ class BBCCoUkIE(InfoExtractor):
 
     def _download_media_selector(self, programme_id):
         last_exception = None
+        formats, subtitles = [], {}
         for media_set in self._MEDIA_SETS:
             try:
-                return self._download_media_selector_url(
+                fmts, sttls = self._download_media_selector_url(
                     self._MEDIA_SELECTOR_URL_TEMPL % (media_set, programme_id), programme_id)
+                formats.extend(fmts)
+                if sttls:
+                    subtitles = self._merge_subtitles(subtitles, sttls)
             except BBCCoUkIE.MediaSelectionError as e:
                 if e.id in ('notukerror', 'geolocation', 'selectionunavailable'):
                     last_exception = e
                     continue
                 self._raise_extractor_error(e)
-        self._raise_extractor_error(last_exception)
+        if last_exception:
+            if formats or subtitles:
+                self.report_warning(
+                    '%s returned error: %s' % (self.IE_NAME, last_exception.id))
+            else:
+                self._raise_extractor_error(last_exception)
+        return formats, subtitles
 
     def _download_media_selector_url(self, url, programme_id=None):
         media_selection = self._download_json(
