@@ -399,7 +399,35 @@ class ViuOTTIE(InfoExtractor):
         }
 
 
-class ViuOTTIndonesiaIE(InfoExtractor):
+class ViuOTTIndonesiaBaseIE(InfoExtractor):
+    _BASE_QUERY = {
+        'ver': 1.0,
+        'fmt': 'json',
+        'aver': 5.0,
+        'appver': 2.0,
+        'appid': 'viu_desktop',
+        'platform': 'desktop',
+    }
+
+    _DEVICE_ID = str(uuid.uuid4())
+    _SESSION_ID = str(uuid.uuid4())
+    _TOKEN = None
+
+    _HEADERS = {
+        'x-session-id': _SESSION_ID,
+        'x-client': 'browser'
+    }
+
+    def _real_initialize(self):
+        self._TOKEN = self._download_json(
+            'https://um.viuapi.io/user/identity', None,
+            headers={'Content-type': 'application/json', **self._HEADERS},
+            query={**self._BASE_QUERY, 'iid': self._DEVICE_ID},
+            data=json.dumps({'deviceId': self._DEVICE_ID}).encode(),
+            note='Downloading token information')['token']
+
+
+class ViuOTTIndonesiaIE(ViuOTTIndonesiaBaseIE):
     _VALID_URL = r'https?://www\.viu\.com/ott/id/\w+/all/video-[\w-]+-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.viu.com/ott/id/id/all/video-japanese-drama-tv_shows-detective_conan_episode_793-1165863142?containerId=playlist-26271226',
@@ -431,32 +459,6 @@ class ViuOTTIndonesiaIE(InfoExtractor):
             'cast': ['Shin Hyun-joon', 'Lee Da-Hee']
         }
     }]
-
-    _BASE_QUERY = {
-        'ver': 1.0,
-        'fmt': 'json',
-        'aver': 5.0,
-        'appver': 2.0,
-        'appid': 'viu_desktop',
-        'platform': 'desktop',
-    }
-
-    _DEVICE_ID = str(uuid.uuid4())
-    _SESSION_ID = str(uuid.uuid4())
-    _TOKEN = None
-
-    _HEADERS = {
-        'x-session-id': _SESSION_ID,
-        'x-client': 'browser'
-    }
-
-    def _real_initialize(self):
-        self._TOKEN = self._download_json(
-            'https://um.viuapi.io/user/identity', None,
-            headers={'Content-type': 'application/json', **self._HEADERS},
-            query={**self._BASE_QUERY, 'iid': self._DEVICE_ID},
-            data=json.dumps({'deviceId': self._DEVICE_ID}).encode(),
-            note='Downloading token information')['token']
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
