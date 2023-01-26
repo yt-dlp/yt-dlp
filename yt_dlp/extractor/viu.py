@@ -483,6 +483,15 @@ class ViuOTTIndonesiaIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             video_data['playUrl'], display_id)
 
+        for key in initial_state_json:
+            lang, ext = self._search_regex(
+                r'^subtitle_(?P<lang>[\w-]+)_(?P<ext>\w+)$', key, 'subtitle metadata', default=(None, None), group=('lang', 'ext'))
+            if lang and ext:
+                subtitles.setdefault(lang, []).append({
+                    'ext': ext,
+                    'url': initial_state_json[key]
+                })
+
         return {
             'id': display_id,
             'title': initial_state_json.get('title') or series_json.get('name'),
