@@ -2,6 +2,7 @@ import re
 import json
 import uuid
 import random
+import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor
@@ -393,4 +394,92 @@ class ViuOTTIE(InfoExtractor):
             'thumbnail': url_or_none(video_data.get('cover_image_url')),
             'formats': formats,
             'subtitles': subtitles,
+        }
+
+
+class ViuOTTIndonesiaIE(InfoExtractor):
+    _VALID_URL = r'https?://www\.viu\.com/ott/id/\w+/all/[\w-]+-(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.viu.com/ott/id/id/all/video-japanese-drama-tv_shows-detective_conan_episode_793-1165863142?containerId=playlist-26271226',
+        'info_dict': {
+            'id': '1165863142',
+            'ext': 'mp4',
+            'episode_number': 793,
+            'episode': 'Episode 793',
+            'title': 'Detective Conan - Episode 793',
+            'duration': 1476,
+            'description': 'md5:b79d55345bc1e0217ece22616267c9a5',
+        }
+    }, {
+        'url': 'https://www.viu.com/ott/id/id/all/video-korean-reality-tv_shows-entertainment_weekly_episode_1622-1118617054',
+        'info_dict': {
+            'id': '1118617054',
+            'ext': 'mp4',
+            'episode_number': 1622,
+            'episode': 'Episode 1622',
+            'description': 'md5:6d68ca450004020113e9bf27ad99f0f8',
+            'title': 'Entertainment Weekly - Episode 1622',
+            'duration': 4729,
+        }
+    }]
+
+    _DEVICE_ID = None
+    _SESSION_ID = None
+    _TOKEN = None
+
+    def _real_initialize(self):
+        # request needed to get cookies
+        self._request_webpage(
+            'https://www.viu.com/', None, note='Downloading home page')
+        # TODO: better way to get cookie (self._get_cookies doesn't work for me)
+        for cookie in self.cookiejar:
+            if cookie.name == 'iid':
+                self._DEVICE_ID = cookie.value
+            if cookie.name == 'session_id':
+                self._SESSION_ID = cookie.value
+
+        self._TOKEN = self._download_json(
+            'https://um.viuapi.io/user/identity', None,
+            headers={
+                'Content-type': 'application/json',
+                'x-session-id': self._SESSION_ID,
+                'x-client': 'browser'
+            },
+            query={
+                'ver': 1.0,
+                'fmt': 'json',
+                'aver': 5.0,
+                'appver': 2.0,
+                'appid': 'viu_desktop',
+                'platform': 'desktop',
+                'iid': self._DEVICE_ID,
+            }, data=json.dumps({'deviceId': self._DEVICE_ID}).encode(),
+            note='Downloading token information')['token']
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+
+        initial_state_json = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'window.__INITIAL_STATE__',
+            display_id)['content']['clipDetails']
+
+        video_data = self._download_json(
+            f'https://um.viuapi.io/drm/v1/content/{display_id}', display_id,
+            data=b'', headers={
+                'Authorization': self._TOKEN,
+                'x-client': 'browser',
+                'x-session-id': self._SESSION_ID,
+                'ccode': 'ID'})
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            video_data['playUrl'], display_id)
+
+        return {
+            'id': str(initial_state_json['id']),
+            'title': initial_state_json.get('title'),
+            'description': initial_state_json.get('description'),
+            'duration': initial_state_json.get('duration'),
+            'formats': formats,
+            'subtitles': subtitles,
+            'episode_number': int_or_none(initial_state_json.get('episode_no'))
         }
