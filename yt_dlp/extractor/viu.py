@@ -398,7 +398,7 @@ class ViuOTTIE(InfoExtractor):
 
 
 class ViuOTTIndonesiaIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.viu\.com/ott/id/\w+/all/[\w-]+-(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.viu\.com/ott/id/\w+/all/video-[\w-]+-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.viu.com/ott/id/id/all/video-japanese-drama-tv_shows-detective_conan_episode_793-1165863142?containerId=playlist-26271226',
         'info_dict': {
