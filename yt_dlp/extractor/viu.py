@@ -432,60 +432,50 @@ class ViuOTTIndonesiaIE(InfoExtractor):
         }
     }]
 
-    _DEVICE_ID = None
-    _SESSION_ID = None
+    _BASE_QUERY = {
+        'ver': 1.0,
+        'fmt': 'json',
+        'aver': 5.0,
+        'appver': 2.0,
+        'appid': 'viu_desktop',
+        'platform': 'desktop',
+    }
+
+    _DEVICE_ID = str(uuid.uuid4())
+    _SESSION_ID = str(uuid.uuid4())
     _TOKEN = None
 
-    def _real_initialize(self):
-        # request needed to get cookies
-        self._request_webpage(
-            'https://www.viu.com/', None, note='Downloading home page')
-        # TODO: better way to get cookie (self._get_cookies doesn't work for me)
-        for cookie in self.cookiejar:
-            if cookie.name == 'iid':
-                self._DEVICE_ID = cookie.value
-            if cookie.name == 'session_id':
-                self._SESSION_ID = cookie.value
+    _HEADERS = {
+        'x-session-id': _SESSION_ID,
+        'x-client': 'browser'
+    }
 
+    def _real_initialize(self):
         self._TOKEN = self._download_json(
             'https://um.viuapi.io/user/identity', None,
-            headers={
-                'Content-type': 'application/json',
-                'x-session-id': self._SESSION_ID,
-                'x-client': 'browser'
-            },
-            query={
-                'ver': 1.0,
-                'fmt': 'json',
-                'aver': 5.0,
-                'appver': 2.0,
-                'appid': 'viu_desktop',
-                'platform': 'desktop',
-                'iid': self._DEVICE_ID,
-            }, data=json.dumps({'deviceId': self._DEVICE_ID}).encode(),
+            headers={'Content-type': 'application/json', **self._HEADERS},
+            query={**self._BASE_QUERY, 'iid': self._DEVICE_ID},
+            data=json.dumps({'deviceId': self._DEVICE_ID}).encode(),
             note='Downloading token information')['token']
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        series_json = list(filter(
+        episode_json = list(filter(
             lambda x: x.get('@type') == 'TVEpisode', self._yield_json_ld(webpage, display_id)))[0]
         initial_state_json = self._search_json(
             r'window\.__INITIAL_STATE__\s*=', webpage, 'window.__INITIAL_STATE__',
             display_id)['content']['clipDetails']
         video_data = self._download_json(
-            f'https://um.viuapi.io/drm/v1/content/{display_id}', display_id,
-            data=b'', headers={
-                'Authorization': self._TOKEN,
-                'x-client': 'browser',
-                'x-session-id': self._SESSION_ID,
-                'ccode': 'ID'})
+            f'https://um.viuapi.io/drm/v1/content/{display_id}', display_id, data=b'',
+            headers={'Authorization': self._TOKEN, **self._HEADERS, 'ccode': 'ID'})
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             video_data['playUrl'], display_id)
 
         for key in initial_state_json:
             lang, ext = self._search_regex(
-                r'^subtitle_(?P<lang>[\w-]+)_(?P<ext>\w+)$', key, 'subtitle metadata', default=(None, None), group=('lang', 'ext'))
+                r'^subtitle_(?P<lang>[\w-]+)_(?P<ext>\w+)$', key, 'subtitle metadata',
+                default=(None, None), group=('lang', 'ext'))
             if lang and ext:
                 subtitles.setdefault(lang, []).append({
                     'ext': ext,
@@ -494,15 +484,15 @@ class ViuOTTIndonesiaIE(InfoExtractor):
 
         return {
             'id': display_id,
-            'title': initial_state_json.get('title') or series_json.get('name'),
-            'description': initial_state_json.get('description') or series_json.get('description'),
+            'title': initial_state_json.get('title') or episode_json.get('name'),
+            'description': initial_state_json.get('description') or episode_json.get('description'),
             'duration': initial_state_json.get('duration'),
-            'thumbnail': traverse_obj(series_json, ('image', 'url')),
-            'timestamp': unified_timestamp(series_json.get('dateCreated')),
+            'thumbnail': traverse_obj(episode_json, ('image', 'url')),
+            'timestamp': unified_timestamp(episode_json.get('dateCreated')),
             'formats': formats,
             'subtitles': subtitles,
             'episode_number': (int_or_none(initial_state_json.get('episode_no')
                                or initial_state_json.get('episodeno')
-                               or series_json.get('episodeNumber'))),
-            'cast': traverse_obj(series_json, ('actor', ..., 'name'), default=None)
+                               or episode_json.get('episodeNumber'))),
+            'cast': traverse_obj(episode_json, ('actor', ..., 'name'), default=None)
         }
