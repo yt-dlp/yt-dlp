@@ -492,7 +492,7 @@ class ViuOTTIndonesiaIE(InfoExtractor):
             'timestamp': unified_timestamp(series_json.get('dateCreated')),
             'formats': formats,
             'subtitles': subtitles,
-            'episode_number': (int_or_none(initial_state_json.get('episode_no')) 
+            'episode_number': (int_or_none(initial_state_json.get('episode_no'))
                                or int_or_none(series_json.get('episodeNumber'))),
             'cast': traverse_obj(series_json, ('actor', ..., 'name'), default=None)
         }
