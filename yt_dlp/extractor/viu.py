@@ -473,7 +473,6 @@ class ViuOTTIndonesiaIE(InfoExtractor):
         initial_state_json = self._search_json(
             r'window\.__INITIAL_STATE__\s*=', webpage, 'window.__INITIAL_STATE__',
             display_id)['content']['clipDetails']
-
         video_data = self._download_json(
             f'https://um.viuapi.io/drm/v1/content/{display_id}', display_id,
             data=b'', headers={
@@ -486,13 +485,14 @@ class ViuOTTIndonesiaIE(InfoExtractor):
 
         return {
             'id': display_id,
-            'title': initial_state_json.get('title'),
-            'description': initial_state_json.get('description'),
+            'title': initial_state_json.get('title') or series_json.get('name'),
+            'description': initial_state_json.get('description') or series_json.get('description'),
             'duration': initial_state_json.get('duration'),
             'thumbnail': traverse_obj(series_json, ('image', 'url')),
             'timestamp': unified_timestamp(series_json.get('dateCreated')),
             'formats': formats,
             'subtitles': subtitles,
-            'episode_number': int_or_none(initial_state_json.get('episode_no')),
+            'episode_number': (int_or_none(initial_state_json.get('episode_no')) 
+                               or int_or_none(series_json.get('episodeNumber'))),
             'cast': traverse_obj(series_json, ('actor', ..., 'name'), default=None)
         }
