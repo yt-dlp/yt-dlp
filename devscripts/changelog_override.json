@@ -5,12 +5,29 @@
             "authors": ["Grub8K"]
         }
     },
-    "remove": ["59d7de0da545944c48a82fc2937b996d7cd8cc9c"],
+    "remove": [
+        "6df4244d0b342fbe190448e0f0d9152ebc8d4bdc",
+        "355d781bed497cbcb254bf2a2737b83fa51c84ea"
+    ],
     "add": {
         "2023.01.06": [
             {
                 "short": "Additional change added",
                 "authors": ["Grub4K"]
+            },
+            {
+                "hash": "ab4cbeff00ac08f142f78a6281aa0c1124a59daa",
+                "short": "[extractor/drtv] Add series extractors (#5644)",
+                "authors": ["FrederikNS"]
+            },
+            {
+                "short": "[priority] Some priority change"
+            },
+            {
+                "short": "[priority/Grouped changes] Some grouped priority change 1"
+            },
+            {
+                "short": "[priority/Grouped changes] Some other grouped priority change 2"
             }
         ]
     }
