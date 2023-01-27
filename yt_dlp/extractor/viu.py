@@ -485,7 +485,7 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         episode_json = list(filter(
-            lambda x: x.get('@type') == 'TVEpisode', self._yield_json_ld(webpage, display_id)))[0]
+            lambda x: x.get('@type') == 'TVEpisode', self._yield_json_ld(webpage, display_id)))[0] or {}
         initial_state_json = self._search_json(
             r'window\.__INITIAL_STATE__\s*=', webpage, 'window.__INITIAL_STATE__',
             display_id)['content']['clipDetails']
