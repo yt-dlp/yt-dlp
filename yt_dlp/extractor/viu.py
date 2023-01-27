@@ -418,6 +418,11 @@ class ViuOTTNewBaseIE(InfoExtractor):
         'x-client': 'browser'
     }
 
+    _AGE_RATINGS_MAPPER = {
+        'ADULTS': 18,
+        'teens': 13
+    }
+
     def _real_initialize(self):
         self._TOKEN = self._download_json(
             'https://um.viuapi.io/user/identity', None,
@@ -460,18 +465,18 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
         }
     }, {
         # age-limit test
-        'url': 'https://www.viu.com/ott/id/id/all/video-thai-trailer-tv_shows-trailer_the_warp_effect-1166074387?containerId=playlist-26273545',
+        'url': 'https://www.viu.com/ott/id/id/all/video-japanese-trailer-tv_shows-trailer_jujutsu_kaisen_ver_01-1166044219?containerId=playlist-26273140',
         'info_dict': {
-            'id': '1166074387',
+            'id': '1166044219',
             'ext': 'mp4',
-            'title': 'Trailer \'The Warp Effect\'',
-            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1166074399/d-1',
-            'upload_date': '20220101',
-            'duration': 157,
-            'description': 'md5:4928a80a74923983d8e4380e72234cd6',
-            'age_limit': 18,
-            'cast': 'count:8',
-            'timestamp': 1640995200,
+            'upload_date': '20200101',
+            'timestamp': 1577836800,
+            'title': 'Trailer \'Jujutsu Kaisen\' Ver.01',
+            'duration': 92,
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1166044240/d-1',
+            'description': 'Trailer \'Jujutsu Kaisen\' Ver.01',
+            'cast': ['Junya Enoki', ' Yûichi Nakamura', ' Yuma Uchida', 'Asami Seto'],
+            'age_limit': 13,
         }
     }]
 
@@ -512,5 +517,5 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
                                or initial_state_json.get('episodeno')
                                or episode_json.get('episodeNumber'))),
             'cast': traverse_obj(episode_json, ('actor', ..., 'name'), default=None),
-            'age_limit': 18 if initial_state_json.get('internal_age_rating') == "ADULTS" else None
+            'age_limit': traverse_obj(self._AGE_RATINGS_MAPPER, traverse_obj(initial_state_json, ('internal_age_rating')))
         }
