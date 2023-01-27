@@ -458,6 +458,21 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
             'upload_date': '20150101',
             'cast': ['Shin Hyun-joon', 'Lee Da-Hee']
         }
+    }, {
+        # age-limit test
+        'url': 'https://www.viu.com/ott/id/id/all/video-thai-trailer-tv_shows-trailer_the_warp_effect-1166074387?containerId=playlist-26273545',
+        'info_dict': {
+            'id': '1166074387',
+            'ext': 'mp4',
+            'title': 'Trailer \'The Warp Effect\'',
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1166074399/d-1',
+            'upload_date': '20220101',
+            'duration': 157,
+            'description': 'md5:4928a80a74923983d8e4380e72234cd6',
+            'age_limit': 18,
+            'cast': 'count:8',
+            'timestamp': 1640995200,
+        }
     }]
 
     def _real_extract(self, url):
@@ -496,5 +511,6 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
             'episode_number': (int_or_none(initial_state_json.get('episode_no')
                                or initial_state_json.get('episodeno')
                                or episode_json.get('episodeNumber'))),
-            'cast': traverse_obj(episode_json, ('actor', ..., 'name'), default=None)
+            'cast': traverse_obj(episode_json, ('actor', ..., 'name'), default=None),
+            'age_limit': 18 if initial_state_json.get('internal_age_rating') == "ADULTS" else None
         }
