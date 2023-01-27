@@ -522,5 +522,6 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
                                or initial_state_json.get('episodeno')
                                or episode_json.get('episodeNumber'))),
             'cast': traverse_obj(episode_json, ('actor', ..., 'name'), default=None),
-            'age_limit': traverse_obj(self._AGE_RATINGS_MAPPER, traverse_obj(initial_state_json, ('internal_age_rating')))
+            'age_limit': int_or_none(traverse_obj(
+                self._AGE_RATINGS_MAPPER, (traverse_obj(initial_state_json, ('internal_age_rating')))))
         }
