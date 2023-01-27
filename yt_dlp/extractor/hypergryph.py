@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj
+from ..utils import js_to_json, traverse_obj
 
 
 class MonsterSirenHypergryphMusicIE(InfoExtractor):
@@ -18,12 +18,9 @@ class MonsterSirenHypergryphMusicIE(InfoExtractor):
     def _real_extract(self, url):
         audio_id = self._match_id(url)
         webpage = self._download_webpage(url, audio_id)
-        json_data = self._search_regex(
-            r'window\.g_initialProps\s*=\s*(.+);', webpage, 'window.g_initialProps')
+        json_data = self._search_json(
+            r'window\.g_initialProps\s*=', webpage, 'data', audio_id, transform_source=js_to_json)
 
-        # undefined is not valid value for json file
-        json_data = json_data.replace("undefined", "null")
-        json_data = self._parse_json(json_data, audio_id)
         return {
             'id': audio_id,
             'title': traverse_obj(json_data, ('player', 'songDetail', 'name')),
