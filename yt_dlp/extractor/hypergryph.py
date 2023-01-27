@@ -25,10 +25,11 @@ class MonsterSirenHypergryphMusicIE(InfoExtractor):
         json_data = json_data.replace("undefined", "null")
         json_data = self._parse_json(json_data, audio_id)
         return {
-            'id': audio_id or json_data['player']['songDetail']['cid'],
+            'id': audio_id,
             'title': traverse_obj(json_data, ('player', 'songDetail', 'name')),
             'url': traverse_obj(json_data, ('player', 'songDetail', 'sourceUrl')),
             'ext': 'wav',
+            'vcodec': 'none',
             'artist': traverse_obj(json_data, ('player', 'songDetail', 'artists')),
             'album': traverse_obj(json_data, ('musicPlay', 'albumDetail', 'name'))
         }
