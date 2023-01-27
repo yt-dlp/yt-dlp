@@ -399,7 +399,7 @@ class ViuOTTIE(InfoExtractor):
         }
 
 
-class ViuOTTIndonesiaBaseIE(InfoExtractor):
+class ViuOTTNewBaseIE(InfoExtractor):
     _BASE_QUERY = {
         'ver': 1.0,
         'fmt': 'json',
@@ -427,7 +427,7 @@ class ViuOTTIndonesiaBaseIE(InfoExtractor):
             note='Downloading token information')['token']
 
 
-class ViuOTTIndonesiaIE(ViuOTTIndonesiaBaseIE):
+class ViuOTTNewIE(ViuOTTNewBaseIE):
     _VALID_URL = r'https?://www\.viu\.com/ott/id/\w+/all/video-[\w-]+-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.viu.com/ott/id/id/all/video-japanese-drama-tv_shows-detective_conan_episode_793-1165863142?containerId=playlist-26271226',

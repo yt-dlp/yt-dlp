@@ -2172,7 +2172,7 @@ from .viu import (
     ViuIE,
     ViuPlaylistIE,
     ViuOTTIE,
-    ViuOTTIndonesiaIE,
+    ViuOTTNewIE,
 )
 from .vk import (
     VKIE,
