@@ -2,7 +2,6 @@ import re
 import json
 import uuid
 import random
-import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor
