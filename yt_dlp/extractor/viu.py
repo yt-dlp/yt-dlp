@@ -10,6 +10,7 @@ from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
+    remove_end,
     strip_or_none,
     traverse_obj,
     try_get,
@@ -502,6 +503,10 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
                 subtitles.setdefault(lang, []).append({
                     'ext': ext,
                     'url': initial_state_json[key]
+                })
+                subtitles[lang].append({
+                    'ext': 'srt',
+                    'url': f'{remove_end(initial_state_json[key], "vtt")}srt'
                 })
 
         return {
