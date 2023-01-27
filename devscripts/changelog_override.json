@@ -1,0 +1,17 @@
+{
+    "change": {
+        "37e325b92ff9d784715ac0e5d1f7d96bf5f45ad9": {
+            "short": "[utils] `dummy`: Edited this commit message",
+            "authors": ["Grub8K"]
+        }
+    },
+    "remove": ["59d7de0da545944c48a82fc2937b996d7cd8cc9c"],
+    "add": {
+        "2023.01.06": [
+            {
+                "short": "Additional change added",
+                "authors": ["Grub4K"]
+            }
+        ]
+    }
+}
