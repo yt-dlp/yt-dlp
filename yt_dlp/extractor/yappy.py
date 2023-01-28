@@ -88,7 +88,8 @@ class YappyIE(InfoExtractor):
                 or json_ld.get('view_count')),
             'like_count': int_or_none(traverse_obj(
                 nextjs_data, (('data', 'OpenGraphParameters'), 'likesCount'), get_all=False)),
-            'uploader': traverse_obj(nextjs_data, (('data', 'OpenGraphParameters'), 'creator', 'firstName'), get_all=False),
+            'uploader': traverse_obj(
+                nextjs_data, (('data', 'OpenGraphParameters'), 'creator', 'firstName'), get_all=False),
             'uploader_id': traverse_obj(
                 nextjs_data, (('data', 'OpenGraphParameters'), 'creator', ('uuid', 'nickname')), get_all=False),
             'categories': traverse_obj(
