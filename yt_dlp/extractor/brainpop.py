@@ -26,22 +26,50 @@ class BrainPOPBaseIE(InfoExtractor):
         1526: 'Your account is locked. Reset your password, or ask a teacher or administrator for help.', # LOGIN_FAILED_ACCOUNT_LOCKED
     }
 
-    def _assemble_formats(self, slug, format_id, display_id, token='', quality=-1):
+    def _assemble_formats(self, slug, format_id, display_id, token='', extra_fields={}):
         formats = []
         formats.append({
             'format_id': format_id,
             'url': '%s?%s' % (urljoin(self._VIDEO_URL, slug), token),
-            'quality': quality,
+            **extra_fields
         })
-        formats.extend(self._extract_m3u8_formats(
+        formats.extend({**f, **extra_fields} for f in self._extract_m3u8_formats(
             '%s.m3u8?%s' % (urljoin(self._HLS_URL, slug), token),
-            display_id, 'mp4', quality=quality, m3u8_id=f'{format_id}-hls', fatal=False))
+            display_id, 'mp4', m3u8_id=f'{format_id}-hls', fatal=False))
+        return formats
+
+    def _extract_adaptive_formats(self, data, token, display_id, key_format='%s', extra_fields={}):
+        formats = []
+        if data.get(key_format % 'high'):
+            formats.extend(self._assemble_formats(data[key_format % 'high'], 'high', display_id, token, {
+                'quality': -1,
+                **extra_fields
+            }))
+        if data.get(key_format % 'low'):
+            formats.extend(self._assemble_formats(data[key_format % 'high'], 'low', display_id, token, {
+                'quality': -2,
+                **extra_fields
+            }))
+        if data.get(key_format % 'ad_high'):
+            formats.extend(self._assemble_formats(data[key_format % 'ad_high'], 'ad_high', display_id, token, {
+                'quality': -1,
+                'format_note': 'Audio description',
+                'source_preference': -2,
+                **extra_fields
+            }))
+        if data.get(key_format % 'ad_low'):
+            formats.extend(self._assemble_formats(data[key_format % 'ad_low'], 'ad_low', display_id, token, {
+                'quality': -2,
+                'format_note': 'Audio description',
+                'source_preference': -2,
+                **extra_fields
+            }))
         return formats
 
     def _perform_login(self, username, password):
         login_res = self._download_json(
             'https://api.brainpop.com/api/login', None,
-            data=json.dumps({'password': password, 'username': username}).encode('utf-8'),
+            data=json.dumps({'username': username, 'password': password}).encode('utf-8'),
             headers={
                 'Content-Type': 'application/json',
                 'Referer': self._ORIGIN
@@ -58,15 +86,38 @@ class BrainPOPIE(BrainPOPBaseIE):
     _HLS_URL = 'https://hls.brainpop.com'
     _CDN_URL = 'https://cdn.brainpop.com'
     _ORIGIN = 'https://www.brainpop.com'
+    _TESTS = [{
+        'url': 'https://www.brainpop.com/health/conflictresolution/martinlutherkingjr/movie?ref=null',
+        'md5': '3ead374233ae74c7f1b0029a01c972f0',
+        'info_dict': {
+            'id': '1f3259fa457292b4',
+            'ext': 'mp4',
+            'title': 'Martin Luther King, Jr.',
+            'display_id': 'martinlutherkingjr',
+            'description': 'md5:f403dbb2bf3ccc7cf4c59d9e43e3c349',
+        },
+    }, {
+        'url': 'https://www.brainpop.com/science/space/bigbang/',
+        'md5': '9a1ff0e77444dd9e437354eb669c87ec',
+        'info_dict': {
+            'id': 'acae52cd48c99acf',
+            'ext': 'mp4',
+            'title': 'Big Bang',
+            'display_id': 'bigbang',
+            'description': 'md5:3e53b766b0f116f631b13f4cae185d38',
+        },
+        'skip': 'Requires login',
+    }]
 
     def _real_extract(self, url):
         slug, display_id = self._match_valid_url(url).group('slug', 'id')
         movie_data = self._download_json(
             f'https://api.brainpop.com/api/content/published/bp/en/{slug}/movie?full=1', display_id,
             'Downloading movie data JSON', 'Unable to download movie data')['data']
-        topic_data = self._download_json(
+        topic_data = traverse_obj(self._download_json(
             f'https://api.brainpop.com/api/content/published/bp/en/{slug}?full=1', display_id,
-            'Downloading topic data JSON', 'Unable to download topic data')['data']['topic']
+            'Downloading topic data JSON', 'Unable to download topic data', fatal=False),
+        ('data', 'topic'), expected_type=dict) or movie_data.get('topic')
 
         if not traverse_obj(movie_data, ('access', 'allow')):
             reason = traverse_obj(movie_data, ('access', 'reason'))
@@ -74,16 +125,22 @@ class BrainPOPIE(BrainPOPBaseIE):
                 self.raise_login_required(reason, metadata_available=True)
             else:
                 self.raise_no_formats(reason, video_id=display_id)
-        movie_feature = movie_data['feature']['data']
-        token = movie_feature.get('token', '')
+        movie_feature = movie_data['feature']
+        movie_feature_data = movie_feature['data']
+
         formats, subtitles = [], {}
+        formats.extend(self._extract_adaptive_formats(movie_feature_data, movie_feature_data.get('token', ''), display_id, '%s_v2', {
+            'language': movie_feature.get('language') or 'en',
+            'language_preference': 10
+        }))
+        for lang, localized_feature in traverse_obj(movie_feature, 'localization', default={}, expected_type=dict).items():
+            formats.extend(self._extract_adaptive_formats(localized_feature, localized_feature.get('token', ''), display_id, '%s_v2', {
+                'language': lang,
+                'language_preference': -10
+            }))
 
-        if movie_feature.get('high_v2'):
-            formats.extend(self._assemble_formats(movie_feature['high_v2'], 'high', display_id, token, -1))
-        if movie_feature.get('low_v2'):
-            formats.extend(self._assemble_formats(movie_feature['low_v2'], 'low', display_id, token, -2))
-
-        for name, url in movie_feature.items():
+        # TODO: Do localization fields also have subtitles?
+        for name, url in movie_feature_data.items():
             lang = self._search_regex(
                 r'^subtitles_(?P<lang>\w+)$', name, 'subtitle metadata', default=None)
             if lang and url:
@@ -94,7 +151,7 @@ class BrainPOPIE(BrainPOPBaseIE):
         return {
             'id': topic_data['topic_id'],
             'display_id': display_id,
-            'title': topic_data['name'],
+            'title': topic_data.get('name'),
             'description': topic_data.get('synopsis'),
             'formats': formats,
             'subtitles': subtitles,
@@ -105,18 +162,15 @@ class BrainPOPLegacyBaseIE(BrainPOPBaseIE):
     def _parse_js_topic_data(self, topic_data, display_id, token):
         movie_data = topic_data['movies']
         # TODO: Are there non-burned subtitles?
-        formats = []
-        if movie_data.get('high'):
-            formats.extend(self._assemble_formats(movie_data['high'], 'high', display_id, token, -1))
-        if movie_data.get('low'):
-            formats.extend(self._assemble_formats(movie_data['low'], 'low', display_id, token, -2))
+        formats = self._extract_adaptive_formats(movie_data, token, display_id)
 
         return {
             'id': topic_data['EntryID'],
             'display_id': display_id,
-            'title': topic_data['name'],
+            'title': topic_data.get('name'),
+            'alt_title': topic_data.get('title'),
             'description': topic_data.get('synopsis'),
-            'formats': formats
+            'formats': formats,
         }
 
     def _real_extract(self, url):
@@ -135,6 +189,26 @@ class BrainPOPJrIE(BrainPOPLegacyBaseIE):
     _HLS_URL = 'https://hls-jr.brainpop.com'
     _CDN_URL = 'https://cdn-jr.brainpop.com'
     _ORIGIN = 'https://jr.brainpop.com'
+    _TESTS = [{
+        'url': 'https://jr.brainpop.com/health/feelingsandsel/emotions/',
+        'md5': '04e0561bb21770f305a0ce6cf0d869ab',
+        'info_dict': {
+            'id': '347',
+            'ext': 'mp4',
+            'title': 'Emotions',
+            'display_id': 'emotions',
+        },
+    }, {
+        'url': 'https://jr.brainpop.com/science/habitats/arctichabitats/',
+        'md5': 'b0ed063bbd1910df00220ee29340f5d6',
+        'info_dict': {
+            'id': '29',
+            'ext': 'mp4',
+            'title': 'Arctic Habitats',
+            'display_id': 'arctichabitats',
+        },
+        'skip': 'Requires login',
+    }]
 
 
 class BrainPOPELLIE(BrainPOPLegacyBaseIE):
@@ -143,6 +217,28 @@ class BrainPOPELLIE(BrainPOPLegacyBaseIE):
     _HLS_URL = 'https://hls-esl.brainpop.com'
     _CDN_URL = 'https://cdn-esl.brainpop.com'
     _ORIGIN = 'https://ell.brainpop.com'
+    _TESTS = [{
+        'url': 'https://ell.brainpop.com/level1/unit1/lesson1/',
+        'md5': 'a2012700cfb774acb7ad2e8834eed0d0',
+        'info_dict': {
+            'id': '1',
+            'ext': 'mp4',
+            'title': 'Lesson 1',
+            'display_id': 'lesson1',
+            'alt_title': 'Personal Pronouns',
+        },
+    }, {
+        'url': 'https://ell.brainpop.com/level3/unit6/lesson5/',
+        'md5': 'be19c8292c87b24aacfb5fda2f3f8363',
+        'info_dict': {
+            'id': '101',
+            'ext': 'mp4',
+            'title': 'Lesson 5',
+            'display_id': 'lesson5',
+            'alt_title': 'Review: Unit 6',
+        },
+        'skip': 'Requires login',
+    }]
 
 
 class BrainPOPEspIE(BrainPOPLegacyBaseIE):
@@ -152,6 +248,28 @@ class BrainPOPEspIE(BrainPOPLegacyBaseIE):
     _HLS_URL = 'https://hls.brainpop.com'
     _CDN_URL = 'https://cdn.brainpop.com/mx'
     _ORIGIN = 'https://esp.brainpop.com'
+    _TESTS = [{
+        'url': 'https://esp.brainpop.com/ciencia/la_diversidad_de_la_vida/ecosistemas/',
+        'md5': 'cb3f062db2b3c5240ddfcfde7108f8c9',
+        'info_dict': {
+            'id': '3893',
+            'ext': 'mp4',
+            'title': 'Ecosistemas',
+            'display_id': 'ecosistemas',
+            'description': 'md5:80fc55b07e241f8c8f2aa8d74deaf3c3',
+        },
+    }, {
+        'url': 'https://esp.brainpop.com/espanol/la_escritura/emily_dickinson/',
+        'md5': '98c1b9559e0e33777209c425cda7dac4',
+        'info_dict': {
+            'id': '7146',
+            'ext': 'mp4',
+            'title': 'Emily Dickinson',
+            'display_id': 'emily_dickinson',
+            'description': 'md5:2795ad87b1d239c9711c1e92ab5a978b',
+        },
+        'skip': 'Requires login',
+    }]
 
 
 class BrainPOPFrIE(BrainPOPLegacyBaseIE):
@@ -161,6 +279,29 @@ class BrainPOPFrIE(BrainPOPLegacyBaseIE):
     _HLS_URL = 'https://hls.brainpop.com'
     _CDN_URL = 'https://cdn.brainpop.com/fr'
     _ORIGIN = 'https://fr.brainpop.com'
+    _TESTS = [{
+        'url': 'https://fr.brainpop.com/sciencesdelaterre/energie/sourcesdenergie/',
+        'md5': '97e7f48af8af93f8a2be11709f239371',
+        'info_dict': {
+            'id': '1651', 
+            'ext': 'mp4',
+            'title': 'Sources d\'énergie',
+            'display_id': 'sourcesdenergie',
+            'description': 'md5:7eece350f019a21ef9f64d4088b2d857',
+        },
+    }, {
+        'url': 'https://fr.brainpop.com/francais/ecrire/plagiat/',
+        'md5': '0cf2b4f89804d0dd4a360a51310d445a',
+        'info_dict': {
+            'id': '5803',
+            'ext': 'mp4',
+            'title': 'Plagiat',
+            'display_id': 'plagiat',
+            'description': 'md5:4496d87127ace28e8b1eda116e77cd2b',
+        },
+        'skip': 'Requires login',
+    }]
+
 
 class BrainPOPIlIE(BrainPOPLegacyBaseIE):
     IE_DESC = 'BrainPOP Hebrew'
@@ -169,3 +310,14 @@ class BrainPOPIlIE(BrainPOPLegacyBaseIE):
     _HLS_URL = 'https://hls.brainpop.com'
     _CDN_URL = 'https://cdn.brainpop.com/he'
     _ORIGIN = 'https://il.brainpop.com'
+    _TESTS = [{
+        'url': 'https://il.brainpop.com/category_9/subcategory_150/subjects_3782/',
+        'md5': '9e4ea9dc60ecd385a6e5ca12ccf31641',
+        'info_dict': {
+            'id': '3782',
+            'ext': 'mp4',
+            'title': 'md5:e993632fcda0545d9205602ec314ad67',
+            'display_id': 'subjects_3782',
+            'description': 'md5:4cc084a8012beb01f037724423a4d4ed',
+        },
+    }]
