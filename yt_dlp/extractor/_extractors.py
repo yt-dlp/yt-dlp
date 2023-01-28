@@ -2317,6 +2317,7 @@ from .yandexvideo import (
     ZenYandexChannelIE,
 )
 from .yapfiles import YapFilesIE
+from .yappy import YappyIE
 from .yesjapan import YesJapanIE
 from .yinyuetai import YinYueTaiIE
 from .yle_areena import YleAreenaIE
