@@ -21,6 +21,7 @@ REPO_URL = "https://github.com/yt-dlp/yt-dlp"
 
 # fmt: off
 MESSAGE_RE = re.compile(r"(?:\[(?P<prefix>[^\]]+)\] )?(?P<message>.+?)(?: \(#(?P<issue>\d+)\))?")
+MISC_RE = re.compile(r"(?:^|\b)(?:misc|format(?:ting)?|fixes)(?:\b|$)", re.IGNORECASE)
 # fmt: on
 
 OVERRIDE_PATH = Path(__file__).parent / "changelog_override.json"
@@ -110,14 +111,10 @@ class Commit:
 
 class Changelog:
     def __init__(self, groups: dict[CommitGroup, list[CommitInfo]]):
-        self.groups = groups
-
-    @classmethod
-    def from_commits(cls, commits: list[Commit]):
-        return cls(cls.group_commits(commits))
+        self._groups = groups
 
     def __str__(self):
-        return "\n".join(self._format_groups(self.groups))
+        return "\n".join(self._format_groups(self._groups)).replace("\t", "    ")
 
     def _format_groups(self, groups: dict[CommitGroup, list[CommitInfo]]):
         yield "## Changelog"
@@ -127,87 +124,118 @@ class Changelog:
             if group:
                 yield self.format_module(item.value, group)
 
-    def format_module(self, name: str | None, group: Iterable[CommitInfo]):
-        result = f"### {name} changes\n" if isinstance(name, str) else ""
-        return result + "\n".join(self._format_group(group))
+    def format_module(self, name: str, group: Iterable[CommitInfo]):
+        return f"### {name} changes\n" + "\n".join(self._format_group(group))
 
     def _format_group(self, group: Iterable[CommitInfo]):
+        cleanup_misc = defaultdict(list)
+
         current = None
         indent = ""
         for item in sorted(group, key=CommitInfo.key):
             details = item.details or item.prefix
-            logger.debug(f"{details} != {current} = {details != current}")
+            logger.debug(f"{details!r} != {current!r} = {details != current}")
             if details != current:
+                if current == "cleanup" and cleanup_misc:
+                    yield from self._format_misc_items(cleanup_misc)
+
                 yield f"- {details}"
                 current = details
-                indent = "    "
+                indent = "\t"
 
-            yield f"{indent}- {self.format_single_change(item)}"
+            if current == "cleanup" and MISC_RE.search(item.message):
+                cleanup_misc[tuple(item.commit.authors or ())].append(item)
+            else:
+                yield f"{indent}- {self.format_single_change(item)}"
 
-    def format_single_change(self, commit_info: CommitInfo):
+        if current == "cleanup" and cleanup_misc:
+            yield from self.format_misc_items(cleanup_misc)
+
+    @classmethod
+    def format_misc_items(cls, group: dict[tuple[str, ...], list[CommitInfo]]):
+        prefix = "\t- Miscellaneous"
+        if len(group) == 1:
+            yield f"{prefix}: {next(cls._format_misc_items(group))}"
+            return
+
+        yield prefix
+        yield from (f"\t\t- {message}" for message in cls._format_misc_items(group))
+
+    @classmethod
+    def _format_misc_items(cls, group: dict[tuple[str, ...], list[CommitInfo]]):
+        for authors, infos in group.items():
+            message = ", ".join(
+                f"[{info.commit.hash:.7}]({REPO_URL}/commit/{info.commit.hash})"
+                for info in sorted(infos, key=lambda item: item.commit.hash or "")
+            )
+            yield f"{message} by {cls._format_authors(authors)}"
+
+    @classmethod
+    def format_single_change(cls, info: CommitInfo):
         message = (
-            f"[{commit_info.message}]({REPO_URL}/commit/{commit_info.commit.hash})"
-            if commit_info.commit.hash is not None
-            else commit_info.message
+            f"[{info.message}]({REPO_URL}/commit/{info.commit.hash})"
+            if info.commit.hash is not None
+            else info.message
         )
-        if commit_info.issue:
-            issue = f"[#{commit_info.issue}]({REPO_URL}/issues/{commit_info.issue})"
+        if info.issue:
+            issue = f"[#{info.issue}]({REPO_URL}/issues/{info.issue})"
             message = f"{message} ({issue})"
 
-        if not commit_info.commit.authors:
+        if not info.commit.authors:
             return message
 
-        # fmt: off
-        authors = ", ".join(f"[{author}]({USER_URL}/{author})" for author in commit_info.commit.authors)
-        # fmt: on
-        return f"{message} by {authors}"
+        return f"{message} by {cls._format_authors(info.commit.authors)}"
 
     @staticmethod
-    def group_commits(commits: Iterable[Commit]) -> dict[CommitGroup, list[CommitInfo]]:
-        groups = defaultdict(list)
-        for commit in commits:
-            if commit.short.startswith("Release "):
-                continue
+    def _format_authors(authors: Iterable[str] | None):
+        return ", ".join(f"[{author}]({USER_URL}/{author})" for author in authors or ())
 
-            match = MESSAGE_RE.fullmatch(commit.short)
-            if not match:
-                logger.error(f"Error parsing short commit message: {commit.short!r}")
-                continue
 
-            prefix, message, issue = match.groups()
-            # Skip version bump commit
-            if prefix == "version":
-                continue
+def group_commits(commits: Iterable[Commit]) -> dict[CommitGroup, list[CommitInfo]]:
+    groups = defaultdict(list)
+    for commit in commits:
+        if commit.short.startswith("Release "):
+            continue
 
-            group = None
-            if prefix:
-                if prefix.startswith("priority"):
-                    _, _, prefix = prefix.partition("/")
+        match = MESSAGE_RE.fullmatch(commit.short)
+        if not match:
+            logger.error(f"Error parsing short commit message: {commit.short!r}")
+            continue
 
-                    logger.debug(f"Increased priority: {message!r}")
-                    group = CommitGroup.PRIORITY
+        prefix, message, issue = match.groups()
+        # Skip version bump commit
+        if prefix == "version":
+            continue
 
-                else:
-                    prefix = prefix.lower()
+        group = None
+        if prefix:
+            if prefix.startswith("priority"):
+                _, _, prefix = prefix.partition("/")
 
-                prefix, _, detail = prefix.partition("/")
-                detail, _, sub_detail = detail.partition(":")
-                if sub_detail:
-                    message = f"`{sub_detail}`: {message}"
-
-                prefix = prefix or None
-                detail = detail or None
+                logger.debug(f"Increased priority: {message!r}")
+                group = CommitGroup.PRIORITY
 
             else:
-                detail = None
+                prefix = prefix.lower()
 
-            # fmt: off
-            if not group:
-                group = CommitGroup.get(prefix)
-            groups[group].append(CommitInfo(prefix, detail, message, issue, commit))
-            # fmt: on
+            prefix, _, detail = prefix.partition("/")
+            detail, _, sub_detail = detail.partition(":")
+            if sub_detail:
+                message = f"`{sub_detail}`: {message}"
 
-        return groups
+            prefix = prefix or None
+            detail = detail or None
+
+        else:
+            detail = None
+
+        # fmt: off
+        if not group:
+            group = CommitGroup.get(prefix)
+        groups[group].append(CommitInfo(prefix, detail, message, issue, commit))
+        # fmt: on
+
+    return groups
 
 
 def get_commits(start, end):
@@ -312,4 +340,4 @@ if __name__ == "__main__":
         new_contributors = update_contributors(commits)
         logger.info(f"Added these new contributors: {new_contributors}")
 
-    print(Changelog.from_commits(commits))
+    print(Changelog(group_commits(commits)))

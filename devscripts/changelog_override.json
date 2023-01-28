@@ -21,6 +21,31 @@
                 "authors": ["FrederikNS"]
             },
             {
+                "hash": "aaa0aaa5b1f2b4f7838836ca0df613ec0e058cad",
+                "short": "[cleanup] Misc cleanup and fomratting",
+                "authors": ["pukkandan"]
+            },
+            {
+                "hash": "bbb1bbb5b1f2b4f7838836ca0df613ec0e058cad",
+                "short": "[cleanup] Formatting",
+                "authors": ["pukkandan"]
+            },
+            {
+                "hash": "ccc2ccc5b1f2b4f7838836ca0df613ec0e058cad",
+                "short": "[cleanup] Misc",
+                "authors": ["pukkandan"]
+            },
+            {
+                "hash": "eee4eee5b1f2b4f7838836ca0df613ec0e058cad",
+                "short": "[cleanup] Consistent style for file heads",
+                "authors": ["pukkandan"]
+            },
+            {
+                "hash": "fff5fff5b1f2b4f7838836ca0df613ec0e058cad",
+                "short": "[cleanup] Deprecate YoutubeDL.parse_outtmpl",
+                "authors": ["pukkandan"]
+            },
+            {
                 "short": "[priority] Some priority change"
             },
             {
