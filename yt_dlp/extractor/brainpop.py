@@ -1,5 +1,4 @@
 import json
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -12,18 +11,18 @@ from ..utils import (
 class BrainPOPBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'brainpop'
     _LOGIN_ERRORS = {
-        1502: 'The username and password you entered did not match.', # LOGIN_FAILED
-        1503: 'Payment method is expired.', # LOGIN_FAILED_ACCOUNT_NOT_ACTIVE
-        1506: 'Your BrainPOP plan has expired.', # LOGIN_FAILED_ACCOUNT_EXPIRED
-        1507: 'Terms not accepted.', # LOGIN_FAILED_TERMS_NOT_ACCEPTED
-        1508: 'Account not activated.', # LOGIN_FAILED_SUBSCRIPTION_NOT_ACTIVE
-        1512: 'The maximum number of devices permitted are logged in with your account right now.', # LOGIN_FAILED_LOGIN_LIMIT_REACHED
-        1513: 'You are trying to access your account from outside of its allowed IP range.', # LOGIN_FAILED_INVALID_IP
-        1514: 'Individual accounts are not included in your plan. Try again with your shared username and password.', # LOGIN_FAILED_MBP_DISABLED
-        1515: 'Account not activated.', # LOGIN_FAILED_TEACHER_NOT_ACTIVE
-        1523: 'That username and password won\'t work on this BrainPOP site.', # LOGIN_FAILED_NO_ACCESS
-        1524: 'You\'ll need to join a class before you can login.', # LOGIN_FAILED_STUDENT_NO_PERIOD
-        1526: 'Your account is locked. Reset your password, or ask a teacher or administrator for help.', # LOGIN_FAILED_ACCOUNT_LOCKED
+        1502: 'The username and password you entered did not match.',  # LOGIN_FAILED
+        1503: 'Payment method is expired.',  # LOGIN_FAILED_ACCOUNT_NOT_ACTIVE
+        1506: 'Your BrainPOP plan has expired.',  # LOGIN_FAILED_ACCOUNT_EXPIRED
+        1507: 'Terms not accepted.',  # LOGIN_FAILED_TERMS_NOT_ACCEPTED
+        1508: 'Account not activated.',  # LOGIN_FAILED_SUBSCRIPTION_NOT_ACTIVE
+        1512: 'The maximum number of devices permitted are logged in with your account right now.',  # LOGIN_FAILED_LOGIN_LIMIT_REACHED
+        1513: 'You are trying to access your account from outside of its allowed IP range.',  # LOGIN_FAILED_INVALID_IP
+        1514: 'Individual accounts are not included in your plan. Try again with your shared username and password.',  # LOGIN_FAILED_MBP_DISABLED
+        1515: 'Account not activated.',  # LOGIN_FAILED_TEACHER_NOT_ACTIVE
+        1523: 'That username and password won\'t work on this BrainPOP site.',  # LOGIN_FAILED_NO_ACCESS
+        1524: 'You\'ll need to join a class before you can login.',  # LOGIN_FAILED_STUDENT_NO_PERIOD
+        1526: 'Your account is locked. Reset your password, or ask a teacher or administrator for help.',  # LOGIN_FAILED_ACCOUNT_LOCKED
     }
 
     def _assemble_formats(self, slug, format_id, display_id, token='', extra_fields={}):
@@ -117,7 +116,7 @@ class BrainPOPIE(BrainPOPBaseIE):
         topic_data = traverse_obj(self._download_json(
             f'https://api.brainpop.com/api/content/published/bp/en/{slug}?full=1', display_id,
             'Downloading topic data JSON', 'Unable to download topic data', fatal=False),
-        ('data', 'topic'), expected_type=dict) or movie_data.get('topic')
+            ('data', 'topic'), expected_type=dict) or movie_data['topic']
 
         if not traverse_obj(movie_data, ('access', 'allow')):
             reason = traverse_obj(movie_data, ('access', 'reason'))
@@ -283,7 +282,7 @@ class BrainPOPFrIE(BrainPOPLegacyBaseIE):
         'url': 'https://fr.brainpop.com/sciencesdelaterre/energie/sourcesdenergie/',
         'md5': '97e7f48af8af93f8a2be11709f239371',
         'info_dict': {
-            'id': '1651', 
+            'id': '1651',
             'ext': 'mp4',
             'title': 'Sources d\'énergie',
             'display_id': 'sourcesdenergie',
