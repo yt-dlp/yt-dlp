@@ -424,7 +424,7 @@ class ViuOTTNewBaseIE(InfoExtractor):
     }
 
     def _real_initialize(self):
-        self._TOKEN = self._download_json(
+        ViuOTTNewBaseIE._TOKEN = self._download_json(
             'https://um.viuapi.io/user/identity', None,
             headers={'Content-type': 'application/json', **self._HEADERS},
             query={**self._BASE_QUERY, 'iid': self._DEVICE_ID},
@@ -490,7 +490,7 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
             display_id)['content']['clipDetails']
         video_data = self._download_json(
             f'https://um.viuapi.io/drm/v1/content/{display_id}', display_id, data=b'',
-            headers={'Authorization': self._TOKEN, **self._HEADERS, 'ccode': 'ID'})
+            headers={'Authorization': ViuOTTNewBaseIE._TOKEN, **self._HEADERS, 'ccode': 'ID'})
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             video_data['playUrl'], display_id)
 
