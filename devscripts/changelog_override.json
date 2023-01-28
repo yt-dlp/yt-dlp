@@ -1,59 +1,60 @@
-{
-    "change": {
-        "37e325b92ff9d784715ac0e5d1f7d96bf5f45ad9": {
-            "short": "[utils] `dummy`: Edited this commit message",
-            "authors": ["Grub8K"]
-        }
+[
+    {
+        "action": "change",
+        "hash": "37e325b92ff9d784715ac0e5d1f7d96bf5f45ad9",
+        "short": "[utils] `dummy`: Edited this commit message",
+        "authors": ["Grub8K"]
     },
-    "remove": [
-        "6df4244d0b342fbe190448e0f0d9152ebc8d4bdc",
-        "355d781bed497cbcb254bf2a2737b83fa51c84ea"
-    ],
-    "add": {
-        "2023.01.06": [
-            {
-                "short": "Additional change added",
-                "authors": ["Grub4K"]
-            },
-            {
-                "hash": "ab4cbeff00ac08f142f78a6281aa0c1124a59daa",
-                "short": "[extractor/drtv] Add series extractors (#5644)",
-                "authors": ["FrederikNS"]
-            },
-            {
-                "hash": "aaa0aaa5b1f2b4f7838836ca0df613ec0e058cad",
-                "short": "[cleanup] Misc cleanup and fomratting",
-                "authors": ["pukkandan"]
-            },
-            {
-                "hash": "bbb1bbb5b1f2b4f7838836ca0df613ec0e058cad",
-                "short": "[cleanup] Formatting",
-                "authors": ["pukkandan"]
-            },
-            {
-                "hash": "ccc2ccc5b1f2b4f7838836ca0df613ec0e058cad",
-                "short": "[cleanup] Misc",
-                "authors": ["pukkandan"]
-            },
-            {
-                "hash": "eee4eee5b1f2b4f7838836ca0df613ec0e058cad",
-                "short": "[cleanup] Consistent style for file heads",
-                "authors": ["pukkandan"]
-            },
-            {
-                "hash": "fff5fff5b1f2b4f7838836ca0df613ec0e058cad",
-                "short": "[cleanup] Deprecate YoutubeDL.parse_outtmpl",
-                "authors": ["pukkandan"]
-            },
-            {
-                "short": "[priority] Some priority change"
-            },
-            {
-                "short": "[priority/Grouped changes] Some grouped priority change 1"
-            },
-            {
-                "short": "[priority/Grouped changes] Some other grouped priority change 2"
-            }
-        ]
+    {
+        "action": "remove",
+        "hash": "6df4244d0b342fbe190448e0f0d9152ebc8d4bdc"
+    },
+    {
+        "action": "add",
+        "hash": "ab4cbeff00ac08f142f78a6281aa0c1124a59daa",
+        "short": "[extractor/drtv] Add series extractors (#5644)",
+        "authors": ["FrederikNS"]
+    },
+    {
+        "action": "add",
+        "hash": "fff5fff5b1f2b4f7838836ca0df613ec0e058cad",
+        "short": "[cleanup] Deprecate YoutubeDL.parse_outtmpl",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "add",
+        "short": "[priority] Some priority change"
+    },
+    {
+        "action": "add",
+        "short": "[priority/Grouped changes] Some grouped priority change 1"
+    },
+    {
+        "action": "add",
+        "short": "[priority/Grouped changes] Some other grouped priority change 2"
+    },
+    {
+        "action": "add",
+        "hash": "aaa0aaa5b1f2b4f7838836ca0df613ec0e058cad",
+        "short": "[cleanup] Misc cleanup and fomratting",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "add",
+        "hash": "bbb1bbb5b1f2b4f7838836ca0df613ec0e058cad",
+        "short": "[cleanup] Formatting",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "add",
+        "hash": "ccc2ccc5b1f2b4f7838836ca0df613ec0e058cad",
+        "short": "[cleanup] Misc",
+        "authors": ["pukkandan"]
+    },
+    {
+        "action": "add",
+        "hash": "ddd3ddd5b1f2b4f7838836ca0df613ec0e058cad",
+        "short": "[cleanup] Formatting",
+        "authors": ["bashonly"]
     }
-}
+]

@@ -261,28 +261,35 @@ def get_commits(start, end):
 
 def fix_commits(commits: Iterable[Commit]):
     with OVERRIDE_PATH.open("r") as file:
-        override = json.load(file)
+        overrides = json.load(file)
 
     commit_lookup = {commit.hash: commit for commit in commits}
-    for commit_hash, data in override["change"].items():
-        if commit_hash not in commit_lookup:
-            continue
-        commit = Commit(commit_hash, data["short"], data["authors"])
-        logger.info(f"CHANGE {commit_lookup[commit_hash]}")
-        logger.info(f"       -> {commit}")
-        commit_lookup[commit_hash] = commit
+    added_commits = []
+    for override in overrides:
+        if override["action"] == "add":
+            # fmt: off
+            commit = Commit(override.get("hash"), override["short"], override.get("authors"))
+            # fmt: on
+            logger.info(f"ADD    {commit}")
+            added_commits.append(commit)
 
-    for commit_hash in override["remove"]:
-        if commit_hash in commit_lookup:
-            logger.info(f"REMOVE {commit_lookup[commit_hash]}")
-            del commit_lookup[commit_hash]
+        elif override["action"] == "remove":
+            override_hash = override["hash"]
+            if override_hash in commit_lookup:
+                logger.info(f"REMOVE {commit_lookup[override_hash]}")
+                del commit_lookup[override_hash]
 
-    for data in override["add"].get(args.start) or ():
-        commit = Commit(data.get("hash"), data["short"], data.get("authors"))
-        logger.info(f"ADD    {commit}")
-        yield commit
+        elif override["action"] == "change":
+            override_hash = override["hash"]
+            if override_hash not in commit_lookup:
+                continue
+            commit = Commit(override_hash, override["short"], override["authors"])
+            logger.info(f"CHANGE {commit_lookup[commit.hash]} -> {commit}")
+            commit_lookup[commit.hash] = commit
 
-    yield from commit_lookup.values()
+    ordered_commits = {key: value for key, value in reversed(commit_lookup.items())}
+    yield from ordered_commits.values()
+    yield from added_commits
 
 
 def update_contributors(commits: list[Commit]):
