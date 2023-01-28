@@ -555,6 +555,84 @@ class TikTokIE(TikTokBaseIE):
         'only_matching': True
     }]
 
+    def get_replies_of_tiktok_comment(self, aweme_id, comment_id):
+                reply_json = self._download_json(
+                    f'https://api-h2.tiktokv.com/aweme/v1/comment/list/reply/?comment_id={comment_id}&item_id={aweme_id}&cursor=0&count=20&insert_ids=&top_ids=&channel_id=0', 
+                    data=b'', fatal=False, note='Checking if comment has any replies...') or {} 
+                has_more = traverse_obj(reply_json, ('has_more'))
+                commentsnum = len(reply_json['comments'])
+
+                for i in range(has_more) and commentsnum != 0:
+                    if i == 0:
+                        comment_data = reply_json
+                        note='Comment downloading completed!'
+                    else:
+                        comment_data = self._download_json(
+                            f'https://api-h2.tiktokv.com/aweme/v1/comment/list/reply/?comment_id={comment_id}&item_id={aweme_id}&count=50&insert_ids=&top_ids=&channel_id=0', 
+                            data=b'', fatal=False, query={'cursor': i + 50}, note='Downloading replies...') or {}
+                    for comment in comment_data['comments']:
+                        yield {
+                            'id': comment.get('cid'), # comment ID
+                            'alt_id': comment.get('aweme_id'), # "aweme" id, seems to be tiktok's universal id, we might swap them
+                            'text': comment.get('text'),
+                            'like_count': comment.get('digg_count'),
+                            'timestamp': comment.get('create_time'),
+                            'is_pinned': comment.get('author_pin'), # booleen
+                            'is_hidden': comment.get('no_show'), # booleen
+                            'lang': comment.get('comment_language'), # 2 letter language code: en, jp, fr, etc. shortened to lang as its more common and saves disk space
+                            'text_extra': comment.get('text_extra'), # includes hashtags, most likely same format as in video metadata
+                            'reply_count': comment.get('reply_comment_total'), 
+                            'author_id': comment['user']['uid'], # user id (possibly aweme id)
+                            'author': comment['user']['nickname'], # user nickname
+                            'author_label': comment.get('label_text'), 
+                            'author_handle': comment['user']['unique_id'], # user handle, @ultimatemariofan101 for example without the at symbol
+                            'author_thumbnail': comment['user']['avatar_larger']['url_list'][0], 
+                            'author_full_info': comment.get('user'),
+                        }
+
+    def _get_comments(self, aweme_id):
+                # references: https://gist.github.com/theblazehen/25c18eda95165e65fc5159942fb5e4db (uses v1 api), https://github.com/yt-dlp/yt-dlp/issues/5037 (new api documentation)
+                comment_json = self._download_json(
+                    f'https://api-h2.tiktokv.com/aweme/v2/comment/list/?aweme_id={aweme_id}&cursor=0&count=50&forward_page_type=1', 
+                    data=b'', fatal=False, note='Checking if video has any comments...') or {} 
+                has_more = traverse_obj(comment_json, ('has_more'))
+                commentsnum = len(comment_json['comments'])
+
+                for i in range(has_more) and commentsnum != 0:
+                    if i == 0:
+                        comment_data = comment_json
+                        note='Comment downloading completed!'
+                    else:
+                        comment_data = self._download_json(
+                            f'https://api-h2.tiktokv.com/aweme/v2/comment/list/?aweme_id={aweme_id}&count=50&forward_page_type=1', 
+                            data=b'', fatal=False, query={'cursor': i + 50}, note='Downloading a page of comments') or {}
+                    for comment in comment_data['comments']:
+                        yield {
+                            'id': comment.get('cid'), # comment ID
+                            'alt_id': comment.get('aweme_id'), # "aweme" id, seems to be tiktok's universal id, we might swap them
+                            'text': comment.get('text'),
+                            'like_count': comment.get('digg_count'),
+                            'timestamp': comment.get('create_time'),
+                            'is_pinned': comment.get('author_pin'), # booleen
+                            'is_hidden': comment.get('no_show'), # booleen
+                            'lang': comment.get('comment_language'), # 2 letter language code: en, jp, fr, etc
+                            'text_extra': comment.get('text_extra'), # includes hashtags, most likely same format as in video metadata
+                            'reply_count': comment.get('reply_comment_total'), 
+                            'parent': comment.get('reply_id'), # parent comment if
+                            'parent_reply': comment.get('reply_to_reply_id'), # exclusive to replies to replies
+                            'author_id': comment['user']['uid'], # user id (possibly aweme id)
+                            'author': comment['user']['nickname'], # user nickname
+                            'author_label': comment.get('label_text'),
+                            'author_handle': comment['user']['unique_id'], # user handle, @ultimatemariofan101 for example without the at symbol
+                            'author_thumbnail': comment['user']['avatar_larger']['url_list'][0], 
+                            'author_full_info': comment.get('user'),
+                        }
+                        if self._configuration_arg('no_tiktok_replies') is None:
+                            for comment in traverse_obj(comments):
+                                if comment.get('reply_comment_total') > 0:
+                                    get_replies_of_tiktok_comment(self, aweme_id, i)
+    
+    
     def _real_extract(self, url):
         video_id, user_id = self._match_valid_url(url).group('id', 'user_id')
         try:
