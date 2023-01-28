@@ -49,13 +49,13 @@ class YappyIE(InfoExtractor):
         has_watermark = str(media_url).endswith('wm.mp4')
 
         formats = [{
-            'url': media_url if media_url else None,
+            'url': media_url,
             'ext': 'mp4',
             'format_note': 'Watermarked' if has_watermark else None,
             'preference': -10 if has_watermark else None
         }]
 
-        if has_watermark:
+        if has_watermark and media_url:
             formats.append({
                 'url': str(media_url).replace('-wm.mp4', '.mp4'),
                 'ext': 'mp4'
