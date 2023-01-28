@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, traverse_obj, unified_timestamp
+from ..utils import int_or_none, traverse_obj, unified_timestamp, url_or_none
 
 
 class YappyIE(InfoExtractor):
@@ -45,11 +45,12 @@ class YappyIE(InfoExtractor):
         json_ld = self._search_json_ld(webpage, video_id)
         nextjs_data = self._search_nextjs_data(webpage, video_id)['props']['pageProps']
 
-        media_url = traverse_obj(nextjs_data, (('data', 'OpenGraphParameters'), 'link'), get_all=False)
+        media_url = url_or_none(
+            traverse_obj(nextjs_data, (('data', 'OpenGraphParameters'), 'link'), get_all=False))
         has_watermark = str(media_url).endswith('wm.mp4')
 
         formats = [{
-            'url': media_url,
+            'url': url_or_none(media_url),
             'ext': 'mp4',
             'format_note': 'Watermarked' if has_watermark else None,
             'preference': -10 if has_watermark else None
@@ -57,7 +58,7 @@ class YappyIE(InfoExtractor):
 
         if has_watermark and media_url:
             formats.append({
-                'url': str(media_url).replace('-wm.mp4', '.mp4'),
+                'url': url_or_none(str(media_url).replace('-wm.mp4', '.mp4')),
                 'ext': 'mp4'
             })
 
