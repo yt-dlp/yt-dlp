@@ -1,7 +1,9 @@
 import json
+import re
 
 from .common import InfoExtractor
 from ..utils import (
+    classproperty,
     int_or_none,
     traverse_obj,
     urljoin
@@ -25,66 +27,64 @@ class BrainPOPBaseIE(InfoExtractor):
         1526: 'Your account is locked. Reset your password, or ask a teacher or administrator for help.',  # LOGIN_FAILED_ACCOUNT_LOCKED
     }
 
+    @classproperty
+    def _VALID_URL(cls):
+        root = re.escape(cls._ORIGIN).replace(r'https:', r'https?:').replace(r'www\.', r'(?:www\.)?')
+        return rf'{root}/(?P<slug>[^/]+/[^/]+/(?P<id>[^/?#&]+))'
+
     def _assemble_formats(self, slug, format_id, display_id, token='', extra_fields={}):
         formats = []
+        formats = self._extract_m3u8_formats(
+            f'{urljoin(self._HLS_URL, slug)}.m3u8?{token}',
+            display_id, 'mp4', m3u8_id=f'{format_id}-hls', fatal=False)
         formats.append({
             'format_id': format_id,
-            'url': '%s?%s' % (urljoin(self._VIDEO_URL, slug), token),
-            **extra_fields
+            'url': f'{urljoin(self._VIDEO_URL, slug)}?{token}',
         })
-        formats.extend({**f, **extra_fields} for f in self._extract_m3u8_formats(
-            '%s.m3u8?%s' % (urljoin(self._HLS_URL, slug), token),
-            display_id, 'mp4', m3u8_id=f'{format_id}-hls', fatal=False))
+        for f in formats:
+            f.update(extra_fields)
         return formats
 
     def _extract_adaptive_formats(self, data, token, display_id, key_format='%s', extra_fields={}):
         formats = []
-        if data.get(key_format % 'high'):
-            formats.extend(self._assemble_formats(data[key_format % 'high'], 'high', display_id, token, {
-                'quality': -1,
-                **extra_fields
-            }))
-        if data.get(key_format % 'low'):
-            formats.extend(self._assemble_formats(data[key_format % 'high'], 'low', display_id, token, {
-                'quality': -2,
-                **extra_fields
-            }))
-        if data.get(key_format % 'ad_high'):
-            formats.extend(self._assemble_formats(data[key_format % 'ad_high'], 'ad_high', display_id, token, {
-                'quality': -1,
+        additional_key_formats = {
+            '%s': {},
+            'ad_%s': {
                 'format_note': 'Audio description',
-                'source_preference': -2,
-                **extra_fields
-            }))
-        if data.get(key_format % 'ad_low'):
-            formats.extend(self._assemble_formats(data[key_format % 'ad_low'], 'ad_low', display_id, token, {
-                'quality': -2,
-                'format_note': 'Audio description',
-                'source_preference': -2,
-                **extra_fields
-            }))
+                'source_preference': -2
+            }
+        }
+        for additional_key_format, additional_key_fields in additional_key_formats.items():
+            for key_quality, key_index in enumerate(('high', 'low')):
+                full_key_index = additional_key_format % (key_format % key_index)
+                if data.get(full_key_index):
+                    formats.extend(self._assemble_formats(data[full_key_index], full_key_index, display_id, token, {
+                        'quality': -1 - key_quality,
+                        **additional_key_fields,
+                        **extra_fields
+                    }))
         return formats
 
     def _perform_login(self, username, password):
         login_res = self._download_json(
             'https://api.brainpop.com/api/login', None,
-            data=json.dumps({'username': username, 'password': password}).encode('utf-8'),
+            data=json.dumps({'username': username, 'password': password}).encode(),
             headers={
                 'Content-Type': 'application/json',
                 'Referer': self._ORIGIN
             }, note='Logging in', errnote='Unable to log in', expected_status=400)
         status_code = int_or_none(login_res['status_code'])
         if status_code != 1505:
-            self.report_warning('Unable to login: %s' % (self._LOGIN_ERRORS.get(status_code)
-                                or login_res.get('message') or f'Got status code {status_code}'))
+            self.report_warning(
+                f'Unable to login: {self._LOGIN_ERRORS.get(status_code) or login_res.get("message")}'
+                or f'Got status code {status_code}')
 
 
 class BrainPOPIE(BrainPOPBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?brainpop\.com\/(?P<slug>[^/]+/[^/]+/(?P<id>[^/?#&]+))'
+    _ORIGIN = 'https://www.brainpop.com'
     _VIDEO_URL = 'https://svideos.brainpop.com'
     _HLS_URL = 'https://hls.brainpop.com'
     _CDN_URL = 'https://cdn.brainpop.com'
-    _ORIGIN = 'https://www.brainpop.com'
     _TESTS = [{
         'url': 'https://www.brainpop.com/health/conflictresolution/martinlutherkingjr/movie?ref=null',
         'md5': '3ead374233ae74c7f1b0029a01c972f0',
@@ -175,19 +175,18 @@ class BrainPOPLegacyBaseIE(BrainPOPBaseIE):
     def _real_extract(self, url):
         slug, display_id = self._match_valid_url(url).group('slug', 'id')
         webpage = self._download_webpage(url, display_id)
-        topic_data = self._parse_json(
-            self._search_regex(r'var\s+content\s*=\s*({.+?});', webpage, 'content data'),
-            display_id)['category']['unit']['topic']
-        token = self._search_regex(r'ec_token\s*:\s*[\'"](.+)[\'"]', webpage, 'video token')
+        topic_data = self._search_json(
+            r'var\s+content\s*=\s*', webpage, 'content data',
+            display_id, end_pattern=';')['category']['unit']['topic']
+        token = self._search_regex(r'ec_token\s*:\s*[\'"]([^\'"]+)', webpage, 'video token')
         return self._parse_js_topic_data(topic_data, display_id, token)
 
 
 class BrainPOPJrIE(BrainPOPLegacyBaseIE):
-    _VALID_URL = r'https?://jr\.brainpop\.com\/(?P<slug>[^/]+/[^/]+/(?P<id>[^/?#&]+))'
+    _ORIGIN = 'https://jr.brainpop.com'
     _VIDEO_URL = 'https://svideos-jr.brainpop.com'
     _HLS_URL = 'https://hls-jr.brainpop.com'
     _CDN_URL = 'https://cdn-jr.brainpop.com'
-    _ORIGIN = 'https://jr.brainpop.com'
     _TESTS = [{
         'url': 'https://jr.brainpop.com/health/feelingsandsel/emotions/',
         'md5': '04e0561bb21770f305a0ce6cf0d869ab',
@@ -211,11 +210,10 @@ class BrainPOPJrIE(BrainPOPLegacyBaseIE):
 
 
 class BrainPOPELLIE(BrainPOPLegacyBaseIE):
-    _VALID_URL = r'https?://ell\.brainpop\.com\/(?P<slug>[^/]+/[^/]+/(?P<id>[^/?#&]+))'
+    _ORIGIN = 'https://ell.brainpop.com'
     _VIDEO_URL = 'https://svideos-esl.brainpop.com'
     _HLS_URL = 'https://hls-esl.brainpop.com'
     _CDN_URL = 'https://cdn-esl.brainpop.com'
-    _ORIGIN = 'https://ell.brainpop.com'
     _TESTS = [{
         'url': 'https://ell.brainpop.com/level1/unit1/lesson1/',
         'md5': 'a2012700cfb774acb7ad2e8834eed0d0',
@@ -242,11 +240,10 @@ class BrainPOPELLIE(BrainPOPLegacyBaseIE):
 
 class BrainPOPEspIE(BrainPOPLegacyBaseIE):
     IE_DESC = 'BrainPOP Español'
-    _VALID_URL = r'https?://esp\.brainpop\.com\/(?P<slug>[^/]+/[^/]+/(?P<id>[^/?#&]+))'
+    _ORIGIN = 'https://esp.brainpop.com'
     _VIDEO_URL = 'https://svideos.brainpop.com'
     _HLS_URL = 'https://hls.brainpop.com'
     _CDN_URL = 'https://cdn.brainpop.com/mx'
-    _ORIGIN = 'https://esp.brainpop.com'
     _TESTS = [{
         'url': 'https://esp.brainpop.com/ciencia/la_diversidad_de_la_vida/ecosistemas/',
         'md5': 'cb3f062db2b3c5240ddfcfde7108f8c9',
@@ -273,11 +270,10 @@ class BrainPOPEspIE(BrainPOPLegacyBaseIE):
 
 class BrainPOPFrIE(BrainPOPLegacyBaseIE):
     IE_DESC = 'BrainPOP Français'
-    _VALID_URL = r'https?://fr\.brainpop\.com\/(?P<slug>[^/]+/[^/]+/(?P<id>[^/?#&]+))'
+    _ORIGIN = 'https://fr.brainpop.com'
     _VIDEO_URL = 'https://svideos.brainpop.com'
     _HLS_URL = 'https://hls.brainpop.com'
     _CDN_URL = 'https://cdn.brainpop.com/fr'
-    _ORIGIN = 'https://fr.brainpop.com'
     _TESTS = [{
         'url': 'https://fr.brainpop.com/sciencesdelaterre/energie/sourcesdenergie/',
         'md5': '97e7f48af8af93f8a2be11709f239371',
@@ -304,11 +300,10 @@ class BrainPOPFrIE(BrainPOPLegacyBaseIE):
 
 class BrainPOPIlIE(BrainPOPLegacyBaseIE):
     IE_DESC = 'BrainPOP Hebrew'
-    _VALID_URL = r'https?://il\.brainpop\.com\/(?P<slug>[^/]+/[^/]+/(?P<id>[^/?#&]+))'
+    _ORIGIN = 'https://il.brainpop.com'
     _VIDEO_URL = 'https://svideos.brainpop.com'
     _HLS_URL = 'https://hls.brainpop.com'
     _CDN_URL = 'https://cdn.brainpop.com/he'
-    _ORIGIN = 'https://il.brainpop.com'
     _TESTS = [{
         'url': 'https://il.brainpop.com/category_9/subcategory_150/subjects_3782/',
         'md5': '9e4ea9dc60ecd385a6e5ca12ccf31641',
