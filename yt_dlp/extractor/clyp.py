@@ -10,10 +10,10 @@ class ClypIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?clyp\.it/(?P<id>[a-z0-9]+)'
     _TESTS = [{
         'url': 'https://clyp.it/iynkjk4b',
-        'md5': '0e4aed7114549d6798f342e4e0386a9d',
+        'md5': '4bc6371c65210e7b372097fce4d92441',
         'info_dict': {
             'id': 'iynkjk4b',
-            'ext': 'mp3',
+            'ext': 'ogg',
             'title': 'research',
             'description': '#Research',
             'duration': 51.278,
@@ -24,7 +24,7 @@ class ClypIE(InfoExtractor):
         'url': 'https://clyp.it/b04p1odi?token=b0078e077e15835845c528a44417719d',
         'info_dict': {
             'id': 'b04p1odi',
-            'ext': 'mp3',
+            'ext': 'ogg',
             'title': 'GJ! (Reward Edit)',
             'description': 'Metal Resistance (THE ONE edition)',
             'duration': 177.789,
@@ -41,13 +41,9 @@ class ClypIE(InfoExtractor):
             'id': 'v42214lc',
             'ext': 'wav',
             'title': 'i dont wanna go (old version)',
-            'description': None,
             'duration': 113.528,
             'timestamp': 1607348505,
             'upload_date': '20201207',
-        },
-        'params': {
-            'format': 'wavStreamUrl',
         },
     }]
 
@@ -74,16 +70,18 @@ class ClypIE(InfoExtractor):
                         'url': format_url,
                         'format_id': format_id,
                         'vcodec': 'none',
+                        'acodec': ext.lower(),
                     })
 
         page = self._download_webpage(url, video_id=audio_id)
         wav_url = self._html_search_regex(
-            r'var\s*wavStreamUrl\s*=\s*["\'](?P<url>https?://[^\'"]+)', page, 'url', default='')
+            r'var\s*wavStreamUrl\s*=\s*["\'](?P<url>https?://[^\'"]+)', page, 'url', default=None)
         if wav_url:
             formats.append({
                 'url': wav_url,
                 'format_id': 'wavStreamUrl',
                 'vcodec': 'none',
+                'acodec': 'wav',
             })
 
         title = metadata['Title']
