@@ -157,7 +157,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 
 For ease of use, a few more compat options are available:
 
-* `--compat-options all`: Use all compat options (Do NOT use)
+* `--compat-options all`: Use all compat options (**Do NOT use**)
 * `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams`
 * `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect`
 * `--compat-options 2021`: Same as `--compat-options 2022,no-certifi,filename-sanitization,no-youtube-prefer-utc-upload-date`
@@ -392,8 +392,8 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --compat-options OPTS           Options that can help keep compatibility
                                     with youtube-dl or youtube-dlc
                                     configurations by reverting some of the
-                                    changes made in yt-dlp. See "Differences in
-                                    default behavior" for details
+                                    changes made in yt-dlp. See ["Differences in
+                                    default behavior"](#differences-in-default-behavior) for details
     --alias ALIASES OPTIONS         Create aliases for an option string. Unless
                                     an alias starts with a dash "-", it is
                                     prefixed with "--". Arguments are parsed
@@ -440,6 +440,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     explicitly provided IP block in CIDR notation
 
 ## Video Selection:
+<pre><code>
     -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the items
                                     to download. You can specify a range using
                                     "[START]:[STOP][:STEP]". For backward
@@ -465,7 +466,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --dateafter DATE                Download only videos uploaded on or after
                                     this date. The date formats accepted is the
                                     same as --date
-    --match-filters FILTER          Generic video filter. Any "OUTPUT TEMPLATE"
+    --match-filters FILTER          Generic video filter. Any "<a href="#output-template">OUTPUT TEMPLATE</a>"
                                     field can be compared with a number or a
                                     string using the operators defined in
                                     "Filtering Formats". You can also simply
@@ -508,6 +509,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     terminates the entire download queue
     --skip-playlist-after-errors N  Number of allowed failures until the rest of
                                     the playlist is skipped
+</pre></code>
 
 ## Download Options:
     -N, --concurrent-fragments N    Number of fragments of a dash/hlsnative
@@ -602,6 +604,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     --external-downloader-args)
 
 ## Filesystem Options:
+<pre><code>
     -a, --batch-file FILE           File containing URLs to download ("-" for
                                     stdin), one URL per line. Lines starting
                                     with "#", ";" or "]" are considered as
@@ -618,10 +621,9 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     the home path after download is finished.
                                     This option is ignored if --output is an
                                     absolute path
-    -o, --output [TYPES:]TEMPLATE   Output filename template; see "OUTPUT
-                                    TEMPLATE" for details
+    -o, --output [TYPES:]TEMPLATE   Output filename template; see "<a href="#output-template">OUTPUT TEMPLATE</a>" for details
     --output-na-placeholder TEXT    Placeholder for unavailable fields in
-                                    "OUTPUT TEMPLATE" (default: "NA")
+                                    "<a href="#output-template">OUTPUT TEMPLATE</a>" (default: "NA")
     --restrict-filenames            Restrict filenames to only ASCII characters,
                                     and avoid "&" and spaces in filenames
     --no-restrict-filenames         Allow Unicode characters, "&" and spaces in
@@ -698,6 +700,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     default ${XDG_CACHE_HOME}/yt-dlp
     --no-cache-dir                  Disable filesystem caching
     --rm-cache-dir                  Delete all filesystem cache files
+</pre></code>
 
 ## Thumbnail Options:
     --write-thumbnail               Write thumbnail image to disk
@@ -716,6 +719,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --write-desktop-link            Write a .desktop Linux internet shortcut
 
 ## Verbosity and Simulation Options:
+<pre><code>
     -q, --quiet                     Activate quiet mode. If used with --verbose,
                                     print the log to stderr
     --no-warnings                   Ignore warnings
@@ -747,7 +751,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     multiple times
     -j, --dump-json                 Quiet, but print JSON information for each
                                     video. Simulate unless --no-simulate is
-                                    used. See "OUTPUT TEMPLATE" for a
+                                    used. See "<a href="#output-template">OUTPUT TEMPLATE</a>" for a
                                     description of available keys
     -J, --dump-single-json          Quiet, but print JSON information for each
                                     url or infojson passed. Simulate unless
@@ -778,6 +782,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --write-pages                   Write downloaded intermediary pages to files
                                     in the current directory to debug problems
     --print-traffic                 Display sent and read HTTP traffic
+</pre></code>
 
 ## Workarounds:
     --encoding ENCODING             Force the specified encoding (experimental)
@@ -806,13 +811,14 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     subtitle download
 
 ## Video Format Options:
-    -f, --format FORMAT             Video format code, see "FORMAT SELECTION"
+<pre><code>
+    -f, --format FORMAT             Video format code, see "<a href="#format-selection">FORMAT SELECTION</a>"
                                     for more details
     -S, --format-sort SORTORDER     Sort the formats by the fields given, see
-                                    "Sorting Formats" for more details
+                                    "<a href="#sorting-formats">Sorting Formats</a>" for more details
     --format-sort-force             Force user specified sort order to have
-                                    precedence over all fields, see "Sorting
-                                    Formats" for more details (Alias: --S-force)
+                                    precedence over all fields, see "<a href="#sorting-formats">Sorting Formats</a>"
+                                    for more details (Alias: --S-force)
     --no-format-sort-force          Some fields have precedence over the user
                                     specified sort order (default)
     --video-multistreams            Allow multiple video streams to be merged
@@ -841,6 +847,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     formats, separated by "/", e.g. "mp4/mkv".
                                     Ignored if no merge is required. (currently
                                     supported: avi, flv, mkv, mov, mp4, webm)
+</pre></code>                                    
 
 ## Subtitle Options:
     --write-subs                    Write subtitle file
@@ -890,6 +897,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     is encrypted, yt-dlp will ask interactively
 
 ## Post-Processing Options:
+<pre><code>
     -x, --extract-audio             Convert video files to audio-only files
                                     (requires ffmpeg and ffprobe)
     --audio-format FORMAT           Format to convert the audio to when -x is
@@ -964,7 +972,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     to the video file
     --parse-metadata [WHEN:]FROM:TO
                                     Parse additional metadata like title/artist
-                                    from other fields; see "MODIFYING METADATA"
+                                    from other fields; see "<a href="#modifying-metadata">MODIFYING METADATA</a>"
                                     for details. Supported values of "WHEN" are
                                     the same as that of --use-postprocessor
                                     (default: pre_process)
@@ -984,7 +992,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     concatable. The "pl_video:" prefix can be
                                     used with "--paths" and "--output" to set
                                     the output filename for the concatenated
-                                    files. See "OUTPUT TEMPLATE" for details
+                                    files. See "<a href="#output-template">OUTPUT TEMPLATE</a>" for details
     --fixup POLICY                  Automatically correct known faults of the
                                     file. One of never (do nothing), warn (only
                                     emit a warning), detect_or_warn (the
@@ -1018,7 +1026,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     internal chapters. The "chapter:" prefix can
                                     be used with "--paths" and "--output" to set
                                     the output filename for the split files. See
-                                    "OUTPUT TEMPLATE" for details
+                                    "<a href="#output-template">OUTPUT TEMPLATE</a>" for details
     --no-split-chapters             Do not split video based on chapters (default)
     --remove-chapters REGEX         Remove chapters whose title matches the
                                     given regular expression. The syntax is the
@@ -1053,6 +1061,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     "playlist" (at end of playlist). This option
                                     can be used multiple times to add different
                                     postprocessors
+</pre></code>                                    
 
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
@@ -1090,6 +1099,7 @@ Make chapter entries for, or remove various segments (sponsor,
                                     https://sponsor.ajay.app
 
 ## Extractor Options:
+<pre><code>
     --extractor-retries RETRIES     Number of retries for known extractor errors
                                     (default is 3), or "infinite"
     --allow-dynamic-mpd             Process dynamic DASH manifests (default)
@@ -1102,9 +1112,10 @@ Make chapter entries for, or remove various segments (sponsor,
                                     formats at discontinuities such as ad breaks
                                     (default)
     --extractor-args IE_KEY:ARGS    Pass ARGS arguments to the IE_KEY extractor.
-                                    See "EXTRACTOR ARGUMENTS" for details. You
+                                    See "<a href="#extractor-arguments">EXTRACTOR ARGUMENTS</a>" for details. You
                                     can use this option multiple times to give
                                     arguments for different extractors
+</pre></code>                                      
 
 # CONFIGURATION
 
@@ -1433,7 +1444,7 @@ You can also use special names to select particular edge case formats:
  - `bv`, `bestvideo`: Select the best quality **video-only** format. Equivalent to `best*[acodec=none]`
  - `bv*`, `bestvideo*`: Select the best quality format that **contains video**. It may also contain audio. Equivalent to `best*[vcodec!=none]`
  - `ba`, `bestaudio`: Select the best quality **audio-only** format. Equivalent to `best*[vcodec=none]`
- - `ba*`, `bestaudio*`: Select the best quality format that **contains audio**. It may also contain video. Equivalent to `best*[acodec!=none]` ([Do not use!](https://github.com/yt-dlp/yt-dlp/issues/979#issuecomment-919629354))
+ - `ba*`, `bestaudio*`: Select the best quality format that **contains audio**. It may also contain video. Equivalent to `best*[acodec!=none]` ([**Do not use!**](https://github.com/yt-dlp/yt-dlp/issues/979#issuecomment-919629354))
  - `w*`, `worst*`: Select the worst quality format that contains either a video or an audio
  - `w`, `worst`: Select the worst quality format that contains both video and audio. Equivalent to `worst*[vcodec!=none][acodec!=none]`
  - `wv`, `worstvideo`: Select the worst quality video-only format. Equivalent to `worst*[acodec=none]`
