@@ -19,10 +19,9 @@ COMMIT_SEPARATOR = "---"
 USER_URL = "https://github.com"
 REPO_URL = "https://github.com/yt-dlp/yt-dlp"
 
-# fmt: off
-MESSAGE_RE = re.compile(r"(?:\[(?P<prefix>[^\]]+)\] )?(?P<message>.+?)(?: \(#(?P<issue>\d+)\))?")
+PREFIX_RE = r"(?:\[(?P<prefix>[^\]\/:,]+)(?:/(?P<details>[^\]:,]+))?(?:[:,](?P<sub_details>[^\]]+))?\] )"
+MESSAGE_RE = re.compile(rf"{PREFIX_RE}?(?P<message>.+?)(?: \(#(?P<issue>\d+)\))?")
 MISC_RE = re.compile(r"(?:^|\b)(?:misc|format(?:ting)?|fixes)(?:\b|$)", re.IGNORECASE)
-# fmt: on
 
 OVERRIDE_PATH = Path(__file__).parent / "changelog_override.json"
 CONTRIBUTORS_PATH = Path(__file__).parent.parent / "CONTRIBUTORS"
@@ -33,8 +32,9 @@ logger = logging.getLogger(__name__)
 class CommitGroup(enum.Enum):
     PRIORITY = "Important"
     CORE = "Core"
-    DOWNLOADER = "Downloader"
     EXTRACTOR = "Extractor"
+    DOWNLOADER = "Downloader"
+    POSTPROCESSOR = "Postprocessor"
     MISC = "Misc."
 
     @classmethod
@@ -47,7 +47,6 @@ class CommitGroup(enum.Enum):
                     "",
                 },
                 cls.CORE: {
-                    None,
                     "aes",
                     "cache",
                     "cookies",
@@ -62,32 +61,34 @@ class CommitGroup(enum.Enum):
                     "docs",
                     "build",
                 },
+                cls.EXTRACTOR: {
+                    "extractor",
+                },
                 cls.DOWNLOADER: {
                     "downloader",
                 },
-                cls.EXTRACTOR: {
-                    "extractor",
+                cls.POSTPROCESSOR: {
+                    "postprocessor",
                 },
             }.items()
             for name in names
         }
 
     @classmethod
-    def get(cls, value: str | None):
+    def get(cls, value: str):
         logger.debug(f"Got value: {value!r}")
         return cls.commit_lookup().get(value, cls.EXTRACTOR)
 
 
 @dataclass
 class CommitInfo:
-    prefix: str | None
     details: str | None
     message: str
     issue: str | None
     commit: Commit
 
     def key(self):
-        return (self.prefix or "", self.details or "", self.message)
+        return (self.details or "", self.message)
 
 
 @dataclass
@@ -133,14 +134,13 @@ class Changelog:
         current = None
         indent = ""
         for item in sorted(group, key=CommitInfo.key):
-            details = item.details or item.prefix
-            logger.debug(f"{details!r} != {current!r} = {details != current}")
-            if details != current:
+            logger.debug(f"{item.details!r} != {current!r} = {item.details != current}")
+            if item.details != current:
                 if current == "cleanup" and cleanup_misc:
                     yield from self._format_misc_items(cleanup_misc)
 
-                yield f"- {details}"
-                current = details
+                yield f"- {item.details}"
+                current = item.details
                 indent = "\t"
 
             if current == "cleanup" and MISC_RE.search(item.message):
@@ -202,38 +202,32 @@ def group_commits(commits: Iterable[Commit]) -> dict[CommitGroup, list[CommitInf
             logger.error(f"Error parsing short commit message: {commit.short!r}")
             continue
 
-        prefix, message, issue = match.groups()
-        # Skip version bump commit
+        prefix, details, sub_details, message, issue = match.groups()
         if prefix == "version":
             continue
 
         group = None
         if prefix:
-            if prefix.startswith("priority"):
-                _, _, prefix = prefix.partition("/")
-
+            if prefix == "priority":
+                prefix, _, details = (details or "").partition("/")
                 logger.debug(f"Increased priority: {message!r}")
                 group = CommitGroup.PRIORITY
 
-            else:
-                prefix = prefix.lower()
+            if sub_details:
+                message = f"`{sub_details}`: {message}"
 
-            prefix, _, detail = prefix.partition("/")
-            detail, _, sub_detail = detail.partition(":")
-            if sub_detail:
-                message = f"`{sub_detail}`: {message}"
+            elif not details:
+                details = prefix or None
 
-            prefix = prefix or None
-            detail = detail or None
+            if details and not group:
+                details = details.lower()
 
         else:
-            detail = None
+            group = CommitGroup.CORE
 
-        # fmt: off
         if not group:
-            group = CommitGroup.get(prefix)
-        groups[group].append(CommitInfo(prefix, detail, message, issue, commit))
-        # fmt: on
+            group = CommitGroup.get(prefix.lower())
+        groups[group].append(CommitInfo(details, message, issue, commit))
 
     return groups
 
