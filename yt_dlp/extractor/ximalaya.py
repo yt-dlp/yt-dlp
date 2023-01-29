@@ -136,7 +136,8 @@ class XimalayaAlbumIE(XimalayaBaseIE):
         'info_dict': {
             'title': '埃克哈特《修炼当下的力量》',
             'id': '6912905',
-        }
+        },
+        'playlist_mincount': 41,
     }]
 
     def _real_extract(self, url):
