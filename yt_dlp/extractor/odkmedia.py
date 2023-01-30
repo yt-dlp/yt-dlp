@@ -163,7 +163,8 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
             'thumbnail': (traverse_obj(video_info, ('images', 'thumbnail'))
                           or self._html_search_meta(['og:image', 'twitter:image'], webpage)),
             'title': (video_info.get('title')
-                      or self._html_search_meta(['og:title', 'twitter:title'], webpage)),
+                      or self._html_search_meta(['og:title', 'twitter:title'], webpage)
+                      or self._html_extract_title(webpage)),
             'alt_title': (video_info.get('titleKo') or video_info.get('titleZhHans')
                           or video_info.get('titleZhHant')),
             'description': (video_info.get('synopsis') or video_info.get('synopsisEn')
