@@ -16,20 +16,22 @@ class VocarooIE(InfoExtractor):
         },
         {
             'url': 'https://vocaroo.com/embed/12WqtjLnpj6g?autoplay=0',
-            'md5': 'c78c00064a58f98f4770ec0e7f4de1ff',
-            'info_dict': {
-                'id': '12WqtjLnpj6g',
-                'ext': 'mp3',
-                'title': 'Vocaroo video #12WqtjLnpj6g',
-            },
+            'only_matching': True,
         },
         {
             'url': 'https://voca.ro/12D52rgpzkB0',
-            'md5': 'c4a8339d8d592fc7d5ad6188431db1f7',
+            'only_matching': True,
+        },
+    ]
+
+    _WEBPAGE_TESTS = [
+        {
+            'url': 'https://qbnu.github.io/cool.html',
+            'md5': 'f322e529275dd8a47994919eeac404a5',
             'info_dict': {
-                'id': '12D52rgpzkB0',
+                'id': '19cgWmKO6AmC',
                 'ext': 'mp3',
-                'title': 'Vocaroo video #12D52rgpzkB0',
+                'title': 'Vocaroo video #19cgWmKO6AmC',
             },
         },
     ]
