@@ -123,7 +123,11 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
             }
             """
 
-    def _get_video_info(self, episode_number, program_slug, display_id):
+    def _real_extract(self, url):
+        program_slug, display_id, ep_number = self._match_valid_url(url).group(
+            'series_name', 'id', 'episode_num')
+        webpage = self._download_webpage(url, display_id)
+
         video_info = self._download_json(
             'https://odc-graphql.odkmedia.io/graphql', display_id,
             headers={'Content-type': 'application/json'},
@@ -131,19 +135,13 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
                 'operationName': 'Episode',
                 'variables': {
                     'programSlug': program_slug,
-                    'episodeNumber': int(episode_number),
+                    'episodeNumber': int(ep_number),
                     'kind': 'series',
                     'part': None
                 },
                 'query': self._QUERY}
             ).encode())['data']['episode']
-        return video_info
 
-    def _real_extract(self, url):
-        program_slug, display_id, ep_number = self._match_valid_url(url).group(
-            'series_name', 'id', 'episode_num')
-        webpage = self._download_webpage(url, display_id)
-        video_info = self._get_video_info(ep_number, program_slug, display_id)
         try:
             source_json = self._download_json(
                 f'https://odkmedia.io/odc/api/v2/playback/{video_info["id"]}/', display_id,
