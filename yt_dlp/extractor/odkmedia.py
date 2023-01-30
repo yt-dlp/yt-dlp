@@ -1,4 +1,5 @@
 import json
+import urllib.error
 
 from .common import InfoExtractor
 from ..utils import (
@@ -21,7 +22,7 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
             'title': 'EP 1 The Calling',
             'alt_title': '第1集 令出如山',
             'thumbnail': 'https://d2y2efdi5wgkcl.cloudfront.net/fit-in/256x256/media-io/2020/9/11/image.d9816e81.jpg',
-            'description': '疫情嚴峻，黨政軍民學、東西南北中協同應考',
+            'description': '疫情严峻，党政军民学、东西南北中协同应考',
             'tags': ['Social Humanities', 'Documentary', 'Medical', 'Social'],
         }
     }]
@@ -148,8 +149,9 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
                 f'https://odkmedia.io/odc/api/v2/playback/{video_info["id"]}/', display_id,
                 headers={'Authorization': '', 'service-name': 'odc'})
         except ExtractorError as e:
-            error_data = self._parse_json(e.cause.read(), display_id)
-            raise GeoRestrictedError(error_data.get('detail'))
+            if (isinstance(e.cause, urllib.error.HTTPError)):
+                error_data = self._parse_json(e.cause.read(), display_id)['detail']
+                raise GeoRestrictedError(error_data)
 
         formats, subtitles = [], {}
         for source in traverse_obj(source_json, ('sources', ...)):
@@ -166,12 +168,10 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
             'title': (video_info.get('title')
                       or self._html_search_meta(['og:title', 'twitter:title'], webpage)
                       or self._html_extract_title(webpage)),
-            'alt_title': (video_info.get('titleKo') or video_info.get('titleZhHans')
-                          or video_info.get('titleZhHant')),
-            'description': (video_info.get('synopsis') or video_info.get('synopsisEn')
-                            or video_info.get('synopsisKo') or video_info.get('synopsisZhHant')
-                            or self._html_search_meta(
-                                ['og:description', 'twitter:description', 'description'], webpage)),
+            'alt_title': traverse_obj(video_info, 'titleKo', 'titleZhHans', 'titleZhHant'),
+            'description': (traverse_obj(
+                video_info, 'synopsisEn', 'synopsisKo', 'synopsisZhHans', 'synopsisZhHant', 'synopisis')
+                or self._html_search_meta(['og:description', 'twitter:description', 'description'], webpage)),
             'formats': formats,
             'subtitles': subtitles,
             'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(", "))
