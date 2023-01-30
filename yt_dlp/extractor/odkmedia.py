@@ -134,7 +134,8 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
                     'kind': 'series',
                     'part': None
                 },
-                'query': self._QUERY}).encode())['data']['episode']
+                'query': self._QUERY}
+            ).encode())['data']['episode']
         return video_info
 
     def _real_extract(self, url):
