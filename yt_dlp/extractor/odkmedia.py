@@ -127,14 +127,14 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
             'https://odc-graphql.odkmedia.io/graphql', display_id,
             headers={'Content-type': 'application/json'},
             data=json.dumps({
-                "operationName": "Episode",
-                "variables": {
-                    "programSlug": program_slug,
-                    "episodeNumber": int(episode_number),
-                    "kind": "series",
-                    "part": None
+                'operationName': 'Episode',
+                'variables': {
+                    'programSlug': program_slug,
+                    'episodeNumber': int(episode_number),
+                    'kind': 'series',
+                    'part': None
                 },
-                "query": self._QUERY}).encode())['data']['episode']
+                'query': self._QUERY}).encode())['data']['episode']
         return video_info
 
     def _real_extract(self, url):
