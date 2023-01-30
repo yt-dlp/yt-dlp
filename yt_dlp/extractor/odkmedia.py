@@ -157,6 +157,8 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(source.get('url'), display_id)
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
+            else:
+                continue
 
         return {
             'id': str(video_info['id']),
