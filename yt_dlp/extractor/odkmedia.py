@@ -119,7 +119,7 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             else:
-                continue
+                self.report_warning('Can\'t extract format other than hls', display_id)
 
         return {
             'id': str(video_info['id']),
