@@ -525,7 +525,8 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
 
         return {
             'id': display_id,
-            'title': initial_state_json.get('title') or episode_json.get('name'),
+            'title': (initial_state_json.get('title') or initial_state_json.get('display_title')
+                      or episode_json.get('name')),
             'description': initial_state_json.get('description') or episode_json.get('description'),
             'duration': initial_state_json.get('duration'),
             'thumbnail': traverse_obj(episode_json, ('image', 'url')),
