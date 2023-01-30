@@ -5494,7 +5494,8 @@ def traverse_obj(
             elif isinstance(obj, collections.abc.Mapping):
                 iter_obj = obj.items()
             elif isinstance(obj, re.Match):
-                iter_obj = enumerate((obj.group(), *obj.groups()))
+                iter_obj = itertools.chain(
+                    enumerate((obj.group(), *obj.groups())), obj.groupdict().items())
             elif traverse_string:
                 iter_obj = enumerate(str(obj))
             else:
@@ -5922,8 +5923,9 @@ def merge_headers(*dicts):
     return {k.title(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}
 
 
-def cached_method(f):
+def cached_method(f, cache=None):
     """Cache a method"""
+    default_cache = {} if cache is None else cache
     signature = inspect.signature(f)
 
     @functools.wraps(f)

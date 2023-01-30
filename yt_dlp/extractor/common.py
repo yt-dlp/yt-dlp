@@ -40,6 +40,7 @@ from ..utils import (
     age_restricted,
     base_url,
     bug_reports_message,
+    cached_method,
     classproperty,
     clean_html,
     deprecation_warning,
@@ -64,6 +65,7 @@ from ..utils import (
     parse_iso8601,
     parse_m3u8_attributes,
     parse_resolution,
+    remove_start,
     sanitize_filename,
     sanitize_url,
     sanitized_Request,
@@ -508,7 +510,7 @@ class InfoExtractor:
     _ENABLED = True
     _NETRC_MACHINE = None
     IE_DESC = None
-    SEARCH_KEY = None
+    SEARCH_KEY = SH_KEY = None
     _VALID_URL = None
     _EMBED_REGEX = []
 
@@ -3476,6 +3478,7 @@ class InfoExtractor:
         tests = vars(cls).get('_WEBPAGE_TESTS', [])
         for t in tests:
             t['name'] = cls.ie_key()
+            t.setdefault('params', {}).setdefault('allowed_extractors', [re.escape(cls.IE_NAME), 'default'])
             yield t
         if getattr(cls, '__wrapped__', None):
             yield from cls.__wrapped__.get_webpage_testcases()
@@ -3793,6 +3796,100 @@ class SearchInfoExtractor(InfoExtractor):
     @classproperty
     def SEARCH_KEY(cls):
         return cls._SEARCH_KEY
+
+
+class SelfHostedInfoExtractor(InfoExtractor):
+    """
+    Base class for extractors for Self-hosted services.
+
+    Self-hosted extractors are for the services,
+    that cannot be handled by just listing all of their domains.
+    Mostly related to free and open source software,
+    which everyone is allowed to host on their own servers
+    (like PeerTube, Mastodon, Misskey, and lots of others).
+
+    Subclasses must define SH_KEY, _KNOWN_INSTANCES, _BASE_IE and optionally
+    _NODEINFO_SOFTWARES, _SH_VALID_CONTENT_REGEXES
+    # TODO: Better docs
+    """
+
+    # TODO: Generate and load _KNOWN_INSTANCES
+    # TODO: FIx lazy extraction
+
+    _BASE_IES = None
+    _NODEINFO_SOFTWARES = {}  # {software: (string, ...)}
+    _SH_VALID_CONTENT_REGEXES = ()
+
+    @classproperty
+    def IE_NAME(cls):
+        if cls._ENABLED:
+            return super().IE_NAME
+        return f'{cls.SH_KEY}:instances'
+
+    @classproperty
+    def _ENABLED(cls):
+        return not bool(cls._BASE_IES)
+
+    @classmethod
+    def _match_hostname(cls, url):
+        for ie in cls._BASE_IES or [cls]:
+            hostname = traverse_obj(
+                ie._match_valid_url(url), lambda k, _: k.startswith('domain'), get_all=False)
+            if hostname:
+                return ie, hostname.encode('idna').decode()
+        return None, None
+
+    @staticmethod
+    def _make_video_id(video_id, domain):
+        return f'{video_id}@{domain}'
+
+    @classmethod
+    def suitable(cls, url):
+        if not cls._ENABLED:
+            return
+        new_url = remove_start(url, f'{cls.SH_KEY}:')
+        if new_url != url:
+            return cls._match_hostname(new_url) != (None, None)
+        return cls._match_hostname(url)[1] in cls._KNOWN_INSTANCES
+
+    def extract(self, url):
+        return super().extract(remove_start(url, f'{self.SH_KEY}:'))
+
+    def _extract_from_webpage(self, url, webpage):
+        if self._ENABLED:
+            return
+        ie = self._is_selfhosted_instance(url, webpage)
+        if ie:
+            yield self.url_result(f'{ie.SH_KEY}:{url}', ie)
+            raise self.StopExtraction()
+
+    def _is_selfhosted_instance(self, url, webpage):
+        ie, hostname = self._match_hostname(url)
+        if not hostname or hostname in self._KNOWN_INSTANCES:
+            return ie
+
+        self.to_screen(f'Testing if {hostname} is a {self.SH_KEY} instance')
+        if self._probe_webpage(webpage) or self._fetch_nodeinfo_software(hostname) in self._NODEINFO_SOFTWARES:
+            self._KNOWN_INSTANCES.add(hostname)
+            return ie
+
+    def _probe_webpage(self, webpage):
+        return (any(p in webpage for p in itertools.chain(*self._NODEINFO_SOFTWARES.values()))
+                or any(re.match(regex, webpage) for regex in self._SH_VALID_CONTENT_REGEXES))
+
+    _NODEINFO_CACHE = {}
+
+    @functools.partial(cached_method, cache=_NODEINFO_CACHE)  # TODO: Cache this to disk
+    def _fetch_nodeinfo_software(self, hostname):
+        nodeinfo_href = self._download_json(
+            f'https://{hostname}/.well-known/nodeinfo', hostname,
+            'Downloading instance nodeinfo link', fatal=False)
+        nodeinfo_url = traverse_obj(nodeinfo_href, ('links', -1, 'href'))
+        if not nodeinfo_url:
+            return False
+
+        nodeinfo = self._download_json(nodeinfo_url, hostname, 'Downloading instance nodeinfo')
+        return traverse_obj(nodeinfo, ('software', 'name'))
 
 
 class UnsupportedURLIE(InfoExtractor):

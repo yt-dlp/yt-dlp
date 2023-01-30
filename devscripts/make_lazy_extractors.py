@@ -12,12 +12,17 @@ from inspect import getsource
 
 from devscripts.utils import get_filename_args, read_file, write_file
 
-NO_ATTR = object()
+
+class NO_ATTR:
+    __func__ = None
+
+
 STATIC_CLASS_PROPERTIES = [
     'IE_NAME', '_ENABLED', '_VALID_URL',  # Used for URL matching
     '_WORKING', 'IE_DESC', '_NETRC_MACHINE', 'SEARCH_KEY',  # Used for --extractor-descriptions
     'age_limit',  # Used for --age-limit (evaluated)
     '_RETURN_TYPE',  # Accessed in CLI only with instance (evaluated)
+    'SEARCH_KEY', 'SH_KEY', '_KNOWN_INSTANCES', '_BASE_IES',  # XXX
 ]
 CLASS_METHODS = [
     'ie_key', 'suitable', '_match_valid_url',  # Used for URL matching
@@ -25,6 +30,7 @@ CLASS_METHODS = [
     'description',  # Used for --extractor-descriptions
     'is_suitable',  # Used for --age-limit
     'supports_login', 'is_single_video',  # Accessed in CLI only with instance
+    '_match_hostname',  # XXX
 ]
 IE_TEMPLATE = '''
 class {name}({bases}):
@@ -72,16 +78,30 @@ def get_all_ies():
     return _ALL_CLASSES
 
 
+def repr_(val):
+    containers = {
+        list: '[]',
+        tuple: '()',
+        set: '{}',
+    }
+    outer = containers.get(type(val))
+    if outer:
+        return outer[0] + ', '.join(repr_(v) for v in val) + f', {outer[1]}'
+    elif isinstance(val, type):
+        return val.__name__
+    return repr(val)
+
+
 def extra_ie_code(ie, base=None):
     for var in STATIC_CLASS_PROPERTIES:
-        val = getattr(ie, var)
-        if val != (getattr(base, var) if base else NO_ATTR):
-            yield f'    {var} = {val!r}'
+        val = getattr(ie, var, NO_ATTR)
+        if val != getattr(base, var, NO_ATTR):
+            yield f'    {var} = {repr_(val)}'
     yield ''
 
     for name in CLASS_METHODS:
-        f = getattr(ie, name)
-        if not base or f.__func__ != getattr(base, name).__func__:
+        f = getattr(ie, name, NO_ATTR)
+        if f.__func__ != getattr(base, name, NO_ATTR).__func__:
             yield getsource(f)
 
 
