@@ -45,10 +45,6 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
             part
             kind
             link
-            nextEpisode {
-                ...NextEpisodeDetail
-                __typename
-            }
             title
             titleEn
             titleKo
@@ -60,20 +56,7 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
             synopsisZhHans
             synopsisZhHant
             seoSynopsis
-            seoSynopsisEn
-            seoSynopsisKo
-            seoSynopsisZhHans
-            seoSynopsisZhHant
             seoKeyword
-            seoKeywordEn
-            seoKeywordKo
-            seoKeywordZhHans
-            seoKeywordZhHant
-            seoTitle
-            seoTitleEn
-            seoTitleKo
-            seoTitleZhHans
-            seoTitleZhHant
             videoCcLanguages
             videoDuration
             releaseDate
@@ -91,28 +74,6 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
             }
             __typename
             }
-
-            fragment NextEpisodeDetail on Episode {
-                program {
-                    slug
-                    __typename
-                }
-                link
-                kind
-                part
-                episodeNumber
-                images {
-                    thumbnail
-                    __typename
-                }
-                title
-                titleEn
-                titleKo
-                titleZhHans
-                titleZhHant
-                __typename
-            }
-
             fragment PeopleItem on People {
                 role
                 slug
