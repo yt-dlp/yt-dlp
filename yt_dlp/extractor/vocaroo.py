@@ -3,6 +3,7 @@ from .common import InfoExtractor
 
 class VocarooIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?(?:vocaroo\.com|voca\.ro)/(?:embed/)?(?P<id>\w+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?://)?(?:www\.)?vocaroo\.com/embed/.+?)\1']
     _TESTS = [
         {
             'url': 'https://vocaroo.com/1de8yA3LNe77',
