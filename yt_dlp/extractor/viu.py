@@ -478,13 +478,28 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
             'cast': ['Junya Enoki', ' Yûichi Nakamura', ' Yuma Uchida', 'Asami Seto'],
             'age_limit': 13,
         }
+    }, {
+        # json ld metadata type equal to Movie instead of TVEpisodes
+        'url': 'https://www.viu.com/ott/id/id/all/video-japanese-animation-movies-demon_slayer_kimetsu_no_yaiba_the_movie_mugen_train-1165892707?containerId=1675060691786',
+        'info_dict': {
+            'id': '1165892707',
+            'ext': 'mp4',
+            'timestamp': 1577836800,
+            'upload_date': '20200101',
+            'title': 'Demon Slayer - Kimetsu no Yaiba - The Movie: Mugen Train',
+            'age_limit': 13,
+            'cast': 'count:9',
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1165895279/d-1',
+            'description': 'md5:1ce9c35a3aeab384085533f746c87469',
+            'duration': 7021,
+        }
     }]
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        episode_json = list(filter(
-            lambda x: x.get('@type') == 'TVEpisode', self._yield_json_ld(webpage, display_id)))[0] or {}
+        episode_json = traverse_obj(list(filter(
+            lambda x: x.get('@type') in ('TVEpisode', 'Movie'), self._yield_json_ld(webpage, display_id))), 0) or {}
         initial_state_json = self._search_json(
             r'window\.__INITIAL_STATE__\s*=', webpage, 'window.__INITIAL_STATE__',
             display_id)['content']['clipDetails']
