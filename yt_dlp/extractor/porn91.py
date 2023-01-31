@@ -12,7 +12,7 @@ from ..utils import (
 
 class Porn91IE(InfoExtractor):
     IE_NAME = '91porn'
-    _VALID_URL = r'(?:https?://)(?:www\.|)91porn\.com/.*([\?&])viewkey=(?P<id>[\w\d]+)'
+    _VALID_URL = r'(?:https?://)(?:www\.|)91porn\.com/view_video.php\?([^#]+&)?viewkey=(?P<id>\w+)'
 
     _TESTS = [{
         'url': 'http://91porn.com/view_video.php?viewkey=7e42283b4f5ab36da134',
@@ -29,15 +29,15 @@ class Porn91IE(InfoExtractor):
             'age_limit': 18,
         }
     }, {
-        'url': 'https://91porn.com/view_video.php?viewkey=726186267387ffe1e5e6',
-        'md5': 'b0067d158495566fe3d20bafd89e36d1',
+        'url': 'https://91porn.com/view_video.php?viewkey=7ef0cf3d362c699ab91c',
+        'md5': 'f8fd50540468a6d795378cd778b40226',
         'info_dict': {
-            'id': '726186267387ffe1e5e6',
-            'title': '见过卖老婆的，那你见过卖亲闺女的吗？',
-            'description': 'md5:5561851475c2d3f39aafd208ec705d3a',
+            'id': '7ef0cf3d362c699ab91c',
+            'title': '真实空乘，冲上云霄第二部',
+            'description': 'md5:618bf9652cafcc66cd277bd96789baea',
             'ext': 'm3u8',
-            'duration': 244,
-            'upload_date': '20221231',
+            'duration': 248,
+            'upload_date': '20221119',
             'comment_count': int,
             'view_count': int,
             'age_limit': 18,
@@ -54,46 +54,34 @@ class Porn91IE(InfoExtractor):
         if '视频不存在,可能已经被删除或者被举报为不良内容!' in webpage:
             raise ExtractorError('91 Porn says: Video does not exist', expected=True)
 
-        if '作为游客，你每天只可观看15个视频' in webpage:
-            raise ExtractorError('91 Porn says: Daily limit 15 videos exceeded', expected=True)
-
-        title = self._html_extract_title(webpage)
-        title = remove_end(title.replace('\n', ''), 'Chinese homemade video').strip()
+        daily_limit = self._search_regex(
+            r'作为游客，你每天只可观看([\d]+)个视频', webpage, 'exceeded daily limit', fatal=False)
+        if daily_limit:
+            raise ExtractorError(f'91 Porn says: Daily limit {daily_limit} videos exceeded', expected=True)
 
         video_link_url = self._search_regex(
-            r'document\.write\(\s*strencode2\s*\(\s*((?:"[^"]+")|(?:\'[^\']+\'))\s*\)\s*\)', webpage, 'video link')
+            r'document\.write\(\s*strencode2\s*\(\s*((?:"[^"]+")|(?:\'[^\']+\'))', webpage, 'video link')
         video_link_url = self._search_regex(
             r'src=["\']([^"\']+)["\']', urllib.parse.unquote(video_link_url), 'unquoted video link')
-
-        upload_date = self._search_regex(
-            r'<span\s+class=["\']title-yakov["\']>(\d{4}-\d{2}-\d{2})</span>', webpage, 'upload_date', fatal=False)
-        upload_date = unified_strdate(upload_date)
-
-        description = self._html_search_regex(
-            r'<span\s+class=["\']more title["\']>\s*(.*(?!</span>))\s*</span>', webpage, 'description', fatal=False)
-
-        duration = parse_duration(self._search_regex(
-            r'时长:\s*<span[^>]*>\s*(\d+:\d+:\d+)\s*</span>', webpage, 'duration', fatal=False))
-
-        comment_count = int_or_none(self._search_regex(
-            r'留言:\s*<span[^>]*>\s*(\d+)\s*</span>', webpage, 'comment count', fatal=False))
-
-        view_count = int_or_none(self._search_regex(
-            r'热度:\s*<span[^>]*>\s*(\d+)\s*</span>', webpage, 'view count', fatal=False))
 
         formats, subtitles = self._get_formats_and_subtitle(video_link_url, video_id)
 
         return {
             'id': video_id,
             'url': video_link_url,
-            'title': title,
+            'title': remove_end(self._html_extract_title(webpage).replace('\n', ''), 'Chinese homemade video').strip(),
             'formats': formats,
             'subtitles': subtitles,
-            'upload_date': upload_date,
-            'description': description,
-            'duration': duration,
-            'comment_count': comment_count,
-            'view_count': view_count,
+            'upload_date': unified_strdate(self._search_regex(
+                r'<span\s+class=["\']title-yakov["\']>(\d{4}-\d{2}-\d{2})</span>', webpage, 'upload_date', fatal=False)),
+            'description': self._html_search_regex(
+                r'<span\s+class=["\']more title["\']>\s*([^<]+)', webpage, 'description', fatal=False),
+            'duration': parse_duration(self._search_regex(
+                r'时长:\s*<span[^>]*>\s*(\d+(?::\d+){1,2})', webpage, 'duration', fatal=False)),
+            'comment_count': int_or_none(self._search_regex(
+                r'留言:\s*<span[^>]*>\s*(\d+)\s*</span>', webpage, 'comment count', fatal=False)),
+            'view_count': int_or_none(self._search_regex(
+                r'热度:\s*<span[^>]*>\s*(\d+)\s*</span>', webpage, 'view count', fatal=False)),
             'age_limit': 18,
         }
 
