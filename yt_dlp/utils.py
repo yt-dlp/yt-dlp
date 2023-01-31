@@ -5585,8 +5585,10 @@ def get_first(obj, keys, **kwargs):
 
 
 def time_seconds(**kwargs):
-    t = datetime.datetime.now(datetime.timezone(datetime.timedelta(**kwargs)))
-    return t.timestamp()
+    """
+    Returns TZ-aware time in seconds since the epoch (1970-01-01T00:00:00Z)
+    """
+    return time.time() + datetime.timedelta(**kwargs).total_seconds()
 
 
 # create a JSON Web Signature (jws) with HS256 algorithm
