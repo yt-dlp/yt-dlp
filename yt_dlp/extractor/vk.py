@@ -552,7 +552,7 @@ class VKUserVideosIE(VKBaseIE):
     }, {
         'url': 'https://vk.com/video/playlist/-174476437_2',
         'info_dict': {
-            'id': '-174476437_2',
+            'id': '-174476437_playlist_2',
             'title': 'Анонсы'
         },
         'playlist_mincount': 108,
