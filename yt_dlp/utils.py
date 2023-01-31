@@ -5585,6 +5585,9 @@ def get_first(obj, keys, **kwargs):
 
 
 def time_seconds(**kwargs):
+    """
+    Returns TZ-aware time in seconds since the epoch (1970-01-01T00:00:00Z)
+    """
     return time.time() + datetime.timedelta(**kwargs).total_seconds()
 
 
