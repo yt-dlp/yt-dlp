@@ -1985,6 +1985,9 @@ Line 1
             'dict': {},
         }
 
+        self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', 0, ...)), _TEST_DATA['urls'][0].values(),
+                        msg='`...` selection for dicts should select all values')
+
         # Test base functionality
         self.assertEqual(traverse_obj(_TEST_DATA, ('str',)), 'str',
                          msg='allow tuple path')
@@ -2130,6 +2133,20 @@ Line 1
                          msg='wrap expected_type fuction in try_call')
         self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, ..., expected_type=str), ['str'],
                          msg='eliminate items that expected_type fails on')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2}, expected_type=int), {0: 100},
+                         msg='type as expected_type should filter dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2, 2: 'None'}, expected_type=str_or_none), {0: '100', 1: '1.2'},
+                         msg='function as expected_type should transform dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, ({0: 1.2}, 0, {int_or_none}), expected_type=int), 1,
+                         msg='expected_type should not filter non final dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 100, 1: 'str'}}, expected_type=int), {0: {0: 100}},
+                         msg='expected_type should transform deep dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, [({0: '...'}, {0: '...'})], expected_type=type(...)), [{0: ...}, {0: ...}],
+                         msg='expected_type should transform branched dict values')
+        self.assertEqual(traverse_obj({1: {3: 4}}, [(1, 2), 3], expected_type=int), [4],
+                         msg='expected_type regression for type matching in tuple branching')
+        self.assertEqual(traverse_obj(_TEST_DATA, ['data', ...], expected_type=int), [],
+                         msg='expected_type regression for type matching in dict result')
 
         # Test get_all behavior
         _GET_ALL_DATA = {'key': [0, 1, 2]}

@@ -5446,6 +5446,8 @@ def traverse_obj(
     @param default          Value to return if the paths do not match.
     @param expected_type    If a `type`, only accept final values of this type.
                             If any other callable, try to call the function on each result.
+                            If the last key in the path is a `dict`, it will apply to each value inside
+                            the dict instead, recursively. This does respect branching paths.
     @param get_all          If `False`, return the first matching result, otherwise all matching ones.
     @param casesense        If `False`, consider string dictionary keys as case insensitive.
 
@@ -5471,7 +5473,7 @@ def traverse_obj(
     else:
         type_test = lambda val: try_call(expected_type or IDENTITY, args=(val,))
 
-    def apply_key(key, obj):
+    def apply_key(key, test_type, obj):
         if obj is None:
             return
 
@@ -5489,7 +5491,7 @@ def traverse_obj(
 
         elif isinstance(key, (list, tuple)):
             for branch in key:
-                _, result = apply_path(obj, branch)
+                _, result = apply_path(obj, branch, test_type)
                 yield from result
 
         elif key is ...:
@@ -5518,7 +5520,7 @@ def traverse_obj(
             yield from (v for k, v in iter_obj if try_call(key, args=(k, v)))
 
         elif isinstance(key, dict):
-            iter_obj = ((k, _traverse_obj(obj, v)) for k, v in key.items())
+            iter_obj = ((k, _traverse_obj(obj, v, test_type=test_type)) for k, v in key.items())
             yield {k: v if v is not None else default for k, v in iter_obj
                    if v is not None or default is not NO_DEFAULT}
 
@@ -5553,11 +5555,24 @@ def traverse_obj(
             with contextlib.suppress(IndexError):
                 yield obj[key]
 
-    def apply_path(start_obj, path):
+    def lazy_last(iterable):
+        iterator = iter(iterable)
+        prev = next(iterator, NO_DEFAULT)
+        if prev is NO_DEFAULT:
+            return
+
+        for item in iterator:
+            yield False, prev
+            prev = item
+
+        yield True, prev
+
+    def apply_path(start_obj, path, test_type=False):
         objs = (start_obj,)
         has_branched = False
 
-        for key in variadic(path, (str, bytes, dict, set)):
+        key = None
+        for last, key in lazy_last(variadic(path, (str, bytes, dict, set))):
             if is_user_input and key == ':':
                 key = ...
 
@@ -5571,14 +5586,17 @@ def traverse_obj(
                 # Verify function signature
                 inspect.signature(key).bind(None, None)
 
-            key_func = functools.partial(apply_key, key)
+            key_func = functools.partial(apply_key, key, last)
             objs = itertools.chain.from_iterable(map(key_func, objs))
+
+        if test_type and not isinstance(key, (dict, list, tuple)):
+            objs = map(type_test, objs)
 
         return has_branched, objs
 
-    def _traverse_obj(obj, path, use_list=True):
-        has_branched, results = apply_path(obj, path)
-        results = LazyList(x for x in map(type_test, results) if x is not None)
+    def _traverse_obj(obj, path, use_list=True, test_type=True):
+        has_branched, results = apply_path(obj, path, test_type)
+        results = LazyList(x for x in results if x is not None)
 
         if get_all and has_branched:
             return results.exhaust() if results or use_list else None
