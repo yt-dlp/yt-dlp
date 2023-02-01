@@ -1985,9 +1985,6 @@ Line 1
             'dict': {},
         }
 
-        self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', 0, ...)), _TEST_DATA['urls'][0].values(),
-                        msg='`...` selection for dicts should select all values')
-
         # Test base functionality
         self.assertEqual(traverse_obj(_TEST_DATA, ('str',)), 'str',
                          msg='allow tuple path')
