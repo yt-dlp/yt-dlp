@@ -105,6 +105,7 @@ from yt_dlp.utils import (
     sanitized_Request,
     shell_quote,
     smuggle_url,
+    str_or_none,
     str_to_int,
     strip_jsonp,
     strip_or_none,
@@ -2021,16 +2022,18 @@ Line 1
             with self.assertRaises(Exception, msg='Wrong function signature should raise in debug'):
                 traverse_obj(_TEST_DATA, lambda a, b, c: ...)
 
-        # Test set as key (transformation)
-        self.assertEqual(traverse_obj('str', ({str.upper}, )), 'STR',
-                         msg='Set should function as a transformation')
+        # Test set as key (transformation/type, like `expected_type`)
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str.upper}, )), ['STR'],
+                         msg='Function in set should be a transformation')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str})), ['str'],
+                         msg='Type in set should be a type filter')
         self.assertEqual(traverse_obj(_TEST_DATA, {dict}), _TEST_DATA,
-                         msg='A single set should be treated as a path')
+                         msg='A single set should be wrapped into a path')
         self.assertEqual(traverse_obj(_TEST_DATA, (..., {str.upper})), ['STR'],
                          msg='Transformation function should not raise')
-        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str}, {str.upper})),
-                         [str(item).upper() for item in _TEST_DATA.values() if item is not None],
-                         msg='Any callable in the set should be treated as a transformation function')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str_or_none})),
+                         [item for item in map(str_or_none, _TEST_DATA.values()) if item is not None],
+                         msg='Function in set should be a transformation')
         if __debug__:
             with self.assertRaises(Exception, msg='Sets with length != 1 should raise in debug'):
                 traverse_obj(_TEST_DATA, set())

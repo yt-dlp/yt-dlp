@@ -5424,8 +5424,9 @@ def traverse_obj(
 
     The keys in the path can be one of:
         - `None`:           Return the current object.
-        - `set`:            Requires the only item in the set to be a function,
-                            like `{func}`. Returns `func(obj)`.
+        - `set`:            Requires the only item in the set to be a type or function,
+                            like `{type}`/`{func}`. If a `type`, returns only values
+                            of this type. If a function, returns `func(obj)`.
         - `str`/`int`:      Return `obj[key]`. For `re.Match`, return `obj.group(key)`.
         - `slice`:          Branch out and return all values in `obj[key]`.
         - `Ellipsis`:       Branch out and return a list of all values.
@@ -5478,8 +5479,13 @@ def traverse_obj(
             yield obj
 
         elif isinstance(key, set):
-            assert len(key) == 1, 'Set should only be used to wrap a single transformation'
-            yield try_call(next(iter(key)), args=(obj,))
+            assert len(key) == 1, 'Set should only be used to wrap a single item'
+            item = next(iter(key))
+            if isinstance(item, type):
+                if isinstance(obj, item):
+                    yield obj
+            else:
+                yield try_call(item, args=(obj,))
 
         elif isinstance(key, (list, tuple)):
             for branch in key:
