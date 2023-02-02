@@ -293,7 +293,7 @@ class TVPStreamIE(InfoExtractor):
         channel_url = self._proto_relative_url('//stream.tvp.pl/?channel_id=%s' % channel_id or 'default')
         webpage = self._download_webpage(channel_url, channel_id or 'default', 'Downloading channel webpage')
         channels = self._search_json(
-            r'window\.__channels\s*=\s*', webpage, 'channel list', channel_id,
+            r'window\.__channels\s*=', webpage, 'channel list', channel_id,
             contains_pattern=r'\[\s*{(?s:.+)}\s*]')
         channel = traverse_obj(channels, (lambda _, v: channel_id == str(v['id'])), get_all=False) if channel_id else channels[0]
         audition = traverse_obj(channel, ('items', lambda _, v: v['is_live'] is True), get_all=False)
@@ -301,7 +301,7 @@ class TVPStreamIE(InfoExtractor):
             '_type': 'url_transparent',
             'id': channel_id or channel['id'],
             'url': 'tvp:%s' % audition['video_id'],
-            'title': audition['title'],
+            'title': audition.get('title'),
             'alt_title': channel.get('title'),
             'is_live': True,
             'ie_key': 'TVPEmbed',
