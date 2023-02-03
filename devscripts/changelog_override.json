@@ -27,10 +27,12 @@
     },
     {
         "action": "add",
+        "when": "2023.01.02",
         "short": "[priority/Grouped changes] Some grouped priority change 1"
     },
     {
         "action": "add",
+        "when": "2023.01.02",
         "short": "[priority/Grouped changes] Some other grouped priority change 2"
     },
     {

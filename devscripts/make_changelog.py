@@ -266,6 +266,12 @@ class CommitRange:
 
     def apply_overrides(self, overrides: list[dict]):
         for override in overrides:
+            when = override.get("when")
+            if when and when not in self and when != self._start:
+                logger.debug(f"Ignored {when}, not in commits {self._start!r}")
+                continue
+
+            override_hash = override.get("hash")
             if override["action"] == "add":
                 # fmt: off
                 commit = Commit(override.get("hash"), override["short"], override.get("authors"))
@@ -274,13 +280,11 @@ class CommitRange:
                 self._commits_added.append(commit)
 
             elif override["action"] == "remove":
-                override_hash = override["hash"]
                 if override_hash in self._commits:
                     logger.info(f"REMOVE {self._commits[override_hash]}")
                     del self._commits[override_hash]
 
             elif override["action"] == "change":
-                override_hash = override["hash"]
                 if override_hash not in self._commits:
                     continue
                 commit = Commit(override_hash, override["short"], override["authors"])
