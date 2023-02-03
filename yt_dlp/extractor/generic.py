@@ -2637,11 +2637,11 @@ class GenericIE(InfoExtractor):
 
         # Look for generic KVS player (before json-ld bc of some urls that break otherwise)
         found = self._search_regex((
-            r'<script\b[^>]+?\bsrc\s*=\s*(["\'])https?://(?:\S+?/)+kt_player\.js\?v=(?P<ver>\d+(?:\.\d+)+)\1[^>]*>',
-            r'kt_player\s*\(\s*(["\'])(?:(?!\1)[\w\W])+\1\s*,\s*(["\'])https?://(?:\S+?/)+kt_player\.swf\?v=(?P<ver>\d+(?:\.\d+)+)\2\s*,',
+            r'<script\b[^>]+?\bsrc\s*=\s*(["\'])https?://(?:(?!\1)[^?#])+/kt_player\.js\?v=(?P<ver>\d+(?:\.\d+)+)\1[^>]*>',
+            r'kt_player\s*\(\s*(["\'])(?:(?!\1)[\w\W])+\1\s*,\s*(["\'])https?://(?:(?!\2)[^?#])+/kt_player\.swf\?v=(?P<ver>\d+(?:\.\d+)+)\2\s*,',
         ), webpage, 'KVS player', group='ver', default=False)
         if found:
-            self.report_detected('KWS Player')
+            self.report_detected('KVS Player')
             if found.split('.')[0] not in ('4', '5', '6'):
                 self.report_warning(f'Untested major version ({found}) in player engine - download may fail.')
             return [self._extract_kvs(url, webpage, video_id)]
