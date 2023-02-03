@@ -1012,7 +1012,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             youtube\.googleapis\.com)/                        # the various hostnames, with wildcard subdomains
                          (?:.*?\#/)?                                          # handle anchor (#/) redirect urls
                          (?:                                                  # the various things that can precede the ID:
-                             (?:(?:v|embed|e|shorts)/(?!videoseries|live_stream))  # v/ or embed/ or e/ or shorts/
+                             (?:(?:v|embed|e|shorts|live)/(?!videoseries|live_stream))  # v/ or embed/ or e/ or shorts/
                              |(?:                                             # or the v= param in all its forms
                                  (?:(?:watch|movie)(?:_popup)?(?:\.php)?/?)?  # preceding watch(_popup|.php) or nothing (like /?v=xxxx)
                                  (?:\?|\#!?)                                  # the params delimiter ? or # or #!
@@ -2573,7 +2573,38 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'duration': 106,
             },
             'params': {'extractor_args': {'youtube': {'player_client': ['tv_embedded']}}, 'format': '251-drc'},
-        }
+        },
+        {
+            'url': 'https://www.youtube.com/live/qVv6vCqciTM',
+            'info_dict': {
+                'id': 'qVv6vCqciTM',
+                'ext': 'mp4',
+                'age_limit': 0,
+                'uploader_id': 'UCIdEIHpS0TdkqRkHL5OkLtA',
+                'comment_count': int,
+                'chapters': 'count:13',
+                'upload_date': '20221223',
+                'thumbnail': 'https://i.ytimg.com/vi/qVv6vCqciTM/maxresdefault.jpg',
+                'channel_url': 'https://www.youtube.com/channel/UCIdEIHpS0TdkqRkHL5OkLtA',
+                'uploader_url': 'http://www.youtube.com/channel/UCIdEIHpS0TdkqRkHL5OkLtA',
+                'like_count': int,
+                'release_date': '20221223',
+                'tags': ['Vtuber', '月ノ美兎', '名取さな', 'にじさんじ', 'クリスマス', '3D配信'],
+                'title': '【 #インターネット女クリスマス 】3Dで歌ってはしゃぐインターネットの女たち【月ノ美兎/名取さな】',
+                'view_count': int,
+                'playable_in_embed': True,
+                'duration': 4438,
+                'availability': 'public',
+                'channel_follower_count': int,
+                'channel_id': 'UCIdEIHpS0TdkqRkHL5OkLtA',
+                'categories': ['Entertainment'],
+                'live_status': 'was_live',
+                'release_timestamp': 1671793345,
+                'channel': 'さなちゃんねる',
+                'description': 'md5:6aebf95cc4a1d731aebc01ad6cc9806d',
+                'uploader': 'さなちゃんねる',
+            },
+        },
     ]
 
     _WEBPAGE_TESTS = [
