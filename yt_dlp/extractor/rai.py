@@ -69,8 +69,8 @@ class RaiBaseIE(InfoExtractor):
             })
         elif ext == 'm3u8' or 'format=m3u8' in media_url:
             formats.extend(self._extract_m3u8_formats(
-                media_url, video_id, 'mp4', m3u8_id='hls', fatal=False))
-            # TODO: after #5924 is merged add force_codecs={'acodec': 'mp4a', 'vcodec': 'avc1'}
+                media_url, video_id, 'mp4', m3u8_id='hls', fatal=False,
+                force_codecs={'acodec': 'mp4a', 'vcodec': 'avc1'}))
         elif ext == 'f4m':
             # very likely no longer needed. Cannot find any url that uses it.
             manifest_url = update_url_query(
