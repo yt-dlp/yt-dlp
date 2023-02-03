@@ -24,7 +24,7 @@ from ..utils import (
 
 class ZDFBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['DE']
-    _QUALITIES = ('auto', 'low', 'med', 'high', 'veryhigh', 'hd')
+    _QUALITIES = ('auto', 'low', 'med', 'high', 'veryhigh', 'hd', 'uhd')
 
     def _call_api(self, url, video_id, item, api_token=None, referrer=None):
         headers = {}
@@ -246,6 +246,19 @@ class ZDFIE(ZDFBaseIE):
             'upload_date': '20230131',
             'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/e2d7e55a-09f0-424e-ac73-6cac4dd65f35?layout=2400x1350',
         },
+    }, {
+        'url': 'https://www.zdf.de/dokumentation/terra-x/unser-gruener-planet-wuesten-doku-100.html',
+        'info_dict': {
+            'id': '220605_dk_gruener_planet_wuesten_tex',
+            'ext': 'mp4',
+            'title': 'Unser grüner Planet - Wüsten',
+            'description': 'md5:4fc647b6f9c3796eea66f4a0baea2862',
+            'duration': 2613.0,
+            'timestamp': 1654450200,
+            'upload_date': '20220605',
+            'format_note': 'uhd, main',
+            'thumbnail': 'https://www.zdf.de/assets/saguaro-kakteen-102~3840x2160?cb=1655910690796',
+        },
     }]
 
     def _extract_entry(self, url, player, content, video_id):
@@ -260,7 +273,7 @@ class ZDFIE(ZDFBaseIE):
             raise ExtractorError('Could not extract ptmd_path')
 
         info = self._extract_ptmd(
-            urljoin(url, ptmd_path.replace('{playerId}', 'ngplayer_2_4')), video_id, player['apiToken'], url)
+            urljoin(url, ptmd_path.replace('{playerId}', 'android_native_5')), video_id, player['apiToken'], url)
 
         thumbnails = []
         layouts = try_get(
