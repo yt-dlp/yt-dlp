@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+import itertools
 import json
 import logging
 import re
@@ -14,7 +15,6 @@ from typing import Iterable
 
 DEFAULT_AUTHOR = "pukkandan"
 AUTHOR_INDICATOR = "Authored by: "
-COMMIT_SEPARATOR = "---"
 
 USER_URL = "https://github.com"
 REPO_URL = "https://github.com/yt-dlp/yt-dlp"
@@ -43,9 +43,7 @@ class CommitGroup(enum.Enum):
         return {
             name: group
             for group, names in {
-                cls.PRIORITY: {
-                    "",
-                },
+                cls.PRIORITY: {""},
                 cls.CORE: {
                     "aes",
                     "cache",
@@ -61,23 +59,18 @@ class CommitGroup(enum.Enum):
                     "docs",
                     "build",
                 },
-                cls.EXTRACTOR: {
-                    "extractor",
-                },
-                cls.DOWNLOADER: {
-                    "downloader",
-                },
-                cls.POSTPROCESSOR: {
-                    "postprocessor",
-                },
+                cls.EXTRACTOR: {"extractor"},
+                cls.DOWNLOADER: {"downloader"},
+                cls.POSTPROCESSOR: {"postprocessor"},
             }.items()
             for name in names
         }
 
     @classmethod
     def get(cls, value: str):
-        logger.debug(f"Got value: {value!r}")
-        return cls.commit_lookup().get(value, cls.EXTRACTOR)
+        result = cls.commit_lookup().get(value, cls.EXTRACTOR)
+        logger.debug(f"Mapped {value!r} => {result.name}")
+        return result
 
 
 @dataclass
@@ -134,7 +127,6 @@ class Changelog:
         current = None
         indent = ""
         for item in sorted(group, key=CommitInfo.key):
-            logger.debug(f"{item.details!r} != {current!r} = {item.details != current}")
             if item.details != current:
                 if current == "cleanup" and cleanup_misc:
                     yield from self._format_misc_items(cleanup_misc)
@@ -159,7 +151,8 @@ class Changelog:
             return
 
         yield prefix
-        yield from (f"\t\t- {message}" for message in cls._format_misc_items(group))
+        for message in cls._format_misc_items(group):
+            yield f"\t\t- {message}"
 
     @classmethod
     def _format_misc_items(cls, group: dict[tuple[str, ...], list[CommitInfo]]):
@@ -191,102 +184,147 @@ class Changelog:
         return ", ".join(f"[{author}]({USER_URL}/{author})" for author in authors or ())
 
 
-def group_commits(commits: Iterable[Commit]) -> dict[CommitGroup, list[CommitInfo]]:
-    groups = defaultdict(list)
-    for commit in commits:
-        if commit.short.startswith("Release "):
-            continue
+class CommitRange:
+    COMMAND = "git"
+    COMMIT_SEPARATOR = "-----"
 
-        match = MESSAGE_RE.fullmatch(commit.short)
-        if not match:
-            logger.error(f"Error parsing short commit message: {commit.short!r}")
-            continue
+    def __init__(self, start: str, end: str) -> None:
+        self._start = start
+        self._end = end
+        self._commits = {commit.hash: commit for commit in self._get_commits_raw()}
+        self._commits_added = []
 
-        prefix, details, sub_details, message, issue = match.groups()
-        if prefix == "version":
-            continue
+    @classmethod
+    def from_single(cls, commitish: str = "HEAD"):
+        start_commitish = cls.get_prev_tag(commitish)
+        end_commitish = cls.get_next_tag(commitish)
+        if start_commitish == end_commitish:
+            start_commitish = cls.get_prev_tag(f"{commitish}~")
+        logger.info(
+            f"Determined range from {commitish!r}: {start_commitish}..{end_commitish}"
+        )
+        return cls(start_commitish, end_commitish)
 
-        group = None
-        if prefix:
-            if prefix == "priority":
-                prefix, _, details = (details or "").partition("/")
-                logger.debug(f"Increased priority: {message!r}")
-                group = CommitGroup.PRIORITY
+    @classmethod
+    def get_prev_tag(cls, commitish: str) -> str:
+        command = [cls.COMMAND, "describe", "--tags", "--abbrev=0", commitish]
+        return subprocess.check_output(command, text=True).strip()
 
-            if sub_details:
-                message = f"`{sub_details}`: {message}"
+    @classmethod
+    def get_next_tag(cls, commitish: str) -> str:
+        command = [cls.COMMAND, "describe", "--contains", "--abbrev=0", commitish]
+        result = subprocess.run(
+            command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True
+        )
+        if result.returncode:
+            return "HEAD"
 
-            elif not details:
-                details = prefix or None
+        return result.stdout.partition("~")[0].strip()
 
-            if details and not group:
-                details = details.lower()
+    def __iter__(self):
+        return iter(itertools.chain(self._commits.values(), self._commits_added))
 
-        else:
-            group = CommitGroup.CORE
+    def __len__(self):
+        return len(self._commits) + len(self._commits_added)
 
-        if not group:
-            group = CommitGroup.get(prefix.lower())
-        groups[group].append(CommitInfo(details, message, issue, commit))
+    def __contains__(self, commit: Commit | str):
+        if isinstance(commit, Commit):
+            if not commit.hash:
+                return False
+            commit = commit.hash
 
-    return groups
+        return commit in self._commits
 
+    def _is_ancestor(self, commitish):
+        command = [self.COMMAND, "merge-base", "--is-ancestor", commitish, self._start]
+        return bool(subprocess.call(command))
 
-def get_commits(start, end):
-    # fmt: off
-    command = ["git", "log", f"--format=%H%n%s%n%b%n{COMMIT_SEPARATOR}", f"{start}..{end}"]
-    # fmt: on
-    result = subprocess.run(command, stdout=subprocess.PIPE, text=True)
-    lines = iter(result.stdout.splitlines(False))
-    for line in lines:
-        commit_hash = line
-        short = next(lines)
+    def _get_commits_raw(self):
+        command = [
+            self.COMMAND,
+            "log",
+            f"--format=%H%n%s%n%b%n{self.COMMIT_SEPARATOR}",
+            f"{self._start}..{self._end}",
+        ]
+        result = subprocess.check_output(command, text=True)
+        lines = iter(result.splitlines(False))
+        for line in lines:
+            commit_hash = line
+            short = next(lines)
+            skip = short.startswith("Release ") or short == "[version] update"
 
-        authors = [DEFAULT_AUTHOR]
-        line = next(lines)
-        while line != COMMIT_SEPARATOR:
-            if line.startswith(AUTHOR_INDICATOR):
-                authors = line.removeprefix(AUTHOR_INDICATOR).split(", ")
+            authors = [DEFAULT_AUTHOR]
+            for line in iter(lambda: next(lines), self.COMMIT_SEPARATOR):
+                if line.startswith(AUTHOR_INDICATOR):
+                    authors = line.removeprefix(AUTHOR_INDICATOR).split(", ")
 
-            line = next(lines)
+            commit = Commit(commit_hash, short, authors)
+            if skip:
+                logger.debug(f"Skipped commit: {commit}")
+            else:
+                yield commit
 
-        yield Commit(commit_hash, short, authors)
+    def apply_overrides(self, overrides: list[dict]):
+        for override in overrides:
+            if override["action"] == "add":
+                # fmt: off
+                commit = Commit(override.get("hash"), override["short"], override.get("authors"))
+                # fmt: on
+                logger.info(f"ADD    {commit}")
+                self._commits_added.append(commit)
 
+            elif override["action"] == "remove":
+                override_hash = override["hash"]
+                if override_hash in self._commits:
+                    logger.info(f"REMOVE {self._commits[override_hash]}")
+                    del self._commits[override_hash]
 
-def fix_commits(commits: Iterable[Commit]):
-    with OVERRIDE_PATH.open("r") as file:
-        overrides = json.load(file)
+            elif override["action"] == "change":
+                override_hash = override["hash"]
+                if override_hash not in self._commits:
+                    continue
+                commit = Commit(override_hash, override["short"], override["authors"])
+                logger.info(f"CHANGE {self._commits[commit.hash]} -> {commit}")
+                self._commits[commit.hash] = commit
 
-    commit_lookup = {commit.hash: commit for commit in commits}
-    added_commits = []
-    for override in overrides:
-        if override["action"] == "add":
-            # fmt: off
-            commit = Commit(override.get("hash"), override["short"], override.get("authors"))
-            # fmt: on
-            logger.info(f"ADD    {commit}")
-            added_commits.append(commit)
+        self._commits = {key: value for key, value in reversed(self._commits.items())}
 
-        elif override["action"] == "remove":
-            override_hash = override["hash"]
-            if override_hash in commit_lookup:
-                logger.info(f"REMOVE {commit_lookup[override_hash]}")
-                del commit_lookup[override_hash]
-
-        elif override["action"] == "change":
-            override_hash = override["hash"]
-            if override_hash not in commit_lookup:
+    def groups(self) -> dict[CommitGroup, list[CommitInfo]]:
+        groups = defaultdict(list)
+        for commit in self:
+            match = MESSAGE_RE.fullmatch(commit.short)
+            if not match:
+                logger.error(f"Error parsing short commit message: {commit.short!r}")
                 continue
-            commit = Commit(override_hash, override["short"], override["authors"])
-            logger.info(f"CHANGE {commit_lookup[commit.hash]} -> {commit}")
-            commit_lookup[commit.hash] = commit
 
-    ordered_commits = {key: value for key, value in reversed(commit_lookup.items())}
-    yield from ordered_commits.values()
-    yield from added_commits
+            prefix, details, sub_details, message, issue = match.groups()
+            group = None
+            if prefix:
+                if prefix == "priority":
+                    prefix, _, details = (details or "").partition("/")
+                    logger.debug(f"Priority: {message!r}")
+                    group = CommitGroup.PRIORITY
+
+                if sub_details:
+                    message = f"`{sub_details}`: {message}"
+
+                elif not details:
+                    details = prefix or None
+
+                if details and not group:
+                    details = details.lower()
+
+            else:
+                group = CommitGroup.CORE
+
+            if not group:
+                group = CommitGroup.get(prefix.lower())
+            groups[group].append(CommitInfo(details, message, issue, commit))
+
+        return groups
 
 
-def update_contributors(commits: list[Commit]):
+def update_contributors(commits: Iterable[Commit]):
     contributors = set()
     with CONTRIBUTORS_PATH.open() as file:
         for line in filter(None, map(str.strip, file)):
@@ -315,12 +353,11 @@ if __name__ == "__main__":
 
     # fmt: off
     parser = argparse.ArgumentParser(description="Create a changelog from git range")
-    parser.add_argument("start", help="The hash or tag to start from")
-    parser.add_argument("end", default="HEAD", nargs="?", help="The hash or tag to end on (default: HEAD)")
+    parser.add_argument("commitish", default="HEAD", nargs="?", help="The commitish to create the range from (default: HEAD)")
     parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase verbosity")
     parser.add_argument("-c", "--contributors", action="store_true", help="Update CONTRIBUTORS file")
     # fmt: on
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
     logging.basicConfig(
         datefmt="%Y-%m-%d %H-%M-%S",
         format="{asctime} | {levelname:<8} | {message}",
@@ -333,12 +370,16 @@ if __name__ == "__main__":
         stream=sys.stderr,
     )
 
-    commits = get_commits(args.start, args.end)
-    commits = list(fix_commits(commits))
+    commits = CommitRange.from_single(args.commitish)
+
+    with OVERRIDE_PATH.open() as file:
+        overrides = json.load(file)
+    commits.apply_overrides(overrides)
+
     logger.info(f"Loaded {len(commits)} commits")
 
     if args.contributors:
         new_contributors = update_contributors(commits)
         logger.info(f"Added these new contributors: {new_contributors}")
 
-    print(Changelog(group_commits(commits)))
+    print(Changelog(commits.groups()))
