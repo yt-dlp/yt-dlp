@@ -174,7 +174,8 @@ class ZDFIE(ZDFBaseIE):
             'thumbnail': 'md5:e65f459f741be5455c952cd820eb188e',
             'title': 'heute journal vom 30.12.2021',
             'timestamp': 1640897100,
-        }
+        },
+        'skip': 'No longer available: "Diese Seite wurde leider nicht gefunden"',
     }, {
         'url': 'https://www.zdf.de/dokumentation/terra-x/die-magie-der-farben-von-koenigspurpur-und-jeansblau-100.html',
         'info_dict': {
@@ -189,7 +190,7 @@ class ZDFIE(ZDFBaseIE):
         },
     }, {
         'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
-        'md5': '1b93bdec7d02fc0b703c5e7687461628',
+        'md5': '57af4423db0455a3975d2dc4578536bc',
         'info_dict': {
             'ext': 'mp4',
             'id': 'video_funk_1770473',
@@ -198,7 +199,7 @@ class ZDFIE(ZDFBaseIE):
             'title': 'Alles ist verzaubert',
             'timestamp': 1635520560,
             'upload_date': '20211029',
-            'thumbnail': 'https://www.zdf.de/assets/teaser-funk-alles-ist-verzaubert-100~1920x1080?cb=1636466431799',
+            'thumbnail': 'https://www.zdf.de/assets/teaser-funk-alles-ist-verzaubert-102~1920x1080?cb=1663848412907',
         },
     }, {
         # Same as https://www.phoenix.de/sendungen/dokumentationen/gesten-der-maechtigen-i-a-89468.html?ref=suche
@@ -241,8 +242,8 @@ class ZDFIE(ZDFBaseIE):
             'title': 'Das Geld anderer Leute',
             'description': 'md5:cb6f660850dc5eb7d1ab776ea094959d',
             'duration': 2581.0,
-            'timestamp': 1654790700,
-            'upload_date': '20220609',
+            'timestamp': 1675160100,
+            'upload_date': '20230131',
             'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/e2d7e55a-09f0-424e-ac73-6cac4dd65f35?layout=2400x1350',
         },
     }]
