@@ -36,14 +36,10 @@ def decode_base64(text):
     }))).decode()
 
 
-def make_format_id(format_id):
-    return try_call(lambda: variadic(format_id)[0].lstrip('_'))
-
-
 def get_formats(host, video_file):
     return [{
         'url': urljoin(f'https://{host}', decode_base64(video['video_url'])),
-        'format_id': make_format_id(video.get('format')),
+        'format_id': try_call(lambda: variadic(video['format'])[0].lstrip('_')),
         'quality': index,
     } for index, video in enumerate(video_file) if video.get('video_url')]
 
@@ -354,16 +350,11 @@ class TxxxIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, host, display_id = self._match_valid_url(url).group('id', 'host', 'display_id')
-        headers = {
-            'Referer': url,
-            'X-Requested-With': 'XMLHttpRequest',
-        }
+        headers = {'Referer': url, 'X-Requested-With': 'XMLHttpRequest'}
 
         video_file = self._call_api(
             f'https://{host}/api/videofile.php?video_id={video_id}&lifetime=8640000',
             video_id, fatal=True, note='Downloading video file info', headers=headers)
-
-        formats = get_formats(host, video_file)
 
         slug = f'{int(1E6 * (int(video_id) // 1E6))}/{1000 * (int(video_id) // 1000)}'
         video_info = self._call_api(
@@ -380,7 +371,7 @@ class TxxxIE(InfoExtractor):
             'like_count': int_or_none(traverse_obj(video_info, ('video', 'statistics', 'likes'))),
             'dislike_count': int_or_none(traverse_obj(video_info, ('video', 'statistics', 'dislikes'))),
             'age_limit': 18,
-            'formats': formats,
+            'formats': get_formats(host, video_file),
         }
 
 
@@ -409,27 +400,19 @@ class PornTopIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, host, display_id = self._match_valid_url(url).group('id', 'host', 'display_id')
-
         webpage = self._download_webpage(url, video_id)
 
-        # find the VideoObject json object
-        video_obj_text = self._search_regex(
-            r'<script[^>]*>[^<]*schemaJson\s*=\s*(?P<json_ld>[^<]+VideoObject[^<]+)\s*;\s*var\s+script\s*=[^<]*</script>',
-            webpage, 'VideoObject', group='json_ld')
-        # parse the string
-        info = self._json_ld(
-            self._parse_json(video_obj_text, video_id, transform_source=js_to_json, fatal=True),
-            video_id)
+        json_ld = self._json_ld(self._search_json(
+            r'\bschemaJson\s*=', webpage, 'JSON-LD', video_id, transform_source=js_to_json,
+            contains_pattern='{[^<]+?VideoObject[^<]+};'), video_id, fatal=True)
 
         video_file = self._parse_json(decode_base64(self._search_regex(
             r"window\.initPlayer\(.*}}},\s*'(?P<json_b64c>[^']+)'",
             webpage, 'json_urls', group='json_b64c')), video_id)
 
-        formats = get_formats(host, video_file)
-
         return merge_dicts({
             'id': video_id,
             'display_id': display_id,
             'age_limit': 18,
-            'formats': formats,
-        }, info)
+            'formats': get_formats(host, video_file),
+        }, json_ld)
