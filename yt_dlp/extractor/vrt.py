@@ -18,25 +18,25 @@ class VRTIE(GigyaBaseIE):
     IE_DESC = 'VRT'
     _VALID_URL = r'https?://(?:www\.)?vrt\.be/vrtnu/a-z/(?:[^/]+/){2}(?P<id>[^/?#&]+)'
     _TESTS = [{
-        'url': 'https://www.vrt.be/vrtnu/a-z/heizel-1985/trailer/heizel-1985-trailer/',
+        'url': 'https://www.vrt.be/vrtnu/a-z/de-ideale-wereld/2023-vj/de-ideale-wereld-d20230116/',
         'info_dict': {
-            'id': 'pbs-pub-e1d6e4ec-cbf4-451e-9e87-d835bb65cd28$vid-2ad45eb6-9bc8-40d4-ad72-5f25c0f59d75',
-            'title': 'Trailer \'Heizel 1985\'',
-            'thumbnail': 'https://images.vrt.be/orig/2022/09/07/6e44ce6f-2eb3-11ed-b07d-02b7b76bf47f.jpg',
+            'id': 'pbs-pub-855b00a8-6ce2-4032-ac4f-1fcf3ae78524$vid-d2243aa1-ec46-4e34-a55b-92568459906f',
+            'title': 'Tom Waes',
+            'thumbnail': 'https://images.vrt.be/orig/2023/01/10/1bb39cb3-9115-11ed-b07d-02b7b76bf47f.jpg',
             'ext': 'mp4',
-            'duration': 41.05,
-            'release_date': '20220908',
-            'description': 'md5:816dcd9e3be706b16e4e32e3f723a5a1',
-            'display_id': 'heizel-1985-trailer',
-            'episode_number': 0,
-            'timestamp': 1662609600,
-            'series': 'Heizel 1985',
-            'upload_date': '20220908',
+            'duration': 1939.0,
+            'release_date': '20230116',
+            'description': 'Satirisch actualiteitenmagazine met Ella Leyers. Tom Waes is te gast.',
+            'display_id': 'de-ideale-wereld-d20230116',
+            'episode_number': 1,
+            'timestamp': 1673905125,
+            'series': 'De ideale wereld',
+            'upload_date': '20230116',
             'channel': 'VRT',
-            'season_id': '1662373764370',
-            'episode_id': '1662373764405',
-            'release_timestamp': 1662609600,
-            'episode': 'Aflevering 0'
+            'season_id': '1672830988794',
+            'episode_id': '1672830988861',
+            'release_timestamp': 1673905125,
+            'episode': 'Aflevering 1'
         },
     }]
     _NETRC_MACHINE = 'vrtnu'
