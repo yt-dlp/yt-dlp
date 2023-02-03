@@ -183,7 +183,6 @@ class VRTIE(GigyaBaseIE):
                     'format_id': format_type,
                     'url': format_url,
                 })
-        self._sort_formats(formats)
 
         subtitle_urls = video_info.get('subtitleUrls')
         if isinstance(subtitle_urls, list):
