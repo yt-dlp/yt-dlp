@@ -115,7 +115,6 @@ class NPOIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
-        'skip': 'Currently broken',
     }, {
         'url': 'http://www.omroepwnl.nl/video/fragment/vandaag-de-dag-verkiezingen__POMS_WNL_853698',
         'info_dict': {
@@ -146,15 +145,12 @@ class NPOIE(InfoExtractor):
     }, {
         'url': 'http://www.zapp.nl/de-bzt-show/gemist/KN_1687547',
         'only_matching': True,
-        'skip': 'Video was removed',
     }, {
         'url': 'http://www.zapp.nl/de-bzt-show/filmpjes/POMS_KN_7315118',
         'only_matching': True,
-        'skip': 'Video was removed',
     }, {
         'url': 'http://www.zapp.nl/beste-vrienden-quiz/extra-video-s/WO_NTR_1067990',
         'only_matching': True,
-        'skip': 'Video was removed',
     }, {
         'url': 'https://www.npo3.nl/3onderzoekt/16-09-2015/VPWON_1239870',
         'only_matching': True,
@@ -165,19 +161,15 @@ class NPOIE(InfoExtractor):
     }, {
         'url': 'http://www.npo.nl/radio-gaga/13-06-2017/BNN_101383373',
         'only_matching': True,
-        'skip': 'Video was removed',
     }, {
         'url': 'https://www.zapp.nl/1803-skelterlab/instructie-video-s/740-instructievideo-s/POMS_AT_11736927',
         'only_matching': True,
-        'skip': 'Video was removed',
     }, {
         'url': 'https://www.npostart.nl/broodje-gezond-ei/28-05-2018/KN_1698996',
         'only_matching': True,
-        'skip': 'Video was removed',
     }, {
         'url': 'https://npo.nl/KN_1698996',
         'only_matching': True,
-        'skip': 'Video was removed',
     }, {
         'url': 'https://www.npo3.nl/the-genius/21-11-2022/VPWON_1341105',
         'info_dict': {
