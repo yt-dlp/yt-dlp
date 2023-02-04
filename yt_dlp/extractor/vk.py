@@ -117,7 +117,7 @@ class VKIE(VKBaseIE):
                 'upload_date': '20120212',
                 'comment_count': int,
                 'like_count': int,
-                'thumbnail': r're:https?://.+\.jpg$',
+                'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
             },
             'params': {'skip_download': 'm3u8'},
         },
@@ -134,7 +134,7 @@ class VKIE(VKBaseIE):
                 'upload_date': '20130720',
                 'comment_count': int,
                 'like_count': int,
-                'thumbnail': r're:https?://.+\.jpg$',
+                'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
             }
         },
         {
@@ -149,54 +149,9 @@ class VKIE(VKBaseIE):
                 'upload_date': '20120212',
                 'timestamp': 1329049880,
                 'uploader_id': '39545378',
-                'thumbnail': r're:https?://.+\.jpg$',
+                'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
             },
             'params': {'skip_download': 'm3u8'},
-        },
-        {
-            # VIDEO NOW REMOVED
-            # please update if you find a video whose URL follows the same pattern
-            'url': 'http://vk.com/video-8871596_164049491',
-            'md5': 'a590bcaf3d543576c9bd162812387666',
-            'note': 'Only available for registered users',
-            'info_dict': {
-                'id': '-8871596_164049491',
-                'ext': 'mp4',
-                'uploader': 'Триллеры',
-                'title': '► Бойцовский клуб / Fight Club 1999 [HD 720]',
-                'duration': 8352,
-                'upload_date': '20121218',
-                'view_count': int,
-            },
-            'skip': 'Removed',
-        },
-        {
-            'url': 'http://vk.com/hd_kino_mania?z=video-43215063_168067957%2F15c66b9b533119788d',
-            'info_dict': {
-                'id': '-43215063_168067957',
-                'ext': 'mp4',
-                'uploader': 'Bro Mazter',
-                'title': ' ',
-                'duration': 7291,
-                'upload_date': '20140328',
-                'uploader_id': '223413403',
-                'timestamp': 1396018030,
-            },
-            'skip': 'Requires vk account credentials',
-        },
-        {
-            'url': 'http://m.vk.com/video-43215063_169084319?list=125c627d1aa1cebb83&from=wall-43215063_2566540',
-            'md5': '0c45586baa71b7cb1d0784ee3f4e00a6',
-            'note': 'ivi.ru embed',
-            'info_dict': {
-                'id': '-43215063_169084319',
-                'ext': 'mp4',
-                'title': 'Книга Илая',
-                'duration': 6771,
-                'upload_date': '20140626',
-                'view_count': int,
-            },
-            'skip': 'Removed',
         },
         {
             'url': 'https://vk.com/video-93049196_456239755?list=ln-cBjJ7S4jYYx3ADnmDT',
@@ -211,26 +166,11 @@ class VKIE(VKBaseIE):
                 'timestamp': 1640162189,
                 'upload_date': '20211222',
                 'uploader_id': '-93049196',
-                'thumbnail': r're:https?://.+\.jpg$',
+                'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
             },
         },
         {
-            # video (removed?) only available with list id
-            'url': 'https://vk.com/video30481095_171201961?list=8764ae2d21f14088d4',
-            'md5': '091287af5402239a1051c37ec7b92913',
-            'info_dict': {
-                'id': '30481095_171201961',
-                'ext': 'mp4',
-                'title': 'ТюменцевВВ_09.07.2015',
-                'uploader': 'Anton Ivanov',
-                'duration': 109,
-                'upload_date': '20150709',
-                'view_count': int,
-            },
-            'skip': 'Removed',
-        },
-        {
-            # youtube embed
+            'note': 'youtube embed',
             'url': 'https://vk.com/video276849682_170681728',
             'info_dict': {
                 'id': 'V3K4mi0SYkc',
@@ -254,23 +194,45 @@ class VKIE(VKBaseIE):
                 'start_time': 0.0,
                 'categories': ['Nonprofits & Activism'],
                 'channel_url': 'https://www.youtube.com/channel/UCgzCNQ11TmR9V97ECnhi3gw',
+                'channel_follower_count': int,
                 'age_limit': 0,
             },
         },
         {
-            # dailymotion embed
-            'url': 'https://vk.com/video-37468416_456239855',
+            'note': 'dailymotion embed',
+            'url': 'https://vk.com/video-95168827_456239103?list=cca524a0f0d5557e16',
             'info_dict': {
-                'id': 'k3lz2cmXyRuJQSjGHUv',
+                'id': 'x8gfli0',
                 'ext': 'mp4',
-                'title': 'md5:d52606645c20b0ddbb21655adaa4f56f',
-                'description': 'md5:424b8e88cc873217f520e582ba28bb36',
-                'uploader': 'AniLibria.Tv',
-                'upload_date': '20160914',
-                'uploader_id': 'x1p5vl5',
-                'timestamp': 1473877246,
+                'title': 'md5:45410f60ccd4b2760da98cb5fc777d70',
+                'description': 'md5:2e71c5c9413735cfa06cf1a166f16c84',
+                'uploader': 'Movies and cinema.',
+                'upload_date': '20221218',
+                'uploader_id': 'x1jdavv',
+                'timestamp': 1671387617,
+                'age_limit': 0,
+                'duration': 2918,
+                'like_count': int,
+                'view_count': int,
+                'thumbnail': r're:https?://.+x1080$',
+                'tags': list
             },
-            'skip': 'Removed'
+        },
+        {
+            'url': 'https://vk.com/clips-74006511?z=clip-74006511_456247211',
+            'info_dict': {
+                'id': '-74006511_456247211',
+                'ext': 'mp4',
+                'comment_count': int,
+                'duration': 9,
+                'like_count': int,
+                'thumbnail': r're:https?://.+(?:\.jpg|getVideoPreview.*)$',
+                'timestamp': 1664995597,
+                'title': 'Clip by @madempress',
+                'upload_date': '20221005',
+                'uploader': 'Шальная императрица',
+                'uploader_id': '-74006511',
+            },
         },
         {
             # video key is extra_data not url\d+
@@ -288,7 +250,7 @@ class VKIE(VKBaseIE):
             'skip': 'Removed',
         },
         {
-            # finished live stream, postlive_mp4
+            'note': 'finished live stream, postlive_mp4',
             'url': 'https://vk.com/videos-387766?z=video-387766_456242764%2Fpl_-387766_-2',
             'info_dict': {
                 'id': '-387766_456242764',
@@ -615,13 +577,13 @@ class VKWallPostIE(VKBaseIE):
         'info_dict': {
             'id': '-23538238_35',
             'title': 'Black Shadow - Wall post -23538238_35',
-            'description': 'md5:3f84b9c4f9ef499731cf1ced9998cc0c',
+            'description': 'md5:190c78f905a53e0de793d83933c6e67f',
         },
         'playlist': [{
             'md5': '5ba93864ec5b85f7ce19a9af4af080f6',
             'info_dict': {
                 'id': '135220665_111806521',
-                'ext': 'mp4',
+                'ext': 'mov',
                 'title': 'Black Shadow - Слепое Верование',
                 'duration': 370,
                 'uploader': 'Black Shadow',
@@ -632,7 +594,7 @@ class VKWallPostIE(VKBaseIE):
             'md5': '4cc7e804579122b17ea95af7834c9233',
             'info_dict': {
                 'id': '135220665_111802303',
-                'ext': 'mp4',
+                'ext': 'mov',
                 'title': 'Black Shadow - Война - Негасимое Бездны Пламя!',
                 'duration': 423,
                 'uploader': 'Black Shadow',
@@ -643,16 +605,15 @@ class VKWallPostIE(VKBaseIE):
         'params': {
             'skip_download': True,
         },
-        'skip': 'Requires vk account credentials',
     }, {
         # single YouTube embed, no leading -
-        'url': 'https://vk.com/wall85155021_6319',
+        'url': 'https://vk.com/wall-211064634_4328',
         'info_dict': {
-            'id': '85155021_6319',
-            'title': 'Сергей Горбунов - Wall post 85155021_6319',
+            'id': '-211064634_4328',
+            'title': 'md5:eaccee920c2e92f4fef1c78d6ad9ff99',
+            'description': 'md5:e1d916cee68ccb30f6c2cf2ac18fd0f8',
         },
         'playlist_count': 1,
-        'skip': 'Requires vk account credentials',
     }, {
         # wall page URL
         'url': 'https://vk.com/wall-23538238_35',
@@ -711,21 +672,20 @@ class VKWallPostIE(VKBaseIE):
 
         for audio in re.findall(r'data-audio="([^"]+)', webpage):
             audio = self._parse_json(unescapeHTML(audio), post_id)
-            a = self._AUDIO._make(audio[:16])
-            if not a.url:
+            if not audio['url']:
                 continue
-            title = unescapeHTML(a.title)
-            performer = unescapeHTML(a.performer)
+            title = unescapeHTML(audio['title'])
+            artist = unescapeHTML(audio['artist'])
             entries.append({
-                'id': '%s_%s' % (a.owner_id, a.id),
-                'url': self._unmask_url(a.url, a.ads['vk_id']),
-                'title': '%s - %s' % (performer, title) if performer else title,
-                'thumbnails': [{'url': c_url} for c_url in a.cover_url.split(',')] if a.cover_url else None,
-                'duration': int_or_none(a.duration),
+                'id': '%s_%s' % (audio['owner_id'], audio['id']),
+                'url': audio['url'],
+                'title': '%s - %s' % (artist, title) if artist else title,
+                'thumbnails': [{'url': c_url} for c_url in audio['coverUrl'].split(',')] if audio['coverUrl'] else None,
+                'duration': int_or_none(audio['duration']),
                 'uploader': uploader,
-                'artist': performer,
+                'artist': artist,
                 'track': title,
-                'ext': 'mp4',
+                'ext': 'mov',
                 'protocol': 'm3u8_native',
             })
 
