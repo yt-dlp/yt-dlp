@@ -1,4 +1,5 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import (
@@ -182,12 +183,14 @@ class NPOIE(NPOBaseIE):
         return self._get_info(url, video_id) or self._get_old_info(video_id)
 
     def _get_info(self, url, video_id):
-        token = self._download_json(
+        self._download_json(
             'https://www.npostart.nl/api/token', video_id,
             'Downloading token', headers={
                 'Referer': url,
                 'X-Requested-With': 'XMLHttpRequest',
-            })['token']
+            })
+        cookies = self._get_cookies('https://www.npostart.nl')
+        xsrf_token = urllib.parse.unquote(cookies.get('XSRF-TOKEN').value)
 
         player = self._download_json(
             'https://www.npostart.nl/player/%s' % video_id, video_id,
@@ -196,8 +199,9 @@ class NPOIE(NPOBaseIE):
                 'share': 1,
                 'pageUrl': url,
                 'hasAdConsent': 0,
-                '_token': token,
-            }))
+            }), headers={
+                'x-xsrf-token': xsrf_token
+            })
 
         player_token = player['token']
 
