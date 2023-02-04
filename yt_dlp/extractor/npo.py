@@ -214,7 +214,7 @@ class NPOIE(NPOBaseIE):
                 video_id, 'Downloading %s profile JSON' % profile, fatal=False,
                 query={
                     'profile': profile,
-                    'quality': 'npo',
+                    'quality': 'npoplus',
                     'tokenId': player_token,
                     'streamType': 'broadcast',
                 })
