@@ -1,4 +1,8 @@
 from .common import InfoExtractor
+from ..utils import (
+    HEADRequest,
+    float_or_none,
+)
 
 
 class VocarooIE(InfoExtractor):
@@ -43,11 +47,18 @@ class VocarooIE(InfoExtractor):
         else:
             media_subdomain = 'media'
 
+        url = f'https://{media_subdomain}.vocaroo.com/mp3/{audio_id}'
+        http_headers = {'Referer': 'https://vocaroo.com/'}
+        req = HEADRequest(url, headers=http_headers)
+        resp = self._request_webpage(req, audio_id)
+        timestamp = float_or_none(resp.getheader('x-bz-upload-timestamp'), scale=1000)
+
         return {
             'id': audio_id,
             'title': '',
-            'url': f'https://{media_subdomain}.vocaroo.com/mp3/{audio_id}',
+            'url': url,
             'ext': 'mp3',
+            'timestamp': timestamp,
             'vcodec': 'none',
-            'http_headers': {'Referer': 'https://vocaroo.com/'},
+            'http_headers': http_headers,
         }
