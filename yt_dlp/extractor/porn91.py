@@ -1,6 +1,7 @@
 import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
+    determine_ext,
     int_or_none,
     parse_duration,
     remove_end,
@@ -54,7 +55,7 @@ class Porn91IE(InfoExtractor):
             raise ExtractorError('91 Porn says: Video does not exist', expected=True)
 
         daily_limit = self._search_regex(
-            r'作为游客，你每天只可观看([\d]+)个视频', webpage, 'exceeded daily limit', fatal=False)
+            r'作为游客，你每天只可观看([\d]+)个视频', webpage, 'exceeded daily limit', default=None, fatal=False)
         if daily_limit:
             raise ExtractorError(f'91 Porn says: Daily limit {daily_limit} videos exceeded', expected=True)
 
@@ -63,11 +64,15 @@ class Porn91IE(InfoExtractor):
         video_link_url = self._search_regex(
             r'src=["\']([^"\']+)["\']', urllib.parse.unquote(video_link_url), 'unquoted video link')
 
+        formats, subtitles = self._get_formats_and_subtitle(video_link_url, video_id)
+
         return {
             'id': video_id,
             'url': video_link_url,
             'title': remove_end(self._html_extract_title(webpage).replace('\n', ''), 'Chinese homemade video').strip(),
-            'ext': 'mp4',
+            'formats': formats,
+            'subtitles': subtitles,
+            # 'ext': 'mp4', # Include this so files are named *.mp4 instead of *.m3u8
             'upload_date': unified_strdate(self._search_regex(
                 r'<span\s+class=["\']title-yakov["\']>(\d{4}-\d{2}-\d{2})</span>', webpage, 'upload_date', fatal=False)),
             'description': self._html_search_regex(
@@ -80,3 +85,13 @@ class Porn91IE(InfoExtractor):
                 r'热度:\s*<span[^>]*>\s*(\d+)\s*</span>', webpage, 'view count', fatal=False)),
             'age_limit': 18,
         }
+
+    def _get_formats_and_subtitle(self, video_link_url, video_id):
+        ext = determine_ext(video_link_url)
+        if ext == 'm3u8':
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_link_url, video_id)
+        else:
+            formats = [{'url': video_link_url, 'ext': ext}]
+            subtitles = {}
+
+        return formats, subtitles
