@@ -68,7 +68,6 @@ class Porn91IE(InfoExtractor):
 
         return {
             'id': video_id,
-            'url': video_link_url,
             'title': remove_end(self._html_extract_title(webpage).replace('\n', ''), 'Chinese homemade video').strip(),
             'formats': formats,
             'subtitles': subtitles,
