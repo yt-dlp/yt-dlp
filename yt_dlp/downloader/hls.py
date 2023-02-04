@@ -8,7 +8,7 @@ from .external import FFmpegFD
 from .fragment import FragmentFD
 from .. import webvtt
 from ..dependencies import Cryptodome_AES
-from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
+from ..utils import bug_reports_message, parse_m3u8_attributes, remove_start, update_url_query
 
 
 class HlsFD(FragmentFD):
@@ -150,6 +150,13 @@ class HlsFD(FragmentFD):
         i = 0
         media_sequence = 0
         decrypt_info = {'METHOD': 'NONE'}
+        external_aes_key = info_dict.get('hls_aes_key')
+        if isinstance(external_aes_key, str):
+            external_aes_key = binascii.unhexlify(remove_start(external_aes_key, '0x'))
+            assert len(external_aes_key) in (16, 24, 32), 'Invalid length for HLS AES-128 key'
+        external_aes_iv = info_dict.get('hls_aes_iv')
+        if isinstance(external_aes_iv, str):
+            external_aes_iv = binascii.unhexlify(remove_start(external_aes_iv, '0x').zfill(32))
         byte_range = {}
         discontinuity_count = 0
         frag_index = 0
@@ -218,15 +225,19 @@ class HlsFD(FragmentFD):
                     decrypt_url = decrypt_info.get('URI')
                     decrypt_info = parse_m3u8_attributes(line[11:])
                     if decrypt_info['METHOD'] == 'AES-128':
-                        if 'IV' in decrypt_info:
+                        if external_aes_iv:
+                            decrypt_info['IV'] = external_aes_iv
+                        elif 'IV' in decrypt_info:
                             decrypt_info['IV'] = binascii.unhexlify(decrypt_info['IV'][2:].zfill(32))
-                        if not re.match(r'^https?://', decrypt_info['URI']):
-                            decrypt_info['URI'] = urllib.parse.urljoin(
-                                man_url, decrypt_info['URI'])
-                        if extra_query:
-                            decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
-                        if decrypt_url != decrypt_info['URI']:
-                            decrypt_info['KEY'] = None
+                        if external_aes_key:
+                            decrypt_info['KEY'] = external_aes_key
+                        else:
+                            if not re.match(r'^https?://', decrypt_info['URI']):
+                                decrypt_info['URI'] = urllib.parse.urljoin(man_url, decrypt_info['URI'])
+                            if extra_query:
+                                decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
+                            if decrypt_url != decrypt_info['URI']:
+                                decrypt_info['KEY'] = None
 
                 elif line.startswith('#EXT-X-MEDIA-SEQUENCE'):
                     media_sequence = int(line[22:])
