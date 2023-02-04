@@ -42,6 +42,7 @@ class NPOIE(InfoExtractor):
             'description': 'Dagelijks tussen tien en elf: nieuws, sport en achtergronden.',
             'upload_date': '20140622',
         },
+        'skip': 'Video was removed',
     }, {
         'url': 'http://www.npo.nl/de-mega-mike-mega-thomas-show/27-02-2009/VARA_101191800',
         'md5': 'da50a5787dbfc1603c4ad80f31c5120b',
@@ -53,29 +54,41 @@ class NPOIE(InfoExtractor):
             'upload_date': '20090227',
             'duration': 2400,
         },
+        'skip': 'Video was removed',
     }, {
         'url': 'http://www.npo.nl/tegenlicht/25-02-2013/VPWON_1169289',
-        'md5': 'f8065e4e5a7824068ed3c7e783178f2c',
+        'md5': '1b279c0547f6b270e014c576415268c5',
         'info_dict': {
             'id': 'VPWON_1169289',
-            'ext': 'm4v',
-            'title': 'Tegenlicht: Zwart geld. De toekomst komt uit Afrika',
-            'description': 'md5:52cf4eefbc96fffcbdc06d024147abea',
+            'ext': 'mp4',
+            'title': 'Zwart geld: de toekomst komt uit Afrika',
+            'description': 'md5:dffaf3d628a9c36f78ca48d834246261',
             'upload_date': '20130225',
             'duration': 3000,
+            'creator': 'NED2',
+            'series': 'Tegenlicht',
+            'timestamp': 1361822340,
+            'thumbnail': 'https://images.npo.nl/tile/1280x720/142854.jpg',
+            'episode': 'Zwart geld: de toekomst komt uit Afrika',
+            'episode_number': 18,
         },
     }, {
         'url': 'http://www.npo.nl/de-nieuwe-mens-deel-1/21-07-2010/WO_VPRO_043706',
         'info_dict': {
             'id': 'WO_VPRO_043706',
-            'ext': 'm4v',
+            'ext': 'mp4',
             'title': 'De nieuwe mens - Deel 1',
             'description': 'md5:518ae51ba1293ffb80d8d8ce90b74e4b',
             'duration': 4680,
+            'episode': 'De nieuwe mens - Deel 1',
+            'thumbnail': 'https://images.npo.nl/tile/1280x720/6289.jpg',
+            'timestamp': 1279716057,
+            'series': 'De nieuwe mens - Deel 1',
+            'upload_date': '20100721',
         },
         'params': {
             'skip_download': True,
-        }
+        },
     }, {
         # non asf in streams
         'url': 'http://www.npo.nl/hoe-gaat-europa-verder-na-parijs/10-01-2015/WO_NOS_762771',
@@ -86,7 +99,8 @@ class NPOIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
+        'skip': 'Video was removed',
     }, {
         'url': 'http://www.ntr.nl/Aap-Poot-Pies/27/detail/Aap-poot-pies/VPWON_1233944#content',
         'info_dict': {
@@ -99,7 +113,8 @@ class NPOIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
+        'skip': 'Currently broken',
     }, {
         'url': 'http://www.omroepwnl.nl/video/fragment/vandaag-de-dag-verkiezingen__POMS_WNL_853698',
         'info_dict': {
@@ -112,7 +127,8 @@ class NPOIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
+        'skip': 'Video was removed',
     }, {
         # audio
         'url': 'http://www.npo.nl/jouw-stad-rotterdam/29-01-2017/RBX_FUNX_6683215/RBX_FUNX_7601437',
@@ -124,16 +140,20 @@ class NPOIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
-        }
+        },
+        'skip': 'Video was removed',
     }, {
         'url': 'http://www.zapp.nl/de-bzt-show/gemist/KN_1687547',
         'only_matching': True,
+        'skip': 'Video was removed',
     }, {
         'url': 'http://www.zapp.nl/de-bzt-show/filmpjes/POMS_KN_7315118',
         'only_matching': True,
+        'skip': 'Video was removed',
     }, {
         'url': 'http://www.zapp.nl/beste-vrienden-quiz/extra-video-s/WO_NTR_1067990',
         'only_matching': True,
+        'skip': 'Video was removed',
     }, {
         'url': 'https://www.npo3.nl/3onderzoekt/16-09-2015/VPWON_1239870',
         'only_matching': True,
@@ -144,15 +164,38 @@ class NPOIE(InfoExtractor):
     }, {
         'url': 'http://www.npo.nl/radio-gaga/13-06-2017/BNN_101383373',
         'only_matching': True,
+        'skip': 'Video was removed',
     }, {
         'url': 'https://www.zapp.nl/1803-skelterlab/instructie-video-s/740-instructievideo-s/POMS_AT_11736927',
         'only_matching': True,
+        'skip': 'Video was removed',
     }, {
         'url': 'https://www.npostart.nl/broodje-gezond-ei/28-05-2018/KN_1698996',
         'only_matching': True,
+        'skip': 'Video was removed',
     }, {
         'url': 'https://npo.nl/KN_1698996',
         'only_matching': True,
+        'skip': 'Video was removed',
+    }, {
+        'url': 'https://www.npo3.nl/the-genius/21-11-2022/VPWON_1341105',
+        'info_dict': {
+            'id': 'VPWON_1341105',
+            'ext': 'mp4',
+            'duration': 2658,
+            'series': 'The Genius',
+            'description': 'md5:db02f1456939ca63f7c408f858044e94',
+            'title': 'The Genius',
+            'timestamp': 1669062000,
+            'creator': 'NED3',
+            'episode': 'The Genius',
+            'thumbnail': 'https://images.npo.nl/tile/1280x720/1827650.jpg',
+            'episode_number': 8,
+            'upload_date': '20221121',
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     @classmethod
