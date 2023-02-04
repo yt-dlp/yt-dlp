@@ -1068,7 +1068,7 @@ def get_referrer_url(referrer_source, request_url, policy):
     def strip_url(url, origin_only=False):
         if url is None:
             return 'no-referrer'
-        parsed_url = compat_urllib_parse_urlparse(url)
+        parsed_url = urllib.parse.urlparse(url)
         if parsed_url.username:
             parsed_url = parsed_url._replace(username=None)
         if parsed_url.password:
@@ -1083,7 +1083,7 @@ def get_referrer_url(referrer_source, request_url, policy):
     # https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
     # More checks to determine the trustworthiness of a URL, the URL scheme is one check
     def is_tls(url):
-        return compat_urllib_parse_urlparse(url).scheme in ('https', 'ftps')
+        return urllib.parse.urlparse(url).scheme in ('https', 'ftps')
     referrer_url = strip_url(referrer_source)
     referrer_origin = strip_url(referrer_source, origin_only=True)
     is_origin_only = (referrer_origin == strip_url(request_url, True))
