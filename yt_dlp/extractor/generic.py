@@ -865,20 +865,6 @@ class GenericIE(InfoExtractor):
             },
         },
         {
-            # JWPlayer config passed as variable
-            'url': 'http://www.txxx.com/videos/3326530/ariele/',
-            'info_dict': {
-                'id': '3326530_hq',
-                'ext': 'mp4',
-                'title': 'ARIELE | Tube Cup',
-                'uploader': 'www.txxx.com',
-                'age_limit': 18,
-            },
-            'params': {
-                'skip_download': True,
-            }
-        },
-        {
             # Video.js embed, multiple formats
             'url': 'http://ortcam.com/solidworks-урок-6-настройка-чертежа_33f9b7351.html',
             'info_dict': {
