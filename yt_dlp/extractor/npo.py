@@ -1,3 +1,4 @@
+import random
 import re
 import urllib.parse
 
@@ -106,11 +107,15 @@ class NPOIE(InfoExtractor):
         'url': 'http://www.ntr.nl/Aap-Poot-Pies/27/detail/Aap-poot-pies/VPWON_1233944#content',
         'info_dict': {
             'id': 'VPWON_1233944',
-            'ext': 'm4v',
+            'ext': 'mp4',
             'title': 'Aap, poot, pies',
-            'description': 'md5:c9c8005d1869ae65b858e82c01a91fde',
+            'description': 'md5:4b46b1b9553b4c036a04d2a532a137e6',
             'upload_date': '20150508',
             'duration': 599,
+            'episode': 'Aap, poot, pies',
+            'thumbnail': 'https://images.poms.omroep.nl/image/s1280/c1280x720/608118.jpg',
+            'timestamp': 1431064200,
+            'series': 'Aap, poot, pies',
         },
         'params': {
             'skip_download': True,
@@ -199,25 +204,32 @@ class NPOIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
-        self._request_webpage(
-            'https://www.npostart.nl/api/token', video_id,
-            'Downloading token', headers={
-                'Referer': url,
-                'X-Requested-With': 'XMLHttpRequest',
-            })
-
-        player = self._download_json(
-            'https://www.npostart.nl/player/%s' % video_id, video_id,
-            'Downloading player JSON', data=urlencode_postdata({
-                'autoplay': 0,
-                'share': 1,
-                'pageUrl': url,
-                'hasAdConsent': 0,
-            }), headers={
-                'x-xsrf-token': try_call(lambda: urllib.parse.unquote(
-                    self._get_cookies('https://www.npostart.nl')['XSRF-TOKEN'].value))
-            })
+        if urllib.parse.urlparse(url).netloc in ['www.ntr.nl', 'ntr.nl']:
+            player = self._download_json(
+                'https://www.ntr.nl/ajax/player/embed/%s' % video_id, video_id,
+                'Downloading player JSON', query={
+                    'parameters[elementId]': 'npo' + str(random.randint(0, 999)),
+                    'parameters[sterReferralUrl]': url,
+                    'parameters[autoplay]': 0,
+                })
+        else:
+            self._request_webpage(
+                'https://www.npostart.nl/api/token', video_id,
+                'Downloading token', headers={
+                    'Referer': url,
+                    'X-Requested-With': 'XMLHttpRequest',
+                })
+            player = self._download_json(
+                'https://www.npostart.nl/player/%s' % video_id, video_id,
+                'Downloading player JSON', data=urlencode_postdata({
+                    'autoplay': 0,
+                    'share': 1,
+                    'pageUrl': url,
+                    'hasAdConsent': 0,
+                }), headers={
+                    'x-xsrf-token': try_call(lambda: urllib.parse.unquote(
+                        self._get_cookies('https://www.npostart.nl')['XSRF-TOKEN'].value))
+                })
 
         player_token = player['token']
 
