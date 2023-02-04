@@ -38,11 +38,15 @@ class VocarooIE(InfoExtractor):
 
     def _real_extract(self, url):
         audio_id = self._match_id(url)
+        if len(audio_id) == 10 or (len(audio_id) == 12 and audio_id[0] == '1'):
+            media_subdomain = 'media1'
+        else:
+            media_subdomain = 'media'
 
         return {
             'id': audio_id,
             'title': '',
-            'url': f'https://media1.vocaroo.com/mp3/{audio_id}',
+            'url': f'https://{media_subdomain}.vocaroo.com/mp3/{audio_id}',
             'ext': 'mp3',
             'vcodec': 'none',
             'http_headers': {'Referer': 'https://vocaroo.com/'},
