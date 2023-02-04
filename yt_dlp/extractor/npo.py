@@ -200,7 +200,7 @@ class NPOIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        self._download_json(
+        self._request_webpage(
             'https://www.npostart.nl/api/token', video_id,
             'Downloading token', headers={
                 'Referer': url,
