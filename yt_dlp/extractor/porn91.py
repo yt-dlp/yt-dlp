@@ -72,7 +72,6 @@ class Porn91IE(InfoExtractor):
             'title': remove_end(self._html_extract_title(webpage).replace('\n', ''), 'Chinese homemade video').strip(),
             'formats': formats,
             'subtitles': subtitles,
-            # 'ext': 'mp4', # Include this so files are named *.mp4 instead of *.m3u8
             'upload_date': unified_strdate(self._search_regex(
                 r'<span\s+class=["\']title-yakov["\']>(\d{4}-\d{2}-\d{2})</span>', webpage, 'upload_date', fatal=False)),
             'description': self._html_search_regex(
