@@ -3029,7 +3029,7 @@ class InfoExtractor:
             return is_plain_url, formats
 
         entries = []
-        referrer_policy = get_referrer_policy_from_meta_element(webpage)
+        referrer_policy = self._html_search_meta('referrer', webpage) or 'strict-origin-when-cross-origin'
         # amp-video and amp-audio are very similar to their HTML5 counterparts
         # so we will include them right here (see
         # https://www.ampproject.org/docs/reference/components/amp-video)

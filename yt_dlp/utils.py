@@ -1067,7 +1067,7 @@ def get_referrer_url(referrer_source, request_url, policy):
     # Strip URL as per https://w3c.github.io/webappsec-referrer-policy/#strip-url
     def strip_url(url, origin_only=False):
         if url is None:
-            return "no-referrer"
+            return 'no-referrer'
         parsed_url = compat_urllib_parse_urlparse(url)
         if parsed_url.username:
             parsed_url = parsed_url._replace(username=None)
@@ -1086,35 +1086,38 @@ def get_referrer_url(referrer_source, request_url, policy):
         return compat_urllib_parse_urlparse(url).scheme in ('https', 'ftps')
     referrer_url = strip_url(referrer_source)
     referrer_origin = strip_url(referrer_source, origin_only=True)
+    is_origin_only = (referrer_origin == strip_url(request_url, True))
+    is_tls_referrer = is_tls(referrer_url)
+    is_not_tls_requester = not is_tls(request_url)
     if len(referrer_url) > 4096:
         referrer_url = referrer_origin
-    if policy == "no-referrer":
+    if policy == 'no-referrer':
         return None
-    elif policy == "origin":
+    elif policy == 'origin':
         return referrer_origin
-    elif policy == "unsafe-url":
+    elif policy == 'unsafe-url':
         return referrer_url
-    elif policy == "strict-origin":
-        if is_tls(referrer_url) and not is_tls(request_url):
+    elif policy == 'strict-origin':
+        if is_tls_referrer and is_not_tls_requester:
             return None
         else:
             return referrer_origin
-    elif policy == "strict-origin-when-cross-origin":
-        if referrer_origin == strip_url(request_url, True):
+    elif policy == 'strict-origin-when-cross-origin':
+        if is_origin_only:
             return referrer_url
-        elif is_tls(referrer_url) and not is_tls(request_url):
+        elif is_tls_referrer and is_not_tls_requester:
             return None
         return referrer_origin
-    elif policy == "same-origin":
-        if referrer_origin == strip_url(request_url, True):
+    elif policy == 'same-origin':
+        if is_origin_only:
             return referrer_url
         return None
-    elif policy == "origin-when-cross-origin":
-        if referrer_origin == strip_url(request_url, True):
+    elif policy == 'origin-when-cross-origin':
+        if is_origin_only:
             return referrer_url
         return referrer_origin
-    elif policy == "no-referrer-when-downgrade":
-        if is_tls(referrer_url) and not is_tls(request_url):
+    elif policy == 'no-referrer-when-downgrade':
+        if is_tls_referrer and is_not_tls_requester:
             return None
         return referrer_url
 

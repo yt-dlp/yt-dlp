@@ -65,6 +65,7 @@ from yt_dlp.utils import (
     get_elements_html_by_attribute,
     get_elements_html_by_class,
     get_elements_text_and_html_by_attribute,
+    get_referrer_url,
     int_or_none,
     intlist_to_bytes,
     iri_to_uri,
@@ -127,8 +128,7 @@ from yt_dlp.utils import (
     xpath_attr,
     xpath_element,
     xpath_text,
-    xpath_with_ns,
-    get_referrer_url
+    xpath_with_ns
 )
 
 
@@ -342,35 +342,35 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(unescapeHTML('&period;&apos;'), '.\'')
 
     def test_get_referrer_url(self):
-        # No-Referrer
-        self.assertEqual(get_referrer_url("https://example.com/page", "https://mozilla.org", "no-referrer"), None)
-        # Origin
-        self.assertEqual(get_referrer_url("https://example.com/page", "http://example.com", "origin"), "https://example.com")
-        # Unsafe-Url
-        self.assertEqual(get_referrer_url("https://example.com/page?q=123", "https://example.com/page?q=123", "unsafe-url"), "https://example.com/page?q=123")
-        self.assertEqual(get_referrer_url("https://example.com/page?q=123", "https://mozilla.org", "unsafe-url"), "https://example.com/page?q=123")
-        self.assertEqual(get_referrer_url("https://example.com/page?q=123", "https://example.com/page?q=123", "unsafe-url"), "https://example.com/page?q=123")
-        # Strict-Origin
-        self.assertEqual(get_referrer_url("https://example.com/page", "https://mozilla.org", "strict-origin"), "https://example.com")
-        self.assertEqual(get_referrer_url("https://example.com/page", "http://example.org", "strict-origin"), None)
-        self.assertEqual(get_referrer_url("http://example.com/page", "http://example.com", "strict-origin"), "http://example.com")
-        # Strict-Origin-When-Cross-Origin
-        self.assertEqual(get_referrer_url("https://example.com/page", "https://example.com/otherpage", "strict-origin-when-cross-origin"), "https://example.com/page")
-        self.assertEqual(get_referrer_url("https://example.com/page", "https://mozilla.org", "strict-origin-when-cross-origin"), "https://example.com")
-        self.assertEqual(get_referrer_url("https://example.com/page", "http://example.com/otherpage", "strict-origin-when-cross-origin"), None)
-        # Same-Origin
-        self.assertEqual(get_referrer_url("https://example.com/page", "https://example.com/otherpage", "same-origin"), "https://example.com/page")
-        self.assertEqual(get_referrer_url("https://example.com/page", "https://mozilla.org", "same-origin"), None)
-        self.assertEqual(get_referrer_url("https://example.com/page", "http://example.com/page", "same-origin"), None)
-        # Origin-When-Cross-Origin
-        self.assertEqual(get_referrer_url("https://example.com/page", "https://example.com/otherpage", "origin-when-cross-origin"), "https://example.com/page")
-        self.assertEqual(get_referrer_url("https://example.com/page", "http://mozilla.org", "origin-when-cross-origin"), "https://example.com")
-        self.assertEqual(get_referrer_url("https://example.com/page", "http://example.com/page", "origin-when-cross-origin"), "https://example.com")
-        self.assertEqual(get_referrer_url("https://example.com/page", "http://mozilla.org", "origin-when-cross-origin"), "https://example.com")
-        # No-Referrer-When-Downgrade
-        self.assertEqual(get_referrer_url("https://example.com/page", "https://example.com/otherpage", "no-referrer-when-downgrade"), "https://example.com/page")
-        self.assertEqual(get_referrer_url("https://example.com/page", "https://mozilla.org", "no-referrer-when-downgrade"), "https://example.com/page")
-        self.assertEqual(get_referrer_url("https://example.com/page", "http://example.com", "no-referrer-when-downgrade"), None)
+        example_page_url = 'https://example.com/page'
+        example_page_url_with_query = 'https://example.com/page?q=123'
+        example_org_url_insecure = 'http://example.org'
+        example_url_insecure = 'http://example.com'
+        example_url = 'https://example.com'
+        example_otherpage_url = 'https://example.com/otherpage'
+        example_otherpage_url_insecure = 'http://example.com/otherpage'
+        mozilla_url = 'https://mozilla.org'
+        self.assertEqual(get_referrer_url(example_page_url, mozilla_url, "no-referrer"), None)
+        self.assertEqual(get_referrer_url(example_page_url, example_url_insecure, "origin"), example_url)
+        self.assertEqual(get_referrer_url(example_page_url_with_query, example_page_url_with_query, "unsafe-url"), example_page_url_with_query)
+        self.assertEqual(get_referrer_url(example_page_url_with_query, mozilla_url, "unsafe-url"), example_page_url_with_query)
+        self.assertEqual(get_referrer_url(example_page_url_with_query, example_page_url_with_query, "unsafe-url"), example_page_url_with_query)
+        self.assertEqual(get_referrer_url(example_page_url, mozilla_url, "strict-origin"), example_url)
+        self.assertEqual(get_referrer_url(example_page_url, example_org_url_insecure, "strict-origin"), None)
+        self.assertEqual(get_referrer_url(example_page_url, example_url_insecure, "strict-origin"), example_url_insecure)
+        self.assertEqual(get_referrer_url(example_page_url, example_otherpage_url, "strict-origin-when-cross-origin"), example_page_url)
+        self.assertEqual(get_referrer_url(example_page_url, mozilla_url, "strict-origin-when-cross-origin"), example_url)
+        self.assertEqual(get_referrer_url(example_page_url, example_otherpage_url_insecure, "strict-origin-when-cross-origin"), None)
+        self.assertEqual(get_referrer_url(example_page_url, example_otherpage_url, "same-origin"), example_page_url)
+        self.assertEqual(get_referrer_url(example_page_url, mozilla_url, "same-origin"), None)
+        self.assertEqual(get_referrer_url(example_page_url, example_page_url, "same-origin"), None)
+        self.assertEqual(get_referrer_url(example_page_url, example_otherpage_url, "origin-when-cross-origin"), example_page_url)
+        self.assertEqual(get_referrer_url(example_page_url, mozilla_url, "origin-when-cross-origin"), example_url)
+        self.assertEqual(get_referrer_url(example_page_url, example_page_url, "origin-when-cross-origin"), example_url)
+        self.assertEqual(get_referrer_url(example_page_url, mozilla_url, "origin-when-cross-origin"), example_url)
+        self.assertEqual(get_referrer_url(example_page_url, example_otherpage_url, "no-referrer-when-downgrade"), example_page_url)
+        self.assertEqual(get_referrer_url(example_page_url, mozilla_url, "no-referrer-when-downgrade"), example_page_url)
+        self.assertEqual(get_referrer_url(example_page_url, example_url_insecure, "no-referrer-when-downgrade"), None)
 
     def test_date_from_str(self):
         self.assertEqual(date_from_str('yesterday'), date_from_str('now-1day'))
