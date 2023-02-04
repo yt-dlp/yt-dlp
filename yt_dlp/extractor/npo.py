@@ -8,6 +8,7 @@ from ..utils import (
     merge_dicts,
     orderedSet,
     str_or_none,
+    try_call,
     unified_timestamp,
     url_or_none,
     urlencode_postdata,
@@ -213,8 +214,6 @@ class NPOIE(InfoExtractor):
                 'Referer': url,
                 'X-Requested-With': 'XMLHttpRequest',
             })
-        cookies = self._get_cookies('https://www.npostart.nl')
-        xsrf_token = urllib.parse.unquote(cookies.get('XSRF-TOKEN').value)
 
         player = self._download_json(
             'https://www.npostart.nl/player/%s' % video_id, video_id,
@@ -224,7 +223,8 @@ class NPOIE(InfoExtractor):
                 'pageUrl': url,
                 'hasAdConsent': 0,
             }), headers={
-                'x-xsrf-token': xsrf_token
+                'x-xsrf-token': try_call(lambda: urllib.parse.unquote(
+                    self._get_cookies('https://www.npostart.nl')['XSRF-TOKEN'].value))
             })
 
         player_token = player['token']
