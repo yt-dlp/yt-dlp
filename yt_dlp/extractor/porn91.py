@@ -89,7 +89,7 @@ class Porn91IE(InfoExtractor):
     def _get_formats_and_subtitle(self, video_link_url, video_id):
         ext = determine_ext(video_link_url)
         if ext == 'm3u8':
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_link_url, video_id)
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_link_url, video_id, ext='mp4')
         else:
             formats = [{'url': video_link_url, 'ext': ext}]
             subtitles = {}
