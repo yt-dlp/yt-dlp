@@ -16,6 +16,8 @@ class VocarooIE(InfoExtractor):
                 'id': '1de8yA3LNe77',
                 'ext': 'mp3',
                 'title': 'Vocaroo video #1de8yA3LNe77',
+                'timestamp': 1675059800.370,
+                'upload_date': '20230130',
             },
         },
         {
@@ -36,6 +38,8 @@ class VocarooIE(InfoExtractor):
                 'id': '19cgWmKO6AmC',
                 'ext': 'mp3',
                 'title': 'Vocaroo video #19cgWmKO6AmC',
+                'timestamp': 1675093841.408,
+                'upload_date': '20230130',
             },
         },
     ]
