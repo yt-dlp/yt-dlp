@@ -136,26 +136,16 @@ class ServusIE(InfoExtractor):
 
         elif 'FSK_BLOCKED' in playability_errors:
             details = traverse_obj(video, ('playabilityErrorDetails', 'FSK_BLOCKED'), expected_type=dict)
-            assert isinstance(details, dict) or details is None
-            message = ''
-            if details:
-                if details.get('minEveningHour') is not None:
-                    message += f' from {details["minEveningHour"]:0>2}:00'
-                if details.get('maxMorningHour') is not None:
-                    message += f' to {details["maxMorningHour"]:0>2}:00'
-                if message and details.get('minAge') is not None:
-                    message += f' (Minimum age {details["minAge"]})'
-
-            message = (
-                f'Only available{message}' if message
-                else 'Blocked by FSK with unknown availability')
+            message = format_field(''.join(
+                format_field(details, 'minEveningHour', ' from %02d:00'),
+                format_field(details, 'maxMorningHour', ' to %02d:00'),
+                format_field(details, 'minAge', ' (Minimum age %d)'),
+            ), None, 'Only available%s') or 'Blocked by FSK with unknown availability'
 
         elif 'NOT_YET_AVAILABLE' in playability_errors:
-            available_from = traverse_obj(
-                video, ('playabilityErrorDetails', 'NOT_YET_AVAILABLE', 'availableFrom'), 'currentSunrise')
-            message = (
-                f'Only available from {available_from}' if available_from
-                else 'Video not yet available with unknown availability')
+            message = format_field(
+                video, (('playabilityErrorDetails', 'NOT_YET_AVAILABLE', 'availableFrom'), 'currentSunrise'),
+                'Only available from %s') or 'Video not yet available with unknown availability'
 
         else:
             message = f'Video unavailable: {", ".join(playability_errors)}'
