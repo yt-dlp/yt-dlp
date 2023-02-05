@@ -126,10 +126,11 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
 
         return {
             'id': video_id,
+            'title': '',
             'formats': self._get_formats(video_data, (
                 (('protocolHls', 'url'), ('chromecastUrls', ...)), {url_or_none}), video_id),
             **traverse_obj(metadata, {
-                'title': {lambda v: v.get('displayName') or ''},
+                'title': ('displayName', {str}),
                 'description': ('description', {str}),
                 'channel': ('labels', 'group', {str}),
                 'location': ('labels', 'venue', {str}),
@@ -197,7 +198,7 @@ class WrestleUniversePPVIE(WrestleUniverseBaseIE):
         metadata = self._download_metadata(url, video_id, lang, 'eventFallbackData')
 
         info = traverse_obj(metadata, {
-            'title': {lambda v: v.get('displayName') or ''},
+            'title': ('displayName', {str}),
             'description': ('description', {str}),
             'channel': ('labels', 'group', {str}),
             'location': ('labels', 'venue', {str}),
@@ -224,6 +225,7 @@ class WrestleUniversePPVIE(WrestleUniverseBaseIE):
 
         return {
             'id': video_id,
+            'title': '',
             'formats': formats,
             'hls_aes_key': hls_aes_key,
             'hls_aes_iv': traverse_obj(video_data, ('hls', 'iv', {decrypt})),
