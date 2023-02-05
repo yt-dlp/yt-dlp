@@ -131,11 +131,10 @@ class ServusIE(InfoExtractor):
 
     def _report_errors(self, video):
         playability_errors = traverse_obj(video, ('playabilityErrors', ...))
-        assert isinstance(playability_errors, list)
         if not playability_errors:
             raise ExtractorError('No videoUrl and no information about errors')
 
-        if 'FSK_BLOCKED' in playability_errors:
+        elif 'FSK_BLOCKED' in playability_errors:
             details = traverse_obj(video, ('playabilityErrorDetails', 'FSK_BLOCKED'), expected_type=dict)
             assert isinstance(details, dict) or details is None
             message = ''
