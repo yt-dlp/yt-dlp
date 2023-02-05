@@ -121,11 +121,11 @@ class ServusIE(InfoExtractor):
 
         elif 'FSK_BLOCKED' in playability_errors:
             details = traverse_obj(video, ('playabilityErrorDetails', 'FSK_BLOCKED'), expected_type=dict)
-            message = format_field(''.join(
+            message = format_field(''.join([
                 format_field(details, 'minEveningHour', ' from %02d:00'),
                 format_field(details, 'maxMorningHour', ' to %02d:00'),
                 format_field(details, 'minAge', ' (Minimum age %d)'),
-            ), None, 'Only available%s') or 'Blocked by FSK with unknown availability'
+            ]), None, 'Only available%s') or 'Blocked by FSK with unknown availability'
 
         elif 'NOT_YET_AVAILABLE' in playability_errors:
             message = format_field(
