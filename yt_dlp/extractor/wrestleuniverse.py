@@ -9,6 +9,7 @@ from ..utils import (
     int_or_none,
     jwt_decode_hs256,
     traverse_obj,
+    try_call,
     url_or_none,
 )
 
@@ -21,10 +22,9 @@ class WrestleUniverseBaseIE(InfoExtractor):
 
     def _get_token_cookie(self):
         if not self._TOKEN or not self._TOKEN_EXPIRY:
-            token_cookie = self._get_cookies('https://www.wrestle-universe.com/').get('token')
-            if not token_cookie or not token_cookie.value:
-                self.raise_login_required(method='cookies')
-            self._TOKEN = token_cookie.value
+            self._TOKEN = try_call(lambda: self._get_cookies('https://www.wrestle-universe.com/')['token'].value)
+            if not self._TOKEN:
+                self.raise_login_required()
             expiry = traverse_obj(jwt_decode_hs256(self._TOKEN), ('exp', {int_or_none}))
             if not expiry:
                 raise ExtractorError('There was a problem with the token cookie')
@@ -40,7 +40,7 @@ class WrestleUniverseBaseIE(InfoExtractor):
         headers = {'CA-CID': ''}
         if data:
             headers['Content-Type'] = 'application/json;charset=utf-8'
-            data = json.dumps(data, separators=(',', ':')).encode('utf-8')
+            data = json.dumps(data, separators=(',', ':')).encode()
         if auth:
             headers['Authorization'] = f'Bearer {self._get_token_cookie()}'
         return self._download_json(
