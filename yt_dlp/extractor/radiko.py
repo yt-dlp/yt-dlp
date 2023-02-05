@@ -110,7 +110,7 @@ class RadikoBaseIE(InfoExtractor):
         found = set()
         for url_tag in m3u8_urls:
             pcu = url_tag.find('playlist_create_url').text
-            if is_onair and not pcu.startswith(self._HOSTS_FOR_LIVE) or (not is_onair and (pcu.startswith(self._HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED) or pcu.startswith(self._HOSTS_FOR_LIVE)))):
+            if is_onair and not pcu.startswith(self._HOSTS_FOR_LIVE) or (not is_onair and (pcu.startswith(self._HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED) or pcu.startswith(self._HOSTS_FOR_LIVE))):
                 continue
             url_attrib = url_tag.attrib
             playlist_url = update_url_query(pcu, {
