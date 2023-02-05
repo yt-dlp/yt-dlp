@@ -15,9 +15,11 @@ from ..utils import (
     clean_html,
     get_element_by_class,
     int_or_none,
+    join_nonempty,
     orderedSet,
     str_or_none,
     str_to_int,
+    try_call,
     unescapeHTML,
     unified_timestamp,
     update_url_query,
@@ -674,19 +676,18 @@ class VKWallPostIE(VKBaseIE):
             audio = self._parse_json(unescapeHTML(audio), post_id)
             if not audio['url']:
                 continue
-            title = unescapeHTML(audio['title'])
-            artist = unescapeHTML(audio['artist'])
+            title = unescapeHTML(audio.get('title'))
+            artist = unescapeHTML(audio.get('artist'))
+            a_id = f'{audio["owner_id"]}_{audio["id"]}'
             entries.append({
-                'id': '%s_%s' % (audio['owner_id'], audio['id']),
-                'url': audio['url'],
-                'title': '%s - %s' % (artist, title) if artist else title,
-                'thumbnails': [{'url': c_url} for c_url in audio['coverUrl'].split(',')] if audio['coverUrl'] else None,
-                'duration': int_or_none(audio['duration']),
+                'id': a_id,
+                'title': join_nonempty(artist, title, delim=' - '),
+                'thumbnails': try_call(lambda: [{'url': u} for u in audio['coverUrl'].split(',')]),
+                'duration': int_or_none(audio.get('duration')),
                 'uploader': uploader,
                 'artist': artist,
                 'track': title,
-                'ext': 'mov',
-                'protocol': 'm3u8_native',
+                'formats': self._extract_m3u8_formats(audio['url'], a_id, 'mov', 'm3u8_native', fatal=False)
             })
 
         for video in re.finditer(
