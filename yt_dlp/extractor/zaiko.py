@@ -10,7 +10,18 @@ from ..utils import (
 )
 
 
-class ZaikoIE(InfoExtractor):
+class ZaikoBaseIE(InfoExtractor):
+    def _parse_vue_element_attr(self, name, string, video_id):
+        page_elem = self._search_regex(rf'(<{name}[^>]+>)', string, name)
+        attrs = {}
+        for key, value in extract_attributes(page_elem).items():
+            if key.startswith(':'):
+                attrs[key[1:]] = self._parse_json(
+                    value, video_id, transform_source=unescapeHTML, fatal=False)
+        return attrs
+
+
+class ZaikoIE(ZaikoBaseIE):
     _VALID_URL = r'https?://(?:[\w-]+\.)?zaiko\.io/event/(?P<id>\d+)/stream(?:/\d+)+'
     _TESTS = [{
         'url': 'https://zaiko.io/event/324868/stream/20571/20571',
@@ -29,15 +40,6 @@ class ZaikoIE(InfoExtractor):
         },
         'params': {'skip_download': 'm3u8'},
     }]
-
-    def _parse_vue_element_attr(self, name, string, video_id):
-        page_elem = self._search_regex(rf'(<{name}[^>]+>)', string, name)
-        attrs = {}
-        for key, value in extract_attributes(page_elem).items():
-            if key.startswith(':'):
-                attrs[key[1:]] = self._parse_json(
-                    value, video_id, transform_source=unescapeHTML, fatal=False)
-        return attrs
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -90,3 +92,27 @@ class ZaikoIE(InfoExtractor):
                 'thumbnail': ('poster_url', {url_or_none}),
             })),
         }
+
+
+class ZaikoETicketIE(ZaikoBaseIE):
+    _VALID_URL = r'https?://zaiko\.io/account/eticket/(?P<id>\w{48}=)'
+    _TESTS = [{
+        'url': 'https://zaiko.io/account/eticket/000000000000000000000000000000000000000000000000=',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        ticket_id = self._match_id(url)
+
+        webpage, urlh = self._download_webpage_handle(url, ticket_id)
+        final_url = urlh.geturl()
+        if 'zaiko.io/login' in final_url:
+            self.raise_login_required()
+        eticket_meta = self._parse_vue_element_attr('eticket', webpage, ticket_id)
+
+        ticket_details = eticket_meta.get('ticket-details')
+        streams = eticket_meta.get('streams') or []
+
+        return self.playlist_result(
+            [self.url_result(stream.get('url'), ZaikoIE) for stream in streams], ticket_id,
+            ticket_details.get('event_name'), thumbnail=ticket_details.get('event_img_url'))
