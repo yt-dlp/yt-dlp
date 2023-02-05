@@ -27,7 +27,7 @@ class ServusIE(InfoExtractor):
             'id': 'AA-28BYCQNH92111',
             'ext': 'mp4',
             'title': 'Klettersteige in den Alpen',
-            'description': 'md5:6f681e794bb41ebddd5c3de7d2717a68',
+            'description': 'md5:25e47ddd83a009a0f9789ba18f2850ce',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 2823,
             'timestamp': 1655752333,
