@@ -15,6 +15,23 @@ from ..utils import (
 
 class RadikoBaseIE(InfoExtractor):
     _FULL_KEY = None
+    _HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED = (
+        "https://c-rpaa.smartstream.ne.jp",
+        "https://si-c-radiko.smartstream.ne.jp",
+        "https://tf-f-rpaa-radiko.smartstream.ne.jp",
+        "https://tf-c-rpaa-radiko.smartstream.ne.jp",
+        "https://si-f-radiko.smartstream.ne.jp",
+        "https://rpaa.smartstream.ne.jp",
+    )
+    _HOSTS_FOR_TIME_FREE_FFMPEG_SUPPORTED = (
+        "https://rd-wowza-radiko.radiko-cf.com",
+        "https://radiko.jp",
+        "https://f-radiko.smartstream.ne.jp",
+    )
+    # Following URL forcibly connects not Time Free but Live
+    _HOSTS_FOR_LIVE = (
+        "https://c-radiko.smartstream.ne.jp",
+    )
 
     def _auth_client(self):
         _, auth1_handle = self._download_webpage_handle(
@@ -92,9 +109,18 @@ class RadikoBaseIE(InfoExtractor):
         formats = []
         found = set()
         for url_tag in m3u8_urls:
-            pcu = url_tag.find('playlist_create_url')
+            pcu = url_tag.find('playlist_create_url').text
+            if (
+                is_onair and not pcu.startswith(self._HOSTS_FOR_LIVE)
+                # Allowlist style for Time Free to consider undiscovered URL
+                or (not is_onair and (
+                    pcu.startswith(self._HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED)
+                    or pcu.startswith(self._HOSTS_FOR_LIVE)
+                ))
+            ):
+                continue
             url_attrib = url_tag.attrib
-            playlist_url = update_url_query(pcu.text, {
+            playlist_url = update_url_query(pcu, {
                 'station_id': station,
                 **query,
                 'l': '15',
