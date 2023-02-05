@@ -2,10 +2,11 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     float_or_none,
+    format_field,
     int_or_none,
     traverse_obj,
-    unified_timestamp,
     unescapeHTML,
+    unified_timestamp,
 )
 
 
