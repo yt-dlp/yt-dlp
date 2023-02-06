@@ -5470,7 +5470,7 @@ def traverse_obj(
                             If successful, `get_all=True`, and the path branches at least once,
                             then a list of results is returned instead.
                             If no default is given and the last path branches a `list` is always returned.
-                            If no default is given and the last path is a dict a `dict` is always returned.
+                            If the last path is a dict a `dict` is always returned.
     """
     is_sequence = lambda x: isinstance(x, collections.abc.Sequence) and not isinstance(x, (str, bytes))
     casefold = lambda k: k.casefold() if isinstance(k, str) else k
