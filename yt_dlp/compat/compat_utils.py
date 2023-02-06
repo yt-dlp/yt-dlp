@@ -10,16 +10,12 @@ _Package = collections.namedtuple('Package', ('name', 'version'))
 
 
 def get_package_info(module):
-    parent = module.__name__.split('.')[0]
-    parent_module = None
-    with contextlib.suppress(ImportError):
-        parent_module = importlib.import_module(parent)
-
-    for attr in ('__version__', 'version_string', 'version'):
-        version = getattr(parent_module, attr, None)
-        if version is not None:
-            break
-    return _Package(getattr(module, '_yt_dlp__identifier', parent), str(version))
+    return _Package(
+        name=getattr(module, '_yt_dlp__identifier', module.__name__),
+        version=str(next(filter(None, (
+            getattr(module, attr, None)
+            for attr in ('__version__', 'version_string', 'version')
+        )), None)))
 
 
 def _is_package(module):
