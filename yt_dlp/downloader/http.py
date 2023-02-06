@@ -213,6 +213,11 @@ class HttpFD(FileDownloader):
         def download():
             data_len = ctx.data.info().get('Content-length', None)
 
+            if ctx.data.info().get('Content-encoding', None):
+                # Content-encoding is present, Content-length is not reliable anymore as we are
+                # doing auto decompression.
+                data_len = None
+
             # Range HTTP header may be ignored/unsupported by a webserver
             # (e.g. extractor/scivee.py, extractor/bambuser.py).
             # However, for a test we still would like to download just a piece of a file.
