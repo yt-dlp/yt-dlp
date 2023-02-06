@@ -220,6 +220,9 @@ class InfoExtractor:
                     * no_resume  The server does not support resuming the
                                  (HTTP or RTMP) download. Boolean.
                     * has_drm    The format has DRM and cannot be downloaded. Boolean
+                    * extra_param_to_segment_url  A query string to append to each
+                                 fragment's URL, or to update each existing query string
+                                 with. Only applied by the native HLS/DASH downloaders.
                     * hls_aes_key  The key (as hex) to use for decrypting the HLS
                                  segments instead of retrieving a key from the URI
                                  given in the playlist (native HLS downloader only).
