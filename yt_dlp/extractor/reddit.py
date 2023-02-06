@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class RedditIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<subdomain>[^/]+\.)?reddit(?:media)?\.com/(?P<link_type>r|user)/(?P<slug>[^/]+/comments/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'https?://(?P<subdomain>[^/]+\.)?reddit(?:media)?\.com/(?P<slug>(?:r|user)/[^/]+/comments/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
         'info_dict': {
@@ -144,14 +144,14 @@ class RedditIE(InfoExtractor):
         return '%0.*x' % (id_length, random.randrange(rand_max))
 
     def _real_extract(self, url):
-        subdomain, link_type, slug, video_id = self._match_valid_url(url).group('subdomain', 'link_type', 'slug', 'id')
+        subdomain, slug, video_id = self._match_valid_url(url).group('subdomain', 'slug', 'id')
 
         self._set_cookie('.reddit.com', 'reddit_session', self._gen_session_id())
         self._set_cookie('.reddit.com', '_options', '%7B%22pref_quarantine_optin%22%3A%20true%7D')
-        data = self._download_json(f'https://{subdomain}reddit.com/{link_type}/{slug}/.json', video_id, fatal=False)
+        data = self._download_json(f'https://{subdomain}reddit.com/{slug}/.json', video_id, fatal=False)
         if not data:
             # Fall back to old.reddit.com in case the requested subdomain fails
-            data = self._download_json(f'https://old.reddit.com/{link_type}/{slug}/.json', video_id)
+            data = self._download_json(f'https://old.reddit.com/{slug}/.json', video_id)
         data = data[0]['data']['children'][0]['data']
         video_url = data['url']
 
