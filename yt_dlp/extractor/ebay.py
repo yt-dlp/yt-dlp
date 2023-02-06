@@ -13,7 +13,7 @@ class EbayIE(InfoExtractor):
         },
         'params': {
             # m3u8 download
-            'skip_download': True,
+            'skip_download': 'm3u8',
         }
     }
 
@@ -21,20 +21,20 @@ class EbayIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        video_json = self._search_json(r'"video":\s*', webpage, "video_json", video_id)
+        video_json = self._search_json(r'"video":', webpage, "video json", video_id)
 
         playlist_map = video_json.get('playlistMap')
         if not playlist_map:
             raise ExtractorError('Unable to extract video urls')
 
         formats = []
-        for key in playlist_map:
-            if key == "HLS":
-                formats.extend(self._extract_m3u8_formats(
-                    playlist_map.get(key), video_id, m3u8_id='hls', fatal=False))
-            if key == "DASH":
-                formats.extend(self._extract_mpd_formats(
-                    playlist_map.get(key), video_id, fatal=False))
+        for key, url in video_json['playlistMap'].items():
+            if key == 'HLS':
+                formats.extend(self._extract_m3u8_formats(url, video_id, fatal=False))
+            elif key == 'DASH':
+                formats.extend(self._extract_mpd_formats(url, video_id, fatal=False))
+            else:
+                self.report_warning('unsupported format found: %s' % key, video_id)
 
         return {
             'id': video_id,
