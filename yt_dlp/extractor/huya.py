@@ -1,5 +1,6 @@
 import hashlib
 import random
+import re
 
 from ..compat import compat_urlparse, compat_b64decode
 
@@ -37,35 +38,7 @@ class HuyaLiveIE(InfoExtractor):
     }]
 
     _RESOLUTION = {
-        '蓝光30M': {
-            'width': 1920,
-            'height': 1080,
-        },
-        '蓝光20M': {
-            'width': 1920,
-            'height': 1080,
-        },
-        '蓝光15M': {
-            'width': 1920,
-            'height': 1080,
-        },
-        '蓝光12M': {
-            'width': 1920,
-            'height': 1080,
-        },
-        '蓝光10M': {
-            'width': 1920,
-            'height': 1080,
-        },
-        '蓝光8M': {
-            'width': 1920,
-            'height': 1080,
-        },
-        '蓝光6M': {
-            'width': 1920,
-            'height': 1080,
-        },
-        '蓝光4M': {
+        '蓝光': {
             'width': 1920,
             'height': 1080,
         },
@@ -77,16 +50,6 @@ class HuyaLiveIE(InfoExtractor):
             'width': 800,
             'height': 480
         }
-    }
-    _RATE_OVERRIDE = {
-        '蓝光30M': 30000,
-        '蓝光20M': 20000,
-        '蓝光15M': 15000,
-        '蓝光12M': 12000,
-        '蓝光10M': 10000,
-        '蓝光8M': 8000,
-        '蓝光6M': 6000,
-        '蓝光4M': 4000,
     }
 
     def _real_extract(self, url):
@@ -114,12 +77,17 @@ class HuyaLiveIE(InfoExtractor):
             if re_secret:
                 fm, ss = self.encrypt(params, stream_info, stream_name)
             for si in stream_data.get('vMultiStreamInfo'):
+                display_name = si.get('sDisplayName')
+                hd_match = re.match(r'蓝光(\d+)M$', display_name)
+                if hd_match:
+                    display_name = "蓝光"
                 rate = si.get('iBitRate')
                 if rate:
                     params['ratio'] = rate
                 else:
                     params.pop('ratio', None)
-                    rate = self._RATE_OVERRIDE.get(si.get('sDisplayName'), rate)
+                    if hd_match:
+                        rate = int(hd_match.group(1)) * 1000
                 if re_secret:
                     params['wsSecret'] = hashlib.md5(
                         '_'.join([fm, params['u'], stream_name, ss, params['wsTime']]))
@@ -129,7 +97,7 @@ class HuyaLiveIE(InfoExtractor):
                     'tbr': rate,
                     'url': update_url_query(f'{stream_url}/{stream_name}.{stream_info.get("sFlvUrlSuffix")}',
                                             query=params),
-                    **self._RESOLUTION.get(si.get('sDisplayName'), {}),
+                    **self._RESOLUTION.get(display_name, {}),
                 })
 
         return {
