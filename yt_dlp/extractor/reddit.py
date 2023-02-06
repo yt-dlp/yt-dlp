@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class RedditIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<subdomain>[^/]+\.)?reddit(?:media)?\.com/r/(?P<slug>[^/]+/comments/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'https?://(?P<subdomain>[^/]+\.)?reddit(?:media)?\.com/(?P<slug>(?:r|user)/[^/]+/comments/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
         'info_dict': {
@@ -59,6 +59,29 @@ class RedditIE(InfoExtractor):
             'channel_id': 'aww',
         },
     }, {
+        # User post
+        'url': 'https://www.reddit.com/user/creepyt0es/comments/nip71r/i_plan_to_make_more_stickers_and_prints_check/',
+        'info_dict': {
+            'id': 'zasobba6wp071',
+            'ext': 'mp4',
+            'display_id': 'nip71r',
+            'title': 'I plan to make more stickers and prints! Check them out on my Etsy! Or get them through my Patreon. Links below.',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnails': 'count:5',
+            'timestamp': 1621709093,
+            'upload_date': '20210522',
+            'uploader': 'creepyt0es',
+            'duration': 6,
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'age_limit': 0,
+            'channel_id': 'u_creepyt0es',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
         # videos embedded in reddit text post
         'url': 'https://www.reddit.com/r/KamenRider/comments/wzqkxp/finale_kamen_rider_revice_episode_50_family_to/',
         'playlist_count': 2,
@@ -84,6 +107,7 @@ class RedditIE(InfoExtractor):
             'dislike_count': int,
             'comment_count': int,
             'age_limit': 0,
+            'channel_id': 'dumbfuckers_club',
         },
     }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
@@ -124,10 +148,10 @@ class RedditIE(InfoExtractor):
 
         self._set_cookie('.reddit.com', 'reddit_session', self._gen_session_id())
         self._set_cookie('.reddit.com', '_options', '%7B%22pref_quarantine_optin%22%3A%20true%7D')
-        data = self._download_json(f'https://{subdomain}reddit.com/r/{slug}/.json', video_id, fatal=False)
+        data = self._download_json(f'https://{subdomain}reddit.com/{slug}/.json', video_id, fatal=False)
         if not data:
             # Fall back to old.reddit.com in case the requested subdomain fails
-            data = self._download_json(f'https://old.reddit.com/r/{slug}/.json', video_id)
+            data = self._download_json(f'https://old.reddit.com/{slug}/.json', video_id)
         data = data[0]['data']['children'][0]['data']
         video_url = data['url']
 
