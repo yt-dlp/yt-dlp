@@ -126,7 +126,6 @@ class WrestleUniverseVODIE(WrestleUniverseBaseIE):
 
         return {
             'id': video_id,
-            'title': '',
             'formats': self._get_formats(video_data, (
                 (('protocolHls', 'url'), ('chromecastUrls', ...)), {url_or_none}), video_id),
             **traverse_obj(metadata, {
@@ -225,7 +224,6 @@ class WrestleUniversePPVIE(WrestleUniverseBaseIE):
 
         return {
             'id': video_id,
-            'title': '',
             'formats': formats,
             'hls_aes_key': hls_aes_key,
             'hls_aes_iv': traverse_obj(video_data, ('hls', 'iv', {decrypt})),
