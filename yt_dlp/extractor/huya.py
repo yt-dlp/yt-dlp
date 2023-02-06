@@ -77,17 +77,15 @@ class HuyaLiveIE(InfoExtractor):
             if re_secret:
                 fm, ss = self.encrypt(params, stream_info, stream_name)
             for si in stream_data.get('vMultiStreamInfo'):
-                display_name = si.get('sDisplayName')
-                hd_match = re.match(r'蓝光(\d+)M$', display_name)
-                if hd_match:
-                    display_name = "蓝光"
+                display_name, bitrate = re.fullmatch(
+                    r'(.+?)(?:(\d+)M)?', si.get('sDisplayName')).groups()
                 rate = si.get('iBitRate')
                 if rate:
                     params['ratio'] = rate
                 else:
                     params.pop('ratio', None)
-                    if hd_match:
-                        rate = int(hd_match.group(1)) * 1000
+                    if bitrate:
+                        rate = int(bitrate) * 1000
                 if re_secret:
                     params['wsSecret'] = hashlib.md5(
                         '_'.join([fm, params['u'], stream_name, ss, params['wsTime']]))
