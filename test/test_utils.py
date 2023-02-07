@@ -2000,7 +2000,7 @@ Line 1
 
         # Test Ellipsis behavior
         self.assertCountEqual(traverse_obj(_TEST_DATA, ...),
-                              (item for item in _TEST_DATA.values() if item or isinstance(item, (bool, int, float))),
+                              (item for item in _TEST_DATA.values() if item not in (None, [], {})),
                               msg='`...` should give all non discarded values')
         self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', 0, ...)), _TEST_DATA['urls'][0].values(),
                               msg='`...` selection for dicts should select all values')

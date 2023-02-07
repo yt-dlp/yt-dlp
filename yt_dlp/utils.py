@@ -5421,6 +5421,7 @@ def traverse_obj(
     The next path will also be tested if the path branched but no results could be found.
     Supported values for traversal are `Mapping`, `Sequence` and `re.Match`.
     A falsy value (except `bool`s, `int`s and `float`s) is treated as the absence of a value.
+    Unhelpful values (`[]`, `{}`, `None`) are treated as the absence of a value and discarded.
 
     The paths will be wrapped in `variadic`, so that `'key'` is conveniently the same as `('key', )`.
 
@@ -5469,8 +5470,8 @@ def traverse_obj(
     @returns                The result of the object traversal.
                             If successful, `get_all=True`, and the path branches at least once,
                             then a list of results is returned instead.
-                            If no default is given and the last path branches a `list` is always returned.
-                            If the last path is a dict a `dict` is always returned.
+                            If no `default` is given and the last path branches, a `list` of results
+                            is always returned. If a path ends on a `dict` that result will always be a `dict`.
     """
     is_sequence = lambda x: isinstance(x, collections.abc.Sequence) and not isinstance(x, (str, bytes))
     casefold = lambda k: k.casefold() if isinstance(k, str) else k
@@ -5536,7 +5537,7 @@ def traverse_obj(
 
             result = (v for k, v in iter_obj if try_call(key, args=(k, v)))
             if not branching:  # string traversal
-                result = "".join(result)
+                result = ''.join(result)
 
         elif isinstance(key, dict):
             iter_obj = ((k, _traverse_obj(obj, v, False, is_last)) for k, v in key.items())
@@ -5554,7 +5555,7 @@ def traverse_obj(
                 with contextlib.suppress(IndexError):
                     result = obj.group(key)
 
-            if isinstance(key, str):
+            elif isinstance(key, str):
                 result = next((v for k, v in obj.groupdict().items() if casefold(k) == key), None)
 
         elif isinstance(key, (int, slice)):
@@ -5567,7 +5568,7 @@ def traverse_obj(
                 with contextlib.suppress(IndexError):
                     result = obj[key]
 
-        return branching, result
+        return branching, result if branching else (result,)
 
     def lazy_last(iterable):
         iterator = iter(iterable)
@@ -5590,11 +5591,10 @@ def traverse_obj(
             if is_user_input and isinstance(key, str):
                 if key == ':':
                     key = ...
-                elif ':' not in key:
-                    if int_or_none(key) is not None:
-                        key = int(key)
-                else:
+                elif ':' in key:
                     key = slice(*map(int_or_none, key.split(':')))
+                elif int_or_none(key) is not None:
+                    key = int(key)
 
             if not casesense and isinstance(key, str):
                 key = key.casefold()
@@ -5605,9 +5605,9 @@ def traverse_obj(
 
             new_objs = []
             for obj in objs:
-                branch, added_iterable = apply_key(key, obj, last)
-                has_branched |= branch
-                new_objs.append(added_iterable if branch else (added_iterable,))
+                branching, results = apply_key(key, obj, last)
+                has_branched |= branching
+                new_objs.append(results)
 
             objs = itertools.chain.from_iterable(new_objs)
 
@@ -5618,7 +5618,7 @@ def traverse_obj(
 
     def _traverse_obj(obj, path, allow_empty, test_type):
         results, has_branched, is_dict = apply_path(obj, path, test_type)
-        results = LazyList(item for item in results if item or isinstance(item, (bool, int, float)))
+        results = LazyList(item for item in results if item not in (None, [], {}))
         if get_all and has_branched:
             if results:
                 return results.exhaust()
