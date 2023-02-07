@@ -40,7 +40,11 @@ def main():
 
     _ALL_CLASSES = get_all_ies()  # Must be before import
 
+    import yt_dlp.plugins
     from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
+
+    # Filter out plugins
+    _ALL_CLASSES = [cls for cls in _ALL_CLASSES if not cls.__module__.startswith(f'{yt_dlp.plugins.PACKAGE_NAME}.')]
 
     DummyInfoExtractor = type('InfoExtractor', (InfoExtractor,), {'IE_NAME': NO_ATTR})
     module_src = '\n'.join((

@@ -343,7 +343,8 @@ class JSInterpreter:
             inner, outer = self._separate(expr, expr[0], 1)
             if expr[0] == '/':
                 flags, outer = self._regex_flags(outer)
-                inner = re.compile(inner[1:], flags=flags)
+                # Avoid https://github.com/python/cpython/issues/74534
+                inner = re.compile(inner[1:].replace('[[', r'[\['), flags=flags)
             else:
                 inner = json.loads(js_to_json(f'{inner}{expr[0]}', strict=True))
             if not outer:
@@ -402,10 +403,25 @@ class JSInterpreter:
 
         m = re.match(r'''(?x)
                 (?P<try>try)\s*\{|
+                (?P<if>if)\s*\(|
                 (?P<switch>switch)\s*\(|
                 (?P<for>for)\s*\(
                 ''', expr)
         md = m.groupdict() if m else {}
+        if md.get('if'):
+            cndn, expr = self._separate_at_paren(expr[m.end() - 1:])
+            if_expr, expr = self._separate_at_paren(expr.lstrip())
+            # TODO: "else if" is not handled
+            else_expr = None
+            m = re.match(r'else\s*{', expr)
+            if m:
+                else_expr, expr = self._separate_at_paren(expr[m.end() - 1:])
+            cndn = _js_ternary(self.interpret_expression(cndn, local_vars, allow_recursion))
+            ret, should_abort = self.interpret_statement(
+                if_expr if cndn else else_expr, local_vars, allow_recursion)
+            if should_abort:
+                return ret, True
+
         if md.get('try'):
             try_expr, expr = self._separate_at_paren(expr[m.end() - 1:])
             err = None
