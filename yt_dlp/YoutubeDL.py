@@ -2411,11 +2411,7 @@ class YoutubeDL:
     def _fill_common_fields(self, info_dict, final=True):
         # TODO: move sanitization here
         if final:
-            title = info_dict.get('title', NO_DEFAULT)
-            if title is NO_DEFAULT:
-                raise ExtractorError('Missing "title" field in extractor result',
-                                     video_id=info_dict['id'], ie=info_dict['extractor'])
-            info_dict['fulltitle'] = title
+            title = info_dict['fulltitle'] = info_dict.get('title')
             if not title:
                 if title == '':
                     self.write_debug('Extractor gave empty title. Creating a generic title')

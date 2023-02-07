@@ -3385,6 +3385,8 @@ def js_to_json(code, vars={}, *, strict=False):
     if not strict:
         code = re.sub(r'new Date\((".+")\)', r'\g<1>', code)
         code = re.sub(r'new \w+\((.*?)\)', lambda m: json.dumps(m.group(0)), code)
+        code = re.sub(r'parseInt\([^\d]+(\d+)[^\d]+\)', r'\1', code)
+        code = re.sub(r'\(function\([^)]*\)\s*\{[^}]*\}\s*\)\s*\(\s*(["\'][^)]*["\'])\s*\)', r'\1', code)
 
     return re.sub(rf'''(?sx)
         {STRING_RE}|
