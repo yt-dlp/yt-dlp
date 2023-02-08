@@ -14,6 +14,7 @@ from ..utils import (
     remove_start,
     traverse_obj,
     update_url_query,
+    urljoin,
 )
 
 
@@ -181,7 +182,7 @@ class HlsFD(FragmentFD):
                     frag_url = (
                         line
                         if re.match(r'^https?://', line)
-                        else urllib.parse.urljoin(man_url, line))
+                        else urljoin(man_url, line))
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
@@ -206,7 +207,7 @@ class HlsFD(FragmentFD):
                     frag_url = (
                         map_info.get('URI')
                         if re.match(r'^https?://', map_info.get('URI'))
-                        else urllib.parse.urljoin(man_url, map_info.get('URI')))
+                        else urljoin(man_url, map_info.get('URI')))
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
@@ -239,7 +240,7 @@ class HlsFD(FragmentFD):
                             decrypt_info['KEY'] = external_aes_key
                         else:
                             if not re.match(r'^https?://', decrypt_info['URI']):
-                                decrypt_info['URI'] = urllib.parse.urljoin(man_url, decrypt_info['URI'])
+                                decrypt_info['URI'] = urljoin(man_url, decrypt_info['URI'])
                             if extra_query:
                                 decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
                             if decrypt_url != decrypt_info['URI']:
