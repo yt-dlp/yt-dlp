@@ -179,10 +179,7 @@ class HlsFD(FragmentFD):
                     frag_index += 1
                     if frag_index <= ctx['fragment_index']:
                         continue
-                    frag_url = (
-                        line
-                        if re.match(r'^https?://', line)
-                        else urljoin(man_url, line))
+                    frag_url = urljoin(man_url, line)
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
@@ -204,10 +201,7 @@ class HlsFD(FragmentFD):
                         return False
                     frag_index += 1
                     map_info = parse_m3u8_attributes(line[11:])
-                    frag_url = (
-                        map_info.get('URI')
-                        if re.match(r'^https?://', map_info.get('URI'))
-                        else urljoin(man_url, map_info.get('URI')))
+                    frag_url = urljoin(man_url, map_info.get('URI'))
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
@@ -239,8 +233,7 @@ class HlsFD(FragmentFD):
                         if external_aes_key:
                             decrypt_info['KEY'] = external_aes_key
                         else:
-                            if not re.match(r'^https?://', decrypt_info['URI']):
-                                decrypt_info['URI'] = urljoin(man_url, decrypt_info['URI'])
+                            decrypt_info['URI'] = urljoin(man_url, decrypt_info['URI'])
                             if extra_query:
                                 decrypt_info['URI'] = update_url_query(decrypt_info['URI'], extra_query)
                             if decrypt_url != decrypt_info['URI']:
