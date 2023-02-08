@@ -215,7 +215,7 @@ class HttpFD(FileDownloader):
 
             if ctx.data.info().get('Content-encoding'):
                 # Content-encoding is present, Content-length is not reliable anymore as we are
-                # doing auto decompression.
+                # doing auto decompression. (See: https://github.com/yt-dlp/yt-dlp/pull/6176)
                 data_len = None
 
             # Range HTTP header may be ignored/unsupported by a webserver
