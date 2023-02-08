@@ -223,15 +223,14 @@ class InfoExtractor:
                     * extra_param_to_segment_url  A query string to append to each
                                  fragment's URL, or to update each existing query string
                                  with. Only applied by the native HLS/DASH downloaders.
-                    * _decryption_key_url  The URI from which the AES-128 key used to
-                                 decrypt the HLS segments should be downloaded
-                                 (native HLS downloader only).
-                    * hls_aes_key  The key (as hex) to use for decrypting the HLS
-                                 segments instead of retrieving a key from the URI
-                                 given in the playlist (native HLS downloader only).
-                    * hls_aes_iv  The IV (as hex) to use for decrypting the HLS
-                                 segments instead of the IV provided in the playlist
-                                 (native HLS downloader only).
+                    * hls_aes    A dictionary of HLS AES-128 decryption information
+                                 used by the native HLS downloader to override the
+                                 values in the media playlist when an '#EXT-X-KEY' tag
+                                 is present in the playlist:
+                                 * uri  The URI from which the key will be downloaded
+                                 * key  The key (as hex) used to decrypt fragments.
+                                        If `key` is given, any key URI will be ignored
+                                 * iv   The IV (as hex) used to decrypt fragments
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
