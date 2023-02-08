@@ -1,9 +1,5 @@
-import importlib
-
 from ..compat import functools
 from ..compat.compat_utils import EnhancedModule, passthrough_module
-
-EnhancedModule(__name__)
 
 try:
     import Cryptodome as _parent
@@ -14,14 +10,8 @@ except ImportError:
         _parent = EnhancedModule('Cryptodome')
         __bool__ = lambda: False
 
-
-@functools.cache
-def __getattr__(name):
-    try:
-        submodule = importlib.import_module(f'.{name}', _parent.__name__)
-    except ImportError:
-        return getattr(_parent, name)
-    return passthrough_module(f'{__name__}.{name}', submodule)
+passthrough_module(__name__, _parent, (..., '__version__'))
+del passthrough_module, EnhancedModule
 
 
 @property

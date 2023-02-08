@@ -1,5 +1,6 @@
 import collections
 import contextlib
+import functools
 import importlib
 import sys
 import types
@@ -20,6 +21,10 @@ def get_package_info(module):
 
 def _is_package(module):
     return '__path__' in vars(module)
+
+
+def _is_dunder(name):
+    return name.startswith('__') and name.endswith('__')
 
 
 class EnhancedModule(types.ModuleType):
@@ -44,7 +49,7 @@ class EnhancedModule(types.ModuleType):
         try:
             ret = super().__getattribute__(attr)
         except AttributeError:
-            if attr.startswith('__') and attr.endswith('__'):
+            if _is_dunder(attr):
                 raise
             getter = getattr(self, '__getattr__', None)
             if not getter:
@@ -53,7 +58,7 @@ class EnhancedModule(types.ModuleType):
         return ret.fget() if isinstance(ret, property) else ret
 
 
-def passthrough_module(parent, child, allowed_attributes=None, *, callback=lambda _: None):
+def passthrough_module(parent, child, allowed_attributes=(..., ), *, callback=lambda _: None):
     """Passthrough parent module into a child module, creating the parent if necessary"""
     parent = EnhancedModule(parent)
 
@@ -68,24 +73,23 @@ def passthrough_module(parent, child, allowed_attributes=None, *, callback=lambd
         callback(attr)
         return ret
 
+    @functools.lru_cache(maxsize=None)
     def from_child(attr):
         nonlocal child
-
-        if allowed_attributes is None:
-            if attr.startswith('__') and attr.endswith('__'):
+        if attr not in allowed_attributes:
+            if ... not in allowed_attributes or _is_dunder(attr):
                 return _NO_ATTRIBUTE
-        elif attr not in allowed_attributes:
-            return _NO_ATTRIBUTE
 
         if isinstance(child, str):
             child = importlib.import_module(child, parent.__name__)
 
-        with contextlib.suppress(AttributeError):
-            return getattr(child, attr)
-
         if _is_package(child):
             with contextlib.suppress(ImportError):
-                return importlib.import_module(f'.{attr}', child.__name__)
+                return passthrough_module(f'{parent.__name__}.{attr}',
+                                          importlib.import_module(f'.{attr}', child.__name__))
+
+        with contextlib.suppress(AttributeError):
+            return getattr(child, attr)
 
         return _NO_ATTRIBUTE
 
