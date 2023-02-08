@@ -157,11 +157,11 @@ class HlsFD(FragmentFD):
         i = 0
         media_sequence = 0
         decrypt_info = {'METHOD': 'NONE'}
-        external_aes_key = traverse_obj(info_dict, ('hls_aes', 'key', {str}))
+        external_aes_key = traverse_obj(info_dict, ('hls_aes', 'key'))
         if external_aes_key:
             external_aes_key = binascii.unhexlify(remove_start(external_aes_key, '0x'))
             assert len(external_aes_key) in (16, 24, 32), 'Invalid length for HLS AES-128 key'
-        external_aes_iv = traverse_obj(info_dict, ('hls_aes', 'iv', {str}))
+        external_aes_iv = traverse_obj(info_dict, ('hls_aes', 'iv'))
         if external_aes_iv:
             external_aes_iv = binascii.unhexlify(remove_start(external_aes_iv, '0x').zfill(32))
         byte_range = {}
