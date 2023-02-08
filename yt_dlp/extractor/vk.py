@@ -687,7 +687,13 @@ class VKWallPostIE(VKBaseIE):
                 'uploader': uploader,
                 'artist': artist,
                 'track': title,
-                'formats': self._extract_m3u8_formats(audio['url'], a_id, 'mov', 'm3u8_native', fatal=False)
+                'formats': [{
+                    'url': audio['url'],
+                    'ext': 'm4a',
+                    'vcodec': 'none',
+                    'acodec': 'mp3',
+                    'container': 'm4a_dash',
+                }],
             })
 
         for video in re.finditer(
