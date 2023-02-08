@@ -202,7 +202,7 @@ class WrestleUniversePPVIE(WrestleUniverseBaseIE):
             'channel': ('labels', 'group', {str}),
             'location': ('labels', 'venue', {str}),
             'timestamp': ('startTime', {int_or_none}),
-            'thumbnails': (('keyVisualUrl', 'alterKeyVisualUrl', 'heroKeyVisualUrl'), {url_or_none}, {'url': None}),
+            'thumbnails': (('keyVisualUrl', 'alterKeyVisualUrl', 'heroKeyVisualUrl'), {'url': {url_or_none}}),
         })
 
         ended_time = traverse_obj(metadata, ('endedTime', {int_or_none}))
