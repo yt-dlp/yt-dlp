@@ -4,6 +4,7 @@ import json
 import time
 
 from .common import InfoExtractor
+from ..dependencies import Cryptodome
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -49,13 +50,10 @@ class WrestleUniverseBaseIE(InfoExtractor):
             data=data, headers=headers, query=query, fatal=fatal)
 
     def _call_encrypted_api(self, video_id, param='', msg='API', data={}, query={}, fatal=True):
-        # TODO: Use `dependencies.cryptodome`
-        from Cryptodome.Cipher import PKCS1_OAEP
-        from Cryptodome.Hash import SHA1
-        from Cryptodome.PublicKey import RSA
-
-        private_key = RSA.generate(2048)
-        cipher = PKCS1_OAEP.new(private_key, hashAlgo=SHA1)
+        if not Cryptodome:
+            raise ExtractorError('pycryptodomex not found. Please install', expected=True)
+        private_key = Cryptodome.PublicKey.RSA.generate(2048)
+        cipher = Cryptodome.Cipher.PKCS1_OAEP.new(private_key, hashAlgo=Cryptodome.Hash.SHA1)
 
         def decrypt(data):
             if not data:
