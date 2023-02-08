@@ -1,4 +1,5 @@
 import collections
+import functools
 import hashlib
 import re
 
@@ -9,14 +10,12 @@ from .pladform import PladformIE
 from .sibnet import SibnetEmbedIE
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE
-from ..compat import compat_urlparse
 from ..utils import (
     ExtractorError,
     clean_html,
     get_element_by_class,
     int_or_none,
     join_nonempty,
-    orderedSet,
     str_or_none,
     str_to_int,
     try_call,
@@ -25,6 +24,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urlencode_postdata,
+    urljoin,
 )
 
 
@@ -667,7 +667,6 @@ class VKWallPostIE(VKBaseIE):
             'w': 'wall' + post_id,
         })[1]
 
-        description = clean_html(get_element_by_class('wall_post_text', webpage))
         uploader = clean_html(get_element_by_class('author', webpage))
 
         entries = []
@@ -678,9 +677,8 @@ class VKWallPostIE(VKBaseIE):
                 continue
             title = unescapeHTML(audio.get('title'))
             artist = unescapeHTML(audio.get('artist'))
-            a_id = f'{audio["owner_id"]}_{audio["id"]}'
             entries.append({
-                'id': a_id,
+                'id': f'{audio["owner_id"]}_{audio["id"]}',
                 'title': join_nonempty(artist, title, delim=' - '),
                 'thumbnails': try_call(lambda: [{'url': u} for u in audio['coverUrl'].split(',')]),
                 'duration': int_or_none(audio.get('duration')),
@@ -696,14 +694,8 @@ class VKWallPostIE(VKBaseIE):
                 }],
             })
 
-        for video in re.finditer(
-                r'<a[^>]+href=(["\'])(?P<url>/video(?:-?[\d_]+).*?)\1', webpage):
-            entries.append(self.url_result(
-                compat_urlparse.urljoin(url, video.group('url')), VKIE.ie_key()))
-
-        title = 'Wall post %s' % post_id
-
-        return self.playlist_result(
-            orderedSet(entries), post_id,
-            '%s - %s' % (uploader, title) if uploader else title,
-            description)
+        return self.playlist_from_matches(
+            re.findall(r'<a[^>]+href=(?:["\'])(/video(?:-?[\d_]+)[^"\']*)', webpage),
+            post_id, join_nonempty(uploader, f'Wall post {post_id}', delim=' - '),
+            getter=functools.partial(urljoin, url), ie=VKIE,
+            description=clean_html(get_element_by_class('wall_post_text', webpage)))
