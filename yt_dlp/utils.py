@@ -1080,19 +1080,18 @@ def get_referrer_url(referrer_source, request_url, policy):
             parsed_url = parsed_url._replace(query='')
         return parsed_url.geturl()
 
-    
-    referrer_url = strip_url(referrer_source)
     referrer_origin = strip_url(referrer_source, origin_only=True)
     is_origin_only = referrer_origin == strip_url(request_url, True)
-    
+    referrer_url = strip_url(referrer_source)
+    if len(referrer_url) > 4096:
+        referrer_url = referrer_origin
+
     # https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
     def is_tls(url):
         return urllib.parse.urlparse(url).scheme in ('https', 'ftps')
 
     insecure = is_tls(referrer_url) and not is_tls(request_url)
 
-    if len(referrer_url) > 4096:
-        referrer_url = referrer_origin
     if policy == 'no-referrer':
         return None
     elif policy == 'origin':
