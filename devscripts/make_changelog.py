@@ -14,13 +14,23 @@ from pathlib import Path
 from typing import Iterable
 
 DEFAULT_AUTHOR = "pukkandan"
-AUTHOR_INDICATOR = "Authored by: "
+AUTHOR_INDICATOR_RE = re.compile("Authored by:? ")
 
 USER_URL = "https://github.com"
 REPO_URL = "https://github.com/yt-dlp/yt-dlp"
 
-PREFIX_RE = r"(?:\[(?P<prefix>[^\]\/:,]+)(?:/(?P<details>[^\]:,]+))?(?:[:,](?P<sub_details>[^\]]+))?\] )"
-MESSAGE_RE = re.compile(rf"{PREFIX_RE}?(?P<message>.+?)(?: \(#(?P<issue>\d+)\))?")
+MESSAGE_RE = re.compile(
+    r"""
+    (?:\[
+        (?P<prefix>[^\]\/:,]+)
+        (?:/(?P<details>[^\]:,]+))?
+        (?:[:,](?P<sub_details>[^\]]+))?
+    \]\ )?
+    (?P<message>.+?)
+    (?:\ \(\#(?P<issue>\d+)\))?
+    """,
+    re.VERBOSE,
+)
 MISC_RE = re.compile(r"(?:^|\b)(?:misc|format(?:ting)?|fixes)(?:\b|$)", re.IGNORECASE)
 
 OVERRIDE_PATH = Path(__file__).parent / "changelog_override.json"
@@ -47,6 +57,8 @@ class CommitGroup(enum.Enum):
                 cls.CORE: {
                     "aes",
                     "cache",
+                    "compat_utils",
+                    "compat",
                     "cookies",
                     "dependencies",
                     "jsinterp",
@@ -55,9 +67,9 @@ class CommitGroup(enum.Enum):
                     "utils",
                 },
                 cls.MISC: {
+                    "build",
                     "cleanup",
                     "docs",
-                    "build",
                 },
                 cls.EXTRACTOR: {"extractor"},
                 cls.DOWNLOADER: {"downloader"},
@@ -255,8 +267,9 @@ class CommitRange:
 
             authors = [DEFAULT_AUTHOR]
             for line in iter(lambda: next(lines), self.COMMIT_SEPARATOR):
-                if line.startswith(AUTHOR_INDICATOR):
-                    authors = line.removeprefix(AUTHOR_INDICATOR).split(", ")
+                match = AUTHOR_INDICATOR_RE.match(line)
+                if match:
+                    authors = line[match.end() :].split(", ")
 
             commit = Commit(commit_hash, short, authors)
             if skip:
@@ -360,6 +373,7 @@ if __name__ == "__main__":
     parser.add_argument("commitish", default="HEAD", nargs="?", help="The commitish to create the range from (default: HEAD)")
     parser.add_argument("-v", "--verbosity", action="count", default=0, help="Increase verbosity")
     parser.add_argument("-c", "--contributors", action="store_true", help="Update CONTRIBUTORS file")
+    parser.add_argument("-o", "--override", type=Path, default=OVERRIDE_PATH, help="Path to override file")
     # fmt: on
     args, _ = parser.parse_known_args()
     logging.basicConfig(
@@ -376,9 +390,13 @@ if __name__ == "__main__":
 
     commits = CommitRange.from_single(args.commitish)
 
-    with OVERRIDE_PATH.open() as file:
-        overrides = json.load(file)
-    commits.apply_overrides(overrides)
+    if args.override:
+        if args.override.exists():
+            with args.override.open() as file:
+                overrides = json.load(file)
+            commits.apply_overrides(overrides)
+        else:
+            logger.warning(f"File {args.override.as_posix()} does not exist")
 
     logger.info(f"Loaded {len(commits)} commits")
 
