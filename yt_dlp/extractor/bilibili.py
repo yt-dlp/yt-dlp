@@ -6,6 +6,7 @@ import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
+from ..dependencies import Cryptodome
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
@@ -893,22 +894,15 @@ class BiliIntlBaseIE(InfoExtractor):
         }
 
     def _perform_login(self, username, password):
-        try:
-            from Cryptodome.PublicKey import RSA
-            from Cryptodome.Cipher import PKCS1_v1_5
-        except ImportError:
-            try:
-                from Crypto.PublicKey import RSA
-                from Crypto.Cipher import PKCS1_v1_5
-            except ImportError:
-                raise ExtractorError('pycryptodomex not found. Please install', expected=True)
+        if not Cryptodome:
+            raise ExtractorError('pycryptodomex not found. Please install', expected=True)
 
         key_data = self._download_json(
             'https://passport.bilibili.tv/x/intl/passport-login/web/key?lang=en-US', None,
             note='Downloading login key', errnote='Unable to download login key')['data']
 
-        public_key = RSA.importKey(key_data['key'])
-        password_hash = PKCS1_v1_5.new(public_key).encrypt((key_data['hash'] + password).encode('utf-8'))
+        public_key = Cryptodome.PublicKey.RSA.importKey(key_data['key'])
+        password_hash = Cryptodome.Cipher.PKCS1_v1_5.new(public_key).encrypt((key_data['hash'] + password).encode('utf-8'))
         login_post = self._download_json(
             'https://passport.bilibili.tv/x/intl/passport-login/web/login/password?lang=en-US', None, data=urlencode_postdata({
                 'username': username,
