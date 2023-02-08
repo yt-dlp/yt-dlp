@@ -87,7 +87,7 @@ class VzaarIE(InfoExtractor):
                 m3u8_id='hls', fatal=False)
             if hls_aes:
                 for f in m3u8_formats:
-                    f.update({'hls_aes': {'uri': url_templ % ('goose', '') + qs}})
+                    f['hls_aes'] = {'uri': url_templ % ('goose', '') + qs}
             formats.extend(m3u8_formats)
 
         return {
