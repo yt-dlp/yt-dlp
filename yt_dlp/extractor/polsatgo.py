@@ -28,6 +28,15 @@ class PolsatGoIE(InfoExtractor):
             'age_limit': 12,
             'subtitles': 'count:1',
         },
+    }, {
+        'url': 'https://polsatgo.pl/wideo/seriale/rodzina-zastepcza/5024220/rodzina-zastepcza-odcinek-1/7928',
+        'info_dict': {
+            'id': '7928',
+            'ext': 'mp4',
+            'title': 'Rodzina Zastępcza - Odcinek 1',
+            'age_limit': 0,
+            'subtitles': 'count:0',
+        },
     }]
 
     _CLIENTS = {
@@ -159,7 +168,7 @@ class PolsatGoIE(InfoExtractor):
             formats.extend(fmts)
 
         subtitles = {}
-        for subtitle in traverse_obj(media, ('displayInfo', 'subtitles')):
+        for subtitle in traverse_obj(media, ('displayInfo', 'subtitles'), default=()):
             subtitles.setdefault(subtitle['name'], []).append({
                 'url': subtitle['src'],
                 'ext': subtitle.get('format'),
