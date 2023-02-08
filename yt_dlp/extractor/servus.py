@@ -4,6 +4,7 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
+    join_nonempty,
     traverse_obj,
     unescapeHTML,
     unified_timestamp,
@@ -106,13 +107,9 @@ class ServusIE(InfoExtractor):
             f'https://backend.servustv.com/wp-json/rbmh/v2/media_asset/aa_id/{video_id}?fieldset=page',
             video_id, fatal=False)
 
-        short_description = unescapeHTML(traverse_obj(info, 'stv_short_description', expected_type=str))
-        long_description = unescapeHTML(traverse_obj(info, 'stv_long_description', expected_type=str, default=''))
-        long_description = long_description.replace('\n\n', '\n')
-
-        if short_description and long_description:
-            return f'{short_description}\n\n{long_description}'
-        return long_description or short_description
+        return join_nonempty(*traverse_obj(info, (
+            ('stv_short_description', 'stv_long_description'),
+            {lambda x: unescapeHTML(x.replace('\n\n', '\n'))})), delim='\n\n')
 
     def _report_errors(self, video):
         playability_errors = traverse_obj(video, ('playabilityErrors', ...))
@@ -121,11 +118,11 @@ class ServusIE(InfoExtractor):
 
         elif 'FSK_BLOCKED' in playability_errors:
             details = traverse_obj(video, ('playabilityErrorDetails', 'FSK_BLOCKED'), expected_type=dict)
-            message = format_field(''.join([
+            message = format_field(''.join((
                 format_field(details, 'minEveningHour', ' from %02d:00'),
                 format_field(details, 'maxMorningHour', ' to %02d:00'),
                 format_field(details, 'minAge', ' (Minimum age %d)'),
-            ]), None, 'Only available%s') or 'Blocked by FSK with unknown availability'
+            )), None, 'Only available%s') or 'Blocked by FSK with unknown availability'
 
         elif 'NOT_YET_AVAILABLE' in playability_errors:
             message = format_field(
