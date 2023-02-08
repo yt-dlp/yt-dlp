@@ -1080,15 +1080,17 @@ def get_referrer_url(referrer_source, request_url, policy):
             parsed_url = parsed_url._replace(query='')
         return parsed_url.geturl()
 
-    # https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
-    # More checks to determine the trustworthiness of a URL, the URL scheme is one check
-    def is_tls(url):
-        return urllib.parse.urlparse(url).scheme in ('https', 'ftps')
+    
     referrer_url = strip_url(referrer_source)
     referrer_origin = strip_url(referrer_source, origin_only=True)
-    is_origin_only = (referrer_origin == strip_url(request_url, True))
-    is_tls_referrer = is_tls(referrer_url)
-    is_not_tls_requester = not is_tls(request_url)
+    is_origin_only = referrer_origin == strip_url(request_url, True)
+    
+    # https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
+    def is_tls(url):
+        return urllib.parse.urlparse(url).scheme in ('https', 'ftps')
+
+    insecure = is_tls(referrer_url) and not is_tls(request_url)
+
     if len(referrer_url) > 4096:
         referrer_url = referrer_origin
     if policy == 'no-referrer':
@@ -1098,28 +1100,15 @@ def get_referrer_url(referrer_source, request_url, policy):
     elif policy == 'unsafe-url':
         return referrer_url
     elif policy == 'strict-origin':
-        if is_tls_referrer and is_not_tls_requester:
-            return None
-        else:
-            return referrer_origin
+        return None if insecure else referrer_origin
     elif policy == 'strict-origin-when-cross-origin':
-        if is_origin_only:
-            return referrer_url
-        elif is_tls_referrer and is_not_tls_requester:
-            return None
-        return referrer_origin
+        return referrer_url if is_origin_only else None if insecure else referrer_origin
     elif policy == 'same-origin':
-        if is_origin_only:
-            return referrer_url
-        return None
+        return referrer_url if is_origin_only else None
     elif policy == 'origin-when-cross-origin':
-        if is_origin_only:
-            return referrer_url
-        return referrer_origin
+        return referrer_url if is_origin_only else referrer_origin
     elif policy == 'no-referrer-when-downgrade':
-        if is_tls_referrer and is_not_tls_requester:
-            return None
-        return referrer_url
+        return None if insecure else referrer_url
 
 
 class YoutubeDLError(Exception):

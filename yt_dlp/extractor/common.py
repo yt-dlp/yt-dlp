@@ -88,7 +88,7 @@ from ..utils import (
     variadic,
     xpath_element,
     xpath_text,
-    xpath_with_ns
+    xpath_with_ns,
 )
 
 
@@ -3112,7 +3112,7 @@ class InfoExtractor:
                             'url': absolute_url(src),
                         })
             for f in media_info['formats']:
-                referrer = get_referrer_url(base_url, f["url"], referrer_policy)
+                referrer = get_referrer_url(base_url, f['url'], referrer_policy)
                 if referrer:
                     f.setdefault('http_headers', {})['Referer'] = referrer
             if media_info['formats'] or media_info['subtitles']:
