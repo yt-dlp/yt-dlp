@@ -18,7 +18,7 @@ del passthrough_module, EnhancedModule
 @functools.cache
 def _yt_dlp__identifier():
     if _parent.__name__ == 'Crypto':
-        from Crypto.Cipher import AES
+        from Cryptodome.Cipher import AES
         try:
             # In pycrypto, mode defaults to ECB. See:
             # https://www.pycryptodome.org/en/latest/src/vs_pycrypto.html#:~:text=not%20have%20ECB%20as%20default%20mode
