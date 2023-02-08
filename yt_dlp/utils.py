@@ -5420,7 +5420,6 @@ def traverse_obj(
     Each of the provided `paths` is tested and the first producing a valid result will be returned.
     The next path will also be tested if the path branched but no results could be found.
     Supported values for traversal are `Mapping`, `Sequence` and `re.Match`.
-    A falsy value (except `bool`s, `int`s and `float`s) is treated as the absence of a value.
     Unhelpful values (`[]`, `{}`, `None`) are treated as the absence of a value and discarded.
 
     The paths will be wrapped in `variadic`, so that `'key'` is conveniently the same as `('key', )`.
