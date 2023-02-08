@@ -2000,8 +2000,8 @@ Line 1
 
         # Test Ellipsis behavior
         self.assertCountEqual(traverse_obj(_TEST_DATA, ...),
-                              (item for item in _TEST_DATA.values() if item is not None),
-                              msg='`...` should give all values except `None`')
+                              (item for item in _TEST_DATA.values() if item not in (None, [], {})),
+                              msg='`...` should give all non discarded values')
         self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', 0, ...)), _TEST_DATA['urls'][0].values(),
                               msg='`...` selection for dicts should select all values')
         self.assertEqual(traverse_obj(_TEST_DATA, (..., ..., 'url')),
@@ -2084,15 +2084,23 @@ Line 1
                          {0: ['https://www.example.com/1', 'https://www.example.com/0']},
                          msg='tripple nesting in dict path should be treated as branches')
         self.assertEqual(traverse_obj(_TEST_DATA, {0: 'fail'}), {},
-                         msg='remove `None` values when dict key')
+                         msg='remove `None` values when top level dict key fails')
         self.assertEqual(traverse_obj(_TEST_DATA, {0: 'fail'}, default=...), {0: ...},
-                         msg='do not remove `None` values if `default`')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}), {0: {}},
-                         msg='do not remove empty values when dict key')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}, default=...), {0: {}},
-                         msg='do not remove empty values when dict key and a default')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('dict', ...)}), {0: []},
-                         msg='if branch in dict key not successful, return `[]`')
+                         msg='use `default` if key fails and `default`')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}), {},
+                         msg='remove empty values when dict key')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}, default=...), {0: ...},
+                         msg='use `default` when dict key and `default`')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 'fail'}}), {},
+                         msg='remove empty values when nested dict key fails')
+        self.assertEqual(traverse_obj(None, {0: 'fail'}), {},
+                         msg='default to dict if pruned')
+        self.assertEqual(traverse_obj(None, {0: 'fail'}, default=...), {},
+                         msg='default to dict if pruned and default is given')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 'fail'}}, default=...), {0: {0: ...}},
+                         msg='use nested `default` when nested dict key fails and `default`')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('dict', ...)}), {},
+                         msg='remove key if branch in dict key not successful')
 
         # Testing default parameter behavior
         _DEFAULT_DATA = {'None': None, 'int': 0, 'list': []}
@@ -2183,14 +2191,17 @@ Line 1
                                       traverse_string=True), '.',
                          msg='traverse into converted data if `traverse_string`')
         self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', ...),
-                                      traverse_string=True), list('str'),
-                         msg='`...` branching into string should result in list')
+                                      traverse_string=True), 'str',
+                         msg='`...` should result in string (same value) if `traverse_string`')
+        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', slice(0, None, 2)),
+                                      traverse_string=True), 'sr',
+                         msg='`slice` should result in string if `traverse_string`')
+        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', lambda i, v: i or v == "s"),
+                                      traverse_string=True), 'str',
+                         msg='function should result in string if `traverse_string`')
         self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', (0, 2)),
                                       traverse_string=True), ['s', 'r'],
-                         msg='branching into string should result in list')
-        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', lambda _, x: x),
-                                      traverse_string=True), list('str'),
-                         msg='function branching into string should result in list')
+                         msg='branching should result in list if `traverse_string`')
 
         # Test is_user_input behavior
         _IS_USER_INPUT_DATA = {'range8': list(range(8))}
