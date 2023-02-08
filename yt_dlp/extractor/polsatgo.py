@@ -18,6 +18,7 @@ from ..utils import (
 
 class PolsatGoIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?polsat(?:box)?go\.pl/.+/(?P<id>[0-9a-fA-F]+)(?:[/#?]|$)'
+    _NETRC_MACHINE = 'polsatgo'
     _TESTS = [{
         'url': 'https://polsatgo.pl/wideo/seriale/swiat-wedlug-kiepskich/5024025/sezon-1/5024197/swiat-wedlug-kiepskich-odcinek-1/4208/ogladaj',
         'info_dict': {
@@ -108,6 +109,31 @@ class PolsatGoIE(InfoExtractor):
                     'user_recognition': user_recognition,
                 }
 
+    def _perform_login(self, username, password):
+        clients = self._configuration_arg('player_client', default=['android'])
+        for client_name in clients:
+            if client_name in self._SESSIONS:
+                continue
+            client_id = str(uuid4())
+            device_id = str(uuid4())
+            response = self._call_api('auth/login', None, 'login', {
+                'authData': {
+                    'deviceId': {
+                        'type': 'other',
+                        'value': device_id,
+                    },
+                    'login': username,
+                    'password': password,
+                },
+            }, client_name=client_name, device_id=device_id, client_id=client_id)
+            self._SESSIONS[client_name] = {
+                'user_session': response['session'],
+                'user_recognition': {
+                    'clientId': client_id,
+                    'deviceId': device_id,
+                },
+            }
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -147,7 +173,7 @@ class PolsatGoIE(InfoExtractor):
             'subtitles': subtitles,
         }
 
-    def _call_api(self, endpoint, media_id, method, params=None, client_name='web', fatal=True):
+    def _call_api(self, endpoint, media_id, method, params=None, client_name='web', fatal=True, device_id=None, client_id=None):
         client = self._CLIENTS.get(client_name)
         if not client:
             raise ExtractorError(f'Unsupported player_client {client_name}', expected=True)
@@ -178,9 +204,9 @@ class PolsatGoIE(InfoExtractor):
                     'userAgentData': client['client'],
                     'deviceId': {
                         'type': 'other',
-                        'value': user_recognition.get('deviceId') or str(uuid4()),
+                        'value': user_recognition.get('deviceId') or device_id or str(uuid4()),
                     },
-                    'clientId': user_recognition.get('clientId') or str(uuid4()),
+                    'clientId': user_recognition.get('clientId') or client_id or str(uuid4()),
                     'cpid': 1,
                 },
             }).encode('utf-8'),
