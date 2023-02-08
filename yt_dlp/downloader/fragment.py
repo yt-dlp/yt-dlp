@@ -360,7 +360,8 @@ class FragmentFD(FileDownloader):
             if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
                 return frag_content
             iv = decrypt_info.get('IV') or struct.pack('>8xq', fragment['media_sequence'])
-            decrypt_info['KEY'] = decrypt_info.get('KEY') or _get_key(info_dict.get('_decryption_key_url') or decrypt_info['URI'])
+            decrypt_info['KEY'] = (decrypt_info.get('KEY')
+                                   or _get_key(traverse_obj(info_dict, ('hls_aes', 'uri')) or decrypt_info['URI']))
             # Don't decrypt the content in tests since the data is explicitly truncated and it's not to a valid block
             # size (see https://github.com/ytdl-org/youtube-dl/pull/27660). Tests only care that the correct data downloaded,
             # not what it decrypts to.

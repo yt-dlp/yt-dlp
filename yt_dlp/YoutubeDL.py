@@ -554,7 +554,7 @@ class YoutubeDL:
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
         'preference', 'language', 'language_preference', 'quality', 'source_preference',
-        'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'downloader_options',
+        'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
         'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
     }
     _format_selection_exts = {
