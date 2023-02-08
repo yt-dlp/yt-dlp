@@ -21,7 +21,8 @@ from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeYtBeIE,
     YoutubeYtUserIE,
     YoutubeWatchLaterIE,
-    YoutubeShortsAudioPivotIE
+    YoutubeShortsAudioPivotIE,
+    YoutubeConsentRedirectIE,
 )
 
 from .abc import (
@@ -2047,6 +2048,10 @@ from .twitter import (
     TwitterSpacesIE,
     TwitterShortenerIE,
 )
+from .txxx import (
+    TxxxIE,
+    PornTopIE,
+)
 from .udemy import (
     UdemyIE,
     UdemyCourseIE
@@ -2268,6 +2273,10 @@ from .worldstarhiphop import WorldStarHipHopIE
 from .wppilot import (
     WPPilotIE,
     WPPilotChannelsIE,
+)
+from .wrestleuniverse import (
+    WrestleUniverseVODIE,
+    WrestleUniversePPVIE,
 )
 from .wsj import (
     WSJIE,

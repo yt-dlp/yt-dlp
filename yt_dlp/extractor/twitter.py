@@ -770,6 +770,29 @@ class TwitterIE(TwitterBaseIE):
         },
         'params': {'noplaylist': True},
     }, {
+        # id pointing to TweetWithVisibilityResults type entity which wraps the actual Tweet over
+        # note the id different between extraction and url
+        'url': 'https://twitter.com/s2FAKER/status/1621117700482416640',
+        'info_dict': {
+            'id': '1621117577354424321',
+            'display_id': '1621117700482416640',
+            'ext': 'mp4',
+            'title': '뽀 - 아 최우제 이동속도 봐',
+            'description': '아 최우제 이동속도 봐 https://t.co/dxu2U5vXXB',
+            'duration': 24.598,
+            'uploader': '뽀',
+            'uploader_id': 's2FAKER',
+            'uploader_url': 'https://twitter.com/s2FAKER',
+            'upload_date': '20230202',
+            'timestamp': 1675339553.0,
+            'thumbnail': r're:https?://pbs\.twimg\.com/.+',
+            'age_limit': 18,
+            'tags': [],
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+        },
+    }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
         'only_matching': True,
@@ -811,8 +834,11 @@ class TwitterIE(TwitterBaseIE):
         result = traverse_obj(data, (
             'threaded_conversation_with_injections_v2', 'instructions', 0, 'entries',
             lambda _, v: v['entryId'] == f'tweet-{twid}', 'content', 'itemContent',
-            'tweet_results', 'result'
+            'tweet_results', 'result', ('tweet', None),
         ), expected_type=dict, default={}, get_all=False)
+
+        if result.get('__typename') not in ('Tweet', None):
+            self.report_warning(f'Unknown typename: {result.get("__typename")}', twid, only_once=True)
 
         if 'tombstone' in result:
             cause = traverse_obj(result, ('tombstone', 'text', 'text'), expected_type=str)
