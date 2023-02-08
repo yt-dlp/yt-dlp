@@ -163,8 +163,10 @@ class WrestleUniversePPVIE(WrestleUniverseBaseIE):
             'upload_date': '20230130',
             'thumbnail': 'https://image.asset.wrestle-universe.com/rJs2m7cBaLXrwCcxMdQGRM/rJs2m7cBaLXrwCcxMdQGRM',
             'thumbnails': 'count:3',
-            'hls_aes_key': '5633184acd6e43f1f1ac71c6447a4186',
-            'hls_aes_iv': '5bac71beb33197d5600337ce86de7862',
+            'hls_aes': {
+                'key': '5633184acd6e43f1f1ac71c6447a4186',
+                'iv': '5bac71beb33197d5600337ce86de7862',
+            },
         },
         'params': {
             'skip_download': 'm3u8',
@@ -225,7 +227,9 @@ class WrestleUniversePPVIE(WrestleUniverseBaseIE):
         return {
             'id': video_id,
             'formats': formats,
-            'hls_aes_key': hls_aes_key,
-            'hls_aes_iv': traverse_obj(video_data, ('hls', 'iv', {decrypt})),
+            'hls_aes': {
+                'key': hls_aes_key,
+                'iv': traverse_obj(video_data, ('hls', 'iv', {decrypt})),
+            },
             **info,
         }
