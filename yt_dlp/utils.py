@@ -5481,41 +5481,46 @@ def traverse_obj(
     else:
         type_test = lambda val: try_call(expected_type or IDENTITY, args=(val,))
 
-    def apply_key(state, key, is_last, obj):
+    def apply_key(key, obj, is_last):
+        branching = False
+        result = None
+
         if obj is None:
-            return
+            pass
 
         elif key is None:
-            yield obj
+            result = obj
 
         elif isinstance(key, set):
             assert len(key) == 1, 'Set should only be used to wrap a single item'
             item = next(iter(key))
             if isinstance(item, type):
                 if isinstance(obj, item):
-                    yield obj
+                    result = obj
             else:
-                yield try_call(item, args=(obj,))
+                result = try_call(item, args=(obj,))
 
         elif isinstance(key, (list, tuple)):
-            state.branched = True
-            yield from itertools.chain.from_iterable(
+            branching = True
+            result = itertools.chain.from_iterable(
                 apply_path(obj, branch, is_last)[0] for branch in key)
 
         elif key is ...:
-            state.branched = True
+            branching = True
             if isinstance(obj, collections.abc.Mapping):
-                yield from obj.values()
+                result = obj.values()
             elif is_sequence(obj):
-                yield from obj
+                result = obj
             elif isinstance(obj, re.Match):
-                yield from obj.groups()
+                result = obj.groups()
             elif traverse_string:
-                state.string = True
-                yield str(obj)
+                branching = False
+                result = str(obj)
+            else:
+                result = ()
 
         elif callable(key):
-            state.branched = True
+            branching = True
             if isinstance(obj, collections.abc.Mapping):
                 iter_obj = obj.items()
             elif is_sequence(obj):
@@ -5525,45 +5530,45 @@ def traverse_obj(
                     enumerate((obj.group(), *obj.groups())),
                     obj.groupdict().items())
             elif traverse_string:
-                state.string = True
+                branching = False
                 iter_obj = enumerate(str(obj))
             else:
-                return
+                iter_obj = ()
 
-            yield from (v for k, v in iter_obj if try_call(key, args=(k, v)))
+            result = (v for k, v in iter_obj if try_call(key, args=(k, v)))
+            if not branching:  # string traversal
+                result = ''.join(result)
 
         elif isinstance(key, dict):
             iter_obj = ((k, _traverse_obj(obj, v, False, is_last)) for k, v in key.items())
-            yield {
+            result = {
                 k: v if v is not None else default for k, v in iter_obj
                 if v is not None or default is not NO_DEFAULT
             } or None
 
         elif isinstance(obj, collections.abc.Mapping):
-            yield (obj.get(key) if casesense or (key in obj) else
-                   next((v for k, v in obj.items() if casefold(k) == key), None))
+            result = (obj.get(key) if casesense or (key in obj) else
+                      next((v for k, v in obj.items() if casefold(k) == key), None))
 
         elif isinstance(obj, re.Match):
             if isinstance(key, int) or casesense:
                 with contextlib.suppress(IndexError):
-                    yield obj.group(key)
+                    result = obj.group(key)
 
             elif isinstance(key, str):
-                yield next((v for k, v in obj.groupdict().items() if casefold(k) == key), None)
+                result = next((v for k, v in obj.groupdict().items() if casefold(k) == key), None)
 
         elif isinstance(key, (int, slice)):
             if not is_sequence(obj):
-                if not traverse_string:
-                    return
-                state.string = True
-                obj = str(obj)
+                if traverse_string:
+                    with contextlib.suppress(IndexError):
+                        result = str(obj)[key]
+            else:
+                branching = isinstance(key, slice)
+                with contextlib.suppress(IndexError):
+                    result = obj[key]
 
-            with contextlib.suppress(IndexError):
-                if isinstance(key, int):
-                    yield obj[key]
-                else:
-                    state.branched = True
-                    yield from obj[key]
+        return branching, result if branching else (result,)
 
     def lazy_last(iterable):
         iterator = iter(iterable)
@@ -5579,12 +5584,10 @@ def traverse_obj(
 
     def apply_path(start_obj, path, test_type):
         objs = (start_obj,)
-        state = types.SimpleNamespace()
-        state.branched = False
-        state.string = False
+        has_branched = False
 
         key = None
-        for is_last, key in lazy_last(variadic(path, (str, bytes, dict, set))):
+        for last, key in lazy_last(variadic(path, (str, bytes, dict, set))):
             if is_user_input and isinstance(key, str):
                 if key == ':':
                     key = ...
@@ -5600,29 +5603,30 @@ def traverse_obj(
                 # Verify function signature
                 inspect.signature(key).bind(None, None)
 
-            key_func = functools.partial(apply_key, state, key, is_last)
-            objs = itertools.chain.from_iterable(map(key_func, objs))
+            new_objs = []
+            for obj in objs:
+                branching, results = apply_key(key, obj, last)
+                has_branched |= branching
+                new_objs.append(results)
+
+            objs = itertools.chain.from_iterable(new_objs)
 
         if test_type and not isinstance(key, (dict, list, tuple)):
             objs = map(type_test, objs)
 
-        state.is_dict = isinstance(key, dict)
-        return objs, state
+        return objs, has_branched, isinstance(key, dict)
 
     def _traverse_obj(obj, path, allow_empty, test_type):
-        results, state = apply_path(obj, path, test_type)
-        results = (item for item in results if item not in (None, [], {}))
-        first = next(results, NO_DEFAULT)
-        if state.string:
-            return None if first is NO_DEFAULT else "".join([first, *results])
-        if get_all and state.branched:
-            if first is not NO_DEFAULT:
-                return [first, *results]
+        results, has_branched, is_dict = apply_path(obj, path, test_type)
+        results = LazyList(item for item in results if item not in (None, [], {}))
+        if get_all and has_branched:
+            if results:
+                return results.exhaust()
             if allow_empty:
                 return [] if default is NO_DEFAULT else default
             return None
 
-        return first if first is not NO_DEFAULT else {} if allow_empty and state.is_dict else None
+        return results[0] if results else {} if allow_empty and is_dict else None
 
     for index, path in enumerate(paths, 1):
         result = _traverse_obj(obj, path, index == len(paths), True)
