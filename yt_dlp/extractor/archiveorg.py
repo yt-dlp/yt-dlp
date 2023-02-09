@@ -1064,7 +1064,7 @@ class VLiveWebArchiveIE(InfoExtractor):
         player_info = self._search_json('__PRELOADED_STATE__\s*=', webpage, 'player info', video_id)
         user_country = traverse_obj(player_info, ('common', 'userCountry'))
 
-        main_script_url = self._search_regex(r'<script\s+src="([^"]+/js/main\.[^"]+\.js)"\s*>', webpage, 'main script url')
+        main_script_url = self._search_regex(r'<script\s+src="([^"]+/js/main\.[^"]+\.js)"', webpage, 'main script url')
         main_script = self._download_wbm_page(main_script_url, video_id, note='Downloading main script')
         app_id = self._search_regex(r'appId="([^"]+)"', main_script, 'app id')
 
