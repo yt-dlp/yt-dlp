@@ -46,6 +46,7 @@ class CommitGroup(enum.Enum):
                 cls.MISC: {
                     'build',
                     'cleanup',
+                    'devscripts',
                     'docs',
                 },
                 cls.EXTRACTOR: {'extractor'},
@@ -121,7 +122,7 @@ class Changelog:
         for item in sorted(group, key=CommitInfo.key):
             if item.details != current:
                 if current == 'cleanup' and cleanup_misc:
-                    yield from self._format_misc_items(cleanup_misc)
+                    yield from self.format_misc_items(cleanup_misc)
 
                 yield f'- {item.details}'
                 current = item.details
@@ -178,7 +179,7 @@ class CommitRange:
     COMMAND = 'git'
     COMMIT_SEPARATOR = '-----'
 
-    AUTHOR_INDICATOR_RE = re.compile(r'Authored by:? ')
+    AUTHOR_INDICATOR_RE = re.compile(r'Authored by:? ', re.IGNORECASE)
     MESSAGE_RE = re.compile(r'''
         (?:\[
             (?P<prefix>[^\]\/:,]+)
