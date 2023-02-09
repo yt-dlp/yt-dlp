@@ -1,5 +1,6 @@
 import json
 import re
+import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor
@@ -1050,14 +1051,16 @@ class VLiveWebArchiveIE(InfoExtractor):
         for retry in self.RetryManager():
             try:
                 return self._download_webpage(f'https://web.archive.org/web/{timestamp}{mode}/' + url, video_id, **kwargs)
-            except ExtractorError as err:
-                retry.error = err
+            except ExtractorError as e:
+                if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 404:
+                    raise ExtractorError('Page was not archived', expected=True)
+                retry.error = e
                 continue
 
     def _download_wbm_json(self, url, video_id, timestamp='2', mode='id_', **kwargs):
         page = self._download_wbm_page(url, video_id, timestamp, mode, **kwargs)
         if not page:
-            raise ExtractorError('Page was not archived')
+            raise ExtractorError('Page was not archived', expected=True)
         else:
             return self._parse_json(page, video_id)
 
