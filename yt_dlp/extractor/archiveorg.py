@@ -1,3 +1,4 @@
+import itertools
 import json
 import re
 import urllib.parse
@@ -945,3 +946,238 @@ class YoutubeWebArchiveIE(InfoExtractor):
         if not info.get('title'):
             info['title'] = video_id
         return info
+
+
+class VLiveWebArchiveIE(InfoExtractor):
+    IE_NAME = 'web.archive:vlive'
+    IE_DESC = 'web.archive.org saved vlive videos'
+    _VALID_URL = r'''(?x)
+            (?:https?://)?web\.archive\.org/
+            (?:web/)?(?:(?P<date>[0-9]{14})?[0-9A-Za-z_*]*/)?  # /web and the version index is optional
+            (?:https?(?::|%3[Aa])//)?(?:
+                (?:(?:www|m)\.)?vlive\.tv(?::(?:80|443))?/(?:video|embed)/(?P<id>[0-9]+)  # VLive URL
+            )
+        '''
+    _TESTS = [{
+        'url': 'https://web.archive.org/web/20221221144331/http://www.vlive.tv/video/1326',
+        'md5': 'cc7314812855ce56de70a06a27314983',
+        'info_dict': {
+            'id': '1326',
+            'ext': 'mp4',
+            'title': "Girl's Day's Broadcast",
+            'creator': "Girl's Day",
+            'view_count': int,
+            'uploader_id': 'muploader_a',
+            'uploader_url': '',
+            'uploader': '',
+            'upload_date': '20150817',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            'timestamp': 1439816449,
+            'like_count': int,
+            'channel': 'Girl\'s Day',
+            'channel_id': 'FDF27',
+            'comment_count': int,
+            'release_timestamp': 1439818140,
+            'release_date': '20150817',
+            'duration': 1014,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://web.archive.org/web/20221221182103/http://www.vlive.tv/video/16937',
+        'info_dict': {
+            'id': '16937',
+            'ext': 'mp4',
+            'title': '첸백시 걍방',
+            'creator': 'EXO',
+            'view_count': int,
+            'subtitles': 'mincount:12',
+            'uploader_id': 'muploader_j',
+            'uploader_url': 'http://vlive.tv',
+            'uploader': '',
+            'upload_date': '20161112',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            'timestamp': 1478923074,
+            'like_count': int,
+            'channel': 'EXO',
+            'channel_id': 'F94BD',
+            'comment_count': int,
+            'release_timestamp': 1478924280,
+            'release_date': '20161112',
+            'duration': 906,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://web.archive.org/web/20221127190050/http://www.vlive.tv/video/101870',
+        'info_dict': {
+            'id': '101870',
+            'ext': 'mp4',
+            'title': '[ⓓ xV] “레벨이들 매력에 반해? 안 반해?” 움직이는 HD 포토 (레드벨벳:Red Velvet)',
+            'creator': 'Dispatch',
+            'view_count': int,
+            'subtitles': 'mincount:6',
+            'uploader_id': 'V__FRA08071',
+            'uploader_url': 'http://vlive.tv',
+            'uploader': '',
+            'upload_date': '20181130',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            'timestamp': 1543601327,
+            'like_count': int,
+            'channel': 'Dispatch',
+            'channel_id': 'C796F3',
+            'comment_count': int,
+            'release_timestamp': 1543601040,
+            'release_date': '20181130',
+            'duration': 279,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+    # The wayback machine has special timestamp and "mode" values:
+    # timestamp:
+    #   1 = the first capture
+    #   2 = the last capture
+    # mode:
+    #   id_ = Identity - perform no alterations of the original resource, return it as it was archived.
+    _WAYBACK_BASE_URL = 'https://web.archive.org/web/2id_/'
+
+    def _download_wbm_page(self, url, video_id, timestamp='2', mode='id_', **kwargs):
+        for retry in self.RetryManager():
+            try:
+                return self._download_webpage(f'https://web.archive.org/web/{timestamp}{mode}/' + url, video_id, **kwargs)
+            except ExtractorError as err:
+                retry.error = err
+                continue
+
+    # Closely follows the logic of the ArchiveTeam grab script
+    # See: https://github.com/ArchiveTeam/vlive-grab/blob/master/vlive.lua
+    def _real_extract(self, url):
+        video_id, url_date = self._match_valid_url(url).group('id', 'date')
+
+        webpage = self._download_wbm_page(f'https://www.vlive.tv/video/{video_id}', video_id, timestamp=url_date)
+
+        player_info = self._search_json('__PRELOADED_STATE__=', webpage, 'player info', video_id)
+        user_country = traverse_obj(player_info, ('common', 'userCountry'))
+
+        main_script_url = self._search_regex(r'<script\s+src="([^"]+/js/main\.[^"]+\.js)"\s*>', webpage, 'main script url')
+        main_script = self._download_wbm_page(main_script_url, video_id, note='Downloading main script')
+        app_id = self._search_regex(r'appId="([^"]+)"', main_script, 'app id')
+
+        inkey_data = self._download_wbm_page(f'https://www.vlive.tv/globalv-web/vam-web/video/v1.0/vod/{video_id}/inkey', video_id,
+                                             note='Fetching inkey', query={
+                                                 'appId': app_id,
+                                                 'platformType': 'PC',
+                                                 'gcc': user_country,
+                                                 'locale': 'en_US',
+                                             }, fatal=False)
+        if not inkey_data:
+            raise ExtractorError('This video was not archived', expected=True)
+        inkey = self._parse_json(inkey_data, video_id)
+
+        vod_id = traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'vodId'))
+
+        vod_data = self._parse_json(self._download_wbm_page(f'https://apis.naver.com/rmcnmv/rmcnmv/vod/play/v2.0/{vod_id}', video_id,
+                                    note='Fetching vod data', query={
+                                        'key': inkey.get('inkey'),
+                                        'pid': 'rmcPlayer_16692457559726800',  # partially unix time and partially random. Fixed value used by archiveteam project
+                                        'sid': '2024',
+                                        'ver': '2.0',
+                                        'devt': 'html5_pc',
+                                        'doct': 'json',
+                                        'ptc': 'https',
+                                        'sptc': 'https',
+                                        'cpt': 'vtt',
+                                        'ctls': '%7B%22visible%22%3A%7B%22fullscreen%22%3Atrue%2C%22logo%22%3Afalse%2C%22playbackRate%22%3Afalse%2C%22scrap%22%3Afalse%2C%22playCount%22%3Atrue%2C%22commentCount%22%3Atrue%2C%22title%22%3Atrue%2C%22writer%22%3Atrue%2C%22expand%22%3Afalse%2C%22subtitles%22%3Atrue%2C%22thumbnails%22%3Atrue%2C%22quality%22%3Atrue%2C%22setting%22%3Atrue%2C%22script%22%3Afalse%2C%22logoDimmed%22%3Atrue%2C%22badge%22%3Atrue%2C%22seekingTime%22%3Atrue%2C%22muted%22%3Atrue%2C%22muteButton%22%3Afalse%2C%22viewerNotice%22%3Afalse%2C%22linkCount%22%3Afalse%2C%22createTime%22%3Afalse%2C%22thumbnail%22%3Atrue%7D%2C%22clicked%22%3A%7B%22expand%22%3Afalse%2C%22subtitles%22%3Afalse%7D%7D',
+                                        'pv': '4.26.9',
+                                        'dr': '1920x1080',
+                                        'cpl': 'en_US',
+                                        'lc': 'en_US',
+                                        'adi': '%5B%7B%22type%22%3A%22pre%22%2C%22exposure%22%3Afalse%2C%22replayExposure%22%3Afalse%7D%5D',
+                                        'adu': '%2F',
+                                        'videoId': vod_id,
+                                        'cc': user_country,
+                                    }), video_id)
+
+        formats = []
+
+        if len(vod_data.get('streams', [])) > 1:
+            self.report_warning('Multiple streams found. Only the first stream will be downloaded.')
+        stream = traverse_obj(vod_data, ('streams', 0), {})
+
+        max_stream = max(stream.get('videos', []), key=lambda v: traverse_obj(v, ('bitrate', 'video')), default=None)
+        if max_stream is not None:
+            params = {arg.get('name'): arg.get('value') for arg in stream.get('keys', []) if arg.get('type') == 'param'}
+            m3u8_doc = self._download_wbm_page(max_stream.get('source'), video_id, note='Downloading m3u8', query=params, fatal=False)
+            if m3u8_doc:
+                # M3U8 document is not valid, so it needs to be fixed
+                m3u8_doc_lines = m3u8_doc.splitlines()
+                modified_m3u8_doc_lines = []
+                url_base = max_stream.get('source').rsplit('/', 1)[0]
+                first_segment = None
+                for line in m3u8_doc_lines:
+                    if line.startswith('#'):
+                        modified_m3u8_doc_lines.append(line)
+                    else:
+                        modified_line = f'{self._WAYBACK_BASE_URL}{url_base}/{line}?{urllib.parse.urlencode(params)}'
+                        modified_m3u8_doc_lines.append(modified_line)
+                        if first_segment is None:
+                            first_segment = modified_line
+                modified_m3u8_doc = '\n'.join(modified_m3u8_doc_lines)
+
+                # Segments may not have been archied. See 101870
+                first_segment_req = self._request_webpage(HEADRequest(first_segment), video_id, note='Check first segment availablity', errnote=False, fatal=False)
+                if first_segment_req:
+                    formats, _ = self._parse_m3u8_formats_and_subtitles(modified_m3u8_doc, ext='mp4', video_id=video_id)
+
+        # For parts of the project MP4 files were archived
+        max_video = max(traverse_obj(vod_data, ('videos', 'list'), []), key=lambda v: traverse_obj(v, ('bitrate', 'video')), default=None)
+        if max_video is not None:
+            video_url = self._WAYBACK_BASE_URL + max_video.get('source')
+            video_req = self._request_webpage(HEADRequest(video_url), video_id, note='Check video availablity', errnote=False, fatal=False)
+            if video_req:
+                formats.append({
+                    'url': video_url
+                })
+
+        # Code from NaverBaseIE
+        automatic_captions = {}
+        subtitles = {}
+        for caption in traverse_obj(vod_data, ('captions', 'list'), []):
+            caption_url = caption.get('source')
+            if not caption_url:
+                continue
+            caption_url = self._WAYBACK_BASE_URL + caption_url
+            sub_dict = automatic_captions if caption.get('type') == 'auto' else subtitles
+            lang = caption.get('locale') or join_nonempty('language', 'country', from_dict=caption) or 'und'
+            if caption.get('type') == 'fan':
+                lang += '_fan%d' % next(i for i in itertools.count(1) if f'{lang}_fan{i}' not in sub_dict)
+            sub_dict.setdefault(lang, []).append({
+                'url': caption_url,
+                'name': join_nonempty('label', 'fanName', from_dict=caption, delim=' - '),
+            })
+
+        return {
+            'id': video_id,
+            'title': traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'title')),
+            'formats': formats,
+            'subtitles': subtitles,
+            'automatic_captions': automatic_captions,
+            'uploader_id': traverse_obj(vod_data, ('meta', 'user', 'id')),
+            'uploader': traverse_obj(vod_data, ('meta', 'user', 'name')),
+            'uploader_url': traverse_obj(vod_data, ('meta', 'user', 'url')),
+            'creator': traverse_obj(player_info, ('postDetail', 'post', 'author', 'nickname')),
+            'channel': traverse_obj(player_info, ('postDetail', 'post', 'channel', 'channelName')),
+            'channel_id': traverse_obj(player_info, ('postDetail', 'post', 'channel', 'channelCode')),
+            'duration': int_or_none(traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'playTime'))),
+            'view_count': int_or_none(traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'playCount'))),
+            'like_count': int_or_none(traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'likeCount'))),
+            'comment_count': int_or_none(traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'commentCount'))),
+            'timestamp': int_or_none(traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'createdAt')), scale=1000),
+            'release_timestamp': int_or_none(traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'willStartAt')), scale=1000),
+            'thumbnail': traverse_obj(vod_data, ('meta', 'cover', 'source')),
+        }

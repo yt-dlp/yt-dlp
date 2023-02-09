@@ -122,6 +122,7 @@ from .applepodcasts import ApplePodcastsIE
 from .archiveorg import (
     ArchiveOrgIE,
     YoutubeWebArchiveIE,
+    VLiveWebArchiveIE,
 )
 from .arcpublishing import ArcPublishingIE
 from .arkena import ArkenaIE
