@@ -1061,6 +1061,31 @@ class VLiveWebArchiveIE(InfoExtractor):
         else:
             return self._parse_json(page, video_id)
 
+    def _extract_formats_from_m3u8(self, m3u8_url, params, video_id):
+        m3u8_doc = self._download_wbm_page(m3u8_url, video_id, note='Downloading m3u8', query=params, fatal=False)
+        if m3u8_doc:
+            # M3U8 document is not valid, so it needs to be fixed
+            m3u8_doc_lines = m3u8_doc.splitlines()
+            modified_m3u8_doc_lines = []
+            url_base = m3u8_url.rsplit('/', 1)[0]
+            first_segment = None
+            for line in m3u8_doc_lines:
+                if line.startswith('#'):
+                    modified_m3u8_doc_lines.append(line)
+                else:
+                    modified_line = f'{self._WAYBACK_BASE_URL}{url_base}/{line}?{urllib.parse.urlencode(params)}'
+                    modified_m3u8_doc_lines.append(modified_line)
+                    if first_segment is None:
+                        first_segment = modified_line
+            modified_m3u8_doc = '\n'.join(modified_m3u8_doc_lines)
+
+            # Segments may not have been archied. See 101870
+            first_segment_req = self._request_webpage(HEADRequest(first_segment), video_id, note='Check first segment availablity', errnote=False, fatal=False)
+            if first_segment_req:
+                formats, _ = self._parse_m3u8_formats_and_subtitles(modified_m3u8_doc, ext='mp4', video_id=video_id)
+                return formats
+        return []
+
     # Closely follows the logic of the ArchiveTeam grab script
     # See: https://github.com/ArchiveTeam/vlive-grab/blob/master/vlive.lua
     def _real_extract(self, url):
@@ -1119,27 +1144,7 @@ class VLiveWebArchiveIE(InfoExtractor):
             key=lambda v: traverse_obj(v, ('bitrate', 'video'), default=0), default=None)
         if max_stream is not None:
             params = {arg.get('name'): arg.get('value') for arg in stream.get('keys', []) if arg.get('type') == 'param'}
-            m3u8_doc = self._download_wbm_page(max_stream.get('source'), video_id, note='Downloading m3u8', query=params, fatal=False)
-            if m3u8_doc:
-                # M3U8 document is not valid, so it needs to be fixed
-                m3u8_doc_lines = m3u8_doc.splitlines()
-                modified_m3u8_doc_lines = []
-                url_base = max_stream.get('source').rsplit('/', 1)[0]
-                first_segment = None
-                for line in m3u8_doc_lines:
-                    if line.startswith('#'):
-                        modified_m3u8_doc_lines.append(line)
-                    else:
-                        modified_line = f'{self._WAYBACK_BASE_URL}{url_base}/{line}?{urllib.parse.urlencode(params)}'
-                        modified_m3u8_doc_lines.append(modified_line)
-                        if first_segment is None:
-                            first_segment = modified_line
-                modified_m3u8_doc = '\n'.join(modified_m3u8_doc_lines)
-
-                # Segments may not have been archied. See 101870
-                first_segment_req = self._request_webpage(HEADRequest(first_segment), video_id, note='Check first segment availablity', errnote=False, fatal=False)
-                if first_segment_req:
-                    formats, _ = self._parse_m3u8_formats_and_subtitles(modified_m3u8_doc, ext='mp4', video_id=video_id)
+            formats = self._extract_formats_from_m3u8(max_stream.get('source'), params, video_id)
 
         # For parts of the project MP4 files were archived
         max_video = max(
