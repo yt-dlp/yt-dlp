@@ -968,7 +968,7 @@ class VLiveWebArchiveIE(InfoExtractor):
             'creator': "Girl's Day",
             'view_count': int,
             'uploader_id': 'muploader_a',
-            'uploader_url': '',
+            'uploader_url': None,
             'uploader': '',
             'upload_date': '20150817',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
@@ -1169,6 +1169,7 @@ class VLiveWebArchiveIE(InfoExtractor):
                 'url': caption_url,
                 'name': join_nonempty('label', 'fanName', from_dict=caption, delim=' - '),
             })
+
 
 return {
     'id': video_id,
