@@ -1170,28 +1170,27 @@ class VLiveWebArchiveIE(InfoExtractor):
                 'name': join_nonempty('label', 'fanName', from_dict=caption, delim=' - '),
             })
 
-
-return {
-    'id': video_id,
-    'formats': formats,
-    'subtitles': subtitles,
-    'automatic_captions': automatic_captions,
-    **traverse_obj(player_info, ('postDetail', 'post', {
-        'title': ('officialVideo', 'title', {str}),
-        'creator': ('author', 'nickname', {str}),
-        'channel': ('channel', 'channelName', {str}),
-        'channel_id': ('channel', 'channelCode', {str}),
-        'duration': ('officialVideo', 'playTime', {int_or_none}),
-        'view_count': ('officialVideo', 'playCount', {int_or_none}),
-        'like_count': ('officialVideo', 'likeCount', {int_or_none}),
-        'comment_count': ('officialVideo', 'commentCount', {int_or_none}),
-        'timestamp': ('officialVideo', 'createdAt', {lambda x: int_or_none(x, scale=1000)}),
-        'release_timestamp': ('officialVideo', 'willStartAt', {lambda x: int_or_none(x, scale=1000)}),
-    })),
-    **traverse_obj(vod_data, ('meta', {
-        'uploader_id': ('user', 'id', {str}),
-        'uploader': ('user', 'name', {str}),
-        'uploader_url': ('user', 'url', {url_or_none}),
-        'thumbnail': ('cover', 'source', {url_or_none}),
-    }))
-}
+        return {
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subtitles,
+            'automatic_captions': automatic_captions,
+            **traverse_obj(player_info, ('postDetail', 'post', {
+                'title': ('officialVideo', 'title', {str}),
+                'creator': ('author', 'nickname', {str}),
+                'channel': ('channel', 'channelName', {str}),
+                'channel_id': ('channel', 'channelCode', {str}),
+                'duration': ('officialVideo', 'playTime', {int_or_none}),
+                'view_count': ('officialVideo', 'playCount', {int_or_none}),
+                'like_count': ('officialVideo', 'likeCount', {int_or_none}),
+                'comment_count': ('officialVideo', 'commentCount', {int_or_none}),
+                'timestamp': ('officialVideo', 'createdAt', {lambda x: int_or_none(x, scale=1000)}),
+                'release_timestamp': ('officialVideo', 'willStartAt', {lambda x: int_or_none(x, scale=1000)}),
+            })),
+            **traverse_obj(vod_data, ('meta', {
+                'uploader_id': ('user', 'id', {str}),
+                'uploader': ('user', 'name', {str}),
+                'uploader_url': ('user', 'url', {url_or_none}),
+                'thumbnail': ('cover', 'source', {url_or_none}),
+            }))
+        }
