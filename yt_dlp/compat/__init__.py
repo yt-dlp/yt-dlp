@@ -70,9 +70,3 @@ if compat_os_name in ('nt', 'ce'):
         return userhome + path[i:]
 else:
     compat_expanduser = os.path.expanduser
-
-
-# NB: Add modules that are imported dynamically here so that PyInstaller can find them
-# See https://github.com/pyinstaller/pyinstaller-hooks-contrib/issues/438
-if False:
-    from . import _legacy  # noqa: F401

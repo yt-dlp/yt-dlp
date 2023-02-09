@@ -1,5 +1,7 @@
+import types
+
 from ..compat import functools
-from ..compat.compat_utils import EnhancedModule, passthrough_module
+from ..compat.compat_utils import passthrough_module
 
 try:
     import Cryptodome as _parent
@@ -7,11 +9,11 @@ except ImportError:
     try:
         import Crypto as _parent
     except (ImportError, SyntaxError):  # Old Crypto gives SyntaxError in newer Python
-        _parent = EnhancedModule('Cryptodome')
+        _parent = types.ModuleType('no_Cryptodome')
         __bool__ = lambda: False
 
 passthrough_module(__name__, _parent, (..., '__version__'))
-del passthrough_module, EnhancedModule
+del passthrough_module
 
 
 @property

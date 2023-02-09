@@ -28,20 +28,6 @@ def _is_dunder(name):
 
 
 class EnhancedModule(types.ModuleType):
-    def __new__(cls, name, *args, **kwargs):
-        if name not in sys.modules:
-            return super().__new__(cls, name, *args, **kwargs)
-
-        assert not args and not kwargs, 'Cannot pass additional arguments to an existing module'
-        module = sys.modules[name]
-        module.__class__ = cls
-        return module
-
-    def __init__(self, name, *args, **kwargs):
-        # Prevent __new__ from trigerring __init__ again
-        if name not in sys.modules:
-            super().__init__(name, *args, **kwargs)
-
     def __bool__(self):
         return vars(self).get('__bool__', lambda: True)()
 
@@ -60,8 +46,6 @@ class EnhancedModule(types.ModuleType):
 
 def passthrough_module(parent, child, allowed_attributes=(..., ), *, callback=lambda _: None):
     """Passthrough parent module into a child module, creating the parent if necessary"""
-    parent = EnhancedModule(parent)
-
     def __getattr__(attr):
         if _is_package(parent):
             with contextlib.suppress(ImportError):
@@ -93,5 +77,7 @@ def passthrough_module(parent, child, allowed_attributes=(..., ), *, callback=la
 
         return _NO_ATTRIBUTE
 
+    parent = sys.modules.get(parent, types.ModuleType(parent))
+    parent.__class__ = EnhancedModule
     parent.__getattr__ = __getattr__
     return parent

@@ -81,8 +81,8 @@ from ..utils import (
     update_Request,
     update_url_query,
     url_basename,
-    urlhandle_detect_ext,
     url_or_none,
+    urlhandle_detect_ext,
     urljoin,
     variadic,
     xpath_element,
@@ -220,6 +220,17 @@ class InfoExtractor:
                     * no_resume  The server does not support resuming the
                                  (HTTP or RTMP) download. Boolean.
                     * has_drm    The format has DRM and cannot be downloaded. Boolean
+                    * extra_param_to_segment_url  A query string to append to each
+                                 fragment's URL, or to update each existing query string
+                                 with. Only applied by the native HLS/DASH downloaders.
+                    * hls_aes    A dictionary of HLS AES-128 decryption information
+                                 used by the native HLS downloader to override the
+                                 values in the media playlist when an '#EXT-X-KEY' tag
+                                 is present in the playlist:
+                                 * uri  The URI from which the key will be downloaded
+                                 * key  The key (as hex) used to decrypt fragments.
+                                        If `key` is given, any key URI will be ignored
+                                 * iv   The IV (as hex) used to decrypt fragments
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
