@@ -5420,7 +5420,7 @@ def traverse_obj(
     Each of the provided `paths` is tested and the first producing a valid result will be returned.
     The next path will also be tested if the path branched but no results could be found.
     Supported values for traversal are `Mapping`, `Sequence` and `re.Match`.
-    Unhelpful values (`[]`, `{}`, `None`) are treated as the absence of a value and discarded.
+    Unhelpful values (`{}`, `None`) are treated as the absence of a value and discarded.
 
     The paths will be wrapped in `variadic`, so that `'key'` is conveniently the same as `('key', )`.
 
@@ -5558,14 +5558,13 @@ def traverse_obj(
                 result = next((v for k, v in obj.groupdict().items() if casefold(k) == key), None)
 
         elif isinstance(key, (int, slice)):
-            if not is_sequence(obj):
-                if traverse_string:
-                    with contextlib.suppress(IndexError):
-                        result = str(obj)[key]
-            else:
+            if is_sequence(obj):
                 branching = isinstance(key, slice)
                 with contextlib.suppress(IndexError):
                     result = obj[key]
+            elif traverse_string:
+                with contextlib.suppress(IndexError):
+                    result = str(obj)[key]
 
         return branching, result if branching else (result,)
 
@@ -5617,7 +5616,7 @@ def traverse_obj(
 
     def _traverse_obj(obj, path, allow_empty, test_type):
         results, has_branched, is_dict = apply_path(obj, path, test_type)
-        results = LazyList(item for item in results if item not in (None, [], {}))
+        results = LazyList(item for item in results if item not in (None, {}))
         if get_all and has_branched:
             if results:
                 return results.exhaust()

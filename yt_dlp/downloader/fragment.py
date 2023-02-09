@@ -383,7 +383,7 @@ class FragmentFD(FileDownloader):
         max_workers = self.params.get('concurrent_fragment_downloads', 1)
         if max_progress > 1:
             self._prepare_multiline_status(max_progress)
-        is_live = any(traverse_obj(args, (..., 2, 'is_live'), default=[]))
+        is_live = any(traverse_obj(args, (..., 2, 'is_live')))
 
         def thread_func(idx, ctx, fragments, info_dict, tpe):
             ctx['max_progress'] = max_progress
