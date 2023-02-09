@@ -1109,9 +1109,10 @@ class VLiveWebArchiveIE(InfoExtractor):
 
         formats = []
 
-        if len(vod_data.get('streams', [])) > 1:
+        streams = traverse_obj(vod_data, ('streams', ...))
+        if len(streams) > 1:
             self.report_warning('Multiple streams found. Only the first stream will be downloaded.')
-        stream = traverse_obj(vod_data, ('streams', 0), {})
+        stream = streams[0]
 
         max_stream = max(stream.get('videos', []), key=lambda v: traverse_obj(v, ('bitrate', 'video')), default=None)
         if max_stream is not None:
