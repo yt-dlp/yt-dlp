@@ -1,9 +1,9 @@
-import itertools
 import json
 import re
 import urllib.parse
 
 from .common import InfoExtractor
+from .naver import NaverBaseIE
 from .youtube import YoutubeBaseInfoExtractor, YoutubeIE
 from ..compat import compat_HTTPError, compat_urllib_parse_unquote
 from ..utils import (
@@ -1158,28 +1158,9 @@ class VLiveWebArchiveIE(InfoExtractor):
                     'url': video_url
                 })
 
-        # Code from NaverBaseIE
-        automatic_captions = {}
-        subtitles = {}
-        for caption in traverse_obj(vod_data, ('captions', 'list', ..., {dict})):
-            caption_url = caption.get('source')
-            if not caption_url:
-                continue
-            caption_url = self._WAYBACK_BASE_URL + caption_url
-            sub_dict = automatic_captions if caption.get('type') == 'auto' else subtitles
-            lang = caption.get('locale') or join_nonempty('language', 'country', from_dict=caption) or 'und'
-            if caption.get('type') == 'fan':
-                lang += '_fan%d' % next(i for i in itertools.count(1) if f'{lang}_fan{i}' not in sub_dict)
-            sub_dict.setdefault(lang, []).append({
-                'url': caption_url,
-                'name': join_nonempty('label', 'fanName', from_dict=caption, delim=' - '),
-            })
-
         return {
             'id': video_id,
             'formats': formats,
-            'subtitles': subtitles,
-            'automatic_captions': automatic_captions,
             **traverse_obj(player_info, ('postDetail', 'post', {
                 'title': ('officialVideo', 'title', {str}),
                 'creator': ('author', 'nickname', {str}),
@@ -1197,5 +1178,6 @@ class VLiveWebArchiveIE(InfoExtractor):
                 'uploader': ('user', 'name', {str}),
                 'uploader_url': ('user', 'url', {url_or_none}),
                 'thumbnail': ('cover', 'source', {url_or_none}),
-            }), expected_type=lambda x: x or None)
+            }), expected_type=lambda x: x or None),
+            **NaverBaseIE.process_subtitles(vod_data, lambda x: [self._WAYBACK_BASE_URL + x]),
         }
