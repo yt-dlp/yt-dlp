@@ -969,7 +969,7 @@ class VLiveWebArchiveIE(InfoExtractor):
             'view_count': int,
             'uploader_id': 'muploader_a',
             'uploader_url': None,
-            'uploader': '',
+            'uploader': None,
             'upload_date': '20150817',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
             'timestamp': 1439816449,
@@ -995,7 +995,7 @@ class VLiveWebArchiveIE(InfoExtractor):
             'subtitles': 'mincount:12',
             'uploader_id': 'muploader_j',
             'uploader_url': 'http://vlive.tv',
-            'uploader': '',
+            'uploader': None,
             'upload_date': '20161112',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
             'timestamp': 1478923074,
@@ -1021,7 +1021,7 @@ class VLiveWebArchiveIE(InfoExtractor):
             'subtitles': 'mincount:6',
             'uploader_id': 'V__FRA08071',
             'uploader_url': 'http://vlive.tv',
-            'uploader': '',
+            'uploader': None,
             'upload_date': '20181130',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
             'timestamp': 1543601327,
@@ -1192,5 +1192,5 @@ class VLiveWebArchiveIE(InfoExtractor):
                 'uploader': ('user', 'name', {str}),
                 'uploader_url': ('user', 'url', {url_or_none}),
                 'thumbnail': ('cover', 'source', {url_or_none}),
-            }))
+            }), expected_type=lambda x: x or None)
         }
