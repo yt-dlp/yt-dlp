@@ -2,6 +2,11 @@ import hashlib
 import itertools
 import re
 import time
+import os
+import json
+
+from urllib.parse import urlparse
+from pathlib import Path
 
 from .common import InfoExtractor
 from ..compat import (
@@ -401,30 +406,61 @@ class IqIE(InfoExtractor):
     IE_DESC = 'International version of iQiyi'
     _VALID_URL = r'https?://(?:www\.)?iq\.com/play/(?:[\w%-]*-)?(?P<id>\w+)'
     _TESTS = [{
-        'url': 'https://www.iq.com/play/one-piece-episode-1000-1ma1i6ferf4',
-        'md5': '2d7caf6eeca8a32b407094b33b757d39',
+        'url': 'https://www.iq.com/play/conspiracy-of-love-episode-1-19rza4kl2w?lang=en_us',
+        'md5': '9ab85839a0b717382f505265c7c5eb85',
         'info_dict': {
             'ext': 'mp4',
-            'id': '1ma1i6ferf4',
-            'title': '航海王 第1000集',
-            'description': 'Subtitle available on Sunday 4PM（GMT+8）.',
-            'duration': 1430,
-            'timestamp': 1637488203,
-            'upload_date': '20211121',
-            'episode_number': 1000,
-            'episode': 'Episode 1000',
-            'series': 'One Piece',
-            'age_limit': 13,
+            'id': '19rza4kl2w',
+            'title': '谋爱上瘾 第1集',
+            'description':
+                "In order to reclaim everything that is rightfully hers from her uncle, she decided to approach her uncle’s biggest client—Sheng Jun. "
+                "Initially thinking that everything would go according to her plan, little did she know that Sheng Jun is also carefully crafting his moves and already has her wrapped around his fingers. "
+                "The two gets trapped in love but both are scared to express their honest feelings to each other, for one wrong step might lead to the point of no return.",
+            'duration': 407.0,
+            'timestamp': 1596215239,
+            'upload_date': '20200731',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'series': 'Conspiracy of Love',
+            'age_limit': None,
             'average_rating': float,
         },
         'params': {
             'format': '500',
         },
-        'expected_warnings': ['format is restricted']
+        'expected_warnings': ['format is restricted', 'format not present']
     }, {
         # VIP-restricted video
         'url': 'https://www.iq.com/play/mermaid-in-the-fog-2021-gbdpx13bs4',
         'only_matching': True
+    }, {
+        # Only audio
+        'url': 'https://www.iq.com/play/the-spy-dad-2003-19ruth8vp4',
+        'md5': 'd27c4823ed0c9294ace0d946c94e7497',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': '19ruth8vp4',
+            'title': 'The Spy Dad',
+            'description':
+                "In Hong Kong, a terrorist organization plans to blackmail the world's government with the help of two fatal diseases a goofy scientist created. "
+                "Two Interpol agents went to stop their evil plot of world domination, but one of them became a victim of one of the diseases and wanders off acting like a six-year old child. "
+                "He mindlessly walks into a bullied action film star's mansion, and the star, Jones Bon, was forced to babysit him while dealing with affairs involving his divorced wife and his two daughters. "
+                "Only a short period of times has passed when Jones, although paying more attention to solving his family situations, finds himself fighting the terrorists.",
+            'duration': 5554.0,
+            'timestamp': 1579188614,
+            'upload_date': '20200116',
+            'episode_number': None,
+            'episode': None,
+            'series': 'The Spy Dad',
+            'age_limit': 16,
+            'average_rating': float,
+            'fragments': list,
+            'cast': ['Tony Ka Fai Leung', 'Teresa Mo'],
+        },
+        'params': {
+            'format': '300_Cantonese'
+        },
+        'expected_warnings': ['format is restricted', 'format not present', 'This preview video is limited to 360.0 seconds']
     }]
     _BID_TAGS = {
         '100': '240P',
@@ -454,11 +490,12 @@ class IqIE(InfoExtractor):
             var tvid = "%(tvid)s"; var vid = "%(vid)s"; var src = "%(src)s";
             var uid = "%(uid)s"; var dfp = "%(dfp)s"; var mode = "%(mode)s"; var lang = "%(lang)s";
             var bid_list = %(bid_list)s; var ut_list = %(ut_list)s; var tm = new Date().getTime();
+            var lid_list = %(lid_list)s;
             var cmd5x_func = %(cmd5x_func)s; var cmd5x_exporter = {}; cmd5x_func({}, cmd5x_exporter, {}); var cmd5x = cmd5x_exporter.cmd5x;
             var authKey = cmd5x(cmd5x('') + tm + '' + tvid);
             var k_uid = Array.apply(null, Array(32)).map(function() {return Math.floor(Math.random() * 15).toString(16)}).join('');
-            var dash_paths = {};
-            bid_list.forEach(function(bid) {
+
+            var getDashPath = function(lid, bid, dash_paths) {
                 var query = {
                     'tvid': tvid,
                     'bid': bid,
@@ -474,7 +511,7 @@ class IqIE(InfoExtractor):
                     'pt': 0,
                     'd': 0,
                     's': '',
-                    'lid': '',
+                    'lid': lid,
                     'slid': 0,
                     'cf': '',
                     'ct': '',
@@ -513,8 +550,21 @@ class IqIE(InfoExtractor):
                     enc_params.push('ut=' + ut);
                 })
                 var dash_path = '/dash?' + enc_params.join('&'); dash_path += '&vf=' + cmd5x(dash_path);
-                dash_paths[bid] = dash_path;
+
+                if (lid === 0)
+                    dash_paths[bid] = dash_path;
+                else
+                    dash_paths[bid + '-' + lid] = dash_path;
+                return dash_paths;
+            };
+
+            var dash_paths = {};
+            bid_list.forEach(function(bid) {
+                lid_list.forEach(function(lid) {
+                    dash_paths = getDashPath(lid, bid, dash_paths);
+                });
             });
+
             return JSON.stringify(dash_paths);
         }));
         saveAndExit();
@@ -562,6 +612,51 @@ class IqIE(InfoExtractor):
         cookie = self._get_cookies('https://iq.com/').get(name)
         return cookie.value if cookie else default
 
+    def _get_signed_audio_fs_urls(self, url, video_info, webpage, video_id, format_data, audioFormat):
+        # The javascript version of this function can be found by searching for:
+        # var n = q + '//data.video.iq.com/videos'
+
+        # Do the whole bunch of urls at the same time to save some time.
+        runCmd5xCode = '''
+            console.log(page.evaluate(function() {
+                var inputs = %(inputs)s;
+                var cmd5x_func = %(cmd5x_func)s; var cmd5x_exporter = {}; cmd5x_func({}, cmd5x_exporter, {}); var cmd5x = cmd5x_exporter.cmd5x;
+
+                var outputs = [];
+                inputs.forEach(function(input) {
+                    var url = input.path + '&t=' + input.bossDataT + '&vid' + input.vid + '&ibt=' + cmd5x(input.bossDataT + input.filename) + '&cid=afbe8fd3d73448c9&ib=4&ptime=' + input.previewTime + '&QY00001=' + input.bossDataU;
+                    outputs.push(url);
+                });
+
+                return JSON.stringify(outputs);
+            }));
+            saveAndExit();
+        '''
+
+        # Collect the arguments for each sign operation into a list so that we can do all of them in one javascript call.
+        urlSignInfos = []
+        urls = []
+        if audioFormat.get('fs'):
+            # Loop through each fs and complete the url.
+            fs = audioFormat['fs']
+            for f in fs:
+                urlSignInfo = {}
+                urlSignInfo['path'] = 'https://data.video.iq.com/videos' + f['l']
+                urlSignInfo['filename'] = Path(os.path.basename(urlparse(urlSignInfo['path']).path)).stem
+                urlSignInfo['bossDataT'] = traverse_obj(format_data, ('boss_ts', 'data', 't'), expected_type=str_or_none, default='')
+                urlSignInfo['bossDataU'] = traverse_obj(format_data, ('boss_ts', 'data', 'u'), expected_type=str_or_none)
+                urlSignInfo['previewTime'] = str(traverse_obj(format_data, ('boss_ts', 'data', 'ptime'), expected_type=int_or_none))
+                urlSignInfo['vid'] = video_info['vid']
+                urlSignInfos.append(urlSignInfo)
+
+            # Run the javascript and retrieve the results.
+            urls = self._parse_json(PhantomJSwrapper(self, timeout=1).get(url, html='<!DOCTYPE html>', video_id=video_id, note2='Signing audio fragment urls', jscode=runCmd5xCode % {
+                'cmd5x_func': self._extract_cmd5x_function(webpage, video_id),
+                'inputs': json.dumps(urlSignInfos)
+            })[1].strip(), video_id)
+
+        return urls
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
@@ -570,6 +665,11 @@ class IqIE(InfoExtractor):
         next_props = self._search_nextjs_data(webpage, video_id)['props']
         page_data = next_props['initialState']['play']
         video_info = page_data['curVideoInfo']
+        regions_allowed = video_info['regionsAllowed']
+
+        # This is useful if you are trying to access some content and don't know what regions it is available on
+        # You can then use a VPN or something for the right region to access it.
+        self.to_screen(f'{video_id}: Regions allowed to access this content: {regions_allowed}')
 
         uid = traverse_obj(
             self._parse_json(
@@ -595,13 +695,13 @@ class IqIE(InfoExtractor):
             html='<!DOCTYPE html>', video_id=video_id, jscode=self._DASH_JS % {
                 'tvid': video_info['tvId'],
                 'vid': video_info['vid'],
-                'src': traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'),
-                                    expected_type=str, default='04022001010011000000'),
+                'src': traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'), expected_type=str, default='04022001010011000000'),
                 'uid': uid,
                 'dfp': self._get_cookie('dfp', ''),
                 'mode': self._get_cookie('mod', 'intl'),
                 'lang': self._get_cookie('lang', 'en_us'),
                 'bid_list': '[' + ','.join(['0', *self._BID_TAGS.keys()]) + ']',
+                'lid_list': '[' + ','.join(['0', *self._LID_TAGS.keys()]) + ']',
                 'ut_list': '[' + ','.join(ut_list) + ']',
                 'cmd5x_func': self._extract_cmd5x_function(webpage, video_id),
             })[1].strip(), video_id)
@@ -616,7 +716,60 @@ class IqIE(InfoExtractor):
         if traverse_obj(initial_format_data, ('boss_ts', 'data', 'prv'), expected_type=int_or_none):
             self.report_warning('This preview video is limited%s' % format_field(preview_time, None, ' to %s seconds'))
 
-        # TODO: Extract audio-only formats
+        # Audio formats
+        for audio in traverse_obj(initial_format_data, ('program', 'audio'), default=[]):
+            audio_format_name = str(audio['bid']) + '_' + str(audio['name'])
+            audio_bid_lid = str(audio['bid']) + '-' + str(audio['lid'])
+            dash_path = dash_paths.get(audio_bid_lid)
+            if not dash_path:
+                self.report_warning(f'Unknown format id: {audio_format_name}. It is currently not being extracted')
+                continue
+            format_data = traverse_obj(self._download_json(
+                urljoin('https://cache-video.iq.com', dash_path), video_id,
+                note=f'Downloading format data for {audio_format_name}', errnote='Unable to download format data',
+                fatal=False), 'data', expected_type=dict)
+
+            audio_format = traverse_obj(format_data, ('program', 'audio', lambda _, v: v['aid'] == audio['aid']),
+                                        expected_type=dict, default=[], get_all=False) or {}
+
+            # Get signed links for the audio.
+            signed_urls = self._get_signed_audio_fs_urls(url, video_info, webpage, video_id, format_data, audio_format)
+
+            extracted_formats = []
+            if len(signed_urls) > 0:
+                # Create a m3u8 playlist out of all the sections.
+                audio_fragments = []
+                for url in signed_urls:
+                    fragment = {
+                        'url': url
+                    }
+                    audio_fragments.append(fragment)
+
+                # Special format for the audio, we need to decrypt it as we download it.
+                format = [{
+                    'format_id': audio_format_name,
+                    'fragments': audio_fragments,
+                    'protocol': 'iq_audio_fragments',
+                    'quality': qualities(list(self._BID_TAGS.keys()))(audio_format['bid']),
+                    'vcodec': 'none',
+                    'acodec': 'aac',
+                    'ext': 'mp4',
+                    'url': url,
+                    'language': audio_format['name']
+                }]
+
+                extracted_formats.extend(format)
+
+            if not extracted_formats:
+                if audio_format.get('s'):
+                    self.report_warning(f'format is restricted {audio_format_name}')
+                elif not audio_format.get('fs'):
+                    self.report_warning(f'format not present {audio_format_name}')
+                else:
+                    self.report_warning(f'Unable to extract format {audio_format_name}')
+            formats.extend(extracted_formats)
+
+        # Video formats
         for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):
             dash_path = dash_paths.get(bid)
             if not dash_path:
@@ -721,7 +874,7 @@ class IqAlbumIE(InfoExtractor):
             'age_limit': 13,
             'average_rating': float,
         },
-        'expected_warnings': ['format is restricted']
+        'expected_warnings': ['format is restricted', 'format not present']
     }]
 
     def _entries(self, album_id_num, page_ranges, album_id=None, mode_code='intl', lang_code='en_us'):
