@@ -1054,6 +1054,13 @@ class VLiveWebArchiveIE(InfoExtractor):
                 retry.error = err
                 continue
 
+    def _download_wbm_json(self, url, video_id, timestamp='2', mode='id_', **kwargs):
+        page = self._download_wbm_page(url, video_id, timestamp, mode, **kwargs)
+        if not page:
+            raise ExtractorError('Page was not archived')
+        else:
+            return self._parse_json(page, video_id)
+
     # Closely follows the logic of the ArchiveTeam grab script
     # See: https://github.com/ArchiveTeam/vlive-grab/blob/master/vlive.lua
     def _real_extract(self, url):
@@ -1068,40 +1075,37 @@ class VLiveWebArchiveIE(InfoExtractor):
         main_script = self._download_wbm_page(main_script_url, video_id, note='Downloading main script')
         app_id = self._search_regex(r'appId\s*=\s*"([^"]+)"', main_script, 'app id')
 
-        inkey_data = self._download_wbm_page(f'https://www.vlive.tv/globalv-web/vam-web/video/v1.0/vod/{video_id}/inkey', video_id,
-                                             note='Fetching inkey', query={
-                                                 'appId': app_id,
-                                                 'platformType': 'PC',
-                                                 'gcc': user_country,
-                                                 'locale': 'en_US',
-                                             }, fatal=False)
-        if not inkey_data:
-            raise ExtractorError('This video was not archived', expected=True)
-        inkey = self._parse_json(inkey_data, video_id)
+        inkey = self._download_wbm_json(
+            f'https://www.vlive.tv/globalv-web/vam-web/video/v1.0/vod/{video_id}/inkey', video_id, note='Fetching inkey', query={
+                'appId': app_id,
+                'platformType': 'PC',
+                'gcc': user_country,
+                'locale': 'en_US',
+            }, fatal=False)
 
         vod_id = traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'vodId'))
 
-        vod_data = self._parse_json(self._download_wbm_page(f'https://apis.naver.com/rmcnmv/rmcnmv/vod/play/v2.0/{vod_id}', video_id,
-                                    note='Fetching vod data', query={
-                                        'key': inkey.get('inkey'),
-                                        'pid': 'rmcPlayer_16692457559726800',  # partially unix time and partially random. Fixed value used by archiveteam project
-                                        'sid': '2024',
-                                        'ver': '2.0',
-                                        'devt': 'html5_pc',
-                                        'doct': 'json',
-                                        'ptc': 'https',
-                                        'sptc': 'https',
-                                        'cpt': 'vtt',
-                                        'ctls': '%7B%22visible%22%3A%7B%22fullscreen%22%3Atrue%2C%22logo%22%3Afalse%2C%22playbackRate%22%3Afalse%2C%22scrap%22%3Afalse%2C%22playCount%22%3Atrue%2C%22commentCount%22%3Atrue%2C%22title%22%3Atrue%2C%22writer%22%3Atrue%2C%22expand%22%3Afalse%2C%22subtitles%22%3Atrue%2C%22thumbnails%22%3Atrue%2C%22quality%22%3Atrue%2C%22setting%22%3Atrue%2C%22script%22%3Afalse%2C%22logoDimmed%22%3Atrue%2C%22badge%22%3Atrue%2C%22seekingTime%22%3Atrue%2C%22muted%22%3Atrue%2C%22muteButton%22%3Afalse%2C%22viewerNotice%22%3Afalse%2C%22linkCount%22%3Afalse%2C%22createTime%22%3Afalse%2C%22thumbnail%22%3Atrue%7D%2C%22clicked%22%3A%7B%22expand%22%3Afalse%2C%22subtitles%22%3Afalse%7D%7D',
-                                        'pv': '4.26.9',
-                                        'dr': '1920x1080',
-                                        'cpl': 'en_US',
-                                        'lc': 'en_US',
-                                        'adi': '%5B%7B%22type%22%3A%22pre%22%2C%22exposure%22%3Afalse%2C%22replayExposure%22%3Afalse%7D%5D',
-                                        'adu': '%2F',
-                                        'videoId': vod_id,
-                                        'cc': user_country,
-                                    }), video_id)
+        vod_data = self._download_wbm_json(
+            f'https://apis.naver.com/rmcnmv/rmcnmv/vod/play/v2.0/{vod_id}', video_id, note='Fetching vod data', query={
+                'key': inkey.get('inkey'),
+                'pid': 'rmcPlayer_16692457559726800',  # partially unix time and partially random. Fixed value used by archiveteam project
+                'sid': '2024',
+                'ver': '2.0',
+                'devt': 'html5_pc',
+                'doct': 'json',
+                'ptc': 'https',
+                'sptc': 'https',
+                'cpt': 'vtt',
+                'ctls': '%7B%22visible%22%3A%7B%22fullscreen%22%3Atrue%2C%22logo%22%3Afalse%2C%22playbackRate%22%3Afalse%2C%22scrap%22%3Afalse%2C%22playCount%22%3Atrue%2C%22commentCount%22%3Atrue%2C%22title%22%3Atrue%2C%22writer%22%3Atrue%2C%22expand%22%3Afalse%2C%22subtitles%22%3Atrue%2C%22thumbnails%22%3Atrue%2C%22quality%22%3Atrue%2C%22setting%22%3Atrue%2C%22script%22%3Afalse%2C%22logoDimmed%22%3Atrue%2C%22badge%22%3Atrue%2C%22seekingTime%22%3Atrue%2C%22muted%22%3Atrue%2C%22muteButton%22%3Afalse%2C%22viewerNotice%22%3Afalse%2C%22linkCount%22%3Afalse%2C%22createTime%22%3Afalse%2C%22thumbnail%22%3Atrue%7D%2C%22clicked%22%3A%7B%22expand%22%3Afalse%2C%22subtitles%22%3Afalse%7D%7D',
+                'pv': '4.26.9',
+                'dr': '1920x1080',
+                'cpl': 'en_US',
+                'lc': 'en_US',
+                'adi': '%5B%7B%22type%22%3A%22pre%22%2C%22exposure%22%3Afalse%2C%22replayExposure%22%3Afalse%7D%5D',
+                'adu': '%2F',
+                'videoId': vod_id,
+                'cc': user_country,
+            })
 
         formats = []
 
