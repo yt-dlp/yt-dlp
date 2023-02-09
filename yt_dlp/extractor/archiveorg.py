@@ -1066,7 +1066,7 @@ class VLiveWebArchiveIE(InfoExtractor):
 
         main_script_url = self._search_regex(r'<script\s+src="([^"]+/js/main\.[^"]+\.js)"', webpage, 'main script url')
         main_script = self._download_wbm_page(main_script_url, video_id, note='Downloading main script')
-        app_id = self._search_regex(r'appId="([^"]+)"', main_script, 'app id')
+        app_id = self._search_regex(r'appId\s*=\s*"([^"]+)"', main_script, 'app id')
 
         inkey_data = self._download_wbm_page(f'https://www.vlive.tv/globalv-web/vam-web/video/v1.0/vod/{video_id}/inkey', video_id,
                                              note='Fetching inkey', query={
