@@ -1114,7 +1114,9 @@ class VLiveWebArchiveIE(InfoExtractor):
             self.report_warning('Multiple streams found. Only the first stream will be downloaded.')
         stream = streams[0]
 
-        max_stream = max(stream.get('videos', []), key=lambda v: traverse_obj(v, ('bitrate', 'video')), default=None)
+        max_stream = max(
+            stream.get('videos', []),
+            key=lambda v: traverse_obj(v, ('bitrate', 'video'), default=0), default=None)
         if max_stream is not None:
             params = {arg.get('name'): arg.get('value') for arg in stream.get('keys', []) if arg.get('type') == 'param'}
             m3u8_doc = self._download_wbm_page(max_stream.get('source'), video_id, note='Downloading m3u8', query=params, fatal=False)
@@ -1140,7 +1142,9 @@ class VLiveWebArchiveIE(InfoExtractor):
                     formats, _ = self._parse_m3u8_formats_and_subtitles(modified_m3u8_doc, ext='mp4', video_id=video_id)
 
         # For parts of the project MP4 files were archived
-        max_video = max(traverse_obj(vod_data, ('videos', 'list'), []), key=lambda v: traverse_obj(v, ('bitrate', 'video')), default=None)
+        max_video = max(
+            traverse_obj(vod_data, ('videos', 'list', ...)),
+            key=lambda v: traverse_obj(v, ('bitrate', 'video'), default=0), default=None)
         if max_video is not None:
             video_url = self._WAYBACK_BASE_URL + max_video.get('source')
             video_req = self._request_webpage(HEADRequest(video_url), video_id, note='Check video availablity', errnote=False, fatal=False)
