@@ -745,7 +745,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         }
 
         badges = []
-        for badge in traverse_obj(renderer, ('badges', ..., 'metadataBadgeRenderer'), default=[]):
+        for badge in traverse_obj(renderer, ('badges', ..., 'metadataBadgeRenderer')):
             badge_type = (
                 privacy_icon_map.get(traverse_obj(badge, ('icon', 'iconType'), expected_type=str))
                 or badge_style_map.get(traverse_obj(badge, 'style'))
@@ -785,7 +785,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     runs = item
 
                 runs = runs[:min(len(runs), max_runs or len(runs))]
-                text = ''.join(traverse_obj(runs, (..., 'text'), expected_type=str, default=[]))
+                text = ''.join(traverse_obj(runs, (..., 'text'), expected_type=str))
                 if text:
                     return text
 
@@ -805,7 +805,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         """
         thumbnails = []
         for path in path_list or [()]:
-            for thumbnail in traverse_obj(data, (*variadic(path), 'thumbnails', ...), default=[]):
+            for thumbnail in traverse_obj(data, (*variadic(path), 'thumbnails', ...)):
                 thumbnail_url = url_or_none(thumbnail.get('url'))
                 if not thumbnail_url:
                     continue
@@ -2668,11 +2668,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return
 
             _, _, prs, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
-            video_details = traverse_obj(
-                prs, (..., 'videoDetails'), expected_type=dict, default=[])
+            video_details = traverse_obj(prs, (..., 'videoDetails'), expected_type=dict)
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
-                expected_type=dict, default=[])
+                expected_type=dict)
             _, live_status, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
             is_live = live_status == 'is_live'
             start_time = time.time()
@@ -3173,7 +3172,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         content_list = traverse_obj(
             data,
             ('engagementPanels', ..., 'engagementPanelSectionListRenderer', 'content', 'macroMarkersListRenderer', 'contents'),
-            expected_type=list, default=[])
+            expected_type=list)
         chapter_time = lambda chapter: parse_duration(self._get_text(chapter, 'timeDescription'))
         chapter_title = lambda chapter: self._get_text(chapter, 'title')
 
@@ -3450,7 +3449,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if traverse_obj(player_response, ('playabilityStatus', 'desktopLegacyAgeGateReason')):
             return True
 
-        reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')), default=[])
+        reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')))
         AGE_GATE_REASONS = (
             'confirm your age', 'age-restricted', 'inappropriate',  # reason
             'age_verification_required', 'age_check_required',  # status
@@ -3606,7 +3605,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'audio_quality_ultralow', 'audio_quality_low', 'audio_quality_medium', 'audio_quality_high',  # Audio only formats
             'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
         ])
-        streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...), default=[])
+        streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...))
 
         for fmt in streaming_formats:
             if fmt.get('targetDurationSec'):
@@ -3872,7 +3871,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                        else 'was_live' if live_content
                        else 'not_live' if False in (is_live, live_content)
                        else None)
-        streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
+        streaming_data = traverse_obj(player_responses, (..., 'streamingData'))
         *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, live_status, duration)
 
         return live_broadcast_details, live_status, streaming_data, formats, subtitles
@@ -3887,7 +3886,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage, master_ytcfg, player_responses, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
 
         playability_statuses = traverse_obj(
-            player_responses, (..., 'playabilityStatus'), expected_type=dict, default=[])
+            player_responses, (..., 'playabilityStatus'), expected_type=dict)
 
         trailer_video_id = get_first(
             playability_statuses,
@@ -3900,11 +3899,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None))
                        if webpage else (lambda x: None))
 
-        video_details = traverse_obj(
-            player_responses, (..., 'videoDetails'), expected_type=dict, default=[])
+        video_details = traverse_obj(player_responses, (..., 'videoDetails'), expected_type=dict)
         microformats = traverse_obj(
             player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
-            expected_type=dict, default=[])
+            expected_type=dict)
 
         translated_title = self._get_text(microformats, (..., 'title'))
         video_title = (self._preferred_lang and translated_title
@@ -4110,10 +4108,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Converted into dicts to remove duplicates
             captions = {
                 get_lang_code(sub): sub
-                for sub in traverse_obj(pctr, (..., 'captionTracks', ...), default=[])}
+                for sub in traverse_obj(pctr, (..., 'captionTracks', ...))}
             translation_languages = {
                 lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
-                for lang in traverse_obj(pctr, (..., 'translationLanguages', ...), default=[])}
+                for lang in traverse_obj(pctr, (..., 'translationLanguages', ...))}
 
             def process_language(container, base_url, lang_code, sub_name, query):
                 lang_subs = container.setdefault(lang_code, [])
@@ -4267,9 +4265,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     list) or []):
                 tbrs = variadic(
                     traverse_obj(
-                        tlb, 'toggleButtonRenderer',
-                        ('segmentedLikeDislikeButtonRenderer', ..., 'toggleButtonRenderer'),
-                        default=[]))
+                        tlb, ('toggleButtonRenderer', ...),
+                        ('segmentedLikeDislikeButtonRenderer', ..., 'toggleButtonRenderer')))
                 for tbr in tbrs:
                     for getter, regex in [(
                             lambda x: x['defaultText']['accessibility']['accessibilityData'],
