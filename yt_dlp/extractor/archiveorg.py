@@ -1170,23 +1170,27 @@ class VLiveWebArchiveIE(InfoExtractor):
                 'name': join_nonempty('label', 'fanName', from_dict=caption, delim=' - '),
             })
 
-        return {
-            'id': video_id,
-            'title': traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'title')),
-            'formats': formats,
-            'subtitles': subtitles,
-            'automatic_captions': automatic_captions,
-            'uploader_id': traverse_obj(vod_data, ('meta', 'user', 'id')),
-            'uploader': traverse_obj(vod_data, ('meta', 'user', 'name')),
-            'uploader_url': traverse_obj(vod_data, ('meta', 'user', 'url')),
-            'creator': traverse_obj(player_info, ('postDetail', 'post', 'author', 'nickname')),
-            'channel': traverse_obj(player_info, ('postDetail', 'post', 'channel', 'channelName')),
-            'channel_id': traverse_obj(player_info, ('postDetail', 'post', 'channel', 'channelCode')),
-            'duration': int_or_none(traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'playTime'))),
-            'view_count': int_or_none(traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'playCount'))),
-            'like_count': int_or_none(traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'likeCount'))),
-            'comment_count': int_or_none(traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'commentCount'))),
-            'timestamp': int_or_none(traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'createdAt')), scale=1000),
-            'release_timestamp': int_or_none(traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'willStartAt')), scale=1000),
-            'thumbnail': traverse_obj(vod_data, ('meta', 'cover', 'source')),
-        }
+return {
+    'id': video_id,
+    'formats': formats,
+    'subtitles': subtitles,
+    'automatic_captions': automatic_captions,
+    **traverse_obj(player_info, ('postDetail', 'post', {
+        'title': ('officialVideo', 'title', {str}),
+        'creator': ('author', 'nickname', {str}),
+        'channel': ('channel', 'channelName', {str}),
+        'channel_id': ('channel', 'channelCode', {str}),
+        'duration': ('officialVideo', 'playTime', {int_or_none}),
+        'view_count': ('officialVideo', 'playCount', {int_or_none}),
+        'like_count': ('officialVideo', 'likeCount', {int_or_none}),
+        'comment_count': ('officialVideo', 'commentCount', {int_or_none}),
+        'timestamp': ('officialVideo', 'createdAt', {lambda x: int_or_none(x, scale=1000)}),
+        'release_timestamp': ('officialVideo', 'willStartAt', {lambda x: int_or_none(x, scale=1000)}),
+    })),
+    **traverse_obj(vod_data, ('meta', {
+        'uploader_id': ('user', 'id', {str}),
+        'uploader': ('user', 'name', {str}),
+        'uploader_url': ('user', 'url', {url_or_none}),
+        'thumbnail': ('cover', 'source', {url_or_none}),
+    }))
+}
