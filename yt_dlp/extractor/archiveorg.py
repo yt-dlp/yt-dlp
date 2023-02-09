@@ -1156,7 +1156,7 @@ class VLiveWebArchiveIE(InfoExtractor):
         # Code from NaverBaseIE
         automatic_captions = {}
         subtitles = {}
-        for caption in traverse_obj(vod_data, ('captions', 'list'), []):
+        for caption in traverse_obj(vod_data, ('captions', 'list', ..., {dict}):
             caption_url = caption.get('source')
             if not caption_url:
                 continue
