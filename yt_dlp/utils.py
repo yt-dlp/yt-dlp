@@ -4107,6 +4107,51 @@ def dfxp2srt(dfxp_data):
     return ''.join(out)
 
 
+def mp42srt(mp4_data):
+    from .mp4parser import (
+        SubtitleType,
+        prepare,
+        read_trun,
+        webvtt2srt,
+    )
+
+    stype, boxes = prepare(mp4_data)
+    items = []
+
+    if stype == SubtitleType.SUBS_XML:
+
+        def parse(box):
+            srt = dfxp2srt(box)
+            items = re.split('\n[0-9]+\n', srt[2:-1])
+            return items
+
+        items = [parse(box) for box in boxes
+                 if b"body" in box]
+
+    elif stype == SubtitleType.WEBVTT:
+
+        def parse(box, ts):
+            trun, samples = box
+            items = []
+            durations = read_trun(trun)
+            for info in durations:
+                item, samples, ts = webvtt2srt(info, samples, ts)
+                if item:
+                    items.append(item)
+            return ts, items
+
+        ts = 0
+        for box in boxes:
+            ts, item = parse(box, ts)
+            items.append(item)
+
+    out = []
+    for num, txt in enumerate(itertools.chain.from_iterable(items)):
+        out.append(f'{num + 1}\n{txt}\n')
+
+    return ''.join(out)
+
+
 def cli_option(params, command_option, param, separator=None):
     param = params.get(param)
     return ([] if param is None
