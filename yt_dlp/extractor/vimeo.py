@@ -358,7 +358,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         },
         {
             'url': 'http://player.vimeo.com/video/54469442',
-            'md5': 'b3e7f4d2cbb53bd7dc3bb6ff4ed5cfbd',
+            'md5': '619b811a4417aa4abe78dc653becf511',
             'note': 'Videos that embed the url in the player page',
             'info_dict': {
                 'id': '54469442',
@@ -389,8 +389,8 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_id': 'user18948128',
                 'uploader': 'Jaime Marquínez Ferrándiz',
                 'duration': 10,
-                'description': 'md5:dca3ea23adb29ee387127bc4ddfce63f',
-                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d_960',
+                'description': 'md5:6173f270cd0c0119f22817204b3eb86c',
+                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d_1280',
                 'view_count': int,
                 'comment_count': int,
                 'like_count': int,
@@ -407,7 +407,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'id': '75629013',
                 'ext': 'mp4',
                 'title': 'Key & Peele: Terrorist Interrogation',
-                'description': 'md5:8678b246399b070816b12313e8b4eb5c',
+                'description': 'md5:6173f270cd0c0119f22817204b3eb86c',
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/atencio',
                 'uploader_id': 'atencio',
                 'uploader': 'Peter Atencio',
@@ -559,8 +559,8 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_id': 'user18948128',
                 'uploader': 'Jaime Marquínez Ferrándiz',
                 'duration': 10,
-                'description': 'md5:dca3ea23adb29ee387127bc4ddfce63f',
-                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d_960',
+                'description': 'md5:6173f270cd0c0119f22817204b3eb86c',
+                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d_1280',
                 'view_count': int,
                 'comment_count': int,
                 'like_count': int,
@@ -834,8 +834,8 @@ class VimeoIE(VimeoBaseInfoExtractor):
             raise
 
         if '://player.vimeo.com/video/' in url:
-            config = self._parse_json(self._search_regex(
-                r'\b(?:playerC|c)onfig\s*=\s*({.+?})\s*;', webpage, 'info section'), video_id)
+            config = self._search_json(
+                r'\b(?:playerC|c)onfig\s*=', webpage, 'info section', video_id)
             if config.get('view') == 4:
                 config = self._verify_player_video_password(
                     redirect_url, video_id, headers)
