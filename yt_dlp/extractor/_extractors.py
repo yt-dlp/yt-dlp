@@ -1419,7 +1419,12 @@ from .pokergo import (
     PokerGoIE,
     PokerGoCollectionIE,
 )
-from .polsatgo import PolsatGoIE
+from .polsatgo import (
+    PolsatBoxGoIE,
+    PolsatBoxGoCategoryIE,
+    PolsatGoIE,
+    PolsatGoCategoryIE,
+)
 from .polskieradio import (
     PolskieRadioIE,
     PolskieRadioLegacyIE,
