@@ -110,8 +110,6 @@ class RadikoBaseIE(InfoExtractor):
         found = set()
         for url_tag in m3u8_urls:
             pcu = url_tag.find('playlist_create_url').text
-            if is_onair and not pcu.startswith(self._HOSTS_FOR_LIVE) or (not is_onair and (pcu.startswith(self._HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED) or pcu.startswith(self._HOSTS_FOR_LIVE))):
-                continue
             url_attrib = url_tag.attrib
             playlist_url = update_url_query(pcu, {
                 'station_id': station,
@@ -136,10 +134,11 @@ class RadikoBaseIE(InfoExtractor):
                     'X-Radiko-AreaId': area_id,
                     'X-Radiko-AuthToken': auth_token,
                 })
+            not_preferred = is_onair and not pcu.startswith(self._HOSTS_FOR_LIVE) or (not is_onair and (pcu.startswith(self._HOSTS_FOR_TIME_FREE_FFMPEG_UNSUPPORTED) or pcu.startswith(self._HOSTS_FOR_LIVE)))
             for sf in subformats:
-                if re.fullmatch(r'[cf]-radiko\.smartstream\.ne\.jp', domain):
-                    # Prioritize live radio vs playback based on extractor
-                    sf['preference'] = 100 if is_onair else -100
+                if not_preferred:
+                    sf['preference'] = -100
+                    sf['format_note'] = 'not preferred'
                 if not is_onair and url_attrib['timefree'] == '1' and time_to_skip:
                     sf['downloader_options'] = {'ffmpeg_args': ['-ss', time_to_skip]}
             formats.extend(subformats)
