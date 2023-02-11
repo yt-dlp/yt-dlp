@@ -1092,8 +1092,8 @@ class TwitterIE(TwitterBaseIE):
                         'content_duration_seconds')),
                 }
 
-        videos = traverse_obj(status, ((
-            None, 'quoted_status'), 'extended_entities', 'media', lambda _, m: m['type'] != 'photo', {dict}))
+        videos = traverse_obj(status, (
+            (None, 'quoted_status'), 'extended_entities', 'media', lambda _, m: m['type'] != 'photo', {dict}))
 
         if self._yes_playlist(twid, selected_index, video_label='URL-specified video number'):
             selected_entries = (*map(extract_from_video_info, videos), *extract_from_card_info(status.get('card')))
