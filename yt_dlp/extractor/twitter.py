@@ -336,7 +336,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '665052190608723968',
             'display_id': '665052190608723968',
             'ext': 'mp4',
-            'title': str,
+            'title': r're:Star Wars.*A new beginning is coming December 18.*',
             'description': 'A new beginning is coming December 18. Watch the official 60 second #TV spot for #StarWars: #TheForceAwakens. https://t.co/OkSqT2fjWJ',
             'uploader_id': 'starwars',
             'uploader': r're:Star Wars.*',
