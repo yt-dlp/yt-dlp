@@ -8,6 +8,7 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import cache
+from operator import attrgetter
 from pathlib import Path
 
 BASE_URL = 'https://github.com'
@@ -48,6 +49,7 @@ class CommitGroup(enum.Enum):
                     'cleanup',
                     'devscripts',
                     'docs',
+                    'test',
                 },
                 cls.EXTRACTOR: {'extractor'},
                 cls.DOWNLOADER: {'downloader'},
@@ -67,7 +69,7 @@ class CommitGroup(enum.Enum):
 class Commit:
     hash: str | None
     short: str
-    authors: list[str] | None
+    authors: list[str]
 
     def __str__(self):
         result = f'{self.short!r}'
@@ -85,16 +87,17 @@ class Commit:
 @dataclass
 class CommitInfo:
     details: str | None
+    sub_details: str | None
     message: str
     issue: str | None
     commit: Commit
 
     def key(self):
-        return (self.details or '', self.message)
+        return (self.details or '', self.sub_details or '', self.message)
 
 
 class Changelog:
-    MISC_RE = re.compile(r'(?:^|\b)(?:misc|format(?:ting)?|fixes)(?:\b|$)', re.IGNORECASE)
+    MISC_RE = re.compile(r'(?:^|\b)(?:lint(?:ing)?|misc|format(?:ting)?|fixes)(?:\b|$)', re.IGNORECASE)
 
     def __init__(self, groups, repo):
         self._groups = groups
@@ -111,42 +114,64 @@ class Changelog:
             if group:
                 yield self.format_module(item.value, group)
 
-    def format_module(self, name: str, group):
+    def format_module(self, name, group):
         return f'### {name} changes\n' + '\n'.join(self._format_group(group))
 
     def _format_group(self, group):
-        cleanup_misc = defaultdict(list)
-
-        current = None
-        indent = ''
-        for item in sorted(group, key=CommitInfo.key):
-            if item.details != current:
-                if current == 'cleanup' and cleanup_misc:
-                    yield from self.format_misc_items(cleanup_misc)
-
-                yield f'- {item.details}'
-                current = item.details
+        sorted_group = sorted(group, key=CommitInfo.key)
+        detail_groups = itertools.groupby(sorted_group, attrgetter('details'))
+        for details, items in detail_groups:
+            if details is None:
+                indent = ''
+            else:
+                yield f'- {details}'
                 indent = '\t'
 
-            if current == 'cleanup' and self.MISC_RE.search(item.message):
-                cleanup_misc[tuple(item.commit.authors or ())].append(item)
+            if details == 'cleanup':
+                items, cleanup_misc_items = self._filter_cleanup_misc_items(items)
+
+            sub_detail_groups = itertools.groupby(items, attrgetter('sub_details'))
+            for sub_details, entries in sub_detail_groups:
+                if not sub_details:
+                    for entry in entries:
+                        yield f'{indent}- {self.format_single_change(entry)}'
+                    continue
+
+                prefix = f'{indent}- {sub_details}'
+                entries = list(entries)
+                if len(entries) == 1:
+                    yield f'{prefix}: {self.format_single_change(entries[0])}'
+                    continue
+
+                yield prefix
+                for entry in entries:
+                    yield f'{indent}\t- {self.format_single_change(entry)}'
+
+            if details == 'cleanup' and cleanup_misc_items:
+                yield from self._format_cleanup_misc_sub_group(cleanup_misc_items)
+
+    def _filter_cleanup_misc_items(self, items):
+        cleanup_misc_items = defaultdict(list)
+        new_items = []
+        for item in items:
+            if self.MISC_RE.search(item.message):
+                cleanup_misc_items[tuple(item.commit.authors)].append(item)
             else:
-                yield f'{indent}- {self.format_single_change(item)}'
+                new_items.append(item)
 
-        if current == 'cleanup' and cleanup_misc:
-            yield from self.format_misc_items(cleanup_misc)
+        return items, cleanup_misc_items
 
-    def format_misc_items(self, group):
+    def _format_cleanup_misc_sub_group(self, group):
         prefix = '\t- Miscellaneous'
         if len(group) == 1:
-            yield f'{prefix}: {next(self._format_misc_items(group))}'
+            yield f'{prefix}: {next(self._format_cleanup_misc_items(group))}'
             return
 
         yield prefix
-        for message in self._format_misc_items(group):
+        for message in self._format_cleanup_misc_items(group):
             yield f'\t\t- {message}'
 
-    def _format_misc_items(self, group):
+    def _format_cleanup_misc_items(self, group):
         for authors, infos in group.items():
             message = ', '.join(
                 f'[{info.commit.hash or "unknown":.7}]({self.repo_url}/commit/{info.commit.hash})'
@@ -168,7 +193,7 @@ class Changelog:
 
     @staticmethod
     def _format_authors(authors):
-        return ', '.join(f'[{author}]({BASE_URL}/{author})' for author in authors or ())
+        return ', '.join(f'[{author}]({BASE_URL}/{author})' for author in authors)
 
     @property
     def repo_url(self):
@@ -186,6 +211,7 @@ class CommitRange:
             (?:/(?P<details>[^\]:,]+))?
             (?:[:,](?P<sub_details>[^\]]+))?
         \]\ )?
+        (?:`?(?P<sub_details_alt>[^:`]+)`?: )?
         (?P<message>.+?)
         (?:\ \(\#(?P<issue>\d+)\))?
         ''', re.VERBOSE)
@@ -252,7 +278,7 @@ class CommitRange:
             for line in iter(lambda: next(lines), self.COMMIT_SEPARATOR):
                 match = self.AUTHOR_INDICATOR_RE.match(line)
                 if match:
-                    authors = line[match.end():].split(', ')
+                    authors = [author.strip() for author in line[match.end():].split(',')]
 
             commit = Commit(commit_hash, short, authors)
             if skip:
@@ -295,7 +321,7 @@ class CommitRange:
                 logger.error(f'Error parsing short commit message: {commit.short!r}')
                 continue
 
-            prefix, details, sub_details, message, issue = match.groups()
+            prefix, details, sub_details, sub_details_alt, message, issue = match.groups()
             group = None
             if prefix:
                 if prefix == 'priority':
@@ -303,21 +329,24 @@ class CommitRange:
                     logger.debug(f'Priority: {message!r}')
                     group = CommitGroup.PRIORITY
 
-                if sub_details:
-                    message = f'`{sub_details}`: {message}'
-
                 elif not details:
                     details = prefix or None
 
-                if details and not group:
-                    details = details.lower()
+                if details:
+                    details = details.strip()
+                    if not group:
+                        details = details.lower()
 
             else:
                 group = CommitGroup.CORE
 
+            if sub_details or sub_details_alt:
+                sub_details = ':'.join(filter(None, map(str.strip, filter(None, (
+                    sub_details, sub_details_alt))))) or None
+
             if not group:
                 group = CommitGroup.get(prefix.lower())
-            groups[group].append(CommitInfo(details, message, issue, commit))
+            groups[group].append(CommitInfo(details, sub_details, message.strip(), issue, commit))
 
         return groups
 
