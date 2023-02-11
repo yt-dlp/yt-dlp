@@ -815,6 +815,30 @@ class TwitterIE(TwitterBaseIE):
         },
         'params': {'noplaylist': True},
     }, {
+        # Media view count is GraphQL only, force in test
+        'url': 'https://twitter.com/MunTheShinobi/status/1600009574919962625',
+        'info_dict': {
+            'id': '1600009362759733248',
+            'display_id': '1600009574919962625',
+            'ext': 'mp4',
+            'uploader_url': 'https://twitter.com/MunTheShinobi',
+            'description': 'This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525 https://t.co/cNsA0MoOml',
+            'view_count': int,
+            'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1600009362759733248/pu/img/XVhFQivj75H_YxxV.jpg?name=orig',
+            'age_limit': 0,
+            'uploader': 'Mün The Shinobi | BlaqBoi\'s Therapist',
+            'repost_count': int,
+            'upload_date': '20221206',
+            'title': 'Mün The Shinobi | BlaqBoi\'s Therapist - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
+            'comment_count': int,
+            'like_count': int,
+            'tags': [],
+            'uploader_id': 'MunTheShinobi',
+            'duration': 139.987,
+            'timestamp': 1670306984.0,
+        },
+        'params': {'extractor_args': {'twitter': {'force_graphql': ['']}}},
+    }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
         'only_matching': True,
@@ -988,6 +1012,7 @@ class TwitterIE(TwitterBaseIE):
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
+                'view_count': traverse_obj(media, ('mediaStats', 'viewCount', {int_or_none})),
                 'duration': float_or_none(video_info.get('duration_millis'), 1000),
                 # The codec of http formats are unknown
                 '_format_sort_fields': ('res', 'br', 'size', 'proto'),
