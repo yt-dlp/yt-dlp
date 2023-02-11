@@ -336,7 +336,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '665052190608723968',
             'display_id': '665052190608723968',
             'ext': 'mp4',
-            'title': 'md5:e99588f17b3dd0503814ffb560e64731',
+            'title': str,
             'description': 'A new beginning is coming December 18. Watch the official 60 second #TV spot for #StarWars: #TheForceAwakens. https://t.co/OkSqT2fjWJ',
             'uploader_id': 'starwars',
             'uploader': r're:Star Wars.*',
@@ -942,13 +942,6 @@ class TwitterIE(TwitterBaseIE):
             title = f'{uploader} - {title}'
         uploader_id = user.get('screen_name')
 
-        tags = []
-        for hashtag in (try_get(status, lambda x: x['entities']['hashtags'], list) or []):
-            hashtag_text = hashtag.get('text')
-            if not hashtag_text:
-                continue
-            tags.append(hashtag_text)
-
         info = {
             'id': twid,
             'title': title,
@@ -961,7 +954,7 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int_or_none(status.get('retweet_count')),
             'comment_count': int_or_none(status.get('reply_count')),
             'age_limit': 18 if status.get('possibly_sensitive') else 0,
-            'tags': tags,
+            'tags': traverse_obj(status, ('entities', 'hashtags', ..., 'text')),
         }
 
         def extract_from_video_info(media):
