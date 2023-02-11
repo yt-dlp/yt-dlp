@@ -1,5 +1,4 @@
 import base64
-import re
 import urllib.parse
 
 from .common import InfoExtractor
