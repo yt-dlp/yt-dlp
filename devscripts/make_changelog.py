@@ -60,8 +60,9 @@ class CommitGroup(enum.Enum):
 
     @classmethod
     def get(cls, value):
-        result = cls.commit_lookup().get(value, cls.EXTRACTOR)
-        logger.debug(f'Mapped {value!r} => {result.name}')
+        result = cls.commit_lookup().get(value)
+        if result:
+            logger.debug(f'Mapped {value!r} => {result.name}')
         return result
 
 
@@ -331,8 +332,13 @@ class CommitRange:
                     logger.debug(f'Priority: {message!r}')
                     group = CommitGroup.PRIORITY
 
-                elif not details:
-                    details = prefix or None
+                elif not details and prefix:
+                    if prefix not in ('extractor', 'postprocessor', 'downloader'):
+                        logger.debug(f'Replaced details with {prefix!r}')
+                        details = prefix or None
+
+                if details == 'common':
+                    details = None
 
                 if details:
                     details = details.strip()
@@ -351,7 +357,12 @@ class CommitRange:
 
             if not group:
                 group = CommitGroup.get(prefix.lower())
-            groups[group].append(CommitInfo(details, sub_details, message.strip(), issues, commit))
+                if not group:
+                    logger.warning(f'Failed to map {commit.short!r}, defaulting to extractor')
+                    group = CommitGroup.EXTRACTOR
+            commit_info = CommitInfo(details, sub_details, message.strip(), issues, commit)
+            logger.debug(f'Resolved {commit.short!r} to {commit_info!r}')
+            groups[group].append(commit_info)
 
         return groups
 
