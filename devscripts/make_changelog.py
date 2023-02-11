@@ -89,7 +89,7 @@ class CommitInfo:
     details: str | None
     sub_details: str | None
     message: str
-    issue: str | None
+    issues: list[str] | None
     commit: Commit
 
     def key(self):
@@ -182,14 +182,16 @@ class Changelog:
         message = (
             info.message if info.commit.hash is None else
             f'[{info.message}]({self.repo_url}/commit/{info.commit.hash})')
-        if info.issue:
-            issue = f'[#{info.issue}]({self.repo_url}/issues/{info.issue})'
-            message = f'{message} ({issue})'
+        if info.issues:
+            message = f'{message} ({self._format_issues(info.issues)})'
 
         if not info.commit.authors:
             return message
 
         return f'{message} by {self._format_authors(info.commit.authors)}'
+
+    def _format_issues(self, issues):
+        return ', '.join(f'[#{issue}]({self.repo_url}/issues/{issue})' for issue in issues)
 
     @staticmethod
     def _format_authors(authors):
@@ -213,7 +215,7 @@ class CommitRange:
         \]\ )?
         (?:`?(?P<sub_details_alt>[^:`]+)`?: )?
         (?P<message>.+?)
-        (?:\ \(\#(?P<issue>\d+)\))?
+        (?:\ \((?P<issues>\#\d+(?:,\ \#\d+)*)\))?
         ''', re.VERBOSE)
 
     def __init__(self, start, end, default_author=None) -> None:
@@ -321,7 +323,7 @@ class CommitRange:
                 logger.error(f'Error parsing short commit message: {commit.short!r}')
                 continue
 
-            prefix, details, sub_details, sub_details_alt, message, issue = match.groups()
+            prefix, details, sub_details, sub_details_alt, message, issues = match.groups()
             group = None
             if prefix:
                 if prefix == 'priority':
@@ -344,9 +346,12 @@ class CommitRange:
                 sub_details = ':'.join(filter(None, map(str.strip, filter(None, (
                     sub_details, sub_details_alt))))) or None
 
+            if issues:
+                issues = [issue.strip().lstrip('#') for issue in issues.split(',')]
+
             if not group:
                 group = CommitGroup.get(prefix.lower())
-            groups[group].append(CommitInfo(details, sub_details, message.strip(), issue, commit))
+            groups[group].append(CommitInfo(details, sub_details, message.strip(), issues, commit))
 
         return groups
 
