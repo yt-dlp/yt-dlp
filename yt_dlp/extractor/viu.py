@@ -498,8 +498,9 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        episode_json = traverse_obj(list(filter(
-            lambda x: x.get('@type') in ('TVEpisode', 'Movie'), self._yield_json_ld(webpage, display_id))), 0) or {}
+        episode_json = traverse_obj(
+            self._yield_json_ld(webpage, display_id),
+            lambda _, v: v['@type'] in ('TVEpisode', 'Movie')) or {}
         initial_state_json = self._search_json(
             r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state',
             display_id)['content']['clipDetails']
