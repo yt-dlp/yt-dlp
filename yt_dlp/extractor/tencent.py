@@ -23,7 +23,10 @@ class TencentBaseIE(InfoExtractor):
     def _check_api_response(self, api_response):
         msg = api_response.get('msg')
         if api_response.get('code') != '0.0' and msg is not None:
-            if msg in ('您所在区域暂无此内容版权（如设置VPN请关闭后重试）', 'This content is not available in your area due to copyright restrictions. Please choose other videos.'):
+            if msg in (
+                '您所在区域暂无此内容版权（如设置VPN请关闭后重试）',
+                'This content is not available in your area due to copyright restrictions. Please choose other videos.'
+            ):
                 self.raise_geo_restricted()
             raise ExtractorError(f'Tencent said: {msg}')
 
@@ -98,16 +101,15 @@ class TencentBaseIE(InfoExtractor):
             expected_type=dict, get_all=False) or {}
         format_id = format_response.get('name')
         is_hdr = format_id == 'hdr10'
-        format_name = f'{format_response.get("sname")} ({format_response.get("resolution")})' + (' HDR' if is_hdr else '')
         common_info = {
             'width': video_response.get('vw'),
             'height': video_response.get('vh'),
             'abr': float_or_none(format_response.get('audiobandwidth'), scale=1000),
             'vbr': float_or_none(format_response.get('bandwidth'), scale=1000),
             'fps': format_response.get('vfps'),
-            'format': format_name,
+            'format': format_response.get('sname'),
             'format_id': format_id,
-            'format_note': format_name,
+            'format_note': format_response.get('resolution'),
             'dynamic_range': 'hdr10' if is_hdr else None,
             'has_drm': format_response.get('drm', 0) != 0,
         }
@@ -128,16 +130,14 @@ class TencentBaseIE(InfoExtractor):
         return subtitles
 
     def _extract_all_video_formats_and_subtitles(self, url, video_id, series_id):
-        api_response = self._get_video_api_response(url, video_id, series_id, 'srt', 'hls', 'hd')
-        self._check_api_response(api_response)
-        api_responses = [api_response]
-        qualities = traverse_obj(api_response, ('fl', 'fi', ..., 'name')) or ('shd', 'fhd')
+        api_responses = [self._get_video_api_response(url, video_id, series_id, 'srt', 'hls', 'hd')]
+        self._check_api_response(api_responses[0])
+        qualities = traverse_obj(api_responses, (0, 'fl', 'fi', ..., 'name')) or ('shd', 'fhd')
         for q in qualities:
             if q not in ('ld', 'sd', 'hd'):
-                api_response = self._get_video_api_response(
-                    url, video_id, series_id, 'vtt', 'hls', q)
-                self._check_api_response(api_response)
-                api_responses.append(api_response)
+                api_responses.append(self._get_video_api_response(
+                    url, video_id, series_id, 'vtt', 'hls', q))
+                self._check_api_response(api_responses[-1])
 
         formats, subtitles = [], {}
         for api_response in api_responses:
