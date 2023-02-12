@@ -2466,15 +2466,8 @@ class YoutubeDL:
 
     def sort_formats(self, info_dict):
         formats = self._get_formats(info_dict)
-        if not formats:
-            return
-        # Backward compatibility with InfoExtractor._sort_formats
-        field_preference = formats[0].pop('__sort_fields', None)
-        if field_preference:
-            info_dict['_format_sort_fields'] = field_preference
-
         formats.sort(key=FormatSorter(
-            self, info_dict.get('_format_sort_fields', [])).calculate_preference)
+            self, info_dict.get('_format_sort_fields') or []).calculate_preference)
 
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'
@@ -2561,8 +2554,12 @@ class YoutubeDL:
         info_dict['requested_subtitles'] = self.process_subtitles(
             info_dict['id'], subtitles, automatic_captions)
 
-        self.sort_formats(info_dict)
         formats = self._get_formats(info_dict)
+
+        # Backward compatibility with InfoExtractor._sort_formats
+        field_preference = formats[0].pop('__sort_fields', None)
+        if field_preference:
+            info_dict['_format_sort_fields'] = field_preference
 
         # or None ensures --clean-infojson removes it
         info_dict['_has_drm'] = any(f.get('has_drm') for f in formats) or None
@@ -2601,44 +2598,12 @@ class YoutubeDL:
         if not formats:
             self.raise_no_formats(info_dict)
 
-        formats_dict = {}
-
-        # We check that all the formats have the format and format_id fields
-        for i, format in enumerate(formats):
+        for format in formats:
             sanitize_string_field(format, 'format_id')
             sanitize_numeric_fields(format)
             format['url'] = sanitize_url(format['url'])
-            if not format.get('format_id'):
-                format['format_id'] = str(i)
-            else:
-                # Sanitize format_id from characters used in format selector expression
-                format['format_id'] = re.sub(r'[\s,/+\[\]()]', '_', format['format_id'])
-            format_id = format['format_id']
-            if format_id not in formats_dict:
-                formats_dict[format_id] = []
-            formats_dict[format_id].append(format)
-
-        # Make sure all formats have unique format_id
-        common_exts = set(itertools.chain(*self._format_selection_exts.values()))
-        for format_id, ambiguous_formats in formats_dict.items():
-            ambigious_id = len(ambiguous_formats) > 1
-            for i, format in enumerate(ambiguous_formats):
-                if ambigious_id:
-                    format['format_id'] = '%s-%d' % (format_id, i)
-                if format.get('ext') is None:
-                    format['ext'] = determine_ext(format['url']).lower()
-                # Ensure there is no conflict between id and ext in format selection
-                # See https://github.com/yt-dlp/yt-dlp/issues/1282
-                if format['format_id'] != format['ext'] and format['format_id'] in common_exts:
-                    format['format_id'] = 'f%s' % format['format_id']
-
-        for i, format in enumerate(formats):
-            if format.get('format') is None:
-                format['format'] = '{id} - {res}{note}'.format(
-                    id=format['format_id'],
-                    res=self.format_resolution(format),
-                    note=format_field(format, 'format_note', ' (%s)'),
-                )
+            if format.get('ext') is None:
+                format['ext'] = determine_ext(format['url']).lower()
             if format.get('protocol') is None:
                 format['protocol'] = determine_protocol(format)
             if format.get('resolution') is None:
@@ -2650,15 +2615,45 @@ class YoutubeDL:
             if (info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
+            format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict))
 
-            # Add HTTP headers, so that external programs can use them from the
-            # json output
-            full_format_info = info_dict.copy()
-            full_format_info.update(format)
-            format['http_headers'] = self._calc_headers(full_format_info)
-        # Remove private housekeeping stuff
+        # This is copied to http_headers by the above _calc_headers and can now be removed
         if '__x_forwarded_for_ip' in info_dict:
             del info_dict['__x_forwarded_for_ip']
+
+        self.sort_formats({
+            'formats': formats,
+            '_format_sort_fields': info_dict.get('_format_sort_fields')
+        })
+
+        # Sanitize and group by format_id
+        formats_dict = {}
+        for i, format in enumerate(formats):
+            if not format.get('format_id'):
+                format['format_id'] = str(i)
+            else:
+                # Sanitize format_id from characters used in format selector expression
+                format['format_id'] = re.sub(r'[\s,/+\[\]()]', '_', format['format_id'])
+            formats_dict.setdefault(format['format_id'], []).append(format)
+
+        # Make sure all formats have unique format_id
+        common_exts = set(itertools.chain(*self._format_selection_exts.values()))
+        for format_id, ambiguous_formats in formats_dict.items():
+            ambigious_id = len(ambiguous_formats) > 1
+            for i, format in enumerate(ambiguous_formats):
+                if ambigious_id:
+                    format['format_id'] = '%s-%d' % (format_id, i)
+                # Ensure there is no conflict between id and ext in format selection
+                # See https://github.com/yt-dlp/yt-dlp/issues/1282
+                if format['format_id'] != format['ext'] and format['format_id'] in common_exts:
+                    format['format_id'] = 'f%s' % format['format_id']
+
+                if format.get('format') is None:
+                    format['format'] = '{id} - {res}{note}'.format(
+                        id=format['format_id'],
+                        res=self.format_resolution(format),
+                        note=format_field(format, 'format_note', ' (%s)'),
+                    )
 
         if self.params.get('check_formats') is True:
             formats = LazyList(self._check_formats(formats[::-1]), reverse=True)
