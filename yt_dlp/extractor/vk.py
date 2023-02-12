@@ -585,7 +585,7 @@ class VKWallPostIE(VKBaseIE):
             'md5': '5ba93864ec5b85f7ce19a9af4af080f6',
             'info_dict': {
                 'id': '135220665_111806521',
-                'ext': 'mov',
+                'ext': 'm4a',
                 'title': 'Black Shadow - Слепое Верование',
                 'duration': 370,
                 'uploader': 'Black Shadow',
@@ -596,7 +596,7 @@ class VKWallPostIE(VKBaseIE):
             'md5': '4cc7e804579122b17ea95af7834c9233',
             'info_dict': {
                 'id': '135220665_111802303',
-                'ext': 'mov',
+                'ext': 'm4a',
                 'title': 'Black Shadow - Война - Негасимое Бездны Пламя!',
                 'duration': 423,
                 'uploader': 'Black Shadow',
@@ -667,7 +667,7 @@ class VKWallPostIE(VKBaseIE):
             'w': 'wall' + post_id,
         })[1]
 
-        uploader = clean_html(get_element_by_class('author', webpage))
+        uploader = clean_html(get_element_by_class('PostHeaderTitle__authorName', webpage))
 
         entries = []
 
