@@ -122,6 +122,7 @@ from .applepodcasts import ApplePodcastsIE
 from .archiveorg import (
     ArchiveOrgIE,
     YoutubeWebArchiveIE,
+    VLiveWebArchiveIE,
 )
 from .arcpublishing import ArcPublishingIE
 from .arkena import ArkenaIE
@@ -2182,11 +2183,6 @@ from .vk import (
     VKIE,
     VKUserVideosIE,
     VKWallPostIE,
-)
-from .vlive import (
-    VLiveIE,
-    VLivePostIE,
-    VLiveChannelIE,
 )
 from .vodlocker import VodlockerIE
 from .vodpl import VODPlIE

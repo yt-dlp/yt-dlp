@@ -293,7 +293,7 @@ class TwitterCardIE(InfoExtractor):
 
 class TwitterIE(TwitterBaseIE):
     IE_NAME = 'twitter'
-    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'(?:(?:i/web|[^/]+)/status|statuses)/(?P<id>\d+)(?:/video/(?P<index>\d+))?'
+    _VALID_URL = TwitterBaseIE._BASE_REGEX + r'(?:(?:i/web|[^/]+)/status|statuses)/(?P<id>\d+)(?:/(?:video|photo)/(?P<index>\d+))?'
 
     _TESTS = [{
         'url': 'https://twitter.com/freethenipple/status/643211948184596480',
@@ -336,7 +336,7 @@ class TwitterIE(TwitterBaseIE):
             'id': '665052190608723968',
             'display_id': '665052190608723968',
             'ext': 'mp4',
-            'title': 'md5:e99588f17b3dd0503814ffb560e64731',
+            'title': r're:Star Wars.*A new beginning is coming December 18.*',
             'description': 'A new beginning is coming December 18. Watch the official 60 second #TV spot for #StarWars: #TheForceAwakens. https://t.co/OkSqT2fjWJ',
             'uploader_id': 'starwars',
             'uploader': r're:Star Wars.*',
@@ -752,7 +752,7 @@ class TwitterIE(TwitterBaseIE):
         'info_dict': {
             'id': '1600649511827013632',
             'ext': 'mp4',
-            'title': 'md5:be05989b0722e114103ed3851a0ffae2',
+            'title': 'md5:dac4f4d4c591fcc4e88a253eba472dc3',
             'thumbnail': r're:^https?://.+\.jpg',
             'timestamp': 1670459604.0,
             'uploader_id': 'CTVJLaidlaw',
@@ -792,6 +792,52 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
+    }, {
+        'url': 'https://twitter.com/hlo_again/status/1599108751385972737/video/2',
+        'info_dict': {
+            'id': '1599108643743473680',
+            'display_id': '1599108751385972737',
+            'ext': 'mp4',
+            'title': '\u06ea - \U0001F48B',
+            'uploader_url': 'https://twitter.com/hlo_again',
+            'like_count': int,
+            'uploader_id': 'hlo_again',
+            'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1599108643743473680/pu/img/UG3xjov4rgg5sbYM.jpg?name=orig',
+            'repost_count': int,
+            'duration': 9.531,
+            'comment_count': int,
+            'upload_date': '20221203',
+            'age_limit': 0,
+            'timestamp': 1670092210.0,
+            'tags': [],
+            'uploader': '\u06ea',
+            'description': '\U0001F48B https://t.co/bTj9Qz7vQP',
+        },
+        'params': {'noplaylist': True},
+    }, {
+        # Media view count is GraphQL only, force in test
+        'url': 'https://twitter.com/MunTheShinobi/status/1600009574919962625',
+        'info_dict': {
+            'id': '1600009362759733248',
+            'display_id': '1600009574919962625',
+            'ext': 'mp4',
+            'uploader_url': 'https://twitter.com/MunTheShinobi',
+            'description': 'This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525 https://t.co/cNsA0MoOml',
+            'view_count': int,
+            'thumbnail': 'https://pbs.twimg.com/ext_tw_video_thumb/1600009362759733248/pu/img/XVhFQivj75H_YxxV.jpg?name=orig',
+            'age_limit': 0,
+            'uploader': 'Mün The Shinobi | BlaqBoi\'s Therapist',
+            'repost_count': int,
+            'upload_date': '20221206',
+            'title': 'Mün The Shinobi | BlaqBoi\'s Therapist - This is a genius ad by Apple. \U0001f525\U0001f525\U0001f525\U0001f525\U0001f525',
+            'comment_count': int,
+            'like_count': int,
+            'tags': [],
+            'uploader_id': 'MunTheShinobi',
+            'duration': 139.987,
+            'timestamp': 1670306984.0,
+        },
+        'params': {'extractor_args': {'twitter': {'force_graphql': ['']}}},
     }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
@@ -920,13 +966,6 @@ class TwitterIE(TwitterBaseIE):
             title = f'{uploader} - {title}'
         uploader_id = user.get('screen_name')
 
-        tags = []
-        for hashtag in (try_get(status, lambda x: x['entities']['hashtags'], list) or []):
-            hashtag_text = hashtag.get('text')
-            if not hashtag_text:
-                continue
-            tags.append(hashtag_text)
-
         info = {
             'id': twid,
             'title': title,
@@ -939,7 +978,7 @@ class TwitterIE(TwitterBaseIE):
             'repost_count': int_or_none(status.get('retweet_count')),
             'comment_count': int_or_none(status.get('reply_count')),
             'age_limit': 18 if status.get('possibly_sensitive') else 0,
-            'tags': tags,
+            'tags': traverse_obj(status, ('entities', 'hashtags', ..., 'text')),
         }
 
         def extract_from_video_info(media):
@@ -973,6 +1012,7 @@ class TwitterIE(TwitterBaseIE):
                 'formats': formats,
                 'subtitles': subtitles,
                 'thumbnails': thumbnails,
+                'view_count': traverse_obj(media, ('mediaStats', 'viewCount', {int_or_none})),
                 'duration': float_or_none(video_info.get('duration_millis'), 1000),
                 # The codec of http formats are unknown
                 '_format_sort_fields': ('res', 'br', 'size', 'proto'),
@@ -1052,11 +1092,31 @@ class TwitterIE(TwitterBaseIE):
                         'content_duration_seconds')),
                 }
 
-        media_path = ((None, 'quoted_status'), 'extended_entities', 'media', lambda _, m: m['type'] != 'photo')
-        videos = map(extract_from_video_info, traverse_obj(status, media_path, expected_type=dict))
-        cards = extract_from_card_info(status.get('card'))
-        entries = [{**info, **data, 'display_id': twid} for data in (*videos, *cards)]
+        videos = traverse_obj(status, (
+            (None, 'quoted_status'), 'extended_entities', 'media', lambda _, m: m['type'] != 'photo', {dict}))
 
+        if self._yes_playlist(twid, selected_index, video_label='URL-specified video number'):
+            selected_entries = (*map(extract_from_video_info, videos), *extract_from_card_info(status.get('card')))
+        else:
+            desired_obj = traverse_obj(status, ('extended_entities', 'media', int(selected_index) - 1, {dict}))
+            if not desired_obj:
+                raise ExtractorError(f'Video #{selected_index} is unavailable', expected=True)
+            elif desired_obj.get('type') != 'video':
+                raise ExtractorError(f'Media #{selected_index} is not a video', expected=True)
+
+            # Restore original archive id and video index in title
+            for index, entry in enumerate(videos, 1):
+                if entry.get('id') != desired_obj.get('id'):
+                    continue
+                if index == 1:
+                    info['_old_archive_ids'] = [make_archive_id(self, twid)]
+                if len(videos) != 1:
+                    info['title'] += f' #{index}'
+                break
+
+            return {**info, **extract_from_video_info(desired_obj), 'display_id': twid}
+
+        entries = [{**info, **data, 'display_id': twid} for data in selected_entries]
         if not entries:
             expanded_url = traverse_obj(status, ('entities', 'urls', 0, 'expanded_url'), expected_type=url_or_none)
             if not expanded_url or expanded_url == url:
@@ -1065,13 +1125,6 @@ class TwitterIE(TwitterBaseIE):
             return self.url_result(expanded_url, display_id=twid, **info)
 
         entries[0]['_old_archive_ids'] = [make_archive_id(self, twid)]
-
-        if not self._yes_playlist(twid, selected_index, video_label='URL-specified video number'):
-            index = int(selected_index) - 1
-            if index >= len(entries):
-                raise ExtractorError(f'Video #{selected_index} is unavailable', expected=True)
-
-            return entries[index]
 
         if len(entries) == 1:
             return entries[0]
