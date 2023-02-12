@@ -99,8 +99,6 @@ class TencentBaseIE(InfoExtractor):
         format_response = traverse_obj(
             api_response, ('fl', 'fi', lambda _, v: v['br'] == identifier),
             expected_type=dict, get_all=False) or {}
-        format_id = format_response.get('name')
-        is_hdr = format_id == 'hdr10'
         common_info = {
             'width': video_response.get('vw'),
             'height': video_response.get('vh'),
@@ -108,9 +106,9 @@ class TencentBaseIE(InfoExtractor):
             'vbr': float_or_none(format_response.get('bandwidth'), scale=1000),
             'fps': format_response.get('vfps'),
             'format': format_response.get('sname'),
-            'format_id': format_id,
+            'format_id': format_response.get('name'),
             'format_note': format_response.get('resolution'),
-            'dynamic_range': 'hdr10' if is_hdr else None,
+            'dynamic_range': {'hdr10': 'hdr10'}.get(format_response.get('name'), 'sdr'),
             'has_drm': format_response.get('drm', 0) != 0,
         }
         for f in formats:
@@ -186,7 +184,6 @@ class VQQVideoIE(VQQBaseIE):
             'description': 'md5:e7ed70be89244017dac2a835a10aeb1e',
             'thumbnail': r're:^https?://[^?#]+q326831cny0',
             'format_id': r're:^shd',
-            'has_drm': False,
         },
     }, {
         'url': 'https://v.qq.com/x/page/o3013za7cse.html',
@@ -198,7 +195,6 @@ class VQQVideoIE(VQQBaseIE):
             'description': 'md5:29fe847497a98e04a8c3826e499edd2e',
             'thumbnail': r're:^https?://[^?#]+o3013za7cse',
             'format_id': r're:^shd',
-            'has_drm': False,
         },
     }, {
         'url': 'https://v.qq.com/x/cover/7ce5noezvafma27/a00269ix3l8.html',
@@ -211,7 +207,6 @@ class VQQVideoIE(VQQBaseIE):
             'thumbnail': r're:^https?://[^?#]+7ce5noezvafma27',
             'series': '鸡毛飞上天',
             'format_id': r're:^shd',
-            'has_drm': False,
         },
     }, {
         'url': 'https://v.qq.com/x/cover/mzc00200p29k31e/s0043cwsgj0.html',
@@ -224,7 +219,6 @@ class VQQVideoIE(VQQBaseIE):
             'thumbnail': r're:^https?://[^?#]+s0043cwsgj0',
             'series': '青年理工工作者生活研究所',
             'format_id': r're:^shd',
-            'has_drm': False,
         },
     }, {
         # Geo-restricted to China
