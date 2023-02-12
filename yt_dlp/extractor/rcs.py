@@ -175,8 +175,8 @@ class RCSBaseIE(InfoExtractor):
             webpage = self._download_webpage(url, video_id)
 
             video_data = self._search_json(
-                "##start-video##", webpage, "video_data", video_id, default=None,
-                end_pattern="##end-video##", transform_source=js_to_json)
+                '##start-video##', webpage, 'video data', video_id, default=None,
+                end_pattern='##end-video##', transform_source=js_to_json)
 
             if not video_data:
                 # try search for iframes
