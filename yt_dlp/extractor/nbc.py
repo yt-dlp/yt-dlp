@@ -3,23 +3,31 @@ import json
 import re
 
 from .common import InfoExtractor
-from .theplatform import ThePlatformIE
+from .theplatform import ThePlatformIE, default_ns
 from .adobepass import AdobePassIE
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
+    ExtractorError,
+    HEADRequest,
+    RegexNotFoundError,
+    UserNotLive,
+    clean_html,
     int_or_none,
     parse_age_limit,
     parse_duration,
-    RegexNotFoundError,
     smuggle_url,
+    traverse_obj,
     try_get,
+    unescapeHTML,
     unified_timestamp,
     update_url_query,
+    url_basename,
+    xpath_attr,
 )
 
 
-class NBCIE(ThePlatformIE):
-    _VALID_URL = r'https?(?P<permalink>://(?:www\.)?nbc\.com/(?:classic-tv/)?[^/]+/video/[^/]+/(?P<id>n?\d+))'
+class NBCIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
+    _VALID_URL = r'https?(?P<permalink>://(?:www\.)?nbc\.com/(?:classic-tv/)?[^/]+/video/[^/]+/(?P<id>(?:NBCE|n)?\d+))'
 
     _TESTS = [
         {
@@ -32,10 +40,18 @@ class NBCIE(ThePlatformIE):
                 'timestamp': 1424246400,
                 'upload_date': '20150218',
                 'uploader': 'NBCU-COM',
+                'episode': 'Jimmy Fallon Surprises Fans at Ben & Jerry\'s',
+                'episode_number': 86,
+                'season': 'Season 2',
+                'season_number': 2,
+                'series': 'Tonight Show: Jimmy Fallon',
+                'duration': 237.0,
+                'chapters': 'count:1',
+                'tags': 'count:4',
+                'thumbnail': r're:https?://.+\.jpg',
             },
             'params': {
-                # m3u8 download
-                'skip_download': True,
+                'skip_download': 'm3u8',
             },
         },
         {
@@ -49,11 +65,7 @@ class NBCIE(ThePlatformIE):
                 'upload_date': '20141206',
                 'uploader': 'NBCU-COM',
             },
-            'params': {
-                # m3u8 download
-                'skip_download': True,
-            },
-            'skip': 'Only works from US',
+            'skip': 'page not found',
         },
         {
             # HLS streams requires the 'hdnea3' cookie
@@ -67,10 +79,59 @@ class NBCIE(ThePlatformIE):
                 'upload_date': '20090315',
                 'uploader': 'NBCU-COM',
             },
-            'params': {
-                'skip_download': True,
+            'skip': 'page not found',
+        },
+        {
+            # manifest url does not have extension
+            'url': 'https://www.nbc.com/the-golden-globe-awards/video/oprah-winfrey-receives-cecil-b-de-mille-award-at-the-2018-golden-globes/3646439',
+            'info_dict': {
+                'id': '3646439',
+                'ext': 'mp4',
+                'title': 'Oprah Winfrey Receives Cecil B. de Mille Award at the 2018 Golden Globes',
+                'episode': 'Oprah Winfrey Receives Cecil B. de Mille Award at the 2018 Golden Globes',
+                'episode_number': 1,
+                'season': 'Season 75',
+                'season_number': 75,
+                'series': 'The Golden Globe Awards',
+                'description': 'Oprah Winfrey receives the Cecil B. de Mille Award at the 75th Annual Golden Globe Awards.',
+                'uploader': 'NBCU-COM',
+                'upload_date': '20180107',
+                'timestamp': 1515312000,
+                'duration': 570.0,
+                'tags': 'count:8',
+                'thumbnail': r're:https?://.+\.jpg',
+                'chapters': 'count:1',
             },
-            'skip': 'Only works from US',
+            'params': {
+                'skip_download': 'm3u8',
+            },
+        },
+        {
+            # new video_id format
+            'url': 'https://www.nbc.com/quantum-leap/video/bens-first-leap-nbcs-quantum-leap/NBCE125189978',
+            'info_dict': {
+                'id': 'NBCE125189978',
+                'ext': 'mp4',
+                'title': 'Ben\'s First Leap | NBC\'s Quantum Leap',
+                'description': 'md5:a82762449b7ec4bb83291a7b355ebf8e',
+                'uploader': 'NBCU-COM',
+                'series': 'Quantum Leap',
+                'season': 'Season 1',
+                'season_number': 1,
+                'episode': 'Ben\'s First Leap | NBC\'s Quantum Leap',
+                'episode_number': 1,
+                'duration': 170.171,
+                'chapters': [],
+                'timestamp': 1663956155,
+                'upload_date': '20220923',
+                'tags': 'count:10',
+                'age_limit': 0,
+                'thumbnail': r're:https?://.+\.jpg',
+            },
+            'expected_warnings': ['Ignoring subtitle tracks'],
+            'params': {
+                'skip_download': 'm3u8',
+            },
         },
         {
             'url': 'https://www.nbc.com/classic-tv/charles-in-charge/video/charles-in-charge-pilot/n3310',
@@ -130,6 +191,7 @@ class NBCIE(ThePlatformIE):
         query = {
             'mbr': 'true',
             'manifest': 'm3u',
+            'switch': 'HLSServiceSecure',
         }
         video_id = video_data['mpxGuid']
         tp_path = 'NnzsPC/media/guid/%s/%s' % (video_data.get('mpxAccountId') or '2410887629', video_id)
@@ -299,7 +361,6 @@ class NBCSportsStreamIE(AdobePassIE):
                 'resourceId': base64.b64encode(resource.encode()).decode(),
             }).encode())['tokenizedUrl']
         formats = self._extract_m3u8_formats(tokenized_url, video_id, 'mp4')
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'title': title,
@@ -309,7 +370,7 @@ class NBCSportsStreamIE(AdobePassIE):
         }
 
 
-class NBCNewsIE(ThePlatformIE):
+class NBCNewsIE(ThePlatformIE):  # XXX: Do not subclass from concrete IE
     _VALID_URL = r'(?x)https?://(?:www\.)?(?:nbcnews|today|msnbc)\.com/([^/]+/)*(?:.*-)?(?P<id>[^/?]+)'
     _EMBED_REGEX = [r'<iframe[^>]+src=(["\'])(?P<url>(?:https?:)?//www\.nbcnews\.com/widget/video-embed/[^"\']+)\1']
 
@@ -431,7 +492,6 @@ class NBCNewsIE(ThePlatformIE):
                 'tbr': tbr,
                 'ext': 'mp4',
             })
-        self._sort_formats(formats)
 
         subtitles = {}
         closed_captioning = video_data.get('closedCaptioning')
@@ -575,7 +635,6 @@ class NBCOlympicsStreamIE(AdobePassIE):
             # -http_seekable requires ffmpeg 4.3+ but it doesnt seem possible to
             # download with ffmpeg without this option
             f['downloader_options'] = {'ffmpeg_args': ['-seekable', '0', '-http_seekable', '0', '-icy', '0']}
-        self._sort_formats(formats)
 
         return {
             'id': pid,
@@ -583,4 +642,159 @@ class NBCOlympicsStreamIE(AdobePassIE):
             'title': title,
             'formats': formats,
             'is_live': is_live,
+        }
+
+
+class NBCStationsIE(InfoExtractor):
+    _DOMAIN_RE = '|'.join(map(re.escape, (
+        'nbcbayarea', 'nbcboston', 'nbcchicago', 'nbcconnecticut', 'nbcdfw', 'nbclosangeles',
+        'nbcmiami', 'nbcnewyork', 'nbcphiladelphia', 'nbcsandiego', 'nbcwashington',
+        'necn', 'telemundo52', 'telemundoarizona', 'telemundochicago', 'telemundonuevainglaterra',
+    )))
+    _VALID_URL = rf'https?://(?:www\.)?(?P<site>{_DOMAIN_RE})\.com/(?:[^/?#]+/)*(?P<id>[^/?#]+)/?(?:$|[#?])'
+
+    _TESTS = [{
+        'url': 'https://www.nbclosangeles.com/news/local/large-structure-fire-in-downtown-la-prompts-smoke-odor-advisory/2968618/',
+        'info_dict': {
+            'id': '2968618',
+            'ext': 'mp4',
+            'title': 'Large Structure Fire in Downtown LA Prompts Smoke Odor Advisory',
+            'description': 'md5:417ed3c2d91fe9d301e6db7b0942f182',
+            'timestamp': 1661135892,
+            'upload_date': '20220822',
+            'uploader': 'NBC 4',
+            'channel_id': 'KNBC',
+            'channel': 'nbclosangeles',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        'url': 'https://www.telemundoarizona.com/responde/huracan-complica-reembolso-para-televidente-de-tucson/2247002/',
+        'info_dict': {
+            'id': '2247002',
+            'ext': 'mp4',
+            'title': 'Huracán complica que televidente de Tucson reciba  reembolso',
+            'description': 'md5:af298dc73aab74d4fca6abfb12acb6cf',
+            'timestamp': 1660886507,
+            'upload_date': '20220819',
+            'uploader': 'Telemundo Arizona',
+            'channel_id': 'KTAZ',
+            'channel': 'telemundoarizona',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }]
+
+    _RESOLUTIONS = {
+        '1080': '1920',
+        '720': '1280',
+        '540': '960',
+        '360': '640',
+        '234': '416',
+    }
+
+    def _real_extract(self, url):
+        channel, video_id = self._match_valid_url(url).group('site', 'id')
+        webpage = self._download_webpage(url, video_id)
+
+        nbc_data = self._search_json(
+            r'<script>\s*var\s+nbc\s*=', webpage, 'NBC JSON data', video_id)
+        pdk_acct = nbc_data.get('pdkAcct') or 'Yh1nAC'
+        fw_ssid = traverse_obj(nbc_data, ('video', 'fwSSID'))
+
+        video_data = self._search_json(
+            r'data-videos="\[', webpage, 'video data', video_id, default={}, transform_source=unescapeHTML)
+        video_data.update(self._search_json(
+            r'data-meta="', webpage, 'metadata', video_id, default={}, transform_source=unescapeHTML))
+        if not video_data:
+            raise ExtractorError('No video metadata found in webpage', expected=True)
+
+        info, formats, subtitles = {}, [], {}
+        is_live = int_or_none(video_data.get('mpx_is_livestream')) == 1
+        query = {
+            'formats': 'MPEG-DASH none,M3U none,MPEG-DASH none,MPEG4,MP3',
+            'format': 'SMIL',
+            'fwsitesection': fw_ssid,
+            'fwNetworkID': traverse_obj(nbc_data, ('video', 'fwNetworkID'), default='382114'),
+            'pprofile': 'ots_desktop_html',
+            'sensitive': 'false',
+            'w': '1920',
+            'h': '1080',
+            'mode': 'LIVE' if is_live else 'on-demand',
+            'vpaid': 'script',
+            'schema': '2.0',
+            'sdk': 'PDK 6.1.3',
+        }
+
+        if is_live:
+            player_id = traverse_obj(video_data, ((None, ('video', 'meta')), (
+                'mpx_m3upid', 'mpx_pid', 'pid_streaming_web_medium')), get_all=False)
+            info['title'] = f'{channel} livestream'
+
+        else:
+            player_id = traverse_obj(video_data, (
+                (None, ('video', 'meta')), ('pid_streaming_web_high', 'mpx_pid')), get_all=False)
+
+            date_string = traverse_obj(video_data, 'date_string', 'date_gmt')
+            if date_string:
+                date_string = self._search_regex(
+                    r'datetime="([^"]+)"', date_string, 'date string', fatal=False)
+            else:
+                date_string = traverse_obj(
+                    nbc_data, ('dataLayer', 'adobe', ('prop70', 'eVar70', 'eVar59')), get_all=False)
+
+            video_url = traverse_obj(video_data, ((None, ('video', 'meta')), 'mp4_url'), get_all=False)
+            if video_url:
+                height = self._search_regex(r'\d+-(\d+)p', url_basename(video_url), 'height', default=None)
+                formats.append({
+                    'url': video_url,
+                    'ext': 'mp4',
+                    'width': int_or_none(self._RESOLUTIONS.get(height)),
+                    'height': int_or_none(height),
+                    'format_id': 'http-mp4',
+                })
+
+            info.update({
+                'title': video_data.get('title') or traverse_obj(nbc_data, (
+                    'dataLayer', (None, 'adobe'), ('contenttitle', 'title', 'prop22')), get_all=False),
+                'description':
+                    traverse_obj(video_data, 'summary', 'excerpt', 'video_hero_text')
+                    or clean_html(traverse_obj(nbc_data, ('dataLayer', 'summary'))),
+                'timestamp': unified_timestamp(date_string),
+            })
+
+        smil = None
+        if player_id and fw_ssid:
+            smil = self._download_xml(
+                f'https://link.theplatform.com/s/{pdk_acct}/{player_id}', video_id,
+                note='Downloading SMIL data', query=query, fatal=is_live)
+        if smil:
+            manifest_url = xpath_attr(smil, f'.//{{{default_ns}}}video', 'src', fatal=is_live)
+            subtitles = self._parse_smil_subtitles(smil, default_ns)
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                manifest_url, video_id, 'mp4', m3u8_id='hls', fatal=is_live,
+                live=is_live, errnote='No HLS formats found')
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
+
+        if not formats:
+            self.raise_no_formats('No video content found in webpage', expected=True)
+        elif is_live:
+            try:
+                self._request_webpage(
+                    HEADRequest(formats[0]['url']), video_id, note='Checking live status')
+            except ExtractorError:
+                raise UserNotLive(video_id=channel)
+
+        return {
+            'id': video_id,
+            'channel': channel,
+            'channel_id': nbc_data.get('callLetters'),
+            'uploader': nbc_data.get('on_air_name'),
+            'formats': formats,
+            'subtitles': subtitles,
+            'is_live': is_live,
+            **info,
         }

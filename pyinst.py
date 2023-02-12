@@ -12,9 +12,8 @@ from PyInstaller.__main__ import run as run_pyinstaller
 
 from devscripts.utils import read_version
 
-OS_NAME, MACHINE, ARCH = sys.platform, platform.machine(), platform.architecture()[0][:2]
-if MACHINE in ('x86_64', 'AMD64') or ('i' in MACHINE and '86' in MACHINE):
-    # NB: Windows x86 has MACHINE = AMD64 irrespective of bitness
+OS_NAME, MACHINE, ARCH = sys.platform, platform.machine().lower(), platform.architecture()[0][:2]
+if MACHINE in ('x86', 'x86_64', 'amd64', 'i386', 'i686'):
     MACHINE = 'x86' if ARCH == '32' else ''
 
 
@@ -38,7 +37,7 @@ def main():
         '--icon=devscripts/logo.ico',
         '--upx-exclude=vcruntime140.dll',
         '--noconfirm',
-        *dependency_options(),
+        '--additional-hooks-dir=yt_dlp/__pyinstaller',
         *opts,
         'yt_dlp/__main__.py',
     ]
@@ -63,7 +62,7 @@ def exe(onedir):
     name = '_'.join(filter(None, (
         'yt-dlp',
         {'win32': '', 'darwin': 'macos'}.get(OS_NAME, OS_NAME),
-        MACHINE
+        MACHINE,
     )))
     return name, ''.join(filter(None, (
         'dist/',
@@ -76,30 +75,6 @@ def exe(onedir):
 def version_to_list(version):
     version_list = version.split('.')
     return list(map(int, version_list)) + [0] * (4 - len(version_list))
-
-
-def dependency_options():
-    # Due to the current implementation, these are auto-detected, but explicitly add them just in case
-    dependencies = [pycryptodome_module(), 'mutagen', 'brotli', 'certifi', 'websockets']
-    excluded_modules = ('youtube_dl', 'youtube_dlc', 'test', 'ytdlp_plugins', 'devscripts')
-
-    yield from (f'--hidden-import={module}' for module in dependencies)
-    yield '--collect-submodules=websockets'
-    yield from (f'--exclude-module={module}' for module in excluded_modules)
-
-
-def pycryptodome_module():
-    try:
-        import Cryptodome  # noqa: F401
-    except ImportError:
-        try:
-            import Crypto  # noqa: F401
-            print('WARNING: Using Crypto since Cryptodome is not available. '
-                  'Install with: pip install pycryptodomex', file=sys.stderr)
-            return 'Crypto'
-        except ImportError:
-            pass
-    return 'Cryptodome'
 
 
 def set_version_info(exe, version):

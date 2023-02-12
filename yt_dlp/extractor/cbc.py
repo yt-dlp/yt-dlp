@@ -380,8 +380,6 @@ class CBCGemIE(InfoExtractor):
                 if 'descriptive' in format['format_id'].lower():
                     format['preference'] = -2
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': video_info['title'],

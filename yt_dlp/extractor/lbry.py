@@ -24,10 +24,14 @@ class LBRYBaseIE(InfoExtractor):
     _SUPPORTED_STREAM_TYPES = ['video', 'audio']
 
     def _call_api_proxy(self, method, display_id, params, resource):
+        headers = {'Content-Type': 'application/json-rpc'}
+        token = try_get(self._get_cookies('https://odysee.com'), lambda x: x['auth_token'].value)
+        if token:
+            headers['x-lbry-auth-token'] = token
         response = self._download_json(
             'https://api.lbry.tv/api/v1/proxy',
             display_id, 'Downloading %s JSON metadata' % resource,
-            headers={'Content-Type': 'application/json-rpc'},
+            headers=headers,
             data=json.dumps({
                 'method': method,
                 'params': params,
@@ -160,6 +164,29 @@ class LBRYIE(LBRYBaseIE):
             'license': 'Copyrighted (contact publisher)',
         }
     }, {
+        # HLS live stream (might expire)
+        'url': 'https://odysee.com/@RT:fd/livestream_RT:d',
+        'info_dict': {
+            'id': 'fdd11cb3ab75f95efb7b3bc2d726aa13ac915b66',
+            'ext': 'mp4',
+            'live_status': 'is_live',
+            'title': 'startswith:RT News | Livestream 24/7',
+            'description': 'md5:fe68d0056dfe79c1a6b8ce8c34d5f6fa',
+            'timestamp': int,
+            'upload_date': str,
+            'release_timestamp': int,
+            'release_date': str,
+            'tags': list,
+            'duration': None,
+            'channel': 'RT',
+            'channel_id': 'fdd11cb3ab75f95efb7b3bc2d726aa13ac915b66',
+            'channel_url': 'https://odysee.com/@RT:fdd11cb3ab75f95efb7b3bc2d726aa13ac915b66',
+            'formats': 'mincount:1',
+            'thumbnail': 'startswith:https://thumb',
+            'license': 'None',
+        },
+        'params': {'skip_download': True}
+    }, {
         'url': 'https://odysee.com/@BrodieRobertson:5/apple-is-tracking-everything-you-do-on:e',
         'only_matching': True,
     }, {
@@ -197,22 +224,24 @@ class LBRYIE(LBRYBaseIE):
         display_id = compat_urllib_parse_unquote(display_id)
         uri = 'lbry://' + display_id
         result = self._resolve_url(uri, display_id, 'stream')
+        headers = {'Referer': 'https://odysee.com/'}
         if result['value'].get('stream_type') in self._SUPPORTED_STREAM_TYPES:
-            claim_id, is_live, headers = result['claim_id'], False, {}
+            claim_id, is_live = result['claim_id'], False
             streaming_url = self._call_api_proxy(
                 'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
             final_url = self._request_webpage(
-                HEADRequest(streaming_url), display_id,
+                HEADRequest(streaming_url), display_id, headers=headers,
                 note='Downloading streaming redirect url info').geturl()
         elif result.get('value_type') == 'stream':
             claim_id, is_live = result['signing_channel']['claim_id'], True
-            headers = {'referer': 'https://player.odysee.live/'}
             live_data = self._download_json(
                 'https://api.odysee.live/livestream/is_live', claim_id,
                 query={'channel_claim_id': claim_id},
                 note='Downloading livestream JSON metadata')['data']
             streaming_url = final_url = live_data.get('VideoURL')
-            if not final_url and not live_data.get('Live'):
+            # Upcoming videos may still give VideoURL
+            if not live_data.get('Live'):
+                streaming_url = final_url = None
                 self.raise_no_formats('This stream is not live', True, claim_id)
         else:
             raise UnsupportedError(url)
@@ -221,7 +250,6 @@ class LBRYIE(LBRYBaseIE):
         if determine_ext(final_url) == 'm3u8':
             info['formats'] = self._extract_m3u8_formats(
                 final_url, display_id, 'mp4', 'm3u8_native', m3u8_id='hls', live=is_live, headers=headers)
-            self._sort_formats(info['formats'])
         else:
             info['url'] = streaming_url
         return {

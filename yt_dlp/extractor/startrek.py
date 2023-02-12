@@ -49,7 +49,6 @@ class StarTrekIE(InfoExtractor):
 
         hls = self._html_search_regex(r'\bdata-hls\s*=\s*"([^"]+)"', player, 'HLS URL')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls, video_id, 'mp4')
-        self._sort_formats(formats)
 
         captions = self._html_search_regex(
             r'\bdata-captions-url\s*=\s*"([^"]+)"', player, 'captions URL', fatal=False)

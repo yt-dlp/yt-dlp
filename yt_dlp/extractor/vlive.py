@@ -13,6 +13,7 @@ from ..utils import (
     merge_dicts,
     str_or_none,
     strip_or_none,
+    traverse_obj,
     try_get,
     urlencode_postdata,
     url_or_none,
@@ -81,6 +82,13 @@ class VLiveIE(VLiveBaseIE):
             'upload_date': '20150817',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
             'timestamp': 1439816449,
+            'like_count': int,
+            'channel': 'Girl\'s Day',
+            'channel_id': 'FDF27',
+            'comment_count': int,
+            'release_timestamp': 1439818140,
+            'release_date': '20150817',
+            'duration': 1014,
         },
         'params': {
             'skip_download': True,
@@ -98,6 +106,13 @@ class VLiveIE(VLiveBaseIE):
             'upload_date': '20161112',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
             'timestamp': 1478923074,
+            'like_count': int,
+            'channel': 'EXO',
+            'channel_id': 'F94BD',
+            'comment_count': int,
+            'release_timestamp': 1478924280,
+            'release_date': '20161112',
+            'duration': 906,
         },
         'params': {
             'skip_download': True,
@@ -169,6 +184,7 @@ class VLiveIE(VLiveBaseIE):
                 'like_count': int_or_none(video.get('likeCount')),
                 'comment_count': int_or_none(video.get('commentCount')),
                 'timestamp': int_or_none(video.get('createdAt'), scale=1000),
+                'release_timestamp': int_or_none(traverse_obj(video, 'onAirStartAt', 'willStartAt'), scale=1000),
                 'thumbnail': video.get('thumb'),
             }
 
@@ -192,7 +208,6 @@ class VLiveIE(VLiveBaseIE):
                     'old/v3/live/%s/playInfo',
                     video_id)['result']['adaptiveStreamUrl']
                 formats = self._extract_m3u8_formats(stream_url, video_id, 'mp4')
-                self._sort_formats(formats)
                 info = get_common_fields()
                 info.update({
                     'title': video['title'],
@@ -270,7 +285,6 @@ class VLivePostIE(VLiveBaseIE):
                         'url': f_url,
                         'height': int_or_none(f_id[:-1]),
                     })
-                self._sort_formats(formats)
                 entry = {
                     'formats': formats,
                     'id': video_id,

@@ -71,7 +71,6 @@ class NozIE(InfoExtractor):
                     formats.extend(self._extract_m3u8_formats(
                         m3u8_url, video_id, 'mp4', 'm3u8_native',
                         m3u8_id='hls', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -87,7 +87,6 @@ class MegaTVComIE(MegaTVComBaseIE):
             formats, subs = [{'url': source}], {}
         if player_attrs.get('subs'):
             self._merge_subtitles({'und': [{'url': player_attrs['subs']}]}, target=subs)
-        self._sort_formats(formats)
         return {
             'id': video_id,
             'display_id': display_id,

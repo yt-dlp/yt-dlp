@@ -10,7 +10,7 @@ from ..utils import (
 )
 
 # These bloat the lazy_extractors, so allow them to passthrough silently
-ALLOWED_CLASSMETHODS = {'get_testcases', 'extract_from_webpage'}
+ALLOWED_CLASSMETHODS = {'extract_from_webpage', 'get_testcases', 'get_webpage_testcases'}
 _WARNED = False
 
 

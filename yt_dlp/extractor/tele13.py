@@ -71,7 +71,6 @@ class Tele13IE(InfoExtractor):
                         'ext': ext,
                     })
                 urls.append(format_url)
-        self._sort_formats(formats)
 
         return {
             'id': display_id,

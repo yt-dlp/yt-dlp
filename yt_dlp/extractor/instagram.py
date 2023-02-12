@@ -155,7 +155,6 @@ class InstagramBaseIE(InfoExtractor):
         } for format in videos_list or []]
         if dash_manifest_raw:
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash_manifest_raw, media_id), mpd_id='dash'))
-        self._sort_formats(formats)
 
         thumbnails = [{
             'url': thumbnail.get('url'),
@@ -173,18 +172,9 @@ class InstagramBaseIE(InfoExtractor):
         if isinstance(product_info, list):
             product_info = product_info[0]
 
-        comment_data = traverse_obj(product_info, ('edge_media_to_parent_comment', 'edges'))
-        comments = [{
-            'author': traverse_obj(comment_dict, ('node', 'owner', 'username')),
-            'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id')),
-            'id': traverse_obj(comment_dict, ('node', 'id')),
-            'text': traverse_obj(comment_dict, ('node', 'text')),
-            'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), expected_type=int_or_none),
-        } for comment_dict in comment_data] if comment_data else None
-
         user_info = product_info.get('user') or {}
         info_dict = {
-            'id': product_info.get('code') or _pk_to_id(product_info.get('pk')),
+            'id': _pk_to_id(traverse_obj(product_info, 'pk', 'id', expected_type=str_or_none)[:19]),
             'title': product_info.get('title') or f'Video by {user_info.get("username")}',
             'description': traverse_obj(product_info, ('caption', 'text'), expected_type=str_or_none),
             'timestamp': int_or_none(product_info.get('taken_at')),
@@ -194,7 +184,7 @@ class InstagramBaseIE(InfoExtractor):
             'view_count': int_or_none(product_info.get('view_count')),
             'like_count': int_or_none(product_info.get('like_count')),
             'comment_count': int_or_none(product_info.get('comment_count')),
-            'comments': comments,
+            '__post_extractor': self.extract_comments(_pk_to_id(product_info.get('pk'))),
             'http_headers': {
                 'Referer': 'https://www.instagram.com/',
             }
@@ -215,6 +205,23 @@ class InstagramBaseIE(InfoExtractor):
             **info_dict,
             **self._extract_product_media(product_info)
         }
+
+    def _get_comments(self, video_id):
+        comments_info = self._download_json(
+            f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/comments/?can_support_threading=true&permalink_enabled=false', video_id,
+            fatal=False, errnote='Comments extraction failed', note='Downloading comments info', headers=self._API_HEADERS) or {}
+
+        comment_data = traverse_obj(comments_info, ('edge_media_to_parent_comment', 'edges'), 'comments')
+        for comment_dict in comment_data or []:
+            yield {
+                'author': traverse_obj(comment_dict, ('node', 'owner', 'username'), ('user', 'username')),
+                'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id'), ('user', 'pk')),
+                'author_thumbnail': traverse_obj(comment_dict, ('node', 'owner', 'profile_pic_url'), ('user', 'profile_pic_url'), expected_type=url_or_none),
+                'id': traverse_obj(comment_dict, ('node', 'id'), 'pk'),
+                'text': traverse_obj(comment_dict, ('node', 'text'), 'text'),
+                'like_count': traverse_obj(comment_dict, ('node', 'edge_liked_by', 'count'), 'comment_like_count', expected_type=int_or_none),
+                'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), 'created_at', expected_type=int_or_none),
+            }
 
 
 class InstagramIOSIE(InfoExtractor):
@@ -258,7 +265,7 @@ class InstagramIE(InstagramBaseIE):
             'title': 'Video by naomipq',
             'description': 'md5:1f17f0ab29bd6fe2bfad705f58de3cb8',
             'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 0,
+            'duration': 8.747,
             'timestamp': 1371748545,
             'upload_date': '20130620',
             'uploader_id': '2815873',
@@ -268,27 +275,34 @@ class InstagramIE(InstagramBaseIE):
             'comment_count': int,
             'comments': list,
         },
+        'expected_warnings': [
+            'General metadata extraction failed',
+            'Main webpage is locked behind the login page',
+        ],
     }, {
-        # missing description
-        'url': 'https://www.instagram.com/p/BA-pQFBG8HZ/?taken-by=britneyspears',
+        # reel
+        'url': 'https://www.instagram.com/reel/Chunk8-jurw/',
+        'md5': 'f6d8277f74515fa3ff9f5791426e42b1',
         'info_dict': {
-            'id': 'BA-pQFBG8HZ',
+            'id': 'Chunk8-jurw',
             'ext': 'mp4',
-            'title': 'Video by britneyspears',
+            'title': 'Video by instagram',
+            'description': 'md5:c9cde483606ed6f80fbe9283a6a2b290',
             'thumbnail': r're:^https?://.*\.jpg',
-            'duration': 0,
-            'timestamp': 1453760977,
-            'upload_date': '20160125',
-            'uploader_id': '12246775',
-            'uploader': 'Britney Spears',
-            'channel': 'britneyspears',
+            'duration': 5.016,
+            'timestamp': 1661529231,
+            'upload_date': '20220826',
+            'uploader_id': '25025320',
+            'uploader': 'Instagram',
+            'channel': 'instagram',
             'like_count': int,
             'comment_count': int,
             'comments': list,
         },
-        'params': {
-            'skip_download': True,
-        },
+        'expected_warnings': [
+            'General metadata extraction failed',
+            'Main webpage is locked behind the login page',
+        ],
     }, {
         # multi video post
         'url': 'https://www.instagram.com/p/BQ0eAlwhDrw/',
@@ -297,18 +311,24 @@ class InstagramIE(InstagramBaseIE):
                 'id': 'BQ0dSaohpPW',
                 'ext': 'mp4',
                 'title': 'Video 1',
+                'thumbnail': r're:^https?://.*\.jpg',
+                'view_count': int,
             },
         }, {
             'info_dict': {
                 'id': 'BQ0dTpOhuHT',
                 'ext': 'mp4',
                 'title': 'Video 2',
+                'thumbnail': r're:^https?://.*\.jpg',
+                'view_count': int,
             },
         }, {
             'info_dict': {
                 'id': 'BQ0dT7RBFeF',
                 'ext': 'mp4',
                 'title': 'Video 3',
+                'thumbnail': r're:^https?://.*\.jpg',
+                'view_count': int,
             },
         }],
         'info_dict': {
@@ -316,6 +336,10 @@ class InstagramIE(InstagramBaseIE):
             'title': 'Post by instagram',
             'description': 'md5:0f9203fc6a2ce4d228da5754bcf54957',
         },
+        'expected_warnings': [
+            'General metadata extraction failed',
+            'Main webpage is locked behind the login page',
+        ],
     }, {
         # IGTV
         'url': 'https://www.instagram.com/tv/BkfuX9UB-eK/',
@@ -334,7 +358,11 @@ class InstagramIE(InstagramBaseIE):
             'comment_count': int,
             'comments': list,
             'description': 'Meet Cass Hirst (@cass.fb), a fingerboarding pro who can perform tiny ollies and kickflips while blindfolded.',
-        }
+        },
+        'expected_warnings': [
+            'General metadata extraction failed',
+            'Main webpage is locked behind the login page',
+        ],
     }, {
         'url': 'https://instagram.com/p/-Cmh1cukG2/',
         'only_matching': True,
@@ -367,6 +395,15 @@ class InstagramIE(InstagramBaseIE):
         video_id, url = self._match_valid_url(url).group('id', 'url')
         media, webpage = {}, ''
 
+        if self._get_cookies(url).get('sessionid'):
+            info = traverse_obj(self._download_json(
+                f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
+                fatal=False, errnote='Video info extraction failed',
+                note='Downloading video info', headers=self._API_HEADERS), ('items', 0))
+            if info:
+                media.update(info)
+                return self._extract_product(media)
+
         api_check = self._download_json(
             f'{self._API_BASE_URL}/web/get_ruling_for_content/?content_type=MEDIA&target_id={_id_to_pk(video_id)}',
             video_id, headers=self._API_HEADERS, fatal=False, note='Setting up session', errnote=False) or {}
@@ -374,40 +411,32 @@ class InstagramIE(InstagramBaseIE):
 
         if not csrf_token:
             self.report_warning('No csrf token set by Instagram API', video_id)
-        elif api_check.get('status') != 'ok':
-            self.report_warning('Instagram API is not granting access', video_id)
         else:
-            if self._get_cookies(url).get('sessionid'):
-                media.update(traverse_obj(self._download_json(
-                    f'{self._API_BASE_URL}/media/{_id_to_pk(video_id)}/info/', video_id,
-                    fatal=False, note='Downloading video info', headers={
-                        **self._API_HEADERS,
-                        'X-CSRFToken': csrf_token.value,
-                    }), ('items', 0)) or {})
-                if media:
-                    return self._extract_product(media)
+            csrf_token = csrf_token.value if api_check.get('status') == 'ok' else None
+            if not csrf_token:
+                self.report_warning('Instagram API is not granting access', video_id)
 
-            variables = {
-                'shortcode': video_id,
-                'child_comment_count': 3,
-                'fetch_comment_count': 40,
-                'parent_comment_count': 24,
-                'has_threaded_comments': True,
-            }
-            general_info = self._download_json(
-                'https://www.instagram.com/graphql/query/', video_id, fatal=False,
-                headers={
-                    **self._API_HEADERS,
-                    'X-CSRFToken': csrf_token.value,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Referer': url,
-                }, query={
-                    'query_hash': '9f8827793ef34641b2fb195d4d41151c',
-                    'variables': json.dumps(variables, separators=(',', ':')),
-                })
-            media.update(traverse_obj(general_info, ('data', 'shortcode_media')) or {})
+        variables = {
+            'shortcode': video_id,
+            'child_comment_count': 3,
+            'fetch_comment_count': 40,
+            'parent_comment_count': 24,
+            'has_threaded_comments': True,
+        }
+        general_info = self._download_json(
+            'https://www.instagram.com/graphql/query/', video_id, fatal=False, errnote=False,
+            headers={
+                **self._API_HEADERS,
+                'X-CSRFToken': csrf_token or '',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Referer': url,
+            }, query={
+                'query_hash': '9f8827793ef34641b2fb195d4d41151c',
+                'variables': json.dumps(variables, separators=(',', ':')),
+            })
+        media.update(traverse_obj(general_info, ('data', 'shortcode_media')) or {})
 
-        if not media:
+        if not general_info:
             self.report_warning('General metadata extraction failed (some metadata might be missing).', video_id)
             webpage, urlh = self._download_webpage_handle(url, video_id)
             shared_data = self._search_json(
@@ -418,12 +447,12 @@ class InstagramIE(InstagramBaseIE):
                     shared_data, ('entry_data', 'PostPage', 0, 'graphql', 'shortcode_media'),
                     ('entry_data', 'PostPage', 0, 'media'), expected_type=dict) or {})
             else:
-                self.report_warning('Main webpage is locked behind the login page. Retrying with embed webpage')
+                self.report_warning('Main webpage is locked behind the login page. Retrying with embed webpage (some metadata might be missing).')
                 webpage = self._download_webpage(
                     f'{url}/embed/', video_id, note='Downloading embed webpage', fatal=False)
                 additional_data = self._search_json(
-                    r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*', webpage, 'additional data', video_id, fatal=False)
-                if not additional_data:
+                    r'window\.__additionalDataLoaded\s*\(\s*[^,]+,', webpage, 'additional data', video_id, fatal=False)
+                if not additional_data and not media:
                     self.raise_login_required('Requested content is not available, rate-limit reached or login required')
 
                 product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
@@ -464,7 +493,6 @@ class InstagramIE(InstagramBaseIE):
         dash = traverse_obj(media, ('dash_info', 'video_dash_manifest'))
         if dash:
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash, video_id), mpd_id='dash'))
-        self._sort_formats(formats)
 
         comment_data = traverse_obj(media, ('edge_media_to_parent_comment', 'edges'))
         comments = [{

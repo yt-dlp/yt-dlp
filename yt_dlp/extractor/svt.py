@@ -51,7 +51,6 @@ class SVTBaseIE(InfoExtractor):
             self.raise_geo_restricted(
                 'This video is only available in Sweden',
                 countries=self._GEO_COUNTRIES, metadata_available=True)
-        self._sort_formats(formats)
 
         subtitle_references = dict_get(video_info, ('subtitles', 'subtitleReferences'))
         if isinstance(subtitle_references, list):

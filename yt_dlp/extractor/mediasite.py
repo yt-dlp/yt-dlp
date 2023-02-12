@@ -264,8 +264,6 @@ class MediasiteIE(InfoExtractor):
                 })
             formats.extend(stream_formats)
 
-        self._sort_formats(formats)
-
         # XXX: Presentation['Presenters']
         # XXX: Presentation['Transcript']
 

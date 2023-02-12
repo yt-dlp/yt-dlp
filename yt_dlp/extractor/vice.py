@@ -150,7 +150,6 @@ class ViceIE(ViceBaseIE, AdobePassIE):
         video_data = preplay['video']
         formats = self._extract_m3u8_formats(
             preplay['playURL'], video_id, 'mp4', 'm3u8_native')
-        self._sort_formats(formats)
         episode = video_data.get('episode') or {}
         channel = video_data.get('channel') or {}
         season = video_data.get('season') or {}

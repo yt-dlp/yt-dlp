@@ -1,10 +1,12 @@
+import urllib.parse
+
 from .common import InfoExtractor
 from .kaltura import KalturaIE
 from .youtube import YoutubeIE
 from ..utils import (
+    NO_DEFAULT,
     determine_ext,
     int_or_none,
-    NO_DEFAULT,
     parse_iso8601,
     smuggle_url,
     xpath_text,
@@ -23,6 +25,9 @@ class HeiseIE(InfoExtractor):
             'timestamp': 1512734959,
             'upload_date': '20171208',
             'description': 'md5:c934cbfb326c669c2bcabcbe3d3fcd20',
+            'thumbnail': 're:^https?://.*/thumbnail/.*',
+            'duration': 2845,
+            'view_count': int,
         },
         'params': {
             'skip_download': True,
@@ -34,11 +39,27 @@ class HeiseIE(InfoExtractor):
         'info_dict': {
             'id': '6kmWbXleKW4',
             'ext': 'mp4',
-            'title': 'NEU IM SEPTEMBER | Netflix',
-            'description': 'md5:2131f3c7525e540d5fd841de938bd452',
+            'title': 'Neu im September 2017 | Netflix',
+            'description': 'md5:d6852d1f96bb80760608eed3b907437c',
             'upload_date': '20170830',
             'uploader': 'Netflix Deutschland, Österreich und Schweiz',
             'uploader_id': 'netflixdach',
+            'categories': ['Entertainment'],
+            'tags': 'count:27',
+            'age_limit': 0,
+            'availability': 'public',
+            'comment_count': int,
+            'channel_id': 'UCZqgRlLcvO3Fnx_npQJygcQ',
+            'thumbnail': 'https://i.ytimg.com/vi_webp/6kmWbXleKW4/maxresdefault.webp',
+            'uploader_url': 'http://www.youtube.com/user/netflixdach',
+            'playable_in_embed': True,
+            'live_status': 'not_live',
+            'channel_url': 'https://www.youtube.com/channel/UCZqgRlLcvO3Fnx_npQJygcQ',
+            'view_count': int,
+            'channel': 'Netflix Deutschland, Österreich und Schweiz',
+            'channel_follower_count': int,
+            'like_count': int,
+            'duration': 67,
         },
         'params': {
             'skip_download': True,
@@ -52,11 +73,15 @@ class HeiseIE(InfoExtractor):
             'description': 'md5:47e8ffb6c46d85c92c310a512d6db271',
             'timestamp': 1512470717,
             'upload_date': '20171205',
+            'duration': 786,
+            'view_count': int,
+            'thumbnail': 're:^https?://.*/thumbnail/.*',
         },
         'params': {
             'skip_download': True,
         },
     }, {
+        # FIXME: Video m3u8 fails to download; issue with Kaltura extractor
         'url': 'https://www.heise.de/ct/artikel/c-t-uplink-20-8-Staubsaugerroboter-Xiaomi-Vacuum-2-AR-Brille-Meta-2-und-Android-rooten-3959893.html',
         'info_dict': {
             'id': '1_59mk80sf',
@@ -69,6 +94,18 @@ class HeiseIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+    }, {
+        # videout
+        'url': 'https://www.heise.de/ct/artikel/c-t-uplink-3-8-Anonyme-SIM-Karten-G-Sync-Monitore-Citizenfour-2440327.html',
+        'info_dict': {
+            'id': '2440327',
+            'ext': 'mp4',
+            'title': 'c\'t uplink 3.8: Anonyme SIM-Karten, G-Sync-Monitore, Citizenfour',
+            'thumbnail': 'http://www.heise.de/imagine/yxM2qmol0xV3iFB7qFb70dGvXjc/gallery/',
+            'description': 'md5:fa164d8c8707dff124a9626d39205f5d',
+            'timestamp': 1414825200,
+            'upload_date': '20141101',
+        }
     }, {
         'url': 'http://www.heise.de/ct/artikel/c-t-uplink-3-3-Owncloud-Tastaturen-Peilsender-Smartphone-2403911.html',
         'only_matching': True,
@@ -127,20 +164,22 @@ class HeiseIE(InfoExtractor):
                 yt_urls, video_id, title, ie=YoutubeIE.ie_key())
 
         title = extract_title()
+        api_params = urllib.parse.parse_qs(
+            self._search_regex(r'/videout/feed\.json\?([^\']+)', webpage, 'feed params', default=None) or '')
+        if not api_params or 'container' not in api_params or 'sequenz' not in api_params:
+            container_id = self._search_regex(
+                r'<div class="videoplayerjw"[^>]+data-container="([0-9]+)"',
+                webpage, 'container ID')
 
-        container_id = self._search_regex(
-            r'<div class="videoplayerjw"[^>]+data-container="([0-9]+)"',
-            webpage, 'container ID')
-
-        sequenz_id = self._search_regex(
-            r'<div class="videoplayerjw"[^>]+data-sequenz="([0-9]+)"',
-            webpage, 'sequenz ID')
-
-        doc = self._download_xml(
-            'http://www.heise.de/videout/feed', video_id, query={
+            sequenz_id = self._search_regex(
+                r'<div class="videoplayerjw"[^>]+data-sequenz="([0-9]+)"',
+                webpage, 'sequenz ID')
+            api_params = {
                 'container': container_id,
                 'sequenz': sequenz_id,
-            })
+            }
+        doc = self._download_xml(
+            'http://www.heise.de/videout/feed', video_id, query=api_params)
 
         formats = []
         for source_node in doc.findall('.//{http://rss.jwpcdn.com/}source'):
@@ -155,7 +194,6 @@ class HeiseIE(InfoExtractor):
                 'format_id': '%s_%s' % (ext, label),
                 'height': height,
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

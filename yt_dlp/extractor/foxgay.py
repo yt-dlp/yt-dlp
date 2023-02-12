@@ -48,8 +48,6 @@ class FoxgayIE(InfoExtractor):
         } for source, resolution in zip(
             video_data['sources'], video_data.get('resolutions', itertools.repeat(None)))]
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,

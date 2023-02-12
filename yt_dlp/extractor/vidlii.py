@@ -77,7 +77,6 @@ class VidLiiIE(InfoExtractor):
                     'format_id': f'{height}p',
                     'height': height,
                 })
-        self._sort_formats(formats)
 
         title = self._search_regex(
             (r'<h1>([^<]+)</h1>', r'<title>([^<]+) - VidLii<'), webpage,

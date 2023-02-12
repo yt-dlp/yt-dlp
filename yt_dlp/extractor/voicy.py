@@ -44,7 +44,6 @@ class VoicyBaseIE(InfoExtractor):
             'acodec': 'mp3',
             'vcodec': 'none',
         }]
-        self._sort_formats(formats)
         return {
             'id': compat_str(entry.get('ArticleId')),
             'title': entry.get('ArticleTitle'),

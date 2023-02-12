@@ -90,8 +90,6 @@ class MediaWorksNZVODIE(InfoExtractor):
                 audio_format.setdefault('acodec', 'aac')
                 formats.append(audio_format)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': asset.get('title'),

@@ -69,8 +69,6 @@ class NJPWWorldIE(InfoExtractor):
             formats += self._extract_m3u8_formats(
                 player_url, video_id, 'mp4', 'm3u8_native', m3u8_id=kind, fatal=False, quality=int(kind == 'high'))
 
-        self._sort_formats(formats)
-
         tag_block = get_element_by_class('tag-block', webpage)
         tags = re.findall(
             r'<a[^>]+class="tag-[^"]+"[^>]*>([^<]+)</a>', tag_block

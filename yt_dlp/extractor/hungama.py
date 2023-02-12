@@ -20,15 +20,17 @@ class HungamaIE(InfoExtractor):
                     '''
     _TESTS = [{
         'url': 'http://www.hungama.com/video/krishna-chants/39349649/',
-        'md5': 'a845a6d1ebd08d80c1035126d49bd6a0',
+        'md5': '687c5f1e9f832f3b59f44ed0eb1f120a',
         'info_dict': {
-            'id': '2931166',
+            'id': '39349649',
             'ext': 'mp4',
-            'title': 'Lucky Ali - Kitni Haseen Zindagi',
-            'track': 'Kitni Haseen Zindagi',
-            'artist': 'Lucky Ali',
-            'album': 'Aks',
-            'release_year': 2000,
+            'title': 'Krishna Chants',
+            'description': 'Watch Krishna Chants video now. You can also watch other latest videos only at Hungama',
+            'upload_date': '20180829',
+            'duration': 264,
+            'timestamp': 1535500800,
+            'view_count': int,
+            'thumbnail': 'https://images.hungama.com/c/1/0dc/2ca/39349649/39349649_700x394.jpg',
         }
     }, {
         'url': 'https://www.hungama.com/movie/kahaani-2/44129919/',
@@ -40,12 +42,7 @@ class HungamaIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, video_id)
-
-        info = self._search_json_ld(webpage, video_id)
-
-        m3u8_url = self._download_json(
+        video_json = self._download_json(
             'https://www.hungama.com/index.php', video_id,
             data=urlencode_postdata({'content_id': video_id}), headers={
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
@@ -53,18 +50,24 @@ class HungamaIE(InfoExtractor):
             }, query={
                 'c': 'common',
                 'm': 'get_video_mdn_url',
-            })['stream_url']
+            })
 
-        formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, ext='mp4', entry_protocol='m3u8_native',
-            m3u8_id='hls')
-        self._sort_formats(formats)
+        formats = self._extract_m3u8_formats(video_json['stream_url'], video_id, ext='mp4', m3u8_id='hls')
 
-        info.update({
+        json_ld = self._search_json_ld(
+            self._download_webpage(url, video_id, fatal=False) or '', video_id, fatal=False)
+
+        return {
+            **json_ld,
             'id': video_id,
             'formats': formats,
-        })
-        return info
+            'subtitles': {
+                'en': [{
+                    'url': video_json['sub_title'],
+                    'ext': 'vtt',
+                }]
+            } if video_json.get('sub_title') else None,
+        }
 
 
 class HungamaSongIE(InfoExtractor):

@@ -9,15 +9,26 @@ from ..utils import (
 
 
 class GronkhIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/(?:watch/)?stream/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/(?:watch/)?streams?/(?P<id>\d+)'
 
     _TESTS = [{
+        'url': 'https://gronkh.tv/streams/657',
+        'info_dict': {
+            'id': '657',
+            'ext': 'mp4',
+            'title': 'H.O.R.D.E. - DAS ZWEiTE ZEiTALTER 🎲 Session 1',
+            'view_count': int,
+            'thumbnail': 'https://01.cdn.vod.farm/preview/9e2555d3a23bf4e5c5b7c6b3b70a9d84.jpg',
+            'upload_date': '20221111'
+        },
+        'params': {'skip_download': True}
+    }, {
         'url': 'https://gronkh.tv/stream/536',
         'info_dict': {
             'id': '536',
             'ext': 'mp4',
             'title': 'GTV0536, 2021-10-01 - MARTHA IS DEAD  #FREiAB1830  !FF7 !horde !archiv',
-            'view_count': 19491,
+            'view_count': int,
             'thumbnail': 'https://01.cdn.vod.farm/preview/6436746cce14e25f751260a692872b9b.jpg',
             'upload_date': '20211001'
         },
@@ -37,7 +48,6 @@ class GronkhIE(InfoExtractor):
                 'url': data_json['vtt_url'],
                 'ext': 'vtt',
             })
-        self._sort_formats(formats)
         return {
             'id': id,
             'title': data_json.get('title'),

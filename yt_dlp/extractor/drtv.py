@@ -2,21 +2,23 @@ import binascii
 import hashlib
 import re
 
-
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
-    int_or_none,
     float_or_none,
+    int_or_none,
     mimetype2ext,
     str_or_none,
+    traverse_obj,
     try_get,
     unified_timestamp,
     update_url_query,
     url_or_none,
 )
+
+SERIES_API = 'https://production-cdn.dr-massive.com/api/page?device=web_browser&item_detail_expand=all&lang=da&max_list_prefetch=3&path=%s'
 
 
 class DRTVIE(InfoExtractor):
@@ -141,13 +143,13 @@ class DRTVIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        raw_video_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(url, raw_video_id)
 
         if '>Programmet er ikke længere tilgængeligt' in webpage:
             raise ExtractorError(
-                'Video %s is not available' % video_id, expected=True)
+                'Video %s is not available' % raw_video_id, expected=True)
 
         video_id = self._search_regex(
             (r'data-(?:material-identifier|episode-slug)="([^"]+)"',
@@ -181,6 +183,11 @@ class DRTVIE(InfoExtractor):
 
         data = self._download_json(
             programcard_url, video_id, 'Downloading video JSON', query=query)
+
+        supplementary_data = {}
+        if re.search(r'_\d+$', raw_video_id):
+            supplementary_data = self._download_json(
+                SERIES_API % f'/episode/{raw_video_id}', raw_video_id, fatal=False) or {}
 
         title = str_or_none(data.get('Title')) or re.sub(
             r'\s*\|\s*(?:TV\s*\|\s*DR|DRTV)$', '',
@@ -300,8 +307,6 @@ class DRTVIE(InfoExtractor):
                 'Unfortunately, DR is not allowed to show this program outside Denmark.',
                 countries=self._GEO_COUNTRIES)
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,
@@ -315,8 +320,8 @@ class DRTVIE(InfoExtractor):
             'season': str_or_none(data.get('SeasonTitle')),
             'season_number': int_or_none(data.get('SeasonNumber')),
             'season_id': str_or_none(data.get('SeasonUrn')),
-            'episode': str_or_none(data.get('EpisodeTitle')),
-            'episode_number': int_or_none(data.get('EpisodeNumber')),
+            'episode': traverse_obj(supplementary_data, ('entries', 0, 'item', 'contextualTitle')) or str_or_none(data.get('EpisodeTitle')),
+            'episode_number': traverse_obj(supplementary_data, ('entries', 0, 'item', 'episodeNumber')) or int_or_none(data.get('EpisodeNumber')),
             'release_year': int_or_none(data.get('ProductionYear')),
         }
 
@@ -366,7 +371,6 @@ class DRTVLiveIE(InfoExtractor):
                         formats.extend(self._extract_f4m_formats(update_url_query(
                             '%s/%s' % (server, stream_path), {'hdcore': '3.7.0'}),
                             channel_id, f4m_id=link_type, fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': channel_id,
@@ -374,4 +378,93 @@ class DRTVLiveIE(InfoExtractor):
             'thumbnail': channel_data.get('PrimaryImageUri'),
             'formats': formats,
             'is_live': True,
+        }
+
+
+class DRTVSeasonIE(InfoExtractor):
+    IE_NAME = 'drtv:season'
+    _VALID_URL = r'https?://(?:www\.)?(?:dr\.dk|dr-massive\.com)/drtv/saeson/(?P<display_id>[\w-]+)_(?P<id>\d+)'
+    _GEO_COUNTRIES = ['DK']
+    _TESTS = [{
+        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_9008',
+        'info_dict': {
+            'id': '9008',
+            'display_id': 'frank-and-kastaniegaarden',
+            'title': 'Frank & Kastaniegaarden',
+            'series': 'Frank & Kastaniegaarden',
+        },
+        'playlist_mincount': 8
+    }, {
+        'url': 'https://www.dr.dk/drtv/saeson/frank-and-kastaniegaarden_8761',
+        'info_dict': {
+            'id': '8761',
+            'display_id': 'frank-and-kastaniegaarden',
+            'title': 'Frank & Kastaniegaarden',
+            'series': 'Frank & Kastaniegaarden',
+        },
+        'playlist_mincount': 19
+    }]
+
+    def _real_extract(self, url):
+        display_id, season_id = self._match_valid_url(url).group('display_id', 'id')
+        data = self._download_json(SERIES_API % f'/saeson/{display_id}_{season_id}', display_id)
+
+        entries = [{
+            '_type': 'url',
+            'url': f'https://www.dr.dk/drtv{episode["path"]}',
+            'ie_key': DRTVIE.ie_key(),
+            'title': episode.get('title'),
+            'episode': episode.get('episodeName'),
+            'description': episode.get('shortDescription'),
+            'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'season_number': traverse_obj(data, ('entries', 0, 'item', 'seasonNumber')),
+            'episode_number': episode.get('episodeNumber'),
+        } for episode in traverse_obj(data, ('entries', 0, 'item', 'episodes', 'items'))]
+
+        return {
+            '_type': 'playlist',
+            'id': season_id,
+            'display_id': display_id,
+            'title': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'entries': entries,
+            'season_number': traverse_obj(data, ('entries', 0, 'item', 'seasonNumber'))
+        }
+
+
+class DRTVSeriesIE(InfoExtractor):
+    IE_NAME = 'drtv:series'
+    _VALID_URL = r'https?://(?:www\.)?(?:dr\.dk|dr-massive\.com)/drtv/serie/(?P<display_id>[\w-]+)_(?P<id>\d+)'
+    _GEO_COUNTRIES = ['DK']
+    _TESTS = [{
+        'url': 'https://www.dr.dk/drtv/serie/frank-and-kastaniegaarden_6954',
+        'info_dict': {
+            'id': '6954',
+            'display_id': 'frank-and-kastaniegaarden',
+            'title': 'Frank & Kastaniegaarden',
+            'series': 'Frank & Kastaniegaarden',
+        },
+        'playlist_mincount': 15
+    }]
+
+    def _real_extract(self, url):
+        display_id, series_id = self._match_valid_url(url).group('display_id', 'id')
+        data = self._download_json(SERIES_API % f'/serie/{display_id}_{series_id}', display_id)
+
+        entries = [{
+            '_type': 'url',
+            'url': f'https://www.dr.dk/drtv{season.get("path")}',
+            'ie_key': DRTVSeasonIE.ie_key(),
+            'title': season.get('title'),
+            'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'season_number': traverse_obj(data, ('entries', 0, 'item', 'seasonNumber'))
+        } for season in traverse_obj(data, ('entries', 0, 'item', 'show', 'seasons', 'items'))]
+
+        return {
+            '_type': 'playlist',
+            'id': series_id,
+            'display_id': display_id,
+            'title': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'series': traverse_obj(data, ('entries', 0, 'item', 'title')),
+            'entries': entries
         }
