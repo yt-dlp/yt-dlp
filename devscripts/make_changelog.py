@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import enum
 import itertools
 import json
@@ -8,7 +10,6 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import cache
-from operator import attrgetter
 from pathlib import Path
 
 BASE_URL = 'https://github.com'
@@ -38,8 +39,10 @@ class CommitGroup(enum.Enum):
                     'compat_utils',
                     'compat',
                     'cookies',
+                    'core',
                     'dependencies',
                     'jsinterp',
+                    'outtmpl',
                     'plugins',
                     'update',
                     'utils',
@@ -49,9 +52,10 @@ class CommitGroup(enum.Enum):
                     'cleanup',
                     'devscripts',
                     'docs',
+                    'misc',
                     'test',
                 },
-                cls.EXTRACTOR: {'extractor'},
+                cls.EXTRACTOR: {'extractor', 'extractors'},
                 cls.DOWNLOADER: {'downloader'},
                 cls.POSTPROCESSOR: {'postprocessor'},
             }.items()
@@ -88,13 +92,13 @@ class Commit:
 @dataclass
 class CommitInfo:
     details: str | None
-    sub_details: str | None
+    sub_details: tuple[str, ...]
     message: str
-    issues: list[str] | None
+    issues: list[str]
     commit: Commit
 
     def key(self):
-        return (self.details or '', self.sub_details or '', self.message)
+        return ((self.details or '').lower(), self.sub_details, self.message)
 
 
 class Changelog:
@@ -120,9 +124,9 @@ class Changelog:
 
     def _format_group(self, group):
         sorted_group = sorted(group, key=CommitInfo.key)
-        detail_groups = itertools.groupby(sorted_group, attrgetter('details'))
+        detail_groups = itertools.groupby(sorted_group, lambda item: (item.details or '').lower())
         for details, items in detail_groups:
-            if details is None:
+            if not details:
                 indent = ''
             else:
                 yield f'- {details}'
@@ -131,14 +135,14 @@ class Changelog:
             if details == 'cleanup':
                 items, cleanup_misc_items = self._filter_cleanup_misc_items(items)
 
-            sub_detail_groups = itertools.groupby(items, attrgetter('sub_details'))
+            sub_detail_groups = itertools.groupby(items, lambda item: item.sub_details)
             for sub_details, entries in sub_detail_groups:
                 if not sub_details:
                     for entry in entries:
                         yield f'{indent}- {self.format_single_change(entry)}'
                     continue
 
-                prefix = f'{indent}- {sub_details}'
+                prefix = f'{indent}- {", ".join(sub_details)}'
                 entries = list(entries)
                 if len(entries) == 1:
                     yield f'{prefix}: {self.format_single_change(entries[0])}'
@@ -218,6 +222,7 @@ class CommitRange:
         (?P<message>.+?)
         (?:\ \((?P<issues>\#\d+(?:,\ \#\d+)*)\))?
         ''', re.VERBOSE)
+    EXTRACTOR_INDICATOR_RE = re.compile(r'(?:Fix|Add)\s+Extractors?', re.IGNORECASE)
 
     def __init__(self, start, end, default_author=None) -> None:
         self._start = start
@@ -281,7 +286,7 @@ class CommitRange:
             for line in iter(lambda: next(lines), self.COMMIT_SEPARATOR):
                 match = self.AUTHOR_INDICATOR_RE.match(line)
                 if match:
-                    authors = [author.strip() for author in line[match.end():].split(',')]
+                    authors = sorted(map(str.strip, line[match.end():].split(',')), key=str.lower)
 
             commit = Commit(commit_hash, short, authors)
             if skip:
@@ -298,7 +303,7 @@ class CommitRange:
 
             override_hash = override.get('hash')
             if override['action'] == 'add':
-                commit = Commit(override.get('hash'), override['short'], override.get('authors'))
+                commit = Commit(override.get('hash'), override['short'], override.get('authors') or [])
                 logger.info(f'ADD    {commit}')
                 self._commits_added.append(commit)
 
@@ -332,7 +337,7 @@ class CommitRange:
                     logger.debug(f'Priority: {message!r}')
                     group = CommitGroup.PRIORITY
 
-                elif not details and prefix:
+                if not details and prefix:
                     if prefix not in ('extractor', 'postprocessor', 'downloader'):
                         logger.debug(f'Replaced details with {prefix!r}')
                         details = prefix or None
@@ -342,24 +347,24 @@ class CommitRange:
 
                 if details:
                     details = details.strip()
-                    if not group:
-                        details = details.lower()
 
             else:
                 group = CommitGroup.CORE
 
-            if sub_details or sub_details_alt:
-                sub_details = ':'.join(filter(None, map(str.strip, filter(None, (
-                    sub_details, sub_details_alt))))) or None
+            sub_details = f'{sub_details or ""},{sub_details_alt or ""}'.lower().replace(':', ',')
+            sub_details = tuple(filter(None, map(str.strip, sub_details.split(','))))
 
-            if issues:
-                issues = [issue.strip().lstrip('#') for issue in issues.split(',')]
+            issues = [issue.strip()[1:] for issue in issues.split(',')] if issues else []
 
             if not group:
                 group = CommitGroup.get(prefix.lower())
                 if not group:
-                    logger.warning(f'Failed to map {commit.short!r}, defaulting to extractor')
-                    group = CommitGroup.EXTRACTOR
+                    if self.EXTRACTOR_INDICATOR_RE.search(commit.short):
+                        group = CommitGroup.EXTRACTOR
+                    else:
+                        group = CommitGroup.POSTPROCESSOR
+                    logger.warning(f'Failed to map {commit.short!r}, selected {group.name}')
+
             commit_info = CommitInfo(details, sub_details, message.strip(), issues, commit)
             logger.debug(f'Resolved {commit.short!r} to {commit_info!r}')
             groups[group].append(commit_info)
@@ -374,14 +379,15 @@ def get_new_contributors(contributors_path, commits):
             for line in filter(None, map(str.strip, file)):
                 author, _, _ = line.partition(' (')
                 authors = author.split('/')
-                contributors.update(authors)
+                contributors.update(map(str.lower, authors))
 
     new_contributors = {}
     for commit in commits:
-        for author in commit.authors or ():
-            if author in contributors:
+        for author in commit.authors:
+            author_compare = author.lower()
+            if author_compare in contributors:
                 continue
-            contributors.add(author)
+            contributors.add(author_compare)
             new_contributors[author] = None
 
     return list(reversed(new_contributors))
