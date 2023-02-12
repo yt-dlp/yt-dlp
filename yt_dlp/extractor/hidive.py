@@ -37,7 +37,7 @@ class HiDiveIE(InfoExtractor):
         form = self._search_regex(
             r'(?s)<form[^>]+action="/account/login"[^>]*>(.+?)</form>',
             webpage, 'login form', default=None)
-        if not form:  # already logged in
+        if not form:
             return
         data = self._hidden_inputs(form)
         data.update({
@@ -74,7 +74,6 @@ class HiDiveIE(InfoExtractor):
         video_id, title, key = self._match_valid_url(url).group('id', 'title', 'key')
         settings = self._call_api(video_id, title, key)
 
-        # Guard against insufficient permissions to download.
         restriction = settings.get('restrictionReason')
         if restriction == 'RegionRestricted':
             self.raise_geo_restricted()
@@ -82,7 +81,6 @@ class HiDiveIE(InfoExtractor):
             raise ExtractorError(
                 '%s said: %s' % (self.IE_NAME, restriction), expected=True)
 
-        # Extract video format options.
         formats, parsed_urls = [], {None}
         for rendition_id, rendition in settings['renditions'].items():
             audio, version, extra = rendition_id.split('_')
@@ -96,15 +94,10 @@ class HiDiveIE(InfoExtractor):
                     f['format_note'] = f'{version}, {extra}'
                 formats.extend(frmt)
 
-        # Extract subtitle options.
         subtitles = {}
         for rendition_id, rendition in settings['renditions'].items():
             audio, version, extra = rendition_id.split('_')
-            for cc_file in rendition.get('ccFiles', []):
-                # cc_file[0]: subtitle language code, e.g. 'en'
-                # cc_file[1]: subtitle name, e.g. 'English Caps', 'English Subs'
-                # cc_file[2]: subtitle URL (likely vtt format), e.g. 'English Caps', 'English Subs'
-                # cc_file[3]: ???, e.g. 'default'
+            for cc_file in rendition.get('ccFiles') or []:
                 cc_url = url_or_none(try_get(cc_file, lambda x: x[2]))
                 cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
                 if cc_url not in parsed_urls and cc_lang:
