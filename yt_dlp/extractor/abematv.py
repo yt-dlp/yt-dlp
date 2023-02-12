@@ -191,10 +191,9 @@ class AbemaTVBaseIE(InfoExtractor):
             return self._USERTOKEN
 
         username, _ = self._get_login_info()
-        auth_cache = username and self.cache.load(self._NETRC_MACHINE, username)
-        if auth_cache:
+        AbemaTVBaseIE._USERTOKEN = username and self.cache.load(self._NETRC_MACHINE, username)
+        if AbemaTVBaseIE._USERTOKEN:
             # try authentication with locally stored token
-            AbemaTVBaseIE._USERTOKEN = auth_cache[1]
             try:
                 self._get_media_token(True)
                 return
