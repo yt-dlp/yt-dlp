@@ -36,7 +36,7 @@ class XimalayaIE(XimalayaBaseIE):
                         'height': 180
                     }
                 ],
-                'categories': ['人文'],
+                'categories': ['其他'],
                 'duration': 93,
                 'view_count': int,
                 'like_count': int,
@@ -123,7 +123,7 @@ class XimalayaIE(XimalayaBaseIE):
 class XimalayaAlbumIE(XimalayaBaseIE):
     IE_NAME = 'ximalaya:album'
     IE_DESC = '喜马拉雅FM 专辑'
-    _VALID_URL = r'https?://(?:www\.|m\.)?ximalaya\.com/\d+/album/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://(?:www\.|m\.)?ximalaya\.com/(?:\d+/)?album/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'http://www.ximalaya.com/61425525/album/5534601/',
         'info_dict': {
@@ -131,6 +131,13 @@ class XimalayaAlbumIE(XimalayaBaseIE):
             'id': '5534601',
         },
         'playlist_mincount': 323,
+    }, {
+        'url': 'https://www.ximalaya.com/album/6912905',
+        'info_dict': {
+            'title': '埃克哈特《修炼当下的力量》',
+            'id': '6912905',
+        },
+        'playlist_mincount': 41,
     }]
 
     def _real_extract(self, url):
