@@ -30,11 +30,12 @@ def get_new_version(revision):
 
 def get_git_head():
     with contextlib.suppress(Exception):
-        sp = subprocess.Popen(['git', 'rev-parse', '--short', 'HEAD'], stdout=subprocess.PIPE)
+        sp = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE)
         return sp.communicate()[0].decode().strip() or None
 
 
-VERSION = get_new_version((sys.argv + [''])[1])
+revision = (sys.argv + [''])[1]
+VERSION = get_new_version(revision)
 GIT_HEAD = get_git_head()
 
 VERSION_FILE = f'''\
@@ -47,6 +48,8 @@ RELEASE_GIT_HEAD = {GIT_HEAD!r}
 VARIANT = None
 
 UPDATE_HINT = None
+
+CHANNEL = {"nightly" if revision else "stable"!r}
 '''
 
 write_file('yt_dlp/version.py', VERSION_FILE)

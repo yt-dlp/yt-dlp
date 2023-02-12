@@ -150,7 +150,7 @@ from .utils import (
     write_json_file,
     write_string,
 )
-from .version import RELEASE_GIT_HEAD, VARIANT, __version__
+from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':
     import ctypes
@@ -3771,8 +3771,8 @@ class YoutubeDL:
             source += '*'
         write_debug(join_nonempty(
             f'{"yt-dlp" if REPOSITORY == "yt-dlp/yt-dlp" else REPOSITORY} version',
-            __version__,
-            f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',
+            __version__ + {'stable': '', 'nightly': '*'}.get(CHANNEL, f' <{CHANNEL}>'),
+            f'[{RELEASE_GIT_HEAD[:9]}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
             '' if _IN_CLI else 'API',
             delim=' '))

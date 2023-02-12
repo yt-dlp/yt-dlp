@@ -21,7 +21,7 @@ from .utils import (
     traverse_obj,
     version_tuple,
 )
-from .version import UPDATE_HINT, VARIANT, __version__
+from .version import RELEASE_GIT_HEAD, UPDATE_HINT, VARIANT, __version__, CHANNEL
 
 REPOSITORY = 'yt-dlp/yt-dlp'
 API_URL = f'https://api.github.com/repos/{REPOSITORY}/releases'
@@ -109,23 +109,23 @@ def _sha256_file(path):
     return h.hexdigest()
 
 
-class Updater:
+class BaseUpdater:
     def __init__(self, ydl):
         self.ydl = ydl
 
     @functools.cached_property
     def _tag(self):
-        if version_tuple(__version__) >= version_tuple(self.latest_version):
-            return 'latest'
+        if self._version_compare(self.current_version, self.latest_version):
+            return self.latest_tag
 
-        identifier = f'{detect_variant()} {system_identifier()}'
-        for line in self._download('_update_spec', 'latest').decode().splitlines():
+        identifier = f'{detect_variant()} {CHANNEL} {system_identifier()}'
+        for line in self._download('_update_spec', self.latest_tag).decode().splitlines():
             if not line.startswith('lock '):
                 continue
             _, tag, pattern = line.split(' ', 2)
             if re.match(pattern, identifier):
                 return f'tags/{tag}'
-        return 'latest'
+        return self.latest_tag
 
     @cached_method
     def _get_version_info(self, tag):
@@ -133,26 +133,19 @@ class Updater:
         return json.loads(self.ydl.urlopen(f'{API_URL}/{tag}').read().decode())
 
     @property
-    def current_version(self):
-        """Current version"""
-        return __version__
-
-    @property
     def new_version(self):
         """Version of the latest release we can update to"""
-        if self._tag.startswith('tags/'):
-            return self._tag[5:]
-        return self._get_version_info(self._tag)['tag_name']
+        return self._get_version_info(self._tag)[self._version_field]
 
     @property
     def latest_version(self):
         """Version of the latest release"""
-        return self._get_version_info('latest')['tag_name']
+        return self._get_version_info('latest')[self._version_field]
 
     @property
     def has_update(self):
         """Whether there is an update available"""
-        return version_tuple(__version__) < version_tuple(self.new_version)
+        return not self._version_compare(self.current_version, self.new_version)
 
     @functools.cached_property
     def filename(self):
@@ -194,8 +187,8 @@ class Updater:
             self.ydl.to_screen(
                 f'Latest version: {self.latest_version}, Current version: {self.current_version}')
             if not self.has_update:
-                if self._tag == 'latest':
-                    return self.ydl.to_screen(f'yt-dlp is up to date ({__version__})')
+                if self._tag == self.latest_tag:
+                    return self.ydl.to_screen(f'yt-dlp is up to date ({self.current_version})')
                 return self.ydl.report_warning(
                     'yt-dlp cannot be updated any further since you are on an older Python version')
         except Exception:
@@ -300,6 +293,40 @@ class Updater:
         return returncode
 
 
+class StableUpdater(BaseUpdater):
+    latest_tag = 'latest'
+    _version_field = 'tag_name'
+    current_version = __version__
+
+    def _version_compare(self, a, b):
+        return version_tuple(a) >= version_tuple(b)
+
+    @property
+    def new_version(self):
+        if self._tag.startswith('tags/'):
+            return self._tag[5:]
+        return super().new_version
+
+
+class NightlyUpdater(BaseUpdater):
+    latest_tag = 'tags/nightly'
+    _version_field = 'target_commitish'
+    current_version = RELEASE_GIT_HEAD or 'unknown'
+
+    def _version_compare(self, a, b):
+        return a == b
+
+
+def Updater(ydl):
+    if CHANNEL == 'stable':
+        return StableUpdater(ydl)
+    elif CHANNEL == 'nightly':
+        return NightlyUpdater(ydl)
+
+    ydl.report_error(f'[update] Unknown channel: {CHANNEL}', tb=False)
+    ydl._download_retcode = 100
+
+
 def run_update(ydl):
     """Update the program file with the latest version from the repository
     @returns    Whether there was a successful update (No update = False)
@@ -346,3 +373,6 @@ def update_self(to_screen, verbose, opener):
             return opener.open(url)
 
     return run_update(FakeYDL())
+
+
+__all__ = ['Updater']
