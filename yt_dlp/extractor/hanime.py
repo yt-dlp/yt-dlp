@@ -1,8 +1,8 @@
 from .common import InfoExtractor
 from ..utils import traverse_obj, url_or_none, int_or_none, unified_timestamp, float_or_none
 
-_HANIME_BASE_URL: str = "https://hanime.tv"
-_CDN_BASE_URL: str = "https://m3u8s.highwinds-cdn.com/api/v9/m3u8s"
+_HANIME_BASE_URL: str = 'https://hanime.tv'
+_CDN_BASE_URL: str = 'https://m3u8s.highwinds-cdn.com/api/v9/m3u8s'
 
 
 class HanimeIE(InfoExtractor):
@@ -15,7 +15,7 @@ class HanimeIE(InfoExtractor):
             'ext': 'm3u8',
             'title': 'Jewelry 1',
             'age_limit': 18,
-            'thumbnail': "https://git-posters.pages.dev/images/jewelry-1-xgDqYIRFqN.jpg",
+            'thumbnail': 'https://git-posters.pages.dev/images/jewelry-1-xgDqYIRFqN.jpg',
             'description': 'Eating a meal together, cozy and warm, legs under the kotatsu… '
                            'Whether we’re angry or laughing or just zoning out and watching TV… '
                            'Even the silly little things… Our love is so precious. I wouldn’t '
