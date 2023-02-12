@@ -430,6 +430,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?pd\.vern\.cc',
         r'(?:www\.)?piped\.hostux\.net',
         r'(?:www\.)?piped\.lunar\.icu',
+        # Hyperpipe instances from https://hyperpipe.codeberg.page/
+        r'(?:www\.)?hyperpipe\.surge\.sh',
+        r'(?:www\.)?hyperpipe\.esmailelbob\.xyz',
+        r'(?:www\.)?listen\.whatever\.social',
+        r'(?:www\.)?music\.adminforge\.de',
     )
 
     # extracted from account/account_menu ep
