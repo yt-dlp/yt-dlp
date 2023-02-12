@@ -2466,15 +2466,8 @@ class YoutubeDL:
 
     def sort_formats(self, info_dict):
         formats = self._get_formats(info_dict)
-        if not formats:
-            return
-        # Backward compatibility with InfoExtractor._sort_formats
-        field_preference = formats[0].pop('__sort_fields', None)
-        if field_preference:
-            info_dict['_format_sort_fields'] = field_preference
-
         formats.sort(key=FormatSorter(
-            self, info_dict.get('_format_sort_fields', [])).calculate_preference)
+            self, info_dict.get('_format_sort_fields') or []).calculate_preference)
 
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'
@@ -2563,6 +2556,11 @@ class YoutubeDL:
 
         formats = self._get_formats(info_dict)
 
+        # Backward compatibility with InfoExtractor._sort_formats
+        field_preference = formats[0].pop('__sort_fields', None)
+        if field_preference:
+            info_dict['_format_sort_fields'] = field_preference
+
         # or None ensures --clean-infojson removes it
         info_dict['_has_drm'] = any(f.get('has_drm') for f in formats) or None
         if not self.params.get('allow_unplayable_formats'):
@@ -2623,7 +2621,10 @@ class YoutubeDL:
         if '__x_forwarded_for_ip' in info_dict:
             del info_dict['__x_forwarded_for_ip']
 
-        self.sort_formats({'formats': formats})
+        self.sort_formats({
+            'formats': formats,
+            '_format_sort_fields': info_dict.get('_format_sort_fields')
+        })
 
         # Sanitize and group by format_id
         formats_dict = {}
