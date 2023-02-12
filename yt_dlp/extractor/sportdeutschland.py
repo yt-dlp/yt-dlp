@@ -64,7 +64,7 @@ class SportDeutschlandIE(InfoExtractor):
                 'was_live': 'was_live'
             }, get_all=False)
         }
-        
+
         videos = meta.get('videos') or []
 
         if len(videos) > 1:
@@ -91,7 +91,7 @@ class SportDeutschlandIE(InfoExtractor):
         video_id = video['id']
         video_src = video['src']
         video_type = video['type']
-        
+
         token = self._download_json(
             f'https://api.sportdeutschland.tv/api/frontend/asset-token/{asset_id}',
             video_id, query={'type': video_type, 'playback_id': video_src})['token']
