@@ -206,9 +206,9 @@ class NPOIE(InfoExtractor):
         video_id = self._match_id(url)
         if urllib.parse.urlparse(url).netloc in ['www.ntr.nl', 'ntr.nl']:
             player = self._download_json(
-                'https://www.ntr.nl/ajax/player/embed/%s' % video_id, video_id,
+                f'https://www.ntr.nl/ajax/player/embed/{video_id}', video_id,
                 'Downloading player JSON', query={
-                    'parameters[elementId]': 'npo' + str(random.randint(0, 999)),
+                    'parameters[elementId]': f'npo{random.randint(0, 999)}',
                     'parameters[sterReferralUrl]': url,
                     'parameters[autoplay]': 0,
                 })
@@ -220,7 +220,7 @@ class NPOIE(InfoExtractor):
                     'X-Requested-With': 'XMLHttpRequest',
                 })
             player = self._download_json(
-                'https://www.npostart.nl/player/%s' % video_id, video_id,
+                f'https://www.npostart.nl/player/{video_id}', video_id,
                 'Downloading player JSON', data=urlencode_postdata({
                     'autoplay': 0,
                     'share': 1,
