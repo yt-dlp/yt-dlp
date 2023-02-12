@@ -2303,8 +2303,6 @@ from .xxxymovies import XXXYMoviesIE
 from .yahoo import (
     YahooIE,
     YahooSearchIE,
-    YahooGyaOPlayerIE,
-    YahooGyaOIE,
     YahooJapanNewsIE,
 )
 from .yandexdisk import YandexDiskIE
