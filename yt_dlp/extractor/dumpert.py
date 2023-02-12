@@ -64,16 +64,14 @@ class DumpertIE(InfoExtractor):
                 continue
             version = variant.get('version')
             preference = quality(version)
-            ext = determine_ext(uri)
-            if ext == 'm3u8':
+            if determine_ext(uri) == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
-                    uri, video_id, ext='mp4', entry_protocol='m3u8_native',
-                    preference=preference))
+                    uri, video_id, 'mp4', m3u8_id=version, quality=preference))
             else:
                 formats.append({
                     'url': uri,
                     'format_id': version,
-                    'preference': preference,
+                    'quality': preference,
                 })
 
         thumbnails = []
