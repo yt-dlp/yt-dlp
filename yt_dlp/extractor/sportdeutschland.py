@@ -1,7 +1,11 @@
-import time
-import datetime
-
 from .common import InfoExtractor
+
+from ..utils import (
+    format_field,
+    traverse_obj,
+    unified_timestamp,
+    strip_or_none
+)
 
 
 class SportDeutschlandIE(InfoExtractor):
@@ -12,7 +16,7 @@ class SportDeutschlandIE(InfoExtractor):
             'id': '983758e9-5829-454d-a3cf-eb27bccc3c94',
             'ext': 'mp4',
             'title': 'Buchholzer Formationswochenende 2023 - Samstag - 1. Bundesliga / Landesliga',
-            'description': '14:30 Uhr Turnierbeginn Landesliga Nord Gruppe A - 16:10 Uhr Finalrunde Landesliga Nord Gruppe A - 17:15 Uhr Siegerehrung Landesliga Nord Gruppe A - 19:00 Uhr Turnierbeginn 1. Bundesliga - 21:20 Uhr Finalrunde 1. Bundesliga - 22:30 Uhr Siegerehrung 1. Bundesliga',
+            'description': 'md5:a288c794a5ee69e200d8f12982f81a87',
             'live_status': 'was_live',
             'channel': 'Blau-Weiss Buchholz Tanzsport',
             'channel_url': 'https://sportdeutschland.tv/blauweissbuchholztanzsport',
@@ -46,20 +50,21 @@ class SportDeutschlandIE(InfoExtractor):
             'https://api.sportdeutschland.tv/api/stateless/frontend/assets/' + display_id,
             display_id, query={'access_token': 'true'})
 
-        asset_id = meta.get('id') or meta.get('uuid')
-        profile = meta.get('profile')
+        asset_id = traverse_obj(meta, 'id', 'uuid')
 
         info = {
             'id': asset_id,
-            'title': (meta.get('title') or meta.get('name')).strip(),
-            'description': meta.get('description'),
-            'channel': profile.get('name'),
-            'channel_id': profile.get('id'),
-            'channel_url': 'https://sportdeutschland.tv/' + profile.get('slug'),
-            'is_live': meta.get('currently_live'),
-            'was_live': meta.get('was_live')
+            'channel_url': format_field(meta, ('profile', 'slug'), 'https://sportdeutschland.tv/%s'),
+            **traverse_obj(meta, {
+                'title': (('title', 'name'), {strip_or_none}),
+                'description': 'description',
+                'channel': ('profile', 'name'),
+                'channel_id': ('profile', 'id'),
+                'is_live': 'currently_live',
+                'was_live': 'was_live'
+            }, get_all=False)
         }
-
+        
         videos = meta.get('videos') or []
 
         if len(videos) > 1:
@@ -82,29 +87,24 @@ class SportDeutschlandIE(InfoExtractor):
 
         return info
 
-    def processVideoOrStream(self, asset_id, video):
-        video_id = video.get('id')
-        video_src = video.get('src')
-        video_type = video.get('type')
+    def process_video_or_stream(self, asset_id, video):
+        video_id = video['id']
+        video_src = video['src']
+        video_type = video['type']
+        
+        token = self._download_json(
+            f'https://api.sportdeutschland.tv/api/frontend/asset-token/{asset_id}',
+            video_id, query={'type': video_type, 'playback_id': video_src})['token']
+        formats = self._extract_m3u8_formats(f'https://stream.mux.com/{video_src}.m3u8?token={token}', video_id)
 
-        token_data = self._download_json(
-            'https://api.sportdeutschland.tv/api/frontend/asset-token/' + asset_id
-            + '?type=' + video_type
-            + '&playback_id=' + video_src,
-            video_id
-        )
-
-        m3u8_url = "https://stream.mux.com/" + video_src + '.m3u8?token=' + token_data.get('token')
-        formats = self._extract_m3u8_formats(m3u8_url, video_id)
-
-        videoData = {
+        video_data = {
             'display_id': video_id,
             'formats': formats,
         }
         if video_type == 'mux_vod':
-            videoData.update({
+            video_data.update({
                 'duration': video.get('duration'),
-                'timestamp': time.mktime(datetime.datetime.fromisoformat(video.get('created_at')).timetuple())
+                'timestamp': unified_timestamp(video.get('created_at'))
             })
 
-        return videoData
+        return video_data
