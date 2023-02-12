@@ -83,7 +83,7 @@ class RCSBaseIE(InfoExtractor):
             type_ = mimetype2ext(source['mimeType'])
             if type_ == 'm3u8' and '-vh.akamaihd' in url:
                 # still needed for some old content: see _TESTS #3
-                matches = re.search(r'(?:https?:)?//(?P<host>[\w\.]+)\.net/i(?P<path>.+)$', url)
+                matches = re.search(r'(?:https?:)?//(?P<host>[\w\.\-]+)\.net/i(?P<path>.+)$', url)
                 if matches:
                     url = f'https://vod.rcsobjects.it/hls/{self._MIGRATION_MAP[matches.group("host")]}{matches.group("path")}'
             if traverse_obj(video, ('mediaProfile', 'geoblocking')) or (
@@ -104,7 +104,7 @@ class RCSBaseIE(InfoExtractor):
         for f in m3u8_formats:
             if f['vcodec'] == 'none':
                 continue
-            http_url = re.sub(r'(https?://[^/]+)/hls/([^?#]+?\.mp4)', r'\g<1>/\g<2>', f['url'])
+            http_url = re.sub(r'(https?://[^/]+)/hls/([^?#]+?\.mp4).+', r'\g<1>/\g<2>', f['url'])
             if http_url == f['url']:
                 continue
 
@@ -173,13 +173,12 @@ class RCSBaseIE(InfoExtractor):
 
         if not video_data:
             webpage = self._download_webpage(url, video_id)
-            json_data = self._search_regex(
-                r'##start-video##({[\s\S]+?})##end-video##',
-                webpage, video_id, default=None, fatal=False)
-            if json_data:
-                video_data = self._parse_json(
-                    json_data, video_id, transform_source=js_to_json)
-            else:
+
+            video_data = self._search_json(
+                "##start-video##", webpage, "video_data", video_id, default=None,
+                end_pattern="##end-video##", transform_source=js_to_json)
+
+            if not video_data:
                 # try search for iframes
                 emb = RCSEmbedsIE._extract_url(webpage)
                 if emb:
