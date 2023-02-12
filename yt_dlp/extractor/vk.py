@@ -694,8 +694,9 @@ class VKWallPostIE(VKBaseIE):
                 }],
             })
 
-        return self.playlist_from_matches(
-            re.findall(r'<a[^>]+href=(?:["\'])(/video(?:-?[\d_]+)[^"\']*)', webpage),
-            post_id, join_nonempty(uploader, f'Wall post {post_id}', delim=' - '),
-            getter=functools.partial(urljoin, url), ie=VKIE,
-            description=clean_html(get_element_by_class('wall_post_text', webpage)))
+        entries.extend(self.url_result(urljoin(url, entry), VKIE) for entry in re.findall(
+            r'<a[^>]+href=(?:["\'])(/video(?:-?[\d_]+)[^"\']*)', webpage))
+
+        return self.playlist_result(
+            entries, post_id, join_nonempty(uploader, f'Wall post {post_id}', delim=' - '),
+            clean_html(get_element_by_class('wall_post_text', webpage)))
