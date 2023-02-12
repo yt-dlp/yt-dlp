@@ -1799,11 +1799,6 @@ The following extractors use this feature:
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 
-#### tencent
-* `video_codec`: The codec used by the video, currently only supports `avc` and `hevc`, the default is `hevc`.
-
-**Note**: Only the `hevc` codec supports 4K.
-
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
 
 
