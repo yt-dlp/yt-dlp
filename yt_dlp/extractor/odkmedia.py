@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class OnDemandChinaEpisodeIE(InfoExtractor):
-    _VALID_URL = r'https?://www\.ondemandchina\.com/\w+/watch/(?P<series_name>[\w-]+)/(?P<id>ep-(?P<episode_num>\d+))'
+    _VALID_URL = r'https?://www\.ondemandchina\.com/\w+/watch/(?P<series>[\w-]+)/(?P<id>ep-(?P<ep>\d+))'
     _TESTS = [{
         'url': 'https://www.ondemandchina.com/en/watch/together-against-covid-19/ep-1',
         'info_dict': {
@@ -27,66 +27,34 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
         }
     }]
 
-    _QUERY = """query Episode($programSlug: String!, $episodeNumber: Int!, $kind: String!, $part: Int) {
-        episode(
-            programSlug: $programSlug
-            episodeNumber: $episodeNumber
-            kind: $kind
-            part: $part
-        ) {
-            ...EpisodeDetail
-            __typename
+    _QUERY = '''
+        query Episode($programSlug: String!, $episodeNumber: Int!) {
+            episode(
+                programSlug: $programSlug
+                episodeNumber: $episodeNumber
+                kind: "series"
+                part: null
+            ) {
+                id
+                title
+                titleEn
+                titleKo
+                titleZhHans
+                titleZhHant
+                synopsis
+                synopsisEn
+                synopsisKo
+                synopsisZhHans
+                synopsisZhHant
+                videoDuration
+                images {
+                    thumbnail
+                }
             }
-        }
-
-        fragment EpisodeDetail on Episode {
-            id
-            episodeNumber
-            part
-            kind
-            link
-            title
-            titleEn
-            titleKo
-            titleZhHans
-            titleZhHant
-            synopsis
-            synopsisEn
-            synopsisKo
-            synopsisZhHans
-            synopsisZhHant
-            seoSynopsis
-            seoKeyword
-            videoCcLanguages
-            videoDuration
-            releaseDate
-            people {
-                ...PeopleItem
-                __typename
-            }
-            images {
-                thumbnail
-                __typename
-            }
-            ageRating {
-                isBlock
-                __typename
-            }
-            __typename
-            }
-            fragment PeopleItem on People {
-                role
-                slug
-                nameEn
-                nameZhHans
-                nameZhHant
-                __typename
-            }
-            """
+        }'''
 
     def _real_extract(self, url):
-        program_slug, display_id, ep_number = self._match_valid_url(url).group(
-            'series_name', 'id', 'episode_num')
+        program_slug, display_id, ep_number = self._match_valid_url(url).group('series', 'id', 'ep')
         webpage = self._download_webpage(url, display_id)
 
         video_info = self._download_json(
@@ -94,21 +62,19 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
             headers={'Content-type': 'application/json'},
             data=json.dumps({
                 'operationName': 'Episode',
+                'query': self._QUERY,
                 'variables': {
                     'programSlug': program_slug,
                     'episodeNumber': int(ep_number),
-                    'kind': 'series',
-                    'part': None
                 },
-                'query': self._QUERY}
-            ).encode())['data']['episode']
+            }).encode())['data']['episode']
 
         try:
             source_json = self._download_json(
                 f'https://odkmedia.io/odc/api/v2/playback/{video_info["id"]}/', display_id,
                 headers={'Authorization': '', 'service-name': 'odc'})
         except ExtractorError as e:
-            if (isinstance(e.cause, urllib.error.HTTPError)):
+            if isinstance(e.cause, urllib.error.HTTPError):
                 error_data = self._parse_json(e.cause.read(), display_id)['detail']
                 raise GeoRestrictedError(error_data)
 
@@ -119,14 +85,14 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             else:
-                self.report_warning('Unsupported format {source.get("type")}', display_id)
+                self.report_warning(f'Unsupported format {source.get("type")}', display_id)
 
         return {
             'id': str(video_info['id']),
             'duration': float_or_none(video_info.get('videoDuration'), 1000),
             'thumbnail': (traverse_obj(video_info, ('images', 'thumbnail'))
                           or self._html_search_meta(['og:image', 'twitter:image'], webpage)),
-            'title': (video_info.get('title')
+            'title': (traverse_obj(video_info, 'title', 'titleEn')
                       or self._html_search_meta(['og:title', 'twitter:title'], webpage)
                       or self._html_extract_title(webpage)),
             'alt_title': traverse_obj(video_info, 'titleKo', 'titleZhHans', 'titleZhHant'),
@@ -135,5 +101,5 @@ class OnDemandChinaEpisodeIE(InfoExtractor):
                 or self._html_search_meta(['og:description', 'twitter:description', 'description'], webpage)),
             'formats': formats,
             'subtitles': subtitles,
-            'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(", "))
+            'tags': try_call(lambda: self._html_search_meta('keywords', webpage).split(', '))
         }
