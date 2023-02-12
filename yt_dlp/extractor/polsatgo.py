@@ -237,9 +237,6 @@ class PolsatGoIE(PolsatGoBaseVideoExtractor, PolsatGoPlatformBaseExtractor):
             'subtitles': 'count:0',
         },
     }, {
-        'url': 'https://polsatboxgo.pl/wideo/film/sprawiedliwi-wydzial-kryminalny-wszystko-sie-moze-zdarzyc/189062750c1ce3e2971c7a331c825825',
-        'only_matching': True,
-    }, {
         'url': 'https://polsatgo.pl/wideo/programy/gry-komputerowe-show/5027365/wywiad/5027366/gry-komputerowe-show-wywiad-odcinek-10/b7768cca8a0f9cabd68f4be4cd809988',
         'only_matching': True,
     }]
@@ -262,6 +259,9 @@ class PolsatBoxGoIE(PolsatGoBaseVideoExtractor, PolsatBoxGoPlatformBaseExtractor
             'age_limit': 0,
         },
         'expected_warnings': ['no PBG session'],
+    }, {
+        'url': 'https://polsatboxgo.pl/wideo/film/sprawiedliwi-wydzial-kryminalny-wszystko-sie-moze-zdarzyc/189062750c1ce3e2971c7a331c825825',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
