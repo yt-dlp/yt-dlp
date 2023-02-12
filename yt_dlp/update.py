@@ -21,7 +21,13 @@ from .utils import (
     traverse_obj,
     version_tuple,
 )
-from .version import RELEASE_GIT_HEAD, UPDATE_HINT, VARIANT, __version__, CHANNEL
+from .version import (
+    CHANNEL,
+    RELEASE_GIT_HEAD,
+    UPDATE_HINT,
+    VARIANT,
+    __version__,
+)
 
 REPOSITORY = 'yt-dlp/yt-dlp'
 API_URL = f'https://api.github.com/repos/{REPOSITORY}/releases'
@@ -113,9 +119,9 @@ class Updater:
     def __init__(self, ydl):
         self.ydl = ydl
 
-    if CHANNEL == 'latest':
+    if CHANNEL == 'stable':
         latest_tag = 'latest'
-        _version_field = 'name'
+        _version_field = 'tag_name'
         current_version = __version__
     else:
         latest_tag = f'tags/{CHANNEL}'
@@ -156,7 +162,7 @@ class Updater:
     @property
     def latest_version(self):
         """Version of the latest release"""
-        return self._get_version_info('latest')[self._version_field]
+        return self._get_version_info(self.latest_tag)[self._version_field]
 
     @property
     def has_update(self):
