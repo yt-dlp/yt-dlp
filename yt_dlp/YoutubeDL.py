@@ -554,7 +554,7 @@ class YoutubeDL:
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
         'preference', 'language', 'language_preference', 'quality', 'source_preference',
-        'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'downloader_options',
+        'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
         'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
     }
     _format_selection_exts = {
@@ -1777,7 +1777,7 @@ class YoutubeDL:
         return {
             **info,
             'playlist_index': 0,
-            '__last_playlist_index': max(ie_result['requested_entries'] or (0, 0)),
+            '__last_playlist_index': max(ie_result.get('requested_entries') or (0, 0)),
             'extractor': ie_result['extractor'],
             'extractor_key': ie_result['extractor_key'],
         }
@@ -2411,11 +2411,7 @@ class YoutubeDL:
     def _fill_common_fields(self, info_dict, final=True):
         # TODO: move sanitization here
         if final:
-            title = info_dict.get('title', NO_DEFAULT)
-            if title is NO_DEFAULT:
-                raise ExtractorError('Missing "title" field in extractor result',
-                                     video_id=info_dict['id'], ie=info_dict['extractor'])
-            info_dict['fulltitle'] = title
+            title = info_dict['fulltitle'] = info_dict.get('title')
             if not title:
                 if title == '':
                     self.write_debug('Extractor gave empty title. Creating a generic title')
