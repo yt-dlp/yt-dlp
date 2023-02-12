@@ -3,17 +3,18 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    HEADRequest,
     base_url,
     clean_html,
     extract_attributes,
     get_element_html_by_class,
     get_element_html_by_id,
-    HEADRequest,
     int_or_none,
     js_to_json,
     mimetype2ext,
     sanitize_url,
     traverse_obj,
+    try_call,
     url_basename,
     urljoin,
 )
@@ -25,17 +26,6 @@ class RCSBaseIE(InfoExtractor):
     # https://js2.corriereobjects.it/includes2013/LIBS/js/corriere_video.sjs
     _UUID_RE = r'[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}'
     _RCS_ID_RE = r'[\w-]+-\d{10}'
-    _ALL_REPLACE = {
-        'media2vam.corriere.it.edgesuite.net':
-            'media2vam-corriere-it.akamaized.net',
-        'media.youreporter.it.edgesuite.net':
-            'media-youreporter-it.akamaized.net',
-        'corrierepmd.corriere.it.edgesuite.net':
-            'corrierepmd-corriere-it.akamaized.net',
-        'media2vam-corriere-it.akamaized.net/fcs.quotidiani/vr/videos/':
-            'video.corriere.it/vr360/videos/',
-        'http://': 'https://',
-    }
     _MIGRATION_MAP = {
         'videoamica-vh.akamaihd': 'amica',
         'media2-amica-it.akamaized': 'amica',
@@ -78,88 +68,82 @@ class RCSBaseIE(InfoExtractor):
     }
 
     def _get_video_src(self, video):
-        mediaFiles = traverse_obj(video, ('mediaProfile', 'mediaFile'))
-        sources = []
+        for source in traverse_obj(video, (
+                'mediaProfile', 'mediaFile', lambda _, v: v.get('mimeType'))):
+            url = source['value']
+            for s, r in (
+                ('media2vam.corriere.it.edgesuite.net', 'media2vam-corriere-it.akamaized.net'),
+                ('media.youreporter.it.edgesuite.net', 'media-youreporter-it.akamaized.net'),
+                ('corrierepmd.corriere.it.edgesuite.net', 'corrierepmd-corriere-it.akamaized.net'),
+                ('media2vam-corriere-it.akamaized.net/fcs.quotidiani/vr/videos/', 'video.corriere.it/vr360/videos/'),
+                ('http://', 'https://'),
+            ):
+                url = url.replace(s, r)
 
-        for source in mediaFiles:
-            if source.get('mimeType'):
-                sources.append({
-                    'type': mimetype2ext(source['mimeType']),
-                    'url': source.get('value'),
-                    'bitrate': source.get('bitrate')})
-
-        for source in sources:
-            for s, r in self._ALL_REPLACE.items():
-                source['url'] = source['url'].replace(s, r)
-
-            if source['type'] == 'm3u8' and '-vh.akamaihd' in source['url']:
+            type_ = mimetype2ext(source['mimeType'])
+            if type_ == 'm3u8' and '-vh.akamaihd' in url:
                 # still needed for some old content: see _TESTS #3
-                matches = re.search(r'(?:https*:)?//(?P<host>.*)\.net/i(?P<path>.*)$', source['url'])
+                matches = re.search(r'(?:https?:)?//(?P<host>[\w\.]+)\.net/i(?P<path>.+)$', url)
                 if matches:
-                    source['url'] = f'https://vod.rcsobjects.it/hls/{self._MIGRATION_MAP[matches.group("host")]}{matches.group("path")}'
-            if (source['type'] == 'm3u8' and 'fcs.quotidiani_!' in source['url']) or (
-                    video['mediaProfile'].get('geoblocking')):
-                source['url'] = source['url'].replace(
-                    'vod.rcsobjects', 'vod-it.rcsobjects')
-            if source['type'] == 'm3u8' and 'vod' in source['url']:
-                source['url'] = source['url'].replace(
-                    '.csmil', '.urlset')
-            if source['type'] == 'mp3':
-                source['url'] = source['url'].replace(
-                    'media2vam-corriere-it.akamaized.net',
-                    'vod.rcsobjects.it/corriere')
+                    url = f'https://vod.rcsobjects.it/hls/{self._MIGRATION_MAP[matches.group("host")]}{matches.group("path")}'
+            if traverse_obj(video, ('mediaProfile', 'geoblocking')) or (
+                    type_ == 'm3u8' and 'fcs.quotidiani_!' in url):
+                url = url.replace('vod.rcsobjects', 'vod-it.rcsobjects')
+            if type_ == 'm3u8' and 'vod' in url:
+                url = url.replace('.csmil', '.urlset')
+            if type_ == 'mp3':
+                url = url.replace('media2vam-corriere-it.akamaized.net', 'vod.rcsobjects.it/corriere')
 
-        return sources
+            yield {
+                'type': type_,
+                'url': url,
+                'bitrate': source.get('bitrate')
+            }
 
-    def _create_http_formats(self, m3u8_url, m3u8_formats, video_id):
-        http_formats = []
-        REPL_REGEX = r'(https?://[^/]+)/hls/([^?#]+?\.mp4).+'
+    def _create_http_formats(self, m3u8_formats, video_id):
         for f in m3u8_formats:
-            if f['vcodec'] != 'none' and re.match(REPL_REGEX, f['url']):
-                http_f = f.copy()
-                del http_f['manifest_url']
-                http_url = re.sub(REPL_REGEX, r'\g<1>/\g<2>', f['url'])
-                format_id = http_f['format_id'].replace('hls-', 'https-')
-                urlh = self._request_webpage(
-                    HEADRequest(http_url), video_id,
-                    note=f'Check filesize for {format_id}', fatal=False)
-                if urlh:
-                    http_f.update({
-                        'format_id': format_id,
-                        'url': http_url,
-                        'protocol': 'https',
-                        'filesize_approx': int_or_none(urlh.headers.get('Content-Length', None)),
-                    })
-                    http_formats.append(http_f)
+            if f['vcodec'] == 'none':
+                continue
+            http_url = re.sub(r'(https?://[^/]+)/hls/([^?#]+?\.mp4)', r'\g<1>/\g<2>', f['url'])
+            if http_url == f['url']:
+                continue
 
-        return http_formats
+            http_f = f.copy()
+            del http_f['manifest_url']
+            format_id = try_call(lambda: http_f['format_id'].replace('hls-', 'https-'))
+            urlh = self._request_webpage(HEADRequest(http_url), video_id, fatal=False,
+                                         note=f'Check filesize for {format_id}')
+            if not urlh:
+                continue
+
+            http_f.update({
+                'format_id': format_id,
+                'url': http_url,
+                'protocol': 'https',
+                'filesize_approx': int_or_none(urlh.headers.get('Content-Length', None)),
+            })
+            yield http_f
 
     def _create_formats(self, sources, video_id):
-        formats = []
-
         for source in sources:
             if source['type'] == 'm3u8':
                 m3u8_formats = self._extract_m3u8_formats(
                     source['url'], video_id, 'mp4', m3u8_id='hls', fatal=False)
-                formats.extend(m3u8_formats)
-                formats.extend(self._create_http_formats(
-                    source['url'], m3u8_formats or [], video_id))
+                yield from m3u8_formats
+                yield from self._create_http_formats(m3u8_formats, video_id)
             elif source['type'] == 'mp3':
-                formats.append({
+                yield {
                     'format_id': 'https-mp3',
                     'ext': 'mp3',
                     'acodec': 'mp3',
                     'vcodec': 'none',
                     'abr': source.get('bitrate'),
                     'url': source['url'],
-                })
-
-        return formats
+                }
 
     def _real_extract(self, url):
-        display_id = None
         cdn, video_id = self._match_valid_url(url).group('cdn', 'id')
-        video_data = None
+        display_id, video_data = None, None
 
         if re.match(self._UUID_RE, video_id) or re.match(self._RCS_ID_RE, video_id):
             url = f'https://video.{cdn}/video-json/{video_id}'
@@ -171,9 +155,9 @@ class RCSBaseIE(InfoExtractor):
                 data_config = self._parse_json(
                     extract_attributes(data_config).get('data-config'),
                     video_id, fatal=False) or {}
-                cdn = f'{data_config["newspaper"]}.it' if data_config.get('newspaper') else cdn
-                display_id = video_id
-                video_id = data_config.get('uuid') or video_id
+                if data_config.get('newspaper'):
+                    cdn = f'{data_config["newspaper"]}.it'
+                display_id, video_id = video_id, data_config.get('uuid') or video_id
                 url = f'https://video.{cdn}/video-json/{video_id}'
             else:
                 json_url = self._search_regex(
@@ -185,8 +169,7 @@ class RCSBaseIE(InfoExtractor):
                     webpage, video_id, group='url', default=None)
                 if json_url:
                     video_data = self._download_json(sanitize_url(json_url, scheme='https'), video_id)
-                    display_id = video_id
-                    video_id = video_data.get('id') or video_id
+                    display_id, video_id = video_id, video_data.get('id') or video_id
 
         if not video_data:
             webpage = self._download_webpage(url, video_id)
@@ -217,7 +200,7 @@ class RCSBaseIE(InfoExtractor):
                             or clean_html(video_data.get('htmlDescription'))
                             or self._html_search_meta('description', webpage)),
             'uploader': video_data.get('provider') or cdn,
-            'formats': self._create_formats(self._get_video_src(video_data), video_id),
+            'formats': list(self._create_formats(self._get_video_src(video_data), video_id)),
         }
 
 
@@ -274,16 +257,13 @@ class RCSEmbedsIE(RCSBaseIE):
     }]
 
     @staticmethod
-    def _sanitize_urls(urls):
-        # add protocol if missing and clean iframes urls
-        for url in urls:
-            url = sanitize_url(url, scheme='https')
-            url = urljoin(base_url(url), url_basename(url))
-        return urls
+    def _sanitize_url(url):
+        url = sanitize_url(url, scheme='https')
+        return urljoin(base_url(url), url_basename(url))
 
     @classmethod
     def _extract_embed_urls(cls, url, webpage):
-        return cls._sanitize_urls(list(super()._extract_embed_urls(url, webpage)))
+        return map(cls._sanitize_url, super()._extract_embed_urls(url, webpage))
 
 
 class RCSIE(RCSBaseIE):
