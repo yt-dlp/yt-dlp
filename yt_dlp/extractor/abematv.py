@@ -187,7 +187,11 @@ class AbemaTVBaseIE(InfoExtractor):
         return base64.urlsafe_b64encode(tmp).rstrip(b'=').decode('utf-8')
 
     def _get_device_token(self):
-        auth_cache = self.cache.load('abema', 'usertoken')
+        if self._USERTOKEN:
+            return self._USERTOKEN
+
+        username, _ = self._get_login_info()
+        auth_cache = username and self.cache.load(self._NETRC_MACHINE, username)
         if auth_cache:
             # try authentication with locally stored token
             AbemaTVBaseIE._USERTOKEN = auth_cache[1]
@@ -197,9 +201,6 @@ class AbemaTVBaseIE(InfoExtractor):
             except ExtractorError as e:
                 self.report_warning(f'Failed to login with cached user token; obtaining a fresh one ({e})')
                 AbemaTVBaseIE._USERTOKEN = None
-
-        if self._USERTOKEN:
-            return self._USERTOKEN
 
         AbemaTVBaseIE._DEVICE_ID = str(uuid.uuid4())
         aks = self._generate_aks(self._DEVICE_ID)
@@ -334,7 +335,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
         AbemaTVBaseIE._USERTOKEN = login_response['token']
         self._get_media_token(True)
-        self.cache.save('abema', 'usertoken', (username, AbemaTVBaseIE._USERTOKEN))
+        self.cache.save(self._NETRC_MACHINE, username, AbemaTVBaseIE._USERTOKEN)
 
     def _real_extract(self, url):
         # starting download using infojson from this extractor is undefined behavior,
