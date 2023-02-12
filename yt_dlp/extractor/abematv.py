@@ -187,6 +187,17 @@ class AbemaTVBaseIE(InfoExtractor):
         return base64.urlsafe_b64encode(tmp).rstrip(b'=').decode('utf-8')
 
     def _get_device_token(self):
+        auth_cache = self.cache.load('abema', 'usertoken')
+        if auth_cache:
+            # try authentication with locally stored token
+            AbemaTVBaseIE._USERTOKEN = auth_cache[1]
+            try:
+                self._get_media_token(True)
+                return
+            except ExtractorError as e:
+                self.report_warning(f'Failed to login with cached user token; obtaining a fresh one ({e})')
+                AbemaTVBaseIE._USERTOKEN = None
+
         if self._USERTOKEN:
             return self._USERTOKEN
 
@@ -300,6 +311,11 @@ class AbemaTVIE(AbemaTVBaseIE):
     _TIMETABLE = None
 
     def _perform_login(self, username, password):
+        auth_cache = self.cache.load('abema', 'usertoken')
+        if auth_cache and auth_cache[0] == username and self._get_media_token():
+            self.write_debug('Skipping logging in')
+            return
+
         if '@' in username:  # don't strictly check if it's email address or not
             ep, method = 'user/email', 'email'
         else:
@@ -319,6 +335,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
         AbemaTVBaseIE._USERTOKEN = login_response['token']
         self._get_media_token(True)
+        self.cache.save('abema', 'usertoken', (username, AbemaTVBaseIE._USERTOKEN))
 
     def _real_extract(self, url):
         # starting download using infojson from this extractor is undefined behavior,
