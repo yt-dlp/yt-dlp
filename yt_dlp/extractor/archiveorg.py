@@ -1047,63 +1047,58 @@ class VLiveWebArchiveIE(InfoExtractor):
     #   id_ = Identity - perform no alterations of the original resource, return it as it was archived.
     _WAYBACK_BASE_URL = 'https://web.archive.org/web/2id_/'
 
-    def _download_wbm_page(self, url, video_id, timestamp='2', mode='id_', **kwargs):
+    def _download_archived_page(self, url, video_id, *, timestamp='2', **kwargs):
         for retry in self.RetryManager():
             try:
-                return self._download_webpage(f'https://web.archive.org/web/{timestamp}{mode}/' + url, video_id, **kwargs)
+                return self._download_webpage(f'https://web.archive.org/web/{timestamp}id_/{url}', video_id, **kwargs)
             except ExtractorError as e:
                 if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 404:
                     raise ExtractorError('Page was not archived', expected=True)
                 retry.error = e
                 continue
 
-    def _download_wbm_json(self, url, video_id, timestamp='2', mode='id_', **kwargs):
-        page = self._download_wbm_page(url, video_id, timestamp, mode, **kwargs)
+    def _download_archived_json(self, url, video_id, **kwargs):
+        page = self._download_archived_page(url, video_id, **kwargs)
         if not page:
             raise ExtractorError('Page was not archived', expected=True)
         else:
             return self._parse_json(page, video_id)
 
     def _extract_formats_from_m3u8(self, m3u8_url, params, video_id):
-        m3u8_doc = self._download_wbm_page(m3u8_url, video_id, note='Downloading m3u8', query=params, fatal=False)
-        if m3u8_doc:
-            # M3U8 document is not valid, so it needs to be fixed
-            m3u8_doc_lines = m3u8_doc.splitlines()
-            modified_m3u8_doc_lines = []
-            url_base = m3u8_url.rsplit('/', 1)[0]
-            first_segment = None
-            for line in m3u8_doc_lines:
-                if line.startswith('#'):
-                    modified_m3u8_doc_lines.append(line)
-                else:
-                    modified_line = f'{self._WAYBACK_BASE_URL}{url_base}/{line}?{urllib.parse.urlencode(params)}'
-                    modified_m3u8_doc_lines.append(modified_line)
-                    if first_segment is None:
-                        first_segment = modified_line
-            modified_m3u8_doc = '\n'.join(modified_m3u8_doc_lines)
+        m3u8_doc = self._download_archived_page(m3u8_url, video_id, note='Downloading m3u8', query=params, fatal=False)
+        if not m3u8_doc:
+            return
 
-            # Segments may not have been archied. See 101870
-            first_segment_req = self._request_webpage(HEADRequest(first_segment), video_id, note='Check first segment availablity', errnote=False, fatal=False)
-            if first_segment_req:
-                formats, _ = self._parse_m3u8_formats_and_subtitles(modified_m3u8_doc, ext='mp4', video_id=video_id)
-                return formats
-        return []
+        # M3U8 document should be changed to archive domain
+        m3u8_doc = m3u8_doc.splitlines()
+        url_base = m3u8_url.rsplit('/', 1)[0]
+        first_segment = None
+        for i, line in enumerate(m3u8_doc):
+            if not line.startswith('#'):
+                m3u8_doc[i] = f'{self._WAYBACK_BASE_URL}{url_base}/{line}?{urllib.parse.urlencode(params)}'
+                first_segment = first_segment or m3u8_doc[i]
+
+        # Segments may not have been archied. See 101870
+        urlh = self._request_webpage(HEADRequest(first_segment), video_id, errnote=False,
+                                     fatal=False, note='Check first segment availablity')
+        if urlh:
+            return self._parse_m3u8_formats_and_subtitles('\n'.join(m3u8_doc), ext='mp4', video_id=video_id)[0]
 
     # Closely follows the logic of the ArchiveTeam grab script
     # See: https://github.com/ArchiveTeam/vlive-grab/blob/master/vlive.lua
     def _real_extract(self, url):
         video_id, url_date = self._match_valid_url(url).group('id', 'date')
 
-        webpage = self._download_wbm_page(f'https://www.vlive.tv/video/{video_id}', video_id, timestamp=url_date)
+        webpage = self._download_archived_page(f'https://www.vlive.tv/video/{video_id}', video_id, timestamp=url_date)
 
         player_info = self._search_json(r'__PRELOADED_STATE__\s*=', webpage, 'player info', video_id)
         user_country = traverse_obj(player_info, ('common', 'userCountry'))
 
         main_script_url = self._search_regex(r'<script\s+src="([^"]+/js/main\.[^"]+\.js)"', webpage, 'main script url')
-        main_script = self._download_wbm_page(main_script_url, video_id, note='Downloading main script')
+        main_script = self._download_archived_page(main_script_url, video_id, note='Downloading main script')
         app_id = self._search_regex(r'appId\s*=\s*"([^"]+)"', main_script, 'app id')
 
-        inkey = self._download_wbm_json(
+        inkey = self._download_archived_json(
             f'https://www.vlive.tv/globalv-web/vam-web/video/v1.0/vod/{video_id}/inkey', video_id, note='Fetching inkey', query={
                 'appId': app_id,
                 'platformType': 'PC',
@@ -1113,7 +1108,7 @@ class VLiveWebArchiveIE(InfoExtractor):
 
         vod_id = traverse_obj(player_info, ('postDetail', 'post', 'officialVideo', 'vodId'))
 
-        vod_data = self._download_wbm_json(
+        vod_data = self._download_archived_json(
             f'https://apis.naver.com/rmcnmv/rmcnmv/vod/play/v2.0/{vod_id}', video_id, note='Fetching vod data', query={
                 'key': inkey.get('inkey'),
                 'pid': 'rmcPlayer_16692457559726800',  # partially unix time and partially random. Fixed value used by archiveteam project
@@ -1143,11 +1138,11 @@ class VLiveWebArchiveIE(InfoExtractor):
         stream = streams[0]
 
         max_stream = max(
-            stream.get('videos', []),
+            stream.get('videos') or [],
             key=lambda v: traverse_obj(v, ('bitrate', 'video'), default=0), default=None)
         if max_stream is not None:
             params = {arg.get('name'): arg.get('value') for arg in stream.get('keys', []) if arg.get('type') == 'param'}
-            formats = self._extract_formats_from_m3u8(max_stream.get('source'), params, video_id)
+            formats = self._extract_formats_from_m3u8(max_stream.get('source'), params, video_id) or []
 
         # For parts of the project MP4 files were archived
         max_video = max(
@@ -1155,11 +1150,10 @@ class VLiveWebArchiveIE(InfoExtractor):
             key=lambda v: traverse_obj(v, ('bitrate', 'video'), default=0), default=None)
         if max_video is not None:
             video_url = self._WAYBACK_BASE_URL + max_video.get('source')
-            video_req = self._request_webpage(HEADRequest(video_url), video_id, note='Check video availablity', errnote=False, fatal=False)
-            if video_req:
-                formats.append({
-                    'url': video_url
-                })
+            urlh = self._request_webpage(HEADRequest(video_url), video_id, errnote=False,
+                                         fatal=False, note='Check video availablity')
+            if urlh:
+                formats.append({'url': video_url})
 
         return {
             'id': video_id,
