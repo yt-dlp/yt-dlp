@@ -311,8 +311,7 @@ class AbemaTVIE(AbemaTVBaseIE):
     _TIMETABLE = None
 
     def _perform_login(self, username, password):
-        auth_cache = self.cache.load('abema', 'usertoken')
-        if auth_cache and auth_cache[0] == username and self._get_media_token():
+        if self.cache.load(self._NETRC_MACHINE, username) and self._get_media_token():
             self.write_debug('Skipping logging in')
             return
 
