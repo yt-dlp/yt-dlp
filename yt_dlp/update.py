@@ -109,9 +109,23 @@ def _sha256_file(path):
     return h.hexdigest()
 
 
-class BaseUpdater:
+class Updater:
     def __init__(self, ydl):
         self.ydl = ydl
+
+    if CHANNEL == 'latest':
+        latest_tag = 'latest'
+        _version_field = 'name'
+        current_version = __version__
+    else:
+        latest_tag = f'tags/{CHANNEL}'
+        _version_field = 'target_commitish'
+        current_version = RELEASE_GIT_HEAD
+
+    def _version_compare(self, a, b):
+        if CHANNEL == 'stable':
+            return version_tuple(a) >= version_tuple(b)
+        return a == b
 
     @functools.cached_property
     def _tag(self):
@@ -135,6 +149,8 @@ class BaseUpdater:
     @property
     def new_version(self):
         """Version of the latest release we can update to"""
+        if CHANNEL == 'stable' and self._tag.startswith('tags/'):
+            return self._tag[5:]
         return self._get_version_info(self._tag)[self._version_field]
 
     @property
@@ -291,40 +307,6 @@ class BaseUpdater:
         self.ydl.write_debug(f'Restarting: {shell_quote(self.cmd)}')
         _, _, returncode = Popen.run(self.cmd)
         return returncode
-
-
-class StableUpdater(BaseUpdater):
-    latest_tag = 'latest'
-    _version_field = 'tag_name'
-    current_version = __version__
-
-    def _version_compare(self, a, b):
-        return version_tuple(a) >= version_tuple(b)
-
-    @property
-    def new_version(self):
-        if self._tag.startswith('tags/'):
-            return self._tag[5:]
-        return super().new_version
-
-
-class NightlyUpdater(BaseUpdater):
-    latest_tag = 'tags/nightly'
-    _version_field = 'target_commitish'
-    current_version = RELEASE_GIT_HEAD or 'unknown'
-
-    def _version_compare(self, a, b):
-        return a == b
-
-
-def Updater(ydl):
-    if CHANNEL == 'stable':
-        return StableUpdater(ydl)
-    elif CHANNEL == 'nightly':
-        return NightlyUpdater(ydl)
-
-    ydl.report_error(f'[update] Unknown channel: {CHANNEL}', tb=False)
-    ydl._download_retcode = 100
 
 
 def run_update(ydl):
