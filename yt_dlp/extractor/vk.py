@@ -1,5 +1,4 @@
 import collections
-import functools
 import hashlib
 import re
 
