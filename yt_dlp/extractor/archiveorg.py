@@ -1078,11 +1078,14 @@ class VLiveWebArchiveIE(InfoExtractor):
                 m3u8_doc[i] = f'{self._WAYBACK_BASE_URL}{url_base}/{line}?{urllib.parse.urlencode(params)}'
                 first_segment = first_segment or m3u8_doc[i]
 
-        # Segments may not have been archied. See 101870
+        # Segments may not have been archived. See https://web.archive.org/web/20221127190050/http://www.vlive.tv/video/101870
         urlh = self._request_webpage(HEADRequest(first_segment), video_id, errnote=False,
                                      fatal=False, note='Check first segment availablity')
         if urlh:
-            return self._parse_m3u8_formats_and_subtitles('\n'.join(m3u8_doc), ext='mp4', video_id=video_id)[0]
+            formats, subtitles = self._parse_m3u8_formats_and_subtitles('\n'.join(m3u8_doc), ext='mp4', video_id=video_id)
+            if subtitles:
+                self._report_ignoring_subs('m3u8')
+            return formats
 
     # Closely follows the logic of the ArchiveTeam grab script
     # See: https://github.com/ArchiveTeam/vlive-grab/blob/master/vlive.lua
