@@ -116,6 +116,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'episode': 'To the Future',
             'episode_number': 73,
             'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg$',
+            'chapters': 'count:2',
         },
         'params': {'skip_download': 'm3u8', 'format': 'all[format_id~=hardsub]'},
     }, {
@@ -136,6 +137,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'episode': 'Porter Robinson presents Shelter the Animation',
             'episode_number': 0,
             'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg$',
+            'chapters': 'count:0',
         },
         'params': {'skip_download': True},
         'skip': 'Video is Premium only',
@@ -209,6 +211,17 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 f['quality'] = hardsub_preference(hardsub_lang.lower())
             formats.extend(adaptive_formats)
 
+        chapters = None
+        # if no intro chapter is available, a 403 without usable data is returned
+        intro_chapter = self._download_json(f'https://static.crunchyroll.com/datalab-intro-v2/{internal_id}.json',
+                                            display_id, fatal=False, errnote=False)
+        if isinstance(intro_chapter, dict):
+            chapters = [{
+                'title': 'Intro',
+                'start_time': float_or_none(intro_chapter.get('startTime')),
+                'end_time': float_or_none(intro_chapter.get('endTime'))
+            }]
+
         return {
             'id': internal_id,
             'title': '%s Episode %s – %s' % (
@@ -235,6 +248,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                     'ext': subtitle_data.get('format')
                 }] for lang, subtitle_data in get_streams('subtitles')
             },
+            'chapters': chapters
         }
 
 

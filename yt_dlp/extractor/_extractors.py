@@ -21,7 +21,8 @@ from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeYtBeIE,
     YoutubeYtUserIE,
     YoutubeWatchLaterIE,
-    YoutubeShortsAudioPivotIE
+    YoutubeShortsAudioPivotIE,
+    YoutubeConsentRedirectIE,
 )
 
 from .abc import (
@@ -121,6 +122,7 @@ from .applepodcasts import ApplePodcastsIE
 from .archiveorg import (
     ArchiveOrgIE,
     YoutubeWebArchiveIE,
+    VLiveWebArchiveIE,
 )
 from .arcpublishing import ArcPublishingIE
 from .arkena import ArkenaIE
@@ -2047,6 +2049,10 @@ from .twitter import (
     TwitterSpacesIE,
     TwitterShortenerIE,
 )
+from .txxx import (
+    TxxxIE,
+    PornTopIE,
+)
 from .udemy import (
     UdemyIE,
     UdemyCourseIE
@@ -2179,11 +2185,6 @@ from .vk import (
     VKUserVideosIE,
     VKWallPostIE,
 )
-from .vlive import (
-    VLiveIE,
-    VLivePostIE,
-    VLiveChannelIE,
-)
 from .vodlocker import VodlockerIE
 from .vodpl import VODPlIE
 from .vodplatform import VODPlatformIE
@@ -2269,6 +2270,10 @@ from .worldstarhiphop import WorldStarHipHopIE
 from .wppilot import (
     WPPilotIE,
     WPPilotChannelsIE,
+)
+from .wrestleuniverse import (
+    WrestleUniverseVODIE,
+    WrestleUniversePPVIE,
 )
 from .wsj import (
     WSJIE,
