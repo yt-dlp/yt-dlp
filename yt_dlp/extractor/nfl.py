@@ -266,7 +266,8 @@ class NFLPlusEpisodeIE(NFLBaseIE):
             self._get_account_info(url, video_id)
 
         token = self._download_json(
-            'https://api.nfl.com/identity/v3/token%s' % ('/refresh' if self._ACCOUNT_INFO['refreshToken'] else ''),
+            'https://api.nfl.com/identity/v3/token%s' % (
+                '/refresh' if self._ACCOUNT_INFO.get('refreshToken') else ''),
             video_id, headers={'Content-Type': 'application/json'}, note='Downloading access token',
             data=json.dumps({**self._CLIENT_DATA, **self._ACCOUNT_INFO}, separators=(',', ':')).encode())
 
