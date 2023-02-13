@@ -13,6 +13,7 @@ from ..utils import (
     ExtractorError,
     clean_html,
     get_element_by_class,
+    get_element_html_by_id,
     int_or_none,
     join_nonempty,
     str_or_none,
@@ -607,12 +608,12 @@ class VKWallPostIE(VKBaseIE):
             'skip_download': True,
         },
     }, {
-        # single YouTube embed, no leading -
-        'url': 'https://vk.com/wall-211064634_4328',
+        # single YouTube embed with irrelevant reaction videos
+        'url': 'https://vk.com/wall-32370614_7173954',
         'info_dict': {
-            'id': '-211064634_4328',
-            'title': 'md5:eaccee920c2e92f4fef1c78d6ad9ff99',
-            'description': 'md5:e1d916cee68ccb30f6c2cf2ac18fd0f8',
+            'id': '-32370614_7173954',
+            'title': 'md5:9f93c405bbc00061d34007d78c75e3bc',
+            'description': 'md5:953b811f26fa9f21ee5856e2ea8e68fc',
         },
         'playlist_count': 1,
     }, {
@@ -693,8 +694,9 @@ class VKWallPostIE(VKBaseIE):
                 }],
             })
 
-        entries.extend(self.url_result(urljoin(url, entry), VKIE) for entry in re.findall(
-            r'<a[^>]+href=(?:["\'])(/video(?:-?[\d_]+)[^"\']*)', webpage))
+        entries.extend(self.url_result(urljoin(url, entry), VKIE) for entry in set(re.findall(
+            r'<a[^>]+href=(?:["\'])(/video(?:-?[\d_]+)[^"\']*)',
+            get_element_html_by_id('wl_post_body', webpage))))
 
         return self.playlist_result(
             entries, post_id, join_nonempty(uploader, f'Wall post {post_id}', delim=' - '),
