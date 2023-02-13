@@ -11,6 +11,7 @@ from ..utils import (
     determine_ext,
     get_element_by_class,
     traverse_obj,
+    try_call,
     urlencode_postdata,
 )
 
@@ -213,35 +214,29 @@ class NFLPlusEpisodeIE(NFLBaseIE):
         'params': {'skip_download': 'm3u8'},
     }]
 
-    _DESKTOP_CLIENT_KEY = '4cFUW6DmwJpzT9L7LrG3qRAcABG5s04g'
-    _DESKTOP_CLIENT_SECRET = 'CZuvCL49d9OwfGsR'
-
-    _DEVICE_INFO = base64.b64encode(json.dumps({
-        'model': 'desktop',
-        'version': 'Chrome',
-        'osName': 'Windows',
-        'osVersion': '10.0',
-    }, separators=(',', ':')).encode()).decode()
-
-    _DEVICE_ID = None
+    _CLIENT_DATA = {
+        'networkType': 'other',
+        'nflClaimGroupsToAdd': [],
+        'nflClaimGroupsToRemove': [],
+        'clientKey': '4cFUW6DmwJpzT9L7LrG3qRAcABG5s04g',
+        'clientSecret': 'CZuvCL49d9OwfGsR',
+        'deviceId': str(uuid.uuid4()),
+        'deviceInfo': base64.b64encode(json.dumps({
+            'model': 'desktop',
+            'version': 'Chrome',
+            'osName': 'Windows',
+            'osVersion': '10.0',
+        }, separators=(',', ':')).encode()).decode(),
+    }
+    _ACCOUNT_INFO = {}
     _API_KEY = None
 
     _TOKEN = None
     _TOKEN_EXPIRY = 0
-    _REFRESH_TOKEN = None
-
-    _UID = None
-    _UID_SIGNATURE = None
-    _SIGNATURE_TS = None
 
     def _get_account_info(self, url, video_id):
         cookies = self._get_cookies('https://www.nfl.com/')
-        login_token = None
-        for cookie in traverse_obj(cookies, lambda key, _: key.startswith('glt_')):
-            login_token = cookie.value
-            if cookie.key == f'glt_{self._API_KEY}':
-                break
-
+        login_token = try_call(lambda: cookies[f'glt_{self._API_KEY}'].value)
         if not login_token:
             self.raise_login_required()
 
@@ -260,41 +255,24 @@ class NFLPlusEpisodeIE(NFLBaseIE):
                 'format': 'json',
             }), headers={'Content-Type': 'application/x-www-form-urlencoded'})
 
-        self._UID = account['UID']
-        self._UID_SIGNATURE = account['UIDSignature']
-        self._SIGNATURE_TS = account['signatureTimestamp']
+        self._ACCOUNT_INFO = traverse_obj(account, {
+            'uid': 'UID',
+            'uidSignature': 'UIDSignature',
+            'signatureTimestamp': 'signatureTimestamp'
+        })
 
     def _get_auth_token(self, url, video_id):
-        if not self._UID or not self._UID_SIGNATURE or not self._SIGNATURE_TS:
+        if not self._ACCOUNT_INFO:
             self._get_account_info(url, video_id)
 
-        if not self._DEVICE_ID:
-            self._DEVICE_ID = str(uuid.uuid4())
-
-        data = {
-            'clientKey': self._DESKTOP_CLIENT_KEY,
-            'clientSecret': self._DESKTOP_CLIENT_SECRET,
-            'deviceId': self._DEVICE_ID,
-            'deviceInfo': self._DEVICE_INFO,
-            'networkType': 'other',
-            'nflClaimGroupsToAdd': [],
-            'nflClaimGroupsToRemove': [],
-            'signatureTimestamp': self._SIGNATURE_TS,
-            'uid': self._UID,
-            'uidSignature': self._UID_SIGNATURE,
-        }
-        if self._REFRESH_TOKEN:
-            data['refreshToken'] = self._REFRESH_TOKEN
-
         token = self._download_json(
-            'https://api.nfl.com/identity/v3/token%s' % ('/refresh' if self._REFRESH_TOKEN else ''),
-            video_id, data=json.dumps(data, separators=(',', ':')).encode(), headers={
-                'Content-Type': 'application/json',
-            }, note='Downloading access token')
+            'https://api.nfl.com/identity/v3/token%s' % ('/refresh' if self._ACCOUNT_INFO['refreshToken'] else ''),
+            video_id, headers={'Content-Type': 'application/json'}, note='Downloading access token',
+            data=json.dumps({**self._CLIENT_DATA, **self._ACCOUNT_INFO}, separators=(',', ':')).encode())
 
         self._TOKEN = token['accessToken']
         self._TOKEN_EXPIRY = token['expiresIn']
-        self._REFRESH_TOKEN = token['refreshToken']
+        self._ACCOUNT_INFO['refreshToken'] = token['refreshToken']
 
     def _real_extract(self, url):
         slug = self._match_id(url)
