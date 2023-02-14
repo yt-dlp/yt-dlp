@@ -285,9 +285,10 @@ class NFLPlusEpisodeIE(NFLBaseIE):
         slug = self._match_id(url)
 
         if not self._API_KEY:
-            webpage = self._download_webpage(url, slug)
+            webpage = self._download_webpage(url, slug, fatal=False) or ''
             self._API_KEY = self._search_regex(
-                r'window\.gigyaApiKey=["\'](\w+)["\'];', webpage, 'API key')
+                r'window\.gigyaApiKey=["\'](\w+)["\'];', webpage, 'API key',
+                default='3_Qa8TkWpIB8ESCBT8tY2TukbVKgO5F6BJVc7N1oComdwFzI7H2L9NOWdm11i_BY9f')
 
         if not self._TOKEN or self._TOKEN_EXPIRY <= int(time.time()):
             self._get_auth_token(url, slug)
