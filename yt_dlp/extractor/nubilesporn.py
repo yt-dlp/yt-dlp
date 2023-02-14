@@ -1,11 +1,10 @@
 import re
-from datetime import datetime
 
 from .common import InfoExtractor
 from ..utils import parse_resolution, \
     get_element_text_and_html_by_tag, get_element_html_by_class, get_elements_html_by_class, extract_attributes, \
-    clean_html, urlencode_postdata, get_element_by_class, parse_iso8601, float_or_none, int_or_none, \
-    get_element_by_id, get_elements_by_class
+    clean_html, urlencode_postdata, get_element_by_class, float_or_none, int_or_none, \
+    get_element_by_id, get_elements_by_class, unified_timestamp
 
 
 class NubilesPornIE(InfoExtractor):
@@ -13,12 +12,11 @@ class NubilesPornIE(InfoExtractor):
 
     _BASE_DOMAIN: str = 'nubiles-porn.com'
     _BASE_URL: str = f'https://{_BASE_DOMAIN}'
-    _MEMBERS_URL = f"https://members.{_BASE_DOMAIN}"
+    _MEMBERS_URL = f'https://members.{_BASE_DOMAIN}'
 
-    _VALID_URL = r'https?://(?:www\.)?members\.nubiles-porn\.com/video/watch/(?P<id>[0-9]+)/' \
-                 r'(?P<display_id>[a-z-0-9]+-(s(?P<season>[0-9]+)e(?P<episode>[0-9]+))$)'
-    _VALID_VIDEO_URL = f're:https://content2a.{_BASE_DOMAIN}/exclusive/(?:[a-z_]+)/videos/' \
-                       r'(?:[a-z0-9_]+).mp4\?st=(?:[a-zA-Z0-9_-]{22})&e=(?:[0-9]{10})&tr=(?:[A-Z0-9]{154})'
+    _VALID_URL = r'https?://(?:www\.)?members\.nubiles-porn\.com/video/watch/(?P<id>[0-9]+)/(?P<display_id>[a-z-0-9]+-(s(?P<season>[0-9]+)e(?P<episode>[0-9]+))$)'
+    _VALID_VIDEO_URL = f're:https://content2a.{_BASE_DOMAIN}/exclusive/' \
+                       r'(?:[a-z_]+)/videos/(?:[a-z0-9_]+).mp4\?st=(?:[a-zA-Z0-9_-]{22})&e=(?:[0-9]{10})&tr=(?:[A-Z0-9]{154})'
 
     _TESTS = [{
         'url': f'{_MEMBERS_URL}/video/watch/165320/trying-to-focus-my-one-track-mind-s3e1',
@@ -62,7 +60,7 @@ class NubilesPornIE(InfoExtractor):
             'season': 'Season 3',
             'season_number': 3,
             'episode': 'Episode 1',
-            'episode_number': 1,
+            'episode_number': 1
         }
     }]
 
@@ -74,7 +72,7 @@ class NubilesPornIE(InfoExtractor):
                               data=urlencode_postdata(hidden_inputs), video_id=None)
 
     @staticmethod
-    def _channel_info(element: str) -> dict:
+    def _get_channel_info(element: str) -> dict:
         info = {}
         if path := extract_attributes(get_element_html_by_class('site-link', element)).get('href'):
             info['url'] = f'{NubilesPornIE._MEMBERS_URL}{path}'
@@ -94,11 +92,6 @@ class NubilesPornIE(InfoExtractor):
         return dict(url=f'https:{url}', **res, format_id=f'mp4_{res.get("width")}_{res.get("height")}')
 
     @staticmethod
-    def _get_timestamp(element: str) -> int | None:
-        if raw := get_element_by_class('date', element):
-            return parse_iso8601(datetime.strptime(raw, '%b %d, %Y').isoformat())
-
-    @staticmethod
     def _get_categories(element: str) -> list[str] | None:
         if raw_category_section := get_element_by_class('categories', element):
             if raw_categories := get_elements_by_class('btn', raw_category_section):
@@ -114,47 +107,34 @@ class NubilesPornIE(InfoExtractor):
         url_match = self._match_valid_url(url)
         video_id = url_match.group('id')
         page: str = self._download_webpage(url, video_id=video_id)
-
-        video_container = get_element_html_by_class('watch-page-video-container', page)
         container = get_element_html_by_class('container', page)
+        timestamp = unified_timestamp(get_element_by_class('date', container))
+        channel_info = NubilesPornIE._get_channel_info(container)
 
-        timestamp = NubilesPornIE._get_timestamp(container)
-        channel_info = NubilesPornIE._channel_info(container)
-
-        return dict(
-            id=video_id,
-            title=self._search_regex('<h2>([^<]+)</h2>', container, 'title'),
-            formats=NubilesPornIE._get_formats(container),
-            ext='mp4',
-            display_id=url_match.group('display_id'),
-            thumbnail=self._search_regex('poster=\"(.*?)\"', video_container, 'thumbnail', fatal=False),
-            description=clean_html(get_element_html_by_class('content-pane-description', container)),
-
-            creator='NubilesPorn',
-            release_timestamp=timestamp,
-
-            uploader='NubilesPorn',
-            uploader_url=NubilesPornIE._MEMBERS_URL,
-            timestamp=timestamp,
-
-            channel=channel_info.get('name'),
-            channel_id=channel_info.get('id'),
-            channel_url=channel_info.get('url'),
-
-            like_count=int_or_none(get_element_by_id('likecount', container)),
-            average_rating=float_or_none(get_element_by_class('score', container)),
-
-            age_limit=18,
-            webpage_url=url,
-
-            categories=NubilesPornIE._get_categories(container),
-            tags=NubilesPornIE._get_tags(container),
-            cast=get_elements_by_class('content-pane-performer', container),
-
-            availability='needs_auth',
-
-            series=channel_info.get('name'),
-            series_id=channel_info.get('id'),
-            season_number=int_or_none(url_match.group('season')),
-            episode_number=int_or_none(url_match.group('episode')),
-        )
+        return {
+            'id': video_id,
+            'title': self._search_regex('<h2>([^<]+)</h2>', container, 'title'),
+            'formats': NubilesPornIE._get_formats(container), 'ext': 'mp4',
+            'display_id': url_match.group('display_id'),
+            'thumbnail': self._search_regex('poster=\"(.*?)\"', page, 'thumbnail', fatal=False),
+            'description': clean_html(get_element_html_by_class('content-pane-description', container)),
+            'creator': 'NubilesPorn',
+            'release_timestamp': timestamp,
+            'uploader': 'NubilesPorn',
+            'uploader_url': NubilesPornIE._MEMBERS_URL,
+            'timestamp': timestamp,
+            'channel': channel_info.get('name'),
+            'channel_id': channel_info.get('id'),
+            'channel_url': channel_info.get('url'),
+            'like_count': int_or_none(get_element_by_id('likecount', container)),
+            'average_rating': float_or_none(get_element_by_class('score', container)),
+            'age_limit': 18,
+            'webpage_url': url,
+            'categories': NubilesPornIE._get_categories(container),
+            'tags': NubilesPornIE._get_tags(container),
+            'cast': get_elements_by_class('content-pane-performer', container),
+            'availability': 'needs_auth',
+            'series': channel_info.get('name'),
+            'series_id': channel_info.get('id'),
+            'season_number': int_or_none(url_match.group('season')),
+            'episode_number': int_or_none(url_match.group('episode'))}
