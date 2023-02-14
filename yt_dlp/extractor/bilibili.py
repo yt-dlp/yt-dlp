@@ -1193,7 +1193,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             'formats': self._get_formats(ep_id=ep_id, aid=aid),
             'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
             'chapters': chapters,
-            '__post_extractor': self.extract_comments(video_id, "episode" if ep_id else "user_generated")
+            '__post_extractor': self.extract_comments(video_id, ep_id)
         }
 
 
