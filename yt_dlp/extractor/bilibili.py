@@ -1134,7 +1134,7 @@ class BiliIntlIE(BiliIntlBaseIE):
                 yield self._get_comments_reply(
                     root_id, comment_api_raw_data['data']['cursor']['next'], display_id)
 
-    def _get_comments(self, video_id, video_type):
+    def _get_comments(self, video_id, ep_id):
         for i in itertools.count(0):
             comment_api_raw_data = self._download_json(
                 'https://api.bilibili.tv/reply/web/root', video_id,
@@ -1144,7 +1144,7 @@ class BiliIntlIE(BiliIntlBaseIE):
                     'pn': i,  # page number
                     'ps': 20,  # comment per page (default: 20)
                     'oid': video_id,
-                    'type': 3 if video_type == "episode" else 1,  # 1: user generated content, 3: series content
+                    'type': 3 if ep_id else 1,  # 1: user generated content, 3: series content
                     'sort_type': 1,  # 1: best, 2: recent
                 })
 
