@@ -33,6 +33,7 @@ from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     GeoUtils,
+    HEADRequest,
     LenientJSONDecoder,
     RegexNotFoundError,
     RetryManager,
@@ -81,6 +82,7 @@ from ..utils import (
     update_url_query,
     url_basename,
     url_or_none,
+    urlhandle_detect_ext,
     urljoin,
     variadic,
     xpath_element,
@@ -218,6 +220,17 @@ class InfoExtractor:
                     * no_resume  The server does not support resuming the
                                  (HTTP or RTMP) download. Boolean.
                     * has_drm    The format has DRM and cannot be downloaded. Boolean
+                    * extra_param_to_segment_url  A query string to append to each
+                                 fragment's URL, or to update each existing query string
+                                 with. Only applied by the native HLS/DASH downloaders.
+                    * hls_aes    A dictionary of HLS AES-128 decryption information
+                                 used by the native HLS downloader to override the
+                                 values in the media playlist when an '#EXT-X-KEY' tag
+                                 is present in the playlist:
+                                 * uri  The URI from which the key will be downloaded
+                                 * key  The key (as hex) used to decrypt fragments.
+                                        If `key` is given, any key URI will be ignored
+                                 * iv   The IV (as hex) used to decrypt fragments
                     * downloader_options  A dictionary of downloader options
                                  (For internal use only)
                                  * http_chunk_size Chunk size for HTTP downloads
@@ -1663,11 +1676,8 @@ class InfoExtractor:
         if js is None:
             return {}
 
-        args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
-
-        for key, val in args.items():
-            if val in ('undefined', 'void 0'):
-                args[key] = 'null'
+        args = dict(zip(arg_keys.split(','), map(json.dumps, self._parse_json(
+            f'[{arg_vals}]', video_id, transform_source=js_to_json, fatal=fatal) or ())))
 
         ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
         return traverse_obj(ret, traverse) or {}
@@ -2173,12 +2183,22 @@ class InfoExtractor:
         return self._parse_m3u8_vod_duration(m3u8_vod or '', video_id)
 
     def _parse_m3u8_vod_duration(self, m3u8_vod, video_id):
-        if '#EXT-X-PLAYLIST-TYPE:VOD' not in m3u8_vod:
+        if '#EXT-X-ENDLIST' not in m3u8_vod:
             return None
 
         return int(sum(
             float(line[len('#EXTINF:'):].split(',')[0])
             for line in m3u8_vod.splitlines() if line.startswith('#EXTINF:'))) or None
+
+    def _extract_mpd_vod_duration(
+            self, mpd_url, video_id, note=None, errnote=None, data=None, headers={}, query={}):
+
+        mpd_doc = self._download_xml(
+            mpd_url, video_id,
+            note='Downloading MPD VOD manifest' if note is None else note,
+            errnote='Failed to download VOD manifest' if errnote is None else errnote,
+            fatal=False, data=data, headers=headers, query=query) or {}
+        return int_or_none(parse_duration(mpd_doc.get('mediaPresentationDuration')))
 
     @staticmethod
     def _xpath_ns(path, namespace=None):
@@ -2306,7 +2326,8 @@ class InfoExtractor:
             height = int_or_none(medium.get('height'))
             proto = medium.get('proto')
             ext = medium.get('ext')
-            src_ext = determine_ext(src)
+            src_ext = determine_ext(src, default_ext=None) or ext or urlhandle_detect_ext(
+                self._request_webpage(HEADRequest(src), video_id, note='Requesting extension info', fatal=False))
             streamer = medium.get('streamer') or base
 
             if proto == 'rtmp' or streamer.startswith('rtmp'):
