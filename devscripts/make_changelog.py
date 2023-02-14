@@ -385,7 +385,7 @@ def get_new_contributors(contributors_path, commits):
     for commit in commits:
         for author in commit.authors:
             author_folded = author.casefold()
-            if author_folded in contributors:
+            if author_folded not in contributors:
                 contributors.add(author_folded)
                 new_contributors.add(author)
 
