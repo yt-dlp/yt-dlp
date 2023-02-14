@@ -2,7 +2,6 @@ from .common import InfoExtractor
 from ..utils import (
     float_or_none,
     int_or_none,
-    qualities,
     remove_end,
     strip_or_none,
     traverse_obj,
@@ -17,6 +16,7 @@ class NZOnScreenIE(InfoExtractor):
         'info_dict': {
             'id': '726ed6585c6bfb30',
             'ext': 'mp4',
+            'format_id': 'hi',
             'display_id': 'shoop-shoop-diddy-wop-cumma-cumma-wang-dang-1982',
             'title': 'Monte Video - "Shoop Shoop, Diddy Wop"',
             'description': 'Monte Video - "Shoop Shoop, Diddy Wop"',
@@ -30,6 +30,7 @@ class NZOnScreenIE(InfoExtractor):
         'info_dict': {
             'id': '3dbe709ff03c36f1',
             'ext': 'mp4',
+            'format_id': 'hi',
             'display_id': 'shes-a-mod-1964',
             'title': 'Ray Columbus - \'She\'s A Mod\'',
             'description': 'Ray Columbus - \'She\'s A Mod\'',
@@ -43,6 +44,7 @@ class NZOnScreenIE(InfoExtractor):
         'info_dict': {
             'id': 'f86342544385ad8a',
             'ext': 'mp4',
+            'format_id': 'hi',
             'display_id': 'puha-and-pakeha-1968',
             'title': 'Looking At New Zealand - Puha and Pakeha',
             'alt_title': 'Looking at New Zealand - \'Pūhā and Pākehā\' | Television',
@@ -54,18 +56,16 @@ class NZOnScreenIE(InfoExtractor):
     }]
 
     def _extract_formats(self, playlist):
-        quality = qualities(['lo_res', 'hd_res', 'hi_res'])
-        for id_, url in (playlist.get('h264') or {}).items():
-            if not id_.endswith('_res') or not url_or_none(url):
-                continue
+        for quality, (id_, url) in enumerate(traverse_obj(
+                playlist, ('h264', {'lo': 'lo_res', 'hi': 'hi_res'}), expected_type=url_or_none).items()):
             yield {
                 'url': url,
-                'format_id': id_[:-4],
+                'format_id': id_,
                 'ext': 'mp4',
-                'quality': quality(id_),
-                'height': int_or_none(playlist.get('height')) if id_ == 'hi_res' else None,
-                'width': int_or_none(playlist.get('width')) if id_ == 'hi_res' else None,
-                'filesize_approx': float_or_none(traverse_obj(playlist, ('h264', f'{id_}_mb')), invscale=1024**2),
+                'quality': quality,
+                'height': int_or_none(playlist.get('height')) if id_ == 'hi' else None,
+                'width': int_or_none(playlist.get('width')) if id_ == 'hi' else None,
+                'filesize_approx': float_or_none(traverse_obj(playlist, ('h264', f'{id_}_res_mb')), invscale=1024**2),
             }
 
     def _real_extract(self, url):
