@@ -1118,7 +1118,7 @@ class BiliIntlIE(BiliIntlBaseIE):
                 'next': next_id,
             })
 
-        for replies in traverse_obj(comment_api_raw_data, ('data', 'replies', ...)) or ():
+        for replies in traverse_obj(comment_api_raw_data, ('data', 'replies', ...)):
             yield {
                 'author': traverse_obj(replies, ('member', 'name')),
                 'author_id': traverse_obj(replies, ('member', 'mid')),
@@ -1130,15 +1130,15 @@ class BiliIntlIE(BiliIntlBaseIE):
                 'timestamp': unified_timestamp(replies.get('ctime_text'))
             }
 
-            if (not traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end'))):
+            if not traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end')):
                 yield self._get_comments_reply(
-                    root_id, traverse_obj(comment_api_raw_data, ('data', 'cursor', 'next')), display_id)
+                    root_id, comment_api_raw_data['data']['cursor']['next'], display_id)
 
     def _get_comments(self, video_id, video_type):
         for i in itertools.count(0):
             comment_api_raw_data = self._download_json(
                 'https://api.bilibili.tv/reply/web/root', video_id,
-                note=f'Downloading comment page {i}',
+                note=f'Downloading comment page {i + 1}',
                 query={
                     'platform': 'web',
                     'pn': i,  # page number
@@ -1157,9 +1157,9 @@ class BiliIntlIE(BiliIntlBaseIE):
                     'id': replies.get('rpid'),
                     'like_count': int_or_none(replies.get('like_count')),
                     'timestamp': unified_timestamp(replies.get('ctime_text')),
-                    'author_is_uploader': traverse_obj(replies, ('member', 'type')),
+                    'author_is_uploader': bool(traverse_obj(replies, ('member', 'type'))),
                 }
-                if replies.get('count') > 0:
+                if replies.get('count'):
                     yield from self._get_comments_reply(replies.get('rpid'), display_id=video_id)
 
             if traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end')):
