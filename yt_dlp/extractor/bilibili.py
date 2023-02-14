@@ -1148,7 +1148,7 @@ class BiliIntlIE(BiliIntlBaseIE):
                     'sort_type': 1,  # 1: best, 2: recent
                 })
 
-            for replies in traverse_obj(comment_api_raw_data, ('data', 'replies', ...)) or ():
+            for replies in traverse_obj(comment_api_raw_data, ('data', 'replies', ...)):
                 yield {
                     'author': traverse_obj(replies, ('member', 'name')),
                     'author_id': traverse_obj(replies, ('member', 'mid')),
