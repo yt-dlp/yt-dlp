@@ -1,6 +1,5 @@
 import copy
 import logging
-import os
 import shutil
 import subprocess
 import sys
@@ -321,9 +320,9 @@ class Logger:
             self._init_bidi_workaround()
             self._bidi_initialized = True
 
-        except Exception as error:
+        except Exception:
             self._bidi_initialized = False
-            raise error
+            raise
 
     def _init_bidi_workaround(self):
         import pty
@@ -334,26 +333,25 @@ class Logger:
 
         master, slave = pty.openpty()
         width = shutil.get_terminal_size().columns
-        width_args = [] if width is None else ['-w', str(width)]
-        sp_kwargs = {'stdin': subprocess.PIPE, 'stdout': slave, 'stderr': sys.stderr}
+        width_args = [] if not width else ['-w', str(width)]
+        sp_kwargs = dict(stdin=subprocess.PIPE, stdout=slave, stderr=sys.stderr, encoding='utf-8')
         try:
             _output_process = subprocess.Popen(['bidiv'] + width_args, **sp_kwargs)
         except OSError:
             _output_process = subprocess.Popen(['fribidi', '-c', 'UTF-8'] + width_args, **sp_kwargs)
 
-        self._bidi_process = _output_process
         assert _output_process.stdin is not None
+        self._bidi_process = _output_process
         self._bidi_writer = _output_process.stdin
-        self._bidi_reader = os.fdopen(master, 'rb')
+        self._bidi_reader = open(master, 'r', encoding='utf-8')
 
     def _apply_bidi_workaround(self, message):
         # `init_bidi_workaround()` MUST have been called prior.
-        line_count = message.count('\n') + 1
-
         self._bidi_writer.write(f'{message}\n')
         self._bidi_writer.flush()
-        result = b''.join(self._bidi_reader.readlines(line_count)).decode()
-        return result[:-1]
+
+        line_count = message.count('\n') + 1
+        return ''.join(self._bidi_reader.readlines(line_count))[:-1]
 
 
 default_logger = Logger(sys.stderr).setup_stream_outputs(None, sys.stderr)
