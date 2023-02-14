@@ -1197,6 +1197,8 @@ from .nfhsnetwork import NFHSNetworkIE
 from .nfl import (
     NFLIE,
     NFLArticleIE,
+    NFLPlusEpisodeIE,
+    NFLPlusReplayIE,
 )
 from .nhk import (
     NhkVodIE,
@@ -1287,6 +1289,7 @@ from .nytimes import (
 )
 from .nuvid import NuvidIE
 from .nzherald import NZHeraldIE
+from .nzonscreen import NZOnScreenIE
 from .nzz import NZZIE
 from .odatv import OdaTVIE
 from .odnoklassniki import OdnoklassnikiIE
