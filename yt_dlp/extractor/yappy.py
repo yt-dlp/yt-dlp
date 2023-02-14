@@ -55,26 +55,28 @@ class YappyIE(InfoExtractor):
                 nextjs_data, ('props', 'pageProps', ('data', 'OpenGraphParameters')), get_all=False)
             or self._download_json(f'https://yappy.media/api/video/{video_id}', video_id))
 
-        media_url = media_data['link']
-        has_watermark = str(media_url).endswith('wm.mp4')
+        media_url = traverse_obj(media_data, ('link', {url_or_none})) or ''
+        has_watermark = media_url.endswith('-wm.mp4')
 
         formats = [{
-            'url': url_or_none(media_url),
+            'url': media_url,
             'ext': 'mp4',
             'format_note': 'Watermarked' if has_watermark else None,
             'preference': -10 if has_watermark else None
-        }]
+        }] if media_url else []
 
-        if has_watermark and media_url:
+        if has_watermark:
             formats.append({
-                'url': url_or_none(str(media_url).replace('-wm.mp4', '.mp4')),
+                'url': media_url.replace('-wm.mp4', '.mp4'),
                 'ext': 'mp4'
             })
 
-        if media_data.get('audio'):
+        audio_link = traverse_obj(media_data, ('audio', 'link'))
+        if audio_link:
             formats.append({
-                'url': traverse_obj(media_data, ('audio', 'link')),
+                'url': audio_link,
                 'ext': 'mp3',
+                'acodec': 'mp3',
                 'vcodec': 'none'
             })
 
