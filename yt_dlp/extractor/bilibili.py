@@ -1113,7 +1113,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             note=f'Downloading reply comment of {root_id}',
             query={
                 'platform': 'web',
-                'ps': 5,  # comment's reply per page (default: 3)
+                'ps': 20,  # comment's reply per page (default: 3)
                 'root': root_id,
                 'next': next_id,
             })
