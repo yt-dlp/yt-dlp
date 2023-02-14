@@ -399,7 +399,7 @@ class ViuOTTIE(InfoExtractor):
         }
 
 
-class ViuOTTNewBaseIE(InfoExtractor):
+class ViuOTTIndonesiaBaseIE(InfoExtractor):
     _BASE_QUERY = {
         'ver': 1.0,
         'fmt': 'json',
@@ -424,7 +424,7 @@ class ViuOTTNewBaseIE(InfoExtractor):
     }
 
     def _real_initialize(self):
-        ViuOTTNewBaseIE._TOKEN = self._download_json(
+        ViuOTTIndonesiaBaseIE._TOKEN = self._download_json(
             'https://um.viuapi.io/user/identity', None,
             headers={'Content-type': 'application/json', **self._HEADERS},
             query={**self._BASE_QUERY, 'iid': self._DEVICE_ID},
@@ -432,7 +432,7 @@ class ViuOTTNewBaseIE(InfoExtractor):
             note='Downloading token information')['token']
 
 
-class ViuOTTNewIE(ViuOTTNewBaseIE):
+class ViuOTTIndonesiaIE(ViuOTTIndonesiaBaseIE):
     _VALID_URL = r'https?://www\.viu\.com/ott/\w+/\w+/all/video-[\w-]+-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.viu.com/ott/id/id/all/video-japanese-drama-tv_shows-detective_conan_episode_793-1165863142?containerId=playlist-26271226',
@@ -501,7 +501,7 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
 
         video_data = self._download_json(
             f'https://um.viuapi.io/drm/v1/content/{display_id}', display_id, data=b'',
-            headers={'Authorization': ViuOTTNewBaseIE._TOKEN, **self._HEADERS, 'ccode': 'ID'})
+            headers={'Authorization': ViuOTTIndonesiaBaseIE._TOKEN, **self._HEADERS, 'ccode': 'ID'})
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_data['playUrl'], display_id)
 
         initial_state = self._search_json(

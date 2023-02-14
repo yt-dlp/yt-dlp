@@ -2178,7 +2178,7 @@ from .viu import (
     ViuIE,
     ViuPlaylistIE,
     ViuOTTIE,
-    ViuOTTNewIE,
+    ViuOTTIndonesiaIE,
 )
 from .vk import (
     VKIE,
