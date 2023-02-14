@@ -290,13 +290,19 @@ class TikTokBaseIE(InfoExtractor):
         contained_music_track = traverse_obj(
             music_info, ('matched_song', 'title'), ('matched_pgc_sound', 'title'), expected_type=str)
         contained_music_author = traverse_obj(
-            music_info, ('matched_song', 'author'), ('matched_pgc_sound', 'author'), 'author', expected_type=str)
+            music_info, ('matched_song', 'author'), ('matched_pgc_sound', 'author'), expected_type=str)
 
         is_generic_og_trackname = music_info.get('is_original_sound') and music_info.get('title') == 'original sound - %s' % music_info.get('owner_handle')
-        if is_generic_og_trackname:
-            music_track, music_author = contained_music_track or 'original sound', contained_music_author
+        music_track, music_author = 'original sound' if is_generic_og_trackname else music_info.get('title'), music_info.get('author')
+
+        if contained_music_track or contained_music_author:
+            contained_music_info = [{
+                'relation': 'music',
+                'track': contained_music_track,
+                'artist': contained_music_author,
+            }]
         else:
-            music_track, music_author = music_info.get('title'), music_info.get('author')
+            contained_music_info = None
 
         return {
             'id': aweme_id,
@@ -317,6 +323,7 @@ class TikTokBaseIE(InfoExtractor):
             'track_id': str_or_none(music_info.get('id')),
             'album': str_or_none(music_info.get('album')) or None,
             'artist': music_author or None,
+            'attributions': contained_music_info,
             'timestamp': int_or_none(aweme_detail.get('create_time')),
             'formats': formats,
             'subtitles': self.extract_subtitles(aweme_detail, aweme_id),
@@ -476,6 +483,13 @@ class TikTokIE(TikTokBaseIE):
             'track': 'Boka Dance',
             'track_id': '6984138615588653826',
             'artist': 'md5:29f238c49bc0c176cb3cef1a9cea9fa6',
+            'attributions': [
+                {
+                    'relation': 'music',
+                    'track': 'Boka Loka Dance',
+                    'artist': 'FAUJI NOSS',
+                }
+            ],
             'timestamp': 1626121503,
             'duration': 18,
             'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
