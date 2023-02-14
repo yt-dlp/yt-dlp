@@ -286,7 +286,7 @@ class CommitRange:
             for line in iter(lambda: next(lines), self.COMMIT_SEPARATOR):
                 match = self.AUTHOR_INDICATOR_RE.match(line)
                 if match:
-                    authors = sorted(map(str.strip, line[match.end():].split(',')), key=str.lower)
+                    authors = sorted(map(str.strip, line[match.end():].split(',')), key=str.casefold)
 
             commit = Commit(commit_hash, short, authors)
             if skip:
@@ -379,18 +379,17 @@ def get_new_contributors(contributors_path, commits):
             for line in filter(None, map(str.strip, file)):
                 author, _, _ = line.partition(' (')
                 authors = author.split('/')
-                contributors.update(map(str.lower, authors))
+                contributors.update(map(str.casefold, authors))
 
-    new_contributors = {}
+    new_contributors = set()
     for commit in commits:
         for author in commit.authors:
-            author_compare = author.lower()
-            if author_compare in contributors:
-                continue
-            contributors.add(author_compare)
-            new_contributors[author] = None
+            author_folded = author.casefold()
+            if author_folded in contributors:
+                contributors.add(author_folded)
+                new_contributors.add(author)
 
-    return list(reversed(new_contributors))
+    return sorted(new_contributors, key=str.casefold)
 
 
 if __name__ == '__main__':
@@ -445,7 +444,7 @@ if __name__ == '__main__':
         with args.contributors_path.open('a') as file:
             for contributor in new_contributors:
                 file.write(f'{contributor}\n')
-        logger.info(f'Added new contributors: {new_contributors}')
+        logger.info(f'Added new contributors: {", ".join(new_contributors)}')
     else:
         logger.debug(f'New contributors: {new_contributors}')
 
