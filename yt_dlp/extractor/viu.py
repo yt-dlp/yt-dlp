@@ -514,13 +514,16 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
                 r'^subtitle_(?P<lang>[\w-]+)_(?P<ext>\w+)$', key, 'subtitle metadata',
                 default=(None, None), group=('lang', 'ext'))
             if lang and ext:
-                subtitles.setdefault(lang, []).extend({
+                subtitles.setdefault(lang, []).append({
                     'ext': ext,
                     'url': url,
-                }, {
-                    'ext': 'srt',
-                    'url': f'{remove_end(initial_state_json[key], "vtt")}srt',
                 })
+                
+                if ext == 'vtt':
+                    subtitles[lang].append({
+                        'ext': 'srt',
+                        'url': f'{remove_end(initial_state_json[key], "vtt")}srt',
+                    })
 
         return {
             'id': display_id,
