@@ -1,7 +1,11 @@
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import (
-    ExtractorError,
+from .common import InfoExtractor
+from ..utils import (
+    float_or_none,
+    int_or_none,
+    qualities,
     traverse_obj,
+    try_get,
+    url_or_none,
 )
 
 
@@ -9,60 +13,64 @@ class NZOnScreenIE(InfoExtractor):
     _VALID_URL = r'^https://www.nzonscreen.com/title/(?P<id>[^\?]+)'
     _TESTS = [{
         'url': 'https://www.nzonscreen.com/title/shoop-shoop-diddy-wop-cumma-cumma-wang-dang-1982',
-        'md5': 'a0375e9b6f14b235438506cb0aee974c',
         'info_dict': {
-            'id': 'shoop-shoop-diddy-wop-cumma-cumma-wang-dang-1982',
+            'id': '726ed6585c6bfb30',
+            'display_id': 'shoop-shoop-diddy-wop-cumma-cumma-wang-dang-1982',
             'ext': 'mp4',
             'title': 'Monte Video - "Shoop Shoop, Diddy Wop"',
-            'format_id': 'lo_res'
+            'playable_in_embed': False,
+            'thumbnail': r're:https://www\.nzonscreen\.com/content/images/.+\.jpg',
+            'duration': 158,
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.nzonscreen.com/title/shes-a-mod-1964?collection=best-of-the-60s',
-        'md5': 'e8a56d7d02cdcdc5d6f8897e2532e157',
         'info_dict': {
-            'id': 'shes-a-mod-1964',
+            'id': '3dbe709ff03c36f1',
+            'display_id': 'shes-a-mod-1964',
             'ext': 'mp4',
             'title': 'Ray Columbus - \'She\'s A Mod\'',
-            'format_id': 'lo_res'
+            'playable_in_embed': False,
+            'thumbnail': r're:https://www\.nzonscreen\.com/content/images/.+\.jpg',
+            'duration': 130,
         },
+        'params': {'skip_download': 'm3u8'},
     }]
+
+    def _extract_formats(self, playlist):
+        quality = qualities(['lo_res', 'hd_res', 'hi_res'])
+        for id_, url in (playlist.get('h264') or {}).items():
+            if not id_.endswith('_res') or not url_or_none(url):
+                continue
+            yield {
+                'url': url,
+                'format_id': id_[:-4],
+                'ext': 'mp4',
+                'quality': quality(id_),
+                'height': int_or_none(playlist.get('height')) if id_ == 'hi_res' else None,
+                'width': int_or_none(playlist.get('width')) if id_ == 'hi_res' else None,
+                'filesize_approx': float_or_none(traverse_obj(playlist, ('h264', f'{id_}_mb')), invscale=1024**2),
+            }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
         playlist = self._parse_json(self._html_search_regex(
-            r'data-video-config=\'(.+?)\'', webpage, 'media data'),
-            video_id)
-
-        title = traverse_obj(playlist, 'label') or traverse_obj(playlist, 'description') or ''
-        if not title:
-            page_title = self._html_extract_title(webpage, default=None) or self._og_search_title(
-                webpage, default=None)
-            if page_title and '|' in page_title:
-                title = page_title.split('|')[0].strip()
-
-        playlist_formats = traverse_obj(playlist, 'h264', default=None)
-
-        if not playlist_formats:
-            raise ExtractorError('No video formats found')
-
-        formats = []
-        for format_id in ['lo_res', 'hd_res', 'hi_res']:
-            if format_id in playlist_formats:
-                formats.append({
-                    'url': traverse_obj(playlist_formats, format_id),
-                    'format_id': format_id,
-                    'ext': 'mp4',
-                    'http_headers': {
-                        'Referer': 'https://www.nzonscreen.com/',
-                        'Origin': 'https://www.nzonscreen.com/',
-                    }
-                })
+            r'data-video-config=\'([^\']+)\'', webpage, 'media data'), video_id)
 
         return {
-            'id': video_id,
-            'title': title,
-            '_type': 'video',
-            'formats': formats,
+            'id': playlist['uuid'],
+            'display_id': video_id,
+            'title': traverse_obj(playlist, 'label', 'description') or try_get(
+                self._html_extract_title(webpage, default=None) or self._og_search_title(webpage),
+                lambda x: x.split('|')[0].strip()),
+            'thumbnail': traverse_obj(playlist, ('thumbnail', 'path')),
+            'duration': float_or_none(playlist.get('duration')),
+            'playable_in_embed': playlist.get('embeddable'),
+            'formats': list(self._extract_formats(playlist)),
+            'http_headers': {
+                'Referer': 'https://www.nzonscreen.com/',
+                'Origin': 'https://www.nzonscreen.com/',
+            }
         }
