@@ -1280,6 +1280,7 @@ from .nrl import NRLTVIE
 from .ntvcojp import NTVCoJpCUIE
 from .ntvde import NTVDeIE
 from .ntvru import NTVRuIE
+from .nubilesporn import NubilesPornIE
 from .nytimes import (
     NYTimesIE,
     NYTimesArticleIE,
