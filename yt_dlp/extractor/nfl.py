@@ -7,6 +7,7 @@ import uuid
 from .anvato import AnvatoIE
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     determine_ext,
     get_element_by_class,
@@ -215,9 +216,6 @@ class NFLPlusEpisodeIE(NFLBaseIE):
     }]
 
     _CLIENT_DATA = {
-        'networkType': 'other',
-        'nflClaimGroupsToAdd': [],
-        'nflClaimGroupsToRemove': [],
         'clientKey': '4cFUW6DmwJpzT9L7LrG3qRAcABG5s04g',
         'clientSecret': 'CZuvCL49d9OwfGsR',
         'deviceId': str(uuid.uuid4()),
@@ -227,6 +225,9 @@ class NFLPlusEpisodeIE(NFLBaseIE):
             'osName': 'Windows',
             'osVersion': '10.0',
         }, separators=(',', ':')).encode()).decode(),
+        'networkType': 'other',
+        'nflClaimGroupsToAdd': [],
+        'nflClaimGroupsToRemove': [],
     }
     _ACCOUNT_INFO = {}
     _API_KEY = None
@@ -256,10 +257,13 @@ class NFLPlusEpisodeIE(NFLBaseIE):
             }), headers={'Content-Type': 'application/x-www-form-urlencoded'})
 
         self._ACCOUNT_INFO = traverse_obj(account, {
+            'signatureTimestamp': 'signatureTimestamp',
             'uid': 'UID',
             'uidSignature': 'UIDSignature',
-            'signatureTimestamp': 'signatureTimestamp'
         })
+
+        if len(self._ACCOUNT_INFO) != 3:
+            raise ExtractorError('Failed to retrieve account info with provided cookies', expected=True)
 
     def _get_auth_token(self, url, video_id):
         if not self._ACCOUNT_INFO:
