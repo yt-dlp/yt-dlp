@@ -498,16 +498,15 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        episode = traverse_obj(list(filter(
-            lambda x: x.get('@type') in ('TVEpisode', 'Movie'), self._yield_json_ld(webpage, display_id))), 0) or {}
-        initial_state = self._search_json(
-            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state',
-            display_id)['content']['clipDetails']
+
         video_data = self._download_json(
             f'https://um.viuapi.io/drm/v1/content/{display_id}', display_id, data=b'',
             headers={'Authorization': ViuOTTNewBaseIE._TOKEN, **self._HEADERS, 'ccode': 'ID'})
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_data['playUrl'], display_id)
 
+        initial_state = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state',
+            display_id)['content']['clipDetails']
         for key, url in initial_state.items():
             lang, ext = self._search_regex(
                 r'^subtitle_(?P<lang>[\w-]+)_(?P<ext>\w+)$', key, 'subtitle metadata',
@@ -517,13 +516,15 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
                     'ext': ext,
                     'url': url,
                 })
-                
+
                 if ext == 'vtt':
                     subtitles[lang].append({
                         'ext': 'srt',
                         'url': f'{remove_end(initial_state[key], "vtt")}srt',
                     })
 
+        episode = traverse_obj(list(filter(
+            lambda x: x.get('@type') in ('TVEpisode', 'Movie'), self._yield_json_ld(webpage, display_id))), 0) or {}
         return {
             'id': display_id,
             'title': (traverse_obj(initial_state, 'title', 'display_title')
