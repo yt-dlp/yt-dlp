@@ -12,7 +12,7 @@ from .compat import compat_expanduser
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
 from .output.helper import _make_ydl_logger
-from .output.logging import LogLevel
+from .output.logger import LogLevel
 from .output.outputs import StreamOutput
 from .postprocessor import (
     FFmpegExtractAudioPP,

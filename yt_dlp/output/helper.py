@@ -1,8 +1,27 @@
 import errno
+import inspect
 import sys
+import warnings
 
-from .logging import Verbosity, Logger
+from .logger import Logger, Verbosity
 from ..utils import windows_enable_vt_mode
+
+
+def redirect_warnings(logger):
+    """Redirect messages from the `warnings` module to a `Logger`"""
+    _old_showwarning = warnings.showwarning
+
+    def _warnings_showwarning(message, category, filename, lineno, file=None, line=None):
+        if file is not None:
+            _old_showwarning(message, category, filename, lineno, file, line)
+            return
+
+        module = inspect.getmodule(None, filename)
+        if module:
+            filename = module.__name__
+        logger.warning(f'{category.__name__} ({filename}:{lineno}): {message}')
+
+    warnings.showwarning = _warnings_showwarning
 
 
 def make_logger(params):
@@ -22,11 +41,11 @@ def make_logger(params):
 
     logger_param = params.get('logger')
     if logger_param == 'logging':
-        logger.setup_logging_logger()
+        logger.setup_logging_outputs()
     elif logger_param:
-        logger.setup_class_logger(logger_param)
+        logger.setup_class_outputs(logger_param)
     else:
-        logger.setup_stream_logger(stdout, sys.stderr, no_warnings=params.get('no_warnings', False))
+        logger.setup_stream_outputs(stdout, sys.stderr, no_warnings=params.get('no_warnings', False))
 
     return logger
 
@@ -40,7 +59,7 @@ def wrap_debug(logger):
 
     _debug_wrap_indicator = '__ydl_debug_wrapped'
     if not getattr(logger, _debug_wrap_indicator, None):
-        logger = logger.make_derived(debug=debug)
+        logger = logger.derive(debug=debug)
         setattr(logger, _debug_wrap_indicator, True)
 
     return logger

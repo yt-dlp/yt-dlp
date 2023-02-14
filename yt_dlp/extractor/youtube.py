@@ -22,7 +22,8 @@ from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
 from ..compat import functools
 from ..jsinterp import JSInterpreter
-from ..output.logging import LogLevel, Style
+from ..output.enums import Style
+from ..output.logger import LogLevel
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,

@@ -24,7 +24,8 @@ from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
-from ..output.logging import LogLevel, Style, default_logger
+from ..output.enums import Style
+from ..output.logger import LogLevel, default_logger
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,

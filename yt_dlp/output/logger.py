@@ -1,5 +1,4 @@
 import copy
-import inspect
 import logging
 import os
 import shutil
@@ -7,64 +6,11 @@ import subprocess
 import sys
 import traceback
 import warnings
-from enum import Enum
 
-from .hoodoo import Color, TermCode
+from .enums import LogLevel, Style, Verbosity
 from .outputs import NULL_OUTPUT, ClassOutput, LoggingOutput, StreamOutput
 from ..compat import functools
-from ..utils import Namespace, bug_reports_message, variadic
-
-
-class LogLevel(Enum):
-    """
-    Represents a LogLevel
-
-    Each LogLevel has a dedicated output in the Logger mapping.
-    """
-    SCREEN = 0
-    DEBUG = 10
-    INFO = 20
-    WARNING = 30
-    ERROR = 40
-
-
-class Verbosity(Enum):
-    """
-    Represents a Verbosity
-
-    Verbosity acts as a filter for certain logging events.
-    """
-    QUIET = 0
-    NORMAL = 1
-    VERBOSE = 2
-
-
-class Style(metaclass=Namespace):
-    HEADER = TermCode.make(Color.YELLOW)
-    EMPHASIS = TermCode.make(Color.LIGHT | Color.BLUE)
-    FILENAME = TermCode.make(Color.GREEN)
-    ID = TermCode.make(Color.GREEN)
-    DELIM = TermCode.make(Color.BLUE)
-    ERROR = TermCode.make(Color.RED)
-    WARNING = TermCode.make(Color.YELLOW)
-    SUPPRESS = TermCode.make(Color.LIGHT | Color.BLACK)
-
-
-def redirect_warnings(logger):
-    """Redirect messages from the `warnings` module to a `Logger`"""
-    _old_showwarning = warnings.showwarning
-
-    def _warnings_showwarning(message, category, filename, lineno, file=None, line=None):
-        if file is not None:
-            _old_showwarning(message, category, filename, lineno, file, line)
-            return
-
-        module = inspect.getmodule(None, filename)
-        if module:
-            filename = module.__name__
-        logger.warning(f'{category.__name__} ({filename}:{lineno}): {message}')
-
-    warnings.showwarning = _warnings_showwarning
+from ..utils import bug_reports_message, variadic
 
 
 class Logger:
@@ -73,9 +19,9 @@ class Logger:
 
     After instancing all `LogLevel`s beside `LogLevel.SCREEN` are NULL_OUTPUT.
     To initialize them to the appropriate values you SHOULD call one of:
-    - `setup_stream_logger`
-    - `setup_class_logger`
-    - `setup_logging_logger`
+    - `setup_stream_outputs`
+    - `setup_class_outputs`
+    - `setup_logging_outputs`
     Alternatively you can also define your own outputs deriving `OutputBase`
     and set those for the LogLevel in the mapping of the logger.
     You are free to call any of the setup functions more than once.
@@ -108,7 +54,7 @@ class Logger:
     def bidi_initialized(self):
         return self._bidi_initialized
 
-    def make_derived(self, **overrides):
+    def derive(self, **overrides):
         """
         Create a derived logger.
 
@@ -135,7 +81,7 @@ class Logger:
         derived.mapping = self.mapping.copy()
         return derived
 
-    def setup_stream_logger(self, stdout, stderr, *, no_warnings=False):
+    def setup_stream_outputs(self, stdout, stderr, *, no_warnings=False):
         """
         Setup the Logger with the provided streams
 
@@ -156,7 +102,7 @@ class Logger:
         })
         return self
 
-    def setup_class_logger(self, logger):
+    def setup_class_outputs(self, logger):
         """
         Setup the Logger with the provided class
 
@@ -181,7 +127,7 @@ class Logger:
         })
         return self
 
-    def setup_logging_logger(self):
+    def setup_logging_outputs(self):
         """Setup the Logger with the logging module"""
         self.mapping.update({
             LogLevel.DEBUG: LoggingOutput(logging.DEBUG),
@@ -248,7 +194,7 @@ class Logger:
         """
         Format text using specified text formats
 
-        @param level            The LogLevel for which to try the encoding.
+        @param level            The LogLevel for which to format the text.
                                 It will be used to lookup the output in the mapping.
         @param text             The text to format. It will be wrapped in the
                                 color start and end sequences.
@@ -410,4 +356,4 @@ class Logger:
         return result[:-1]
 
 
-default_logger = Logger(sys.stderr).setup_stream_logger(None, sys.stderr)
+default_logger = Logger(sys.stderr).setup_stream_outputs(None, sys.stderr)

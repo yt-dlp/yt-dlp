@@ -1,7 +1,7 @@
 import sys
 
 from .hoodoo import BEL, CSI, TermCode
-from .outputs import StreamOutput, NULL_OUTPUT
+from .outputs import NULL_OUTPUT, StreamOutput
 
 
 class Console:

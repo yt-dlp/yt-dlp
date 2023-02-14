@@ -32,7 +32,8 @@ from .extractor.common import UnsupportedURLIE
 from .extractor.openload import PhantomJSwrapper
 from .output import helper as output_helper
 from .output.console import Console
-from .output.logging import Logger, LogLevel, Style
+from .output.enums import LogLevel, Style
+from .output.logger import Logger
 from .output.outputs import StreamOutput
 from .plugins import directories as plugin_directories
 from .postprocessor import _PLUGIN_CLASSES as plugin_pps
@@ -736,7 +737,7 @@ class YoutubeDL:
 
         _error_wrap_indicator = '__ydl_error_wrapped'
         if not getattr(logger, _error_wrap_indicator, None):
-            logger = logger.make_derived(handle_error=handle_error)
+            logger = logger.derive(handle_error=handle_error)
             setattr(logger, _error_wrap_indicator, True)
 
         self.logger = logger
@@ -3610,10 +3611,9 @@ class YoutubeDL:
 
         # These imports can be slow. So import them only as needed
         from .extractor.extractors import _LAZY_LOADER
-        from .extractor.extractors import (
-            _PLUGIN_CLASSES as plugin_ies,
+        from .extractor.extractors import _PLUGIN_CLASSES as plugin_ies
+        from .extractor.extractors import \
             _PLUGIN_OVERRIDES as plugin_ie_overrides
-        )
 
         encodings = (
             ('locale', locale.getpreferredencoding()),

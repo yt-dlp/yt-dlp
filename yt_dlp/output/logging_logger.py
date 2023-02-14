@@ -17,7 +17,7 @@ class deferred_class_attribute:
 class _YDLIgnoringLogger(logging.Logger):
     @deferred_class_attribute
     def _internal_frames():
-        from . import logging as output_logging
+        from . import logger as output_logging
         from ..downloader import common as downloader
         from ..extractor import common as extractor
 

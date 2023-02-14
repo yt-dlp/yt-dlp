@@ -2047,7 +2047,7 @@ def write_string(s, out=None, encoding=None):
 
 def deprecation_warning(msg, *, printer=None, stacklevel=0, __internal=False, **kwargs):
     if not printer:
-        from .output.logging import default_logger
+        from .output.logger import default_logger
         printer = lambda m: default_logger.deprecation_warning(m, stacklevel=stacklevel + 1)
 
     if not __internal:
@@ -5701,7 +5701,7 @@ def parse_http_range(range):
 
 
 def read_stdin(what):
-    from .output.logging import default_logger
+    from .output.logger import default_logger
     eof = 'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'
     default_logger.screen(f'Reading {what} from STDIN - EOF ({eof}) to end:')
     return sys.stdin

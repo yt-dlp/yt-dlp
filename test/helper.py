@@ -9,8 +9,8 @@ import types
 
 import yt_dlp.extractor
 from yt_dlp import YoutubeDL
-from yt_dlp.output.outputs import StreamOutput
 from yt_dlp.output.hoodoo import Color
+from yt_dlp.output.outputs import StreamOutput
 
 if 'pytest' in sys.modules:
     import pytest

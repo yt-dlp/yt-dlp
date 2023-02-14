@@ -20,7 +20,7 @@ from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .options import parseOpts
-from .output.logging import redirect_warnings
+from .output.helper import redirect_warnings
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,

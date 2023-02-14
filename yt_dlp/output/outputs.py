@@ -3,7 +3,7 @@ from collections import defaultdict
 from threading import Lock
 
 from .hoodoo import CSI, ERASE_LINE, format_text, move_cursor
-from .logging_output import logger as _logging_logger
+from .logging_logger import logger as _logging_logger
 from ..compat import compat_os_name
 from ..utils import preferredencoding, supports_terminal_sequences
 

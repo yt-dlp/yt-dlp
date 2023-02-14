@@ -1,5 +1,6 @@
 from .common import InfoExtractor
-from ..output.logging import LogLevel, Style
+from ..output.enums import Style
+from ..output.logger import LogLevel
 from ..utils import ExtractorError, classproperty, remove_start
 
 

@@ -25,7 +25,7 @@ from .dependencies import (
     secretstorage,
     sqlite3,
 )
-from .output.logging import Logger, LogLevel, default_logger
+from .output.logger import Logger, LogLevel, default_logger
 from .output.outputs import NULL_OUTPUT, StreamOutput
 from .utils import (
     Popen,
@@ -91,9 +91,9 @@ def wrap_logger(logger):
         return wrapped
 
     if not isinstance(logger, Logger):
-        logger = Logger(None).setup_class_logger(logger)
+        logger = Logger(None).setup_class_outputs(logger)
 
-    logger = logger.make_derived(info=_cookies_prefix)
+    logger = logger.derive(info=_cookies_prefix)
     setattr(logger, PROPERTY, True)
 
     return logger
