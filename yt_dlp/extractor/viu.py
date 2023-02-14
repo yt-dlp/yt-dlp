@@ -498,9 +498,8 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        episode_json = traverse_obj(
-            self._yield_json_ld(webpage, display_id),
-            lambda _, v: v['@type'] in ('TVEpisode', 'Movie')) or {}
+        episode_json = traverse_obj(list(filter(
+            lambda x: x.get('@type') in ('TVEpisode', 'Movie'), self._yield_json_ld(webpage, display_id))), 0) or {}
         initial_state_json = self._search_json(
             r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state',
             display_id)['content']['clipDetails']
@@ -536,7 +535,7 @@ class ViuOTTNewIE(ViuOTTNewBaseIE):
             'formats': formats,
             'subtitles': subtitles,
             'episode_number': (traverse_obj(initial_state_json, 'episode_no', 'episodeno', expected_type=int_or_none)
-                               or episode_json.get('episodeNumber')),
+                               or int_or_none(episode_json.get('episodeNumber'))),
             'cast': traverse_obj(episode_json, ('actor', ..., 'name'), default=None),
             'age_limit': self._AGE_RATINGS_MAPPER.get(
                 initial_state_json.get('internal_age_rating'))
