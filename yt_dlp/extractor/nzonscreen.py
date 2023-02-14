@@ -3,22 +3,24 @@ from ..utils import (
     float_or_none,
     int_or_none,
     qualities,
+    remove_end,
+    strip_or_none,
     traverse_obj,
-    try_get,
     url_or_none,
 )
 
 
 class NZOnScreenIE(InfoExtractor):
-    _VALID_URL = r'^https://www.nzonscreen.com/title/(?P<id>[^\?]+)'
+    _VALID_URL = r'^https://www\.nzonscreen\.com/title/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.nzonscreen.com/title/shoop-shoop-diddy-wop-cumma-cumma-wang-dang-1982',
         'info_dict': {
             'id': '726ed6585c6bfb30',
-            'display_id': 'shoop-shoop-diddy-wop-cumma-cumma-wang-dang-1982',
             'ext': 'mp4',
+            'display_id': 'shoop-shoop-diddy-wop-cumma-cumma-wang-dang-1982',
             'title': 'Monte Video - "Shoop Shoop, Diddy Wop"',
-            'playable_in_embed': False,
+            'description': 'Monte Video - "Shoop Shoop, Diddy Wop"',
+            'alt_title': 'Shoop Shoop Diddy Wop Cumma Cumma Wang Dang | Music Video',
             'thumbnail': r're:https://www\.nzonscreen\.com/content/images/.+\.jpg',
             'duration': 158,
         },
@@ -27,12 +29,26 @@ class NZOnScreenIE(InfoExtractor):
         'url': 'https://www.nzonscreen.com/title/shes-a-mod-1964?collection=best-of-the-60s',
         'info_dict': {
             'id': '3dbe709ff03c36f1',
-            'display_id': 'shes-a-mod-1964',
             'ext': 'mp4',
+            'display_id': 'shes-a-mod-1964',
             'title': 'Ray Columbus - \'She\'s A Mod\'',
-            'playable_in_embed': False,
+            'description': 'Ray Columbus - \'She\'s A Mod\'',
+            'alt_title': 'She\'s a Mod | Music Video',
             'thumbnail': r're:https://www\.nzonscreen\.com/content/images/.+\.jpg',
             'duration': 130,
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
+        'url': 'https://www.nzonscreen.com/title/puha-and-pakeha-1968/overview',
+        'info_dict': {
+            'id': 'f86342544385ad8a',
+            'ext': 'mp4',
+            'display_id': 'puha-and-pakeha-1968',
+            'title': 'Looking At New Zealand - Puha and Pakeha',
+            'alt_title': 'Looking at New Zealand - \'Pūhā and Pākehā\' | Television',
+            'description': 'An excerpt from this television programme.',
+            'duration': 212,
+            'thumbnail': r're:https://www\.nzonscreen\.com/content/images/.+\.jpg',
         },
         'params': {'skip_download': 'm3u8'},
     }]
@@ -62,12 +78,13 @@ class NZOnScreenIE(InfoExtractor):
         return {
             'id': playlist['uuid'],
             'display_id': video_id,
-            'title': traverse_obj(playlist, 'label', 'description') or try_get(
+            'title': strip_or_none(playlist.get('label')),
+            'description': strip_or_none(playlist.get('description')),
+            'alt_title': strip_or_none(remove_end(
                 self._html_extract_title(webpage, default=None) or self._og_search_title(webpage),
-                lambda x: x.split('|')[0].strip()),
+                ' | NZ On Screen')),
             'thumbnail': traverse_obj(playlist, ('thumbnail', 'path')),
             'duration': float_or_none(playlist.get('duration')),
-            'playable_in_embed': playlist.get('embeddable'),
             'formats': list(self._extract_formats(playlist)),
             'http_headers': {
                 'Referer': 'https://www.nzonscreen.com/',
