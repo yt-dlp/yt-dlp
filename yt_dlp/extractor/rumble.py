@@ -186,7 +186,7 @@ class RumbleEmbedIE(InfoExtractor):
                         'filesize': 'size',
                         'width': 'w',
                         'height': 'h',
-                    }, default={})
+                    }, expected_type=lambda x: int(x) or None)
                 })
 
         subtitles = {

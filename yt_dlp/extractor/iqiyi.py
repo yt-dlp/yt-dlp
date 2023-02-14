@@ -585,7 +585,7 @@ class IqIE(InfoExtractor):
                     'langCode': self._get_cookie('lang', 'en_us'),
                     'deviceId': self._get_cookie('QC005', '')
                 }, fatal=False)
-            ut_list = traverse_obj(vip_data, ('data', 'all_vip', ..., 'vipType'), expected_type=str_or_none, default=[])
+            ut_list = traverse_obj(vip_data, ('data', 'all_vip', ..., 'vipType'), expected_type=str_or_none)
         else:
             ut_list = ['0']
 
@@ -617,7 +617,7 @@ class IqIE(InfoExtractor):
             self.report_warning('This preview video is limited%s' % format_field(preview_time, None, ' to %s seconds'))
 
         # TODO: Extract audio-only formats
-        for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):
+        for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none)):
             dash_path = dash_paths.get(bid)
             if not dash_path:
                 self.report_warning(f'Unknown format id: {bid}. It is currently not being extracted')
@@ -628,7 +628,7 @@ class IqIE(InfoExtractor):
                 fatal=False), 'data', expected_type=dict)
 
             video_format = traverse_obj(format_data, ('program', 'video', lambda _, v: str(v['bid']) == bid),
-                                        expected_type=dict, default=[], get_all=False) or {}
+                                        expected_type=dict, get_all=False) or {}
             extracted_formats = []
             if video_format.get('m3u8Url'):
                 extracted_formats.extend(self._extract_m3u8_formats(
@@ -669,7 +669,7 @@ class IqIE(InfoExtractor):
                 })
             formats.extend(extracted_formats)
 
-        for sub_format in traverse_obj(initial_format_data, ('program', 'stl', ...), expected_type=dict, default=[]):
+        for sub_format in traverse_obj(initial_format_data, ('program', 'stl', ...), expected_type=dict):
             lang = self._LID_TAGS.get(str_or_none(sub_format.get('lid')), sub_format.get('_name'))
             subtitles.setdefault(lang, []).extend([{
                 'ext': format_ext,
