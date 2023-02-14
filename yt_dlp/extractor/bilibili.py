@@ -1010,7 +1010,20 @@ class BiliIntlIE(BiliIntlBaseIE):
             'description': 'md5:2b17ab10aebb33e3c2a54da9e8e487e2',
             'thumbnail': r're:https?://pic\.bstarstatic\.com/ogv/.+\.png$',
             'episode': 'Episode 5',
-            'comment_count': int
+            'comment_count': int,
+            'chapters': [{
+                'start_time': 0,
+                'end_time': 61.0,
+                'title': '<Untitled Chapter 1>'
+            }, {
+                'start_time': 61.0,
+                'end_time': 134.0,
+                'title': 'Intro'
+            }, {
+                'start_time': 1290.0,
+                'end_time': 1379.0,
+                'title': 'Outro'
+            }],
         },
         'params': {
             'getcomments': True
