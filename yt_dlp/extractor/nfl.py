@@ -12,7 +12,6 @@ from ..utils import (
     determine_ext,
     get_element_by_class,
     traverse_obj,
-    try_call,
     urlencode_postdata,
 )
 
@@ -237,7 +236,10 @@ class NFLPlusEpisodeIE(NFLBaseIE):
 
     def _get_account_info(self, url, video_id):
         cookies = self._get_cookies('https://www.nfl.com/')
-        login_token = try_call(lambda: cookies[f'glt_{self._API_KEY}'].value)
+        login_token = traverse_obj(cookies, ((
+            f'glt_{self._API_KEY}', f'gig_loginToken_{self._API_KEY}',
+            lambda k, _: k.startswith('glt_') or k.startswith('gig_loginToken_')),
+            {lambda x: x.value}), get_all=False)
         if not login_token:
             self.raise_login_required()
 
