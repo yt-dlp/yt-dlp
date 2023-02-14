@@ -122,6 +122,7 @@ from .applepodcasts import ApplePodcastsIE
 from .archiveorg import (
     ArchiveOrgIE,
     YoutubeWebArchiveIE,
+    VLiveWebArchiveIE,
 )
 from .arcpublishing import ArcPublishingIE
 from .arkena import ArkenaIE
@@ -2183,11 +2184,6 @@ from .vk import (
     VKUserVideosIE,
     VKWallPostIE,
 )
-from .vlive import (
-    VLiveIE,
-    VLivePostIE,
-    VLiveChannelIE,
-)
 from .vodlocker import VodlockerIE
 from .vodpl import VODPlIE
 from .vodplatform import VODPlatformIE
@@ -2273,6 +2269,10 @@ from .worldstarhiphop import WorldStarHipHopIE
 from .wppilot import (
     WPPilotIE,
     WPPilotChannelsIE,
+)
+from .wrestleuniverse import (
+    WrestleUniverseVODIE,
+    WrestleUniversePPVIE,
 )
 from .wsj import (
     WSJIE,

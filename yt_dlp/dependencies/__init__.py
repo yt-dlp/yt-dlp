@@ -24,24 +24,6 @@ else:
 
 
 try:
-    from Cryptodome.Cipher import AES as Cryptodome_AES
-except ImportError:
-    try:
-        from Crypto.Cipher import AES as Cryptodome_AES
-    except (ImportError, SyntaxError):  # Old Crypto gives SyntaxError in newer Python
-        Cryptodome_AES = None
-    else:
-        try:
-            # In pycrypto, mode defaults to ECB. See:
-            # https://www.pycryptodome.org/en/latest/src/vs_pycrypto.html#:~:text=not%20have%20ECB%20as%20default%20mode
-            Cryptodome_AES.new(b'abcdefghijklmnop')
-        except TypeError:
-            pass
-        else:
-            Cryptodome_AES._yt_dlp__identifier = 'pycrypto'
-
-
-try:
     import mutagen
 except ImportError:
     mutagen = None
@@ -84,10 +66,14 @@ else:
         xattr._yt_dlp__identifier = 'pyxattr'
 
 
+from . import Cryptodome
+
 all_dependencies = {k: v for k, v in globals().items() if not k.startswith('_')}
-
-
 available_dependencies = {k: v for k, v in all_dependencies.items() if v}
+
+
+# Deprecated
+Cryptodome_AES = Cryptodome.Cipher.AES if Cryptodome else None
 
 
 __all__ = [
