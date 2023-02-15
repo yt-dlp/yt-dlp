@@ -10,6 +10,8 @@ from ..utils import (
     join_nonempty,
     parse_iso8601,
     qualities,
+    remove_start,
+    time_seconds,
     traverse_obj,
     url_or_none,
 )
@@ -20,6 +22,7 @@ class CrunchyrollBaseIE(InfoExtractor):
     _API_BASE = 'https://api.crunchyroll.com'
     _NETRC_MACHINE = 'crunchyroll'
     _AUTH_HEADERS = None
+    _BASIC_AUTH = None
     _QUERY = None
 
     @property
@@ -55,7 +58,7 @@ class CrunchyrollBaseIE(InfoExtractor):
         if not self.is_logged_in:
             raise ExtractorError('Login succeeded but did not set etp_rt cookie')
 
-    def _update_auth(self, lang):
+    def _update_query(self, lang):
         if not self._QUERY:
             self._QUERY = {}
 
@@ -70,28 +73,35 @@ class CrunchyrollBaseIE(InfoExtractor):
             'locale': ('localization', 'locale'),
         }) or None
 
-        if self._AUTH_HEADERS:
+        if self._BASIC_AUTH:
             return
 
-        if self.is_logged_in:
-            grant_type, key = 'etp_rt_cookie', 'accountAuthClientId'
-        else:
-            grant_type, key = 'client_id', 'anonClientId'
-
         app_config = self._search_json(r'__APP_CONFIG__\s*=', webpage, 'app config', None)
+        cx_api_param = app_config['cxApiParams']['accountAuthClientId' if self.is_logged_in else 'anonClientId']
+        self.write_debug(f'Using cxApiParam={cx_api_param}')
+        self._BASIC_AUTH = 'Basic ' + base64.b64encode(f'{cx_api_param}:'.encode()).decode()
+
+    def _update_auth(self):
+        if self._AUTH_HEADERS and self._AUTH_REFRESH > time_seconds():
+            return
+
+        assert self._BASIC_AUTH, '_update_query needs to be called at least one time beforehand'
+        grant_type = 'etp_rt_cookie' if self.is_logged_in else 'client_id'
         auth_response = self._download_json(
             f'{self._BASE_URL}/auth/v1/token', None, note=f'Authenticating with grant_type={grant_type}',
-            headers={
-                'Authorization': 'Basic ' + base64.b64encode(('%s:' % app_config['cxApiParams'][key]).encode()).decode()
-            }, data=f'grant_type={grant_type}'.encode())
+            headers={'Authorization': self._BASIC_AUTH}, data=f'grant_type={grant_type}'.encode())
 
         self._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
+        self._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300))
 
-    def _call_api(self, endpoint, internal_id, lang=None, note='api', prefix=True):
-        if prefix:
+    def _call_api(self, endpoint, internal_id, lang=None, note='api'):
+        self._update_query(lang)
+        self._update_auth()
+
+        endpoint = remove_start(endpoint, 'cms:/')
+        if 'cms' not in endpoint:
             endpoint = f'content/v2/cms/{endpoint}'
 
-        self._update_auth(lang)
         return self._download_json(
             f'{self._BASE_URL}/{endpoint}', internal_id, f'Downloading {note} JSON',
             headers=self._AUTH_HEADERS, query=self._QUERY[lang])
@@ -164,7 +174,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             else:
                 self.raise_login_required('This video is for premium members only')
 
-        stream_response = self._call_api(episode_response['streams_link'], display_id, lang, 'streams', prefix=False)
+        stream_response = self._call_api(episode_response['streams_link'], display_id, lang, 'streams')
         get_streams = lambda *names: (traverse_obj(stream_response, (*names, {dict})) or {}).items()
 
         requested_formats = self._configuration_arg('format') or ['adaptive_hls']
