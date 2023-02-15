@@ -250,8 +250,6 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
 
         chapters = None
         # if no intro chapter is available, a 403 without usable data is returned
-        usl = f'https://static.crunchyroll.com/datalab-intro-v2/{internal_id}.json'
-        self.write_debug(f'requesting chapters url: {url}')
         intro_chapter = self._download_json(f'https://static.crunchyroll.com/datalab-intro-v2/{internal_id}.json',
                                             display_id, fatal=False, errnote=False)
         if isinstance(intro_chapter, dict):
