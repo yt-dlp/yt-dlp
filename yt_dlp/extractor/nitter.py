@@ -61,7 +61,6 @@ class NitterIE(InfoExtractor):
         'twitter.grimneko.de',
         'nitter.alefvanoon.xyz',
         'n.hyperborea.cloud',
-        'nitter.ca',
         'twitter.076.ne.jp',
         'twitter.mstdn.social',
         'nitter.fly.dev',
@@ -87,6 +86,7 @@ class NitterIE(InfoExtractor):
         'nitter.exonip.de',
         'nitter.mastodon.pro',
         'nitter.notraxx.ch',
+        'n.l5.ca',
 
 
         # not in the list anymore
@@ -117,6 +117,7 @@ class NitterIE(InfoExtractor):
         'nitter.weaponizedhumiliation.com',
         'nitter.vxempire.xyz',
         'tweet.lambda.dance',
+        'nitter.ca',
     )
 
     INSTANCES = NON_HTTP_INSTANCES + HTTP_INSTANCES + DEAD_INSTANCES
