@@ -221,7 +221,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 }]
 
         elif object_type == 'movie_listing':
-            raise ExtractorError(f'Movie object is not yet supported', expected=True)
+            raise ExtractorError('Movie object is not yet supported', expected=True)
 
         else:
             raise ExtractorError(f'Unknown object type {object_type}')
@@ -334,7 +334,7 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
             'title': 'Girl Friend BETA',
             'description': 'md5:99c1b22ee30a74b536a8277ced8eb750',
             # XXX: `thumbnail` does not get set from `thumbnails` in playlist
-            # 'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            #  'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
             'age_limit': 14,
         },
         'playlist_mincount': 10,
