@@ -93,14 +93,15 @@ class CrunchyrollBaseIE(InfoExtractor):
             headers={'Authorization': self._BASIC_AUTH}, data=f'grant_type={grant_type}'.encode())
 
         self._AUTH_HEADERS = {'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']}
-        self._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300))
+        self._AUTH_REFRESH = time_seconds(seconds=traverse_obj(auth_response, ('expires_in', {float_or_none}), default=300) - 10)
 
-    def _call_api(self, endpoint, internal_id, lang=None, note='api'):
+    def _call_api(self, endpoint, internal_id, lang, note='api'):
         self._update_query(lang)
         self._update_auth()
 
-        endpoint = remove_start(endpoint, 'cms:/')
-        if 'cms' not in endpoint:
+        endpoint = remove_start(endpoint, 'cms:')
+        endpoint = remove_start(endpoint, '/')
+        if not endpoint.startswith('content/v2/cms/'):
             endpoint = f'content/v2/cms/{endpoint}'
 
         return self._download_json(
@@ -116,6 +117,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         watch/(?P<id>\w+)
         (?:/(?P<display_id>[\w-]+))?/?(?:[?#]|$)'''
     _TESTS = [{
+        # Premium only
         'url': 'https://www.crunchyroll.com/watch/GY2P1Q98Y/to-the-future',
         'info_dict': {
             'id': 'GY2P1Q98Y',
@@ -137,6 +139,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         },
         'params': {'skip_download': 'm3u8', 'format': 'all[format_id~=hardsub]'},
     }, {
+        # Premium only
         'url': 'https://www.crunchyroll.com/watch/GYE5WKQGR',
         'info_dict': {
             'id': 'GYE5WKQGR',
@@ -156,6 +159,27 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
         },
         'params': {'skip_download': True},
+    }, {
+        'url': 'https://www.crunchyroll.com/watch/GJWU2VKK3/cherry-blossom-meeting-and-a-coming-blizzard',
+        'info_dict': {
+            'id': 'GJWU2VKK3',
+            'ext': 'mp4',
+            'duration': 1420.054,
+            'description': 'md5:2d1c67c0ec6ae514d9c30b0b99a625cd',
+            'title': 'The Ice Guy and His Cool Female Colleague Episode 1 – Cherry Blossom Meeting and a Coming Blizzard',
+            'series': 'The Ice Guy and His Cool Female Colleague',
+            'series_id': 'GW4HM75NP',
+            'season': 'The Ice Guy and His Cool Female Colleague',
+            'season_id': 'GY9PC21VE',
+            'season_number': 1,
+            'episode': 'Cherry Blossom Meeting and a Coming Blizzard',
+            'episode_number': 1,
+            'chapters': 'count:2',
+            'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'timestamp': 1672839000,
+            'upload_date': '20230104',
+        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.crunchyroll.com/watch/GY2P1Q98Y',
         'only_matching': True,
@@ -226,6 +250,8 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
 
         chapters = None
         # if no intro chapter is available, a 403 without usable data is returned
+        usl = f'https://static.crunchyroll.com/datalab-intro-v2/{internal_id}.json'
+        self.write_debug(f'requesting chapters url: {url}')
         intro_chapter = self._download_json(f'https://static.crunchyroll.com/datalab-intro-v2/{internal_id}.json',
                                             display_id, fatal=False, errnote=False)
         if isinstance(intro_chapter, dict):
