@@ -164,13 +164,10 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             else:
                 self.raise_login_required('This video is for premium members only')
 
-        requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
-        hardsub_preference = qualities(requested_hardsubs[::-1])
-        requested_formats = self._configuration_arg('format') or ['adaptive_hls']
-
         stream_response = self._call_api(episode_response['streams_link'], display_id, lang, 'streams', prefix=False)
         get_streams = lambda *names: (traverse_obj(stream_response, (*names, {dict})) or {}).items()
 
+        requested_formats = self._configuration_arg('format') or ['adaptive_hls']
         available_formats = {}
         for stream_type, streams in get_streams('data', 0):
             if stream_type not in requested_formats:
@@ -182,6 +179,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 format_id = join_nonempty(stream_type, format_field(stream, 'hardsub_locale', 'hardsub-%s'))
                 available_formats[hardsub_lang] = (stream_type, format_id, hardsub_lang, stream['url'])
 
+        requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
         if '' in available_formats and 'all' not in requested_hardsubs:
             full_format_langs = set(requested_hardsubs)
             self.to_screen(
@@ -192,6 +190,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         else:
             full_format_langs = set(map(str.lower, available_formats))
 
+        hardsub_preference = qualities(requested_hardsubs[::-1])
         formats = []
         for stream_type, format_id, hardsub_lang, stream_url in available_formats.values():
             if stream_type.endswith('hls'):
