@@ -8,6 +8,7 @@ from ..utils import (
     format_field,
     int_or_none,
     join_nonempty,
+    parse_age_limit,
     parse_iso8601,
     qualities,
     remove_start,
@@ -246,7 +247,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 'series_id': ('series_id', {str}),
                 'season': ('season_title', {str}),
                 'season_id': ('season_id', {str}),
-                'season_number': ('season_number', {int_or_none}),
+                'season_number': ('season_number', {float_or_none}),
                 'episode': ('title', {str}),
                 'episode_number': ('sequence_number', {float_or_none}),
                 'thumbnails': ('images', 'thumbnail', ..., ..., {
@@ -279,6 +280,9 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
             'id': 'GY19NQ2QR',
             'title': 'Girl Friend BETA',
             'description': 'md5:99c1b22ee30a74b536a8277ced8eb750',
+            # XXX: `thumbnail` does not get set from `thumbnails` in playlist
+            'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+            'age_limit': 14,
         },
         'playlist_mincount': 10,
     }, {
@@ -289,13 +293,11 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
     def _real_extract(self, url):
         lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'id', 'display_id')
 
-        series_response = traverse_obj(self._call_api(f'series/{internal_id}', display_id, lang, 'series'), ('data', 0))
-        seasons_response = self._call_api(f'series/{internal_id}/seasons', display_id, lang, 'seasons')
-
         def entries():
+            seasons_response = self._call_api(f'series/{internal_id}/seasons', display_id, lang, 'seasons')
             for season in seasons_response['data']:
                 episode_response = self._call_api(f'seasons/{season["id"]}/episodes', season.get("slug_title"), lang, 'episode list')
-                for episode in traverse_obj(episode_response, ('data', ...)):
+                for episode in traverse_obj(episode_response, ('data', ..., {dict})):
                     episode_id = episode['id']
                     episode_display_id = episode['slug_title']
                     yield self.url_result(
@@ -313,9 +315,18 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
                             'episode': ('title', {str}),
                             'episode_number': ('sequence_number', {float_or_none}),
                             'language': ('audio_locale', {str}),
-                        }),
-                    )
+                        }))
 
+        series_response = traverse_obj(self._call_api(f'series/{internal_id}', display_id, lang, 'series'), ('data', 0))
         return self.playlist_result(
-            entries(), internal_id, series_response.get('title'),
-            traverse_obj(series_response, ('description', {lambda x: x.replace(r'\r\n', '\n')})))
+            entries(), internal_id,
+            **traverse_obj(series_response, {
+                'title': ('title', {str}),
+                'description': ('description', {lambda x: x.replace(r'\r\n', '\n')}),
+                'age_limit': ('maturity_ratings', -1, {parse_age_limit}),
+                'thumbnails': ('images', ..., ..., ..., {
+                    'url': ('source', {url_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                })
+            }))
