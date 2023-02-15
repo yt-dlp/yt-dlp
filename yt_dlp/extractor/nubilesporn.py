@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 from .common import InfoExtractor
 from ..utils import parse_resolution, \
@@ -8,15 +9,14 @@ from ..utils import parse_resolution, \
 
 
 class NubilesPornIE(InfoExtractor):
-    _NETRC_MACHINE = 'nubiles-porn'
+    _NETRC_MACHINE: str = 'nubiles-porn'
 
     _BASE_DOMAIN: str = 'nubiles-porn.com'
     _BASE_URL: str = f'https://{_BASE_DOMAIN}'
     _MEMBERS_URL = f'https://members.{_BASE_DOMAIN}'
 
-    _VALID_URL = r'https?://(?:www\.)?members\.nubiles-porn\.com/video/watch/(?P<id>[0-9]+)/(?P<display_id>[a-z-0-9]+-(s(?P<season>[0-9]+)e(?P<episode>[0-9]+))$)'
-    _VALID_VIDEO_URL = f're:https://content2a.{_BASE_DOMAIN}/exclusive/' \
-                       r'(?:[a-z_]+)/videos/(?:[a-z0-9_]+).mp4\?st=(?:[a-zA-Z0-9_-]{22})&e=(?:[0-9]{10})&tr=(?:[A-Z0-9]{154})'
+    _VALID_URL: str = r'https://members.nubiles-porn.com/video/watch/(?P<id>\d+)/(?P<display_id>[a-z\d\-]+-(s(?P<season>\d+)e(?P<episode>\d+))$)'
+    _VALID_VIDEO_URL: str = f're:https://content2a.{_BASE_DOMAIN}/exclusive/' + r'(?:[a-z_]+)/videos/(?:[a-z\d_]+).mp4\?st=(?:[\w\-]{22})&e=(?:[0-9]{10})&tr=(?:[A-Z0-9]{154})'
 
     _TESTS = [{
         'url': f'{_MEMBERS_URL}/video/watch/165320/trying-to-focus-my-one-track-mind-s3e1',
@@ -65,8 +65,8 @@ class NubilesPornIE(InfoExtractor):
     }]
 
     def _perform_login(self, username, password):
-        login_webpage = self._download_webpage(f'{NubilesPornIE._BASE_URL}/login', video_id=None)
-        hidden_inputs = self._hidden_inputs(login_webpage)
+        login_webpage: str = self._download_webpage(f'{NubilesPornIE._BASE_URL}/login', video_id=None)
+        hidden_inputs: dict = self._hidden_inputs(login_webpage)
         hidden_inputs.update({'username': username, 'password': password})
         self._request_webpage(f'{NubilesPornIE._BASE_URL}/authentication/login',
                               data=urlencode_postdata(hidden_inputs), video_id=None)
@@ -74,15 +74,17 @@ class NubilesPornIE(InfoExtractor):
     @staticmethod
     def _get_channel_info(element: str) -> dict:
         info = {}
-        if path := extract_attributes(get_element_html_by_class('site-link', element)).get('href'):
+        path = extract_attributes(get_element_html_by_class('site-link', element)).get('href')
+        if path:
             info['url'] = f'{NubilesPornIE._MEMBERS_URL}{path}'
             info['id'] = int_or_none(re.findall('/([0-9]+)$', path)[0])
-        if raw_name := get_element_by_class('site-link', element):
+        raw_name = get_element_by_class('site-link', element)
+        if raw_name:
             info['name'] = ' '.join(re.findall('[A-Z][^A-Z]*', raw_name.replace('.com', '')))
         return info
 
     @staticmethod
-    def _get_formats(element) -> list[dict]:
+    def _get_formats(element) -> list:
         return [NubilesPornIE._get_format(i) for i in get_elements_html_by_class('edge-download-item', element)]
 
     @staticmethod
@@ -92,16 +94,17 @@ class NubilesPornIE(InfoExtractor):
         return dict(url=f'https:{url}', **res, format_id=f'mp4_{res.get("width")}_{res.get("height")}')
 
     @staticmethod
-    def _get_categories(element: str) -> list[str] | None:
-        if raw_category_section := get_element_by_class('categories', element):
-            if raw_categories := get_elements_by_class('btn', raw_category_section):
-                return [clean_html(i) for i in raw_categories]
+    def _get_categories(element: str) -> Optional[list]:
+        raw_category_section = get_element_by_class('categories', element) or ""
+        raw_categories = get_elements_by_class('btn', raw_category_section)
+        return [clean_html(i) for i in raw_categories]
 
     @staticmethod
-    def _get_tags(element: str) -> list[str] | None:
-        if raw_tag_section := get_elements_by_class('tags', element):
-            if raw_tags := get_element_text_and_html_by_tag('a', raw_tag_section[1]):
-                return [clean_html(i) for i in raw_tags]
+    def _get_tags(element: str) -> Optional[list]:
+        raw_tag_section = get_elements_by_class('tags', element)
+        if len(raw_tag_section) >= 2:
+            raw_tags = get_elements_by_class('btn', raw_tag_section[1])
+            return [clean_html(i) for i in raw_tags]
 
     def _real_extract(self, url):
         url_match = self._match_valid_url(url)
