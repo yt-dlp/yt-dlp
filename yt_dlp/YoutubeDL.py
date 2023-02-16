@@ -2557,7 +2557,7 @@ class YoutubeDL:
         formats = self._get_formats(info_dict)
 
         # Backward compatibility with InfoExtractor._sort_formats
-        field_preference = formats[0].pop('__sort_fields', None)
+        field_preference = (formats or [{}])[0].pop('__sort_fields', None)
         if field_preference:
             info_dict['_format_sort_fields'] = field_preference
 
