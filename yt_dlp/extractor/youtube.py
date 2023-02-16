@@ -3747,7 +3747,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'DRC' if fmt.get('isDrc') else None,
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
-                    throttled and 'THROTTLED', is_damaged and 'DAMAGED', delim=', '),
+                    throttled and 'THROTTLED', is_damaged and 'DAMAGED',
+                    # for convenience of seeing client name in -F without debugging
+                    traverse_obj(query, ('c', 0, {str}, {lambda x: x[0:3]})),
+                    delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
                 'source_preference': -10 if throttled else -5 if itag == '22' else -1,
                 'fps': int_or_none(fmt.get('fps')) or None,
