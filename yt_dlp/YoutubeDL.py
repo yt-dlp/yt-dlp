@@ -2811,13 +2811,13 @@ class YoutubeDL:
             except re.error as e:
                 raise ValueError(f'Wrong regex for subtitlelangs: {e.pattern}')
         else:
-            # Check for `en` subs first
-            subs_list = sorted(filter(lambda f: f.startswith('en'), normal_sub_langs))
-            subs_list.extend(sorted(filter(lambda f: f.startswith('en'), all_sub_langs)))
-            # Append all langs at the end in case there are no `en` subs
-            subs_list.extend(sorted(normal_sub_langs))
-            subs_list.extend(sorted(all_sub_langs))
-            requested_langs = subs_list[:1]
+            requested_langs = LazyList(itertools.chain(
+                ['en'] if 'en' in normal_sub_langs else [],
+                filter(lambda f: f.startswith('en'), normal_sub_langs),
+                ['en'] if 'en' in all_sub_langs else [],
+                filter(lambda f: f.startswith('en'), all_sub_langs),
+                normal_sub_langs, all_sub_langs,
+            ))[:1]
         if requested_langs:
             self.to_screen(f'[info] {video_id}: Downloading subtitles: {", ".join(requested_langs)}')
 
