@@ -1,5 +1,4 @@
 import base64
-import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -15,6 +14,7 @@ from ..utils import (
     time_seconds,
     traverse_obj,
     url_or_none,
+    urlencode_postdata,
 )
 
 
@@ -49,11 +49,11 @@ class CrunchyrollBaseIE(InfoExtractor):
 
         login_response = self._download_json(
             f'{self._API_BASE}/login.1.json', None, 'Logging in',
-            data=urllib.parse.urlencode({
+            data=urlencode_postdata({
                 'account': username,
                 'password': password,
                 'session_id': session_id
-            }).encode())
+            }))
         if login_response['code'] != 'ok':
             raise ExtractorError('Login failed. Server message: %s' % login_response['message'], expected=True)
         if not self.is_logged_in:
@@ -99,8 +99,7 @@ class CrunchyrollBaseIE(InfoExtractor):
         self._update_query(lang)
         self._update_auth()
 
-        endpoint = remove_start(endpoint, 'cms:')
-        endpoint = remove_start(endpoint, '/')
+        endpoint = remove_start(endpoint, 'cms:').lstrip('/')
         if not endpoint.startswith('content/v2/cms/'):
             endpoint = f'content/v2/cms/{endpoint}'
 
@@ -183,6 +182,18 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         },
         'params': {'skip_download': 'm3u8'},
     }, {
+        'url': 'https://www.crunchyroll.com/watch/GM8F313NQ',
+        'info_dict': {
+            'id': 'GM8F313NQ',
+            'ext': 'mp4',
+            'title': 'Garakowa -Restore the World-',
+            'description': 'md5:8d2f8b6b9dd77d87810882e7d2ee5608',
+            'duration': 3996.104,
+            'age_limit': 13,
+            'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg?$',
+        },
+        'params': {'skip_download': 'm3u8'},
+    }, {
         'url': 'https://www.crunchyroll.com/watch/GY2P1Q98Y',
         'only_matching': True,
     }, {
@@ -198,13 +209,17 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         if not response:
             raise ExtractorError('No item with the provided id could be found', expected=True)
 
+        def raise_for_premium_required(object_type):
+            if not traverse_obj(response, (f'{object_type}_metadata', 'is_premium_only')) or response.get('streams_link'):
+                return
+            message = f'This {object_type} is for premium members only'
+            if self.is_logged_in:
+                raise ExtractorError(message, expected=True)
+            self.raise_login_required(message)
+
         object_type = response.get('type')
         if object_type == 'episode':
-            if traverse_obj(response, ('episode_metadata', 'is_premium_only')) and not response.get('streams_link'):
-                if self.is_logged_in:
-                    raise ExtractorError('This video is for premium members only', expected=True)
-                else:
-                    self.raise_login_required('This video is for premium members only')
+            raise_for_premium_required(object_type)
             result = self._transform_episode_response(response)
             result['formats'], result['subtitles'] = self._extract_streams(
                 response['streams_link'], lang, internal_id)
@@ -220,8 +235,25 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                     'end_time': float_or_none(intro_chapter.get('endTime')),
                 }]
 
+        elif object_type == 'movie':
+            raise_for_premium_required(object_type)
+            result = traverse_obj(response, {
+                'id': 'id',
+                'title': ('title', {str}),
+                'description': ('description', {str}, {lambda x: x.replace(r'\r\n', '\n')}),
+                'thumbnails': ('images', 'thumbnail', ..., ..., {
+                    'url': ('source', {url_or_none}),
+                    'width': ('width', {int_or_none}),
+                    'height': ('height', {int_or_none}),
+                }),
+                'duration': ('movie_metadata', 'duration_ms', {lambda x: float_or_none(x, 1000)}),
+                'age_limit': ('movie_metadata', 'maturity_ratings', -1, {parse_age_limit}),
+            })
+            result['formats'], result['subtitles'] = self._extract_streams(
+                response['streams_link'], lang, internal_id)
+
         elif object_type == 'movie_listing':
-            raise ExtractorError('Movie object is not yet supported', expected=True)
+            raise ExtractorError('Movie listing object is not yet supported', expected=True)
 
         else:
             raise ExtractorError(f'Unknown object type {object_type}')
