@@ -5370,8 +5370,8 @@ def random_uuidv4():
 def make_dir(path, to_screen=None):
     try:
         dn = os.path.dirname(path)
-        if dn and not os.path.exists(dn):
-            os.makedirs(dn)
+        if dn:
+            os.makedirs(dn, exist_ok=True)
         return True
     except OSError as err:
         if callable(to_screen) is not None:
