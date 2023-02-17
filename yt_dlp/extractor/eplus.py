@@ -26,7 +26,7 @@ class EplusIbIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        data_json = self._search_json(r'<script>\s*var app = ', webpage, 'data_json', video_id)
+        data_json = self._search_json(r'<script>\s*var app\s*=', webpage, 'data json', video_id)
 
         delivery_status = traverse_obj(data_json, 'delivery_status')
         archive_mode = traverse_obj(data_json, 'archive_mode')
@@ -59,7 +59,7 @@ class EplusIbIE(InfoExtractor):
             raise ExtractorError(f'Unknown delivery_status: {delivery_status}')
 
         m3u8_playlist_urls = self._search_json(
-            r'var listChannels = ', webpage, 'listChannels', video_id, contains_pattern=r'\[.+\]', default=[])
+            r'var listChannels\s*=', webpage, 'hls URLs', video_id, contains_pattern=r'\[.+\]', default=[])
         if not m3u8_playlist_urls:
             self.raise_no_formats(
                 'Could not find the playlist URL. This event may not be accessible', expected=True)
