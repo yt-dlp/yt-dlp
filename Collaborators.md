@@ -8,6 +8,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 ## [pukkandan](https://github.com/pukkandan)
 
 [![ko-fi](https://img.shields.io/badge/_-Ko--fi-red.svg?logo=kofi&labelColor=555555&style=for-the-badge)](https://ko-fi.com/pukkandan)
+[![gh-sponsor](https://img.shields.io/badge/_-Github-red.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/pukkandan)
 
 * Owner of the fork
 
@@ -25,8 +26,9 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 
 ## [coletdjnz](https://github.com/coletdjnz)
 
-[![gh-sponsor](https://img.shields.io/badge/_-Sponsor-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/coletdjnz)
+[![gh-sponsor](https://img.shields.io/badge/_-Github-red.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/coletdjnz)
 
+* Improved plugin architecture
 * YouTube improvements including: age-gate bypass, private playlists, multiple-clients (to avoid throttling) and a lot of under-the-hood improvements
 * Added support for new websites YoutubeWebArchive, MainStreaming, PRX, nzherald, Mediaklikk, StarTV etc
 * Improved/fixed support for Patreon, panopto, gfycat, itv, pbs, SouthParkDE etc
@@ -57,3 +59,11 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 * `--cookies-from-browser` support for Firefox containers
 * Added support for new websites Genius, Kick, NBCStations, Triller, VideoKen etc
 * Improved/fixed support for Anvato, Brightcove, Instagram, ParamountPlus, Reddit, SlidesLive, TikTok, Twitter, Vimeo etc
+
+
+## [Grub4K](https://github.com/Grub4K)
+
+[![ko-fi](https://img.shields.io/badge/_-Ko--fi-red.svg?logo=kofi&labelColor=555555&style=for-the-badge)](https://ko-fi.com/Grub4K) [![gh-sponsor](https://img.shields.io/badge/_-Github-red.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/Grub4K)
+
+* Rework internals like `traverse_obj`, various core refactors and bugs fixes
+* Helped fix crunchyroll, Twitter, wrestleuniverse, wistia, slideslive etc

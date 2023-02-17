@@ -61,6 +61,35 @@ class EmbedlyIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _WEBPAGE_TESTS = [{
+        'url': 'http://www.permacultureetc.com/2022/12/comment-greffer-facilement-les-arbres-fruitiers.html',
+        'info_dict': {
+            'id': 'pfUK_ADTvgY',
+            'ext': 'mp4',
+            'title': 'Comment greffer facilement les arbres fruitiers ? (mois par mois)',
+            'description': 'md5:d3a876995e522f138aabb48e040bfb4c',
+            'view_count': int,
+            'upload_date': '20221210',
+            'comment_count': int,
+            'live_status': 'not_live',
+            'channel_id': 'UCsM4_jihNFYe4CtSkXvDR-Q',
+            'channel_follower_count': int,
+            'tags': ['permaculture', 'jardinage', 'dekarz', 'autonomie', 'greffe', 'fruitiers', 'arbres', 'jardin forêt', 'forêt comestible', 'damien'],
+            'playable_in_embed': True,
+            'uploader': 'permaculture agroécologie etc...',
+            'channel': 'permaculture agroécologie etc...',
+            'thumbnail': 'https://i.ytimg.com/vi/pfUK_ADTvgY/sddefault.jpg',
+            'duration': 1526,
+            'channel_url': 'https://www.youtube.com/channel/UCsM4_jihNFYe4CtSkXvDR-Q',
+            'age_limit': 0,
+            'uploader_id': 'permacultureetc',
+            'like_count': int,
+            'uploader_url': 'http://www.youtube.com/user/permacultureetc',
+            'categories': ['Education'],
+            'availability': 'public',
+        },
+    }]
+
     @classmethod
     def _extract_from_webpage(cls, url, webpage):
         # Bypass "ie=cls" and suitable check
