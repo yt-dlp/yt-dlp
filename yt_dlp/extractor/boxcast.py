@@ -7,13 +7,12 @@ from ..utils import (
 
 
 class BoxCastVideoIE(InfoExtractor):
-    _VALID_URL = r'''(?x)(
-            https?://boxcast\.tv/(?:
-                view-embed/|
-                channel/\w+\?(?:[^#]+&)?b=|
-                video-portal/(?:\w+/){2}
-            )(?P<id>[\w-]+))
-                '''
+    _VALID_URL = r'''(?x)
+        https?://boxcast\.tv/(?:
+            view-embed/|
+            channel/\w+\?(?:[^#]+&)?b=|
+            video-portal/(?:\w+/){2}
+        )(?P<id>[\w-]+)'''
     _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>https?://boxcast\.tv/view-embed/[\w-]+)']
     _TESTS = [{
         'url': 'https://boxcast.tv/view-embed/in-the-midst-of-darkness-light-prevails-an-interdisciplinary-symposium-ozmq5eclj50ujl4bmpwx',
@@ -69,7 +68,7 @@ class BoxCastVideoIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
         webpage_json_data = self._search_json(
-            r'var\s*BOXCAST_PRELOAD\s*=', webpage, 'BOXCAST_PRELOAD', display_id,
+            r'var\s*BOXCAST_PRELOAD\s*=', webpage, 'broadcast data', display_id,
             transform_source=js_to_json, default={})
 
         # Ref: https://support.boxcast.com/en/articles/4235158-build-a-custom-viewer-experience-with-boxcast-api
