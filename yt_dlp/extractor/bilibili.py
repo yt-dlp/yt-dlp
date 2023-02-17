@@ -15,6 +15,7 @@ from ..utils import (
     float_or_none,
     format_field,
     int_or_none,
+    join_nonempty,
     make_archive_id,
     mimetype2ext,
     parse_count,
@@ -349,7 +350,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
             'season_number': 1,
             'episode': '你与旅行包',
             'episode_number': 2,
-            'title': '神的记事本：第2话 你与旅行包',
+            'title': '神的记事本 第2话 你与旅行包',
             'duration': 1428.487,
             'timestamp': 1310809380,
             'upload_date': '20110716',
@@ -384,13 +385,19 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
                 traverse_obj(initial_state, ('mediaInfo', 'seasons', ...)))
             if e.get('season_id') == season_id
         ), None)
+        season_type = traverse_obj(initial_state, ('mediaInfo', 'show_season_type'))
+        ep_number = int_or_none(traverse_obj(initial_state, ('epInfo', 'title')))
+        ep_suffix = '话' if season_type == 1 or season_type == 4 else '集'
+        title = (
+            f"第{ep_number}{ep_suffix}" if ep_number else
+            join_nonempty('title', 'long_title', delim=' ', from_dict=traverse_obj(initial_state, 'epInfo'))) + f" {traverse_obj(initial_state, ('epInfo', 'long_title'))}"
 
         return {
             'id': video_id,
             'formats': formats,
-            'title': traverse_obj(initial_state, 'h1Title'),
+            'title': f'{traverse_obj(initial_state, ("mediaInfo", "season_title"))} {title}',
             'episode': traverse_obj(initial_state, ('epInfo', 'long_title')),
-            'episode_number': int_or_none(traverse_obj(initial_state, ('epInfo', 'title'))),
+            'episode_number': ep_number,
             'series': traverse_obj(initial_state, ('mediaInfo', 'series')),
             'season': traverse_obj(initial_state, ('mediaInfo', 'season_title')),
             'season_id': season_id,
@@ -431,7 +438,9 @@ class BiliBiliBangumiMediaIE(InfoExtractor):
         ep_suffix = '话' if season_type == 1 or season_type == 4 else '集'
 
         return self.playlist_result((
-            self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['aid'], (f"第{entry['title']}{ep_suffix}" if entry['title'].isnumeric() else entry['title']) + f" {entry['long_title']}")
+            self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['aid'], media_info['title'] + ' ' + (
+                f"第{entry['title']}{ep_suffix}" if int_or_none(entry.get('title')) else
+                join_nonempty('title', 'long_title', delim=' ', from_dict=entry)) + f" {entry['long_title']}")
             for entry in episode_list), media_id, media_info['title'], media_info['evaluate'])
 
 
