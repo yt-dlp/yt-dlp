@@ -102,6 +102,7 @@ from .americastestkitchen import (
     AmericasTestKitchenIE,
     AmericasTestKitchenSeasonIE,
 )
+from .anchorfm import AnchorFMEpisodeIE
 from .angel import AngelIE
 from .anvato import AnvatoIE
 from .aol import AolIE
