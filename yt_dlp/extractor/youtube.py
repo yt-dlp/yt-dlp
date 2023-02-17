@@ -66,6 +66,8 @@ from ..utils import (
     variadic,
 )
 
+
+STRAMING_DATA_CLIENT_NAME = '@@youtubeplzdontusethis@@client_name'
 # any clients starting with _ cannot be explicitly requested by the user
 INNERTUBE_CLIENTS = {
     'web': {
@@ -278,8 +280,6 @@ def build_innertube_clients():
 
 build_innertube_clients()
 
-
-STRAMING_DATA_CLIENT_NAME = '@@youtubeplzdontusethis@@client_name'
 
 class BadgeType(enum.Enum):
     AVAILABILITY_UNLISTED = enum.auto()
