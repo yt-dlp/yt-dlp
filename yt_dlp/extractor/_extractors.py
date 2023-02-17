@@ -245,6 +245,7 @@ from .bokecc import BokeCCIE
 from .bongacams import BongaCamsIE
 from .bostonglobe import BostonGlobeIE
 from .box import BoxIE
+from .boxcast import BoxCastVideoIE
 from .booyah import BooyahClipsIE
 from .bpb import BpbIE
 from .br import (
