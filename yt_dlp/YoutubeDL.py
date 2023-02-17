@@ -3540,8 +3540,8 @@ class YoutubeDL:
                 format_field(f, 'abr', '\t%dk', func=round),
                 format_field(f, 'asr', '\t%s', func=format_decimal_suffix),
                 join_nonempty(
-                    self.logger.format(LogLevel.SCREEN, 'UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
-                    self.logger.format(LogLevel.SCREEN, 'DRM', 'light red') if f.get('has_drm') else None,
+                    self.logger.format(LogLevel.SCREEN, 'UNSUPPORTED', Style.SOFTERROR) if f.get('ext') in ('f4f', 'f4m') else None,
+                    self.logger.format(LogLevel.SCREEN, 'DRM', Style.SOFTERROR) if f.get('has_drm') else None,
                     format_field(f, 'language', '[%s]'),
                     join_nonempty(format_field(f, 'format_note'),
                                   format_field(f, 'container', ignore=(None, f.get('ext'))),

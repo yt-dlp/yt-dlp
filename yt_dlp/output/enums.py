@@ -36,6 +36,7 @@ class Style(metaclass=Namespace):
     ID = TermCode.make(Color.GREEN)
     DELIM = TermCode.make(Color.BLUE)
     ERROR = TermCode.make(Color.RED)
+    SOFTERROR = TermCode.make(Color.LIGHT | Color.RED)
     WARNING = TermCode.make(Color.YELLOW)
     SUPPRESS = TermCode.make(Color.LIGHT | Color.BLACK)
 
