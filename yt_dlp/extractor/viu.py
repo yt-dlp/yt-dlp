@@ -538,6 +538,5 @@ class ViuOTTIndonesiaIE(ViuOTTIndonesiaBaseIE):
             'episode_number': (traverse_obj(initial_state, 'episode_no', 'episodeno', expected_type=int_or_none)
                                or int_or_none(episode.get('episodeNumber'))),
             'cast': traverse_obj(episode, ('actor', ..., 'name'), default=None),
-            'age_limit': self._AGE_RATINGS_MAPPER.get(
-                initial_state.get('internal_age_rating'))
+            'age_limit': self._AGE_RATINGS_MAPPER.get(initial_state.get('internal_age_rating'))
         }
