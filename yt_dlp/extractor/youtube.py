@@ -67,7 +67,7 @@ from ..utils import (
 )
 
 
-STRAMING_DATA_CLIENT_NAME = '@@youtubeplzdontusethis@@client_name'
+STREAMING_DATA_CLIENT_NAME = '__yt_dlp_client'
 # any clients starting with _ cannot be explicitly requested by the user
 INNERTUBE_CLIENTS = {
     'web': {
