@@ -451,6 +451,23 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _IGNORED_WARNINGS = {'Unavailable videos will be hidden during playback'}
 
+    _YT_HANDLE_RE = r'@[A-Za-z0-9_.-]{3,30}'  # https://support.google.com/youtube/answer/11585688?hl=en
+    _YT_CHANNEL_UCID_RE = r'UC[A-Za-z0-9_-]{22}'  # https://wiki.archiveteam.org/index.php/YouTube/Technical_details
+
+    @classmethod
+    def ucid_or_none(cls, ucid):
+        return ucid if re.match(rf'^{cls._YT_CHANNEL_UCID_RE}$', ucid or '') is not None else None
+
+    @classmethod
+    def handle_or_none(cls, handle):
+        return handle if re.match(rf'^{cls._YT_HANDLE_RE}$', handle or '') is not None else None
+
+    def handle_from_url(self, url):
+        return self._search_regex(rf'https?://(?:www\.)?youtube\.com/({self._YT_HANDLE_RE})', url or '', 'channel handle', default=None)
+
+    def ucid_from_url(self, url):
+        return self._search_regex(rf'https?://(?:www\.)?youtube\.com/channel/({self._YT_CHANNEL_UCID_RE})', url or '', 'channel id', default=None)
+
     @functools.cached_property
     def _preferred_lang(self):
         """
@@ -985,6 +1002,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if not channel_id:
             channel_id = traverse_obj(reel_header_renderer, ('channelNavigationEndpoint', 'browseEndpoint', 'browseId'))
 
+        channel_id = self.ucid_or_none(channel_id)
+
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
             get_all=False, expected_type=str)
@@ -1022,7 +1041,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'description': description,
             'duration': duration,
             'channel_id': channel_id,
-            'channel': (self._get_text(renderer, 'ownerText', 'shortBylineText')
+            'channel': (self._get_text(renderer, 'ownerText', 'shortBylineText')  # TODO
                         or self._get_text(reel_header_renderer, 'channelTitleText')),
             'channel_url': f'https://www.youtube.com/channel/{channel_id}' if channel_id else None,
             'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
@@ -4080,10 +4099,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._downloader._sort_thumbnails(original_thumbnails)
 
         category = get_first(microformats, 'category') or search_meta('genre')
-        channel_id = str_or_none(
+        channel_id = self.ucid_or_none(str_or_none(
             get_first(video_details, 'channelId')
             or get_first(microformats, 'externalChannelId')
-            or search_meta('channelId'))
+            or search_meta('channelId')))
         owner_profile_url = get_first(microformats, 'ownerProfileUrl')
 
         live_start_time = parse_iso8601(get_first(live_broadcast_details, 'startTimestamp'))
@@ -4110,6 +4129,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 
+        channel_handle = self.handle_from_url(owner_profile_url)
+        if not channel_handle:
+            # fallbacks
+            pass
+
         info = {
             'id': video_id,
             'title': video_title,
@@ -4119,11 +4143,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # URL checking if user don't care about getting the best possible thumbnail
             'thumbnail': traverse_obj(original_thumbnails, (-1, 'url')),
             'description': video_description,
-            'uploader': get_first(video_details, 'author'),
-            'uploader_id': self._search_regex(r'/(?:channel/|user/|@)([^/?&#]+)', owner_profile_url, 'uploader id', default=None),
-            'uploader_url': owner_profile_url,
+            'uploader_id': channel_handle,
+            'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
             'channel_id': channel_id,
-            'channel_url': format_field(channel_id, None, 'https://www.youtube.com/channel/%s'),
+            'channel_url': format_field(channel_id, None, 'https://www.youtube.com/channel/%s', default=None),
             'duration': duration,
             'view_count': int_or_none(
                 get_first((video_details, microformats), (..., 'viewCount'))
@@ -4375,11 +4398,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     elif mrr_title == 'Song':
                         info['track'] = mrr_contents_text
 
-        fallbacks = {
-            'channel': 'uploader',
-            'channel_id': 'uploader_id',
-            'channel_url': 'uploader_url',
-        }
+        info['uploader'] = info.get('channel')
 
         # The upload date for scheduled, live and past live streams / premieres in microformats
         # may be different from the stream date. Although not in UTC, we will prefer it in this case.
@@ -4394,10 +4413,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             upload_date = strftime_or_none(
                 self._parse_time_text(self._get_text(vpir, 'dateText')), '%Y%m%d') or upload_date
         info['upload_date'] = upload_date
-
-        for to, frm in fallbacks.items():
-            if not info.get(to):
-                info[to] = info.get(frm)
 
         for s_k, d_k in [('artist', 'creator'), ('track', 'alt_title')]:
             v = info.get(s_k)
@@ -4462,15 +4477,14 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _extract_channel_id(self, webpage):
         channel_id = self._html_search_meta(
             'channelId', webpage, 'channel id', default=None)
-        if channel_id:
-            return channel_id
-        channel_url = self._html_search_meta(
-            ('og:url', 'al:ios:url', 'al:android:url', 'al:web:url',
-             'twitter:url', 'twitter:app:url:iphone', 'twitter:app:url:ipad',
-             'twitter:app:url:googleplay'), webpage, 'channel url')
-        return self._search_regex(
-            r'https?://(?:www\.)?youtube\.com/channel/([^/?#&])+',
-            channel_url, 'channel id')
+        if not channel_id:
+            channel_url = self._html_search_meta(
+                ('og:url', 'al:ios:url', 'al:android:url', 'al:web:url',
+                 'twitter:url', 'twitter:app:url:iphone', 'twitter:app:url:ipad',
+                 'twitter:app:url:googleplay'), webpage, 'channel url')
+            channel_id = self.ucid_from_url(channel_url)
+
+        return self.ucid_or_none(channel_id)
 
     @staticmethod
     def _extract_basic_item_renderer(item):
@@ -4487,9 +4501,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 return renderer
 
     def _extract_channel_renderer(self, renderer):
-        channel_id = renderer['channelId']
+        channel_id = self.ucid_or_none(renderer['channelId'])
         title = self._get_text(renderer, 'title')
-        channel_url = f'https://www.youtube.com/channel/{channel_id}'
+        channel_url = format_field(channel_id, None, 'https://www.youtube.com/channel/%s', default=None)
+        # TODO: channel handle
+        # TODO: bad channel id case
         return {
             '_type': 'url',
             'url': channel_url,
@@ -4838,13 +4854,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
         metadata_renderer = traverse_obj(data, ('metadata', 'channelMetadataRenderer'), expected_type=dict)
         if metadata_renderer:
+            channel_id = self.ucid_or_none(metadata_renderer.get('externalId')) or self.ucid_from_url(metadata_renderer.get('channelUrl'))
             info.update({
-                'uploader': metadata_renderer.get('title'),
-                'uploader_id': metadata_renderer.get('externalId'),
-                'uploader_url': metadata_renderer.get('channelUrl'),
+                'channel': metadata_renderer.get('title'),
+                'channel_id': channel_id,
             })
-            if info['uploader_id']:
-                info['id'] = info['uploader_id']
+            if info['channel_id']:
+                info['id'] = info['channel_id']
         else:
             metadata_renderer = traverse_obj(data, ('metadata', 'playlistMetadataRenderer'), expected_type=dict)
 
@@ -4897,6 +4913,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
         })
 
+        channel_handle = (self.handle_from_url(traverse_obj(metadata_renderer, 'vanityChannelUrl')  # also try ownerUrls from metadata renderer (channel)
+                          or self.handle_or_none(traverse_obj(data, ('header', ..., 'channelHandleText')))))
+        if channel_handle:
+            info.update({
+                'uploader_id': channel_handle,
+                'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
+            })
         # Playlist stats is a text runs array containing [video count, view count, last updated].
         # last updated or (view count and last updated) may be missing.
         playlist_stats = get_first(
@@ -4915,7 +4938,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if info['playlist_count'] is None:  # 0 is allowed
             info['playlist_count'] = self._get_count(playlist_header_renderer, ('byline', 0, 'playlistBylineRenderer', 'text'))
 
-        if not info.get('uploader_id'):
+        if not info.get('channel_id'):
             owner = traverse_obj(playlist_header_renderer, 'ownerText')
             if not owner:  # Deprecated
                 owner = traverse_obj(
@@ -4924,16 +4947,17 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             owner_text = self._get_text(owner)
             browse_ep = traverse_obj(owner, ('runs', 0, 'navigationEndpoint', 'browseEndpoint')) or {}
             info.update({
-                'uploader': self._search_regex(r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text),
-                'uploader_id': browse_ep.get('browseId'),
-                'uploader_url': urljoin('https://www.youtube.com', browse_ep.get('canonicalBaseUrl'))
+                'channel': self._search_regex(r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text),
+                'channel_id': self.ucid_or_none(browse_ep.get('browseId')),
+                'uploader_id': self.handle_from_url(urljoin('https://www.youtube.com', browse_ep.get('canonicalBaseUrl')))
             })
 
         info.update({
-            'channel': info['uploader'],
-            'channel_id': info['uploader_id'],
-            'channel_url': info['uploader_url']
+            'uploader': info['channel'],
+            'channel_url': format_field(info.get('channel_id'), None, 'https://www.youtube.com/channel/%s', default=None),
+            'uploader_url': format_field(info.get('uploader_id'), None, 'https://www.youtube.com/%s',default=None),
         })
+
         return info
 
     def _extract_inline_playlist(self, playlist, playlist_id, data, ytcfg):
@@ -5210,12 +5234,12 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'Igor Kleiner - Playlists',
             'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
             'uploader': 'Igor Kleiner',
-            'uploader_id': 'UCqj7Cz7revf5maW9g5pgNcg',
+            'uploader_id': '@IgorDataScience',
+            'uploader_url': 'https://www.youtube.com/@IgorDataScience',
             'channel': 'Igor Kleiner',
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'tags': ['"критическое', 'мышление"', '"наука', 'просто"', 'математика', '"анализ', 'данных"'],
             'channel_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
-            'uploader_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
             'channel_follower_count': int
         },
     }, {
@@ -5226,9 +5250,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'title': 'Igor Kleiner - Playlists',
             'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
-            'uploader_id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'uploader': 'Igor Kleiner',
-            'uploader_url': 'https://www.youtube.com/channel/UCqj7Cz7revf5maW9g5pgNcg',
+            'uploader_id': '@IgorDataScience',
+            'uploader_url': 'https://www.youtube.com/@IgorDataScience',
             'tags': ['"критическое', 'мышление"', '"наука', 'просто"', 'математика', '"анализ', 'данных"'],
             'channel_id': 'UCqj7Cz7revf5maW9g5pgNcg',
             'channel': 'Igor Kleiner',
@@ -5243,12 +5267,12 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'id': 'UCYO_jab_esuFRV4b17AJtAw',
             'title': '3Blue1Brown - Playlists',
             'description': 'md5:e1384e8a133307dd10edee76e875d62f',
-            'uploader_id': 'UCYO_jab_esuFRV4b17AJtAw',
-            'uploader': '3Blue1Brown',
             'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
-            'uploader_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
             'channel': '3Blue1Brown',
             'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'uploader_id': '@3blue1brown',
+            'uploader_url': 'https://www.youtube.com/@3blue1brown',
+            'uploader': '3Blue1Brown',
             'tags': ['Mathematics'],
             'channel_follower_count': int
         },
@@ -5261,10 +5285,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'ThirstForScience - Playlists',
             'description': 'md5:609399d937ea957b0f53cbffb747a14c',
             'uploader': 'ThirstForScience',
-            'uploader_id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
-            'uploader_url': 'https://www.youtube.com/channel/UCAEtajcuhQ6an9WEzY9LEMQ',
-            'channel_url': 'https://www.youtube.com/channel/UCAEtajcuhQ6an9WEzY9LEMQ',
+            'uploader_url': 'https://www.youtube.com/@ThirstForScience',
+            'uploader_id': '@ThirstForScience',
             'channel_id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
+            'channel_url': 'https://www.youtube.com/channel/UCAEtajcuhQ6an9WEzY9LEMQ',
             'tags': 'count:13',
             'channel': 'ThirstForScience',
             'channel_follower_count': int
@@ -5276,8 +5300,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'note': 'basic, single video playlist',
         'url': 'https://www.youtube.com/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
         'info_dict': {
-            'uploader_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
-            'uploader': 'Sergey M.',
             'id': 'PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
             'title': 'youtube-dl public playlist',
             'description': '',
@@ -5286,9 +5308,11 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'modified_date': '20201130',
             'channel': 'Sergey M.',
             'channel_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
-            'uploader_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
             'channel_url': 'https://www.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
             'availability': 'public',
+            'uploader': 'Sergey M.',
+            'uploader_url': 'https://www.youtube.com/@sergeym.6173',
+            'uploader_id': '@sergeym.6173',
         },
         'playlist_count': 1,
     }, {
@@ -6567,7 +6591,7 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
         if not video_id:
             browse_ep = traverse_obj(
                 notification, ('navigationEndpoint', 'browseEndpoint'), expected_type=dict)
-            channel_id = traverse_obj(browse_ep, 'browseId', expected_type=str)
+            channel_id = self.ucid_or_none(traverse_obj(browse_ep, 'browseId', expected_type=str))
             post_id = self._search_regex(
                 r'/post/(.+)', traverse_obj(browse_ep, 'canonicalBaseUrl', expected_type=str),
                 'post id', default=None)
@@ -6589,6 +6613,7 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
         timestamp = (self._parse_time_text(self._get_text(notification, 'sentTimeText'))
                      if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
                      else None)
+        # TODO: channel handle
         return {
             '_type': 'url',
             'url': url,
@@ -6597,6 +6622,7 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
             'title': title,
             'channel_id': channel_id,
             'channel': channel,
+            'uploader': channel,
             'thumbnails': self._extract_thumbnails(notification, 'videoThumbnail'),
             'timestamp': timestamp,
         }
