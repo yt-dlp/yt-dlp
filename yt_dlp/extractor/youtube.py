@@ -279,6 +279,8 @@ def build_innertube_clients():
 build_innertube_clients()
 
 
+STRAMING_DATA_CLIENT_NAME = '@@youtubeplzdontusethis@@client_name'
+
 class BadgeType(enum.Enum):
     AVAILABILITY_UNLISTED = enum.auto()
     AVAILABILITY_PRIVATE = enum.auto()
@@ -3618,6 +3620,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self.report_warning(
                         f'Skipping player response from {client} client (got player response for video "{pr_video_id}" instead of "{video_id}")' + bug_reports_message())
                 else:
+                    # set the client name in streamingData so that we can show it on -F
+                    (traverse_obj(pr, ('streamingData', {dict})) or {})[STRAMING_DATA_CLIENT_NAME] = client
                     prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
@@ -3736,6 +3740,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if is_damaged:
                 self.report_warning(
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
+
+            client_name = (traverse_obj(query, ('c', 0, {str})) or fmt.get(STRAMING_DATA_CLIENT_NAME) or '')[0:3].upper()
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
@@ -3749,7 +3755,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                     throttled and 'THROTTLED', is_damaged and 'DAMAGED',
                     # for convenience of seeing client name in -F without debugging
-                    traverse_obj(query, ('c', 0, {str}, {lambda x: x[0:3]})),
+                    client_name,
                     delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
                 'source_preference': -10 if throttled else -5 if itag == '22' else -1,
@@ -3808,7 +3814,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         elif skip_bad_formats and live_status == 'is_live' and needs_live_processing != 'is_live':
             skip_manifests.add('dash')
 
-        def process_manifest_format(f, proto, itag):
+        def process_manifest_format(f, proto, client_name, itag):
             key = (proto, f.get('language'))
             if key in itags[itag]:
                 return False
@@ -3822,17 +3828,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             f['quality'] = q(itag_qualities.get(try_get(f, lambda f: f['format_id'].split('-')[0]), -1))
             if f['quality'] == -1 and f.get('height'):
                 f['quality'] = q(res_qualities[min(res_qualities, key=lambda x: abs(x - f['height']))])
+            f['format_note'] = join_nonempty(f.get('format_note'), client_name, delim=', ')
             return True
 
         subtitles = {}
         for sd in streaming_data:
+            client_name = (sd.get(STRAMING_DATA_CLIENT_NAME) or '')[0:3].upper()
+
             hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     hls_manifest_url, video_id, 'mp4', fatal=False, live=live_status == 'is_live')
                 subtitles = self._merge_subtitles(subs, subtitles)
                 for f in fmts:
-                    if process_manifest_format(f, 'hls', self._search_regex(
+                    if process_manifest_format(f, 'hls', client_name, self._search_regex(
                             r'/itag/(\d+)', f['url'], 'itag', default=None)):
                         yield f
 
@@ -3841,7 +3850,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
                 subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
                 for f in formats:
-                    if process_manifest_format(f, 'dash', f['format_id']):
+                    if process_manifest_format(f, 'dash', client_name, f['format_id']):
                         f['filesize'] = int_or_none(self._search_regex(
                             r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
                         if needs_live_processing:
