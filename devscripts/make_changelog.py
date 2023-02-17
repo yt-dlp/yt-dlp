@@ -157,14 +157,14 @@ class Changelog:
 
     def _filter_cleanup_misc_items(self, items):
         cleanup_misc_items = defaultdict(list)
-        new_items = []
+        non_misc_items = []
         for item in items:
             if self.MISC_RE.search(item.message):
                 cleanup_misc_items[tuple(item.commit.authors)].append(item)
             else:
-                new_items.append(item)
+                non_misc_items.append(item)
 
-        return items, cleanup_misc_items
+        return non_misc_items, cleanup_misc_items
 
     def _format_cleanup_misc_sub_group(self, group):
         prefix = '\t- Miscellaneous'
