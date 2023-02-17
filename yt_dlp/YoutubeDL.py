@@ -3665,6 +3665,7 @@ class YoutubeDL:
                 format_field(f, 'asr', '\t%s', func=format_decimal_suffix),
                 join_nonempty(
                     self._format_out('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
+                    self._format_out('DRM', 'light red') if f.get('has_drm') else None,
                     format_field(f, 'language', '[%s]'),
                     join_nonempty(format_field(f, 'format_note'),
                                   format_field(f, 'container', ignore=(None, f.get('ext'))),
@@ -3764,12 +3765,13 @@ class YoutubeDL:
         source = detect_variant()
         if VARIANT not in (None, 'pip'):
             source += '*'
+        klass = type(self)
         write_debug(join_nonempty(
             f'{"yt-dlp" if REPOSITORY == "yt-dlp/yt-dlp" else REPOSITORY} version',
             __version__,
             f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
-            '' if _IN_CLI else 'API',
+            '' if _IN_CLI else 'API' if klass == YoutubeDL else f'API:{self.__module__}.{klass.__qualname__}',
             delim=' '))
 
         if not _IN_CLI:

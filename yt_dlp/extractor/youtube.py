@@ -4459,19 +4459,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             return info_dict
         return wrapper
 
-    def _extract_channel_id(self, webpage):
-        channel_id = self._html_search_meta(
-            'channelId', webpage, 'channel id', default=None)
-        if channel_id:
-            return channel_id
-        channel_url = self._html_search_meta(
-            ('og:url', 'al:ios:url', 'al:android:url', 'al:web:url',
-             'twitter:url', 'twitter:app:url:iphone', 'twitter:app:url:ipad',
-             'twitter:app:url:googleplay'), webpage, 'channel url')
-        return self._search_regex(
-            r'https?://(?:www\.)?youtube\.com/channel/([^/?#&])+',
-            channel_url, 'channel id')
-
     @staticmethod
     def _extract_basic_item_renderer(item):
         # Modified from _extract_grid_item_renderer

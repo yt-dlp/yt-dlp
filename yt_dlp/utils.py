@@ -3650,7 +3650,8 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
         },
     }
 
-    sanitize_codec = functools.partial(try_get, getter=lambda x: x[0].split('.')[0].replace('0', ''))
+    sanitize_codec = functools.partial(
+        try_get, getter=lambda x: x[0].split('.')[0].replace('0', '').lower())
     vcodec, acodec = sanitize_codec(vcodecs), sanitize_codec(acodecs)
 
     for ext in preferences or COMPATIBLE_CODECS.keys():
@@ -3915,7 +3916,7 @@ class download_range_func:
                 and self.chapters == other.chapters and self.ranges == other.ranges)
 
     def __repr__(self):
-        return f'{type(self).__name__}({self.chapters}, {self.ranges})'
+        return f'{__name__}.{type(self).__name__}({self.chapters}, {self.ranges})'
 
 
 def parse_dfxp_time_expr(time_expr):
@@ -6016,6 +6017,18 @@ class classproperty:
         elif cls not in self._cache:
             self._cache[cls] = self.func(cls)
         return self._cache[cls]
+
+
+class function_with_repr:
+    def __init__(self, func):
+        functools.update_wrapper(self, func)
+        self.func = func
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+    def __repr__(self):
+        return f'{self.func.__module__}.{self.func.__qualname__}'
 
 
 class Namespace(types.SimpleNamespace):
