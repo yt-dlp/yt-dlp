@@ -82,7 +82,7 @@ class AnchorFMEpisodeIE(InfoExtractor):
         return {
             'id': episode_id,
             'title': traverse_obj(api_data, ('episode', 'title')),
-            'url': traverse_obj(api_data, ('episode', 'episodeEnclosureUrl')) or api_data['episodeAudios'][0]['url'],
+            'url': traverse_obj(api_data, ('episode', 'episodeEnclosureUrl'), ('episodeAudios', 0, 'url')),
             'ext': 'mp3',
             'vcodec': 'none',
             'thumbnail': traverse_obj(api_data, ('episode', 'episodeImage')),
