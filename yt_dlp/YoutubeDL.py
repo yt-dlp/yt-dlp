@@ -2829,12 +2829,20 @@ class YoutubeDL:
                 alias_dict = {'all': all_sub_langs, '#all': all_sub_langs_merged,
                               'allnorm': normal_sub_langs, 'allauto': auto_sub_langs}
                 for option in self.params.get('subtitleslangs'):
+                    merge = False
                     if option.startswith('#') and option != "#all":
-                        lang = option[1:]
-                        requested_langs.extend(_get_one_lang(lang, select_default=False))
-                    else:
-                        requested_langs = orderedSet_from_options(
-                            [option], alias_dict, use_regex=True, start=requested_langs)
+                        merge = True
+                        option = option[1:]
+                    for lang in option.split("/"):
+                        old_len = len(requested_langs)
+                        if merge:
+                            requested_langs.extend(_get_one_lang(lang, select_default=False))
+                        else:
+                            requested_langs = orderedSet_from_options(
+                                [lang], alias_dict, use_regex=True, start=requested_langs)
+                        if len(requested_langs) != old_len:
+                            # New langs were selected, we are done
+                            break
                 requested_langs = orderedSet(requested_langs)
             except re.error as e:
                 raise ValueError(f'Wrong regex for subtitlelangs: {e.pattern}')
