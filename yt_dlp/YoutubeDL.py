@@ -2787,37 +2787,59 @@ class YoutubeDL:
 
     def process_subtitles(self, video_id, normal_subtitles, automatic_captions):
         """Select the requested subtitles and their format"""
-        available_subs, normal_sub_langs = {}, []
+        available_subs, available_subs_merged, normal_sub_langs, auto_sub_langs = {}, {}, [], []
         if normal_subtitles and self.params.get('writesubtitles'):
             available_subs.update(normal_subtitles)
+            available_subs_merged.update(normal_subtitles)
             normal_sub_langs = tuple(normal_subtitles.keys())
         if automatic_captions and self.params.get('writeautomaticsub'):
             for lang, cap_info in automatic_captions.items():
-                if lang not in available_subs:
-                    available_subs[lang] = cap_info
+                auto_lang = f'auto-{lang}'
+                auto_sub_langs.append(auto_lang)
+                available_subs[auto_lang] = cap_info
+                if lang not in available_subs_merged:
+                    # Only add `auto_lang` if `lang` is missing
+                    available_subs_merged[auto_lang] = cap_info
 
         if not available_subs or (
                 not self.params.get('writesubtitles')
                 and not self.params.get('writeautomaticsub')):
             return None
 
+        def _get_one_lang(lang, select_default=True):
+            auto_lang = f'auto-{lang}'
+            return LazyList(itertools.chain(
+                [lang] if lang in normal_sub_langs else [],
+                filter(lambda f: f.startswith(lang), normal_sub_langs),
+                [auto_lang] if auto_lang in auto_sub_langs else [],
+                filter(lambda f: f.startswith(auto_lang), auto_sub_langs),
+                normal_sub_langs if select_default else [],
+                auto_sub_langs if select_default else [],
+            ))[:1]
+
         all_sub_langs = tuple(available_subs.keys())
+        all_sub_langs_merged = tuple(available_subs_merged.keys())
+
         if self.params.get('allsubtitles', False):
-            requested_langs = all_sub_langs
+            # Preserve old behavior
+            requested_langs = all_sub_langs_merged
         elif self.params.get('subtitleslangs', False):
             try:
-                requested_langs = orderedSet_from_options(
-                    self.params.get('subtitleslangs'), {'all': all_sub_langs}, use_regex=True)
+                requested_langs = list()
+                alias_dict = {'all': all_sub_langs, '#all': all_sub_langs_merged,
+                              'allnorm': normal_sub_langs, 'allauto': auto_sub_langs}
+                for option in self.params.get('subtitleslangs'):
+                    if option.startswith('#') and option != "#all":
+                        lang = option[1:]
+                        requested_langs.extend(_get_one_lang(lang, select_default=False))
+                    else:
+                        requested_langs = orderedSet_from_options(
+                            [option], alias_dict, use_regex=True, start=requested_langs)
+                requested_langs = orderedSet(requested_langs)
             except re.error as e:
                 raise ValueError(f'Wrong regex for subtitlelangs: {e.pattern}')
         else:
-            requested_langs = LazyList(itertools.chain(
-                ['en'] if 'en' in normal_sub_langs else [],
-                filter(lambda f: f.startswith('en'), normal_sub_langs),
-                ['en'] if 'en' in all_sub_langs else [],
-                filter(lambda f: f.startswith('en'), all_sub_langs),
-                normal_sub_langs, all_sub_langs,
-            ))[:1]
+            requested_langs = _get_one_lang('en')
         if requested_langs:
             self.to_screen(f'[info] {video_id}: Downloading subtitles: {", ".join(requested_langs)}')
 
