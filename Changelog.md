@@ -10,6 +10,259 @@
 * Dispatch the workflow https://github.com/yt-dlp/yt-dlp/actions/workflows/build.yml on master
 -->
 
+# 2023.02.17
+
+* Merge youtube-dl: Upto [commit/2dd6c6e](https://github.com/ytdl-org/youtube-dl/commit/2dd6c6e)
+* Fix `--concat-playlist`
+* Imply `--no-progress` when `--print`
+* Improve default subtitle language selection by [sdht0](https://github.com/sdht0)
+* Make `title` completely non-fatal
+* Sanitize formats before sorting by [pukkandan](https://github.com/pukkandan)
+* Support module level `__bool__` and `property`
+* [dependencies] Standardize `Cryptodome` imports
+* [hls] Allow extractors to provide AES key by [Grub4K](https://github.com/Grub4K), [bashonly](https://github.com/bashonly)
+* [ExtractAudio] Handle outtmpl without ext by [carusocr](https://github.com/carusocr)
+* [extractor/common] Fix `_search_nuxt_data` by [LowSuggestion912](https://github.com/LowSuggestion912)
+* [extractor/generic] Avoid catastrophic backtracking in KVS regex by [bashonly](https://github.com/bashonly)
+* [jsinterp] Support `if` statements
+* [plugins] Fix zip search paths
+* [utils] `traverse_obj`:  Various improvements by [Grub4K](https://github.com/Grub4K)
+* [utils] `traverse_obj`: Fix more bugs
+* [utils] `traverse_obj`: Fix several behavioral problems by [Grub4K](https://github.com/Grub4K)
+* [utils] Don't use Content-length with encoding by [felixonmars](https://github.com/felixonmars)
+* [utils] Fix `time_seconds` to use the provided TZ by [Grub4K](https://github.com/Grub4K), [Lesmiscore](https://github.com/Lesmiscore)
+* [utils] Fix race condition in `make_dir` by [aionescu](https://github.com/aionescu)
+* [utils] Use local kernel32 for file locking on Windows by [Grub4K](https://github.com/Grub4K)
+* [compat_utils] Improve `passthrough_module`
+* [compat_utils] Simplify `EnhancedModule`
+* [build] Update pyinstaller
+* [pyinst] Fix for pyinstaller 5.8
+* [devscripts] Provide `pyinstaller` hooks
+* [devscripts/pyinstaller] Analyze sub-modules of `Cryptodome`
+* [cleanup] Misc fixes and cleanup
+* [extractor/anchorfm] Add episode extractor by [HobbyistDev](https://github.com/HobbyistDev), [bashonly](https://github.com/bashonly)
+* [extractor/boxcast] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/ebay] Add extractor by [JChris246](https://github.com/JChris246)
+* [extractor/hypergryph] Add extractor by [HobbyistDev](https://github.com/HobbyistDev), [bashonly](https://github.com/bashonly)
+* [extractor/NZOnScreen] Add extractor by [gregsadetsky](https://github.com/gregsadetsky), [pukkandan](https://github.com/pukkandan)
+* [extractor/rozhlas] Add extractor RozhlasVltavaIE by [amra](https://github.com/amra)
+* [extractor/tempo] Add IVXPlayer extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/txxx] Add extractors by [chio0hai](https://github.com/chio0hai)
+* [extractor/vocaroo] Add extractor by [SuperSonicHub1](https://github.com/SuperSonicHub1), [qbnu](https://github.com/qbnu)
+* [extractor/wrestleuniverse] Add extractors by [Grub4K](https://github.com/Grub4K), [bashonly](https://github.com/bashonly)
+* [extractor/yappy] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* **[extractor/youtube] Fix `uploader_id` extraction** by [bashonly](https://github.com/bashonly)
+* [extractor/youtube] Add hyperpipe instances by [Generator](https://github.com/Generator)
+* [extractor/youtube] Handle `consent.youtube`
+* [extractor/youtube] Support `/live/` URL
+* [extractor/youtube] Update invidious and piped instances by [rohieb](https://github.com/rohieb)
+* [extractor/91porn] Fix title and comment extraction by [pmitchell86](https://github.com/pmitchell86)
+* [extractor/AbemaTV] Cache user token whenever appropriate by [Lesmiscore](https://github.com/Lesmiscore)
+* [extractor/bfmtv] Support `rmc` prefix by [carusocr](https://github.com/carusocr)
+* [extractor/biliintl] Add intro and ending chapters by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/clyp] Support `wav` by [qulaz](https://github.com/qulaz)
+* [extractor/crunchyroll] Add intro chapter by [ByteDream](https://github.com/ByteDream)
+* [extractor/crunchyroll] Better message for premium videos
+* [extractor/crunchyroll] Fix incorrect premium-only error by [Grub4K](https://github.com/Grub4K)
+* [extractor/DouyuTV] Use new API by [hatienl0i261299](https://github.com/hatienl0i261299)
+* [extractor/embedly] Embedded links may be for other extractors
+* [extractor/freesound] Workaround invalid URL in webpage by [rebane2001](https://github.com/rebane2001)
+* [extractor/GoPlay] Use new API by [jeroenj](https://github.com/jeroenj)
+* [extractor/Hidive] Fix subtitles and age-restriction by [chexxor](https://github.com/chexxor)
+* [extractor/huya] Support HD streams by [felixonmars](https://github.com/felixonmars)
+* [extractor/moviepilot] Fix extractor by [panatexxa](https://github.com/panatexxa)
+* [extractor/nbc] Fix `NBC` and `NBCStations` extractors by [bashonly](https://github.com/bashonly)
+* [extractor/nbc] Fix XML parsing by [bashonly](https://github.com/bashonly)
+* [extractor/nebula] Remove broken cookie support by [hheimbuerger](https://github.com/hheimbuerger)
+* [extractor/nfl] Add `NFLPlus` extractors by [bashonly](https://github.com/bashonly)
+* [extractor/niconico] Add support for like history by [Matumo](https://github.com/Matumo), [pukkandan](https://github.com/pukkandan)
+* [extractor/nitter] Update instance list by [OIRNOIR](https://github.com/OIRNOIR)
+* [extractor/npo] Fix extractor and add HD support by [seproDev](https://github.com/seproDev)
+* [extractor/odkmedia] Add `OnDemandChinaEpisodeIE` by [HobbyistDev](https://github.com/HobbyistDev), [pukkandan](https://github.com/pukkandan)
+* [extractor/pornez] Handle relative URLs in iframe by [JChris246](https://github.com/JChris246)
+* [extractor/radiko] Fix format sorting for Time Free by [road-master](https://github.com/road-master)
+* [extractor/rcs] Fix extractors by [nixxo](https://github.com/nixxo), [pukkandan](https://github.com/pukkandan)
+* [extractor/reddit] Support user posts by [OMEGARAZER](https://github.com/OMEGARAZER)
+* [extractor/rumble] Fix format sorting by [pukkandan](https://github.com/pukkandan)
+* [extractor/servus] Rewrite extractor by [Ashish0804](https://github.com/Ashish0804), [FrankZ85](https://github.com/FrankZ85), [StefanLobbenmeier](https://github.com/StefanLobbenmeier)
+* [extractor/slideslive] Fix slides and chapters/duration by [bashonly](https://github.com/bashonly)
+* [extractor/SportDeutschland] Fix extractor by [FriedrichRehren](https://github.com/FriedrichRehren)
+* [extractor/Stripchat] Fix extractor by [JChris246](https://github.com/JChris246), [bashonly](https://github.com/bashonly)
+* [extractor/tnaflix] Fix extractor by [bashonly](https://github.com/bashonly), [oxamun](https://github.com/oxamun)
+* [extractor/tvp] Support `stream.tvp.pl` by [selfisekai](https://github.com/selfisekai)
+* [extractor/twitter] Fix `--no-playlist` and add media `view_count` when using GraphQL by [Grub4K](https://github.com/Grub4K)
+* [extractor/twitter] Fix graphql extraction on some tweets by [selfisekai](https://github.com/selfisekai)
+* [extractor/vimeo] Fix `playerConfig` extraction by [LeoniePhiline](https://github.com/LeoniePhiline), [bashonly](https://github.com/bashonly)
+* [extractor/viu] Add `ViuOTTIndonesiaIE` extractor by [HobbyistDev](https://github.com/HobbyistDev)
+* [extractor/vk] Fix playlists for new API by [the-marenga](https://github.com/the-marenga)
+* [extractor/vlive] Replace with `VLiveWebArchiveIE` by [seproDev](https://github.com/seproDev)
+* [extractor/ximalaya] Update album `_VALID_URL` by [carusocr](https://github.com/carusocr)
+* [extractor/zdf] Use android API endpoint for UHD downloads by [seproDev](https://github.com/seproDev)
+* [extractor/drtv] Fix bug in [ab4cbef](https://github.com/yt-dlp/yt-dlp/commit/ab4cbef) by [bashonly](https://github.com/bashonly)
+
+
+### 2023.02.17
+
+#### Core changes
+### Core changes
+- [Bugfix for 39f32f1715c0dffb7626dda7307db6388bb7abaa](https://github.com/yt-dlp/yt-dlp/commit/9ebac35577e61c3d25fafc959655fa3ab04ca7ef) by [pukkandan](https://github.com/pukkandan)
+- [Bugfix for 39f32f1715c0dffb7626dda7307db6388bb7abaa](https://github.com/yt-dlp/yt-dlp/commit/c154302c588c3d4362cec4fc5545e7e5d2bcf7a3) by [pukkandan](https://github.com/pukkandan)
+- [Fix `--concat-playlist`](https://github.com/yt-dlp/yt-dlp/commit/59d7de0da545944c48a82fc2937b996d7cd8cc9c) by [pukkandan](https://github.com/pukkandan)
+- [Imply `--no-progress` when `--print`](https://github.com/yt-dlp/yt-dlp/commit/5712943b764ba819ef479524c32700228603817a) by [pukkandan](https://github.com/pukkandan)
+- [Improve default subtitle language selection](https://github.com/yt-dlp/yt-dlp/commit/376aa24b1541e2bfb23337c0ae9bafa5bb3787f1) ([#6240](https://github.com/yt-dlp/yt-dlp/issues/6240)) by [sdht0](https://github.com/sdht0)
+- [Make `title` completely non-fatal](https://github.com/yt-dlp/yt-dlp/commit/7aefd19afed357c80743405ec2ace2148cba42e3) by [pukkandan](https://github.com/pukkandan)
+- [Sanitize formats before sorting](https://github.com/yt-dlp/yt-dlp/commit/39f32f1715c0dffb7626dda7307db6388bb7abaa) by [pukkandan](https://github.com/pukkandan)
+- [Support module level `__bool__` and `property`](https://github.com/yt-dlp/yt-dlp/commit/754c84e2e416cf6609dd0e4632b4985a08d34043) by [pukkandan](https://github.com/pukkandan)
+- [Update to ytdl-commit-2dd6c6e](https://github.com/yt-dlp/yt-dlp/commit/48fde8ac4ccbaaea868f6378814dde395f649fbf) by [pukkandan](https://github.com/pukkandan)
+- [extractor/douyutv]: [Use new API](https://github.com/yt-dlp/yt-dlp/commit/f14c2333481c63c24017a41ded7d8f36726504b7) ([#6074](https://github.com/yt-dlp/yt-dlp/issues/6074)) by [hatienl0i261299](https://github.com/hatienl0i261299)
+- compat_utils
+    - [Improve `passthrough_module`](https://github.com/yt-dlp/yt-dlp/commit/88426d9446758c707fb511408f2d6f56de952db4) by [pukkandan](https://github.com/pukkandan)
+    - [Simplify `EnhancedModule`](https://github.com/yt-dlp/yt-dlp/commit/768a00178109508893488e53a0e720b117fbccf6) by [pukkandan](https://github.com/pukkandan)
+- dependencies
+    - [Standardize `Cryptodome` imports](https://github.com/yt-dlp/yt-dlp/commit/f6a765ceb59c55aea06921880c1c87d1ff36e5de) by [pukkandan](https://github.com/pukkandan)
+- jsinterp
+    - [Support `if` statements](https://github.com/yt-dlp/yt-dlp/commit/8b008d62544b82e24a0ba36c30e8e51855d93419) by [pukkandan](https://github.com/pukkandan)
+- plugins
+    - [Fix zip search paths](https://github.com/yt-dlp/yt-dlp/commit/88d8928bf7630801865cf8728ae5c77234324b7b) by [pukkandan](https://github.com/pukkandan)
+- utils
+    - [Don't use Content-length with encoding](https://github.com/yt-dlp/yt-dlp/commit/65e5c021e7c5f23ecbc6a982b72a02ac6cd6900d) ([#6176](https://github.com/yt-dlp/yt-dlp/issues/6176)) by [felixonmars](https://github.com/felixonmars)
+    - [Fix `time_seconds` to use the provided TZ](https://github.com/yt-dlp/yt-dlp/commit/83c4970e52839ce8761ec61bd19d549aed7d7920) ([#6118](https://github.com/yt-dlp/yt-dlp/issues/6118)) by [Grub4K](https://github.com/Grub4K), [Lesmiscore](https://github.com/Lesmiscore)
+    - [Fix race condition in `make_dir`](https://github.com/yt-dlp/yt-dlp/commit/b25d6cb96337d479bdcb41768356da414c3aa835) ([#6089](https://github.com/yt-dlp/yt-dlp/issues/6089)) by [aionescu](https://github.com/aionescu)
+    - [Use local kernel32 for file locking on Windows](https://github.com/yt-dlp/yt-dlp/commit/37e325b92ff9d784715ac0e5d1f7d96bf5f45ad9) by [Grub4K](https://github.com/Grub4K)
+    - traverse_obj
+        - [Fix more bugs](https://github.com/yt-dlp/yt-dlp/commit/6839ae1f6dde4c0442619e351b3f0442312ab4f9) by [pukkandan](https://github.com/pukkandan)
+        - [Fix several behavioral problems](https://github.com/yt-dlp/yt-dlp/commit/b1bde57bef878478e3503ab07190fd207914ade9) by [Grub4K](https://github.com/Grub4K)
+        - [Various improvements](https://github.com/yt-dlp/yt-dlp/commit/776995bc109c5cd1aa56b684fada2ce718a386ec) by [Grub4K](https://github.com/Grub4K)
+### Extractor changes
+- [Fix `_search_nuxt_data`](https://github.com/yt-dlp/yt-dlp/commit/b23167e7542c177f32b22b29857b637dc4aede69) ([#6062](https://github.com/yt-dlp/yt-dlp/issues/6062)) by [LowSuggestion912](https://github.com/LowSuggestion912)
+- 91porn
+    - [Fix title and comment extraction](https://github.com/yt-dlp/yt-dlp/commit/c085cc2def9862ac8a7619ce8ea5dcc177325719) ([#5932](https://github.com/yt-dlp/yt-dlp/issues/5932)) by [pmitchell86](https://github.com/pmitchell86)
+- abematv
+    - [Cache user token whenever appropriate](https://github.com/yt-dlp/yt-dlp/commit/a4f16832213d9e29beecf685d6cd09a2f0b48c87) ([#6216](https://github.com/yt-dlp/yt-dlp/issues/6216)) by [Lesmiscore](https://github.com/Lesmiscore)
+- anchorfm
+    - [Add episode extractor](https://github.com/yt-dlp/yt-dlp/commit/a4ad59ff2ded208bf33f6fe07299a3449eadccdc) ([#6092](https://github.com/yt-dlp/yt-dlp/issues/6092)) by [bashonly](https://github.com/bashonly), [HobbyistDev](https://github.com/HobbyistDev)
+- bfmtv
+    - [Support `rmc` prefix](https://github.com/yt-dlp/yt-dlp/commit/20266508dd6247dd3cf0e97b9b9f14c3afc046db) ([#6025](https://github.com/yt-dlp/yt-dlp/issues/6025)) by [carusocr](https://github.com/carusocr)
+- biliintl
+    - [Add intro and ending chapters](https://github.com/yt-dlp/yt-dlp/commit/0ba87dd279d3565ed93c559cf7880ad61eb83af8) ([#6018](https://github.com/yt-dlp/yt-dlp/issues/6018)) by [HobbyistDev](https://github.com/HobbyistDev)
+- boxcast
+    - [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/9acca71237f42a4775008e51fe26e42f0a39c552) ([#5983](https://github.com/yt-dlp/yt-dlp/issues/5983)) by [HobbyistDev](https://github.com/HobbyistDev)
+- clyp
+    - [Support `wav`](https://github.com/yt-dlp/yt-dlp/commit/cc13293c2819b5461be211a9729fd02bb1e2f476) ([#6102](https://github.com/yt-dlp/yt-dlp/issues/6102)) by [qulaz](https://github.com/qulaz)
+- crunchyroll
+    - [Add intro chapter](https://github.com/yt-dlp/yt-dlp/commit/93abb7406b95793f6872d12979b91d5f336b4f43) ([#6023](https://github.com/yt-dlp/yt-dlp/issues/6023)) by [ByteDream](https://github.com/ByteDream)
+    - [Better message for premium videos](https://github.com/yt-dlp/yt-dlp/commit/44699d10dc8de9c6a338f4a8e5c63506ec4d2118) by [pukkandan](https://github.com/pukkandan)
+    - [Fix incorrect premium-only error](https://github.com/yt-dlp/yt-dlp/commit/c9d14bd22ab31e2a41f9f8061843668a06db583b) by [Grub4K](https://github.com/Grub4K)
+- drtv
+    - [Fix bug in ab4cbef](https://github.com/yt-dlp/yt-dlp/commit/7481998b169b2a52049fc33bff82034d6563ead4) ([#6034](https://github.com/yt-dlp/yt-dlp/issues/6034)) by [bashonly](https://github.com/bashonly)
+- ebay
+    - [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/da880559a6ecbbf374cc9f3378e696b55b9599af) ([#6170](https://github.com/yt-dlp/yt-dlp/issues/6170)) by [JChris246](https://github.com/JChris246)
+- embedly
+    - [Embedded links may be for other extractors](https://github.com/yt-dlp/yt-dlp/commit/87ebab0615b1bf9b14b478b055e7059d630b4833) by [pukkandan](https://github.com/pukkandan)
+- freesound
+    - [Workaround invalid URL in webpage](https://github.com/yt-dlp/yt-dlp/commit/9cfdbcbf3f17be51f5b6bb9bb6d880b2f3d67362) ([#6147](https://github.com/yt-dlp/yt-dlp/issues/6147)) by [rebane2001](https://github.com/rebane2001)
+- generic
+    - [Avoid catastrophic backtracking in KVS regex](https://github.com/yt-dlp/yt-dlp/commit/8aa0bd5d10627ece3c1815c01d02fb8bf22847a7) by [bashonly](https://github.com/bashonly)
+- goplay
+    - [Use new API](https://github.com/yt-dlp/yt-dlp/commit/d27bde98832e3b7ffb39f3cf6346011b97bb3bc3) ([#6151](https://github.com/yt-dlp/yt-dlp/issues/6151)) by [jeroenj](https://github.com/jeroenj)
+- hidive
+    - [Fix subtitles and age-restriction](https://github.com/yt-dlp/yt-dlp/commit/7708df8da05c94270b43e0630e4e20f6d2d62c55) ([#5828](https://github.com/yt-dlp/yt-dlp/issues/5828)) by [chexxor](https://github.com/chexxor)
+- huya
+    - [Support HD streams](https://github.com/yt-dlp/yt-dlp/commit/fbbb5508ea98ed8709847f5ecced7d70ff05e0ee) ([#6172](https://github.com/yt-dlp/yt-dlp/issues/6172)) by [felixonmars](https://github.com/felixonmars)
+- hypergryph
+    - [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/31c279a2a2c2ef402a9e6dad9992b310d16439a6) ([#6094](https://github.com/yt-dlp/yt-dlp/issues/6094)) by [bashonly](https://github.com/bashonly), [HobbyistDev](https://github.com/HobbyistDev)
+- moviepilot
+    - [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/c62e64cf0122e52fa2175dd1b004ca6b8e1d82af) ([#5954](https://github.com/yt-dlp/yt-dlp/issues/5954)) by [panatexxa](https://github.com/panatexxa)
+- nbc
+    - [Fix XML parsing](https://github.com/yt-dlp/yt-dlp/commit/176a068cde4f2d9dfa0336168caead0b1edcb8ac) by [bashonly](https://github.com/bashonly)
+    - [Fix `NBC` and `NBCStations` extractors](https://github.com/yt-dlp/yt-dlp/commit/cb73b8460c3ce6d37ab651a4e44bb23b10056154) ([#6033](https://github.com/yt-dlp/yt-dlp/issues/6033)) by [bashonly](https://github.com/bashonly)
+- nebula
+    - [Remove broken cookie support](https://github.com/yt-dlp/yt-dlp/commit/d50ea3ce5abc3b0defc0e5d1e22b22ce9b01b07b) ([#5979](https://github.com/yt-dlp/yt-dlp/issues/5979)) by [hheimbuerger](https://github.com/hheimbuerger)
+- nfl
+    - [Add `NFLPlus` extractors](https://github.com/yt-dlp/yt-dlp/commit/8b37c58f8b5494504acdb5ebe3f8bbd26230f725) ([#6222](https://github.com/yt-dlp/yt-dlp/issues/6222)) by [bashonly](https://github.com/bashonly)
+- niconico
+    - [Add support for like history](https://github.com/yt-dlp/yt-dlp/commit/3b161265add30613bde2e46fca214fe94d09e651) ([#5705](https://github.com/yt-dlp/yt-dlp/issues/5705)) by [Matumo](https://github.com/Matumo), [pukkandan](https://github.com/pukkandan)
+- nitter
+    - [Update instance list](https://github.com/yt-dlp/yt-dlp/commit/a9189510baadf0dccd2d4d363bc6f3a441128bb0) ([#6236](https://github.com/yt-dlp/yt-dlp/issues/6236)) by [OIRNOIR](https://github.com/OIRNOIR)
+- npo
+    - [Fix extractor and add HD support](https://github.com/yt-dlp/yt-dlp/commit/cc2389c8ac72a514d4e002a0f6ca5a7d65c7eff0) ([#6155](https://github.com/yt-dlp/yt-dlp/issues/6155)) by [seproDev](https://github.com/seproDev)
+- nzonscreen
+    - [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/d3bb187f01e1e30db05e639fc23a2e1935d777fe) ([#6208](https://github.com/yt-dlp/yt-dlp/issues/6208)) by [gregsadetsky](https://github.com/gregsadetsky), [pukkandan](https://github.com/pukkandan)
+- odkmedia
+    - [Add `OnDemandChinaEpisodeIE`](https://github.com/yt-dlp/yt-dlp/commit/10fd9e6ee833c88edf6c633f864f42843a708d32) ([#6116](https://github.com/yt-dlp/yt-dlp/issues/6116)) by [HobbyistDev](https://github.com/HobbyistDev), [pukkandan](https://github.com/pukkandan)
+- pornez
+    - [Handle relative URLs in iframe](https://github.com/yt-dlp/yt-dlp/commit/f7efe6dc958eb0689cb9534ff0b4e592040be8df) ([#6171](https://github.com/yt-dlp/yt-dlp/issues/6171)) by [JChris246](https://github.com/JChris246)
+- radiko
+    - [Fix format sorting for Time Free](https://github.com/yt-dlp/yt-dlp/commit/203a06f8554df6db07d8f20f465ecbfe8a14e591) ([#6159](https://github.com/yt-dlp/yt-dlp/issues/6159)) by [road-master](https://github.com/road-master)
+- rcs
+    - [Fix extractors](https://github.com/yt-dlp/yt-dlp/commit/c6b657867ad68af6b930ed0aa11ec5d93ee187b7) ([#5700](https://github.com/yt-dlp/yt-dlp/issues/5700)) by [nixxo](https://github.com/nixxo), [pukkandan](https://github.com/pukkandan)
+- reddit
+    - [Support user posts](https://github.com/yt-dlp/yt-dlp/commit/c77df98b1a477a020a57141464d10c0f4d0fdbc9) ([#6173](https://github.com/yt-dlp/yt-dlp/issues/6173)) by [OMEGARAZER](https://github.com/OMEGARAZER)
+- rozhlas
+    - [Add extractor RozhlasVltavaIE](https://github.com/yt-dlp/yt-dlp/commit/355d781bed497cbcb254bf2a2737b83fa51c84ea) ([#5951](https://github.com/yt-dlp/yt-dlp/issues/5951)) by [amra](https://github.com/amra)
+- rumble
+    - [Fix format sorting](https://github.com/yt-dlp/yt-dlp/commit/acacb57c7e173b93c6e0f0c43e61b9b2912719d8) by [pukkandan](https://github.com/pukkandan)
+- servus
+    - [Rewrite extractor](https://github.com/yt-dlp/yt-dlp/commit/f40e32fb1ac67be5bdbc8e32a3c235abfc4be260) ([#6036](https://github.com/yt-dlp/yt-dlp/issues/6036)) by [Ashish0804](https://github.com/Ashish0804), [FrankZ85](https://github.com/FrankZ85), [StefanLobbenmeier](https://github.com/StefanLobbenmeier)
+- slideslive
+    - [Fix slides and chapters/duration](https://github.com/yt-dlp/yt-dlp/commit/5ab3534d44231f7711398bc3cfc520e2efd09f50) ([#6024](https://github.com/yt-dlp/yt-dlp/issues/6024)) by [bashonly](https://github.com/bashonly)
+- sportdeutschland
+    - [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/5e1a54f63e393c218a40949012ff0de0ce63cb15) ([#6041](https://github.com/yt-dlp/yt-dlp/issues/6041)) by [FriedrichRehren](https://github.com/FriedrichRehren)
+- stripchat
+    - [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/7d5f919bad07017f4b39b55725491b1e9717d47a) ([#5985](https://github.com/yt-dlp/yt-dlp/issues/5985)) by [bashonly](https://github.com/bashonly), [JChris246](https://github.com/JChris246)
+- tempo
+    - [Add IVXPlayer extractor](https://github.com/yt-dlp/yt-dlp/commit/30031be974d210f451100339699ef03b0ddb5f10) ([#5837](https://github.com/yt-dlp/yt-dlp/issues/5837)) by [HobbyistDev](https://github.com/HobbyistDev)
+- tnaflix
+    - [Fix extractor](https://github.com/yt-dlp/yt-dlp/commit/989f47b6315541989bb507f26b431d9586430995) ([#6086](https://github.com/yt-dlp/yt-dlp/issues/6086)) by [bashonly](https://github.com/bashonly), [oxamun](https://github.com/oxamun)
+- tvp
+    - [Support `stream.tvp.pl`](https://github.com/yt-dlp/yt-dlp/commit/a31d0fa6c315b1145d682361149003d98f1e3782) ([#6139](https://github.com/yt-dlp/yt-dlp/issues/6139)) by [selfisekai](https://github.com/selfisekai)
+- twitter
+    - [Fix `--no-playlist` and add media `view_count` when using GraphQL](https://github.com/yt-dlp/yt-dlp/commit/b6795fd310f1dd61dddc9fd08e52fe485bdc8a3e) ([#6211](https://github.com/yt-dlp/yt-dlp/issues/6211)) by [Grub4K](https://github.com/Grub4K)
+    - [Fix graphql extraction on some tweets](https://github.com/yt-dlp/yt-dlp/commit/7543c9c99bcb116b085fdb1f41b84a0ead04c05d) ([#6075](https://github.com/yt-dlp/yt-dlp/issues/6075)) by [selfisekai](https://github.com/selfisekai)
+- txxx
+    - [Add extractors](https://github.com/yt-dlp/yt-dlp/commit/389896df85ed14eaf74f72531da6c4491d6b73b0) ([#5240](https://github.com/yt-dlp/yt-dlp/issues/5240)) by [chio0hai](https://github.com/chio0hai)
+- vimeo
+    - [Fix `playerConfig` extraction](https://github.com/yt-dlp/yt-dlp/commit/c0cd13fb1c71b842c3d272d0273c03542b467766) ([#6203](https://github.com/yt-dlp/yt-dlp/issues/6203)) by [bashonly](https://github.com/bashonly), [LeoniePhiline](https://github.com/LeoniePhiline)
+- viu
+    - [Add `ViuOTTIndonesiaIE` extractor](https://github.com/yt-dlp/yt-dlp/commit/72671a212d7c939329cb5d34335fa089dd3acbd3) ([#6099](https://github.com/yt-dlp/yt-dlp/issues/6099)) by [HobbyistDev](https://github.com/HobbyistDev)
+- vk
+    - [Fix playlists for new API](https://github.com/yt-dlp/yt-dlp/commit/a9c685453f7019bee94170f936619c6db76c964e) ([#6122](https://github.com/yt-dlp/yt-dlp/issues/6122)) by [the-marenga](https://github.com/the-marenga)
+- vlive
+    - [Replace with `VLiveWebArchiveIE`](https://github.com/yt-dlp/yt-dlp/commit/b3eaab7ca2e118d4db73dcb44afd9c8717db8b67) ([#6196](https://github.com/yt-dlp/yt-dlp/issues/6196)) by [seproDev](https://github.com/seproDev)
+- vocaroo
+    - [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/e4a8b1769e19755acba6d8f212208359905a3159) ([#6117](https://github.com/yt-dlp/yt-dlp/issues/6117)) by [qbnu](https://github.com/qbnu), [SuperSonicHub1](https://github.com/SuperSonicHub1)
+- wrestleuniverse
+    - [Add extractors](https://github.com/yt-dlp/yt-dlp/commit/e61acb40b2cb6ef45508d72235026d458c9d5dff) ([#6158](https://github.com/yt-dlp/yt-dlp/issues/6158)) by [bashonly](https://github.com/bashonly), [Grub4K](https://github.com/Grub4K)
+- ximalaya
+    - [Update album `_VALID_URL`](https://github.com/yt-dlp/yt-dlp/commit/417cdaae08fc447c9d15c53a88e2e9a027cdbf0a) ([#6110](https://github.com/yt-dlp/yt-dlp/issues/6110)) by [carusocr](https://github.com/carusocr)
+- yappy
+    - [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/361630015535026712bdb67f804a15b65ff9ee7e) ([#6111](https://github.com/yt-dlp/yt-dlp/issues/6111)) by [HobbyistDev](https://github.com/HobbyistDev)
+- youtube
+    - [Add hyperpipe instances](https://github.com/yt-dlp/yt-dlp/commit/78a78fa74dbc888d20f1b65e1382bf99131597d5) ([#6020](https://github.com/yt-dlp/yt-dlp/issues/6020)) by [Generator](https://github.com/Generator)
+    - [Fix `uploader_id` extraction](https://github.com/yt-dlp/yt-dlp/commit/149eb0bbf34fa8fdf8d1e2aa28e17479d099e26b) by [bashonly](https://github.com/bashonly)
+    - [Handle `consent.youtube`](https://github.com/yt-dlp/yt-dlp/commit/b032ff0f032512bd6fc70c9c1994d906eacc06cb) by [pukkandan](https://github.com/pukkandan)
+    - [Support `/live/` URL](https://github.com/yt-dlp/yt-dlp/commit/dad2210c0cb9cf03702a9511817ee5ec646d7bc8) by [pukkandan](https://github.com/pukkandan)
+    - [Update invidious and piped instances](https://github.com/yt-dlp/yt-dlp/commit/05799a48c7dec12b34c8bf951c8d2eceedda59f8) ([#6030](https://github.com/yt-dlp/yt-dlp/issues/6030)) by [rohieb](https://github.com/rohieb)
+    - [`uploader_id` includes `@` with handle](https://github.com/yt-dlp/yt-dlp/commit/c61cf091a54d3aa3c611722035ccde5ecfe981bb) by [bashonly](https://github.com/bashonly)
+- zdf
+    - [Use android API endpoint for UHD downloads](https://github.com/yt-dlp/yt-dlp/commit/0fe87a8730638490415d630f48e61d264d89c358) ([#6150](https://github.com/yt-dlp/yt-dlp/issues/6150)) by [seproDev](https://github.com/seproDev)
+### Downloader changes
+- hls
+    - [Allow extractors to provide AES key](https://github.com/yt-dlp/yt-dlp/commit/7e68567e508168b345266c0c19812ad50a829eaa) ([#6158](https://github.com/yt-dlp/yt-dlp/issues/6158)) by [bashonly](https://github.com/bashonly), [Grub4K](https://github.com/Grub4K)
+### Postprocessor changes
+- extractaudio
+    - [Handle outtmpl without ext](https://github.com/yt-dlp/yt-dlp/commit/f737fb16d8234408c85bc189ccc926fea000515b) ([#6005](https://github.com/yt-dlp/yt-dlp/issues/6005)) by [carusocr](https://github.com/carusocr)
+- pyinst
+    - [Fix for pyinstaller 5.8](https://github.com/yt-dlp/yt-dlp/commit/2e269bd998c61efaf7500907d114a56e5e83e65e) by [pukkandan](https://github.com/pukkandan)
+### Misc. changes
+- build
+    - [Update pyinstaller](https://github.com/yt-dlp/yt-dlp/commit/365b9006051ac7d735c20bb63c4907b758233048) by [pukkandan](https://github.com/pukkandan)
+- cleanup
+    - Miscellaneous: [76c9c52](https://github.com/yt-dlp/yt-dlp/commit/76c9c523071150053df7b56956646b680b6a6e05) by [pukkandan](https://github.com/pukkandan)
+- devscripts
+    - [Provide pyinstaller hooks](https://github.com/yt-dlp/yt-dlp/commit/acb1042a9ffa8769fe691beac1011d6da1fcf321) by [pukkandan](https://github.com/pukkandan)
+- pyinstaller
+    - [Analyze sub-modules of `Cryptodome`](https://github.com/yt-dlp/yt-dlp/commit/b85faf6ffb700058e774e99c04304a7a9257cdd0) by [pukkandan](https://github.com/pukkandan)
 
 ### 2023.01.06
 
