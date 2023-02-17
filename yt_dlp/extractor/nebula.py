@@ -6,7 +6,9 @@ from ..utils import (
     ExtractorError,
     format_field,
     parse_iso8601,
+    smuggle_url,
     traverse_obj,
+    unsmuggle_url,
 )
 
 _BASE_URL_RE = r'https?://(?:www\.|beta\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
@@ -54,39 +56,58 @@ class NebulaBaseIE(InfoExtractor):
                 return inner_call()
             raise
 
-    def _build_video_info(self, episode):
-        slug = episode['slug']
-        stream_info = self._call_nebula_api(
-            f'https://content.watchnebula.com/video/{slug}/stream/',
-            slug, note='Fetching video stream info')
-        fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_info['manifest'], slug)
+    def _build_video_info_from_data(self, slug, data, fetch_formats_and_subs=True):
+        if fetch_formats_and_subs:
+            stream_info = self._call_nebula_api(
+                f'https://content.watchnebula.com/video/{slug}/stream/',
+                slug, note='Fetching video stream info')
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_info['manifest'], slug)
+            info = {'formats': fmts, 'subtitles': subs}
+        else:
+            info = {
+                '_type': 'url',
+                'url': smuggle_url(f'https://nebula.tv/{slug}', data)
+            }
 
-        channel_url = format_field(episode, 'channel_slug', 'https://nebula.app/%s')
+        channel_url = format_field(data, 'channel_id', 'https://nebula.app/%s')
         return {
             'display_id': slug,
             'channel_url': channel_url,
             'uploader_url': channel_url,
-            'formats': fmts,
-            'subtitles': subs,
+            **info,
+            **traverse_obj(data, {
+                'id': 'id',
+                'title': 'title',
+                'description': 'description',
+                'timestamp': 'timestamp',
+                'thumbnails': 'thumbnails',
+                'duration': 'duration',
+                'channel_id': 'channel_id',
+                'uploader_id': 'channel_id',
+                'channel': 'channel',
+                'uploader': 'channel',
+                'series': 'channel',
+                'creator': 'channel',
+            })
+        }
+
+    def _build_video_info(self, episode, fetch_formats_and_subs=True):
+        return self._build_video_info_from_data(episode['slug'], {
             **traverse_obj(episode, {
                 'id': 'zype_id',
                 'title': 'title',
                 'description': 'description',
                 'timestamp': ('published_at', parse_iso8601),
-                'thumbnails': [{
-                    # 'id': tn.get('name'),  # this appears to be null
-                    'url': tn['original'],
-                    'height': key,
-                } for key, tn in traverse_obj(episode, ('assets', 'thumbnail'), default={}).items()],
                 'duration': 'duration',
                 'channel_id': 'channel_slug',
-                'uploader_id': 'channel_slug',
                 'channel': 'channel_title',
-                'uploader': 'channel_title',
-                'series': 'channel_title',
-                'creator': 'channel_title',
-            })
-        }
+            }),
+            'thumbnails': [{
+                # 'id': tn.get('name'),  # this appears to be null
+                'url': tn['original'],
+                'height': key,
+            } for key, tn in traverse_obj(episode, ('assets', 'thumbnail'), default={}).items()],
+        }, fetch_formats_and_subs)
 
     def _perform_login(self, username, password):
         self._token = self._perform_nebula_auth(username, password)
@@ -203,6 +224,9 @@ class NebulaIE(NebulaBaseIE):
 
     def _real_extract(self, url):
         slug = self._match_id(url)
+        url, smuggled_data = unsmuggle_url(url, {})
+        if smuggled_data:
+            return self._build_video_info_from_data(slug, smuggled_data)
         return self._build_video_info(self._call_nebula_api(
             f'https://content.watchnebula.com/video/{slug}/',
             slug, note='Fetching video meta data'))
@@ -270,7 +294,7 @@ class NebulaChannelIE(NebulaBaseIE):
     def _generate_playlist_entries(self, collection_id, channel):
         for page_num in itertools.count(2):
             for episode in channel['episodes']['results']:
-                yield self._build_video_info(episode)
+                yield self._build_video_info(episode, fetch_formats_and_subs=False)
             next_url = channel['episodes'].get('next')
             if not next_url:
                 break
