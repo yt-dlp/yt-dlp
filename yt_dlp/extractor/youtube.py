@@ -4120,7 +4120,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'thumbnail': traverse_obj(original_thumbnails, (-1, 'url')),
             'description': video_description,
             'uploader': get_first(video_details, 'author'),
-            'uploader_id': self._search_regex(r'/(?:channel/|user/|@)([^/?&#]+)', owner_profile_url, 'uploader id', default=None),
+            'uploader_id': self._search_regex(r'/(?:channel/|user/|(?=@))([^/?&#]+)', owner_profile_url, 'uploader id', default=None),
             'uploader_url': owner_profile_url,
             'channel_id': channel_id,
             'channel_url': format_field(channel_id, None, 'https://www.youtube.com/channel/%s'),
@@ -4458,19 +4458,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     info_dict['entries'] = (_smuggle(i, smuggled_data.copy()) for i in info_dict['entries'])
             return info_dict
         return wrapper
-
-    def _extract_channel_id(self, webpage):
-        channel_id = self._html_search_meta(
-            'channelId', webpage, 'channel id', default=None)
-        if channel_id:
-            return channel_id
-        channel_url = self._html_search_meta(
-            ('og:url', 'al:ios:url', 'al:android:url', 'al:web:url',
-             'twitter:url', 'twitter:app:url:iphone', 'twitter:app:url:ipad',
-             'twitter:app:url:googleplay'), webpage, 'channel url')
-        return self._search_regex(
-            r'https?://(?:www\.)?youtube\.com/channel/([^/?#&])+',
-            channel_url, 'channel id')
 
     @staticmethod
     def _extract_basic_item_renderer(item):

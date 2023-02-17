@@ -58,7 +58,7 @@ NO_SKIP = '''
       label: DO NOT REMOVE OR SKIP THE ISSUE TEMPLATE
       description: Fill all fields even if you think it is irrelevant for the issue
       options:
-        - label: I understand that I will be **blocked** if I remove or skip any mandatory\\* field
+        - label: I understand that I will be **blocked** if I *intentionally* remove or skip any mandatory\\* field
           required: true
 '''.strip()
 
