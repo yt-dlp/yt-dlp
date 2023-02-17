@@ -339,27 +339,47 @@ class BiliBiliIE(BilibiliBaseIE):
 class BiliBiliBangumiIE(BilibiliBaseIE):
     _VALID_URL = r'(?x)https?://www\.bilibili\.com/bangumi/play/(?P<id>(?:ss|ep)\d+)'
 
-    _TESTS = [{
-        'url': 'https://www.bilibili.com/bangumi/play/ss897',
-        'info_dict': {
-            'id': 'ss897',
-            'ext': 'mp4',
-            'series': '神的记事本',
-            'season': '神的记事本',
-            'season_id': 897,
-            'season_number': 1,
-            'episode': '你与旅行包',
-            'episode_number': 2,
-            'title': '神的记事本 第2话 你与旅行包',
-            'duration': 1428.487,
-            'timestamp': 1310809380,
-            'upload_date': '20110716',
-            'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+    _TESTS = [
+        {
+            'url': 'https://www.bilibili.com/bangumi/play/ss897',
+            'info_dict': {
+                'id': 'ss897',
+                'ext': 'mp4',
+                'series': '神的记事本',
+                'season': '神的记事本',
+                'season_id': 897,
+                'season_number': 1,
+                'episode': '你与旅行包',
+                'episode_number': 2,
+                'title': '神的记事本 第2话 你与旅行包',
+                'duration': 1428.487,
+                'timestamp': 1310809380,
+                'upload_date': '20110716',
+                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            },
         },
-    }, {
-        'url': 'https://www.bilibili.com/bangumi/play/ep508406',
-        'only_matching': True,
-    }]
+        {
+            'url': 'https://www.bilibili.com/bangumi/play/ep730769',
+            'info_dict': {
+                'id': 'ep730769',
+                'ext': 'mp4',
+                'series': '',
+                'season': '海岸村恰恰恰',
+                'season_id': 43894,
+                'episode': 'Episode 1',
+                'episode_number': 1,
+                'title': '海岸村恰恰恰 第1集',
+                'duration': 4477.331,
+                'timestamp': 1673607600,
+                'upload_date': '20230113',
+                'thumbnail': r're:^https?://.*\.(jpg|jpeg|png)$',
+            },
+        },
+        {
+            'url': 'https://www.bilibili.com/bangumi/play/ep508406',
+            'only_matching': True,
+        },
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -390,7 +410,7 @@ class BiliBiliBangumiIE(BilibiliBaseIE):
         ep_suffix = '话' if season_type == 1 or season_type == 4 else '集'
         title = (
             f"第{ep_number}{ep_suffix}" if ep_number else
-            join_nonempty('title', 'long_title', delim=' ', from_dict=traverse_obj(initial_state, 'epInfo'))) + f" {traverse_obj(initial_state, ('epInfo', 'long_title'))}"
+            join_nonempty('title', 'long_title', delim=' ', from_dict=traverse_obj(initial_state, 'epInfo'))) + f" {traverse_obj(initial_state, ('epInfo', 'long_title'))}".strip()
 
         return {
             'id': video_id,
@@ -440,7 +460,7 @@ class BiliBiliBangumiMediaIE(InfoExtractor):
         return self.playlist_result((
             self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['aid'], media_info['title'] + ' ' + (
                 f"第{entry['title']}{ep_suffix}" if int_or_none(entry.get('title')) else
-                join_nonempty('title', 'long_title', delim=' ', from_dict=entry)) + f" {entry['long_title']}")
+                join_nonempty('title', 'long_title', delim=' ', from_dict=entry)) + f" {entry['long_title']}").strip()
             for entry in episode_list), media_id, media_info['title'], media_info['evaluate'])
 
 
