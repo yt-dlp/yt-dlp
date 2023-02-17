@@ -250,6 +250,11 @@ def _split_innertube_client(client_name):
     return client_name, base, variant[0] if variant else None
 
 
+def short_client_name(client_name):
+    main, *parts = _split_innertube_client(client_name)[0].replace('embedscreen', 'e_s').split('_')
+    return join_nonempty(main[:4], ''.join(x[0] for x in parts)).upper()
+
+
 def build_innertube_clients():
     THIRD_PARTY = {
         'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
@@ -3620,8 +3625,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     self.report_warning(
                         f'Skipping player response from {client} client (got player response for video "{pr_video_id}" instead of "{video_id}")' + bug_reports_message())
                 else:
-                    # set the client name in streamingData so that we can show it on -F
-                    (traverse_obj(pr, ('streamingData', {dict})) or {})[STREAMING_DATA_CLIENT_NAME] = client
+                    # Save client name for introspection later
+                    name = short_client_name(client)
+                    sd = traverse_obj(pr, ('streamingData', {dict})) or {}
+                    sd[STREAMING_DATA_CLIENT_NAME] = name
+                    for f in traverse_obj(sd, (('formats', 'adaptiveFormats'), ..., {dict})):
+                        f[STREAMING_DATA_CLIENT_NAME] = name
                     prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
@@ -3741,7 +3750,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.report_warning(
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
-            client_name = (traverse_obj(query, ('c', 0, {str})) or fmt.get(STREAMING_DATA_CLIENT_NAME) or '')[0:3].upper()
+            client_name = fmt.get(STREAMING_DATA_CLIENT_NAME)
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
@@ -3754,8 +3763,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                     throttled and 'THROTTLED', is_damaged and 'DAMAGED',
-                    # for convenience of seeing client name in -F without debugging
-                    client_name,
+                    self.get_param('verbose') and client_name,
                     delim=', '),
                 # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
                 'source_preference': -10 if throttled else -5 if itag == '22' else -1,
@@ -3828,12 +3836,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             f['quality'] = q(itag_qualities.get(try_get(f, lambda f: f['format_id'].split('-')[0]), -1))
             if f['quality'] == -1 and f.get('height'):
                 f['quality'] = q(res_qualities[min(res_qualities, key=lambda x: abs(x - f['height']))])
-            f['format_note'] = join_nonempty(f.get('format_note'), client_name, delim=', ')
+            if self.get_param('verbose'):
+                f['format_note'] = join_nonempty(f.get('format_note'), client_name, delim=', ')
             return True
 
         subtitles = {}
         for sd in streaming_data:
-            client_name = (sd.get(STREAMING_DATA_CLIENT_NAME) or '')[0:3].upper()
+            client_name = sd.get(STREAMING_DATA_CLIENT_NAME)
 
             hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
