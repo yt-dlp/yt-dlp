@@ -3621,7 +3621,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         f'Skipping player response from {client} client (got player response for video "{pr_video_id}" instead of "{video_id}")' + bug_reports_message())
                 else:
                     # set the client name in streamingData so that we can show it on -F
-                    (traverse_obj(pr, ('streamingData', {dict})) or {})[STRAMING_DATA_CLIENT_NAME] = client
+                    (traverse_obj(pr, ('streamingData', {dict})) or {})[STREAMING_DATA_CLIENT_NAME] = client
                     prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
@@ -3741,7 +3741,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 self.report_warning(
                     f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
 
-            client_name = (traverse_obj(query, ('c', 0, {str})) or fmt.get(STRAMING_DATA_CLIENT_NAME) or '')[0:3].upper()
+            client_name = (traverse_obj(query, ('c', 0, {str})) or fmt.get(STREAMING_DATA_CLIENT_NAME) or '')[0:3].upper()
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
@@ -3833,7 +3833,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         subtitles = {}
         for sd in streaming_data:
-            client_name = (sd.get(STRAMING_DATA_CLIENT_NAME) or '')[0:3].upper()
+            client_name = (sd.get(STREAMING_DATA_CLIENT_NAME) or '')[0:3].upper()
 
             hls_manifest_url = 'hls' not in skip_manifests and sd.get('hlsManifestUrl')
             if hls_manifest_url:
