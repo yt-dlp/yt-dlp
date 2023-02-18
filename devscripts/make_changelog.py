@@ -96,6 +96,7 @@ class CommitInfo:
     message: str
     issues: list[str]
     commit: Commit
+    fixes: list[Commit]
 
     def key(self):
         return ((self.details or '').lower(), self.sub_details, self.message)
@@ -179,21 +180,33 @@ class Changelog:
     def _format_cleanup_misc_items(self, group):
         for authors, infos in group.items():
             message = ', '.join(
-                f'[{info.commit.hash or "unknown":.7}]({self.repo_url}/commit/{info.commit.hash})'
+                self._format_message_link(None, info.commit.hash)
                 for info in sorted(infos, key=lambda item: item.commit.hash or ''))
             yield f'{message} by {self._format_authors(authors)}'
 
     def format_single_change(self, info):
-        message = (
-            info.message if info.commit.hash is None else
-            f'[{info.message}]({self.repo_url}/commit/{info.commit.hash})')
+        message = self._format_message_link(info.message, info.commit.hash)
         if info.issues:
             message = f'{message} ({self._format_issues(info.issues)})'
 
-        if not info.commit.authors:
-            return message
+        if info.commit.authors:
+            message = f'{message} by {self._format_authors(info.commit.authors)}'
 
-        return f'{message} by {self._format_authors(info.commit.authors)}'
+        if info.fixes:
+            fix_message = ', '.join(f'{self._format_message_link(None, fix.hash)}' for fix in info.fixes)
+
+            authors = sorted(set(author for fix in info.fixes for author in fix.authors), key=str.casefold)
+            if authors != info.commit.authors:
+                fix_message = f'{fix_message} by {self._format_authors(authors)}'
+
+            message = f'{message} (With fixes in {fix_message})'
+
+        return message
+
+    def _format_message_link(self, message, hash):
+        assert message or hash, 'Improperly defined commit message or override'
+        message = message if message else hash[:7]
+        return f'[{message}]({self.repo_url}/commit/{hash})' if hash else message
 
     def _format_issues(self, issues):
         return ', '.join(f'[#{issue}]({self.repo_url}/issues/{issue})' for issue in issues)
@@ -223,11 +236,12 @@ class CommitRange:
         (?:\ \((?P<issues>\#\d+(?:,\ \#\d+)*)\))?
         ''', re.VERBOSE)
     EXTRACTOR_INDICATOR_RE = re.compile(r'(?:Fix|Add)\s+Extractors?', re.IGNORECASE)
+    FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+for)?|Revert)\s+([\da-f]{40})')
 
     def __init__(self, start, end, default_author=None) -> None:
         self._start = start
         self._end = end
-        self._commits = {commit.hash: commit for commit in self._get_commits_raw(default_author)}
+        self._commits, self._fixes = self._get_commits_and_fixes(default_author)
         self._commits_added = []
 
     @classmethod
@@ -272,10 +286,13 @@ class CommitRange:
         return bool(subprocess.call(
             [self.COMMAND, 'merge-base', '--is-ancestor', commitish, self._start]))
 
-    def _get_commits_raw(self, default_author):
+    def _get_commits_and_fixes(self, default_author):
         result = subprocess.check_output([
             self.COMMAND, 'log', f'--format=%H%n%s%n%b%n{self.COMMIT_SEPARATOR}',
             f'{self._start}..{self._end}'], text=True)
+
+        commits = {}
+        fixes = defaultdict(list)
         lines = iter(result.splitlines(False))
         for line in lines:
             commit_hash = line
@@ -291,8 +308,25 @@ class CommitRange:
             commit = Commit(commit_hash, short, authors)
             if skip:
                 logger.debug(f'Skipped commit: {commit}')
+                continue
+
+            fix_match = self.FIXES_RE.search(commit.short)
+            if fix_match:
+                commitish = fix_match.group(1)
+                fixes[commitish].append(commit)
+
+            commits[commit.hash] = commit
+
+        for commitish, fix_commits in fixes.items():
+            if commitish in commits:
+                hashes = ', '.join(commit.hash[:7] for commit in fix_commits)
+                logger.info(f'Found fix(es) for {commitish[:7]}: {hashes}')
+                for fix_commit in fix_commits:
+                    del commits[fix_commit.hash]
             else:
-                yield commit
+                logger.debug(f'Commit with fixes not in changes: {commitish[:7]}')
+
+        return commits, fixes
 
     def apply_overrides(self, overrides):
         for override in overrides:
@@ -365,7 +399,9 @@ class CommitRange:
                         group = CommitGroup.POSTPROCESSOR
                     logger.warning(f'Failed to map {commit.short!r}, selected {group.name}')
 
-            commit_info = CommitInfo(details, sub_details, message.strip(), issues, commit)
+            commit_info = CommitInfo(
+                details, sub_details, message.strip(),
+                issues, commit, self._fixes[commit.hash])
             logger.debug(f'Resolved {commit.short!r} to {commit_info!r}')
             groups[group].append(commit_info)
 
