@@ -169,9 +169,6 @@ class TubiTvIE(TubiTvBaseIE):
         url, smuggle_data = unsmuggle_url(url)
 
         video_id = self._match_id(url)
-        video_data = self._download_json(f'https://tubitv.com/oz/videos/{video_id}/content', video_id, query={
-            'video_resources': ['dash', 'hlsv3', 'hlsv6', *self._UNPLAYABLE_FORMATS],
-        })
         series = None
 
         if smuggle_data:
@@ -180,12 +177,12 @@ class TubiTvIE(TubiTvBaseIE):
             video_data = smuggle_data.get('show_data')
         else:
             # Get metadata from page
-            video_data = self._download_json(f'https://tubitv.com/oz/videos/{video_id}/content', video_id, query={
-                'video_resources': ['dash', 'hlsv3', 'hlsv6', *self._UNPLAYABLE_FORMATS],
-            })
-            # webpage = self._download_webpage(f'https://tubitv.com/video/{video_id}/{video_id}', video_id)
-            # page_json = self._parse_page_data(webpage, video_id)
-            # video_data = traverse_obj(page_json, ('byId', video_id))
+            #video_data = self._download_json(f'https://tubitv.com/oz/videos/{video_id}/content', video_id, query={
+            #    'video_resources': ['dash', 'hlsv3', 'hlsv6', *self._UNPLAYABLE_FORMATS],
+            #})
+            webpage = self._download_webpage(f'https://tubitv.com/video/{video_id}/{video_id}', video_id)
+            page_json = self._parse_page_data(webpage, video_id)
+            video_data = traverse_obj(page_json, ('byId', video_id))
             series_id = video_data.get('series_id')
             if series_id:
                 series = self._get_show_title(page_json, series_id)
