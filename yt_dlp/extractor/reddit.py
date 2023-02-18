@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class RedditIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<subdomain>[^/]+\.)?reddit(?:media)?\.com/(?P<slug>(?:r|user)/[^/]+/comments/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'https?://(?P<subdomain>[^/]+\.)?reddit(?:media)?\.com/(?P<slug>(?:r|user)/[^/]+/comments/(?P<id>[^/?#&]+))|https?://v.redd.it/(?:[^/?#&]+)'
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
         'info_dict': {
