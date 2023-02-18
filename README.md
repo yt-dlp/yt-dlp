@@ -1799,7 +1799,11 @@ The following extractors use this feature:
 * `force_graphql`: Force usage of the GraphQL API. By default it will only be used if login cookies are provided
 
 #### polsatgo
-* `player_client`: Clients to extract metadata as - one of `web` (default), `web_box` (default if cookies exist), `android`
+* `player_client`: Clients to extract metadata as - one of `web` (default), `android`
+
+#### polsatboxgo
+* `force_use_pg`: Force extraction as Polsat Go. One or more of `video`, `series`. By default links to videos on PBG are extracted as PG if not logged in to PBG, and series always as PBG (if provided url is to PBG)
+* `player_client`: Clients to extract metadata as - currently only `web`
 
 **Note**: These options may be changed/removed in the future without concern for backward compatibility
 

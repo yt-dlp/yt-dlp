@@ -215,6 +215,12 @@ class PolsatBoxGoPlatformBaseExtractor(InfoExtractor):
     }
     _SESSIONS = {}
 
+    def _force_use_pg_for_video(self):
+        return 'video' in self._configuration_arg('force_use_pg', default=[], ie_key=PolsatBoxGoIE)
+
+    def _force_use_pg_for_series(self):
+        return 'series' in self._configuration_arg('force_use_pg', default=[], ie_key=PolsatBoxGoIE)
+
 
 class PolsatGoIE(PolsatGoBaseVideoExtractor, PolsatGoPlatformBaseExtractor):
     _VALID_URL = r'(?:polsatgo:|https?://(?:www\.)?polsatgo\.pl/wideo/(?:film/|(?:programy|seriale)/[^/]+/\d+/(?:[^/]+/\d+/)?)[^/]+/)(?P<id>[a-f\d]+)'
@@ -269,8 +275,11 @@ class PolsatBoxGoIE(PolsatGoBaseVideoExtractor, PolsatBoxGoPlatformBaseExtractor
 
         clients = self._configuration_arg('player_client', default=self._CLIENTS.keys())
 
+        if self._force_use_pg_for_video():
+            return self.url_result(f'polsatgo:{video_id}', ie=PolsatGoIE)
+
         if not any((client in self._SESSIONS for client in clients)):
-            self.report_warning('Polsat Box Go url provided, but no PBG session or credentials available, extracting with Polsat Go instead')
+            self.report_warning('Polsat Box Go url provided, but no PBG session or credentials available, extracting as Polsat Go instead')
             return self.url_result(f'polsatgo:{video_id}', ie=PolsatGoIE)
 
         return self._extract_video(video_id)
@@ -320,7 +329,7 @@ class PolsatGoBaseCategoryExtractor(PolsatGoBaseExtractor):
 
 
 class PolsatGoCategoryIE(PolsatGoBaseCategoryExtractor, PolsatGoPlatformBaseExtractor):
-    _VALID_URL = r'https?://(?:www\.)?polsatgo\.pl/wideo/[^/]+/(?P<id>\d+)'
+    _VALID_URL = r'(?:polsatgocat:|https?://(?:www\.)?polsatgo\.pl/wideo/[^/]+/)(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://polsatgo.pl/wideo/rodzina-zastepcza/5024220/autoplay',
         'info_dict': {
@@ -338,7 +347,7 @@ class PolsatGoCategoryIE(PolsatGoBaseCategoryExtractor, PolsatGoPlatformBaseExtr
 
 
 class PolsatBoxGoCategoryIE(PolsatGoBaseCategoryExtractor, PolsatBoxGoPlatformBaseExtractor):
-    _VALID_URL = r'https?://(?:www\.)?polsatboxgo\.pl/wideo/[^/]+/(?P<id>\d+)'
+    _VALID_URL = r'(?:polsatboxgocat:|https?://(?:www\.)?polsatboxgo\.pl/wideo/[^/]+/)(?P<id>\d+)'
     _TESTS = [{
         # category only extractable as pbg even though entries work with pg
         'url': 'https://polsatboxgo.pl/wideo/gry-komputerowe-show/5027365/autoplay',
@@ -352,5 +361,8 @@ class PolsatBoxGoCategoryIE(PolsatGoBaseCategoryExtractor, PolsatBoxGoPlatformBa
 
     def _real_extract(self, url):
         category_id = self._match_id(url)
+
+        if self._force_use_pg_for_series():
+            return self.url_result(f'polsatgocat:{category_id}', ie=PolsatGoCategoryIE)
 
         return self._category_extract(category_id)
