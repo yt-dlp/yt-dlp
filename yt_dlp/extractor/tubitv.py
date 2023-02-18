@@ -47,6 +47,7 @@ class TubiTvIE(TubiTvBaseIE):
             'thumbnail': r're:^https?://.+\.(jpe?g|png)$',
             'duration': 6122,
         },
+        'skip': 'Content Unavailable'
     }, {
         'url': 'http://tubitv.com/video/283829/the_comedian_at_the_friday',
         'md5': '43ac06be9326f41912dc64ccf7a80320',
@@ -59,21 +60,21 @@ class TubiTvIE(TubiTvBaseIE):
         },
         'skip': 'Content Unavailable'
     }, {
-        # "video" (redirects to "movies" or "tv-shows" in browser depending on media type)
-        'url': 'https://tubitv.com/video/674931/tow',
-        'md5': 'afa0cb28a37be3fec2cc9a4a99758e9c',
-        'info_dict': {
-            'id': '674931',
-            'ext': 'mp4',
-            'title': 'Tow',
-            'duration': 5171,
-            'uploader_id': 'bd17d1b5fd5e1188493651ac8bce8ded',
-            'release_year': 2022,
-            'description': 'Twin sisters must confront their past when their attempted killer re-enters their lives.',
-            'thumbnail': r're:^https?://.*\.jpg$',
-        },
+        'url': 'http://tubitv.com/tv-shows/321886/s01_e01_on_nom_stories',
+        'only_matching': True,
     }, {
-        # movie
+        'url': 'https://tubitv.com/movies/560057/penitentiary?start=true',
+        'info_dict': {
+            'id': '560057',
+            'ext': 'mp4',
+            'title': 'Penitentiary',
+            'description': 'md5:8d2fc793a93cc1575ff426fdcb8dd3f9',
+            'uploader_id': 'd8fed30d4f24fcb22ec294421b9defc2',
+            'release_year': 1979,
+        },
+        'skip': 'Content Unavailable'
+    }, {
+        # movie (Tubi original movie 'Swim', lower likelihood of becoming unavailable)
         'url': 'https://tubitv.com/movies/613766/swim?start=true',
         'md5': 'acde434a720fb2e22cb96bf8b99a102d',
         'info_dict': {
@@ -87,7 +88,7 @@ class TubiTvIE(TubiTvBaseIE):
             'thumbnail': r're:^https?://.*\.jpg$',
         }
     }, {
-        # episode
+        # episode (Tubi original series 'The Freak Brothers', lower likelihood of becoming unavailable)
         'url': 'https://tubitv.com/tv-shows/624837/s01-e01-pilot?start=true',
         'md5': 'c38ef60e8b3ff8b15d4c5780a2cae5f6',
         'info_dict': {
@@ -106,41 +107,13 @@ class TubiTvIE(TubiTvBaseIE):
             'thumbnail': r're:^https?://.*\.jpg$',
         }
     }, {
-        # special episode
-        'url': 'https://tubitv.com/tv-shows/519013/specials-e12-garfield-s-halloween-adventure?start=true',
-        'md5': '282f6d33eafc76f33b749e361984b8ae',
-        'info_dict': {
-            'id': '519013',
-            'ext': 'mp4',
-            'title': 'Specials E12 - Garfield’s Halloween Adventure',
-            'description': 'When Garfield and Odie are out trick-or-treating, they end up at a haunted house.',
-            'duration': 1445,
-            'release_year': 1985,
-            'episode': 'Garfield’s Halloween Adventure',
-            'episode_number': 12,
-            'season_number': 0,
-            'uploader_id': '009dc61cc7f358e7ea96b6b018244659',
-            'season': 'Season 0',
-            'series': 'Garfield and Friends',
-            'thumbnail': r're:^https?://.*\.jpg$',
-        }
+        # "video" (redirects to "movies" or "tv-shows" in browser depending on media type, in this case to Tubi original movie 'Swim')
+        'url': 'https://tubitv.com/video/613766/swim',
+        'only_matching': True
     }, {
-        'url': 'tubitv:674931',
-        'only_matching': True,
-    }, {
-        'url': 'http://tubitv.com/tv-shows/321886/s01_e01_on_nom_stories',
-        'only_matching': True,
-    }, {
-        'url': 'https://tubitv.com/movies/560057/penitentiary?start=true',
-        'info_dict': {
-            'id': '560057',
-            'ext': 'mp4',
-            'title': 'Penitentiary',
-            'description': 'md5:8d2fc793a93cc1575ff426fdcb8dd3f9',
-            'uploader_id': 'd8fed30d4f24fcb22ec294421b9defc2',
-            'release_year': 1979,
-        },
-        'skip': 'Content Unavailable'
+        # alternative to URL
+        'url': 'tubitv:613766',
+        'only_matching': True
     }]
 
     # DRM formats are included only to raise appropriate error
@@ -168,8 +141,8 @@ class TubiTvIE(TubiTvBaseIE):
 
         url, smuggle_data = unsmuggle_url(url)
 
-        video_id = self._match_id(url)
         series = None
+        video_data = None
 
         if smuggle_data:
             # Use smuggled data for tv show
@@ -177,9 +150,9 @@ class TubiTvIE(TubiTvBaseIE):
             video_data = smuggle_data.get('show_data')
         else:
             # Get metadata from page
-            #video_data = self._download_json(f'https://tubitv.com/oz/videos/{video_id}/content', video_id, query={
-            #    'video_resources': ['dash', 'hlsv3', 'hlsv6', *self._UNPLAYABLE_FORMATS],
-            #})
+            # Note: This is done instead fo downloading the JSON directly because the result from
+            #       the JSON request (https://tubitv.com/oz/videos/{video_id}/content) contains
+            #       only the episode title and not the series title.
             webpage = self._download_webpage(f'https://tubitv.com/video/{video_id}/{video_id}', video_id)
             page_json = self._parse_page_data(webpage, video_id)
             video_data = traverse_obj(page_json, ('byId', video_id))
@@ -269,6 +242,14 @@ class TubiTvShowIE(TubiTvBaseIE):
         'info_dict': {
             'id': '3936',
             'title': 'The Joy of Painting With Bob Ross',
+        }
+    }, {
+        # (Tubi original series 'The Freak Brothers', lower likelihood of becoming unavailable)
+        'url': 'https://tubitv.com/series/300007896/the-freak-brothers?start=true',
+        'playlist_mincount': 8,
+        'info_dict': {
+            'id': '300007896',
+            'title': 'The Freak Brothers',
         }
     }]
 
