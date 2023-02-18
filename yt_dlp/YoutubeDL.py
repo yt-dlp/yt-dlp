@@ -2557,7 +2557,7 @@ class YoutubeDL:
         formats = self._get_formats(info_dict)
 
         # Backward compatibility with InfoExtractor._sort_formats
-        field_preference = formats[0].pop('__sort_fields', None)
+        field_preference = (formats or [{}])[0].pop('__sort_fields', None)
         if field_preference:
             info_dict['_format_sort_fields'] = field_preference
 
@@ -2810,10 +2810,14 @@ class YoutubeDL:
                     self.params.get('subtitleslangs'), {'all': all_sub_langs}, use_regex=True)
             except re.error as e:
                 raise ValueError(f'Wrong regex for subtitlelangs: {e.pattern}')
-        elif normal_sub_langs:
-            requested_langs = ['en'] if 'en' in normal_sub_langs else normal_sub_langs[:1]
         else:
-            requested_langs = ['en'] if 'en' in all_sub_langs else all_sub_langs[:1]
+            requested_langs = LazyList(itertools.chain(
+                ['en'] if 'en' in normal_sub_langs else [],
+                filter(lambda f: f.startswith('en'), normal_sub_langs),
+                ['en'] if 'en' in all_sub_langs else [],
+                filter(lambda f: f.startswith('en'), all_sub_langs),
+                normal_sub_langs, all_sub_langs,
+            ))[:1]
         if requested_langs:
             self.to_screen(f'[info] {video_id}: Downloading subtitles: {", ".join(requested_langs)}')
 
@@ -3661,6 +3665,7 @@ class YoutubeDL:
                 format_field(f, 'asr', '\t%s', func=format_decimal_suffix),
                 join_nonempty(
                     self._format_out('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
+                    self._format_out('DRM', 'light red') if f.get('has_drm') else None,
                     format_field(f, 'language', '[%s]'),
                     join_nonempty(format_field(f, 'format_note'),
                                   format_field(f, 'container', ignore=(None, f.get('ext'))),
@@ -3760,12 +3765,13 @@ class YoutubeDL:
         source = detect_variant()
         if VARIANT not in (None, 'pip'):
             source += '*'
+        klass = type(self)
         write_debug(join_nonempty(
             f'{"yt-dlp" if REPOSITORY == "yt-dlp/yt-dlp" else REPOSITORY} version',
             __version__,
             f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
-            '' if _IN_CLI else 'API',
+            '' if _IN_CLI else 'API' if klass == YoutubeDL else f'API:{self.__module__}.{klass.__qualname__}',
             delim=' '))
 
         if not _IN_CLI:

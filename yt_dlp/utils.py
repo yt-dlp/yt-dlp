@@ -1438,19 +1438,16 @@ class YoutubeDLHandler(urllib.request.HTTPHandler):
                     raise original_ioerror
             resp = urllib.request.addinfourl(uncompressed, old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
-            del resp.headers['Content-encoding']
         # deflate
         if resp.headers.get('Content-encoding', '') == 'deflate':
             gz = io.BytesIO(self.deflate(resp.read()))
             resp = urllib.request.addinfourl(gz, old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
-            del resp.headers['Content-encoding']
         # brotli
         if resp.headers.get('Content-encoding', '') == 'br':
             resp = urllib.request.addinfourl(
                 io.BytesIO(self.brotli(resp.read())), old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
-            del resp.headers['Content-encoding']
         # Percent-encode redirect URL of Location HTTP header to satisfy RFC 3986 (see
         # https://github.com/ytdl-org/youtube-dl/issues/6457).
         if 300 <= resp.code < 400:
@@ -3152,14 +3149,28 @@ def urlencode_postdata(*args, **kargs):
     return urllib.parse.urlencode(*args, **kargs).encode('ascii')
 
 
+def update_url(url, *, query_update=None, **kwargs):
+    """Replace URL components specified by kwargs
+       @param url           str or parse url tuple
+       @param query_update  update query
+       @returns             str
+    """
+    if isinstance(url, str):
+        if not kwargs and not query_update:
+            return url
+        else:
+            url = urllib.parse.urlparse(url)
+    if query_update:
+        assert 'query' not in kwargs, 'query_update and query cannot be specified at the same time'
+        kwargs['query'] = urllib.parse.urlencode({
+            **urllib.parse.parse_qs(url.query),
+            **query_update
+        }, True)
+    return urllib.parse.urlunparse(url._replace(**kwargs))
+
+
 def update_url_query(url, query):
-    if not query:
-        return url
-    parsed_url = urllib.parse.urlparse(url)
-    qs = urllib.parse.parse_qs(parsed_url.query)
-    qs.update(query)
-    return urllib.parse.urlunparse(parsed_url._replace(
-        query=urllib.parse.urlencode(qs, True)))
+    return update_url(url, query_update=query)
 
 
 def update_Request(req, url=None, data=None, headers=None, query=None):
@@ -3653,7 +3664,8 @@ def get_compatible_ext(*, vcodecs, acodecs, vexts, aexts, preferences=None):
         },
     }
 
-    sanitize_codec = functools.partial(try_get, getter=lambda x: x[0].split('.')[0].replace('0', ''))
+    sanitize_codec = functools.partial(
+        try_get, getter=lambda x: x[0].split('.')[0].replace('0', '').lower())
     vcodec, acodec = sanitize_codec(vcodecs), sanitize_codec(acodecs)
 
     for ext in preferences or COMPATIBLE_CODECS.keys():
@@ -3918,7 +3930,7 @@ class download_range_func:
                 and self.chapters == other.chapters and self.ranges == other.ranges)
 
     def __repr__(self):
-        return f'{type(self).__name__}({self.chapters}, {self.ranges})'
+        return f'{__name__}.{type(self).__name__}({self.chapters}, {self.ranges})'
 
 
 def parse_dfxp_time_expr(time_expr):
@@ -5373,8 +5385,8 @@ def random_uuidv4():
 def make_dir(path, to_screen=None):
     try:
         dn = os.path.dirname(path)
-        if dn and not os.path.exists(dn):
-            os.makedirs(dn)
+        if dn:
+            os.makedirs(dn, exist_ok=True)
         return True
     except OSError as err:
         if callable(to_screen) is not None:
@@ -6019,6 +6031,18 @@ class classproperty:
         elif cls not in self._cache:
             self._cache[cls] = self.func(cls)
         return self._cache[cls]
+
+
+class function_with_repr:
+    def __init__(self, func):
+        functools.update_wrapper(self, func)
+        self.func = func
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+    def __repr__(self):
+        return f'{self.func.__module__}.{self.func.__qualname__}'
 
 
 class Namespace(types.SimpleNamespace):
