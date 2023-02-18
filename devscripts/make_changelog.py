@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class CommitGroup(enum.Enum):
+    UPSTREAM = None
     PRIORITY = 'Important'
     CORE = 'Core'
     EXTRACTOR = 'Extractor'
@@ -33,6 +34,7 @@ class CommitGroup(enum.Enum):
             name: group
             for group, names in {
                 cls.PRIORITY: {''},
+                cls.UPSTREAM: {'upstream'},
                 cls.CORE: {
                     'aes',
                     'cache',
@@ -121,7 +123,8 @@ class Changelog:
                 yield self.format_module(item.value, group)
 
     def format_module(self, name, group):
-        return f'### {name} changes\n' + '\n'.join(self._format_group(group))
+        result = f'\n### {name} changes\n' if name else '\n'
+        return result + '\n'.join(self._format_group(group))
 
     def _format_group(self, group):
         sorted_group = sorted(group, key=CommitInfo.key)
@@ -237,6 +240,7 @@ class CommitRange:
         ''', re.VERBOSE)
     EXTRACTOR_INDICATOR_RE = re.compile(r'(?:Fix|Add)\s+Extractors?', re.IGNORECASE)
     FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+for)?|Revert)\s+([\da-f]{40})')
+    UPSTREAM_MERGE_RE = re.compile(r'Update to ytdl-commit-([\da-f]+)')
 
     def __init__(self, start, end, default_author=None) -> None:
         self._start = start
@@ -358,6 +362,10 @@ class CommitRange:
     def groups(self):
         groups = defaultdict(list)
         for commit in self:
+            upstream_re = self.UPSTREAM_MERGE_RE.match(commit.short)
+            if upstream_re:
+                commit.short = f'[upstream] Merge up to youtube-dl {upstream_re.group(1)}'
+
             match = self.MESSAGE_RE.fullmatch(commit.short)
             if not match:
                 logger.error(f'Error parsing short commit message: {commit.short!r}')
@@ -372,7 +380,7 @@ class CommitRange:
                     group = CommitGroup.PRIORITY
 
                 if not details and prefix:
-                    if prefix not in ('extractor', 'postprocessor', 'downloader'):
+                    if prefix not in ('core', 'downloader', 'extractor', 'misc', 'postprocessor', 'upstream'):
                         logger.debug(f'Replaced details with {prefix!r}')
                         details = prefix or None
 
