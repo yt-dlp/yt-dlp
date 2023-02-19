@@ -93,8 +93,8 @@ class AfreecaTVIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
-        # PARTIAL_ADULT
-        'url': 'http://vod.afreecatv.com/PLAYER/STATION/32028439',
+        # adult content
+        'url': 'https://vod.afreecatv.com/player/97267690',
         'info_dict': {
             'id': '20180327_27901457_202289533_1',
             'ext': 'mp4',
@@ -108,6 +108,7 @@ class AfreecaTVIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+        'skip': 'Requires login to get adult content',
         'expected_warnings': ['adult content'],
     }, {
         'url': 'http://www.afreecatv.com/player/Player.swf?szType=szBjId=djleegoon&nStationNo=11273158&nBbsNo=13161095&nTitleNo=36327652',
@@ -191,20 +192,14 @@ class AfreecaTVIE(InfoExtractor):
         partial_view = False
         adult_view = False
         for _ in range(2):
-            json_query = {
-                'nTitleNo': video_id,
-                'nApiLevel': 10,
-            }
             video_json = self._download_json(
                 "https://api.m.afreecatv.com/station/video/a/view",
-                video_id, data=urlencode_postdata(json_query), headers={
-                    'Referer': url,
-                })
-            if video_json['result'] != 1:
-                continue
-            video_json = video_json['data']
-            station_id = video_json['station_no']
-            bbs_id = video_json['bbs_no']
+                video_id, headers={'Referer': url}, data=urlencode_postdata({
+                    'nTitleNo': video_id,
+                    'nApiLevel': 10,
+                }))
+            station_id = video_json['data']['station_no']
+            bbs_id = video_json['data']['bbs_no']
             query = {
                 'nTitleNo': video_id,
                 'nStationNo': station_id,
