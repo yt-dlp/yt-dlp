@@ -133,7 +133,8 @@ class IPrimaIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_meta(
+        title = self._html_extract_title(webpage)
+        title = title or self._html_search_meta(
             ['og:title', 'twitter:title'],
             webpage, 'title', default=None)
 
