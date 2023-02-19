@@ -59,7 +59,10 @@ class InstagramBaseIE(InfoExtractor):
 
         shared_data = self._parse_json(self._search_regex(
             r'\["XIGSharedData",\s*\[\],\s*({.+?}),\d+\]', login_webpage, 'shared data', default='{}'), None)
-        shared_data = shared_data.get('native', {})
+        if shared_data.get('native', {}).get('config', {}).get('csrf_token'):
+            shared_data = shared_data['native']
+        else:
+            shared_data = json.loads(shared_data.get('raw', '{}'))
 
         login = self._download_json(
             f'{self._LOGIN_URL}/ajax/', None, note='Logging in', headers={
