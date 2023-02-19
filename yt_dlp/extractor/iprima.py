@@ -137,10 +137,13 @@ class IPrimaIE(InfoExtractor):
             ['og:title', 'twitter:title'],
             webpage, 'title', default=None)
 
-        video_id = self._search_regex((
-            r'productId\s*=\s*([\'"])(?P<id>p\d+)\1',
-            r'pproduct_id\s*=\s*([\'"])(?P<id>p\d+)\1'),
-            webpage, 'real id', group='id')
+        video_id = self._search_regex(
+            (
+                r'productId\s*=\s*([\'"])(?P<id>p\d+)\1',
+                r'pproduct_id\s*=\s*([\'"])(?P<id>p\d+)\1',
+                r'([\'"]?)videoLength\1\s*:.*?([\'"]?)videoPlayId\2\s*:\s*(["\'])(?P<id>p\d+)\3',
+            ),
+            webpage, 'real id', group='id', flags=re.MULTILINE | re.DOTALL)
 
         metadata = self._download_json(
             f'https://api.play-backend.iprima.cz/api/v1//products/id-{video_id}/play',
