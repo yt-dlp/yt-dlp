@@ -9,7 +9,7 @@ import subprocess
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
-from functools import cache
+from functools import lru_cache
 from pathlib import Path
 
 BASE_URL = 'https://github.com'
@@ -28,7 +28,7 @@ class CommitGroup(enum.Enum):
     MISC = 'Misc.'
 
     @classmethod
-    @cache
+    @lru_cache
     def commit_lookup(cls):
         return {
             name: group
