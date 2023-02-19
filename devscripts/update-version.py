@@ -49,7 +49,7 @@ UPDATE_HINT = None
 CHANNEL = {channel!r}
 '''
 
-if __name__=='__main__':
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Update the version.py file')
     parser.add_argument(
         '-c', '--channel', choices=['stable', 'nightly'], default='stable',
