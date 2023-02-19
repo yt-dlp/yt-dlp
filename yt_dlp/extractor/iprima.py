@@ -1,5 +1,6 @@
 import re
 import time
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -15,8 +16,9 @@ class IPrimaIE(InfoExtractor):
     _VALID_URL = r'https?://(?!cnn)(?:[^/]+)\.iprima\.cz/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _GEO_BYPASS = False
     _NETRC_MACHINE = 'iprima'
-    _LOGIN_URL = 'https://auth.iprima.cz/oauth2/login'
-    _TOKEN_URL = 'https://auth.iprima.cz/oauth2/token'
+    _AUTH_ROOT = 'https://auth.iprima.cz'
+    _LOGIN_URL = f'{_AUTH_ROOT}/oauth2/login'
+    _TOKEN_URL = f'{_AUTH_ROOT}/oauth2/token'
     access_token = None
 
     _TESTS = [{
@@ -76,20 +78,36 @@ class IPrimaIE(InfoExtractor):
             '_email': username,
             '_password': password})
 
-        _, login_handle = self._download_webpage_handle(
+        profile_select_html, login_handle = self._download_webpage_handle(
             self._LOGIN_URL, None, data=urlencode_postdata(login_form),
             note='Logging in')
 
-        code = parse_qs(login_handle.geturl()).get('code')[0]
-        if not code:
+        # a profile may need to be selected first, even when there is only a single one
+        if '/profile-select' in login_handle.geturl():
+            profile_id = self._search_regex(
+                r"data-identifier\s*=\s*[\"']?(\w+)[\"']?",
+                profile_select_html, 'profile id')
+
+            profile_select_url = f'{self._AUTH_ROOT}/user/profile-select-perform/{profile_id}'
+            profile_select_url += '?continueUrl='
+            profile_select_url += urllib.parse.quote("/user/login?redirect_uri=/user/", safe='')
+
+            _, login_handle = self._download_webpage_handle(
+                profile_select_url, None,
+                note='Selecting profile')
+
+        codes = parse_qs(login_handle.geturl()).get('code')
+        if not codes:
             raise ExtractorError('Login failed', expected=True)
+
+        code = codes[0]
 
         token_request_data = {
             'scope': 'openid+email+profile+phone+address+offline_access',
             'client_id': 'prima_sso',
             'grant_type': 'authorization_code',
             'code': code,
-            'redirect_uri': 'https://auth.iprima.cz/sso/auth-check'}
+            'redirect_uri': f'{self._AUTH_ROOT}/sso/auth-check'}
 
         token_data = self._download_json(
             self._TOKEN_URL, None,
