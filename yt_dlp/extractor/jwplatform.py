@@ -1,7 +1,9 @@
+import math
 import re
+import json
 
 from .common import InfoExtractor
-from ..utils import unsmuggle_url
+from ..utils import unsmuggle_url, InAdvancePagedList
 
 
 class JWPlatformIE(InfoExtractor):
@@ -145,3 +147,56 @@ class LeFigaroVideoEmbedIE(InfoExtractor):
         return self.url_result(
             f'jwplatform:{player_data["videoId"]}', title=player_data.get('title'),
             description=player_data.get('description'), thumbnail=player_data.get('poster'))
+
+
+class LeFigaroVideoSectionIE(InfoExtractor):
+    _VALID_URL = r'https?://video\.lefigaro\.fr/figaro/(?P<id>[\w-]+)/?$'
+
+    _TESTS = [{
+        'url': 'https://video.lefigaro.fr/figaro/le-club-le-figaro-idees/',
+        'info_dict': {
+            'id': 'le-club-le-figaro-idees',
+            'title': 'Le Club Le Figaro Idées',
+        },
+        'playlist_mincount': 14,
+    }, {
+        'url': 'https://video.lefigaro.fr/figaro/factu/',
+        'info_dict': {
+            'id': 'factu',
+            'title': 'Factu',
+        },
+        'playlist_mincount': 519,
+    }]
+
+    _PAGE_SIZE = 20
+
+    def _get_api_response(self, display_id, page_num, note=None):
+        return self._download_json(
+            'https://api-graphql.lefigaro.fr/graphql', display_id, note=note,
+            query={
+                'id': 'flive-website_UpdateListPage_1fb260f996bca2d78960805ac382544186b3225f5bedb43ad08b9b8abef79af6',
+                'variables': json.dumps({
+                    'slug': display_id,
+                    'videosLimit': self._PAGE_SIZE,
+                    'sort': 'DESC',
+                    'order': 'PUBLISHED_AT',
+                    'page': page_num,
+                }).encode(),
+            })
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        initial_response = self._get_api_response(display_id, page_num=1)['data']['playlist']
+
+        def page_func(page_num):
+            api_response = self._get_api_response(display_id, page_num + 1, note=f'Downloading page {page_num + 1}')
+
+            return [self.url_result(
+                video['embedUrl'], LeFigaroVideoEmbedIE, video_title=video.get('name'),
+                description=video.get('description'), thumbnail=video.get('thumbnailUrl'))
+                for video in api_response['data']['playlist']['jsonLd'][0]['itemListElement']]
+
+        entries = InAdvancePagedList(
+            page_func, math.ceil(initial_response['videoCount'] / self._PAGE_SIZE), self._PAGE_SIZE)
+
+        return self.playlist_result(entries, playlist_id=display_id, playlist_title=initial_response.get('title'))

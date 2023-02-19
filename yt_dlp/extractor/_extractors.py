@@ -843,6 +843,7 @@ from .joj import JojIE
 from .jwplatform import (
     JWPlatformIE,
     LeFigaroVideoEmbedIE,
+    LeFigaroVideoSectionIE,
 )
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
