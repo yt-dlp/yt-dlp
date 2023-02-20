@@ -259,7 +259,7 @@ class CommitRange:
 
     @classmethod
     def get_prev_tag(cls, commitish):
-        command = [cls.COMMAND, 'describe', '--tags', '--abbrev=0', commitish]
+        command = [cls.COMMAND, 'describe', '--tags', '--abbrev=0', '--exclude=*[^0-9.]*', commitish]
         return subprocess.check_output(command, text=True).strip()
 
     @classmethod
