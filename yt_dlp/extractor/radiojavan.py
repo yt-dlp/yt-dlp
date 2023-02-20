@@ -71,7 +71,7 @@ class RadioJavanAlbumIE(InfoExtractor):
             album_slug = album_json.get('permlink')
 
         playlist_items = [
-            self.url_result(url='https://play.radiojavan.com/song?id=' + str(album_tracks.get('id')),
+            self.url_result(url='https://play.radiojavan.com/song/' + album_tracks.get('permlink'),
                             video_title=album_tracks.get("title"),
                             video_id=album_tracks.get('permlink'),
                             url_transparent=False)
@@ -107,7 +107,7 @@ class RadioJavanPodcastShowIE(InfoExtractor):
             podcast_show_slug = podcast_show_json.get('permlink')
 
         playlist_items = [
-            self.url_result(url='https://play.radiojavan.com/podcast?id=' + str(podcast.get('id')),
+            self.url_result(url='https://play.radiojavan.com/podcast/' + podcast.get('permlink'),
                             video_title=podcast.get("title"),
                             video_id=podcast.get('permlink'),
                             url_transparent=False)
