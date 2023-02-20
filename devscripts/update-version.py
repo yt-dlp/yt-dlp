@@ -69,4 +69,4 @@ if __name__ == '__main__':
     write_file(args.output, VERSION_TEMPLATE.format(
         version=version, git_head=git_head, channel=args.channel))
 
-    print(f'Version = {version} ({args.channel}), Git HEAD = {git_head}')
+    print(f'version={version} ({args.channel}), head={git_head}')

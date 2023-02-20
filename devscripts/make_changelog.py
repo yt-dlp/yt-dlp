@@ -115,8 +115,6 @@ class Changelog:
         return '\n'.join(self._format_groups(self._groups)).replace('\t', '    ')
 
     def _format_groups(self, groups):
-        yield '## Changelog'
-
         for item in CommitGroup:
             group = groups[item]
             if group:
