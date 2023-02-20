@@ -71,9 +71,9 @@ class RadioJavanPodcastShowIE(InfoExtractor):
             podcast_show_slug = podcast_show_json.get('permlink')
 
         playlist_items = [
-            self.url_result(url='https://www.radiojavan.com/podcast?id=' + str(podcast.get('id')),
+            self.url_result(url='https://play.radiojavan.com/podcast?id=' + str(podcast.get('id')),
                             video_title=podcast.get("title"),
-                            video_id=podcast.get('permalink'),
+                            video_id=podcast.get('permlink'),
                             url_transparent=False)
             for podcast in podcast_show_json.get('podcasts')
         ]
