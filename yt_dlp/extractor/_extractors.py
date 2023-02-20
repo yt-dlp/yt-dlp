@@ -1482,7 +1482,7 @@ from .radiode import RadioDeIE
 from .radiojavan import (
     RadioJavanIE,
     RadioJavanMp3IE,
-    RadioJavanPodcastsIE,
+    RadioJavanPodcastIE,
     RadioJavanPlaylistMp3IE,
     RadioJavanPodcastShowIE,
 )
