@@ -45,6 +45,42 @@ def _init_rj_api_base(downloader):
     RJ_API_BASE_EXTRACTOR._rj_ensure_vars()
 
 
+class RadioJavanAlbumIE(InfoExtractor):
+    _VALID_URL = r'https?://play\.radiojavan\.com/(album/(?P<slug>[^/]+)/?|album\?id=(?P<id>[^&]+).*)'
+    IE_NAME = 'radiojavan:album'
+    _TEST = {
+        'url': 'https://play.radiojavan.com/album/alireza-jj-amadeus',
+        'info_dict': {
+            'id': 'alireza-jj-amadeus',
+            'title': 'Alireza JJ - Amadeus',
+        },
+        'playlist_mincount': 5,
+    }
+
+    def _real_extract(self, url):
+        album_id, album_slug = self._match_valid_url(url).group('id', 'slug')
+
+        album_json = {}
+        if album_id is None:
+            webpage = self._download_webpage(f'https://play.radiojavan.com/album/{album_slug.lower()}', album_slug)
+            album_json = self._parse_json(self._html_search_regex(r'"pageProps":{"media":([\s\S]*?)}},"page"', webpage, 'Album JSON'), album_slug)
+            album_id = album_json.get('id')
+        else:
+            _init_rj_api_base(self._downloader)
+            album_json = self._download_json(f'https://play.radiojavan.com/api/p/mp3?id={album_id}&album=1', album_id, headers=RJ_API_BASE_EXTRACTOR.RJ_API_HEADERS)
+            album_slug = album_json.get('permlink')
+
+        playlist_items = [
+            self.url_result(url='https://play.radiojavan.com/song?id=' + str(album_tracks.get('id')),
+                            video_title=album_tracks.get("title"),
+                            video_id=album_tracks.get('permlink'),
+                            url_transparent=False)
+            for album_tracks in album_json.get('album_tracks')
+        ]
+
+        return self.playlist_result(entries=playlist_items, playlist_id=album_slug, playlist_title=album_json.get('album_artist') + ' - ' + album_json.get('album_album'), multi_video=False)
+
+
 class RadioJavanPodcastShowIE(InfoExtractor):
     _VALID_URL = r'https?://play\.radiojavan\.com/(podcast/show/(?P<slug>[^/]+)/?|podcast/show\?id=(?P<id>[^&]+).*)'
     IE_NAME = 'radiojavan:playlist:podcasts'
@@ -208,6 +244,26 @@ class RadioJavanMp3IE(InfoExtractor):
             'dislike_count': int,
             'explicit': False,
         }
+    },
+        {
+        'url': 'https://play.radiojavan.com/song/alireza-jj-yek',
+        'md5': 'fe2da3fc234366c53ae742f19cd29bcb',
+        'info_dict': {
+            'id': 'alireza-jj-yek',
+            'ext': 'mp3',
+            'title': 'Alireza JJ - Yek',
+            'alt_title': 'علیرضا جی جی - یک',
+            'track': 'Yek',
+            'artist': 'Alireza JJ',
+            'album': 'Amadeus',
+            'album_artist': 'Alireza JJ',
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'upload_date': '20220306',
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'explicit': True,
+        }
     }]
 
     def _real_extract(self, url):
@@ -243,6 +299,8 @@ class RadioJavanMp3IE(InfoExtractor):
             'alt_title': f'{artist_farsi} - {song_farsi}',
             'track': song,
             'artist': artist,
+            'album': mp3_json.get('album_album'),
+            'album_artist': mp3_json.get('album_artist'),
             'formats': formats,
             'thumbnail': mp3_json.get('photo'),
             'upload_date': unified_strdate(mp3_json.get('created_at')),
