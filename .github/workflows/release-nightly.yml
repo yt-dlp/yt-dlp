@@ -1,0 +1,120 @@
+name: Release (nightly)
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "**.py"
+      - "!yt_dlp/version.py"
+concurrency:
+  group: release-nightly
+  cancel-in-progress: true
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    if: vars.BUILD_NIGHTLY != ''
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.pin_version_hash.outputs.version }}
+      head_sha: ${{ steps.pin_version_hash.outputs.head_sha }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Get version and hash
+        id: pin_version_hash
+        run: |
+          echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          python devscripts/update-version.py "$(date -u +"%H%M%S")" | grep -Po "version=\d+(\.\d+){3}" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      channel: nightly
+    permissions:
+      contents: read
+      packages: write # For package cache
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [prepare, build]
+    permissions:
+      contents: write # for action-gh-release
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Generate release notes
+        run: |
+          cat >> ./RELEASE_NOTES << EOF
+          **This is an automated prerelease build**
+
+          #### A description of the various files are in the [README](https://github.com/yt-dlp/yt-dlp#release-files)
+
+          ---
+          <details><summary><h3>Changelog</summary>
+
+          $(python ./devscripts/make_changelog.py -vv)
+
+          </details>
+          EOF
+
+      - name: Make Update spec
+        run: |
+          echo "# This file is used for regulating self-update" >> _update_spec
+          echo "lock 2022.07.18 .+ Python 3.6" >> _update_spec
+
+      - name: Make SHA2-SUMS files
+        run: |
+          cd ./artifact/
+          sha256sum * > ../SHA2-256SUMS
+          sha512sum * > ../SHA2-512SUMS
+
+      - name: Archive nightly release
+        uses: yt-dlp/action-gh-release@v1
+        env:
+          TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
+        if: |
+          env.TOKEN != '' && vars.ARCHIVE_REPO != ''
+        with:
+          tag_name: ${{ needs.prepare.outputs.version }}
+          name: Build ${{ needs.prepare.outputs.version }}
+          repository: ${{ vars.ARCHIVE_REPO }}
+          token: ${{ secrets.ARCHIVE_REPO_TOKEN }}
+          body_path: RELEASE_NOTES
+          files: |
+            SHA2-256SUMS
+            SHA2-512SUMS
+            artifact/*
+            _update_spec
+
+      - name: Prune old nightly release
+        run: |
+          gh release delete -y "nightly" || true
+          git push --delete origin "nightly" || true
+          git tag --delete "nightly" || true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Publish nightly release
+        uses: yt-dlp/action-gh-release@v1
+        with:
+          tag_name: nightly
+          name: yt-dlp nightly ${{ needs.prepare.outputs.version }}
+          prerelease: true
+          target_commitish: ${{ needs.prepare.outputs.head_sha }}
+          body_path: RELEASE_NOTES
+          files: |
+            SHA2-256SUMS
+            SHA2-512SUMS
+            artifact/*
+            _update_spec

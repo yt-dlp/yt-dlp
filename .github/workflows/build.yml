@@ -1,55 +1,19 @@
-name: Build
-on: workflow_dispatch
+name: Build Artifacts
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      channel:
+        required: false
+        default: stable
+        type: string
 permissions:
   contents: read
 
 jobs:
-  prepare:
-    permissions:
-      contents: write  # for push_release
-    runs-on: ubuntu-latest
-    outputs:
-      version_suffix: ${{ steps.version_suffix.outputs.version_suffix }}
-      ytdlp_version: ${{ steps.bump_version.outputs.ytdlp_version }}
-      head_sha: ${{ steps.push_release.outputs.head_sha }}
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - uses: actions/setup-python@v4
-      with:
-          python-version: '3.10'
-
-    - name: Set version suffix
-      id: version_suffix
-      env:
-        PUSH_VERSION_COMMIT: ${{ secrets.PUSH_VERSION_COMMIT }}
-      if: "env.PUSH_VERSION_COMMIT == ''"
-      run: echo "version_suffix=$(date -u +"%H%M%S")" >> "$GITHUB_OUTPUT"
-    - name: Bump version
-      id: bump_version
-      run: |
-        python devscripts/update-version.py ${{ steps.version_suffix.outputs.version_suffix }}
-        make issuetemplates
-
-    - name: Push to release
-      id: push_release
-      run: |
-        git config --global user.name github-actions
-        git config --global user.email github-actions@example.com
-        git add -u
-        git commit -m "[version] update" -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all :ci run dl"
-        git push origin --force ${{ github.event.ref }}:release
-        echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-    - name: Update master
-      env:
-        PUSH_VERSION_COMMIT: ${{ secrets.PUSH_VERSION_COMMIT }}
-      if: "env.PUSH_VERSION_COMMIT != ''"
-      run: git push origin ${{ github.event.ref }}
-
-
   build_unix:
-    needs: prepare
     runs-on: ubuntu-latest
 
     steps:
@@ -68,7 +32,7 @@ jobs:
     - name: Install Requirements
       run: |
           sudo apt-get -y install zip pandoc man sed
-          python -m pip install -U pip setuptools wheel twine
+          python -m pip install -U pip setuptools wheel
           python -m pip install -U Pyinstaller -r requirements.txt
           reqs=$(mktemp)
           echo -e 'python=3.10.*\npyinstaller' >$reqs
@@ -77,7 +41,7 @@ jobs:
 
     - name: Prepare
       run: |
-          python devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
+          python devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
           python devscripts/make_lazy_extractors.py
     - name: Build Unix platform-independent binary
       run: |
@@ -90,6 +54,8 @@ jobs:
           python pyinst.py --onedir
           (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
           python pyinst.py
+          mv ./dist/yt-dlp_linux ./yt-dlp_linux
+          mv ./dist/yt-dlp_linux.zip ./yt-dlp_linux.zip
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
@@ -97,45 +63,14 @@ jobs:
         path: |
           yt-dlp
           yt-dlp.tar.gz
-          dist/yt-dlp_linux
-          dist/yt-dlp_linux.zip
-
-    - name: Build and publish on PyPi
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-      if: "env.TWINE_PASSWORD != ''"
-      run: |
-        rm -rf dist/*
-        python devscripts/set-variant.py pip -M "You installed yt-dlp with pip or using the wheel from PyPi; Use that to update"
-        python setup.py sdist bdist_wheel
-        twine upload dist/*
-
-    - name: Install SSH private key for Homebrew
-      env:
-        BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
-      if: "env.BREW_TOKEN != ''"
-      uses: yt-dlp/ssh-agent@v0.5.3
-      with:
-          ssh-private-key: ${{ env.BREW_TOKEN }}
-    - name: Update Homebrew Formulae
-      env:
-        BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
-      if: "env.BREW_TOKEN != ''"
-      run: |
-        git clone git@github.com:yt-dlp/homebrew-taps taps/
-        python devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ needs.prepare.outputs.ytdlp_version }}"
-        git -C taps/ config user.name github-actions
-        git -C taps/ config user.email github-actions@example.com
-        git -C taps/ commit -am 'yt-dlp: ${{ needs.prepare.outputs.ytdlp_version }}'
-        git -C taps/ push
-
+          yt-dlp_linux
+          yt-dlp_linux.zip
 
   build_linux_arm:
     permissions:
+      contents: read
       packages: write  # for Creating cache
     runs-on: ubuntu-latest
-    needs: prepare
     strategy:
       matrix:
         architecture:
@@ -163,7 +98,7 @@ jobs:
         run: |
           cd repo
           python3.8 -m pip install -U Pyinstaller -r requirements.txt  # Cached version may be out of date
-          python3.8 devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
+          python3.8 devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
           python3.8 devscripts/make_lazy_extractors.py
           python3.8 pyinst.py
 
@@ -176,7 +111,6 @@ jobs:
 
   build_macos:
     runs-on: macos-11
-    needs: prepare
 
     steps:
     - uses: actions/checkout@v3
@@ -188,7 +122,7 @@ jobs:
 
     - name: Prepare
       run: |
-          /usr/bin/python3 devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
+          /usr/bin/python3 devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
           /usr/bin/python3 devscripts/make_lazy_extractors.py
     - name: Build
       run: |
@@ -203,10 +137,8 @@ jobs:
           dist/yt-dlp_macos
           dist/yt-dlp_macos.zip
 
-
   build_macos_legacy:
     runs-on: macos-latest
-    needs: prepare
 
     steps:
     - uses: actions/checkout@v3
@@ -229,7 +161,7 @@ jobs:
 
     - name: Prepare
       run: |
-          python3 devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
+          python3 devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
           python3 devscripts/make_lazy_extractors.py
     - name: Build
       run: |
@@ -245,7 +177,6 @@ jobs:
 
   build_windows:
     runs-on: windows-latest
-    needs: prepare
 
     steps:
     - uses: actions/checkout@v3
@@ -259,7 +190,7 @@ jobs:
 
     - name: Prepare
       run: |
-          python devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
+          python devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
           python devscripts/make_lazy_extractors.py
     - name: Build
       run: |
@@ -280,7 +211,6 @@ jobs:
 
   build_windows32:
     runs-on: windows-latest
-    needs: prepare
 
     steps:
     - uses: actions/checkout@v3
@@ -295,7 +225,7 @@ jobs:
 
     - name: Prepare
       run: |
-          python devscripts/update-version.py ${{ needs.prepare.outputs.version_suffix }}
+          python devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
           python devscripts/make_lazy_extractors.py
     - name: Build
       run: |
@@ -306,88 +236,3 @@ jobs:
       with:
         path: |
           dist/yt-dlp_x86.exe
-
-
-  publish_release:
-    permissions:
-      contents: write  # for action-gh-release
-    runs-on: ubuntu-latest
-    needs: [prepare, build_unix, build_linux_arm, build_windows, build_windows32, build_macos, build_macos_legacy]
-
-    steps:
-    - uses: actions/checkout@v3
-    - uses: actions/download-artifact@v3
-
-    - name: Get Changelog
-      run: |
-        changelog=$(grep -oPz '(?s)(?<=### ${{ needs.prepare.outputs.ytdlp_version }}\n{2}).+?(?=\n{2,3}###)' Changelog.md) || true
-        echo "changelog<<EOF" >> $GITHUB_ENV
-        echo "$changelog" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
-    - name: Make Update spec
-      run: |
-        echo "# This file is used for regulating self-update" >> _update_spec
-        echo "lock 2022.07.18 .+ Python 3.6" >> _update_spec
-    - name: Make SHA2-SUMS files
-      run: |
-          sha256sum artifact/yt-dlp | awk '{print $1 "  yt-dlp"}' >> SHA2-256SUMS
-          sha256sum artifact/yt-dlp.tar.gz | awk '{print $1 "  yt-dlp.tar.gz"}' >> SHA2-256SUMS
-          sha256sum artifact/yt-dlp.exe | awk '{print $1 "  yt-dlp.exe"}' >> SHA2-256SUMS
-          sha256sum artifact/yt-dlp_win.zip | awk '{print $1 "  yt-dlp_win.zip"}' >> SHA2-256SUMS
-          sha256sum artifact/yt-dlp_min.exe | awk '{print $1 "  yt-dlp_min.exe"}' >> SHA2-256SUMS
-          sha256sum artifact/yt-dlp_x86.exe | awk '{print $1 "  yt-dlp_x86.exe"}' >> SHA2-256SUMS
-          sha256sum artifact/yt-dlp_macos | awk '{print $1 "  yt-dlp_macos"}' >> SHA2-256SUMS
-          sha256sum artifact/yt-dlp_macos.zip | awk '{print $1 "  yt-dlp_macos.zip"}' >> SHA2-256SUMS
-          sha256sum artifact/yt-dlp_macos_legacy | awk '{print $1 "  yt-dlp_macos_legacy"}' >> SHA2-256SUMS
-          sha256sum artifact/yt-dlp_linux_armv7l | awk '{print $1 "  yt-dlp_linux_armv7l"}' >> SHA2-256SUMS
-          sha256sum artifact/yt-dlp_linux_aarch64 | awk '{print $1 "  yt-dlp_linux_aarch64"}' >> SHA2-256SUMS
-          sha256sum artifact/dist/yt-dlp_linux | awk '{print $1 "  yt-dlp_linux"}' >> SHA2-256SUMS
-          sha256sum artifact/dist/yt-dlp_linux.zip | awk '{print $1 "  yt-dlp_linux.zip"}' >> SHA2-256SUMS
-          sha512sum artifact/yt-dlp | awk '{print $1 "  yt-dlp"}' >> SHA2-512SUMS
-          sha512sum artifact/yt-dlp.tar.gz | awk '{print $1 "  yt-dlp.tar.gz"}' >> SHA2-512SUMS
-          sha512sum artifact/yt-dlp.exe | awk '{print $1 "  yt-dlp.exe"}' >> SHA2-512SUMS
-          sha512sum artifact/yt-dlp_win.zip | awk '{print $1 "  yt-dlp_win.zip"}' >> SHA2-512SUMS
-          sha512sum artifact/yt-dlp_min.exe | awk '{print $1 "  yt-dlp_min.exe"}' >> SHA2-512SUMS
-          sha512sum artifact/yt-dlp_x86.exe | awk '{print $1 "  yt-dlp_x86.exe"}' >> SHA2-512SUMS
-          sha512sum artifact/yt-dlp_macos | awk '{print $1 "  yt-dlp_macos"}' >> SHA2-512SUMS
-          sha512sum artifact/yt-dlp_macos.zip | awk '{print $1 "  yt-dlp_macos.zip"}' >> SHA2-512SUMS
-          sha512sum artifact/yt-dlp_macos_legacy | awk '{print $1 "  yt-dlp_macos_legacy"}' >> SHA2-512SUMS
-          sha512sum artifact/yt-dlp_linux_armv7l | awk '{print $1 "  yt-dlp_linux_armv7l"}' >> SHA2-512SUMS
-          sha512sum artifact/yt-dlp_linux_aarch64 | awk '{print $1 "  yt-dlp_linux_aarch64"}' >> SHA2-512SUMS
-          sha512sum artifact/dist/yt-dlp_linux | awk '{print $1 "  yt-dlp_linux"}' >> SHA2-512SUMS
-          sha512sum artifact/dist/yt-dlp_linux.zip | awk '{print $1 "  yt-dlp_linux.zip"}' >> SHA2-512SUMS
-
-    - name: Publish Release
-      uses: yt-dlp/action-gh-release@v1
-      with:
-        tag_name: ${{ needs.prepare.outputs.ytdlp_version }}
-        name: yt-dlp ${{ needs.prepare.outputs.ytdlp_version }}
-        target_commitish: ${{ needs.prepare.outputs.head_sha }}
-        body: |
-          #### [A description of the various files]((https://github.com/yt-dlp/yt-dlp#release-files)) are in the README
-
-          ---
-          <details open><summary><h3>Changelog</summary>
-          <p>
-
-          ${{ env.changelog }}
-
-          </p>
-          </details>
-        files: |
-          SHA2-256SUMS
-          SHA2-512SUMS
-          artifact/yt-dlp
-          artifact/yt-dlp.tar.gz
-          artifact/yt-dlp.exe
-          artifact/yt-dlp_win.zip
-          artifact/yt-dlp_min.exe
-          artifact/yt-dlp_x86.exe
-          artifact/yt-dlp_macos
-          artifact/yt-dlp_macos.zip
-          artifact/yt-dlp_macos_legacy
-          artifact/yt-dlp_linux_armv7l
-          artifact/yt-dlp_linux_aarch64
-          artifact/dist/yt-dlp_linux
-          artifact/dist/yt-dlp_linux.zip
-          _update_spec
