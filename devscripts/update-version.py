@@ -59,16 +59,14 @@ if __name__ == '__main__':
         help='The output file to write to (default: yt_dlp/version.py)')
     parser.add_argument(
         'version', nargs='?', default=None,
-        help='A full version, version or revision to override generated ones')
+        help='A version or revision to use instead of generating one')
     args = parser.parse_args()
 
     git_head = get_git_head()
     version = (
-        get_new_version(None, None) if not args.version
-        else args.version if args.version.count('.') == 3  # Full version
-        else get_new_version(args.version, None) if args.version.count('.') == 2
-        else get_new_version(None, args.version))  # Revision only
-    write_file(str(args.output), VERSION_TEMPLATE.format(
+        args.version if args.version and '.' in args.version
+        else get_new_version(None, args.version))
+    write_file(args.output, VERSION_TEMPLATE.format(
         version=version, git_head=git_head, channel=args.channel))
 
     print(f'Version = {version} ({args.channel}), Git HEAD = {git_head}')
