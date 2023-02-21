@@ -116,20 +116,24 @@ def _sha256_file(path):
 
 
 class Updater:
-    def __init__(self, ydl):
+    def __init__(self, ydl, channel_or_tag=None):
         self.ydl = ydl
 
-    if CHANNEL == 'stable':
-        latest_tag = 'latest'
-        _version_field = 'tag_name'
-        current_version = __version__
-    else:
-        latest_tag = f'tags/{CHANNEL}'
-        _version_field = 'target_commitish'
-        current_version = RELEASE_GIT_HEAD
+        channel_or_tag = channel_or_tag or CHANNEL
+        if '.' in channel_or_tag or channel_or_tag in ('stable', 'latest'):
+            self._channel = 'stable'
+            self.latest_tag = 'latest' if channel_or_tag in ('stable', 'latest') else f'tags/{channel_or_tag}'
+            self._version_field = 'tag_name'
+            self.current_version = __version__
+
+        else:
+            self._channel = channel_or_tag
+            self.latest_tag = f'tags/{channel_or_tag}'
+            self._version_field = 'target_commitish'
+            self.current_version = RELEASE_GIT_HEAD
 
     def _version_compare(self, a, b):
-        if CHANNEL == 'stable':
+        if self._channel == 'stable':
             return version_tuple(a) >= version_tuple(b)
         return a == b
 
@@ -138,7 +142,7 @@ class Updater:
         if self._version_compare(self.current_version, self.latest_version):
             return self.latest_tag
 
-        identifier = f'{detect_variant()} {CHANNEL} {system_identifier()}'
+        identifier = f'{detect_variant()} {self._channel} {system_identifier()}'
         for line in self._download('_update_spec', self.latest_tag).decode().splitlines():
             if not line.startswith('lock '):
                 continue
@@ -155,9 +159,18 @@ class Updater:
     @property
     def new_version(self):
         """Version of the latest release we can update to"""
-        if CHANNEL == 'stable' and self._tag.startswith('tags/'):
+        if self._channel == 'stable' and self._tag.startswith('tags/'):
             return self._tag[5:]
         return self._get_version_info(self._tag)[self._version_field]
+
+    @property
+    def display_version(self):
+        """Version name of the latest release we can update to"""
+        if self._channel == 'stable' and self._tag.startswith('tags/'):
+            return self._tag[5:]
+        version_info = self._get_version_info(self._tag)
+        _, _, name = version_info['name'].rpartition(' ')
+        return name if self._channel == 'stable' else f'{name} ({version_info["target_commitish"][:9]})'
 
     @property
     def latest_version(self):
@@ -227,7 +240,7 @@ class Updater:
         err = is_non_updateable()
         if err:
             return self._report_error(err, True)
-        self.ydl.to_screen(f'Updating to version {self.new_version} ...')
+        self.ydl.to_screen(f'Updating to version {self.display_version} ...')
 
         directory = os.path.dirname(self.filename)
         if not os.access(self.filename, os.W_OK):
@@ -295,7 +308,7 @@ class Updater:
                 return self._report_error(
                     f'Unable to set permissions. Run: sudo chmod a+rx {compat_shlex_quote(self.filename)}')
 
-        self.ydl.to_screen(f'Updated yt-dlp to version {self.new_version}')
+        self.ydl.to_screen(f'Updated yt-dlp to version {self.display_version}')
         return True
 
     @functools.cached_property

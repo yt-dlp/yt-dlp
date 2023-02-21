@@ -332,6 +332,12 @@ def create_parser():
         action='store_false', dest='update_self',
         help='Do not check for updates (default)')
     general.add_option(
+        '--update-to',
+        action='store', dest='update_self', metavar='CHANNEL_OR_TAG',
+        help=format_field(
+            is_non_updateable(), None, 'Check if update to a specific channel is available. %s',
+            default='Update this program to the specified version/channel'))
+    general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
         help='Ignore download and postprocessing errors. The download will be considered successful even if the postprocessing fails')
