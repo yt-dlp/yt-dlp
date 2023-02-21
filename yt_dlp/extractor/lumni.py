@@ -19,5 +19,5 @@ class LumniIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        video_id = self._html_search_regex(r'<div[^>]+data-factoryid=(["\'])(?P<video_id>.+?)(["\'])', webpage, 'video_id', group='video_id')
+        video_id = self._html_search_regex(r'<div[^>]+data-factoryid\s*=\s*["\'](?P<video_id>[^"\']+)', webpage, 'video_id', group='video_id')
         return self.url_result(f'francetv:{video_id}', FranceTVIE, video_id)
