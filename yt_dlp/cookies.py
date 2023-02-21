@@ -35,7 +35,7 @@ from .utils import (
     try_call,
 )
 
-CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
+CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi', 'yandex'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
@@ -210,6 +210,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'edge': os.path.join(appdata_local, R'Microsoft\Edge\User Data'),
             'opera': os.path.join(appdata_roaming, R'Opera Software\Opera Stable'),
             'vivaldi': os.path.join(appdata_local, R'Vivaldi\User Data'),
+            'yandex': os.path.join(appdata_local, R'Yandex\YandexBrowser\User Data'),
         }[browser_name]
 
     elif sys.platform == 'darwin':
@@ -221,6 +222,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'edge': os.path.join(appdata, 'Microsoft Edge'),
             'opera': os.path.join(appdata, 'com.operasoftware.Opera'),
             'vivaldi': os.path.join(appdata, 'Vivaldi'),
+            'yandex': os.path.join(appdata, 'Yandex/YandexBrowser'),
         }[browser_name]
 
     else:
@@ -232,6 +234,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'edge': os.path.join(config, 'microsoft-edge'),
             'opera': os.path.join(config, 'opera'),
             'vivaldi': os.path.join(config, 'vivaldi'),
+            'yandex': os.path.join(config, 'yandex-browser'),
         }[browser_name]
 
     # Linux keyring names can be determined by snooping on dbus while opening the browser in KDE:
@@ -243,6 +246,7 @@ def _get_chromium_based_browser_settings(browser_name):
         'edge': 'Microsoft Edge' if sys.platform == 'darwin' else 'Chromium',
         'opera': 'Opera' if sys.platform == 'darwin' else 'Chromium',
         'vivaldi': 'Vivaldi' if sys.platform == 'darwin' else 'Chrome',
+        'yandex': 'Yandex Browser' if sys.platform == 'darwin' else 'Chromium',
     }[browser_name]
 
     browsers_without_profiles = {'opera'}

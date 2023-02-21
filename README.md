@@ -681,10 +681,10 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     The name of the browser to load cookies
                                     from. Currently supported browsers are:
                                     brave, chrome, chromium, edge, firefox,
-                                    opera, safari, vivaldi. Optionally, the
-                                    KEYRING used for decrypting Chromium cookies
-                                    on Linux, the name/path of the PROFILE to
-                                    load cookies from, and the CONTAINER name
+                                    opera, safari, vivaldi, yandex. Optionally,
+                                    the KEYRING used for decrypting Chromium
+                                    cookies on Linux, the name/path of the PROFILE
+                                    to load cookies from, and the CONTAINER name
                                     (if Firefox) ("none" for no container) can
                                     be given with their respective seperators.
                                     By default, all containers of the most
