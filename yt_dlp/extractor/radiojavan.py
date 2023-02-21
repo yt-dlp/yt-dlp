@@ -70,14 +70,14 @@ class RadioJavanArtistIE(InfoExtractor):
         artist_json = self._download_json(f'https://play.radiojavan.com/api/p/artist?query={username}&v=2', username, headers=RJ_API_BASE_EXTRACTOR.RJ_API_HEADERS)
 
         playlist_items = [
-            self.url_result(url=f'https://play.radiojavan.com/song/' + item.get('permlink'),
+            self.url_result(url='https://play.radiojavan.com/song/' + item.get('permlink'),
                             video_title=item.get('title'),
                             video_id=item.get('id'),
                             url_transparent=False)
             for item in artist_json.get('mp3s')
         ]
         playlist_items.extend(
-            self.url_result(url=f'https://play.radiojavan.com/video/' + item.get('permlink'),
+            self.url_result(url='https://play.radiojavan.com/video/' + item.get('permlink'),
                             video_title=item.get('title'),
                             video_id=item.get('id'),
                             url_transparent=False)
@@ -85,7 +85,7 @@ class RadioJavanArtistIE(InfoExtractor):
         )
 
         playlist_items.extend(
-            self.url_result(url=f'https://play.radiojavan.com/podcast/' + item.get('permlink'),
+            self.url_result(url='https://play.radiojavan.com/podcast/' + item.get('permlink'),
                             video_title=item.get('title'),
                             video_id=item.get('id'),
                             url_transparent=False)
