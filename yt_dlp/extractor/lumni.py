@@ -3,7 +3,7 @@ from .francetv import FranceTVIE
 
 
 class LumniIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?lumni\.fr/video/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?lumni\.fr/video/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.lumni.fr/video/l-homme-et-son-environnement-dans-la-revolution-industrielle',
         'md5': '960e8240c4f2c7a20854503a71e52f5e',
