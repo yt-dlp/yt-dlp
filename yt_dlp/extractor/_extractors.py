@@ -2315,6 +2315,7 @@ from .xnxx import XNXXIE
 from .xstream import XstreamIE
 from .xtube import XTubeUserIE, XTubeIE
 from .xuite import XuiteIE
+from .xumo import XumoIE
 from .xvideos import XVideosIE
 from .xxxymovies import XXXYMoviesIE
 from .yahoo import (
