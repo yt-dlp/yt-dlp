@@ -36,6 +36,12 @@ class RJApiBaseExtractor(InfoExtractor):
                 'referer': 'https://play.radiojavan.com/',
             }
 
+    def playlist_filter_by_type(self, playlist_entry, type):
+        url = playlist_entry.get('url')
+        if url is None:
+            return False
+        return url.startswith(f'https://play.radiojavan.com/{type}')
+
 
 RJ_API_BASE_EXTRACTOR = RJApiBaseExtractor()
 
@@ -43,6 +49,122 @@ RJ_API_BASE_EXTRACTOR = RJApiBaseExtractor()
 def _init_rj_api_base(downloader):
     RJ_API_BASE_EXTRACTOR.set_downloader(downloader)
     RJ_API_BASE_EXTRACTOR._rj_ensure_vars()
+
+
+class RadioJavanArtistIE(InfoExtractor):
+    _VALID_URL = r'https?://play\.radiojavan\.com/artist/(?P<id>[^/]+?)/?$'
+    IE_NAME = 'radiojavan:artist'
+    _TEST = {
+        'url': 'https://play.radiojavan.com/artist/sogand',
+        'info_dict': {
+            'id': 'sogand',
+            'title': 'Sogand',
+        },
+        'playlist_mincount': 51,
+    }
+
+    def _real_extract(self, url):
+        username = self._match_id(url)
+
+        _init_rj_api_base(self._downloader)
+        artist_json = self._download_json(f'https://play.radiojavan.com/api/p/artist?query={username}&v=2', username, headers=RJ_API_BASE_EXTRACTOR.RJ_API_HEADERS)
+
+        playlist_items = [
+            self.url_result(url=f'https://play.radiojavan.com/song/' + item.get('permlink'),
+                            video_title=item.get('title'),
+                            video_id=item.get('id'),
+                            url_transparent=False)
+            for item in artist_json.get('mp3s')
+        ]
+        playlist_items.extend(
+            self.url_result(url=f'https://play.radiojavan.com/video/' + item.get('permlink'),
+                            video_title=item.get('title'),
+                            video_id=item.get('id'),
+                            url_transparent=False)
+            for item in artist_json.get('videos')
+        )
+
+        playlist_items.extend(
+            self.url_result(url=f'https://play.radiojavan.com/podcast/' + item.get('permlink'),
+                            video_title=item.get('title'),
+                            video_id=item.get('id'),
+                            url_transparent=False)
+            for item in artist_json.get('podcasts')
+        )
+
+        return self.playlist_result(entries=playlist_items, playlist_id=username, playlist_title=artist_json.get('artist'), multi_video=False)
+
+
+class RadioJavanArtistSongsIE(InfoExtractor):
+    _VALID_URL = r'https?://play\.radiojavan\.com/artist/(?P<id>[^/]+?)/mp3s/?$'
+    IE_NAME = 'radiojavan:artist:songs'
+    _TEST = {
+        'url': 'https://play.radiojavan.com/artist/sogand/mp3s',
+        'info_dict': {
+            'id': 'sogand',
+            'title': 'Sogand Songs',
+        },
+        'playlist_mincount': 49,
+    }
+
+    def _real_extract(self, url):
+        username = self._match_id(url)
+
+        artist_extractor = RadioJavanArtistIE(self._downloader)
+        playlist_items = artist_extractor._real_extract(f'https://play.radiojavan.com/artist/{username}')
+        playlist_title = playlist_items.get('title') + ' Songs'
+        playlist_items = playlist_items.get('entries')
+        playlist_items = filter(lambda seq: RJ_API_BASE_EXTRACTOR.playlist_filter_by_type(seq, 'song/'), playlist_items)
+
+        return self.playlist_result(entries=playlist_items, playlist_id=username, playlist_title=playlist_title, multi_video=False)
+
+
+class RadioJavanArtistVideosIE(InfoExtractor):
+    _VALID_URL = r'https?://play\.radiojavan\.com/artist/(?P<id>[^/]+?)/videos/?$'
+    IE_NAME = 'radiojavan:artist:videos'
+    _TEST = {
+        'url': 'https://play.radiojavan.com/artist/sogand/videos',
+        'info_dict': {
+            'id': 'sogand',
+            'title': 'Sogand Videos',
+        },
+        'playlist_mincount': 22,
+    }
+
+    def _real_extract(self, url):
+        username = self._match_id(url)
+
+        artist_extractor = RadioJavanArtistIE(self._downloader)
+        playlist_items = artist_extractor._real_extract(f'https://play.radiojavan.com/artist/{username}')
+        playlist_title = playlist_items.get('title') + ' Videos'
+        playlist_items = playlist_items.get('entries')
+        playlist_items = filter(lambda seq: RJ_API_BASE_EXTRACTOR.playlist_filter_by_type(seq, 'video/'), playlist_items)
+
+        return self.playlist_result(entries=playlist_items, playlist_id=username, playlist_title=playlist_title, multi_video=False)
+
+
+class RadioJavanArtistPodcastsIE(InfoExtractor):
+    _VALID_URL = r'https?://play\.radiojavan\.com/artist/(?P<id>[^/]+?)/podcasts/?$'
+    IE_NAME = 'radiojavan:artist:podcasts'
+    _TEST = {
+        'url': 'https://play.radiojavan.com/artist/sogand/podcasts',
+        'info_dict': {
+            'id': 'sogand',
+            'title': 'Sogand Podcasts',
+        },
+        'playlist_mincount': 1,
+    }
+
+    def _real_extract(self, url):
+        username = self._match_id(url)
+
+        artist_extractor = RadioJavanArtistIE(self._downloader)
+        playlist_items = artist_extractor._real_extract(f'https://play.radiojavan.com/artist/{username}')
+        playlist_title = playlist_items.get('title') + ' Podcasts'
+        playlist_items = playlist_items.get('entries')
+        playlist_items = filter(lambda seq: RJ_API_BASE_EXTRACTOR.playlist_filter_by_type(seq, 'podcast/'), playlist_items)
+
+        return self.playlist_result(entries=playlist_items, playlist_id=username, playlist_title=playlist_title, multi_video=False)
 
 
 class RadioJavanStoriesIE(InfoExtractor):
