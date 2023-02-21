@@ -19,7 +19,7 @@ class RJApiBaseExtractor(InfoExtractor):
             index_page = self._download_webpage('https://play.radiojavan.com/', 'index')
             self.RJ_BUILD_ID = self._html_search_regex(r'"buildId":"([^"]+?)"', index_page, 'Build ID', 'ec895e263b57af451279537938786c42071d0105')
 
-        if self.RJ_API_TOKEN is None or self.RJ_VERSION:
+        if self.RJ_API_TOKEN is None or self.RJ_VERSION is None:
             index_page = index_page if index_page is not None else self._download_webpage('https://play.radiojavan.com/', 'index')
             js_app_hash = self._html_search_regex(r'https://play\.radiojavan\.com/_next/static/chunks/pages/_app-([^"]+?)"', index_page, "JS App hash", fatal=True)
             js_app_url = f'https://play.radiojavan.com/_next/static/chunks/pages/_app-{js_app_hash}'
@@ -43,6 +43,109 @@ RJ_API_BASE_EXTRACTOR = RJApiBaseExtractor()
 def _init_rj_api_base(downloader):
     RJ_API_BASE_EXTRACTOR.set_downloader(downloader)
     RJ_API_BASE_EXTRACTOR._rj_ensure_vars()
+
+
+class RadioJavanStoriesIE(InfoExtractor):
+    _VALID_URL = r'https?://play\.radiojavan\.com/u/(?P<id>[^/]+?)/?$'
+    IE_NAME = 'radiojavan:user:stories'
+    _TEST = {
+        'url': 'https://play.radiojavan.com/u/callmeangel____',
+        'info_dict': {
+            'id': 'callmeangel____',
+            'title': 'callmeangel____ Stories',
+        },
+        'playlist_mincount': 5,
+    }
+
+    def _real_extract(self, url):
+        username = self._match_id(url)
+
+        _init_rj_api_base(self._downloader)
+        user_json = self._download_json(f'https://play.radiojavan.com/api/p/user_profile?username={username}&stats=1', username, headers=RJ_API_BASE_EXTRACTOR.RJ_API_HEADERS)
+
+        playlist_items = [
+            self.url_result(url=f'https://play.radiojavan.com/u/{username}/stories?hashid=' + str(selfie.get('hash_id')),
+                            video_title=selfie.get('title'),
+                            video_id=selfie.get('id'),
+                            url_transparent=False)
+            for selfie in user_json.get('selfies')
+        ]
+
+        return self.playlist_result(entries=playlist_items, playlist_id=username, playlist_title=username + ' Stories', multi_video=False)
+
+
+class RadioJavanStoryIE(InfoExtractor):
+    _VALID_URL = r'https?://play\.radiojavan\.com/u/(?P<username>[^/]+)/(stories/(?P<id>[^/]+)/?$|stories\?hashid=(?P<hashid>[^&]+)&?)'
+    IE_NAME = 'radiojavan:user:story'
+    _TESTS = [{
+        'url': 'https://play.radiojavan.com/u/callmeangel____/stories/435148',
+        'md5': '0ffa3283dfbbecdfc375f64073d18680',
+        'info_dict': {
+            'id': '435148',
+            'ext': 'mp4',
+            'title': 'callmeangel____ Story - Ti Amo song by Talk Down',
+            'alt_title': 'Talk Down - Ti Amo',
+            'cast': ['callmeangel____'],
+            'track': 'Ti Amo',
+            'artist': 'Talk Down',
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'like_count': int,
+        }
+    },
+        {
+        'url': 'https://play.radiojavan.com/u/callmeangel____/stories?hashid=WxRljYpg',
+        'md5': '0ffa3283dfbbecdfc375f64073d18680',
+        'info_dict': {
+            'id': '435148',
+            'ext': 'mp4',
+            'title': 'callmeangel____ Story - Ti Amo song by Talk Down',
+            'alt_title': 'Talk Down - Ti Amo',
+            'cast': ['callmeangel____'],
+            'track': 'Ti Amo',
+            'artist': 'Talk Down',
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'like_count': int,
+        }
+    }]
+
+    def _real_extract(self, url):
+        story_id, story_hashid, username = self._match_valid_url(url).group('id', 'hashid', 'username')
+
+        story_json = {}
+        if story_hashid is None:
+            stories_extractor = RadioJavanStoriesIE(self._downloader)
+            stories = stories_extractor._real_extract(f'https://play.radiojavan.com/u/{username}')
+            for user_story in stories.get('entries'):
+                if str(user_story.get('id')) == story_id:
+                    story_hashid = self._match_valid_url(user_story.get('url')).group('hashid')
+                    break
+
+        if story_hashid is None:
+            self._error_or_warning('Unable to find the specified story hashid within the user stories')
+
+        _init_rj_api_base(self._downloader)
+        story_json = self._download_json(f'https://play.radiojavan.com/api/p/selfie?id={story_hashid}', story_hashid, headers=RJ_API_BASE_EXTRACTOR.RJ_API_HEADERS)
+        story_id = str(story_json.get('id'))
+
+        artist = story_json.get('artist')
+        song = story_json.get('song')
+
+        formats = [
+            {'url': story_json.get('link'), 'quality': 2},
+            {'url': story_json.get('hdvc'), 'quality': 1}
+        ]
+
+        return {
+            'id': story_id,
+            'title': f'{username} Story - {song} song by {artist}',
+            'alt_title': f'{artist} - {song}',
+            'cast': [username],
+            'track': song,
+            'artist': artist,
+            'thumbnail': story_json.get('photo'),
+            'like_count': str_to_int(story_json.get('likes')),
+            'formats': formats,
+        }
 
 
 class RadioJavanAlbumIE(InfoExtractor):
