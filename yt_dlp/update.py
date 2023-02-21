@@ -120,14 +120,15 @@ class Updater:
         self.ydl = ydl
 
         if channel_or_tag is None:
-            self._channel = 'stable'
-            self.latest_tag = 'latest'
-            self._version_field = 'tag_name'
-            self._version_compare = lambda a, b: version_tuple(a) >= version_tuple(b)
-            self.current_version = __version__
-            return
+            self._channel = channel_or_tag = CHANNEL
+            self.latest_tag = 'latest' if CHANNEL == 'stable' else CHANNEL
+            if self._channel == 'stable':
+                self._version_field = 'tag_name'
+                self._version_compare = lambda a, b: version_tuple(a) >= version_tuple(b)
+                self.current_version = __version__
+                return
 
-        if '.' in channel_or_tag:
+        if re.match(r'\d{4}(\.\d{2}){2}', channel_or_tag):
             self._channel = 'stable'
             self.latest_tag = f'tags/{channel_or_tag}'
 
