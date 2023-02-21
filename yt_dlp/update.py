@@ -119,23 +119,29 @@ class Updater:
     def __init__(self, ydl, channel_or_tag=None):
         self.ydl = ydl
 
-        channel_or_tag = channel_or_tag or CHANNEL
-        if '.' in channel_or_tag or channel_or_tag in ('stable', 'latest'):
+        if channel_or_tag is None:
             self._channel = 'stable'
-            self.latest_tag = 'latest' if channel_or_tag in ('stable', 'latest') else f'tags/{channel_or_tag}'
+            self.latest_tag = 'latest'
             self._version_field = 'tag_name'
+            self._version_compare = lambda a, b: version_tuple(a) >= version_tuple(b)
             self.current_version = __version__
+            return
+
+        if '.' in channel_or_tag:
+            self._channel = 'stable'
+            self.latest_tag = f'tags/{channel_or_tag}'
+
+        elif channel_or_tag in ('stable', 'latest'):
+            self._channel = 'stable'
+            self.latest_tag = 'latest'
 
         else:
             self._channel = channel_or_tag
             self.latest_tag = f'tags/{channel_or_tag}'
-            self._version_field = 'target_commitish'
-            self.current_version = RELEASE_GIT_HEAD
 
-    def _version_compare(self, a, b):
-        if self._channel == 'stable':
-            return version_tuple(a) >= version_tuple(b)
-        return a == b
+        self._version_field = 'target_commitish'
+        self._version_compare = lambda a, b: a == b
+        self.current_version = RELEASE_GIT_HEAD
 
     @functools.cached_property
     def _tag(self):
@@ -214,7 +220,7 @@ class Updater:
         self._report_error(f'Unable to write to {file}; Try running as administrator', True)
 
     def _report_network_error(self, action, delim=';'):
-        self._report_error(f'Unable to {action}{delim} Visit  https://github.com/{REPOSITORY}/releases/latest', True)
+        self._report_error(f'Unable to {action}{delim} Visit  https://github.com/{REPOSITORY}/releases/{self.latest_tag}', True)
 
     def check_update(self):
         """Report whether there is an update available"""

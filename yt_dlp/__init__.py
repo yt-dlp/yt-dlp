@@ -934,7 +934,7 @@ def _real_main(argv=None):
         if opts.rm_cachedir:
             ydl.cache.remove()
 
-        updater = Updater(ydl, opts.update_self or None)
+        updater = Updater(ydl, opts.update_self if isinstance(opts.update_self, str) else None)
         if opts.update_self and updater.update() and actual_use:
             if updater.cmd:
                 return updater.restart()
