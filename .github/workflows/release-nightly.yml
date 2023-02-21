@@ -68,17 +68,6 @@ jobs:
           </details>
           EOF
 
-      - name: Make Update spec
-        run: |
-          echo "# This file is used for regulating self-update" >> _update_spec
-          echo "lock 2022.07.18 .+ Python 3.6" >> _update_spec
-
-      - name: Make SHA2-SUMS files
-        run: |
-          cd ./artifact/
-          sha256sum * > ../SHA2-256SUMS
-          sha512sum * > ../SHA2-512SUMS
-
       - name: Archive nightly release
         uses: yt-dlp/action-gh-release@v1
         env:
@@ -91,17 +80,13 @@ jobs:
           repository: ${{ vars.ARCHIVE_REPO }}
           token: ${{ secrets.ARCHIVE_REPO_TOKEN }}
           body_path: RELEASE_NOTES
-          files: |
-            SHA2-256SUMS
-            SHA2-512SUMS
-            artifact/*
-            _update_spec
+          files: artifact/*
 
       - name: Prune old nightly release
         run: |
           gh release delete -y "nightly" || true
           git push --delete origin "nightly" || true
-          git tag --delete "nightly" || true
+          sleep 5  # Enough time to cover deletion race condition
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
@@ -113,8 +98,4 @@ jobs:
           prerelease: true
           target_commitish: ${{ needs.prepare.outputs.head_sha }}
           body_path: RELEASE_NOTES
-          files: |
-            SHA2-256SUMS
-            SHA2-512SUMS
-            artifact/*
-            _update_spec
+          files: artifact/*

@@ -131,17 +131,6 @@ jobs:
           </details>
           EOF
 
-      - name: Make Update spec
-        run: |
-          echo "# This file is used for regulating self-update" >> _update_spec
-          echo "lock 2022.07.18 .+ Python 3.6" >> _update_spec
-
-      - name: Make SHA2-SUMS files
-        run: |
-          cd ./artifact/
-          sha256sum * > ../SHA2-256SUMS
-          sha512sum * > ../SHA2-512SUMS
-
       - name: Publish Release
         uses: yt-dlp/action-gh-release@v1
         with:
@@ -149,8 +138,4 @@ jobs:
           name: yt-dlp ${{ needs.prepare.outputs.version }}
           target_commitish: ${{ needs.prepare.outputs.head_sha }}
           body_path: RELEASE_NOTES
-          files: |
-            SHA2-256SUMS
-            SHA2-512SUMS
-            artifact/*
-            _update_spec
+          files: artifact/*
