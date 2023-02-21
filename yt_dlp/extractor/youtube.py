@@ -293,7 +293,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     """Provide base functions for Youtube extractors"""
 
     _RESERVED_NAMES = (
-        r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|clip|'
+        r'channel|c|user|playlist|watch|w|v|embed|e|live|watch_popup|clip|'
         r'shorts|movies|results|search|shared|hashtag|trending|explore|feed|feeds|'
         r'browse|oembed|get_video_info|iframe_api|s/player|source|'
         r'storefront|oops|index|account|t/terms|about|upload|signin|logout')
@@ -313,6 +313,40 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?invidious\.pussthecat\.org',
         r'(?:www\.)?invidious\.zee\.li',
         r'(?:www\.)?invidious\.ethibox\.fr',
+        r'(?:www\.)?iv\.ggtyler\.dev',
+        r'(?:www\.)?inv\.vern\.i2p',
+        r'(?:www\.)?am74vkcrjp2d5v36lcdqgsj2m6x36tbrkhsruoegwfcizzabnfgf5zyd\.onion',
+        r'(?:www\.)?inv\.riverside\.rocks',
+        r'(?:www\.)?invidious\.silur\.me',
+        r'(?:www\.)?inv\.bp\.projectsegfau\.lt',
+        r'(?:www\.)?invidious\.g4c3eya4clenolymqbpgwz3q3tawoxw56yhzk4vugqrl6dtu3ejvhjid\.onion',
+        r'(?:www\.)?invidious\.slipfox\.xyz',
+        r'(?:www\.)?invidious\.esmail5pdn24shtvieloeedh7ehz3nrwcdivnfhfcedl7gf4kwddhkqd\.onion',
+        r'(?:www\.)?inv\.vernccvbvyi5qhfzyqengccj7lkove6bjot2xhh5kajhwvidqafczrad\.onion',
+        r'(?:www\.)?invidious\.tiekoetter\.com',
+        r'(?:www\.)?iv\.odysfvr23q5wgt7i456o5t3trw2cw5dgn56vbjfbq2m7xsc5vqbqpcyd\.onion',
+        r'(?:www\.)?invidious\.nerdvpn\.de',
+        r'(?:www\.)?invidious\.weblibre\.org',
+        r'(?:www\.)?inv\.odyssey346\.dev',
+        r'(?:www\.)?invidious\.dhusch\.de',
+        r'(?:www\.)?iv\.melmac\.space',
+        r'(?:www\.)?watch\.thekitty\.zone',
+        r'(?:www\.)?invidious\.privacydev\.net',
+        r'(?:www\.)?ng27owmagn5amdm7l5s3rsqxwscl5ynppnis5dqcasogkyxcfqn7psid\.onion',
+        r'(?:www\.)?invidious\.drivet\.xyz',
+        r'(?:www\.)?vid\.priv\.au',
+        r'(?:www\.)?euxxcnhsynwmfidvhjf6uzptsmh4dipkmgdmcmxxuo7tunp3ad2jrwyd\.onion',
+        r'(?:www\.)?inv\.vern\.cc',
+        r'(?:www\.)?invidious\.esmailelbob\.xyz',
+        r'(?:www\.)?invidious\.sethforprivacy\.com',
+        r'(?:www\.)?yt\.oelrichsgarcia\.de',
+        r'(?:www\.)?yt\.artemislena\.eu',
+        r'(?:www\.)?invidious\.flokinet\.to',
+        r'(?:www\.)?invidious\.baczek\.me',
+        r'(?:www\.)?y\.com\.sb',
+        r'(?:www\.)?invidious\.epicsite\.xyz',
+        r'(?:www\.)?invidious\.lidarshield\.cloud',
+        r'(?:www\.)?yt\.funami\.tech',
         r'(?:www\.)?invidious\.3o7z6yfxhbw7n3za4rss6l434kmv55cgw2vuziwuigpwegswvwzqipyd\.onion',
         r'(?:www\.)?osbivz6guyeahrwp2lnwyjk2xos342h4ocsxyqrlaopqjuhwn2djiiyd\.onion',
         r'(?:www\.)?u2cvlit75owumwpy4dj2hsmvkq7nvrclkpht7xgyye2pyoxhpmclkrad\.onion',
@@ -391,6 +425,17 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?piped\.qdi\.fi',
         r'(?:www\.)?piped\.video',
         r'(?:www\.)?piped\.aeong\.one',
+        r'(?:www\.)?piped\.moomoo\.me',
+        r'(?:www\.)?piped\.chauvet\.pro',
+        r'(?:www\.)?watch\.leptons\.xyz',
+        r'(?:www\.)?pd\.vern\.cc',
+        r'(?:www\.)?piped\.hostux\.net',
+        r'(?:www\.)?piped\.lunar\.icu',
+        # Hyperpipe instances from https://hyperpipe.codeberg.page/
+        r'(?:www\.)?hyperpipe\.surge\.sh',
+        r'(?:www\.)?hyperpipe\.esmailelbob\.xyz',
+        r'(?:www\.)?listen\.whatever\.social',
+        r'(?:www\.)?music\.adminforge\.de',
     )
 
     # extracted from account/account_menu ep
@@ -746,7 +791,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         }
 
         badges = []
-        for badge in traverse_obj(renderer, ('badges', ..., 'metadataBadgeRenderer'), default=[]):
+        for badge in traverse_obj(renderer, ('badges', ..., 'metadataBadgeRenderer')):
             badge_type = (
                 privacy_icon_map.get(traverse_obj(badge, ('icon', 'iconType'), expected_type=str))
                 or badge_style_map.get(traverse_obj(badge, 'style'))
@@ -786,7 +831,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     runs = item
 
                 runs = runs[:min(len(runs), max_runs or len(runs))]
-                text = ''.join(traverse_obj(runs, (..., 'text'), expected_type=str, default=[]))
+                text = ''.join(traverse_obj(runs, (..., 'text'), expected_type=str))
                 if text:
                     return text
 
@@ -806,7 +851,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         """
         thumbnails = []
         for path in path_list or [()]:
-            for thumbnail in traverse_obj(data, (*variadic(path), 'thumbnails', ...), default=[]):
+            for thumbnail in traverse_obj(data, (*variadic(path), 'thumbnails', ...)):
                 thumbnail_url = url_or_none(thumbnail.get('url'))
                 if not thumbnail_url:
                     continue
@@ -1013,7 +1058,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             youtube\.googleapis\.com)/                        # the various hostnames, with wildcard subdomains
                          (?:.*?\#/)?                                          # handle anchor (#/) redirect urls
                          (?:                                                  # the various things that can precede the ID:
-                             (?:(?:v|embed|e|shorts)/(?!videoseries|live_stream))  # v/ or embed/ or e/ or shorts/
+                             (?:(?:v|embed|e|shorts|live)/(?!videoseries|live_stream))  # v/ or embed/ or e/ or shorts/
                              |(?:                                             # or the v= param in all its forms
                                  (?:(?:watch|movie)(?:_popup)?(?:\.php)?/?)?  # preceding watch(_popup|.php) or nothing (like /?v=xxxx)
                                  (?:\?|\#!?)                                  # the params delimiter ? or # or #!
@@ -2545,7 +2590,67 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'tags': [],
             },
             'params': {'extractor_args': {'youtube': {'player_client': ['ios']}}, 'format': '233-1'},
-        }
+        }, {
+            'note': 'Audio formats with Dynamic Range Compression',
+            'url': 'https://www.youtube.com/watch?v=Tq92D6wQ1mg',
+            'info_dict': {
+                'id': 'Tq92D6wQ1mg',
+                'ext': 'weba',
+                'title': '[MMD] Adios - EVERGLOW [+Motion DL]',
+                'channel_url': 'https://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
+                'channel_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
+                'channel_follower_count': int,
+                'description': 'md5:17eccca93a786d51bc67646756894066',
+                'upload_date': '20191228',
+                'uploader_url': 'http://www.youtube.com/channel/UC1yoRdFoFJaCY-AGfD9W0wQ',
+                'tags': ['mmd', 'dance', 'mikumikudance', 'kpop', 'vtuber'],
+                'playable_in_embed': True,
+                'like_count': int,
+                'categories': ['Entertainment'],
+                'thumbnail': 'https://i.ytimg.com/vi/Tq92D6wQ1mg/sddefault.jpg',
+                'age_limit': 18,
+                'channel': 'Projekt Melody',
+                'uploader_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
+                'view_count': int,
+                'availability': 'needs_auth',
+                'comment_count': int,
+                'live_status': 'not_live',
+                'uploader': 'Projekt Melody',
+                'duration': 106,
+            },
+            'params': {'extractor_args': {'youtube': {'player_client': ['tv_embedded']}}, 'format': '251-drc'},
+        },
+        {
+            'url': 'https://www.youtube.com/live/qVv6vCqciTM',
+            'info_dict': {
+                'id': 'qVv6vCqciTM',
+                'ext': 'mp4',
+                'age_limit': 0,
+                'uploader_id': 'UCIdEIHpS0TdkqRkHL5OkLtA',
+                'comment_count': int,
+                'chapters': 'count:13',
+                'upload_date': '20221223',
+                'thumbnail': 'https://i.ytimg.com/vi/qVv6vCqciTM/maxresdefault.jpg',
+                'channel_url': 'https://www.youtube.com/channel/UCIdEIHpS0TdkqRkHL5OkLtA',
+                'uploader_url': 'http://www.youtube.com/channel/UCIdEIHpS0TdkqRkHL5OkLtA',
+                'like_count': int,
+                'release_date': '20221223',
+                'tags': ['Vtuber', '月ノ美兎', '名取さな', 'にじさんじ', 'クリスマス', '3D配信'],
+                'title': '【 #インターネット女クリスマス 】3Dで歌ってはしゃぐインターネットの女たち【月ノ美兎/名取さな】',
+                'view_count': int,
+                'playable_in_embed': True,
+                'duration': 4438,
+                'availability': 'public',
+                'channel_follower_count': int,
+                'channel_id': 'UCIdEIHpS0TdkqRkHL5OkLtA',
+                'categories': ['Entertainment'],
+                'live_status': 'was_live',
+                'release_timestamp': 1671793345,
+                'channel': 'さなちゃんねる',
+                'description': 'md5:6aebf95cc4a1d731aebc01ad6cc9806d',
+                'uploader': 'さなちゃんねる',
+            },
+        },
     ]
 
     _WEBPAGE_TESTS = [
@@ -2609,11 +2714,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return
 
             _, _, prs, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
-            video_details = traverse_obj(
-                prs, (..., 'videoDetails'), expected_type=dict, default=[])
+            video_details = traverse_obj(prs, (..., 'videoDetails'), expected_type=dict)
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
-                expected_type=dict, default=[])
+                expected_type=dict)
             _, live_status, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
             is_live = live_status == 'is_live'
             start_time = time.time()
@@ -2622,18 +2726,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             """
             @returns (manifest_url, manifest_stream_number, is_live) or None
             """
-            with lock:
-                refetch_manifest(format_id, delay)
+            for retry in self.RetryManager(fatal=False):
+                with lock:
+                    refetch_manifest(format_id, delay)
 
-            f = next((f for f in formats if f['format_id'] == format_id), None)
-            if not f:
-                if not is_live:
-                    self.to_screen(f'{video_id}: Video is no longer live')
-                else:
-                    self.report_warning(
-                        f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}')
-                return None
-            return f['manifest_url'], f['manifest_stream_number'], is_live
+                f = next((f for f in formats if f['format_id'] == format_id), None)
+                if not f:
+                    if not is_live:
+                        retry.error = f'{video_id}: Video is no longer live'
+                    else:
+                        retry.error = f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}'
+                    continue
+                return f['manifest_url'], f['manifest_stream_number'], is_live
+            return None
 
         for f in formats:
             f['is_live'] = is_live
@@ -3133,7 +3238,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         content_list = traverse_obj(
             data,
             ('engagementPanels', ..., 'engagementPanelSectionListRenderer', 'content', 'macroMarkersListRenderer', 'contents'),
-            expected_type=list, default=[])
+            expected_type=list)
         chapter_time = lambda chapter: parse_duration(self._get_text(chapter, 'timeDescription'))
         chapter_title = lambda chapter: self._get_text(chapter, 'title')
 
@@ -3410,7 +3515,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if traverse_obj(player_response, ('playabilityStatus', 'desktopLegacyAgeGateReason')):
             return True
 
-        reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')), default=[])
+        reasons = traverse_obj(player_response, ('playabilityStatus', ('status', 'reason')))
         AGE_GATE_REASONS = (
             'confirm your age', 'age-restricted', 'inappropriate',  # reason
             'age_verification_required', 'age_check_required',  # status
@@ -3566,7 +3671,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'audio_quality_ultralow', 'audio_quality_low', 'audio_quality_medium', 'audio_quality_high',  # Audio only formats
             'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
         ])
-        streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...), default=[])
+        streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...))
 
         for fmt in streaming_formats:
             if fmt.get('targetDurationSec'):
@@ -3574,7 +3679,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             itag = str_or_none(fmt.get('itag'))
             audio_track = fmt.get('audioTrack') or {}
-            stream_id = '%s.%s' % (itag or '', audio_track.get('id', ''))
+            stream_id = (itag, audio_track.get('id'), fmt.get('isDrc'))
             if stream_id in stream_ids:
                 continue
 
@@ -3655,11 +3760,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
-                'format_id': itag,
+                'format_id': f'{itag}{"-drc" if fmt.get("isDrc") else ""}',
                 'format_note': join_nonempty(
                     '%s%s' % (audio_track.get('displayName') or '',
                               ' (default)' if language_preference > 0 else ''),
                     fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
+                    'DRC' if fmt.get('isDrc') else None,
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                     throttled and 'THROTTLED', is_damaged and 'DAMAGED', delim=', '),
@@ -3668,13 +3774,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'fps': int_or_none(fmt.get('fps')) or None,
                 'audio_channels': fmt.get('audioChannels'),
                 'height': height,
-                'quality': q(quality),
+                'quality': q(quality) - bool(fmt.get('isDrc')) / 2,
                 'has_drm': bool(fmt.get('drmFamilies')),
                 'tbr': tbr,
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
                 'language': join_nonempty(audio_track.get('id', '').split('.')[0],
-                                          'desc' if language_preference < -1 else ''),
+                                          'desc' if language_preference < -1 else '') or None,
                 'language_preference': language_preference,
                 # Strictly de-prioritize damaged and 3gp formats
                 'preference': -10 if is_damaged else -2 if itag == '17' else None,
@@ -3831,7 +3937,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                        else 'was_live' if live_content
                        else 'not_live' if False in (is_live, live_content)
                        else None)
-        streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
+        streaming_data = traverse_obj(player_responses, (..., 'streamingData'))
         *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, live_status, duration)
 
         return live_broadcast_details, live_status, streaming_data, formats, subtitles
@@ -3846,7 +3952,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage, master_ytcfg, player_responses, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
 
         playability_statuses = traverse_obj(
-            player_responses, (..., 'playabilityStatus'), expected_type=dict, default=[])
+            player_responses, (..., 'playabilityStatus'), expected_type=dict)
 
         trailer_video_id = get_first(
             playability_statuses,
@@ -3859,11 +3965,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None))
                        if webpage else (lambda x: None))
 
-        video_details = traverse_obj(
-            player_responses, (..., 'videoDetails'), expected_type=dict, default=[])
+        video_details = traverse_obj(player_responses, (..., 'videoDetails'), expected_type=dict)
         microformats = traverse_obj(
             player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
-            expected_type=dict, default=[])
+            expected_type=dict)
 
         translated_title = self._get_text(microformats, (..., 'title'))
         video_title = (self._preferred_lang and translated_title
@@ -4036,7 +4141,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'thumbnail': traverse_obj(original_thumbnails, (-1, 'url')),
             'description': video_description,
             'uploader': get_first(video_details, 'author'),
-            'uploader_id': self._search_regex(r'/(?:channel|user)/([^/?&#]+)', owner_profile_url, 'uploader id') if owner_profile_url else None,
+            'uploader_id': self._search_regex(r'/(?:channel/|user/|(?=@))([^/?&#]+)', owner_profile_url, 'uploader id', default=None),
             'uploader_url': owner_profile_url,
             'channel_id': channel_id,
             'channel_url': format_field(channel_id, None, 'https://www.youtube.com/channel/%s'),
@@ -4069,10 +4174,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Converted into dicts to remove duplicates
             captions = {
                 get_lang_code(sub): sub
-                for sub in traverse_obj(pctr, (..., 'captionTracks', ...), default=[])}
+                for sub in traverse_obj(pctr, (..., 'captionTracks', ...))}
             translation_languages = {
                 lang.get('languageCode'): self._get_text(lang.get('languageName'), max_runs=1)
-                for lang in traverse_obj(pctr, (..., 'translationLanguages', ...), default=[])}
+                for lang in traverse_obj(pctr, (..., 'translationLanguages', ...))}
 
             def process_language(container, base_url, lang_code, sub_name, query):
                 lang_subs = container.setdefault(lang_code, [])
@@ -4226,9 +4331,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     list) or []):
                 tbrs = variadic(
                     traverse_obj(
-                        tlb, 'toggleButtonRenderer',
-                        ('segmentedLikeDislikeButtonRenderer', ..., 'toggleButtonRenderer'),
-                        default=[]))
+                        tlb, ('toggleButtonRenderer', ...),
+                        ('segmentedLikeDislikeButtonRenderer', ..., 'toggleButtonRenderer')))
                 for tbr in tbrs:
                     for getter, regex in [(
                             lambda x: x['defaultText']['accessibility']['accessibilityData'],
@@ -4376,19 +4480,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             return info_dict
         return wrapper
 
-    def _extract_channel_id(self, webpage):
-        channel_id = self._html_search_meta(
-            'channelId', webpage, 'channel id', default=None)
-        if channel_id:
-            return channel_id
-        channel_url = self._html_search_meta(
-            ('og:url', 'al:ios:url', 'al:android:url', 'al:web:url',
-             'twitter:url', 'twitter:app:url:iphone', 'twitter:app:url:ipad',
-             'twitter:app:url:googleplay'), webpage, 'channel url')
-        return self._search_regex(
-            r'https?://(?:www\.)?youtube\.com/channel/([^/?#&])+',
-            channel_url, 'channel id')
-
     @staticmethod
     def _extract_basic_item_renderer(item):
         # Modified from _extract_grid_item_renderer
@@ -4402,6 +4493,25 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 return renderer
             elif key.startswith('grid') and key.endswith('Renderer'):
                 return renderer
+
+    def _extract_channel_renderer(self, renderer):
+        channel_id = renderer['channelId']
+        title = self._get_text(renderer, 'title')
+        channel_url = f'https://www.youtube.com/channel/{channel_id}'
+        return {
+            '_type': 'url',
+            'url': channel_url,
+            'id': channel_id,
+            'ie_key': YoutubeTabIE.ie_key(),
+            'channel': title,
+            'channel_id': channel_id,
+            'channel_url': channel_url,
+            'title': title,
+            'channel_follower_count': self._get_count(renderer, 'subscriberCountText'),
+            'thumbnails': self._extract_thumbnails(renderer, 'thumbnail'),
+            'playlist_count': self._get_count(renderer, 'videoCountText'),
+            'description': self._get_text(renderer, 'descriptionSnippet'),
+        }
 
     def _grid_entries(self, grid_renderer):
         for item in grid_renderer['items']:
@@ -4428,9 +4538,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             # channel
             channel_id = renderer.get('channelId')
             if channel_id:
-                yield self.url_result(
-                    'https://www.youtube.com/channel/%s' % channel_id,
-                    ie=YoutubeTabIE.ie_key(), video_title=title)
+                yield self._extract_channel_renderer(renderer)
                 continue
             # generic endpoint URL support
             ep_url = urljoin('https://www.youtube.com/', try_get(
@@ -5081,7 +5189,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     IE_DESC = 'YouTube Tabs'
     _VALID_URL = r'''(?x:
         https?://
-            (?:\w+\.)?
+            (?!consent\.)(?:\w+\.)?
             (?:
                 youtube(?:kids)?\.com|
                 %(invidious)s
@@ -5783,7 +5891,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader': 'cole-dlp-test-acc',
             'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel': 'cole-dlp-test-acc',
-            'channel_follower_count': int,
         },
         'playlist_mincount': 1,
         'params': {'extractor_args': {'youtube': {'lang': ['ja']}}},
@@ -5951,7 +6058,6 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'title': 'cole-dlp-test-acc - Shorts',
             'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel': 'cole-dlp-test-acc',
-            'channel_follower_count': int,
             'description': 'test description',
             'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
             'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
@@ -5997,8 +6103,40 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 'channel': str,
             }
         }],
-        'params': {'extract_flat': True},
+        'params': {'extract_flat': True, 'playlist_items': '1'},
         'playlist_mincount': 1
+    }, {
+        # Channel renderer metadata. Contains number of videos on the channel
+        'url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA/channels',
+        'info_dict': {
+            'id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'title': 'cole-dlp-test-acc - Channels',
+            'uploader_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel': 'cole-dlp-test-acc',
+            'description': 'test description',
+            'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+            'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+            'tags': [],
+            'uploader': 'cole-dlp-test-acc',
+            'uploader_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+
+        },
+        'playlist': [{
+            'info_dict': {
+                '_type': 'url',
+                'ie_key': 'YoutubeTab',
+                'url': 'https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'id': 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'channel_id': 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'title': 'PewDiePie',
+                'channel': 'PewDiePie',
+                'channel_url': 'https://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'thumbnails': list,
+                'channel_follower_count': int,
+                'playlist_count': int
+            }
+        }],
+        'params': {'extract_flat': True},
     }]
 
     @classmethod
@@ -6553,6 +6691,30 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
             # }],
         },
     }, {
+        # Channel results
+        'url': 'https://www.youtube.com/results?search_query=kurzgesagt&sp=EgIQAg%253D%253D',
+        'info_dict': {
+            'id': 'kurzgesagt',
+            'title': 'kurzgesagt',
+        },
+        'playlist': [{
+            'info_dict': {
+                '_type': 'url',
+                'id': 'UCsXVk37bltHxD1rDPwtNM8Q',
+                'url': 'https://www.youtube.com/channel/UCsXVk37bltHxD1rDPwtNM8Q',
+                'ie_key': 'YoutubeTab',
+                'channel': 'Kurzgesagt – In a Nutshell',
+                'description': 'md5:4ae48dfa9505ffc307dad26342d06bfc',
+                'title': 'Kurzgesagt – In a Nutshell',
+                'channel_id': 'UCsXVk37bltHxD1rDPwtNM8Q',
+                'playlist_count': int,  # XXX: should have a way of saying > 1
+                'channel_url': 'https://www.youtube.com/channel/UCsXVk37bltHxD1rDPwtNM8Q',
+                'thumbnails': list
+            }
+        }],
+        'params': {'extract_flat': True, 'playlist_items': '1'},
+        'playlist_mincount': 1,
+    }, {
         'url': 'https://www.youtube.com/results?q=test&sp=EgQIBBgB',
         'only_matching': True,
     }]
@@ -6835,6 +6997,51 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'section_start': int(clip_data['startTimeMs']) / 1000,
             'section_end': int(clip_data['endTimeMs']) / 1000,
         }
+
+
+class YoutubeConsentRedirectIE(YoutubeBaseInfoExtractor):
+    IE_NAME = 'youtube:consent'
+    IE_DESC = False  # Do not list
+    _VALID_URL = r'https?://consent\.youtube\.com/m\?'
+    _TESTS = [{
+        'url': 'https://consent.youtube.com/m?continue=https%3A%2F%2Fwww.youtube.com%2Flive%2FqVv6vCqciTM%3Fcbrd%3D1&gl=NL&m=0&pc=yt&hl=en&src=1',
+        'info_dict': {
+            'id': 'qVv6vCqciTM',
+            'ext': 'mp4',
+            'age_limit': 0,
+            'uploader_id': 'UCIdEIHpS0TdkqRkHL5OkLtA',
+            'comment_count': int,
+            'chapters': 'count:13',
+            'upload_date': '20221223',
+            'thumbnail': 'https://i.ytimg.com/vi/qVv6vCqciTM/maxresdefault.jpg',
+            'channel_url': 'https://www.youtube.com/channel/UCIdEIHpS0TdkqRkHL5OkLtA',
+            'uploader_url': 'http://www.youtube.com/channel/UCIdEIHpS0TdkqRkHL5OkLtA',
+            'like_count': int,
+            'release_date': '20221223',
+            'tags': ['Vtuber', '月ノ美兎', '名取さな', 'にじさんじ', 'クリスマス', '3D配信'],
+            'title': '【 #インターネット女クリスマス 】3Dで歌ってはしゃぐインターネットの女たち【月ノ美兎/名取さな】',
+            'view_count': int,
+            'playable_in_embed': True,
+            'duration': 4438,
+            'availability': 'public',
+            'channel_follower_count': int,
+            'channel_id': 'UCIdEIHpS0TdkqRkHL5OkLtA',
+            'categories': ['Entertainment'],
+            'live_status': 'was_live',
+            'release_timestamp': 1671793345,
+            'channel': 'さなちゃんねる',
+            'description': 'md5:6aebf95cc4a1d731aebc01ad6cc9806d',
+            'uploader': 'さなちゃんねる',
+        },
+        'add_ie': ['Youtube'],
+        'params': {'skip_download': 'Youtube'},
+    }]
+
+    def _real_extract(self, url):
+        redirect_url = url_or_none(parse_qs(url).get('continue', [None])[-1])
+        if not redirect_url:
+            raise ExtractorError('Invalid cookie consent redirect URL', expected=True)
+        return self.url_result(redirect_url)
 
 
 class YoutubeTruncatedIDIE(InfoExtractor):

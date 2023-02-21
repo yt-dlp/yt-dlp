@@ -11,6 +11,7 @@ from ..utils import (
     HEADRequest,
     LazyList,
     UnsupportedError,
+    UserNotLive,
     get_element_by_id,
     get_first,
     int_or_none,
@@ -49,7 +50,7 @@ class TikTokBaseIE(InfoExtractor):
 
     def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
                        note='Downloading API JSON', errnote='Unable to download API page'):
-        self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for _ in range(160)))
+        self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choices('0123456789abcdef', k=160)))
         webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
         if webpage_cookies.get('sid_tt'):
             self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
@@ -68,8 +69,8 @@ class TikTokBaseIE(InfoExtractor):
             'build_number': app_version,
             'manifest_version_code': manifest_app_version,
             'update_version_code': manifest_app_version,
-            'openudid': ''.join(random.choice('0123456789abcdef') for _ in range(16)),
-            'uuid': ''.join([random.choice(string.digits) for _ in range(16)]),
+            'openudid': ''.join(random.choices('0123456789abcdef', k=16)),
+            'uuid': ''.join(random.choices(string.digits, k=16)),
             '_rticket': int(time.time() * 1000),
             'ts': int(time.time()),
             'device_brand': 'Google',
@@ -284,7 +285,7 @@ class TikTokBaseIE(InfoExtractor):
         user_url = self._UPLOADER_URL_FORMAT % (traverse_obj(author_info,
                                                              'sec_uid', 'id', 'uid', 'unique_id',
                                                              expected_type=str_or_none, get_all=False))
-        labels = traverse_obj(aweme_detail, ('hybrid_label', ..., 'text'), expected_type=str, default=[])
+        labels = traverse_obj(aweme_detail, ('hybrid_label', ..., 'text'), expected_type=str)
 
         contained_music_track = traverse_obj(
             music_info, ('matched_song', 'title'), ('matched_pgc_sound', 'title'), expected_type=str)
@@ -354,7 +355,7 @@ class TikTokBaseIE(InfoExtractor):
                 'ext': 'mp4',
                 'width': width,
                 'height': height,
-            } for url in traverse_obj(play_url, (..., 'src'), expected_type=url_or_none, default=[]) if url]
+            } for url in traverse_obj(play_url, (..., 'src'), expected_type=url_or_none) if url]
 
         download_url = url_or_none(video_info.get('downloadAddr')) or traverse_obj(video_info, ('download', 'url'), expected_type=url_or_none)
         if download_url:
@@ -638,7 +639,7 @@ class TikTokUserIE(TikTokBaseIE):
             'max_cursor': 0,
             'min_cursor': 0,
             'retry_type': 'no_retry',
-            'device_id': ''.join(random.choice(string.digits) for _ in range(19)),  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
+            'device_id': ''.join(random.choices(string.digits, k=19)),  # Some endpoints don't like randomized device_id, so it isn't directly set in _call_api.
         }
 
         for page in itertools.count(1):
@@ -686,7 +687,7 @@ class TikTokBaseListIE(TikTokBaseIE):  # XXX: Conventionally, base classes shoul
             'cursor': 0,
             'count': 20,
             'type': 5,
-            'device_id': ''.join(random.choice(string.digits) for i in range(19))
+            'device_id': ''.join(random.choices(string.digits, k=19))
         }
 
         for page in itertools.count(1):
@@ -980,3 +981,42 @@ class TikTokVMIE(InfoExtractor):
         if self.suitable(new_url):  # Prevent infinite loop in case redirect fails
             raise UnsupportedError(new_url)
         return self.url_result(new_url)
+
+
+class TikTokLiveIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\.-]+)/live'
+    IE_NAME = 'tiktok:live'
+
+    _TESTS = [{
+        'url': 'https://www.tiktok.com/@iris04201/live',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        uploader = self._match_id(url)
+        webpage = self._download_webpage(url, uploader, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
+        room_id = self._html_search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
+        if not room_id:
+            raise UserNotLive(video_id=uploader)
+        live_info = traverse_obj(self._download_json(
+            'https://www.tiktok.com/api/live/detail/', room_id, query={
+                'aid': '1988',
+                'roomID': room_id,
+            }), 'LiveRoomInfo', expected_type=dict, default={})
+
+        if 'status' not in live_info:
+            raise ExtractorError('Unexpected response from TikTok API')
+        # status = 2 if live else 4
+        if not int_or_none(live_info['status']) == 2:
+            raise UserNotLive(video_id=uploader)
+
+        return {
+            'id': room_id,
+            'title': live_info.get('title') or self._html_search_meta(['og:title', 'twitter:title'], webpage, default=''),
+            'uploader': uploader,
+            'uploader_id': traverse_obj(live_info, ('ownerInfo', 'id')),
+            'creator': traverse_obj(live_info, ('ownerInfo', 'nickname')),
+            'concurrent_view_count': traverse_obj(live_info, ('liveRoomStats', 'userCount'), expected_type=int),
+            'formats': self._extract_m3u8_formats(live_info['liveUrl'], room_id, 'mp4', live=True),
+            'is_live': True,
+        }

@@ -20,8 +20,12 @@ class CrunchyrollBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'crunchyroll'
     params = None
 
+    @property
+    def is_logged_in(self):
+        return self._get_cookies(self._LOGIN_URL).get('etp_rt')
+
     def _perform_login(self, username, password):
-        if self._get_cookies(self._LOGIN_URL).get('etp_rt'):
+        if self.is_logged_in:
             return
 
         upsell_response = self._download_json(
@@ -46,7 +50,7 @@ class CrunchyrollBaseIE(InfoExtractor):
             }).encode('ascii'))
         if login_response['code'] != 'ok':
             raise ExtractorError('Login failed. Server message: %s' % login_response['message'], expected=True)
-        if not self._get_cookies(self._LOGIN_URL).get('etp_rt'):
+        if not self.is_logged_in:
             raise ExtractorError('Login succeeded but did not set etp_rt cookie')
 
     def _get_embedded_json(self, webpage, display_id):
@@ -116,6 +120,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'episode': 'To the Future',
             'episode_number': 73,
             'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg$',
+            'chapters': 'count:2',
         },
         'params': {'skip_download': 'm3u8', 'format': 'all[format_id~=hardsub]'},
     }, {
@@ -136,6 +141,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'episode': 'Porter Robinson presents Shelter the Animation',
             'episode_number': 0,
             'thumbnail': r're:^https://www.crunchyroll.com/imgsrv/.*\.jpeg$',
+            'chapters': 'count:0',
         },
         'params': {'skip_download': True},
         'skip': 'Video is Premium only',
@@ -154,8 +160,11 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         episode_response = self._download_json(
             f'{api_domain}/cms/v2{bucket}/episodes/{internal_id}', display_id,
             note='Retrieving episode metadata', query=params)
-        if episode_response.get('is_premium_only') and not episode_response.get('playback'):
-            raise ExtractorError('This video is for premium members only.', expected=True)
+        if episode_response.get('is_premium_only') and not bucket.endswith('crunchyroll'):
+            if self.is_logged_in:
+                raise ExtractorError('This video is for premium members only', expected=True)
+            else:
+                self.raise_login_required('This video is for premium members only')
 
         stream_response = self._download_json(
             f'{api_domain}{episode_response["__links__"]["streams"]["href"]}', display_id,
@@ -182,7 +191,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             self.to_screen(
                 'To get all formats of a hardsub language, use '
                 '"--extractor-args crunchyrollbeta:hardsub=<language_code or all>". '
-                'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta for more info',
+                'See https://github.com/yt-dlp/yt-dlp#crunchyrollbeta-crunchyroll for more info',
                 only_once=True)
         else:
             full_format_langs = set(map(str.lower, available_formats))
@@ -208,6 +217,17 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                     f['language'] = stream_response.get('audio_locale')
                 f['quality'] = hardsub_preference(hardsub_lang.lower())
             formats.extend(adaptive_formats)
+
+        chapters = None
+        # if no intro chapter is available, a 403 without usable data is returned
+        intro_chapter = self._download_json(f'https://static.crunchyroll.com/datalab-intro-v2/{internal_id}.json',
+                                            display_id, fatal=False, errnote=False)
+        if isinstance(intro_chapter, dict):
+            chapters = [{
+                'title': 'Intro',
+                'start_time': float_or_none(intro_chapter.get('startTime')),
+                'end_time': float_or_none(intro_chapter.get('endTime'))
+            }]
 
         return {
             'id': internal_id,
@@ -235,6 +255,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                     'ext': subtitle_data.get('format')
                 }] for lang, subtitle_data in get_streams('subtitles')
             },
+            'chapters': chapters
         }
 
 
@@ -291,7 +312,8 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
                         'season_id': episode.get('season_id'),
                         'season_number': episode.get('season_number'),
                         'episode': episode.get('title'),
-                        'episode_number': episode.get('sequence_number')
+                        'episode_number': episode.get('sequence_number'),
+                        'language': episode.get('audio_locale'),
                     }
 
         return self.playlist_result(entries(), internal_id, series_response.get('title'))

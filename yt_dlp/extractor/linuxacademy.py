@@ -75,9 +75,8 @@ class LinuxAcademyIE(InfoExtractor):
 
     def _perform_login(self, username, password):
         def random_string():
-            return ''.join([
-                random.choice('0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._~')
-                for _ in range(32)])
+            return ''.join(random.choices(
+                '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._~', k=32))
 
         webpage, urlh = self._download_webpage_handle(
             self._AUTHORIZE_URL, None, 'Downloading authorize page', query={
