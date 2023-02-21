@@ -1,6 +1,6 @@
+import json
 import math
 import re
-import json
 
 from .common import InfoExtractor
 from ..utils import unsmuggle_url, InAdvancePagedList
