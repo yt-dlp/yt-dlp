@@ -55,6 +55,20 @@ class LivestreamIE(InfoExtractor):
         },
         'playlist_mincount': 4,
     }, {
+        'url': 'https://livestream.com/accounts/82',
+        'info_dict': {
+            'id': '253978',
+            'view_count': int,
+            'title': 'trsr',
+            'comment_count': int,
+            'like_count': int,
+            'upload_date': '20120306',
+            'timestamp': 1331042383,
+            'thumbnail': 'http://img.new.livestream.com/videos/0000000000000372/cacbeed6-fb68-4b5e-ad9c-e148124e68a9_640x427.jpg',
+            'duration': 15.332,
+            'ext': 'mp4'
+        }
+    }, {
         'url': 'https://new.livestream.com/accounts/362/events/3557232/videos/67864563/player?autoPlay=false&height=360&mute=false&width=640',
         'only_matching': True,
     }, {
@@ -62,6 +76,7 @@ class LivestreamIE(InfoExtractor):
         'only_matching': True,
     }]
     _API_URL_TEMPLATE = 'http://livestream.com/api/accounts/%s/events/%s'
+    _ACCOUNT_API_URL_TEMPLATE = 'http://livestream.com/api/accounts/%s'
 
     def _parse_smil_formats(self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
         base_ele = find_xpath_attr(
@@ -180,7 +195,7 @@ class LivestreamIE(InfoExtractor):
             'is_live': is_live,
         }
 
-    def _extract_event(self, event_data):
+    def _generate_event_playlist(self, event_data):
         event_id = compat_str(event_data['id'])
         account_id = compat_str(event_data['owner_account_id'])
         feed_root_url = self._API_URL_TEMPLATE % (account_id, event_id) + '/feed.json'
@@ -208,21 +223,39 @@ class LivestreamIE(InfoExtractor):
                     'http://livestream.com/accounts/%s/events/%s/videos/%s' % (account_id, event_id, v_id),
                     'Livestream', v_id, v.get('caption')))
             last_video = videos_info[-1]['id']
+        return entries
+
+    def _extract_event(self, event_data):
+        event_id = compat_str(event_data['id'])
+        entries = self._generate_event_playlist(event_data)
         return self.playlist_result(entries, event_id, event_data['full_name'])
+
+    def _extract_account_events(self, account_data):
+        upcoming_events = account_data['upcoming_events']
+        past_events = account_data['past_events']
+        entries = []
+        events = upcoming_events['data'] + past_events['data']
+        for event_data in events:
+            playlist = self._generate_event_playlist(event_data)
+            if playlist:
+                entries = entries + playlist
+        return self.playlist_result(entries, account_data['id'], account_data['full_name'])
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         event = mobj.group('event_id') or mobj.group('event_name')
         account = mobj.group('account_id') or mobj.group('account_name')
-        api_url = self._API_URL_TEMPLATE % (account, event)
+        api_url = self._ACCOUNT_API_URL_TEMPLATE % (account)
         if video_id:
             video_data = self._download_json(
-                api_url + '/videos/%s' % video_id, video_id)
+                api_url + '/events/%s' % event + '/videos/%s' % video_id, video_id)
             return self._extract_video_info(video_data)
-        else:
-            event_data = self._download_json(api_url, video_id)
+        if event:
+            event_data = self._download_json(api_url + '/events/%s' % event, None)
             return self._extract_event(event_data)
+        account_data = self._download_json(api_url, None)
+        return self._extract_account_events(account_data)
 
 
 # The original version of Livestream uses a different system
