@@ -380,15 +380,13 @@ class TwitchVodIE(TwitchBaseIE):
             }],
             'Downloading stream metadata GraphQL')
 
-        initial_index = 1 if data[0].get('errors') else 0
-
-        video = traverse_obj(data, (initial_index, 'data', 'video'))
+        video = traverse_obj(data, (..., 'data', 'video'), get_all=False)
         if video is None:
             raise ExtractorError(f'Video {item_id} does not exist', expected=True)
 
-        video['moments'] = traverse_obj(data, (initial_index + 1, 'data', 'video', 'moments', 'edges', ..., 'node'))
+        video['moments'] = traverse_obj(data, (..., 'data', 'video', 'moments', 'edges', ..., 'node'))
         video['storyboard'] = traverse_obj(
-            data, (initial_index + 2, 'data', 'video', 'seekPreviewsURL'), expected_type=url_or_none)
+            data, (..., 'data', 'video', 'seekPreviewsURL', {url_or_none}), get_all=False)
 
         return video
 
