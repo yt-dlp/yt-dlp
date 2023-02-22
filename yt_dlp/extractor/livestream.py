@@ -27,7 +27,7 @@ class LivestreamIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'http://new.livestream.com/CoheedandCambria/WebsterHall/videos/4719370',
-        'md5': '53274c76ba7754fb0e8d072716f2292b',
+        'md5': '7876c5f5dc3e711b6b73acce4aac1527',
         'info_dict': {
             'id': '4719370',
             'ext': 'mp4',
@@ -37,6 +37,7 @@ class LivestreamIE(InfoExtractor):
             'duration': 5968.0,
             'like_count': int,
             'view_count': int,
+            'comment_count': int,
             'thumbnail': r're:^http://.*\.jpg$'
         }
     }, {
