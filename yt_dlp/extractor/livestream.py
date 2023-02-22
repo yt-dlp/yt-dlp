@@ -40,19 +40,19 @@ class LivestreamIE(InfoExtractor):
             'thumbnail': r're:^http://.*\.jpg$'
         }
     }, {
-        'url': 'http://new.livestream.com/tedx/cityenglish',
+        'url': 'https://livestream.com/coheedandcambria/websterhall',
         'info_dict': {
-            'title': 'TEDCity2.0 (English)',
-            'id': '2245590',
+            'id': '1585861',
+            'title': 'Live From Webster Hall'
+        },
+        'playlist_mincount': 1,
+    }, {
+        'url': 'https://livestream.com/dayananda/events/7954027',
+        'info_dict': {
+            'title': 'Live from Mevo',
+            'id': '7954027',
         },
         'playlist_mincount': 4,
-    }, {
-        'url': 'http://new.livestream.com/chess24/tatasteelchess',
-        'info_dict': {
-            'title': 'Tata Steel Chess',
-            'id': '3705884',
-        },
-        'playlist_mincount': 60,
     }, {
         'url': 'https://new.livestream.com/accounts/362/events/3557232/videos/67864563/player?autoPlay=false&height=360&mute=false&width=640',
         'only_matching': True,
