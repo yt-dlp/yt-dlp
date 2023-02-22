@@ -240,7 +240,7 @@ class FiveThirtyEightIE(InfoExtractor):
 
 
 class ESPNCricInfoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?espncricinfo\.com/video/[^#$&?/]+-(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?espncricinfo\.com/(?:cricket-)?videos?/[^#$&?/]+-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.espncricinfo.com/video/finch-chasing-comes-with-risks-despite-world-cup-trend-1289135',
         'info_dict': {
