@@ -240,9 +240,8 @@ class FiveThirtyEightIE(InfoExtractor):
 
 
 class ESPNCricInfoIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?espncricinfo\.com/(?:cricket-)?videos?/[^#$&?/]+-(?P<id>\d+)'
-    _TESTS = [
-    {
+    _VALID_URL = _VALID_URL = r'https?://(?:www\.)?espncricinfo\.com/(?:cricket-)?videos?/[^#$&?/]+-(?P<id>\d+)'
+    _TESTS = [{
         'url': 'https://www.espncricinfo.com/cricket-videos/daryl-mitchell-mitchell-santner-is-one-of-the-best-white-ball-spinners-india-vs-new-zealand-1356225',
         'info_dict': {
             'id': '1356225',
