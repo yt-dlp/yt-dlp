@@ -879,6 +879,7 @@ class Popen(subprocess.Popen):
             env = os.environ.copy()
         self._fix_pyinstaller_ld_path(env)
 
+        self.__text_mode = kwargs.get('encoding') or kwargs.get('errors') or text or kwargs.get('universal_newlines')
         if text is True:
             kwargs['universal_newlines'] = True  # For 3.6 compatibility
             kwargs.setdefault('encoding', 'utf-8')
@@ -900,7 +901,7 @@ class Popen(subprocess.Popen):
     @classmethod
     def run(cls, *args, timeout=None, **kwargs):
         with cls(*args, **kwargs) as proc:
-            default = '' if proc.text_mode else b''
+            default = '' if proc.__text_mode else b''
             stdout, stderr = proc.communicate_or_kill(timeout=timeout)
             return stdout or default, stderr or default, proc.returncode
 
