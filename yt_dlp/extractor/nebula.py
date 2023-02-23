@@ -17,6 +17,9 @@ class NebulaBaseIE(InfoExtractor):
     _nebula_api_token = None
     _nebula_bearer_token = None
 
+    def _real_initialize(self):
+        self._nebula_bearer_token = self._fetch_nebula_bearer_token()
+
     def _perform_nebula_auth(self, username, password):
         if not username or not password:
             self.raise_login_required(method='password')
@@ -44,7 +47,8 @@ class NebulaBaseIE(InfoExtractor):
         def inner_call():
             authorization = f'Token {self._nebula_api_token}' if auth_type == 'api' else f'Bearer {self._nebula_bearer_token}'
             return self._download_json(
-                url, video_id, note=note, headers={'Authorization': authorization},
+                url, video_id, note=note,
+                headers={'Authorization': authorization} if self._nebula_api_token or self._nebula_bearer_token else {},
                 data=b'' if method == 'POST' else None)
 
         try:
@@ -137,6 +141,9 @@ class NebulaIE(NebulaBaseIE):
                 'duration': 2212,
                 'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
             },
+            'params': {
+                'skip_download': 'Expected *file* to be at least 9.77KiB, but it\'s only 756.00B',
+            },
         },
         {
             'url': 'https://nebula.tv/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
@@ -187,6 +194,30 @@ class NebulaIE(NebulaBaseIE):
         {
             'url': 'https://watchnebula.com/videos/money-episode-1-the-draw',
             'only_matching': True,
+        }, {
+            'url': 'https://nebula.tv/videos/tldrnewseu-did-the-us-really-blow-up-the-nordstream-pipelines',
+            'info_dict': {
+                'id': '63f64c74366fcd00017c1513',
+                'display_id': 'tldrnewseu-did-the-us-really-blow-up-the-nordstream-pipelines',
+                'title': 'Did the US Really Blow Up the NordStream Pipelines?',
+                'description': 'md5:b4e2a14e3ff08f546a3209c75261e789',
+                'upload_date': '20230223',
+                'timestamp': 1677144070,
+                'channel': 'TLDR News EU',
+                'channel_id': 'tldrnewseu',
+                'uploader': 'TLDR News EU',
+                'uploader_id': 'tldrnewseu',
+                'uploader_url': 'https://nebula.tv/tldrnewseu',
+                'duration': 524,
+                'channel_url': 'https://nebula.tv/tldrnewseu',
+                'series': 'TLDR News EU',
+                'thumbnail': r're:https?://.*\.jpeg',
+                'creator': 'TLDR News EU',
+                'ext': 'mp4',
+            },
+            'params': {
+                'skip_download': 'Expected *file* to be at least 9.77KiB, but it\'s only 3.20KiB',
+            },
         },
         {
             'url': 'https://beta.nebula.tv/videos/money-episode-1-the-draw',
