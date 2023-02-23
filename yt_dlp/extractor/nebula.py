@@ -3,7 +3,11 @@ import json
 import urllib.error
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, parse_iso8601
+from ..utils import (
+    ExtractorError,
+    parse_iso8601,
+    traverse_obj,
+)
 
 _BASE_URL_RE = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
 
@@ -74,23 +78,23 @@ class NebulaBaseIE(InfoExtractor):
 
     def _build_video_info(self, episode):
         fmts, subs = self._fetch_video_formats(episode['slug'])
-        channel_slug = episode['channel_slug']
-        channel_title = episode['channel_title']
+        channel_slug = episode.get('channel_slug')
+        channel_title = episode.get('channel_title')
         return {
             'id': episode['zype_id'],
             'display_id': episode['slug'],
             'formats': fmts,
             'subtitles': subs,
             'webpage_url': f'https://nebula.tv/{episode["slug"]}',
-            'title': episode['title'],
-            'description': episode['description'],
-            'timestamp': parse_iso8601(episode['published_at']),
+            'title': episode.get('title'),
+            'description': episode.get('description'),
+            'timestamp': parse_iso8601(episode.get('published_at')),
             'thumbnails': [{
                 # 'id': tn.get('name'),  # this appears to be null
                 'url': tn['original'],
                 'height': key,
-            } for key, tn in episode['assets']['thumbnail'].items()],
-            'duration': episode['duration'],
+            } for key, tn in traverse_obj(episode, ('assets', 'thumbnail'), default={}).items()],
+            'duration': episode.get('duration'),
             'channel': channel_title,
             'channel_id': channel_slug,
             'channel_url': f'https://nebula.tv/{channel_slug}',
