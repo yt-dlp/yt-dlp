@@ -18,7 +18,7 @@ class PrankCastIE(InfoExtractor):
             'cast': ['Devonanustart', 'Phonelosers'],
             'description': '',
             'categories': ['prank'],
-            'tags': "prank call,prank,live show",
+            'tags': ['prank call', 'prank', 'live show'],
             'upload_date': '20220825'
         }
     }, {
@@ -35,7 +35,7 @@ class PrankCastIE(InfoExtractor):
             'cast': ['phonelosers'],
             'description': '',
             'categories': ['prank'],
-            'tags': "prank call,prank,live show",
+            'tags': ['prank call', 'prank', 'live show'],
             'upload_date': '20221006'
         }
     }]
@@ -62,5 +62,5 @@ class PrankCastIE(InfoExtractor):
             'cast': list(filter(None, [uploader] + traverse_obj(guests_json, (..., 'name')))),
             'description': json_info.get('broadcast_description'),
             'categories': [json_info.get('broadcast_category')],
-            'tags': json_info.get('broadcast_tags')
+            'tags': try_call(lambda: json_info['broadcast_tags'].split(','))
         }
