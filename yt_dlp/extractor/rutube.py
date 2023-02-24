@@ -13,6 +13,7 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
 )
+from .youtube import YoutubeIE
 
 
 class RutubeBaseIE(InfoExtractor):
@@ -35,13 +36,15 @@ class RutubeBaseIE(InfoExtractor):
 
         uploader_id = try_get(video, lambda x: x['author']['id'])
         category = try_get(video, lambda x: x['category']['name'])
+        description = video.get('description')
+        duration = int_or_none(video.get('duration'))
 
         return {
             'id': video.get('id') or video_id if video_id else video['id'],
             'title': title,
-            'description': video.get('description'),
+            'description': description,
             'thumbnail': video.get('thumbnail_url'),
-            'duration': int_or_none(video.get('duration')),
+            'duration': duration,
             'uploader': try_get(video, lambda x: x['author']['name']),
             'uploader_id': compat_str(uploader_id) if uploader_id else None,
             'timestamp': unified_timestamp(video.get('created_ts')),
@@ -50,6 +53,7 @@ class RutubeBaseIE(InfoExtractor):
             'view_count': int_or_none(video.get('hits')),
             'comment_count': int_or_none(video.get('comments_count')),
             'is_live': bool_or_none(video.get('is_livestream')),
+            'chapters': YoutubeIE()._extract_chapters_from_description(description, duration),
         }
 
     def _download_and_extract_info(self, video_id, query=None):
