@@ -5,7 +5,6 @@ import importlib.machinery
 import importlib.util
 import inspect
 import itertools
-import os
 import pkgutil
 import sys
 import traceback
@@ -14,11 +13,11 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from .compat import functools  # isort: split
-from .compat import compat_expanduser
 from .utils import (
     get_executable_path,
     get_system_config_dirs,
     get_user_config_dirs,
+    orderedSet,
     write_string,
 )
 
@@ -35,9 +34,15 @@ class PluginLoader(importlib.abc.Loader):
 
 @functools.cache
 def dirs_in_zip(archive):
-    with ZipFile(archive) as zip:
-        return set(itertools.chain.from_iterable(
-            Path(file).parents for file in zip.namelist()))
+    try:
+        with ZipFile(archive) as zip_:
+            return set(itertools.chain.from_iterable(
+                Path(file).parents for file in zip_.namelist()))
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        write_string(f'WARNING: Could not read zip file {archive}: {e}\n')
+    return set()
 
 
 class PluginFinder(importlib.abc.MetaPathFinder):
@@ -57,44 +62,41 @@ class PluginFinder(importlib.abc.MetaPathFinder):
         candidate_locations = []
 
         def _get_package_paths(*root_paths, containing_folder='plugins'):
-            for config_dir in map(Path, root_paths):
-                plugin_dir = config_dir / containing_folder
-                if not plugin_dir.is_dir():
-                    continue
-                yield from plugin_dir.iterdir()
+            for config_dir in orderedSet(map(Path, root_paths), lazy=True):
+                with contextlib.suppress(OSError):
+                    yield from (config_dir / containing_folder).iterdir()
 
         # Load from yt-dlp config folders
         candidate_locations.extend(_get_package_paths(
-            *get_user_config_dirs('yt-dlp'), *get_system_config_dirs('yt-dlp'),
+            *get_user_config_dirs('yt-dlp'),
+            *get_system_config_dirs('yt-dlp'),
             containing_folder='plugins'))
 
         # Load from yt-dlp-plugins folders
         candidate_locations.extend(_get_package_paths(
             get_executable_path(),
-            compat_expanduser('~'),
-            '/etc',
-            os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config'),
+            *get_user_config_dirs(''),
+            *get_system_config_dirs(''),
             containing_folder='yt-dlp-plugins'))
 
         candidate_locations.extend(map(Path, sys.path))  # PYTHONPATH
+        with contextlib.suppress(ValueError):  # Added when running __main__.py directly
+            candidate_locations.remove(Path(__file__).parent)
 
         parts = Path(*fullname.split('.'))
-        locations = set()
-        for path in dict.fromkeys(candidate_locations):
+        for path in orderedSet(candidate_locations, lazy=True):
             candidate = path / parts
             if candidate.is_dir():
-                locations.add(str(candidate))
-            elif path.name and any(path.with_suffix(suffix).is_file() for suffix in {'.zip', '.egg', '.whl'}):
-                with contextlib.suppress(FileNotFoundError):
-                    if parts in dirs_in_zip(path):
-                        locations.add(str(candidate))
-        return locations
+                yield candidate
+            elif path.suffix in ('.zip', '.egg', '.whl'):
+                if parts in dirs_in_zip(path):
+                    yield candidate
 
     def find_spec(self, fullname, path=None, target=None):
         if fullname not in self.packages:
             return None
 
-        search_locations = self.search_locations(fullname)
+        search_locations = list(map(str, self.search_locations(fullname)))
         if not search_locations:
             return None
 

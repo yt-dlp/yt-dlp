@@ -9,9 +9,12 @@ from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
+    remove_end,
     strip_or_none,
+    traverse_obj,
     try_get,
     smuggle_url,
+    unified_timestamp,
     unsmuggle_url,
     url_or_none,
 )
@@ -393,4 +396,147 @@ class ViuOTTIE(InfoExtractor):
             'thumbnail': url_or_none(video_data.get('cover_image_url')),
             'formats': formats,
             'subtitles': subtitles,
+        }
+
+
+class ViuOTTIndonesiaBaseIE(InfoExtractor):
+    _BASE_QUERY = {
+        'ver': 1.0,
+        'fmt': 'json',
+        'aver': 5.0,
+        'appver': 2.0,
+        'appid': 'viu_desktop',
+        'platform': 'desktop',
+    }
+
+    _DEVICE_ID = str(uuid.uuid4())
+    _SESSION_ID = str(uuid.uuid4())
+    _TOKEN = None
+
+    _HEADERS = {
+        'x-session-id': _SESSION_ID,
+        'x-client': 'browser'
+    }
+
+    _AGE_RATINGS_MAPPER = {
+        'ADULTS': 18,
+        'teens': 13
+    }
+
+    def _real_initialize(self):
+        ViuOTTIndonesiaBaseIE._TOKEN = self._download_json(
+            'https://um.viuapi.io/user/identity', None,
+            headers={'Content-type': 'application/json', **self._HEADERS},
+            query={**self._BASE_QUERY, 'iid': self._DEVICE_ID},
+            data=json.dumps({'deviceId': self._DEVICE_ID}).encode(),
+            note='Downloading token information')['token']
+
+
+class ViuOTTIndonesiaIE(ViuOTTIndonesiaBaseIE):
+    _VALID_URL = r'https?://www\.viu\.com/ott/\w+/\w+/all/video-[\w-]+-(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.viu.com/ott/id/id/all/video-japanese-drama-tv_shows-detective_conan_episode_793-1165863142?containerId=playlist-26271226',
+        'info_dict': {
+            'id': '1165863142',
+            'ext': 'mp4',
+            'episode_number': 793,
+            'episode': 'Episode 793',
+            'title': 'Detective Conan - Episode 793',
+            'duration': 1476,
+            'description': 'md5:b79d55345bc1e0217ece22616267c9a5',
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1165863189/d-1',
+            'upload_date': '20210101',
+            'timestamp': 1609459200,
+        }
+    }, {
+        'url': 'https://www.viu.com/ott/id/id/all/video-korean-reality-tv_shows-entertainment_weekly_episode_1622-1118617054',
+        'info_dict': {
+            'id': '1118617054',
+            'ext': 'mp4',
+            'episode_number': 1622,
+            'episode': 'Episode 1622',
+            'description': 'md5:6d68ca450004020113e9bf27ad99f0f8',
+            'title': 'Entertainment Weekly - Episode 1622',
+            'duration': 4729,
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1120187848/d-1',
+            'timestamp': 1420070400,
+            'upload_date': '20150101',
+            'cast': ['Shin Hyun-joon', 'Lee Da-Hee']
+        }
+    }, {
+        # age-limit test
+        'url': 'https://www.viu.com/ott/id/id/all/video-japanese-trailer-tv_shows-trailer_jujutsu_kaisen_ver_01-1166044219?containerId=playlist-26273140',
+        'info_dict': {
+            'id': '1166044219',
+            'ext': 'mp4',
+            'upload_date': '20200101',
+            'timestamp': 1577836800,
+            'title': 'Trailer \'Jujutsu Kaisen\' Ver.01',
+            'duration': 92,
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1166044240/d-1',
+            'description': 'Trailer \'Jujutsu Kaisen\' Ver.01',
+            'cast': ['Junya Enoki', ' Yûichi Nakamura', ' Yuma Uchida', 'Asami Seto'],
+            'age_limit': 13,
+        }
+    }, {
+        # json ld metadata type equal to Movie instead of TVEpisodes
+        'url': 'https://www.viu.com/ott/id/id/all/video-japanese-animation-movies-demon_slayer_kimetsu_no_yaiba_the_movie_mugen_train-1165892707?containerId=1675060691786',
+        'info_dict': {
+            'id': '1165892707',
+            'ext': 'mp4',
+            'timestamp': 1577836800,
+            'upload_date': '20200101',
+            'title': 'Demon Slayer - Kimetsu no Yaiba - The Movie: Mugen Train',
+            'age_limit': 13,
+            'cast': 'count:9',
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1165895279/d-1',
+            'description': 'md5:1ce9c35a3aeab384085533f746c87469',
+            'duration': 7021,
+        }
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+
+        video_data = self._download_json(
+            f'https://um.viuapi.io/drm/v1/content/{display_id}', display_id, data=b'',
+            headers={'Authorization': ViuOTTIndonesiaBaseIE._TOKEN, **self._HEADERS, 'ccode': 'ID'})
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_data['playUrl'], display_id)
+
+        initial_state = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state',
+            display_id)['content']['clipDetails']
+        for key, url in initial_state.items():
+            lang, ext = self._search_regex(
+                r'^subtitle_(?P<lang>[\w-]+)_(?P<ext>\w+)$', key, 'subtitle metadata',
+                default=(None, None), group=('lang', 'ext'))
+            if lang and ext:
+                subtitles.setdefault(lang, []).append({
+                    'ext': ext,
+                    'url': url,
+                })
+
+                if ext == 'vtt':
+                    subtitles[lang].append({
+                        'ext': 'srt',
+                        'url': f'{remove_end(initial_state[key], "vtt")}srt',
+                    })
+
+        episode = traverse_obj(list(filter(
+            lambda x: x.get('@type') in ('TVEpisode', 'Movie'), self._yield_json_ld(webpage, display_id))), 0) or {}
+        return {
+            'id': display_id,
+            'title': (traverse_obj(initial_state, 'title', 'display_title')
+                      or episode.get('name')),
+            'description': initial_state.get('description') or episode.get('description'),
+            'duration': initial_state.get('duration'),
+            'thumbnail': traverse_obj(episode, ('image', 'url')),
+            'timestamp': unified_timestamp(episode.get('dateCreated')),
+            'formats': formats,
+            'subtitles': subtitles,
+            'episode_number': (traverse_obj(initial_state, 'episode_no', 'episodeno', expected_type=int_or_none)
+                               or int_or_none(episode.get('episodeNumber'))),
+            'cast': traverse_obj(episode, ('actor', ..., 'name'), default=None),
+            'age_limit': self._AGE_RATINGS_MAPPER.get(initial_state.get('internal_age_rating'))
         }
