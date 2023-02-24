@@ -855,6 +855,13 @@ class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
             'title': 'spamfish - Collections',
         },
         'playlist_mincount': 3,
+    }, {
+        'url': 'https://www.twitch.tv/monstercat/videos?filter=collections',
+        'info_dict': {
+            'id': 'monstercat',
+            'title': 'monstercat - Collections',
+        },
+        'playlist_mincount': 13,
     }]
 
     _OPERATION_NAME = 'ChannelCollectionsContent'
