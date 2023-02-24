@@ -923,6 +923,7 @@ class TwitchStreamIE(TwitchBaseIE):
             # m3u8 download
             'skip_download': True,
         },
+        'skip': 'User does not exist',
     }, {
         'url': 'http://www.twitch.tv/miracle_doto#profile-0',
         'only_matching': True,
@@ -935,6 +936,25 @@ class TwitchStreamIE(TwitchBaseIE):
     }, {
         'url': 'https://m.twitch.tv/food',
         'only_matching': True,
+    }, {
+        'url': 'https://www.twitch.tv/monstercat',
+        'info_dict': {
+            'id': '40500071752',
+            'display_id': 'monstercat',
+            'title': 're:Monstercat',
+            'description': 'md5:0945ad625e615bc8f0469396537d87d9',
+            'is_live': True,
+            'timestamp': 1677107190,
+            'upload_date': '20230222',
+            'uploader': 'Monstercat',
+            'uploader_id': 'monstercat',
+            'live_status': 'is_live',
+            'thumbnail': 're:https://.*.jpg',
+            'ext': 'mp4',
+        },
+        'params': {
+            'skip_download': 'Livestream',
+        },
     }]
 
     @classmethod
