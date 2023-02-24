@@ -2,25 +2,22 @@ import itertools
 import json
 import math
 import re
-from urllib.parse import unquote, urlencode
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
+from ..compat import compat_str
 from ..utils import (
-    determine_ext,
-    extract_attributes,
     ExtractorError,
     InAdvancePagedList,
+    determine_ext,
+    extract_attributes,
     int_or_none,
     js_to_json,
     parse_iso8601,
     strip_or_none,
     traverse_obj,
-    unified_timestamp,
     unescapeHTML,
+    unified_timestamp,
     url_or_none,
     urljoin,
 )
@@ -45,7 +42,7 @@ class PolskieRadioBaseExtractor(InfoExtractor):
                 'duration': int_or_none(media.get('length')),
                 'vcodec': 'none' if media.get('provider') == 'audio' else None,
             })
-            entry_title = compat_urllib_parse_unquote(media['desc'])
+            entry_title = urllib.parse.unquote(media['desc'])
             if entry_title:
                 entry['title'] = entry_title
             yield entry
@@ -310,7 +307,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
         'url': 'https://www.polskieradio.pl/10/4930',
         'info_dict': {
             'id': '4930',
-            'title': 'Teraz Kpop!',
+            'title': 'Teraz K-pop!',
         },
         'playlist_mincount': 392,
     }, {
@@ -347,63 +344,53 @@ class PolskieRadioCategoryIE(InfoExtractor):
                     r'(?s)<article[^>]+>.*?(<a[^>]+href=["\'](?:(?:https?)?://[^/]+)?/\d+/\d+/Artykul/(\d+)[^>]+>).*?</article>',
                     content):
                 entry = extract_attributes(a_entry)
-                href = entry.get('href')
-                if not href:
-                    continue
-                yield self.url_result(
-                    urljoin(url, href), PolskieRadioLegacyIE,
-                    entry_id, entry.get('title'))
+                if entry.get('href'):
+                    yield self.url_result(
+                        urljoin(url, entry['href']), PolskieRadioLegacyIE, entry_id, entry.get('title'))
             for a_entry in re.findall(r'<span data-media=({[^ ]+})', content):
-                media = self._parse_json(a_entry, category_id)
-                yield {
-                    'url': media['file'],
-                    'id': media['uid'],
-                    'title': unquote(media.get('title')),
-                    'description': unquote(media.get('desc')),
-                    'duration': media.get('length'),
-                }
+                yield traverse_obj(self._parse_json(a_entry, category_id), {
+                    'url': 'file',
+                    'id': 'uid',
+                    'duration': 'length',
+                    'title': ('title', {urllib.parse.unquote}),
+                    'description': ('desc', {urllib.parse.unquote}),
+                })
             if is_billennium_tabs:
-                params = self._search_regex(
-                    r'<div[^>]+class=["\']next["\'][^>]*>\s*<a[^>]+onclick=(["\'])TB_LoadTab\((?P<params>(?:(?!\1).)+)\);\1',
-                    pagination, 'next page params', group='params', default=None)
+                params = self._search_json(
+                    r'<div[^>]+class=["\']next["\'][^>]*>\s*<a[^>]+onclick=["\']TB_LoadTab\(',
+                    pagination, 'next page params', category_id, default=None, close_objects=1,
+                    contains_pattern='.+', transform_source=lambda x: '[%s' % js_to_json(unescapeHTML(x)))
                 if not params:
                     break
-                params = self._parse_json('[' + js_to_json(unescapeHTML(params)) + ']', category_id)
                 tab_content = self._download_json(
                     'https://www.polskieradio.pl/CMS/TemplateBoxesManagement/TemplateBoxTabContent.aspx/GetTabContent',
-                    category_id, 'Downloading page %s' % page_num, headers={'content-type': 'application/json'},
-                    data=json.dumps(
-                        dict(zip((
-                            'boxInstanceId', 'tabId', 'categoryType', 'sectionId', 'categoryId', 'pagerMode',
-                            'subjectIds', 'tagIndexId', 'queryString', 'name', 'openArticlesInParentTemplate',
-                            'idSectionFromUrl', 'maxDocumentAge', 'showCategoryForArticle', 'pageNumber'
-                        ), params)),
-                    ).encode('utf-8'))['d']
-                content = tab_content['Content']
-                pagination = tab_content.get('PagerContent', '')
+                    category_id, f'Downloading page {page_num}', headers={'content-type': 'application/json'},
+                    data=json.dumps(dict(zip((
+                        'boxInstanceId', 'tabId', 'categoryType', 'sectionId', 'categoryId', 'pagerMode',
+                        'subjectIds', 'tagIndexId', 'queryString', 'name', 'openArticlesInParentTemplate',
+                        'idSectionFromUrl', 'maxDocumentAge', 'showCategoryForArticle', 'pageNumber'
+                    ), params)),).encode())['d']
+                content, pagination = tab_content['Content'], tab_content.get('PagerContent')
             elif is_post_back:
                 target = self._search_regex(
-                    r'onclick=(["\'])__doPostBack\((["\'])(?P<target>[\w$]+)\2\s*,\s*(["\'])Next\4',
+                    r'onclick=(?:["\'])__doPostBack\((?P<q1>["\'])(?P<target>[\w$]+)(?P=q1)\s*,\s*(?P<q2>["\'])Next(?P=q2)',
                     content, 'pagination postback target', group='target', default=None)
                 if not target:
                     break
-                aspnetform = self._hidden_inputs(content)
                 content = self._download_webpage(
-                    url, category_id, 'Downloading page %s' % page_num,
-                    data=urlencode({
-                        **aspnetform,
+                    url, category_id, f'Downloading page {page_num}',
+                    data=urllib.parse.urlencode({
+                        **self._hidden_inputs(content),
                         '__EVENTTARGET': target,
                         '__EVENTARGUMENT': 'Next',
-                    }).encode('utf-8'))
+                    }).encode())
             else:
-                next_url = self._search_regex(
+                next_url = urljoin(url, self._search_regex(
                     r'<div[^>]+class=["\']next["\'][^>]*>\s*<a[^>]+href=(["\'])(?P<url>(?:(?!\1).)+)\1',
-                    content, 'next page url', group='url', default=None)
+                    content, 'next page url', group='url', default=None))
                 if not next_url:
                     break
-                next_url = urljoin(url, next_url)
-                content = self._download_webpage(
-                    next_url, category_id, 'Downloading page %s' % page_num)
+                content = self._download_webpage(next_url, category_id, f'Downloading page {page_num}')
 
     def _real_extract(self, url):
         category_id = self._match_id(url)
