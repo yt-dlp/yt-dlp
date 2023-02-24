@@ -369,7 +369,7 @@ class PolskieRadioCategoryIE(InfoExtractor):
                         'boxInstanceId', 'tabId', 'categoryType', 'sectionId', 'categoryId', 'pagerMode',
                         'subjectIds', 'tagIndexId', 'queryString', 'name', 'openArticlesInParentTemplate',
                         'idSectionFromUrl', 'maxDocumentAge', 'showCategoryForArticle', 'pageNumber'
-                    ), params)),).encode())['d']
+                    ), params))).encode())['d']
                 content, pagination = tab_content['Content'], tab_content.get('PagerContent')
             elif is_post_back:
                 target = self._search_regex(
