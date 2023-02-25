@@ -39,63 +39,13 @@ jobs:
       packages: write # For package cache
 
   publish:
-    runs-on: ubuntu-latest
     needs: [prepare, build]
+    uses: ./.github/workflows/publish.yml
+    secrets:
+      ARCHIVE_REPO_TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
     permissions:
-      contents: write # for action-gh-release
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/download-artifact@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - name: Generate release notes
-        run: |
-          cat >> ./RELEASE_NOTES << EOF
-          **This is an automated prerelease build**
-
-          #### A description of the various files are in the [README](https://github.com/yt-dlp/yt-dlp#release-files)
-
-          ---
-          <details><summary><h3>Changelog</summary>
-
-          $(python ./devscripts/make_changelog.py -vv)
-
-          </details>
-          EOF
-
-      - name: Archive nightly release
-        uses: yt-dlp/action-gh-release@v1
-        env:
-          TOKEN: ${{ secrets.ARCHIVE_REPO_TOKEN }}
-        if: |
-          env.TOKEN != '' && vars.ARCHIVE_REPO != ''
-        with:
-          tag_name: ${{ needs.prepare.outputs.version }}
-          name: Build ${{ needs.prepare.outputs.version }}
-          repository: ${{ vars.ARCHIVE_REPO }}
-          token: ${{ secrets.ARCHIVE_REPO_TOKEN }}
-          body_path: RELEASE_NOTES
-          files: artifact/*
-
-      - name: Prune old nightly release
-        run: |
-          gh release delete -y "nightly" || true
-          git push --delete origin "nightly" || true
-          sleep 5  # Enough time to cover deletion race condition
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Publish nightly release
-        uses: yt-dlp/action-gh-release@v1
-        with:
-          tag_name: nightly
-          name: yt-dlp nightly ${{ needs.prepare.outputs.version }}
-          prerelease: true
-          target_commitish: ${{ needs.prepare.outputs.head_sha }}
-          body_path: RELEASE_NOTES
-          files: artifact/*
+      contents: write
+    with:
+      nightly: true
+      version: ${{ needs.prepare.outputs.version }}
+      target_commitish: ${{ needs.prepare.outputs.head_sha }}
