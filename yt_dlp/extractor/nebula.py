@@ -1,4 +1,3 @@
-import itertools
 import json
 
 from .common import InfoExtractor
@@ -7,6 +6,7 @@ from ..utils import (
     format_field,
     parse_iso8601,
     traverse_obj,
+    OnDemandPagedList,
 )
 
 _BASE_URL_RE = r'https?://(?:www\.|beta\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
@@ -292,27 +292,29 @@ class NebulaChannelIE(NebulaBaseIE):
         },
     ]
 
-    def _generate_playlist_entries(self, collection_id, channel):
-        episodes = channel['episodes']['results']
-        for page_num in itertools.count(2):
-            for episode in episodes:
-                yield self._build_video_info(episode)
-            next_url = channel['episodes']['next']
-            if not next_url:
-                break
-            channel = self._call_nebula_api(next_url, collection_id, auth_type='bearer',
-                                            note=f'Retrieving channel page {page_num}')
-            episodes = channel['episodes']['results']
-
     def _real_extract(self, url):
         collection_id = self._match_id(url)
-        channel_url = f'https://content.watchnebula.com/video/channels/{collection_id}/'
-        channel = self._call_nebula_api(channel_url, collection_id, auth_type='bearer', note='Retrieving channel')
-        channel_details = channel['details']
+        first_api_response = self._call_nebula_api(
+            f'https://content.watchnebula.com/video/channels/{collection_id}/', collection_id,
+            auth_type='bearer', note='Retrieving channel')
 
+        page_api_response = first_api_response
+
+        def page_func(page_num):
+            nonlocal page_api_response
+
+            if page_num > 0:
+                next_url = page_api_response['episodes'].get('next')
+                if not next_url:
+                    return []
+
+                page_api_response = self._call_nebula_api(
+                    next_url, collection_id, auth_type='bearer', note=f'Downloading page {page_num}')
+
+            return [self.url_result(episode['share_url'], ie=NebulaIE, **self._extract_video_metadata(episode))
+                    for episode in page_api_response['episodes']['results']]
+
+        entries = OnDemandPagedList(page_func, len(first_api_response['episodes']['results']))
         return self.playlist_result(
-            entries=self._generate_playlist_entries(collection_id, channel),
-            playlist_id=collection_id,
-            playlist_title=channel_details['title'],
-            playlist_description=channel_details['description']
-        )
+            entries, collection_id, playlist_title=traverse_obj(first_api_response, ('details', 'title')),
+            playlist_description=traverse_obj(first_api_response, ('details', 'description')))
