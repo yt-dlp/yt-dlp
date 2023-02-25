@@ -107,6 +107,7 @@ class RaiBaseIE(InfoExtractor):
             # tbr: w, h
             250: [352, 198],
             400: [512, 288],
+            600: [512, 288],
             700: [512, 288],
             800: [700, 394],
             1200: [736, 414],
@@ -118,6 +119,16 @@ class RaiBaseIE(InfoExtractor):
             5000: [1920, 1080],
             10000: [1920, 1080],
         }
+
+        def percentage(number, target, pc=20, roof=125):
+            # check if the target is in the range of number +/- percent
+            if not number or number < 0:
+                return False
+            pc = float(number) / 100.0 * float(pc)
+            pc = pc if pc < roof else roof
+            if target < (number + pc) and target > (number - pc):
+                return True
+            return False
 
         def get_format_info(tbr):
             import math
@@ -133,11 +144,11 @@ class RaiBaseIE(InfoExtractor):
             format_copy = [None, None]
             for f in fmts:
                 if f.get('tbr'):
-                    br_limit = math.floor(br / 100)
-                    if br_limit - 1 <= math.floor(f['tbr'] / 100) <= br_limit + 1:
+                    if percentage(tbr, f['tbr']):
                         format_copy[0] = f.copy()
                 if [f.get('width'), f.get('height')] == _QUALITY.get(tbr):
                     format_copy[1] = f.copy()
+                    format_copy[1]['tbr'] = tbr
 
             # prefer format with similar bitrate because there might be
             # multiple video with the same resolution but different bitrate
@@ -324,10 +335,10 @@ class RaiPlayIE(RaiBaseIE):
             'description': media.get('description'),
             'uploader': strip_or_none(
                 traverse_obj(media, ('program_info', 'channel'))
-                or media.get('channel')),
+                or media.get('channel') or None),
             'creator': strip_or_none(
                 traverse_obj(media, ('program_info', 'editor'))
-                or media.get('editor')),
+                or media.get('editor') or None),
             'duration': parse_duration(video.get('duration')),
             'timestamp': unified_timestamp(date_published),
             'thumbnails': self._get_thumbnails_list(media.get('images'), url),
