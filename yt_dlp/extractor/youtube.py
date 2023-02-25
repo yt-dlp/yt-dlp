@@ -3344,7 +3344,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 # Sometimes YouTube may break and give us an infinite looping comment section.
                 # See: https://github.com/yt-dlp/yt-dlp/issues/6290
                 if comment['id'] in tracker['seen_comment_ids']:
-                    self.report_warning('Detected comment section loop from YouTube. Stopping comment extraction.')
+                    self.report_warning('Detected comment loop from YouTube. Stopping comment extraction.')
                     yield
                     continue
                 else:
