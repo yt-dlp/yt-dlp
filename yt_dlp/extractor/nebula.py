@@ -4,6 +4,7 @@ import json
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    format_field,
     parse_iso8601,
     traverse_obj,
 )
@@ -79,36 +80,39 @@ class NebulaBaseIE(InfoExtractor):
         manifest_url = stream_info['manifest']
         return self._extract_m3u8_formats_and_subtitles(manifest_url, slug, 'mp4')
 
-    def _build_video_info(self, episode):
-        fmts, subs = self._fetch_video_formats(episode['slug'])
-        channel_slug = episode.get('channel_slug')
-        channel_title = episode.get('channel_title')
+    def _extract_video_metadata(self, episode):
+        channel_url = format_field(episode, 'channel_slug', 'https://nebula.tv/%s')
         return {
-            'id': remove_start(episode['id'], 'video_episode:'),
-            'display_id': episode['slug'],
-            'formats': fmts,
-            'subtitles': subs,
-            'webpage_url': f'https://nebula.tv/{episode["slug"]}',
-            'title': episode.get('title'),
-            'description': episode.get('description'),
-            'timestamp': parse_iso8601(episode.get('published_at')),
+            **traverse_obj(episode, {
+                'id': 'zype_id',
+                'display_id': 'slug',
+                'title': 'title',
+                'description': 'description',
+                'timestamp': ('published_at', {parse_iso8601}),
+                'duration': 'duration',
+                'channel_id': 'channel_slug',
+                'uploader_id': 'channel_slug',
+                'channel': 'channel_title',
+                'uploader': 'channel_title',
+                'series': 'channel_title',
+                'creator': 'channel_title',
+            }),
+            'channel_url': channel_url,
+            'uploader_url': channel_url,
             'thumbnails': [{
                 # 'id': tn.get('name'),  # this appears to be null
                 'url': tn['original'],
                 'height': key,
             } for key, tn in traverse_obj(episode, ('assets', 'thumbnail'), default={}).items()],
-            'duration': episode.get('duration'),
-            'channel': channel_title,
-            'channel_id': channel_slug,
-            'channel_url': f'https://nebula.tv/{channel_slug}',
-            'uploader': channel_title,
-            'uploader_id': channel_slug,
-            'uploader_url': f'https://nebula.tv/{channel_slug}',
-            'series': channel_title,
-            'creator': channel_title,
-            'extractor_key': NebulaIE.ie_key(),
-            'extractor': NebulaIE.IE_NAME,
-            '_old_archive_ids': [make_archive_id(NebulaIE, zype_id)] if zype_id else None,
+        }
+
+    def _build_video_info(self, episode):
+        fmts, subs = self._fetch_video_formats(episode['slug'])
+        return {
+            **self._extract_video_metadata(episode),
+            'formats': fmts,
+            'subtitles': subs,
+            'webpage_url': f'https://nebula.tv/{episode["slug"]}',
         }
 
     def _perform_login(self, username=None, password=None):
