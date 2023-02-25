@@ -289,6 +289,14 @@ class NebulaChannelIE(NebulaBaseIE):
                 'description': 'Enjoy these hottest of takes on Disney, Transformers, and Musicals.',
             },
             'playlist_mincount': 2,
+        }, {
+            'url': 'https://nebula.tv/johnnyharris',
+            'info_dict': {
+                'id': 'johnnyharris',
+                'title': 'Johnny Harris',
+                'description': 'I make videos about maps and many other things.',
+            },
+            'playlist_mincount': 90,
         },
     ]
 
