@@ -75,7 +75,7 @@ permissions:
   contents: read
 
 jobs:
-  build_unix:
+  unix:
     if: inputs.unix
     runs-on: ubuntu-latest
     steps:
@@ -128,7 +128,7 @@ jobs:
           yt-dlp_linux
           yt-dlp_linux.zip
 
-  build_linux_arm:
+  linux_arm:
     if: inputs.linux_arm
     permissions:
       contents: read
@@ -147,6 +147,9 @@ jobs:
     - name: Virtualized Install, Prepare & Build
       uses: yt-dlp/run-on-arch-action@v2
       with:
+        # Ref: https://github.com/uraimo/run-on-arch-action/issues/55
+        env: |
+          GITHUB_WORKFLOW: build
         githubToken: ${{ github.token }}  # To cache image
         arch: ${{ matrix.architecture }}
         distro: ubuntu18.04  # Standalone executable should be built on minimum supported OS
@@ -172,7 +175,7 @@ jobs:
           repo/dist/yt-dlp_linux_${{ (matrix.architecture == 'armv7' && 'armv7l') || matrix.architecture }}
 
 
-  build_macos:
+  macos:
     if: inputs.macos
     runs-on: macos-11
 
@@ -201,7 +204,7 @@ jobs:
           dist/yt-dlp_macos
           dist/yt-dlp_macos.zip
 
-  build_macos_legacy:
+  macos_legacy:
     if: inputs.macos_legacy
     runs-on: macos-latest
 
@@ -240,7 +243,7 @@ jobs:
           dist/yt-dlp_macos_legacy
 
 
-  build_windows:
+  windows:
     if: inputs.windows
     runs-on: windows-latest
 
@@ -275,7 +278,7 @@ jobs:
           dist/yt-dlp_win.zip
 
 
-  build_windows32:
+  windows32:
     if: inputs.windows32
     runs-on: windows-latest
 
@@ -304,15 +307,15 @@ jobs:
         path: |
           dist/yt-dlp_x86.exe
 
-  build_meta_files:
-    if: inputs.meta_files
+  meta_files:
+    if: inputs.meta_files && always()
     needs:
-      - build_unix
-      - build_linux_arm
-      - build_macos
-      - build_macos_legacy
-      - build_windows
-      - build_windows32
+      - unix
+      - linux_arm
+      - macos
+      - macos_legacy
+      - windows
+      - windows32
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
