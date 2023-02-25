@@ -16,6 +16,7 @@ from .utils import (
     cached_method,
     deprecation_warning,
     remove_end,
+    sanitized_Request,
     shell_quote,
     system_identifier,
     traverse_obj,
@@ -161,7 +162,11 @@ class Updater:
     @cached_method
     def _get_version_info(self, tag):
         self.ydl.write_debug(f'Fetching release info: {API_URL}/{tag}')
-        return json.loads(self.ydl.urlopen(f'{API_URL}/{tag}').read().decode())
+        return json.loads(self.ydl.urlopen(sanitized_Request(f'{API_URL}/{tag}', headers={
+            'Accept': 'application/vnd.github+json',
+            'User-Agent': 'yt-dlp',
+            'X-GitHub-Api-Version': '2022-11-28',
+        })).read().decode())
 
     @property
     def new_version(self):
