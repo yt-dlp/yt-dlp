@@ -3346,7 +3346,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if comment['id'] in tracker['seen_comment_ids']:
                     self.report_warning('Detected comment loop from YouTube. Stopping comment extraction.')
                     yield
-                    continue
                 else:
                     tracker['seen_comment_ids'].add(comment['id'])
 
