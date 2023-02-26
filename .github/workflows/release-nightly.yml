@@ -17,15 +17,13 @@ jobs:
     if: vars.BUILD_NIGHTLY != ''
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.pin_version_hash.outputs.version }}
-      head_sha: ${{ steps.pin_version_hash.outputs.head_sha }}
+      version: ${{ steps.get_version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v3
-      - name: Get version and hash
-        id: pin_version_hash
+      - name: Get version
+        id: get_version
         run: |
-          echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           python devscripts/update-version.py "$(date -u +"%H%M%S")" | grep -Po "version=\d+(\.\d+){3}" >> "$GITHUB_OUTPUT"
 
   build:
@@ -50,4 +48,4 @@ jobs:
     with:
       nightly: true
       version: ${{ needs.prepare.outputs.version }}
-      target_commitish: ${{ needs.prepare.outputs.head_sha }}
+      target_commitish: ${{ github.sha }}
