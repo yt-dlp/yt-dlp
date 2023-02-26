@@ -145,6 +145,13 @@ class RutubeIE(RutubeBaseIE):
             'thumbnail': 'http://pic.rutubelist.ru/video/f2/d4/f2d42b54be0a6e69c1c22539e3152156.jpg',
             'category': ['Видеоигры'],
         },
+    }, {
+        'url': 'https://rutube.ru/video/c65b465ad0c98c89f3b25cb03dcc87c6/',
+        'info_dict': {
+            'id': 'c65b465ad0c98c89f3b25cb03dcc87c6',
+            'ext': 'mp4',
+            'chapters': [{'start_time': 0.0, 'title': 'Как понравиться заказчику/работодателю: 4 аспекта'}, {'start_time': 263.0, 'title': 'Как работать на фрилансе'}, {'start_time': 457.0, 'title': 'Как показать свои преимущества'}, {'start_time': 574.0, 'title': 'Реально ли без опыта найти работу?'}],
+        },
     }]
 
     @classmethod
