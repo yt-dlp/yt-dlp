@@ -37,6 +37,8 @@ jobs:
     permissions:
       contents: read
       packages: write # For package cache
+    secrets:
+      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
 
   publish:
     needs: [prepare, build]

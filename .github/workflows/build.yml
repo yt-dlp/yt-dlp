@@ -30,6 +30,9 @@ on:
       meta_files:
         default: true
         type: boolean
+    secrets:
+      GPG_SIGNING_KEY:
+        required: false
 
   workflow_dispatch:
     inputs:
@@ -330,10 +333,19 @@ jobs:
           lock 2022.07.18 .+ Python 3.6
           EOF
 
+      - name: Sign checksum files
+        env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+        if: env.GPG_SIGNING_KEY != ''
+        run: |
+          gpg --batch --import <<< "${{ secrets.GPG_SIGNING_KEY }}"
+          for signfile in ./SHA*SUMS; do
+            gpg --batch --detach-sign "$signfile"
+          done
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           path: |
-            SHA2-256SUMS
-            SHA2-512SUMS
+            SHA*SUMS*
             _update_spec
