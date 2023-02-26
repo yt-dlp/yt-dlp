@@ -312,6 +312,40 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?invidious\.pussthecat\.org',
         r'(?:www\.)?invidious\.zee\.li',
         r'(?:www\.)?invidious\.ethibox\.fr',
+        r'(?:www\.)?iv\.ggtyler\.dev',
+        r'(?:www\.)?inv\.vern\.i2p',
+        r'(?:www\.)?am74vkcrjp2d5v36lcdqgsj2m6x36tbrkhsruoegwfcizzabnfgf5zyd\.onion',
+        r'(?:www\.)?inv\.riverside\.rocks',
+        r'(?:www\.)?invidious\.silur\.me',
+        r'(?:www\.)?inv\.bp\.projectsegfau\.lt',
+        r'(?:www\.)?invidious\.g4c3eya4clenolymqbpgwz3q3tawoxw56yhzk4vugqrl6dtu3ejvhjid\.onion',
+        r'(?:www\.)?invidious\.slipfox\.xyz',
+        r'(?:www\.)?invidious\.esmail5pdn24shtvieloeedh7ehz3nrwcdivnfhfcedl7gf4kwddhkqd\.onion',
+        r'(?:www\.)?inv\.vernccvbvyi5qhfzyqengccj7lkove6bjot2xhh5kajhwvidqafczrad\.onion',
+        r'(?:www\.)?invidious\.tiekoetter\.com',
+        r'(?:www\.)?iv\.odysfvr23q5wgt7i456o5t3trw2cw5dgn56vbjfbq2m7xsc5vqbqpcyd\.onion',
+        r'(?:www\.)?invidious\.nerdvpn\.de',
+        r'(?:www\.)?invidious\.weblibre\.org',
+        r'(?:www\.)?inv\.odyssey346\.dev',
+        r'(?:www\.)?invidious\.dhusch\.de',
+        r'(?:www\.)?iv\.melmac\.space',
+        r'(?:www\.)?watch\.thekitty\.zone',
+        r'(?:www\.)?invidious\.privacydev\.net',
+        r'(?:www\.)?ng27owmagn5amdm7l5s3rsqxwscl5ynppnis5dqcasogkyxcfqn7psid\.onion',
+        r'(?:www\.)?invidious\.drivet\.xyz',
+        r'(?:www\.)?vid\.priv\.au',
+        r'(?:www\.)?euxxcnhsynwmfidvhjf6uzptsmh4dipkmgdmcmxxuo7tunp3ad2jrwyd\.onion',
+        r'(?:www\.)?inv\.vern\.cc',
+        r'(?:www\.)?invidious\.esmailelbob\.xyz',
+        r'(?:www\.)?invidious\.sethforprivacy\.com',
+        r'(?:www\.)?yt\.oelrichsgarcia\.de',
+        r'(?:www\.)?yt\.artemislena\.eu',
+        r'(?:www\.)?invidious\.flokinet\.to',
+        r'(?:www\.)?invidious\.baczek\.me',
+        r'(?:www\.)?y\.com\.sb',
+        r'(?:www\.)?invidious\.epicsite\.xyz',
+        r'(?:www\.)?invidious\.lidarshield\.cloud',
+        r'(?:www\.)?yt\.funami\.tech',
         r'(?:www\.)?invidious\.3o7z6yfxhbw7n3za4rss6l434kmv55cgw2vuziwuigpwegswvwzqipyd\.onion',
         r'(?:www\.)?osbivz6guyeahrwp2lnwyjk2xos342h4ocsxyqrlaopqjuhwn2djiiyd\.onion',
         r'(?:www\.)?u2cvlit75owumwpy4dj2hsmvkq7nvrclkpht7xgyye2pyoxhpmclkrad\.onion',
@@ -390,6 +424,17 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?piped\.qdi\.fi',
         r'(?:www\.)?piped\.video',
         r'(?:www\.)?piped\.aeong\.one',
+        r'(?:www\.)?piped\.moomoo\.me',
+        r'(?:www\.)?piped\.chauvet\.pro',
+        r'(?:www\.)?watch\.leptons\.xyz',
+        r'(?:www\.)?pd\.vern\.cc',
+        r'(?:www\.)?piped\.hostux\.net',
+        r'(?:www\.)?piped\.lunar\.icu',
+        # Hyperpipe instances from https://hyperpipe.codeberg.page/
+        r'(?:www\.)?hyperpipe\.surge\.sh',
+        r'(?:www\.)?hyperpipe\.esmailelbob\.xyz',
+        r'(?:www\.)?listen\.whatever\.social',
+        r'(?:www\.)?music\.adminforge\.de',
     )
 
     # extracted from account/account_menu ep
@@ -4075,7 +4120,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'thumbnail': traverse_obj(original_thumbnails, (-1, 'url')),
             'description': video_description,
             'uploader': get_first(video_details, 'author'),
-            'uploader_id': self._search_regex(r'/(?:channel|user)/([^/?&#]+)', owner_profile_url, 'uploader id') if owner_profile_url else None,
+            'uploader_id': self._search_regex(r'/(?:channel/|user/|(?=@))([^/?&#]+)', owner_profile_url, 'uploader id', default=None),
             'uploader_url': owner_profile_url,
             'channel_id': channel_id,
             'channel_url': format_field(channel_id, None, 'https://www.youtube.com/channel/%s'),
@@ -4413,19 +4458,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     info_dict['entries'] = (_smuggle(i, smuggled_data.copy()) for i in info_dict['entries'])
             return info_dict
         return wrapper
-
-    def _extract_channel_id(self, webpage):
-        channel_id = self._html_search_meta(
-            'channelId', webpage, 'channel id', default=None)
-        if channel_id:
-            return channel_id
-        channel_url = self._html_search_meta(
-            ('og:url', 'al:ios:url', 'al:android:url', 'al:web:url',
-             'twitter:url', 'twitter:app:url:iphone', 'twitter:app:url:ipad',
-             'twitter:app:url:googleplay'), webpage, 'channel url')
-        return self._search_regex(
-            r'https?://(?:www\.)?youtube\.com/channel/([^/?#&])+',
-            channel_url, 'channel id')
 
     @staticmethod
     def _extract_basic_item_renderer(item):

@@ -318,10 +318,6 @@ def validate_options(opts):
     if outtmpl_default == '':
         opts.skip_download = None
         del opts.outtmpl['default']
-    if outtmpl_default and not os.path.splitext(outtmpl_default)[1] and opts.extractaudio:
-        raise ValueError(
-            'Cannot download a video and extract audio into the same file! '
-            f'Use "{outtmpl_default}.%(ext)s" instead of "{outtmpl_default}" as the output template')
 
     def parse_chapters(name, value):
         chapters, ranges = [], []
@@ -708,6 +704,7 @@ def parse_options(argv=None):
         'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
         'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
     ))
+    opts.quiet = opts.quiet or any_getting or opts.print_json or bool(opts.forceprint)
 
     playlist_pps = [pp for pp in postprocessors if pp.get('when') == 'playlist']
     write_playlist_infojson = (opts.writeinfojson and not opts.clean_infojson
@@ -743,7 +740,7 @@ def parse_options(argv=None):
         'client_certificate': opts.client_certificate,
         'client_certificate_key': opts.client_certificate_key,
         'client_certificate_password': opts.client_certificate_password,
-        'quiet': opts.quiet or any_getting or opts.print_json or bool(opts.forceprint),
+        'quiet': opts.quiet,
         'no_warnings': opts.no_warnings,
         'forceurl': opts.geturl,
         'forcetitle': opts.gettitle,

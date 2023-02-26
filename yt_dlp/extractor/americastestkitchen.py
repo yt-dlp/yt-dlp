@@ -11,7 +11,7 @@ from ..utils import (
 
 
 class AmericasTestKitchenIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?americastestkitchen\.com/(?:cooks(?:country|illustrated)/)?(?P<resource_type>episode|videos)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:americastestkitchen|cooks(?:country|illustrated))\.com/(?:cooks(?:country|illustrated)/)?(?P<resource_type>episode|videos)/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.americastestkitchen.com/episode/582-weeknight-japanese-suppers',
         'md5': 'b861c3e365ac38ad319cfd509c30577f',
@@ -72,6 +72,12 @@ class AmericasTestKitchenIE(InfoExtractor):
     }, {
         'url': 'https://www.americastestkitchen.com/cooksillustrated/videos/4478-beef-wellington',
         'only_matching': True,
+    }, {
+        'url': 'https://www.cookscountry.com/episode/564-when-only-chocolate-will-do',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.cooksillustrated.com/videos/4478-beef-wellington',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -100,7 +106,7 @@ class AmericasTestKitchenIE(InfoExtractor):
 
 
 class AmericasTestKitchenSeasonIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?americastestkitchen\.com(?P<show>/cookscountry)?/episodes/browse/season_(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?(?P<show>americastestkitchen|(?P<cooks>cooks(?:country|illustrated)))\.com(?:(?:/(?P<show2>cooks(?:country|illustrated)))?(?:/?$|(?<!ated)(?<!ated\.com)/episodes/browse/season_(?P<season>\d+)))'
     _TESTS = [{
         # ATK Season
         'url': 'https://www.americastestkitchen.com/episodes/browse/season_1',
@@ -117,29 +123,73 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
             'title': 'Season 12',
         },
         'playlist_count': 13,
+    }, {
+        # America's Test Kitchen Series
+        'url': 'https://www.americastestkitchen.com/',
+        'info_dict': {
+            'id': 'americastestkitchen',
+            'title': 'America\'s Test Kitchen',
+        },
+        'playlist_count': 558,
+    }, {
+        # Cooks Country Series
+        'url': 'https://www.americastestkitchen.com/cookscountry',
+        'info_dict': {
+            'id': 'cookscountry',
+            'title': 'Cook\'s Country',
+        },
+        'playlist_count': 199,
+    }, {
+        'url': 'https://www.americastestkitchen.com/cookscountry/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.cookscountry.com/episodes/browse/season_12',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.cookscountry.com',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.americastestkitchen.com/cooksillustrated/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.cooksillustrated.com',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        show_path, season_number = self._match_valid_url(url).group('show', 'id')
-        season_number = int(season_number)
+        season_number, show1, show = self._match_valid_url(url).group('season', 'show', 'show2')
+        show_path = ('/' + show) if show else ''
+        show = show or show1
+        season_number = int_or_none(season_number)
 
-        slug = 'cco' if show_path == '/cookscountry' else 'atk'
+        slug, title = {
+            'americastestkitchen': ('atk', 'America\'s Test Kitchen'),
+            'cookscountry': ('cco', 'Cook\'s Country'),
+            'cooksillustrated': ('cio', 'Cook\'s Illustrated'),
+        }[show]
 
-        season = 'Season %d' % season_number
+        facet_filters = [
+            'search_document_klass:episode',
+            'search_show_slug:' + slug,
+        ]
+
+        if season_number:
+            playlist_id = 'season_%d' % season_number
+            playlist_title = 'Season %d' % season_number
+            facet_filters.append('search_season_list:' + playlist_title)
+        else:
+            playlist_id = show
+            playlist_title = title
 
         season_search = self._download_json(
             'https://y1fnzxui30-dsn.algolia.net/1/indexes/everest_search_%s_season_desc_production' % slug,
-            season, headers={
+            playlist_id, headers={
                 'Origin': 'https://www.americastestkitchen.com',
                 'X-Algolia-API-Key': '8d504d0099ed27c1b73708d22871d805',
                 'X-Algolia-Application-Id': 'Y1FNZXUI30',
             }, query={
-                'facetFilters': json.dumps([
-                    'search_season_list:' + season,
-                    'search_document_klass:episode',
-                    'search_show_slug:' + slug,
-                ]),
-                'attributesToRetrieve': 'description,search_%s_episode_number,search_document_date,search_url,title' % slug,
+                'facetFilters': json.dumps(facet_filters),
+                'attributesToRetrieve': 'description,search_%s_episode_number,search_document_date,search_url,title,search_atk_episode_season' % slug,
                 'attributesToHighlight': '',
                 'hitsPerPage': 1000,
             })
@@ -162,4 +212,4 @@ class AmericasTestKitchenSeasonIE(InfoExtractor):
                 }
 
         return self.playlist_result(
-            entries(), 'season_%d' % season_number, season)
+            entries(), playlist_id, playlist_title)

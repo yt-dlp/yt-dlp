@@ -2000,7 +2000,7 @@ Line 1
 
         # Test Ellipsis behavior
         self.assertCountEqual(traverse_obj(_TEST_DATA, ...),
-                              (item for item in _TEST_DATA.values() if item not in (None, [], {})),
+                              (item for item in _TEST_DATA.values() if item not in (None, {})),
                               msg='`...` should give all non discarded values')
         self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', 0, ...)), _TEST_DATA['urls'][0].values(),
                               msg='`...` selection for dicts should select all values')
@@ -2095,7 +2095,7 @@ Line 1
                          msg='remove empty values when nested dict key fails')
         self.assertEqual(traverse_obj(None, {0: 'fail'}), {},
                          msg='default to dict if pruned')
-        self.assertEqual(traverse_obj(None, {0: 'fail'}, default=...), {},
+        self.assertEqual(traverse_obj(None, {0: 'fail'}, default=...), {0: ...},
                          msg='default to dict if pruned and default is given')
         self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 'fail'}}, default=...), {0: {0: ...}},
                          msg='use nested `default` when nested dict key fails and `default`')
@@ -2124,34 +2124,55 @@ Line 1
                          msg='if branched but not successful return `[]`, not `default`')
         self.assertEqual(traverse_obj(_DEFAULT_DATA, ('list', ...)), [],
                          msg='if branched but object is empty return `[]`, not `default`')
+        self.assertEqual(traverse_obj(None, ...), [],
+                         msg='if branched but object is `None` return `[]`, not `default`')
+        self.assertEqual(traverse_obj({0: None}, (0, ...)), [],
+                         msg='if branched but state is `None` return `[]`, not `default`')
+
+        branching_paths = [
+            ('fail', ...),
+            (..., 'fail'),
+            100 * ('fail',) + (...,),
+            (...,) + 100 * ('fail',),
+        ]
+        for branching_path in branching_paths:
+            self.assertEqual(traverse_obj({}, branching_path), [],
+                             msg='if branched but state is `None`, return `[]` (not `default`)')
+            self.assertEqual(traverse_obj({}, 'fail', branching_path), [],
+                             msg='if branching in last alternative and previous did not match, return `[]` (not `default`)')
+            self.assertEqual(traverse_obj({0: 'x'}, 0, branching_path), 'x',
+                             msg='if branching in last alternative and previous did match, return single value')
+            self.assertEqual(traverse_obj({0: 'x'}, branching_path, 0), 'x',
+                             msg='if branching in first alternative and non-branching path does match, return single value')
+            self.assertEqual(traverse_obj({}, branching_path, 'fail'), None,
+                             msg='if branching in first alternative and non-branching path does not match, return `default`')
 
         # Testing expected_type behavior
         _EXPECTED_TYPE_DATA = {'str': 'str', 'int': 0}
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=str), 'str',
-                         msg='accept matching `expected_type` type')
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=int), None,
-                         msg='reject non matching `expected_type` type')
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'int', expected_type=lambda x: str(x)), '0',
-                         msg='transform type using type function')
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str',
-                                      expected_type=lambda _: 1 / 0), None,
-                         msg='wrap expected_type fuction in try_call')
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, ..., expected_type=str), ['str'],
-                         msg='eliminate items that expected_type fails on')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2}, expected_type=int), {0: 100},
-                         msg='type as expected_type should filter dict values')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2, 2: 'None'}, expected_type=str_or_none), {0: '100', 1: '1.2'},
-                         msg='function as expected_type should transform dict values')
-        self.assertEqual(traverse_obj(_TEST_DATA, ({0: 1.2}, 0, {int_or_none}), expected_type=int), 1,
-                         msg='expected_type should not filter non final dict values')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 100, 1: 'str'}}, expected_type=int), {0: {0: 100}},
-                         msg='expected_type should transform deep dict values')
-        self.assertEqual(traverse_obj(_TEST_DATA, [({0: '...'}, {0: '...'})], expected_type=type(...)), [{0: ...}, {0: ...}],
-                         msg='expected_type should transform branched dict values')
-        self.assertEqual(traverse_obj({1: {3: 4}}, [(1, 2), 3], expected_type=int), [4],
-                         msg='expected_type regression for type matching in tuple branching')
-        self.assertEqual(traverse_obj(_TEST_DATA, ['data', ...], expected_type=int), [],
-                         msg='expected_type regression for type matching in dict result')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=str),
+                         'str', msg='accept matching `expected_type` type')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=int),
+                         None, msg='reject non matching `expected_type` type')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'int', expected_type=lambda x: str(x)),
+                         '0', msg='transform type using type function')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=lambda _: 1 / 0),
+                         None, msg='wrap expected_type fuction in try_call')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, ..., expected_type=str),
+                         ['str'], msg='eliminate items that expected_type fails on')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2}, expected_type=int),
+                         {0: 100}, msg='type as expected_type should filter dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2, 2: 'None'}, expected_type=str_or_none),
+                         {0: '100', 1: '1.2'}, msg='function as expected_type should transform dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, ({0: 1.2}, 0, {int_or_none}), expected_type=int),
+                         1, msg='expected_type should not filter non final dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 100, 1: 'str'}}, expected_type=int),
+                         {0: {0: 100}}, msg='expected_type should transform deep dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, [({0: '...'}, {0: '...'})], expected_type=type(...)),
+                         [{0: ...}, {0: ...}], msg='expected_type should transform branched dict values')
+        self.assertEqual(traverse_obj({1: {3: 4}}, [(1, 2), 3], expected_type=int),
+                         [4], msg='expected_type regression for type matching in tuple branching')
+        self.assertEqual(traverse_obj(_TEST_DATA, ['data', ...], expected_type=int),
+                         [], msg='expected_type regression for type matching in dict result')
 
         # Test get_all behavior
         _GET_ALL_DATA = {'key': [0, 1, 2]}
