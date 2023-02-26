@@ -4,7 +4,7 @@ on:
     inputs:
       nightly:
         default: false
-        required: true
+        required: false
         type: boolean
       version:
         required: true
