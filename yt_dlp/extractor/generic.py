@@ -15,6 +15,7 @@ from ..utils import (
     UnsupportedError,
     determine_ext,
     dict_get,
+    extract_basic_auth,
     format_field,
     int_or_none,
     is_html,
@@ -2372,9 +2373,8 @@ class GenericIE(InfoExtractor):
             **smuggled_data.get('http_headers', {})
         })
         new_url = full_response.geturl()
-        if new_url == urllib.parse.urlparse(url)._replace(scheme='https').geturl():
-            url = new_url
-        elif url != new_url:
+        url = urllib.parse.urlparse(url)._replace(scheme=urllib.parse.urlparse(new_url).scheme).geturl()
+        if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
             if force_videoid:
                 new_url = smuggle_url(new_url, {'force_videoid': force_videoid})
