@@ -113,8 +113,9 @@ class RutubeIE(RutubeBaseIE):
             'view_count': int,
             'thumbnail': 'http://pic.rutubelist.ru/video/d2/a0/d2a0aec998494a396deafc7ba2c82add.jpg',
             'category': ['Новости и СМИ'],
-
+            'chapters': [],
         },
+        'expected_warnings': ['Unable to download f4m'],
     }, {
         'url': 'http://rutube.ru/play/embed/a10e53b86e8f349080f718582ce4c661',
         'only_matching': True,
@@ -144,14 +145,28 @@ class RutubeIE(RutubeBaseIE):
             'view_count': int,
             'thumbnail': 'http://pic.rutubelist.ru/video/f2/d4/f2d42b54be0a6e69c1c22539e3152156.jpg',
             'category': ['Видеоигры'],
+            'chapters': [],
         },
+        'expected_warnings': ['Unable to download f4m'],
     }, {
         'url': 'https://rutube.ru/video/c65b465ad0c98c89f3b25cb03dcc87c6/',
         'info_dict': {
             'id': 'c65b465ad0c98c89f3b25cb03dcc87c6',
             'ext': 'mp4',
             'chapters': [{'start_time': 0.0, 'title': 'Как понравиться заказчику/работодателю: 4 аспекта'}, {'start_time': 263.0, 'title': 'Как работать на фрилансе'}, {'start_time': 457.0, 'title': 'Как показать свои преимущества'}, {'start_time': 574.0, 'title': 'Реально ли без опыта найти работу?'}],
+            'category': ['Бизнес и предпринимательство'],
+            'description': 'md5:252feac1305257d8c1bab215cedde75d',
+            'thumbnail': 'http://pic.rutubelist.ru/video/71/8f/718f27425ea9706073eb80883dd3787b.png',
+            'duration': 782,
+            'age_limit': 0,
+            'uploader_id': '23491359',
+            'timestamp': 1677153329,
+            'view_count': int,
+            'upload_date': '20230223',
+            'title': 'Бизнес с нуля: найм сотрудников. Интервью с директором строительной компании',
+            'uploader': 'Стас Быков',
         },
+        'expected_warnings': ['Unable to download f4m'],
     }]
 
     @classmethod
