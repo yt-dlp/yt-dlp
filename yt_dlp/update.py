@@ -210,7 +210,11 @@ class Updater:
     @functools.cached_property
     def release_name(self):
         """The release filename"""
-        return f'yt-dlp{_FILE_SUFFIXES[detect_variant()]}'
+        variant = detect_variant()
+        label = _FILE_SUFFIXES.get(variant)
+        if not label:
+            raise Exception(f'Updates for {variant} builds are not available')
+        return f'yt-dlp{label}'
 
     @functools.cached_property
     def release_hash(self):
@@ -274,8 +278,8 @@ class Updater:
             newcontent = self._download(self.release_name, self._tag)
         except OSError:
             return self._report_network_error('download latest version')
-        except Exception:
-            return self._report_network_error('fetch updates')
+        except Exception as err:
+            return self._report_network_error(f'fetch updates: {err}')
 
         try:
             expected_hash = self.release_hash
