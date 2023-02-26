@@ -13,7 +13,6 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
 )
-from .youtube import YoutubeIE
 
 
 class RutubeBaseIE(InfoExtractor):
@@ -26,8 +25,7 @@ class RutubeBaseIE(InfoExtractor):
             video_id, 'Downloading video JSON',
             'Unable to download video JSON', query=query)
 
-    @staticmethod
-    def _extract_info(video, video_id=None, require_title=True):
+    def _extract_info(self, video, video_id=None, require_title=True):
         title = video['title'] if require_title else video.get('title')
 
         age_limit = video.get('is_adult')
@@ -53,7 +51,7 @@ class RutubeBaseIE(InfoExtractor):
             'view_count': int_or_none(video.get('hits')),
             'comment_count': int_or_none(video.get('comments_count')),
             'is_live': bool_or_none(video.get('is_livestream')),
-            'chapters': YoutubeIE()._extract_chapters_from_description(description, duration),
+            'chapters': self._extract_chapters_from_description(description, duration),
         }
 
     def _download_and_extract_info(self, video_id, query=None):

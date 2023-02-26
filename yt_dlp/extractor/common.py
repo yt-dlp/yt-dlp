@@ -3757,6 +3757,38 @@ class InfoExtractor:
 
         return super().__init_subclass__(**kwargs)
 
+    def _extract_chapters(self, chapter_list, chapter_time, chapter_title, duration, strict=True):
+        if not duration:
+            return
+        chapter_list = [{
+            'start_time': chapter_time(chapter),
+            'title': chapter_title(chapter),
+        } for chapter in chapter_list or []]
+        if not strict:
+            chapter_list.sort(key=lambda c: c['start_time'] or 0)
+
+        chapters = [{'start_time': 0}]
+        for idx, chapter in enumerate(chapter_list):
+            if chapter['start_time'] is None:
+                self.report_warning(f'Incomplete chapter {idx}')
+            elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
+                chapters.append(chapter)
+            elif chapter not in chapters:
+                self.report_warning(
+                    f'Invalid start time ({chapter["start_time"]} < {chapters[-1]["start_time"]}) for chapter "{chapter["title"]}"')
+        return chapters[1:]
+
+    def _extract_chapters_from_description(self, description, duration):
+        duration_re = r'(?:\d+:)?\d{1,2}:\d{2}'
+        sep_re = r'(?m)^\s*(%s)\b\W*\s(%s)\s*$'
+        return self._extract_chapters(
+            re.findall(sep_re % (duration_re, r'.+?'), description or ''),
+            chapter_time=lambda x: parse_duration(x[0]), chapter_title=lambda x: x[1],
+            duration=duration, strict=False) or self._extract_chapters(
+            re.findall(sep_re % (r'.+?', duration_re), description or ''),
+            chapter_time=lambda x: parse_duration(x[1]), chapter_title=lambda x: x[0],
+            duration=duration, strict=False)
+
 
 class SearchInfoExtractor(InfoExtractor):
     """
