@@ -123,6 +123,9 @@ class OpencastIE(OpencastBaseIE):
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'timestamp': 1606208400,
                 'upload_date': '20201124',
+                'season_id': 'cf68a4a1-36b1-4a53-a6ba-61af5705a0d0',
+                'series': 'Kryptographie - WiSe 15/16',
+                'creator': 'Alexander May',
             },
         }
     ]
@@ -135,8 +138,10 @@ class OpencastIE(OpencastBaseIE):
 
 class OpencastPlaylistIE(OpencastBaseIE):
     _VALID_URL = r'''(?x)
-                            https?://(?P<host>%s)/engage/ui/index.html\?.*?
-                            epFrom=(?P<id>%s)
+                            https?://(?P<host>%s)
+                            (/engage/ui/index.html\?.*?epFrom=|
+                            /ltitools/index.html\?.*?series=)
+                            (?P<id>%s)
                     ''' % (OpencastBaseIE._INSTANCES_RE, OpencastBaseIE._UUID_RE)
 
     _API_BASE = 'https://%s/search/episode.json?sid=%s'
@@ -148,15 +153,23 @@ class OpencastPlaylistIE(OpencastBaseIE):
                 'id': 'cf68a4a1-36b1-4a53-a6ba-61af5705a0d0',
                 'title': 'Kryptographie - WiSe 15/16',
             },
-            'playlist_mincount': 28,
+            'playlist_mincount': 29,
         },
         {
-            'url': 'https://oc-video.ruhr-uni-bochum.de/engage/ui/index.html?e=1&p=1&epFrom=b1a54262-3684-403f-9731-8e77c3766f9a',
+            'url': 'https://oc-video1.ruhr-uni-bochum.de/ltitools/index.html?subtool=series&series=cf68a4a1-36b1-4a53-a6ba-61af5705a0d0&lng=de',
             'info_dict': {
-                'id': 'b1a54262-3684-403f-9731-8e77c3766f9a',
-                'title': 'inSTUDIES-Social movements and prefigurative politics in a global perspective',
+                'id': 'cf68a4a1-36b1-4a53-a6ba-61af5705a0d0',
+                'title': 'Kryptographie - WiSe 15/16',
             },
-            'playlist_mincount': 6,
+            'playlist_mincount': 29,
+        },
+        {
+            'url': 'https://electures.uni-muenster.de/engage/ui/index.html?e=1&p=1&epFrom=39391d10-a711-4d23-b21d-afd2ed7d758c',
+            'info_dict': {
+                'id': '39391d10-a711-4d23-b21d-afd2ed7d758c',
+                'title': '021670 Theologische Themen bei Hans Blumenberg WiSe 2017/18',
+            },
+            'playlist_mincount': 13,
         },
     ]
 
