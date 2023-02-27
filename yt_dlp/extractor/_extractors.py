@@ -2414,6 +2414,7 @@ from .zingmp3 import (
     ZingMp3WeekChartIE,
     ZingMp3ChartMusicVideoIE,
     ZingMp3UserIE,
+    ZingMp3HubIE,
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE
