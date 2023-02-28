@@ -3776,10 +3776,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if no_video:
                 dct['abr'] = tbr
             if no_audio or no_video:
-                dct['downloader_options'] = {
-                    # Youtube throttles chunks >~10M
-                    'http_chunk_size': 10485760,
-                }
+                CHUNK_SIZE = 10 << 20
+                dct.update({
+                    'request_data': b'x',
+                    'protocol': 'http_dash_segments',
+                    'fragments': [{
+                        'url': update_url_query(dct['url'], {
+                            'range': f'{range_start}-{min(range_start + CHUNK_SIZE - 1, dct["filesize"])}'
+                        })
+                    } for range_start in range(0, dct['filesize'], CHUNK_SIZE)]
+                } if dct['filesize'] else {
+                    'downloader_options': {'http_chunk_size': CHUNK_SIZE}  # No longer useful?
+                })
+
                 if dct.get('ext'):
                     dct['container'] = dct['ext'] + '_dash'
 
