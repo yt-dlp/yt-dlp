@@ -32,9 +32,9 @@ from re import match as compat_Match  # noqa: F401
 
 from . import compat_expanduser, compat_HTMLParseError, compat_realpath
 from .compat_utils import passthrough_module
-from ..dependencies import Cryptodome_AES as compat_pycrypto_AES  # noqa: F401
 from ..dependencies import brotli as compat_brotli  # noqa: F401
 from ..dependencies import websockets as compat_websockets  # noqa: F401
+from ..dependencies.Cryptodome import AES as compat_pycrypto_AES  # noqa: F401
 
 passthrough_module(__name__, '...utils', ('WINDOWS_VT_MODE', 'windows_enable_vt_mode'))
 
