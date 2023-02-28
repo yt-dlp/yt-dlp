@@ -44,18 +44,6 @@ class LastFMPlaylistIE(LastFMPlaylistBaseIE):
         },
         'playlist_mincount': 11,
     }, {
-        'url': 'https://www.last.fm/user/naamloos1/playlists/12543760',
-        'info_dict': {
-            'id': '12543760',
-        },
-        'playlist_mincount': 80,
-    }, {
-        'url': 'https://www.last.fm/user/naamloos1/playlists/12543760?page=3',
-        'info_dict': {
-            'id': '12543760',
-        },
-        'playlist_mincount': 30,
-    }, {
         'url': 'https://www.last.fm/music/Oasis',
         'only_matching': True,
     }, {
@@ -90,6 +78,18 @@ class LastFMUserIE(LastFMPlaylistBaseIE):
             'id': '12319471',
         },
         'playlist_count': 30,
+    }, {
+        'url': 'https://www.last.fm/user/naamloos1/playlists/12543760',
+        'info_dict': {
+            'id': '12543760',
+        },
+        'playlist_mincount': 80,
+    }, {
+        'url': 'https://www.last.fm/user/naamloos1/playlists/12543760?page=3',
+        'info_dict': {
+            'id': '12543760',
+        },
+        'playlist_mincount': 30,
     }]
 
 
