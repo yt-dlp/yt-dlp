@@ -1,6 +1,5 @@
 import re
 import time
-import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -8,7 +7,8 @@ from ..utils import (
     js_to_json,
     urlencode_postdata,
     ExtractorError,
-    parse_qs
+    parse_qs,
+    traverse_obj
 )
 
 
@@ -17,8 +17,6 @@ class IPrimaIE(InfoExtractor):
     _GEO_BYPASS = False
     _NETRC_MACHINE = 'iprima'
     _AUTH_ROOT = 'https://auth.iprima.cz'
-    _LOGIN_URL = f'{_AUTH_ROOT}/oauth2/login'
-    _TOKEN_URL = f'{_AUTH_ROOT}/oauth2/token'
     access_token = None
 
     _TESTS = [{
@@ -69,7 +67,7 @@ class IPrimaIE(InfoExtractor):
             return
 
         login_page = self._download_webpage(
-            self._LOGIN_URL, None, note='Downloading login page',
+            f'{self._AUTH_ROOT}/oauth2/login', None, note='Downloading login page',
             errnote='Downloading login page failed')
 
         login_form = self._hidden_inputs(login_page)
@@ -79,28 +77,25 @@ class IPrimaIE(InfoExtractor):
             '_password': password})
 
         profile_select_html, login_handle = self._download_webpage_handle(
-            self._LOGIN_URL, None, data=urlencode_postdata(login_form),
+            f'{self._AUTH_ROOT}/oauth2/login', None, data=urlencode_postdata(login_form),
             note='Logging in')
 
         # a profile may need to be selected first, even when there is only a single one
         if '/profile-select' in login_handle.geturl():
             profile_id = self._search_regex(
-                r"data-identifier\s*=\s*[\"']?(\w+)[\"']?",
+                r'data-identifier\s*=\s*["\']?(\w+)["\']?',
                 profile_select_html, 'profile id')
 
             profile_select_url = f'{self._AUTH_ROOT}/user/profile-select-perform/{profile_id}'
-            profile_select_url += '?continueUrl='
-            profile_select_url += urllib.parse.quote("/user/login?redirect_uri=/user/", safe='')
+            query = {'continueUrl': '/user/login?redirect_uri=/user/'}
 
-            _, login_handle = self._download_webpage_handle(
-                profile_select_url, None,
+            login_handle = self._request_webpage(
+                profile_select_url, None, query=query,
                 note='Selecting profile')
 
-        codes = parse_qs(login_handle.geturl()).get('code')
-        if not codes:
+        code = traverse_obj(login_handle.geturl(), ({parse_qs}, 'code', 0))
+        if not code:
             raise ExtractorError('Login failed', expected=True)
-
-        code = codes[0]
 
         token_request_data = {
             'scope': 'openid+email+profile+phone+address+offline_access',
@@ -110,7 +105,7 @@ class IPrimaIE(InfoExtractor):
             'redirect_uri': f'{self._AUTH_ROOT}/sso/auth-check'}
 
         token_data = self._download_json(
-            self._TOKEN_URL, None,
+            f'{self._AUTH_ROOT}/oauth2/token', None,
             note='Downloading token', errnote='Downloading token failed',
             data=urlencode_postdata(token_request_data))
 
@@ -128,23 +123,33 @@ class IPrimaIE(InfoExtractor):
         elif error_code is not None:
             self.raise_no_formats('Access to stream infos forbidden', expected=True)
 
+    def _extract_id_from_nuxt(self, nuxt_data):
+        try:
+            data = nuxt_data['data']
+            inner = data[list(data.keys())[0]]
+            video_id = traverse_obj(inner, ('content', 'additionals', 'videoPlayId'))
+            assert video_id and len(video_id), "Failed to get video id from nuxt"
+            return video_id
+        except Exception as e:
+            self.raise_no_formats(f'Failed to extract video id: {e}')
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_extract_title(webpage)
-        title = title or self._html_search_meta(
+        title = self._html_extract_title(webpage) or self._html_search_meta(
             ['og:title', 'twitter:title'],
             webpage, 'title', default=None)
 
-        video_id = self._search_regex(
-            (
-                r'productId\s*=\s*([\'"])(?P<id>p\d+)\1',
-                r'pproduct_id\s*=\s*([\'"])(?P<id>p\d+)\1',
-                r'([\'"]?)videoLength\1\s*:.*?([\'"]?)videoPlayId\2\s*:\s*(["\'])(?P<id>p\d+)\3',
-            ),
-            webpage, 'real id', group='id', flags=re.MULTILINE | re.DOTALL)
+        video_id = self._search_regex((
+            r'productId\s*=\s*([\'"])(?P<id>p\d+)\1',
+            r'pproduct_id\s*=\s*([\'"])(?P<id>p\d+)\1',
+        ), webpage, 'real id', group='id', default=None)
+
+        if not video_id:
+            nuxt_data = self._search_nuxt_data(webpage, video_id, traverse=None)
+            video_id = self._extract_id_from_nuxt(nuxt_data)
 
         metadata = self._download_json(
             f'https://api.play-backend.iprima.cz/api/v1//products/id-{video_id}/play',
