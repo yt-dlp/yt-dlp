@@ -28,14 +28,14 @@
  - **abcnews:video**
  - **abcotvs**: ABC Owned Television Stations
  - **abcotvs:clips**
- - **AbemaTV**: [<abbr title="netrc machine"><em>abematv</em></abbr>]
+ - **AbemaTV**: [*abematv*](## "netrc machine")
  - **AbemaTVTitle**
  - **AcademicEarth:Course**
  - **acast**
  - **acast:channel**
  - **AcFunBangumi**
  - **AcFunVideo**
- - **ADN**: [<abbr title="netrc machine"><em>animationdigitalnetwork</em></abbr>] Animation Digital Network
+ - **ADN**: [*animationdigitalnetwork*](## "netrc machine") Animation Digital Network
  - **AdobeConnect**
  - **adobetv**
  - **adobetv:channel**
@@ -47,8 +47,8 @@
  - **aenetworks:collection**
  - **aenetworks:show**
  - **AeonCo**
- - **afreecatv**: [<abbr title="netrc machine"><em>afreecatv</em></abbr>] afreecatv.com
- - **afreecatv:live**: [<abbr title="netrc machine"><em>afreecatv</em></abbr>] afreecatv.com
+ - **afreecatv**: [*afreecatv*](## "netrc machine") afreecatv.com
+ - **afreecatv:live**: [*afreecatv*](## "netrc machine") afreecatv.com
  - **afreecatv:user**
  - **AirMozilla**
  - **AirTV**
@@ -59,8 +59,8 @@
  - **AlphaPorno**
  - **Alsace20TV**
  - **Alsace20TVEmbed**
- - **Alura**: [<abbr title="netrc machine"><em>alura</em></abbr>]
- - **AluraCourse**: [<abbr title="netrc machine"><em>aluracourse</em></abbr>]
+ - **Alura**: [*alura*](## "netrc machine")
+ - **AluraCourse**: [*aluracourse*](## "netrc machine")
  - **Amara**
  - **AmazonMiniTV**
  - **amazonminitv:season**: Amazon MiniTV Season, "minitv:season:" prefix
@@ -100,7 +100,7 @@
  - **ArteTVPlaylist**
  - **AsianCrush**
  - **AsianCrushPlaylist**
- - **AtresPlayer**: [<abbr title="netrc machine"><em>atresplayer</em></abbr>]
+ - **AtresPlayer**: [*atresplayer*](## "netrc machine")
  - **AtScaleConfEvent**
  - **ATTTechChannel**
  - **ATVAt**
@@ -128,15 +128,15 @@
  - **Bandcamp:user**
  - **Bandcamp:weekly**
  - **BannedVideo**
- - **bbc**: [<abbr title="netrc machine"><em>bbc</em></abbr>] BBC
- - **bbc.co.uk**: [<abbr title="netrc machine"><em>bbc</em></abbr>] BBC iPlayer
+ - **bbc**: [*bbc*](## "netrc machine") BBC
+ - **bbc.co.uk**: [*bbc*](## "netrc machine") BBC iPlayer
  - **bbc.co.uk:article**: BBC articles
  - **bbc.co.uk:​iplayer:episodes**
  - **bbc.co.uk:​iplayer:group**
  - **bbc.co.uk:playlist**
- - **BBVTV**: [<abbr title="netrc machine"><em>bbvtv</em></abbr>]
- - **BBVTVLive**: [<abbr title="netrc machine"><em>bbvtv</em></abbr>]
- - **BBVTVRecordings**: [<abbr title="netrc machine"><em>bbvtv</em></abbr>]
+ - **BBVTV**: [*bbvtv*](## "netrc machine")
+ - **BBVTVLive**: [*bbvtv*](## "netrc machine")
+ - **BBVTVRecordings**: [*bbvtv*](## "netrc machine")
  - **BeatBumpPlaylist**
  - **BeatBumpVideo**
  - **Beatport**
@@ -165,8 +165,8 @@
  - **BilibiliSpaceAudio**
  - **BilibiliSpacePlaylist**
  - **BilibiliSpaceVideo**
- - **BiliIntl**: [<abbr title="netrc machine"><em>biliintl</em></abbr>]
- - **biliIntl:series**: [<abbr title="netrc machine"><em>biliintl</em></abbr>]
+ - **BiliIntl**: [*biliintl*](## "netrc machine")
+ - **biliIntl:series**: [*biliintl*](## "netrc machine")
  - **BiliLive**
  - **BioBioChileTV**
  - **Biography**
@@ -232,7 +232,7 @@
  - **cbssports:embed**
  - **CCMA**
  - **CCTV**: 央视网
- - **CDA**: [<abbr title="netrc machine"><em>cdapl</em></abbr>]
+ - **CDA**: [*cdapl*](## "netrc machine")
  - **Cellebrite**
  - **CeskaTelevize**
  - **CGTN**
@@ -286,8 +286,8 @@
  - **CrooksAndLiars**
  - **CrowdBunker**
  - **CrowdBunkerChannel**
- - **crunchyroll**: [<abbr title="netrc machine"><em>crunchyroll</em></abbr>]
- - **crunchyroll:playlist**: [<abbr title="netrc machine"><em>crunchyroll</em></abbr>]
+ - **crunchyroll**: [*crunchyroll*](## "netrc machine")
+ - **crunchyroll:playlist**: [*crunchyroll*](## "netrc machine")
  - **CSpan**: C-SPAN
  - **CSpanCongress**
  - **CtsNews**: 華視新聞
@@ -295,18 +295,18 @@
  - **CTVNews**
  - **cu.ntv.co.jp**: Nippon Television Network
  - **CultureUnplugged**
- - **curiositystream**: [<abbr title="netrc machine"><em>curiositystream</em></abbr>]
- - **curiositystream:collections**: [<abbr title="netrc machine"><em>curiositystream</em></abbr>]
- - **curiositystream:series**: [<abbr title="netrc machine"><em>curiositystream</em></abbr>]
+ - **curiositystream**: [*curiositystream*](## "netrc machine")
+ - **curiositystream:collections**: [*curiositystream*](## "netrc machine")
+ - **curiositystream:series**: [*curiositystream*](## "netrc machine")
  - **CWTV**
- - **Cybrary**: [<abbr title="netrc machine"><em>cybrary</em></abbr>]
- - **CybraryCourse**: [<abbr title="netrc machine"><em>cybrary</em></abbr>]
+ - **Cybrary**: [*cybrary*](## "netrc machine")
+ - **CybraryCourse**: [*cybrary*](## "netrc machine")
  - **Daftsex**
  - **DagelijkseKost**: dagelijksekost.een.be
  - **DailyMail**
- - **dailymotion**: [<abbr title="netrc machine"><em>dailymotion</em></abbr>]
- - **dailymotion:playlist**: [<abbr title="netrc machine"><em>dailymotion</em></abbr>]
- - **dailymotion:user**: [<abbr title="netrc machine"><em>dailymotion</em></abbr>]
+ - **dailymotion**: [*dailymotion*](## "netrc machine")
+ - **dailymotion:playlist**: [*dailymotion*](## "netrc machine")
+ - **dailymotion:user**: [*dailymotion*](## "netrc machine")
  - **DailyWire**
  - **DailyWirePodcast**
  - **damtomo:record**
@@ -328,7 +328,7 @@
  - **DeuxMNews**
  - **DHM**: Filmarchiv - Deutsches Historisches Museum
  - **Digg**
- - **DigitalConcertHall**: [<abbr title="netrc machine"><em>digitalconcerthall</em></abbr>] DigitalConcertHall extractor
+ - **DigitalConcertHall**: [*digitalconcerthall*](## "netrc machine") DigitalConcertHall extractor
  - **DigitallySpeaking**
  - **Digiteka**
  - **Discovery**
@@ -351,7 +351,7 @@
  - **DRBonanza**
  - **Drooble**
  - **Dropbox**
- - **Dropout**: [<abbr title="netrc machine"><em>dropout</em></abbr>]
+ - **Dropout**: [*dropout*](## "netrc machine")
  - **DropoutSeason**
  - **DrTuber**
  - **drtv**
@@ -373,9 +373,9 @@
  - **egghead:lesson**: egghead.io lesson
  - **ehftv**
  - **eHow**
- - **EinsUndEinsTV**: [<abbr title="netrc machine"><em>1und1tv</em></abbr>]
- - **EinsUndEinsTVLive**: [<abbr title="netrc machine"><em>1und1tv</em></abbr>]
- - **EinsUndEinsTVRecordings**: [<abbr title="netrc machine"><em>1und1tv</em></abbr>]
+ - **EinsUndEinsTV**: [*1und1tv*](## "netrc machine")
+ - **EinsUndEinsTVLive**: [*1und1tv*](## "netrc machine")
+ - **EinsUndEinsTVRecordings**: [*1und1tv*](## "netrc machine")
  - **Einthusan**
  - **eitb.tv**
  - **EllenTube**
@@ -390,7 +390,7 @@
  - **EpiconSeries**
  - **Epoch**
  - **Eporner**
- - **EroProfile**: [<abbr title="netrc machine"><em>eroprofile</em></abbr>]
+ - **EroProfile**: [*eroprofile*](## "netrc machine")
  - **EroProfile:album**
  - **ertflix**: ERTFLIX videos
  - **ertflix:codename**: ERTFLIX videos by codename
@@ -405,20 +405,20 @@
  - **EuropeanTour**
  - **Eurosport**
  - **EUScreen**
- - **EWETV**: [<abbr title="netrc machine"><em>ewetv</em></abbr>]
- - **EWETVLive**: [<abbr title="netrc machine"><em>ewetv</em></abbr>]
- - **EWETVRecordings**: [<abbr title="netrc machine"><em>ewetv</em></abbr>]
+ - **EWETV**: [*ewetv*](## "netrc machine")
+ - **EWETVLive**: [*ewetv*](## "netrc machine")
+ - **EWETVRecordings**: [*ewetv*](## "netrc machine")
  - **ExpoTV**
  - **Expressen**
  - **ExtremeTube**
  - **EyedoTV**
- - **facebook**: [<abbr title="netrc machine"><em>facebook</em></abbr>]
+ - **facebook**: [*facebook*](## "netrc machine")
  - **facebook:reel**
  - **FacebookPluginsVideo**
- - **fancode:live**: [<abbr title="netrc machine"><em>fancode</em></abbr>]
- - **fancode:vod**: [<abbr title="netrc machine"><em>fancode</em></abbr>]
+ - **fancode:live**: [*fancode*](## "netrc machine")
+ - **fancode:vod**: [*fancode*](## "netrc machine")
  - **faz.net**
- - **fc2**: [<abbr title="netrc machine"><em>fc2</em></abbr>]
+ - **fc2**: [*fc2*](## "netrc machine")
  - **fc2:embed**
  - **fc2:live**
  - **Fczenit**
@@ -452,20 +452,20 @@
  - **freespeech.org**
  - **freetv:series**
  - **FreeTvMovies**
- - **FrontendMasters**: [<abbr title="netrc machine"><em>frontendmasters</em></abbr>]
- - **FrontendMastersCourse**: [<abbr title="netrc machine"><em>frontendmasters</em></abbr>]
- - **FrontendMastersLesson**: [<abbr title="netrc machine"><em>frontendmasters</em></abbr>]
+ - **FrontendMasters**: [*frontendmasters*](## "netrc machine")
+ - **FrontendMastersCourse**: [*frontendmasters*](## "netrc machine")
+ - **FrontendMastersLesson**: [*frontendmasters*](## "netrc machine")
  - **FujiTVFODPlus7**
- - **Funimation**: [<abbr title="netrc machine"><em>funimation</em></abbr>]
- - **funimation:page**: [<abbr title="netrc machine"><em>funimation</em></abbr>]
- - **funimation:show**: [<abbr title="netrc machine"><em>funimation</em></abbr>]
+ - **Funimation**: [*funimation*](## "netrc machine")
+ - **funimation:page**: [*funimation*](## "netrc machine")
+ - **funimation:show**: [*funimation*](## "netrc machine")
  - **Funk**
  - **Fusion**
  - **Fux**
  - **FuyinTV**
  - **Gab**
  - **GabTV**
- - **Gaia**: [<abbr title="netrc machine"><em>gaia</em></abbr>]
+ - **Gaia**: [*gaia*](## "netrc machine")
  - **GameInformer**
  - **GameJolt**
  - **GameJoltCommunity**
@@ -477,9 +477,9 @@
  - **GameStar**
  - **Gaskrank**
  - **Gazeta**
- - **GDCVault**: [<abbr title="netrc machine"><em>gdcvault</em></abbr>]
+ - **GDCVault**: [*gdcvault*](## "netrc machine")
  - **GediDigital**
- - **gem.cbc.ca**: [<abbr title="netrc machine"><em>cbcgem</em></abbr>]
+ - **gem.cbc.ca**: [*cbcgem*](## "netrc machine")
  - **gem.cbc.ca:live**
  - **gem.cbc.ca:playlist**
  - **Genius**
@@ -489,11 +489,11 @@
  - **Gfycat**
  - **GiantBomb**
  - **Giga**
- - **GlattvisionTV**: [<abbr title="netrc machine"><em>glattvisiontv</em></abbr>]
- - **GlattvisionTVLive**: [<abbr title="netrc machine"><em>glattvisiontv</em></abbr>]
- - **GlattvisionTVRecordings**: [<abbr title="netrc machine"><em>glattvisiontv</em></abbr>]
+ - **GlattvisionTV**: [*glattvisiontv*](## "netrc machine")
+ - **GlattvisionTVLive**: [*glattvisiontv*](## "netrc machine")
+ - **GlattvisionTVRecordings**: [*glattvisiontv*](## "netrc machine")
  - **Glide**: Glide mobile video messages (glide.me)
- - **Globo**: [<abbr title="netrc machine"><em>globo</em></abbr>]
+ - **Globo**: [*globo*](## "netrc machine")
  - **GloboArticle**
  - **glomex**: Glomex videos
  - **glomex:embed**: Glomex embedded videos
@@ -507,7 +507,7 @@
  - **google:​podcasts:feed**
  - **GoogleDrive**
  - **GoogleDrive:Folder**
- - **GoPlay**: [<abbr title="netrc machine"><em>goplay</em></abbr>]
+ - **GoPlay**: [*goplay*](## "netrc machine")
  - **GoPro**
  - **Goshgay**
  - **GoToStage**
@@ -527,7 +527,7 @@
  - **hgtv.com:show**
  - **HGTVDe**
  - **HGTVUsa**
- - **HiDive**: [<abbr title="netrc machine"><em>hidive</em></abbr>]
+ - **HiDive**: [*hidive*](## "netrc machine")
  - **HistoricFilms**
  - **history:player**
  - **history:topic**: History.com Topic
@@ -544,8 +544,8 @@
  - **Howcast**
  - **HowStuffWorks**
  - **hrfernsehen**
- - **HRTi**: [<abbr title="netrc machine"><em>hrti</em></abbr>]
- - **HRTiPlaylist**: [<abbr title="netrc machine"><em>hrti</em></abbr>]
+ - **HRTi**: [*hrti*](## "netrc machine")
+ - **HRTiPlaylist**: [*hrti*](## "netrc machine")
  - **HSEProduct**
  - **HSEShow**
  - **html5**
@@ -575,19 +575,19 @@
  - **Inc**
  - **IndavideoEmbed**
  - **InfoQ**
- - **Instagram**: [<abbr title="netrc machine"><em>instagram</em></abbr>]
- - **instagram:story**: [<abbr title="netrc machine"><em>instagram</em></abbr>]
- - **instagram:tag**: [<abbr title="netrc machine"><em>instagram</em></abbr>] Instagram hashtag search URLs
- - **instagram:user**: [<abbr title="netrc machine"><em>instagram</em></abbr>] Instagram user profile
+ - **Instagram**: [*instagram*](## "netrc machine")
+ - **instagram:story**: [*instagram*](## "netrc machine")
+ - **instagram:tag**: [*instagram*](## "netrc machine") Instagram hashtag search URLs
+ - **instagram:user**: [*instagram*](## "netrc machine") Instagram user profile
  - **InstagramIOS**: IOS instagram:// URL
  - **Internazionale**
  - **InternetVideoArchive**
  - **InvestigationDiscovery**
- - **IPrima**: [<abbr title="netrc machine"><em>iprima</em></abbr>]
+ - **IPrima**: [*iprima*](## "netrc machine")
  - **IPrimaCNN**
  - **iq.com**: International version of iQiyi
  - **iq.com:album**
- - **iqiyi**: [<abbr title="netrc machine"><em>iqiyi</em></abbr>] 爱奇艺
+ - **iqiyi**: [*iqiyi*](## "netrc machine") 爱奇艺
  - **IslamChannel**
  - **IslamChannelSeries**
  - **IsraelNationalNews**
@@ -660,9 +660,9 @@
  - **LcpPlay**
  - **Le**: 乐视网
  - **Lecture2Go**
- - **Lecturio**: [<abbr title="netrc machine"><em>lecturio</em></abbr>]
- - **LecturioCourse**: [<abbr title="netrc machine"><em>lecturio</em></abbr>]
- - **LecturioDeCourse**: [<abbr title="netrc machine"><em>lecturio</em></abbr>]
+ - **Lecturio**: [*lecturio*](## "netrc machine")
+ - **LecturioCourse**: [*lecturio*](## "netrc machine")
+ - **LecturioDeCourse**: [*lecturio*](## "netrc machine")
  - **LEGO**
  - **Lemonde**
  - **Lenta**
@@ -678,10 +678,10 @@
  - **limelight:channel_list**
  - **LineLive**
  - **LineLiveChannel**
- - **LinkedIn**: [<abbr title="netrc machine"><em>linkedin</em></abbr>]
- - **linkedin:learning**: [<abbr title="netrc machine"><em>linkedin</em></abbr>]
- - **linkedin:​learning:course**: [<abbr title="netrc machine"><em>linkedin</em></abbr>]
- - **LinuxAcademy**: [<abbr title="netrc machine"><em>linuxacademy</em></abbr>]
+ - **LinkedIn**: [*linkedin*](## "netrc machine")
+ - **linkedin:learning**: [*linkedin*](## "netrc machine")
+ - **linkedin:​learning:course**: [*linkedin*](## "netrc machine")
+ - **LinuxAcademy**: [*linuxacademy*](## "netrc machine")
  - **Liputan6**
  - **ListenNotes**
  - **LiTV**
@@ -696,8 +696,8 @@
  - **LoveHomePorn**
  - **LRTStream**
  - **LRTVOD**
- - **lynda**: [<abbr title="netrc machine"><em>lynda</em></abbr>] lynda.com videos
- - **lynda:course**: [<abbr title="netrc machine"><em>lynda</em></abbr>] lynda.com online courses
+ - **lynda**: [*lynda*](## "netrc machine") lynda.com videos
+ - **lynda:course**: [*lynda*](## "netrc machine") lynda.com online courses
  - **m6**
  - **MagentaMusik360**
  - **mailru**: Видео@Mail.Ru
@@ -767,13 +767,13 @@
  - **mixcloud:user**
  - **MLB**
  - **MLBArticle**
- - **MLBTV**: [<abbr title="netrc machine"><em>mlb</em></abbr>]
+ - **MLBTV**: [*mlb*](## "netrc machine")
  - **MLBVideo**
  - **MLSSoccer**
  - **Mnet**
- - **MNetTV**: [<abbr title="netrc machine"><em>mnettv</em></abbr>]
- - **MNetTVLive**: [<abbr title="netrc machine"><em>mnettv</em></abbr>]
- - **MNetTVRecordings**: [<abbr title="netrc machine"><em>mnettv</em></abbr>]
+ - **MNetTV**: [*mnettv*](## "netrc machine")
+ - **MNetTVLive**: [*mnettv*](## "netrc machine")
+ - **MNetTVRecordings**: [*mnettv*](## "netrc machine")
  - **MochaVideo**
  - **MoeVideo**: LetitBit video services: moevideo.net, playreplay.net and videochart.net
  - **Mofosex**
@@ -852,9 +852,9 @@
  - **ndr:embed**
  - **ndr:​embed:base**
  - **NDTV**
- - **Nebula**: [<abbr title="netrc machine"><em>watchnebula</em></abbr>]
- - **nebula:channel**: [<abbr title="netrc machine"><em>watchnebula</em></abbr>]
- - **nebula:subscriptions**: [<abbr title="netrc machine"><em>watchnebula</em></abbr>]
+ - **Nebula**: [*watchnebula*](## "netrc machine")
+ - **nebula:channel**: [*watchnebula*](## "netrc machine")
+ - **nebula:subscriptions**: [*watchnebula*](## "netrc machine")
  - **NerdCubedFeed**
  - **netease:album**: 网易云音乐 - 专辑
  - **netease:djradio**: 网易云音乐 - 电台
@@ -863,9 +863,9 @@
  - **netease:program**: 网易云音乐 - 电台节目
  - **netease:singer**: 网易云音乐 - 歌手
  - **netease:song**: 网易云音乐
- - **NetPlusTV**: [<abbr title="netrc machine"><em>netplus</em></abbr>]
- - **NetPlusTVLive**: [<abbr title="netrc machine"><em>netplus</em></abbr>]
- - **NetPlusTVRecordings**: [<abbr title="netrc machine"><em>netplus</em></abbr>]
+ - **NetPlusTV**: [*netplus*](## "netrc machine")
+ - **NetPlusTVLive**: [*netplus*](## "netrc machine")
+ - **NetPlusTVRecordings**: [*netplus*](## "netrc machine")
  - **Netverse**
  - **NetversePlaylist**
  - **NetverseSearch**: "netsearch:" prefix
@@ -898,7 +898,7 @@
  - **nickelodeon:br**
  - **nickelodeonru**
  - **nicknight**
- - **niconico**: [<abbr title="netrc machine"><em>niconico</em></abbr>] ニコニコ動画
+ - **niconico**: [*niconico*](## "netrc machine") ニコニコ動画
  - **niconico:history**: NicoNico user history or likes. Requires cookies.
  - **niconico:playlist**
  - **niconico:series**
@@ -911,7 +911,7 @@
  - **Nitter**
  - **njoy**: N-JOY
  - **njoy:embed**
- - **NJPWWorld**: [<abbr title="netrc machine"><em>njpwworld</em></abbr>] 新日本プロレスワールド
+ - **NJPWWorld**: [*njpwworld*](## "netrc machine") 新日本プロレスワールド
  - **NobelPrize**
  - **NoicePodcast**
  - **NonkTube**
@@ -980,11 +980,11 @@
  - **orf:iptv**: iptv.ORF.at
  - **orf:radio**
  - **orf:tvthek**: ORF TVthek
- - **OsnatelTV**: [<abbr title="netrc machine"><em>osnateltv</em></abbr>]
- - **OsnatelTVLive**: [<abbr title="netrc machine"><em>osnateltv</em></abbr>]
- - **OsnatelTVRecordings**: [<abbr title="netrc machine"><em>osnateltv</em></abbr>]
+ - **OsnatelTV**: [*osnateltv*](## "netrc machine")
+ - **OsnatelTVLive**: [*osnateltv*](## "netrc machine")
+ - **OsnatelTVRecordings**: [*osnateltv*](## "netrc machine")
  - **OutsideTV**
- - **PacktPub**: [<abbr title="netrc machine"><em>packtpub</em></abbr>]
+ - **PacktPub**: [*packtpub*](## "netrc machine")
  - **PacktPubCourse**
  - **PalcoMP3:artist**
  - **PalcoMP3:song**
@@ -1007,7 +1007,7 @@
  - **peer.tv**
  - **PeerTube**
  - **PeerTube:Playlist**
- - **peloton**: [<abbr title="netrc machine"><em>peloton</em></abbr>]
+ - **peloton**: [*peloton*](## "netrc machine")
  - **peloton:live**: Peloton Live
  - **People**
  - **PerformGroup**
@@ -1016,7 +1016,7 @@
  - **PhilharmonieDeParis**: Philharmonie de Paris
  - **phoenix.de**
  - **Photobucket**
- - **Piapro**: [<abbr title="netrc machine"><em>piapro</em></abbr>]
+ - **Piapro**: [*piapro*](## "netrc machine")
  - **Picarto**
  - **PicartoVod**
  - **Piksel**
@@ -1027,11 +1027,11 @@
  - **pixiv:​sketch:user**
  - **Pladform**
  - **PlanetMarathi**
- - **Platzi**: [<abbr title="netrc machine"><em>platzi</em></abbr>]
- - **PlatziCourse**: [<abbr title="netrc machine"><em>platzi</em></abbr>]
+ - **Platzi**: [*platzi*](## "netrc machine")
+ - **PlatziCourse**: [*platzi*](## "netrc machine")
  - **play.fm**
  - **player.sky.it**
- - **PlayPlusTV**: [<abbr title="netrc machine"><em>playplustv</em></abbr>]
+ - **PlayPlusTV**: [*playplustv*](## "netrc machine")
  - **PlayStuff**
  - **PlaysTV**
  - **PlaySuisse**
@@ -1039,7 +1039,7 @@
  - **Playvid**
  - **PlayVids**
  - **Playwire**
- - **pluralsight**: [<abbr title="netrc machine"><em>pluralsight</em></abbr>]
+ - **pluralsight**: [*pluralsight*](## "netrc machine")
  - **pluralsight:course**
  - **PlutoTV**
  - **PodbayFM**
@@ -1048,8 +1048,8 @@
  - **podomatic**
  - **Pokemon**
  - **PokemonWatch**
- - **PokerGo**: [<abbr title="netrc machine"><em>pokergo</em></abbr>]
- - **PokerGoCollection**: [<abbr title="netrc machine"><em>pokergo</em></abbr>]
+ - **PokerGo**: [*pokergo*](## "netrc machine")
+ - **PokerGoCollection**: [*pokergo*](## "netrc machine")
  - **PolsatGo**
  - **PolskieRadio**
  - **polskieradio:audition**
@@ -1066,11 +1066,11 @@
  - **Pornez**
  - **PornFlip**
  - **PornHd**
- - **PornHub**: [<abbr title="netrc machine"><em>pornhub</em></abbr>] PornHub and Thumbzilla
- - **PornHubPagedVideoList**: [<abbr title="netrc machine"><em>pornhub</em></abbr>]
- - **PornHubPlaylist**: [<abbr title="netrc machine"><em>pornhub</em></abbr>]
- - **PornHubUser**: [<abbr title="netrc machine"><em>pornhub</em></abbr>]
- - **PornHubUserVideosUpload**: [<abbr title="netrc machine"><em>pornhub</em></abbr>]
+ - **PornHub**: [*pornhub*](## "netrc machine") PornHub and Thumbzilla
+ - **PornHubPagedVideoList**: [*pornhub*](## "netrc machine")
+ - **PornHubPlaylist**: [*pornhub*](## "netrc machine")
+ - **PornHubUser**: [*pornhub*](## "netrc machine")
+ - **PornHubUserVideosUpload**: [*pornhub*](## "netrc machine")
  - **Pornotube**
  - **PornoVoisines**
  - **PornoXO**
@@ -1098,9 +1098,9 @@
  - **qqmusic:playlist**: QQ音乐 - 歌单
  - **qqmusic:singer**: QQ音乐 - 歌手
  - **qqmusic:toplist**: QQ音乐 - 排行榜
- - **QuantumTV**: [<abbr title="netrc machine"><em>quantumtv</em></abbr>]
- - **QuantumTVLive**: [<abbr title="netrc machine"><em>quantumtv</em></abbr>]
- - **QuantumTVRecordings**: [<abbr title="netrc machine"><em>quantumtv</em></abbr>]
+ - **QuantumTV**: [*quantumtv*](## "netrc machine")
+ - **QuantumTVLive**: [*quantumtv*](## "netrc machine")
+ - **QuantumTVRecordings**: [*quantumtv*](## "netrc machine")
  - **Qub**
  - **R7**
  - **R7Article**
@@ -1157,16 +1157,16 @@
  - **RICE**
  - **RMCDecouverte**
  - **RockstarGames**
- - **Rokfin**: [<abbr title="netrc machine"><em>rokfin</em></abbr>]
+ - **Rokfin**: [*rokfin*](## "netrc machine")
  - **rokfin:channel**: Rokfin Channels
  - **rokfin:search**: Rokfin Search; "rkfnsearch:" prefix
  - **rokfin:stack**: Rokfin Stacks
- - **RoosterTeeth**: [<abbr title="netrc machine"><em>roosterteeth</em></abbr>]
- - **RoosterTeethSeries**: [<abbr title="netrc machine"><em>roosterteeth</em></abbr>]
+ - **RoosterTeeth**: [*roosterteeth*](## "netrc machine")
+ - **RoosterTeethSeries**: [*roosterteeth*](## "netrc machine")
  - **RottenTomatoes**
  - **Rozhlas**
  - **RozhlasVltava**
- - **RTBF**: [<abbr title="netrc machine"><em>rtbf</em></abbr>]
+ - **RTBF**: [*rtbf*](## "netrc machine")
  - **RTDocumentry**
  - **RTDocumentryPlaylist**
  - **rte**: Raidió Teilifís Éireann TV
@@ -1208,16 +1208,16 @@
  - **Ruutu**
  - **Ruv**
  - **ruv.is:spila**
- - **safari**: [<abbr title="netrc machine"><em>safari</em></abbr>] safaribooksonline.com online video
- - **safari:api**: [<abbr title="netrc machine"><em>safari</em></abbr>]
- - **safari:course**: [<abbr title="netrc machine"><em>safari</em></abbr>] safaribooksonline.com online courses
+ - **safari**: [*safari*](## "netrc machine") safaribooksonline.com online video
+ - **safari:api**: [*safari*](## "netrc machine")
+ - **safari:course**: [*safari*](## "netrc machine") safaribooksonline.com online courses
  - **Saitosan**
- - **SAKTV**: [<abbr title="netrc machine"><em>saktv</em></abbr>]
- - **SAKTVLive**: [<abbr title="netrc machine"><em>saktv</em></abbr>]
- - **SAKTVRecordings**: [<abbr title="netrc machine"><em>saktv</em></abbr>]
- - **SaltTV**: [<abbr title="netrc machine"><em>salttv</em></abbr>]
- - **SaltTVLive**: [<abbr title="netrc machine"><em>salttv</em></abbr>]
- - **SaltTVRecordings**: [<abbr title="netrc machine"><em>salttv</em></abbr>]
+ - **SAKTV**: [*saktv*](## "netrc machine")
+ - **SAKTVLive**: [*saktv*](## "netrc machine")
+ - **SAKTVRecordings**: [*saktv*](## "netrc machine")
+ - **SaltTV**: [*salttv*](## "netrc machine")
+ - **SaltTVLive**: [*salttv*](## "netrc machine")
+ - **SaltTVRecordings**: [*salttv*](## "netrc machine")
  - **SampleFocus**
  - **Sangiin**: 参議院インターネット審議中継 (archive)
  - **Sapo**: SAPO Vídeos
@@ -1233,8 +1233,8 @@
  - **ScrippsNetworks**
  - **scrippsnetworks:watch**
  - **Scrolller**
- - **SCTE**: [<abbr title="netrc machine"><em>scte</em></abbr>]
- - **SCTECourse**: [<abbr title="netrc machine"><em>scte</em></abbr>]
+ - **SCTE**: [*scte*](## "netrc machine")
+ - **SCTECourse**: [*scte*](## "netrc machine")
  - **Seeker**
  - **SenateGov**
  - **SenateISVP**
@@ -1243,7 +1243,7 @@
  - **Sexu**
  - **SeznamZpravy**
  - **SeznamZpravyArticle**
- - **Shahid**: [<abbr title="netrc machine"><em>shahid</em></abbr>]
+ - **Shahid**: [*shahid*](## "netrc machine")
  - **ShahidShow**
  - **Shared**: shared.sx
  - **ShareVideosEmbed**
@@ -1273,16 +1273,16 @@
  - **Smotrim**
  - **Snotr**
  - **Sohu**
- - **SonyLIV**: [<abbr title="netrc machine"><em>sonyliv</em></abbr>]
+ - **SonyLIV**: [*sonyliv*](## "netrc machine")
  - **SonyLIVSeries**
- - **soundcloud**: [<abbr title="netrc machine"><em>soundcloud</em></abbr>]
- - **soundcloud:playlist**: [<abbr title="netrc machine"><em>soundcloud</em></abbr>]
- - **soundcloud:related**: [<abbr title="netrc machine"><em>soundcloud</em></abbr>]
- - **soundcloud:search**: [<abbr title="netrc machine"><em>soundcloud</em></abbr>] Soundcloud search; "scsearch:" prefix
- - **soundcloud:set**: [<abbr title="netrc machine"><em>soundcloud</em></abbr>]
- - **soundcloud:trackstation**: [<abbr title="netrc machine"><em>soundcloud</em></abbr>]
- - **soundcloud:user**: [<abbr title="netrc machine"><em>soundcloud</em></abbr>]
- - **soundcloud:​user:permalink**: [<abbr title="netrc machine"><em>soundcloud</em></abbr>]
+ - **soundcloud**: [*soundcloud*](## "netrc machine")
+ - **soundcloud:playlist**: [*soundcloud*](## "netrc machine")
+ - **soundcloud:related**: [*soundcloud*](## "netrc machine")
+ - **soundcloud:search**: [*soundcloud*](## "netrc machine") Soundcloud search; "scsearch:" prefix
+ - **soundcloud:set**: [*soundcloud*](## "netrc machine")
+ - **soundcloud:trackstation**: [*soundcloud*](## "netrc machine")
+ - **soundcloud:user**: [*soundcloud*](## "netrc machine")
+ - **soundcloud:​user:permalink**: [*soundcloud*](## "netrc machine")
  - **SoundcloudEmbed**
  - **soundgasm**
  - **soundgasm:profile**
@@ -1349,13 +1349,13 @@
  - **Tass**
  - **TBS**
  - **TDSLifeway**
- - **Teachable**: [<abbr title="netrc machine"><em>teachable</em></abbr>]
- - **TeachableCourse**: [<abbr title="netrc machine"><em>teachable</em></abbr>]
+ - **Teachable**: [*teachable*](## "netrc machine")
+ - **TeachableCourse**: [*teachable*](## "netrc machine")
  - **teachertube**: teachertube.com videos
  - **teachertube:​user:collection**: teachertube.com user and collection videos
  - **TeachingChannel**
  - **Teamcoco**
- - **TeamTreeHouse**: [<abbr title="netrc machine"><em>teamtreehouse</em></abbr>]
+ - **TeamTreeHouse**: [*teamtreehouse*](## "netrc machine")
  - **TechTalks**
  - **techtv.mit.edu**
  - **TedEmbed**
@@ -1378,8 +1378,8 @@
  - **TeleTask**
  - **Telewebion**
  - **Tempo**
- - **TennisTV**: [<abbr title="netrc machine"><em>tennistv</em></abbr>]
- - **TenPlay**: [<abbr title="netrc machine"><em>10play</em></abbr>]
+ - **TennisTV**: [*tennistv*](## "netrc machine")
+ - **TenPlay**: [*10play*](## "netrc machine")
  - **TF1**
  - **TFO**
  - **TheHoleTv**
@@ -1417,13 +1417,13 @@
  - **tokfm:audition**
  - **tokfm:podcast**
  - **ToonGoggles**
- - **tou.tv**: [<abbr title="netrc machine"><em>toutv</em></abbr>]
+ - **tou.tv**: [*toutv*](## "netrc machine")
  - **Toypics**: Toypics video
  - **ToypicsUser**: Toypics user profile
  - **TrailerAddict**: (**Currently broken**)
  - **TravelChannel**
- - **Triller**: [<abbr title="netrc machine"><em>triller</em></abbr>]
- - **TrillerUser**: [<abbr title="netrc machine"><em>triller</em></abbr>]
+ - **Triller**: [*triller*](## "netrc machine")
+ - **TrillerUser**: [*triller*](## "netrc machine")
  - **Trilulilu**
  - **Trovo**
  - **TrovoChannelClip**: All Clips of a trovo.live channel; "trovoclip:" prefix
@@ -1435,11 +1435,11 @@
  - **Truth**
  - **TruTV**
  - **Tube8**
- - **TubeTuGraz**: [<abbr title="netrc machine"><em>tubetugraz</em></abbr>] tube.tugraz.at
- - **TubeTuGrazSeries**: [<abbr title="netrc machine"><em>tubetugraz</em></abbr>]
- - **TubiTv**: [<abbr title="netrc machine"><em>tubitv</em></abbr>]
+ - **TubeTuGraz**: [*tubetugraz*](## "netrc machine") tube.tugraz.at
+ - **TubeTuGrazSeries**: [*tubetugraz*](## "netrc machine")
+ - **TubiTv**: [*tubitv*](## "netrc machine")
  - **TubiTvShow**
- - **Tumblr**: [<abbr title="netrc machine"><em>tumblr</em></abbr>]
+ - **Tumblr**: [*tumblr*](## "netrc machine")
  - **tunein:clip**
  - **tunein:program**
  - **tunein:station**
@@ -1489,13 +1489,13 @@
  - **TwitCasting**
  - **TwitCastingLive**
  - **TwitCastingUser**
- - **twitch:clips**: [<abbr title="netrc machine"><em>twitch</em></abbr>]
- - **twitch:stream**: [<abbr title="netrc machine"><em>twitch</em></abbr>]
- - **twitch:vod**: [<abbr title="netrc machine"><em>twitch</em></abbr>]
- - **TwitchCollection**: [<abbr title="netrc machine"><em>twitch</em></abbr>]
- - **TwitchVideos**: [<abbr title="netrc machine"><em>twitch</em></abbr>]
- - **TwitchVideosClips**: [<abbr title="netrc machine"><em>twitch</em></abbr>]
- - **TwitchVideosCollections**: [<abbr title="netrc machine"><em>twitch</em></abbr>]
+ - **twitch:clips**: [*twitch*](## "netrc machine")
+ - **twitch:stream**: [*twitch*](## "netrc machine")
+ - **twitch:vod**: [*twitch*](## "netrc machine")
+ - **TwitchCollection**: [*twitch*](## "netrc machine")
+ - **TwitchVideos**: [*twitch*](## "netrc machine")
+ - **TwitchVideosClips**: [*twitch*](## "netrc machine")
+ - **TwitchVideosCollections**: [*twitch*](## "netrc machine")
  - **twitter**
  - **twitter:amplify**
  - **twitter:broadcast**
@@ -1503,11 +1503,11 @@
  - **twitter:shortener**
  - **twitter:spaces**
  - **Txxx**
- - **udemy**: [<abbr title="netrc machine"><em>udemy</em></abbr>]
- - **udemy:course**: [<abbr title="netrc machine"><em>udemy</em></abbr>]
+ - **udemy**: [*udemy*](## "netrc machine")
+ - **udemy:course**: [*udemy*](## "netrc machine")
  - **UDNEmbed**: 聯合影音
- - **UFCArabia**: [<abbr title="netrc machine"><em>ufcarabia</em></abbr>]
- - **UFCTV**: [<abbr title="netrc machine"><em>ufctv</em></abbr>]
+ - **UFCArabia**: [*ufcarabia*](## "netrc machine")
+ - **UFCTV**: [*ufctv*](## "netrc machine")
  - **ukcolumn**
  - **UKTVPlay**
  - **umg:de**: Universal Music Deutschland
@@ -1537,7 +1537,7 @@
  - **VevoPlaylist**
  - **VGTV**: VGTV, BTTV, FTV, Aftenposten and Aftonbladet
  - **vh1.com**
- - **vhx:embed**: [<abbr title="netrc machine"><em>vimeo</em></abbr>]
+ - **vhx:embed**: [*vimeo*](## "netrc machine")
  - **Viafree**
  - **vice**
  - **vice:article**
@@ -1560,25 +1560,25 @@
  - **videomore:season**
  - **videomore:video**
  - **VideoPress**
- - **Vidio**: [<abbr title="netrc machine"><em>vidio</em></abbr>]
- - **VidioLive**: [<abbr title="netrc machine"><em>vidio</em></abbr>]
- - **VidioPremier**: [<abbr title="netrc machine"><em>vidio</em></abbr>]
+ - **Vidio**: [*vidio*](## "netrc machine")
+ - **VidioLive**: [*vidio*](## "netrc machine")
+ - **VidioPremier**: [*vidio*](## "netrc machine")
  - **VidLii**
  - **viewlift**
  - **viewlift:embed**
  - **Viidea**
- - **viki**: [<abbr title="netrc machine"><em>viki</em></abbr>]
- - **viki:channel**: [<abbr title="netrc machine"><em>viki</em></abbr>]
- - **vimeo**: [<abbr title="netrc machine"><em>vimeo</em></abbr>]
- - **vimeo:album**: [<abbr title="netrc machine"><em>vimeo</em></abbr>]
- - **vimeo:channel**: [<abbr title="netrc machine"><em>vimeo</em></abbr>]
- - **vimeo:group**: [<abbr title="netrc machine"><em>vimeo</em></abbr>]
- - **vimeo:likes**: [<abbr title="netrc machine"><em>vimeo</em></abbr>] Vimeo user likes
- - **vimeo:ondemand**: [<abbr title="netrc machine"><em>vimeo</em></abbr>]
- - **vimeo:pro**: [<abbr title="netrc machine"><em>vimeo</em></abbr>]
- - **vimeo:review**: [<abbr title="netrc machine"><em>vimeo</em></abbr>] Review pages on vimeo
- - **vimeo:user**: [<abbr title="netrc machine"><em>vimeo</em></abbr>]
- - **vimeo:watchlater**: [<abbr title="netrc machine"><em>vimeo</em></abbr>] Vimeo watch later list, ":vimeowatchlater" keyword (requires authentication)
+ - **viki**: [*viki*](## "netrc machine")
+ - **viki:channel**: [*viki*](## "netrc machine")
+ - **vimeo**: [*vimeo*](## "netrc machine")
+ - **vimeo:album**: [*vimeo*](## "netrc machine")
+ - **vimeo:channel**: [*vimeo*](## "netrc machine")
+ - **vimeo:group**: [*vimeo*](## "netrc machine")
+ - **vimeo:likes**: [*vimeo*](## "netrc machine") Vimeo user likes
+ - **vimeo:ondemand**: [*vimeo*](## "netrc machine")
+ - **vimeo:pro**: [*vimeo*](## "netrc machine")
+ - **vimeo:review**: [*vimeo*](## "netrc machine") Review pages on vimeo
+ - **vimeo:user**: [*vimeo*](## "netrc machine")
+ - **vimeo:watchlater**: [*vimeo*](## "netrc machine") Vimeo watch later list, ":vimeowatchlater" keyword (requires authentication)
  - **Vimm:recording**
  - **Vimm:stream**
  - **ViMP**
@@ -1588,13 +1588,13 @@
  - **vine:user**
  - **Viqeo**
  - **Viu**
- - **viu:ott**: [<abbr title="netrc machine"><em>viu</em></abbr>]
+ - **viu:ott**: [*viu*](## "netrc machine")
  - **viu:playlist**
  - **ViuOTTIndonesia**
  - **Vivo**: vivo.sx
- - **vk**: [<abbr title="netrc machine"><em>vk</em></abbr>] VK
- - **vk:uservideos**: [<abbr title="netrc machine"><em>vk</em></abbr>] VK - User's Videos
- - **vk:wallpost**: [<abbr title="netrc machine"><em>vk</em></abbr>]
+ - **vk**: [*vk*](## "netrc machine") VK
+ - **vk:uservideos**: [*vk*](## "netrc machine") VK - User's Videos
+ - **vk:wallpost**: [*vk*](## "netrc machine")
  - **vm.tiktok**
  - **Vocaroo**
  - **Vodlocker**
@@ -1613,14 +1613,14 @@
  - **vqq:video**
  - **Vrak**
  - **VRT**: VRT NWS, Flanders News, Flandern Info and Sporza
- - **VrtNU**: [<abbr title="netrc machine"><em>vrtnu</em></abbr>] VrtNU.be
- - **vrv**: [<abbr title="netrc machine"><em>vrv</em></abbr>]
+ - **VrtNU**: [*vrtnu*](## "netrc machine") VrtNU.be
+ - **vrv**: [*vrv*](## "netrc machine")
  - **vrv:series**
  - **VShare**
  - **VTM**
- - **VTXTV**: [<abbr title="netrc machine"><em>vtxtv</em></abbr>]
- - **VTXTVLive**: [<abbr title="netrc machine"><em>vtxtv</em></abbr>]
- - **VTXTVRecordings**: [<abbr title="netrc machine"><em>vtxtv</em></abbr>]
+ - **VTXTV**: [*vtxtv*](## "netrc machine")
+ - **VTXTVLive**: [*vtxtv*](## "netrc machine")
+ - **VTXTVRecordings**: [*vtxtv*](## "netrc machine")
  - **VuClip**
  - **Vupload**
  - **VVVVID**
@@ -1629,9 +1629,9 @@
  - **Vzaar**
  - **Wakanim**
  - **Walla**
- - **WalyTV**: [<abbr title="netrc machine"><em>walytv</em></abbr>]
- - **WalyTVLive**: [<abbr title="netrc machine"><em>walytv</em></abbr>]
- - **WalyTVRecordings**: [<abbr title="netrc machine"><em>walytv</em></abbr>]
+ - **WalyTV**: [*walytv*](## "netrc machine")
+ - **WalyTVLive**: [*walytv*](## "netrc machine")
+ - **WalyTVRecordings**: [*walytv*](## "netrc machine")
  - **wasdtv:clip**
  - **wasdtv:record**
  - **wasdtv:stream**
@@ -1743,13 +1743,13 @@
  - **YoutubeLivestreamEmbed**: YouTube livestream embeds
  - **YoutubeYtBe**: youtu.be
  - **Zapiks**
- - **Zattoo**: [<abbr title="netrc machine"><em>zattoo</em></abbr>]
- - **ZattooLive**: [<abbr title="netrc machine"><em>zattoo</em></abbr>]
- - **ZattooMovies**: [<abbr title="netrc machine"><em>zattoo</em></abbr>]
- - **ZattooRecordings**: [<abbr title="netrc machine"><em>zattoo</em></abbr>]
+ - **Zattoo**: [*zattoo*](## "netrc machine")
+ - **ZattooLive**: [*zattoo*](## "netrc machine")
+ - **ZattooMovies**: [*zattoo*](## "netrc machine")
+ - **ZattooRecordings**: [*zattoo*](## "netrc machine")
  - **ZDF**
  - **ZDFChannel**
- - **Zee5**: [<abbr title="netrc machine"><em>zee5</em></abbr>]
+ - **Zee5**: [*zee5*](## "netrc machine")
  - **zee5:series**
  - **ZeeNews**
  - **ZenYandex**

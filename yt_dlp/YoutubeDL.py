@@ -614,7 +614,7 @@ class YoutubeDL:
                    '\n                    You will no longer receive updates on this version')
             if current_version < MIN_SUPPORTED:
                 msg = 'Python version %d.%d is no longer supported'
-            self.deprecation_warning(
+            self.deprecated_feature(
                 f'{msg}! Please update to Python %d.%d or above' % (*current_version, *MIN_RECOMMENDED))
 
         if self.params.get('allow_unplayable_formats'):

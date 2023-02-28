@@ -46,6 +46,8 @@ body:
       label: Provide verbose output that clearly demonstrates the problem
       options:
         - label: Run **your** yt-dlp command with **-vU** flag added (`yt-dlp -vU <your command line>`)
+        - label: "If using API, add `'verbose': True` to `YoutubeDL` params instead"
+          required: false
         - label: Copy the WHOLE output (starting with `[debug] Command-line config`) and insert it below
   - type: textarea
     id: log
