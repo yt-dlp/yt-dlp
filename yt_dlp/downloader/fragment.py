@@ -497,7 +497,7 @@ class FragmentFD(FileDownloader):
                 download_fragment(fragment, ctx_copy)
                 return fragment, fragment['frag_index'], ctx_copy.get('fragment_filename_sanitized')
 
-            self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
+            self.report_warning('The download speed shown is only of one thread. This is a known issue')
             with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
                 try:
                     for fragment, frag_index, frag_filename in pool.map(_download_fragment, fragments):

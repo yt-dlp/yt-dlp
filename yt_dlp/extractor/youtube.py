@@ -956,7 +956,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     @staticmethod
     def is_music_url(url):
-        return re.match(r'https?://music\.youtube\.com/', url) is not None
+        return re.match(r'(https?://)?music\.youtube\.com/', url) is not None
 
     def _extract_video(self, renderer):
         video_id = renderer.get('videoId')
@@ -6211,6 +6211,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         original_tab_id, display_id = tab[1:], f'{item_id}{tab}'
         if is_channel and not tab and 'no-youtube-channel-redirect' not in compat_opts:
             url = f'{pre}/videos{post}'
+        if smuggled_data.get('is_music_url'):
+            self.report_warning(f'YouTube Music is not directly supported. Redirecting to {url}')
 
         # Handle both video/playlist URLs
         qs = parse_qs(url)

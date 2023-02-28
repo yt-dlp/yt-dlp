@@ -3527,7 +3527,7 @@ class InfoExtractor:
         desc = ''
         if cls._NETRC_MACHINE:
             if markdown:
-                desc += f' [<abbr title="netrc machine"><em>{cls._NETRC_MACHINE}</em></abbr>]'
+                desc += f' [*{cls._NETRC_MACHINE}*](## "netrc machine")'
             else:
                 desc += f' [{cls._NETRC_MACHINE}]'
         if cls.IE_DESC is False:
