@@ -128,7 +128,7 @@ class IPrimaIE(InfoExtractor):
             data = nuxt_data['data']
             inner = data[list(data.keys())[0]]
             video_id = traverse_obj(inner, ('content', 'additionals', 'videoPlayId'))
-            assert video_id and len(video_id), "Failed to get video id from nuxt"
+            assert video_id and len(video_id), 'Failed to get video id from nuxt'
             return video_id
         except Exception as e:
             self.raise_no_formats(f'Failed to extract video id: {e}')
