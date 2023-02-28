@@ -4905,6 +4905,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         info['view_count'] = self._get_count(playlist_stats, 1)
         if info['view_count'] is None:  # 0 is allowed
             info['view_count'] = self._get_count(playlist_header_renderer, 'viewCountText')
+        if info['view_count'] is None:
+            info['view_count'] = self._get_count(data, (
+                'contents', 'twoColumnBrowseResultsRenderer', 'tabs', ..., 'tabRenderer', 'content', 'sectionListRenderer',
+                'contents', ..., 'itemSectionRenderer', 'contents', ..., 'channelAboutFullMetadataRenderer', 'viewCountText'))
 
         info['playlist_count'] = self._get_count(playlist_stats, 0)
         if info['playlist_count'] is None:  # 0 is allowed
@@ -6124,6 +6128,23 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             }
         }],
         'params': {'extract_flat': True},
+    }, {
+        'url': 'https://www.youtube.com/@3blue1brown/about',
+        'info_dict': {
+            'id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'tags': ['Mathematics'],
+            'title': '3Blue1Brown - About',
+            'uploader_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
+            'channel_follower_count': int,
+            'channel_id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'uploader_id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'channel': '3Blue1Brown',
+            'uploader': '3Blue1Brown',
+            'view_count': int,
+            'channel_url': 'https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw',
+            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+        },
+        'playlist_count': 0,
     }]
 
     @classmethod
