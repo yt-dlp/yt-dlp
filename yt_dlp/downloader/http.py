@@ -18,7 +18,7 @@ from ..utils import (
     parse_http_range,
     sanitized_Request,
     try_call,
-    write_xattr,
+    write_xattr, update_url_query,
 )
 
 RESPONSE_READ_EXCEPTIONS = (
@@ -120,12 +120,14 @@ class HttpFD(FileDownloader):
             if try_call(lambda: range_end >= ctx.content_len):
                 range_end = ctx.content_len - 1
 
-            request = sanitized_Request(url, request_data, headers)
             has_range = range_start is not None
-            if has_range:
-                request.add_header('Range', f'bytes={int(range_start)}-{int_or_none(range_end) or ""}')
+            request = sanitized_Request(url if not has_range else update_url_query(url, {'range': f'{int(range_start)}-{int_or_none(range_end) or ""}'}), request_data, headers)
+
+            # if has_range:
+            #     request.add_header('Range', f'bytes={int(range_start)}-{int_or_none(range_end) or ""}')
             # Establish connection
             try:
+                total_length = int_or_none(self.ydl.urlopen(sanitized_Request(url, request_data, headers)).headers.get('Content-Length'))
                 ctx.data = self.ydl.urlopen(request)
                 # When trying to resume, Content-Range HTTP header of response has to be checked
                 # to match the value of requested Range HTTP header. This is due to a webservers
@@ -133,8 +135,8 @@ class HttpFD(FileDownloader):
                 # set in response despite of requested Range (see
                 # https://github.com/ytdl-org/youtube-dl/issues/6057#issuecomment-126129799)
                 if has_range:
-                    content_range = ctx.data.headers.get('Content-Range')
-                    content_range_start, content_range_end, content_len = parse_http_range(content_range)
+                    # content_range = ctx.data.headers.get('Content-Range')
+                    content_range_start, content_range_end, content_len = range_start, range_end, total_length
                     # Content-Range is present and matches requested Range, resume is possible
                     if range_start == content_range_start and (
                             # Non-chunked download
