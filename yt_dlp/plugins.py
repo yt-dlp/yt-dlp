@@ -88,7 +88,7 @@ class PluginFinder(importlib.abc.MetaPathFinder):
             candidate = path / parts
             if candidate.is_dir():
                 yield candidate
-            elif path.suffix in ('.zip', '.egg', '.whl'):
+            elif path.suffix in ('.zip', '.egg', '.whl') and path.is_file():
                 if parts in dirs_in_zip(path):
                     yield candidate
 
