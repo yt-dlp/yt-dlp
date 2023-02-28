@@ -3778,7 +3778,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if no_audio or no_video:
                 CHUNK_SIZE = 10 << 20
                 dct.update({
-                    'request_data': b'x',
                     'protocol': 'http_dash_segments',
                     'fragments': [{
                         'url': update_url_query(dct['url'], {
