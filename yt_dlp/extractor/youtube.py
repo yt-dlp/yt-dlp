@@ -3341,6 +3341,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 comment = self._extract_comment(comment_renderer, parent)
                 if not comment:
                     continue
+                # Sometimes YouTube may break and give us infinite looping comments.
+                # See: https://github.com/yt-dlp/yt-dlp/issues/6290
+                if comment['id'] in tracker['seen_comment_ids']:
+                    self.report_warning('Detected YouTube comments looping. Stopping comment extraction as we probably cannot get any more.')
+                    yield
+                else:
+                    tracker['seen_comment_ids'].add(comment['id'])
 
                 tracker['running_total'] += 1
                 tracker['total_reply_comments' if parent else 'total_parent_comments'] += 1
@@ -3365,7 +3372,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 est_total=0,
                 current_page_thread=0,
                 total_parent_comments=0,
-                total_reply_comments=0)
+                total_reply_comments=0,
+                seen_comment_ids=set())
 
         # TODO: Deprecated
         # YouTube comments have a max depth of 2
