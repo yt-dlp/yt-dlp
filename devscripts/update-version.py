@@ -53,10 +53,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Update the version.py file')
     parser.add_argument(
         '-c', '--channel', choices=['stable', 'nightly'], default='stable',
-        help='Select update channel (default: stable)')
+        help='Select update channel (default: %(default)s)')
     parser.add_argument(
         '-o', '--output', default='yt_dlp/version.py',
-        help='The output file to write to (default: yt_dlp/version.py)')
+        help='The output file to write to (default: %(default)s)')
     parser.add_argument(
         'version', nargs='?', default=None,
         help='A version or revision to use instead of generating one')
