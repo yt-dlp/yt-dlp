@@ -355,7 +355,7 @@ secrets.PYPI_TOKEN: Token for PyPI
 secrets.BREW_TOKEN: Private deploy key for Homebrew taps repo
 # Note: the brew workflow step and `update-formulae.py` are tailored specifically to yt-dlp
 ```
-Additionally, you may want to add your a channel for your repository in `yt_dlp.update.UPDATE_SOURCES` to make `--update-to`/`-U` compatible with your fork.
+Additionally, you may want to add a channel for your repository in `yt_dlp.update.UPDATE_SOURCES` to make `--update-to`/`-U` compatible with your fork.
 
 # USAGE AND OPTIONS
 
