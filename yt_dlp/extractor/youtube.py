@@ -22,6 +22,8 @@ from .common import InfoExtractor, SearchInfoExtractor
 from .openload import PhantomJSwrapper
 from ..compat import functools
 from ..jsinterp import JSInterpreter
+from ..output.enums import Style
+from ..output.logger import LogLevel
 from ..utils import (
     NO_DEFAULT,
     ExtractorError,
@@ -3718,8 +3720,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 except ExtractorError as e:
                     phantomjs_hint = ''
                     if isinstance(e, JSInterpreter.Exception):
-                        phantomjs_hint = (f'         Install {self._downloader._format_err("PhantomJS", self._downloader.Styles.EMPHASIS)} '
-                                          f'to workaround the issue. {PhantomJSwrapper.INSTALL_HINT}\n')
+                        phantomjs_f = self.logger.format(LogLevel.WARNING, "PhantomJS", Style.EMPHASIS)
+                        phantomjs_hint = (f'         Install {phantomjs_f} to workaround the issue. {PhantomJSwrapper.INSTALL_HINT}\n')
                     if player_url:
                         self.report_warning(
                             f'nsig extraction failed: You may experience throttling for some formats\n{phantomjs_hint}'

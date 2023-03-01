@@ -74,13 +74,14 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
             return self._downloader.report_warning(text, *args, **kwargs)
 
     def deprecation_warning(self, msg):
-        warn = getattr(self._downloader, 'deprecation_warning', deprecation_warning)
-        return warn(msg, stacklevel=1)
+        if self._downloader:
+            return self._downloader.deprecated_feature(msg)
+        return deprecation_warning(msg, stacklevel=1, __internal=True)
 
     def deprecated_feature(self, msg):
         if self._downloader:
             return self._downloader.deprecated_feature(msg)
-        return deprecation_warning(msg, stacklevel=1)
+        return deprecation_warning(msg, stacklevel=1, __internal=True)
 
     def report_error(self, text, *args, **kwargs):
         self.deprecation_warning('"yt_dlp.postprocessor.PostProcessor.report_error" is deprecated. '
@@ -189,7 +190,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
             self._downloader.to_screen(
                 self._downloader.evaluate_outtmpl(tmpl, progress_dict), skip_eol=True, quiet=False)
 
-        self._downloader.to_console_title(self._downloader.evaluate_outtmpl(
+        self._downloader.console.change_title(self._downloader.evaluate_outtmpl(
             progress_template.get('postprocess-title') or 'yt-dlp %(progress._default_template)s',
             progress_dict))
 

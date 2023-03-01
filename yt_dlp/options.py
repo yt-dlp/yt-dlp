@@ -11,6 +11,9 @@ import sys
 from .compat import compat_expanduser
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
+from .output.helper import _make_ydl_logger
+from .output.logger import LogLevel
+from .output.outputs import StreamOutput
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
@@ -25,7 +28,6 @@ from .utils import (
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
     Config,
-    deprecation_warning,
     expand_path,
     format_field,
     get_executable_path,
@@ -34,7 +36,6 @@ from .utils import (
     join_nonempty,
     orderedSet_from_options,
     remove_end,
-    write_string,
 )
 from .version import __version__
 
@@ -86,6 +87,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
         yield add_config('System', func=get_system_config_dirs)
 
     opts = optparse.Values({'verbose': True, 'print_help': False})
+    build_logger = True
     try:
         try:
             if overrideArguments is not None:
@@ -115,19 +117,49 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             opts, _ = root.parse_known_args(strict=False)
         raise
     except (SystemExit, KeyboardInterrupt):
-        opts.verbose = False
+        build_logger = False
         raise
     finally:
-        verbose = opts.verbose and f'\n{root}'.replace('\n| ', '\n[debug] ')[1:]
-        if verbose:
-            write_string(f'{verbose}\n')
+        if build_logger:
+            logger = _create_cli_logger(opts)
+            if opts.verbose:
+                # Set no forced encoding to avoid malformed output
+                output = logger.mapping[LogLevel.DEBUG]
+                if isinstance(output, StreamOutput):
+                    prev_encoding = output.encoding
+                    output.encoding = None
+                for line in f'\n{root}'.split('\n| ')[1:]:
+                    logger.debug(line)
+                if isinstance(output, StreamOutput):
+                    output.encoding = prev_encoding
         if opts.print_help:
-            if verbose:
-                write_string('\n')
+            if build_logger and opts.verbose:
+                logger.screen('')
             root.parser.print_help()
     if opts.print_help:
         sys.exit()
+    opts.logger = logger
     return root.parser, opts, args
+
+
+def _create_cli_logger(opts):
+    # Sadly some duplication, but we need to keep compat
+    any_getting = any(getattr(opts, k) for k in (
+        'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
+        'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
+    ))
+
+    params = {
+        'encoding': opts.encoding,
+        'logtostderr': opts.outtmpl.get('default') == '-',
+        'no_color': opts.no_color,
+        'no_warnings': opts.no_warnings,
+        'noprogress': opts.quiet if opts.noprogress is None else opts.noprogress,
+        'quiet': opts.quiet or any_getting or opts.print_json or bool(opts.forceprint),
+        'verbose': opts.verbose,
+    }
+
+    return _make_ydl_logger(params)
 
 
 class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
@@ -1860,9 +1892,3 @@ def create_parser():
     parser.add_option_group(extractor)
 
     return parser
-
-
-def _hide_login_info(opts):
-    deprecation_warning(f'"{__name__}._hide_login_info" is deprecated and may be removed '
-                        'in a future version. Use "yt_dlp.utils.Config.hide_login_info" instead')
-    return Config.hide_login_info(opts)

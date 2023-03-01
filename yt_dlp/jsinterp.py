@@ -5,6 +5,7 @@ import json
 import math
 import operator
 import re
+import sys
 
 from .utils import (
     NO_DEFAULT,
@@ -13,7 +14,6 @@ from .utils import (
     remove_quotes,
     truncate_string,
     unified_timestamp,
-    write_string,
 )
 
 
@@ -162,13 +162,16 @@ class LocalNameSpace(collections.ChainMap):
 
 
 class Debugger:
-    import sys
     ENABLED = False and 'pytest' in sys.modules
 
     @staticmethod
     def write(*args, level=100):
-        write_string(f'[debug] JS: {"  " * (100 - level)}'
-                     f'{" ".join(truncate_string(str(x), 50, 50) for x in args)}\n')
+        from .output.outputs import StreamOutput
+
+        # XXX: Since this is rarely used, work around deprecation by creating an output
+        StreamOutput(sys.stderr).write(
+            f'[debug] JS: {"  " * (100 - level)}'
+            f'{" ".join(truncate_string(str(x), 50, 50) for x in args)}\n')
 
     @classmethod
     def wrap_interpreter(cls, f):

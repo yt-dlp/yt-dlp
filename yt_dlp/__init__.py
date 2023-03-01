@@ -20,6 +20,7 @@ from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .options import parseOpts
+from .output.helper import redirect_warnings
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegMergerPP,
@@ -59,7 +60,6 @@ from .utils import (
     std_headers,
     traverse_obj,
     variadic,
-    write_string,
 )
 from .YoutubeDL import YoutubeDL
 
@@ -72,7 +72,7 @@ def _exit(status=0, *args):
     raise SystemExit(status)
 
 
-def get_urls(urls, batchfile, verbose):
+def get_urls(urls, batchfile, logger):
     # Batch file verification
     batch_urls = []
     if batchfile is not None:
@@ -80,8 +80,7 @@ def get_urls(urls, batchfile, verbose):
             batch_urls = read_batch_urls(
                 read_stdin('URLs') if batchfile == '-'
                 else open(expand_path(batchfile), encoding='utf-8', errors='ignore'))
-            if verbose:
-                write_string('[debug] Batch file urls: ' + repr(batch_urls) + '\n')
+            logger.debug(f'Batch file urls: {batch_urls!r}')
         except OSError:
             _exit(f'ERROR: batch file {batchfile} could not be read')
     _enc = preferredencoding()
@@ -116,7 +115,7 @@ def print_extractor_information(opts, urls):
             [[mso_id, mso_info['name']] for mso_id, mso_info in MSO_INFO.items()])
     else:
         return False
-    write_string(out, out=sys.stdout)
+    opts.logger.screen(out)
     return True
 
 
@@ -430,11 +429,9 @@ def validate_options(opts):
         elif ed and proto == 'default':
             default_downloader = ed.get_basename()
 
-    warnings, deprecation_warnings = [], []
-
     # Common mistake: -f best
     if opts.format == 'best':
-        warnings.append('.\n         '.join((
+        opts.logger.warning('.\n         '.join((
             '"-f best" selects the best pre-merged format which is often not the best option',
             'To let yt-dlp download and merge the best available formats, simply do not pass any format selection',
             'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
@@ -442,8 +439,8 @@ def validate_options(opts):
     # --(postprocessor/downloader)-args without name
     def report_args_compat(name, value, key1, key2=None, where=None):
         if key1 in value and key2 not in value:
-            warnings.append(f'{name.title()} arguments given without specifying name. '
-                            f'The arguments will be given to {where or f"all {name}s"}')
+            opts.logger.warning(f'{name.title()} arguments given without specifying name. '
+                                f'The arguments will be given to {where or f"all {name}s"}')
             return True
         return False
 
@@ -466,7 +463,7 @@ def validate_options(opts):
         if val1 is NO_DEFAULT:
             val1 = getattr(opts, opt1)
         if val1:
-            warnings.append(f'{arg1} is ignored since {arg2} was given')
+            opts.logger.warning(f'{arg1} is ignored since {arg2} was given')
         setattr(opts, opt1, default)
 
     # Conflicting options
@@ -504,7 +501,7 @@ def validate_options(opts):
     def report_deprecation(val, old, new=None):
         if not val:
             return
-        deprecation_warnings.append(
+        opts.logger.deprecated_feature(
             f'{old} is deprecated and may be removed in a future version. Use {new} instead' if new
             else f'{old} is deprecated and may not work as expected')
 
@@ -552,8 +549,6 @@ def validate_options(opts):
         opts.password = getpass.getpass('Type account password and press [Return]: ')
     if opts.ap_username is not None and opts.ap_password is None:
         opts.ap_password = getpass.getpass('Type TV provider account password and press [Return]: ')
-
-    return warnings, deprecation_warnings
 
 
 def get_postprocessors(opts):
@@ -689,11 +684,12 @@ ParsedOptions = collections.namedtuple('ParsedOptions', ('parser', 'options', 'u
 def parse_options(argv=None):
     """@returns ParsedOptions(parser, opts, urls, ydl_opts)"""
     parser, opts, urls = parseOpts(argv)
-    urls = get_urls(urls, opts.batchfile, opts.verbose)
+    redirect_warnings(opts.logger)
+    urls = get_urls(urls, opts.batchfile, opts.logger)
 
     set_compat_opts(opts)
     try:
-        warnings, deprecation_warnings = validate_options(opts)
+        validate_options(opts)
     except ValueError as err:
         parser.error(f'{err}\n')
 
@@ -899,8 +895,7 @@ def parse_options(argv=None):
         'geo_bypass': opts.geo_bypass,
         'geo_bypass_country': opts.geo_bypass_country,
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
-        '_warnings': warnings,
-        '_deprecation_warnings': deprecation_warnings,
+        'logger': opts.logger,
         'compat_opts': opts.compat_opts,
     })
 
@@ -913,7 +908,7 @@ def _real_main(argv=None):
     # Dump user agent
     if opts.dump_user_agent:
         ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
-        write_string(f'{ua}\n', out=sys.stdout)
+        opts.logger.screen(ua)
         return
 
     if print_extractor_information(opts, all_urls):
@@ -937,7 +932,7 @@ def _real_main(argv=None):
                 return updater.restart()
             # This code is reachable only for zip variant in py < 3.10
             # It makes sense to exit here, but the old behavior is to continue
-            ydl.report_warning('Restart yt-dlp to use the updated version')
+            opts.logger.warning('Restart yt-dlp to use the updated version')
             # return 100, 'ERROR: The program must exit for the update to complete'
 
         if not actual_use:

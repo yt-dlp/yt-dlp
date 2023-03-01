@@ -24,12 +24,13 @@ from ..compat import functools  # isort: split
 from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..cookies import LenientSimpleCookie
 from ..downloader.f4m import get_base_url, remove_encrypted_media
+from ..output.enums import Style
+from ..output.logger import LogLevel, default_logger
 from ..utils import (
     IDENTITY,
     JSON_LD_RE,
     NO_DEFAULT,
     ExtractorError,
-    FormatSorter,
     GeoRestrictedError,
     GeoUtils,
     HEADRequest,
@@ -42,7 +43,6 @@ from ..utils import (
     bug_reports_message,
     classproperty,
     clean_html,
-    deprecation_warning,
     determine_ext,
     dict_get,
     encode_data_uri,
@@ -737,6 +737,12 @@ class InfoExtractor:
         self._downloader = downloader
 
     @property
+    def logger(self):
+        if self._downloader is None:
+            return default_logger
+        return self._downloader.logger
+
+    @property
     def cache(self):
         return self._downloader.cache
 
@@ -1226,7 +1232,7 @@ class InfoExtractor:
                 if mobj:
                     break
 
-        _name = self._downloader._format_err(name, self._downloader.Styles.EMPHASIS)
+        _name = self.logger.format(LogLevel.ERROR, name, Style.EMPHASIS)
 
         if mobj:
             if group is None:
@@ -1259,7 +1265,7 @@ class InfoExtractor:
         if not json_string:
             return default
 
-        _name = self._downloader._format_err(name, self._downloader.Styles.EMPHASIS)
+        _name = self.logger.format(LogLevel.ERROR, name, Style.EMPHASIS)
         try:
             return self._parse_json(json_string, video_id, ignore_extra=True, **kwargs)
         except ExtractorError as e:
@@ -1698,17 +1704,6 @@ class InfoExtractor:
             r'(?is)<form[^>]+?id=(["\'])%s\1[^>]*>(?P<form>.+?)</form>' % form_id,
             html, '%s form' % form_id, group='form')
         return self._hidden_inputs(form)
-
-    @classproperty(cache=True)
-    def FormatSort(cls):
-        class FormatSort(FormatSorter):
-            def __init__(ie, *args, **kwargs):
-                super().__init__(ie._downloader, *args, **kwargs)
-
-        deprecation_warning(
-            'yt_dlp.InfoExtractor.FormatSort is deprecated and may be removed in the future. '
-            'Use yt_dlp.utils.FormatSorter instead')
-        return FormatSort
 
     def _sort_formats(self, formats, field_preference=[]):
         if not field_preference:

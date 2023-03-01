@@ -8,6 +8,7 @@ import itertools
 import pkgutil
 import sys
 import traceback
+import warnings
 import zipimport
 from pathlib import Path
 from zipfile import ZipFile
@@ -18,7 +19,6 @@ from .utils import (
     get_system_config_dirs,
     get_user_config_dirs,
     orderedSet,
-    write_string,
 )
 
 PACKAGE_NAME = 'yt_dlp_plugins'
@@ -41,7 +41,7 @@ def dirs_in_zip(archive):
     except FileNotFoundError:
         pass
     except Exception as e:
-        write_string(f'WARNING: Could not read zip file {archive}: {e}\n')
+        warnings.warn(RuntimeWarning(f'Could not read zip file {archive}: {e}'))
     return set()
 
 
@@ -150,7 +150,7 @@ def load_plugins(name, suffix):
                 sys.modules[module_name] = module
                 spec.loader.exec_module(module)
         except Exception:
-            write_string(f'Error while importing module {module_name!r}\n{traceback.format_exc(limit=-1)}')
+            warnings.warn(ImportWarning(f'Error in module {module_name!r}\n{traceback.format_exc(limit=1)}'))
             continue
         classes.update(load_module(module, module_name, suffix))
 

@@ -6,31 +6,21 @@ import random
 import re
 import time
 
-from ..minicurses import (
-    BreaklineStatusPrinter,
-    MultilineLogger,
-    MultilinePrinter,
-    QuietMultilinePrinter,
-)
+from ..output.progress import ProgressReporter
 from ..utils import (
     IDENTITY,
     NO_DEFAULT,
     LockingUnsupportedError,
-    Namespace,
     RetryManager,
     classproperty,
     decodeArgument,
-    deprecation_warning,
     encodeFilename,
     format_bytes,
-    join_nonempty,
-    parse_bytes,
     remove_start,
     sanitize_open,
     shell_quote,
     timeconvert,
     timetuple_from_msec,
-    try_call,
 )
 
 
@@ -91,25 +81,38 @@ class FileDownloader:
 
     def _set_ydl(self, ydl):
         self.ydl = ydl
+        self.logger = ydl.logger
+        self.console = ydl.console
 
-        for func in (
-            'deprecation_warning',
-            'deprecated_feature',
-            'report_error',
-            'report_file_already_downloaded',
-            'report_warning',
-            'to_console_title',
-            'to_stderr',
-            'trouble',
-            'write_debug',
-        ):
-            if not hasattr(self, func):
-                setattr(self, func, getattr(ydl, func))
+    def deprecation_warning(self, message, *, stacklevel=0):
+        self.logger.deprecation_warning(message, stacklevel=stacklevel + 1)
 
-    def to_screen(self, *args, **kargs):
-        self.ydl.to_screen(*args, quiet=self.params.get('quiet'), **kargs)
+    def deprecated_feature(self, message):
+        self.logger.deprecated_feature(message)
 
-    __to_screen = to_screen
+    def report_error(self, message, tb=None, is_error=True):
+        self.logger.handle_error(message, trace=tb, is_error=is_error)
+
+    def report_file_already_downloaded(self, file_name):
+        self.ydl.report_file_already_downloaded(file_name)
+
+    def report_warning(self, message, only_once=False):
+        self.logger.warning(message, once=only_once)
+
+    def to_console_title(self, message):
+        self.console.change_title(message)
+
+    def to_screen(self, message, skip_eol=False, only_once=False):
+        self.logger.info(message, newline=not skip_eol, quiet=self.params.get('quiet'), once=only_once)
+
+    def to_stderr(self, message, only_once=False):
+        self.logger.error(message, once=only_once)
+
+    def trouble(self, message=None, tb=None, is_error=True):
+        self.logger.handle_error(message, trace=tb, is_error=is_error, prefix=False)
+
+    def write_debug(self, message, only_once=False):
+        self.logger.debug(message, once=only_once)
 
     @classproperty
     def FD_NAME(cls):
@@ -178,13 +181,6 @@ class FileDownloader:
             return int(new_min)
         return int(rate)
 
-    @staticmethod
-    def parse_bytes(bytestr):
-        """Parse a string indicating a byte quantity into an integer."""
-        deprecation_warning('yt_dlp.FileDownloader.parse_bytes is deprecated and '
-                            'may be removed in the future. Use yt_dlp.utils.parse_bytes instead')
-        return parse_bytes(bytestr)
-
     def slow_down(self, start_time, now, byte_counter):
         """Sleep if the download speed is over the rate limit."""
         rate_limit = self.params.get('ratelimit')
@@ -219,7 +215,7 @@ class FileDownloader:
     def wrap_file_access(action, *, fatal=False):
         def error_callback(err, count, retries, *, fd):
             return RetryManager.report_retry(
-                err, count, retries, info=fd.__to_screen,
+                err, count, retries, info=fd.to_screen,
                 warn=lambda e: (time.sleep(0.01), fd.to_screen(f'[download] Unable to {action} file: {e}')),
                 error=None if fatal else lambda e: fd.report_error(f'Unable to {action} file: {e}'),
                 sleep_func=fd.params.get('retry_sleep_functions', {}).get('file_access'))
@@ -277,107 +273,15 @@ class FileDownloader:
         self.to_screen('[download] Destination: ' + filename)
 
     def _prepare_multiline_status(self, lines=1):
-        if self.params.get('noprogress'):
-            self._multiline = QuietMultilinePrinter()
-        elif self.ydl.params.get('logger'):
-            self._multiline = MultilineLogger(self.ydl.params['logger'], lines)
-        elif self.params.get('progress_with_newline'):
-            self._multiline = BreaklineStatusPrinter(self.ydl._out_files.out, lines)
-        else:
-            self._multiline = MultilinePrinter(self.ydl._out_files.out, lines, not self.params.get('quiet'))
-        self._multiline.allow_colors = self._multiline._HAVE_FULLCAP and not self.params.get('no_color')
-
-    def _finish_multiline_status(self):
-        self._multiline.end()
-
-    ProgressStyles = Namespace(
-        downloaded_bytes='light blue',
-        percent='light blue',
-        eta='yellow',
-        speed='green',
-        elapsed='bold white',
-        total_bytes='',
-        total_bytes_estimate='',
-    )
-
-    def _report_progress_status(self, s, default_template):
-        for name, style in self.ProgressStyles.items_:
-            name = f'_{name}_str'
-            if name not in s:
-                continue
-            s[name] = self._format_progress(s[name], style)
-        s['_default_template'] = default_template % s
-
-        progress_dict = s.copy()
-        progress_dict.pop('info_dict')
-        progress_dict = {'info': s['info_dict'], 'progress': progress_dict}
-
-        progress_template = self.params.get('progress_template', {})
-        self._multiline.print_at_line(self.ydl.evaluate_outtmpl(
-            progress_template.get('download') or '[download] %(progress._default_template)s',
-            progress_dict), s.get('progress_idx') or 0)
-        self.to_console_title(self.ydl.evaluate_outtmpl(
-            progress_template.get('download-title') or 'yt-dlp %(progress._default_template)s',
-            progress_dict))
-
-    def _format_progress(self, *args, **kwargs):
-        return self.ydl._format_text(
-            self._multiline.stream, self._multiline.allow_colors, *args, **kwargs)
+        self._progress = ProgressReporter(
+            self.ydl, 'download', lines=lines,
+            newline=bool(self.params.get('progress_with_newline')),
+            preserve=not self.params.get('quiet'),
+            disabled=bool(self.params.get('noprogress')),
+            templates=self.params.get('progress_template', {}))
 
     def report_progress(self, s):
-        def with_fields(*tups, default=''):
-            for *fields, tmpl in tups:
-                if all(s.get(f) is not None for f in fields):
-                    return tmpl
-            return default
-
-        _format_bytes = lambda k: f'{format_bytes(s.get(k)):>10s}'
-
-        if s['status'] == 'finished':
-            if self.params.get('noprogress'):
-                self.to_screen('[download] Download completed')
-            speed = try_call(lambda: s['total_bytes'] / s['elapsed'])
-            s.update({
-                'speed': speed,
-                '_speed_str': self.format_speed(speed).strip(),
-                '_total_bytes_str': _format_bytes('total_bytes'),
-                '_elapsed_str': self.format_seconds(s.get('elapsed')),
-                '_percent_str': self.format_percent(100),
-            })
-            self._report_progress_status(s, join_nonempty(
-                '100%%',
-                with_fields(('total_bytes', 'of %(_total_bytes_str)s')),
-                with_fields(('elapsed', 'in %(_elapsed_str)s')),
-                with_fields(('speed', 'at %(_speed_str)s')),
-                delim=' '))
-
-        if s['status'] != 'downloading':
-            return
-
-        s.update({
-            '_eta_str': self.format_eta(s.get('eta')).strip(),
-            '_speed_str': self.format_speed(s.get('speed')),
-            '_percent_str': self.format_percent(try_call(
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
-                lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
-                lambda: s['downloaded_bytes'] == 0 and 0)),
-            '_total_bytes_str': _format_bytes('total_bytes'),
-            '_total_bytes_estimate_str': _format_bytes('total_bytes_estimate'),
-            '_downloaded_bytes_str': _format_bytes('downloaded_bytes'),
-            '_elapsed_str': self.format_seconds(s.get('elapsed')),
-        })
-
-        msg_template = with_fields(
-            ('total_bytes', '%(_percent_str)s of %(_total_bytes_str)s at %(_speed_str)s ETA %(_eta_str)s'),
-            ('total_bytes_estimate', '%(_percent_str)s of ~%(_total_bytes_estimate_str)s at %(_speed_str)s ETA %(_eta_str)s'),
-            ('downloaded_bytes', 'elapsed', '%(_downloaded_bytes_str)s at %(_speed_str)s (%(_elapsed_str)s)'),
-            ('downloaded_bytes', '%(_downloaded_bytes_str)s at %(_speed_str)s'),
-            default='%(_percent_str)s at %(_speed_str)s ETA %(_eta_str)s')
-
-        msg_template += with_fields(
-            ('fragment_index', 'fragment_count', ' (frag %(fragment_index)s/%(fragment_count)s)'),
-            ('fragment_index', ' (frag %(fragment_index)s)'))
-        self._report_progress_status(s, msg_template)
+        self._progress.report_progress(s)
 
     def report_resuming_byte(self, resume_len):
         """Report attempt to resume at given byte."""
@@ -387,8 +291,8 @@ class FileDownloader:
         """Report retry"""
         is_frag = False if frag_index is NO_DEFAULT else 'fragment'
         RetryManager.report_retry(
-            err, count, retries, info=self.__to_screen,
-            warn=lambda msg: self.__to_screen(f'[download] Got error: {msg}'),
+            err, count, retries, info=self.to_screen,
+            warn=lambda msg: self.to_screen(f'[download] Got error: {msg}'),
             error=IDENTITY if not fatal else lambda e: self.report_error(f'\r[download] Got error: {e}'),
             sleep_func=self.params.get('retry_sleep_functions', {}).get(is_frag or 'http'),
             suffix=f'fragment{"s" if frag_index is None else f" {frag_index}"}' if is_frag else None)
@@ -428,7 +332,7 @@ class FileDownloader:
                     'status': 'finished',
                     'total_bytes': os.path.getsize(encodeFilename(filename)),
                 }, info_dict)
-                self._finish_multiline_status()
+                self._progress.close()
                 return True, False
 
         if subtitle:
@@ -442,7 +346,7 @@ class FileDownloader:
             time.sleep(sleep_interval)
 
         ret = self.real_download(filename, info_dict)
-        self._finish_multiline_status()
+        self._progress.close()
         return ret, True
 
     def real_download(self, filename, info_dict):

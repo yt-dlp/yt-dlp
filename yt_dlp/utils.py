@@ -39,11 +39,11 @@ import sys
 import tempfile
 import time
 import traceback
-import types
 import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
+import warnings
 import xml.etree.ElementTree
 import zlib
 
@@ -866,7 +866,7 @@ def escapeHTML(text):
 
 def process_communicate_or_kill(p, *args, **kwargs):
     deprecation_warning(f'"{__name__}.process_communicate_or_kill" is deprecated and may be removed '
-                        f'in a future version. Use "{__name__}.Popen.communicate_or_kill" instead')
+                        f'in a future version. Use "{__name__}.Popen.communicate_or_kill" instead', __internal=True)
     return Popen.communicate_or_kill(p, *args, **kwargs)
 
 
@@ -1675,7 +1675,7 @@ class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
                         raise http.cookiejar.LoadError(
                             'Cookies file must be Netscape formatted, not JSON. See  '
                             'https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp')
-                    write_string(f'WARNING: skipping cookie file entry due to {e}: {line!r}\n')
+                    warnings.warn(Warning(f'Skipping cookie file entry due to {e}: {line!r}'))
                     continue
         cf.seek(0)
         self._really_load(cf, filename, ignore_discard, ignore_expires)
@@ -2021,7 +2021,7 @@ class DateRange:
 
 def platform_name():
     """ Returns the platform name as a str """
-    deprecation_warning(f'"{__name__}.platform_name" is deprecated, use "platform.platform" instead')
+    deprecation_warning(f'"{__name__}.platform_name" is deprecated, use "platform.platform" instead', __internal=True)
     return platform.platform()
 
 
@@ -2055,38 +2055,25 @@ def get_windows_version():
 
 
 def write_string(s, out=None, encoding=None):
-    assert isinstance(s, str)
-    out = out or sys.stderr
+    from .output.outputs import StreamOutput
 
-    if compat_os_name == 'nt' and supports_terminal_sequences(out):
-        s = re.sub(r'([\r\n]+)', r' \1', s)
+    deprecation_warning(
+        f'`{__name__}.write_string` is deprecated and may be removed '
+        + 'in a future version. Use a `StreamOutput` or `Logger` instead',
+        stacklevel=1, __internal=True)
 
-    enc, buffer = None, out
-    if 'b' in getattr(out, 'mode', ''):
-        enc = encoding or preferredencoding()
-    elif hasattr(out, 'buffer'):
-        buffer = out.buffer
-        enc = encoding or getattr(out, 'encoding', None) or preferredencoding()
-
-    buffer.write(s.encode(enc, 'ignore') if enc else s)
-    out.flush()
+    StreamOutput(out or sys.stderr, encoding=encoding).write(s)
 
 
-def deprecation_warning(msg, *, printer=None, stacklevel=0, **kwargs):
-    from . import _IN_CLI
-    if _IN_CLI:
-        if msg in deprecation_warning._cache:
-            return
-        deprecation_warning._cache.add(msg)
-        if printer:
-            return printer(f'{msg}{bug_reports_message()}', **kwargs)
-        return write_string(f'ERROR: {msg}{bug_reports_message()}\n', **kwargs)
-    else:
-        import warnings
-        warnings.warn(DeprecationWarning(msg), stacklevel=stacklevel + 3)
+def deprecation_warning(msg, *, printer=None, stacklevel=0, __internal=False, **kwargs):
+    if not printer:
+        from .output.logger import default_logger
+        printer = lambda m: default_logger.deprecation_warning(m, stacklevel=stacklevel + 1)
 
-
-deprecation_warning._cache = set()
+    if not __internal:
+        printer(f'`{__name__}.deprecation_warning` is deprecated and may be removed '
+                + 'in a future version. Use `Logger.deprecation_warning` instead')
+    printer(msg)
 
 
 def bytes_to_intlist(bs):
@@ -3651,7 +3638,7 @@ def parse_codecs(codecs_str):
         elif parts[0] in ('stpp', 'wvtt'):
             scodec = scodec or full_codec
         else:
-            write_string(f'WARNING: Unknown codec {full_codec}\n')
+            warnings.warn(Warning(f'Unknown codec {full_codec}'))
     if vcodec or acodec or scodec:
         return {
             'vcodec': vcodec or 'none',
@@ -5062,7 +5049,7 @@ def decode_base_n(string, n=None, table=None):
 
 def decode_base(value, digits):
     deprecation_warning(f'{__name__}.decode_base is deprecated and may be removed '
-                        f'in a future version. Use {__name__}.decode_base_n instead')
+                        f'in a future version. Use {__name__}.decode_base_n instead', __internal=True)
     return decode_base_n(value, table=digits)
 
 
@@ -5671,7 +5658,7 @@ def traverse_obj(
 
 def traverse_dict(dictn, keys, casesense=True):
     deprecation_warning(f'"{__name__}.traverse_dict" is deprecated and may be removed '
-                        f'in a future version. Use "{__name__}.traverse_obj" instead')
+                        f'in a future version. Use "{__name__}.traverse_obj" instead', __internal=True)
     return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 
@@ -5811,8 +5798,9 @@ def parse_http_range(range):
 
 
 def read_stdin(what):
+    from .output.logger import default_logger
     eof = 'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'
-    write_string(f'Reading {what} from STDIN - EOF ({eof}) to end:\n')
+    default_logger.screen(f'Reading {what} from STDIN - EOF ({eof}) to end:')
     return sys.stdin
 
 
@@ -6068,29 +6056,53 @@ class function_with_repr:
         return f'{self.func.__module__}.{self.func.__qualname__}'
 
 
-class Namespace(types.SimpleNamespace):
+class Namespace(type):
     """Immutable namespace"""
+    def __new__(cls, _cls_name='Namespace', _bases=None, _classdict=None, **kwargs):
+        if _bases is None:
+            assert not _classdict
+            _classdict = kwargs.copy()
+            _classdict['_member_lookup_'] = kwargs
+            return cls(_cls_name, (), _classdict)
 
-    def __iter__(self):
-        return iter(self.__dict__.values())
+        assert _classdict
+        _classdict['_member_lookup_'] = {
+            name: value
+            for name, value in _classdict.items()
+            if not name.startswith('_')
+        }
+        return super().__new__(cls, _cls_name, _bases, _classdict)
+
+    def __init__(cls, *_, **kwargs):
+        # This method is required since Namespace(...) calls `__init__`
+        pass
+
+    def __call__(cls):
+        raise TypeError('Cannot create instance of a Namespace')
+
+    def __setattr__(cls, name, value):
+        raise TypeError('Cannot mutate Namespace')
+
+    def __iter__(cls):
+        return iter(cls._member_lookup_.values())
 
     @property
-    def items_(self):
-        return self.__dict__.items()
+    def items_(cls):
+        return cls._member_lookup_.items()
 
 
-MEDIA_EXTENSIONS = Namespace(
-    common_video=('avi', 'flv', 'mkv', 'mov', 'mp4', 'webm'),
-    video=('3g2', '3gp', 'f4v', 'mk3d', 'divx', 'mpg', 'ogv', 'm4v', 'wmv'),
-    common_audio=('aiff', 'alac', 'flac', 'm4a', 'mka', 'mp3', 'ogg', 'opus', 'wav'),
-    audio=('aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r', 'oga', 'ogx', 'spx', 'vorbis', 'wma', 'weba'),
-    thumbnails=('jpg', 'png', 'webp'),
-    storyboards=('mhtml', ),
-    subtitles=('srt', 'vtt', 'ass', 'lrc'),
-    manifests=('f4f', 'f4m', 'm3u8', 'smil', 'mpd'),
-)
-MEDIA_EXTENSIONS.video += MEDIA_EXTENSIONS.common_video
-MEDIA_EXTENSIONS.audio += MEDIA_EXTENSIONS.common_audio
+class MEDIA_EXTENSIONS(metaclass=Namespace):
+    common_video = ('avi', 'flv', 'mkv', 'mov', 'mp4', 'webm')
+    video = ('3g2', '3gp', 'f4v', 'mk3d', 'divx', 'mpg', 'ogv', 'm4v', 'wmv') + common_video
+    common_audio = ('aiff', 'alac', 'flac', 'm4a', 'mka', 'mp3', 'ogg', 'opus', 'wav')
+    audio = (
+        'aac', 'ape', 'asf', 'f4a', 'f4b', 'm4b', 'm4p', 'm4r',
+        'oga', 'ogx', 'spx', 'vorbis', 'wma', 'weba') + common_audio
+    thumbnails = ('jpg', 'png', 'webp')
+    storyboards = ('mhtml', )
+    subtitles = ('srt', 'vtt', 'ass', 'lrc')
+    manifests = ('f4f', 'f4m', 'm3u8', 'smil', 'mpd')
+
 
 KNOWN_EXTENSIONS = (*MEDIA_EXTENSIONS.video, *MEDIA_EXTENSIONS.audio, *MEDIA_EXTENSIONS.manifests)
 

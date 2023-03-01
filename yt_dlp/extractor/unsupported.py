@@ -1,4 +1,6 @@
 from .common import InfoExtractor
+from ..output.enums import Style
+from ..output.logger import LogLevel
 from ..utils import ExtractorError, classproperty, remove_start
 
 
@@ -115,9 +117,9 @@ class KnownDRMIE(UnsupportedInfoExtractor):
 
     def _real_extract(self, url):
         raise ExtractorError(
-            f'The requested site is known to use DRM protection. '
-            f'It will {self._downloader._format_err("NOT", self._downloader.Styles.EMPHASIS)} be supported.{LF}'
-            f'Please {self._downloader._format_err("DO NOT", self._downloader.Styles.ERROR)} open an issue, '
+            'The requested site is known to use DRM protection. '
+            f'It will {self.logger.format(LogLevel.ERROR, "NOT", Style.EMPHASIS)} be supported.{LF}'
+            f'Please {self.logger.format(LogLevel.ERROR, "DO NOT", Style.ERROR)} open an issue, '
             'unless you have evidence that the video is not DRM protected', expected=True)
 
 
@@ -143,4 +145,4 @@ class KnownPiracyIE(UnsupportedInfoExtractor):
     def _real_extract(self, url):
         raise ExtractorError(
             f'This website is no longer supported since it has been determined to be primarily used for piracy.{LF}'
-            f'{self._downloader._format_err("DO NOT", self._downloader.Styles.ERROR)} open issues for it', expected=True)
+            f'{self.logger.format(LogLevel.ERROR, "DO NOT", Style.ERROR)} open issues for it', expected=True)

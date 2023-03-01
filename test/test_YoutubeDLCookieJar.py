@@ -42,7 +42,8 @@ class TestYoutubeDLCookieJar(unittest.TestCase):
 
     def test_malformed_cookies(self):
         cookiejar = YoutubeDLCookieJar('./test/testdata/cookies/malformed_cookies.txt')
-        cookiejar.load(ignore_discard=True, ignore_expires=True)
+        with self.assertWarns(Warning):
+            cookiejar.load(ignore_discard=True, ignore_expires=True)
         # Cookies should be empty since all malformed cookie file entries
         # will be ignored
         self.assertFalse(cookiejar._cookies)

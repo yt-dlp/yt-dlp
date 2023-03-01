@@ -25,7 +25,8 @@ from .dependencies import (
     secretstorage,
     sqlite3,
 )
-from .minicurses import MultilinePrinter, QuietMultilinePrinter
+from .output.logger import Logger, LogLevel, default_logger
+from .output.outputs import NULL_OUTPUT, StreamOutput
 from .utils import (
     Popen,
     YoutubeDLCookieJar,
@@ -39,64 +40,73 @@ CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'viva
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
 
 
-class YDLLogger:
-    def __init__(self, ydl=None):
-        self._ydl = ydl
+class CookiesStatus:
+    _DELAY = 0.1
 
-    def debug(self, message):
-        if self._ydl:
-            self._ydl.write_debug(message)
+    def __init__(self, logger):
+        self._timer = 0
+        self._status_id = None
 
-    def info(self, message):
-        if self._ydl:
-            self._ydl.to_screen(f'[Cookies] {message}')
-
-    def warning(self, message, only_once=False):
-        if self._ydl:
-            self._ydl.report_warning(message, only_once)
-
-    def error(self, message):
-        if self._ydl:
-            self._ydl.report_error(message)
-
-    class ProgressBar(MultilinePrinter):
-        _DELAY, _timer = 0.1, 0
-
-        def print(self, message):
-            if time.time() - self._timer > self._DELAY:
-                self.print_at_line(f'[Cookies] {message}', 0)
-                self._timer = time.time()
-
-    def progress_bar(self):
-        """Return a context manager with a print method. (Optional)"""
-        # Do not print to files/pipes, loggers, or when --no-progress is used
-        if not self._ydl or self._ydl.params.get('noprogress') or self._ydl.params.get('logger'):
+        # Do not print to files/pipes, loggers or when --no-status is used
+        self._output = NULL_OUTPUT
+        if logger.disable_progress:
             return
-        file = self._ydl._out_files.error
-        try:
-            if not file.isatty():
-                return
-        except BaseException:
+
+        output = logger.mapping.get(LogLevel.ERROR)
+        if isinstance(output, StreamOutput) and output.isatty:
+            self._output = output
+
+    def print(self, message):
+        if not self._output:
             return
-        return self.ProgressBar(file, preserve_output=False)
+
+        current_time = time.time()
+        if current_time - self._timer > self._DELAY:
+            self._output.status(self._status_id, 0, f'[Cookies] {message}')
+            self._timer = current_time
+
+    def __enter__(self):
+        if self._status_id is None:
+            self._status_id = self._output.register_status()
+        return self
+
+    def __exit__(self, *_):
+        if self._status_id is None:
+            return
+
+        self._output.unregister_status(self._status_id)
+        self._status_id = None
+        return self
 
 
-def _create_progress_bar(logger):
-    if hasattr(logger, 'progress_bar'):
-        printer = logger.progress_bar()
-        if printer:
-            return printer
-    printer = QuietMultilinePrinter()
-    printer.print = lambda _: None
-    return printer
+def wrap_logger(logger):
+    PROPERTY = '__is_cookie_wrapped'
+    if getattr(logger, PROPERTY, False):
+        return logger
+
+    def _cookies_prefix(func):
+        def wrapped(message, *args, **kwargs):
+            func(f'[Cookies] {message}', *args, **kwargs)
+
+        return wrapped
+
+    if not isinstance(logger, Logger):
+        logger = Logger(None).setup_class_outputs(logger)
+
+    logger = logger.derive(info=_cookies_prefix)
+    setattr(logger, PROPERTY, True)
+
+    return logger
 
 
-def load_cookies(cookie_file, browser_specification, ydl):
+def load_cookies(cookie_file, browser_specification, logger):
+    logger = wrap_logger(logger)
+
     cookie_jars = []
     if browser_specification is not None:
         browser_name, profile, keyring, container = _parse_browser_specification(*browser_specification)
         cookie_jars.append(
-            extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring, container=container))
+            extract_cookies_from_browser(browser_name, profile, logger, keyring=keyring, container=container))
 
     if cookie_file is not None:
         is_filename = is_path_like(cookie_file)
@@ -111,7 +121,9 @@ def load_cookies(cookie_file, browser_specification, ydl):
     return _merge_cookie_jars(cookie_jars)
 
 
-def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), *, keyring=None, container=None):
+def extract_cookies_from_browser(browser_name, profile=None, logger=default_logger, *, keyring=None, container=None):
+    logger = wrap_logger(logger)
+
     if browser_name == 'firefox':
         return _extract_firefox_cookies(profile, container, logger)
     elif browser_name == 'safari':
@@ -172,11 +184,11 @@ def _extract_firefox_cookies(profile, container, logger):
             else:
                 cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
-            with _create_progress_bar(logger) as progress_bar:
+            with CookiesStatus(logger) as status:
                 table = cursor.fetchall()
                 total_cookie_count = len(table)
                 for i, (host, name, value, path, expiry, is_secure) in enumerate(table):
-                    progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
+                    status.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
                     cookie = http.cookiejar.Cookie(
                         version=0, name=name, value=value, port=None, port_specified=False,
                         domain=host, domain_specified=bool(host), domain_initial_dot=host.startswith('.'),
@@ -294,11 +306,11 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
             jar = YoutubeDLCookieJar()
             failed_cookies = 0
             unencrypted_cookies = 0
-            with _create_progress_bar(logger) as progress_bar:
+            with CookiesStatus(logger) as status:
                 table = cursor.fetchall()
                 total_cookie_count = len(table)
                 for i, line in enumerate(table):
-                    progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
+                    status.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
                     is_encrypted, cookie = _process_chrome_cookie(decryptor, *line)
                     if not cookie:
                         failed_cookies += 1
@@ -372,6 +384,8 @@ class ChromeCookieDecryptor:
 
 
 def get_cookie_decryptor(browser_root, browser_keyring_name, logger, *, keyring=None):
+    logger = wrap_logger(logger)
+
     if sys.platform == 'darwin':
         return MacChromeCookieDecryptor(browser_keyring_name, logger)
     elif sys.platform in ('win32', 'cygwin'):
@@ -381,6 +395,7 @@ def get_cookie_decryptor(browser_root, browser_keyring_name, logger, *, keyring=
 
 class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
     def __init__(self, browser_keyring_name, logger, *, keyring=None):
+        logger = wrap_logger(logger)
         self._logger = logger
         self._v10_key = self.derive_key(b'peanuts')
         password = _get_linux_keyring_password(browser_keyring_name, keyring, logger)
@@ -404,7 +419,7 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
         elif version == b'v11':
             self._cookie_counts['v11'] += 1
             if self._v11_key is None:
-                self._logger.warning('cannot decrypt v11 cookies: no key found', only_once=True)
+                self._logger.warning('cannot decrypt v11 cookies: no key found', once=True)
                 return None
             return _decrypt_aes_cbc(ciphertext, self._v11_key, self._logger)
 
@@ -415,6 +430,7 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
 
 class MacChromeCookieDecryptor(ChromeCookieDecryptor):
     def __init__(self, browser_keyring_name, logger):
+        logger = wrap_logger(logger)
         self._logger = logger
         password = _get_mac_keyring_password(browser_keyring_name, logger)
         self._v10_key = None if password is None else self.derive_key(password)
@@ -433,7 +449,7 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
         if version == b'v10':
             self._cookie_counts['v10'] += 1
             if self._v10_key is None:
-                self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
+                self._logger.warning('cannot decrypt v10 cookies: no key found', once=True)
                 return None
 
             return _decrypt_aes_cbc(ciphertext, self._v10_key, self._logger)
@@ -447,6 +463,7 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
 
 class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
     def __init__(self, browser_root, logger):
+        logger = wrap_logger(logger)
         self._logger = logger
         self._v10_key = _get_windows_v10_key(browser_root, logger)
         self._cookie_counts = {'v10': 0, 'other': 0}
@@ -458,7 +475,7 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
         if version == b'v10':
             self._cookie_counts['v10'] += 1
             if self._v10_key is None:
-                self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
+                self._logger.warning('cannot decrypt v10 cookies: no key found', once=True)
                 return None
 
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_win.cc
@@ -510,6 +527,7 @@ class ParserError(Exception):
 
 class DataParser:
     def __init__(self, data, logger):
+        logger = wrap_logger(logger)
         self._data = data
         self.cursor = 0
         self._logger = logger
@@ -582,9 +600,9 @@ def _parse_safari_cookies_page(data, jar, logger):
 
     p.skip_to(record_offsets[0], 'unknown page header field')
 
-    with _create_progress_bar(logger) as progress_bar:
+    with CookiesStatus(logger) as status:
         for i, record_offset in enumerate(record_offsets):
-            progress_bar.print(f'Loading cookie {i: 6d}/{number_of_cookies: 6d}')
+            status.print(f'Loading cookie {i: 6d}/{number_of_cookies: 6d}')
             p.skip_to(record_offset, 'space between records')
             record_length = _parse_safari_cookies_record(data[record_offset:], jar, logger)
             p.read_bytes(record_length)
@@ -619,7 +637,7 @@ def _parse_safari_cookies_record(data, jar, logger):
         p.skip_to(value_offset)
         value = p.read_cstring()
     except UnicodeDecodeError:
-        logger.warning('failed to parse Safari cookie because UTF-8 decoding failed', only_once=True)
+        logger.warning('failed to parse Safari cookie because UTF-8 decoding failed', once=True)
         return record_size
 
     p.skip_to(record_size, 'space at the end of the record')
@@ -633,13 +651,14 @@ def _parse_safari_cookies_record(data, jar, logger):
     return record_size
 
 
-def parse_safari_cookies(data, jar=None, logger=YDLLogger()):
+def parse_safari_cookies(data, jar=None, logger=default_logger):
     """
     References:
         - https://github.com/libyal/dtformats/blob/main/documentation/Safari%20Cookies.asciidoc
             - this data appears to be out of date but the important parts of the database structure is the same
             - there are a few bytes here and there which are skipped during parsing
     """
+    logger = wrap_logger(logger)
     if jar is None:
         jar = YoutubeDLCookieJar()
     page_sizes, body_start = _parse_safari_cookies_header(data, logger)
@@ -890,7 +909,7 @@ def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
     try:
         return plaintext.decode()
     except UnicodeDecodeError:
-        logger.warning('failed to decrypt cookie (AES-CBC) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
+        logger.warning('failed to decrypt cookie (AES-CBC) because UTF-8 decoding failed. Possibly the key is wrong?', once=True)
         return None
 
 
@@ -898,13 +917,13 @@ def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, logger):
     try:
         plaintext = aes_gcm_decrypt_and_verify_bytes(ciphertext, key, authentication_tag, nonce)
     except ValueError:
-        logger.warning('failed to decrypt cookie (AES-GCM) because the MAC check failed. Possibly the key is wrong?', only_once=True)
+        logger.warning('failed to decrypt cookie (AES-GCM) because the MAC check failed. Possibly the key is wrong?', once=True)
         return None
 
     try:
         return plaintext.decode()
     except UnicodeDecodeError:
-        logger.warning('failed to decrypt cookie (AES-GCM) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
+        logger.warning('failed to decrypt cookie (AES-GCM) because UTF-8 decoding failed. Possibly the key is wrong?', once=True)
         return None
 
 
@@ -934,7 +953,7 @@ def _decrypt_windows_dpapi(ciphertext, logger):
         ctypes.byref(blob_out)  # pDataOut
     )
     if not ret:
-        logger.warning('failed to decrypt with DPAPI', only_once=True)
+        logger.warning('failed to decrypt with DPAPI', once=True)
         return None
 
     result = ctypes.string_at(blob_out.pbData, blob_out.cbData)
@@ -962,11 +981,11 @@ def _get_column_names(cursor, table_name):
 def _find_most_recently_used_file(root, filename, logger):
     # if there are multiple browser profiles, take the most recently used one
     i, paths = 0, []
-    with _create_progress_bar(logger) as progress_bar:
+    with CookiesStatus(logger) as status:
         for curr_root, dirs, files in os.walk(root):
             for file in files:
                 i += 1
-                progress_bar.print(f'Searching for "{filename}": {i: 6d} files searched')
+                status.print(f'Searching for "{filename}": {i: 6d} files searched')
                 if file == filename:
                     paths.append(os.path.join(curr_root, file))
     return None if not paths else max(paths, key=lambda path: os.lstat(path).st_mtime)
