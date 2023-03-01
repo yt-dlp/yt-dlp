@@ -235,7 +235,7 @@ class CommitRange:
         (?:`?(?P<sub_details_alt>[^:`]+)`?: )?
         (?P<message>.+?)
         (?:\ \((?P<issues>\#\d+(?:,\ \#\d+)*)\))?
-        ''', re.VERBOSE)
+        ''', re.VERBOSE | re.DOTALL)
     EXTRACTOR_INDICATOR_RE = re.compile(r'(?:Fix|Add)\s+Extractors?', re.IGNORECASE)
     FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+for)?|Revert)\s+([\da-f]{40})')
     UPSTREAM_MERGE_RE = re.compile(r'Update to ytdl-commit-([\da-f]+)')
