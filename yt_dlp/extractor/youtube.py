@@ -4898,7 +4898,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         info.update({
             'uploader': info['channel'],
             'channel_url': format_field(info.get('channel_id'), None, 'https://www.youtube.com/channel/%s', default=None),
-            'uploader_url': format_field(info.get('uploader_id'), None, 'https://www.youtube.com/%s',default=None),
+            'uploader_url': format_field(info.get('uploader_id'), None, 'https://www.youtube.com/%s', default=None),
         })
 
         return info
