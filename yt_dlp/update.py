@@ -28,6 +28,11 @@ UPDATE_SOURCES = {
     'stable': 'yt-dlp/yt-dlp',
     'nightly': 'yt-dlp/yt-dlp-nightly-builds',
 }
+# If set, updating to versions before _CHANNEL_CUTOFF warns about no `--update-to`
+_CHANNEL_CUTOFF = (2023, 3, 2)
+
+_VERSION_RE = re.compile(r'(\d+\.?)*\d+')
+
 API_BASE_URL = 'https://api.github.com/repos'
 
 # Backwards compatibility variables for the current channel
@@ -143,12 +148,14 @@ class Updater:
 
         self._target_repo = UPDATE_SOURCES.get(self._target_channel)
 
-    def _version_compare(self, a, b):
-        if CHANNEL != self._target_channel:
+    def _version_compare(self, a, b, channel=True):
+        if channel and CHANNEL != self._target_channel:
             return False
 
-        a, b = version_tuple(a), version_tuple(b)
-        return a == b if self._exact else a >= b
+        if _VERSION_RE.fullmatch(f'{a}.{b}'):
+            a, b = version_tuple(a), version_tuple(b)
+            return a == b if self._exact else a >= b
+        return a == b
 
     @functools.cached_property
     def _tag(self):
@@ -156,13 +163,14 @@ class Updater:
             return self._target_tag
 
         identifier = f'{detect_variant()} {self._target_channel} {system_identifier()}'
-        for line in self._download('_update_spec', self._target_tag).decode().splitlines():
+        for line in self._download('_update_spec', 'latest').decode().splitlines():
             if not line.startswith('lock '):
                 continue
             _, tag, pattern = line.split(' ', 2)
             if re.match(pattern, identifier):
-                if self._target_tag != 'latest' and version_tuple(tag) > version_tuple(self._target_tag[5:]):
-                    return self._target_tag
+                if self._target_tag != 'latest' and self._version_compare(tag, self._target_tag[5:], channel=False):
+                    continue
+
                 return f'tags/{tag}'
         return self._target_tag
 
@@ -284,6 +292,9 @@ class Updater:
         if err:
             return self._report_error(err, True)
         self.ydl.to_screen(f'Updating to {self._full_new_version} ...')
+        if (_CHANNEL_CUTOFF and _VERSION_RE.fullmatch(self._target_tag[5:])
+                and version_tuple(self._target_tag[5:]) < _CHANNEL_CUTOFF):
+            self.ydl.report_warning('You are downgrading to a version without --update-to')
 
         directory = os.path.dirname(self.filename)
         if not os.access(self.filename, os.W_OK):
