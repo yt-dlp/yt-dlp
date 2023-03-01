@@ -189,6 +189,7 @@ For other third-party package managers, see [the wiki](https://github.com/yt-dlp
 There are currently two release channels for binaries, `stable` and `nightly`.
 `stable` releases are what the program will update to by default, and have had many of their changes tested by users of the master branch.
 `nightly` releases are built after each push to the master branch, and will have the most recent fixes and additions, but also have the potential for bugs.
+The latest `nightly` is available as a [pre-release from this repository](https://github.com/yt-dlp/yt-dlp/releases/tag/nightly), and all `nightly` releases are [archived in their own repo](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases).
 
 When using `--update`/`-U`, a release binary will only update to its current channel.
 This release channel can be changed by using the `--update-to` option. `--update-to` can also be used to upgrade or downgrade to specific tags from a channel.
