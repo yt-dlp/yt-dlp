@@ -9,7 +9,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.update-version.outputs.version }}
+      version: ${{ steps.update_version.outputs.version }}
       head_sha: ${{ steps.push_release.outputs.head_sha }}
 
     steps:
@@ -22,11 +22,20 @@ jobs:
           python-version: "3.10"
 
       - name: Update version
-        id: update-version
+        id: update_version
         run: |
           python devscripts/update-version.py ${{ vars.PUSH_VERSION_COMMIT == '' && '"$(date -u +"%H%M%S")"' || '' }} | \
             grep -Po "version=\d+\.\d+\.\d+(\.\d+)?" >> "$GITHUB_OUTPUT"
-          make issuetemplates
+
+      - name: Update documentation
+        run: |
+          make doc
+          sed '/### /Q' Changelog.md >> ./CHANGELOG
+          echo '### ${{ steps.update_version.outputs.version }}' >> ./CHANGELOG
+          python ./devscripts/make_changelog.py -vv -c >> ./CHANGELOG
+          echo >> ./CHANGELOG
+          grep -Poz '(?s)### \d+\.\d+\.\d+.+' 'Changelog.md' | head -n -1 >> ./CHANGELOG
+          cat ./CHANGELOG > Changelog.md
 
       - name: Push to release
         id: push_release
@@ -34,7 +43,8 @@ jobs:
           git config --global user.name github-actions
           git config --global user.email github-actions@example.com
           git add -u
-          git commit -m "[version] update" -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all :ci run dl"
+          git commit -m "Release ${{ steps.update_version.outputs.version }}" \
+            -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all :ci run dl"
           git push origin --force ${{ github.event.ref }}:release
           echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
@@ -54,10 +64,8 @@ jobs:
 
       - name: Install Requirements
         run: |
-          # TODO: Investigate required installs
-          sudo apt-get -y install zip pandoc man sed
           python -m pip install -U pip setuptools wheel twine
-          python -m pip install -U Pyinstaller -r requirements.txt
+          python -m pip install -U -r requirements.txt
 
       - name: Prepare
         run: |
@@ -78,7 +86,8 @@ jobs:
       - name: Checkout Homebrew repository
         env:
           BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
-        if: env.BREW_TOKEN != ''
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        if: env.BREW_TOKEN != '' && env.PYPI_TOKEN != ''
         uses: actions/checkout@v3
         with:
           repository: yt-dlp/homebrew-taps
@@ -88,7 +97,8 @@ jobs:
       - name: Update Homebrew Formulae
         env:
           BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
-        if: env.BREW_TOKEN != ''
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        if: env.BREW_TOKEN != '' && env.PYPI_TOKEN != ''
         run: |
           python devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ needs.prepare.outputs.version }}"
           git -C taps/ config user.name github-actions
