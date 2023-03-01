@@ -1,5 +1,4 @@
 import contextlib
-import errno
 import json
 import os
 import re

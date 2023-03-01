@@ -318,10 +318,6 @@ def validate_options(opts):
     if outtmpl_default == '':
         opts.skip_download = None
         del opts.outtmpl['default']
-    if outtmpl_default and not os.path.splitext(outtmpl_default)[1] and opts.extractaudio:
-        raise ValueError(
-            'Cannot download a video and extract audio into the same file! '
-            f'Use "{outtmpl_default}.%(ext)s" instead of "{outtmpl_default}" as the output template')
 
     def parse_chapters(name, value):
         chapters, ranges = [], []
