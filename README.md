@@ -180,12 +180,23 @@ You can install yt-dlp using [the binaries](#release-files), [PIP](https://pypi.
 
 
 ## UPDATE
-You can use `yt-dlp -U` to update if you are [using the release binaries](#release-files)
+You can use `yt-dlp -U` to update if you are using the [release binaries](#release-files)
 
 If you [installed with PIP](https://github.com/yt-dlp/yt-dlp/wiki/Installation#with-pip), simply re-run the same command that was used to install the program
 
 For other third-party package managers, see [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation#third-party-package-managers) or refer their documentation
 
+There are currently two release channels for binaries, `stable` and `nightly`.
+`stable` releases are what the program will update to by default, and have had many of their changes tested by users of the master branch.
+`nightly` releases are built after each push to the master branch, and will have the most recent fixes and additions, but also have the potential for bugs.
+
+When using `--update`/`-U`, a release binary will only update to its current channel.
+This release channel can be changed by using the `--update-to` option. `--update-to` can also be used to upgrade or downgrade to specific tags from a channel.
+
+Example usage:
+* `yt-dlp --update-to nightly` change to `nightly` channel and update to its latest release
+* `yt-dlp --update-to stable@2023.02.17` upgrade/downgrade to release to `stable` channel tag `2023.02.17`
+* `yt-dlp --update-to 2023.01.06` upgrade/downgrade to tag `2023.01.06` if it exists on the current channel
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 ## RELEASE FILES
@@ -218,9 +229,18 @@ File|Description
 :---|:---
 [yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)|Source tarball
 [SHA2-512SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS)|GNU-style SHA512 sums
+[SHA2-512SUMS.sig](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS.sig)|GPG signature file for SHA512 sums
 [SHA2-256SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS)|GNU-style SHA256 sums
-<!-- MANPAGE: END EXCLUDED SECTION -->
+[SHA2-256SUMS.sig](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS.sig)|GPG signature file for SHA256 sums
 
+The public key that can be used to verify the GPG signatures is [available here](https://github.com/yt-dlp/yt-dlp/blob/master/public.key)
+Example usage:
+```
+curl -L https://github.com/yt-dlp/yt-dlp/raw/master/public.key | gpg --import
+gpg --verify SHA2-256SUMS.sig SHA2-256SUMS
+gpg --verify SHA2-512SUMS.sig SHA2-512SUMS
+```
+<!-- MANPAGE: END EXCLUDED SECTION -->
 
 **Note**: The manpages, shell completion files etc. are available in the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
@@ -313,8 +333,28 @@ If you wish to build it anyway, install Python and py2exe, and then simply run `
 * **`devscripts/update-version.py [revision]`** - Update the version number based on current date
 * **`devscripts/set-variant.py variant [-M update_message]`** - Set the build variant of the executable
 * **`devscripts/make_lazy_extractors.py`** - Create lazy extractors. Running this before building the binaries (any variant) will improve their startup performance. Set the environment variable `YTDLP_NO_LAZY_EXTRACTORS=1` if you wish to forcefully disable lazy extractor loading.
+* **`devscripts/make_changelog.py`** - Create a markdown changelog using short commit messages. It can also update the `CONTRIBUTORS` file to add new contributors from these commits.
+For more info see `make_changelog.py --help`.
 
-You can also fork the project on GitHub and run your fork's [build workflow](.github/workflows/build.yml) to automatically build a full release
+### Forking the project
+If you fork the project on GitHub, you can run your fork's [build workflow](.github/workflows/build.yml) to automatically build the selected version(s) as artifacts. Alternatively, you can run the [release workflow](.github/workflows/release.yml) or enable the [nightly workflow](.github/workflows/release-nightly.yml) to create full (pre-)releases. These can be configured in the following way:
+
+```yml
+vars.PUSH_VERSION_COMMIT: Push a version update commit to master during release workflow
+vars.BUILD_NIGHTLY: Create a nightly release on every push to master branch
+secrets.GPG_SIGNING_KEY: Private GPG key used for signing SHA files
+
+# Both need to be set to push build to archive repo as release:
+vars.ARCHIVE_REPO: Repository for archiving pre-releases, e.g. `yt-dlp/yt-dlp-nightly-builds`
+secrets.ARCHIVE_REPO_TOKEN: Personal Access Token with contents:write permission for archive repo
+
+# Publish to PyPI
+secrets.PYPI_TOKEN: Token for PyPI
+
+# Push to Homebrew taps repository (requires publish to PyPI)
+secrets.BREW_TOKEN: Private deploy key for Homebrew taps repo
+# Note: the brew workflow step and `update-formulae.py` are tailored specifically to yt-dlp
+```
 
 # USAGE AND OPTIONS
 
