@@ -50,8 +50,8 @@
 * [extractor/txxx] Add extractors by [chio0hai](https://github.com/chio0hai)
 * [extractor/vocaroo] Add extractor by [SuperSonicHub1](https://github.com/SuperSonicHub1), [qbnu](https://github.com/qbnu)
 * [extractor/wrestleuniverse] Add extractors by [Grub4K](https://github.com/Grub4K), [bashonly](https://github.com/bashonly)
-* [extractor/yappy] Add extractor by [HobbyistDev](https://github.com/HobbyistDev)
-* **[extractor/youtube] Fix `uploader_id` extraction** by [bashonly](https://github.com/bashonly)
+* [extractor/yappy] Add extractor by [HobbyistDev](https://github.com/HobbyistDev), [dirkf](https://github.com/dirkf)
+* [extractor/youtube] **Fix `uploader_id` extraction** by [bashonly](https://github.com/bashonly)
 * [extractor/youtube] Add hyperpipe instances by [Generator](https://github.com/Generator)
 * [extractor/youtube] Handle `consent.youtube`
 * [extractor/youtube] Support `/live/` URL
