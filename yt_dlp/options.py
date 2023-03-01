@@ -20,7 +20,7 @@ from .postprocessor import (
     SponsorBlockPP,
 )
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
-from .update import detect_variant, is_non_updateable
+from .update import UPDATE_SOURCES, detect_variant, is_non_updateable
 from .utils import (
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
@@ -340,7 +340,8 @@ def create_parser():
                 'TARGET can be either a channel, a tag, or `channel@tag`. '
                 'If TARGET is `tag`, try to update to `tag` within current channel. '
                 'If TARGET is `channel`, try to update to latest release from the given channel. '
-                '`@` can be appended to a tag-less channel or prepended to a channel-less tag.'))
+                '`@` can be appended to a tag-less channel or prepended to a channel-less tag. '
+                f'Supported channels: {", ".join(UPDATE_SOURCES)}'))
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',

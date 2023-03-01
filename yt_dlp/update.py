@@ -224,11 +224,7 @@ class Updater:
     @functools.cached_property
     def release_name(self):
         """The release filename"""
-        variant = detect_variant()
-        label = _FILE_SUFFIXES.get(variant)
-        if not label:
-            raise Exception(f'Updates for {variant} builds are not available')
-        return f'yt-dlp{label}'
+        return f'yt-dlp{_FILE_SUFFIXES[detect_variant()]}'
 
     @functools.cached_property
     def release_hash(self):
