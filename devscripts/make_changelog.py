@@ -121,7 +121,7 @@ class Changelog:
                 yield self.format_module(item.value, group)
 
     def format_module(self, name, group):
-        result = f'\n### {name} changes\n' if name else '\n'
+        result = f'\n#### {name} changes\n' if name else '\n'
         return result + '\n'.join(self._format_group(group))
 
     def _format_group(self, group):
@@ -441,28 +441,28 @@ if __name__ == '__main__':
         description='Create a changelog markdown from a git commit range')
     parser.add_argument(
         'commitish', default='HEAD', nargs='?',
-        help='The commitish to create the range from (default: HEAD)')
+        help='The commitish to create the range from (default: %(default)s)')
     parser.add_argument(
         '-v', '--verbosity', action='count', default=0,
-        help='increase verbosity each time specified')
+        help='increase verbosity (can be used twice)')
     parser.add_argument(
         '-c', '--contributors', action='store_true',
-        help='update CONTRIBUTORS file (default: false)')
+        help='update CONTRIBUTORS file (default: %(default)s)')
     parser.add_argument(
         '--contributors-path', type=Path, default=LOCATION_PATH.parent / 'CONTRIBUTORS',
-        help='path to the override CONTRIBUTORS file')
+        help='path to the CONTRIBUTORS file')
     parser.add_argument(
-        '-o', '--override', action='store_true',
-        help='use the override json in commit generation (default: false)')
+        '--no-override', action='store_true',
+        help='skip override json in commit generation (default: %(default)s)')
     parser.add_argument(
         '--override-path', type=Path, default=LOCATION_PATH / 'changelog_override.json',
-        help='path to the override json file')
+        help='path to the changelog_override.json file')
     parser.add_argument(
         '--default-author', default='pukkandan',
-        help='the author to use when no author indicator is specified')
+        help='the author to use without a author indicator (default: %(default)s)')
     parser.add_argument(
         '--repo', default='yt-dlp/yt-dlp',
-        help='the github repository to use for the operations')
+        help='the github repository to use for the operations (default: %(default)s)')
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -471,7 +471,7 @@ if __name__ == '__main__':
 
     commits = CommitRange.from_single(args.commitish, args.default_author)
 
-    if args.override:
+    if not args.no_override:
         if args.override_path.exists():
             with args.override_path.open() as file:
                 overrides = json.load(file)
@@ -482,12 +482,10 @@ if __name__ == '__main__':
     logger.info(f'Loaded {len(commits)} commits')
 
     new_contributors = get_new_contributors(args.contributors_path, commits)
-    if args.contributors:
-        with args.contributors_path.open('a') as file:
-            for contributor in new_contributors:
-                file.write(f'{contributor}\n')
-        logger.info(f'Added new contributors: {", ".join(new_contributors)}')
-    else:
-        logger.debug(f'New contributors: {new_contributors}')
+    if new_contributors:
+        if args.contributors:
+            with args.contributors_path.open('a') as file:
+                file.writelines(f'{contributor}\n' for contributor in new_contributors)
+        logger.info(f'New contributors: {", ".join(new_contributors)}')
 
     print(Changelog(commits.groups(), args.repo))
