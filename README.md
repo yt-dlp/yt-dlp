@@ -192,7 +192,7 @@ There are currently two release channels for binaries, `stable` and `nightly`.
 The latest `nightly` is available as a [pre-release from this repository](https://github.com/yt-dlp/yt-dlp/releases/tag/nightly), and all `nightly` releases are [archived in their own repo](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases).
 
 When using `--update`/`-U`, a release binary will only update to its current channel.
-This release channel can be changed by using the `--update-to` option. `--update-to` can also be used to upgrade or downgrade to specific tags from a channel.
+This release channel can be changed by using the `--update-to` option. `--update-to` can also be used to upgrade or downgrade to specific tags from a channel. Keep in mind that when downgrading to a version prior to `2023.03.02` you will loose the ability to `--update-to`.
 
 Example usage:
 * `yt-dlp --update-to nightly` change to `nightly` channel and update to its latest release
@@ -338,25 +338,7 @@ If you wish to build it anyway, install Python and py2exe, and then simply run `
 For more info see `make_changelog.py --help`.
 
 ### Forking the project
-If you fork the project on GitHub, you can run your fork's [build workflow](.github/workflows/build.yml) to automatically build the selected version(s) as artifacts. Alternatively, you can run the [release workflow](.github/workflows/release.yml) or enable the [nightly workflow](.github/workflows/release-nightly.yml) to create full (pre-)releases. These can be configured in the following way:
-
-```yml
-vars.PUSH_VERSION_COMMIT: Push a version update commit to master during release workflow
-vars.BUILD_NIGHTLY: Create a nightly release on every push to master branch
-secrets.GPG_SIGNING_KEY: Private GPG key used for signing SHA files
-
-# Both need to be set to push build to archive repo as release:
-vars.ARCHIVE_REPO: Repository for archiving pre-releases, e.g. `yt-dlp/yt-dlp-nightly-builds`
-secrets.ARCHIVE_REPO_TOKEN: Personal Access Token with contents:write permission for archive repo
-
-# Publish to PyPI
-secrets.PYPI_TOKEN: Token for PyPI
-
-# Push to Homebrew taps repository (requires publish to PyPI)
-secrets.BREW_TOKEN: Private deploy key for Homebrew taps repo
-# Note: the brew workflow step and `update-formulae.py` are tailored specifically to yt-dlp
-```
-Additionally, you may want to add a channel for your repository in `yt_dlp.update.UPDATE_SOURCES` to make `--update-to`/`-U` compatible with your fork.
+If you fork the project on GitHub, you can run your fork's [build workflow](.github/workflows/build.yml) to automatically build the selected version(s) as artifacts. Alternatively, you can run the [release workflow](.github/workflows/release.yml) or enable the [nightly workflow](.github/workflows/release-nightly.yml) to create full (pre-)releases.
 
 # USAGE AND OPTIONS
 
