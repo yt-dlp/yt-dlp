@@ -4439,9 +4439,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         # However we can expect them to change that in the future.
         channel_handle = self.handle_from_url(
             traverse_obj(renderer, (
-                'navigationEndpoint',
-                (('commandMetadata', 'webCommandMetadata', 'url'), ('browseEndpoint', 'canonicalBaseUrl'))),
-                         get_all=False,expected_type=str))
+                'navigationEndpoint', (('commandMetadata', 'webCommandMetadata', 'url'),
+                                       ('browseEndpoint', 'canonicalBaseUrl')),
+                {str}), get_all=False))
         return {
             '_type': 'url',
             'url': channel_url,
