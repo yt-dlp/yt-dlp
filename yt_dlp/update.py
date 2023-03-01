@@ -31,7 +31,7 @@ UPDATE_SOURCES = {
 # If set, updating to versions before _CHANNEL_CUTOFF warns about no `--update-to`
 _CHANNEL_CUTOFF = (2023, 3, 2)
 
-_VERSION_RE = re.compile(r'(\d+\.?)*\d+')
+_VERSION_RE = re.compile(r'(\d+\.)*\d+')
 
 API_BASE_URL = 'https://api.github.com/repos'
 
