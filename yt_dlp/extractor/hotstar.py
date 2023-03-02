@@ -65,7 +65,7 @@ class HotStarBaseIE(InfoExtractor):
         return self._call_api_impl(
             f'{path}/content/{video_id}', video_id, st=st, cookies=cookies, query={
                 'desired-config': 'audio_channel:stereo|container:fmp4|dynamic_range:hdr|encryption:plain|ladder:tv|package:dash|resolution:fhd|subs-tag:HotstarVIP|video_codec:h265',
-                'device-id': cookies.get('device_id').value if cookies.get('device_id') else compat_str(uuid.uuid4()),
+                'device-id': cookies.get('device_id').value if cookies else compat_str(uuid.uuid4()),
                 'os-name': 'Windows',
                 'os-version': '10',
             })
