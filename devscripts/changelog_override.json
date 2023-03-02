@@ -1,74 +1,12 @@
 [
     {
-        "action": "change",
-        "hash": "37e325b92ff9d784715ac0e5d1f7d96bf5f45ad9",
-        "short": "[utils] `dummy`: Edited this commit message",
-        "authors": ["Grub8K"]
-    },
-    {
-        "action": "remove",
-        "hash": "6df4244d0b342fbe190448e0f0d9152ebc8d4bdc"
+        "action": "add",
+        "when": "2023.02.17",
+        "short": "[priority] **A new release type has been added!**\n[`nightly`](https://github.com/yt-dlp/yt-dlp/releases/tag/nightly) builds will be made after each push, containing the latest fixes (but also possibly bugs).\nWhen using `--update`/`-U`, a release binary will only update to its current channel (either `stable` or `nightly`)."
     },
     {
         "action": "add",
-        "hash": "ab4cbeff00ac08f142f78a6281aa0c1124a59daa",
-        "short": "[extractor/drtv] Add series extractors (#5644)",
-        "authors": ["FrederikNS"]
-    },
-    {
-        "action": "add",
-        "hash": "fff5fff5b1f2b4f7838836ca0df613ec0e058cad",
-        "short": "[cleanup] Deprecate YoutubeDL.parse_outtmpl",
-        "authors": ["pukkandan"]
-    },
-    {
-        "action": "add",
-        "short": "[priority] Some priority change"
-    },
-    {
-        "action": "add",
-        "when": "2023.01.02",
-        "short": "[priority/Grouped changes] Some grouped priority change 1"
-    },
-    {
-        "action": "add",
-        "when": "2023.01.02",
-        "short": "[priority/Grouped changes] Some other grouped priority change 2"
-    },
-    {
-        "action": "add",
-        "hash": "aaa0aaa5b1f2b4f7838836ca0df613ec0e058cad",
-        "short": "[cleanup] Misc cleanup and fomratting",
-        "authors": ["pukkandan"]
-    },
-    {
-        "action": "add",
-        "hash": "bbb1bbb5b1f2b4f7838836ca0df613ec0e058cad",
-        "short": "[cleanup] Formatting",
-        "authors": ["pukkandan"]
-    },
-    {
-        "action": "add",
-        "hash": "ccc2ccc5b1f2b4f7838836ca0df613ec0e058cad",
-        "short": "[cleanup] Misc",
-        "authors": ["pukkandan"]
-    },
-    {
-        "action": "add",
-        "hash": "ddd3ddd5b1f2b4f7838836ca0df613ec0e058cad",
-        "short": "[cleanup] Formatting",
-        "authors": ["bashonly"]
-    },
-    {
-        "action": "add",
-        "hash": "eee4eee5b1f2b4f7838836ca0df613ec0e058cad",
-        "short": "[postprocessor,cleanup] Added a `_download_json` method or sth",
-        "authors": ["pukkandan"]
-    },
-    {
-        "action": "add",
-        "hash": "eee4eee5b1f2b4f7838836ca0df613ec0e058cad",
-        "short": "[postprocessor/ffmpeg] Test ffmpeg thing",
-        "authors": ["Grub4K"]
+        "when": "2023.02.17",
+        "short": "[priority] The `--update-to` option has been added allowing the user more control over program upgrades (or downgrades).\n`--update-to` can change the release channel (`stable`, `nightly`) and also upgrade or downgrade to specific tags.\n**Usage**: `--update-to CHANNEL`, `--update-to TAG`, `--update-to CHANNEL@TAG`"
     }
 ]
