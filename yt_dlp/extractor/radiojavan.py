@@ -515,7 +515,7 @@ class RadioJavanMp3IE(InfoExtractor):
         ]
 
         formats.extend(self._extract_m3u8_formats(
-            mp3_json.get('hls_link'), mp3_json, 'm4a', 'm3u8_native', m3u8_id='hls',
+            mp3_json.get('hls_link'), mp3_slug, 'm4a', 'm3u8_native', m3u8_id='hls',
             note='Downloading HD m3u8 information', errnote='Unable to download HD m3u8 information'))
 
         return {
@@ -578,7 +578,7 @@ class RadioJavanIE(InfoExtractor):
         ]
 
         formats.extend(self._extract_m3u8_formats(
-            video_json.get('hls'), video_id, None, 'm3u8_native', m3u8_id='hls',
+            video_json.get('hls'), video_slug, None, 'm3u8_native', m3u8_id='hls',
             note='Downloading HD m3u8 information', errnote='Unable to download HD m3u8 information'))
 
         artist = video_json.get('artist')
