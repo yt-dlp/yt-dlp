@@ -51,6 +51,36 @@ def _init_rj_api_base(downloader):
     RJ_API_BASE_EXTRACTOR._rj_ensure_vars()
 
 
+class RadioJavanShareUrlIE(InfoExtractor):
+    _VALID_URL = r'https?://rj\.app/[^/]+?/(?P<id>[^/]+?)/?$'
+    IE_NAME = 'radiojavan:shareurl'
+    _TEST = {
+        'url': 'https://rj.app/m/bvGmAB9q',
+        'md5': 'cb877362f8e8fabb1aad6e2f1bf1bf97',
+        'info_dict': {
+            'id': 'ell3-baroon',
+            'ext': 'mp3',
+            'title': 'Ell3 - Baroon',
+            'alt_title': 'ال - بارون',
+            'track': 'Baroon',
+            'artist': 'Ell3',
+            'thumbnail': r're:^https?://.*\.jpe?g$',
+            'upload_date': '20221226',
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+            'explicit': False,
+        }
+    }
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+
+        urlh = self._request_webpage(url, id, note='Getting redirect page')
+
+        return self.url_result(url=urlh.geturl(), video_id=id)
+
+
 class RadioJavanArtistIE(InfoExtractor):
     _VALID_URL = r'https?://play\.radiojavan\.com/artist/(?P<id>[^/]+?)/?$'
     IE_NAME = 'radiojavan:artist'
@@ -271,7 +301,7 @@ class RadioJavanStoryIE(InfoExtractor):
 
 
 class RadioJavanAlbumIE(InfoExtractor):
-    _VALID_URL = r'https?://play\.radiojavan\.com/(album/(?P<slug>[^/]+)/?|album\?id=(?P<id>[^&]+).*)'
+    _VALID_URL = r'https?://play\.radiojavan\.com/(album/(?P<slug>[^/\?]+)/?|album\?id=(?P<id>[^&]+).*)'
     IE_NAME = 'radiojavan:album'
     _TEST = {
         'url': 'https://play.radiojavan.com/album/alireza-jj-amadeus',
@@ -307,7 +337,7 @@ class RadioJavanAlbumIE(InfoExtractor):
 
 
 class RadioJavanPodcastShowIE(InfoExtractor):
-    _VALID_URL = r'https?://play\.radiojavan\.com/(podcast/show/(?P<slug>[^/]+)/?|podcast/show\?id=(?P<id>[^&]+).*)'
+    _VALID_URL = r'https?://play\.radiojavan\.com/(podcast/show/(?P<slug>[^/\?]+)/?|podcast/show\?id=(?P<id>[^&]+).*)'
     IE_NAME = 'radiojavan:playlist:podcasts'
     _TEST = {
         'url': 'https://play.radiojavan.com/podcast/show/Abo-Atash',
@@ -370,7 +400,7 @@ class RadioJavanPlaylistMp3IE(InfoExtractor):
 
 
 class RadioJavanPodcastIE(InfoExtractor):
-    _VALID_URL = r'https?://play\.radiojavan\.com/(podcast/(?P<slug>[^/]+)/?$|podcast\?id=(?P<id>[^&]+).*)'
+    _VALID_URL = r'https?://play\.radiojavan\.com/(podcast/(?P<slug>[^/\?]+)/?$|podcast\?id=(?P<id>[^&]+).*)'
     IE_NAME = 'radiojavan:podcast'
     _TEST = {
         'url': 'https://play.radiojavan.com/podcast/Abo-Atash-118',
@@ -406,6 +436,10 @@ class RadioJavanPodcastIE(InfoExtractor):
 
         artist = podcast_json.get('podcast_artist')
         song = podcast_json.get('title')
+        title = f'{artist} - {song}'
+        explicit = podcast_json.get('explicit')
+        if explicit:
+            title += ' ᴱ'
 
         formats = [
             {'url': podcast_json.get('link'), 'quality': 1}
@@ -417,7 +451,7 @@ class RadioJavanPodcastIE(InfoExtractor):
 
         return {
             'id': podcast_slug,
-            'title': f'{artist} - {song}',
+            'title': title,
             'alt_title': f'{song} Podcast by {artist}',
             'track': song,
             'artist': artist,
@@ -427,12 +461,12 @@ class RadioJavanPodcastIE(InfoExtractor):
             'view_count': str_to_int(podcast_json.get('plays')),
             'like_count': str_to_int(podcast_json.get('likes')),
             'dislike_count': str_to_int(podcast_json.get('dislikes')),
-            'explicit': podcast_json.get('explicit'),
+            'explicit': explicit,
         }
 
 
 class RadioJavanMp3IE(InfoExtractor):
-    _VALID_URL = r'https?://play\.radiojavan\.com/(song/(?P<slug>[^/]+)/?|song\?id=(?P<id>[^&]+).*)'
+    _VALID_URL = r'https?://play\.radiojavan\.com/(song/(?P<slug>[^/\?]+)/?|song\?id=(?P<id>[^&]+).*)'
     IE_NAME = 'radiojavan:mp3'
     _TESTS = [{
         'url': 'https://play.radiojavan.com/song/Ell3-Baroon',
@@ -476,7 +510,7 @@ class RadioJavanMp3IE(InfoExtractor):
         'info_dict': {
             'id': 'alireza-jj-yek',
             'ext': 'mp3',
-            'title': 'Alireza JJ - Yek',
+            'title': 'Alireza JJ - Yek ᴱ',
             'alt_title': 'علیرضا جی جی - یک',
             'track': 'Yek',
             'artist': 'Alireza JJ',
@@ -506,6 +540,10 @@ class RadioJavanMp3IE(InfoExtractor):
 
         artist = mp3_json.get('artist')
         song = mp3_json.get('song')
+        title = f'{artist} - {song}'
+        explicit = mp3_json.get('explicit')
+        if explicit:
+            title += ' ᴱ'
 
         artist_farsi = mp3_json.get('artist_farsi') or artist
         song_farsi = mp3_json.get('song_farsi') or song
@@ -520,7 +558,7 @@ class RadioJavanMp3IE(InfoExtractor):
 
         return {
             'id': mp3_slug,
-            'title': f'{artist} - {song}',
+            'title': title,
             'alt_title': f'{artist_farsi} - {song_farsi}',
             'track': song,
             'artist': artist,
@@ -532,12 +570,12 @@ class RadioJavanMp3IE(InfoExtractor):
             'view_count': str_to_int(mp3_json.get('plays')),
             'like_count': str_to_int(mp3_json.get('likes')),
             'dislike_count': str_to_int(mp3_json.get('dislikes')),
-            'explicit': mp3_json.get('explicit'),
+            'explicit': explicit,
         }
 
 
 class RadioJavanIE(InfoExtractor):
-    _VALID_URL = r'https?://play\.radiojavan\.com/(video/(?P<slug>[^/]+)/?|video\?id=(?P<id>[^&]+).*)'
+    _VALID_URL = r'https?://play\.radiojavan\.com/(video/(?P<slug>[^/\?]+)/?|video\?id=(?P<id>[^&]+).*)'
     IE_NAME = 'radiojavan:video'
     _TEST = {
         'url': 'https://play.radiojavan.com/video/chaartaar-ashoobam',
@@ -583,13 +621,17 @@ class RadioJavanIE(InfoExtractor):
 
         artist = video_json.get('artist')
         song = video_json.get('song')
+        title = f'{artist} - {song}'
+        explicit = video_json.get('explicit')
+        if explicit:
+            title += ' ᴱ'
 
         artist_farsi = video_json.get('artist_farsi') or artist
         song_farsi = video_json.get('song_farsi') or song
 
         return {
             'id': video_slug,
-            'title': f'{artist} - {song}',
+            'title': title,
             'alt_title': f'{artist_farsi} - {song_farsi}',
             'cast': [artist],
             'track': song,
@@ -599,6 +641,6 @@ class RadioJavanIE(InfoExtractor):
             'view_count': str_to_int(video_json.get('views')),
             'like_count': str_to_int(video_json.get('likes')),
             'dislike_count': str_to_int(video_json.get('dislikes')),
-            'explicit': video_json.get('explicit'),
+            'explicit': explicit,
             'formats': formats,
         }

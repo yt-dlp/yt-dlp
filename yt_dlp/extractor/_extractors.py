@@ -1491,7 +1491,8 @@ from .radiojavan import (
     RadioJavanArtistIE,
     RadioJavanArtistSongsIE,
     RadioJavanArtistVideosIE,
-    RadioJavanArtistPodcastsIE
+    RadioJavanArtistPodcastsIE,
+    RadioJavanShareUrlIE
 )
 from .radiobremen import RadioBremenIE
 from .radiofrance import FranceCultureIE, RadioFranceIE
