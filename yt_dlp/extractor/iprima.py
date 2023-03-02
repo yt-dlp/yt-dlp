@@ -123,16 +123,6 @@ class IPrimaIE(InfoExtractor):
         elif error_code is not None:
             self.raise_no_formats('Access to stream infos forbidden', expected=True)
 
-    def _extract_id_from_nuxt(self, nuxt_data):
-        try:
-            data = nuxt_data['data']
-            inner = data[list(data.keys())[0]]
-            video_id = traverse_obj(inner, ('content', 'additionals', 'videoPlayId'))
-            assert video_id and len(video_id), 'Failed to get video id from nuxt'
-            return video_id
-        except Exception as e:
-            self.raise_no_formats(f'Failed to extract video id: {e}')
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
@@ -148,8 +138,12 @@ class IPrimaIE(InfoExtractor):
         ), webpage, 'real id', group='id', default=None)
 
         if not video_id:
-            nuxt_data = self._search_nuxt_data(webpage, video_id, traverse=None)
-            video_id = self._extract_id_from_nuxt(nuxt_data)
+            nuxt_data = self._search_nuxt_data(webpage, video_id, traverse='data')
+            video_id = traverse_obj(
+                nuxt_data, (..., 'content', 'additionals', 'videoPlayId', {str}), get_all=False)
+
+        if not video_id:
+            self.raise_no_formats('Unable to extract video ID from webpage')
 
         metadata = self._download_json(
             f'https://api.play-backend.iprima.cz/api/v1//products/id-{video_id}/play',
