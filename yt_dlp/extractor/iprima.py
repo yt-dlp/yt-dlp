@@ -83,15 +83,11 @@ class IPrimaIE(InfoExtractor):
         # a profile may need to be selected first, even when there is only a single one
         if '/profile-select' in login_handle.geturl():
             profile_id = self._search_regex(
-                r'data-identifier\s*=\s*["\']?(\w+)["\']?',
-                profile_select_html, 'profile id')
-
-            profile_select_url = f'{self._AUTH_ROOT}/user/profile-select-perform/{profile_id}'
-            query = {'continueUrl': '/user/login?redirect_uri=/user/'}
+                r'data-identifier\s*=\s*["\']?(\w+)', profile_select_html, 'profile id')
 
             login_handle = self._request_webpage(
-                profile_select_url, None, query=query,
-                note='Selecting profile')
+                f'{self._AUTH_ROOT}/user/profile-select-perform/{profile_id}', None,
+                query={'continueUrl': '/user/login?redirect_uri=/user/'}, note='Selecting profile')
 
         code = traverse_obj(login_handle.geturl(), ({parse_qs}, 'code', 0))
         if not code:
