@@ -311,9 +311,12 @@ If you wish to build it anyway, install Python and py2exe, and then simply run `
 
 ### Related scripts
 
-* **`devscripts/update-version.py [revision]`** - Update the version number based on current date
-* **`devscripts/set-variant.py variant [-M update_message]`** - Set the build variant of the executable
+* **`devscripts/update-version.py`** - Update the version number based on current date.
+* **`devscripts/set-variant.py`** - Set the build variant of the executable.
+* **`devscripts/make_changelog.py`** - Create a markdown changelog using short commit messages and update `CONTRIBUTORS` file.
 * **`devscripts/make_lazy_extractors.py`** - Create lazy extractors. Running this before building the binaries (any variant) will improve their startup performance. Set the environment variable `YTDLP_NO_LAZY_EXTRACTORS=1` if you wish to forcefully disable lazy extractor loading.
+
+Note: See their `--help` for more info.
 
 You can also fork the project on GitHub and run your fork's [build workflow](.github/workflows/build.yml) to automatically build a full release
 
