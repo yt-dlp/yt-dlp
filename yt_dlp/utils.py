@@ -3042,8 +3042,10 @@ class PlaylistEntries:
                 if not entry:
                     continue
                 try:
-                    # TODO: Add auto-generated fields
-                    self.ydl._match_entry(entry, incomplete=True, silent=True)
+                    # The item may have just been added to archive. Don't break due to it
+                    if not self.ydl.params.get('lazy_playlist'):
+                        # TODO: Add auto-generated fields
+                        self.ydl._match_entry(entry, incomplete=True, silent=True)
                 except (ExistingVideoReached, RejectedVideoReached):
                     return
 
