@@ -6057,14 +6057,16 @@ class classproperty:
 
 
 class function_with_repr:
-    def __init__(self, func):
+    def __init__(self, func, repr_=None):
         functools.update_wrapper(self, func)
-        self.func = func
+        self.func, self.__repr = func, repr_
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
     def __repr__(self):
+        if self.__repr:
+            return self.__repr
         return f'{self.func.__module__}.{self.func.__qualname__}'
 
 
