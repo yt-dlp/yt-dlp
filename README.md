@@ -537,8 +537,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --break-on-existing             Stop the download process when encountering
                                     a file that is in the archive
     --break-per-input               Alters --max-downloads, --break-on-existing,
-                                    --break-on-reject, and autonumber to reset
-                                    per input URL
+                                    --break-match-filter, and autonumber to
+                                    reset per input URL
     --no-break-per-input            --break-on-existing and similar options
                                     terminates the entire download queue
     --skip-playlist-after-errors N  Number of allowed failures until the rest of
