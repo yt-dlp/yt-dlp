@@ -106,7 +106,22 @@ class YleAreenaIE(InfoExtractor):
                     'name': sub.get('kind'),
                 })
 
-        info_dict = {
+        kaltura_id = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'kaltura', 'id'), expected_type=str)
+        if kaltura_id:
+            info_dict = {
+                '_type': 'url_transparent',
+                'url': smuggle_url(f'kaltura:1955031:{kaltura_id}', {'source_url': url}),
+                'ie_key': KalturaIE.ie_key(),
+            }
+        else:
+            info_dict = {
+                'id': video_id,
+                'formats': self._extract_m3u8_formats(
+                    video_data['data']['ongoing_ondemand']['manifest_url'], video_id, 'mp4', m3u8_id='hls'),
+            }
+
+        return {
+            **info_dict,
             'title': (traverse_obj(video_data, ('data', 'ongoing_ondemand', 'title', 'fin'), expected_type=str)
                       or episode or info.get('title')),
             'description': description,
@@ -121,19 +136,3 @@ class YleAreenaIE(InfoExtractor):
             'subtitles': subtitles,
             'release_date': unified_strdate(traverse_obj(video_data, ('data', 'ongoing_ondemand', 'start_time'), expected_type=str)),
         }
-
-        kaltura_id = traverse_obj(video_data, ('data', 'ongoing_ondemand', 'kaltura', 'id'), expected_type=str)
-        if kaltura_id:
-            info_dict.update({
-                '_type': 'url_transparent',
-                'url': smuggle_url(f'kaltura:1955031:{kaltura_id}', {'source_url': url}),
-                'ie_key': KalturaIE.ie_key(),
-            })
-        else:
-            info_dict.update({
-                'id': video_id,
-                'formats': self._extract_m3u8_formats(
-                    video_data['data']['ongoing_ondemand']['manifest_url'], video_id, 'mp4', m3u8_id='hls'),
-            })
-
-        return info_dict
