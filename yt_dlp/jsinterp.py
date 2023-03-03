@@ -355,11 +355,11 @@ class JSInterpreter:
             obj = expr[4:]
             if obj.startswith('Date('):
                 left, right = self._separate_at_paren(obj[4:])
-                expr = unified_timestamp(
+                date = unified_timestamp(
                     self.interpret_expression(left, local_vars, allow_recursion), False)
-                if not expr:
+                if date is None:
                     raise self.Exception(f'Failed to parse date {left!r}', expr)
-                expr = self._dump(int(expr * 1000), local_vars) + right
+                expr = self._dump(int(date * 1000), local_vars) + right
             else:
                 raise self.Exception(f'Unsupported object {obj}', expr)
 
@@ -403,10 +403,25 @@ class JSInterpreter:
 
         m = re.match(r'''(?x)
                 (?P<try>try)\s*\{|
+                (?P<if>if)\s*\(|
                 (?P<switch>switch)\s*\(|
                 (?P<for>for)\s*\(
                 ''', expr)
         md = m.groupdict() if m else {}
+        if md.get('if'):
+            cndn, expr = self._separate_at_paren(expr[m.end() - 1:])
+            if_expr, expr = self._separate_at_paren(expr.lstrip())
+            # TODO: "else if" is not handled
+            else_expr = None
+            m = re.match(r'else\s*{', expr)
+            if m:
+                else_expr, expr = self._separate_at_paren(expr[m.end() - 1:])
+            cndn = _js_ternary(self.interpret_expression(cndn, local_vars, allow_recursion))
+            ret, should_abort = self.interpret_statement(
+                if_expr if cndn else else_expr, local_vars, allow_recursion)
+            if should_abort:
+                return ret, True
+
         if md.get('try'):
             try_expr, expr = self._separate_at_paren(expr[m.end() - 1:])
             err = None

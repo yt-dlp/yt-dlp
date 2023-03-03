@@ -554,7 +554,7 @@ class YoutubeDL:
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx', 'rows', 'columns',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
         'preference', 'language', 'language_preference', 'quality', 'source_preference',
-        'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'downloader_options',
+        'http_headers', 'stretched_ratio', 'no_resume', 'has_drm', 'extra_param_to_segment_url', 'hls_aes', 'downloader_options',
         'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time'
     }
     _format_selection_exts = {
@@ -614,7 +614,7 @@ class YoutubeDL:
                    '\n                    You will no longer receive updates on this version')
             if current_version < MIN_SUPPORTED:
                 msg = 'Python version %d.%d is no longer supported'
-            self.deprecation_warning(
+            self.deprecated_feature(
                 f'{msg}! Please update to Python %d.%d or above' % (*current_version, *MIN_RECOMMENDED))
 
         if self.params.get('allow_unplayable_formats'):
@@ -2411,11 +2411,7 @@ class YoutubeDL:
     def _fill_common_fields(self, info_dict, final=True):
         # TODO: move sanitization here
         if final:
-            title = info_dict.get('title', NO_DEFAULT)
-            if title is NO_DEFAULT:
-                raise ExtractorError('Missing "title" field in extractor result',
-                                     video_id=info_dict['id'], ie=info_dict['extractor'])
-            info_dict['fulltitle'] = title
+            title = info_dict['fulltitle'] = info_dict.get('title')
             if not title:
                 if title == '':
                     self.write_debug('Extractor gave empty title. Creating a generic title')
@@ -2470,15 +2466,8 @@ class YoutubeDL:
 
     def sort_formats(self, info_dict):
         formats = self._get_formats(info_dict)
-        if not formats:
-            return
-        # Backward compatibility with InfoExtractor._sort_formats
-        field_preference = formats[0].pop('__sort_fields', None)
-        if field_preference:
-            info_dict['_format_sort_fields'] = field_preference
-
         formats.sort(key=FormatSorter(
-            self, info_dict.get('_format_sort_fields', [])).calculate_preference)
+            self, info_dict.get('_format_sort_fields') or []).calculate_preference)
 
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'
@@ -2565,8 +2554,12 @@ class YoutubeDL:
         info_dict['requested_subtitles'] = self.process_subtitles(
             info_dict['id'], subtitles, automatic_captions)
 
-        self.sort_formats(info_dict)
         formats = self._get_formats(info_dict)
+
+        # Backward compatibility with InfoExtractor._sort_formats
+        field_preference = (formats or [{}])[0].pop('__sort_fields', None)
+        if field_preference:
+            info_dict['_format_sort_fields'] = field_preference
 
         # or None ensures --clean-infojson removes it
         info_dict['_has_drm'] = any(f.get('has_drm') for f in formats) or None
@@ -2605,44 +2598,12 @@ class YoutubeDL:
         if not formats:
             self.raise_no_formats(info_dict)
 
-        formats_dict = {}
-
-        # We check that all the formats have the format and format_id fields
-        for i, format in enumerate(formats):
+        for format in formats:
             sanitize_string_field(format, 'format_id')
             sanitize_numeric_fields(format)
             format['url'] = sanitize_url(format['url'])
-            if not format.get('format_id'):
-                format['format_id'] = str(i)
-            else:
-                # Sanitize format_id from characters used in format selector expression
-                format['format_id'] = re.sub(r'[\s,/+\[\]()]', '_', format['format_id'])
-            format_id = format['format_id']
-            if format_id not in formats_dict:
-                formats_dict[format_id] = []
-            formats_dict[format_id].append(format)
-
-        # Make sure all formats have unique format_id
-        common_exts = set(itertools.chain(*self._format_selection_exts.values()))
-        for format_id, ambiguous_formats in formats_dict.items():
-            ambigious_id = len(ambiguous_formats) > 1
-            for i, format in enumerate(ambiguous_formats):
-                if ambigious_id:
-                    format['format_id'] = '%s-%d' % (format_id, i)
-                if format.get('ext') is None:
-                    format['ext'] = determine_ext(format['url']).lower()
-                # Ensure there is no conflict between id and ext in format selection
-                # See https://github.com/yt-dlp/yt-dlp/issues/1282
-                if format['format_id'] != format['ext'] and format['format_id'] in common_exts:
-                    format['format_id'] = 'f%s' % format['format_id']
-
-        for i, format in enumerate(formats):
-            if format.get('format') is None:
-                format['format'] = '{id} - {res}{note}'.format(
-                    id=format['format_id'],
-                    res=self.format_resolution(format),
-                    note=format_field(format, 'format_note', ' (%s)'),
-                )
+            if format.get('ext') is None:
+                format['ext'] = determine_ext(format['url']).lower()
             if format.get('protocol') is None:
                 format['protocol'] = determine_protocol(format)
             if format.get('resolution') is None:
@@ -2654,15 +2615,45 @@ class YoutubeDL:
             if (info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
+            format['http_headers'] = self._calc_headers(collections.ChainMap(format, info_dict))
 
-            # Add HTTP headers, so that external programs can use them from the
-            # json output
-            full_format_info = info_dict.copy()
-            full_format_info.update(format)
-            format['http_headers'] = self._calc_headers(full_format_info)
-        # Remove private housekeeping stuff
+        # This is copied to http_headers by the above _calc_headers and can now be removed
         if '__x_forwarded_for_ip' in info_dict:
             del info_dict['__x_forwarded_for_ip']
+
+        self.sort_formats({
+            'formats': formats,
+            '_format_sort_fields': info_dict.get('_format_sort_fields')
+        })
+
+        # Sanitize and group by format_id
+        formats_dict = {}
+        for i, format in enumerate(formats):
+            if not format.get('format_id'):
+                format['format_id'] = str(i)
+            else:
+                # Sanitize format_id from characters used in format selector expression
+                format['format_id'] = re.sub(r'[\s,/+\[\]()]', '_', format['format_id'])
+            formats_dict.setdefault(format['format_id'], []).append(format)
+
+        # Make sure all formats have unique format_id
+        common_exts = set(itertools.chain(*self._format_selection_exts.values()))
+        for format_id, ambiguous_formats in formats_dict.items():
+            ambigious_id = len(ambiguous_formats) > 1
+            for i, format in enumerate(ambiguous_formats):
+                if ambigious_id:
+                    format['format_id'] = '%s-%d' % (format_id, i)
+                # Ensure there is no conflict between id and ext in format selection
+                # See https://github.com/yt-dlp/yt-dlp/issues/1282
+                if format['format_id'] != format['ext'] and format['format_id'] in common_exts:
+                    format['format_id'] = 'f%s' % format['format_id']
+
+                if format.get('format') is None:
+                    format['format'] = '{id} - {res}{note}'.format(
+                        id=format['format_id'],
+                        res=self.format_resolution(format),
+                        note=format_field(format, 'format_note', ' (%s)'),
+                    )
 
         if self.params.get('check_formats') is True:
             formats = LazyList(self._check_formats(formats[::-1]), reverse=True)
@@ -2819,10 +2810,14 @@ class YoutubeDL:
                     self.params.get('subtitleslangs'), {'all': all_sub_langs}, use_regex=True)
             except re.error as e:
                 raise ValueError(f'Wrong regex for subtitlelangs: {e.pattern}')
-        elif normal_sub_langs:
-            requested_langs = ['en'] if 'en' in normal_sub_langs else normal_sub_langs[:1]
         else:
-            requested_langs = ['en'] if 'en' in all_sub_langs else all_sub_langs[:1]
+            requested_langs = LazyList(itertools.chain(
+                ['en'] if 'en' in normal_sub_langs else [],
+                filter(lambda f: f.startswith('en'), normal_sub_langs),
+                ['en'] if 'en' in all_sub_langs else [],
+                filter(lambda f: f.startswith('en'), all_sub_langs),
+                normal_sub_langs, all_sub_langs,
+            ))[:1]
         if requested_langs:
             self.to_screen(f'[info] {video_id}: Downloading subtitles: {", ".join(requested_langs)}')
 
@@ -3670,6 +3665,7 @@ class YoutubeDL:
                 format_field(f, 'asr', '\t%s', func=format_decimal_suffix),
                 join_nonempty(
                     self._format_out('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
+                    self._format_out('DRM', 'light red') if f.get('has_drm') else None,
                     format_field(f, 'language', '[%s]'),
                     join_nonempty(format_field(f, 'format_note'),
                                   format_field(f, 'container', ignore=(None, f.get('ext'))),
@@ -3769,12 +3765,13 @@ class YoutubeDL:
         source = detect_variant()
         if VARIANT not in (None, 'pip'):
             source += '*'
+        klass = type(self)
         write_debug(join_nonempty(
             f'{"yt-dlp" if REPOSITORY == "yt-dlp/yt-dlp" else REPOSITORY} version',
             __version__ + {'stable': '', 'nightly': '*'}.get(CHANNEL, f' <{CHANNEL}>'),
             f'[{RELEASE_GIT_HEAD[:9]}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
-            '' if _IN_CLI else 'API',
+            '' if _IN_CLI else 'API' if klass == YoutubeDL else f'API:{self.__module__}.{klass.__qualname__}',
             delim=' '))
 
         if not _IN_CLI:

@@ -508,8 +508,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         if acodec != 'copy':
             more_opts = self._quality_args(acodec)
 
-        # not os.path.splitext, since the latter does not work on unicode in all setups
-        temp_path = new_path = f'{path.rpartition(".")[0]}.{extension}'
+        temp_path = new_path = replace_extension(path, extension, information['ext'])
 
         if new_path == path:
             if acodec == 'copy':
