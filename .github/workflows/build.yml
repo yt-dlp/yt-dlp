@@ -30,6 +30,9 @@ on:
       meta_files:
         default: true
         type: boolean
+    secrets:
+      GPG_SIGNING_KEY:
+        required: false
 
   workflow_dispatch:
     inputs:
@@ -329,6 +332,16 @@ jobs:
           # This file is used for regulating self-update
           lock 2022.08.18.36 .+ Python 3.6
           EOF
+
+      - name: Sign checksum files
+        env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+        if: env.GPG_SIGNING_KEY != ''
+        run: |
+          gpg --batch --import <<< "${{ secrets.GPG_SIGNING_KEY }}"
+          for signfile in ./SHA*SUMS; do
+            gpg --batch --detach-sign "$signfile"
+          done
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
