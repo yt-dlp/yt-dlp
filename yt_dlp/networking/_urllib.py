@@ -197,19 +197,16 @@ class YoutubeDLHandler(urllib.request.AbstractHTTPHandler):
                     raise original_ioerror
             resp = urllib.response.addinfourl(uncompressed, old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
-            del resp.headers['Content-encoding']
         # deflate
         if resp.headers.get('Content-encoding', '') == 'deflate':
             gz = io.BytesIO(self.deflate(resp.read()))
             resp = urllib.response.addinfourl(gz, old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
-            del resp.headers['Content-encoding']
         # brotli
         if resp.headers.get('Content-encoding', '') == 'br' and brotli is not None:
             resp = urllib.response.addinfourl(
                 io.BytesIO(self.brotli(resp.read())), old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
-            del resp.headers['Content-encoding']
         # Percent-encode redirect URL of Location HTTP header to satisfy RFC 3986 (see
         # https://github.com/ytdl-org/youtube-dl/issues/6457).
         if 300 <= resp.code < 400:
@@ -451,7 +448,8 @@ class UrllibRH(RequestHandler):
     def _prepare_request(self, request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
         if scheme == 'file' and not self.ydl.params.get('enable_file_urls'):
-            raise UnsupportedRequest('file:// scheme is disabled by default in yt-dlp for security reasons')
+            raise UnsupportedRequest('file:// URLs are disabled by default in yt-dlp for security reasons. '
+                                     'Use --enable-file-urls to at your own risk.')
         return request
 
     def get_opener(self, request):
