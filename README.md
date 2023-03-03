@@ -114,7 +114,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Output template improvements**: Output templates can now have date-time formatting, numeric offsets, object traversal etc. See [output template](#output-template) for details. Even more advanced operations can also be done with the help of `--parse-metadata` and `--replace-in-metadata`
 
-* **Other new options**: Many new options have been added such as `--alias`, `--print`, `--concat-playlist`, `--wait-for-video`, `--retry-sleep`, `--sleep-requests`, `--convert-thumbnails`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
+* **Other new options**: Many new options have been added such as `--alias`, `--print`, `--concat-playlist`, `--wait-for-video`, `--retry-sleep`, `--sleep-requests`, `--convert-thumbnails`, `--force-download-archive`, `--force-overwrites`, `--break-match-filter` etc
 
 * **Improvements**: Regex and other operators in `--format`/`--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio, multiple `--config-locations`, `--exec` at different stages, etc
 
@@ -519,7 +519,10 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
                                     dogs" (caseless). Use "--match-filter -" to
                                     interactively ask whether to download each
                                     video
-    --no-match-filter               Do not use generic video filter (default)
+    --no-match-filter               Do not use any --match-filter (default)
+    --break-match-filters FILTER    Same as "--match-filters" but stops the
+                                    download process when a video is rejected
+    --no-break-match-filters        Do not use any --break-match-filters (default)
     --no-playlist                   Download only the video, if the URL refers
                                     to a video and a playlist
     --yes-playlist                  Download the playlist, if the URL refers to
@@ -533,8 +536,6 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --max-downloads NUMBER          Abort after downloading NUMBER files
     --break-on-existing             Stop the download process when encountering
                                     a file that is in the archive
-    --break-on-reject               Stop the download process when encountering
-                                    a file that has been filtered out
     --break-per-input               Alters --max-downloads, --break-on-existing,
                                     --break-on-reject, and autonumber to reset
                                     per input URL
@@ -2133,6 +2134,7 @@ While these options are redundant, they are still expected to be used due to the
     --reject-title REGEX             --match-filter "title !~= (?i)REGEX"
     --min-views COUNT                --match-filter "view_count >=? COUNT"
     --max-views COUNT                --match-filter "view_count <=? COUNT"
+    --break-on-reject                Use --break-match-filter
     --user-agent UA                  --add-header "User-Agent:UA"
     --referer URL                    --add-header "Referer:URL"
     --playlist-start NUMBER          -I NUMBER:

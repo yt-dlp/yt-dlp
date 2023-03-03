@@ -613,8 +613,16 @@ def create_parser():
             'Use "--match-filter -" to interactively ask whether to download each video'))
     selection.add_option(
         '--no-match-filter',
-        metavar='FILTER', dest='match_filter', action='store_const', const=None,
-        help='Do not use generic video filter (default)')
+        dest='match_filter', action='store_const', const=None,
+        help='Do not use any --match-filter (default)')
+    selection.add_option(
+        '--break-match-filters',
+        metavar='FILTER', dest='breaking_match_filter', action='append',
+        help='Same as "--match-filters" but stops the download process when a video is rejected')
+    selection.add_option(
+        '--no-break-match-filters',
+        dest='breaking_match_filter', action='store_const', const=None,
+        help='Do not use any --break-match-filters (default)')
     selection.add_option(
         '--no-playlist',
         action='store_true', dest='noplaylist', default=False,
@@ -646,11 +654,11 @@ def create_parser():
     selection.add_option(
         '--break-on-reject',
         action='store_true', dest='break_on_reject', default=False,
-        help='Stop the download process when encountering a file that has been filtered out')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--break-per-input',
         action='store_true', dest='break_per_url', default=False,
-        help='Alters --max-downloads, --break-on-existing, --break-on-reject, and autonumber to reset per input URL')
+        help='Alters --max-downloads, --break-on-existing, --break-match-filter, and autonumber to reset per input URL')
     selection.add_option(
         '--no-break-per-input',
         action='store_false', dest='break_per_url',
