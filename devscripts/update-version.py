@@ -46,7 +46,7 @@ VARIANT = None
 
 UPDATE_HINT = None
 
-CHANNEL = "{channel!r}"
+CHANNEL = {channel!r}
 '''
 
 if __name__ == '__main__':
