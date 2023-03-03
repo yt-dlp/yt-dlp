@@ -7,3 +7,5 @@ RELEASE_GIT_HEAD = 'a0a7c0154'
 VARIANT = None
 
 UPDATE_HINT = None
+
+CHANNEL = 'stable'
