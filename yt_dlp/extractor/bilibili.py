@@ -6,6 +6,7 @@ import urllib.error
 import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
+from ..dependencies import Cryptodome
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
@@ -16,6 +17,7 @@ from ..utils import (
     format_field,
     int_or_none,
     make_archive_id,
+    merge_dicts,
     mimetype2ext,
     parse_count,
     parse_qs,
@@ -892,22 +894,15 @@ class BiliIntlBaseIE(InfoExtractor):
         }
 
     def _perform_login(self, username, password):
-        try:
-            from Cryptodome.PublicKey import RSA
-            from Cryptodome.Cipher import PKCS1_v1_5
-        except ImportError:
-            try:
-                from Crypto.PublicKey import RSA
-                from Crypto.Cipher import PKCS1_v1_5
-            except ImportError:
-                raise ExtractorError('pycryptodomex not found. Please install', expected=True)
+        if not Cryptodome.RSA:
+            raise ExtractorError('pycryptodomex not found. Please install', expected=True)
 
         key_data = self._download_json(
             'https://passport.bilibili.tv/x/intl/passport-login/web/key?lang=en-US', None,
             note='Downloading login key', errnote='Unable to download login key')['data']
 
-        public_key = RSA.importKey(key_data['key'])
-        password_hash = PKCS1_v1_5.new(public_key).encrypt((key_data['hash'] + password).encode('utf-8'))
+        public_key = Cryptodome.RSA.importKey(key_data['key'])
+        password_hash = Cryptodome.PKCS1_v1_5.new(public_key).encrypt((key_data['hash'] + password).encode('utf-8'))
         login_post = self._download_json(
             'https://passport.bilibili.tv/x/intl/passport-login/web/login/password?lang=en-US', None, data=urlencode_postdata({
                 'username': username,
@@ -934,6 +929,23 @@ class BiliIntlIE(BiliIntlBaseIE):
             'title': 'E2 - The First Night',
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'episode_number': 2,
+            'upload_date': '20201009',
+            'episode': 'Episode 2',
+            'timestamp': 1602259500,
+            'description': 'md5:297b5a17155eb645e14a14b385ab547e',
+            'chapters': [{
+                'start_time': 0,
+                'end_time': 76.242,
+                'title': '<Untitled Chapter 1>'
+            }, {
+                'start_time': 76.242,
+                'end_time': 161.161,
+                'title': 'Intro'
+            }, {
+                'start_time': 1325.742,
+                'end_time': 1403.903,
+                'title': 'Outro'
+            }],
         }
     }, {
         # Non-Bstation page
@@ -944,6 +956,23 @@ class BiliIntlIE(BiliIntlBaseIE):
             'title': 'E3 - Who?',
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'episode_number': 3,
+            'description': 'md5:e1a775e71a35c43f141484715470ad09',
+            'episode': 'Episode 3',
+            'upload_date': '20211219',
+            'timestamp': 1639928700,
+            'chapters': [{
+                'start_time': 0,
+                'end_time': 88.0,
+                'title': '<Untitled Chapter 1>'
+            }, {
+                'start_time': 88.0,
+                'end_time': 156.0,
+                'title': 'Intro'
+            }, {
+                'start_time': 1173.0,
+                'end_time': 1259.535,
+                'title': 'Outro'
+            }],
         }
     }, {
         # Subtitle with empty content
@@ -956,6 +985,31 @@ class BiliIntlIE(BiliIntlBaseIE):
             'episode_number': 140,
         },
         'skip': 'According to the copyright owner\'s request, you may only watch the video after you log in.'
+    }, {
+        'url': 'https://www.bilibili.tv/en/video/2041863208',
+        'info_dict': {
+            'id': '2041863208',
+            'ext': 'mp4',
+            'timestamp': 1670874843,
+            'description': 'Scheduled for April 2023.\nStudio: ufotable',
+            'thumbnail': r're:https?://pic[-\.]bstarstatic.+/ugc/.+\.jpg$',
+            'upload_date': '20221212',
+            'title': 'Kimetsu no Yaiba Season 3 Official Trailer - Bstation',
+        }
+    }, {
+        # episode id without intro and outro
+        'url': 'https://www.bilibili.tv/en/play/1048837/11246489',
+        'info_dict': {
+            'id': '11246489',
+            'ext': 'mp4',
+            'title': 'E1 - Operation \'Strix\' <Owl>',
+            'description': 'md5:b4434eb1a9a97ad2bccb779514b89f17',
+            'timestamp': 1649516400,
+            'thumbnail': 'https://pic.bstarstatic.com/ogv/62cb1de23ada17fb70fbe7bdd6ff29c29da02a64.png',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'upload_date': '20220409',
+        },
     }, {
         'url': 'https://www.biliintl.com/en/play/34613/341736',
         'only_matching': True,
@@ -989,7 +1043,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             self._search_json(r'window\.__INITIAL_(?:DATA|STATE)__\s*=', webpage, 'preload state', video_id, default={})
             or self._search_nuxt_data(webpage, video_id, '__initialState', fatal=False, traverse=None))
         video_data = traverse_obj(
-            initial_data, ('OgvVideo', 'epDetail'), ('UgcVideo', 'videoData'), ('ugc', 'archive'), expected_type=dict)
+            initial_data, ('OgvVideo', 'epDetail'), ('UgcVideo', 'videoData'), ('ugc', 'archive'), expected_type=dict) or {}
 
         if season_id and not video_data:
             # Non-Bstation layout, read through episode list
@@ -998,37 +1052,72 @@ class BiliIntlIE(BiliIntlBaseIE):
                 'sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == video_id
             ), expected_type=dict, get_all=False)
 
-        return self._parse_video_metadata(video_data)
+        # XXX: webpage metadata may not accurate, it just used to not crash when video_data not found
+        return merge_dicts(
+            self._parse_video_metadata(video_data), self._search_json_ld(webpage, video_id), {
+                'title': self._html_search_meta('og:title', webpage),
+                'description': self._html_search_meta('og:description', webpage)
+            })
 
     def _real_extract(self, url):
         season_id, ep_id, aid = self._match_valid_url(url).group('season_id', 'ep_id', 'aid')
         video_id = ep_id or aid
+        chapters = None
+
+        if ep_id:
+            intro_ending_json = self._call_api(
+                f'/web/v2/ogv/play/episode?episode_id={ep_id}&platform=web',
+                video_id, fatal=False) or {}
+            if intro_ending_json.get('skip'):
+                # FIXME: start time and end time seems a bit off a few second even it corrext based on ogv.*.js
+                # ref: https://p.bstarstatic.com/fe-static/bstar-web-new/assets/ogv.2b147442.js
+                chapters = [{
+                    'start_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'opening_start_time')), 1000),
+                    'end_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'opening_end_time')), 1000),
+                    'title': 'Intro'
+                }, {
+                    'start_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'ending_start_time')), 1000),
+                    'end_time': float_or_none(traverse_obj(intro_ending_json, ('skip', 'ending_end_time')), 1000),
+                    'title': 'Outro'
+                }]
 
         return {
             'id': video_id,
             **self._extract_video_metadata(url, video_id, season_id),
             'formats': self._get_formats(ep_id=ep_id, aid=aid),
             'subtitles': self.extract_subtitles(ep_id=ep_id, aid=aid),
+            'chapters': chapters
         }
 
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
-    IE_NAME = 'biliintl:series'
-    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?play/(?P<id>\d+)/?(?:[?#]|$)'
+    IE_NAME = 'biliIntl:series'
+    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-zA-Z]{2}/)?(?:play|media)/(?P<id>\d+)/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.bilibili.tv/en/play/34613',
         'playlist_mincount': 15,
         'info_dict': {
             'id': '34613',
-            'title': 'Fly Me to the Moon',
-            'description': 'md5:a861ee1c4dc0acfad85f557cc42ac627',
-            'categories': ['Romance', 'Comedy', 'Slice of life'],
+            'title': 'TONIKAWA: Over the Moon For You',
+            'description': 'md5:297b5a17155eb645e14a14b385ab547e',
+            'categories': ['Slice of life', 'Comedy', 'Romance'],
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'view_count': int,
         },
         'params': {
             'skip_download': True,
         },
+    }, {
+        'url': 'https://www.bilibili.tv/en/media/1048837',
+        'info_dict': {
+            'id': '1048837',
+            'title': 'SPY×FAMILY',
+            'description': 'md5:b4434eb1a9a97ad2bccb779514b89f17',
+            'categories': ['Adventure', 'Action', 'Comedy'],
+            'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.jpg$',
+            'view_count': int,
+        },
+        'playlist_mincount': 25,
     }, {
         'url': 'https://www.biliintl.com/en/play/34613',
         'only_matching': True,

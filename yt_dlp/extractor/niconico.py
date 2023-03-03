@@ -675,8 +675,8 @@ class NiconicoSeriesIE(InfoExtractor):
 
 class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
     IE_NAME = 'niconico:history'
-    IE_DESC = 'NicoNico user history. Requires cookies.'
-    _VALID_URL = r'https?://(?:www\.|sp\.)?nicovideo\.jp/my/history'
+    IE_DESC = 'NicoNico user history or likes. Requires cookies.'
+    _VALID_URL = r'https?://(?:www\.|sp\.)?nicovideo\.jp/my/(?P<id>history(?:/like)?)'
 
     _TESTS = [{
         'note': 'PC page, with /video',
@@ -694,23 +694,29 @@ class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
         'note': 'mobile page, without /video',
         'url': 'https://sp.nicovideo.jp/my/history',
         'only_matching': True,
+    }, {
+        'note': 'PC page',
+        'url': 'https://www.nicovideo.jp/my/history/like',
+        'only_matching': True,
+    }, {
+        'note': 'Mobile page',
+        'url': 'https://sp.nicovideo.jp/my/history/like',
+        'only_matching': True,
     }]
 
     def _call_api(self, list_id, resource, query):
+        path = 'likes' if list_id == 'history/like' else 'watch/history'
         return self._download_json(
-            'https://nvapi.nicovideo.jp/v1/users/me/watch/history', 'history',
-            f'Downloading {resource}', query=query,
-            headers=self._API_HEADERS)['data']
+            f'https://nvapi.nicovideo.jp/v1/users/me/{path}', list_id,
+            f'Downloading {resource}', query=query, headers=self._API_HEADERS)['data']
 
     def _real_extract(self, url):
-        list_id = 'history'
+        list_id = self._match_id(url)
         try:
-            mylist = self._call_api(list_id, 'list', {
-                'pageSize': 1,
-            })
+            mylist = self._call_api(list_id, 'list', {'pageSize': 1})
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                self.raise_login_required('You have to be logged in to get your watch history')
+                self.raise_login_required('You have to be logged in to get your history')
             raise
         return self.playlist_result(self._entries(list_id), list_id, **self._parse_owner(mylist))
 

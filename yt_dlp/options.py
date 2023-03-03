@@ -40,49 +40,28 @@ from .version import __version__
 
 
 def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
+    PACKAGE_NAME = 'yt-dlp'
+
     root = Config(create_parser())
     if ignore_config_files == 'if_override':
         ignore_config_files = overrideArguments is not None
 
+    def read_config(*paths):
+        path = os.path.join(*paths)
+        conf = Config.read_file(path, default=None)
+        if conf is not None:
+            return conf, path
+
     def _load_from_config_dirs(config_dirs):
         for config_dir in config_dirs:
-            conf_file_path = os.path.join(config_dir, 'config')
-            conf = Config.read_file(conf_file_path, default=None)
-            if conf is None:
-                conf_file_path += '.txt'
-                conf = Config.read_file(conf_file_path, default=None)
-            if conf is not None:
-                return conf, conf_file_path
-        return None, None
+            head, tail = os.path.split(config_dir)
+            assert tail == PACKAGE_NAME or config_dir == os.path.join(compat_expanduser('~'), f'.{PACKAGE_NAME}')
 
-    def _read_user_conf(package_name, default=None):
-        # .config/package_name.conf
-        xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
-        user_conf_file = os.path.join(xdg_config_home, '%s.conf' % package_name)
-        user_conf = Config.read_file(user_conf_file, default=None)
-        if user_conf is not None:
-            return user_conf, user_conf_file
-
-        # home (~/package_name.conf or ~/package_name.conf.txt)
-        user_conf_file = os.path.join(compat_expanduser('~'), '%s.conf' % package_name)
-        user_conf = Config.read_file(user_conf_file, default=None)
-        if user_conf is None:
-            user_conf_file += '.txt'
-            user_conf = Config.read_file(user_conf_file, default=None)
-        if user_conf is not None:
-            return user_conf, user_conf_file
-
-        # Package config directories (e.g. ~/.config/package_name/package_name.txt)
-        user_conf, user_conf_file = _load_from_config_dirs(get_user_config_dirs(package_name))
-        if user_conf is not None:
-            return user_conf, user_conf_file
-        return default if default is not None else [], None
-
-    def _read_system_conf(package_name, default=None):
-        system_conf, system_conf_file = _load_from_config_dirs(get_system_config_dirs(package_name))
-        if system_conf is not None:
-            return system_conf, system_conf_file
-        return default if default is not None else [], None
+            yield read_config(head, f'{PACKAGE_NAME}.conf')
+            if tail.startswith('.'):  # ~/.PACKAGE_NAME
+                yield read_config(head, f'{PACKAGE_NAME}.conf.txt')
+            yield read_config(config_dir, 'config')
+            yield read_config(config_dir, 'config.txt')
 
     def add_config(label, path=None, func=None):
         """ Adds config and returns whether to continue """
@@ -90,26 +69,26 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             return False
         elif func:
             assert path is None
-            args, current_path = func('yt-dlp')
+            args, current_path = next(
+                filter(None, _load_from_config_dirs(func(PACKAGE_NAME))), (None, None))
         else:
             current_path = os.path.join(path, 'yt-dlp.conf')
             args = Config.read_file(current_path, default=None)
         if args is not None:
             root.append_config(args, current_path, label=label)
-            return True
         return True
 
     def load_configs():
         yield not ignore_config_files
         yield add_config('Portable', get_executable_path())
         yield add_config('Home', expand_path(root.parse_known_args()[0].paths.get('home', '')).strip())
-        yield add_config('User', func=_read_user_conf)
-        yield add_config('System', func=_read_system_conf)
+        yield add_config('User', func=get_user_config_dirs)
+        yield add_config('System', func=get_system_config_dirs)
 
     opts = optparse.Values({'verbose': True, 'print_help': False})
     try:
         try:
-            if overrideArguments:
+            if overrideArguments is not None:
                 root.append_config(overrideArguments, label='Override')
             else:
                 root.append_config(sys.argv[1:], label='Command-line')
@@ -590,8 +569,9 @@ def create_parser():
         '--date',
         metavar='DATE', dest='date', default=None,
         help=(
-            'Download only videos uploaded on this date. The date can be "YYYYMMDD" or in the format '
-            '[now|today|yesterday][-N[day|week|month|year]]. E.g. --date today-2weeks'))
+            'Download only videos uploaded on this date. '
+            'The date can be "YYYYMMDD" or in the format [now|today|yesterday][-N[day|week|month|year]]. '
+            'E.g. "--date today-2weeks" downloads only videos uploaded on the same day two weeks ago'))
     selection.add_option(
         '--datebefore',
         metavar='DATE', dest='datebefore', default=None,
@@ -906,11 +886,11 @@ def create_parser():
             'This option can be used multiple times to set the sleep for the different retry types, '
             'e.g. --retry-sleep linear=1::2 --retry-sleep fragment:exp=1:20'))
     downloader.add_option(
-        '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragment',
+        '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragments',
         action='store_true', dest='skip_unavailable_fragments', default=True,
-        help='Skip unavailable fragments for DASH, hlsnative and ISM downloads (default) (Alias: --no-abort-on-unavailable-fragment)')
+        help='Skip unavailable fragments for DASH, hlsnative and ISM downloads (default) (Alias: --no-abort-on-unavailable-fragments)')
     downloader.add_option(
-        '--abort-on-unavailable-fragment', '--no-skip-unavailable-fragments',
+        '--abort-on-unavailable-fragments', '--no-skip-unavailable-fragments',
         action='store_false', dest='skip_unavailable_fragments',
         help='Abort download if a fragment is unavailable (Alias: --no-skip-unavailable-fragments)')
     downloader.add_option(
@@ -1054,7 +1034,7 @@ def create_parser():
         metavar='URL', dest='referer', default=None,
         help=optparse.SUPPRESS_HELP)
     workarounds.add_option(
-        '--add-header',
+        '--add-headers',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={'multiple_keys': False},
@@ -1656,7 +1636,7 @@ def create_parser():
             'Supported values of "WHEN" are the same as that of --use-postprocessor (default: after_move). '
             'Same syntax as the output template can be used to pass any field as arguments to the command. '
             'After download, an additional field "filepath" that contains the final path of the downloaded file '
-            'is also available, and if no fields are passed, %(filepath)q is appended to the end of the command. '
+            'is also available, and if no fields are passed, %(filepath,_filename|)q is appended to the end of the command. '
             'This option can be used multiple times'))
     postproc.add_option(
         '--no-exec',

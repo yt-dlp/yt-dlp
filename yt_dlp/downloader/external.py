@@ -103,6 +103,7 @@ class ExternalFD(FragmentFD):
         return all((
             not info_dict.get('to_stdout') or Features.TO_STDOUT in cls.SUPPORTED_FEATURES,
             '+' not in info_dict['protocol'] or Features.MULTIPLE_FORMATS in cls.SUPPORTED_FEATURES,
+            not traverse_obj(info_dict, ('hls_aes', ...), 'extra_param_to_segment_url'),
             all(proto in cls.SUPPORTED_PROTOCOLS for proto in info_dict['protocol'].split('+')),
         ))
 
@@ -261,7 +262,8 @@ class Aria2cFD(ExternalFD):
         return fn if os.path.isabs(fn) else f'.{os.path.sep}{fn}'
 
     def _call_downloader(self, tmpfilename, info_dict):
-        if 'no-external-downloader-progress' not in self.params.get('compat_opts', []):
+        # FIXME: Disabled due to https://github.com/yt-dlp/yt-dlp/issues/5931
+        if False and 'no-external-downloader-progress' not in self.params.get('compat_opts', []):
             info_dict['__rpc'] = {
                 'port': find_available_port() or 19190,
                 'secret': str(uuid.uuid4()),
