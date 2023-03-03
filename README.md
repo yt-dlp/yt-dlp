@@ -318,7 +318,8 @@ If you wish to build it anyway, install Python and py2exe, and then simply run `
 
 Note: See their `--help` for more info.
 
-You can also fork the project on GitHub and run your fork's [build workflow](.github/workflows/build.yml) to automatically build a full release
+### Forking the project
+If you fork the project on GitHub, you can run your fork's [build workflow](.github/workflows/build.yml) to automatically build the selected version(s) as artifacts. Alternatively, you can run the [release workflow](.github/workflows/release.yml) or enable the [nightly workflow](.github/workflows/release-nightly.yml) to create full (pre-)releases.
 
 # USAGE AND OPTIONS
 
@@ -460,9 +461,8 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --date DATE                     Download only videos uploaded on this date.
                                     The date can be "YYYYMMDD" or in the format 
                                     [now|today|yesterday][-N[day|week|month|year]].
-                                    E.g. "--date today-2weeks" downloads
-                                    only videos uploaded on the same day two
-                                    weeks ago
+                                    E.g. "--date today-2weeks" downloads only
+                                    videos uploaded on the same day two weeks ago
     --datebefore DATE               Download only videos uploaded on or before
                                     this date. The date formats accepted is the
                                     same as --date
