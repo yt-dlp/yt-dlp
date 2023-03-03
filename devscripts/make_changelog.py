@@ -127,7 +127,9 @@ class Changelog:
     def _format_group(self, group):
         sorted_group = sorted(group, key=CommitInfo.key)
         detail_groups = itertools.groupby(sorted_group, lambda item: (item.details or '').lower())
-        for details, items in detail_groups:
+        for _, items in detail_groups:
+            items = list(items)
+            details = items[0].details
             if not details:
                 indent = ''
             else:
@@ -137,15 +139,15 @@ class Changelog:
             if details == 'cleanup':
                 items, cleanup_misc_items = self._filter_cleanup_misc_items(items)
 
-            sub_detail_groups = itertools.groupby(items, lambda item: item.sub_details)
+            sub_detail_groups = itertools.groupby(items, lambda item: tuple(map(str.lower, item.sub_details)))
             for sub_details, entries in sub_detail_groups:
                 if not sub_details:
                     for entry in entries:
                         yield f'{indent}- {self.format_single_change(entry)}'
                     continue
 
-                prefix = f'{indent}- {", ".join(sub_details)}'
                 entries = list(entries)
+                prefix = f'{indent}- {", ".join(entries[0].sub_details)}'
                 if len(entries) == 1:
                     yield f'{prefix}: {self.format_single_change(entries[0])}'
                     continue
@@ -232,12 +234,12 @@ class CommitRange:
             (?:/(?P<details>[^\]:,]+))?
             (?:[:,](?P<sub_details>[^\]]+))?
         \]\ )?
-        (?:`?(?P<sub_details_alt>[^:`]+)`?: )?
+        (?:(?P<sub_details_alt>`?[^:`]+`?): )?
         (?P<message>.+?)
         (?:\ \((?P<issues>\#\d+(?:,\ \#\d+)*)\))?
         ''', re.VERBOSE | re.DOTALL)
     EXTRACTOR_INDICATOR_RE = re.compile(r'(?:Fix|Add)\s+Extractors?', re.IGNORECASE)
-    FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+for)?|Revert)\s+([\da-f]{40})')
+    FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Revert)\s+([\da-f]{40})')
     UPSTREAM_MERGE_RE = re.compile(r'Update to ytdl-commit-([\da-f]+)')
 
     def __init__(self, start, end, default_author=None) -> None:
@@ -391,7 +393,7 @@ class CommitRange:
             else:
                 group = CommitGroup.CORE
 
-            sub_details = f'{sub_details or ""},{sub_details_alt or ""}'.lower().replace(':', ',')
+            sub_details = f'{sub_details or ""},{sub_details_alt or ""}'.replace(':', ',')
             sub_details = tuple(filter(None, map(str.strip, sub_details.split(','))))
 
             issues = [issue.strip()[1:] for issue in issues.split(',')] if issues else []
