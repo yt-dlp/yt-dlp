@@ -355,11 +355,11 @@ class JSInterpreter:
             obj = expr[4:]
             if obj.startswith('Date('):
                 left, right = self._separate_at_paren(obj[4:])
-                expr = unified_timestamp(
+                date = unified_timestamp(
                     self.interpret_expression(left, local_vars, allow_recursion), False)
-                if not expr:
+                if date is None:
                     raise self.Exception(f'Failed to parse date {left!r}', expr)
-                expr = self._dump(int(expr * 1000), local_vars) + right
+                expr = self._dump(int(date * 1000), local_vars) + right
             else:
                 raise self.Exception(f'Unsupported object {obj}', expr)
 
