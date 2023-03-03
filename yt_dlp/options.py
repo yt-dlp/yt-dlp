@@ -36,7 +36,7 @@ from .utils import (
     remove_end,
     write_string,
 )
-from .version import __version__
+from .version import CHANNEL, __version__
 
 
 def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
@@ -326,22 +326,18 @@ def create_parser():
         action='store_true', dest='update_self',
         help=format_field(
             is_non_updateable(), None, 'Check if updates are available. %s',
-            default='Update this program to the latest version'))
+            default=f'Update this program to the latest {CHANNEL} version'))
     general.add_option(
         '--no-update',
         action='store_false', dest='update_self',
         help='Do not check for updates (default)')
     general.add_option(
         '--update-to',
-        action='store', dest='update_self', metavar='TARGET',
-        help=format_field(
-            is_non_updateable(), None, 'Check if upgrade/downgrade to a specific version is available. %s. ',
-            default='Upgrade/downgrade this program to a specific version. ') + (
-                'TARGET can be either a channel, a tag, or `channel@tag`. '
-                'If TARGET is `tag`, try to update to `tag` within current channel. '
-                'If TARGET is `channel`, try to update to latest release from the given channel. '
-                '`@` can be appended to a tag-less channel or prepended to a channel-less tag. '
-                f'Supported channels: {", ".join(UPDATE_SOURCES)}'))
+        action='store', dest='update_self', metavar='[CHANNEL]@[TAG]',
+        help=(
+            'Upgrade/downgrade to a specific version. CHANNEL and TAG defaults to '
+            f'{CHANNEL!r} and "latest" respectively if ommited; See "UPDATE" for details. '
+            f'Supported channels: {", ".join(UPDATE_SOURCES)}'))
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',

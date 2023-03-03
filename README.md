@@ -120,7 +120,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Plugins**: Extractors and PostProcessors can be loaded from an external file. See [plugins](#plugins) for details
 
-* **Self-updater**: The releases can be updated using `yt-dlp -U`
+* **Self-updater**: The releases can be updated using `yt-dlp -U` with [automated nightly builds](#update-channels)
 
 See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/commits) for the full list of changes
 
@@ -187,13 +187,15 @@ If you [installed with PIP](https://github.com/yt-dlp/yt-dlp/wiki/Installation#w
 
 For other third-party package managers, see [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation#third-party-package-managers) or refer their documentation
 
+<a id="update-channels"/>
+
 There are currently two release channels for binaries, `stable` and `nightly`.
 `stable` releases are what the program will update to by default, and have had many of their changes tested by users of the master branch.
 `nightly` releases are built after each push to the master branch, and will have the most recent fixes and additions, but also have the potential for bugs.
 The latest `nightly` is available as a [pre-release from this repository](https://github.com/yt-dlp/yt-dlp/releases/tag/nightly), and all `nightly` releases are [archived in their own repo](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases).
 
 When using `--update`/`-U`, a release binary will only update to its current channel.
-This release channel can be changed by using the `--update-to` option. `--update-to` can also be used to upgrade or downgrade to specific tags from a channel. Keep in mind that when downgrading to a version prior to `2023.03.02` you will loose the ability to `--update-to`.
+This release channel can be changed by using the `--update-to` option. `--update-to` can also be used to upgrade or downgrade to specific tags from a channel.
 
 Example usage:
 * `yt-dlp --update-to nightly` change to `nightly` channel and update to its latest release
@@ -244,7 +246,7 @@ gpg --verify SHA2-512SUMS.sig SHA2-512SUMS
 ```
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
-**Note**: The manpages, shell completion files etc. are available in the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
+**Note**: The manpages, shell completion files etc. are available inside the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
 ## DEPENDENCIES
 Python versions 3.7+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
@@ -332,11 +334,12 @@ If you wish to build it anyway, install Python and py2exe, and then simply run `
 
 ### Related scripts
 
-* **`devscripts/update-version.py [revision]`** - Update the version number based on current date
-* **`devscripts/set-variant.py variant [-M update_message]`** - Set the build variant of the executable
+* **`devscripts/update-version.py`** - Update the version number based on current date.
+* **`devscripts/set-variant.py`** - Set the build variant of the executable.
+* **`devscripts/make_changelog.py`** - Create a markdown changelog using short commit messages and update `CONTRIBUTORS` file.
 * **`devscripts/make_lazy_extractors.py`** - Create lazy extractors. Running this before building the binaries (any variant) will improve their startup performance. Set the environment variable `YTDLP_NO_LAZY_EXTRACTORS=1` if you wish to forcefully disable lazy extractor loading.
-* **`devscripts/make_changelog.py`** - Create a markdown changelog using short commit messages. It can also update the `CONTRIBUTORS` file to add new contributors from these commits.
-For more info see `make_changelog.py --help`.
+
+Note: See their `--help` for more info.
 
 ### Forking the project
 If you fork the project on GitHub, you can run your fork's [build workflow](.github/workflows/build.yml) to automatically build the selected version(s) as artifacts. Alternatively, you can run the [release workflow](.github/workflows/release.yml) or enable the [nightly workflow](.github/workflows/release-nightly.yml) to create full (pre-)releases.
@@ -355,6 +358,11 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --version                       Print program version and exit
     -U, --update                    Update this program to the latest version
     --no-update                     Do not check for updates (default)
+    --update-to [CHANNEL]@[TAG]     Upgrade/downgrade to a specific version.
+                                    CHANNEL and TAG defaults to 'stable' and
+                                    "latest" respectively if ommited; See
+                                    "UPDATE" for details. Supported channels:
+                                    stable, nightly
     -i, --ignore-errors             Ignore download and postprocessing errors.
                                     The download will be considered successful
                                     even if the postprocessing fails
@@ -481,9 +489,8 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --date DATE                     Download only videos uploaded on this date.
                                     The date can be "YYYYMMDD" or in the format 
                                     [now|today|yesterday][-N[day|week|month|year]].
-                                    E.g. "--date today-2weeks" downloads
-                                    only videos uploaded on the same day two
-                                    weeks ago
+                                    E.g. "--date today-2weeks" downloads only
+                                    videos uploaded on the same day two weeks ago
     --datebefore DATE               Download only videos uploaded on or before
                                     this date. The date formats accepted is the
                                     same as --date
@@ -1252,7 +1259,7 @@ To summarize, the general syntax for a field is:
 
 Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. E.g. `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates is empty, that type of file will not be written. E.g. `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
 
-<a id="outtmpl-postprocess-note"></a>
+<a id="outtmpl-postprocess-note"/>
 
 **Note**: Due to post-processing (i.e. merging etc.), the actual output filename might differ. Use `--print after_move:filepath` to get the name after all post-processing is complete.
 

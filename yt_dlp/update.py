@@ -7,6 +7,7 @@ import platform
 import re
 import subprocess
 import sys
+import urllib.error
 from zipimport import zipimporter
 
 from .compat import functools  # isort: split
@@ -16,10 +17,10 @@ from .utils import (
     cached_method,
     deprecation_warning,
     remove_end,
+    remove_start,
     sanitized_Request,
     shell_quote,
     system_identifier,
-    traverse_obj,
     version_tuple,
 )
 from .version import CHANNEL, UPDATE_HINT, VARIANT, __version__
@@ -28,8 +29,6 @@ UPDATE_SOURCES = {
     'stable': 'yt-dlp/yt-dlp',
     'nightly': 'yt-dlp/yt-dlp-nightly-builds',
 }
-# If set, updating to versions before _CHANNEL_CUTOFF warns about no `--update-to`
-_CHANNEL_CUTOFF = (2023, 3, 2)
 
 _VERSION_RE = re.compile(r'(\d+\.)*\d+')
 
@@ -123,33 +122,33 @@ def _sha256_file(path):
 
 
 class Updater:
+    _exact = True
+
     def __init__(self, ydl, target=None):
         self.ydl = ydl
-        self._exact = True
 
-        if target is None:
-            target = CHANNEL
+        self.target_channel, sep, self.target_tag = (target or CHANNEL).rpartition('@')
+        if not sep and self.target_tag in UPDATE_SOURCES:  # stable => stable@latest
+            self.target_channel, self.target_tag = self.target_tag, None
+        elif not self.target_channel:
+            self.target_channel = CHANNEL
 
-        self._target_channel, sep, self._target_tag = target.rpartition('@')
-        # Support for `--update-to stable`
-        # It should become `stable@` and not `@stable`
-        if (not sep) and self._target_tag in UPDATE_SOURCES:
-            self._target_channel = self._target_tag
-            self._target_tag = None
+        if not self.target_tag:
+            self.target_tag, self._exact = 'latest', False
+        elif self.target_tag != 'latest':
+            self.target_tag = f'tags/{self.target_tag}'
 
-        if not self._target_channel:
-            self._target_channel = CHANNEL
+    @property
+    def _target_repo(self):
+        try:
+            return UPDATE_SOURCES[self.target_channel]
+        except KeyError:
+            return self._report_error(
+                f'Invalid update channel {self.target_channel!r} requested. '
+                f'Valid channels are {", ".join(UPDATE_SOURCES)}', True)
 
-        if not self._target_tag:
-            self._exact = False
-            self._target_tag = 'latest'
-        elif self._target_tag != 'latest':
-            self._target_tag = f'tags/{self._target_tag}'
-
-        self._target_repo = UPDATE_SOURCES.get(self._target_channel)
-
-    def _version_compare(self, a, b, channel=True):
-        if channel and CHANNEL != self._target_channel:
+    def _version_compare(self, a, b, channel=CHANNEL):
+        if channel != self.target_channel:
             return False
 
         if _VERSION_RE.fullmatch(f'{a}.{b}'):
@@ -160,23 +159,26 @@ class Updater:
     @functools.cached_property
     def _tag(self):
         if self._version_compare(self.current_version, self.latest_version):
-            return self._target_tag
+            return self.target_tag
 
-        identifier = f'{detect_variant()} {self._target_channel} {system_identifier()}'
+        identifier = f'{detect_variant()} {self.target_channel} {system_identifier()}'
         for line in self._download('_update_spec', 'latest').decode().splitlines():
             if not line.startswith('lock '):
                 continue
             _, tag, pattern = line.split(' ', 2)
             if re.match(pattern, identifier):
-                if self._target_tag != 'latest' and self._version_compare(tag, self._target_tag[5:], channel=False):
-                    continue
-
-                return f'tags/{tag}'
-        return self._target_tag
+                if not self._exact:
+                    return f'tags/{tag}'
+                elif self.target_tag == 'latest' or not self._version_compare(
+                        tag, self.target_tag[5:], channel=self.target_channel):
+                    self._report_error(
+                        f'yt-dlp cannot be updated above {tag} since you are on an older Python version', True)
+                    return f'tags/{self.current_version}'
+        return self.target_tag
 
     @cached_method
     def _get_version_info(self, tag):
-        url = f'{API_BASE_URL}/{self._target_repo}/releases/{self._target_tag}'
+        url = f'{API_BASE_URL}/{self._target_repo}/releases/{tag}'
         self.ydl.write_debug(f'Fetching release info: {url}')
         return json.loads(self.ydl.urlopen(sanitized_Request(url, headers={
             'Accept': 'application/vnd.github+json',
@@ -189,27 +191,25 @@ class Updater:
         """Current version"""
         return __version__
 
-    @property
-    def _full_current_version(self):
-        """Current version including channel"""
-        return f'{CHANNEL}@{__version__}'
+    @staticmethod
+    def _label(channel, tag):
+        """Label for a given channel and tag"""
+        return f'{channel}@{remove_start(tag, "tags/")}'
+
+    def _get_actual_tag(self, tag):
+        if tag.startswith('tags/'):
+            return tag[5:]
+        return self._get_version_info(tag)['tag_name']
 
     @property
     def new_version(self):
         """Version of the latest release we can update to"""
-        if self._tag.startswith('tags/'):
-            return self._tag[5:]
-        return self._get_version_info(self._tag)['tag_name']
-
-    @property
-    def _full_new_version(self):
-        """Version of the latest release we can update to including channel"""
-        return f'{self._target_channel}@{self.new_version}'
+        return self._get_actual_tag(self._tag)
 
     @property
     def latest_version(self):
         """Version of the target release"""
-        return self._get_version_info(self._target_tag)['tag_name']
+        return self._get_actual_tag(self.target_tag)
 
     @property
     def has_update(self):
@@ -222,10 +222,8 @@ class Updater:
         return compat_realpath(_get_variant_and_executable_path()[1])
 
     def _download(self, name, tag):
-        url = traverse_obj(self._get_version_info(tag), (
-            'assets', lambda _, v: v['name'] == name, 'browser_download_url'), get_all=False)
-        if not url:
-            raise Exception('Unable to find download URL')
+        slug = 'latest/download' if tag == 'latest' else f'download/{tag[5:]}'
+        url = f'https://github.com/{self._target_repo}/releases/{slug}/{name}'
         self.ydl.write_debug(f'Downloading {name} from {url}')
         return self.ydl.urlopen(url).read()
 
@@ -248,40 +246,31 @@ class Updater:
         self._report_error(f'Unable to write to {file}; Try running as administrator', True)
 
     def _report_network_error(self, action, delim=';'):
-        target_tag = f'tag/{self._target_tag[5:]}' if self._target_tag.startswith('tags/') else self._target_tag
         self._report_error(
             f'Unable to {action}{delim} visit  '
-            f'https://github.com/{self._target_repo}/releases/{target_tag}', True)
+            f'https://github.com/{self._target_repo}/releases/{self.target_tag.replace("tags/", "tag/")}', True)
 
     def check_update(self):
         """Report whether there is an update available"""
         if not self._target_repo:
-            self._report_error(
-                f'No channel source for {self._target_channel!r} set. '
-                f'Valid channels are {", ".join(UPDATE_SOURCES)}')
             return False
-
         try:
-            self.ydl.to_screen(
-                f'Available: {self._target_channel}@{self.latest_version}, Current: {self._full_current_version}')
-        except Exception as err:
-            self._report_network_error(f'obtain version info ({err})', delim='; Please try again later or')
-            return False
+            self.ydl.to_screen((
+                f'Available version: {self._label(self.target_channel, self.latest_version)}, ' if self.target_tag == 'latest' else ''
+            ) + f'Current version: {self._label(CHANNEL, self.current_version)}')
+        except Exception:
+            return self._report_network_error('obtain version info', delim='; Please try again later or')
+
+        if not is_non_updateable():
+            self.ydl.to_screen(f'Current Build Hash: {_sha256_file(self.filename)}')
 
         if self.has_update:
-            if not is_non_updateable():
-                self.ydl.to_screen(f'Current Build Hash: {_sha256_file(self.filename)}')
             return True
 
-        if self._target_tag == self._tag:
-            self.ydl.to_screen(f'yt-dlp is up to date ({self._full_current_version})')
-        else:
-            msg = 'to the specified version' if self._exact else 'any further'
-            msg = f'yt-dlp cannot be updated {msg} since you are on an older Python version'
-            if self._exact:
-                self._report_error(msg, True)
-            else:
-                self.ydl.report_warning(msg)
+        if self.target_tag == self._tag:
+            self.ydl.to_screen(f'yt-dlp is up to date ({self._label(CHANNEL, self.current_version)})')
+        elif not self._exact:
+            self.ydl.report_warning('yt-dlp cannot be updated any further since you are on an older Python version')
         return False
 
     def update(self):
@@ -291,9 +280,9 @@ class Updater:
         err = is_non_updateable()
         if err:
             return self._report_error(err, True)
-        self.ydl.to_screen(f'Updating to {self._full_new_version} ...')
-        if (_CHANNEL_CUTOFF and _VERSION_RE.fullmatch(self._target_tag[5:])
-                and version_tuple(self._target_tag[5:]) < _CHANNEL_CUTOFF):
+        self.ydl.to_screen(f'Updating to {self._label(self.target_channel, self.new_version)} ...')
+        if (_VERSION_RE.fullmatch(self.target_tag[5:])
+                and version_tuple(self.target_tag[5:]) < (2023, 3, 2)):
             self.ydl.report_warning('You are downgrading to a version without --update-to')
 
         directory = os.path.dirname(self.filename)
@@ -314,10 +303,11 @@ class Updater:
 
         try:
             newcontent = self._download(self.release_name, self._tag)
-        except OSError:
-            return self._report_network_error('download latest version')
-        except Exception as err:
-            return self._report_network_error(f'fetch updates: {err}')
+        except Exception as e:
+            if isinstance(e, urllib.error.HTTPError) and e.code == 404:
+                return self._report_error(
+                    f'The requested tag {self._label(self.target_channel, self.target_tag)} does not exist', True)
+            return self._report_network_error(f'fetch updates: {e}')
 
         try:
             expected_hash = self.release_hash
@@ -362,7 +352,7 @@ class Updater:
                 return self._report_error(
                     f'Unable to set permissions. Run: sudo chmod a+rx {compat_shlex_quote(self.filename)}')
 
-        self.ydl.to_screen(f'Updated yt-dlp to {self._full_new_version}')
+        self.ydl.to_screen(f'Updated yt-dlp to {self._label(self.target_channel, self.new_version)}')
         return True
 
     @functools.cached_property

@@ -57,6 +57,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 ## [bashonly](https://github.com/bashonly)
 
 * `--cookies-from-browser` support for Firefox containers
+* Fully automated release workflow and created nightly builds
 * Added support for new websites Genius, Kick, NBCStations, Triller, VideoKen etc
 * Improved/fixed support for Anvato, Brightcove, Instagram, ParamountPlus, Reddit, SlidesLive, TikTok, Twitter, Vimeo etc
 
@@ -65,5 +66,6 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 
 [![ko-fi](https://img.shields.io/badge/_-Ko--fi-red.svg?logo=kofi&labelColor=555555&style=for-the-badge)](https://ko-fi.com/Grub4K) [![gh-sponsor](https://img.shields.io/badge/_-Github-red.svg?logo=github&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/Grub4K)
 
+* Fully automated release workflow and created nightly builds
 * Rework internals like `traverse_obj`, various core refactors and bugs fixes
 * Helped fix crunchyroll, Twitter, wrestleuniverse, wistia, slideslive etc
