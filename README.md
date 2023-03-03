@@ -183,7 +183,7 @@ You can install yt-dlp using [the binaries](#release-files), [PIP](https://pypi.
 
 
 ## UPDATE
-You can use `yt-dlp -U` to update if you are [using the release binaries](#release-files)
+You can use `yt-dlp -U` to update if you are using the [release binaries](#release-files)
 
 If you [installed with PIP](https://github.com/yt-dlp/yt-dlp/wiki/Installation#with-pip), simply re-run the same command that was used to install the program
 
@@ -248,7 +248,7 @@ gpg --verify SHA2-512SUMS.sig SHA2-512SUMS
 ```
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
-**Note**: The manpages, shell completion files etc. are available in the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
+**Note**: The manpages, shell completion files etc. are available inside the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
 ## DEPENDENCIES
 Python versions 3.7+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
@@ -362,7 +362,7 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --no-update                     Do not check for updates (default)
     --update-to [CHANNEL]@[TAG]     Upgrade/downgrade to a specific version.
                                     CHANNEL and TAG defaults to "stable" and
-                                    "latest" respectively if ommited; See
+                                    "latest" respectively if omitted; See
                                     "UPDATE" for details. Supported channels:
                                     stable, nightly
     -i, --ignore-errors             Ignore download and postprocessing errors.
@@ -1261,7 +1261,7 @@ To summarize, the general syntax for a field is:
 
 Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. E.g. `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates is empty, that type of file will not be written. E.g. `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
 
-<a id="outtmpl-postprocess-note"></a>
+<a id="outtmpl-postprocess-note"/>
 
 **Note**: Due to post-processing (i.e. merging etc.), the actual output filename might differ. Use `--print after_move:filepath` to get the name after all post-processing is complete.
 

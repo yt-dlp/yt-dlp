@@ -336,7 +336,7 @@ def create_parser():
         action='store', dest='update_self', metavar='[CHANNEL]@[TAG]',
         help=(
             'Upgrade/downgrade to a specific version. CHANNEL and TAG defaults to '
-            f'"{CHANNEL}" and "latest" respectively if ommited; See "UPDATE" for details. '
+            f'"{CHANNEL}" and "latest" respectively if omitted; See "UPDATE" for details. '
             f'Supported channels: {", ".join(UPDATE_SOURCES)}'))
     general.add_option(
         '-i', '--ignore-errors',

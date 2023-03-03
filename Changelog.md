@@ -97,7 +97,7 @@
 
 ### 2023.01.06
 
-* Fix config locations by [Grub4k](https://github.com/Grub4k), [coletdjnz](https://github.com/coletdjnz), [pukkandan](https://github.com/pukkandan)
+* Fix config locations by [Grub4K](https://github.com/Grub4K), [coletdjnz](https://github.com/coletdjnz), [pukkandan](https://github.com/pukkandan)
 * [downloader/aria2c] Disable native progress
 * [utils] `mimetype2ext`: `weba` is not standard
 * [utils] `windows_enable_vt_mode`: Better error handling
@@ -124,7 +124,7 @@
 * Add `--compat-options 2021,2022`
     * This allows devs to change defaults and make other potentially breaking changes more easily. If you need everything to work exactly as-is, put Use `--compat 2022` in your config to guard against future compat changes.
 * [downloader/aria2c] Native progress for aria2c via RPC by [Lesmiscore](https://github.com/Lesmiscore), [pukkandan](https://github.com/pukkandan)
-* Merge youtube-dl: Upto [commit/195f22f](https://github.com/ytdl-org/youtube-dl/commit/195f22f6) by [Grub4k](https://github.com/Grub4k), [pukkandan](https://github.com/pukkandan)
+* Merge youtube-dl: Upto [commit/195f22f](https://github.com/ytdl-org/youtube-dl/commit/195f22f6) by [Grub4K](https://github.com/Grub4K), [pukkandan](https://github.com/pukkandan)
 * Add pre-processor stage `video`
 * Let `--parse/replace-in-metadata` run at any post-processing stage
 * Add `--enable-file-urls` by [coletdjnz](https://github.com/coletdjnz)
@@ -239,7 +239,7 @@
 * [extractor/udemy] Fix lectures that have no URL and detect DRM
 * [extractor/unsupported] Add more URLs
 * [extractor/urplay] Support for audio-only formats by [barsnick](https://github.com/barsnick)
-* [extractor/wistia] Improve extension detection by [Grub4k](https://github.com/Grub4k), [bashonly](https://github.com/bashonly), [pukkandan](https://github.com/pukkandan)
+* [extractor/wistia] Improve extension detection by [Grub4K](https://github.com/Grub4K), [bashonly](https://github.com/bashonly), [pukkandan](https://github.com/pukkandan)
 * [extractor/yle_areena] Support restricted videos by [docbender](https://github.com/docbender)
 * [extractor/youku] Fix extractor by [KurtBestor](https://github.com/KurtBestor)
 * [extractor/youporn] Fix metadata by [marieell](https://github.com/marieell)
