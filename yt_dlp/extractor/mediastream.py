@@ -4,7 +4,6 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     remove_end,
-    str_or_none,
     traverse_obj,
     urljoin,
 )
@@ -191,8 +190,9 @@ class WinSportsVideoIE(MediaStreamBaseIE):
         data = self._search_json(
             r'<script\s*[^>]+data-drupal-selector="drupal-settings-json">', webpage, 'data', display_id)
 
-        mediastream_url = urljoin(f'{self._EMBED_BASE_URL}/', (traverse_obj(data, (
-            (('settings', 'mediastream_formatter', ..., 'mediastream_id'), 'url'), {str_or_none}), get_all=False)
+        mediastream_url = urljoin(f'{self._EMBED_BASE_URL}/', (
+            traverse_obj(data, (
+                (('settings', 'mediastream_formatter', ..., 'mediastream_id'), 'url'), {str}), get_all=False)
             or next(self._extract_mediastream_urls(webpage), None)))
 
         if not mediastream_url:
