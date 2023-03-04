@@ -248,30 +248,6 @@ class CommitRange:
         self._commits, self._fixes = self._get_commits_and_fixes(default_author)
         self._commits_added = []
 
-    @classmethod
-    def from_single(cls, commitish='HEAD', default_author=None):
-        start_commitish = cls.get_prev_tag(commitish)
-        end_commitish = cls.get_next_tag(commitish)
-        if start_commitish == end_commitish:
-            start_commitish = cls.get_prev_tag(f'{commitish}~')
-        logger.info(f'Determined range from {commitish!r}: {start_commitish}..{end_commitish}')
-        return cls(start_commitish, end_commitish, default_author)
-
-    @classmethod
-    def get_prev_tag(cls, commitish):
-        command = [cls.COMMAND, 'describe', '--tags', '--abbrev=0', '--exclude=*[^0-9.]*', commitish]
-        return subprocess.check_output(command, text=True).strip()
-
-    @classmethod
-    def get_next_tag(cls, commitish):
-        result = subprocess.run(
-            [cls.COMMAND, 'describe', '--contains', '--abbrev=0', commitish],
-            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-        if result.returncode:
-            return 'HEAD'
-
-        return result.stdout.partition('~')[0].strip()
-
     def __iter__(self):
         return iter(itertools.chain(self._commits.values(), self._commits_added))
 
@@ -293,13 +269,12 @@ class CommitRange:
     def _get_commits_and_fixes(self, default_author):
         result = subprocess.check_output([
             self.COMMAND, 'log', f'--format=%H%n%s%n%b%n{self.COMMIT_SEPARATOR}',
-            f'{self._start}..{self._end}'], text=True)
+            f'{self._start}..{self._end}' if self._start else self._end], text=True)
 
         commits = {}
         fixes = defaultdict(list)
         lines = iter(result.splitlines(False))
-        for line in lines:
-            commit_hash = line
+        for i, commit_hash in enumerate(lines):
             short = next(lines)
             skip = short.startswith('Release ') or short == '[version] update'
 
@@ -310,9 +285,12 @@ class CommitRange:
                     authors = sorted(map(str.strip, line[match.end():].split(',')), key=str.casefold)
 
             commit = Commit(commit_hash, short, authors)
-            if skip:
+            if skip and (self._start or not i):
                 logger.debug(f'Skipped commit: {commit}')
                 continue
+            elif skip:
+                logger.debug(f'Reached Release commit, breaking: {commit}')
+                break
 
             fix_match = self.FIXES_RE.search(commit.short)
             if fix_match:
@@ -471,7 +449,7 @@ if __name__ == '__main__':
         datefmt='%Y-%m-%d %H-%M-%S', format='{asctime} | {levelname:<8} | {message}',
         level=logging.WARNING - 10 * args.verbosity, style='{', stream=sys.stderr)
 
-    commits = CommitRange.from_single(args.commitish, args.default_author)
+    commits = CommitRange(None, args.commitish, args.default_author)
 
     if not args.no_override:
         if args.override_path.exists():
