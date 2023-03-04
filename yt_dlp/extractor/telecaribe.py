@@ -69,6 +69,9 @@ class TelecaribePlayLiveIE(TelecaribeBaseIE):
             'live_status': 'is_live',
             'ext': 'mp4',
         },
+        'params': {
+            'skip_download': 'Livestream',
+        }
     }]
 
     def _real_extract(self, url):
