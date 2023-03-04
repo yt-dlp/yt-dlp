@@ -231,15 +231,10 @@ class LivestreamIE(InfoExtractor):
         return self.playlist_result(entries, event_id, event_data['full_name'])
 
     def _extract_account_events(self, account_data):
-        upcoming_events = account_data['upcoming_events']
-        past_events = account_data['past_events']
-        entries = []
-        events = upcoming_events['data'] + past_events['data']
-        for event_data in events:
-            playlist = self._generate_event_playlist(event_data)
-            if playlist:
-                entries = entries + playlist
-        return self.playlist_result(entries, account_data['id'], account_data['full_name'])
+        items = traverse_obj(account_data, (('upcoming_events', 'past_events'), 'data', ...))
+        return self.playlist_result(
+            itertools.chain.from_iterable(map(self._generate_event_playlist, items)),
+            account_data.get('id'), account_data.get('full_name'))
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
