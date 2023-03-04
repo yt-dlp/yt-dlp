@@ -47,8 +47,7 @@ class ZingMp3BaseIE(InfoExtractor):
             **params,
             'apiKey': 'X5BM3w8N7MKozC0B85o4KMlzLZKhV00y',
             'sig': hmac.new(b'acOrvUS15XRW2o9JksiK1KgQ6Vbds8ZW',
-                            f'{api_slug}{sha256}'.encode(),
-                            hashlib.sha512).hexdigest(),
+                            f'{api_slug}{sha256}'.encode(), hashlib.sha512).hexdigest(),
         }
         return f'{self._DOMAIN}{api_slug}?{urllib.parse.urlencode(data)}'
 
