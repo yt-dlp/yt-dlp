@@ -962,6 +962,9 @@ from .lrt import (
     LRTVODIE,
     LRTStreamIE
 )
+from .lumni import (
+    LumniIE
+)
 from .lynda import (
     LyndaIE,
     LyndaCourseIE
