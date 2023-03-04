@@ -9,11 +9,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import argparse
 import contextlib
-import subprocess
 import sys
 from datetime import datetime
 
-from devscripts.utils import read_version, write_file
+from devscripts.utils import read_version, run_process, write_file
 
 
 def get_new_version(version, revision):
@@ -32,7 +31,7 @@ def get_new_version(version, revision):
 
 def get_git_head():
     with contextlib.suppress(Exception):
-        return subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() or None
+        return run_process('git', 'rev-parse', 'HEAD').stdout.strip()
 
 
 VERSION_TEMPLATE = '''\

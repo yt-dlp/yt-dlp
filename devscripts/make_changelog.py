@@ -1,19 +1,26 @@
 from __future__ import annotations
 
+# Allow direct execution
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import enum
 import itertools
 import json
 import logging
 import re
-import subprocess
-import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
+from devscripts.utils import read_file, run_process, write_file
+
 BASE_URL = 'https://github.com'
 LOCATION_PATH = Path(__file__).parent
+HASH_LENGTH = 7
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +89,7 @@ class Commit:
         result = f'{self.short!r}'
 
         if self.hash:
-            result += f' ({self.hash[:7]})'
+            result += f' ({self.hash[:HASH_LENGTH]})'
 
         if self.authors:
             authors = ', '.join(self.authors)
@@ -208,7 +215,7 @@ class Changelog:
 
     def _format_message_link(self, message, hash):
         assert message or hash, 'Improperly defined commit message or override'
-        message = message if message else hash[:7]
+        message = message if message else hash[:HASH_LENGTH]
         return f'[{message}]({self.repo_url}/commit/{hash})' if hash else message
 
     def _format_issues(self, issues):
@@ -242,9 +249,8 @@ class CommitRange:
     FIXES_RE = re.compile(r'(?i:Fix(?:es)?(?:\s+bugs?)?(?:\s+in|\s+for)?|Revert)\s+([\da-f]{40})')
     UPSTREAM_MERGE_RE = re.compile(r'Update to ytdl-commit-([\da-f]+)')
 
-    def __init__(self, start, end, default_author=None) -> None:
-        self._start = start
-        self._end = end
+    def __init__(self, start, end, default_author=None):
+        self._start, self._end = start, end
         self._commits, self._fixes = self._get_commits_and_fixes(default_author)
         self._commits_added = []
 
@@ -262,14 +268,10 @@ class CommitRange:
 
         return commit in self._commits
 
-    def _is_ancestor(self, commitish):
-        return bool(subprocess.call(
-            [self.COMMAND, 'merge-base', '--is-ancestor', commitish, self._start]))
-
     def _get_commits_and_fixes(self, default_author):
-        result = subprocess.check_output([
+        result = run_process(
             self.COMMAND, 'log', f'--format=%H%n%s%n%b%n{self.COMMIT_SEPARATOR}',
-            f'{self._start}..{self._end}' if self._start else self._end], text=True)
+            f'{self._start}..{self._end}' if self._start else self._end).stdout
 
         commits = {}
         fixes = defaultdict(list)
@@ -301,12 +303,12 @@ class CommitRange:
 
         for commitish, fix_commits in fixes.items():
             if commitish in commits:
-                hashes = ', '.join(commit.hash[:7] for commit in fix_commits)
-                logger.info(f'Found fix(es) for {commitish[:7]}: {hashes}')
+                hashes = ', '.join(commit.hash[:HASH_LENGTH] for commit in fix_commits)
+                logger.info(f'Found fix(es) for {commitish[:HASH_LENGTH]}: {hashes}')
                 for fix_commit in fix_commits:
                     del commits[fix_commit.hash]
             else:
-                logger.debug(f'Commit with fixes not in changes: {commitish[:7]}')
+                logger.debug(f'Commit with fixes not in changes: {commitish[:HASH_LENGTH]}')
 
         return commits, fixes
 
@@ -397,11 +399,10 @@ class CommitRange:
 def get_new_contributors(contributors_path, commits):
     contributors = set()
     if contributors_path.exists():
-        with contributors_path.open() as file:
-            for line in filter(None, map(str.strip, file)):
-                author, _, _ = line.partition(' (')
-                authors = author.split('/')
-                contributors.update(map(str.casefold, authors))
+        for line in read_file(contributors_path).splitlines():
+            author, _, _ = line.strip().partition(' (')
+            authors = author.split('/')
+            contributors.update(map(str.casefold, authors))
 
     new_contributors = set()
     for commit in commits:
@@ -453,8 +454,7 @@ if __name__ == '__main__':
 
     if not args.no_override:
         if args.override_path.exists():
-            with args.override_path.open() as file:
-                overrides = json.load(file)
+            overrides = json.loads(read_file(args.override_path))
             commits.apply_overrides(overrides)
         else:
             logger.warning(f'File {args.override_path.as_posix()} does not exist')
@@ -464,8 +464,7 @@ if __name__ == '__main__':
     new_contributors = get_new_contributors(args.contributors_path, commits)
     if new_contributors:
         if args.contributors:
-            with args.contributors_path.open('a') as file:
-                file.writelines(f'{contributor}\n' for contributor in new_contributors)
+            write_file(args.contributors_path, '\n'.join(new_contributors) + '\n', mode='a')
         logger.info(f'New contributors: {", ".join(new_contributors)}')
 
     print(Changelog(commits.groups(), args.repo))
