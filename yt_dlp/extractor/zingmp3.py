@@ -35,7 +35,6 @@ class ZingMp3BaseIE(InfoExtractor):
         'info-artist': '/api/v2/page/get/artist',
         'user-list-song': '/api/v2/song/get/list',
         'user-list-video': '/api/v2/video/get/list',
-        # Hub
         'hub': '/api/v2/page/get/hub-detail',
     }
 
@@ -47,7 +46,9 @@ class ZingMp3BaseIE(InfoExtractor):
         data = {
             **params,
             'apiKey': 'X5BM3w8N7MKozC0B85o4KMlzLZKhV00y',
-            'sig': hmac.new(b'acOrvUS15XRW2o9JksiK1KgQ6Vbds8ZW', f'{api_slug}{sha256}'.encode(), hashlib.sha512).hexdigest(),
+            'sig': hmac.new(b'acOrvUS15XRW2o9JksiK1KgQ6Vbds8ZW',
+                            f'{api_slug}{sha256}'.encode(),
+                            hashlib.sha512).hexdigest(),
         }
         return f'{self._DOMAIN}{api_slug}?{urllib.parse.urlencode(data)}'
 
@@ -66,7 +67,7 @@ class ZingMp3BaseIE(InfoExtractor):
         for url in traverse_obj(items, (..., 'link')) or []:
             yield self.url_result(urljoin(self._DOMAIN, url))
 
-    def _fetch_page(self, *arg):
+    def _fetch_page(self, id_, url_type, page):
         raise NotImplementedError('This method must be implemented by subclasses')
 
     def _paged_list(self, _id, url_type):
