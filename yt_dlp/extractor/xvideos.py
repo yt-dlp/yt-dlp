@@ -161,7 +161,7 @@ class XVideosIE(InfoExtractor):
 
 class XVideosQuickiesIE(InfoExtractor):
     IE_NAME = 'xvideos:quickies'
-    _VALID_URL = r'https?://(?P<domain>(?:[^/]+\.)?xvideos2?\.com)/amateur-channels/[^#]+#quickies/a/(?P<id>\w+)'
+    _VALID_URL = r'https?://(?P<domain>(?:[^/]+\.)?xvideos2?\.com)/amateur-channels/[^#]+#quickies/a/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.xvideos.com/amateur-channels/wifeluna#quickies/a/47258683',
         'md5': '16e322a93282667f1963915568f782c1',
