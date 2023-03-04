@@ -4,6 +4,45 @@
 # To create a release, dispatch the https://github.com/yt-dlp/yt-dlp/actions/workflows/release.yml workflow on master
 -->
 
+### 2023.03.04
+
+#### Extractor changes
+- bilibili
+    - [Fix for downloading wrong subtitles](https://github.com/yt-dlp/yt-dlp/commit/8a83baaf218ab89e6e7faa76b7c7be3a2ec19e3a) ([#6358](https://github.com/yt-dlp/yt-dlp/issues/6358)) by [LXYan2333](https://github.com/LXYan2333)
+- ESPNcricinfo
+    - [Handle new URL pattern](https://github.com/yt-dlp/yt-dlp/commit/640c934823fc2d1ec77ec932566078014058635f) ([#6321](https://github.com/yt-dlp/yt-dlp/issues/6321)) by [venkata-krishnas](https://github.com/venkata-krishnas)
+- lefigaro
+    - [Add extractors](https://github.com/yt-dlp/yt-dlp/commit/eb8fd6d044e8926532772b72be0645c6b8ecb3aa) ([#6309](https://github.com/yt-dlp/yt-dlp/issues/6309)) by [elyse0](https://github.com/elyse0)
+- lumni
+    - [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/1f8489cccbdc6e96027ef527b88717458f0900e8) ([#6302](https://github.com/yt-dlp/yt-dlp/issues/6302)) by [carusocr](https://github.com/carusocr)
+- Prankcast
+    - [Fix tags](https://github.com/yt-dlp/yt-dlp/commit/ed4cc4ea793314c50ae3f82e98248c1de1c25694) ([#6316](https://github.com/yt-dlp/yt-dlp/issues/6316)) by [columndeeply](https://github.com/columndeeply)
+- rutube
+    - [Extract chapters from description](https://github.com/yt-dlp/yt-dlp/commit/22ccd5420b3eb0782776071f12cccd1fedaa1fd0) ([#6345](https://github.com/yt-dlp/yt-dlp/issues/6345)) by [mushbite](https://github.com/mushbite)
+- SportDeutschland
+    - [Rewrite extractor](https://github.com/yt-dlp/yt-dlp/commit/45db357289b4e1eec09093c8bc5446520378f426) by [pukkandan](https://github.com/pukkandan)
+- telecaribe
+    - [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/b40471282286bd2b09c485bf79afd271d229272c) ([#6311](https://github.com/yt-dlp/yt-dlp/issues/6311)) by [elyse0](https://github.com/elyse0)
+- tubetugraz
+    - [Support `--twofactor` (#6424)](https://github.com/yt-dlp/yt-dlp/commit/f44cb4e77bb9be8be291d02ab6f79dc0b4c0d4a1) ([#6427](https://github.com/yt-dlp/yt-dlp/issues/6427)) by [Ferdi265](https://github.com/Ferdi265)
+- tunein
+    - [Fix extractors](https://github.com/yt-dlp/yt-dlp/commit/46580ced56c90b559885aded6aa8f46f20a9cdce) ([#6310](https://github.com/yt-dlp/yt-dlp/issues/6310)) by [elyse0](https://github.com/elyse0)
+- twitch
+    - [Update for GraphQL API changes](https://github.com/yt-dlp/yt-dlp/commit/4a6272c6d1bff89969b67cd22b26ebe6d7e72279) ([#6318](https://github.com/yt-dlp/yt-dlp/issues/6318)) by [elyse0](https://github.com/elyse0)
+- twitter
+    - [Fix retweet extraction](https://github.com/yt-dlp/yt-dlp/commit/cf605226521e99c89fc8dff26a319025810e63a0) ([#6422](https://github.com/yt-dlp/yt-dlp/issues/6422)) by [selfisekai](https://github.com/selfisekai)
+- xvideos
+    - quickies: [Add extractor](https://github.com/yt-dlp/yt-dlp/commit/283a0b5bc511f3b350eead4488158f50c20ec526) ([#6414](https://github.com/yt-dlp/yt-dlp/issues/6414)) by [Yakabuff](https://github.com/Yakabuff)
+
+#### Misc. changes
+- build
+    - [Fix publishing to PyPI and homebrew](https://github.com/yt-dlp/yt-dlp/commit/55676fe498345a389a2539d8baaba958d6d61c3e) by [bashonly](https://github.com/bashonly)
+    - [Only archive if `vars.ARCHIVE_REPO` is set](https://github.com/yt-dlp/yt-dlp/commit/08ff6d59f97b5f5f0128f6bf6fbef56fd836cc52) by [Grub4K](https://github.com/Grub4K)
+- cleanup
+    - Miscellaneous: [392389b](https://github.com/yt-dlp/yt-dlp/commit/392389b7df7b818f794b231f14dc396d4875fbad) by [pukkandan](https://github.com/pukkandan)
+- devscripts
+    - `make_changelog`: [Stop at `Release ...` commit](https://github.com/yt-dlp/yt-dlp/commit/7accdd9845fe7ce9d0aa5a9d16faaa489c1294eb) by [pukkandan](https://github.com/pukkandan)
+
 ### 2023.03.03
 
 #### Important changes

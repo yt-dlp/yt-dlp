@@ -29,13 +29,13 @@ UPDATE_SOURCES = {
     'stable': 'observeroftime02/yt-dlp-daily',
     'nightly': 'observeroftime02/yt-dlp-daily',
 }
+REPOSITORY = UPDATE_SOURCES['stable']
 
 _VERSION_RE = re.compile(r'(\d+\.)*\d+')
 
 API_BASE_URL = 'https://api.github.com/repos'
 
 # Backwards compatibility variables for the current channel
-REPOSITORY = UPDATE_SOURCES[CHANNEL]
 API_URL = f'{API_BASE_URL}/{REPOSITORY}/releases'
 
 

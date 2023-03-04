@@ -130,7 +130,7 @@ class SportDeutschlandIE(InfoExtractor):
                                   'channel_url': 'channel_url', 'was_live': 'was_live'}),
             **self._process_video(info['id'], video),
         } for i, video in enumerate(parts, 1)]
-        print(entries[0]['duration'])
+
         return {
             '_type': 'multi_video',
             **info,

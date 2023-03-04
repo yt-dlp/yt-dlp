@@ -1,148 +1,200 @@
-import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import ExtractorError
-from ..compat import compat_urlparse
+from ..utils import (
+    OnDemandPagedList,
+    determine_ext,
+    parse_iso8601,
+    traverse_obj,
+)
 
 
 class TuneInBaseIE(InfoExtractor):
-    _API_BASE_URL = 'http://tunein.com/tuner/tune/'
+    _VALID_URL_BASE = r'https?://(?:www\.)?tunein\.com'
 
-    def _real_extract(self, url):
-        content_id = self._match_id(url)
+    def _extract_metadata(self, webpage, content_id):
+        return self._search_json(r'window.INITIAL_STATE=', webpage, 'hydration', content_id, fatal=False)
 
-        content_info = self._download_json(
-            self._API_BASE_URL + self._API_URL_QUERY % content_id,
-            content_id, note='Downloading JSON metadata')
-
-        title = content_info['Title']
-        thumbnail = content_info.get('Logo')
-        location = content_info.get('Location')
-        streams_url = content_info.get('StreamUrl')
-        if not streams_url:
-            raise ExtractorError('No downloadable streams found', expected=True)
-        if not streams_url.startswith('http://'):
-            streams_url = compat_urlparse.urljoin(url, streams_url)
-
+    def _extract_formats_and_subtitles(self, content_id):
         streams = self._download_json(
-            streams_url, content_id, note='Downloading stream data',
-            transform_source=lambda s: re.sub(r'^\s*\((.*)\);\s*$', r'\1', s))['Streams']
+            f'https://opml.radiotime.com/Tune.ashx?render=json&formats=mp3,aac,ogg,flash,hls&id={content_id}',
+            content_id)['body']
 
-        is_live = None
-        formats = []
+        formats, subtitles = [], {}
         for stream in streams:
-            if stream.get('Type') == 'Live':
-                is_live = True
-            reliability = stream.get('Reliability')
-            format_note = (
-                'Reliability: %d%%' % reliability
-                if reliability is not None else None)
-            formats.append({
-                'preference': (
-                    0 if reliability is None or reliability > 90
-                    else 1),
-                'abr': stream.get('Bandwidth'),
-                'ext': stream.get('MediaType').lower(),
-                'acodec': stream.get('MediaType'),
-                'vcodec': 'none',
-                'url': stream.get('Url'),
-                'source_preference': reliability,
-                'format_note': format_note,
-            })
+            if stream.get('media_type') == 'hls':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(stream['url'], content_id, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            elif determine_ext(stream['url']) == 'pls':
+                playlist_content = self._download_webpage(stream['url'], content_id)
+                formats.append({
+                    'url': self._search_regex(r'File1=(.*)', playlist_content, 'url', fatal=False),
+                    'abr': stream.get('bitrate'),
+                    'ext': stream.get('media_type'),
+                })
+            else:
+                formats.append({
+                    'url': stream['url'],
+                    'abr': stream.get('bitrate'),
+                    'ext': stream.get('media_type'),
+                })
 
-        return {
-            'id': content_id,
-            'title': title,
-            'formats': formats,
-            'thumbnail': thumbnail,
-            'location': location,
-            'is_live': is_live,
-        }
-
-
-class TuneInClipIE(TuneInBaseIE):
-    IE_NAME = 'tunein:clip'
-    _VALID_URL = r'https?://(?:www\.)?tunein\.com/station/.*?audioClipId\=(?P<id>\d+)'
-    _API_URL_QUERY = '?tuneType=AudioClip&audioclipId=%s'
-
-    _TESTS = [{
-        'url': 'http://tunein.com/station/?stationId=246119&audioClipId=816',
-        'md5': '99f00d772db70efc804385c6b47f4e77',
-        'info_dict': {
-            'id': '816',
-            'title': '32m',
-            'ext': 'mp3',
-        },
-    }]
+        return formats, subtitles
 
 
 class TuneInStationIE(TuneInBaseIE):
-    IE_NAME = 'tunein:station'
-    _VALID_URL = r'https?://(?:www\.)?tunein\.com/(?:radio/.*?-s|station/.*?StationId=|embed/player/s)(?P<id>\d+)'
-    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?://)?tunein\.com/embed/player/[pst]\d+)']
-    _API_URL_QUERY = '?tuneType=Station&stationId=%s'
-
-    @classmethod
-    def suitable(cls, url):
-        return False if TuneInClipIE.suitable(url) else super(TuneInStationIE, cls).suitable(url)
+    _VALID_URL = TuneInBaseIE._VALID_URL_BASE + r'(?:/radio/[^?#]+-|/embed/player/)(?P<id>s\d+)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?://)?tunein\.com/embed/player/s\d+)']
 
     _TESTS = [{
-        'url': 'http://tunein.com/radio/Jazz24-885-s34682/',
+        'url': 'https://tunein.com/radio/Jazz24-885-s34682/',
         'info_dict': {
-            'id': '34682',
-            'title': 'Jazz 24 on 88.5 Jazz24 - KPLU-HD2',
+            'id': 's34682',
+            'title': 're:^Jazz24',
+            'description': 'md5:d6d0b89063fd68d529fa7058ee98619b',
+            'thumbnail': 're:^https?://[^?&]+/s34682',
+            'location': 'Seattle-Tacoma, US',
             'ext': 'mp3',
-            'location': 'Tacoma, WA',
+            'live_status': 'is_live',
         },
         'params': {
-            'skip_download': True,  # live stream
+            'skip_download': True,
         },
     }, {
-        'url': 'http://tunein.com/embed/player/s6404/',
+        'url': 'https://tunein.com/embed/player/s6404/',
         'only_matching': True,
-    }]
-
-
-class TuneInProgramIE(TuneInBaseIE):
-    IE_NAME = 'tunein:program'
-    _VALID_URL = r'https?://(?:www\.)?tunein\.com/(?:radio/.*?-p|program/.*?ProgramId=|embed/player/p)(?P<id>\d+)'
-    _API_URL_QUERY = '?tuneType=Program&programId=%s'
-
-    _TESTS = [{
-        'url': 'http://tunein.com/radio/Jazz-24-p2506/',
+    }, {
+        'url': 'https://tunein.com/radio/BBC-Radio-1-988-s24939/',
         'info_dict': {
-            'id': '2506',
-            'title': 'Jazz 24 on 91.3 WUKY-HD3',
+            'id': 's24939',
+            'title': 're:^BBC Radio 1',
+            'description': 'md5:f3f75f7423398d87119043c26e7bfb84',
+            'thumbnail': 're:^https?://[^?&]+/s24939',
+            'location': 'London, UK',
             'ext': 'mp3',
-            'location': 'Lexington, KY',
+            'live_status': 'is_live',
         },
         'params': {
-            'skip_download': True,  # live stream
+            'skip_download': True,
         },
-    }, {
-        'url': 'http://tunein.com/embed/player/p191660/',
-        'only_matching': True,
     }]
 
+    def _real_extract(self, url):
+        station_id = self._match_id(url)
 
-class TuneInTopicIE(TuneInBaseIE):
-    IE_NAME = 'tunein:topic'
-    _VALID_URL = r'https?://(?:www\.)?tunein\.com/(?:topic/.*?TopicId=|embed/player/t)(?P<id>\d+)'
-    _API_URL_QUERY = '?tuneType=Topic&topicId=%s'
+        webpage = self._download_webpage(url, station_id)
+        metadata = self._extract_metadata(webpage, station_id)
+
+        formats, subtitles = self._extract_formats_and_subtitles(station_id)
+        return {
+            'id': station_id,
+            'title': traverse_obj(metadata, ('profiles', station_id, 'title')),
+            'description': traverse_obj(metadata, ('profiles', station_id, 'description')),
+            'thumbnail': traverse_obj(metadata, ('profiles', station_id, 'image')),
+            'timestamp': parse_iso8601(
+                traverse_obj(metadata, ('profiles', station_id, 'actions', 'play', 'publishTime'))),
+            'location': traverse_obj(
+                metadata, ('profiles', station_id, 'metadata', 'properties', 'location', 'displayName'),
+                ('profiles', station_id, 'properties', 'location', 'displayName')),
+            'formats': formats,
+            'subtitles': subtitles,
+            'is_live': traverse_obj(metadata, ('profiles', station_id, 'actions', 'play', 'isLive')),
+        }
+
+
+class TuneInPodcastIE(TuneInBaseIE):
+    _VALID_URL = TuneInBaseIE._VALID_URL_BASE + r'/(?:podcasts/[^?#]+-|embed/player/)(?P<id>p\d+)/?(?:#|$)'
+    _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?://)?tunein\.com/embed/player/p\d+)']
 
     _TESTS = [{
-        'url': 'http://tunein.com/topic/?TopicId=101830576',
-        'md5': 'c31a39e6f988d188252eae7af0ef09c9',
+        'url': 'https://tunein.com/podcasts/Technology-Podcasts/Artificial-Intelligence-p1153019',
         'info_dict': {
-            'id': '101830576',
-            'title': 'Votez pour moi du 29 octobre 2015 (29/10/15)',
-            'ext': 'mp3',
-            'location': 'Belgium',
+            'id': 'p1153019',
+            'title': 'Lex Fridman Podcast',
+            'description': 'md5:bedc4e5f1c94f7dec6e4317b5654b00d',
         },
+        'playlist_mincount': 200,
     }, {
-        'url': 'http://tunein.com/embed/player/t101830576/',
-        'only_matching': True,
+        'url': 'https://tunein.com/embed/player/p191660/',
+        'only_matching': True
+    }, {
+        'url': 'https://tunein.com/podcasts/World-News/BBC-News-p14/',
+        'info_dict': {
+            'id': 'p14',
+            'title': 'BBC News',
+            'description': 'md5:1218e575eeaff75f48ed978261fa2068',
+        },
+        'playlist_mincount': 200,
     }]
+
+    _PAGE_SIZE = 30
+
+    def _real_extract(self, url):
+        podcast_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, podcast_id, fatal=False)
+        metadata = self._extract_metadata(webpage, podcast_id)
+
+        def page_func(page_num):
+            api_response = self._download_json(
+                f'https://api.tunein.com/profiles/{podcast_id}/contents', podcast_id,
+                note=f'Downloading page {page_num + 1}', query={
+                    'filter': 't:free',
+                    'offset': page_num * self._PAGE_SIZE,
+                    'limit': self._PAGE_SIZE,
+                })
+
+            return [
+                self.url_result(
+                    f'https://tunein.com/podcasts/{podcast_id}?topicId={episode["GuideId"][1:]}',
+                    TuneInPodcastEpisodeIE, title=episode.get('Title'))
+                for episode in api_response['Items']]
+
+        entries = OnDemandPagedList(page_func, self._PAGE_SIZE)
+        return self.playlist_result(
+            entries, playlist_id=podcast_id, title=traverse_obj(metadata, ('profiles', podcast_id, 'title')),
+            description=traverse_obj(metadata, ('profiles', podcast_id, 'description')))
+
+
+class TuneInPodcastEpisodeIE(TuneInBaseIE):
+    _VALID_URL = TuneInBaseIE._VALID_URL_BASE + r'/podcasts/(?:[^?&]+-)?(?P<podcast_id>p\d+)/?\?topicId=(?P<id>\w\d+)'
+
+    _TESTS = [{
+        'url': 'https://tunein.com/podcasts/Technology-Podcasts/Artificial-Intelligence-p1153019/?topicId=236404354',
+        'info_dict': {
+            'id': 't236404354',
+            'title': '#351 \u2013 MrBeast: Future of YouTube, Twitter, TikTok, and Instagram',
+            'description': 'md5:e1734db6f525e472c0c290d124a2ad77',
+            'thumbnail': 're:^https?://[^?&]+/p1153019',
+            'timestamp': 1673458571,
+            'upload_date': '20230111',
+            'series_id': 'p1153019',
+            'series': 'Lex Fridman Podcast',
+            'ext': 'mp3',
+        },
+    }]
+
+    def _real_extract(self, url):
+        podcast_id, episode_id = self._match_valid_url(url).group('podcast_id', 'id')
+        episode_id = f't{episode_id}'
+
+        webpage = self._download_webpage(url, episode_id)
+        metadata = self._extract_metadata(webpage, episode_id)
+
+        formats, subtitles = self._extract_formats_and_subtitles(episode_id)
+        return {
+            'id': episode_id,
+            'title': traverse_obj(metadata, ('profiles', episode_id, 'title')),
+            'description': traverse_obj(metadata, ('profiles', episode_id, 'description')),
+            'thumbnail': traverse_obj(metadata, ('profiles', episode_id, 'image')),
+            'timestamp': parse_iso8601(
+                traverse_obj(metadata, ('profiles', episode_id, 'actions', 'play', 'publishTime'))),
+            'series_id': podcast_id,
+            'series': traverse_obj(metadata, ('profiles', podcast_id, 'title')),
+            'formats': formats,
+            'subtitles': subtitles,
+        }
 
 
 class TuneInShortenerIE(InfoExtractor):
@@ -154,10 +206,13 @@ class TuneInShortenerIE(InfoExtractor):
         # test redirection
         'url': 'http://tun.in/ser7s',
         'info_dict': {
-            'id': '34682',
-            'title': 'Jazz 24 on 88.5 Jazz24 - KPLU-HD2',
+            'id': 's34682',
+            'title': 're:^Jazz24',
+            'description': 'md5:d6d0b89063fd68d529fa7058ee98619b',
+            'thumbnail': 're:^https?://[^?&]+/s34682',
+            'location': 'Seattle-Tacoma, US',
             'ext': 'mp3',
-            'location': 'Tacoma, WA',
+            'live_status': 'is_live',
         },
         'params': {
             'skip_download': True,  # live stream
@@ -169,6 +224,11 @@ class TuneInShortenerIE(InfoExtractor):
         # The server doesn't support HEAD requests
         urlh = self._request_webpage(
             url, redirect_id, note='Downloading redirect page')
+
         url = urlh.geturl()
+        url_parsed = urllib.parse.urlparse(url)
+        if url_parsed.port == 443:
+            url = url_parsed._replace(netloc=url_parsed.hostname).geturl()
+
         self.to_screen('Following redirect: %s' % url)
         return self.url_result(url)
