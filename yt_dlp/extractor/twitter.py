@@ -977,7 +977,7 @@ class TwitterIE(TwitterBaseIE):
                 'include_reply_count': 1,
                 'include_user_entities': 0,
                 'tweet_mode': 'extended',
-            }), 'retweeted_status', None, get_all=False)
+            }), 'retweeted_status', None)
 
         title = description = status['full_text'].replace('\n', ' ')
         # strip  'https -_t.co_BJYgOjSeGA' junk from filenames
