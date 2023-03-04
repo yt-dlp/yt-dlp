@@ -4,28 +4,8 @@ from .common import InfoExtractor
 from ..utils import traverse_obj
 
 
-class TelecaribeBaseIE(InfoExtractor):
-    _VALID_URL_BASE = r'https?://(?:www\.)?play\.telecaribe\.co'
-
-    def _download_player_webpage(self, webpage, display_id):
-        page_id = self._search_regex(
-            (r'window.firstPageId\s*=\s*["\']([^"\']+)', r'<div[^>]+id\s*=\s*"pageBackground_([^"]+)'),
-            webpage, 'page_id')
-
-        props = self._download_json(self._search_regex(
-            rf'<link[^>]+href\s*=\s*"([^"]+)"[^>]+id\s*=\s*"features_{page_id}"', webpage, 'json_props_url'),
-            display_id)['props']['render']['compProps']
-
-        # We prefer the last dict that contains an 'url' key
-        return self._download_webpage(traverse_obj(props, (..., 'url'))[-1], display_id)
-
-    def _get_clean_title(self, title):
-        return re.sub(r'\s*\|\s*Telecaribe\s*VOD', '', title or '').strip() or None
-
-
-class TelecaribePlayVODIE(TelecaribeBaseIE):
-    _VALID_URL = TelecaribeBaseIE._VALID_URL_BASE + r'/(?P<id>(?!live$)[\w-]+)'
-
+class TelecaribePlayIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?play\.telecaribe\.co/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.play.telecaribe.co/breicok',
         'info_dict': {
@@ -47,21 +27,7 @@ class TelecaribePlayVODIE(TelecaribeBaseIE):
             'title': 'Ciudad Futura',
         },
         'playlist_count': 10,
-    }]
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-
-        return self.playlist_from_matches(
-            re.findall(r'<a[^>]+href\s*=\s*"([^"]+\.mp4)', self._download_player_webpage(webpage, display_id)),
-            playlist_id=display_id, playlist_title=self._get_clean_title(self._og_search_title(webpage)))
-
-
-class TelecaribePlayLiveIE(TelecaribeBaseIE):
-    _VALID_URL = TelecaribeBaseIE._VALID_URL_BASE + r'/(?P<id>live)$'
-
-    _TESTS = [{
+    }, {
         'url': 'https://www.play.telecaribe.co/live',
         'info_dict': {
             'id': 'live',
@@ -74,15 +40,33 @@ class TelecaribePlayLiveIE(TelecaribeBaseIE):
         }
     }]
 
+    def _download_player_webpage(self, webpage, display_id):
+        page_id = self._search_regex(
+            (r'window.firstPageId\s*=\s*["\']([^"\']+)', r'<div[^>]+id\s*=\s*"pageBackground_([^"]+)'),
+            webpage, 'page_id')
+
+        props = self._download_json(self._search_regex(
+            rf'<link[^>]+href\s*=\s*"([^"]+)"[^>]+id\s*=\s*"features_{page_id}"',
+            webpage, 'json_props_url'), display_id)['props']['render']['compProps']
+
+        return self._download_webpage(traverse_obj(props, (..., 'url'))[-1], display_id)
+
+    def _get_clean_title(self, title):
+        return re.sub(r'\s*\|\s*Telecaribe\s*VOD', '', title or '').strip() or None
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
+        player = self._download_player_webpage(webpage, display_id)
 
-        m3u8_url = self._search_regex(
-            r'(?:let|const|var)\s+source\s*=\s*["\']([^"\']+)',
-            self._download_player_webpage(webpage, display_id), 'm3u8_url')
+        if display_id != 'live':
+            return self.playlist_from_matches(
+                re.findall(r'<a[^>]+href\s*=\s*"([^"]+\.mp4)', player), display_id,
+                self._get_clean_title(self._og_search_title(webpage)))
 
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, display_id, 'mp4')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            self._search_regex(r'(?:let|const|var)\s+source\s*=\s*["\']([^"\']+)', player, 'm3u8 url'),
+            display_id, 'mp4')
 
         return {
             'id': display_id,

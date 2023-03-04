@@ -1851,10 +1851,7 @@ from .ted import (
 from .tele5 import Tele5IE
 from .tele13 import Tele13IE
 from .telebruxelles import TeleBruxellesIE
-from .telecaribe import (
-    TelecaribePlayVODIE,
-    TelecaribePlayLiveIE,
-)
+from .telecaribe import TelecaribePlayIE
 from .telecinco import TelecincoIE
 from .telegraaf import TelegraafIE
 from .telegram import TelegramEmbedIE
