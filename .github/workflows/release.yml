@@ -64,6 +64,7 @@ jobs:
 
       - name: Install Requirements
         run: |
+          sudo apt-get -y install pandoc man
           python -m pip install -U pip setuptools wheel twine
           python -m pip install -U -r requirements.txt
 
@@ -79,6 +80,7 @@ jobs:
         if: env.TWINE_PASSWORD != ''
         run: |
           rm -rf dist/*
+          make pypi-files
           python devscripts/set-variant.py pip -M "You installed yt-dlp with pip or using the wheel from PyPi; Use that to update"
           python setup.py sdist bdist_wheel
           twine upload dist/*

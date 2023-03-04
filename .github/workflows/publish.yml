@@ -55,12 +55,12 @@ jobs:
         run: |
           gh release create \
             --notes-file ARCHIVE_NOTES \
-            --title "Build ${{ inputs.version }}" \
+            --title "yt-dlp nightly ${{ inputs.version }}" \
             ${{ inputs.version }} \
             artifact/*
 
       - name: Prune old nightly release
-        if: inputs.nightly
+        if: inputs.nightly && !vars.ARCHIVE_REPO
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -71,6 +71,7 @@ jobs:
       - name: Publish release${{ inputs.nightly && ' (nightly)' || '' }}
         env:
           GH_TOKEN: ${{ github.token }}
+        if: (inputs.nightly && !vars.ARCHIVE_REPO) || !inputs.nightly
         run: |
           gh release create \
             --notes-file ${{ inputs.nightly && 'PRE' || '' }}RELEASE_NOTES \
