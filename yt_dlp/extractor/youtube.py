@@ -3205,11 +3205,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'decoratedPlayerBarRenderer', 'playerBar', 'chapteredPlayerBarRenderer', 'chapters'
             ), expected_type=list)
 
-        return self._extract_chapters(
+        return self._extract_chapters_helper(
             chapter_list,
-            chapter_time=lambda chapter: float_or_none(
+            start_function=lambda chapter: float_or_none(
                 traverse_obj(chapter, ('chapterRenderer', 'timeRangeStartMillis')), scale=1000),
-            chapter_title=lambda chapter: traverse_obj(
+            title_function=lambda chapter: traverse_obj(
                 chapter, ('chapterRenderer', 'title', 'simpleText'), expected_type=str),
             duration=duration)
 
@@ -3222,8 +3222,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         chapter_title = lambda chapter: self._get_text(chapter, 'title')
 
         return next(filter(None, (
-            self._extract_chapters(traverse_obj(contents, (..., 'macroMarkersListItemRenderer')),
-                                   chapter_time, chapter_title, duration)
+            self._extract_chapters_helper(traverse_obj(contents, (..., 'macroMarkersListItemRenderer')),
+                                          chapter_time, chapter_title, duration)
             for contents in content_list)), [])
 
     def _extract_comment(self, comment_renderer, parent=None):

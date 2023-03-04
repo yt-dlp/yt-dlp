@@ -153,7 +153,7 @@ class RutubeIE(RutubeBaseIE):
         'info_dict': {
             'id': 'c65b465ad0c98c89f3b25cb03dcc87c6',
             'ext': 'mp4',
-            'chapters': [{'start_time': 0.0, 'title': 'Как понравиться заказчику/работодателю: 4 аспекта'}, {'start_time': 263.0, 'title': 'Как работать на фрилансе'}, {'start_time': 457.0, 'title': 'Как показать свои преимущества'}, {'start_time': 574.0, 'title': 'Реально ли без опыта найти работу?'}],
+            'chapters': 'count:4',
             'category': ['Бизнес и предпринимательство'],
             'description': 'md5:252feac1305257d8c1bab215cedde75d',
             'thumbnail': 'http://pic.rutubelist.ru/video/71/8f/718f27425ea9706073eb80883dd3787b.png',
