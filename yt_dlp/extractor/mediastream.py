@@ -16,7 +16,7 @@ class MediaStreamBaseIE(InfoExtractor):
 
     def _extract_mediastream_urls(self, webpage):
         yield from traverse_obj(list(self._yield_json_ld(webpage, None)), (
-            lambda _, v: v['@type'] == 'VideoObject', 'embedUrl',
+            lambda _, v: v['@type'] == 'VideoObject', ('embedUrl', 'contentUrl'),
             {lambda x: x if re.match(rf'{self._BASE_URL_RE}/\w+', x) else None}))
 
         for mobj in re.finditer(r'<script[^>]+>[^>]*playerMdStream\.mdstreamVideo\(\s*[\'"](?P<video_id>\w+)', webpage):
