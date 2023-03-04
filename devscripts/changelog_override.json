@@ -1,0 +1,12 @@
+[
+    {
+        "action": "add",
+        "when": "2023.02.17",
+        "short": "[priority] **A new release type has been added!**\n    * [`nightly`](https://github.com/yt-dlp/yt-dlp/releases/tag/nightly) builds will be made after each push, containing the latest fixes (but also possibly bugs).\n    * When using `--update`/`-U`, a release binary will only update to its current channel (either `stable` or `nightly`).\n    * The `--update-to` option has been added allowing the user more control over program upgrades (or downgrades).\n    * `--update-to` can change the release channel (`stable`, `nightly`) and also upgrade or downgrade to specific tags.\n    * **Usage**: `--update-to CHANNEL`, `--update-to TAG`, `--update-to CHANNEL@TAG`"
+    },
+    {
+        "action": "add",
+        "when": "2023.02.17",
+        "short": "[priority] **YouTube throttling fixes!**"
+    }
+]

@@ -1,0 +1,127 @@
+name: Release
+on: workflow_dispatch
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.update_version.outputs.version }}
+      head_sha: ${{ steps.push_release.outputs.head_sha }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Update version
+        id: update_version
+        run: |
+          python devscripts/update-version.py ${{ vars.PUSH_VERSION_COMMIT == '' && '"$(date -u +"%H%M%S")"' || '' }} | \
+            grep -Po "version=\d+\.\d+\.\d+(\.\d+)?" >> "$GITHUB_OUTPUT"
+
+      - name: Update documentation
+        run: |
+          make doc
+          sed '/### /Q' Changelog.md >> ./CHANGELOG
+          echo '### ${{ steps.update_version.outputs.version }}' >> ./CHANGELOG
+          python ./devscripts/make_changelog.py -vv -c >> ./CHANGELOG
+          echo >> ./CHANGELOG
+          grep -Poz '(?s)### \d+\.\d+\.\d+.+' 'Changelog.md' | head -n -1 >> ./CHANGELOG
+          cat ./CHANGELOG > Changelog.md
+
+      - name: Push to release
+        id: push_release
+        run: |
+          git config --global user.name github-actions
+          git config --global user.email github-actions@example.com
+          git add -u
+          git commit -m "Release ${{ steps.update_version.outputs.version }}" \
+            -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all :ci run dl"
+          git push origin --force ${{ github.event.ref }}:release
+          echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Update master
+        if: vars.PUSH_VERSION_COMMIT != ''
+        run: git push origin ${{ github.event.ref }}
+
+  publish_pypi_homebrew:
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Requirements
+        run: |
+          python -m pip install -U pip setuptools wheel twine
+          python -m pip install -U -r requirements.txt
+
+      - name: Prepare
+        run: |
+          python devscripts/update-version.py ${{ needs.prepare.outputs.version }}
+          python devscripts/make_lazy_extractors.py
+
+      - name: Build and publish on PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        if: env.TWINE_PASSWORD != ''
+        run: |
+          rm -rf dist/*
+          python devscripts/set-variant.py pip -M "You installed yt-dlp with pip or using the wheel from PyPi; Use that to update"
+          python setup.py sdist bdist_wheel
+          twine upload dist/*
+
+      - name: Checkout Homebrew repository
+        env:
+          BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        if: env.BREW_TOKEN != '' && env.PYPI_TOKEN != ''
+        uses: actions/checkout@v3
+        with:
+          repository: yt-dlp/homebrew-taps
+          path: taps
+          ssh-key: ${{ secrets.BREW_TOKEN }}
+
+      - name: Update Homebrew Formulae
+        env:
+          BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        if: env.BREW_TOKEN != '' && env.PYPI_TOKEN != ''
+        run: |
+          python devscripts/update-formulae.py taps/Formula/yt-dlp.rb "${{ needs.prepare.outputs.version }}"
+          git -C taps/ config user.name github-actions
+          git -C taps/ config user.email github-actions@example.com
+          git -C taps/ commit -am 'yt-dlp: ${{ needs.prepare.outputs.version }}'
+          git -C taps/ push
+
+  build:
+    needs: prepare
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+    permissions:
+      contents: read
+      packages: write # For package cache
+    secrets:
+      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+
+  publish:
+    needs: [prepare, build]
+    uses: ./.github/workflows/publish.yml
+    permissions:
+      contents: write
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      target_commitish: ${{ needs.prepare.outputs.head_sha }}
