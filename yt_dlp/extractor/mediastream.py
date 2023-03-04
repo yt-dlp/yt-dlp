@@ -19,7 +19,7 @@ class MediaStreamBaseIE(InfoExtractor):
             lambda _, v: v['@type'] == 'VideoObject', 'embedUrl',
             {lambda x: x if re.match(rf'{self._BASE_URL_RE}/\w+', x) else None}))
 
-        for mobj in re.finditer(r'<script[^>]+>[^>]*playerMdStream.mdstreamVideo\(\s*[\'"](?P<video_id>\w+)', webpage):
+        for mobj in re.finditer(r'<script[^>]+>[^>]*playerMdStream\.mdstreamVideo\(\s*[\'"](?P<video_id>\w+)', webpage):
             yield f'{self._EMBED_BASE_URL}/{mobj.group("video_id")}'
 
         yield from re.findall(
