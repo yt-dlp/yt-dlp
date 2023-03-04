@@ -3,7 +3,11 @@ import math
 import re
 
 from .common import InfoExtractor
-from ..utils import unsmuggle_url, InAdvancePagedList
+from ..utils import (
+    InAdvancePagedList,
+    traverse_obj,
+    unsmuggle_url,
+)
 
 
 class JWPlatformIE(InfoExtractor):
@@ -150,7 +154,7 @@ class LeFigaroVideoEmbedIE(InfoExtractor):
 
 
 class LeFigaroVideoSectionIE(InfoExtractor):
-    _VALID_URL = r'https?://video\.lefigaro\.fr/figaro/(?P<id>[\w-]+)/?$'
+    _VALID_URL = r'https?://video\.lefigaro\.fr/figaro/(?P<id>[\w-]+)/?(?:[#?]|$)'
 
     _TESTS = [{
         'url': 'https://video.lefigaro.fr/figaro/le-club-le-figaro-idees/',
@@ -192,9 +196,11 @@ class LeFigaroVideoSectionIE(InfoExtractor):
             api_response = self._get_api_response(display_id, page_num + 1, note=f'Downloading page {page_num + 1}')
 
             return [self.url_result(
-                video['embedUrl'], LeFigaroVideoEmbedIE, video_title=video.get('name'),
-                description=video.get('description'), thumbnail=video.get('thumbnailUrl'))
-                for video in api_response['data']['playlist']['jsonLd'][0]['itemListElement']]
+                video['embedUrl'], LeFigaroVideoEmbedIE, **traverse_obj(video, {
+                    'title': 'name',
+                    'description': 'description',
+                    'thumbnail': 'thumbnailUrl',
+                })) for video in api_response['data']['playlist']['jsonLd'][0]['itemListElement']]
 
         entries = InAdvancePagedList(
             page_func, math.ceil(initial_response['videoCount'] / self._PAGE_SIZE), self._PAGE_SIZE)
