@@ -16,6 +16,7 @@ class XVideosIE(InfoExtractor):
                     https?://
                         (?:
                             (?:[^/]+\.)?xvideos2?\.com/video|
+                            (?:[^/]+\.)?xvideos2?\.com/amateur-channels/.*\#quickies/a/|
                             (?:www\.)?xvideos\.es/video|
                             (?:www|flashservice)\.xvideos\.com/embedframe/|
                             static-hw\.xvideos\.com/swf/xv-player\.swf\?.*?\bid_video=
@@ -90,12 +91,27 @@ class XVideosIE(InfoExtractor):
     }, {
         'url': 'https://de.xvideos.com/video4588838/biker_takes_his_girl',
         'only_matching': True
+    },{
+        'url': 'https://www.xvideos.com/amateur-channels/wifeluna#quickies/a/47258683',
+        'info_dict': {
+            'id': '47258683',
+            'ext': 'mp4',
+            'title': 'Verification video',
+            'age_limit': 18,
+            'duration': 16,
+            'thumbnail': r're:^https://cdn.*-pic.xvideos-cdn.com/.+\.jpg',
+        }
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
 
+        #Rebuild quickies URL into a standard xvideos URL
+        if "#quickies" in url:
+            u = url.split("/")
+            url = "https://" + u[2] + "/video"+video_id + "/" + "test"
+
+        webpage = self._download_webpage(url, video_id)
         mobj = re.search(r'<h1 class="inlineError">(.+?)</h1>', webpage)
         if mobj:
             raise ExtractorError('%s said: %s' % (self.IE_NAME, clean_html(mobj.group(1))), expected=True)
