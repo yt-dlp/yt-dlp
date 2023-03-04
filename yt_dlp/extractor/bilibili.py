@@ -90,9 +90,7 @@ class BilibiliBaseIE(InfoExtractor):
         }
 
         video_info_json = self._download_json(f'https://api.bilibili.com/x/player/v2?aid={aid}&cid={cid}', video_id)
-        subtitles_in_json = traverse_obj(video_info_json, ('data', 'subtitle', 'subtitles'))
-
-        for s in subtitles_in_json or []:
+        for s in traverse_obj(video_info_json, ('data', 'subtitle', 'subtitles', ...)):
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
                 'data': self.json2srt(self._download_json(s['subtitle_url'], video_id))
