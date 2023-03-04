@@ -44,7 +44,7 @@ class TuneInBaseIE(InfoExtractor):
 
 
 class TuneInStationIE(TuneInBaseIE):
-    _VALID_URL = TuneInBaseIE._VALID_URL_BASE + r'(?:/radio/[^?&]+-|/embed/player/)(?P<id>s\d+)'
+    _VALID_URL = TuneInBaseIE._VALID_URL_BASE + r'(?:/radio/[^?#]+-|/embed/player/)(?P<id>s\d+)'
     _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?://)?tunein\.com/embed/player/s\d+)']
 
     _TESTS = [{
@@ -104,7 +104,7 @@ class TuneInStationIE(TuneInBaseIE):
 
 
 class TuneInPodcastIE(TuneInBaseIE):
-    _VALID_URL = TuneInBaseIE._VALID_URL_BASE + r'/(?:podcasts/[^?&]+-|embed/player/)(?P<id>p\d+)/?$'
+    _VALID_URL = TuneInBaseIE._VALID_URL_BASE + r'/(?:podcasts/[^?#]+-|embed/player/)(?P<id>p\d+)/?$'
     _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?://)?tunein\.com/embed/player/p\d+)']
 
     _TESTS = [{
@@ -148,13 +148,13 @@ class TuneInPodcastIE(TuneInBaseIE):
             return [
                 self.url_result(
                     f'https://tunein.com/podcasts/{podcast_id}?topicId={episode["GuideId"][1:]}',
-                    ie=TuneInPodcastEpisodeIE, video_title=episode.get('Title'))
+                    TuneInPodcastEpisodeIE, title=episode.get('Title'))
                 for episode in api_response['Items']]
 
         entries = OnDemandPagedList(page_func, self._PAGE_SIZE)
         return self.playlist_result(
-            entries, playlist_id=podcast_id, playlist_title=traverse_obj(metadata, ('profiles', podcast_id, 'title')),
-            playlist_description=traverse_obj(metadata, ('profiles', podcast_id, 'description')))
+            entries, playlist_id=podcast_id, title=traverse_obj(metadata, ('profiles', podcast_id, 'title')),
+            description=traverse_obj(metadata, ('profiles', podcast_id, 'description')))
 
 
 class TuneInPodcastEpisodeIE(TuneInBaseIE):
