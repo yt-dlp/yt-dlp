@@ -1,11 +1,5 @@
 name: Release (nightly)
-on:
-  push:
-    branches:
-      - master
-    paths:
-      - "**.py"
-      - "!yt_dlp/version.py"
+on: workflow_dispatch
 concurrency:
   group: release-nightly
   cancel-in-progress: true
