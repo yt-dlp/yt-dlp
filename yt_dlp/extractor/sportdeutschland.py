@@ -70,19 +70,19 @@ class SportDeutschlandIE(InfoExtractor):
         if len(videos) > 1:
             info.update({
                 '_type': 'multi_video',
-                'entries': self.processVideoOrStream(asset_id, video)
-            } for video in enumerate(videos) if video.get('formats'))
+                'entries': self.process_video_or_stream(asset_id, video)
+            } for video in videos if video.get('src'))
 
         elif len(videos) == 1:
             info.update(
-                self.processVideoOrStream(asset_id, videos[0])
+                self.process_video_or_stream(asset_id, videos[0])
             )
 
         livestream = meta.get('livestream')
 
         if livestream is not None:
             info.update(
-                self.processVideoOrStream(asset_id, livestream)
+                self.process_video_or_stream(asset_id, livestream)
             )
 
         return info
