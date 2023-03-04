@@ -840,11 +840,7 @@ from .japandiet import (
 from .jeuxvideo import JeuxVideoIE
 from .jove import JoveIE
 from .joj import JojIE
-from .jwplatform import (
-    JWPlatformIE,
-    LeFigaroVideoEmbedIE,
-    LeFigaroVideoSectionIE,
-)
+from .jwplatform import JWPlatformIE
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
 from .kanal2 import Kanal2IE
@@ -917,6 +913,10 @@ from .leeco import (
     LeIE,
     LePlaylistIE,
     LetvCloudIE,
+)
+from .lefigaro import (
+    LeFigaroVideoEmbedIE,
+    LeFigaroVideoSectionIE,
 )
 from .lego import LEGOIE
 from .lemonde import LemondeIE
