@@ -91,7 +91,7 @@ class XVideosIE(InfoExtractor):
     }, {
         'url': 'https://de.xvideos.com/video4588838/biker_takes_his_girl',
         'only_matching': True
-    },{
+    }, {
         'url': 'https://www.xvideos.com/amateur-channels/wifeluna#quickies/a/47258683',
         'info_dict': {
             'id': '47258683',
@@ -106,10 +106,12 @@ class XVideosIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        #Rebuild quickies URL into a standard xvideos URL
+        # Rebuild quickies URL (https://www.xvideos.com/amateur-channels/<username>#quickies/a/<id>)
+        # into a standard xvideos URL (https://xvideos.com/video<id>/<slug>)
+
         if "#quickies" in url:
             u = url.split("/")
-            url = "https://" + u[2] + "/video"+video_id + "/" + "test"
+            url = "https://" + u[2] + "/video" + video_id + "/" + "test"
 
         webpage = self._download_webpage(url, video_id)
         mobj = re.search(r'<h1 class="inlineError">(.+?)</h1>', webpage)
