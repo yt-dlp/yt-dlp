@@ -254,15 +254,14 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:  # 3.10 is used because I don't need win7 support
-          python-version: '3.10'
-    - name: Install Requirements
-      run: |  # Custom pyinstaller built with https://github.com/observeroftime01/pyinstaller-builds
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with: # 3.8 is used for Win7 support
+          python-version: "3.8"
+      - name: Install Requirements
+        run: | # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
           python -m pip install -U pip setuptools wheel py2exe
-          pip install "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl" -r requirements.txt
-
+          pip install -U "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl" -r requirements.txt
       - name: Prepare
         run: |
           python devscripts/update-version.py -c ${{ inputs.channel }} ${{ inputs.version }}
