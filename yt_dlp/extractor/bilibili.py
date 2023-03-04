@@ -81,7 +81,7 @@ class BilibiliBaseIE(InfoExtractor):
                          f'{line["content"]}\n\n')
         return srt_data
 
-    def _get_subtitles(self, video_id, initial_state, cid):
+    def _get_subtitles(self, video_id, aid, cid):
         subtitles = {
             'danmaku': [{
                 'ext': 'xml',
@@ -89,7 +89,8 @@ class BilibiliBaseIE(InfoExtractor):
             }]
         }
 
-        for s in traverse_obj(initial_state, ('videoData', 'subtitle', 'list')) or []:
+        video_info_json = self._download_json(f'https://api.bilibili.com/x/player/v2?aid={aid}&cid={cid}', video_id)
+        for s in traverse_obj(video_info_json, ('data', 'subtitle', 'subtitles', ...)):
             subtitles.setdefault(s['lan'], []).append({
                 'ext': 'srt',
                 'data': self.json2srt(self._download_json(s['subtitle_url'], video_id))
@@ -331,7 +332,7 @@ class BiliBiliIE(BilibiliBaseIE):
             'timestamp': traverse_obj(initial_state, ('videoData', 'pubdate')),
             'duration': float_or_none(play_info.get('timelength'), scale=1000),
             'chapters': self._get_chapters(aid, cid),
-            'subtitles': self.extract_subtitles(video_id, initial_state, cid),
+            'subtitles': self.extract_subtitles(video_id, aid, cid),
             '__post_extractor': self.extract_comments(aid),
             'http_headers': {'Referer': url},
         }
