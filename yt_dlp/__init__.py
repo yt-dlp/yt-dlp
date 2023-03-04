@@ -403,7 +403,7 @@ def validate_options(opts):
         except Exception:
             raise ValueError('unsupported geo-bypass country or ip-block')
 
-    opts.match_filter = match_filter_func(opts.match_filter)
+    opts.match_filter = match_filter_func(opts.match_filter, opts.breaking_match_filter)
 
     if opts.download_archive is not None:
         opts.download_archive = expand_path(opts.download_archive)
@@ -931,7 +931,7 @@ def _real_main(argv=None):
         if opts.rm_cachedir:
             ydl.cache.remove()
 
-        updater = Updater(ydl)
+        updater = Updater(ydl, opts.update_self if isinstance(opts.update_self, str) else None)
         if opts.update_self and updater.update() and actual_use:
             if updater.cmd:
                 return updater.restart()

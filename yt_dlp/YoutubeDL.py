@@ -150,7 +150,7 @@ from .utils import (
     write_json_file,
     write_string,
 )
-from .version import RELEASE_GIT_HEAD, VARIANT, __version__
+from .version import CHANNEL, RELEASE_GIT_HEAD, VARIANT, __version__
 
 if compat_os_name == 'nt':
     import ctypes
@@ -300,8 +300,6 @@ class YoutubeDL:
                        Videos already present in the file are not downloaded again.
     break_on_existing: Stop the download process after attempting to download a
                        file that is in the archive.
-    break_on_reject:   Stop the download process when encountering a video that
-                       has been filtered out.
     break_per_url:     Whether break_on_reject and break_on_existing
                        should act on each input URL as opposed to for the entire queue
     cookiefile:        File name or text stream from where cookies should be read and dumped to
@@ -414,6 +412,8 @@ class YoutubeDL:
                        - If it returns None, the video is downloaded.
                        - If it returns utils.NO_DEFAULT, the user is interactively
                          asked whether to download the video.
+                       - Raise utils.DownloadCancelled(msg) to abort remaining
+                         downloads when a video is rejected.
                        match_filter_func in utils.py is one example for this.
     no_color:          Do not emit color codes in output.
     geo_bypass:        Bypass geographic restriction via faking X-Forwarded-For
@@ -483,6 +483,9 @@ class YoutubeDL:
 
     The following options are deprecated and may be removed in the future:
 
+    break_on_reject:   Stop the download process when encountering a video that
+                       has been filtered out.
+                       - `raise DownloadCancelled(msg)` in match_filter instead
     force_generic_extractor: Force downloader to use the generic extractor
                        - Use allowed_extractors = ['generic', 'default']
     playliststart:     - Use playlist_items
@@ -1407,31 +1410,44 @@ class YoutubeDL:
                 return 'Skipping "%s" because it is age restricted' % video_title
 
             match_filter = self.params.get('match_filter')
-            if match_filter is not None:
+            if match_filter is None:
+                return None
+
+            cancelled = None
+            try:
                 try:
                     ret = match_filter(info_dict, incomplete=incomplete)
                 except TypeError:
                     # For backward compatibility
                     ret = None if incomplete else match_filter(info_dict)
-                if ret is NO_DEFAULT:
-                    while True:
-                        filename = self._format_screen(self.prepare_filename(info_dict), self.Styles.FILENAME)
-                        reply = input(self._format_screen(
-                            f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS)).lower().strip()
-                        if reply in {'y', ''}:
-                            return None
-                        elif reply == 'n':
-                            return f'Skipping {video_title}'
-                elif ret is not None:
-                    return ret
-            return None
+            except DownloadCancelled as err:
+                if err.msg is not NO_DEFAULT:
+                    raise
+                ret, cancelled = err.msg, err
+
+            if ret is NO_DEFAULT:
+                while True:
+                    filename = self._format_screen(self.prepare_filename(info_dict), self.Styles.FILENAME)
+                    reply = input(self._format_screen(
+                        f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS)).lower().strip()
+                    if reply in {'y', ''}:
+                        return None
+                    elif reply == 'n':
+                        if cancelled:
+                            raise type(cancelled)(f'Skipping {video_title}')
+                        return f'Skipping {video_title}'
+            return ret
 
         if self.in_download_archive(info_dict):
             reason = '%s has already been recorded in the archive' % video_title
             break_opt, break_err = 'break_on_existing', ExistingVideoReached
         else:
-            reason = check_filter()
-            break_opt, break_err = 'break_on_reject', RejectedVideoReached
+            try:
+                reason = check_filter()
+            except DownloadCancelled as e:
+                reason, break_opt, break_err = e.msg, 'match_filter', type(e)
+            else:
+                break_opt, break_err = 'break_on_reject', RejectedVideoReached
         if reason is not None:
             if not silent:
                 self.to_screen('[download] ' + reason)
@@ -3768,8 +3784,8 @@ class YoutubeDL:
         klass = type(self)
         write_debug(join_nonempty(
             f'{"yt-dlp" if REPOSITORY == "yt-dlp/yt-dlp" else REPOSITORY} version',
-            __version__,
-            f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',
+            __version__ + {'stable': '', 'nightly': '*'}.get(CHANNEL, f' <{CHANNEL}>'),
+            f'[{RELEASE_GIT_HEAD[:9]}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
             '' if _IN_CLI else 'API' if klass == YoutubeDL else f'API:{self.__module__}.{klass.__qualname__}',
             delim=' '))
