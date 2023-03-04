@@ -104,7 +104,7 @@ class TuneInStationIE(TuneInBaseIE):
 
 
 class TuneInPodcastIE(TuneInBaseIE):
-    _VALID_URL = TuneInBaseIE._VALID_URL_BASE + r'/(?:podcasts/[^?#]+-|embed/player/)(?P<id>p\d+)/?$'
+    _VALID_URL = TuneInBaseIE._VALID_URL_BASE + r'/(?:podcasts/[^?#]+-|embed/player/)(?P<id>p\d+)/?(?:[#?]|$)'
     _EMBED_REGEX = [r'<iframe[^>]+src=["\'](?P<url>(?:https?://)?tunein\.com/embed/player/p\d+)']
 
     _TESTS = [{
