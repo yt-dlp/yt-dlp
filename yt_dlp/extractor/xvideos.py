@@ -177,4 +177,4 @@ class XVideosQuickiesIE(InfoExtractor):
 
     def _real_extract(self, url):
         domain, id_ = self._match_valid_url(url).group('domain', 'id')
-        return self.url_result(f'https://{domain}/video{id_}/_', XVideosIE, id)
+        return self.url_result(f'https://{domain}/video{id_}/_', XVideosIE, id_)
