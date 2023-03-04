@@ -914,6 +914,10 @@ from .leeco import (
     LePlaylistIE,
     LetvCloudIE,
 )
+from .lefigaro import (
+    LeFigaroVideoEmbedIE,
+    LeFigaroVideoSectionIE,
+)
 from .lego import LEGOIE
 from .lemonde import LemondeIE
 from .lenta import LentaIE
