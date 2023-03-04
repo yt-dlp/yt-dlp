@@ -132,6 +132,7 @@ class InfoExtractor:
                                        is parsed from a string (in case of
                                        fragmented media)
                                    for MSS - URL of the ISM manifest.
+                    * request_data  Data to send in POST request to the URL
                     * manifest_url
                                  The URL of the manifest file in case of
                                  fragmented media:
@@ -2063,6 +2064,7 @@ class InfoExtractor:
                     'protocol': entry_protocol,
                     'preference': preference,
                     'quality': quality,
+                    'has_drm': has_drm,
                     'vcodec': 'none' if media_type == 'AUDIO' else None,
                 } for idx in _extract_m3u8_playlist_indices(manifest_url))
 
@@ -2122,6 +2124,7 @@ class InfoExtractor:
                         'protocol': entry_protocol,
                         'preference': preference,
                         'quality': quality,
+                        'has_drm': has_drm,
                     }
                     resolution = last_stream_inf.get('RESOLUTION')
                     if resolution:
@@ -3524,7 +3527,7 @@ class InfoExtractor:
         desc = ''
         if cls._NETRC_MACHINE:
             if markdown:
-                desc += f' [<abbr title="netrc machine"><em>{cls._NETRC_MACHINE}</em></abbr>]'
+                desc += f' [*{cls._NETRC_MACHINE}*](## "netrc machine")'
             else:
                 desc += f' [{cls._NETRC_MACHINE}]'
         if cls.IE_DESC is False:

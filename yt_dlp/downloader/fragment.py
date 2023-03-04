@@ -466,7 +466,8 @@ class FragmentFD(FileDownloader):
             for retry in RetryManager(self.params.get('fragment_retries'), error_callback):
                 try:
                     ctx['fragment_count'] = fragment.get('fragment_count')
-                    if not self._download_fragment(ctx, fragment['url'], info_dict, headers):
+                    if not self._download_fragment(
+                            ctx, fragment['url'], info_dict, headers, info_dict.get('request_data')):
                         return
                 except (urllib.error.HTTPError, http.client.IncompleteRead) as err:
                     retry.error = err
@@ -496,7 +497,7 @@ class FragmentFD(FileDownloader):
                 download_fragment(fragment, ctx_copy)
                 return fragment, fragment['frag_index'], ctx_copy.get('fragment_filename_sanitized')
 
-            self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
+            self.report_warning('The download speed shown is only of one thread. This is a known issue')
             with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
                 try:
                     for fragment, frag_index, frag_filename in pool.map(_download_fragment, fragments):
