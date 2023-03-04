@@ -17,12 +17,16 @@ from ..utils import (
     float_or_none,
     parse_iso8601,
     determine_ext,
+    traverse_obj
 )
 
 
 class LivestreamIE(InfoExtractor):
     IE_NAME = 'livestream'
-    _VALID_URL = r'https?://(?:new\.)?livestream.com/(?:(?:accounts/(?P<account_id>\d+))|(?P<account_name>[^/]+))(?:(?:/events/(?P<event_id>\d+))|(?:/(?P<event_name>[^/]+)))?(?:/videos/(?P<id>\d+))?'
+    _VALID_URL = r'https?://(?:new\.)?livestream.com/' \
+        '(?:(?:accounts/(?P<account_id>\d+))|(?P<account_name>[^/]+))' \
+        '(?:(?:/events/(?P<event_id>\d+))|(?:/(?P<event_name>[^/]+)))?' \
+        '(?:/videos/(?P<id>\d+))?'
     _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://(?:new\.)?livestream\.com/[^"]+/player[^"]+)"']
 
     _TESTS = [{
@@ -76,7 +80,6 @@ class LivestreamIE(InfoExtractor):
         'only_matching': True,
     }]
     _API_URL_TEMPLATE = 'http://livestream.com/api/accounts/%s/events/%s'
-    _ACCOUNT_API_URL_TEMPLATE = 'http://livestream.com/api/accounts/%s'
 
     def _parse_smil_formats(self, smil, smil_url, video_id, namespace=None, f4m_params=None, transform_rtmp_url=None):
         base_ele = find_xpath_attr(
@@ -226,7 +229,7 @@ class LivestreamIE(InfoExtractor):
         return entries
 
     def _extract_event(self, event_data):
-        event_id = compat_str(event_data['id'])
+        event_id = str(event_data['id'])
         entries = self._generate_event_playlist(event_data)
         return self.playlist_result(entries, event_id, event_data['full_name'])
 
@@ -241,13 +244,13 @@ class LivestreamIE(InfoExtractor):
         video_id = mobj.group('id')
         event = mobj.group('event_id') or mobj.group('event_name')
         account = mobj.group('account_id') or mobj.group('account_name')
-        api_url = self._ACCOUNT_API_URL_TEMPLATE % (account)
+        api_url = f'http://livestream.com/api/accounts/{account}'
         if video_id:
             video_data = self._download_json(
-                api_url + '/events/%s' % event + '/videos/%s' % video_id, video_id)
+                f'{api_url}/events/{event}/videos/{video_id}', video_id)
             return self._extract_video_info(video_data)
-        if event:
-            event_data = self._download_json(api_url + '/events/%s' % event, None)
+        elif event:
+            event_data = self._download_json(f'{api_url}/events/{event}', None)
             return self._extract_event(event_data)
         account_data = self._download_json(api_url, None)
         return self._extract_account_events(account_data)
