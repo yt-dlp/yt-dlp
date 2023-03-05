@@ -28,7 +28,7 @@ class TeamcocoBaseIE(TurnerBaseIE):
     def _get_formats_and_subtitles(self, info, video_id):
         formats, subtitles = [], {}
 
-        for src in traverse_obj(info, ('src', ...), expected_type=dict):
+        for src in traverse_obj(info, ('src', ..., {dict})):
             format_id = src.get('label')
             src_url = src.get('src')
             if re.match(r'https?:/[^/]', src_url):
@@ -131,9 +131,8 @@ class TeamcocoIE(TeamcocoBaseIE):
         display_id = self._match_id(url).replace('/', '_')
         webpage = self._download_webpage(url, display_id)
         data = self._search_nextjs_data(webpage, display_id)['props']['pageProps']['pageData']
-        info = merge_dicts(*[traverse_obj(
-            data, ('blocks', lambda _, v: v['name'] == name, 'props'),
-            get_all=False, expected_type=dict, default={}) for name in ('meta-tags', 'video-player', 'video-info')])
+        info = merge_dicts(*traverse_obj(data, (
+            'blocks', lambda _, v: v['name'] in ('meta-tags', 'video-player', 'video-info'), 'props', {dict})))
 
         thumbnail = traverse_obj(
             info, (('image', 'poster'), {lambda x: urljoin('https://teamcoco.com/', x)}), get_all=False)
