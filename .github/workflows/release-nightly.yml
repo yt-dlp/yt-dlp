@@ -4,7 +4,7 @@ on:
     branches:
       - master
     paths:
-      - "**.py"
+      - "yt_dlp/**.py"
       - "!yt_dlp/version.py"
 concurrency:
   group: release-nightly
