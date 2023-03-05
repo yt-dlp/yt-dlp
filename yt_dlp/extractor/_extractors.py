@@ -1846,7 +1846,10 @@ from .teachertube import (
     TeacherTubeUserIE,
 )
 from .teachingchannel import TeachingChannelIE
-from .teamcoco import TeamcocoIE
+from .teamcoco import (
+    TeamcocoIE,
+    ConanClassicIE,
+)
 from .teamtreehouse import TeamTreeHouseIE
 from .techtalks import TechTalksIE
 from .ted import (
