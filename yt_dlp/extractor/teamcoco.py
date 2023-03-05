@@ -10,6 +10,7 @@ from ..utils import (
     merge_dicts,
     mimetype2ext,
     parse_duration,
+    parse_qs,
     traverse_obj,
     unified_timestamp,
     urljoin,
@@ -136,7 +137,7 @@ class TeamcocoIE(TeamcocoBaseIE):
 
         thumbnail = traverse_obj(
             info, (('image', 'poster'), {lambda x: urljoin('https://teamcoco.com/', x)}), get_all=False)
-        video_id = thumbnail.rpartition('=')[2] if thumbnail else display_id
+        video_id = traverse_obj(parse_qs(thumbnail), ('id', 0)) or display_id
 
         formats, subtitles = self._get_formats_and_subtitles(info, video_id)
 
