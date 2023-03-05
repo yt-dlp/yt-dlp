@@ -23,10 +23,12 @@ from ..utils import (
 
 class LivestreamIE(InfoExtractor):
     IE_NAME = 'livestream'
-    _VALID_URL = r'https?://(?:new\.)?livestream.com/' \
-        r'(?:(?:accounts/(?P<account_id>\\d+))|(?P<account_name>[^/]+))' \
-        r'(?:(?:/events/(?P<event_id>\\d+))|(?:/(?P<event_name>[^/]+)))?' \
-        r'(?:/videos/(?P<id>\\d+))?'
+    _VALID_URL = r'''(?x)
+        https?://(?:new\.)?livestream.com/
+        (?:accounts/(?P<account_id>\d+)|(?P<account_name>[^/]+))
+        (?:/events/(?P<event_id>\d+)|/(?P<event_name>[^/]+))?
+        (?:/videos/(?P<id>\d+))?
+    '''
     _EMBED_REGEX = [r'<iframe[^>]+src="(?P<url>https?://(?:new\.)?livestream\.com/[^"]+/player[^"]+)"']
 
     _TESTS = [{
