@@ -3472,6 +3472,10 @@ class YoutubeDL:
         if self.params.get('keepvideo', False):
             for f in files_to_delete:
                 infodict['__files_to_move'].setdefault(f, '')
+        elif self.params.get('keepsubs', False):
+            for f in files_to_delete:
+                if f.endswith('.vtt'):
+                    infodict['__files_to_move'].setdefault(f, '')
         else:
             self._delete_downloaded_files(
                 *files_to_delete, info=infodict, msg='Deleting original file %s (pass -k to keep)')
