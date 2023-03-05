@@ -241,8 +241,6 @@ class ConanClassicIE(TeamcocoBaseIE):
             }, separators=(',', ':')).encode(), headers={
                 'Content-Type': 'application/json',
             })
-        if response.get('status'):
-            raise ExtractorError('This video is no longer available.', expected=True)
 
         info = traverse_obj(response, ('data', 'findRecord', {
             'title': 'title',
