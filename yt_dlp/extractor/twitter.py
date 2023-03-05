@@ -839,6 +839,28 @@ class TwitterIE(TwitterBaseIE):
         },
         'params': {'extractor_args': {'twitter': {'force_graphql': ['']}}},
     }, {
+        # url to retweet id
+        'url': 'https://twitter.com/liberdalau/status/1623739803874349067',
+        'info_dict': {
+            'id': '1623274794488659969',
+            'display_id': '1623739803874349067',
+            'ext': 'mp4',
+            'title': 'Johnny Bullets - Me after going viral to over 30million people:    Whoopsie-daisy',
+            'description': 'md5:e873616a4a8fe0f93e71872678a672f3',
+            'uploader': 'Johnny Bullets',
+            'uploader_id': 'Johnnybull3ts',
+            'uploader_url': 'https://twitter.com/Johnnybull3ts',
+            'age_limit': 0,
+            'tags': [],
+            'duration': 8.033,
+            'timestamp': 1675853859.0,
+            'upload_date': '20230208',
+            'thumbnail': r're:https://pbs\.twimg\.com/ext_tw_video_thumb/.+',
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+        },
+    }, {
         # onion route
         'url': 'https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion/TwitterBlue/status/1484226494708662273',
         'only_matching': True,
@@ -949,13 +971,13 @@ class TwitterIE(TwitterBaseIE):
             status = self._graphql_to_legacy(result, twid)
 
         else:
-            status = self._call_api(f'statuses/show/{twid}.json', twid, {
+            status = traverse_obj(self._call_api(f'statuses/show/{twid}.json', twid, {
                 'cards_platform': 'Web-12',
                 'include_cards': 1,
                 'include_reply_count': 1,
                 'include_user_entities': 0,
                 'tweet_mode': 'extended',
-            })
+            }), 'retweeted_status', None)
 
         title = description = status['full_text'].replace('\n', ' ')
         # strip  'https -_t.co_BJYgOjSeGA' junk from filenames

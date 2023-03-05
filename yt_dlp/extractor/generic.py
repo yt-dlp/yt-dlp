@@ -15,6 +15,7 @@ from ..utils import (
     UnsupportedError,
     determine_ext,
     dict_get,
+    extract_basic_auth,
     format_field,
     int_or_none,
     is_html,
@@ -2372,9 +2373,8 @@ class GenericIE(InfoExtractor):
             **smuggled_data.get('http_headers', {})
         })
         new_url = full_response.geturl()
-        if new_url == urllib.parse.urlparse(url)._replace(scheme='https').geturl():
-            url = new_url
-        elif url != new_url:
+        url = urllib.parse.urlparse(url)._replace(scheme=urllib.parse.urlparse(new_url).scheme).geturl()
+        if new_url != extract_basic_auth(url)[0]:
             self.report_following_redirect(new_url)
             if force_videoid:
                 new_url = smuggle_url(new_url, {'force_videoid': force_videoid})
@@ -2393,14 +2393,15 @@ class GenericIE(InfoExtractor):
             self.report_detected('direct video link')
             headers = smuggled_data.get('http_headers', {})
             format_id = str(m.group('format_id'))
+            ext = determine_ext(url)
             subtitles = {}
-            if format_id.endswith('mpegurl'):
+            if format_id.endswith('mpegurl') or ext == 'm3u8':
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4', headers=headers)
                 info_dict.update(self._fragment_query(url))
-            elif format_id.endswith('mpd') or format_id.endswith('dash+xml'):
+            elif format_id.endswith('mpd') or format_id.endswith('dash+xml') or ext == 'mpd':
                 formats, subtitles = self._extract_mpd_formats_and_subtitles(url, video_id, headers=headers)
                 info_dict.update(self._fragment_query(url))
-            elif format_id == 'f4m':
+            elif format_id == 'f4m' or ext == 'f4m':
                 formats = self._extract_f4m_formats(url, video_id, headers=headers)
             else:
                 formats = [{
