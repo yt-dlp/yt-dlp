@@ -421,7 +421,7 @@ class BiliBiliIE(BilibiliBaseIE):
         if 'dash' in play_info:
             info = {'formats': self.extract_formats(play_info)}
             if not info['formats']:
-                raise ExtractorError(f'Unknown webpage schema')
+                raise ExtractorError('Unknown webpage schema')
         else:
             # old video
             self.to_screen('No dash info in play_info, most likely is old video, try method 2')
