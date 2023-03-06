@@ -39,18 +39,31 @@ class JWPlatformIE(InfoExtractor):
         },
     }, {
         # Player url not surrounded by quotes
-        'url': 'https://www.deutsche-kinemathek.de/en/online/streaming/ostkreuz',
+        'url': 'https://www.deutsche-kinemathek.de/en/online/streaming/school-trip',
         'info_dict': {
-            'id': 'uDYIy3cf',
-            'title': 'Ostkreuz',
+            'id': 'jUxh5uin',
+            'title': 'Klassenfahrt',
             'ext': 'mp4',
             'upload_date': '20230109',
-            'thumbnail': 'https://cdn.jwplayer.com/v2/media/uDYIy3cf/poster.jpg?width=720',
-            'timestamp': 1673269509,
+            'thumbnail': 'https://cdn.jwplayer.com/v2/media/jUxh5uin/poster.jpg?width=720',
+            'timestamp': 1673270298,
             'description': '',
-            'duration': 5101.0,
+            'duration': 5193.0,
         },
         'params': {'allowed_extractors': ['generic', 'jwplatform']},
+    }, {
+        # iframe src attribute includes backslash before URL string
+        'url': 'https://www.elespectador.com/colombia/video-asi-se-evito-la-fuga-de-john-poulos-presunto-feminicida-de-valentina-trespalacios-explicacion',
+        'info_dict': {
+            'id': 'QD3gsexj',
+            'title': 'Así se evitó la fuga de John Poulos, presunto feminicida de Valentina Trespalacios',
+            'ext': 'mp4',
+            'upload_date': '20230127',
+            'thumbnail': 'https://cdn.jwplayer.com/v2/media/QD3gsexj/poster.jpg?width=720',
+            'timestamp': 1674862986,
+            'description': 'md5:128fd74591c4e1fc2da598c5cb6f5ce4',
+            'duration': 263.0,
+        },
     }]
 
     @classmethod
@@ -59,7 +72,7 @@ class JWPlatformIE(InfoExtractor):
             # <input value=URL> is used by hyland.com
             # if we find <iframe>, dont look for <input>
             ret = re.findall(
-                r'<%s[^>]+?%s=["\']?((?:https?:)?//(?:content\.jwplatform|cdn\.jwplayer)\.com/players/[a-zA-Z0-9]{8})' % (tag, key),
+                r'<%s[^>]+?%s=\\?["\']?((?:https?:)?//(?:content\.jwplatform|cdn\.jwplayer)\.com/players/[a-zA-Z0-9]{8})' % (tag, key),
                 webpage)
             if ret:
                 return ret

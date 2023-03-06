@@ -520,7 +520,6 @@ from .ehow import EHowIE
 from .eighttracks import EightTracksIE
 from .einthusan import EinthusanIE
 from .eitb import EitbIE
-from .elespectador import ElEspectadorIE
 from .ellentube import (
     EllenTubeIE,
     EllenTubeVideoIE,
