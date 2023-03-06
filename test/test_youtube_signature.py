@@ -67,6 +67,10 @@ _SIG_TESTS = [
 
 _NSIG_TESTS = [
     (
+        'https://www.youtube.com/s/player/7862ca1f/player_ias.vflset/en_US/base.js',
+        'X_LCxVDjAavgE5t', 'yxJ1dM6iz5ogUg',
+    ),
+    (
         'https://www.youtube.com/s/player/9216d1f7/player_ias.vflset/en_US/base.js',
         'SLp9F5bwjAdhE9F-', 'gWnb9IK2DJ8Q1w',
     ),
@@ -133,6 +137,10 @@ _NSIG_TESTS = [
     (
         'https://www.youtube.com/s/player/7a062b77/player_ias.vflset/en_US/base.js',
         'NRcE3y3mVtm_cV-W', 'VbsCYUATvqlt5w',
+    ),
+    (
+        'https://www.youtube.com/s/player/dac945fd/player_ias.vflset/en_US/base.js',
+        'o8BkRxXhuYsBCWi6RplPdP', '3Lx32v_hmzTm6A',
     ),
 ]
 

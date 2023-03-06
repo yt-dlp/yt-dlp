@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, urljoin
 
 
 class PornezIE(InfoExtractor):
@@ -20,7 +20,8 @@ class PornezIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         iframe_src = self._html_search_regex(
-            r'<iframe[^>]+src="(https?://pornez\.net/player/\?[^"]+)"', webpage, 'iframe', fatal=True)
+            r'<iframe[^>]+src="([^"]+)"', webpage, 'iframe', fatal=True)
+        iframe_src = urljoin('https://pornez.net', iframe_src)
         title = self._html_search_meta(['name', 'twitter:title', 'og:title'], webpage, 'title', default=None)
         if title is None:
             title = self._search_regex(r'<h1>(.*?)</h1>', webpage, 'title', fatal=True)

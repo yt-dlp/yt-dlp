@@ -76,7 +76,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 # NEW FEATURES
 
-* Merged with **youtube-dl v2021.12.17+ [commit/195f22f](https://github.com/ytdl-org/youtube-dl/commit/195f22f)** <!--([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21))--> and **youtube-dlc v2020.11.11-3+ [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
+* Merged with **youtube-dl v2021.12.17+ [commit/2dd6c6e](https://github.com/ytdl-org/youtube-dl/commit/2dd6c6e)** ([exceptions](https://github.com/yt-dlp/yt-dlp/issues/21)) and **youtube-dlc v2020.11.11-3+ [commit/f9401f2](https://github.com/blackjack4494/yt-dlc/commit/f9401f2a91987068139c5f757b12fc711d4c0cee)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
 
 * **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in YouTube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
@@ -114,13 +114,15 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Output template improvements**: Output templates can now have date-time formatting, numeric offsets, object traversal etc. See [output template](#output-template) for details. Even more advanced operations can also be done with the help of `--parse-metadata` and `--replace-in-metadata`
 
-* **Other new options**: Many new options have been added such as `--alias`, `--print`, `--concat-playlist`, `--wait-for-video`, `--retry-sleep`, `--sleep-requests`, `--convert-thumbnails`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
+* **Other new options**: Many new options have been added such as `--alias`, `--print`, `--concat-playlist`, `--wait-for-video`, `--retry-sleep`, `--sleep-requests`, `--convert-thumbnails`, `--force-download-archive`, `--force-overwrites`, `--break-match-filter` etc
 
 * **Improvements**: Regex and other operators in `--format`/`--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio, multiple `--config-locations`, `--exec` at different stages, etc
 
 * **Plugins**: Extractors and PostProcessors can be loaded from an external file. See [plugins](#plugins) for details
 
-* **Self-updater**: The releases can be updated using `yt-dlp -U`
+* **Self updater**: The releases can be updated using `yt-dlp -U`, and downgraded using `--update-to` if required
+
+* **Nightly builds**: [Automated nightly builds](#update-channels) can be used with `--update-to nightly`
 
 See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/commits) for the full list of changes
 
@@ -130,6 +132,7 @@ Features marked with a **\*** have been back-ported to youtube-dl
 
 Some of yt-dlp's default options are different from that of youtube-dl and youtube-dlc:
 
+* yt-dlp supports only [Python 3.7+](## "Windows 7"), and *may* remove support for more versions as they [become EOL](https://devguide.python.org/versions/#python-release-cycle); while [youtube-dl still supports Python 2.6+ and 3.2+](https://github.com/ytdl-org/youtube-dl/issues/30568#issue-1118238743)
 * The options `--auto-number` (`-A`), `--title` (`-t`) and `--literal` (`-l`), no longer work. See [removed options](#Removed) for details
 * `avconv` is not supported as an alternative to `ffmpeg`
 * yt-dlp stores config files in slightly different locations to youtube-dl. See [CONFIGURATION](#configuration) for a list of correct locations
@@ -180,12 +183,25 @@ You can install yt-dlp using [the binaries](#release-files), [PIP](https://pypi.
 
 
 ## UPDATE
-You can use `yt-dlp -U` to update if you are [using the release binaries](#release-files)
+You can use `yt-dlp -U` to update if you are using the [release binaries](#release-files)
 
 If you [installed with PIP](https://github.com/yt-dlp/yt-dlp/wiki/Installation#with-pip), simply re-run the same command that was used to install the program
 
 For other third-party package managers, see [the wiki](https://github.com/yt-dlp/yt-dlp/wiki/Installation#third-party-package-managers) or refer their documentation
 
+<a id="update-channels"/>
+
+There are currently two release channels for binaries, `stable` and `nightly`.
+`stable` is the default channel, and many of its changes have been tested by users of the nightly channel.
+The `nightly` channel has releases built after each push to the master branch, and will have the most recent fixes and additions, but also have more risk of regressions. They are available in [their own repo](https://github.com/yt-dlp/yt-dlp-nightly-builds/releases).
+
+When using `--update`/`-U`, a release binary will only update to its current channel.
+This release channel can be changed by using the `--update-to` option. `--update-to` can also be used to upgrade or downgrade to specific tags from a channel.
+
+Example usage:
+* `yt-dlp --update-to nightly` change to `nightly` channel and update to its latest release
+* `yt-dlp --update-to stable@2023.02.17` upgrade/downgrade to release to `stable` channel tag `2023.02.17`
+* `yt-dlp --update-to 2023.01.06` upgrade/downgrade to tag `2023.01.06` if it exists on the current channel
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 ## RELEASE FILES
@@ -218,11 +234,20 @@ File|Description
 :---|:---
 [yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)|Source tarball
 [SHA2-512SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS)|GNU-style SHA512 sums
+[SHA2-512SUMS.sig](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS.sig)|GPG signature file for SHA512 sums
 [SHA2-256SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS)|GNU-style SHA256 sums
+[SHA2-256SUMS.sig](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS.sig)|GPG signature file for SHA256 sums
+
+The public key that can be used to verify the GPG signatures is [available here](https://github.com/yt-dlp/yt-dlp/blob/master/public.key)
+Example usage:
+```
+curl -L https://github.com/yt-dlp/yt-dlp/raw/master/public.key | gpg --import
+gpg --verify SHA2-256SUMS.sig SHA2-256SUMS
+gpg --verify SHA2-512SUMS.sig SHA2-512SUMS
+```
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
-
-**Note**: The manpages, shell completion files etc. are available in the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
+**Note**: The manpages, shell completion files etc. are available inside the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
 ## DEPENDENCIES
 Python versions 3.7+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
@@ -310,11 +335,15 @@ If you wish to build it anyway, install Python and py2exe, and then simply run `
 
 ### Related scripts
 
-* **`devscripts/update-version.py [revision]`** - Update the version number based on current date
-* **`devscripts/set-variant.py variant [-M update_message]`** - Set the build variant of the executable
+* **`devscripts/update-version.py`** - Update the version number based on current date.
+* **`devscripts/set-variant.py`** - Set the build variant of the executable.
+* **`devscripts/make_changelog.py`** - Create a markdown changelog using short commit messages and update `CONTRIBUTORS` file.
 * **`devscripts/make_lazy_extractors.py`** - Create lazy extractors. Running this before building the binaries (any variant) will improve their startup performance. Set the environment variable `YTDLP_NO_LAZY_EXTRACTORS=1` if you wish to forcefully disable lazy extractor loading.
 
-You can also fork the project on GitHub and run your fork's [build workflow](.github/workflows/build.yml) to automatically build a full release
+Note: See their `--help` for more info.
+
+### Forking the project
+If you fork the project on GitHub, you can run your fork's [build workflow](.github/workflows/build.yml) to automatically build the selected version(s) as artifacts. Alternatively, you can run the [release workflow](.github/workflows/release.yml) or enable the [nightly workflow](.github/workflows/release-nightly.yml) to create full (pre-)releases.
 
 # USAGE AND OPTIONS
 
@@ -330,6 +359,11 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --version                       Print program version and exit
     -U, --update                    Update this program to the latest version
     --no-update                     Do not check for updates (default)
+    --update-to [CHANNEL]@[TAG]     Upgrade/downgrade to a specific version.
+                                    CHANNEL and TAG defaults to "stable" and
+                                    "latest" respectively if omitted; See
+                                    "UPDATE" for details. Supported channels:
+                                    stable, nightly
     -i, --ignore-errors             Ignore download and postprocessing errors.
                                     The download will be considered successful
                                     even if the postprocessing fails
@@ -456,9 +490,8 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --date DATE                     Download only videos uploaded on this date.
                                     The date can be "YYYYMMDD" or in the format 
                                     [now|today|yesterday][-N[day|week|month|year]].
-                                    E.g. "--date today-2weeks" downloads
-                                    only videos uploaded on the same day two
-                                    weeks ago
+                                    E.g. "--date today-2weeks" downloads only
+                                    videos uploaded on the same day two weeks ago
     --datebefore DATE               Download only videos uploaded on or before
                                     this date. The date formats accepted is the
                                     same as --date
@@ -485,7 +518,10 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
                                     dogs" (caseless). Use "--match-filter -" to
                                     interactively ask whether to download each
                                     video
-    --no-match-filter               Do not use generic video filter (default)
+    --no-match-filter               Do not use any --match-filter (default)
+    --break-match-filters FILTER    Same as "--match-filters" but stops the
+                                    download process when a video is rejected
+    --no-break-match-filters        Do not use any --break-match-filters (default)
     --no-playlist                   Download only the video, if the URL refers
                                     to a video and a playlist
     --yes-playlist                  Download the playlist, if the URL refers to
@@ -499,11 +535,9 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --max-downloads NUMBER          Abort after downloading NUMBER files
     --break-on-existing             Stop the download process when encountering
                                     a file that is in the archive
-    --break-on-reject               Stop the download process when encountering
-                                    a file that has been filtered out
     --break-per-input               Alters --max-downloads, --break-on-existing,
-                                    --break-on-reject, and autonumber to reset
-                                    per input URL
+                                    --break-match-filter, and autonumber to
+                                    reset per input URL
     --no-break-per-input            --break-on-existing and similar options
                                     terminates the entire download queue
     --skip-playlist-after-errors N  Number of allowed failures until the rest of
@@ -788,7 +822,7 @@ You can also fork the project on GitHub and run your fork's [build workflow](.gi
     --prefer-insecure               Use an unencrypted connection to retrieve
                                     information about the video (Currently
                                     supported only for YouTube)
-    --add-header FIELD:VALUE        Specify a custom HTTP header and its value,
+    --add-headers FIELD:VALUE       Specify a custom HTTP header and its value,
                                     separated by a colon ":". You can use this
                                     option multiple times
     --bidi-workaround               Work around terminals that lack
@@ -1227,7 +1261,7 @@ To summarize, the general syntax for a field is:
 
 Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. E.g. `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates is empty, that type of file will not be written. E.g. `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
 
-<a id="outtmpl-postprocess-note"></a>
+<a id="outtmpl-postprocess-note"/>
 
 **Note**: Due to post-processing (i.e. merging etc.), the actual output filename might differ. Use `--print after_move:filepath` to get the name after all post-processing is complete.
 
@@ -1511,7 +1545,7 @@ The available fields are:
  - `source`: The preference of the source
  - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `mms`/`rtsp` > `f4f`/`f4m`)
  - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other)
- - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` `ac4` > > `eac3` > `ac3` > `dts` > other)
+ - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `ac4` > `eac3` > `ac3` > `dts` > other)
  - `codec`: Equivalent to `vcodec,acodec`
  - `vext`: Video Extension (`mp4` > `mov` > `webm` > `flv` > other). If `--prefer-free-formats` is used, `webm` is preferred.
  - `aext`: Audio Extension (`m4a` > `aac` > `mp3` > `ogg` > `opus` > `webm` > other). If `--prefer-free-formats` is used, the order changes to `ogg` > `opus` > `webm` > `mp3` > `m4a` > `aac`
@@ -1741,6 +1775,8 @@ $ yt-dlp --replace-in-metadata "title,uploader" "[ _]" "-"
 
 Some extractors accept additional arguments which can be passed using `--extractor-args KEY:ARGS`. `ARGS` is a `;` (semicolon) separated string of `ARG=VAL1,VAL2`. E.g. `--extractor-args "youtube:player-client=android_embedded,web;include_live_dash" --extractor-args "funimation:version=uncut"`
 
+Note: In CLI, `ARG` can use `-` instead of `_`; e.g. `youtube:player-client"` becomes `youtube:player_client"`
+
 The following extractors use this feature:
 
 #### youtube
@@ -1887,7 +1923,7 @@ with YoutubeDL() as ydl:
     ydl.download(URLS)
 ```
 
-Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L180).
+Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L184).
 
 **Tip**: If you are porting your code from youtube-dl to yt-dlp, one important point to look out for is that we do not guarantee the return value of `YoutubeDL.extract_info` to be json serializable, or even be a dictionary. It will be dictionary-like, but if you want to ensure it is a serializable dictionary, pass it through `YoutubeDL.sanitize_info` as shown in the [example below](#extracting-information)
 
@@ -2097,6 +2133,7 @@ While these options are redundant, they are still expected to be used due to the
     --reject-title REGEX             --match-filter "title !~= (?i)REGEX"
     --min-views COUNT                --match-filter "view_count >=? COUNT"
     --max-views COUNT                --match-filter "view_count <=? COUNT"
+    --break-on-reject                Use --break-match-filter
     --user-agent UA                  --add-header "User-Agent:UA"
     --referer URL                    --add-header "Referer:URL"
     --playlist-start NUMBER          -I NUMBER:

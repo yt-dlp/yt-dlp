@@ -48,12 +48,12 @@ class TwitchBaseIE(InfoExtractor):
         'CollectionSideBar': '27111f1b382effad0b6def325caef1909c733fe6a4fbabf54f8d491ef2cf2f14',
         'FilterableVideoTower_Videos': 'a937f1d22e269e39a03b509f65a7490f9fc247d7f83d6ac1421523e3b68042cb',
         'ClipsCards__User': 'b73ad2bfaecfd30a9e6c28fada15bd97032c83ec77a0440766a56fe0bd632777',
-        'ChannelCollectionsContent': '07e3691a1bad77a36aba590c351180439a40baefc1c275356f40fc7082419a84',
-        'StreamMetadata': '1c719a40e481453e5c48d9bb585d971b8b372f8ebb105b17076722264dfa5b3e',
+        'ChannelCollectionsContent': '447aec6a0cc1e8d0a8d7732d47eb0762c336a2294fdb009e9c9d854e49d484b9',
+        'StreamMetadata': 'a647c2a13599e5991e175155f798ca7f1ecddde73f7f341f39009c14dbf59962',
         'ComscoreStreamingQuery': 'e1edae8122517d013405f237ffcc124515dc6ded82480a88daef69c83b53ac01',
         'VideoAccessToken_Clip': '36b89d2507fce29e5ca551df756d27c1cfe079e2609642b4390aa4c35796eb11',
         'VideoPreviewOverlay': '3006e77e51b128d838fa4e835723ca4dc9a05c5efd4466c1085215c6e437e65c',
-        'VideoMetadata': '226edb3e692509f727fd56821f5653c05740242c82b0388883e0c0e75dcbf687',
+        'VideoMetadata': '49b5b8f268cdeb259d75b58dcb0c1a748e3b575003448a2333dc5cdafd49adad',
         'VideoPlayer_ChapterSelectButtonVideo': '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
         'VideoPlayer_VODSeekbarPreviewVideo': '07e99e4d56c5a7c67117a154777b0baf85a5ffefa393b213f4bc712ccaf85dd6',
     }
@@ -380,13 +380,14 @@ class TwitchVodIE(TwitchBaseIE):
             }],
             'Downloading stream metadata GraphQL')
 
-        video = traverse_obj(data, (0, 'data', 'video'))
-        video['moments'] = traverse_obj(data, (1, 'data', 'video', 'moments', 'edges', ..., 'node'))
-        video['storyboard'] = traverse_obj(data, (2, 'data', 'video', 'seekPreviewsURL'), expected_type=url_or_none)
-
+        video = traverse_obj(data, (..., 'data', 'video'), get_all=False)
         if video is None:
-            raise ExtractorError(
-                'Video %s does not exist' % item_id, expected=True)
+            raise ExtractorError(f'Video {item_id} does not exist', expected=True)
+
+        video['moments'] = traverse_obj(data, (..., 'data', 'video', 'moments', 'edges', ..., 'node'))
+        video['storyboard'] = traverse_obj(
+            data, (..., 'data', 'video', 'seekPreviewsURL', {url_or_none}), get_all=False)
+
         return video
 
     def _extract_info(self, info):
@@ -854,6 +855,13 @@ class TwitchVideosCollectionsIE(TwitchPlaylistBaseIE):
             'title': 'spamfish - Collections',
         },
         'playlist_mincount': 3,
+    }, {
+        'url': 'https://www.twitch.tv/monstercat/videos?filter=collections',
+        'info_dict': {
+            'id': 'monstercat',
+            'title': 'monstercat - Collections',
+        },
+        'playlist_mincount': 13,
     }]
 
     _OPERATION_NAME = 'ChannelCollectionsContent'
@@ -922,6 +930,7 @@ class TwitchStreamIE(TwitchBaseIE):
             # m3u8 download
             'skip_download': True,
         },
+        'skip': 'User does not exist',
     }, {
         'url': 'http://www.twitch.tv/miracle_doto#profile-0',
         'only_matching': True,
@@ -934,6 +943,25 @@ class TwitchStreamIE(TwitchBaseIE):
     }, {
         'url': 'https://m.twitch.tv/food',
         'only_matching': True,
+    }, {
+        'url': 'https://www.twitch.tv/monstercat',
+        'info_dict': {
+            'id': '40500071752',
+            'display_id': 'monstercat',
+            'title': 're:Monstercat',
+            'description': 'md5:0945ad625e615bc8f0469396537d87d9',
+            'is_live': True,
+            'timestamp': 1677107190,
+            'upload_date': '20230222',
+            'uploader': 'Monstercat',
+            'uploader_id': 'monstercat',
+            'live_status': 'is_live',
+            'thumbnail': 're:https://.*.jpg',
+            'ext': 'mp4',
+        },
+        'params': {
+            'skip_download': 'Livestream',
+        },
     }]
 
     @classmethod
