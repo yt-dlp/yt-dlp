@@ -1102,7 +1102,7 @@ class BiliIntlIE(BiliIntlBaseIE):
 
         # XXX: webpage metadata may not accurate, it just used to not crash when video_data not found
         return merge_dicts(
-            self._parse_video_metadata(video_data), self._search_json_ld(webpage, video_id), {
+            self._parse_video_metadata(video_data), self._search_json_ld(webpage, video_id, fatal=False), {
                 'title': self._html_search_meta('og:title', webpage),
                 'description': self._html_search_meta('og:description', webpage)
             })
@@ -1110,7 +1110,7 @@ class BiliIntlIE(BiliIntlBaseIE):
     def _get_comments_reply(self, root_id, next_id=0, display_id=None):
         comment_api_raw_data = self._download_json(
             'https://api.bilibili.tv/reply/web/detail', display_id,
-            note=f'Downloading reply comment of {root_id}',
+            note=f'Downloading reply comment of {root_id} - {next_id}',
             query={
                 'platform': 'web',
                 'ps': 20,  # comment's reply per page (default: 3)
@@ -1130,9 +1130,9 @@ class BiliIntlIE(BiliIntlBaseIE):
                 'timestamp': unified_timestamp(replies.get('ctime_text'))
             }
 
-            if not traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end')):
-                yield self._get_comments_reply(
-                    root_id, comment_api_raw_data['data']['cursor']['next'], display_id)
+        if not traverse_obj(comment_api_raw_data, ('data', 'cursor', 'is_end')):
+            yield from self._get_comments_reply(
+                root_id, comment_api_raw_data['data']['cursor']['next'], display_id)
 
     def _get_comments(self, video_id, ep_id):
         for i in itertools.count(0):
