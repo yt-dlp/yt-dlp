@@ -2,11 +2,11 @@ from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import (
     clean_html,
-    format_field,
     int_or_none,
     strip_or_none,
     traverse_obj,
     unified_timestamp,
+    urljoin,
 )
 
 
@@ -86,22 +86,24 @@ class ParlerIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._download_json(
-            'https://api.parler.com/v0/public/parleys/' + video_id, video_id)['data']
+            'https://api.parler.com/v0/public/parleys/%s' % video_id, video_id)['data']
 
         if data.get('link'):
             return self.url_result(data.get('link'), YoutubeIE)
 
         return {
             'id': video_id,
-            'url': traverse_obj(data, ('video', 'videoSrc')),
-            'thumbnail': traverse_obj(data, ('video', 'thumbnailUrl')),
-            'title': strip_or_none(data.get('title')),
-            'description': strip_or_none(clean_html(data.get('body'))) or None,
-            'timestamp': unified_timestamp(data.get('date_created')),
-            'uploader': strip_or_none(traverse_obj(data, ('user', 'name'))),
-            'uploader_id': strip_or_none(traverse_obj(data, ('user', 'username'))),
-            'uploader_url': format_field(traverse_obj(data, ('user', 'username')), None, 'https://parler.com/%s'),
-            'view_count': int_or_none(data.get('views')),
-            'comment_count': int_or_none(data.get('total_comments')),
-            'repost_count': int_or_none(data.get('echos')),
+            **traverse_obj(data, {
+                'url': ('video', 'videoSrc'),
+                'thumbnail': ('video', 'thumbnailUrl'),
+                'title': ('title', {strip_or_none}),
+                'description': ('body', {clean_html}, {lambda x: x if x else None}),
+                'timestamp': ('date_created', {unified_timestamp}),
+                'uploader': ('user', 'name', {strip_or_none}),
+                'uploader_id': ('user', 'username', {str}),
+                'uploader_url': ('user', 'username', {lambda x: urljoin('https://parler.com/', x)}),
+                'view_count': ('views', {int_or_none}),
+                'comment_count': ('total_comments', {int_or_none}),
+                'repost_count': ('echos', {int_or_none}),
+            })
         }
