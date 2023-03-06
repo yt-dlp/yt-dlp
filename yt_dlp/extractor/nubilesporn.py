@@ -19,8 +19,8 @@ from ..utils import (
 class NubilesPornIE(InfoExtractor):
     _NETRC_MACHINE = 'nubiles-porn'
     _VALID_URL = r'''(?x)
-        https://members.nubiles-porn.com/video/watch/(?P<id>\d+)/
-        (?P<display_id>[a-z\d\-]+-(s(?P<season>\d+)e(?P<episode>\d+))$)
+        https://members.nubiles-porn.com/video/watch/(?P<id>\d+)
+        (?:/(?P<display_id>[\w\-]+-s(?P<season>\d+)e(?P<episode>\d+)))?
     '''
 
     _TESTS = [{
@@ -36,7 +36,7 @@ class NubilesPornIE(InfoExtractor):
             'timestamp': 1676160000,
             'upload_date': '20230212',
             'channel': 'Younger Mommy',
-            'channel_id': 64,
+            'channel_id': '64',
             'channel_url': 'https://members.nubiles-porn.com/video/website/64',
             'like_count': int,
             'average_rating': float,
@@ -47,7 +47,7 @@ class NubilesPornIE(InfoExtractor):
             'cast': ['Kenzie Love'],
             'availability': 'needs_auth',
             'series': 'Younger Mommy',
-            'series_id': 64,
+            'series_id': '64',
             'season': 'Season 3',
             'season_number': 3,
             'episode': 'Episode 1',
@@ -83,7 +83,7 @@ class NubilesPornIE(InfoExtractor):
             'description': clean_html(get_element_html_by_class('content-pane-description', page)),
             'timestamp': unified_timestamp(get_element_by_class('date', page)),
             'channel': channel_name,
-            'channel_id': int_or_none(channel_id),
+            'channel_id': channel_id,
             'channel_url': format_field(channel_id, None, 'https://members.nubiles-porn.com/video/website/%s'),
             'like_count': int_or_none(get_element_by_id('likecount', page)),
             'average_rating': float_or_none(get_element_by_class('score', page)),
@@ -93,7 +93,7 @@ class NubilesPornIE(InfoExtractor):
             'cast': get_elements_by_class('content-pane-performer', page),
             'availability': 'needs_auth',
             'series': channel_name,
-            'series_id': int_or_none(channel_id),
+            'series_id': channel_id,
             'season_number': int_or_none(url_match.group('season')),
             'episode_number': int_or_none(url_match.group('episode'))
         }
