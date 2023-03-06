@@ -7,7 +7,6 @@ from ..utils import (
     strip_or_none,
     traverse_obj,
     unified_timestamp,
-    urlencode_postdata,
 )
 
 
@@ -24,7 +23,7 @@ class ParlerIE(InfoExtractor):
                 'thumbnail': 'https://bl-images.parler.com/videos/6ce7cdf3-a27a-4d72-bf9c-d3e17ce39a66/thumbnail.jpeg',
                 'title': 'Parler video #df79fdba-07cc-48fe-b085-3293897520d7',
                 'description': 'md5:6f220bde2df4a97cbb89ac11f1fd8197',
-                'timestamp': 1659744000,
+                'timestamp': 1659785481,
                 'upload_date': '20220806',
                 'uploader': 'Tulsi Gabbard',
                 'uploader_id': 'TulsiGabbard',
@@ -87,25 +86,22 @@ class ParlerIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         data = self._download_json(
-            'https://parler.com/open-api/ParleyDetailEndpoint.php', video_id,
-            data=urlencode_postdata({'uuid': video_id}))['data'][0]
-        primary = data['primary']
+            'https://api.parler.com/v0/public/parleys/' + video_id, video_id)['data']
 
-        embed = self._parse_json(primary.get('V2LINKLONG') or '', video_id, fatal=False)
-        if embed:
-            return self.url_result(embed[0], YoutubeIE)
+        if data.get('link'):
+            return self.url_result(data.get('link'), YoutubeIE)
 
         return {
             'id': video_id,
-            'url': traverse_obj(primary, ('video_data', 'videoSrc')),
-            'thumbnail': traverse_obj(primary, ('video_data', 'thumbnailUrl')),
-            'title': '',
-            'description': strip_or_none(clean_html(primary.get('full_body'))) or None,
-            'timestamp': unified_timestamp(primary.get('date_created')),
-            'uploader': strip_or_none(primary.get('name')),
-            'uploader_id': strip_or_none(primary.get('username')),
-            'uploader_url': format_field(strip_or_none(primary.get('username')), None, 'https://parler.com/%s'),
-            'view_count': int_or_none(primary.get('view_count')),
-            'comment_count': int_or_none(traverse_obj(data, ('engagement', 'commentCount'))),
-            'repost_count': int_or_none(traverse_obj(data, ('engagement', 'echoCount'))),
+            'url': traverse_obj(data, ('video', 'videoSrc')),
+            'thumbnail': traverse_obj(data, ('video', 'thumbnailUrl')),
+            'title': strip_or_none(data.get('title')),
+            'description': strip_or_none(clean_html(data.get('body'))) or None,
+            'timestamp': unified_timestamp(data.get('date_created')),
+            'uploader': strip_or_none(traverse_obj(data, ('user', 'name'))),
+            'uploader_id': strip_or_none(traverse_obj(data, ('user', 'username'))),
+            'uploader_url': format_field(traverse_obj(data, ('user', 'username')), None, 'https://parler.com/%s'),
+            'view_count': int_or_none(data.get('views')),
+            'comment_count': int_or_none(data.get('total_comments')),
+            'repost_count': int_or_none(data.get('echos')),
         }
