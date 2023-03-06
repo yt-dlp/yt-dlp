@@ -4,11 +4,13 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     float_or_none,
+    format_field,
     get_element_by_class,
     get_element_by_id,
     get_element_html_by_class,
     get_elements_by_class,
     int_or_none,
+    try_call,
     unified_timestamp,
     urlencode_postdata,
 )
@@ -16,7 +18,10 @@ from ..utils import (
 
 class NubilesPornIE(InfoExtractor):
     _NETRC_MACHINE = 'nubiles-porn'
-    _VALID_URL = r'https://members.nubiles-porn.com/video/watch/(?P<id>\d+)/(?P<display_id>[a-z\d\-]+-(s(?P<season>\d+)e(?P<episode>\d+))$)'
+    _VALID_URL = r'''(?x)
+        https://members.nubiles-porn.com/video/watch/(?P<id>\d+)/
+        (?P<display_id>[a-z\d\-]+-(s(?P<season>\d+)e(?P<episode>\d+))$)
+    '''
 
     _TESTS = [{
         'url': 'https://members.nubiles-porn.com/video/watch/165320/trying-to-focus-my-one-track-mind-s3e1',
@@ -64,31 +69,31 @@ class NubilesPornIE(InfoExtractor):
         media_entries = self._parse_html5_media_entries(
             url, get_element_by_class('watch-page-video-wrapper', page), video_id)[0]
 
-        channel = re.search(
-            r'/video/website/(?P<id>\d+).+>(?P<name>\w+).com', get_element_html_by_class('site-link', page))
-        channel_name = re.sub('([^A-Z]+)([A-Z])', r"\1 \2", channel.group('name'))
-        channel_id = int_or_none(channel.group('id'))
+        channel_id, channel_name = self._search_regex(
+            r'/video/website/(?P<id>\d+).+>(?P<name>\w+).com', get_element_html_by_class('site-link', page),
+            'channel', fatal=False, group=('id', 'name')) or (None, None)
+        channel_name = re.sub(r'([^A-Z]+)([A-Z]+)', r'\1 \2', channel_name)
 
         return {
             'id': video_id,
-            'title': self._search_regex('<h2>([^<]+)</h2>', page, 'title'),
+            'title': self._search_regex('<h2>([^<]+)</h2>', page, 'title', fatal=False),
             'formats': media_entries.get('formats'),
             'display_id': url_match.group('display_id'),
             'thumbnail': media_entries.get('thumbnail'),
             'description': clean_html(get_element_html_by_class('content-pane-description', page)),
             'timestamp': unified_timestamp(get_element_by_class('date', page)),
             'channel': channel_name,
-            'channel_id': channel_id,
-            'channel_url': f'https://members.nubiles-porn.com/video/website/{channel_id}',
+            'channel_id': int_or_none(channel_id),
+            'channel_url': format_field(channel_id, None, 'https://members.nubiles-porn.com/video/website/%s'),
             'like_count': int_or_none(get_element_by_id('likecount', page)),
             'average_rating': float_or_none(get_element_by_class('score', page)),
             'age_limit': 18,
-            'categories': list(map(clean_html, get_elements_by_class('btn', get_element_by_class('categories', page)))),
-            'tags': list(map(clean_html, get_elements_by_class('btn', get_elements_by_class('tags', page)[1]))),
+            'categories': try_call(lambda: list(map(clean_html, get_elements_by_class('btn', get_element_by_class('categories', page))))),
+            'tags': try_call(lambda: list(map(clean_html, get_elements_by_class('btn', get_elements_by_class('tags', page)[1])))),
             'cast': get_elements_by_class('content-pane-performer', page),
             'availability': 'needs_auth',
             'series': channel_name,
-            'series_id': channel_id,
+            'series_id': int_or_none(channel_id),
             'season_number': int_or_none(url_match.group('season')),
             'episode_number': int_or_none(url_match.group('episode'))
         }
