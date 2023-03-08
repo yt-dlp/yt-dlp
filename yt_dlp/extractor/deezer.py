@@ -54,9 +54,9 @@ class DeezerMusicExtractor(DeezerBaseInfoExtractor):
 
         api_token, license_token = self.get_api_license_tokens(data_id)
 
-        #################################
-        # GET TRACK TOKENS AND PREVIEWS #
-        #################################
+        #####################
+        # GET DIRECT STREAM #
+        #####################
 
         url = self.GW_LIGHT_URL + "?" + \
             "api_token=" + api_token + "&" + \
@@ -195,7 +195,7 @@ class DeezerArtistIE(DeezerMusicExtractor):
             'uploader': 'Bolivard',
             'thumbnail': r're:^https?://(e-)?cdns-images\.dzcdn\.net/images/artist/.*\.jpg$',
         },
-        'playlist_count': 22,
+        'playlist_count': 27,
     }
     _API_URL = "https://api.deezer.com/artist/{0}?limit=-1"
     _METHOD = "artist.getTopTrack"
@@ -385,7 +385,7 @@ class DeezerShowIE(DeezerPodcastExtractor):
             'uploader': 'Cryptoast - Bitcoin et Cryptomonnaies',
             'thumbnail': r're:^https?://(e-)?cdns-images\.dzcdn\.net/images/talk/.*\.jpg$',
         },
-        'playlist_count': 108,
+        'playlist_count': 129,
     }
     _API_URL = "https://api.deezer.com/podcast/{0}?limit=-1"
     _METHOD = "episode.getListByShow"
