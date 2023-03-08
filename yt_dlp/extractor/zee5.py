@@ -1,4 +1,6 @@
 import json
+import random
+import string
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -21,7 +23,7 @@ class Zee5IE(InfoExtractor):
                         https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
                         (?:
                             (?:tv-shows|kids|web-series|zee5originals)(?:/[^#/?]+){3}
-                            |movies/[^#/?]+
+                            |(?:movies|kids|videos|news|music-videos)/(?!kids-shows)[^#/?]+
                         )/(?P<display_id>[^#/?]+)/
                      )
                      (?P<id>[^#/?]+)/?(?:$|[?#])
@@ -82,9 +84,18 @@ class Zee5IE(InfoExtractor):
     }, {
         'url': 'https://www.zee5.com/web-series/details/mithya/0-6-4z587408/maine-dekhi-hai-uski-mrityu/0-1-6z587412',
         'only_matching': True
+    }, {
+        'url': 'https://www.zee5.com/kids/kids-movies/maya-bommalu/0-0-movie_1040370005',
+        'only_matching': True
+    }, {
+        'url': 'https://www.zee5.com/news/details/jana-sena-chief-pawan-kalyan-shows-slippers-to-ysrcp-leaders/0-0-newsauto_6ettj4242oo0',
+        'only_matching': True
+    }, {
+        'url': 'https://www.zee5.com/music-videos/details/adhento-gaani-vunnapaatuga-jersey-nani-shraddha-srinath/0-0-56973',
+        'only_matching': True
     }]
     _DETAIL_API_URL = 'https://spapi.zee5.com/singlePlayback/getDetails/secure?content_id={}&device_id={}&platform_name=desktop_web&country=IN&check_parental_control=false'
-    _DEVICE_ID = '1q70TH8Wz0wTyw4buVgg000000000000'
+    _DEVICE_ID = ''.join(random.choices(string.ascii_letters + string.digits, k=20)).ljust(32, '0')
     _USER_TOKEN = None
     _LOGIN_HINT = 'Use "--username <mobile_number>" to login using otp or "--username token" and "--password <user_token>" to login using user token.'
     _NETRC_MACHINE = 'zee5'
@@ -135,7 +146,6 @@ class Zee5IE(InfoExtractor):
         if not asset_data.get('hls_url'):
             self.raise_login_required(self._LOGIN_HINT, metadata_available=True, method=None)
         formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(asset_data['hls_url'], video_id, 'mp4', fatal=False)
-        self._sort_formats(formats)
 
         subtitles = {}
         for sub in asset_data.get('subtitle_url', []):
@@ -174,7 +184,7 @@ class Zee5SeriesIE(InfoExtractor):
                      (?:
                         zee5:series:|
                         https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
-                        (?:tv-shows|web-series|kids|zee5originals)(?:/[^#/?]+){2}/
+                        (?:tv-shows|web-series|kids|zee5originals)/(?!kids-movies)(?:[^#/?]+/){2}
                      )
                      (?P<id>[^#/?]+)(?:/episodes)?/?(?:$|[?#])
                      '''

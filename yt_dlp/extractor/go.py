@@ -293,7 +293,6 @@ class GoIE(AdobePassIE):
                             'height': height,
                         })
                 formats.append(f)
-        self._sort_formats(formats)
 
         for cc in video_data.get('closedcaption', {}).get('src', []):
             cc_url = cc.get('value')

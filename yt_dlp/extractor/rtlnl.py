@@ -116,7 +116,6 @@ class RtlNlIE(InfoExtractor):
 
         formats = self._extract_m3u8_formats(
             m3u8_url, uuid, 'mp4', m3u8_id='hls', fatal=False)
-        self._sort_formats(formats)
 
         thumbnails = []
 
@@ -174,7 +173,6 @@ class RTLLuBaseIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         formats, subtitles = self.get_formats_and_subtitles(webpage, video_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

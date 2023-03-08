@@ -113,7 +113,6 @@ class LEGOIE(InfoExtractor):
                         'width': quality[2],
                     }),
                 formats.append(f)
-        self._sort_formats(formats)
 
         subtitles = {}
         sub_file_id = video.get('SubFileId')

@@ -1,5 +1,6 @@
 import hashlib
 import random
+import re
 
 from ..compat import compat_urlparse, compat_b64decode
 
@@ -37,7 +38,7 @@ class HuyaLiveIE(InfoExtractor):
     }]
 
     _RESOLUTION = {
-        '蓝光4M': {
+        '蓝光': {
             'width': 1920,
             'height': 1080,
         },
@@ -54,7 +55,7 @@ class HuyaLiveIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id=video_id)
-        stream_data = self._search_json(r'stream:\s+', webpage, 'stream', video_id=video_id, default=None)
+        stream_data = self._search_json(r'stream:\s', webpage, 'stream', video_id=video_id, default=None)
         room_info = try_get(stream_data, lambda x: x['data'][0]['gameLiveInfo'])
         if not room_info:
             raise ExtractorError('Can not extract the room info', expected=True)
@@ -76,11 +77,15 @@ class HuyaLiveIE(InfoExtractor):
             if re_secret:
                 fm, ss = self.encrypt(params, stream_info, stream_name)
             for si in stream_data.get('vMultiStreamInfo'):
+                display_name, bitrate = re.fullmatch(
+                    r'(.+?)(?:(\d+)M)?', si.get('sDisplayName')).groups()
                 rate = si.get('iBitRate')
                 if rate:
                     params['ratio'] = rate
                 else:
                     params.pop('ratio', None)
+                    if bitrate:
+                        rate = int(bitrate) * 1000
                 if re_secret:
                     params['wsSecret'] = hashlib.md5(
                         '_'.join([fm, params['u'], stream_name, ss, params['wsTime']]))
@@ -90,10 +95,8 @@ class HuyaLiveIE(InfoExtractor):
                     'tbr': rate,
                     'url': update_url_query(f'{stream_url}/{stream_name}.{stream_info.get("sFlvUrlSuffix")}',
                                             query=params),
-                    **self._RESOLUTION.get(si.get('sDisplayName'), {}),
+                    **self._RESOLUTION.get(display_name, {}),
                 })
-
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -10,7 +10,7 @@ from ..utils import (
 )
 
 
-class CBSBaseIE(ThePlatformFeedIE):
+class CBSBaseIE(ThePlatformFeedIE):  # XXX: Do not subclass from concrete IE
     def _parse_smil_subtitles(self, smil, namespace=None, subtitles_lang='en'):
         subtitles = {}
         for k, ext in [('sMPTE-TTCCURL', 'tt'), ('ClosedCaptionURL', 'ttml'), ('webVTTCaptionURL', 'vtt')]:
@@ -52,7 +52,6 @@ class CBSBaseIE(ThePlatformFeedIE):
             subtitles = self._merge_subtitles(subtitles, tp_subtitles)
         if last_e and not formats:
             self.raise_no_formats(last_e, True, content_id)
-        self._sort_formats(formats)
 
         extra_info.update({
             'id': content_id,

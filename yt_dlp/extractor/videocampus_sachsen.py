@@ -173,7 +173,6 @@ class VideocampusSachsenIE(InfoExtractor):
                 raise
 
         formats.append({'url': f'https://{host}/getMedium/{video_id}.mp4'})
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -86,7 +86,6 @@ class CanalplusIE(InfoExtractor):
                     'format_id': format_id,
                     'quality': preference(format_id),
                 })
-        self._sort_formats(formats)
 
         thumbnails = [{
             'id': image_id,

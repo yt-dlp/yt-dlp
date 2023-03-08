@@ -210,7 +210,7 @@ class FunimationIE(FunimationBaseIE):
             page = self._download_json(
                 'https://www.funimation.com/api/showexperience/%s/' % experience_id,
                 display_id, headers=headers, expected_status=403, query={
-                    'pinst_id': ''.join([random.choice(string.digits + string.ascii_letters) for _ in range(8)]),
+                    'pinst_id': ''.join(random.choices(string.digits + string.ascii_letters, k=8)),
                 }, note=f'Downloading {format_name} JSON')
             sources = page.get('items') or []
             if not sources:
@@ -247,7 +247,6 @@ class FunimationIE(FunimationBaseIE):
             self.raise_no_formats(
                 'There are no video formats matching the requested languages/versions', expected=True, video_id=display_id)
         self._remove_duplicate_formats(formats)
-        self._sort_formats(formats, ('lang', 'source'))
 
         return {
             'id': episode_id,
@@ -266,6 +265,7 @@ class FunimationIE(FunimationBaseIE):
             'formats': formats,
             'thumbnails': thumbnails,
             'subtitles': subtitles,
+            '_format_sort_fields': ('lang', 'source'),
         }
 
     def _get_subtitles(self, subtitles, experience_id, episode, display_id, format_name):

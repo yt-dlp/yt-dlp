@@ -44,6 +44,7 @@ EXT_TO_OUT_FORMATS = {
     'ts': 'mpegts',
     'wma': 'asf',
     'wmv': 'asf',
+    'weba': 'webm',
     'vtt': 'webvtt',
 }
 ACODECS = {
@@ -137,7 +138,7 @@ class FFmpegPostProcessor(PostProcessor):
         path = self._paths.get(prog)
         if path in self._version_cache:
             return self._version_cache[path], self._features_cache.get(path, {})
-        out = _get_exe_version_output(path, ['-bsfs'], to_screen=self.write_debug)
+        out = _get_exe_version_output(path, ['-bsfs'])
         ver = detect_exe_version(out) if out else False
         if ver:
             regexs = [
@@ -407,7 +408,7 @@ class FFmpegPostProcessor(PostProcessor):
         """
         concat_file = f'{out_file}.concat'
         self.write_debug(f'Writing concat spec to {concat_file}')
-        with open(concat_file, 'wt', encoding='utf-8') as f:
+        with open(concat_file, 'w', encoding='utf-8') as f:
             f.writelines(self._concat_spec(in_files, concat_opts))
 
         out_flags = list(self.stream_copy_opts(ext=determine_ext(out_file)))
@@ -507,8 +508,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         if acodec != 'copy':
             more_opts = self._quality_args(acodec)
 
-        # not os.path.splitext, since the latter does not work on unicode in all setups
-        temp_path = new_path = f'{path.rpartition(".")[0]}.{extension}'
+        temp_path = new_path = replace_extension(path, extension, information['ext'])
 
         if new_path == path:
             if acodec == 'copy':
@@ -538,7 +538,10 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
 
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = (*MEDIA_EXTENSIONS.common_video, *sorted(MEDIA_EXTENSIONS.common_audio + ('aac', 'vorbis')))
+    SUPPORTED_EXTS = (
+        *sorted((*MEDIA_EXTENSIONS.common_video, 'gif')),
+        *sorted((*MEDIA_EXTENSIONS.common_audio, 'aac', 'vorbis')),
+    )
     FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
     _ACTION = 'converting'
 
@@ -708,7 +711,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
     @staticmethod
     def _get_chapter_opts(chapters, metadata_filename):
-        with open(metadata_filename, 'wt', encoding='utf-8') as f:
+        with open(metadata_filename, 'w', encoding='utf-8') as f:
             def ffmpeg_escape(text):
                 return re.sub(r'([\\=;#\n])', r'\\\1', text)
 
@@ -978,7 +981,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                 with open(dfxp_file, 'rb') as f:
                     srt_data = dfxp2srt(f.read())
 
-                with open(srt_file, 'wt', encoding='utf-8') as f:
+                with open(srt_file, 'w', encoding='utf-8') as f:
                     f.write(srt_data)
                 old_file = srt_file
 
@@ -1081,9 +1084,9 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
 
     @staticmethod
     def _options(target_ext):
+        yield from ('-update', '1')
         if target_ext == 'jpg':
-            return ['-bsf:v', 'mjpeg2jpeg']
-        return []
+            yield from ('-bsf:v', 'mjpeg2jpeg')
 
     def convert_thumbnail(self, thumbnail_filename, target_ext):
         thumbnail_conv_filename = replace_extension(thumbnail_filename, target_ext)
@@ -1092,7 +1095,7 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         _, source_ext = os.path.splitext(thumbnail_filename)
         self.real_run_ffmpeg(
             [(thumbnail_filename, [] if source_ext == '.gif' else ['-f', 'image2', '-pattern_type', 'none'])],
-            [(thumbnail_conv_filename.replace('%', '%%'), self._options(target_ext))])
+            [(thumbnail_conv_filename, self._options(target_ext))])
         return thumbnail_conv_filename
 
     def run(self, info):

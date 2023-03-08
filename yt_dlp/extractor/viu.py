@@ -9,9 +9,12 @@ from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
+    remove_end,
     strip_or_none,
+    traverse_obj,
     try_get,
     smuggle_url,
+    unified_timestamp,
     unsmuggle_url,
     url_or_none,
 )
@@ -86,7 +89,6 @@ class ViuIE(ViuBaseIE):
             #     r'\1whe\2', video_data['href'])
             m3u8_url = video_data['href']
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4')
-        self._sort_formats(formats)
 
         for key, value in video_data.items():
             mobj = re.match(r'^subtitle_(?P<lang>[^_]+)_(?P<ext>(vtt|srt))', key)
@@ -164,12 +166,17 @@ class ViuOTTIE(InfoExtractor):
         },
         'skip': 'Geo-restricted to Singapore',
     }, {
-        'url': 'http://www.viu.com/ott/hk/zh-hk/vod/7123/%E5%A4%A7%E4%BA%BA%E5%A5%B3%E5%AD%90',
+        'url': 'https://www.viu.com/ott/hk/zh-hk/vod/430078/%E7%AC%AC%E5%85%AD%E6%84%9F-3',
         'info_dict': {
-            'id': '7123',
+            'id': '430078',
             'ext': 'mp4',
-            'title': '這就是我的生活之道',
-            'description': 'md5:4eb0d8b08cf04fcdc6bbbeb16043434f',
+            'title': '大韓民國的1%',
+            'description': 'md5:74d6db47ddd9ddb9c89a05739103ccdb',
+            'episode_number': 1,
+            'duration': 6614,
+            'episode': '大韓民國的1%',
+            'series': '第六感 3',
+            'thumbnail': 'https://d2anahhhmp1ffz.cloudfront.net/1313295781/d2b14f48d008ef2f3a9200c98d8e9b63967b9cc2',
         },
         'params': {
             'skip_download': 'm3u8 download',
@@ -177,11 +184,12 @@ class ViuOTTIE(InfoExtractor):
         },
         'skip': 'Geo-restricted to Hong Kong',
     }, {
-        'url': 'https://www.viu.com/ott/hk/zh-hk/vod/68776/%E6%99%82%E5%B0%9A%E5%AA%BD%E5%92%AA',
-        'playlist_count': 12,
+        'url': 'https://www.viu.com/ott/hk/zh-hk/vod/444666/%E6%88%91%E7%9A%84%E5%AE%A4%E5%8F%8B%E6%98%AF%E4%B9%9D%E5%B0%BE%E7%8B%90',
+        'playlist_count': 16,
         'info_dict': {
-            'id': '3916',
-            'title': '時尚媽咪',
+            'id': '23807',
+            'title': '我的室友是九尾狐',
+            'description': 'md5:b42c95f2b4a316cdd6ae14ca695f33b9',
         },
         'params': {
             'skip_download': 'm3u8 download',
@@ -246,7 +254,7 @@ class ViuOTTIE(InfoExtractor):
         return self._user_token
 
     def _get_token(self, country_code, video_id):
-        rand = ''.join(random.choice('0123456789') for _ in range(10))
+        rand = ''.join(random.choices('0123456789', k=10))
         return self._download_json(
             f'https://api-gateway-global.viu.com/api/auth/token?v={rand}000', video_id,
             headers={'Content-Type': 'application/json'}, note='Getting bearer token',
@@ -359,17 +367,22 @@ class ViuOTTIE(InfoExtractor):
                 'ext': 'mp4',
                 'filesize': try_get(stream_data, lambda x: x['size'][vid_format], int)
             })
-        self._sort_formats(formats)
 
         subtitles = {}
         for sub in video_data.get('subtitle') or []:
-            sub_url = sub.get('url')
-            if not sub_url:
-                continue
-            subtitles.setdefault(sub.get('name'), []).append({
-                'url': sub_url,
-                'ext': 'srt',
-            })
+            lang = sub.get('name') or 'und'
+            if sub.get('url'):
+                subtitles.setdefault(lang, []).append({
+                    'url': sub['url'],
+                    'ext': 'srt',
+                    'name': f'Spoken text for {lang}',
+                })
+            if sub.get('second_subtitle_url'):
+                subtitles.setdefault(f'{lang}_ost', []).append({
+                    'url': sub['second_subtitle_url'],
+                    'ext': 'srt',
+                    'name': f'On-screen text for {lang}',
+                })
 
         title = strip_or_none(video_data.get('synopsis'))
         return {
@@ -383,4 +396,147 @@ class ViuOTTIE(InfoExtractor):
             'thumbnail': url_or_none(video_data.get('cover_image_url')),
             'formats': formats,
             'subtitles': subtitles,
+        }
+
+
+class ViuOTTIndonesiaBaseIE(InfoExtractor):
+    _BASE_QUERY = {
+        'ver': 1.0,
+        'fmt': 'json',
+        'aver': 5.0,
+        'appver': 2.0,
+        'appid': 'viu_desktop',
+        'platform': 'desktop',
+    }
+
+    _DEVICE_ID = str(uuid.uuid4())
+    _SESSION_ID = str(uuid.uuid4())
+    _TOKEN = None
+
+    _HEADERS = {
+        'x-session-id': _SESSION_ID,
+        'x-client': 'browser'
+    }
+
+    _AGE_RATINGS_MAPPER = {
+        'ADULTS': 18,
+        'teens': 13
+    }
+
+    def _real_initialize(self):
+        ViuOTTIndonesiaBaseIE._TOKEN = self._download_json(
+            'https://um.viuapi.io/user/identity', None,
+            headers={'Content-type': 'application/json', **self._HEADERS},
+            query={**self._BASE_QUERY, 'iid': self._DEVICE_ID},
+            data=json.dumps({'deviceId': self._DEVICE_ID}).encode(),
+            note='Downloading token information')['token']
+
+
+class ViuOTTIndonesiaIE(ViuOTTIndonesiaBaseIE):
+    _VALID_URL = r'https?://www\.viu\.com/ott/\w+/\w+/all/video-[\w-]+-(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.viu.com/ott/id/id/all/video-japanese-drama-tv_shows-detective_conan_episode_793-1165863142?containerId=playlist-26271226',
+        'info_dict': {
+            'id': '1165863142',
+            'ext': 'mp4',
+            'episode_number': 793,
+            'episode': 'Episode 793',
+            'title': 'Detective Conan - Episode 793',
+            'duration': 1476,
+            'description': 'md5:b79d55345bc1e0217ece22616267c9a5',
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1165863189/d-1',
+            'upload_date': '20210101',
+            'timestamp': 1609459200,
+        }
+    }, {
+        'url': 'https://www.viu.com/ott/id/id/all/video-korean-reality-tv_shows-entertainment_weekly_episode_1622-1118617054',
+        'info_dict': {
+            'id': '1118617054',
+            'ext': 'mp4',
+            'episode_number': 1622,
+            'episode': 'Episode 1622',
+            'description': 'md5:6d68ca450004020113e9bf27ad99f0f8',
+            'title': 'Entertainment Weekly - Episode 1622',
+            'duration': 4729,
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1120187848/d-1',
+            'timestamp': 1420070400,
+            'upload_date': '20150101',
+            'cast': ['Shin Hyun-joon', 'Lee Da-Hee']
+        }
+    }, {
+        # age-limit test
+        'url': 'https://www.viu.com/ott/id/id/all/video-japanese-trailer-tv_shows-trailer_jujutsu_kaisen_ver_01-1166044219?containerId=playlist-26273140',
+        'info_dict': {
+            'id': '1166044219',
+            'ext': 'mp4',
+            'upload_date': '20200101',
+            'timestamp': 1577836800,
+            'title': 'Trailer \'Jujutsu Kaisen\' Ver.01',
+            'duration': 92,
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1166044240/d-1',
+            'description': 'Trailer \'Jujutsu Kaisen\' Ver.01',
+            'cast': ['Junya Enoki', ' Yûichi Nakamura', ' Yuma Uchida', 'Asami Seto'],
+            'age_limit': 13,
+        }
+    }, {
+        # json ld metadata type equal to Movie instead of TVEpisodes
+        'url': 'https://www.viu.com/ott/id/id/all/video-japanese-animation-movies-demon_slayer_kimetsu_no_yaiba_the_movie_mugen_train-1165892707?containerId=1675060691786',
+        'info_dict': {
+            'id': '1165892707',
+            'ext': 'mp4',
+            'timestamp': 1577836800,
+            'upload_date': '20200101',
+            'title': 'Demon Slayer - Kimetsu no Yaiba - The Movie: Mugen Train',
+            'age_limit': 13,
+            'cast': 'count:9',
+            'thumbnail': 'https://vuclipi-a.akamaihd.net/p/cloudinary/h_171,w_304,dpr_1.5,f_auto,c_thumb,q_auto:low/1165895279/d-1',
+            'description': 'md5:1ce9c35a3aeab384085533f746c87469',
+            'duration': 7021,
+        }
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+
+        video_data = self._download_json(
+            f'https://um.viuapi.io/drm/v1/content/{display_id}', display_id, data=b'',
+            headers={'Authorization': ViuOTTIndonesiaBaseIE._TOKEN, **self._HEADERS, 'ccode': 'ID'})
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_data['playUrl'], display_id)
+
+        initial_state = self._search_json(
+            r'window\.__INITIAL_STATE__\s*=', webpage, 'initial state',
+            display_id)['content']['clipDetails']
+        for key, url in initial_state.items():
+            lang, ext = self._search_regex(
+                r'^subtitle_(?P<lang>[\w-]+)_(?P<ext>\w+)$', key, 'subtitle metadata',
+                default=(None, None), group=('lang', 'ext'))
+            if lang and ext:
+                subtitles.setdefault(lang, []).append({
+                    'ext': ext,
+                    'url': url,
+                })
+
+                if ext == 'vtt':
+                    subtitles[lang].append({
+                        'ext': 'srt',
+                        'url': f'{remove_end(initial_state[key], "vtt")}srt',
+                    })
+
+        episode = traverse_obj(list(filter(
+            lambda x: x.get('@type') in ('TVEpisode', 'Movie'), self._yield_json_ld(webpage, display_id))), 0) or {}
+        return {
+            'id': display_id,
+            'title': (traverse_obj(initial_state, 'title', 'display_title')
+                      or episode.get('name')),
+            'description': initial_state.get('description') or episode.get('description'),
+            'duration': initial_state.get('duration'),
+            'thumbnail': traverse_obj(episode, ('image', 'url')),
+            'timestamp': unified_timestamp(episode.get('dateCreated')),
+            'formats': formats,
+            'subtitles': subtitles,
+            'episode_number': (traverse_obj(initial_state, 'episode_no', 'episodeno', expected_type=int_or_none)
+                               or int_or_none(episode.get('episodeNumber'))),
+            'cast': traverse_obj(episode, ('actor', ..., 'name'), default=None),
+            'age_limit': self._AGE_RATINGS_MAPPER.get(initial_state.get('internal_age_rating'))
         }

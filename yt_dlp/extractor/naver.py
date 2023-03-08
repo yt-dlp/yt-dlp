@@ -8,6 +8,7 @@ from ..utils import (
     clean_html,
     dict_get,
     int_or_none,
+    join_nonempty,
     merge_dicts,
     parse_duration,
     traverse_obj,
@@ -19,6 +20,23 @@ from ..utils import (
 
 class NaverBaseIE(InfoExtractor):
     _CAPTION_EXT_RE = r'\.(?:ttml|vtt)'
+
+    @staticmethod  # NB: Used in VLiveWebArchiveIE
+    def process_subtitles(vod_data, process_url):
+        ret = {'subtitles': {}, 'automatic_captions': {}}
+        for caption in traverse_obj(vod_data, ('captions', 'list', ...)):
+            caption_url = caption.get('source')
+            if not caption_url:
+                continue
+            type_ = 'automatic_captions' if caption.get('type') == 'auto' else 'subtitles'
+            lang = caption.get('locale') or join_nonempty('language', 'country', from_dict=caption) or 'und'
+            if caption.get('type') == 'fan':
+                lang += '_fan%d' % next(i for i in itertools.count(1) if f'{lang}_fan{i}' not in ret[type_])
+            ret[type_].setdefault(lang, []).extend({
+                'url': sub_url,
+                'name': join_nonempty('label', 'fanName', from_dict=caption, delim=' - '),
+            } for sub_url in process_url(caption_url))
+        return ret
 
     def _extract_video_info(self, video_id, vid, key):
         video_data = self._download_json(
@@ -67,28 +85,16 @@ class NaverBaseIE(InfoExtractor):
                 formats.extend(self._extract_m3u8_formats(
                     update_url_query(stream_url, query), video_id,
                     'mp4', 'm3u8_native', m3u8_id=stream_type, fatal=False))
-        self._sort_formats(formats)
 
         replace_ext = lambda x, y: re.sub(self._CAPTION_EXT_RE, '.' + y, x)
 
         def get_subs(caption_url):
             if re.search(self._CAPTION_EXT_RE, caption_url):
-                return [{
-                    'url': replace_ext(caption_url, 'ttml'),
-                }, {
-                    'url': replace_ext(caption_url, 'vtt'),
-                }]
-            else:
-                return [{'url': caption_url}]
-
-        automatic_captions = {}
-        subtitles = {}
-        for caption in get_list('caption'):
-            caption_url = caption.get('source')
-            if not caption_url:
-                continue
-            sub_dict = automatic_captions if caption.get('type') == 'auto' else subtitles
-            sub_dict.setdefault(dict_get(caption, ('locale', 'language')), []).extend(get_subs(caption_url))
+                return [
+                    replace_ext(caption_url, 'ttml'),
+                    replace_ext(caption_url, 'vtt'),
+                ]
+            return [caption_url]
 
         user = meta.get('user', {})
 
@@ -96,13 +102,12 @@ class NaverBaseIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'formats': formats,
-            'subtitles': subtitles,
-            'automatic_captions': automatic_captions,
             'thumbnail': try_get(meta, lambda x: x['cover']['source']),
             'view_count': int_or_none(meta.get('count')),
             'uploader_id': user.get('id'),
             'uploader': user.get('name'),
             'uploader_url': user.get('url'),
+            **self.process_subtitles(video_data, get_subs),
         }
 
 
@@ -239,7 +244,6 @@ class NaverLiveIE(InfoExtractor):
                 quality.get('url'), video_id, 'mp4',
                 m3u8_id=quality.get('qualityId'), live=True
             ))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -256,7 +260,7 @@ class NaverLiveIE(InfoExtractor):
 
 class NaverNowIE(NaverBaseIE):
     IE_NAME = 'navernow'
-    _VALID_URL = r'https?://now\.naver\.com/s/now\.(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://now\.naver\.com/s/now\.(?P<id>\w+)'
     _API_URL = 'https://apis.naver.com/now_web/oldnow_web/v4'
     _TESTS = [{
         'url': 'https://now.naver.com/s/now.4759?shareReplayId=26331132#replay=',
@@ -315,6 +319,9 @@ class NaverNowIE(NaverBaseIE):
             'title': '아이키의 떰즈업',
         },
         'playlist_mincount': 101,
+    }, {
+        'url': 'https://now.naver.com/s/now.kihyunplay?shareReplayId=30573291#replay',
+        'only_matching': True,
     }]
 
     def _extract_replay(self, show_id, replay_id):

@@ -128,8 +128,6 @@ class SpankBangIE(InfoExtractor):
                     format_url = format_url[0]
                 extract_format(format_id, format_url)
 
-        self._sort_formats(formats)
-
         info = self._search_json_ld(webpage, video_id, default={})
 
         title = self._html_search_regex(
@@ -179,7 +177,6 @@ class SpankBangPlaylistIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         playlist_id = mobj.group('id')
-        display_id = mobj.group('display_id')
 
         webpage = self._download_webpage(
             url, playlist_id, headers={'Cookie': 'country=US; mobile=on'})
@@ -188,11 +185,11 @@ class SpankBangPlaylistIE(InfoExtractor):
             urljoin(url, mobj.group('path')),
             ie=SpankBangIE.ie_key(), video_id=mobj.group('id'))
             for mobj in re.finditer(
-                r'<a[^>]+\bhref=(["\'])(?P<path>/?[\da-z]+-(?P<id>[\da-z]+)/playlist/%s(?:(?!\1).)*)\1'
-                % re.escape(display_id), webpage)]
+                r'<a[^>]+\bhref=(["\'])(?P<path>/?[\da-z]+-(?P<id>[\da-z]+)/playlist/[^"\'](?:(?!\1).)*)\1',
+                webpage)]
 
         title = self._html_search_regex(
-            r'<h1>([^<]+)\s+playlist\s*<', webpage, 'playlist title',
+            r'<em>([^<]+)</em>\s+playlist\s*<', webpage, 'playlist title',
             fatal=False)
 
         return self.playlist_result(entries, playlist_id, title)

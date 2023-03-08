@@ -64,7 +64,6 @@ class NewstubeIE(InfoExtractor):
             formats.append(f)
 
         self._check_formats(formats, video_guid)
-        self._sort_formats(formats)
 
         return {
             'id': video_guid,

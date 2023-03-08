@@ -65,6 +65,21 @@ class ArteTVIE(ArteTVBaseIE):
     }, {
         'url': 'https://api.arte.tv/api/player/v2/config/de/LIVE',
         'only_matching': True,
+    }, {
+        'url': 'https://www.arte.tv/de/videos/110203-006-A/zaz/',
+        'info_dict': {
+            'id': '110203-006-A',
+            'chapters': 'count:16',
+            'description': 'md5:cf592f1df52fe52007e3f8eac813c084',
+            'alt_title': 'Zaz',
+            'title': 'Baloise Session 2022',
+            'timestamp': 1668445200,
+            'duration': 4054,
+            'thumbnail': 'https://api-cdn.arte.tv/img/v2/image/ubQjmVCGyRx3hmBuZEK9QZ/940x530',
+            'upload_date': '20221114',
+            'ext': 'mp4',
+        },
+        'expected_warnings': ['geo restricted']
     }]
 
     _GEO_BYPASS = True
@@ -135,6 +150,7 @@ class ArteTVIE(ArteTVBaseIE):
                 'Video is not available in this language edition of Arte or broadcast rights expired', expected=True)
 
         formats, subtitles = [], {}
+        secondary_formats = []
         for stream in config['data']['attributes']['streams']:
             # official player contains code like `e.get("versions")[0].eStat.ml5`
             stream_version = stream['versions'][0]
@@ -152,22 +168,26 @@ class ArteTVIE(ArteTVBaseIE):
                     not m.group('sdh_sub'),                 # and we prefer not the hard-of-hearing subtitles if there are subtitles
                 )))
 
+            short_label = traverse_obj(stream_version, 'shortLabel', expected_type=str, default='?')
             if stream['protocol'].startswith('HLS'):
                 fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     stream['url'], video_id=video_id, ext='mp4', m3u8_id=stream_version_code, fatal=False)
                 for fmt in fmts:
                     fmt.update({
-                        'format_note': f'{stream_version.get("label", "unknown")} [{stream_version.get("shortLabel", "?")}]',
+                        'format_note': f'{stream_version.get("label", "unknown")} [{short_label}]',
                         'language_preference': lang_pref,
                     })
-                formats.extend(fmts)
+                if any(map(short_label.startswith, ('cc', 'OGsub'))):
+                    secondary_formats.extend(fmts)
+                else:
+                    formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
 
             elif stream['protocol'] in ('HTTPS', 'RTMP'):
                 formats.append({
                     'format_id': f'{stream["protocol"]}-{stream_version_code}',
                     'url': stream['url'],
-                    'format_note': f'{stream_version.get("label", "unknown")} [{stream_version.get("shortLabel", "?")}]',
+                    'format_note': f'{stream_version.get("label", "unknown")} [{short_label}]',
                     'language_preference': lang_pref,
                     # 'ext': 'mp4',  # XXX: may or may not be necessary, at least for HTTPS
                 })
@@ -175,11 +195,8 @@ class ArteTVIE(ArteTVBaseIE):
             else:
                 self.report_warning(f'Skipping stream with unknown protocol {stream["protocol"]}')
 
-            # TODO: chapters from stream['segments']?
-            # The JS also looks for chapters in config['data']['attributes']['chapters'],
-            # but I am yet to find a video having those
-
-        self._sort_formats(formats)
+        formats.extend(secondary_formats)
+        self._remove_duplicate_formats(formats)
 
         metadata = config['data']['attributes']['metadata']
 
@@ -199,6 +216,11 @@ class ArteTVIE(ArteTVBaseIE):
                 {'url': image['url'], 'id': image.get('caption')}
                 for image in metadata.get('images') or [] if url_or_none(image.get('url'))
             ],
+            # TODO: chapters may also be in stream['segments']?
+            'chapters': traverse_obj(config, ('data', 'attributes', 'chapters', 'elements', ..., {
+                'start_time': 'startTime',
+                'title': 'title',
+            })) or None,
         }
 
 
@@ -296,9 +318,7 @@ class ArteTVCategoryIE(ArteTVBaseIE):
             if any(ie.suitable(video) for ie in (ArteTVIE, ArteTVPlaylistIE, )):
                 items.append(video)
 
-        title = (self._og_search_title(webpage, default=None)
-                 or self._html_search_regex(r'<title\b[^>]*>([^<]+)</title>', default=None))
-        title = strip_or_none(title.rsplit('|', 1)[0]) or self._generic_title(url)
+        title = strip_or_none(self._generic_title('', webpage, default='').rsplit('|', 1)[0]) or None
 
         return self.playlist_from_matches(items, playlist_id=playlist_id, playlist_title=title,
                                           description=self._og_search_description(webpage, default=None))

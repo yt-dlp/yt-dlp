@@ -407,13 +407,12 @@ class PanoptoIE(PanoptoBaseIE):
         subtitles = self._merge_subtitles(
             podcast_subtitles, streams_subtitles, self.extract_subtitles(base_url, video_id, delivery))
 
-        self._sort_formats(formats)
         self.mark_watched(base_url, video_id, delivery_info)
 
         return {
             'id': video_id,
             'title': delivery.get('SessionName'),
-            'cast': traverse_obj(delivery, ('Contributors', ..., 'DisplayName'), default=[], expected_type=lambda x: x or None),
+            'cast': traverse_obj(delivery, ('Contributors', ..., 'DisplayName'), expected_type=lambda x: x or None),
             'timestamp': session_start_time - 11640000000 if session_start_time else None,
             'duration': delivery.get('Duration'),
             'thumbnail': base_url + f'/Services/FrameGrabber.svc/FrameRedirect?objectId={video_id}&mode=Delivery&random={random()}',
@@ -564,7 +563,7 @@ class PanoptoListIE(PanoptoBaseIE):
             base_url, '/Services/Data.svc/GetFolderInfo', folder_id,
             data={'folderID': folder_id}, fatal=False)
         return {
-            'title': get_first(response, 'Name', default=[])
+            'title': get_first(response, 'Name')
         }
 
     def _real_extract(self, url):

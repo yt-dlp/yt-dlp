@@ -112,7 +112,6 @@ class PandoraTVIE(InfoExtractor):
                 'url': format_url,
                 'height': int(height),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

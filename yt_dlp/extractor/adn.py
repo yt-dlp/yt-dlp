@@ -28,30 +28,34 @@ from ..utils import (
 
 
 class ADNIE(InfoExtractor):
-    IE_DESC = 'Anime Digital Network'
-    _VALID_URL = r'https?://(?:www\.)?animedigitalnetwork\.fr/video/[^/]+/(?P<id>\d+)'
-    _TEST = {
-        'url': 'http://animedigitalnetwork.fr/video/blue-exorcist-kyoto-saga/7778-episode-1-debut-des-hostilites',
-        'md5': '0319c99885ff5547565cacb4f3f9348d',
+    IE_DESC = 'Animation Digital Network'
+    _VALID_URL = r'https?://(?:www\.)?(?:animation|anime)digitalnetwork\.fr/video/[^/]+/(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://animationdigitalnetwork.fr/video/fruits-basket/9841-episode-1-a-ce-soir',
+        'md5': '1c9ef066ceb302c86f80c2b371615261',
         'info_dict': {
-            'id': '7778',
+            'id': '9841',
             'ext': 'mp4',
-            'title': 'Blue Exorcist - Kyôto Saga - Episode 1',
-            'description': 'md5:2f7b5aa76edbc1a7a92cedcda8a528d5',
-            'series': 'Blue Exorcist - Kyôto Saga',
-            'duration': 1467,
-            'release_date': '20170106',
+            'title': 'Fruits Basket - Episode 1',
+            'description': 'md5:14be2f72c3c96809b0ca424b0097d336',
+            'series': 'Fruits Basket',
+            'duration': 1437,
+            'release_date': '20190405',
             'comment_count': int,
             'average_rating': float,
-            'season_number': 2,
-            'episode': 'Début des hostilités',
+            'season_number': 1,
+            'episode': 'À ce soir !',
             'episode_number': 1,
-        }
-    }
+        },
+        'skip': 'Only available in region (FR, ...)',
+    }, {
+        'url': 'http://animedigitalnetwork.fr/video/blue-exorcist-kyoto-saga/7778-episode-1-debut-des-hostilites',
+        'only_matching': True,
+    }]
 
-    _NETRC_MACHINE = 'animedigitalnetwork'
-    _BASE_URL = 'http://animedigitalnetwork.fr'
-    _API_BASE_URL = 'https://gw.api.animedigitalnetwork.fr/'
+    _NETRC_MACHINE = 'animationdigitalnetwork'
+    _BASE = 'animationdigitalnetwork.fr'
+    _API_BASE_URL = 'https://gw.api.' + _BASE + '/'
     _PLAYER_BASE_URL = _API_BASE_URL + 'player/'
     _HEADERS = {}
     _LOGIN_ERR_MESSAGE = 'Unable to log in'
@@ -75,11 +79,11 @@ class ADNIE(InfoExtractor):
         if subtitle_location:
             enc_subtitles = self._download_webpage(
                 subtitle_location, video_id, 'Downloading subtitles data',
-                fatal=False, headers={'Origin': 'https://animedigitalnetwork.fr'})
+                fatal=False, headers={'Origin': 'https://' + self._BASE})
         if not enc_subtitles:
             return None
 
-        # http://animedigitalnetwork.fr/components/com_vodvideo/videojs/adn-vjs.min.js
+        # http://animationdigitalnetwork.fr/components/com_vodvideo/videojs/adn-vjs.min.js
         dec_subtitles = unpad_pkcs7(aes_cbc_decrypt_bytes(
             compat_b64decode(enc_subtitles[24:]),
             binascii.unhexlify(self._K + '7fac1178830cfe0c'),
@@ -164,7 +168,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             }, data=b'')['token']
 
         links_url = try_get(options, lambda x: x['video']['url']) or (video_base_url + 'link')
-        self._K = ''.join([random.choice('0123456789abcdef') for _ in range(16)])
+        self._K = ''.join(random.choices('0123456789abcdef', k=16))
         message = bytes_to_intlist(json.dumps({
             'k': self._K,
             't': token,
@@ -231,7 +235,6 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
                     for f in m3u8_formats:
                         f['language'] = 'fr'
                 formats.extend(m3u8_formats)
-        self._sort_formats(formats)
 
         video = (self._download_json(
             self._API_BASE_URL + 'video/%s' % video_id, video_id,

@@ -1,7 +1,7 @@
 import json
 import re
 
-from .brightcove import BrightcoveNewIE
+from .brightcove import BrightcoveNewBaseIE
 from ..compat import (
     compat_HTTPError,
     compat_str,
@@ -13,7 +13,7 @@ from ..utils import (
 )
 
 
-class SevenPlusIE(BrightcoveNewIE):
+class SevenPlusIE(BrightcoveNewBaseIE):
     IE_NAME = '7plus'
     _VALID_URL = r'https?://(?:www\.)?7plus\.com\.au/(?P<path>[^?]+\?.*?\bepisode-id=(?P<id>[^&#]+))'
     _TESTS = [{
