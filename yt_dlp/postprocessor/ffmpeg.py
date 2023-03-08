@@ -303,9 +303,9 @@ class FFmpegPostProcessor(PostProcessor):
         return num, len(streams)
 
     def _fixup_chapters(self, info):
-        last_chapter = traverse_obj(info, ('chapters', -1, {dict})) or {}
-        if 'end_time' in last_chapter and last_chapter['end_time'] is None:
-            info['chapters'][-1]['end_time'] = self._get_real_video_duration(info['filepath'])
+        last_chapter = traverse_obj(info, ('chapters', -1))
+        if last_chapter and not last_chapter.get('end_time'):
+            last_chapter['end_time'] = self._get_real_video_duration(info['filepath'])
 
     def _get_real_video_duration(self, filepath, fatal=True):
         try:
