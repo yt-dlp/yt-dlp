@@ -12,12 +12,35 @@ class DeezerBaseInfoExtractor(InfoExtractor):
 
     GW_LIGHT_URL = "https://www.deezer.com/ajax/gw-light.php"
     GET_URL = "https://media.deezer.com/v1/get_url"
-    BLOWFISH_KEY = b"g4el58wc0zvf9na1"
+    EXPLORE_URL = "https://www.deezer.com/en/channels/explore"
 
-    def calcblowfishkey(self, songid):
+    def get_key_dynamically(self):
+        explore_webpage = self._download_webpage(self.EXPLORE_URL, 1)
+        app_url = self._html_search_regex(r'(?<=script src=\")(https:\/\/[a-z-\.\/]+app-web[a-z0-9\.]+)', explore_webpage, 'explore_webpage')
+
+        app_webpage = self._download_webpage(app_url, 1)
+
+        t1 = self._html_search_regex(r'(%5B0x61(%2C0x[0-9a-z+]+)+%2C0x67%5D)', app_webpage, 'app_webpage')
+        t1 = t1.replace("%5B", "").replace("%2C", "").replace("%5D", "").replace("%5B", "").replace("0x", "")
+        t1 = bytes.fromhex(t1).decode('utf-8')
+
+        t2 = self._html_search_regex(r'(%5B0x31(%2C0x[0-9a-z+]+)+%2C0x34%5D)', app_webpage, 'app_webpage')
+        t2 = t2.replace("%5B", "").replace("%2C", "").replace("%5D", "").replace("%5B", "").replace("0x", "")
+        t2 = bytes.fromhex(t2).decode('utf-8')
+
+        if (len(t1) != 8 or len(t2) != 8):
+            raise Exception("Dynamic key is incorrect")
+
+        key = ""
+        for i in range(1, 9):
+            key += t1[-i] + t2[-i]
+
+        self.blowfish_key = key.encode('utf-8')
+
+    def compute_blowfish_key(self, songid):
 
         h = md5(str(songid).encode('ascii')).hexdigest().encode('utf-8')
-        return "".join(chr(h[i] ^ h[i + 16] ^ self.BLOWFISH_KEY[i]) for i in range(16))
+        return "".join(chr(h[i] ^ h[i + 16] ^ self.blowfish_key[i]) for i in range(16))
 
     def get_data(self, url):
 
@@ -107,6 +130,7 @@ class DeezerMusicExtractor(DeezerBaseInfoExtractor):
             "track_tokens": track_tokens
         }
 
+        self.get_key_dynamically()
         response = self._download_json(self.GET_URL, data_id, data=json.dumps(data).encode('utf-8'))
 
         for i in range(len(entries)):
@@ -118,7 +142,7 @@ class DeezerMusicExtractor(DeezerBaseInfoExtractor):
 
                 format_preference = -1 if '128' in format_id else -2
                 format_url = source.get('url')
-                format_key = self.calcblowfishkey(entries[i].get('id'))
+                format_key = self.compute_blowfish_key(entries[i].get('id'))
 
                 formats.append({
                     'format_id': format_id,
@@ -317,6 +341,8 @@ class DeezerTrackIE(DeezerMusicExtractor):
     _METHOD = "song.getListData"
 
     def _real_extract(self, url):
+
+        self.get_key_dynamically()
 
         track_id, country, track_data = self.get_data(url)
         track_title = track_data.get('title')
