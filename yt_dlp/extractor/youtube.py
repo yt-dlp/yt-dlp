@@ -2757,6 +2757,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         begin_index = 0
         download_start_time = ctx.get('start') or time.time()
+        section_start = ctx.get('section_start') or 0
+        section_end = ctx.get('section_end') or math.inf
 
         lack_early_segments = download_start_time - (live_start_time or download_start_time) > MAX_DURATION
         if lack_early_segments:
@@ -2797,8 +2799,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             fragment_base_url = fmt_info['fragment_base_url']
             assert fragment_base_url
 
-            _last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
-            return True, _last_seq
+            return True
 
         self.write_debug(f'[{video_id}] Generating fragments for format {format_id}')
         while is_live:
@@ -2818,10 +2819,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     last_segment_url = None
                     continue
             else:
-                should_continue, last_seq = _extract_sequence_from_mpd(True, no_fragment_score > 15)
+                should_continue = _extract_sequence_from_mpd(True, no_fragment_score > 15)
                 no_fragment_score += 2
                 if not should_continue:
                     continue
+
+            last_fragment = fragments[-1]
+            last_seq = int(re.search(r'(?:/|^)sq/(\d+)', last_fragment['path']).group(1))
+
+            known_fragment = next(
+                (fragment for fragment in fragments if f'sq/{known_idx}' in fragment['path']), None)
+            if known_fragment and known_fragment['end'] > section_end:
+                break
 
             if known_idx > last_seq:
                 last_segment_url = None
@@ -2832,20 +2841,31 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if begin_index < 0 and known_idx < 0:
                 # skip from the start when it's negative value
                 known_idx = last_seq + begin_index
+
             if lack_early_segments:
-                known_idx = max(known_idx, last_seq - int(MAX_DURATION // fragments[-1]['duration']))
+                known_idx = max(known_idx, last_seq - int(MAX_DURATION // last_fragment['duration']))
+
             try:
                 for idx in range(known_idx, last_seq):
                     # do not update sequence here or you'll get skipped some part of it
-                    should_continue, _ = _extract_sequence_from_mpd(False, False)
+                    should_continue = _extract_sequence_from_mpd(False, False)
                     if not should_continue:
                         known_idx = idx - 1
                         raise ExtractorError('breaking out of outer loop')
+
                     last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
-                    yield {
-                        'url': last_segment_url,
-                        'fragment_count': last_seq,
-                    }
+                    frag_duration = last_fragment['duration']
+                    frag_start = last_fragment['start'] - (last_seq - idx) * frag_duration
+                    frag_end = frag_start + frag_duration
+
+                    if frag_start >= section_start and frag_end <= section_end:
+                        yield {
+                            'url': last_segment_url,
+                            'duration': frag_duration,
+                            'start': frag_start,
+                            'end': frag_end,
+                        }
+
                 if known_idx == last_seq:
                     no_fragment_score += 5
                 else:
