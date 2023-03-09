@@ -337,6 +337,7 @@ def validate_options(opts):
         for regex in value or []:
             if regex.startswith('*'):
                 for range_ in map(str.strip, regex[1:].split(',')):
+                    # FIXME: This is really sensible
                     mobj = range_ != '-' and re.fullmatch(r'(.+)?\s*-\s*(.+)?', range_)
                     dur = mobj and (parse_timestamp(mobj.group(1) or '0'), parse_timestamp(mobj.group(2) or 'inf'))
                     if None in (dur or [None]):
