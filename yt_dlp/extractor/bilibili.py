@@ -429,7 +429,7 @@ class BiliBiliBangumiMediaIE(InfoExtractor):
             note='Downloading season info')['result']['main_section']['episodes']
 
         return self.playlist_result((
-            self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['aid'])
+            self.url_result(entry['share_url'], BiliBiliBangumiIE, entry['aid'], entry['long_title'])
             for entry in episode_list), media_id)
 
 
@@ -486,7 +486,7 @@ class BilibiliSpaceVideoIE(BilibiliSpaceBaseIE):
 
         def get_entries(page_data):
             for entry in traverse_obj(page_data, ('list', 'vlist')) or []:
-                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}', BiliBiliIE, entry['bvid'])
+                yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}', BiliBiliIE, entry['bvid'], entry['title'])
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id)
@@ -519,7 +519,7 @@ class BilibiliSpaceAudioIE(BilibiliSpaceBaseIE):
 
         def get_entries(page_data):
             for entry in page_data.get('data', []):
-                yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}', BilibiliAudioIE, entry['id'])
+                yield self.url_result(f'https://www.bilibili.com/audio/au{entry["id"]}', BilibiliAudioIE, entry['id'], entry['title'])
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id)
@@ -558,7 +558,7 @@ class BilibiliSpacePlaylistIE(BilibiliSpaceBaseIE):
         def get_entries(page_data):
             for entry in page_data.get('archives', []):
                 yield self.url_result(f'https://www.bilibili.com/video/{entry["bvid"]}',
-                                      BiliBiliIE, entry['bvid'])
+                                      BiliBiliIE, entry['bvid'], entry['title'])
 
         metadata, paged_list = self._extract_playlist(fetch_page, get_metadata, get_entries)
         return self.playlist_result(paged_list, playlist_id, metadata['title'])
@@ -591,7 +591,7 @@ class BilibiliCategoryIE(InfoExtractor):
 
         for video in video_list:
             yield self.url_result(
-                'https://www.bilibili.com/video/%s' % video['bvid'], 'BiliBili', video['bvid'])
+                'https://www.bilibili.com/video/%s' % video['bvid'], 'BiliBili', video['bvid'], video['title'])
 
     def _entries(self, category, subcategory, query):
         # map of categories : subcategories : RIDs
@@ -656,7 +656,7 @@ class BiliBiliSearchIE(SearchInfoExtractor):
             if not videos:
                 break
             for video in videos:
-                yield self.url_result(video['arcurl'], 'BiliBili', str(video['aid']))
+                yield self.url_result(video['arcurl'], 'BiliBili', str(video['aid']), video['title'])
 
 
 class BilibiliAudioBaseIE(InfoExtractor):
@@ -763,7 +763,7 @@ class BilibiliAudioAlbumIE(BilibiliAudioBaseIE):
                 continue
             entries.append(self.url_result(
                 'https://www.bilibili.com/audio/au' + sid,
-                BilibiliAudioIE.ie_key(), sid))
+                BilibiliAudioIE.ie_key(), sid, song['title']))
 
         if entries:
             album_data = self._call_api('menu/info', am_id) or {}
