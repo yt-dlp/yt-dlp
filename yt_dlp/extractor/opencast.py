@@ -105,10 +105,10 @@ class OpencastBaseIE(InfoExtractor):
 
 
 class OpencastIE(OpencastBaseIE):
-    _VALID_URL = r'''(?x)
-                    https?://(?P<host>%s)/paella/ui/watch.html\?.*?
-                    id=(?P<id>%s)
-                    ''' % (OpencastBaseIE._INSTANCES_RE, OpencastBaseIE._UUID_RE)
+    _VALID_URL = rf'''(?x)
+                    https?://(?P<host>{OpencastBaseIE._INSTANCES_RE})/paella/ui/watch.html\?(?:[^#]+&)?
+                    id=(?P<id>{OpencastBaseIE._UUID_RE})
+                    '''
 
     _API_BASE = 'https://%s/search/episode.json?id=%s'
 
@@ -137,12 +137,12 @@ class OpencastIE(OpencastBaseIE):
 
 
 class OpencastPlaylistIE(OpencastBaseIE):
-    _VALID_URL = r'''(?x)
-                            https?://(?P<host>%s)
-                            (/engage/ui/index.html\?.*?epFrom=|
-                            /ltitools/index.html\?.*?series=)
-                            (?P<id>%s)
-                    ''' % (OpencastBaseIE._INSTANCES_RE, OpencastBaseIE._UUID_RE)
+    _VALID_URL = rf'''(?x)
+                            https?://(?P<host>{OpencastBaseIE._INSTANCES_RE})
+                            (/engage/ui/index.html\?(?:[^#]+&)?epFrom=|
+                            /ltitools/index.html\?(?:[^#]+&)?series=)
+                            (?P<id>{OpencastBaseIE._UUID_RE})
+                    '''
 
     _API_BASE = 'https://%s/search/episode.json?sid=%s'
 
