@@ -3745,13 +3745,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if mime_mobj:
                 dct['ext'] = mimetype2ext(mime_mobj.group(1))
                 dct.update(parse_codecs(mime_mobj.group(2)))
-            no_audio = dct.get('acodec') == 'none'
-            no_video = dct.get('vcodec') == 'none'
-            if no_audio:
-                dct['vbr'] = tbr
-            if no_video:
-                dct['abr'] = tbr
-            if no_audio or no_video:
+
+            single_stream = 'none' in (dct.get('acodec'), dct.get('vcodec'))
+            if single_stream and dct.get('ext'):
+                dct['container'] = dct['ext'] + '_dash'
+            if single_stream or itag == '17':
                 CHUNK_SIZE = 10 << 20
                 dct.update({
                     'protocol': 'http_dash_segments',
@@ -3760,12 +3758,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             'range': f'{range_start}-{min(range_start + CHUNK_SIZE - 1, dct["filesize"])}'
                         })
                     } for range_start in range(0, dct['filesize'], CHUNK_SIZE)]
-                } if dct['filesize'] else {
-                    'downloader_options': {'http_chunk_size': CHUNK_SIZE}  # No longer useful?
+                } if itag != '17' and dct['filesize'] else {
+                    'downloader_options': {'http_chunk_size': CHUNK_SIZE}
                 })
-
-                if dct.get('ext'):
-                    dct['container'] = dct['ext'] + '_dash'
 
             if itag:
                 itags[itag].add(('https', dct.get('language')))
