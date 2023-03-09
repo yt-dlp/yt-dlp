@@ -42,6 +42,7 @@ from .utils import (
     GeoUtils,
     PlaylistEntries,
     SameFileError,
+    datetime_from_str,
     decodeOption,
     download_range_func,
     expand_path,
@@ -320,12 +321,23 @@ def validate_options(opts):
         del opts.outtmpl['default']
 
     def parse_chapters(name, value):
+        def parse_timestamp(x):
+            # FIXME: This should be smarter, e.g. 'inf-1day'?
+            x = x.replace('(', '').replace(')', '')
+
+            if x in ('inf', 'infinite'):
+                return float('inf')
+
+            if re.match(r'[\d:]+', x):
+                return parse_duration(x)
+
+            return datetime_from_str(x, precision='second').timestamp()
+
         chapters, ranges = [], []
-        parse_timestamp = lambda x: float('inf') if x in ('inf', 'infinite') else parse_duration(x)
         for regex in value or []:
             if regex.startswith('*'):
                 for range_ in map(str.strip, regex[1:].split(',')):
-                    mobj = range_ != '-' and re.fullmatch(r'([^-]+)?\s*-\s*([^-]+)?', range_)
+                    mobj = range_ != '-' and re.fullmatch(r'(.+)?\s*-\s*(.+)?', range_)
                     dur = mobj and (parse_timestamp(mobj.group(1) or '0'), parse_timestamp(mobj.group(2) or 'inf'))
                     if None in (dur or [None]):
                         raise ValueError(f'invalid {name} time range "{regex}". Must be of the form "*start-end"')
