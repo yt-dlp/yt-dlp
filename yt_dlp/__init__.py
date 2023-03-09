@@ -331,7 +331,7 @@ def validate_options(opts):
             if re.match(r'[\d:]+', x):
                 return parse_duration(x)
 
-            return datetime_from_str(x, precision='second').timestamp()
+            return datetime_from_str(x, precision='second', use_utc=False).timestamp()
 
         chapters, ranges = [], []
         for regex in value or []:
