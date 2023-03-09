@@ -1,7 +1,12 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import parse_duration, unified_strdate
+from ..utils import (
+    join_nonempty,
+    parse_duration,
+    traverse_obj,
+    unified_strdate,
+)
 
 
 class RadioFranceIE(InfoExtractor):
@@ -53,6 +58,78 @@ class RadioFranceIE(InfoExtractor):
             'formats': formats,
             'description': description,
             'uploader': uploader,
+        }
+
+
+class RadioFranceLiveIE(InfoExtractor):
+    _VALID_URL = r'''(?x)
+                    https?://
+                    (?:www\.|embed\.)?radiofrance\.fr/
+                    (?P<id>franceculture|fip|francemusique|mouv|franceinter|franceinfo)
+                    (?:/player/direct)?/?(?:[#?]|$)
+                '''
+
+    _TESTS = [{
+        'url': 'https://www.radiofrance.fr/franceinter/',
+        'info_dict': {
+            'id': 'franceinter',
+            'title': str,
+            'live': True,
+            'ext': 'aac',
+        },
+        'params': {
+            'skip_download': 'Livestream',
+        },
+    }, {
+        'url': 'https://www.radiofrance.fr/franceculture',
+        'info_dict': {
+            'id': 'franceculture',
+            'title': str,
+            'live': True,
+            'ext': 'aac',
+        },
+        'params': {
+            'skip_download': 'Livestream',
+        },
+    }, {
+        'url': 'https://embed.radiofrance.fr/franceinfo/player/direct',
+        'info_dict': {
+            'id': 'franceinfo',
+            'title': str,
+            'live': True,
+            'ext': 'aac',
+        },
+        'params': {
+            'skip_download': 'Livestream',
+        },
+    }]
+
+    def _real_extract(self, url):
+        station_id = self._match_id(url)
+
+        api_response = self._download_json(
+            f'https://www.radiofrance.fr/api/v2.1/stations/{station_id}/live', station_id)
+
+        formats, subtitles = [], {}
+        for media_source in api_response['now']['media']['sources']:
+            if media_source.get('format') == 'hls':
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(media_source['url'], station_id, fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
+            else:
+                formats.append({
+                    'url': media_source['url'],
+                    'abr': media_source.get('bitrate'),
+                })
+
+        return {
+            'id': station_id,
+            'title': join_nonempty(
+                traverse_obj(api_response, ('now', 'firstLine', 'title')),
+                traverse_obj(api_response, ('now', 'secondLine', 'title')), delim=" - "),
+            'formats': formats,
+            'subtitles': subtitles,
+            'live': True,
         }
 
 
