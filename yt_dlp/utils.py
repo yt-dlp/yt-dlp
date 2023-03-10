@@ -1869,7 +1869,7 @@ def unified_timestamp(date_str, day_first=True, with_milliseconds=False):
     for expression in date_formats(day_first):
         with contextlib.suppress(ValueError):
             dt = datetime.datetime.strptime(date_str, expression) - timezone + datetime.timedelta(hours=pm_delta)
-            return calendar.timegm(dt.timetuple()) + (dt.microsecond/1e6 if with_milliseconds else 0)
+            return calendar.timegm(dt.timetuple()) + (dt.microsecond / 1e6 if with_milliseconds else 0)
 
     timetuple = email.utils.parsedate_tz(date_str)
     if timetuple:
