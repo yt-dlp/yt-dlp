@@ -202,7 +202,8 @@ class CBCPlayerIE(InfoExtractor):
 
 class CBCGemIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca'
-    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>[0-9a-z-]+/s[0-9]+[a-z][0-9]+)'
+    # /media/ is an old URL style, new URLs don't have that, see #6395
+    _VALID_URL = r'https?://gem\.cbc\.ca/(?:media/|)(?P<id>[0-9a-z-]+/s[0-9]+[a-z][0-9]+)'
     _TESTS = [{
         # This is a normal, public, TV show video
         'url': 'https://gem.cbc.ca/media/schitts-creek/s06e01',
@@ -245,6 +246,11 @@ class CBCGemIE(InfoExtractor):
         },
         'params': {'format': 'bv'},
         'skip': 'Geo-restricted to Canada',
+    }, {
+        # New URL format without /media/
+        # https://github.com/yt-dlp/yt-dlp/issues/6395
+        'url': 'https://gem.cbc.ca/nadiyas-family-favourites/s01e01',
+        'only_matching': True,
     }]
 
     _GEO_COUNTRIES = ['CA']
