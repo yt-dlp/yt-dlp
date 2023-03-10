@@ -952,6 +952,8 @@ def _real_main(argv=None):
         parser.destroy()
         try:
             if opts.load_info_filename is not None:
+                if all_urls:
+                    ydl.report_warning('URLs are ignored due to --load-info-json')
                 return ydl.download_with_info_file(expand_path(opts.load_info_filename))
             else:
                 return ydl.download(all_urls)

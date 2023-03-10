@@ -3376,18 +3376,19 @@ class YoutubeDL:
                 [info_filename], mode='r',
                 openhook=fileinput.hook_encoded('utf-8'))) as f:
             # FileInput doesn't have a read method, we can't call json.load
-            info = self.sanitize_info(json.loads('\n'.join(f)), self.params.get('clean_infojson', True))
-        try:
-            self.__download_wrapper(self.process_ie_result)(info, download=True)
-        except (DownloadError, EntryNotInPlaylist, ReExtractInfo) as e:
-            if not isinstance(e, EntryNotInPlaylist):
-                self.to_stderr('\r')
-            webpage_url = info.get('webpage_url')
-            if webpage_url is not None:
+            infos = [self.sanitize_info(info, self.params.get('clean_infojson', True))
+                     for info in variadic(json.loads('\n'.join(f)))]
+        for info in infos:
+            try:
+                self.__download_wrapper(self.process_ie_result)(info, download=True)
+            except (DownloadError, EntryNotInPlaylist, ReExtractInfo) as e:
+                if not isinstance(e, EntryNotInPlaylist):
+                    self.to_stderr('\r')
+                webpage_url = info.get('webpage_url')
+                if webpage_url is None:
+                    raise
                 self.report_warning(f'The info failed to download: {e}; trying with URL {webpage_url}')
-                return self.download([webpage_url])
-            else:
-                raise
+                self.download([webpage_url])
         return self._download_retcode
 
     @staticmethod

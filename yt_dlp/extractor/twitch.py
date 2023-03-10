@@ -456,7 +456,7 @@ class TwitchVodIE(TwitchBaseIE):
         thumbnail = url_or_none(info.get('previewThumbnailURL'))
         is_live = None
         if thumbnail:
-            if thumbnail.endswith('/404_processing_{width}x{height}.png'):
+            if re.findall(r'/404_processing_[^.?#]+\.png', thumbnail):
                 is_live, thumbnail = True, None
             else:
                 is_live = False
