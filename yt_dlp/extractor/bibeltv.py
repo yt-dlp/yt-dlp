@@ -76,7 +76,7 @@ class BibelTVIE(InfoExtractor):
         return {
             '_type': 'url',
             'id': crn_id,
-            'url': f'https://www.bibeltv.de/mediathek/videos/{data.get("slug")}',
+            'url': format_field(data, 'slug', 'https://www.bibeltv.de/mediathek/videos/%s'),
             'title': data.get('title'),
             'description': data.get('description'),
             'duration': try_get(data, lambda x: x['duration'] / 1000),
