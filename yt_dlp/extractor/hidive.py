@@ -47,15 +47,16 @@ class HiDiveIE(InfoExtractor):
         login_webpage = self._download_webpage(
             self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(data))
         # If the user has multiple profiles on their account, select one. For now pick the first profile.
-        profile_id = self._search_regex(r'<button [^>]+?data-profile-id="(\w+)"', login_webpage, 'profile_id')
+        profile_id = self._search_regex(
+            r'<button [^>]+?data-profile-id="(\w+)"', login_webpage, 'profile id', default=None)
         if profile_id is None:
             return  # If only one profile, Hidive auto-selects it
-        profile_id_hash = self._search_regex(r'\<button [^>]+?data-hash="(\w+)"', login_webpage, 'profile_id_hash')
         self._request_webpage(
             'https://www.hidive.com/ajax/chooseprofile', None,
             data=urlencode_postdata({
                 'profileId': profile_id,
-                'hash': profile_id_hash,
+                'hash': self._search_regex(
+                    r'\<button [^>]+?data-hash="(\w+)"', login_webpage, 'profile id hash'),
                 'returnUrl': '/dashboard'
             }))
 
