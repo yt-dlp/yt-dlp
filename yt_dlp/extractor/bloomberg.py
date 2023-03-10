@@ -67,7 +67,6 @@ class BloombergIE(InfoExtractor):
             else:
                 formats.extend(self._extract_f4m_formats(
                     stream_url, video_id, f4m_id='hds', fatal=False))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

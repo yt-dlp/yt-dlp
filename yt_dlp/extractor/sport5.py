@@ -74,7 +74,6 @@ class Sport5IE(InfoExtractor):
             'width': int(fmt.get('width')),
             'height': int(fmt.get('height')),
         } for fmt in metadata.findall('./PlaybackLinks/FileURL')]
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

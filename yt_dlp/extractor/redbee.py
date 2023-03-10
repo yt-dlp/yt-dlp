@@ -11,6 +11,7 @@ from ..utils import (
     int_or_none,
     strip_or_none,
     traverse_obj,
+    try_call,
     unified_timestamp,
 )
 
@@ -116,12 +117,9 @@ class ParliamentLiveUKIE(RedBeeBaseIE):
         video_id = self._match_id(url)
 
         formats, subtitles = self._get_formats_and_subtitles(video_id)
-        self._sort_formats(formats)
 
         video_info = self._download_json(
             f'https://www.parliamentlive.tv/Event/GetShareVideo/{video_id}', video_id, fatal=False)
-
-        self._sort_formats(formats, ['res', 'proto'])
 
         return {
             'id': video_id,
@@ -131,6 +129,7 @@ class ParliamentLiveUKIE(RedBeeBaseIE):
             'thumbnail': traverse_obj(video_info, 'thumbnailUrl'),
             'timestamp': traverse_obj(
                 video_info, ('event', 'publishedStartTime'), expected_type=unified_timestamp),
+            '_format_sort_fields': ('res', 'proto'),
         }
 
 
@@ -255,7 +254,7 @@ class RTBFIE(RedBeeBaseIE):
         if not login_token:
             self.raise_login_required()
 
-        session_jwt = self._download_json(
+        session_jwt = try_call(lambda: self._get_cookies(url)['rtbf_jwt'].value) or self._download_json(
             'https://login.rtbf.be/accounts.getJWT', media_id, query={
                 'login_token': login_token.value,
                 'APIKey': self._GIGYA_API_KEY,
@@ -365,7 +364,6 @@ class RTBFIE(RedBeeBaseIE):
             formats.extend(fmts)
             self._merge_subtitles(subs, target=subtitles)
 
-        self._sort_formats(formats, ['res', 'proto'])
         return {
             'id': media_id,
             'formats': formats,
@@ -377,4 +375,5 @@ class RTBFIE(RedBeeBaseIE):
             'series': data.get('programLabel'),
             'subtitles': subtitles,
             'is_live': is_live,
+            '_format_sort_fields': ('res', 'proto'),
         }

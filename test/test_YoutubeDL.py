@@ -68,8 +68,7 @@ class TestFormatSelection(unittest.TestCase):
             {'ext': 'mp4', 'height': 460, 'url': TEST_URL},
         ]
         info_dict = _make_result(formats)
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['ext'], 'webm')
@@ -82,8 +81,7 @@ class TestFormatSelection(unittest.TestCase):
             {'ext': 'mp4', 'height': 1080, 'url': TEST_URL},
         ]
         info_dict['formats'] = formats
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['ext'], 'mp4')
@@ -97,8 +95,7 @@ class TestFormatSelection(unittest.TestCase):
             {'ext': 'flv', 'height': 720, 'url': TEST_URL},
         ]
         info_dict['formats'] = formats
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['ext'], 'mp4')
@@ -110,15 +107,14 @@ class TestFormatSelection(unittest.TestCase):
             {'ext': 'webm', 'height': 720, 'url': TEST_URL},
         ]
         info_dict['formats'] = formats
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['ext'], 'webm')
 
     def test_format_selection(self):
         formats = [
-            {'format_id': '35', 'ext': 'mp4', 'preference': 1, 'url': TEST_URL},
+            {'format_id': '35', 'ext': 'mp4', 'preference': 0, 'url': TEST_URL},
             {'format_id': 'example-with-dashes', 'ext': 'webm', 'preference': 1, 'url': TEST_URL},
             {'format_id': '45', 'ext': 'webm', 'preference': 2, 'url': TEST_URL},
             {'format_id': '47', 'ext': 'webm', 'preference': 3, 'url': TEST_URL},
@@ -186,22 +182,19 @@ class TestFormatSelection(unittest.TestCase):
 
         info_dict = _make_result(formats)
         ydl = YDL({'format': 'best'})
-        ie = YoutubeIE(ydl)
-        ie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(copy.deepcopy(info_dict))
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], 'aac-64')
 
         ydl = YDL({'format': 'mp3'})
-        ie = YoutubeIE(ydl)
-        ie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(copy.deepcopy(info_dict))
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], 'mp3-64')
 
         ydl = YDL({'prefer_free_formats': True})
-        ie = YoutubeIE(ydl)
-        ie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(copy.deepcopy(info_dict))
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], 'ogg-64')
@@ -346,8 +339,7 @@ class TestFormatSelection(unittest.TestCase):
 
         info_dict = _make_result(list(formats_order), extractor='youtube')
         ydl = YDL({'format': 'bestvideo+bestaudio'})
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], '248+172')
@@ -355,40 +347,35 @@ class TestFormatSelection(unittest.TestCase):
 
         info_dict = _make_result(list(formats_order), extractor='youtube')
         ydl = YDL({'format': 'bestvideo[height>=999999]+bestaudio/best'})
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded = ydl.downloaded_info_dicts[0]
         self.assertEqual(downloaded['format_id'], '38')
 
         info_dict = _make_result(list(formats_order), extractor='youtube')
         ydl = YDL({'format': 'bestvideo/best,bestaudio'})
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
         self.assertEqual(downloaded_ids, ['137', '141'])
 
         info_dict = _make_result(list(formats_order), extractor='youtube')
         ydl = YDL({'format': '(bestvideo[ext=mp4],bestvideo[ext=webm])+bestaudio'})
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
         self.assertEqual(downloaded_ids, ['137+141', '248+141'])
 
         info_dict = _make_result(list(formats_order), extractor='youtube')
         ydl = YDL({'format': '(bestvideo[ext=mp4],bestvideo[ext=webm])[height<=720]+bestaudio'})
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
         self.assertEqual(downloaded_ids, ['136+141', '247+141'])
 
         info_dict = _make_result(list(formats_order), extractor='youtube')
         ydl = YDL({'format': '(bestvideo[ext=none]/bestvideo[ext=webm])+bestaudio'})
-        yie = YoutubeIE(ydl)
-        yie._sort_formats(info_dict['formats'])
+        ydl.sort_formats(info_dict)
         ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
         self.assertEqual(downloaded_ids, ['248+141'])
@@ -396,16 +383,14 @@ class TestFormatSelection(unittest.TestCase):
         for f1, f2 in zip(formats_order, formats_order[1:]):
             info_dict = _make_result([f1, f2], extractor='youtube')
             ydl = YDL({'format': 'best/bestvideo'})
-            yie = YoutubeIE(ydl)
-            yie._sort_formats(info_dict['formats'])
+            ydl.sort_formats(info_dict)
             ydl.process_ie_result(info_dict)
             downloaded = ydl.downloaded_info_dicts[0]
             self.assertEqual(downloaded['format_id'], f1['format_id'])
 
             info_dict = _make_result([f2, f1], extractor='youtube')
             ydl = YDL({'format': 'best/bestvideo'})
-            yie = YoutubeIE(ydl)
-            yie._sort_formats(info_dict['formats'])
+            ydl.sort_formats(info_dict)
             ydl.process_ie_result(info_dict)
             downloaded = ydl.downloaded_info_dicts[0]
             self.assertEqual(downloaded['format_id'], f1['format_id'])
@@ -480,7 +465,7 @@ class TestFormatSelection(unittest.TestCase):
         for f in formats:
             f['url'] = 'http://_/'
             f['ext'] = 'unknown'
-        info_dict = _make_result(formats)
+        info_dict = _make_result(formats, _format_sort_fields=('id', ))
 
         ydl = YDL({'format': 'best[filesize<3000]'})
         ydl.process_ie_result(info_dict)
@@ -662,13 +647,17 @@ class TestYoutubeDL(unittest.TestCase):
         'playlist_autonumber': 2,
         '__last_playlist_index': 100,
         'n_entries': 10,
-        'formats': [{'id': 'id 1'}, {'id': 'id 2'}, {'id': 'id 3'}]
+        'formats': [
+            {'id': 'id 1', 'height': 1080, 'width': 1920},
+            {'id': 'id 2', 'height': 720},
+            {'id': 'id 3'}
+        ]
     }
 
     def test_prepare_outtmpl_and_filename(self):
         def test(tmpl, expected, *, info=None, **params):
             params['outtmpl'] = tmpl
-            ydl = YoutubeDL(params)
+            ydl = FakeYDL(params)
             ydl._num_downloads = 1
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
@@ -729,6 +718,7 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%(title)'), ValueError))
         test('%(invalid@tmpl|def)s', 'none', outtmpl_na_placeholder='none')
         test('%(..)s', 'NA')
+        test('%(formats.{id)s', 'NA')
 
         # Entire info_dict
         def expect_same_infodict(out):
@@ -813,6 +803,12 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats.:2:-1)r', repr(FORMATS[:2:-1]))
         test('%(formats.0.id.-1+id)f', '1235.000000')
         test('%(formats.0.id.-1+formats.1.id.-1)d', '3')
+        out = json.dumps([{'id': f['id'], 'height.:2': str(f['height'])[:2]}
+                          if 'height' in f else {'id': f['id']}
+                          for f in FORMATS])
+        test('%(formats.:.{id,height.:2})j', (out, sanitize(out)))
+        test('%(formats.:.{id,height}.id)l', ', '.join(f['id'] for f in FORMATS))
+        test('%(.{id,title})j', ('{"id": "1234"}', '{＂id＂： ＂1234＂}'))
 
         # Alternates
         test('%(title,id)s', '1234')

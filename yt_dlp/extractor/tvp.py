@@ -4,40 +4,51 @@ import re
 
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
     determine_ext,
     dict_get,
     ExtractorError,
     int_or_none,
     js_to_json,
-    orderedSet,
     str_or_none,
+    strip_or_none,
+    traverse_obj,
     try_get,
+    url_or_none,
 )
 
 
 class TVPIE(InfoExtractor):
     IE_NAME = 'tvp'
     IE_DESC = 'Telewizja Polska'
-    _VALID_URL = r'https?://(?:[^/]+\.)?(?:tvp(?:parlament)?\.(?:pl|info)|polandin\.com)/(?:video/(?:[^,\s]*,)*|(?:(?!\d+/)[^/]+/)*)(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:[^/]+\.)?(?:tvp(?:parlament)?\.(?:pl|info)|tvpworld\.com|swipeto\.pl)/(?:(?!\d+/)[^/]+/)*(?P<id>\d+)'
 
     _TESTS = [{
         # TVPlayer 2 in js wrapper
-        'url': 'https://vod.tvp.pl/video/czas-honoru,i-seria-odc-13,194536',
+        'url': 'https://swipeto.pl/64095316/uliczny-foxtrot-wypozyczalnia-kaset-kto-pamieta-dvdvideo',
         'info_dict': {
-            'id': '194536',
+            'id': '64095316',
             'ext': 'mp4',
-            'title': 'Czas honoru, odc. 13 – Władek',
-            'description': 'md5:437f48b93558370b031740546b696e24',
-            'age_limit': 12,
+            'title': 'Uliczny Foxtrot — Wypożyczalnia kaset. Kto pamięta DVD-Video?',
+            'age_limit': 0,
+            'duration': 374,
+            'thumbnail': r're:https://.+',
         },
+        'expected_warnings': [
+            'Failed to download ISM manifest: HTTP Error 404: Not Found',
+            'Failed to download m3u8 information: HTTP Error 404: Not Found',
+        ],
     }, {
         # TVPlayer legacy
-        'url': 'http://www.tvp.pl/there-can-be-anything-so-i-shortened-it/17916176',
+        'url': 'https://www.tvp.pl/polska-press-video-uploader/wideo/62042351',
         'info_dict': {
-            'id': '17916176',
+            'id': '62042351',
             'ext': 'mp4',
-            'title': 'TVP Gorzów pokaże filmy studentów z podroży dookoła świata',
-            'description': 'TVP Gorzów pokaże filmy studentów z podroży dookoła świata',
+            'title': 'Wideo',
+            'description': 'Wideo Kamera',
+            'duration': 24,
+            'age_limit': 0,
+            'thumbnail': r're:https://.+',
         },
     }, {
         # TVPlayer 2 in iframe
@@ -48,6 +59,8 @@ class TVPIE(InfoExtractor):
             'title': 'Dzieci na sprzedaż dla homoseksualistów',
             'description': 'md5:7d318eef04e55ddd9f87a8488ac7d590',
             'age_limit': 12,
+            'duration': 259,
+            'thumbnail': r're:https://.+',
         },
     }, {
         # TVPlayer 2 in client-side rendered website (regional; window.__newsData)
@@ -58,7 +71,11 @@ class TVPIE(InfoExtractor):
             'title': 'Studio Yayo',
             'upload_date': '20160616',
             'timestamp': 1466075700,
-        }
+            'age_limit': 0,
+            'duration': 20,
+            'thumbnail': r're:https://.+',
+        },
+        'skip': 'Geo-blocked outside PL',
     }, {
         # TVPlayer 2 in client-side rendered website (tvp.info; window.__videoData)
         'url': 'https://www.tvp.info/52880236/09042021-0800',
@@ -66,7 +83,10 @@ class TVPIE(InfoExtractor):
             'id': '52880236',
             'ext': 'mp4',
             'title': '09.04.2021, 08:00',
+            'age_limit': 0,
+            'thumbnail': r're:https://.+',
         },
+        'skip': 'Geo-blocked outside PL',
     }, {
         # client-side rendered (regional) program (playlist) page
         'url': 'https://opole.tvp.pl/9660819/rozmowa-dnia',
@@ -122,7 +142,7 @@ class TVPIE(InfoExtractor):
         'url': 'https://www.tvpparlament.pl/retransmisje-vod/inne/wizyta-premiera-mateusza-morawieckiego-w-firmie-berotu-sp-z-oo/48857277',
         'only_matching': True,
     }, {
-        'url': 'https://polandin.com/47942651/pln-10-billion-in-subsidies-transferred-to-companies-pm',
+        'url': 'https://tvpworld.com/48583640/tescos-polish-business-bought-by-danish-chain-netto',
         'only_matching': True,
     }]
 
@@ -151,16 +171,13 @@ class TVPIE(InfoExtractor):
         is_website = video_data.get('type') == 'website'
         if is_website:
             url = video_data['url']
-            fucked_up_url_parts = re.match(r'https?://vod\.tvp\.pl/(\d+)/([^/?#]+)', url)
-            if fucked_up_url_parts:
-                url = f'https://vod.tvp.pl/website/{fucked_up_url_parts.group(2)},{fucked_up_url_parts.group(1)}'
         else:
             url = 'tvp:' + str_or_none(video_data.get('_id') or page_id)
         return {
             '_type': 'url_transparent',
             'id': str_or_none(video_data.get('_id') or page_id),
             'url': url,
-            'ie_key': 'TVPEmbed' if not is_website else 'TVPWebsite',
+            'ie_key': (TVPIE if is_website else TVPEmbedIE).ie_key(),
             'title': str_or_none(video_data.get('title')),
             'description': str_or_none(video_data.get('lead')),
             'timestamp': int_or_none(video_data.get('release_date_long')),
@@ -217,8 +234,9 @@ class TVPIE(InfoExtractor):
 
         # The URL may redirect to a VOD
         # example: https://vod.tvp.pl/48463890/wadowickie-spotkania-z-janem-pawlem-ii
-        if TVPWebsiteIE.suitable(urlh.url):
-            return self.url_result(urlh.url, ie=TVPWebsiteIE.ie_key(), video_id=page_id)
+        for ie_cls in (TVPVODSeriesIE, TVPVODVideoIE):
+            if ie_cls.suitable(urlh.url):
+                return self.url_result(urlh.url, ie=ie_cls.ie_key(), video_id=page_id)
 
         if re.search(
                 r'window\.__(?:video|news|website|directory)Data\s*=',
@@ -250,8 +268,11 @@ class TVPIE(InfoExtractor):
 
 class TVPStreamIE(InfoExtractor):
     IE_NAME = 'tvp:stream'
-    _VALID_URL = r'(?:tvpstream:|https?://tvpstream\.vod\.tvp\.pl/(?:\?(?:[^&]+[&;])*channel_id=)?)(?P<id>\d*)'
+    _VALID_URL = r'(?:tvpstream:|https?://(?:tvpstream\.vod|stream)\.tvp\.pl/(?:\?(?:[^&]+[&;])*channel_id=)?)(?P<id>\d*)'
     _TESTS = [{
+        'url': 'https://stream.tvp.pl/?channel_id=56969941',
+        'only_matching': True,
+    }, {
         # untestable as "video" id changes many times across a day
         'url': 'https://tvpstream.vod.tvp.pl/?channel_id=1455',
         'only_matching': True,
@@ -267,28 +288,21 @@ class TVPStreamIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    _PLAYER_BOX_RE = r'<div\s[^>]*id\s*=\s*["\']?tvp_player_box["\']?[^>]+data-%s-id\s*=\s*["\']?(\d+)'
-    _BUTTON_RE = r'<div\s[^>]*data-channel-id=["\']?%s["\']?[^>]*\sdata-title=(?:"([^"]*)"|\'([^\']*)\')[^>]*\sdata-stationname=(?:"([^"]*)"|\'([^\']*)\')'
-
     def _real_extract(self, url):
         channel_id = self._match_id(url)
-        channel_url = self._proto_relative_url('//tvpstream.vod.tvp.pl/?channel_id=%s' % channel_id or 'default')
-        webpage = self._download_webpage(channel_url, channel_id, 'Downloading channel webpage')
-        if not channel_id:
-            channel_id = self._search_regex(self._PLAYER_BOX_RE % 'channel',
-                                            webpage, 'default channel id')
-        video_id = self._search_regex(self._PLAYER_BOX_RE % 'video',
-                                      webpage, 'video id')
-        audition_title, station_name = self._search_regex(
-            self._BUTTON_RE % (re.escape(channel_id)), webpage,
-            'audition title and station name',
-            group=(1, 2))
+        channel_url = self._proto_relative_url('//stream.tvp.pl/?channel_id=%s' % channel_id or 'default')
+        webpage = self._download_webpage(channel_url, channel_id or 'default', 'Downloading channel webpage')
+        channels = self._search_json(
+            r'window\.__channels\s*=', webpage, 'channel list', channel_id,
+            contains_pattern=r'\[\s*{(?s:.+)}\s*]')
+        channel = traverse_obj(channels, (lambda _, v: channel_id == str(v['id'])), get_all=False) if channel_id else channels[0]
+        audition = traverse_obj(channel, ('items', lambda _, v: v['is_live'] is True), get_all=False)
         return {
             '_type': 'url_transparent',
-            'id': channel_id,
-            'url': 'tvp:%s' % video_id,
-            'title': audition_title,
-            'alt_title': station_name,
+            'id': channel_id or channel['id'],
+            'url': 'tvp:%s' % audition['video_id'],
+            'title': audition.get('title'),
+            'alt_title': channel.get('title'),
             'is_live': True,
             'ie_key': 'TVPEmbed',
         }
@@ -297,12 +311,13 @@ class TVPStreamIE(InfoExtractor):
 class TVPEmbedIE(InfoExtractor):
     IE_NAME = 'tvp:embed'
     IE_DESC = 'Telewizja Polska'
+    _GEO_BYPASS = False
     _VALID_URL = r'''(?x)
         (?:
             tvp:
             |https?://
                 (?:[^/]+\.)?
-                (?:tvp(?:parlament)?\.pl|tvp\.info|polandin\.com)/
+                (?:tvp(?:parlament)?\.pl|tvp\.info|tvpworld\.com|swipeto\.pl)/
                 (?:sess/
                         (?:tvplayer\.php\?.*?object_id
                         |TVPlayer2/(?:embed|api)\.php\?.*[Ii][Dd])
@@ -320,6 +335,12 @@ class TVPEmbedIE(InfoExtractor):
             'title': 'Czas honoru, odc. 13 – Władek',
             'description': 'md5:76649d2014f65c99477be17f23a4dead',
             'age_limit': 12,
+            'duration': 2652,
+            'series': 'Czas honoru',
+            'episode': 'Episode 13',
+            'episode_number': 13,
+            'season': 'sezon 1',
+            'thumbnail': r're:https://.+',
         },
     }, {
         'url': 'https://www.tvp.pl/sess/tvplayer.php?object_id=51247504&amp;autoplay=false',
@@ -327,6 +348,9 @@ class TVPEmbedIE(InfoExtractor):
             'id': '51247504',
             'ext': 'mp4',
             'title': 'Razmova 091220',
+            'duration': 876,
+            'age_limit': 0,
+            'thumbnail': r're:https://.+',
         },
     }, {
         # TVPlayer2 embed URL
@@ -361,43 +385,49 @@ class TVPEmbedIE(InfoExtractor):
         # stripping JSONP padding
         datastr = webpage[15 + len(callback):-3]
         if datastr.startswith('null,'):
-            error = self._parse_json(datastr[5:], video_id)
-            raise ExtractorError(error[0]['desc'])
+            error = self._parse_json(datastr[5:], video_id, fatal=False)
+            error_desc = traverse_obj(error, (0, 'desc'))
+
+            if error_desc == 'Obiekt wymaga płatności':
+                raise ExtractorError('Video requires payment and log-in, but log-in is not implemented')
+
+            raise ExtractorError(error_desc or 'unexpected JSON error')
 
         content = self._parse_json(datastr, video_id)['content']
         info = content['info']
         is_live = try_get(info, lambda x: x['isLive'], bool)
 
+        if info.get('isGeoBlocked'):
+            # actual country list is not provided, we just assume it's always available in PL
+            self.raise_geo_restricted(countries=['PL'])
+
         formats = []
         for file in content['files']:
-            video_url = file.get('url')
+            video_url = url_or_none(file.get('url'))
             if not video_url:
                 continue
-            if video_url.endswith('.m3u8'):
+            ext = determine_ext(video_url, None)
+            if ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(video_url, video_id, m3u8_id='hls', fatal=False, live=is_live))
-            elif video_url.endswith('.mpd'):
+            elif ext == 'mpd':
                 if is_live:
                     # doesn't work with either ffmpeg or native downloader
                     continue
                 formats.extend(self._extract_mpd_formats(video_url, video_id, mpd_id='dash', fatal=False))
-            elif video_url.endswith('.f4m'):
+            elif ext == 'f4m':
                 formats.extend(self._extract_f4m_formats(video_url, video_id, f4m_id='hds', fatal=False))
             elif video_url.endswith('.ism/manifest'):
                 formats.extend(self._extract_ism_formats(video_url, video_id, ism_id='mss', fatal=False))
             else:
-                # mp4, wmv or something
-                quality = file.get('quality', {})
                 formats.append({
                     'format_id': 'direct',
                     'url': video_url,
-                    'ext': determine_ext(video_url, file['type']),
-                    'fps': int_or_none(quality.get('fps')),
-                    'tbr': int_or_none(quality.get('bitrate')),
-                    'width': int_or_none(quality.get('width')),
-                    'height': int_or_none(quality.get('height')),
+                    'ext': ext or file.get('type'),
+                    'fps': int_or_none(traverse_obj(file, ('quality', 'fps'))),
+                    'tbr': int_or_none(traverse_obj(file, ('quality', 'bitrate')), scale=1000),
+                    'width': int_or_none(traverse_obj(file, ('quality', 'width'))),
+                    'height': int_or_none(traverse_obj(file, ('quality', 'height'))),
                 })
-
-        self._sort_formats(formats)
 
         title = dict_get(info, ('subtitle', 'title', 'seoTitle'))
         description = dict_get(info, ('description', 'seoDescription'))
@@ -449,57 +479,105 @@ class TVPEmbedIE(InfoExtractor):
         return info_dict
 
 
-class TVPWebsiteIE(InfoExtractor):
-    IE_NAME = 'tvp:series'
-    _VALID_URL = r'https?://vod\.tvp\.pl/website/(?P<display_id>[^,]+),(?P<id>\d+)'
+class TVPVODBaseIE(InfoExtractor):
+    _API_BASE_URL = 'https://vod.tvp.pl/api/products'
+
+    def _call_api(self, resource, video_id, **kwargs):
+        return self._download_json(
+            f'{self._API_BASE_URL}/{resource}', video_id,
+            query={'lang': 'pl', 'platform': 'BROWSER'}, **kwargs)
+
+    def _parse_video(self, video):
+        return {
+            '_type': 'url',
+            'url': 'tvp:' + video['externalUid'],
+            'ie_key': TVPEmbedIE.ie_key(),
+            'title': video.get('title'),
+            'description': traverse_obj(video, ('lead', 'description')),
+            'age_limit': int_or_none(video.get('rating')),
+            'duration': int_or_none(video.get('duration')),
+        }
+
+
+class TVPVODVideoIE(TVPVODBaseIE):
+    IE_NAME = 'tvp:vod'
+    _VALID_URL = r'https?://vod\.tvp\.pl/[a-z\d-]+,\d+/[a-z\d-]+(?<!-odcinki)(?:-odcinki,\d+/odcinek-\d+,S\d+E\d+)?,(?P<id>\d+)(?:\?[^#]+)?(?:#.+)?$'
 
     _TESTS = [{
-        # series
-        'url': 'https://vod.tvp.pl/website/wspaniale-stulecie,17069012/video',
+        'url': 'https://vod.tvp.pl/dla-dzieci,24/laboratorium-alchemika-odcinki,309338/odcinek-24,S01E24,311357',
         'info_dict': {
-            'id': '17069012',
-        },
-        'playlist_count': 312,
-    }, {
-        # film
-        'url': 'https://vod.tvp.pl/website/krzysztof-krawczyk-cale-moje-zycie,51374466',
-        'info_dict': {
-            'id': '51374509',
+            'id': '60468609',
             'ext': 'mp4',
-            'title': 'Krzysztof Krawczyk – całe moje życie, Krzysztof Krawczyk – całe moje życie',
-            'description': 'md5:2e80823f00f5fc263555482f76f8fa42',
-            'age_limit': 12,
+            'title': 'Laboratorium alchemika, Tusze termiczne. Jak zobaczyć niewidoczne. Odcinek 24',
+            'description': 'md5:1d4098d3e537092ccbac1abf49b7cd4c',
+            'duration': 300,
+            'episode_number': 24,
+            'episode': 'Episode 24',
+            'age_limit': 0,
+            'series': 'Laboratorium alchemika',
+            'thumbnail': 're:https://.+',
         },
-        'params': {
-            'skip_download': True,
-        },
-        'add_ie': ['TVPEmbed'],
     }, {
-        'url': 'https://vod.tvp.pl/website/lzy-cennet,38678312',
+        'url': 'https://vod.tvp.pl/filmy-dokumentalne,163/ukrainski-sluga-narodu,339667',
+        'info_dict': {
+            'id': '51640077',
+            'ext': 'mp4',
+            'title': 'Ukraiński sługa narodu, Ukraiński sługa narodu',
+            'series': 'Ukraiński sługa narodu',
+            'description': 'md5:b7940c0a8e439b0c81653a986f544ef3',
+            'age_limit': 12,
+            'episode': 'Episode 0',
+            'episode_number': 0,
+            'duration': 3051,
+            'thumbnail': 're:https://.+',
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+
+        return self._parse_video(self._call_api(f'vods/{video_id}', video_id))
+
+
+class TVPVODSeriesIE(TVPVODBaseIE):
+    IE_NAME = 'tvp:vod:series'
+    _VALID_URL = r'https?://vod\.tvp\.pl/[a-z\d-]+,\d+/[a-z\d-]+-odcinki,(?P<id>\d+)(?:\?[^#]+)?(?:#.+)?$'
+
+    _TESTS = [{
+        'url': 'https://vod.tvp.pl/seriale,18/ranczo-odcinki,316445',
+        'info_dict': {
+            'id': '316445',
+            'title': 'Ranczo',
+            'age_limit': 12,
+            'categories': ['seriale'],
+        },
+        'playlist_count': 129,
+    }, {
+        'url': 'https://vod.tvp.pl/programy,88/rolnik-szuka-zony-odcinki,284514',
+        'only_matching': True,
+    }, {
+        'url': 'https://vod.tvp.pl/dla-dzieci,24/laboratorium-alchemika-odcinki,309338',
         'only_matching': True,
     }]
 
-    def _entries(self, display_id, playlist_id):
-        url = 'https://vod.tvp.pl/website/%s,%s/video' % (display_id, playlist_id)
-        for page_num in itertools.count(1):
-            page = self._download_webpage(
-                url, display_id, 'Downloading page %d' % page_num,
-                query={'page': page_num})
-
-            video_ids = orderedSet(re.findall(
-                r'<a[^>]+\bhref=["\']/video/%s,[^,]+,(\d+)' % display_id,
-                page))
-
-            if not video_ids:
-                break
-
-            for video_id in video_ids:
-                yield self.url_result(
-                    'tvp:%s' % video_id, ie=TVPEmbedIE.ie_key(),
-                    video_id=video_id)
+    def _entries(self, seasons, playlist_id):
+        for season in seasons:
+            episodes = self._call_api(
+                f'vods/serials/{playlist_id}/seasons/{season["id"]}/episodes', playlist_id,
+                note=f'Downloading episode list for {season["title"]}')
+            yield from map(self._parse_video, episodes)
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        display_id, playlist_id = mobj.group('display_id', 'id')
+        playlist_id = self._match_id(url)
+        metadata = self._call_api(
+            f'vods/serials/{playlist_id}', playlist_id,
+            note='Downloading serial metadata')
+        seasons = self._call_api(
+            f'vods/serials/{playlist_id}/seasons', playlist_id,
+            note='Downloading season list')
         return self.playlist_result(
-            self._entries(display_id, playlist_id), playlist_id)
+            self._entries(seasons, playlist_id), playlist_id, strip_or_none(metadata.get('title')),
+            clean_html(traverse_obj(metadata, ('description', 'lead'), expected_type=strip_or_none)),
+            categories=[traverse_obj(metadata, ('mainCategory', 'name'))],
+            age_limit=int_or_none(metadata.get('rating')),
+        )

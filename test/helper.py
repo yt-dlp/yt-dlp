@@ -222,6 +222,10 @@ def sanitize_got_info_dict(got_dict):
     if test_info_dict.get('display_id') == test_info_dict.get('id'):
         test_info_dict.pop('display_id')
 
+    # Check url for flat entries
+    if got_dict.get('_type', 'video') != 'video' and got_dict.get('url'):
+        test_info_dict['url'] = got_dict['url']
+
     return test_info_dict
 
 
@@ -235,8 +239,9 @@ def expect_info_dict(self, got_dict, expected_dict):
         for key in mandatory_fields:
             self.assertTrue(got_dict.get(key), 'Missing mandatory field %s' % key)
     # Check for mandatory fields that are automatically set by YoutubeDL
-    for key in ['webpage_url', 'extractor', 'extractor_key']:
-        self.assertTrue(got_dict.get(key), 'Missing field: %s' % key)
+    if got_dict.get('_type', 'video') == 'video':
+        for key in ['webpage_url', 'extractor', 'extractor_key']:
+            self.assertTrue(got_dict.get(key), 'Missing field: %s' % key)
 
     test_info_dict = sanitize_got_info_dict(got_dict)
 
@@ -249,19 +254,16 @@ def expect_info_dict(self, got_dict, expected_dict):
                 return v.__name__
             else:
                 return repr(v)
-        info_dict_str = ''
-        if len(missing_keys) != len(expected_dict):
-            info_dict_str += ''.join(
-                f'    {_repr(k)}: {_repr(v)},\n'
-                for k, v in test_info_dict.items() if k not in missing_keys)
-
-            if info_dict_str:
-                info_dict_str += '\n'
+        info_dict_str = ''.join(
+            f'    {_repr(k)}: {_repr(v)},\n'
+            for k, v in test_info_dict.items() if k not in missing_keys)
+        if info_dict_str:
+            info_dict_str += '\n'
         info_dict_str += ''.join(
             f'    {_repr(k)}: {_repr(test_info_dict[k])},\n'
             for k in missing_keys)
-        write_string(
-            '\n\'info_dict\': {\n' + info_dict_str + '},\n', out=sys.stderr)
+        info_dict_str = '\n\'info_dict\': {\n' + info_dict_str + '},\n'
+        write_string(info_dict_str.replace('\n', '\n        '), out=sys.stderr)
         self.assertFalse(
             missing_keys,
             'Missing keys in test definition: %s' % (

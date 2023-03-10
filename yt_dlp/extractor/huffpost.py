@@ -79,8 +79,6 @@ class HuffPostIE(InfoExtractor):
                     'vcodec': 'none' if key.startswith('audio/') else None,
                 })
 
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': video_title,

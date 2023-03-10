@@ -1,5 +1,3 @@
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -39,15 +37,27 @@ class HiDiveIE(InfoExtractor):
         form = self._search_regex(
             r'(?s)<form[^>]+action="/account/login"[^>]*>(.+?)</form>',
             webpage, 'login form', default=None)
-        if not form:  # logged in
+        if not form:
             return
         data = self._hidden_inputs(form)
         data.update({
             'Email': username,
             'Password': password,
         })
-        self._download_webpage(
+        login_webpage = self._download_webpage(
             self._LOGIN_URL, None, 'Logging in', data=urlencode_postdata(data))
+        # If the user has multiple profiles on their account, select one. For now pick the first profile.
+        profile_id = self._search_regex(r'<button [^>]+?data-profile-id="(\w+)"', login_webpage, 'profile_id')
+        if profile_id is None:
+            return  # If only one profile, Hidive auto-selects it
+        profile_id_hash = self._search_regex(r'\<button [^>]+?data-hash="(\w+)"', login_webpage, 'profile_id_hash')
+        self._request_webpage(
+            'https://www.hidive.com/ajax/chooseprofile', None,
+            data=urlencode_postdata({
+                'profileId': profile_id,
+                'hash': profile_id_hash,
+                'returnUrl': '/dashboard'
+            }))
 
     def _call_api(self, video_id, title, key, data={}, **kwargs):
         data = {
@@ -59,26 +69,6 @@ class HiDiveIE(InfoExtractor):
         return self._download_json(
             'https://www.hidive.com/play/settings', video_id,
             data=urlencode_postdata(data), **kwargs) or {}
-
-    def _extract_subtitles_from_rendition(self, rendition, subtitles, parsed_urls):
-        for cc_file in rendition.get('ccFiles', []):
-            cc_url = url_or_none(try_get(cc_file, lambda x: x[2]))
-            # name is used since we cant distinguish subs with same language code
-            cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
-            if cc_url not in parsed_urls and cc_lang:
-                parsed_urls.add(cc_url)
-                subtitles.setdefault(cc_lang, []).append({'url': cc_url})
-
-    def _get_subtitles(self, url, video_id, title, key, parsed_urls):
-        webpage = self._download_webpage(url, video_id, fatal=False) or ''
-        subtitles = {}
-        for caption in set(re.findall(r'data-captions=\"([^\"]+)\"', webpage)):
-            renditions = self._call_api(
-                video_id, title, key, {'Captions': caption}, fatal=False,
-                note=f'Downloading {caption} subtitle information').get('renditions') or {}
-            for rendition_id, rendition in renditions.items():
-                self._extract_subtitles_from_rendition(rendition, subtitles, parsed_urls)
-        return subtitles
 
     def _real_extract(self, url):
         video_id, title, key = self._match_valid_url(url).group('id', 'title', 'key')
@@ -103,12 +93,21 @@ class HiDiveIE(InfoExtractor):
                     f['language'] = audio
                     f['format_note'] = f'{version}, {extra}'
                 formats.extend(frmt)
-        self._sort_formats(formats)
+
+        subtitles = {}
+        for rendition_id, rendition in settings['renditions'].items():
+            audio, version, extra = rendition_id.split('_')
+            for cc_file in rendition.get('ccFiles') or []:
+                cc_url = url_or_none(try_get(cc_file, lambda x: x[2]))
+                cc_lang = try_get(cc_file, (lambda x: x[1].replace(' ', '-').lower(), lambda x: x[0]), str)
+                if cc_url not in parsed_urls and cc_lang:
+                    parsed_urls.add(cc_url)
+                    subtitles.setdefault(cc_lang, []).append({'url': cc_url})
 
         return {
             'id': video_id,
             'title': video_id,
-            'subtitles': self.extract_subtitles(url, video_id, title, key, parsed_urls),
+            'subtitles': subtitles,
             'formats': formats,
             'series': title,
             'season_number': int_or_none(

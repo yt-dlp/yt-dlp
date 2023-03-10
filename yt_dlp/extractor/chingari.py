@@ -32,7 +32,6 @@ class ChingariBaseIE(InfoExtractor):
                 'url': base_url + '/apipublic' + media_data['path'],
                 'quality': 10,
             })
-        self._sort_formats(formats)
         timestamp = str_to_int(post_data.get('created_at'))
         if timestamp:
             timestamp = int_or_none(timestamp, 1000)

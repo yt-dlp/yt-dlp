@@ -1,11 +1,5 @@
 from .dailymotion import DailymotionIE
 from .common import InfoExtractor
-from ..utils import (
-    parse_iso8601,
-    try_get,
-)
-
-import re
 
 
 class MoviepilotIE(InfoExtractor):
@@ -16,21 +10,21 @@ class MoviepilotIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://www.moviepilot.de/movies/interstellar-2/',
         'info_dict': {
-            'id': 'x7xdut5',
+            'id': 'x7xdpkk',
             'display_id': 'interstellar-2',
             'ext': 'mp4',
             'title': 'Interstellar',
-            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SaXev1VvzitVZMFsR/x720',
-            'timestamp': 1400491705,
-            'description': 'md5:7dfc5c1758e7322a7346934f1f0c489c',
+            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SaV-q1ZganMw4HVXg/x1080',
+            'timestamp': 1605010596,
+            'description': 'md5:0ae9cb452af52610c9ffc60f2fd0474c',
             'uploader': 'Moviepilot',
             'like_count': int,
             'view_count': int,
             'uploader_id': 'x6nd9k',
-            'upload_date': '20140519',
-            'duration': 140,
+            'upload_date': '20201110',
+            'duration': 97,
             'age_limit': 0,
-            'tags': ['Alle Trailer', 'Movie', 'Third Party'],
+            'tags': ['Alle Trailer', 'Movie', 'Verleih'],
         },
     }, {
         'url': 'https://www.moviepilot.de/movies/interstellar-2/trailer',
@@ -45,14 +39,14 @@ class MoviepilotIE(InfoExtractor):
             'display_id': 'queen-slim',
             'title': 'Queen & Slim',
             'ext': 'mp4',
-            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SbUM71WtomSjVmI_q/x720',
-            'timestamp': 1571838685,
-            'description': 'md5:73058bcd030aa12d991e4280d65fbebe',
+            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SbUM71ZeG2N975lf2/x1080',
+            'timestamp': 1605555825,
+            'description': 'md5:83228bb86f5367dd181447fdc4873989',
             'uploader': 'Moviepilot',
             'like_count': int,
             'view_count': int,
             'uploader_id': 'x6nd9k',
-            'upload_date': '20191023',
+            'upload_date': '20201116',
             'duration': 138,
             'age_limit': 0,
             'tags': ['Movie', 'Verleih', 'Neue Trailer'],
@@ -72,12 +66,12 @@ class MoviepilotIE(InfoExtractor):
             'display_id': 'muellers-buero',
             'title': 'Müllers Büro',
             'ext': 'mp4',
-            'description': 'md5:57501251c05cdc61ca314b7633e0312e',
-            'timestamp': 1287584475,
+            'description': 'md5:4d23a8f4ca035196cd4523863c4fe5a4',
+            'timestamp': 1604958457,
             'age_limit': 0,
             'duration': 82,
-            'upload_date': '20101020',
-            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SaMes1WfAm1d6maq_/x720',
+            'upload_date': '20201109',
+            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SaMes1Zg3lxLv9j5u/x1080',
             'uploader': 'Moviepilot',
             'like_count': int,
             'view_count': int,
@@ -91,22 +85,13 @@ class MoviepilotIE(InfoExtractor):
 
         webpage = self._download_webpage(f'https://www.moviepilot.de/movies/{video_id}/trailer', video_id)
 
-        duration = try_get(
-            re.match(r'P(?P<hours>\d+)H(?P<mins>\d+)M(?P<secs>\d+)S',
-                     self._html_search_meta('duration', webpage, fatal=False) or ''),
-            lambda mobj: sum(float(x) * y for x, y in zip(mobj.groups(), (3600, 60, 1))))
-        # _html_search_meta is not used since we don't want name=description to match
-        description = self._html_search_regex(
-            '<meta[^>]+itemprop="description"[^>]+content="([^>"]+)"', webpage, 'description', fatal=False)
+        clip = self._search_nextjs_data(webpage, video_id)['props']['initialProps']['pageProps']
 
         return {
             '_type': 'url_transparent',
             'ie_key': DailymotionIE.ie_key(),
             'display_id': video_id,
-            'title': self._og_search_title(webpage),
-            'url': self._html_search_meta('embedURL', webpage),
-            'thumbnail': self._html_search_meta('thumbnailURL', webpage),
-            'description': description,
-            'duration': duration,
-            'timestamp': parse_iso8601(self._html_search_meta('uploadDate', webpage), delimiter=' ')
+            'title': clip.get('title'),
+            'url': f'https://www.dailymotion.com/video/{clip["videoRemoteId"]}',
+            'description': clip.get('summary'),
         }

@@ -17,8 +17,10 @@ class FifaIE(InfoExtractor):
             'description': 'md5:f4520d0ee80529c8ba4134a7d692ff8b',
             'ext': 'mp4',
             'categories': ['FIFA Tournaments'],
-            'thumbnail': 'https://digitalhub.fifa.com/transform/fa6f0b3e-a2e9-4cf7-9f32-53c57bcb7360/2006_Final_ITA_FRA',
+            'thumbnail': 'https://digitalhub.fifa.com/transform/135e2656-3a51-407b-8810-6c34bec5b59b/FMR_2006_Italy_France_Final_Hero',
             'duration': 8165,
+            'release_timestamp': 1152403200,
+            'release_date': '20060709',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -54,7 +56,7 @@ class FifaIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         preconnect_link = self._search_regex(
-            r'<link[^>]+rel\s*=\s*"preconnect"[^>]+href\s*=\s*"([^"]+)"', webpage, 'Preconnect Link')
+            r'<link\b[^>]+\brel\s*=\s*"preconnect"[^>]+href\s*=\s*"([^"]+)"', webpage, 'Preconnect Link')
 
         video_details = self._download_json(
             f'{preconnect_link}/sections/videoDetails/{video_id}', video_id, 'Downloading Video Details', fatal=False)
@@ -62,25 +64,11 @@ class FifaIE(InfoExtractor):
         preplay_parameters = self._download_json(
             f'{preconnect_link}/videoPlayerData/{video_id}', video_id, 'Downloading Preplay Parameters')['preplayParameters']
 
-        cid = preplay_parameters['contentId']
         content_data = self._download_json(
-            f'https://content.uplynk.com/preplay/{cid}/multiple.json', video_id, 'Downloading Content Data', query={
-                'v': preplay_parameters['preplayAPIVersion'],
-                'tc': preplay_parameters['tokenCheckAlgorithmVersion'],
-                'rn': preplay_parameters['randomNumber'],
-                'exp': preplay_parameters['tokenExpirationDate'],
-                'ct': preplay_parameters['contentType'],
-                'cid': cid,
-                'mbtracks': preplay_parameters['tracksAssetNumber'],
-                'ad': preplay_parameters['adConfiguration'],
-                'ad.preroll': int(preplay_parameters['adPreroll']),
-                'ad.cmsid': preplay_parameters['adCMSSourceId'],
-                'ad.vid': preplay_parameters['adSourceVideoID'],
-                'sig': preplay_parameters['signature'],
-            })
+            'https://content.uplynk.com/preplay/{contentId}/multiple.json?{queryStr}&sig={signature}'.format(**preplay_parameters),
+            video_id, 'Downloading Content Data')
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(content_data['playURL'], video_id)
-        self._sort_formats(formats)
 
         return {
             'id': video_id,

@@ -131,8 +131,6 @@ class SenateISVPIE(InfoExtractor):
                     entry['format_id'] += mobj.group('tag')
                 formats.append(entry)
 
-            self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': title,
@@ -187,7 +185,6 @@ class SenateGovIE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             f'{stream_domain}/i/{filename}_1@{stream_num}/master.m3u8',
             display_id, ext='mp4')
-        self._sort_formats(formats)
 
         title = self._html_search_regex(
             (*self._og_regexes('title'), r'(?s)<title>([^<]*?)</title>'), webpage, 'video title')

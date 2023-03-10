@@ -1,4 +1,5 @@
 import functools
+import urllib
 
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
@@ -16,6 +17,12 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
         'gif': 250,
         'sd': 480,
         'hd': None,
+    }
+
+    _API_HEADERS = {
+        'referer': 'https://www.redgifs.com/',
+        'origin': 'https://www.redgifs.com',
+        'content-type': 'application/json',
     }
 
     def _parse_gif_data(self, gif_data):
@@ -38,12 +45,11 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
                 'height': height,
                 'quality': quality(format_id),
             })
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
             'webpage_url': f'https://redgifs.com/watch/{video_id}',
-            'ie_key': RedGifsIE.ie_key(),
+            'extractor_key': RedGifsIE.ie_key(),
             'extractor': 'RedGifs',
             'title': ' '.join(gif_data.get('tags') or []) or 'RedGifs',
             'timestamp': int_or_none(gif_data.get('createDate')),
@@ -57,9 +63,30 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
             'formats': formats,
         }
 
+    def _fetch_oauth_token(self, video_id):
+        # https://github.com/Redgifs/api/wiki/Temporary-tokens
+        auth = self._download_json('https://api.redgifs.com/v2/auth/temporary',
+                                   video_id, note='Fetching temporary token')
+        if not auth.get('token'):
+            raise ExtractorError('Unable to get temporary token')
+        self._API_HEADERS['authorization'] = f'Bearer {auth["token"]}'
+
     def _call_api(self, ep, video_id, *args, **kwargs):
-        data = self._download_json(
-            f'https://api.redgifs.com/v2/{ep}', video_id, *args, **kwargs)
+        for first_attempt in True, False:
+            if 'authorization' not in self._API_HEADERS:
+                self._fetch_oauth_token(video_id)
+            try:
+                headers = dict(self._API_HEADERS)
+                headers['x-customheader'] = f'https://www.redgifs.com/watch/{video_id}'
+                data = self._download_json(
+                    f'https://api.redgifs.com/v2/{ep}', video_id, headers=headers, *args, **kwargs)
+                break
+            except ExtractorError as e:
+                if first_attempt and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                    del self._API_HEADERS['authorization']  # refresh the token
+                    continue
+                raise
+
         if 'error' in data:
             raise ExtractorError(f'RedGifs said: {data["error"]}', expected=True, video_id=video_id)
         return data
@@ -102,6 +129,7 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'like_count': int,
             'categories': list,
             'age_limit': 18,
+            'tags': list,
         }
     }, {
         'url': 'https://thumbs2.redgifs.com/SqueakyHelplessWisent-mobile.mp4#t=0',
@@ -117,13 +145,14 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
             'like_count': int,
             'categories': list,
             'age_limit': 18,
+            'tags': list,
         }
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url).lower()
         video_info = self._call_api(
-            f'gifs/{video_id}', video_id, note='Downloading video info')
+            f'gifs/{video_id}?views=yes', video_id, note='Downloading video info')
         return self._parse_gif_data(video_info['gif'])
 
 
