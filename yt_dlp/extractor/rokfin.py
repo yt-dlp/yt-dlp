@@ -100,6 +100,10 @@ class RokfinIE(InfoExtractor):
                        else 'not_live')
 
         video_url = traverse_obj(metadata, 'url', ('content', 'contentUrl'), expected_type=url_or_none)
+        timeline_url = traverse_obj(metadata, 'timelineUrl', ('content', 'timelineUrl'), expected_type=url_or_none)
+        if (not video_url or video_url == 'fake.m3u8') and timeline_url:
+            video_url = re.sub('https://image.v.rokfin.com/([^/]+)/storyboard.vtt$', 'https://stream.v.rokfin.com/\\1.m3u8', timeline_url);
+
         formats, subtitles = [{'url': video_url}] if video_url else [], {}
         if determine_ext(video_url) == 'm3u8':
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
