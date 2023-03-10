@@ -84,7 +84,7 @@ class MedalTVIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         hydration_data = self._search_json(
-            r'<script[^>]*>.*?hydrationData\s*=', webpage,
+            r'<script[^>]*>\s*(?:var\s+)?hydrationData\s*=', webpage,
             'next data', video_id, end_pattern='</script>', fatal=False)
 
         clip = traverse_obj(hydration_data, ('clips', ...), get_all=False)
