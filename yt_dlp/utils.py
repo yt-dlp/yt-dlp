@@ -1893,7 +1893,7 @@ def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
     return replace_extension(filename, sub_lang + '.' + sub_format, expected_real_ext)
 
 
-def datetime_from_str(date_str, precision='auto', format='%Y%m%d', use_utc=True):
+def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     R"""
     Return a datetime object from a string.
     Supported format:
@@ -1902,13 +1902,12 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d', use_utc=True)
     @param format       strftime format of DATE
     @param precision    Round the datetime object: auto|microsecond|second|minute|hour|day
                         auto: round to the unit provided in date_str (if applicable).
-    @param use_utc      Use UTC instead of local timezone for 'now' timestamps.
     """
     auto_precision = False
     if precision == 'auto':
         auto_precision = True
         precision = 'microsecond'
-    today = datetime_round(datetime.datetime.utcnow() if use_utc else datetime.datetime.now(), precision)
+    today = datetime_round(datetime.datetime.utcnow(), precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
@@ -1917,7 +1916,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d', use_utc=True)
         r'(?P<start>.+)(?P<sign>[+-])(?P<time>\d+)(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?',
         date_str)
     if match is not None:
-        start_time = datetime_from_str(match.group('start'), precision, format, use_utc)
+        start_time = datetime_from_str(match.group('start'), precision, format)
         time = int(match.group('time')) * (-1 if match.group('sign') == '-' else 1)
         unit = match.group('unit')
         if unit == 'month' or unit == 'year':
