@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class MedalTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?medal\.tv/(?P<path>games/[^/?#&]+/clips)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:www\.)?medal\.tv/games/[^/?#&]+/clips/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://medal.tv/games/valorant/clips/jTBFnLKdLy15K',
         'md5': '6930f8972914b6b9fdc2bb3918098ba0',
@@ -79,12 +79,11 @@ class MedalTVIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        path = self._match_valid_url(url).group('path')
 
         webpage = self._download_webpage(url, video_id)
 
         hydration_data = self._search_json(
-            '<script[^>]*>.*?hydrationData\s*=', webpage,
+            r'<script[^>]*>.*?hydrationData\s*=', webpage,
             'next data', video_id, end_pattern='</script>', fatal=False)
 
         clips = hydration_data.get('clips')
