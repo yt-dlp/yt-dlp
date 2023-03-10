@@ -8,7 +8,6 @@ from ..utils import (
     float_or_none,
     int_or_none,
     str_or_none,
-    traverse_obj,
 )
 
 
@@ -84,25 +83,17 @@ class MedalTVIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_id)
 
-        next_data = self._search_json(
-            '<script[^>]*__NEXT_DATA__[^>]*>', webpage,
+        hydration_data = self._search_json(
+            '<script[^>]*>.*?hydrationData\s*=', webpage,
             'next data', video_id, end_pattern='</script>', fatal=False)
 
-        build_id = next_data.get('buildId')
-        if not build_id:
-            raise ExtractorError(
-                'Could not find build ID.', video_id=video_id)
-
-        locale = next_data.get('locale', 'en')
-
-        api_response = self._download_json(
-            f'https://medal.tv/_next/data/{build_id}/{locale}/{path}/{video_id}.json', video_id)
-
-        clip = traverse_obj(api_response, ('pageProps', 'clip')) or {}
-        if not clip:
+        clips = hydration_data.get('clips')
+        if not clips:
             raise ExtractorError(
                 'Could not find video information.', video_id=video_id)
 
+        # TODO fix this: make it error-proof
+        clip = next(iter(clips.values()))
         title = clip['contentTitle']
 
         source_width = int_or_none(clip.get('sourceWidth'))
@@ -150,9 +141,11 @@ class MedalTVIE(InfoExtractor):
                     'An unknown error occurred ({0}).'.format(error),
                     video_id=video_id)
 
-        # Necessary because the id of the author is not known in advance.
-        # Won't raise an issue if no profile can be found as this is optional.
-        author = traverse_obj(api_response, ('pageProps', 'profile')) or {}
+        author_profiles = hydration_data.get('profiles') or {}
+
+        # TODO fix this: make it error-proof
+        author = next(iter(author_profiles.values()))
+
         author_id = str_or_none(author.get('userId'))
         author_url = format_field(author_id, None, 'https://medal.tv/users/%s')
 
