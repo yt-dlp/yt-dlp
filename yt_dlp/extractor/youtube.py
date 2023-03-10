@@ -2853,6 +2853,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if lack_early_segments:
                 known_idx = max(known_idx, last_seq - int(MAX_DURATION // last_fragment['duration']))
 
+            fragment_count = last_seq - known_idx if section_end == math.inf else int(
+                (section_end - section_start) // last_fragment['duration'])
+
             try:
                 for idx in range(known_idx, last_seq):
                     # do not update sequence here or you'll get skipped some part of it
@@ -2870,6 +2873,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
                         yield {
                             'url': last_segment_url,
+                            'fragment_count': fragment_count,
                             'duration': frag_duration,
                             'start': frag_start,
                             'end': frag_end,
