@@ -2853,12 +2853,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         known_idx = idx - 1
                         raise ExtractorError('breaking out of outer loop')
 
-                    last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
                     frag_duration = last_fragment['duration']
                     frag_start = last_fragment['start'] - (last_seq - idx) * frag_duration
                     frag_end = frag_start + frag_duration
 
                     if frag_start >= section_start and frag_end <= section_end:
+                        last_segment_url = urljoin(fragment_base_url, f'sq/{idx}')
+
                         yield {
                             'url': last_segment_url,
                             'duration': frag_duration,
