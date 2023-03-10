@@ -141,7 +141,7 @@ class MedalTVIE(InfoExtractor):
 
         # Necessary because the id of the author is not known in advance.
         # Won't raise an issue if no profile can be found as this is optional.
-        author = traverse_obj(hydration_data, ('profiles', ...), get_all=False)
+        author = traverse_obj(hydration_data, ('profiles', ...), get_all=False) or {}
         author_id = str_or_none(author.get('userId'))
         author_url = format_field(author_id, None, 'https://medal.tv/users/%s')
 
