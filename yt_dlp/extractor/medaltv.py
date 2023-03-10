@@ -8,6 +8,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     str_or_none,
+    traverse_obj
 )
 
 
@@ -86,13 +87,11 @@ class MedalTVIE(InfoExtractor):
             r'<script[^>]*>.*?hydrationData\s*=', webpage,
             'next data', video_id, end_pattern='</script>', fatal=False)
 
-        clips = hydration_data.get('clips')
-        if not clips:
+        clip = traverse_obj(hydration_data, ('clips', ...), get_all=False)
+        if not clip:
             raise ExtractorError(
                 'Could not find video information.', video_id=video_id)
 
-        # TODO fix this: make it error-proof
-        clip = next(iter(clips.values()))
         title = clip['contentTitle']
 
         source_width = int_or_none(clip.get('sourceWidth'))
@@ -140,11 +139,9 @@ class MedalTVIE(InfoExtractor):
                     'An unknown error occurred ({0}).'.format(error),
                     video_id=video_id)
 
-        author_profiles = hydration_data.get('profiles') or {}
-
-        # TODO fix this: make it error-proof
-        author = next(iter(author_profiles.values()))
-
+        # Necessary because the id of the author is not known in advance.
+        # Won't raise an issue if no profile can be found as this is optional.
+        author = traverse_obj(hydration_data, ('profiles', ...), get_all=False)
         author_id = str_or_none(author.get('userId'))
         author_url = format_field(author_id, None, 'https://medal.tv/users/%s')
 
