@@ -322,9 +322,10 @@ def validate_options(opts):
 
     def parse_chapters(name, value):
         def parse_timestamp(x):
-            # FIXME: This should be smarter, e.g. 'inf-1day'?
+            # FIXME: Maybe there's a better way to remove parenthesis
             x = x.replace('(', '').replace(')', '')
 
+            # FIXME: This should be smarter, e.g. 'inf-1day'?
             if x in ('inf', 'infinite'):
                 return float('inf')
 
@@ -337,7 +338,7 @@ def validate_options(opts):
         for regex in value or []:
             if regex.startswith('*'):
                 for range_ in map(str.strip, regex[1:].split(',')):
-                    # FIXME: This is really sensible
+                    # FIXME: This should match correctly '(now-1hour)-(now-20minutes)'
                     mobj = range_ != '-' and re.fullmatch(r'(.+)?\s*-\s*(.+)?', range_)
                     dur = mobj and (parse_timestamp(mobj.group(1) or '0'), parse_timestamp(mobj.group(2) or 'inf'))
                     if None in (dur or [None]):
