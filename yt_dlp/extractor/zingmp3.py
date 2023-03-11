@@ -393,7 +393,8 @@ class ZingMp3UserIE(ZingMp3BaseIE):
             entries = self._paged_list(user_info['id'], url_type)
         else:
             entries = self._parse_items(traverse_obj(user_info, (
-                'sections', lambda _, v: v['sectionId'] == 'aAlbum' if url_type == 'album' else 'aSingle',
+                'sections',
+                lambda _, v: v['sectionId'] == 'aAlbum' if url_type == 'album' else v['sectionId'] == 'aSingle',
                 'items', ...)))
         return self.playlist_result(
             entries, user_info['id'], f'{user_info.get("name")} - {url_type}', user_info.get('biography'))
