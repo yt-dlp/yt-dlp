@@ -2481,6 +2481,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_follower_count': int,
                 'duration': 6,
                 'tags': [],
+                'uploader_id': '@lesmiscore',
+                'uploader': 'Lesmiscore',
+                'uploader_url': 'https://www.youtube.com/@lesmiscore',
             }
         }, {
             # Prefer primary title+description language metadata by default
