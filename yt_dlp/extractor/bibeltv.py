@@ -86,7 +86,7 @@ class BibelTVBaseIE(InfoExtractor):
 
 class BibelTVVideoIE(BibelTVBaseIE):
     IE_DESC = 'BibelTV single video'
-    _VALID_URL = r'https?://(?:www\.)?bibeltv\.de/mediathek/videos/(?:crn/)?(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bibeltv\.de/mediathek/videos/(?P<id>\d+)[\w-]+'
     IE_NAME = 'bibeltv:video'
 
     _TESTS = [{
@@ -109,9 +109,6 @@ class BibelTVVideoIE(BibelTVBaseIE):
         'params': {
             'format': '6',
         },
-    }, {
-        'url': 'https://www.bibeltv.de/mediathek/videos/crn/326374',
-        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -127,7 +124,7 @@ class BibelTVVideoIE(BibelTVBaseIE):
 
 class BibelTVSeriesIE(BibelTVBaseIE):
     IE_DESC = 'BibelTV series playlist'
-    _VALID_URL = r'https?://(?:www\.)?bibeltv\.de/mediathek/serien/(?:crn/)?(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bibeltv\.de/mediathek/serien/(?P<id>\d+)[\w-]+'
     IE_NAME = 'bibeltv:series'
 
     _TESTS = [{
@@ -155,7 +152,7 @@ class BibelTVSeriesIE(BibelTVBaseIE):
 
 class BibelTVLiveIE(BibelTVBaseIE):
     IE_DESC = 'BibelTV live program'
-    _VALID_URL = r'https?://(?:www\.)?bibeltv\.de/livestreams/(?P<id>[a-z]+)'
+    _VALID_URL = r'https?://(?:www\.)?bibeltv\.de/livestreams/(?P<id>[\w-]+)'
     IE_NAME = 'bibeltv:live'
 
     _TESTS = [{
