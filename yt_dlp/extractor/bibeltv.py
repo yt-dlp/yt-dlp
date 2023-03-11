@@ -9,7 +9,6 @@ from ..utils import (
     orderedSet,
     parse_iso8601,
     traverse_obj,
-    try_get,
     url_or_none,
 )
 
@@ -54,8 +53,6 @@ class BibelTVIE(InfoExtractor):
         formats = []
         subtitles = {}
         for media_url in traverse_obj(data, (..., 'src', {url_or_none})):
-            if not media_url:
-                continue
             media_ext = determine_ext(media_url)
             if media_ext == 'm3u8':
                 m3u8_formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
@@ -146,19 +143,13 @@ class BibelTvSerienIE(BibelTVIE):
         crn_id = self._match_id(url)
         webpage = self._download_webpage(url, crn_id)
         nextjs_data = self._search_nextjs_data(webpage, crn_id)
-        series_data = try_get(nextjs_data, lambda x: x['props']['pageProps']['seriePageData'], dict)
+        series_data = traverse_obj(nextjs_data, ('props', 'pageProps', 'seriePageData', {dict}))
         if not series_data:
             raise ExtractorError('Missing series data.')
 
-        video_data = traverse_obj(series_data, ('videos', ..., {dict}))
-
         return self.playlist_result(
-            list(map(self._extract_url_info, video_data)),
-            playlist_id=crn_id,
-            playlist_title=series_data.get('title'),
-            playlist_description=clean_html(series_data.get('description')),
-            playlist_count=len(video_data),
-        )
+            traverse_obj(series_data, ('videos', ..., {dict}, {self._extract_url_info})),
+            crn_id, series_data.get('title'), clean_html(series_data.get('description')))
 
 
 class BibelTvLiveIE(BibelTVIE):
