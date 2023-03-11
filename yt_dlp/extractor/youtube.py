@@ -455,10 +455,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_CHANNEL_UCID_RE = r'UC[\w-]{22}'
 
     def ucid_or_none(self, ucid):
-        return self._search_regex(rf'^{cls._YT_CHANNEL_UCID_RE}$', ucid, 'UC-id', default=None)
+        return self._search_regex(rf'^({self._YT_CHANNEL_UCID_RE})$', ucid, 'UC-id', default=None)
 
     def handle_or_none(self, handle):
-        return self._search_regex(rf'^{cls._YT_HANDLE_RE}$', handle, '@-handle', default=None)
+        return self._search_regex(rf'^({self._YT_HANDLE_RE})$', handle, '@-handle', default=None)
 
     def handle_from_url(self, url):
         return self._search_regex(rf'^(?:https?://(?:www\.)?youtube\.com)?/({self._YT_HANDLE_RE})',
@@ -2449,7 +2449,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'like_count': int,
                 'availability': 'unlisted',
                 'channel': 'Lesmiscore',
-                'thumbnail': r're:^https?://.*\.jpg$',
+                'thumbnail': r're:^https?://.*\.jpg',
                 'age_limit': 0,
                 'categories': ['Music'],
                 'view_count': int,
@@ -2478,13 +2478,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'like_count': int,
                 'playable_in_embed': True,
                 'availability': 'unlisted',
-                'thumbnail': r're:^https?://.*\.jpg$',
+                'thumbnail': r're:^https?://.*\.jpg',
                 'age_limit': 0,
                 'duration': 5,
                 'live_status': 'not_live',
                 'upload_date': '20220908',
                 'categories': ['People & Blogs'],
                 'channel_id': 'UCiu-3thuViMebBjw_5nWYrA',
+                'uploader_url': 'https://www.youtube.com/@coletdjnz',
+                'uploader_id': '@coletdjnz',
+                'uploader': 'cole-dlp-test-acc',
             },
             'params': {'skip_download': True}
         }, {
@@ -2501,13 +2504,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'upload_date': '20220728',
                 'view_count': int,
                 'categories': ['People & Blogs'],
-                'thumbnail': r're:^https?://.*\.jpg$',
+                'thumbnail': r're:^https?://.*\.jpg',
                 'title': 'dlp test video title translated (fr)',
                 'availability': 'public',
                 'age_limit': 0,
                 'description': 'dlp test video description translated (fr)',
                 'playable_in_embed': True,
                 'channel_url': 'https://www.youtube.com/channel/UCiu-3thuViMebBjw_5nWYrA',
+                'uploader_url': 'https://www.youtube.com/@coletdjnz',
+                'uploader_id': '@coletdjnz',
+                'uploader': 'cole-dlp-test-acc',
             },
             'params': {'skip_download': True, 'extractor_args': {'youtube': {'lang': ['fr']}}},
             'expected_warnings': [r'Preferring "fr" translated fields'],
@@ -4854,7 +4860,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         })
 
         channel_handle = (self.handle_from_url(traverse_obj(metadata_renderer, 'vanityChannelUrl')  # also try ownerUrls from metadata renderer (channel)
-                          or self.handle_or_none(traverse_obj(data, ('header', ..., 'channelHandleText')))))
+                          or self.handle_or_none(traverse_obj(data, ('header', ..., 'channelHandleText'), get_all=False))))
         if channel_handle:
             info.update({
                 'uploader_id': channel_handle,
@@ -6319,10 +6325,10 @@ class YoutubePlaylistIE(InfoExtractor):
             'title': '[OLD]Team Fortress 2 (Class-based LP)',
             'id': 'PLBB231211A4F62143',
             'uploader': 'Wickman',
-            'uploader_id': 'UCKSpbfbl5kRQpTdL7kMc-1Q',
+            'uploader_id': '@WickmanVT',
             'description': 'md5:8fa6f52abb47a9552002fa3ddfc57fc2',
             'view_count': int,
-            'uploader_url': 'https://www.youtube.com/c/WickmanVT',
+            'uploader_url': 'https://www.youtube.com/@WickmanVT',
             'modified_date': r're:\d{8}',
             'channel_id': 'UCKSpbfbl5kRQpTdL7kMc-1Q',
             'channel': 'Wickman',
@@ -6347,7 +6353,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'title': 'JODA15',
             'id': 'PL6IaIsEjSbf96XFRuNccS_RuEXwNdsoEu',
             'uploader': 'milan',
-            'uploader_id': 'UCEI1-PVPcYXjB73Hfelbmaw',
+            'uploader_id': '@milan5503',
             'description': '',
             'channel_url': 'https://www.youtube.com/channel/UCEI1-PVPcYXjB73Hfelbmaw',
             'tags': [],
@@ -6355,7 +6361,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'view_count': int,
             'channel': 'milan',
             'channel_id': 'UCEI1-PVPcYXjB73Hfelbmaw',
-            'uploader_url': 'https://www.youtube.com/channel/UCEI1-PVPcYXjB73Hfelbmaw',
+            'uploader_url': 'https://www.youtube.com/@milan5503',
             'availability': 'public',
         },
         'expected_warnings': [r'[Uu]navailable videos? (is|are|will be) hidden'],
@@ -6366,13 +6372,13 @@ class YoutubePlaylistIE(InfoExtractor):
             'title': '2018 Chinese New Singles (11/6 updated)',
             'id': 'PLsyOSbh5bs16vubvKePAQ1x3PhKavfBIl',
             'uploader': 'LBK',
-            'uploader_id': 'UC21nz3_MesPLqtDqwdvnoxA',
+            'uploader_id': '@music_king',
             'description': 'md5:da521864744d60a198e3a88af4db0d9d',
             'channel': 'LBK',
             'view_count': int,
             'channel_url': 'https://www.youtube.com/c/愛低音的國王',
             'tags': [],
-            'uploader_url': 'https://www.youtube.com/c/愛低音的國王',
+            'uploader_url': 'https://www.youtube.com/@music_king',
             'channel_id': 'UC21nz3_MesPLqtDqwdvnoxA',
             'modified_date': r're:\d{8}',
             'availability': 'public',
@@ -6418,8 +6424,8 @@ class YoutubeYtBeIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Small Scale Baler and Braiding Rugs',
             'uploader': 'Backus-Page House Museum',
-            'uploader_id': 'backuspagemuseum',
-            'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/backuspagemuseum',
+            'uploader_id': '@backuspagemuseum',
+            'uploader_url': r're:https?://(?:www\.)?youtube\.com/@backuspagemuseum',
             'upload_date': '20161008',
             'description': 'md5:800c0c78d5eb128500bffd4f0b4f2e8a',
             'categories': ['Nonprofits & Activism'],
@@ -6679,7 +6685,10 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
                 'channel_id': 'UCsXVk37bltHxD1rDPwtNM8Q',
                 'playlist_count': int,  # XXX: should have a way of saying > 1
                 'channel_url': 'https://www.youtube.com/channel/UCsXVk37bltHxD1rDPwtNM8Q',
-                'thumbnails': list
+                'thumbnails': list,
+                'uploader_id': '@kurzgesagt',
+                'uploader_url': 'https://www.youtube.com/@kurzgesagt',
+                'uploader': 'Kurzgesagt – In a Nutshell',
             }
         }],
         'params': {'extract_flat': True, 'playlist_items': '1'},
@@ -6937,8 +6946,8 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'title': 'Mobile Games on Console - Scott The Woz',
             'upload_date': '20210920',
             'uploader': 'Scott The Woz',
-            'uploader_id': 'scottthewoz',
-            'uploader_url': 'http://www.youtube.com/user/scottthewoz',
+            'uploader_id': '@ScottTheWoz',
+            'uploader_url': 'http://www.youtube.com/@ScottTheWoz',
             'view_count': int,
             'live_status': 'not_live',
             'channel_follower_count': int
@@ -6979,13 +6988,13 @@ class YoutubeConsentRedirectIE(YoutubeBaseInfoExtractor):
             'id': 'qVv6vCqciTM',
             'ext': 'mp4',
             'age_limit': 0,
-            'uploader_id': 'UCIdEIHpS0TdkqRkHL5OkLtA',
+            'uploader_id': '@sana_natori',
             'comment_count': int,
             'chapters': 'count:13',
             'upload_date': '20221223',
             'thumbnail': 'https://i.ytimg.com/vi/qVv6vCqciTM/maxresdefault.jpg',
             'channel_url': 'https://www.youtube.com/channel/UCIdEIHpS0TdkqRkHL5OkLtA',
-            'uploader_url': 'http://www.youtube.com/channel/UCIdEIHpS0TdkqRkHL5OkLtA',
+            'uploader_url': 'https://www.youtube.com/@sana_natori',
             'like_count': int,
             'release_date': '20221223',
             'tags': ['Vtuber', '月ノ美兎', '名取さな', 'にじさんじ', 'クリスマス', '3D配信'],
