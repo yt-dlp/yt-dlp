@@ -31,6 +31,7 @@ class ZingMp3BaseIE(InfoExtractor):
         'playlist': '/api/v2/page/get/playlist',
         'album': '/api/v2/page/get/playlist',
         'pgr': '/api/v2/page/get/podcast-program',
+        'pgr-list': '/api/v2/podcast/episode/get/list',
         # Chart
         'zing-chart': '/api/v2/page/get/chart-home',
         'zing-chart-tuan': '/api/v2/page/get/week-chart',
@@ -78,6 +79,7 @@ class ZingMp3BaseIE(InfoExtractor):
         page = 1
         entries = []
         while True:
+            self.to_screen(f'Downloading page {page}')
             data = self._fetch_page(_id, url_type, page)
             entries.extend(self._parse_items(data.get('items')))
             if not data.get('hasMore') or len(entries) > data.get('total'):
@@ -462,17 +464,17 @@ class ZingMp3HubIE(ZingMp3BaseIE):
 
 class ZingMp3LiveRadioIE(ZingMp3BaseIE):
     IE_NAME = 'zingmp3:liveradio'
-    _VALID_URL = 'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<type>(?:liveradio))/(?P<id>\w+)(?:\.html|\?)'
+    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<type>(?:liveradio))/(?P<id>\w+)(?:\.html|\?)'
     _TESTS = [{
         'url': 'https://zingmp3.vn/liveradio/IWZ979UB.html',
         'info_dict': {
             'id': 'IWZ979UB',
-            'title': 're:^V\-POP',
+            'title': r're:^V\-POP',
             'description': 'md5:aa857f8a91dc9ce69e862a809e4bdc10',
             'protocol': 'm3u8_native',
             'ext': 'mp4',
             'view_count': int,
-            'thumbnail': 're:^https?://.*\.jpg',
+            'thumbnail': r're:^https?://.*\.jpg',
             'like_count': int,
         },
         'params': {
@@ -482,12 +484,12 @@ class ZingMp3LiveRadioIE(ZingMp3BaseIE):
         'url': 'https://zingmp3.vn/liveradio/IWZ97CWB.html',
         'info_dict': {
             'id': 'IWZ97CWB',
-            'title': 're:^Live\s247',
+            'title': r're:^Live\s247',
             'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
             'protocol': 'm3u8_native',
             'ext': 'm4a',
             'view_count': int,
-            'thumbnail': 're:^https?://.*\.jpg',
+            'thumbnail': r're:^https?://.*\.jpg',
             'like_count': int,
         },
         'params': {
@@ -521,12 +523,22 @@ class ZingMp3PostCastEpisodeIE(ZingMp3BaseIE):
         'url': 'https://zingmp3.vn/pgr/How2Money-x-Doctor-Housing/6BUUFAEO.html',
         'info_dict': {
             'id': '6BUUFAEO',
-            'title': 'Những Bài Hát Hay Nhất Của Mr. Siro',
+            'title': 'How2Money x Doctor Housing',
+            'description': 'md5:3c1eb04aaa28fee0805629d9b766d05c'
         },
-        'playlist_mincount': 49,
+        'playlist_mincount': 20,
     }]
+
+    def _fetch_page(self, eps_id, url_type, page):
+        return self._call_api(url_type, {
+            'id': eps_id,
+            'page': page,
+            'count': self._PER_PAGE
+        })
 
     def _real_extract(self, url):
         post_cast_id, url_type = self._match_valid_url(url).group('id', 'type')
         post_cast_info = self._call_api(url_type, {'id': post_cast_id})
-        return
+        entries = self._paged_list(post_cast_id, 'pgr-list')
+        return self.playlist_result(
+            entries, post_cast_id, post_cast_info.get('title'), post_cast_info.get('description'))
