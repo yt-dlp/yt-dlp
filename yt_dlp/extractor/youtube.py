@@ -451,8 +451,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _IGNORED_WARNINGS = {'Unavailable videos will be hidden during playback'}
 
-    _YT_HANDLE_RE = r'@[A-Za-z0-9_.-]{3,30}'  # https://support.google.com/youtube/answer/11585688?hl=en
-    _YT_CHANNEL_UCID_RE = r'UC[A-Za-z0-9_-]{22}'
+    _YT_HANDLE_RE = r'@[\w.-]{3,30}'  # https://support.google.com/youtube/answer/11585688?hl=en
+    _YT_CHANNEL_UCID_RE = r'UC[\w-]{22}'
 
     def ucid_or_none(self, ucid):
         return self._search_regex(rf'^{cls._YT_CHANNEL_UCID_RE}$', ucid, 'UC-id', default=None)
