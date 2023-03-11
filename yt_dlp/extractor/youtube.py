@@ -2633,6 +2633,38 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'uploader_id': '@sana_natori',
             },
         },
+        {
+            # Fallbacks when webpage and web client is unavailable
+            'url': 'https://www.youtube.com/watch?v=wSSmNUl9Snw',
+            'info_dict': {
+                'id': 'wSSmNUl9Snw',
+                'ext': 'mp4',
+                # 'categories': ['Science & Technology'],
+                'view_count': int,
+                'chapters': 'count:2',
+                'channel': 'Scott Manley',
+                'like_count': int,
+                'age_limit': 0,
+                # 'availability': 'public',
+                'channel_follower_count': int,
+                'live_status': 'not_live',
+                'upload_date': '20170831',
+                'duration': 682,
+                'tags': 'count:8',
+                'uploader_url': 'https://www.youtube.com/@scottmanley',
+                'description': 'md5:f4bed7b200404b72a394c2f97b782c02',
+                'uploader': 'Scott Manley',
+                'uploader_id': '@scottmanley',
+                'title': 'The Computer Hack That Saved Apollo 14',
+                'channel_id': 'UCxzC4EngIsMrPmbm6Nxvb-A',
+                'thumbnail': r're:^https?://.*\.webp',
+                'channel_url': 'https://www.youtube.com/channel/UCxzC4EngIsMrPmbm6Nxvb-A',
+                'playable_in_embed': True,
+            },
+            'params': {
+                'extractor_args': {'youtube': {'player_client': ['android'], 'player_skip': ['webpage']}},
+            },
+        },
     ]
 
     _WEBPAGE_TESTS = [
@@ -4102,9 +4134,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         formats.extend(self._extract_storyboard(player_responses, duration))
 
         channel_handle = self.handle_from_url(owner_profile_url)
-        if not channel_handle:
-            # TODO fallbacks
-            pass
 
         info = {
             'id': video_id,
@@ -4115,8 +4144,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # URL checking if user don't care about getting the best possible thumbnail
             'thumbnail': traverse_obj(original_thumbnails, (-1, 'url')),
             'description': video_description,
-            'uploader_id': channel_handle,
-            'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
             'channel_id': channel_id,
             'channel_url': format_field(channel_id, None, 'https://www.youtube.com/channel/%s', default=None),
             'duration': duration,
@@ -4344,6 +4371,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel': self._get_text(vor, 'title'),
                 'channel_follower_count': self._get_count(vor, 'subscriberCountText')})
 
+            if not channel_handle:
+                channel_handle = self.handle_from_url(
+                    traverse_obj(vor, (
+                        ('navigationEndpoint', ('title', 'runs', ..., 'navigationEndpoint')),
+                        (('commandMetadata', 'webCommandMetadata', 'url'), ('browseEndpoint', 'canonicalBaseUrl')),
+                        {str}), get_all=False))
+
             rows = try_get(
                 vsir,
                 lambda x: x['metadataRowContainer']['metadataRowContainerRenderer']['rows'],
@@ -4370,8 +4404,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     elif mrr_title == 'Song':
                         info['track'] = mrr_contents_text
 
-        info['uploader'] = info.get('channel')
-
+        info.update({
+            'uploader': info.get('channel'),
+            'uploader_id': channel_handle,
+            'uploader_url': format_field(channel_handle, None, 'https://www.youtube.com/%s', default=None),
+        })
         # The upload date for scheduled, live and past live streams / premieres in microformats
         # may be different from the stream date. Although not in UTC, we will prefer it in this case.
         # See: https://github.com/yt-dlp/yt-dlp/pull/2223#issuecomment-1008485139
