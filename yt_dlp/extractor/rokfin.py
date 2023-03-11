@@ -87,6 +87,40 @@ class RokfinIE(InfoExtractor):
             'like_count': int,
             'tags': ['FreeThinkingMedia^'],
         }
+    }, {
+        'url': 'https://rokfin.com/post/126703/Brave-New-World--Aldous-Huxley-DEEPDIVE--Chpts-13--Quite-Frankly--Jay-Dyer',
+        'info_dict': {
+            'id': 'post/126703',
+            'manifest_url': "https://stream.v.rokfin.com/00mus6oyumyAwdJKDZO024nyr9wX01Td199CU8A7MEPiNw.m3u8",
+            'ext': 'mp4',
+            'title': 'Brave New World - Aldous Huxley DEEPDIVE!  (Chpts 1-3) - Quite Frankly & Jay Dyer',
+            'thumbnail': r're:https://img\.production\.rokfin\.com/.+',
+            'channel': 'Jay Dyer',
+            'channel_id': 186881,
+            'channel_url': 'https://rokfin.com/jaydyer',
+            'availability': 'premium_only',
+            'is_live': False,
+            'was_live': True,
+            'live_status': 'not_live',
+            'timestamp': 1678213357,
+        }
+    }, {
+        'url': 'https://rokfin.com/stream/31332/The-Grayzone-live-on-Nordstream-blame-game',
+        'info_dict': {
+            'id': 'stream/31332',
+            'manifest_url': "https://stream.v.rokfin.com/mbtYGBXcOa9q00JTWuoP02DrUuun7esBEUlO1Vr00OWxUY.m3u8",
+            'ext': 'mp4',
+            'title': 'The Grayzone live on Nordstream blame game',
+            'thumbnail': r're:https://img\.production\.rokfin\.com/.+',
+            'channel': 'Max Blumenthal',
+            'channel_id': 248902,
+            'channel_url': 'https://rokfin.com/MaxBlumenthal',
+            'availability': 'premium_only',
+            'is_live': False,
+            'was_live': True,
+            'live_status': 'was_live',
+            'timestamp': 1678475166,
+        }
     }]
 
     def _real_extract(self, url):
