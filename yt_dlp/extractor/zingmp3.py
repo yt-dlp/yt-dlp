@@ -10,6 +10,7 @@ from ..utils import (
     int_or_none,
     traverse_obj,
     urljoin,
+    ExtractorError,
 )
 
 
@@ -25,9 +26,12 @@ class ZingMp3BaseIE(InfoExtractor):
         'video-clip': '/api/v2/page/get/video',
         'lyric': '/api/v2/lyric/get/lyric',
         'song-streaming': '/api/v2/song/get/streaming',
+        'eps': '/api/v2/page/get/podcast-episode',
+        'episode-streaming': '/api/v2/podcast/episode/get/streaming',
         # Playlist
         'playlist': '/api/v2/page/get/playlist',
         'album': '/api/v2/page/get/playlist',
+        'pgr': '/api/v2/page/get/podcast-program',
         # Chart
         'zing-chart': '/api/v2/page/get/chart-home',
         'zing-chart-tuan': '/api/v2/page/get/week-chart',
@@ -37,6 +41,7 @@ class ZingMp3BaseIE(InfoExtractor):
         'info-artist': '/api/v2/page/get/artist',
         'user-list-song': '/api/v2/song/get/list',
         'user-list-video': '/api/v2/video/get/list',
+        'liveradio': '/api/v2/livestream/get/info',
     }
 
     def _api_url(self, url_type, params):
@@ -69,7 +74,7 @@ class ZingMp3BaseIE(InfoExtractor):
 
 
 class ZingMp3IE(ZingMp3BaseIE):
-    _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'bai-hat|video-clip|embed'
+    _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'bai-hat|video-clip|embed|eps'
     IE_NAME = 'zingmp3'
     IE_DESC = 'zingmp3.vn'
     _TESTS = [{
@@ -120,6 +125,20 @@ class ZingMp3IE(ZingMp3BaseIE):
             'album_artist': 'Mr. Siro',
         },
     }, {
+        'url': 'https://zingmp3.vn/eps/Nhung-dieu-can-luu-y-khi-mua-bao-hiem-nhan-tho-How2Money-x-Doctor-Housing-Ep5/ZZEOWI7B.html',
+        'md5': 'bc8793b186ffeee1cf2b6e54a69a8f33',
+        'info_dict': {
+            'id': 'ZZEOWI7B',
+            'title': 'Những điều cần lưu ý khi mua bảo hiểm nhân thọ | How2Money x Doctor Housing. Ep5',
+            'ext': 'mp3',
+            'thumbnail': r're:^https?://.+\.jpg',
+            'duration': 912,
+            'track': 'Những điều cần lưu ý khi mua bảo hiểm nhân thọ | How2Money x Doctor Housing. Ep5',
+            'artist': 'Zing News',
+            'album': 'Top Podcast',
+            'album_artist': 'Zing News',
+        },
+    }, {
         'url': 'https://zingmp3.vn/embed/song/ZWZEI76B?start=false',
         'only_matching': True,
     }, {
@@ -138,6 +157,8 @@ class ZingMp3IE(ZingMp3BaseIE):
                 'http://api.mp3.zing.vn/api/mobile/video/getvideoinfo', item_id,
                 query={'requestdata': json.dumps({'id': item_id})},
                 note='Downloading mp4 JSON metadata').get('source')
+        elif url_type == 'eps':
+            source = self._call_api('episode-streaming', {'id': item_id})
         else:
             source = self._call_api('song-streaming', {'id': item_id})
 
@@ -177,9 +198,11 @@ class ZingMp3IE(ZingMp3BaseIE):
             'thumbnail': traverse_obj(item, 'thumbnail', 'thumbnailM'),
             'duration': int_or_none(item.get('duration')),
             'track': traverse_obj(item, 'title', 'alias'),
-            'artist': traverse_obj(item, 'artistsNames', 'artists_names'),
-            'album': traverse_obj(item, ('album', ('name', 'title')), get_all=False),
-            'album_artist': traverse_obj(item, ('album', ('artistsNames', 'artists_names')), get_all=False),
+            'artist': traverse_obj(item, 'artistsNames', 'artists_names') or traverse_obj(item, ('artists', 0, 'name')),
+            'album': traverse_obj(item, ('album', ('name', 'title')), get_all=False) or traverse_obj(
+                item, ('genres', 0, 'name')),
+            'album_artist': traverse_obj(item, ('album', ('artistsNames', 'artists_names')),
+                                         get_all=False) or traverse_obj(item, ('artists', 0, 'name')),
             'formats': formats,
             'subtitles': {'origin': [{'url': lyric}]} if lyric else None,
         }
@@ -198,6 +221,13 @@ class ZingMp3AlbumIE(ZingMp3BaseIE):
         'url': 'https://zingmp3.vn/album/Nhung-Bai-Hat-Hay-Nhat-Cua-Mr-Siro-Mr-Siro/ZWZAEZZD.html',
         'info_dict': {
             'id': 'ZWZAEZZD',
+            'title': 'Những Bài Hát Hay Nhất Của Mr. Siro',
+        },
+        'playlist_mincount': 49,
+    }, {
+        'url': 'https://zingmp3.vn/pgr/How2Money-x-Doctor-Housing/6BUUFAEO.html',
+        'info_dict': {
+            'id': '6BUUFAEO',
             'title': 'Những Bài Hát Hay Nhất Của Mr. Siro',
         },
         'playlist_mincount': 49,
@@ -383,3 +413,75 @@ class ZingMp3UserIE(ZingMp3BaseIE):
                 'sections', lambda _, v: v['link'] == f'/{user_alias}/{url_type}', 'items', ...)))
         return self.playlist_result(
             entries, user_info['id'], f'{user_info.get("name")} - {url_type}', user_info.get('biography'))
+
+
+class ZingMp3LiveRadioIE(ZingMp3BaseIE):
+    IE_NAME = 'zingmp3:liveradio'
+    _VALID_URL = 'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<type>(?:liveradio))/(?P<id>\w+)(?:\.html|\?)'
+    _TESTS = [{
+        'url': 'https://zingmp3.vn/liveradio/IWZ979UB.html',
+        'info_dict': {
+            'id': 'IWZ979UB',
+            'title': 're:^V\-POP',
+            'description': 'md5:aa857f8a91dc9ce69e862a809e4bdc10',
+            'protocol': 'm3u8_native',
+            'ext': 'mp4',
+            'view_count': int,
+            'thumbnail': 're:^https?://.*\.jpg',
+            'like_count': int,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://zingmp3.vn/liveradio/IWZ97CWB.html',
+        'info_dict': {
+            'id': 'IWZ97CWB',
+            'title': 're:^Live\s247',
+            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+            'protocol': 'm3u8_native',
+            'ext': 'm4a',
+            'view_count': int,
+            'thumbnail': 're:^https?://.*\.jpg',
+            'like_count': int,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+    def _real_extract(self, url):
+        url_type, live_radio_id = self._match_valid_url(url).group('type', 'id')
+        info = self._call_api(url_type, {'id': live_radio_id})
+        manifest_url = info.get('streaming')
+        if not manifest_url:
+            raise ExtractorError('This radio is offline.', expected=True)
+        fmts, subtitles = self._extract_m3u8_formats_and_subtitles(manifest_url, live_radio_id, fatal=False)
+        return {
+            'id': live_radio_id,
+            'title': traverse_obj(info, 'title'),
+            'thumbnail': traverse_obj(info, 'thumbnail', 'thumbnailM', 'thumbnailV', 'thumbnailH'),
+            'formats': fmts,
+            'view_count': traverse_obj(info, 'activeUsers'),
+            'like_count': traverse_obj(info, 'totalReaction'),
+            'description': traverse_obj(info, 'description'),
+            'subtitles': subtitles,
+        }
+
+
+class ZingMp3PostCastEpisodeIE(ZingMp3BaseIE):
+    IE_NAME = 'zingmp3:PostcastEpisode'
+    _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'pgr'
+    _TESTS = [{
+        'url': 'https://zingmp3.vn/pgr/How2Money-x-Doctor-Housing/6BUUFAEO.html',
+        'info_dict': {
+            'id': '6BUUFAEO',
+            'title': 'Những Bài Hát Hay Nhất Của Mr. Siro',
+        },
+        'playlist_mincount': 49,
+    }]
+
+    def _real_extract(self, url):
+        post_cast_id, url_type = self._match_valid_url(url).group('id', 'type')
+        post_cast_info = self._call_api(url_type, {'id': post_cast_id})
+        return
