@@ -1,4 +1,3 @@
-import functools
 import hashlib
 import hmac
 import json
@@ -6,7 +5,6 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    OnDemandPagedList,
     int_or_none,
     traverse_obj,
     urljoin,
@@ -26,6 +24,7 @@ class ZingMp3BaseIE(InfoExtractor):
         'video-clip': '/api/v2/page/get/video',
         'lyric': '/api/v2/lyric/get/lyric',
         'song-streaming': '/api/v2/song/get/streaming',
+        'liveradio': '/api/v2/livestream/get/info',
         'eps': '/api/v2/page/get/podcast-episode',
         'episode-streaming': '/api/v2/podcast/episode/get/streaming',
         # Playlist
@@ -41,7 +40,7 @@ class ZingMp3BaseIE(InfoExtractor):
         'info-artist': '/api/v2/page/get/artist',
         'user-list-song': '/api/v2/song/get/list',
         'user-list-video': '/api/v2/video/get/list',
-        'liveradio': '/api/v2/livestream/get/info',
+        'hub': '/api/v2/page/get/hub-detail',
     }
 
     def _api_url(self, url_type, params):
@@ -51,9 +50,9 @@ class ZingMp3BaseIE(InfoExtractor):
             ''.join(f'{k}={v}' for k, v in sorted(params.items())).encode()).hexdigest()
         data = {
             **params,
-            'apiKey': '88265e23d4284f25963e6eedac8fbfa3',
-            'sig': hmac.new(
-                b'2aa2d1c561e809b267f3638c4a307aab', f'{api_slug}{sha256}'.encode(), hashlib.sha512).hexdigest(),
+            'apiKey': 'X5BM3w8N7MKozC0B85o4KMlzLZKhV00y',
+            'sig': hmac.new(b'acOrvUS15XRW2o9JksiK1KgQ6Vbds8ZW',
+                            f'{api_slug}{sha256}'.encode(), hashlib.sha512).hexdigest(),
         }
         return f'{self._DOMAIN}{api_slug}?{urllib.parse.urlencode(data)}'
 
@@ -71,6 +70,20 @@ class ZingMp3BaseIE(InfoExtractor):
     def _parse_items(self, items):
         for url in traverse_obj(items, (..., 'link')) or []:
             yield self.url_result(urljoin(self._DOMAIN, url))
+
+    def _fetch_page(self, id_, url_type, page):
+        raise NotImplementedError('This method must be implemented by subclasses')
+
+    def _paged_list(self, _id, url_type):
+        page = 1
+        entries = []
+        while True:
+            data = self._fetch_page(_id, url_type, page)
+            entries.extend(self._parse_items(data.get('items')))
+            if not data.get('hasMore') or len(entries) > data.get('total'):
+                break
+            page += 1
+        return entries
 
 
 class ZingMp3IE(ZingMp3BaseIE):
@@ -187,8 +200,11 @@ class ZingMp3IE(ZingMp3BaseIE):
                     'height': int_or_none(res),
                 })
 
-        if not formats and item.get('msg') == 'Sorry, this content is not available in your country.':
-            self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+        if not formats:
+            if item.get('msg') == 'Sorry, this content is not available in your country.':
+                self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+            else:
+                self.report_warning('The song is only for VIP accounts.')
 
         lyric = item.get('lyric') or self._call_api('lyric', {'id': item_id}, fatal=False).get('file')
 
@@ -223,7 +239,7 @@ class ZingMp3AlbumIE(ZingMp3BaseIE):
             'id': 'ZWZAEZZD',
             'title': 'Những Bài Hát Hay Nhất Của Mr. Siro',
         },
-        'playlist_mincount': 49,
+        'playlist_mincount': 20,
     }, {
         'url': 'https://zingmp3.vn/pgr/How2Money-x-Doctor-Housing/6BUUFAEO.html',
         'info_dict': {
@@ -335,22 +351,20 @@ class ZingMp3ChartMusicVideoIE(ZingMp3BaseIE):
             'id': 'IWZ9Z086',
             'title': 'the-loai-video_Khong-Loi',
         },
-        'playlist_mincount': 10,
+        'playlist_mincount': 1,
     }]
 
     def _fetch_page(self, song_id, url_type, page):
-        return self._parse_items(self._call_api(url_type, {
+        return self._call_api(url_type, {
             'id': song_id,
             'type': 'genre',
-            'page': page + 1,
+            'page': page,
             'count': self._PER_PAGE
-        }).get('items'))
+        })
 
     def _real_extract(self, url):
         song_id, regions, url_type = self._match_valid_url(url).group('id', 'regions', 'type')
-        return self.playlist_result(
-            OnDemandPagedList(functools.partial(self._fetch_page, song_id, url_type), self._PER_PAGE),
-            song_id, f'{url_type}_{regions}')
+        return self.playlist_result(self._paged_list(song_id, url_type), song_id, f'{url_type}_{regions}')
 
 
 class ZingMp3UserIE(ZingMp3BaseIE):
@@ -361,7 +375,7 @@ class ZingMp3UserIE(ZingMp3BaseIE):
         'info_dict': {
             'id': 'IWZ98609',
             'title': 'Mr. Siro - bai-hat',
-            'description': 'md5:85ab29bd7b21725c12bf76fd1d6922e5',
+            'description': 'md5:5bdcf45e955dc1b8d7f518f322ffef36',
         },
         'playlist_mincount': 91,
     }, {
@@ -369,7 +383,7 @@ class ZingMp3UserIE(ZingMp3BaseIE):
         'info_dict': {
             'id': 'IWZ98609',
             'title': 'Mr. Siro - album',
-            'description': 'md5:85ab29bd7b21725c12bf76fd1d6922e5',
+            'description': 'md5:5bdcf45e955dc1b8d7f518f322ffef36',
         },
         'playlist_mincount': 3,
     }, {
@@ -377,7 +391,7 @@ class ZingMp3UserIE(ZingMp3BaseIE):
         'info_dict': {
             'id': 'IWZ98609',
             'title': 'Mr. Siro - single',
-            'description': 'md5:85ab29bd7b21725c12bf76fd1d6922e5',
+            'description': 'md5:5bdcf45e955dc1b8d7f518f322ffef36',
         },
         'playlist_mincount': 20,
     }, {
@@ -385,19 +399,19 @@ class ZingMp3UserIE(ZingMp3BaseIE):
         'info_dict': {
             'id': 'IWZ98609',
             'title': 'Mr. Siro - video',
-            'description': 'md5:85ab29bd7b21725c12bf76fd1d6922e5',
+            'description': 'md5:5bdcf45e955dc1b8d7f518f322ffef36',
         },
         'playlist_mincount': 15,
     }]
 
     def _fetch_page(self, user_id, url_type, page):
         url_type = 'user-list-song' if url_type == 'bai-hat' else 'user-list-video'
-        return self._parse_items(self._call_api(url_type, {
+        return self._call_api(url_type, {
             'id': user_id,
             'type': 'artist',
-            'page': page + 1,
+            'page': page,
             'count': self._PER_PAGE
-        }, query={'sort': 'new', 'sectionId': 'aSong'}).get('items'))
+        })
 
     def _real_extract(self, url):
         user_alias, url_type = self._match_valid_url(url).group('user', 'type')
@@ -406,13 +420,44 @@ class ZingMp3UserIE(ZingMp3BaseIE):
 
         user_info = self._call_api('info-artist', {}, user_alias, query={'alias': user_alias})
         if url_type in ('bai-hat', 'video'):
-            entries = OnDemandPagedList(
-                functools.partial(self._fetch_page, user_info['id'], url_type), self._PER_PAGE)
+            entries = self._paged_list(user_info['id'], url_type)
         else:
             entries = self._parse_items(traverse_obj(user_info, (
-                'sections', lambda _, v: v['link'] == f'/{user_alias}/{url_type}', 'items', ...)))
+                'sections',
+                lambda _, v: v['sectionId'] == 'aAlbum' if url_type == 'album' else v['sectionId'] == 'aSingle',
+                'items', ...)))
         return self.playlist_result(
             entries, user_info['id'], f'{user_info.get("name")} - {url_type}', user_info.get('biography'))
+
+
+class ZingMp3HubIE(ZingMp3BaseIE):
+    IE_NAME = 'zingmp3:hub'
+    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<type>hub)/(?P<regions>[^/]+)/(?P<id>[^\.]+)'
+    _TESTS = [{
+        'url': 'https://zingmp3.vn/hub/Nhac-Moi/IWZ9Z0CA.html',
+        'info_dict': {
+            'id': 'IWZ9Z0CA',
+            'title': 'Nhạc Mới',
+            'description': 'md5:1cc31b68a6f746427b07b2756c22a558',
+        },
+        'playlist_mincount': 20,
+    }, {
+        'url': 'https://zingmp3.vn/hub/Nhac-Viet/IWZ9Z087.html',
+        'info_dict': {
+            'id': 'IWZ9Z087',
+            'title': 'Nhạc Việt',
+            'description': 'md5:acc976c8bdde64d5c6ee4a92c39f7a77',
+        },
+        'playlist_mincount': 30,
+    }]
+
+    def _real_extract(self, url):
+        song_id, regions, url_type = self._match_valid_url(url).group('id', 'regions', 'type')
+        hub_detail = self._call_api(url_type, {'id': song_id})
+        entries = self._parse_items(traverse_obj(hub_detail, (
+            'sections', lambda _, v: v['sectionId'] == 'hub', 'items', ...)))
+        return self.playlist_result(
+            entries, song_id, hub_detail.get('title'), hub_detail.get('description'))
 
 
 class ZingMp3LiveRadioIE(ZingMp3BaseIE):

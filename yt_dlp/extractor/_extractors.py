@@ -2428,6 +2428,7 @@ from .zingmp3 import (
     ZingMp3WeekChartIE,
     ZingMp3ChartMusicVideoIE,
     ZingMp3UserIE,
+    ZingMp3HubIE,
     ZingMp3LiveRadioIE,
     ZingMp3PostCastEpisodeIE,
 )
