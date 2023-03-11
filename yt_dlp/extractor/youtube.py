@@ -461,10 +461,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return self._search_regex(rf'^{cls._YT_HANDLE_RE}$', handle, '@-handle', default=None)
 
     def handle_from_url(self, url):
-        return self._search_regex(rf'https?://(?:www\.)?youtube\.com/({self._YT_HANDLE_RE})', urljoin('https://www.youtube.com/', url) or '', 'channel handle', default=None)
+        return self._search_regex(rf'^(?:https?://(?:www\.)?youtube\.com)?/({self._YT_HANDLE_RE})',
+                                  url, 'channel handle', default=None)
 
     def ucid_from_url(self, url):
-        return self._search_regex(rf'https?://(?:www\.)?youtube\.com/channel/({self._YT_CHANNEL_UCID_RE})', urljoin('https://www.youtube.com/', url) or '', 'channel id', default=None)
+        return self._search_regex(rf'^(?:https?://(?:www\.)?youtube\.com)?/({self._YT_CHANNEL_UCID_RE})',
+                                  url, 'channel id', default=None)
 
     @functools.cached_property
     def _preferred_lang(self):
