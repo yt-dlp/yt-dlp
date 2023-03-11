@@ -2024,7 +2024,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'categories': ['Music'],
                 'channel_url': 'https://www.youtube.com/channel/UC-pWHpBjdGG69N9mM2auIAA',
                 'channel': 'Stephen',
-                'uploader': 'Stephen', # TODO: should be "Stephen - Topic"
+                'uploader': 'Stephen',  # TODO: should be "Stephen - Topic"
                 'availability': 'public',
                 'creator': 'Stephen',
                 'duration': 169,
@@ -4919,8 +4919,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
         })
 
-        channel_handle = (self.handle_from_url(traverse_obj(metadata_renderer, 'vanityChannelUrl')  # also try ownerUrls from metadata renderer (channel)
-                          or self.handle_or_none(traverse_obj(data, ('header', ..., 'channelHandleText'), get_all=False))))
+        channel_handle = (self.handle_from_url(traverse_obj(metadata_renderer, 'vanityChannelUrl'))  # TODO: also try ownerUrls from metadata renderer (channel)
+                          or traverse_obj(data, ('header', ..., 'channelHandleText', {self.handle_or_none}), get_all=False))
+
         if channel_handle:
             info.update({
                 'uploader_id': channel_handle,
