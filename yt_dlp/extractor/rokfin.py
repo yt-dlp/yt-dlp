@@ -45,6 +45,8 @@ class RokfinIE(InfoExtractor):
             'live_status': 'not_live',
             'dislike_count': int,
             'like_count': int,
+            'duration': 213,
+            'description': None,
         }
     }, {
         'url': 'https://rokfin.com/post/223/Julian-Assange-Arrested-Streaming-In-Real-Time',
@@ -63,6 +65,8 @@ class RokfinIE(InfoExtractor):
             'dislike_count': int,
             'like_count': int,
             'tags': ['FreeThinkingMedia^', 'RealProgressives^'],
+            'duration': None,
+            'description': None,
         }
     }, {
         'url': 'https://www.rokfin.com/stream/10543/Its-A-Crazy-Mess-Regional-Director-Blows-Whistle-On-Pfizers-Vaccine-Trial-Data',
@@ -72,7 +76,7 @@ class RokfinIE(InfoExtractor):
             'title': '"It\'s A Crazy Mess" Regional Director Blows Whistle On Pfizer\'s Vaccine Trial Data',
             'thumbnail': r're:https://img\.production\.rokfin\.com/.+',
             'description': 'md5:324ce2d3e3b62e659506409e458b9d8e',
-            'channel': 'Ryan Cristián',
+            'channel': 'TLAVagabond',
             'channel_id': 53856,
             'channel_url': 'https://rokfin.com/TLAVagabond',
             'availability': 'public',
@@ -86,6 +90,7 @@ class RokfinIE(InfoExtractor):
             'dislike_count': int,
             'like_count': int,
             'tags': ['FreeThinkingMedia^'],
+            'duration': None,
         }
     }, {
         'url': 'https://rokfin.com/post/126703/Brave-New-World--Aldous-Huxley-DEEPDIVE--Chpts-13--Quite-Frankly--Jay-Dyer',
@@ -100,9 +105,17 @@ class RokfinIE(InfoExtractor):
             'channel_url': 'https://rokfin.com/jaydyer',
             'availability': 'premium_only',
             'is_live': False,
-            'was_live': True,
+            'was_live': False,
             'live_status': 'not_live',
+            'dislike_count': int,
+            'like_count': int,
             'timestamp': 1678213357,
+            'release_timestamp': None,
+            'release_date': None,
+            'upload_date': '20230307',
+            'tags': ['FreeThinkingMedia^', 'OpenMind^'],
+            'description': 'md5:cb04e32e68326c9b2b251b297bacff35',
+            'duration': 3100,
         }
     }, {
         'url': 'https://rokfin.com/stream/31332/The-Grayzone-live-on-Nordstream-blame-game',
@@ -111,7 +124,7 @@ class RokfinIE(InfoExtractor):
             'manifest_url': "https://stream.v.rokfin.com/mbtYGBXcOa9q00JTWuoP02DrUuun7esBEUlO1Vr00OWxUY.m3u8",
             'ext': 'mp4',
             'title': 'The Grayzone live on Nordstream blame game',
-            'thumbnail': r're:https://img\.production\.rokfin\.com/.+',
+            'thumbnail': r're:https://image\.v\.rokfin\.com/.+',
             'channel': 'Max Blumenthal',
             'channel_id': 248902,
             'channel_url': 'https://rokfin.com/MaxBlumenthal',
@@ -119,7 +132,15 @@ class RokfinIE(InfoExtractor):
             'is_live': False,
             'was_live': True,
             'live_status': 'was_live',
+            'dislike_count': int,
+            'like_count': int,
             'timestamp': 1678475166,
+            'release_timestamp': 1678475166.0,
+            'release_date': '20230310',
+            'upload_date': '20230310',
+            'tags': ['FreeThinkingMedia^'],
+            'description': None,
+            'duration': None,
         }
     }]
 
