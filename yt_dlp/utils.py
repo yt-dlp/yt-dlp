@@ -1230,8 +1230,8 @@ class ExistingVideoReached(DownloadCancelled):
 
 
 class RejectedVideoReached(DownloadCancelled):
-    """ --break-on-reject triggered """
-    msg = 'Encountered a video that did not match filter, stopping due to --break-on-reject'
+    """ --break-match-filter triggered """
+    msg = 'Encountered a video that did not match filter, stopping due to --break-match-filter'
 
 
 class MaxDownloadsReached(DownloadCancelled):
@@ -2057,6 +2057,9 @@ def get_windows_version():
 def write_string(s, out=None, encoding=None):
     assert isinstance(s, str)
     out = out or sys.stderr
+    # `sys.stderr` might be `None` (Ref: https://github.com/pyinstaller/pyinstaller/pull/7217)
+    if not out:
+        return
 
     if compat_os_name == 'nt' and supports_terminal_sequences(out):
         s = re.sub(r'([\r\n]+)', r' \1', s)
@@ -3042,8 +3045,10 @@ class PlaylistEntries:
                 if not entry:
                     continue
                 try:
-                    # TODO: Add auto-generated fields
-                    self.ydl._match_entry(entry, incomplete=True, silent=True)
+                    # The item may have just been added to archive. Don't break due to it
+                    if not self.ydl.params.get('lazy_playlist'):
+                        # TODO: Add auto-generated fields
+                        self.ydl._match_entry(entry, incomplete=True, silent=True)
                 except (ExistingVideoReached, RejectedVideoReached):
                     return
 
@@ -3909,16 +3914,21 @@ def match_str(filter_str, dct, incomplete=False):
         for filter_part in re.split(r'(?<!\\)&', filter_str))
 
 
-def match_filter_func(filters):
-    if not filters:
+def match_filter_func(filters, breaking_filters=None):
+    if not filters and not breaking_filters:
         return None
-    filters = set(variadic(filters))
+    breaking_filters = match_filter_func(breaking_filters) or (lambda _, __: None)
+    filters = set(variadic(filters or []))
 
     interactive = '-' in filters
     if interactive:
         filters.remove('-')
 
     def _match_func(info_dict, incomplete=False):
+        ret = breaking_filters(info_dict, incomplete)
+        if ret is not None:
+            raise RejectedVideoReached(ret)
+
         if not filters or any(match_str(f, info_dict, incomplete) for f in filters):
             return NO_DEFAULT if interactive and not incomplete else None
         else:
@@ -6057,14 +6067,16 @@ class classproperty:
 
 
 class function_with_repr:
-    def __init__(self, func):
+    def __init__(self, func, repr_=None):
         functools.update_wrapper(self, func)
-        self.func = func
+        self.func, self.__repr = func, repr_
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
     def __repr__(self):
+        if self.__repr:
+            return self.__repr
         return f'{self.func.__module__}.{self.func.__qualname__}'
 
 

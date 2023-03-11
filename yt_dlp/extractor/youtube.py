@@ -3205,11 +3205,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'decoratedPlayerBarRenderer', 'playerBar', 'chapteredPlayerBarRenderer', 'chapters'
             ), expected_type=list)
 
-        return self._extract_chapters(
+        return self._extract_chapters_helper(
             chapter_list,
-            chapter_time=lambda chapter: float_or_none(
+            start_function=lambda chapter: float_or_none(
                 traverse_obj(chapter, ('chapterRenderer', 'timeRangeStartMillis')), scale=1000),
-            chapter_title=lambda chapter: traverse_obj(
+            title_function=lambda chapter: traverse_obj(
                 chapter, ('chapterRenderer', 'title', 'simpleText'), expected_type=str),
             duration=duration)
 
@@ -3222,41 +3222,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         chapter_title = lambda chapter: self._get_text(chapter, 'title')
 
         return next(filter(None, (
-            self._extract_chapters(traverse_obj(contents, (..., 'macroMarkersListItemRenderer')),
-                                   chapter_time, chapter_title, duration)
+            self._extract_chapters_helper(traverse_obj(contents, (..., 'macroMarkersListItemRenderer')),
+                                          chapter_time, chapter_title, duration)
             for contents in content_list)), [])
-
-    def _extract_chapters_from_description(self, description, duration):
-        duration_re = r'(?:\d+:)?\d{1,2}:\d{2}'
-        sep_re = r'(?m)^\s*(%s)\b\W*\s(%s)\s*$'
-        return self._extract_chapters(
-            re.findall(sep_re % (duration_re, r'.+?'), description or ''),
-            chapter_time=lambda x: parse_duration(x[0]), chapter_title=lambda x: x[1],
-            duration=duration, strict=False) or self._extract_chapters(
-            re.findall(sep_re % (r'.+?', duration_re), description or ''),
-            chapter_time=lambda x: parse_duration(x[1]), chapter_title=lambda x: x[0],
-            duration=duration, strict=False)
-
-    def _extract_chapters(self, chapter_list, chapter_time, chapter_title, duration, strict=True):
-        if not duration:
-            return
-        chapter_list = [{
-            'start_time': chapter_time(chapter),
-            'title': chapter_title(chapter),
-        } for chapter in chapter_list or []]
-        if not strict:
-            chapter_list.sort(key=lambda c: c['start_time'] or 0)
-
-        chapters = [{'start_time': 0}]
-        for idx, chapter in enumerate(chapter_list):
-            if chapter['start_time'] is None:
-                self.report_warning(f'Incomplete chapter {idx}')
-            elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
-                chapters.append(chapter)
-            elif chapter not in chapters:
-                self.report_warning(
-                    f'Invalid start time ({chapter["start_time"]} < {chapters[-1]["start_time"]}) for chapter "{chapter["title"]}"')
-        return chapters[1:]
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
@@ -3341,6 +3309,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 comment = self._extract_comment(comment_renderer, parent)
                 if not comment:
                     continue
+                # Sometimes YouTube may break and give us infinite looping comments.
+                # See: https://github.com/yt-dlp/yt-dlp/issues/6290
+                if comment['id'] in tracker['seen_comment_ids']:
+                    self.report_warning('Detected YouTube comments looping. Stopping comment extraction as we probably cannot get any more.')
+                    yield
+                else:
+                    tracker['seen_comment_ids'].add(comment['id'])
 
                 tracker['running_total'] += 1
                 tracker['total_reply_comments' if parent else 'total_parent_comments'] += 1
@@ -3365,7 +3340,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 est_total=0,
                 current_page_thread=0,
                 total_parent_comments=0,
-                total_reply_comments=0)
+                total_reply_comments=0,
+                seen_comment_ids=set())
 
         # TODO: Deprecated
         # YouTube comments have a max depth of 2
@@ -3741,10 +3717,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'filesize': int_or_none(fmt.get('contentLength')),
                 'format_id': f'{itag}{"-drc" if fmt.get("isDrc") else ""}',
                 'format_note': join_nonempty(
-                    '%s%s' % (audio_track.get('displayName') or '',
-                              ' (default)' if language_preference > 0 else ''),
+                    join_nonempty(audio_track.get('displayName'),
+                                  language_preference > 0 and ' (default)', delim=''),
                     fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
-                    'DRC' if fmt.get('isDrc') else None,
+                    fmt.get('isDrc') and 'DRC',
                     try_get(fmt, lambda x: x['projectionType'].replace('RECTANGULAR', '').lower()),
                     try_get(fmt, lambda x: x['spatialAudioType'].replace('SPATIAL_AUDIO_TYPE_', '').lower()),
                     throttled and 'THROTTLED', is_damaged and 'DAMAGED', delim=', '),
@@ -3769,13 +3745,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if mime_mobj:
                 dct['ext'] = mimetype2ext(mime_mobj.group(1))
                 dct.update(parse_codecs(mime_mobj.group(2)))
-            no_audio = dct.get('acodec') == 'none'
-            no_video = dct.get('vcodec') == 'none'
-            if no_audio:
-                dct['vbr'] = tbr
-            if no_video:
-                dct['abr'] = tbr
-            if no_audio or no_video:
+
+            single_stream = 'none' in (dct.get('acodec'), dct.get('vcodec'))
+            if single_stream and dct.get('ext'):
+                dct['container'] = dct['ext'] + '_dash'
+            if single_stream or itag == '17':
                 CHUNK_SIZE = 10 << 20
                 dct.update({
                     'protocol': 'http_dash_segments',
@@ -3784,12 +3758,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             'range': f'{range_start}-{min(range_start + CHUNK_SIZE - 1, dct["filesize"])}'
                         })
                     } for range_start in range(0, dct['filesize'], CHUNK_SIZE)]
-                } if dct['filesize'] else {
-                    'downloader_options': {'http_chunk_size': CHUNK_SIZE}  # No longer useful?
+                } if itag != '17' and dct['filesize'] else {
+                    'downloader_options': {'http_chunk_size': CHUNK_SIZE}
                 })
-
-                if dct.get('ext'):
-                    dct['container'] = dct['ext'] + '_dash'
 
             if itag:
                 itags[itag].add(('https', dct.get('language')))

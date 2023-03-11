@@ -176,7 +176,7 @@ class ExternalFD(FragmentFD):
         return 0
 
     def _call_process(self, cmd, info_dict):
-        return Popen.run(cmd, text=True, stderr=subprocess.PIPE)
+        return Popen.run(cmd, text=True, stderr=subprocess.PIPE if self._CAPTURE_STDERR else None)
 
 
 class CurlFD(ExternalFD):
