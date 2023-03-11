@@ -3798,11 +3798,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     **dct,
                     'format_id': f'{dct["format_id"]}-dashy' if all_formats else dct['format_id'],
                     'protocol': 'http_dash_segments',
-                    'fragments': [{
+                    'fragments': LazyList({
                         'url': update_url_query(dct['url'], {
                             'range': f'{range_start}-{min(range_start + CHUNK_SIZE - 1, dct["filesize"])}'
                         })
-                    } for range_start in range(0, dct['filesize'], CHUNK_SIZE)]
+                    } for range_start in range(0, dct['filesize'], CHUNK_SIZE))
                 }
                 if not all_formats:
                     continue
