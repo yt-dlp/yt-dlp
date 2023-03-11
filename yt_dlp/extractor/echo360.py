@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     ExtractorError,
+    float_or_none,
     traverse_obj,
     variadic,
 )
@@ -21,11 +22,8 @@ class Echo360BaseIE(InfoExtractor):
 
     def _call_api(self, host, video_id, media_id, session_token, **kwargs):
         return self._download_json(
-            self._API_BASE % (host, video_id, media_id),
-            video_id,
-            headers={'Authorization': f'Bearer {session_token}'},
-            **kwargs,
-        )
+            self._API_BASE % (host, video_id, media_id), video_id,
+            headers={'Authorization': f'Bearer {session_token}'}, **kwargs)
 
     @staticmethod
     def _update_url_query(uri, query_string):
@@ -45,8 +43,10 @@ class Echo360BaseIE(InfoExtractor):
         video_id = traverse_obj(video, ('playableAudioVideo', 'mediaId'))
         if video_id is None:
             raise ExtractorError('Video id was not found')
-        query_strings = variadic(traverse_obj(video, ('sourceQueryStrings', 'queryStrings')) or [])
-        duration = float(re.match(r'PT(\d+\.?\d+)S', traverse_obj(video, ('playableAudioVideo', 'duration')))[1])
+        query_strings = traverse_obj(video, ('sourceQueryStrings', 'queryStrings')) or []
+        duration = float_or_none(self._search_regex(
+            r'PT(\d+\.?\d+)S', traverse_obj(video, ('playableAudioVideo', 'duration')),
+            'video duration', default=None, fatal=False))
 
         formats = []
         for track in variadic(traverse_obj(video, ('playableAudioVideo', 'playableMedias')) or []):
@@ -54,20 +54,15 @@ class Echo360BaseIE(InfoExtractor):
             if href is None:
                 continue
             href = self._update_url_query(href, self._get_query_string(href, query_strings))
-            ext = determine_ext(href, None)
-            is_hls = track.get('isHls')
-            is_live = track.get('isLive')
-
-            if is_hls or ext == 'm3u8':
+            if track.get('isHls') or determine_ext(href, None) == 'm3u8':
                 hls_formats = self._extract_m3u8_formats(
-                    href, video_id, live=is_live, m3u8_id='hls', entry_protocol='m3u8_native', fatal=False
+                    href, video_id, live=track.get('isLive'), m3u8_id='hls', entry_protocol='m3u8_native', fatal=False
                 )
 
                 for hls_format in hls_formats:
                     query_string = self._get_query_string(hls_format['url'], query_strings)
-                    if query_string is not None:
-                        hls_format['extra_param_to_segment_url'] = query_string
-                        hls_format['url'] = self._update_url_query(hls_format['url'], query_string)
+                    hls_format['extra_param_to_segment_url'] = query_string
+                    hls_format['url'] = self._update_url_query(hls_format['url'], query_string)
 
                 formats.extend(hls_formats)
 
