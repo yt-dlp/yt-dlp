@@ -108,29 +108,22 @@ class Echo360IE(Echo360BaseIE):
         host, video_id = self._match_valid_url(url).group('host', 'id')
         webpage = self._download_webpage(url, video_id)
 
-        media_id = self._search_regex(rf'\\"mediaId\\":\\"({Echo360BaseIE._UUID_RE})\\"', webpage, 'media id')
-        session_id = self._search_regex(rf'\\"sessionId\\":\\"({Echo360BaseIE._UUID_RE})\\"', webpage, 'session id')
+        player_config = self._parse_json(self._search_regex(
+            r'Echo\["mediaPlayerBootstrapApp"\]\("({[^}]*})"\);', webpage, 'player config').replace('\\"', "\""),
+            video_id)
 
-        share_link_id = self._search_regex(
-            rf'\\"shareLinkId\\":\\"({Echo360BaseIE._UUID_RE})\\"', webpage,
-            'share link id', default=None, fatal=False)
-
-        public_link_id = self._search_regex(
-            rf'\\"publicLinkId\\":\\"({Echo360BaseIE._UUID_RE})\\"', webpage,
-            'public link id', default=None, fatal=False)
-
-        real_video_id = share_link_id or public_link_id
+        real_video_id = player_config.get('shareLinkId') or player_config.get('publicLinkId')
         if real_video_id is None:
             raise ExtractorError('Video id was not found')
 
         urlh = self._request_webpage(
-            f'https://{host}/api/ui/sessions/{session_id}',
+            f'https://{host}/api/ui/sessions/{player_config["sessionId"]}',
             video_id,
             note='Open video session',
             errnote='Unable to open video session',
         )
         session_token = urlh.headers.get('Token')
         if session_token is None:
-            raise ExtractorError('Video session could not be opened')
+            raise ExtractorError('No session token received')
 
-        return self._parse_mediapackage(self._call_api(host, real_video_id, media_id, session_token)['data'])
+        return self._parse_mediapackage(self._call_api(host, real_video_id, player_config['mediaId'], session_token)['data'])
