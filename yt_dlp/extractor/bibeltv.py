@@ -13,39 +13,10 @@ from ..utils import (
 )
 
 
-class BibelTVIE(InfoExtractor):
-    IE_DESC = 'BibelTV'
-    _VALID_URL = r'https?://(?:www\.)?bibeltv\.de/mediathek/videos/(?:crn/)?(?P<id>\d+)'
-
+class BibelTVBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['AT', 'CH', 'DE']
     _GEO_BYPASS = False
 
-    IE_NAME = 'bibeltv:video'
-
-    _TESTS = [{
-        'url': 'https://www.bibeltv.de/mediathek/videos/344436-alte-wege',
-        'md5': 'ec1c07efe54353780512e8a4103b612e',
-        'info_dict': {
-            'id': '344436',
-            'ext': 'mp4',
-            'title': 'Alte Wege',
-            'description': 'md5:2f4eb7294c9797a47b8fd13cccca22e9',
-            'timestamp': 1677877071,
-            'upload_date': '20230303',
-            'view_count': int,
-            'episode': 'Episode 1',
-            'thumbnail': r're:https://bibeltv\.imgix\.net/[\w-]+\.jpg',
-            'like_count': int,
-            'episode_number': 1,
-            'duration': 150.0,
-        },
-        'params': {
-            'format': '6',
-        },
-    }, {
-        'url': 'https://www.bibeltv.de/mediathek/videos/crn/326374',
-        'only_matching': True,
-    }]
     API_URL = 'https://www.bibeltv.de/mediathek/api'
     AUTH_TOKEN = 'j88bRXY8DsEqJ9xmTdWhrByVi5Hm'
 
@@ -112,6 +83,37 @@ class BibelTVIE(InfoExtractor):
             'like_count': data.get('likeCount'),
         }
 
+
+class BibelTVVideoIE(BibelTVBaseIE):
+    IE_DESC = 'BibelTV single video'
+    _VALID_URL = r'https?://(?:www\.)?bibeltv\.de/mediathek/videos/(?:crn/)?(?P<id>\d+)'
+    IE_NAME = 'bibeltv:video'
+
+    _TESTS = [{
+        'url': 'https://www.bibeltv.de/mediathek/videos/344436-alte-wege',
+        'md5': 'ec1c07efe54353780512e8a4103b612e',
+        'info_dict': {
+            'id': '344436',
+            'ext': 'mp4',
+            'title': 'Alte Wege',
+            'description': 'md5:2f4eb7294c9797a47b8fd13cccca22e9',
+            'timestamp': 1677877071,
+            'duration': 150.0,
+            'upload_date': '20230303',
+            'thumbnail': r're:https://bibeltv\.imgix\.net/[\w-]+\.jpg',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+            'view_count': int,
+            'like_count': int,
+        },
+        'params': {
+            'format': '6',
+        },
+    }, {
+        'url': 'https://www.bibeltv.de/mediathek/videos/crn/326374',
+        'only_matching': True,
+    }]
+
     def _real_extract(self, url):
         crn_id = self._match_id(url)
         video_data = traverse_obj(
@@ -123,11 +125,10 @@ class BibelTVIE(InfoExtractor):
         return self._extract_video_info(video_data)
 
 
-class BibelTvSerienIE(BibelTVIE):
-    IE_DESC = 'BibelTV'
+class BibelTVSeriesIE(BibelTVBaseIE):
+    IE_DESC = 'BibelTV series playlist'
     _VALID_URL = r'https?://(?:www\.)?bibeltv\.de/mediathek/serien/(?:crn/)?(?P<id>\d+)'
-
-    IE_NAME = 'bibeltv:serien'
+    IE_NAME = 'bibeltv:series'
 
     _TESTS = [{
         'url': 'https://www.bibeltv.de/mediathek/serien/333485-ein-wunder-fuer-jeden-tag',
@@ -152,9 +153,11 @@ class BibelTvSerienIE(BibelTVIE):
             crn_id, series_data.get('title'), clean_html(series_data.get('description')))
 
 
-class BibelTvLiveIE(BibelTVIE):
+class BibelTVLiveIE(BibelTVBaseIE):
+    IE_DESC = 'BibelTV live program'
     _VALID_URL = r'https?://(?:www\.)?bibeltv\.de/livestreams/(?P<id>[a-z]+)'
     IE_NAME = 'bibeltv:live'
+
     _TESTS = [{
         'url': 'https://www.bibeltv.de/livestreams/bibeltv/',
         'info_dict': {

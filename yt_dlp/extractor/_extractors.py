@@ -205,9 +205,9 @@ from .bfmtv import (
     BFMTVArticleIE,
 )
 from .bibeltv import (
-    BibelTVIE,
-    BibelTvLiveIE,
-    BibelTvSerienIE,
+    BibelTVLiveIE,
+    BibelTVSeriesIE,
+    BibelTVVideoIE,
 )
 from .bigflix import BigflixIE
 from .bigo import BigoIE
