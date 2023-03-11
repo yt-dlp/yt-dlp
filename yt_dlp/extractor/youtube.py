@@ -4791,7 +4791,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
         metadata_renderer = traverse_obj(data, ('metadata', 'channelMetadataRenderer'), expected_type=dict)
         if metadata_renderer:
-            channel_id = self.ucid_or_none(metadata_renderer.get('externalId')) or self.ucid_from_url(metadata_renderer.get('channelUrl'))
+            channel_id = traverse_obj(metadata_renderer, ('externalId', {self.ucid_or_none}),
+                                                         ('channelUrl', {self.ucid_from_url}))
             info.update({
                 'channel': metadata_renderer.get('title'),
                 'channel_id': channel_id,
