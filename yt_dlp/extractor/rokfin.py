@@ -64,7 +64,6 @@ class RokfinIE(InfoExtractor):
             'dislike_count': int,
             'like_count': int,
             'tags': ['FreeThinkingMedia^', 'RealProgressives^'],
-            'duration': None,
         }
     }, {
         'url': 'https://www.rokfin.com/stream/10543/Its-A-Crazy-Mess-Regional-Director-Blows-Whistle-On-Pfizers-Vaccine-Trial-Data',
