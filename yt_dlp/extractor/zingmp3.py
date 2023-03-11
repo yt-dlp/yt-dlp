@@ -79,7 +79,6 @@ class ZingMp3BaseIE(InfoExtractor):
         page = 1
         entries = []
         while True:
-            self.to_screen(f'Downloading page {page}')
             data = self._fetch_page(_id, url_type, page)
             entries.extend(self._parse_items(data.get('items')))
             if not data.get('hasMore') or len(entries) > data.get('total'):
