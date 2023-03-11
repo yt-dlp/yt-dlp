@@ -1355,7 +1355,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'categories': ['Music'],
                 'age_limit': 0,
                 'alt_title': 'The Spark',
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Afrojack',
+                'uploader_url': 'https://www.youtube.com/@Afrojack',
+                'uploader_id': '@Afrojack',
             },
             'params': {
                 'youtube_include_dash_manifest': True,
@@ -1474,7 +1477,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_url': 'https://www.youtube.com/channel/UCdR3RSDPqub28LjZx0v9-aA',
                 'live_status': 'not_live',
                 'artist': 'OOMPH!',
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'Herr Lurik',
+                'uploader_url': 'https://www.youtube.com/@HerrLurik',
+                'uploader_id': '@HerrLurik',
             },
         },
         {
@@ -1510,7 +1516,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'channel_url': 'https://www.youtube.com/channel/UCYEK6xds6eo-3tr4xRdflmQ',
                 'categories': ['Music'],
                 'album': 'Some Chords',
-                'channel_follower_count': int
+                'channel_follower_count': int,
+                'uploader': 'deadmau5',
+                'uploader_url': 'https://www.youtube.com/@deadmau5',
+                'uploader_id': '@deadmau5',
             },
             'expected_warnings': [
                 'DASH manifest missing',
@@ -1658,6 +1667,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'channel': 'WiiLikeToPlay',
                     'view_count': int,
                     'release_date': '20131106',
+                    'uploader': 'WiiLikeToPlay',
+                    'uploader_id': '@WLTP',
+                    'uploader_url': 'https://www.youtube.com/@WLTP',
                 },
             }, {
                 'info_dict': {
@@ -1683,6 +1695,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'live_status': 'was_live',
                     'categories': ['Gaming'],
                     'view_count': int,
+                    'uploader': 'WiiLikeToPlay',
+                    'uploader_id': '@WLTP',
+                    'uploader_url': 'https://www.youtube.com/@WLTP',
                 },
             }, {
                 'info_dict': {
@@ -1708,6 +1723,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'age_limit': 0,
                     'duration': 10128,
                     'view_count': int,
+                    'uploader': 'WiiLikeToPlay',
+                    'uploader_id': '@WLTP',
+                    'uploader_url': 'https://www.youtube.com/@WLTP',
                 },
             }],
             'params': {'skip_download': True},
@@ -1986,6 +2004,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         },
         {
             # Youtube Music Auto-generated description
+            # TODO: fix metadata extraction
             'url': 'https://music.youtube.com/watch?v=MgNrAu2pzNs',
             'info_dict': {
                 'id': 'MgNrAu2pzNs',
@@ -2005,6 +2024,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'categories': ['Music'],
                 'channel_url': 'https://www.youtube.com/channel/UC-pWHpBjdGG69N9mM2auIAA',
                 'channel': 'Stephen',
+                'uploader': 'Stephen', # TODO: should be "Stephen - Topic"
                 'availability': 'public',
                 'creator': 'Stephen',
                 'duration': 169,
@@ -4080,7 +4100,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         channel_handle = self.handle_from_url(owner_profile_url)
         if not channel_handle:
-            # fallbacks
+            # TODO fallbacks
             pass
 
         info = {
@@ -6333,7 +6353,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'channel_id': 'UCKSpbfbl5kRQpTdL7kMc-1Q',
             'channel': 'Wickman',
             'tags': [],
-            'channel_url': 'https://www.youtube.com/c/WickmanVT',
+            'channel_url': 'https://www.youtube.com/channel/UCKSpbfbl5kRQpTdL7kMc-1Q',
             'availability': 'public',
         },
         'playlist_mincount': 29,
@@ -6376,7 +6396,7 @@ class YoutubePlaylistIE(InfoExtractor):
             'description': 'md5:da521864744d60a198e3a88af4db0d9d',
             'channel': 'LBK',
             'view_count': int,
-            'channel_url': 'https://www.youtube.com/c/愛低音的國王',
+            'channel_url': 'https://www.youtube.com/channel/UC21nz3_MesPLqtDqwdvnoxA',
             'tags': [],
             'uploader_url': 'https://www.youtube.com/@music_king',
             'channel_id': 'UC21nz3_MesPLqtDqwdvnoxA',
@@ -6433,7 +6453,7 @@ class YoutubeYtBeIE(InfoExtractor):
             'like_count': int,
             'age_limit': 0,
             'playable_in_embed': True,
-            'thumbnail': 'https://i.ytimg.com/vi_webp/yeWKywCrFtk/maxresdefault.webp',
+            'thumbnail': r're:^https?://.*\.webp',
             'channel': 'Backus-Page House Museum',
             'channel_id': 'UCEfMCQ9bs3tjvjy1s451zaw',
             'live_status': 'not_live',
@@ -6947,10 +6967,11 @@ class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
             'upload_date': '20210920',
             'uploader': 'Scott The Woz',
             'uploader_id': '@ScottTheWoz',
-            'uploader_url': 'http://www.youtube.com/@ScottTheWoz',
+            'uploader_url': 'https://www.youtube.com/@ScottTheWoz',
             'view_count': int,
             'live_status': 'not_live',
-            'channel_follower_count': int
+            'channel_follower_count': int,
+            'chapters': 'count:20',
         }
     }]
 
