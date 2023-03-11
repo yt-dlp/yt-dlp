@@ -527,6 +527,7 @@ from .ellentube import (
 )
 from .elonet import ElonetIE
 from .elpais import ElPaisIE
+from .ettu import EttuTvIE
 from .embedly import EmbedlyIE
 from .engadget import EngadgetIE
 from .epicon import (
