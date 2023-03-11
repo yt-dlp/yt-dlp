@@ -454,13 +454,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     _YT_HANDLE_RE = r'@[A-Za-z0-9_.-]{3,30}'  # https://support.google.com/youtube/answer/11585688?hl=en
     _YT_CHANNEL_UCID_RE = r'UC[A-Za-z0-9_-]{22}'
 
-    @classmethod
-    def ucid_or_none(cls, ucid):
-        return ucid if re.match(rf'^{cls._YT_CHANNEL_UCID_RE}$', ucid or '') is not None else None
+    def ucid_or_none(self, ucid):
+        return self._search_regex(rf'^{cls._YT_CHANNEL_UCID_RE}$', ucid, 'UC-id', default=None)
 
-    @classmethod
-    def handle_or_none(cls, handle):
-        return handle if re.match(rf'^{cls._YT_HANDLE_RE}$', handle or '') is not None else None
+    def handle_or_none(self, handle):
+        return self._search_regex(rf'^{cls._YT_HANDLE_RE}$', handle, '@-handle', default=None)
 
     def handle_from_url(self, url):
         return self._search_regex(rf'https?://(?:www\.)?youtube\.com/({self._YT_HANDLE_RE})', urljoin('https://www.youtube.com/', url) or '', 'channel handle', default=None)
