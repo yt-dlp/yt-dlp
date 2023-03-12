@@ -1,3 +1,5 @@
+import functools
+
 from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..utils import (
@@ -34,74 +36,54 @@ class ParlerIE(InfoExtractor):
             },
         },
         {
-            'url': 'https://parler.com/feed/a7406eb4-91e5-4793-b5e3-ade57a24e287',
-            'md5': '11687e2f5bb353682cee338d181422ed',
-            'info_dict': {
-                'id': 'a7406eb4-91e5-4793-b5e3-ade57a24e287',
-                'ext': 'mp4',
-                'thumbnail': 'https://bl-images.parler.com/videos/317827a8-1e48-4cbc-981f-7dd17d4c1183/thumbnail.jpeg',
-                'title': 'Parler video #a7406eb4-91e5-4793-b5e3-ade57a24e287',
-                'description': 'This man should run for office',
-                'timestamp': 1659657600,
-                'upload_date': '20220805',
-                'uploader': 'Benny Johnson',
-                'uploader_id': 'BennyJohnson',
-                'uploader_url': 'https://parler.com/BennyJohnson',
-                'view_count': int,
-                'comment_count': int,
-                'repost_count': int,
-            },
-        },
-        {
             'url': 'https://parler.com/feed/f23b85c1-6558-470f-b9ff-02c145f28da5',
             'md5': 'eaba1ff4a10fe281f5ce74e930ab2cb4',
             'info_dict': {
                 'id': 'r5vkSaz8PxQ',
                 'ext': 'mp4',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/r5vkSaz8PxQ/maxresdefault.webp',
-                'title': 'Tom MacDonald Names Reaction',
-                'description': 'md5:33c21f0d35ae6dc2edf3007d6696baea',
-                'upload_date': '20220716',
-                'duration': 1267,
-                'uploader': 'Mahesh Chookolingo',
-                'uploader_id': 'maheshchookolingo',
-                'uploader_url': 'http://www.youtube.com/user/maheshchookolingo',
-                'channel': 'Mahesh Chookolingo',
-                'channel_id': 'UCox6YeMSY1PQInbCtTaZj_w',
-                'channel_url': 'https://www.youtube.com/channel/UCox6YeMSY1PQInbCtTaZj_w',
-                'categories': ['Entertainment'],
-                'tags': list,
-                'availability': 'public',
                 'live_status': 'not_live',
-                'view_count': int,
                 'comment_count': int,
+                'duration': 1267,
                 'like_count': int,
                 'channel_follower_count': int,
-                'age_limit': 0,
+                'channel_id': 'UCox6YeMSY1PQInbCtTaZj_w',
+                'upload_date': '20220716',
+                'thumbnail': 'https://i.ytimg.com/vi/r5vkSaz8PxQ/maxresdefault.jpg',
+                'tags': 'count:17',
+                'availability': 'public',
+                'categories': ['Entertainment'],
                 'playable_in_embed': True,
+                'channel': 'Who Knows What! With Mahesh & Friends',
+                'title': 'Tom MacDonald Names Reaction',
+                'uploader': 'Who Knows What! With Mahesh & Friends',
+                'uploader_id': '@maheshchookolingo',
+                'age_limit': 0,
+                'description': 'md5:33c21f0d35ae6dc2edf3007d6696baea',
+                'channel_url': 'https://www.youtube.com/channel/UCox6YeMSY1PQInbCtTaZj_w',
+                'view_count': int,
+                'uploader_url': 'http://www.youtube.com/@maheshchookolingo',
             },
         },
     ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        data = self._download_json(
-            'https://api.parler.com/v0/public/parleys/%s' % video_id, video_id)['data']
-
+        data = self._download_json(f'https://api.parler.com/v0/public/parleys/{video_id}',
+                                   video_id)['data']
         if data.get('link'):
-            return self.url_result(data.get('link'), YoutubeIE)
+            return self.url_result(data['link'], YoutubeIE)
 
         return {
             'id': video_id,
+            'title': strip_or_none(data.get('title')) or '',
             **traverse_obj(data, {
                 'url': ('video', 'videoSrc'),
                 'thumbnail': ('video', 'thumbnailUrl'),
-                'title': ('title', {strip_or_none}),
-                'description': ('body', {clean_html}, {lambda x: x if x else None}),
+                'description': ('body', {clean_html}),
                 'timestamp': ('date_created', {unified_timestamp}),
                 'uploader': ('user', 'name', {strip_or_none}),
                 'uploader_id': ('user', 'username', {str}),
-                'uploader_url': ('user', 'username', {lambda x: urljoin('https://parler.com/', x)}),
+                'uploader_url': ('user', 'username', {functools.partial(urljoin, 'https://parler.com/')}),
                 'view_count': ('views', {int_or_none}),
                 'comment_count': ('total_comments', {int_or_none}),
                 'repost_count': ('echos', {int_or_none}),
