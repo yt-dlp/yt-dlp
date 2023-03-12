@@ -984,11 +984,10 @@ class TikTokVMIE(InfoExtractor):
 
 
 class TikTokLiveIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                         https?://(?:
-                             (?:www\.)?tiktok\.com/@(?P<uploader>[\w.-]+)/live|
-                             m\.tiktok\.com/share/live/(?P<id>\d+)
-                         )'''
+    _VALID_URL = r'''(?x)https?://(?:
+        (?:www\.)?tiktok\.com/@(?P<uploader>[\w.-]+)/live|
+        m\.tiktok\.com/share/live/(?P<id>\d+)
+    )'''
     IE_NAME = 'tiktok:live'
 
     _TESTS = [{
@@ -1022,8 +1021,6 @@ class TikTokLiveIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    QUALITIES = ('SD1', 'SD2', 'HD1', 'pm_mt_video_720p60', 'FULL_HD1', 'pm_mt_video_1080p60', 'rtmp', 'ORIGION', 'hls')
-
     def _call_api(self, url, param, room_id, uploader, key=None, fatal=True):
         response = traverse_obj(self._download_json(
             url, room_id, fatal=fatal, query={
@@ -1054,12 +1051,14 @@ class TikTokLiveIE(InfoExtractor):
             return traverse_obj(live_info, (
                 'stream_url', *keys, {lambda x: self._parse_json(x, uploader)}, 'VCodec', {str}))
 
+        get_quality = qualities(('SD1', 'SD2', 'HD1', 'pm_mt_video_720p60', 'FULL_HD1', 'pm_mt_video_1080p60', 'rtmp', 'ORIGION', 'hls'))
+
         m3u8_url = traverse_obj(live_info, ('stream_url', 'hls_pull_url', {url_or_none}))
         if m3u8_url:
             formats.extend(
                 self._extract_m3u8_formats(m3u8_url, room_id, 'mp4', m3u8_id='hls', live=True, fatal=False))
             for f in formats:
-                f['quality'] = qualities(self.QUALITIES)('hls')
+                f['quality'] = get_quality('hls')
                 f['vcodec'] = get_vcodec('hls_pull_url_params')
 
         rtmp_url = traverse_obj(live_info, ('stream_url', 'rtmp_pull_url', {url_or_none}))
@@ -1069,7 +1068,7 @@ class TikTokLiveIE(InfoExtractor):
                 'ext': 'flv',
                 'format_id': 'rtmp',
                 'vcodec': get_vcodec('rtmp_pull_url_params'),
-                'quality': qualities(self.QUALITIES)('rtmp'),
+                'quality': get_quality('rtmp'),
             })
 
         for f_id, f_url in traverse_obj(live_info, ('stream_url', 'flv_pull_url', {dict}), default={}).items():
@@ -1080,7 +1079,7 @@ class TikTokLiveIE(InfoExtractor):
                 'ext': 'flv',
                 'format_id': f_id,
                 'vcodec': get_vcodec('flv_pull_url_params', f_id),
-                'quality': qualities(self.QUALITIES)(f_id),
+                'quality': get_quality(f_id),
             })
 
         if not formats:
