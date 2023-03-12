@@ -183,6 +183,10 @@ class NebulaIE(NebulaBaseIE):
             'url': 'https://watchnebula.com/videos/money-episode-1-the-draw',
             'only_matching': True,
         },
+        {
+            'url': 'https://beta.nebula.tv/videos/money-episode-1-the-draw',
+            'only_matching': True,
+        },
     ]
 
     def _fetch_video_metadata(self, slug):
