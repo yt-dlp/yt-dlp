@@ -993,10 +993,22 @@ class TikTokLiveIE(TikTokBaseIE):
     IE_NAME = 'tiktok:live'
 
     _TESTS = [{
+        'url': 'https://www.tiktok.com/@weathernewslive/live',
+        'info_dict': {
+            'id': '7207852669225601793',
+            'ext': 'flv',
+            'title': r're:ウェザーニュースLiVE[\d\s:-]*',
+            'creator': 'ウェザーニュースLiVE',
+            'uploader': 'weathernewslive',
+            'uploader_id': '6621496731283095554',
+            'live_status': 'is_live',
+            'concurrent_view_count': int,
+        },
+    }, {
         'url': 'https://www.tiktok.com/@pilarmagenta/live',
         'info_dict': {
             'id': '7209423610325322522',
-            'ext': 'mp4',
+            'ext': 'flv',
             'title': str,
             'creator': 'Pilarmagenta',
             'uploader': 'pilarmagenta',
@@ -1007,17 +1019,7 @@ class TikTokLiveIE(TikTokBaseIE):
         'skip': 'Livestream',
     }, {
         'url': 'https://m.tiktok.com/share/live/7209423610325322522/?language=en',
-        'info_dict': {
-            'id': '7209423610325322522',
-            'ext': 'mp4',
-            'title': str,
-            'creator': 'Pilarmagenta',
-            'uploader': 'pilarmagenta',
-            'uploader_id': '6624846890674683909',
-            'live_status': 'is_live',
-            'concurrent_view_count': int,
-        },
-        'skip': 'Livestream',
+        'only_matching': True,
     }, {
         'url': 'https://www.tiktok.com/@iris04201/live',
         'only_matching': True,
