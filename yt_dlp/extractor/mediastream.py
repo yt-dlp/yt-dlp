@@ -27,12 +27,14 @@ class MediaStreamBaseIE(InfoExtractor):
         for mobj in re.finditer(
             r'''(?x)
                 <(?:div|ps-mediastream)[^>]+
-                class\s*=\s*"[^"]*MediaStreamVideoPlayer[^"]*"[^>]+
-                data-video-id\s*=\s*"(?P<video_id>\w+)\s*"
-                (?:\s*data-video-type\s*=\s*"(?P<video_type>[^"]+))?
+                (class="[^"]*MediaStreamVideoPlayer)[^"]*"[^>]+
+                data-video-id="(?P<video_id>\w+)"
+                (?:\s*data-video-type="(?P<video_type>[^"]+))?
+                (?:[^>]*>\s*<div[^>]+\1[^"]*"[^>]+data-mediastream=["\'][^>]+
+                    https://mdstrm\.com/(?P<live>live-stream))?
                 ''', webpage):
 
-            video_type = 'live-stream' if mobj.group('video_type') == 'live' else 'embed'
+            video_type = 'live-stream' if mobj.group('video_type') == 'live' or mobj.group('live') else 'embed'
             yield f'https://mdstrm.com/{video_type}/{mobj.group("video_id")}'
 
 
