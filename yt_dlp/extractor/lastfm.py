@@ -1,33 +1,24 @@
+import itertools
 import re
 
 from .common import InfoExtractor
-from ..utils import int_or_none, format_field
+from ..utils import int_or_none, parse_qs, traverse_obj
 
 
 class LastFMPlaylistBaseIE(InfoExtractor):
     def _entries(self, url, playlist_id):
-        webpage = self._download_webpage(url, playlist_id)
-        start_page_number = int_or_none(self._search_regex(
-            r'\bpage=(\d+)', url, 'page', default=None)) or 1
-        last_page_number = int_or_none(self._search_regex(
-            r'>(\d+)</a>[^<]*</li>[^<]*<li[^>]+class="pagination-next', webpage, 'last_page', default=None))
-
-        for page_number in range(start_page_number, (last_page_number or start_page_number) + 1):
+        single_page = traverse_obj(parse_qs(url), ('page', -1, {int_or_none}))
+        for page in itertools.count(single_page or 1):
             webpage = self._download_webpage(
-                url, playlist_id,
-                note='Downloading page %d%s' % (page_number, format_field(last_page_number, None, ' of %d')),
-                query={'page': page_number})
-            page_entries = [
-                self.url_result(player_url, 'Youtube')
-                for player_url in set(re.findall(r'data-youtube-url="([^"]+)"', webpage))
-            ]
-
-            for e in page_entries:
-                yield e
+                url, playlist_id, f'Downloading page {page}', query={'page': page})
+            videos = re.findall(r'data-youtube-url="([^"]+)"', webpage)
+            yield from videos
+            if single_page or not videos:
+                return
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        return self.playlist_result(self._entries(url, playlist_id), playlist_id)
+        return self.playlist_from_matches(self._entries(url, playlist_id), playlist_id, ie='Youtube')
 
 
 class LastFMPlaylistIE(LastFMPlaylistBaseIE):
@@ -37,7 +28,7 @@ class LastFMPlaylistIE(LastFMPlaylistBaseIE):
         'info_dict': {
             'id': 'Oasis',
         },
-        'playlist_count': 11,
+        'playlist_mincount': 11,
     }, {
         'url': 'https://www.last.fm/music/Oasis',
         'only_matching': True,
@@ -73,6 +64,18 @@ class LastFMUserIE(LastFMPlaylistBaseIE):
             'id': '12319471',
         },
         'playlist_count': 30,
+    }, {
+        'url': 'https://www.last.fm/user/naamloos1/playlists/12543760',
+        'info_dict': {
+            'id': '12543760',
+        },
+        'playlist_mincount': 80,
+    }, {
+        'url': 'https://www.last.fm/user/naamloos1/playlists/12543760?page=3',
+        'info_dict': {
+            'id': '12543760',
+        },
+        'playlist_count': 32,
     }]
 
 
