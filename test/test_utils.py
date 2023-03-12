@@ -425,7 +425,6 @@ class TestUtil(unittest.TestCase):
         # but yt-dlp uses UTC to keep things consistent
         self.assertEqual(unified_timestamp('2023-03-11T06:48:34.008'), 1678517314)
 
-
     def test_determine_ext(self):
         self.assertEqual(determine_ext('http://example.com/foo/bar.mp4/?download'), 'mp4')
         self.assertEqual(determine_ext('http://example.com/foo/bar/?download', None), None)
