@@ -101,9 +101,8 @@ class Echo360IE(InfoExtractor):
         host, video_id = self._match_valid_url(url).group('host', 'id')
         webpage = self._download_webpage(url, video_id)
 
-        player_config = self._parse_json(self._search_regex(
-            r'Echo\["mediaPlayerBootstrapApp"\]\("({[^}]*})"\);', webpage, 'player config').replace('\\"', "\""),
-            video_id)
+        player_config = self._search_json(r'Echo\["mediaPlayerBootstrapApp"\]\("', webpage, 'player config', video_id,
+                                          transform_source=lambda x: x.replace(R'\"', '"'))
 
         urlh = self._request_webpage(
             f'https://{host}/api/ui/sessions/{player_config["sessionId"]}',
