@@ -2704,9 +2704,9 @@ def parse_duration(s):
         if m:
             sign, days, hours, mins, secs, ms = m.groups()
         else:
-            m = re.match(r'(?i)(?P<sign>[+-])?(?:(?P<hours>[0-9.]+)\s*(?:hours?)|(?P<mins>[0-9.]+)\s*(?:mins?\.?|minutes?)\s*)Z?$', s)
+            m = re.match(r'(?i)(?P<sign>[+-])?(?:(?P<days>[0-9.]+)\s*(?:days?)|(?P<hours>[0-9.]+)\s*(?:hours?)|(?P<mins>[0-9.]+)\s*(?:mins?\.?|minutes?)\s*)Z?$', s)
             if m:
-                sign, hours, mins = m.groups()
+                sign, days, hours, mins = m.groups()
             else:
                 return None
 
