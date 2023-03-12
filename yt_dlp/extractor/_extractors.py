@@ -1609,6 +1609,7 @@ from .rts import RTSIE
 from .rtvcplay import (
     RTVCPlayIE,
     RTVCPlayEmbedIE,
+    RTVCKalturaIE,
 )
 from .rtve import (
     RTVEALaCartaIE,
