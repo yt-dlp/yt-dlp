@@ -178,26 +178,6 @@ class RTVCKalturaIE(RTFVPlayBaseIE):
         },
     }]
 
-    _WEBPAGE_TESTS = [{
-        'url': 'https://www.rtvcplay.co/en-vivo/canal-institucional',
-        'info_dict': {
-            'id': 'indexCI',
-            'title': r're:^Canal Institucional',
-            'description': 'md5:eff9e548394175928059320c006031ea',
-            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
-            'live_status': 'is_live',
-            'ext': 'mp4',
-        },
-        'params': {
-            'skip_download': 'Livestream',
-        },
-    }]
-
-    @classmethod
-    def _extract_embed_urls(cls, url, webpage):
-        yield from re.findall(
-            r'<iframe[^>]+src\s*=\s*"(https://media\.rtvc\.gov\.co/kalturartvc/[\w.-]+)', webpage)
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
