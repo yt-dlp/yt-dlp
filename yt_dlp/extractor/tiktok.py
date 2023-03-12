@@ -21,6 +21,7 @@ from ..utils import (
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
+    try_call,
     try_get,
     url_or_none,
 )
@@ -983,7 +984,7 @@ class TikTokVMIE(InfoExtractor):
         return self.url_result(new_url)
 
 
-class TikTokLiveIE(InfoExtractor):
+class TikTokLiveIE(TikTokBaseIE):
     _VALID_URL = r'''(?x)https?://(?:
         (?:www\.)?tiktok\.com/@(?P<uploader>[\w.-]+)/live|
         m\.tiktok\.com/share/live/(?P<id>\d+)
@@ -1029,19 +1030,27 @@ class TikTokLiveIE(InfoExtractor):
             }), (key, {dict}), default={})
 
         # status == 2 if live else 4
-        if int_or_none(response.get('status')) != 2:
-            raise UserNotLive(video_id=uploader)
-
-        return response
+        if int_or_none(response.get('status')) == 2:
+            return response
+        # If room_id is obtained via mobile share URL and cannot be refreshed, do not wait for live
+        elif not uploader:
+            raise ExtractorError('This livestream has ended', expected=True)
+        raise UserNotLive(video_id=uploader)
 
     def _real_extract(self, url):
         uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
+        webpage = self._download_webpage(
+            url, uploader or room_id, headers={'User-Agent': 'User-Agent:Mozilla/5.0'}, fatal=not room_id)
+
+        if webpage:
+            data = try_call(lambda: self._get_sigi_state(webpage, uploader or room_id))
+            room_id = (traverse_obj(data, ('UserModule', 'users', ..., 'roomId', {str_or_none}), get_all=False)
+                       or self._search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
+                       or room_id)
+            uploader = uploader or traverse_obj(data, ('UserModule', 'users', ..., 'uniqueId', {str}), get_all=False)
 
         if not room_id:
-            webpage = self._download_webpage(url, uploader, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
-            room_id = self._html_search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
-            if not room_id:
-                raise UserNotLive(video_id=uploader)
+            raise UserNotLive(video_id=uploader)
 
         formats = []
         live_info = self._call_api(
@@ -1049,7 +1058,7 @@ class TikTokLiveIE(InfoExtractor):
 
         def get_vcodec(*keys):
             return traverse_obj(live_info, (
-                'stream_url', *keys, {lambda x: self._parse_json(x, uploader)}, 'VCodec', {str}))
+                'stream_url', *keys, {lambda x: self._parse_json(x, room_id)}, 'VCodec', {str}))
 
         get_quality = qualities(('SD1', 'SD2', 'HD1', 'pm_mt_video_720p60', 'FULL_HD1', 'pm_mt_video_1080p60', 'rtmp', 'ORIGION', 'hls'))
 
