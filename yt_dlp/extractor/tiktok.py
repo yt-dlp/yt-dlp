@@ -16,6 +16,7 @@ from ..utils import (
     get_first,
     int_or_none,
     join_nonempty,
+    merge_dicts,
     qualities,
     remove_start,
     srt_subtitles_timecode,
@@ -1022,9 +1023,9 @@ class TikTokLiveIE(TikTokBaseIE):
         'only_matching': True,
     }]
 
-    def _call_api(self, url, param, room_id, uploader, key=None, fatal=True):
+    def _call_api(self, url, param, room_id, uploader, key=None):
         response = traverse_obj(self._download_json(
-            url, room_id, fatal=fatal, query={
+            url, room_id, fatal=False, query={
                 'aid': '1988',
                 param: room_id,
             }), (key, {dict}), default={})
@@ -1054,31 +1055,57 @@ class TikTokLiveIE(TikTokBaseIE):
 
         formats = []
         live_info = self._call_api(
-            'https://webcast.tiktok.com/webcast/room/info', 'room_id', room_id, uploader, key='data', fatal=False)
+            'https://webcast.tiktok.com/webcast/room/info', 'room_id', room_id, uploader, key='data')
+
+        get_quality = qualities(('SD1', 'ld', 'SD2', 'sd', 'HD1', 'hd', 'FULL_HD1', 'uhd', 'ORIGION', 'origin', 'fallback'))
+        parse_inner = lambda x: self._parse_json(x, None)
+
+        for quality, stream in traverse_obj(live_info, (
+                'stream_url', 'live_core_sdk_data', 'pull_data', 'stream_data',
+                {parse_inner}, 'data', {dict}), default={}).items():
+
+            sdk_params = traverse_obj(stream, ('main', 'sdk_params', {parse_inner}, {
+                'vcodec': ('VCodec', {str}),
+                'tbr': ('vbitrate', {lambda x: int_or_none(x, 1000)}),
+                'resolution': ('resolution', {str}),
+            }))
+
+            flv_url = traverse_obj(stream, ('main', 'flv', {url_or_none}))
+            if flv_url:
+                formats.append({
+                    'url': flv_url,
+                    'ext': 'flv',
+                    'format_id': f'flv-{quality}',
+                    'quality': get_quality(quality),
+                    **sdk_params,
+                })
+
+            hls_url = traverse_obj(stream, ('main', 'hls', {url_or_none}))
+            if hls_url:
+                formats.append({
+                    'url': hls_url,
+                    'ext': 'mp4',
+                    'protocol': 'm3u8_native',
+                    'format_id': f'hls-{quality}',
+                    'quality': get_quality(quality),
+                    **sdk_params,
+                })
 
         def get_vcodec(*keys):
             return traverse_obj(live_info, (
-                'stream_url', *keys, {lambda x: self._parse_json(x, room_id)}, 'VCodec', {str}))
+                'stream_url', *keys, {parse_inner}, 'VCodec', {str}))
 
-        get_quality = qualities(('SD1', 'SD2', 'HD1', 'pm_mt_video_720p60', 'FULL_HD1', 'pm_mt_video_1080p60', 'rtmp', 'ORIGION', 'hls'))
-
-        m3u8_url = traverse_obj(live_info, ('stream_url', 'hls_pull_url', {url_or_none}))
-        if m3u8_url:
-            formats.extend(
-                self._extract_m3u8_formats(m3u8_url, room_id, 'mp4', m3u8_id='hls', live=True, fatal=False))
-            for f in formats:
-                f['quality'] = get_quality('hls')
-                f['vcodec'] = get_vcodec('hls_pull_url_params')
-
-        rtmp_url = traverse_obj(live_info, ('stream_url', 'rtmp_pull_url', {url_or_none}))
-        if rtmp_url:
-            formats.append({
-                'url': rtmp_url,
-                'ext': 'flv',
-                'format_id': 'rtmp',
-                'vcodec': get_vcodec('rtmp_pull_url_params'),
-                'quality': get_quality('rtmp'),
-            })
+        for stream in ('hls', 'rtmp'):
+            stream_url = traverse_obj(live_info, ('stream_url', f'{stream}_pull_url', {url_or_none}))
+            if stream_url:
+                formats.append({
+                    'url': stream_url,
+                    'ext': 'mp4' if stream == 'hls' else 'flv',
+                    'protocol': 'm3u8_native' if stream == 'hls' else 'https',
+                    'format_id': f'{stream}-pull',
+                    'vcodec': get_vcodec(f'{stream}_pull_url_params'),
+                    'quality': get_quality('ORIGION'),
+                })
 
         for f_id, f_url in traverse_obj(live_info, ('stream_url', 'flv_pull_url', {dict}), default={}).items():
             if not url_or_none(f_url):
@@ -1086,15 +1113,24 @@ class TikTokLiveIE(TikTokBaseIE):
             formats.append({
                 'url': f_url,
                 'ext': 'flv',
-                'format_id': f_id,
+                'format_id': f'flv-{f_id}',
                 'vcodec': get_vcodec('flv_pull_url_params', f_id),
                 'quality': get_quality(f_id),
             })
 
-        if not formats:
-            live_info = self._call_api(
-                'https://www.tiktok.com/api/live/detail/', 'roomID', room_id, uploader, key='LiveRoomInfo')
-            formats.extend(self._extract_m3u8_formats(live_info['liveUrl'], room_id, 'mp4', m3u8_id='hls', live=True))
+        # If uploader is a guest on another's livestream, primary endpoint will not have m3u8 URLs
+        if not traverse_obj(formats, lambda _, v: v['ext'] == 'mp4'):
+            live_info = merge_dicts(live_info, self._call_api(
+                'https://www.tiktok.com/api/live/detail/', 'roomID', room_id, uploader, key='LiveRoomInfo'))
+            if url_or_none(live_info.get('liveUrl')):
+                formats.append({
+                    'url': live_info['liveUrl'],
+                    'ext': 'mp4',
+                    'protocol': 'm3u8_native',
+                    'format_id': 'hls-fallback',
+                    'vcodec': 'h264',
+                    'quality': get_quality('fallback'),  # FLV URLs may be 404, so prefer fallback
+                })
 
         return {
             'id': room_id,
