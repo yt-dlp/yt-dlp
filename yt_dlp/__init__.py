@@ -42,7 +42,6 @@ from .utils import (
     GeoUtils,
     PlaylistEntries,
     SameFileError,
-    datetime_from_str,
     decodeOption,
     download_range_func,
     expand_path,
