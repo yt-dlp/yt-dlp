@@ -984,39 +984,118 @@ class TikTokVMIE(InfoExtractor):
 
 
 class TikTokLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tiktok\.com/@(?P<id>[\w\.-]+)/live'
+    _VALID_URL = r'''(?x)
+                         https?://(?:
+                             (?:www\.)?tiktok\.com/@(?P<uploader>[\w.-]+)/live|
+                             m\.tiktok\.com/share/live/(?P<id>\d+)
+                         )'''
     IE_NAME = 'tiktok:live'
 
     _TESTS = [{
+        'url': 'https://www.tiktok.com/@pilarmagenta/live',
+        'info_dict': {
+            'id': '7209423610325322522',
+            'ext': 'mp4',
+            'title': str,
+            'creator': 'Pilarmagenta',
+            'uploader': 'pilarmagenta',
+            'uploader_id': '6624846890674683909',
+            'live_status': 'is_live',
+            'concurrent_view_count': int,
+        },
+        'skip': 'Livestream',
+    }, {
+        'url': 'https://m.tiktok.com/share/live/7209423610325322522/?language=en',
+        'info_dict': {
+            'id': '7209423610325322522',
+            'ext': 'mp4',
+            'title': str,
+            'creator': 'Pilarmagenta',
+            'uploader': 'pilarmagenta',
+            'uploader_id': '6624846890674683909',
+            'live_status': 'is_live',
+            'concurrent_view_count': int,
+        },
+        'skip': 'Livestream',
+    }, {
         'url': 'https://www.tiktok.com/@iris04201/live',
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        uploader = self._match_id(url)
-        webpage = self._download_webpage(url, uploader, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
-        room_id = self._html_search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
-        if not room_id:
-            raise UserNotLive(video_id=uploader)
-        live_info = traverse_obj(self._download_json(
-            'https://www.tiktok.com/api/live/detail/', room_id, query={
-                'aid': '1988',
-                'roomID': room_id,
-            }), 'LiveRoomInfo', expected_type=dict, default={})
+    QUALITIES = ('SD1', 'SD2', 'HD1', 'pm_mt_video_720p60', 'FULL_HD1', 'pm_mt_video_1080p60', 'ORIGION', 'hls')
 
-        if 'status' not in live_info:
-            raise ExtractorError('Unexpected response from TikTok API')
-        # status = 2 if live else 4
-        if not int_or_none(live_info['status']) == 2:
+    def _call_api(self, url, param, room_id, uploader, key=None, fatal=True):
+        response = traverse_obj(self._download_json(
+            url, room_id, fatal=fatal, query={
+                'aid': '1988',
+                param: room_id,
+            }), (key, {dict}), default={})
+        # status == 2 if live else 4
+        if int_or_none(response.get('status')) == 4:
             raise UserNotLive(video_id=uploader)
+
+        return response
+
+    def _real_extract(self, url):
+        uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
+
+        webpage = ''
+        if not room_id:
+            webpage = self._download_webpage(url, uploader, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
+            room_id = self._html_search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
+            if not room_id:
+                raise UserNotLive(video_id=uploader)
+
+        formats = []
+        live_info = self._call_api(
+            'https://webcast.tiktok.com/webcast/room/info', 'room_id', room_id, uploader, key='data', fatal=False)
+
+        def get_vcodec(*keys):
+            return traverse_obj(live_info, (
+                'stream_url', *keys, {lambda x: self._parse_json(x, uploader)}, 'VCodec', {str}))
+
+        m3u8_url = traverse_obj(live_info, ('stream_url', 'hls_pull_url', {url_or_none}))
+        if m3u8_url:
+            formats.extend(
+                self._extract_m3u8_formats(m3u8_url, room_id, 'mp4', m3u8_id='hls', live=True, fatal=False))
+            for f in formats:
+                f['quality'] = qualities(self.QUALITIES)('hls')
+                f['vcodec'] = get_vcodec('hls_pull_url_params')
+
+        rtmp_url = traverse_obj(live_info, ('stream_url', 'rtmp_pull_url', {url_or_none}))
+        if rtmp_url:
+            formats.append({
+                'url': rtmp_url,
+                'ext': 'flv',
+                'format_id': 'rtmp',
+                'vcodec': get_vcodec('rtmp_pull_url_params'),
+            })
+
+        for f_id, f_url in traverse_obj(live_info, ('stream_url', 'flv_pull_url', {dict}), default={}).items():
+            if not url_or_none(f_url):
+                continue
+            formats.append({
+                'url': f_url,
+                'ext': 'flv',
+                'format_id': f_id,
+                'vcodec': get_vcodec('flv_pull_url_params', f_id),
+                'quality': qualities(self.QUALITIES)(f_id),
+            })
+
+        if not formats:
+            live_info = self._call_api(
+                'https://www.tiktok.com/api/live/detail/', 'roomID', room_id, uploader, key='LiveRoomInfo')
+            formats.extend(self._extract_m3u8_formats(live_info['liveUrl'], room_id, 'mp4', m3u8_id='hls', live=True))
 
         return {
             'id': room_id,
-            'title': live_info.get('title') or self._html_search_meta(['og:title', 'twitter:title'], webpage, default=''),
-            'uploader': uploader,
-            'uploader_id': traverse_obj(live_info, ('ownerInfo', 'id')),
-            'creator': traverse_obj(live_info, ('ownerInfo', 'nickname')),
-            'concurrent_view_count': traverse_obj(live_info, ('liveRoomStats', 'userCount'), expected_type=int),
-            'formats': self._extract_m3u8_formats(live_info['liveUrl'], room_id, 'mp4', live=True),
+            'title': live_info.get('title') or self._html_search_meta(['og:title', 'twitter:title'], webpage),
+            'uploader': uploader or traverse_obj(live_info, ('ownerInfo', 'uniqueId'), ('owner', 'display_id')),
+            'formats': formats,
             'is_live': True,
+            **traverse_obj(live_info, {
+                'uploader_id': (('ownerInfo', 'owner'), 'id', {str_or_none}),
+                'creator': (('ownerInfo', 'owner'), 'nickname'),
+                'concurrent_view_count': (('user_count', ('liveRoomStats', 'userCount')), {int_or_none}),
+            }, get_all=False),
         }
