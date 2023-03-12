@@ -1692,6 +1692,7 @@ from .shared import (
     SharedIE,
     VivoIE,
 )
+from .sharepoint import SharePointIE
 from .sharevideos import ShareVideosEmbedIE
 from .sibnet import SibnetEmbedIE
 from .shemaroome import ShemarooMeIE
