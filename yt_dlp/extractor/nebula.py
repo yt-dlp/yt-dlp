@@ -5,7 +5,7 @@ import urllib.error
 from .common import InfoExtractor
 from ..utils import ExtractorError, parse_iso8601
 
-_BASE_URL_RE = r'https?://(?:www|beta\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
+_BASE_URL_RE = r'https?://(?:www\.|beta\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
 
 
 class NebulaBaseIE(InfoExtractor):
