@@ -159,7 +159,6 @@ class RTVCPlayEmbedIE(RTFVPlayBaseIE):
         }
 
 
-
 class RTVCKalturaIE(RTFVPlayBaseIE):
     _VALID_URL = r'https?://media\.rtvc\.gov\.co/kalturartvc/(?P<id>[\w-]+)'
 
