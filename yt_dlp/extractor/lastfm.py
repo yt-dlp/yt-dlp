@@ -1,38 +1,24 @@
+import itertools
 import re
 
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, parse_qs, traverse_obj
 
 
 class LastFMPlaylistBaseIE(InfoExtractor):
     def _entries(self, url, playlist_id):
-        page_number = int_or_none(self._search_regex(r'\bpage=(\d+)', url, 'page', default=None))
-        webpage = self._download_webpage(url, playlist_id, note=f'Downloading page {page_number if page_number else 1}')
-        page_entries = self._extract_webpage(webpage)
-        if not page_number:
-            page_number = 2
-            while page_number:
-                webpage = self._download_webpage(
-                    url, playlist_id,
-                    note=f'Downloading page {page_number}',
-                    query={'page': page_number})
-                page_number = int_or_none(self._search_regex(
-                    r'<li.+class=\"pagination-next\".+data-pagination-next-link\>[^<]*\<a.+href=\".*page=(\d+)',
-                    webpage,
-                    'last_page', default=None))
-                page_entries.extend(self._extract_webpage(webpage))
-        for e in page_entries:
-            yield e
-
-    def _extract_webpage(self, webpage):
-        return [
-            self.url_result(player_url, 'Youtube')
-            for player_url in set(re.findall(r'data-youtube-url="([^"]+)"', webpage))
-        ]
+        single_page = traverse_obj(parse_qs(url), ('page', -1, {int_or_none}))
+        for page in itertools.count(single_page or 1):
+            webpage = self._download_webpage(
+                url, playlist_id, f'Downloading page {page}', query={'page': page})
+            videos = re.findall(r'data-youtube-url="([^"]+)"', webpage)
+            yield from videos
+            if single_page or not videos:
+                return
 
     def _real_extract(self, url):
         playlist_id = self._match_id(url)
-        return self.playlist_result(self._entries(url, playlist_id), playlist_id)
+        return self.playlist_from_matches(self._entries(url, playlist_id), playlist_id, ie='Youtube')
 
 
 class LastFMPlaylistIE(LastFMPlaylistBaseIE):
@@ -89,7 +75,7 @@ class LastFMUserIE(LastFMPlaylistBaseIE):
         'info_dict': {
             'id': '12543760',
         },
-        'playlist_mincount': 30,
+        'playlist_count': 32,
     }]
 
 
