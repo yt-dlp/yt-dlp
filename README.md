@@ -412,7 +412,19 @@ If you fork the project on GitHub, you can run your fork's [build workflow](.git
     --no-flat-playlist              Extract the videos of a playlist
     --live-from-start               Download livestreams from the start.
                                     Currently only supported for YouTube
-                                    (Experimental)
+                                    (Experimental).
+                                    Time ranges can be specified using 
+                                    --download-sections to download only a part 
+                                    of the stream.
+                                    Negative values are allowed for specifying a 
+                                    previous time,
+                                    e.g. --download-sections "*-24hours - 0" 
+                                    (download last 24 hours),
+                                    e.g. --download-sections "*-1h - 30m" 
+                                    (download from 1 hour ago until the next 
+                                    30 minutes),
+                                    e.g. --download-sections "*-3days - -2days" 
+                                    (download from 3 days ago until 2 days ago)
     --no-live-from-start            Download livestreams from the current time
                                     (default)
     --wait-for-video MIN[-MAX]      Wait for scheduled streams to become
