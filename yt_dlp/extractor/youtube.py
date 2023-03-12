@@ -2768,6 +2768,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         section_start = 0 if ctx.get('section_start') is None else download_start_time + ctx['section_start']
         section_end = math.inf if ctx.get('section_end') is None else download_start_time + ctx['section_end']
 
+        self.write_debug(f'Selected section: {section_start} -> {section_end}')
+
         lack_early_segments = download_start_time - (live_start_time or download_start_time) > MAX_DURATION
         if lack_early_segments:
             self.report_warning(bug_reports_message(
