@@ -3630,6 +3630,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return live_status
 
     def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, live_status, duration):
+        CHUNK_SIZE = 10 << 20
         itags, stream_ids = collections.defaultdict(set), []
         itag_qualities, res_qualities = {}, {0: None}
         q = qualities([
@@ -3641,6 +3642,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         ])
         streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...))
         all_formats = self._configuration_arg('include_duplicate_formats')
+
+        def build_fragments(f):
+            return LazyList({
+                'url': update_url_query(f['url'], {
+                    'range': f'{range_start}-{min(range_start + CHUNK_SIZE - 1, f["filesize"])}'
+                })
+            } for range_start in range(0, f['filesize'], CHUNK_SIZE))
 
         for fmt in streaming_formats:
             if fmt.get('targetDurationSec'):
@@ -3771,17 +3779,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if single_stream and dct.get('ext'):
                 dct['container'] = dct['ext'] + '_dash'
 
-            CHUNK_SIZE = 10 << 20
             if dct['filesize']:
                 yield {
                     **dct,
                     'format_id': f'{dct["format_id"]}-dashy' if all_formats else dct['format_id'],
                     'protocol': 'http_dash_segments',
-                    'fragments': LazyList({
-                        'url': update_url_query(dct['url'], {
-                            'range': f'{range_start}-{min(range_start + CHUNK_SIZE - 1, dct["filesize"])}'
-                        })
-                    } for range_start in range(0, dct['filesize'], CHUNK_SIZE))
+                    'fragments': build_fragments(dct),
                 }
                 if not all_formats:
                     continue
