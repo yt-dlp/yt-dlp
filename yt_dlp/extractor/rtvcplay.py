@@ -1,7 +1,11 @@
 import re
 
-from .common import InfoExtractor
-from ..utils import js_to_json, traverse_obj
+from .common import InfoExtractor, ExtractorError
+from ..utils import (
+    js_to_json,
+    traverse_obj,
+    urljoin,
+)
 
 
 class RTFVPlayBaseIE(InfoExtractor):
@@ -90,6 +94,24 @@ class RTVCPlayIE(RTFVPlayBaseIE):
             'description': 'md5:c5dcdf757c7ab29305e8763c6007e675',
             'ext': 'mp4',
         },
+    }, {
+        'url': 'https://www.rtvcplay.co/peliculas-documentales/llinas-el-cerebro-y-el-universo',
+        'info_dict': {
+            'id': 'llinas-el-cerebro-y-el-universo',
+            'title': 'Llinás, el cerebro y el universo',
+            'description': 'md5:add875bf2309bb52b3e8b9b06116d9b0',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+        },
+        'playlist_mincount': 3,
+    }, {
+        'url': 'https://www.rtvcplay.co/competencias-basicas-ciudadanas-y-socioemocionales/profe-en-tu-casa',
+        'info_dict': {
+            'id': 'profe-en-tu-casa',
+            'title': 'Profe en tu casa',
+            'description': 'md5:47dbe20e263194413b1db2a2805a4f2e',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+        },
+        'playlist_mincount': 537,
     }]
 
     def _real_extract(self, url):
@@ -103,7 +125,40 @@ class RTVCPlayIE(RTFVPlayBaseIE):
         if asset_id:
             hls_url = hydration['content']['currentContent']['base_url_hls'].replace('[node:field_asset_id]', asset_id)
         else:
-            hls_url = hydration['content']['currentContent']['channel']['hls']
+            hls_url = traverse_obj(hydration, ('content', 'currentContent', 'channel', 'hls'))
+
+        metadata = {
+            'thumbnail': traverse_obj(
+                hydration, ('content', 'currentContent', 'channel', 'image', 'logo', 'path'),
+                ('content', 'currentContent', 'resource', 'image', 'cover_desktop', 'path')),
+            **traverse_obj(hydration, ('content', 'currentContent', {
+                'title': 'title',
+                'description': 'description',
+            })),
+        }
+
+        # Probably it's a program's page
+        if hls_url is None:
+            seasons = traverse_obj(hydration, ('content', 'currentContent', 'widgets', 0, 'contents'))
+            if seasons is None:
+                raise ExtractorError("Couldn't find asset_id nor program playlist")
+
+            entries = []
+            for season in seasons:
+                for episode in season['contents']:
+                    entries.append(self.url_result(urljoin(url, episode['slug']), **{
+                        **traverse_obj(season, {
+                            'season': 'title',
+                            'season_number': 'season',
+                        }),
+                        **traverse_obj(episode, {
+                            'title': 'title',
+                            'thumbnail': ('image', 'cover', 'path'),
+                            'episode_number': 'chapter_number',
+                        })
+                    }))
+
+            return self.playlist_result(entries, video_id, **metadata)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls_url, video_id, 'mp4')
 
@@ -112,13 +167,7 @@ class RTVCPlayIE(RTFVPlayBaseIE):
             'formats': formats,
             'subtitles': subtitles,
             'is_live': category == 'en-vivo',
-            'thumbnail': traverse_obj(
-                hydration, ('content', 'currentContent', 'channel', 'image', 'logo', 'path'),
-                ('content', 'currentContent', 'resource', 'image', 'cover_desktop', 'path')),
-            **traverse_obj(hydration, ('content', 'currentContent', {
-                'title': 'title',
-                'description': 'description',
-            }))
+            **metadata,
         }
 
 
