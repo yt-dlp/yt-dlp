@@ -1022,7 +1022,7 @@ class TikTokLiveIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    QUALITIES = ('SD1', 'SD2', 'HD1', 'pm_mt_video_720p60', 'FULL_HD1', 'pm_mt_video_1080p60', 'ORIGION', 'hls')
+    QUALITIES = ('SD1', 'SD2', 'HD1', 'pm_mt_video_720p60', 'FULL_HD1', 'pm_mt_video_1080p60', 'rtmp', 'ORIGION', 'hls')
 
     def _call_api(self, url, param, room_id, uploader, key=None, fatal=True):
         response = traverse_obj(self._download_json(
@@ -1030,8 +1030,9 @@ class TikTokLiveIE(InfoExtractor):
                 'aid': '1988',
                 param: room_id,
             }), (key, {dict}), default={})
+
         # status == 2 if live else 4
-        if int_or_none(response.get('status')) == 4:
+        if int_or_none(response.get('status')) != 2:
             raise UserNotLive(video_id=uploader)
 
         return response
@@ -1039,7 +1040,6 @@ class TikTokLiveIE(InfoExtractor):
     def _real_extract(self, url):
         uploader, room_id = self._match_valid_url(url).group('uploader', 'id')
 
-        webpage = ''
         if not room_id:
             webpage = self._download_webpage(url, uploader, headers={'User-Agent': 'User-Agent:Mozilla/5.0'})
             room_id = self._html_search_regex(r'snssdk\d*://live\?room_id=(\d+)', webpage, 'room ID', default=None)
@@ -1069,6 +1069,7 @@ class TikTokLiveIE(InfoExtractor):
                 'ext': 'flv',
                 'format_id': 'rtmp',
                 'vcodec': get_vcodec('rtmp_pull_url_params'),
+                'quality': qualities(self.QUALITIES)('rtmp'),
             })
 
         for f_id, f_url in traverse_obj(live_info, ('stream_url', 'flv_pull_url', {dict}), default={}).items():
@@ -1089,11 +1090,11 @@ class TikTokLiveIE(InfoExtractor):
 
         return {
             'id': room_id,
-            'title': live_info.get('title') or self._html_search_meta(['og:title', 'twitter:title'], webpage),
             'uploader': uploader or traverse_obj(live_info, ('ownerInfo', 'uniqueId'), ('owner', 'display_id')),
             'formats': formats,
             'is_live': True,
             **traverse_obj(live_info, {
+                'title': 'title',
                 'uploader_id': (('ownerInfo', 'owner'), 'id', {str_or_none}),
                 'creator': (('ownerInfo', 'owner'), 'nickname'),
                 'concurrent_view_count': (('user_count', ('liveRoomStats', 'userCount')), {int_or_none}),
