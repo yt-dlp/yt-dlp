@@ -3,14 +3,13 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
-    ExtractorError,
     float_or_none,
     traverse_obj,
     variadic,
 )
 
 
-class Echo360BaseIE(InfoExtractor):
+class Echo360IE(InfoExtractor):
     _INSTANCES_RE = r'''(?:
                             echo360\.ca|
                             echo360\.net\.au|
@@ -19,65 +18,9 @@ class Echo360BaseIE(InfoExtractor):
                             echo360\.org|
                         )'''
     _UUID_RE = r'[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}'
-
-    def _call_api(self, host, video_id, media_id, session_token, **kwargs):
-        return self._download_json(
-            self._API_BASE % (host, video_id, media_id), video_id,
-            headers={'Authorization': f'Bearer {session_token}'}, **kwargs)
-
-    @staticmethod
-    def _update_url_query(uri, query_string):
-        if query_string is not None:
-            return f'{uri.split("?", 1)[0]}?{query_string}'
-        return uri
-
-    @staticmethod
-    def _get_query_string(uri, query_strings):
-        uri_base = uri.split("?", 1)[0]
-        for query_string in query_strings:
-            if re.match(query_string['uriPattern'], uri_base):
-                return query_string['queryString']
-        return None
-
-    def _parse_mediapackage(self, video):
-        video_id = traverse_obj(video, ('playableAudioVideo', 'mediaId'))
-        if video_id is None:
-            raise ExtractorError('Video id was not found')
-        query_strings = traverse_obj(video, ('sourceQueryStrings', 'queryStrings')) or []
-        duration = float_or_none(self._search_regex(
-            r'PT(\d+\.?\d+)S', traverse_obj(video, ('playableAudioVideo', 'duration')),
-            'video duration', default=None, fatal=False))
-
-        formats = []
-        for track in variadic(traverse_obj(video, ('playableAudioVideo', 'playableMedias')) or []):
-            href = track.get('uri')
-            if href is None:
-                continue
-            href = self._update_url_query(href, self._get_query_string(href, query_strings))
-            if track.get('isHls') or determine_ext(href, None) == 'm3u8':
-                hls_formats = self._extract_m3u8_formats(
-                    href, video_id, live=track.get('isLive'), m3u8_id='hls', entry_protocol='m3u8_native', fatal=False
-                )
-
-                for hls_format in hls_formats:
-                    query_string = self._get_query_string(hls_format['url'], query_strings)
-                    hls_format['extra_param_to_segment_url'] = query_string
-                    hls_format['url'] = self._update_url_query(hls_format['url'], query_string)
-
-                formats.extend(hls_formats)
-
-        return {
-            'id': video_id,
-            'formats': formats,
-            'title': video.get('mediaName'),
-            'duration': duration,
-        }
-
-
-class Echo360IE(Echo360BaseIE):
     _VALID_URL = rf'''(?x)
-        https?://(?P<host>{Echo360BaseIE._INSTANCES_RE})
-        /media/(?P<id>{Echo360BaseIE._UUID_RE})/public'''
+        https?://(?P<host>{_INSTANCES_RE})
+        /media/(?P<id>{_UUID_RE})/public'''
 
     _API_BASE = 'https://%s/api/ui/echoplayer/public-links/%s/media/%s/player-properties'
 
@@ -104,6 +47,56 @@ class Echo360IE(Echo360BaseIE):
         },
     ]
 
+    def _call_api(self, host, video_id, media_id, session_token, **kwargs):
+        return self._download_json(
+            self._API_BASE % (host, video_id, media_id), video_id,
+            headers={'Authorization': f'Bearer {session_token}'}, **kwargs)
+
+    @staticmethod
+    def _update_url_query(uri, query_string):
+        if query_string is not None:
+            return f'{uri.split("?", 1)[0]}?{query_string}'
+        return uri
+
+    @staticmethod
+    def _get_query_string(uri, query_strings):
+        uri_base = uri.split("?", 1)[0]
+        for query_string in query_strings:
+            if re.match(query_string['uriPattern'], uri_base):
+                return query_string['queryString']
+        return None
+
+    def _parse_mediapackage(self, video):
+        video_id = video['playableAudioVideo']['mediaId']
+        query_strings = traverse_obj(video, ('sourceQueryStrings', 'queryStrings')) or []
+
+        formats = []
+        for track in variadic(traverse_obj(video, ('playableAudioVideo', 'playableMedias')) or []):
+            href = track.get('uri')
+            if href is None:
+                continue
+            href = self._update_url_query(href, self._get_query_string(href, query_strings))
+            if track.get('isHls') or determine_ext(href, None) == 'm3u8':
+                hls_formats = self._extract_m3u8_formats(
+                    href, video_id, live=track.get('isLive'), m3u8_id='hls', entry_protocol='m3u8_native', fatal=False
+                )
+
+                for hls_format in hls_formats:
+                    query_string = self._get_query_string(hls_format['url'], query_strings)
+                    hls_format['extra_param_to_segment_url'] = query_string
+                    hls_format['url'] = self._update_url_query(hls_format['url'], query_string)
+
+                formats.extend(hls_formats)
+
+        return {
+            'id': video_id,
+            'formats': formats,
+            'title': video.get('mediaName'),
+            'duration': float_or_none(self._search_regex(
+                r'PT(\d+\.?\d+)S', traverse_obj(video, ('playableAudioVideo', 'duration')),
+                'video duration', default=None, fatal=False)),
+        }
+
     def _real_extract(self, url):
         host, video_id = self._match_valid_url(url).group('host', 'id')
         webpage = self._download_webpage(url, video_id)
@@ -112,18 +105,13 @@ class Echo360IE(Echo360BaseIE):
             r'Echo\["mediaPlayerBootstrapApp"\]\("({[^}]*})"\);', webpage, 'player config').replace('\\"', "\""),
             video_id)
 
-        real_video_id = player_config.get('shareLinkId') or player_config.get('publicLinkId')
-        if real_video_id is None:
-            raise ExtractorError('Video id was not found')
-
         urlh = self._request_webpage(
             f'https://{host}/api/ui/sessions/{player_config["sessionId"]}',
             video_id,
             note='Open video session',
             errnote='Unable to open video session',
         )
-        session_token = urlh.headers.get('Token')
-        if session_token is None:
-            raise ExtractorError('No session token received')
 
-        return self._parse_mediapackage(self._call_api(host, real_video_id, player_config['mediaId'], session_token)['data'])
+        return self._parse_mediapackage(self._call_api(
+            host, player_config.get('shareLinkId') or player_config['publicLinkId'], player_config['mediaId'],
+            urlh.headers['Token'])['data'])
