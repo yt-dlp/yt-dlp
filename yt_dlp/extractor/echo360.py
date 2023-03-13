@@ -78,7 +78,8 @@ class Echo360IE(InfoExtractor):
             href = self._update_url_query(href, self._get_query_string(href, query_strings))
             if track.get('isHls') or determine_ext(href, None) == 'm3u8':
                 hls_formats = self._extract_m3u8_formats(
-                    href, video_id, live=track.get('isLive'), m3u8_id='hls', entry_protocol='m3u8_native', fatal=False
+                    href, video_id, live=track.get('isLive'), m3u8_id='hls',
+                    entry_protocol='m3u8_native', fatal=False
                 )
 
                 for hls_format in hls_formats:
@@ -101,7 +102,8 @@ class Echo360IE(InfoExtractor):
         host, video_id = self._match_valid_url(url).group('host', 'id')
         webpage = self._download_webpage(url, video_id)
 
-        player_config = self._search_json(r'Echo\["mediaPlayerBootstrapApp"\]\("', webpage, 'player config', video_id,
+        player_config = self._search_json(r'Echo\["mediaPlayerBootstrapApp"\]\("', webpage,
+                                          'player config', video_id,
                                           transform_source=lambda x: x.replace(R'\"', '"'))
 
         urlh = self._request_webpage(
@@ -112,5 +114,5 @@ class Echo360IE(InfoExtractor):
         )
 
         return self._parse_mediapackage(self._call_api(
-            host, player_config.get('shareLinkId') or player_config['publicLinkId'], player_config['mediaId'],
-            urlh.headers['Token'])['data'])
+            host, player_config.get('shareLinkId') or player_config['publicLinkId'],
+            player_config['mediaId'], urlh.headers['Token'])['data'])
