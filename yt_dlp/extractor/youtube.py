@@ -4268,7 +4268,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'contents', ..., 'commentsEntryPointHeaderRenderer', 'commentCount'
         ), (
             'engagementPanels', lambda _, v: v['engagementPanelSectionListRenderer']['panelIdentifier'] == 'comment-item-section',
-            'engagementPanelSectionListRenderer', 'header', 'engagementPanelTitleHeaderRenderer', 'contextualInfo', 'runs', ..., 'text'
+            'engagementPanelSectionListRenderer', 'header', 'engagementPanelTitleHeaderRenderer', 'contextualInfo'
         ), expected_type=self._get_count, get_all=False)
 
         try:  # This will error if there is no livechat
