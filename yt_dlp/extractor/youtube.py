@@ -4254,12 +4254,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         initial_data = None
         if webpage:
             initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
+            if not traverse_obj(initial_data, 'contents'):
+                self.report_warning('Incomplete data received in embedded initial data; re-fetching using API.')
+                initial_data = None
         if not initial_data:
             query = {'videoId': video_id}
             query.update(self._get_checkok_params())
             initial_data = self._extract_response(
                 item_id=video_id, ep='next', fatal=False,
-                ytcfg=master_ytcfg, query=query,
+                ytcfg=master_ytcfg, query=query, check_get_keys='contents',
                 headers=self.generate_api_headers(ytcfg=master_ytcfg),
                 note='Downloading initial data API JSON')
 
