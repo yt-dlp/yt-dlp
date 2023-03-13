@@ -1347,6 +1347,7 @@ from .orf import (
     ORFIPTVIE,
 )
 from .outsidetv import OutsideTVIE
+from .owncloud import OwnCloudIE
 from .packtpub import (
     PacktPubIE,
     PacktPubCourseIE,
