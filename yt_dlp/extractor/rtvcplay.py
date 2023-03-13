@@ -2,6 +2,8 @@ import re
 
 from .common import InfoExtractor, ExtractorError
 from ..utils import (
+    int_or_none,
+    float_or_none,
     js_to_json,
     traverse_obj,
     urljoin,
@@ -112,6 +114,15 @@ class RTVCPlayIE(RTFVPlayBaseIE):
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
         },
         'playlist_mincount': 537,
+    }, {
+        'url': 'https://www.rtvcplay.co/series-al-oido/relato-de-un-naufrago-una-travesia-del-periodismo-a-la-literatura',
+        'info_dict': {
+            'id': 'relato-de-un-naufrago-una-travesia-del-periodismo-a-la-literatura',
+            'title': 'Relato de un náufrago: una travesía del periodismo a la literatura',
+            'description': 'md5:6da28fdca4a5a568ea47ef65ef775603',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+        },
+        'playlist_mincount': 5,
     }]
 
     def _real_extract(self, url):
@@ -141,7 +152,16 @@ class RTVCPlayIE(RTFVPlayBaseIE):
         if hls_url is None:
             seasons = traverse_obj(hydration, ('content', 'currentContent', 'widgets', 0, 'contents'))
             if seasons is None:
-                raise ExtractorError("Couldn't find asset_id nor program playlist")
+                podcast_episodes = traverse_obj(hydration, ('content', 'currentContent', 'audios'))
+                if podcast_episodes is None:
+                    raise ExtractorError("Couldn't find asset_id nor program playlist nor podcast episodes")
+
+                return self.playlist_result([self.url_result(episode['file'], **traverse_obj(episode, {
+                    'title': 'title',
+                    'description': 'description',
+                    'episode_number': ('chapter_number', {lambda x: int_or_none(float_or_none(x))}),
+                    'season_number': 'season',
+                })) for episode in podcast_episodes], video_id, **metadata)
 
             entries = []
             for season in seasons:
