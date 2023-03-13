@@ -63,13 +63,15 @@ class BibelTVBaseIE(InfoExtractor):
         }
 
     def _extract_video_info(self, data):
-        video_id = data['id']
         crn_id = data['crn']
 
+        if data.get('drm'):
+            self.report_drm(crn_id)
+
         json_data = self._download_json(
-            f'{self.API_URL}/video/{video_id}', crn_id, headers={'Authorization': self.AUTH_TOKEN})
-        if json_data.get('status') != 'success':
-            raise ExtractorError('Failed to load JSON metadata')
+            format_field(data, 'id', f'{self.API_URL}/video/%s'), crn_id,
+            headers={'Authorization': self.AUTH_TOKEN}, fatal=False,
+            errnote='No formats available') or {}
 
         formats, subtitles = self._extract_formats_and_subtitles(
             traverse_obj(json_data, ('video', 'videoUrls', ...)), crn_id)
