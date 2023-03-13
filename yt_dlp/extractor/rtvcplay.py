@@ -123,6 +123,15 @@ class RTVCPlayIE(RTFVPlayBaseIE):
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
         },
         'playlist_mincount': 5,
+    }, {
+        'url': 'https://www.rtvcplay.co/series-al-oido/diez-versiones',
+        'info_dict': {
+            'id': 'diez-versiones',
+            'title': 'Diez versiones',
+            'description': 'md5:997471ed971cb3fd8e41969457675306',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+        },
+        'playlist_mincount': 20,
     }]
 
     def _real_extract(self, url):
@@ -149,12 +158,14 @@ class RTVCPlayIE(RTFVPlayBaseIE):
         }
 
         # Probably it's a program's page
-        if hls_url is None:
-            seasons = traverse_obj(hydration, ('content', 'currentContent', 'widgets', 0, 'contents'))
-            if seasons is None:
+        if not hls_url:
+            seasons = traverse_obj(
+                hydration, ('content', 'currentContent', 'widgets', lambda _, y: y['type'] == 'seasonList', 'contents'),
+                get_all=False)
+            if not seasons:
                 podcast_episodes = traverse_obj(hydration, ('content', 'currentContent', 'audios'))
-                if podcast_episodes is None:
-                    raise ExtractorError("Couldn't find asset_id nor program playlist nor podcast episodes")
+                if not podcast_episodes:
+                    raise ExtractorError('Could not find asset_id nor program playlist nor podcast episodes')
 
                 return self.playlist_result([self.url_result(episode['file'], **traverse_obj(episode, {
                     'title': 'title',
