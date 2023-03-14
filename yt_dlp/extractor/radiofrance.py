@@ -166,7 +166,6 @@ class FranceCultureIE(InfoExtractor):
             'id': video_id,
             'display_id': display_id,
             'url': video_data['contentUrl'],
-            'ext': video_data.get('encodingFormat'),
             'vcodec': 'none' if video_data.get('encodingFormat') == 'mp3' else None,
             'duration': parse_duration(video_data.get('duration')),
             'title': self._html_search_regex(r'(?s)<h1[^>]*itemprop="[^"]*name[^"]*"[^>]*>(.+?)</h1>',
