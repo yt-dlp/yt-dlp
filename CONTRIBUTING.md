@@ -127,7 +127,7 @@ While these steps won't necessarily ensure that no misuse of the account takes p
 
 ### Is the website primarily used for piracy?
 
-We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in deep fake. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management). 
+We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in fakes. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management). 
 
 
 
@@ -351,8 +351,9 @@ Say you extracted a list of thumbnails into `thumbnail_data` and want to iterate
 ```python
 thumbnail_data = data.get('thumbnails') or []
 thumbnails = [{
-    'url': item['url']
-} for item in thumbnail_data]  # correct
+    'url': item['url'],
+    'height': item.get('h'),
+} for item in thumbnail_data if item.get('url')]  # correct
 ```
 
 and not like:
@@ -360,12 +361,27 @@ and not like:
 ```python
 thumbnail_data = data.get('thumbnails')
 thumbnails = [{
-    'url': item['url']
+    'url': item['url'],
+    'height': item.get('h'),
 } for item in thumbnail_data]  # incorrect
 ```
 
 In this case, `thumbnail_data` will be `None` if the field was not found and this will cause the loop `for item in thumbnail_data` to raise a fatal error. Using `or []` avoids this error and results in setting an empty list in `thumbnails` instead.
 
+Alternately, this can be further simplified by using `traverse_obj`
+
+```python
+thumbnails = [{
+    'url': item['url'],
+    'height': item.get('h'),
+} for item in traverse_obj(data, ('thumbnails', lambda _, v: v['url']))]
+```
+
+or, even better,
+
+```python
+thumbnails = traverse_obj(data, ('thumbnails', ..., {'url': 'url', 'height': 'h'}))
+```
 
 ### Provide fallbacks
 

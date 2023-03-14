@@ -2,17 +2,17 @@ import base64
 from math import ceil
 
 from .compat import compat_ord
-from .dependencies import Cryptodome_AES
+from .dependencies import Cryptodome
 from .utils import bytes_to_intlist, intlist_to_bytes
 
-if Cryptodome_AES:
+if Cryptodome.AES:
     def aes_cbc_decrypt_bytes(data, key, iv):
         """ Decrypt bytes with AES-CBC using pycryptodome """
-        return Cryptodome_AES.new(key, Cryptodome_AES.MODE_CBC, iv).decrypt(data)
+        return Cryptodome.AES.new(key, Cryptodome.AES.MODE_CBC, iv).decrypt(data)
 
     def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
         """ Decrypt bytes with AES-GCM using pycryptodome """
-        return Cryptodome_AES.new(key, Cryptodome_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
+        return Cryptodome.AES.new(key, Cryptodome.AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
 
 else:
     def aes_cbc_decrypt_bytes(data, key, iv):

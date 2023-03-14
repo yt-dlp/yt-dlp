@@ -105,6 +105,7 @@ from yt_dlp.utils import (
     sanitized_Request,
     shell_quote,
     smuggle_url,
+    str_or_none,
     str_to_int,
     strip_jsonp,
     strip_or_none,
@@ -953,6 +954,85 @@ class TestUtil(unittest.TestCase):
             'http://xn--e1aybc.xn--p1ai/%D0%B0%D0%B1%D0%B2?%D0%B0%D0%B1%D0%B2=%D0%B0%D0%B1%D0%B2#%D0%B0%D0%B1%D0%B2'
         )
         self.assertEqual(escape_url('http://vimeo.com/56015672#at=0'), 'http://vimeo.com/56015672#at=0')
+
+    def test_js_to_json_vars_strings(self):
+        self.assertDictEqual(
+            json.loads(js_to_json(
+                '''{
+                    'null': a,
+                    'nullStr': b,
+                    'true': c,
+                    'trueStr': d,
+                    'false': e,
+                    'falseStr': f,
+                    'unresolvedVar': g,
+                }''',
+                {
+                    'a': 'null',
+                    'b': '"null"',
+                    'c': 'true',
+                    'd': '"true"',
+                    'e': 'false',
+                    'f': '"false"',
+                    'g': 'var',
+                }
+            )),
+            {
+                'null': None,
+                'nullStr': 'null',
+                'true': True,
+                'trueStr': 'true',
+                'false': False,
+                'falseStr': 'false',
+                'unresolvedVar': 'var'
+            }
+        )
+
+        self.assertDictEqual(
+            json.loads(js_to_json(
+                '''{
+                    'int': a,
+                    'intStr': b,
+                    'float': c,
+                    'floatStr': d,
+                }''',
+                {
+                    'a': '123',
+                    'b': '"123"',
+                    'c': '1.23',
+                    'd': '"1.23"',
+                }
+            )),
+            {
+                'int': 123,
+                'intStr': '123',
+                'float': 1.23,
+                'floatStr': '1.23',
+            }
+        )
+
+        self.assertDictEqual(
+            json.loads(js_to_json(
+                '''{
+                    'object': a,
+                    'objectStr': b,
+                    'array': c,
+                    'arrayStr': d,
+                }''',
+                {
+                    'a': '{}',
+                    'b': '"{}"',
+                    'c': '[]',
+                    'd': '"[]"',
+                }
+            )),
+            {
+                'object': {},
+                'objectStr': '{}',
+                'array': [],
+                'arrayStr': '[]',
+            }
+        )
 
     def test_js_to_json_realworld(self):
         inp = '''{
@@ -1874,6 +1954,8 @@ Line 1
             vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['m4a']), 'mkv')
         self.assertEqual(get_compatible_ext(
             vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['webm']), 'webm')
+        self.assertEqual(get_compatible_ext(
+            vcodecs=[None], acodecs=[None], vexts=['webm'], aexts=['weba']), 'webm')
 
         self.assertEqual(get_compatible_ext(
             vcodecs=['h264'], acodecs=['mp4a'], vexts=['mov'], aexts=['m4a']), 'mp4')
@@ -1918,8 +2000,8 @@ Line 1
 
         # Test Ellipsis behavior
         self.assertCountEqual(traverse_obj(_TEST_DATA, ...),
-                              (item for item in _TEST_DATA.values() if item is not None),
-                              msg='`...` should give all values except `None`')
+                              (item for item in _TEST_DATA.values() if item not in (None, {})),
+                              msg='`...` should give all non discarded values')
         self.assertCountEqual(traverse_obj(_TEST_DATA, ('urls', 0, ...)), _TEST_DATA['urls'][0].values(),
                               msg='`...` selection for dicts should select all values')
         self.assertEqual(traverse_obj(_TEST_DATA, (..., ..., 'url')),
@@ -1934,6 +2016,29 @@ Line 1
                          msg='function as query key should perform a filter based on (key, value)')
         self.assertCountEqual(traverse_obj(_TEST_DATA, lambda _, x: isinstance(x[0], str)), {'str'},
                               msg='exceptions in the query function should be catched')
+        if __debug__:
+            with self.assertRaises(Exception, msg='Wrong function signature should raise in debug'):
+                traverse_obj(_TEST_DATA, lambda a: ...)
+            with self.assertRaises(Exception, msg='Wrong function signature should raise in debug'):
+                traverse_obj(_TEST_DATA, lambda a, b, c: ...)
+
+        # Test set as key (transformation/type, like `expected_type`)
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str.upper}, )), ['STR'],
+                         msg='Function in set should be a transformation')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str})), ['str'],
+                         msg='Type in set should be a type filter')
+        self.assertEqual(traverse_obj(_TEST_DATA, {dict}), _TEST_DATA,
+                         msg='A single set should be wrapped into a path')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str.upper})), ['STR'],
+                         msg='Transformation function should not raise')
+        self.assertEqual(traverse_obj(_TEST_DATA, (..., {str_or_none})),
+                         [item for item in map(str_or_none, _TEST_DATA.values()) if item is not None],
+                         msg='Function in set should be a transformation')
+        if __debug__:
+            with self.assertRaises(Exception, msg='Sets with length != 1 should raise in debug'):
+                traverse_obj(_TEST_DATA, set())
+            with self.assertRaises(Exception, msg='Sets with length != 1 should raise in debug'):
+                traverse_obj(_TEST_DATA, {str.upper, str})
 
         # Test alternative paths
         self.assertEqual(traverse_obj(_TEST_DATA, 'fail', 'str'), 'str',
@@ -1979,15 +2084,23 @@ Line 1
                          {0: ['https://www.example.com/1', 'https://www.example.com/0']},
                          msg='tripple nesting in dict path should be treated as branches')
         self.assertEqual(traverse_obj(_TEST_DATA, {0: 'fail'}), {},
-                         msg='remove `None` values when dict key')
+                         msg='remove `None` values when top level dict key fails')
         self.assertEqual(traverse_obj(_TEST_DATA, {0: 'fail'}, default=...), {0: ...},
-                         msg='do not remove `None` values if `default`')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}), {0: {}},
-                         msg='do not remove empty values when dict key')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}, default=...), {0: {}},
-                         msg='do not remove empty values when dict key and a default')
-        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('dict', ...)}), {0: []},
-                         msg='if branch in dict key not successful, return `[]`')
+                         msg='use `default` if key fails and `default`')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}), {},
+                         msg='remove empty values when dict key')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 'dict'}, default=...), {0: ...},
+                         msg='use `default` when dict key and `default`')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 'fail'}}), {},
+                         msg='remove empty values when nested dict key fails')
+        self.assertEqual(traverse_obj(None, {0: 'fail'}), {},
+                         msg='default to dict if pruned')
+        self.assertEqual(traverse_obj(None, {0: 'fail'}, default=...), {0: ...},
+                         msg='default to dict if pruned and default is given')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 'fail'}}, default=...), {0: {0: ...}},
+                         msg='use nested `default` when nested dict key fails and `default`')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: ('dict', ...)}), {},
+                         msg='remove key if branch in dict key not successful')
 
         # Testing default parameter behavior
         _DEFAULT_DATA = {'None': None, 'int': 0, 'list': []}
@@ -2011,20 +2124,55 @@ Line 1
                          msg='if branched but not successful return `[]`, not `default`')
         self.assertEqual(traverse_obj(_DEFAULT_DATA, ('list', ...)), [],
                          msg='if branched but object is empty return `[]`, not `default`')
+        self.assertEqual(traverse_obj(None, ...), [],
+                         msg='if branched but object is `None` return `[]`, not `default`')
+        self.assertEqual(traverse_obj({0: None}, (0, ...)), [],
+                         msg='if branched but state is `None` return `[]`, not `default`')
+
+        branching_paths = [
+            ('fail', ...),
+            (..., 'fail'),
+            100 * ('fail',) + (...,),
+            (...,) + 100 * ('fail',),
+        ]
+        for branching_path in branching_paths:
+            self.assertEqual(traverse_obj({}, branching_path), [],
+                             msg='if branched but state is `None`, return `[]` (not `default`)')
+            self.assertEqual(traverse_obj({}, 'fail', branching_path), [],
+                             msg='if branching in last alternative and previous did not match, return `[]` (not `default`)')
+            self.assertEqual(traverse_obj({0: 'x'}, 0, branching_path), 'x',
+                             msg='if branching in last alternative and previous did match, return single value')
+            self.assertEqual(traverse_obj({0: 'x'}, branching_path, 0), 'x',
+                             msg='if branching in first alternative and non-branching path does match, return single value')
+            self.assertEqual(traverse_obj({}, branching_path, 'fail'), None,
+                             msg='if branching in first alternative and non-branching path does not match, return `default`')
 
         # Testing expected_type behavior
         _EXPECTED_TYPE_DATA = {'str': 'str', 'int': 0}
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=str), 'str',
-                         msg='accept matching `expected_type` type')
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=int), None,
-                         msg='reject non matching `expected_type` type')
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'int', expected_type=lambda x: str(x)), '0',
-                         msg='transform type using type function')
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str',
-                                      expected_type=lambda _: 1 / 0), None,
-                         msg='wrap expected_type fuction in try_call')
-        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, ..., expected_type=str), ['str'],
-                         msg='eliminate items that expected_type fails on')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=str),
+                         'str', msg='accept matching `expected_type` type')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=int),
+                         None, msg='reject non matching `expected_type` type')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'int', expected_type=lambda x: str(x)),
+                         '0', msg='transform type using type function')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, 'str', expected_type=lambda _: 1 / 0),
+                         None, msg='wrap expected_type fuction in try_call')
+        self.assertEqual(traverse_obj(_EXPECTED_TYPE_DATA, ..., expected_type=str),
+                         ['str'], msg='eliminate items that expected_type fails on')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2}, expected_type=int),
+                         {0: 100}, msg='type as expected_type should filter dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: 100, 1: 1.2, 2: 'None'}, expected_type=str_or_none),
+                         {0: '100', 1: '1.2'}, msg='function as expected_type should transform dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, ({0: 1.2}, 0, {int_or_none}), expected_type=int),
+                         1, msg='expected_type should not filter non final dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, {0: {0: 100, 1: 'str'}}, expected_type=int),
+                         {0: {0: 100}}, msg='expected_type should transform deep dict values')
+        self.assertEqual(traverse_obj(_TEST_DATA, [({0: '...'}, {0: '...'})], expected_type=type(...)),
+                         [{0: ...}, {0: ...}], msg='expected_type should transform branched dict values')
+        self.assertEqual(traverse_obj({1: {3: 4}}, [(1, 2), 3], expected_type=int),
+                         [4], msg='expected_type regression for type matching in tuple branching')
+        self.assertEqual(traverse_obj(_TEST_DATA, ['data', ...], expected_type=int),
+                         [], msg='expected_type regression for type matching in dict result')
 
         # Test get_all behavior
         _GET_ALL_DATA = {'key': [0, 1, 2]}
@@ -2064,14 +2212,17 @@ Line 1
                                       traverse_string=True), '.',
                          msg='traverse into converted data if `traverse_string`')
         self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', ...),
-                                      traverse_string=True), list('str'),
-                         msg='`...` branching into string should result in list')
+                                      traverse_string=True), 'str',
+                         msg='`...` should result in string (same value) if `traverse_string`')
+        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', slice(0, None, 2)),
+                                      traverse_string=True), 'sr',
+                         msg='`slice` should result in string if `traverse_string`')
+        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', lambda i, v: i or v == "s"),
+                                      traverse_string=True), 'str',
+                         msg='function should result in string if `traverse_string`')
         self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', (0, 2)),
                                       traverse_string=True), ['s', 'r'],
-                         msg='branching into string should result in list')
-        self.assertEqual(traverse_obj(_TRAVERSE_STRING_DATA, ('str', lambda _, x: x),
-                                      traverse_string=True), list('str'),
-                         msg='function branching into string should result in list')
+                         msg='branching should result in list if `traverse_string`')
 
         # Test is_user_input behavior
         _IS_USER_INPUT_DATA = {'range8': list(range(8))}
@@ -2108,6 +2259,8 @@ Line 1
                          msg='failing str key on a `re.Match` should return `default`')
         self.assertEqual(traverse_obj(mobj, 8), None,
                          msg='failing int key on a `re.Match` should return `default`')
+        self.assertEqual(traverse_obj(mobj, lambda k, _: k in (0, 'group')), ['0123', '3'],
+                         msg='function on a `re.Match` should give group name as well')
 
 
 if __name__ == '__main__':

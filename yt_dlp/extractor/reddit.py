@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class RedditIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<subdomain>[^/]+\.)?reddit(?:media)?\.com/r/(?P<slug>[^/]+/comments/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'https?://(?P<subdomain>[^/]+\.)?reddit(?:media)?\.com/(?P<slug>(?:r|user)/[^/]+/comments/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/',
         'info_dict': {
@@ -32,6 +32,7 @@ class RedditIE(InfoExtractor):
             'dislike_count': int,
             'comment_count': int,
             'age_limit': 0,
+            'channel_id': 'videos',
         },
         'params': {
             'skip_download': True,
@@ -55,6 +56,30 @@ class RedditIE(InfoExtractor):
             'dislike_count': int,
             'comment_count': int,
             'age_limit': 0,
+            'channel_id': 'aww',
+        },
+    }, {
+        # User post
+        'url': 'https://www.reddit.com/user/creepyt0es/comments/nip71r/i_plan_to_make_more_stickers_and_prints_check/',
+        'info_dict': {
+            'id': 'zasobba6wp071',
+            'ext': 'mp4',
+            'display_id': 'nip71r',
+            'title': 'I plan to make more stickers and prints! Check them out on my Etsy! Or get them through my Patreon. Links below.',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'thumbnails': 'count:5',
+            'timestamp': 1621709093,
+            'upload_date': '20210522',
+            'uploader': 'creepyt0es',
+            'duration': 6,
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'age_limit': 0,
+            'channel_id': 'u_creepyt0es',
+        },
+        'params': {
+            'skip_download': True,
         },
     }, {
         # videos embedded in reddit text post
@@ -63,6 +88,26 @@ class RedditIE(InfoExtractor):
         'info_dict': {
             'id': 'wzqkxp',
             'title': 'md5:72d3d19402aa11eff5bd32fc96369b37',
+        },
+    }, {
+        # crossposted reddit-hosted media
+        'url': 'https://www.reddit.com/r/dumbfuckers_club/comments/zjjw82/cringe/',
+        'md5': '746180895c7b75a9d6b05341f507699a',
+        'info_dict': {
+            'id': 'a1oneun6pa5a1',
+            'ext': 'mp4',
+            'display_id': 'zjjw82',
+            'title': 'Cringe',
+            'uploader': 'Otaku-senpai69420',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+            'upload_date': '20221212',
+            'timestamp': 1670812309,
+            'duration': 16,
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'age_limit': 0,
+            'channel_id': 'dumbfuckers_club',
         },
     }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
@@ -103,10 +148,10 @@ class RedditIE(InfoExtractor):
 
         self._set_cookie('.reddit.com', 'reddit_session', self._gen_session_id())
         self._set_cookie('.reddit.com', '_options', '%7B%22pref_quarantine_optin%22%3A%20true%7D')
-        data = self._download_json(f'https://{subdomain}reddit.com/r/{slug}/.json', video_id, fatal=False)
+        data = self._download_json(f'https://{subdomain}reddit.com/{slug}/.json', video_id, fatal=False)
         if not data:
             # Fall back to old.reddit.com in case the requested subdomain fails
-            data = self._download_json(f'https://old.reddit.com/r/{slug}/.json', video_id)
+            data = self._download_json(f'https://old.reddit.com/{slug}/.json', video_id)
         data = data[0]['data']['children'][0]['data']
         video_url = data['url']
 
@@ -146,6 +191,7 @@ class RedditIE(InfoExtractor):
             'thumbnails': thumbnails,
             'timestamp': float_or_none(data.get('created_utc')),
             'uploader': data.get('author'),
+            'channel_id': data.get('subreddit'),
             'like_count': int_or_none(data.get('ups')),
             'dislike_count': int_or_none(data.get('downs')),
             'comment_count': int_or_none(data.get('num_comments')),
@@ -179,7 +225,8 @@ class RedditIE(InfoExtractor):
             raise ExtractorError('No media found', expected=True)
 
         # Check if media is hosted on reddit:
-        reddit_video = traverse_obj(data, (('media', 'secure_media'), 'reddit_video'), get_all=False)
+        reddit_video = traverse_obj(data, (
+            (None, ('crosspost_parent_list', ...)), ('secure_media', 'media'), 'reddit_video'), get_all=False)
         if reddit_video:
             playlist_urls = [
                 try_get(reddit_video, lambda x: unescapeHTML(x[y]))

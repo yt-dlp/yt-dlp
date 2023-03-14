@@ -156,7 +156,7 @@ class AbemaTVBaseIE(InfoExtractor):
     def _generate_aks(cls, deviceid):
         deviceid = deviceid.encode('utf-8')
         # add 1 hour and then drop minute and secs
-        ts_1hour = int((time_seconds(hours=9) // 3600 + 1) * 3600)
+        ts_1hour = int((time_seconds() // 3600 + 1) * 3600)
         time_struct = time.gmtime(ts_1hour)
         ts_1hour_str = str(ts_1hour).encode('utf-8')
 
@@ -189,6 +189,16 @@ class AbemaTVBaseIE(InfoExtractor):
     def _get_device_token(self):
         if self._USERTOKEN:
             return self._USERTOKEN
+
+        username, _ = self._get_login_info()
+        AbemaTVBaseIE._USERTOKEN = username and self.cache.load(self._NETRC_MACHINE, username)
+        if AbemaTVBaseIE._USERTOKEN:
+            # try authentication with locally stored token
+            try:
+                self._get_media_token(True)
+                return
+            except ExtractorError as e:
+                self.report_warning(f'Failed to login with cached user token; obtaining a fresh one ({e})')
 
         AbemaTVBaseIE._DEVICE_ID = str(uuid.uuid4())
         aks = self._generate_aks(self._DEVICE_ID)
@@ -300,6 +310,11 @@ class AbemaTVIE(AbemaTVBaseIE):
     _TIMETABLE = None
 
     def _perform_login(self, username, password):
+        self._get_device_token()
+        if self.cache.load(self._NETRC_MACHINE, username) and self._get_media_token():
+            self.write_debug('Skipping logging in')
+            return
+
         if '@' in username:  # don't strictly check if it's email address or not
             ep, method = 'user/email', 'email'
         else:
@@ -319,6 +334,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
         AbemaTVBaseIE._USERTOKEN = login_response['token']
         self._get_media_token(True)
+        self.cache.store(self._NETRC_MACHINE, username, AbemaTVBaseIE._USERTOKEN)
 
     def _real_extract(self, url):
         # starting download using infojson from this extractor is undefined behavior,
@@ -416,7 +432,7 @@ class AbemaTVIE(AbemaTVBaseIE):
                 f'https://api.abema.io/v1/video/programs/{video_id}', video_id,
                 note='Checking playability',
                 headers=headers)
-            ondemand_types = traverse_obj(api_response, ('terms', ..., 'onDemandType'), default=[])
+            ondemand_types = traverse_obj(api_response, ('terms', ..., 'onDemandType'))
             if 3 not in ondemand_types:
                 # cannot acquire decryption key for these streams
                 self.report_warning('This is a premium-only stream')
@@ -489,7 +505,7 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
             })
         yield from (
             self.url_result(f'https://abema.tv/video/episode/{x}')
-            for x in traverse_obj(programs, ('programs', ..., 'id'), default=[]))
+            for x in traverse_obj(programs, ('programs', ..., 'id')))
 
     def _entries(self, playlist_id, series_version):
         return OnDemandPagedList(
