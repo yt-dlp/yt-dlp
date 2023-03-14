@@ -4,24 +4,20 @@ from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import (
     determine_ext,
     ExtractorError,
-    int_or_none,
     url_or_none,
     urlencode_postdata,
 )
 
 
 class OwnCloudIE(InfoExtractor):
-    IE_NAME = 'owncloud'
-
     _INSTANCES_RE = r'''(?:
-                            (?:[^\.]+\.)?sciebo\.de|
+                            sciebo\.de|
+                            [^\.]+\.sciebo\.de|
                             cloud\.uni-koblenz-landau\.de|
                         )'''
     _VALID_URL = rf'''(?x)
-            (?P<server>https?://{_INSTANCES_RE})/s/
-            (?P<id>[\w\-\.]+)
-            (?P<extra>/.*)?
-        '''
+        (?P<server>https?://{_INSTANCES_RE})/s/
+        (?P<id>[\w\-\.]+)'''
 
     _TESTS = [
         {
@@ -37,27 +33,21 @@ class OwnCloudIE(InfoExtractor):
     def _real_extract(self, url):
         server, video_id = self._match_valid_url(url).group('server', 'id')
 
-        webpage, urlh = self._download_webpage_handle(url, f'{server}/s/{video_id}', 'Downloading webpage')
+        webpage, urlh = self._download_webpage_handle(f'{server}/s/{video_id}', video_id, 'Downloading webpage')
 
-        if self._search_regex(
-            r'<label[^>]+?for="(password)"', webpage, 'password field', fatal=False, default=None
-        ):
+        if self._search_regex(r'<label[^>]+?for="(password)"', webpage, 'password field',
+                              fatal=False, default=None):
             # Password protected
             webpage, urlh = self._verify_video_password(webpage, urlh.geturl(), video_id)
 
         hidden_inputs = self._hidden_inputs(webpage)
-        title = hidden_inputs.get('filename')
+        title = hidden_inputs['filename']
 
         return {
             'id': video_id,
             'title': title,
-            'formats': [
-                {
-                    'url': url_or_none(hidden_inputs.get('downloadURL') or self._extend_to_download_url(urlh.geturl())),
-                    'ext': determine_ext(title),
-                    'filesize': int_or_none(hidden_inputs.get('filesize')),
-                }
-            ],
+            'url': url_or_none(hidden_inputs.get('downloadURL') or self._extend_to_download_url(urlh.geturl())),
+            'ext': determine_ext(title),
         }
 
     def _extend_to_download_url(self, url: str) -> str:
@@ -87,9 +77,8 @@ class OwnCloudIE(InfoExtractor):
             url, video_id, note='Validating Password...', errnote='Wrong password?', data=data
         )
 
-        if self._search_regex(
-            r'<label[^>]+?for="(password)"', validation_response, 'password field', fatal=False, default=None
-        ):
+        if self._search_regex(r'<label[^>]+?for="(password)"', validation_response,
+                              'password field', fatal=False, default=None):
             # Still password protected
             warning = self._search_regex(
                 r'<div[^>]+?class="warning">([^<]*)</div>', validation_response, 'warning',
