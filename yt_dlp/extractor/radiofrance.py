@@ -1,7 +1,9 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    OnDemandPagedList,
     join_nonempty,
     parse_duration,
     traverse_obj,
@@ -194,3 +196,84 @@ class FranceCultureIE(InfoExtractor):
             'upload_date': unified_strdate(self._search_regex(
                 r'"datePublished"\s*:\s*"([^"]+)', webpage, 'timestamp', fatal=False))
         }
+
+
+class RadioFrancePodcastIE(InfoExtractor):
+    _VALID_URL = r'''(?x)
+                https?://
+                (?:www\.)?radiofrance\.fr
+                /(?:franceculture|fip|francemusique|mouv|franceinter|franceinfo)
+                /podcasts/(?P<id>[\w-]+)/?(?:[?#]|$)
+            '''
+
+    _TESTS = [{
+        'url': 'https://www.radiofrance.fr/franceinfo/podcasts/le-billet-vert',
+        'info_dict': {
+            'id': 'eaf6ef81-a980-4f1c-a7d1-8a75ecd54b17',
+            'display_id': 'le-billet-vert',
+            'title': 'Le billet sciences',
+            'description': 'md5:eb1007b34b0c0a680daaa71525bbd4c1',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+        },
+        'playlist_mincount': 11,
+    }, {
+        'url': 'https://www.radiofrance.fr/franceinter/podcasts/jean-marie-le-pen-l-obsession-nationale',
+        'info_dict': {
+            'id': '566fd524-3074-4fbc-ac69-8696f2152a54',
+            'display_id': 'jean-marie-le-pen-l-obsession-nationale',
+            'title': 'Jean-Marie Le Pen, l\'obsession nationale',
+            'description': 'md5:a07c0cfb894f6d07a62d0ad12c4b7d73',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+        },
+        'playlist_count': 7,
+    }, {
+        'url': 'https://www.radiofrance.fr/franceculture/podcasts/serie-thomas-grjebine',
+        'info_dict': {
+            'id': '63c1ddc9-9f15-457a-98b2-411bac63f48d',
+            'display_id': 'serie-thomas-grjebine',
+            'title': 'Thomas Grjebine',
+        },
+        'playlist_count': 1,
+    }, {
+        'url': 'https://www.radiofrance.fr/franceinter/podcasts/le-7-9',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+
+        metadata = self._download_json(
+            'https://www.radiofrance.fr/api/v2.1/path', display_id,
+            query={'value': urllib.parse.urlparse(url).path})['content']
+
+        podcast_id = metadata['id']
+        episode_response = metadata['expressions']
+
+        def page_func(page_num):
+            nonlocal episode_response
+            next_cursor = episode_response['next']
+
+            if page_num > 0:
+                if not next_cursor:
+                    return []
+
+                episode_response = self._download_json(
+                    f'https://www.radiofrance.fr/api/v2.1/concepts/{podcast_id}/expressions', podcast_id,
+                    note=f'Downloading page {page_num}', query={'pageCursor': next_cursor})
+
+            return [
+                self.url_result(
+                    f'https://www.radiofrance.fr/{episode["path"]}', FranceCultureIE, **traverse_obj(episode, {
+                        'title': 'title',
+                        'description': 'standFirst',
+                        'timestamp': 'publishedDate',
+                        'thumbnail': ('visual', 'src'),
+                    })) for episode in episode_response['items'] if episode.get('path')]
+
+        entries = OnDemandPagedList(page_func, metadata['expressions']['pageSize'])
+        return self.playlist_result(
+            entries, podcast_id, display_id=display_id, **traverse_obj(metadata, {
+                'title': 'title',
+                'description': 'standFirst',
+                'thumbnail': ('visual', 'src'),
+            }))

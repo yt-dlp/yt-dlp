@@ -1531,6 +1531,7 @@ from .radiofrance import (
     FranceCultureIE,
     RadioFranceIE,
     RadioFranceLiveIE,
+    RadioFrancePodcastIE,
 )
 from .radiozet import RadioZetPodcastIE
 from .radiokapital import (
