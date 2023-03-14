@@ -1,14 +1,9 @@
+import itertools
 import json
 import urllib.error
 
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    format_field,
-    parse_iso8601,
-    traverse_obj,
-    OnDemandPagedList,
-)
+from ..utils import ExtractorError, parse_iso8601
 
 _BASE_URL_RE = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
 
@@ -112,7 +107,6 @@ class NebulaBaseIE(InfoExtractor):
 
     def _perform_login(self, username=None, password=None):
         self._nebula_api_token = self._perform_nebula_auth(username, password)
-        self._nebula_bearer_token = self._fetch_nebula_bearer_token()
 
 
 class NebulaIE(NebulaBaseIE):
@@ -120,7 +114,6 @@ class NebulaIE(NebulaBaseIE):
     _TESTS = [
         {
             'url': 'https://nebula.tv/videos/that-time-disney-remade-beauty-and-the-beast',
-            'md5': '14944cfee8c7beeea106320c47560efc',
             'info_dict': {
                 'id': '5c271b40b13fd613090034fd',
                 'ext': 'mp4',
@@ -142,7 +135,7 @@ class NebulaIE(NebulaBaseIE):
                 'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
             },
             'params': {
-                'skip_download': 'Expected *file* to be at least 9.77KiB, but it\'s only 756.00B',
+                'skip_download': 'm3u8',
             },
         },
         {
@@ -216,7 +209,7 @@ class NebulaIE(NebulaBaseIE):
                 'ext': 'mp4',
             },
             'params': {
-                'skip_download': 'Expected *file* to be at least 9.77KiB, but it\'s only 3.20KiB',
+                'skip_download': 'm3u8',
             },
         },
     ]
