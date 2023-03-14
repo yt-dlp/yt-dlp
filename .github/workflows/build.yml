@@ -16,7 +16,7 @@ on:
         default: true
         type: boolean
       macos:
-        default: false
+        default: true
         type: boolean
       macos_legacy:
         default: true
@@ -55,7 +55,7 @@ on:
         type: boolean
       macos:
         description: yt-dlp_macos, yt-dlp_macos.zip
-        default: false
+        default: true
         type: boolean
       macos_legacy:
         description: yt-dlp_macos_legacy
@@ -192,7 +192,7 @@ jobs:
       - name: Install Requirements
         run: |
           brew install coreutils
-          /usr/bin/python3 -m pip install -U --user pip Pyinstaller -r requirements.txt
+          /usr/bin/python3 -m pip install -U --user pip "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0.tar.gz" -r requirements.txt
 
       - name: Prepare
         run: |
