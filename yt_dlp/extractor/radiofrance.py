@@ -277,3 +277,63 @@ class RadioFrancePodcastIE(InfoExtractor):
                 'description': 'standFirst',
                 'thumbnail': ('visual', 'src'),
             }))
+
+
+class RadioFranceProfileIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?radiofrance\.fr/personnes/(?P<id>[\w-]+)'
+
+    _TESTS = [{
+        'url': 'https://www.radiofrance.fr/personnes/thomas-pesquet?p=3',
+        'info_dict': {
+            'id': '86c62790-e481-11e2-9f7b-782bcb6744eb',
+            'display_id': 'thomas-pesquet',
+            'title': 'Thomas Pesquet',
+            'description': 'Astronaute à l\'agence spatiale européenne',
+        },
+        'playlist_mincount': 212,
+    }, {
+        'url': 'https://www.radiofrance.fr/personnes/lea-salame',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+
+        metadata = self._download_json(
+            'https://www.radiofrance.fr/api/v2.1/path', display_id,
+            query={'value': urllib.parse.urlparse(url).path})['content']
+
+        profile_id = metadata['id']
+        profile_response = metadata['documents']
+
+        def page_func(page_num):
+            nonlocal profile_response
+            next_cursor = profile_response['pagination']['next']
+
+            if page_num > 0:
+                if not next_cursor:
+                    return []
+
+                profile_response = self._download_json(
+                    f'https://www.radiofrance.fr/api/v2.1/taxonomy/{profile_id}/documents', profile_id,
+                    note=f'Downloading page {page_num}', query={
+                        'relation': 'personality',
+                        'cursor': next_cursor
+                    })
+
+            return [
+                self.url_result(
+                    f'https://www.radiofrance.fr/{entry["path"]}', **traverse_obj(entry, {
+                        'title': 'title',
+                        'description': 'standFirst',
+                        'timestamp': 'publishedDate',
+                        'thumbnail': ('visual', 'src'),
+                    })) for entry in profile_response['items'] if entry.get('path')]
+
+        entries = OnDemandPagedList(page_func, metadata['documents']['pagination']['pageSize'])
+        return self.playlist_result(
+            entries, profile_id, display_id=display_id, **traverse_obj(metadata, {
+                'title': 'name',
+                'description': 'role',
+                'thumbnail': ('visual', 'src'),
+            }))
