@@ -134,7 +134,7 @@ class RadioFranceLiveIE(InfoExtractor):
 
 
 class FranceCultureIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiofrance\.fr/(?:franceculture|fip|francemusique|mouv|franceinter)/podcasts/(?:[^?#]+/)?(?P<display_id>[^?#]+)-(?P<id>\d+)($|[?#])'
+    _VALID_URL = r'https?://(?:www\.)?radiofrance\.fr/(?:franceculture|fip|francemusique|mouv|franceinter|franceinfo)/podcasts/(?:[^?#]+/)?(?P<display_id>[^?#]+)-(?P<id>\d{6,})($|[?#])'
     _TESTS = [
         {
             'url': 'https://www.radiofrance.fr/franceculture/podcasts/science-en-questions/la-physique-d-einstein-aiderait-elle-a-comprendre-le-cerveau-8440487',
@@ -150,7 +150,23 @@ class FranceCultureIE(InfoExtractor):
             },
         },
         {
+            'url': 'https://www.radiofrance.fr/franceinter/podcasts/le-7-9-30/le-7-9-30-du-vendredi-10-mars-2023-2107675',
+            'info_dict': {
+                'id': '2107675',
+                'display_id': 'le-7-9-30-du-vendredi-10-mars-2023',
+                'title': 'Inflation alimentaire : comment en sortir ? - Régis Debray et Claude Grange - Cybèle Idelot',
+                'description': 'md5:36ee74351ede77a314fdebb94026b916',
+                'thumbnail': r're:^https?://.*\.(?:jpg|png)',
+                'upload_date': '20230310',
+                'duration': 8977,
+                'ext': 'mp3',
+            },
+        },
+        {
             'url': 'https://www.radiofrance.fr/franceinter/podcasts/la-rafle-du-vel-d-hiv-une-affaire-d-etat/les-racines-du-crime-episode-1-3715507',
+            'only_matching': True,
+        }, {
+            'url': 'https://www.radiofrance.fr/franceinfo/podcasts/le-billet-sciences/sante-bientot-un-vaccin-contre-l-asthme-allergique-3057200',
             'only_matching': True,
         }
     ]
