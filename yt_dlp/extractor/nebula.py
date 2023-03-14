@@ -80,39 +80,33 @@ class NebulaBaseIE(InfoExtractor):
         manifest_url = stream_info['manifest']
         return self._extract_m3u8_formats_and_subtitles(manifest_url, slug, 'mp4')
 
-    def _extract_video_metadata(self, episode):
-        channel_url = format_field(episode, 'channel_slug', 'https://nebula.tv/%s')
+    def _build_video_info(self, episode):
+        fmts, subs = self._fetch_video_formats(episode['slug'])
+        channel_slug = episode['channel_slug']
+        channel_title = episode['channel_title']
         return {
-            **traverse_obj(episode, {
-                'id': 'zype_id',
-                'display_id': 'slug',
-                'title': 'title',
-                'description': 'description',
-                'timestamp': ('published_at', {parse_iso8601}),
-                'duration': 'duration',
-                'channel_id': 'channel_slug',
-                'uploader_id': 'channel_slug',
-                'channel': 'channel_title',
-                'uploader': 'channel_title',
-                'series': 'channel_title',
-                'creator': 'channel_title',
-            }),
-            'channel_url': channel_url,
-            'uploader_url': channel_url,
+            'id': episode['zype_id'],
+            'display_id': episode['slug'],
+            'formats': fmts,
+            'subtitles': subs,
+            'webpage_url': f'https://nebula.tv/{episode["slug"]}',
+            'title': episode['title'],
+            'description': episode['description'],
+            'timestamp': parse_iso8601(episode['published_at']),
             'thumbnails': [{
                 # 'id': tn.get('name'),  # this appears to be null
                 'url': tn['original'],
                 'height': key,
-            } for key, tn in traverse_obj(episode, ('assets', 'thumbnail'), default={}).items()],
-        }
-
-    def _build_video_info(self, episode):
-        fmts, subs = self._fetch_video_formats(episode['slug'])
-        return {
-            **self._extract_video_metadata(episode),
-            'formats': fmts,
-            'subtitles': subs,
-            'webpage_url': f'https://nebula.tv/{episode["slug"]}',
+            } for key, tn in episode['assets']['thumbnail'].items()],
+            'duration': episode['duration'],
+            'channel': channel_title,
+            'channel_id': channel_slug,
+            'channel_url': f'https://nebula.tv/{channel_slug}',
+            'uploader': channel_title,
+            'uploader_id': channel_slug,
+            'uploader_url': f'https://nebula.tv/{channel_slug}',
+            'series': channel_title,
+            'creator': channel_title,
         }
 
     def _perform_login(self, username=None, password=None):
@@ -137,6 +131,7 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'lindsayellis',
                 'uploader': 'Lindsay Ellis',
                 'uploader_id': 'lindsayellis',
+                'timestamp': 1533009600,
                 'uploader_url': 'https://nebula.tv/lindsayellis',
                 'series': 'Lindsay Ellis',
                 'display_id': 'that-time-disney-remade-beauty-and-the-beast',
@@ -300,29 +295,27 @@ class NebulaChannelIE(NebulaBaseIE):
         },
     ]
 
+    def _generate_playlist_entries(self, collection_id, channel):
+        episodes = channel['episodes']['results']
+        for page_num in itertools.count(2):
+            for episode in episodes:
+                yield self._build_video_info(episode)
+            next_url = channel['episodes']['next']
+            if not next_url:
+                break
+            channel = self._call_nebula_api(next_url, collection_id, auth_type='bearer',
+                                            note=f'Retrieving channel page {page_num}')
+            episodes = channel['episodes']['results']
+
     def _real_extract(self, url):
         collection_id = self._match_id(url)
-        first_api_response = self._call_nebula_api(
-            f'https://content.watchnebula.com/video/channels/{collection_id}/', collection_id,
-            auth_type='bearer', note='Retrieving channel')
+        channel_url = f'https://content.watchnebula.com/video/channels/{collection_id}/'
+        channel = self._call_nebula_api(channel_url, collection_id, auth_type='bearer', note='Retrieving channel')
+        channel_details = channel['details']
 
-        page_api_response = first_api_response
-
-        def page_func(page_num):
-            nonlocal page_api_response
-
-            if page_num > 0:
-                next_url = page_api_response['episodes'].get('next')
-                if not next_url:
-                    return []
-
-                page_api_response = self._call_nebula_api(
-                    next_url, collection_id, auth_type='bearer', note=f'Downloading page {page_num}')
-
-            return [self.url_result(episode['share_url'], ie=NebulaIE, **self._extract_video_metadata(episode))
-                    for episode in page_api_response['episodes']['results']]
-
-        entries = OnDemandPagedList(page_func, len(first_api_response['episodes']['results']))
         return self.playlist_result(
-            entries, collection_id, playlist_title=traverse_obj(first_api_response, ('details', 'title')),
-            playlist_description=traverse_obj(first_api_response, ('details', 'description')))
+            entries=self._generate_playlist_entries(collection_id, channel),
+            playlist_id=collection_id,
+            playlist_title=channel_details['title'],
+            playlist_description=channel_details['description']
+        )
