@@ -2,19 +2,19 @@ import itertools
 import json
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, parse_iso8601
+from ..utils import (
+    ExtractorError,
+    format_field,
+    parse_iso8601,
+    traverse_obj,
+)
 
 _BASE_URL_RE = r'https?://(?:www\.|beta\.)?(?:watchnebula\.com|nebula\.app|nebula\.tv)'
 
 
 class NebulaBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'watchnebula'
-
-    _nebula_api_token = None
-    _nebula_bearer_token = None
-
-    def _real_initialize(self):
-        self._nebula_bearer_token = self._fetch_nebula_bearer_token()
+    _tokens = {'api': None, 'bearer': None}
 
     def _perform_nebula_auth(self, username, password):
         if not username or not password:
@@ -34,78 +34,62 @@ class NebulaBaseIE(InfoExtractor):
         if not response or not response.get('key'):
             self.raise_login_required(method='password')
 
-        return response['key']
+        return self._download_json(
+            'https://api.watchnebula.com/api/v1/authorization/', None,
+            headers={'Authorization': f'Token {response["key"]}'},
+            note='Authorizing to Nebula', data=b'')['token']
 
-    def _call_nebula_api(self, url, video_id=None, method='GET', auth_type='api', note=''):
-        assert method in ('GET', 'POST',)
-        assert auth_type in ('api', 'bearer',)
-
+    def _call_nebula_api(self, url, video_id, note):
         def inner_call():
-            authorization = f'Token {self._nebula_api_token}' if auth_type == 'api' else f'Bearer {self._nebula_bearer_token}'
-            return self._download_json(
-                url, video_id, note=note,
-                headers={'Authorization': authorization} if self._nebula_api_token or self._nebula_bearer_token else {},
-                data=b'' if method == 'POST' else None)
+            return self._download_json(url, video_id, note=note,
+                                       headers={'Authorization': f'Bearer {self._token}'})
 
         try:
             return inner_call()
-        except ExtractorError as exc:
-            # if 401 or 403, attempt credential re-auth and retry
-            if exc.cause and isinstance(exc.cause, HTTPError) and exc.cause.status in (401, 403):
-                self.to_screen(f'Reauthenticating to Nebula and retrying, because last {auth_type} call resulted in error {exc.cause.code}')
-                self._perform_login()
+        except ExtractorError as exc:  # if 401 or 403, attempt credential re-auth and retry
+            if isinstance(exc.cause, urllib.error.HTTPError) and exc.cause.code in (401, 403):
+                self.to_screen(f'Reauthenticating to Nebula and retrying, '
+                               f'because last API call resulted in error {exc.cause.code}')
+                self._perform_login(*self._get_login_info())
                 return inner_call()
-            else:
-                raise
-
-    def _fetch_nebula_bearer_token(self):
-        """
-        Get a Bearer token for the Nebula API. This will be required to fetch video meta data.
-        """
-        response = self._call_nebula_api('https://api.watchnebula.com/api/v1/authorization/',
-                                         method='POST',
-                                         note='Authorizing to Nebula')
-        return response['token']
-
-    def _fetch_video_formats(self, slug):
-        stream_info = self._call_nebula_api(f'https://content.api.nebula.app/video/{slug}/stream/',
-                                            video_id=slug,
-                                            auth_type='bearer',
-                                            note='Fetching video stream info')
-        manifest_url = stream_info['manifest']
-        return self._extract_m3u8_formats_and_subtitles(manifest_url, slug, 'mp4')
+            raise
 
     def _build_video_info(self, episode):
-        fmts, subs = self._fetch_video_formats(episode['slug'])
-        channel_slug = episode['channel_slug']
-        channel_title = episode['channel_title']
+        slug = episode['slug']
+        stream_info = self._call_nebula_api(
+            f'https://content.watchnebula.com/video/{slug}/stream/',
+            slug, note='Fetching video stream info')
+        fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_info['manifest'], slug)
+
+        channel_url = format_field(episode, 'channel_slug', 'https://nebula.app/%s')
         return {
-            'id': episode['zype_id'],
-            'display_id': episode['slug'],
+            'display_id': slug,
+            'channel_url': channel_url,
+            'uploader_url': channel_url,
             'formats': fmts,
             'subtitles': subs,
-            'webpage_url': f'https://nebula.tv/{episode["slug"]}',
-            'title': episode['title'],
-            'description': episode['description'],
-            'timestamp': parse_iso8601(episode['published_at']),
-            'thumbnails': [{
-                # 'id': tn.get('name'),  # this appears to be null
-                'url': tn['original'],
-                'height': key,
-            } for key, tn in episode['assets']['thumbnail'].items()],
-            'duration': episode['duration'],
-            'channel': channel_title,
-            'channel_id': channel_slug,
-            'channel_url': f'https://nebula.tv/{channel_slug}',
-            'uploader': channel_title,
-            'uploader_id': channel_slug,
-            'uploader_url': f'https://nebula.tv/{channel_slug}',
-            'series': channel_title,
-            'creator': channel_title,
+            **traverse_obj(episode, {
+                'id': 'zype_id',
+                'title': 'title',
+                'description': 'description',
+                'timestamp': ('published_at', parse_iso8601),
+                'thumbnails': [{
+                    # 'id': tn.get('name'),  # this appears to be null
+                    'url': tn['original'],
+                    'height': key,
+                } for key, tn in traverse_obj(episode, ('assets', 'thumbnail'), default={}).items()],
+                'duration': 'duration',
+                'channel_id': 'channel_slug',
+                'uploader_id': 'channel_slug',
+                'channel': 'channel_title',
+                'uploader': 'channel_title',
+                'series': 'channel_title',
+                'creator': 'channel_title',
+            })
         }
 
-    def _perform_login(self, username=None, password=None):
-        self._nebula_api_token = self._perform_nebula_auth(username, password)
+    def _perform_login(self, username, password):
+        self._token = self._perform_nebula_auth(username, password)
 
 
 class NebulaIE(NebulaBaseIE):
@@ -217,16 +201,11 @@ class NebulaIE(NebulaBaseIE):
         },
     ]
 
-    def _fetch_video_metadata(self, slug):
-        return self._call_nebula_api(f'https://content.api.nebula.app/video/{slug}/',
-                                     video_id=slug,
-                                     auth_type='bearer',
-                                     note='Fetching video meta data')
-
     def _real_extract(self, url):
         slug = self._match_id(url)
-        video = self._fetch_video_metadata(slug)
-        return self._build_video_info(video)
+        return self._build_video_info(self._call_nebula_api(
+            f'https://content.watchnebula.com/video/{slug}/',
+            slug, note='Fetching video meta data'))
 
 
 class NebulaSubscriptionsIE(NebulaBaseIE):
@@ -246,11 +225,11 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
         next_url = 'https://content.watchnebula.com/library/video/?page_size=100'
         page_num = 1
         while next_url:
-            channel = self._call_nebula_api(next_url, 'myshows', auth_type='bearer',
-                                            note=f'Retrieving subscriptions page {page_num}')
+            channel = self._call_nebula_api(
+                next_url, 'myshows', note=f'Retrieving subscriptions page {page_num}')
             for episode in channel['results']:
                 yield self._build_video_info(episode)
-            next_url = channel['next']
+            next_url = channel.get('next')
             page_num += 1
 
     def _real_extract(self, url):
@@ -289,26 +268,23 @@ class NebulaChannelIE(NebulaBaseIE):
     ]
 
     def _generate_playlist_entries(self, collection_id, channel):
-        episodes = channel['episodes']['results']
         for page_num in itertools.count(2):
-            for episode in episodes:
+            for episode in channel['episodes']['results']:
                 yield self._build_video_info(episode)
-            next_url = channel['episodes']['next']
+            next_url = channel['episodes'].get('next')
             if not next_url:
                 break
-            channel = self._call_nebula_api(next_url, collection_id, auth_type='bearer',
-                                            note=f'Retrieving channel page {page_num}')
-            episodes = channel['episodes']['results']
+            channel = self._call_nebula_api(
+                next_url, collection_id, note=f'Retrieving channel page {page_num}')
 
     def _real_extract(self, url):
         collection_id = self._match_id(url)
-        channel_url = f'https://content.watchnebula.com/video/channels/{collection_id}/'
-        channel = self._call_nebula_api(channel_url, collection_id, auth_type='bearer', note='Retrieving channel')
-        channel_details = channel['details']
+        channel = self._call_nebula_api(
+            f'https://content.watchnebula.com/video/channels/{collection_id}/',
+            collection_id, note='Retrieving channel')
 
         return self.playlist_result(
             entries=self._generate_playlist_entries(collection_id, channel),
             playlist_id=collection_id,
-            playlist_title=channel_details['title'],
-            playlist_description=channel_details['description']
-        )
+            playlist_title=traverse_obj(channel, ('details', 'title')),
+            playlist_description=traverse_obj(channel, ('details', 'description')))
