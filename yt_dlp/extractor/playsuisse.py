@@ -5,7 +5,7 @@ from ..utils import int_or_none, traverse_obj
 
 
 class PlaySuisseIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?playsuisse\.ch/(watch|detail)/(.*\?episodeId=)?(?P<id>[0-9]+)?'
+    _VALID_URL = r'https?://(?:www\.)?playsuisse\.ch/(?:watch|detail)/(?:[^#]*[?&]episodeId=)?(?P<id>[0-9]+)'
     _TESTS = [
         {
             # episode in a series
@@ -22,11 +22,11 @@ class PlaySuisseIE(InfoExtractor):
                 'season_number': 1,
                 'episode': 'Knochen',
                 'episode_number': 1,
-                'thumbnail': 'md5:3cd4006d1f42cecbfdbd1ac35479c3dc'
+                'thumbnail': 're:https://playsuisse-img.akamaized.net/.*$',
             }
         }, {
             # film
-            'url': 'https://www.playsuisse.ch/watch/808675/0',
+            'url': 'https://www.playsuisse.ch/watch/808675',
             'md5': '818b94c1d2d7c4beef953f12cb8f3e75',
             'info_dict': {
                 'id': '808675',
@@ -34,7 +34,7 @@ class PlaySuisseIE(InfoExtractor):
                 'title': 'Der Läufer',
                 'description': 'md5:9f61265c7e6dcc3e046137a792b275fd',
                 'duration': 5280,
-                'thumbnail': 'md5:fa67fb5c1f8fae7321f71b4fbdfda617'
+                'thumbnail': 're:https://playsuisse-img.akamaized.net/.*$',
             }
         }, {
             # series (treated as a playlist)
@@ -55,7 +55,7 @@ class PlaySuisseIE(InfoExtractor):
                     'season': 'Season 1',
                     'season_number': 1,
                     'series': 'They all came out to Montreux',
-                    'thumbnail': 'md5:535895ffcec422655fa2b6eea68b1937',
+                    'thumbnail': 're:https://playsuisse-img.akamaized.net/.*$',
                     'title': 'Folge 1',
                     'ext': 'mp4'
                 },
@@ -69,7 +69,7 @@ class PlaySuisseIE(InfoExtractor):
                     'season': 'Season 1',
                     'season_number': 1,
                     'series': 'They all came out to Montreux',
-                    'thumbnail': 'md5:1619df735166856fa9fdf689e3b513a5',
+                    'thumbnail': 're:https://playsuisse-img.akamaized.net/.*$',
                     'title': 'Folge 2',
                     'ext': 'mp4'
                 },
@@ -83,7 +83,7 @@ class PlaySuisseIE(InfoExtractor):
                     'season': 'Season 1',
                     'season_number': 1,
                     'series': 'They all came out to Montreux',
-                    'thumbnail': 'md5:2fcabe36cbb0d08d06983535ef56d868',
+                    'thumbnail': 're:https://playsuisse-img.akamaized.net/.*$',
                     'title': 'Folge 3',
                     'ext': 'mp4'
                 }
