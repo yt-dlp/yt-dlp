@@ -163,7 +163,7 @@ class NiconicoChannelPlusIE(NiconicoChannelPlusBaseIE):
         fanclub_site_id = self._find_fanclub_site_id(channel_id)
 
         data_json = self._call_api(
-            f'video_pages/{content_code}', item_id=content_code,
+            f'video_pages/{content_code}', item_id=content_code, headers={'fc_use_device': 'null'},
             note='Fetching video page info', errnote='Unable to fetch video page info',
         )['data']['video_page']
 
