@@ -98,7 +98,7 @@ jobs:
         run: |
           sudo apt-get -y install zip pandoc man sed
           python -m pip install -U pip setuptools wheel twine
-          python -m pip install -U "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.8.0-py3-none-any.whl" -r requirements.txt
+          python -m pip install -U "https://observeroftime01.github.io/Pyinstaller-Builds/x86_64/pyinstaller-5.9.0-py3-none-any.whl" -r requirements.txt
           reqs=$(mktemp)
           cat > $reqs << EOF
           python=3.10.*
