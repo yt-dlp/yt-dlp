@@ -16,62 +16,66 @@ _BASE_URL_RE = r'https?://(?:www\.|beta\.)?(?:watchnebula\.com|nebula\.app|nebul
 
 class NebulaBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'watchnebula'
-    _tokens = {'api': None, 'bearer': None}
+    _token = _api_token = None
 
-    def _perform_nebula_auth(self, username, password):
-        if not username or not password:
-            self.raise_login_required(method='password')
+    def _perform_login(self, username, password):
+        try:
+            response = self._download_json(
+                'https://api.watchnebula.com/api/v1/auth/login/', None,
+                'Logging in to Nebula', 'Login failed',
+                data=json.dumps({'email': username, 'password': password}).encode(),
+                headers={
+                    'content-type': 'application/json',
+                    'cookie': ''  # 'sessionid' cookie causes 403
+                })
+        except ExtractorError as e:
+            if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 400:
+                raise ExtractorError('Login failed: Invalid username or password', expected=True)
+            raise
+        self._api_token = response.get('key')
+        if not self._api_token:
+            raise ExtractorError('Login failed: No token')
 
-        data = json.dumps({'email': username, 'password': password}).encode('utf8')
-        response = self._download_json(
-            'https://api.watchnebula.com/api/v1/auth/login/',
-            data=data, fatal=False, video_id=None,
-            headers={
-                'content-type': 'application/json',
-                # Submitting the 'sessionid' cookie always causes a 403 on auth endpoint
-                'cookie': ''
-            },
-            note='Logging in to Nebula with supplied credentials',
-            errnote='Authentication failed or rejected')
-        if not response or not response.get('key'):
-            self.raise_login_required(method='password')
+    def _call_api(self, *args, **kwargs):
+        if self._token:
+            kwargs.setdefault('headers', {})['Authorization'] = f'Bearer {self._token}'
+        try:
+            return self._download_json(*args, **kwargs)
+        except ExtractorError as exc:
+            if not isinstance(exc.cause, urllib.error.HTTPError) or exc.cause.code not in (401, 403):
+                raise
+            username, password = self._get_login_info()
+            if not username:
+                self.raise_login_required(method='password')
 
-        return self._download_json(
+            self.to_screen(f'Reauthenticating to Nebula and retrying, '
+                           f'because last API call resulted in error {exc.cause.code}')
+            self._perform_login(username, password)
+            self._real_initialize()
+            return self._download_json(*args, **kwargs)
+
+    def _real_initialize(self):
+        self._token = self._download_json(
             'https://api.watchnebula.com/api/v1/authorization/', None,
-            headers={'Authorization': f'Token {response["key"]}'},
+            headers={'Authorization': f'Token {self._api_token}'} if self._api_token else None,
             note='Authorizing to Nebula', data=b'')['token']
 
-    def _call_nebula_api(self, url, video_id, note):
-        def inner_call():
-            return self._download_json(url, video_id, note=note,
-                                       headers={'Authorization': f'Bearer {self._token}'})
-
-        try:
-            return inner_call()
-        except ExtractorError as exc:  # if 401 or 403, attempt credential re-auth and retry
-            if isinstance(exc.cause, urllib.error.HTTPError) and exc.cause.code in (401, 403):
-                self.to_screen(f'Reauthenticating to Nebula and retrying, '
-                               f'because last API call resulted in error {exc.cause.code}')
-                self._perform_login(*self._get_login_info())
-                return inner_call()
-            raise
-
     def _extract_formats(self, slug):
-        stream_info = self._call_nebula_api(
+        stream_info = self._call_api(
             f'https://content.watchnebula.com/video/{slug}/stream/',
             slug, note='Fetching video stream info')
         fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_info['manifest'], slug)
-
         return {'formats': fmts, 'subtitles': subs}
 
     def _extract_video_metadata(self, episode):
+        channel_url = format_field(episode, 'channel_slug', 'https://nebula.app/%s')
         return {
             **traverse_obj(episode, {
                 'id': 'zype_id',
                 'display_id': 'slug',
                 'title': 'title',
                 'description': 'description',
-                'timestamp': ('published_at', parse_iso8601),
+                'timestamp': ('published_at', {parse_iso8601}),
                 'duration': 'duration',
                 'channel_id': 'channel_slug',
                 'uploader_id': 'channel_slug',
@@ -80,15 +84,14 @@ class NebulaBaseIE(InfoExtractor):
                 'series': 'channel_title',
                 'creator': 'channel_title',
             }),
+            'channel_url': channel_url,
+            'uploader_url': channel_url,
             'thumbnails': [{
                 # 'id': tn.get('name'),  # this appears to be null
                 'url': tn['original'],
                 'height': key,
             } for key, tn in traverse_obj(episode, ('assets', 'thumbnail'), default={}).items()],
         }
-
-    def _perform_login(self, username, password):
-        self._token = self._perform_nebula_auth(username, password)
 
 
 class NebulaIE(NebulaBaseIE):
@@ -100,25 +103,22 @@ class NebulaIE(NebulaBaseIE):
                 'id': '84ed544d-4afd-4723-8cd5-2b95261f0abf',
                 'ext': 'mp4',
                 'title': 'That Time Disney Remade Beauty and the Beast',
-                'description': 'Note: this video was originally posted on YouTube with the sponsor read included. We weren’t able to remove it without reducing video quality, so it’s presented here in its original context.',
+                'description': 'md5:2aae3c4cfc5ee09a1ecdff0909618cf4',
                 'upload_date': '20180731',
                 'timestamp': 1533009600,
                 'channel': 'Lindsay Ellis',
                 'channel_id': 'lindsayellis',
                 'uploader': 'Lindsay Ellis',
                 'uploader_id': 'lindsayellis',
-                'timestamp': 1533009600,
-                'uploader_url': 'https://nebula.tv/lindsayellis',
+                'uploader_url': r're:https://nebula\.(tv|app)/lindsayellis',
                 'series': 'Lindsay Ellis',
                 'display_id': 'that-time-disney-remade-beauty-and-the-beast',
-                'channel_url': 'https://nebula.tv/lindsayellis',
+                'channel_url': r're:https://nebula\.(tv|app)/lindsayellis',
                 'creator': 'Lindsay Ellis',
                 'duration': 2212,
                 'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
             },
-            'params': {
-                'skip_download': 'm3u8',
-            },
+            'params': {'skip_download': 'm3u8'},
         },
         {
             'url': 'https://nebula.tv/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
@@ -182,17 +182,15 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'tldrnewseu',
                 'uploader': 'TLDR News EU',
                 'uploader_id': 'tldrnewseu',
-                'uploader_url': 'https://nebula.tv/tldrnewseu',
+                'uploader_url': r're:https://nebula\.(tv|app)/tldrnewseu',
                 'duration': 524,
-                'channel_url': 'https://nebula.tv/tldrnewseu',
+                'channel_url': r're:https://nebula\.(tv|app)/tldrnewseu',
                 'series': 'TLDR News EU',
                 'thumbnail': r're:https?://.*\.jpeg',
                 'creator': 'TLDR News EU',
                 'ext': 'mp4',
             },
-            'params': {
-                'skip_download': 'm3u8',
-            },
+            'params': {'skip_download': 'm3u8'},
         },
         {
             'url': 'https://beta.nebula.tv/videos/money-episode-1-the-draw',
@@ -207,20 +205,21 @@ class NebulaIE(NebulaBaseIE):
             return {
                 'id': smuggled_data['id'],
                 'display_id': slug,
+                'title': '',
                 **self._extract_formats(slug),
             }
 
         return {
-            **self._extract_video_metadata(self._call_nebula_api(
+            **self._extract_video_metadata(self._call_api(
                 f'https://content.watchnebula.com/video/{slug}/',
-                slug, note='Fetching video meta data')),
+                slug, note='Fetching video metadata')),
             **self._extract_formats(slug),
         }
 
 
 class NebulaSubscriptionsIE(NebulaBaseIE):
     IE_NAME = 'nebula:subscriptions'
-    _VALID_URL = rf'{_BASE_URL_RE}/myshows'
+    _VALID_URL = rf'{_BASE_URL_RE}/(?P<id>myshows)'
     _TESTS = [
         {
             'url': 'https://nebula.tv/myshows',
@@ -233,14 +232,13 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
 
     def _generate_playlist_entries(self):
         next_url = 'https://content.watchnebula.com/library/video/?page_size=100'
-        page_num = 1
-        while next_url:
-            channel = self._call_nebula_api(
+        for page_num in itertools.count(1):
+            channel = self._call_api(
                 next_url, 'myshows', note=f'Retrieving subscriptions page {page_num}')
-            for episode in channel['results']:
-                yield self._build_video_info(episode)
+            yield from map(self._extract_video_metadata, channel['results'])
             next_url = channel.get('next')
-            page_num += 1
+            if not next_url:
+                return
 
     def _real_extract(self, url):
         return self.playlist_result(self._generate_playlist_entries(), 'myshows')
@@ -281,20 +279,17 @@ class NebulaChannelIE(NebulaBaseIE):
         for page_num in itertools.count(2):
             for episode in channel['episodes']['results']:
                 metadata = self._extract_video_metadata(episode)
-                yield {
-                    '_type': 'url_transparent',
-                    'url': smuggle_url(f'https://nebula.tv/{metadata["display_id"]}', {'id': metadata['id']}),
-                    **metadata,
-                }
+                yield self.url_result(smuggle_url(
+                    episode.get('share_url') or f'https://nebula.tv/videos/{metadata["display_id"]}',
+                    {'id': metadata['id']}), NebulaIE, url_transparent=True, **metadata)
             next_url = channel['episodes'].get('next')
             if not next_url:
                 break
-            channel = self._call_nebula_api(
-                next_url, collection_id, note=f'Retrieving channel page {page_num}')
+            channel = self._call_api(next_url, collection_id, note=f'Retrieving channel page {page_num}')
 
     def _real_extract(self, url):
         collection_id = self._match_id(url)
-        channel = self._call_nebula_api(
+        channel = self._call_api(
             f'https://content.watchnebula.com/video/channels/{collection_id}/',
             collection_id, note='Retrieving channel')
 
