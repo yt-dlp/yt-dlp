@@ -59,6 +59,9 @@ class WDRIE(InfoExtractor):
 
         formats = []
         subtitles = {}
+        
+        # list to track the urls and ensure that not a second manifest url with the same value is added
+        avoid_duplicate_manifest_urls = []
 
         # check if the metadata contains a direct URL to a file
         for kind, media in media_resource.items():
@@ -74,9 +77,14 @@ class WDRIE(InfoExtractor):
                 continue
             if not isinstance(media, dict):
                 continue
-
+            
             for tag_name, medium_url in media.items():
                 if tag_name not in ('videoURL', 'audioURL'):
+                    continue
+                    
+                if medium_url not in avoid_duplicate_manifest_urls:
+                    avoid_duplicate_manifest_urls.append(medium_url)
+                else:
                     continue
 
                 ext = determine_ext(medium_url)
@@ -164,7 +172,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
                 'ext': 'mp3',
                 'display_id': 'wdr3-gespraech-am-samstag/audio-schriftstellerin-juli-zeh-100',
                 'title': 'Schriftstellerin Juli Zeh',
-                'alt_title': 'WDR 3 Gespräch am Samstag',
+                'alt_title': 'WDR 3 GesprÃ¤ch am Samstag',
                 'upload_date': '20160312',
                 'description': 'md5:e127d320bc2b1f149be697ce044a3dd7',
                 'is_live': False,
@@ -232,7 +240,7 @@ class WDRPageIE(WDRIE):  # XXX: Do not subclass from concrete IE
             'info_dict': {
                 'id': 'mdb-1556012',
                 'ext': 'mp4',
-                'title': 'DHB-Vizepräsident Bob Hanning - "Die Weltspitze ist extrem breit"',
+                'title': 'DHB-VizeprÃ¤sident Bob Hanning - "Die Weltspitze ist extrem breit"',
                 'upload_date': '20180111',
             },
             'params': {
