@@ -4919,8 +4919,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'thumbnails': (primary_thumbnails or playlist_thumbnails) + avatar_thumbnails + channel_banners,
         })
 
-        channel_handle = (self.handle_from_url(traverse_obj(metadata_renderer, 'vanityChannelUrl'))  # TODO: also try ownerUrls from metadata renderer (channel)
-                          or traverse_obj(data, ('header', ..., 'channelHandleText', {self.handle_or_none}), get_all=False))
+        channel_handle = (
+            traverse_obj(metadata_renderer, (('vanityChannelUrl', ('ownerUrls', ...)), {self.handle_from_url}), get_all=False)
+            or traverse_obj(data, ('header', ..., 'channelHandleText', {self.handle_or_none}), get_all=False))
 
         if channel_handle:
             info.update({
@@ -6632,7 +6633,6 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
         timestamp = (self._parse_time_text(self._get_text(notification, 'sentTimeText'))
                      if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE)
                      else None)
-        # TODO: channel handle
         return {
             '_type': 'url',
             'url': url,
